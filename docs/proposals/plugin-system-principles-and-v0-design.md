@@ -189,7 +189,35 @@ PluginControlPlane
 - 记忆：插件默认仅自己 namespace 读写；global query 独立授权；全局写入走内核蒸馏晋升，不直接写。
 - 每个能力域开放前必须列出存量数据 mapping + migration + rollback；本轮不为旧接口留 adapter，但不能丢旧消息、配置、binding、schedule 或 plugin state。
 
-### 3.7 首验次序（P4、P14）
+### 3.7 UI Contribution：两类形态（P5、P7、P13）
+
+前台猫与插件配置管理正好代表两个方向，分开设计：
+
+**A 类：In-console contribution（宿主渲染，声明式）**——插件在 Console 已有组件语言内补充入口，参考 IDE 插件模式（安装后出现对应管理菜单/按钮/页签）：
+
+```
+manifest.contributions:
+  settingsSections[]   → 插件配置页（由 config schema 自动生成 + 可扩展 section）
+  navItems[]           → 导航/页签级入口（重能力）
+  composerActions[]    → 输入框动作按钮（如语音输入）
+  elementRenderers[]   → 消息元素渲染器（如音频播放器）
+  threadPanels[]       → 侧栏面板
+```
+
+- **声明式 + 宿主渲染**：contribution 是数据（引用宿主已知 renderer 类型 + 插件数据/回调经 SDK 通道），不是插件自带 DOM/iframe——样式语言天然一致，主题/无障碍/布局由宿主统一保证。不受信插件的自由 UI（iframe 沙箱）不进 v0。
+- **capability-gate 原生集成**：contribution 挂在 feature 上，feature 未启用 → 不装配。由此"默认折叠/关闭、启用才出现"不是独立的前端改造工程，而是**存量功能插件化收编的自动副产品**——语音收编完成时，语音按钮的按需装配随之成立。
+- 交互细节（管理菜单入口、折叠策略、空态）走 Console 既有 Design Gate 流程。
+
+**B 类：独立窗口 contribution（插件自有 surface）**——插件拉起独立于主窗口的原生窗口（桌宠在桌面游走、未来的视频/语音实况交互窗）：
+
+- manifest 声明 `windows[]`；宿主 SDK 提供窗口生命周期与属性（create/show/hide · frameless/transparent/always-on-top/skip-taskbar），**窗口内容完全属于插件**（自选技术栈，P7 壳无关在 UI 层的体现）
+- **窗口生命周期独立于主窗口**：主窗口最小化/收进托盘后，已启用插件的窗口继续存活——"桌宠在桌面上玩"的技术前提；具体行为逻辑在插件实现内
+- B 类是高敏 capability（可绘制于用户桌面任意位置）：按信任分级授权，创建/常驻状态在控制面可见可关（P13）
+- 首个消费者：foreground-cat（desktop-pet-surface）；probe-desktop 的授权状态浮窗同属此类
+
+分工含义：A 类 slot 体系随 Console 属内核仓；B 类窗口 runtime 属插件仓 standalone 壳（issue #1 底盘范围），内核只提供窗口 API 薄层与授权控制面。
+
+### 3.8 首验次序（P4、P14）
 
 1. **Contract conformance fixture + loopback plugin（M0）**：只验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；它是测试夹具，不是产品插件。
 2. **GitHub**：验证 schedule + state。当前 F202 `factoryId` 是宿主白名单工厂；目标是宿主持有调度、插件 runtime 持有声明过的 task 实现，不把 GitHub 业务继续留在内核。
@@ -200,7 +228,7 @@ PluginControlPlane
 
 GitHub 是第一个真实插件验证器，但**不能单独验证 M0 的标准 I/O**；M0 必须先有最小 loopback/standalone 纵切。
 
-### 3.8 已收敛结论与带给对方的问题
+### 3.9 已收敛结论与回应结构
 
 **本轮已收敛**：
 1. MessageEnvelope 需要 actor、稳定 elementId、causation/correlation、外部幂等键；异步 TTS 通过 `message.elements.append` 事件，不重发整个 envelope。
