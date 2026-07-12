@@ -191,7 +191,8 @@ PluginControlPlane
 - **state**：v0 以宿主 namespace KV 为默认且 TTL=0；schema/version/migration 属插件，宿主负责原子切换与失败回滚。需要自管文件时必须在 manifest 声明数据目录；插件不得在 uninstall hook 中自行删除未声明数据。
 - **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除 ②`retained`：由宿主统一管理、永不随卸载消亡（静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定。
 - **dataClass 约束（宿主可验证，策略的前置分类）**：每个数据集必须先声明 `dataClass: cache/ephemeral | user-authored/derived-user-visible`。**只有 cache/ephemeral 类允许 `lifecycle`**；用户可见/可恢复预期的数据（user-authored/derived-user-visible）强制 `retained` 或 `ask-on-uninstall`——用户状态默认持久化、删除只能用户 opt-in 是硬边界，开发者声明不能越过它。宿主对 dataClass 与策略组合做安装期校验，不合法组合拒绝安装。
-- 记忆：插件默认仅自己 namespace 读写；global query 独立授权；全局写入走内核蒸馏晋升，不直接写。
+- 记忆：插件默认仅自己 namespace 读写；`memory.retrieve` 独立授权（宿主中介、purpose-scoped）；全局写入走内核蒸馏晋升，不直接写。
+- **猫的私密空间为 dataClass 级排除（非授权级）**：记忆数据模型预留 `visibility: normal | cat_private` 维度（作为需求提给 #1047 的数据模型，P8）；`retrieve` **硬排除 `cat_private`**——即使用户授权检索，猫的主体性数据（私人日记/私人时间痕迹）也不经插件通道暴露，除非猫侧主动策展公开。"猫把日记给你看"与"插件替猫翻日记"是两件事，前者是产品机制，后者结构性不可达。
 - 每个能力域开放前必须列出存量数据 mapping + migration + rollback；本轮不为旧接口留 adapter，但不能丢旧消息、配置、binding、schedule 或 plugin state。
 
 ### 3.7 UI Contribution：两类形态（P5、P7、P13）
@@ -214,6 +215,7 @@ PluginControlPlane
 
 - manifest 声明 `windows[]`；宿主 SDK 提供窗口生命周期与属性（create/show/hide · frameless/transparent/always-on-top/skip-taskbar），**窗口内容完全属于插件**（自选技术栈，P7 壳无关在 UI 层的体现）
 - **窗口生命周期独立于主窗口**：主窗口最小化/收进托盘后，已启用插件的窗口继续存活——"桌宠在桌面上玩"的技术前提；具体行为逻辑在插件实现内
+- **窗口状态上报义务（presence handover 的契约前提）**：`windows[]` 声明的每个窗口在握手后向 broker 状态面上报 `created/visible/hidden/alive`（进状态面，非新事件通道）——宿主 presence 逻辑据此实现"同一只猫同一时刻只有一个主身体"（桌面身体上线时，Hub 内同猫退化为指示器）。P11 在 UI surface 的自然延伸
 - B 类是高敏 capability（可绘制于用户桌面任意位置）：按信任分级授权，创建/常驻状态在控制面可见可关（P13）
 - 首个消费者：foreground-cat（desktop-pet-surface）；probe-desktop 的授权状态浮窗同属此类
 
@@ -229,6 +231,10 @@ PluginControlPlane
 6. **foreground-cat**：验证第一方同通道、memory/thread 高敏授权、UI surface。
 
 GitHub 是第一个真实插件验证器，但**不能单独验证 M0 的标准 I/O**；M0 必须先有最小 loopback/standalone 纵切。
+
+**两条并行线（显式化，避免单序列误读）**：
+- **收编线**（契约域完备性验证）：loopback fixture(M0) → GitHub → voice-suite → IM connector → weixin-mp → foreground-cat 全量
+- **体验线**（产品里程碑，与收编线并行推进）：M0 fixture → **M1 = probe-desktop 最小版 + foreground-cat 最小版垂直切片**（"打开文件→猫跑过来→问要不要总结"），只消费已冻结域子集（messaging + B 类窗口 + desktop event source + 结算骨架）——M1 是双方确认的 aha 样板，排期不被收编线吃掉；两个插件的全量收编仍按收编线尾部进行。
 
 ### 3.9 已收敛结论与回应结构
 
