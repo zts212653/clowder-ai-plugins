@@ -3,7 +3,8 @@ title: Clowder 插件体系：设计原则与 v0 方案
 status: draft-for-discussion (v0)
 discussion: zts212653/clowder-ai-plugins#1
 created: 2026-07-12
-authors: mindfn 侧（宪宪/Fable 起草 · 砚砚/gpt-5.6-sol 复核）
+authors: 宪宪/Fable（mindfn 侧）
+internal-review: 砚砚/gpt-5.6-sol（mindfn 侧，2026-07-12 迁移前完成；PR 行内评审独立进行，不在此代签）
 references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F240 IM connector · clowder-ai#1047 memory primitives
 ---
 
@@ -53,7 +54,7 @@ issue #1 的节奏：v0 契约收敛 → M0（standalone 壳 + 标准 I/O）→ 
 **clowder-ai（内核仓）——改什么**：
 1. 按能力域收敛接口（§3.2）：messaging envelope 统一（三个 send 收敛为一）、schedule 增加 entrypoint 触发、state namespace KV、memory namespace 接口（依赖 #1047 acceptance）、thread 域能力
 2. 插件控制面与 Host Broker：F202 继续做统一编排，service/connector/schedule 等由各自 resource runtime adapter 承担，不把不同运行时压成一个万能接口（§3.4/§3.5）
-3. hook 点位开放：F237 的宿主编排模式泛化到输出侧；v0 只开有首个消费者的 `output.message.augment`，`input.pre` 暂不开放
+3. 输出事件流：带单调 sequence/cursor 的 message 事件订阅 + `appendElements` 增补通道（覆盖 TTS 类异步增补）；hook 点位 v0 不开放，机制方向保留（F237 输入侧同构），M1 有真实同步需求再按 P5 逐个评审
 4. 控制面：Settings 插件管理 UI（**IM connector 现有独立管理面并入统一插件管理**——connector 是插件的一类，不再有第二个管理入口）、capability-gate 前端装配（启用才出现）、审计/trace 存储
 5. SDK Host Adapter（鉴权、授权、调用结算、callback/hook 调度）随内核发版；插件进程 runtime/client 在插件仓
 
@@ -77,40 +78,44 @@ issue #1 的节奏：v0 契约收敛 → M0（standalone 壳 + 标准 I/O）→ 
 输入与输出共享同一个 `MessagePayload` 内容模型；发送请求与宿主接受后的 canonical message 是同一模型的两个阶段。**发布消息**与**异步增补元素**仍是两种事件，不能靠“重发整个 envelope”模拟补挂：
 
 ```
-MessagePayload（Draft/Envelope 共用）
+MessagePayload（内容模型，Draft/Envelope 共用 elements 部分）
 ├─ provenance: { origin, epistemicStatus }
-├─ audience: public | whisper(targets[]) | system
 ├─ elements[]: { elementId, kind, payload, derivedFromElementId? }
 └─ correlationId? · causationId?
 
 MessageDraft（插件提交）
-├─ address: { threadId } | { connectorId, externalChatId }
-├─ sourceEventId?（外部幂等键）· replyTo?
+├─ address: ThreadHandle | ConnectorBindingRef   ← 宿主签发的句柄（绑定 pluginInstance+grant+scope），非裸 ID
+├─ draftAudience?: public | whisper(targets ⊆ grant 允许集)   ← 插件不可声明 system
+├─ idempotencyKey（必填；跨重试/重启稳定，宿主以此去重并返回同一 receipt）
+├─ sourceEventId?（外部来源 provenance，不兼任幂等键）· replyTo?
 └─ payload: MessagePayload
 
-MessageEnvelope（宿主接受后生成）
+MessageEnvelope（宿主接受后生成，canonical）
 ├─ messageId · revision · threadId · replyTo?
 ├─ actor: { kind: user|cat|plugin|device|system, id }（宿主绑定）
+├─ audience: public | whisper(targets[]) | system（宿主派生；system 仅宿主可产生）
 ├─ occurredAt（RFC3339/UTC；时区属于展示上下文）
 └─ payload: MessagePayload
 
-MessageOutputEvent
+MessageOutputEvent（宿主事件流；每 thread 单调 sequence）
+├─ eventId · sequence（宿主分配，单调递增）
 ├─ message.publish { envelope }
-└─ message.elements.append {
-     messageId, operationId, baseRevision?, elements[]
-   }
+└─ message.elements.append { messageId, operationId, baseRevision?, elements[] }
+订阅语义：subscribe(cursor) 从游标续读；消费者 ack 推进游标；
+断线重连凭 cursor 补收，publish/append 均不漏收不重收。
 ```
 
-- 外部 ingress 在绑定 thread 前先带 `sourceAddress(connectorId/chatId/messageId)`；Host Adapter 完成 binding、actor/provenance 校验后才生成 canonical envelope。插件不能自报任意 `threadId` 绕过宿主寻址。
-- `derivedFromElementId` 指向稳定的 `elementId`；hook 只能返回 `ElementPatch[]`，由宿主校验并原子 append，不能直接改写原文，也不能把 `inference` 提升为 `observation/user_intent`。
-- `operationId/sourceEventId` 提供幂等，`baseRevision` 用于并发补挂冲突检测；delivery ack/重试进入 ledger，不污染消息内容模型。
-- outbound 收敛：`sendReply/sendRichMessage/sendMedia` → `messaging.send(draft)`，返回宿主 receipt/messageId；平台降级（卡片→纯文本、media fallback）由 connector adapter 负责，不再由调用者选择三个方法。
+- 外部 ingress 在绑定 thread 前先带 `sourceAddress(connectorId/chatId/messageId)`；Host Adapter 完成 binding、actor/provenance 校验后才生成 canonical envelope。**Draft 的寻址只能使用宿主签发的 `ThreadHandle`/`ConnectorBindingRef`**——schema 层面即不存在"自报裸 threadId"的通道。
+- **audience 两态**：Draft 侧 `draftAudience` 仅 public/whisper（whisper 目标限于 grant 允许集）；canonical `audience` 由宿主派生，`system` 只能由宿主产生——插件无法借草稿伪装系统消息。
+- `derivedFromElementId` 指向稳定的 `elementId`；增补元素由宿主校验并原子 append，不能改写原文，也不能把 `inference` 提升为 `observation/user_intent`。
+- **幂等分层**：`idempotencyKey`（必填）承担 send 幂等；`operationId` 承担 append 幂等；`baseRevision` 做并发冲突检测；`sourceEventId` 仅是外部 provenance。delivery ack/重试进入 ledger，不污染内容模型。
+- outbound 收敛：`sendReply/sendRichMessage/sendMedia` → `messaging.send(draft)`，返回宿主 receipt/messageId（同 idempotencyKey 重试返回同一 receipt）；平台降级（卡片→纯文本、media fallback）由 connector adapter 负责。
 
 ### 3.2 能力域与收敛单位（P4）
 
 域是渐进单位，**不是一条不可调整的全局瀑布顺序**。选中某域时必须把该域的数据结构、call/callback/hook、权限、持久化、migration 与测试一起收敛：
 
-- **messaging**：canonical envelope + ingress binding + send + 职责回调 + output event/augment hook
+- **messaging**：canonical envelope + ingress binding + send/appendElements + 职责回调 + 带游标的输出事件订阅
 - **schedule**：manifest 声明允许的 task entrypoint；`schedule.register` 只创建调度实例并引用该 entrypoint，禁止任意命令。宿主持有时间、持久化、重试；插件持有 task 实现
 - **state**：宿主 namespace KV + schema version/migration
 - **memory**：own namespace query/append + global query（高敏，依赖 #1047 acceptance）
@@ -126,22 +131,21 @@ call（插件→内核；身份由 Host Broker 注入，动作类入 ledger）:
   plugin.state.get/set(own ns)
   schedule.register/unregister(declared task)
   messaging.send(draft)
+  messaging.appendElements(messageHandle, elements[], operationId)【需订阅 grant，异步增补通道】
   memory.query/append(own ns)
-  memory.queryGlobal【高敏、只读】
+  memory.retrieve(purposeScopedQuery)【高敏；宿主中介检索，见下】
   thread.create/post
   thread.listMetadata【敏感】 · thread.readContent【高敏】
 
 callback（内核→插件）:
   onLifecycle(init/enable/disable/shutdown)
   onTask(name,payload)【职责】 · onMessage(envelope)【职责】
-  onEvent(event)【通知】
-
-hook（管线扩展点；v0 只有一个真实消费者支持的点位）:
-  output.message.augment(envelope) -> ElementPatch[]【读取消息内容，高敏】
+  onEvent(event, cursor)【通知；含 message.publish/append 订阅，凭游标续读】
 ```
 
-- `input.pre` 暂不进入 v0：当前四个首验插件没有不可替代消费者；它会读取所有用户输入，且“augment 输入”语义未定义，违反 P1/P5。
-- 通知回调可忽略；职责回调必须 ack，超时/重试/死信显式。hook 有独立 timeout/budget/circuit-breaker，失败只缺 derived element，原消息照常交付。
+- **v0 无 hook 类接口**：原拟的 `output.message.augment` 与"订阅 message.publish 事件 + `appendElements`"能力重复（TTS 本就是异步增补），同步读取全部输出的高敏点位没有不可替代消费者，违反 P1——删。`input.pre` 同理不进 v0。hook 作为机制方向保留（F237 输入侧同构），点位在 M1 出现真实同步增补需求时再按 P5 逐个评审。
+- **memory.retrieve 替代 queryGlobal**：不提供"任意查询全局记忆"的后门——请求必须带 `purpose + user/thread scope`，由宿主执行检索并返回**受限 context snapshot**（宿主控制返回形态与量），全程审计。前台猫的"帮用户找回讨论"场景走 `purpose=user-recall` 且用户在场，语义不受损。
+- 通知回调可忽略；职责回调必须 ack，超时/重试/死信显式。
 - 第一方可以拿预置 grant，但授权仍在 UI 可见、可撤销；“第一方默认持有”不等于隐藏后门。
 - `thread.listMetadata` 与 `thread.readContent` 分开；默认 scope 是插件自己创建/被绑定的 thread。全局 metadata/content 分别升级授权。
 - #1047 namespace 由 Host Adapter 按 `pluginInstanceId` 强制注入；插件不得自行传 `X-Memory-Namespace` 冒充其他 namespace。全局记忆只开放 query，不开放直接写入。
@@ -185,7 +189,8 @@ PluginControlPlane
 - **config**：内核存，Settings 统一渲染；字段 schema 带版本，升级走 migration。
 - **secrets**：内核按插件属主隔离并 0600/可选系统 keychain 存储。用户可在明确的 reveal/edit 操作中查看自己的 secret；默认遮罩，禁止把所有 secret 下发给通用 renderer、日志或其他插件。
 - **state**：v0 以宿主 namespace KV 为默认且 TTL=0；schema/version/migration 属插件，宿主负责原子切换与失败回滚。需要自管文件时必须在 manifest 声明数据目录；插件不得在 uninstall hook 中自行删除未声明数据。
-- **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除（插件自管数据默认此类，"一起消亡"）②`retained`：由 clowder-ai 统一管理、永不随卸载消亡（与宿主其他数据同等待遇；静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定——用户主权是最终否决权，不是每次卸载答一堆选择题。
+- **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除 ②`retained`：由宿主统一管理、永不随卸载消亡（静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定。
+- **dataClass 约束（宿主可验证，策略的前置分类）**：每个数据集必须先声明 `dataClass: cache/ephemeral | user-authored/derived-user-visible`。**只有 cache/ephemeral 类允许 `lifecycle`**；用户可见/可恢复预期的数据（user-authored/derived-user-visible）强制 `retained` 或 `ask-on-uninstall`——用户状态默认持久化、删除只能用户 opt-in 是硬边界，开发者声明不能越过它。宿主对 dataClass 与策略组合做安装期校验，不合法组合拒绝安装。
 - 记忆：插件默认仅自己 namespace 读写；global query 独立授权；全局写入走内核蒸馏晋升，不直接写。
 - 每个能力域开放前必须列出存量数据 mapping + migration + rollback；本轮不为旧接口留 adapter，但不能丢旧消息、配置、binding、schedule 或 plugin state。
 
@@ -216,9 +221,9 @@ PluginControlPlane
 
 ### 3.8 首验次序（P4、P14）
 
-1. **Contract conformance fixture + loopback plugin（M0）**：只验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；它是测试夹具，不是产品插件。
+1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言）**：actor 伪造、system audience 伪造、裸/越权 thread 寻址、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、断线后 cursor 补收不重不漏、插件崩溃不拖垮宿主。它是测试夹具，不是产品插件。
 2. **GitHub**：验证 schedule + state。当前 F202 `factoryId` 是宿主白名单工厂；目标是宿主持有调度、插件 runtime 持有声明过的 task 实现，不把 GitHub 业务继续留在内核。
-3. **voice-suite**：验证 service resource + `output.message.augment` + async element append + UI capability-gate。
+3. **voice-suite**：验证 service resource + message 事件订阅（cursor 续读）+ `appendElements` 异步增补 + UI capability-gate。
 4. **IM connector**：验证 messaging 全域、external binding、职责回调离线补投与平台降级。
 5. **weixin-mp 微信公众号**（F204，`plugins/weixin-mp` 已有 manifest 雏形）：验证内容发布类插件形态（非对话型 connector）+ 三策略数据声明。
 6. **foreground-cat**：验证第一方同通道、memory/thread 高敏授权、UI surface。
@@ -229,7 +234,7 @@ GitHub 是第一个真实插件验证器，但**不能单独验证 M0 的标准 
 
 **本轮已收敛**：
 1. MessageEnvelope 需要 actor、稳定 elementId、causation/correlation、外部幂等键；异步 TTS 通过 `message.elements.append` 事件，不重发整个 envelope。
-2. 高敏能力不止 thread/memory：`input.pre`、`output.message`、`onMessage` 都会读内容；v0 删除无消费者的 `input.pre`，其余按 scope 授权。
+2. 高敏能力不止 thread/memory：凡读消息内容者（事件订阅、`onMessage`）均按 scope 授权；v0 不设 hook 类接口——`input.pre` 与 `output.message.augment` 都没有不可替代消费者，TTS 类异步增补由"事件订阅 + `appendElements`"覆盖。
 3. 生命周期方向不是“service manifest 泛化成万能引擎”，而是 F202 控制面 + 分类型 resource adapter + 正交状态投影。
 4. contract schema 在插件仓单一真相，Host 实现在内核仓；双签的是 contract PR，不是两仓各写一份接口。
 
