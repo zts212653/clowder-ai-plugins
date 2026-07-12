@@ -193,20 +193,17 @@ PluginControlPlane
 
 前台猫与插件配置管理正好代表两个方向，分开设计：
 
-**A 类：In-console contribution（宿主渲染，声明式）**——插件在 Console 已有组件语言内补充入口，参考 IDE 插件模式（安装后出现对应管理菜单/按钮/页签）：
+**A 类：In-console contribution（宿主渲染，声明式）**——插件在 Console 已有组件语言内补充入口，参考 IDE 插件模式（安装后出现对应管理菜单/按钮/页签）。**v0 只定机制骨架，slot 随首验插件逐个开放**（P1/P4）：每开一个 slot 先审该点位数据形状（P5），不预开清单。
 
-```
-manifest.contributions:
-  settingsSections[]   → 插件配置页（由 config schema 自动生成 + 可扩展 section）
-  navItems[]           → 导航/页签级入口（重能力）
-  composerActions[]    → 输入框动作按钮（如语音输入）
-  elementRenderers[]   → 消息元素渲染器（如音频播放器）
-  threadPanels[]       → 侧栏面板
-```
+机制骨架三件（全部有 IDE 界多年验证的先例）：
 
-- **声明式 + 宿主渲染**：contribution 是数据（引用宿主已知 renderer 类型 + 插件数据/回调经 SDK 通道），不是插件自带 DOM/iframe——样式语言天然一致，主题/无障碍/布局由宿主统一保证。不受信插件的自由 UI（iframe 沙箱）不进 v0。
+1. **锚点组位置模型**（IntelliJ Action Group / VS Code menus 同款）：宿主维护**锚点组注册表**（如 `composer.actions`、`nav.sections`、`message.toolbar`、`thread.panels`），插件 contribution 只能以 `{ group, anchor?: before|after <id>, order? }` 挂进已知组——**布局结构（栏/区/分割）宿主独有，插件永远只是组里的条目**。"整体布局不让插件随便改"由此机制化：允许调整的位置 = 注册表里有的组，调整程度 = 组内排序与显隐，仅此而已。
+2. **command 间接层联动模型**（VS Code contribution points 的核心设计，PyCharm Action System 同理）：UI 元素**不直接绑代码，绑 `command` id**——manifest 声明 command，插件 runtime 注册 handler；用户点击 → 宿主捕获 → Host Broker 路由（capability 校验 + trace + ledger，即 callback 通道的 `onCommand` 类型）→ 插件执行 → 可选 UI 反馈。按钮的可见/可用由声明式 `when` 条件驱动（v0 只支持 capability/feature 状态级条件，不做完整表达式语言）。
+3. **settings 不开自定义**：插件配置页由 config schema 自动生成（现有 connector/plugin 配置模式的延续，已足够通用）；插件最多声明字段分组/描述/顺序，不提供自定义 settings UI——省掉一个高成本低收益且样式易失控的扩展点。
+
+- **声明式 + 宿主渲染**：contribution 是数据，不是插件自带 DOM/iframe——样式语言天然一致，主题/无障碍/布局由宿主统一保证。不受信插件的自由 UI（iframe 沙箱）不进 v0。
 - **capability-gate 原生集成**：contribution 挂在 feature 上，feature 未启用 → 不装配。由此"默认折叠/关闭、启用才出现"不是独立的前端改造工程，而是**存量功能插件化收编的自动副产品**——语音收编完成时，语音按钮的按需装配随之成立。
-- 交互细节（管理菜单入口、折叠策略、空态）走 Console 既有 Design Gate 流程。
+- slot 开放节奏跟随首验：voice-suite 开 `composer.actions` + 消息元素渲染；GitHub 视需要开 `nav.sections`；每次开放走 Console 既有 Design Gate 流程。
 
 **B 类：独立窗口 contribution（插件自有 surface）**——插件拉起独立于主窗口的原生窗口（桌宠在桌面游走、未来的视频/语音实况交互窗）：
 
