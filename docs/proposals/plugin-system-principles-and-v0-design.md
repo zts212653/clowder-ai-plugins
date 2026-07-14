@@ -23,11 +23,11 @@ references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F24
 | P5 | **hook 点位先审数据形状**：开点位 = 内部结构升格为公开契约 | hook 会把当下结构的不合理冻结进插件生态 |
 | P6 | **宿主编排取代插件点对点绑定**：插件不得持有另一插件实例或私有 API；组合经宿主编排（v0 = 事件订阅 + `appendElements` 增补；hook 点位 future-reserved，非 v0 公开协议） | 避免插件网状耦合；F237 已验证宿主管理的 resolve→fire→trace 模式（内核既有），第三方 hook 的隔离/超时语义待 M1 需求出现再定义 |
 | P7 | **壳无关**：契约不规定实现载体 | 抽象对了，Electron/Tauri 是插件自己的实现细节 |
-| P8 | **数据归属分明**：config/secrets/state 三分；插件数据 namespace 隔离；身份/记忆/会话真相只在内核，全局记忆写入走蒸馏晋升。**记忆接口唯一改造场是 #1047**：插件记忆需求（namespace 强制注入、global 只读等）作为输入提给 #1047 的接口抽象，不满足就推动那边调整，不绕开自建 | 插件不成为真相第二来源；桌宠"真"的来源在内核；记忆接口双轨会立刻违反 P15 |
+| P8 | **数据归属分明**：config/secrets/state 三分；插件数据 namespace 隔离；身份/记忆/会话真相只在内核，全局记忆写入走蒸馏晋升。**记忆接口唯一改造场是 #1047**：插件记忆需求（namespace 强制注入、宿主中介的受限 `memory.retrieve` 等）作为输入提给 #1047 的接口抽象，不满足就推动那边调整，不绕开自建 | 插件不成为真相第二来源；桌宠"真"的来源在内核；记忆接口双轨会立刻违反 P15 |
 | P9 | **桌面单用户检查**：每条安全约束先问“威胁在单用户桌面存在吗”；核心边界是跨插件隔离，而不是阻止用户查看自己的数据 | 不制造 SaaS 式虚空防御；但仍防 renderer/XSS/日志/截图意外泄露，用户显式查看自己的 secret ≠ 向所有前端或插件广播明文 |
 | P10 | **推断不执行**：origin × epistemicStatus 两轴原生长在 envelope；inference 只能触发建议/确认 | issue #1 中 maintainer 提出的不让步项 2；本条即我方确认接受的表态 |
 | P11 | **一切插件行为可追溯**：call/callback/事件投递全部留痕（future hook 同规则） | trace 语义必须长在接口签名里，事后补加等于重做；F237 resolve→fire→trace 已验证 |
-| P12 | **动作有账，失败显式**：动作幂等入结算账本；职责回调必须应答；augment 失败 = 元素缺失式降级；插件失败（含崩溃/资源耗尽）不拖垮内核、不静默吞 | 语义决定接口形状（callId/ack/超时字段）；"桌宠崩了 Clowder 不崩"是硬承诺 |
+| P12 | **动作有账，失败显式**：动作幂等入结算账本；职责回调必须应答；`appendElements` 失败 = 目标增补元素缺失式降级（原消息照常送达；future hook 同语义）；插件失败（含崩溃/资源耗尽）不拖垮内核、不静默吞 | 语义决定接口形状（callId/ack/超时字段）；"桌宠崩了 Clowder 不崩"是硬承诺 |
 | P13 | **用户主权**：装/卸/启/停/授权/撤销/数据清除全部用户可见可操作；插件不能自启、不能自我续权、不能绕控制面 | proposal-first 的正面原则化；没有它前 12 条管住接口管不住行为 |
 | P14 | **第一方不走后门**：语音/GitHub/IM/前台猫全走同一套 SDK；第一方与第三方差别只在能力授权集，不在通道 | SDK 撑不起自家插件就撑不起第三方；走捷径会让 SDK 退化成二等公民 |
 | P15 | **契约只有一个机器可读真相源**：schema、类型、capability 表与 conformance fixtures 同包发布；内核和插件 SDK 都消费它，不复制定义 | 两仓协作不能变成两份 schema；文档可分仓解释，契约结构不能双写漂移 |
@@ -106,6 +106,8 @@ MessageOutputEvent（宿主事件流）
 │  宿主持久化每消费者已 ack 游标，重启后从游标续投
 ├─ 投递保证 = 未 ack **至少一次投递** + 消费者凭 eventId 去重/幂等消费；
 │  消费成功与 ack 非原子——ack 前崩溃会重投，消费者实现必须幂等
+├─ 防误用：cursor 是 **opaque 的 subscription-local token，不等同于 sequence**；
+│  实现者不得以单一 sequence 跨 thread 推进游标
 └─ replay retention：宿主保留窗口内事件可重放；游标落后超出窗口时
    订阅进入 stale 态，需走快照追平（fixture 覆盖此路径），不静默丢事件
 ```
@@ -127,7 +129,7 @@ MessageOutputEvent（宿主事件流）
 - **thread**：create/post/list-metadata/read-content/events，按内容敏感度拆授权
 - **ui-contribution**：slot 注册 + capability-gate + renderer 隔离
 
-### 3.3 SDK 三类接口与敏感分级（P1、P6、P9、P13）
+### 3.3 SDK 两类接口与敏感分级（P1、P6、P9、P13）
 
 ```
 call（插件→内核；身份由 Host Broker 注入，动作类入 ledger）:
