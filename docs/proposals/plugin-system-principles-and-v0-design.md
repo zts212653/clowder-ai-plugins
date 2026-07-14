@@ -128,6 +128,21 @@ MessageOutputEvent（宿主事件流）
 - **memory**：own namespace query/append + `memory.retrieve`（宿主中介受限检索，高敏；依赖 #1047 acceptance）
 - **thread**：create/post/list-metadata/read-content/events，按内容敏感度拆授权
 - **ui-contribution**：slot 注册 + capability-gate + renderer 隔离
+- **signals/events（事件输入面）**：声明式信号 + 发布 + wake route + 类型化 liveness（§3.2a）
+
+### 3.2a 事件输入面（Event Ingress）——最小骨架四件与排除清单（P1、P5、P10、P12）
+
+M1 引用 desktop event source，故 ingress 契约必须随 v0 落地（否则为悬空引用）。**先排除后定义**：
+
+**v0 明确不造**：stream delivery（无真实消费者；未来经握手 `supportedDeliveryModes` 声明取交集、随新 contract version 进入——不用 enum 预留位，追加枚举值对旧 validator/exhaustive union 是 breaking）；通用 discover/query_manifest 动词（callable 能力披露走各 resource 面，"谁在线"归 Broker registry 内部语义）；统一 heartbeat 动词（liveness 按 runtime 类型拆）；动态 `subscribe()/unsubscribe()`（M1 不需要；动态持久订阅待真实消费者出现后随版本演进，届时再定义 owner/持久化/撤销语义）。
+
+**最小骨架四件**：
+1. **`manifest.signals.provides[]`**：`type + schemaRef + epistemicStatus + privacyClass`——信号是声明出来的，不是运行时冒出来的。
+2. **`events.publish()`**：`eventId + idempotencyKey + occurredAt + payload`；producer identity/provenance 由宿主绑定（与 MessageDraft/Envelope 同款防伪造语义）；插件不得将 `observation` 升格为 `user_intent`。
+3. **Host-owned wake route**：manifest 声明驱动（如 probe 声明 `file.opened` → broker 持有 durable route → 唤醒消费侧 invocation）；route 与插件启停、授权撤销同步生灭；grant-bound + revocable + 入账。
+4. **类型化 liveness 契约**：standalone/长连接 = broker ping-pong 或带 expiry 的 lease；service = shallow/deep health probe（复用既有 service manifest 语义）；remote/paired = 显式 heartbeat；schedule 型 = 不心跳、只记执行结算。**窗口/身体的 `alive` 为 `lastSeen/leaseExpiry` 续租语义，非一次性布尔**——进程死后不得永久"存活"。
+
+**隐私边界（类型级，双检）**：不做按事件名匹配的 denied 清单（改名可绕）——按 `privacyClass/sourceClass` **类型级禁止**：受禁类别的数据不可被声明、不可被发布，manifest conformance 与 Broker ingress **双检**；采集端逐级授权（Tier 0/1）仍是最前一道边界。
 
 ### 3.3 SDK 两类接口与敏感分级（P1、P6、P9、P13）
 
@@ -222,7 +237,7 @@ PluginControlPlane
 
 - manifest 声明 `windows[]`；宿主 SDK 提供窗口生命周期与属性（create/show/hide · frameless/transparent/always-on-top/skip-taskbar），**窗口内容完全属于插件**（自选技术栈，P7 壳无关在 UI 层的体现）
 - **窗口生命周期独立于主窗口**：主窗口最小化/收进托盘后，已启用插件的窗口继续存活——"桌宠在桌面上玩"的技术前提；具体行为逻辑在插件实现内
-- **窗口状态上报义务（presence handover 的契约前提）**：`windows[]` 声明的每个窗口在握手后向 broker 状态面上报 `created/visible/hidden/alive`（进状态面，非新事件通道）——宿主 presence 逻辑据此实现"同一只猫同一时刻只有一个主身体"（桌面身体上线时，Hub 内同猫退化为指示器）。P11 在 UI surface 的自然延伸
+- **窗口状态上报义务（presence handover 的契约前提）**：`windows[]` 声明的每个窗口在握手后向 broker 状态面上报 `created/visible/hidden` + **`lastSeen/leaseExpiry` 续租式存活**（§3.2a liveness 契约的窗口形态；进程死后 lease 过期即视为离线，不存在一次性 `alive` 布尔）——宿主 presence 逻辑据此实现"同一只猫同一时刻只有一个主身体"（桌面身体上线时，Hub 内同猫退化为指示器）。P11 在 UI surface 的自然延伸
 - B 类是高敏 capability（可绘制于用户桌面任意位置）：按信任分级授权，创建/常驻状态在控制面可见可关（P13）
 - 首个消费者：foreground-cat（desktop-pet-surface）；probe-desktop 的授权状态浮窗同属此类
 
