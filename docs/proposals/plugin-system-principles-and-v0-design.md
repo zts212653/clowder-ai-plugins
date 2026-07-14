@@ -137,10 +137,10 @@ M1 引用 desktop event source，故 ingress 契约必须随 v0 落地（否则�
 **v0 明确不造**：stream delivery（无真实消费者；未来经握手 `supportedDeliveryModes` 声明取交集、随新 contract version 进入——不用 enum 预留位，追加枚举值对旧 validator/exhaustive union 是 breaking）；通用 discover/query_manifest 动词（callable 能力披露走各 resource 面，"谁在线"归 Broker registry 内部语义）；统一 heartbeat 动词（liveness 按 runtime 类型拆）；动态 `subscribe()/unsubscribe()`（M1 不需要；动态持久订阅待真实消费者出现后随版本演进，届时再定义 owner/持久化/撤销语义）。
 
 **最小骨架四件**：
-1. **`manifest.signals.provides[]`**：`type + schemaRef + epistemicStatus + privacyClass`——信号是声明出来的，不是运行时冒出来的。
+1. **`manifest.signals.provides[]`**：`type + schemaRef + epistemicStatus + privacyClass + sourceClass`——信号是声明出来的，不是运行时冒出来的；`sourceClass` 为机器字段（安装期据此做 conformance 校验，不留在 prose）。
 2. **`events.publish()`**：`eventId + idempotencyKey + occurredAt + payload`；producer identity/provenance 由宿主绑定（与 MessageDraft/Envelope 同款防伪造语义）；插件不得将 `observation` 升格为 `user_intent`。
-3. **Host-owned wake route**：manifest 声明驱动（如 probe 声明 `file.opened` → broker 持有 durable route → 唤醒消费侧 invocation）；route 与插件启停、授权撤销同步生灭；grant-bound + revocable + 入账。
-4. **类型化 liveness 契约**：standalone/长连接 = broker ping-pong 或带 expiry 的 lease；service = shallow/deep health probe（复用既有 service manifest 语义）；remote/paired = 显式 heartbeat；schedule 型 = 不心跳、只记执行结算。**窗口/身体的 `alive` 为 `lastSeen/leaseExpiry` 续租语义，非一次性布尔**——进程死后不得永久"存活"。
+3. **Host-owned wake route（持久化与寻址权都归宿主）**：producer manifest 只声明"我能提供什么信号"；**具体 consumer/cat/feature、filter 与 wake policy 由宿主按授权配置创建，插件不得指定任意猫、thread 或 invocation target**。route 与插件启停、授权撤销同步生灭；grant-bound + revocable + 入账。
+4. **类型化 liveness 契约（权威时间由 Broker 生成）**：standalone/长连接 = broker ping-pong 或带 expiry 的 lease；service = shallow/deep health probe（复用既有 service manifest 语义）；remote/paired = 显式 heartbeat；schedule 型 = 不心跳、只记执行结算。**插件侧只能发送 authenticated ping/pong/renewal；`lastSeen` 由 Broker 收包时盖时钟，`leaseExpiry` 由 Broker 按协商 TTL 计算**——防失控/恶意 runtime 自报遥远 expiry。窗口/身体的存活为续租语义，非一次性布尔。
 
 **隐私边界（类型级，双检）**：不做按事件名匹配的 denied 清单（改名可绕）——按 `privacyClass/sourceClass` **类型级禁止**：受禁类别的数据不可被声明、不可被发布，manifest conformance 与 Broker ingress **双检**；采集端逐级授权（Tier 0/1）仍是最前一道边界。
 
@@ -237,7 +237,7 @@ PluginControlPlane
 
 - manifest 声明 `windows[]`；宿主 SDK 提供窗口生命周期与属性（create/show/hide · frameless/transparent/always-on-top/skip-taskbar），**窗口内容完全属于插件**（自选技术栈，P7 壳无关在 UI 层的体现）
 - **窗口生命周期独立于主窗口**：主窗口最小化/收进托盘后，已启用插件的窗口继续存活——"桌宠在桌面上玩"的技术前提；具体行为逻辑在插件实现内
-- **窗口状态上报义务（presence handover 的契约前提）**：`windows[]` 声明的每个窗口在握手后向 broker 状态面上报 `created/visible/hidden` + **`lastSeen/leaseExpiry` 续租式存活**（§3.2a liveness 契约的窗口形态；进程死后 lease 过期即视为离线，不存在一次性 `alive` 布尔）——宿主 presence 逻辑据此实现"同一只猫同一时刻只有一个主身体"（桌面身体上线时，Hub 内同猫退化为指示器）。P11 在 UI surface 的自然延伸
+- **窗口状态上报义务（presence handover 的契约前提）**：`windows[]` 声明的每个窗口在握手后向 broker 状态面上报 `created/visible/hidden` + **续租式存活**（§3.2a liveness 契约的窗口形态：窗口侧仅发送 authenticated renewal，`lastSeen` 由 Broker 收包盖钟、`leaseExpiry` 由 Broker 按协商 TTL 计算；lease 过期即视为离线，不存在一次性 `alive` 布尔）——宿主 presence 逻辑据此实现"同一只猫同一时刻只有一个主身体"（桌面身体上线时，Hub 内同猫退化为指示器）。P11 在 UI surface 的自然延伸
 - B 类是高敏 capability（可绘制于用户桌面任意位置）：按信任分级授权，创建/常驻状态在控制面可见可关（P13）
 - 首个消费者：foreground-cat（desktop-pet-surface）；probe-desktop 的授权状态浮窗同属此类
 
@@ -245,7 +245,7 @@ PluginControlPlane
 
 ### 3.8 首验次序（P4、P14）
 
-1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言，全集）**：actor 伪造、system audience 伪造、任意 whisper target 伪造（超出 grant 允许集）、裸/越权 thread 寻址、namespace escape（state/memory 跨实例访问）、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、deadline expiry（超时调用的结算与拒绝）、职责 callback retry/dead-letter 路径、断线后 cursor 续投 + 消费幂等（含 ack 前崩溃重投）、retention 越界的 stale 订阅追平、卸载后 retained/ask 类 durable state 不丢失、**P14 断言：第一方插件与第三方走同一 SDK 入口/同一授权流**、插件崩溃不拖垮宿主。它是测试夹具，不是产品插件。
+1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言，全集）**：actor 伪造、system audience 伪造、任意 whisper target 伪造（超出 grant 允许集）、裸/越权 thread 寻址、namespace escape（state/memory 跨实例访问）、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、deadline expiry（超时调用的结算与拒绝）、职责 callback retry/dead-letter 路径、断线后 cursor 续投 + 消费幂等（含 ack 前崩溃重投）、retention 越界的 stale 订阅追平、卸载后 retained/ask 类 durable state 不丢失、**P14 断言：第一方插件与第三方走同一 SDK 入口/同一授权流**、插件崩溃不拖垮宿主；**事件输入面四项**：undeclared/forbidden-class signal 发布拒绝、producer 伪造与认识论升级（observation→user_intent）拒绝、插件自报 wake route target 拒绝、lease 过期后 offline 判定生效。它是测试夹具，不是产品插件。
 2. **GitHub**：验证 schedule + state。当前 F202 `factoryId` 是宿主白名单工厂；目标是宿主持有调度、插件 runtime 持有声明过的 task 实现，不把 GitHub 业务继续留在内核。
 3. **voice-suite**：验证 service resource + message 事件订阅（cursor 续读）+ `appendElements` 异步增补 + UI capability-gate。
 4. **IM connector**：验证 messaging 全域、external binding、职责回调离线补投与平台降级。
