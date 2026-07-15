@@ -23,8 +23,10 @@ export type {
 // Messaging domain
 export type {
   AppendElementsRequest,
+  AppendReceipt,
   CanonicalAudience,
   DraftAudience,
+  ElementKind,
   MessageDraft,
   MessageElement,
   MessageElementsAppendEvent,
@@ -32,8 +34,10 @@ export type {
   MessageOutputEvent,
   MessagePayload,
   MessagePublishEvent,
+  MessagingErrorCode,
   SendReceipt,
-  SubscriptionDelivery,
+  SnapshotResponse,
+  SubscriptionReadResponse,
 } from './messaging.js';
 
 // Manifest (v0.1 scope — signals/tasks/windows deferred to C-2/C-3)

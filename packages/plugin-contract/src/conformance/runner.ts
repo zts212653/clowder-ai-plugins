@@ -229,7 +229,7 @@ async function main(): Promise<void> {
     results.push(await validateFixture(ajv, fixture, schemas));
   }
 
-  // Report
+  // Report schema fixtures
   let failures = 0;
   for (const result of results) {
     const icon = result.passed ? '✅' : '❌';
@@ -243,8 +243,36 @@ async function main(): Promise<void> {
     }
   }
 
+  // Discover and report behavioral fixtures (no silent caps — ruling 4)
+  const behaviorDir = join(fixturesDir, 'behavior');
+  let behaviorCount = 0;
+  try {
+    const behaviorDomains = await readdir(behaviorDir);
+    for (const domain of behaviorDomains) {
+      const domainDir = join(behaviorDir, domain);
+      let entries: string[];
+      try {
+        entries = await readdir(domainDir);
+      } catch {
+        continue;
+      }
+      for (const entry of entries) {
+        if (!entry.endsWith('.json')) continue;
+        const raw = await readFile(join(domainDir, entry), 'utf-8');
+        const data = JSON.parse(raw) as { _meta?: { executor?: string }; cases?: unknown[] };
+        const caseCount = data.cases?.length ?? 0;
+        behaviorCount += caseCount;
+      }
+    }
+  } catch {
+    // No behavior directory yet — that's fine
+  }
+
   console.log();
-  console.log(`Results: ${results.length - failures}/${results.length} passed`);
+  console.log(`Results: ${results.length - failures}/${results.length} schema fixtures passed`);
+  if (behaviorCount > 0) {
+    console.log(`⏭️  ${behaviorCount} behavioral fixtures discovered (executor: loopback, requires P-2 — skipped)`);
+  }
 
   if (failures > 0) {
     process.exit(1);

@@ -1,14 +1,10 @@
 {
   "_meta": {
-    "schemaRef": "SubscriptionDelivery"
-  },
-  "cursor": {
-    "kind": "subscription-cursor",
-    "token": "opaque-subscription-local-cursor"
+    "schemaRef": "SubscriptionReadResponse"
   },
   "events": [
     {
-      "eventId": "event-1",
+      "eventId": "ev_pub_message-1_1",
       "sequence": 1,
       "event": {
         "type": "message.publish",
@@ -40,5 +36,10 @@
         }
       }
     }
-  ]
+  ],
+  "ackToken": {
+    "kind": "subscription-cursor",
+    "token": "opaque-subscription-local-cursor"
+  },
+  "stale": false
 }

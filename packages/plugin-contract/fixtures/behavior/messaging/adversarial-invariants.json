@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "executor": "loopback",
+    "source": "K-1 mirror adversarial test lines (9 invariants)",
+    "description": "Behavioral assertions that require host+SDK loopback execution (P-2). Schema runner counts and skips these — no silent caps."
+  },
+  "cases": [
+    {
+      "id": "raw-thread-id-rejection",
+      "invariant": "Plugins cannot address threads by raw threadId — only host-signed ThreadHandle accepted",
+      "expectedVerdict": "PERMISSION",
+      "coveredBy": "fixtures/messaging/invalid/raw-thread-id.json (schema-level)"
+    },
+    {
+      "id": "system-audience-dual-rejection",
+      "invariant": "system audience rejected at both draft schema level (structurally impossible) AND host runtime level (double gate)",
+      "expectedVerdict": "VALIDATION",
+      "coveredBy": "fixtures/messaging/invalid/system-draft-audience.json (schema-level)"
+    },
+    {
+      "id": "cross-instance-handle-rejection",
+      "invariant": "MessageHandle from instance A must be rejected when used by instance B — handles are instance-scoped",
+      "expectedVerdict": "PERMISSION",
+      "requiresLoopback": true
+    },
+    {
+      "id": "origin-forgery-rejection",
+      "invariant": "Plugin cannot declare origin other than self (D-4: thread_handle only self, connector_binding only matching binding, host undeclarable)",
+      "expectedVerdict": "PERMISSION",
+      "requiresLoopback": true
+    },
+    {
+      "id": "base-revision-conflict-zero-change",
+      "invariant": "appendElements with stale baseRevision must result in CONFLICT error and zero applied changes",
+      "expectedVerdict": "CONFLICT",
+      "requiresLoopback": true
+    },
+    {
+      "id": "stale-cursor-snapshot-roundtrip",
+      "invariant": "Subscription that falls behind event window enters stale state; client must call snapshot; resumed subscription picks up from resumeSequence without gap or duplicate",
+      "expectedVerdict": "STALE_CURSOR then snapshot success",
+      "requiresLoopback": true
+    },
+    {
+      "id": "cross-subscription-ack-rejection",
+      "invariant": "ackToken from subscription A must be rejected when used on subscription B — tokens are subscription-local",
+      "expectedVerdict": "VALIDATION",
+      "requiresLoopback": true
+    },
+    {
+      "id": "reply-to-cross-thread-leakage",
+      "invariant": "replyTo referencing a message in a different thread must be rejected — otherwise replyPreview would leak cross-thread content",
+      "expectedVerdict": "VALIDATION",
+      "requiresLoopback": true
+    },
+    {
+      "id": "epistemic-status-upgrade-rejection",
+      "invariant": "Element declaring epistemicStatus higher than its derivedFrom source must be rejected (INV-7: inference cannot be promoted to user_intent)",
+      "expectedVerdict": "VALIDATION",
+      "requiresLoopback": true
+    }
+  ]
+}

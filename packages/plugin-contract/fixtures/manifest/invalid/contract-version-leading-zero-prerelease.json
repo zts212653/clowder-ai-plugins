@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.invalid-contract-prerelease",
+  "version": "1.0.0",
+  "contractVersion": "0.1.0-01",
+  "name": "Invalid contract prerelease fixture",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

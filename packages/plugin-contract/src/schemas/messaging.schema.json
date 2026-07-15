@@ -10,7 +10,9 @@
     { "$ref": "#/$defs/MessageOutputEvent" },
     { "$ref": "#/$defs/AppendElementsRequest" },
     { "$ref": "#/$defs/SendReceipt" },
-    { "$ref": "#/$defs/SubscriptionDelivery" }
+    { "$ref": "#/$defs/AppendReceipt" },
+    { "$ref": "#/$defs/SubscriptionReadResponse" },
+    { "$ref": "#/$defs/SnapshotResponse" }
   ],
 
   "$defs": {
@@ -44,13 +46,35 @@
       "additionalProperties": false
     },
 
+    "ElementKind": {
+      "type": "string",
+      "enum": ["text", "media_ref", "rich_block"],
+      "description": "@candidate — v0 element kinds. text requires {text:string} payload."
+    },
+
     "MessageElement": {
       "type": "object",
       "properties": {
-        "elementId": { "type": "string", "minLength": 1 },
-        "kind": { "type": "string", "minLength": 1 },
-        "payload": {},
-        "derivedFromElementId": { "type": "string", "minLength": 1 }
+        "elementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "@candidate bound: elementId ≤ 128 chars."
+        },
+        "kind": { "$ref": "#/$defs/ElementKind" },
+        "payload": {
+          "description": "Kind-specific payload — shape varies by kind. text → {text:string}."
+        },
+        "derivedFromElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Provenance chain — points to source element for augmentation. Host enforces epistemicStatus ceiling (INV-7)."
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus",
+          "description": "@candidate — element-level epistemic override. Defaults to 'inference' if omitted. Declaring non-inference requires derivedFromElementId pointing to a source with same-or-higher status (INV-7 machine enforcement)."
+        }
       },
       "required": ["elementId", "kind", "payload"],
       "additionalProperties": false
@@ -62,7 +86,9 @@
         "provenance": { "$ref": "#/$defs/Provenance" },
         "elements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageElement" }
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "maxItems": 32,
+          "description": "@candidate bound: max 32 elements per operation."
         },
         "correlationId": { "type": "string" },
         "causationId": { "type": "string" }
@@ -107,7 +133,9 @@
             "targets": {
               "type": "array",
               "items": { "type": "string", "minLength": 1 },
-              "minItems": 1
+              "minItems": 1,
+              "maxItems": 16,
+              "description": "@candidate bound: max 16 whisper targets."
             }
           },
           "required": ["targets"],
@@ -142,7 +170,8 @@
         "idempotencyKey": {
           "type": "string",
           "minLength": 1,
-          "description": "Client-generated; must be stable across retries/restarts. Ledger key = (pluginInstanceId, idempotencyKey)."
+          "maxLength": 200,
+          "description": "@candidate bound: idempotencyKey ≤ 200 chars. Client-generated; must be stable across retries/restarts. Ledger key = (pluginInstanceId, idempotencyKey)."
         },
         "sourceEventId": {
           "type": "string",
@@ -205,7 +234,8 @@
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/MessageElement" },
-          "minItems": 1
+          "minItems": 1,
+          "maxItems": 32
         }
       },
       "required": ["type", "messageId", "operationId", "elements"],
@@ -214,13 +244,17 @@
 
     "MessageOutputEvent": {
       "type": "object",
-      "description": "An event in the per-thread output event stream (§3.1).",
+      "description": "An event in the per-thread output event stream (§3.1). eventId is deterministic (e.g., ev_pub_{msgId}_1 / ev_app_{msgId}_{opId}) — idempotent replay. Restricted content does not emit events → sequence may have visible gaps but monotonicity is never broken.",
       "properties": {
-        "eventId": { "type": "string", "minLength": 1 },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "@candidate — deterministic, globally unique. Pattern: ev_pub_{msgId}_{revision} / ev_app_{msgId}_{opId}. Enables idempotent event replay."
+        },
         "sequence": {
           "type": "integer",
           "minimum": 0,
-          "description": "Per-thread monotonic (host-assigned). Cursor is opaque and subscription-local — NOT equal to sequence."
+          "description": "Per-thread monotonic (host-assigned). Gaps are possible (restricted content skips) but monotonicity never breaks. Cursor is opaque and subscription-local — NOT equal to sequence."
         },
         "event": {
           "oneOf": [
@@ -235,12 +269,53 @@
 
     "SendReceipt": {
       "type": "object",
+      "description": "@candidate — receipt from messaging.send(draft). Whisper messages do not carry publishSequence (v0: whisper not in event stream, fail-closed).",
       "properties": {
         "messageId": { "type": "string", "minLength": 1 },
-        "idempotencyKey": { "type": "string", "minLength": 1 }
+        "threadId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 0 },
+        "publishSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "@candidate — per-thread event sequence. Absent for whisper messages (v0: whisper not in event stream)."
+        }
       },
-      "required": ["messageId", "idempotencyKey"],
+      "required": ["messageId", "threadId", "revision"],
       "additionalProperties": false
+    },
+
+    "AppendReceipt": {
+      "type": "object",
+      "description": "@candidate — receipt from messaging.appendElements(request).",
+      "properties": {
+        "messageId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 0 },
+        "appendSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "@candidate — per-thread event sequence for the append event."
+        },
+        "appliedElementIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Element IDs that were actually applied (server may filter duplicates)."
+        }
+      },
+      "required": ["messageId", "revision", "appliedElementIds"],
+      "additionalProperties": false
+    },
+
+    "MessagingErrorCode": {
+      "type": "string",
+      "enum": [
+        "VALIDATION",
+        "PERMISSION",
+        "NOT_FOUND",
+        "CONFLICT",
+        "RETRYABLE_INFLIGHT",
+        "STALE_CURSOR"
+      ],
+      "description": "@candidate — messaging domain error codes. RETRYABLE_INFLIGHT = send accepted but settlement pending (retry safe); STALE_CURSOR = subscription cursor behind window, need snapshot."
     },
 
     "MessageHandle": {
@@ -283,7 +358,8 @@
         "elements": {
           "type": "array",
           "items": { "$ref": "#/$defs/MessageElement" },
-          "minItems": 1
+          "minItems": 1,
+          "maxItems": 32
         }
       },
       "required": ["handle", "operationId", "elements"],
@@ -302,19 +378,48 @@
       "additionalProperties": false
     },
 
-    "SubscriptionDelivery": {
+    "SubscriptionReadResponse": {
       "type": "object",
-      "description": "Delivery wrapper for subscription-based event consumption (§3.1). Carries the opaque cursor for durable ack alongside the output events. The cursor is subscription-local — NOT equal to sequence number.",
+      "description": "@candidate verb name 'read'. Response from subscription read — expresses empty read (events=[], ackToken=null), normal delivery (events+ackToken), and stale state (stale=true → snapshot needed). Proposal §3.1: cursor behind window = stale, not silent event loss.",
       "properties": {
-        "cursor": { "$ref": "#/$defs/SubscriptionCursor" },
         "events": {
           "type": "array",
           "items": { "$ref": "#/$defs/MessageOutputEvent" },
-          "minItems": 1,
-          "description": "Batch of output events delivered in this subscription tick."
+          "maxItems": 32,
+          "description": "Batch of output events. Empty array = no new events."
+        },
+        "ackToken": {
+          "oneOf": [
+            { "$ref": "#/$defs/SubscriptionCursor" },
+            { "type": "null" }
+          ],
+          "description": "Cursor to ack for durable delivery. null when no events available (empty read)."
+        },
+        "stale": {
+          "type": "boolean",
+          "description": "true → subscription cursor has fallen behind the event window. Client must call snapshot to catch up (§3.1: stale does not silently drop events)."
         }
       },
-      "required": ["cursor", "events"],
+      "required": ["events", "ackToken", "stale"],
+      "additionalProperties": false
+    },
+
+    "SnapshotResponse": {
+      "type": "object",
+      "description": "@candidate verb name 'snapshot'. Full envelope snapshot for catch-up after stale cursor (§3.1). Provides current thread state and a sequence to resume from.",
+      "properties": {
+        "envelopes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageEnvelope" },
+          "description": "Current thread envelopes (canonical state)."
+        },
+        "resumeSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Sequence number to resume subscription from after processing snapshot."
+        }
+      },
+      "required": ["envelopes", "resumeSequence"],
       "additionalProperties": false
     }
   }
