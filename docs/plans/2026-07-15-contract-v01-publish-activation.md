@@ -15,7 +15,7 @@ created: 2026-07-15
 
 **Goal:** Make the first merge to `main` validate and publish `@clowder-ai/plugin-contract@0.1.0` automatically, while preventing pull-request events or failed validation from publishing.
 
-**Architecture:** Keep `contract-ci.yml` as the single release workflow. The `validate` job remains shared by pull requests and `main` pushes; a dependent `publish` job runs only for `push` on `main`, uses the repository `NPM_TOKEN`, and fails closed when registry credentials are absent. A repository-level regression test pins the package release state and workflow gates so the bootstrap cannot silently return to a private candidate or publish from a pull request.
+**Architecture:** Keep `contract-ci.yml` as the single release workflow. The `validate` job remains shared by pull requests and `main` pushes; a dependent `publish` job runs only for `push` on `main`, packs one artifact, publishes that exact tarball with the repository `NPM_TOKEN`, and fails closed unless the registry reports the expected version and integrity digest. A repository-level regression test pins the package release state and workflow gates so the bootstrap cannot silently return to a private candidate, publish from a pull request, or accept an unverified registry artifact.
 
 **Tech Stack:** GitHub Actions, pnpm 9, npm registry provenance, Node.js 20 test runner.
 
@@ -48,7 +48,7 @@ Set the version to `0.1.0` and set `private` to `false`.
 
 **Step 2: Activate the publish job**
 
-Add a real `publish` job with `needs: validate`, `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`, `contents: read`, `id-token: write`, the same install/build steps as validation, and `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` on the publish step.
+Add a real `publish` job with `needs: validate`, `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`, `contents: read`, `id-token: write`, the same install/build steps as validation, and `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` on the publish step. Pack once, publish that tarball, then poll the exact registry version until its `dist.integrity` matches the packed artifact or the verification window expires.
 
 **Step 3: Run the focused test to verify GREEN**
 
@@ -65,7 +65,7 @@ Expected: PASS.
 
 Run generation freshness, typecheck, unit tests, build, conformance, and `git diff --check`.
 
-Expected: all commands exit 0; conformance remains 21/21 with nine behavior cases structurally validated.
+Expected: all commands exit 0; conformance fixtures and behavior cases remain structurally validated; workflow tests prove exact version + integrity verification is active.
 
 **Step 2: Commit and push**
 
