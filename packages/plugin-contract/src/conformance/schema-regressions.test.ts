@@ -160,3 +160,62 @@ test('draft and append operations retain the 32-element operation cap', () => {
     false,
   );
 });
+
+test('message revisions are one-based across envelopes, receipts, and append guards', () => {
+  const zeroRevisionEnvelope = makeEnvelope(1);
+  zeroRevisionEnvelope['revision'] = 0;
+
+  assert.equal(validate('MessageEnvelope', zeroRevisionEnvelope), false);
+  assert.equal(
+    validate('SendReceipt', {
+      messageId: 'message-1',
+      threadId: 'thread-1',
+      revision: 0,
+    }),
+    false,
+  );
+  assert.equal(
+    validate('AppendReceipt', {
+      messageId: 'message-1',
+      revision: 0,
+      appliedElementIds: ['text-1'],
+    }),
+    false,
+  );
+  assert.equal(
+    validate('AppendElementsRequest', {
+      handle: { kind: 'message', token: 'host-issued-message-handle' },
+      operationId: 'append-at-zero',
+      baseRevision: 0,
+      elements: makeTextElements(1),
+    }),
+    false,
+  );
+
+  assert.equal(validate('MessageEnvelope', makeEnvelope(1)), true);
+  assert.equal(
+    validate('SendReceipt', {
+      messageId: 'message-1',
+      threadId: 'thread-1',
+      revision: 1,
+    }),
+    true,
+  );
+  assert.equal(
+    validate('AppendReceipt', {
+      messageId: 'message-1',
+      revision: 1,
+      appliedElementIds: ['text-1'],
+    }),
+    true,
+  );
+  assert.equal(
+    validate('AppendElementsRequest', {
+      handle: { kind: 'message', token: 'host-issued-message-handle' },
+      operationId: 'append-at-one',
+      baseRevision: 1,
+      elements: makeTextElements(1),
+    }),
+    true,
+  );
+});

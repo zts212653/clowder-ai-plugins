@@ -294,7 +294,7 @@
       "type": "object",
       "properties": {
         "messageId": { "type": "string", "minLength": 1 },
-        "revision": { "type": "integer", "minimum": 0 },
+        "revision": { "type": "integer", "minimum": 1 },
         "threadId": { "type": "string", "minLength": 1 },
         "replyTo": { "type": "string", "minLength": 1 },
         "actor": { "$ref": "#/$defs/ActorRef" },
@@ -352,7 +352,7 @@
       "properties": {
         "messageId": { "type": "string", "minLength": 1 },
         "threadId": { "type": "string", "minLength": 1 },
-        "revision": { "type": "integer", "minimum": 0 },
+        "revision": { "type": "integer", "minimum": 1 },
         "publishSequence": { "type": "integer", "minimum": 0 }
       },
       "required": ["messageId", "threadId", "revision"],
@@ -362,7 +362,7 @@
       "type": "object",
       "properties": {
         "messageId": { "type": "string", "minLength": 1 },
-        "revision": { "type": "integer", "minimum": 0 },
+        "revision": { "type": "integer", "minimum": 1 },
         "appendSequence": { "type": "integer", "minimum": 0 },
         "appliedElementIds": {
           "type": "array",
