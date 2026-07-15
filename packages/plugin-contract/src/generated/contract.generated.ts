@@ -49,10 +49,16 @@ export type PluginFeature = {
   readonly capabilities: readonly Capability[];
 };
 export type RuntimeTransport = 'stdio' | 'ipc' | 'builtin';
-export type RuntimeDeclaration = {
-  readonly transport: RuntimeTransport;
+export type ExternalRuntimeTransport = 'stdio' | 'ipc';
+export type ExternalRuntimeDeclaration = {
+  readonly transport: ExternalRuntimeTransport;
+  readonly entrypoint: string;
+};
+export type BuiltinRuntimeDeclaration = {
+  readonly transport: 'builtin';
   readonly entrypoint?: string;
 };
+export type RuntimeDeclaration = ExternalRuntimeDeclaration | BuiltinRuntimeDeclaration;
 
 export type PluginManifest = {
   readonly pluginId: string;

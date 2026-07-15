@@ -1,4 +1,4 @@
-import type { DataDeclaration } from './contract.generated.js';
+import type { DataDeclaration, RuntimeDeclaration } from './contract.generated.js';
 
 const lifecycleCache: DataDeclaration = {
   name: 'compiled-cache',
@@ -19,4 +19,25 @@ const invalidLifecycleUserData: DataDeclaration = {
   strategy: 'lifecycle',
 };
 
-void [lifecycleCache, retainedUserData, invalidLifecycleUserData];
+const builtinRuntime: RuntimeDeclaration = {
+  transport: 'builtin',
+};
+
+const externalRuntime: RuntimeDeclaration = {
+  transport: 'stdio',
+  entrypoint: 'dist/plugin.js',
+};
+
+// @ts-expect-error external runtimes require a launch entrypoint.
+const invalidExternalRuntime: RuntimeDeclaration = {
+  transport: 'ipc',
+};
+
+void [
+  lifecycleCache,
+  retainedUserData,
+  invalidLifecycleUserData,
+  builtinRuntime,
+  externalRuntime,
+  invalidExternalRuntime,
+];

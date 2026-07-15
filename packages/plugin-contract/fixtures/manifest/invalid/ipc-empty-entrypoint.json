@@ -1,0 +1,18 @@
+{
+  "pluginId": "dev.clowder.fixture.ipc-empty-entrypoint",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Invalid IPC fixture plugin",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "ipc",
+    "entrypoint": ""
+  }
+}

@@ -262,7 +262,6 @@ function validateMessagingBounds(schema: JsonSchema): void {
   const bounds = numberMap(schema['x-clowder-bounds'], 'x-clowder-bounds');
   for (const definitionName of [
     'DraftPayload',
-    'MessagePayload',
     'AppendElementsRequest',
     'MessageElementsAppendEvent',
   ]) {
@@ -275,6 +274,14 @@ function validateMessagingBounds(schema: JsonSchema): void {
       'maxItems',
     );
   }
+  assertSchemaNumber(
+    schema,
+    'maxElementsPerMessage',
+    bounds['maxElementsPerMessage']!,
+    'MessagePayload',
+    'elements',
+    'maxItems',
+  );
   assertSchemaNumber(
     schema,
     'maxWhisperTargets',

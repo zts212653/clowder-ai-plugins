@@ -29,6 +29,15 @@ test('generated object fields preserve required and optional schema fields', asy
   assert.match(source, /readonly idempotencyKey: string;/);
 });
 
+test('generated runtime types preserve transport-specific entrypoint requirements', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(source, /export type RuntimeDeclaration = ExternalRuntimeDeclaration \| BuiltinRuntimeDeclaration;/);
+  assert.match(source, /export type ExternalRuntimeDeclaration = [\s\S]*readonly entrypoint: string;/);
+  assert.match(source, /export type BuiltinRuntimeDeclaration = [\s\S]*readonly entrypoint\?: string;/);
+});
+
 test('a schema mutation deterministically changes the generated projection', async () => {
   const schemas = await loadContractSchemas();
   const baseline = generateContractSource(schemas);
@@ -52,6 +61,17 @@ test('generation fails when structural messaging bounds drift from metadata', as
   assert.throws(
     () => generateContractSource(mutated),
     /maxElementsPerOperation.*DraftPayload\.elements/,
+  );
+});
+
+test('generation binds canonical payloads to the message-level element cap', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  const bounds = mutated.messaging['x-clowder-bounds'] as Record<string, number>;
+  bounds['maxElementsPerMessage'] = 127;
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /maxElementsPerMessage.*MessagePayload\.elements/,
   );
 });
 

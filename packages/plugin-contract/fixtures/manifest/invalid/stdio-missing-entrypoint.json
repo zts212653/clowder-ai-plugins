@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.stdio-missing-entrypoint",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Invalid stdio fixture plugin",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "stdio"
+  }
+}

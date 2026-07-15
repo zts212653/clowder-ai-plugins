@@ -124,14 +124,36 @@
       "enum": ["stdio", "ipc", "builtin"]
     },
 
-    "RuntimeDeclaration": {
+    "ExternalRuntimeTransport": {
+      "type": "string",
+      "enum": ["stdio", "ipc"]
+    },
+
+    "ExternalRuntimeDeclaration": {
       "type": "object",
       "properties": {
-        "transport": { "$ref": "#/$defs/RuntimeTransport" },
-        "entrypoint": { "type": "string" }
+        "transport": { "$ref": "#/$defs/ExternalRuntimeTransport" },
+        "entrypoint": { "type": "string", "minLength": 1 }
+      },
+      "required": ["transport", "entrypoint"],
+      "additionalProperties": false
+    },
+
+    "BuiltinRuntimeDeclaration": {
+      "type": "object",
+      "properties": {
+        "transport": { "const": "builtin" },
+        "entrypoint": { "type": "string", "minLength": 1 }
       },
       "required": ["transport"],
       "additionalProperties": false
+    },
+
+    "RuntimeDeclaration": {
+      "oneOf": [
+        { "$ref": "#/$defs/ExternalRuntimeDeclaration" },
+        { "$ref": "#/$defs/BuiltinRuntimeDeclaration" }
+      ]
     }
   },
 

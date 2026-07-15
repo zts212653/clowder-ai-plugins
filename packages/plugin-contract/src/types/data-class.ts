@@ -1,14 +1,18 @@
-import {
-  DATA_CLASS_ALLOWED_STRATEGIES,
-  type DataClass,
-  type DataStrategy,
-} from '../generated/contract.generated.js';
+import { DATA_CLASS_ALLOWED_STRATEGIES } from '../generated/contract.generated.js';
+
+const STRATEGIES_BY_DATA_CLASS = DATA_CLASS_ALLOWED_STRATEGIES as Readonly<
+  Record<string, readonly string[]>
+>;
 
 /** Validate a schema-owned (dataClass, strategy) combination. */
 export function isValidDataClassStrategy(
-  dataClass: DataClass,
-  strategy: DataStrategy,
+  dataClass: unknown,
+  strategy: unknown,
 ): boolean {
-  const allowed = DATA_CLASS_ALLOWED_STRATEGIES[dataClass] as readonly DataStrategy[];
+  if (typeof dataClass !== 'string' || typeof strategy !== 'string') return false;
+
+  const allowed = STRATEGIES_BY_DATA_CLASS[dataClass];
+  if (allowed === undefined) return false;
+
   return allowed.includes(strategy);
 }

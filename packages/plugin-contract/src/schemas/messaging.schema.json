@@ -185,7 +185,7 @@
           "type": "array",
           "items": { "$ref": "#/$defs/MessageElement" },
           "minItems": 1,
-          "maxItems": 32
+          "maxItems": 128
         },
         "correlationId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "causationId": { "type": "string", "minLength": 1, "maxLength": 256 }
