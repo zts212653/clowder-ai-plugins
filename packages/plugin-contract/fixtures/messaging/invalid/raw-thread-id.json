@@ -9,7 +9,10 @@
   "idempotencyKey": "fixture-send-raw-thread",
   "payload": {
     "provenance": {
-      "origin": "plugin",
+      "origin": {
+        "kind": "plugin",
+        "instanceId": "fixture-plugin-instance"
+      },
       "epistemicStatus": "inference"
     },
     "elements": [

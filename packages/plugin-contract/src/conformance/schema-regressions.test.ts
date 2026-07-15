@@ -77,6 +77,24 @@ test('MessageDraft accepts the current K-1 candidate shape', () => {
   assert.equal(validate('MessageDraft', makeK1Draft()), true);
 });
 
+test('raw-thread-id fixture isolates raw address rejection', () => {
+  const fixture = JSON.parse(
+    readFileSync(
+      new URL('../../fixtures/messaging/invalid/raw-thread-id.json', import.meta.url),
+      'utf8',
+    ),
+  ) as Record<string, unknown>;
+  delete fixture['_meta'];
+
+  assert.equal(validate('MessageDraft', fixture), false);
+
+  fixture['address'] = {
+    kind: 'thread_handle',
+    handle: 'host-issued-thread-handle',
+  };
+  assert.equal(validate('MessageDraft', fixture), true);
+});
+
 test('text elements require payload.text to be a string', () => {
   const element = {
     elementId: 'text-1',
