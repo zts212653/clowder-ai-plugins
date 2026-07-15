@@ -2,7 +2,7 @@
   "_meta": {
     "executor": "loopback",
     "domain": "messaging",
-    "contractVersion": "0.1.0-candidate.1",
+    "contractVersion": "0.1.0",
     "source": "K-1 mirror adversarial test lines (9 invariants)",
     "description": "Host and SDK loopback scenarios shipped with the contract; P-2 supplies the executor."
   },
