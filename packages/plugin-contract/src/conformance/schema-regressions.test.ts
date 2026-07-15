@@ -95,6 +95,26 @@ test('raw-thread-id fixture isolates raw address rejection', () => {
   assert.equal(validate('MessageDraft', fixture), true);
 });
 
+test('occurredAt fixtures isolate timestamp validation', () => {
+  for (const fixtureName of [
+    'non-rfc3339-occurred-at.json',
+    'non-utc-occurred-at.json',
+  ]) {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(`../../fixtures/messaging/invalid/${fixtureName}`, import.meta.url),
+        'utf8',
+      ),
+    ) as Record<string, unknown>;
+    delete fixture['_meta'];
+
+    assert.equal(validate('MessageEnvelope', fixture), false, fixtureName);
+
+    fixture['occurredAt'] = '2026-07-15T08:00:00Z';
+    assert.equal(validate('MessageEnvelope', fixture), true, fixtureName);
+  }
+});
+
 test('text elements require payload.text to be a string', () => {
   const element = {
     elementId: 'text-1',

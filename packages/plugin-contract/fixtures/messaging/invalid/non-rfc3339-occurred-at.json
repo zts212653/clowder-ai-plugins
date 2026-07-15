@@ -3,7 +3,7 @@
     "schemaRef": "MessageEnvelope"
   },
   "messageId": "message-1",
-  "revision": 0,
+  "revision": 1,
   "threadId": "thread-1",
   "actor": {
     "kind": "plugin",
