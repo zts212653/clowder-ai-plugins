@@ -1,0 +1,24 @@
+{
+  "pluginId": "dev.clowder.fixture.invalid-lifecycle",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Invalid lifecycle fixture",
+  "features": [
+    {
+      "id": "notes",
+      "name": "Notes",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "data": [
+    {
+      "name": "notes",
+      "dataClass": "user-authored",
+      "strategy": "lifecycle"
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "@clowder-ai/plugin-contract",
+  "version": "0.1.0-candidate.1",
+  "private": true,
+  "description": "Clowder AI plugin contract — the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schemas/messaging": "./src/schemas/messaging.schema.json",
+    "./schemas/manifest": "./src/schemas/manifest.schema.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src/schemas",
+    "fixtures"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "conformance": "node --import tsx src/conformance/runner.ts",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "clowder-ai",
+    "plugin",
+    "contract",
+    "schema"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/plugin-contract"
+  }
+}

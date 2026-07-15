@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/messaging/v0.1",
+  "title": "Clowder AI Plugin Contract — Messaging Domain (v0.1)",
+  "description": "Machine-readable truth source for messaging types (§3.1). Candidate — do not consume until published.",
+
+  "$defs": {
+    "ActorKind": {
+      "type": "string",
+      "enum": ["user", "cat", "plugin", "device", "system"]
+    },
+
+    "Actor": {
+      "type": "object",
+      "properties": {
+        "kind": { "$ref": "#/$defs/ActorKind" },
+        "id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "id"],
+      "additionalProperties": false
+    },
+
+    "EpistemicStatus": {
+      "type": "string",
+      "enum": ["observation", "inference", "user_intent"]
+    },
+
+    "Provenance": {
+      "type": "object",
+      "properties": {
+        "origin": { "$ref": "#/$defs/ActorKind" },
+        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+      },
+      "required": ["origin", "epistemicStatus"],
+      "additionalProperties": false
+    },
+
+    "MessageElement": {
+      "type": "object",
+      "properties": {
+        "elementId": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "payload": {},
+        "derivedFromElementId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["elementId", "kind", "payload"],
+      "additionalProperties": false
+    },
+
+    "MessagePayload": {
+      "type": "object",
+      "properties": {
+        "provenance": { "$ref": "#/$defs/Provenance" },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" }
+        },
+        "correlationId": { "type": "string" },
+        "causationId": { "type": "string" }
+      },
+      "required": ["provenance", "elements"],
+      "additionalProperties": false
+    },
+
+    "ThreadHandle": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "thread" },
+        "token": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "token"],
+      "additionalProperties": false
+    },
+
+    "ConnectorBindingRef": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "connector-binding" },
+        "token": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "token"],
+      "additionalProperties": false
+    },
+
+    "DraftAddress": {
+      "oneOf": [
+        { "$ref": "#/$defs/ThreadHandle" },
+        { "$ref": "#/$defs/ConnectorBindingRef" }
+      ]
+    },
+
+    "WhisperTargets": {
+      "type": "object",
+      "properties": {
+        "whisper": {
+          "type": "object",
+          "properties": {
+            "targets": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1
+            }
+          },
+          "required": ["targets"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["whisper"],
+      "additionalProperties": false
+    },
+
+    "DraftAudience": {
+      "oneOf": [
+        { "const": "public" },
+        { "$ref": "#/$defs/WhisperTargets" }
+      ]
+    },
+
+    "CanonicalAudience": {
+      "oneOf": [
+        { "const": "public" },
+        { "$ref": "#/$defs/WhisperTargets" },
+        { "const": "system" }
+      ]
+    },
+
+    "MessageDraft": {
+      "type": "object",
+      "description": "A message draft submitted by a plugin via messaging.send(draft). Addressing uses host-signed handles only — no raw threadId channel (§3.1).",
+      "properties": {
+        "address": { "$ref": "#/$defs/DraftAddress" },
+        "draftAudience": { "$ref": "#/$defs/DraftAudience" },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Client-generated; must be stable across retries/restarts. Ledger key = (pluginInstanceId, idempotencyKey)."
+        },
+        "sourceEventId": {
+          "type": "string",
+          "description": "External source provenance — NOT the idempotency key."
+        },
+        "replyTo": { "type": "string" },
+        "payload": { "$ref": "#/$defs/MessagePayload" }
+      },
+      "required": ["address", "idempotencyKey", "payload"],
+      "additionalProperties": false
+    },
+
+    "MessageEnvelope": {
+      "type": "object",
+      "description": "Canonical message produced by the host after accepting a draft. All identity fields are host-bound (§3.1).",
+      "properties": {
+        "messageId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 0 },
+        "threadId": { "type": "string", "minLength": 1 },
+        "replyTo": { "type": "string" },
+        "actor": { "$ref": "#/$defs/Actor" },
+        "audience": { "$ref": "#/$defs/CanonicalAudience" },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 UTC — timezone is a display concern."
+        },
+        "payload": { "$ref": "#/$defs/MessagePayload" }
+      },
+      "required": ["messageId", "revision", "threadId", "actor", "audience", "occurredAt", "payload"],
+      "additionalProperties": false
+    },
+
+    "MessagePublishEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "message.publish" },
+        "envelope": { "$ref": "#/$defs/MessageEnvelope" }
+      },
+      "required": ["type", "envelope"],
+      "additionalProperties": false
+    },
+
+    "MessageElementsAppendEvent": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "message.elements.append" },
+        "messageId": { "type": "string", "minLength": 1 },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Append idempotency key component. Ledger key = (pluginInstanceId, messageId, operationId)."
+        },
+        "baseRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optimistic concurrency — reject if stale."
+        },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "minItems": 1
+        }
+      },
+      "required": ["type", "messageId", "operationId", "elements"],
+      "additionalProperties": false
+    },
+
+    "MessageOutputEvent": {
+      "type": "object",
+      "description": "An event in the per-thread output event stream (§3.1).",
+      "properties": {
+        "eventId": { "type": "string", "minLength": 1 },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Per-thread monotonic (host-assigned). Cursor is opaque and subscription-local — NOT equal to sequence."
+        },
+        "event": {
+          "oneOf": [
+            { "$ref": "#/$defs/MessagePublishEvent" },
+            { "$ref": "#/$defs/MessageElementsAppendEvent" }
+          ]
+        }
+      },
+      "required": ["eventId", "sequence", "event"],
+      "additionalProperties": false
+    },
+
+    "SendReceipt": {
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string", "minLength": 1 },
+        "idempotencyKey": { "type": "string", "minLength": 1 }
+      },
+      "required": ["messageId", "idempotencyKey"],
+      "additionalProperties": false
+    },
+
+    "MessageHandle": {
+      "type": "object",
+      "description": "Host-signed message handle — authorization token for appendElements (§3.3, G-0 件 2 注 2).",
+      "properties": {
+        "kind": { "const": "message" },
+        "token": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "token"],
+      "additionalProperties": false
+    },
+
+    "SubscriptionCursor": {
+      "type": "object",
+      "description": "Opaque subscription cursor for durable ack-based delivery. NOT equal to sequence number (§3.1).",
+      "properties": {
+        "kind": { "const": "subscription-cursor" },
+        "token": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "token"],
+      "additionalProperties": false
+    },
+
+    "AppendElementsRequest": {
+      "type": "object",
+      "description": "Request to append elements to an existing message (§3.3). Requires a MessageHandle and at least one element.",
+      "properties": {
+        "handle": { "$ref": "#/$defs/MessageHandle" },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Append idempotency key. Ledger key = (pluginInstanceId, handle.messageId, operationId)."
+        },
+        "baseRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optimistic concurrency guard — reject if stale."
+        },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "minItems": 1
+        }
+      },
+      "required": ["handle", "operationId", "elements"],
+      "additionalProperties": false
+    }
+  }
+}

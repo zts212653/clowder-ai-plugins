@@ -1,0 +1,73 @@
+name: Contract CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/plugin-contract/**'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+      - '.github/workflows/contract-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/plugin-contract/**'
+
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: contract-ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck + Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @clowder-ai/plugin-contract typecheck
+
+      - name: Build
+        run: pnpm --filter @clowder-ai/plugin-contract build
+
+      - name: Conformance runner
+        run: pnpm --filter @clowder-ai/plugin-contract conformance
+
+  # Publish job skeleton — token configuration owned by zts212653 (§7-3)
+  # Activated after dual-sign merge triggers publish:
+  #
+  # publish:
+  #   name: Publish to npm
+  #   needs: validate
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     id-token: write  # for npm provenance
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: pnpm/action-setup@v4
+  #       with:
+  #         version: 9
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         registry-url: 'https://registry.npmjs.org'
+  #         cache: 'pnpm'
+  #     - run: pnpm install --frozen-lockfile
+  #     - run: pnpm --filter @clowder-ai/plugin-contract build
+  #     - run: pnpm --filter @clowder-ai/plugin-contract publish --provenance --access public
+  #       env:
+  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

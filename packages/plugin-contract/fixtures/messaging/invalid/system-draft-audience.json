@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "schemaRef": "MessageDraft"
+  },
+  "address": {
+    "kind": "thread",
+    "token": "opaque-host-signed-thread-handle"
+  },
+  "draftAudience": "system",
+  "idempotencyKey": "fixture-send-system-audience",
+  "payload": {
+    "provenance": {
+      "origin": "plugin",
+      "epistemicStatus": "inference"
+    },
+    "elements": [
+      {
+        "elementId": "text-1",
+        "kind": "text",
+        "payload": {
+          "text": "Must be rejected"
+        }
+      }
+    ]
+  }
+}

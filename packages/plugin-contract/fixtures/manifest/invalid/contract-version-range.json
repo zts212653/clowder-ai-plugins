@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.invalid-contract-range",
+  "version": "0.1.0",
+  "contractVersion": "^0.1.0",
+  "name": "Invalid contract range fixture",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "_meta": {
+    "schemaRef": "MessageDraft"
+  },
+  "address": {
+    "kind": "thread",
+    "token": "opaque-host-signed-thread-handle"
+  },
+  "idempotencyKey": "fixture-send-001",
+  "payload": {
+    "provenance": {
+      "origin": "plugin",
+      "epistemicStatus": "inference"
+    },
+    "elements": [
+      {
+        "elementId": "text-1",
+        "kind": "text",
+        "payload": {
+          "text": "Fixture message"
+        }
+      }
+    ]
+  }
+}

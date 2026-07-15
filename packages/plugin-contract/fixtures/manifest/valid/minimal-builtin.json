@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.minimal",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Minimal fixture plugin",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}
