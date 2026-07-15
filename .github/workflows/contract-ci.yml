@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - 'packages/plugin-contract/**'
-      - 'pnpm-workspace.yaml'
+      - '.npmrc'
       - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
       - '.github/workflows/contract-ci.yml'
   push:
     branches: [main]
