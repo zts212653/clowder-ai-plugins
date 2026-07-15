@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/**/*.test.ts",
     "conformance": "node --import tsx src/conformance/runner.ts",
+    "parity": "node --import tsx src/conformance/parity-check.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist"
   },

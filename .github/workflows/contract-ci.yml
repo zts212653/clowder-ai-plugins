@@ -45,6 +45,9 @@ jobs:
       - name: Conformance runner
         run: pnpm --filter @clowder-ai/plugin-contract conformance
 
+      - name: P15 parity gate
+        run: pnpm --filter @clowder-ai/plugin-contract parity
+
   # Publish job skeleton — token configuration owned by zts212653 (§7-3)
   # Activated after dual-sign merge triggers publish:
   #
