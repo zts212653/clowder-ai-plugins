@@ -1,0 +1,22 @@
+{
+  "address": {
+    "kind": "thread",
+    "token": "opaque-host-signed-thread-handle"
+  },
+  "idempotencyKey": "fixture-root-send-001",
+  "payload": {
+    "provenance": {
+      "origin": "plugin",
+      "epistemicStatus": "inference"
+    },
+    "elements": [
+      {
+        "elementId": "text-1",
+        "kind": "text",
+        "payload": {
+          "text": "Root schema fixture"
+        }
+      }
+    ]
+  }
+}

@@ -168,7 +168,8 @@
         "occurredAt": {
           "type": "string",
           "format": "date-time",
-          "description": "RFC 3339 UTC — timezone is a display concern."
+          "pattern": "Z$",
+          "description": "RFC 3339 UTC only — must end with 'Z'. Timezone offsets (+HH:MM) are structurally rejected; timezone is a display concern, storage is always UTC."
         },
         "payload": { "$ref": "#/$defs/MessagePayload" }
       },
@@ -286,6 +287,18 @@
         }
       },
       "required": ["handle", "operationId", "elements"],
+      "additionalProperties": false
+    },
+
+    "IngressSourceAddress": {
+      "type": "object",
+      "description": "External ingress source address, carried before canonical binding (§3.1). The Host Adapter resolves target thread and binds actor/provenance.",
+      "properties": {
+        "connectorId": { "type": "string", "minLength": 1 },
+        "chatId": { "type": "string", "minLength": 1 },
+        "messageId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["connectorId", "chatId"],
       "additionalProperties": false
     },
 

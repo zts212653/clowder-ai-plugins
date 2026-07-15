@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.invalid-plugin-version",
+  "version": "latest",
+  "contractVersion": "0.1.0",
+  "name": "Invalid plugin version fixture",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

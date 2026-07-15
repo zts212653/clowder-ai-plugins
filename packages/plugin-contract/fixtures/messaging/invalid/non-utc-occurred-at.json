@@ -1,0 +1,29 @@
+{
+  "_meta": {
+    "schemaRef": "MessageEnvelope"
+  },
+  "messageId": "message-1",
+  "revision": 0,
+  "threadId": "thread-1",
+  "actor": {
+    "kind": "plugin",
+    "id": "fixture-plugin"
+  },
+  "audience": "public",
+  "occurredAt": "2026-07-15T10:42:00+08:00",
+  "payload": {
+    "provenance": {
+      "origin": "plugin",
+      "epistemicStatus": "inference"
+    },
+    "elements": [
+      {
+        "elementId": "text-1",
+        "kind": "text",
+        "payload": {
+          "text": "UTC must be emitted with Z"
+        }
+      }
+    ]
+  }
+}

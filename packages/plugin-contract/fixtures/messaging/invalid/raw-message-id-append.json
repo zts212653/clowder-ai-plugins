@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "schemaRef": "AppendElementsRequest"
+  },
+  "messageId": "raw-message-id",
+  "operationId": "append-operation-raw-id",
+  "elements": [
+    {
+      "elementId": "summary-1",
+      "kind": "text",
+      "payload": {
+        "text": "Must be rejected"
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "_meta": {
+    "schemaRef": "SubscriptionDelivery"
+  },
+  "cursor": {
+    "kind": "subscription-cursor",
+    "token": "opaque-subscription-local-cursor"
+  },
+  "events": [
+    {
+      "eventId": "event-1",
+      "sequence": 1,
+      "event": {
+        "type": "message.publish",
+        "envelope": {
+          "messageId": "message-1",
+          "revision": 1,
+          "threadId": "thread-1",
+          "actor": {
+            "kind": "plugin",
+            "id": "fixture-plugin"
+          },
+          "audience": "public",
+          "occurredAt": "2026-07-15T02:42:00Z",
+          "payload": {
+            "provenance": {
+              "origin": "plugin",
+              "epistemicStatus": "inference"
+            },
+            "elements": [
+              {
+                "elementId": "text-1",
+                "kind": "text",
+                "payload": {
+                  "text": "Fixture message"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
