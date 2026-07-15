@@ -16,6 +16,7 @@ import type {
   DraftAddress,
   MessageHandle,
   Provenance,
+  SubscriptionCursor,
 } from './common.js';
 
 // ---------------------------------------------------------------------------
@@ -209,4 +210,25 @@ export interface AppendElementsRequest {
   readonly baseRevision?: number;
   /** Elements to append — must be non-empty. */
   readonly elements: readonly MessageElement[];
+}
+
+// ---------------------------------------------------------------------------
+// SubscriptionDelivery — durable ack delivery wrapper (§3.1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Delivery wrapper for subscription-based event consumption.
+ *
+ * Carries the opaque SubscriptionCursor alongside a batch of output events.
+ * The subscriber acks the cursor (NOT the sequence number) for durable
+ * delivery — the host resumes from the acked cursor position after restart.
+ *
+ * This is the contract-level delivery shape; the kernel defines the
+ * transport encoding (HTTP SSE, WebSocket frame, IPC message, etc.).
+ */
+export interface SubscriptionDelivery {
+  /** Opaque cursor for this delivery batch — ack this, not sequence. */
+  readonly cursor: SubscriptionCursor;
+  /** Batch of output events delivered in this subscription tick. */
+  readonly events: readonly MessageOutputEvent[];
 }

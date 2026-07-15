@@ -2,7 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/messaging/v0.1",
   "title": "Clowder AI Plugin Contract — Messaging Domain (v0.1)",
-  "description": "Machine-readable truth source for messaging types (§3.1). Candidate — do not consume until published.",
+  "description": "Machine-readable truth source for messaging types (§3.1). Candidate — do not consume until published. Root schema validates that a document is one of the contract's top-level messaging types; use $defs/$ref for targeted single-type validation.",
+
+  "oneOf": [
+    { "$ref": "#/$defs/MessageDraft" },
+    { "$ref": "#/$defs/MessageEnvelope" },
+    { "$ref": "#/$defs/MessageOutputEvent" },
+    { "$ref": "#/$defs/AppendElementsRequest" },
+    { "$ref": "#/$defs/SendReceipt" },
+    { "$ref": "#/$defs/SubscriptionDelivery" }
+  ],
 
   "$defs": {
     "ActorKind": {
@@ -277,6 +286,22 @@
         }
       },
       "required": ["handle", "operationId", "elements"],
+      "additionalProperties": false
+    },
+
+    "SubscriptionDelivery": {
+      "type": "object",
+      "description": "Delivery wrapper for subscription-based event consumption (§3.1). Carries the opaque cursor for durable ack alongside the output events. The cursor is subscription-local — NOT equal to sequence number.",
+      "properties": {
+        "cursor": { "$ref": "#/$defs/SubscriptionCursor" },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "minItems": 1,
+          "description": "Batch of output events delivered in this subscription tick."
+        }
+      },
+      "required": ["cursor", "events"],
       "additionalProperties": false
     }
   }

@@ -33,6 +33,7 @@ export type {
   MessagePayload,
   MessagePublishEvent,
   SendReceipt,
+  SubscriptionDelivery,
 } from './messaging.js';
 
 // Manifest (v0.1 scope — signals/tasks/windows deferred to C-2/C-3)
