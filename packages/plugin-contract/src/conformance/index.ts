@@ -8,15 +8,14 @@
  * @packageDocumentation
  */
 
-export {
-  DATA_CLASS_ALLOWED_STRATEGIES,
-  isValidDataClassStrategy,
-} from '../types/data-class.js';
+export { isValidDataClassStrategy } from '../types/data-class.js';
+
+export { getCapabilityLayer } from '../types/capability.js';
 
 export {
+  DATA_CLASS_ALLOWED_STRATEGIES,
   CAPABILITY_TABLE,
-  getCapabilityLayer,
   L0_CAPABILITIES,
   L1_CAPABILITIES,
   L2_CAPABILITIES,
-} from '../types/capability.js';
+} from '../generated/contract.generated.js';

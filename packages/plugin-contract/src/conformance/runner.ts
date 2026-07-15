@@ -20,6 +20,8 @@ import { createRequire } from 'node:module';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { validateMessagingSemantics } from '../validation/messaging-semantic.js';
+
 // Ajv is CJS — use createRequire for clean interop with ESM + verbatimModuleSyntax
 // Use ajv/dist/2020 for JSON Schema 2020-12 ($defs, etc.)
 const require = createRequire(import.meta.url);
@@ -167,22 +169,30 @@ async function validateFixture(
   }
 
   const isSchemaValid = validate(data);
+  const semanticResult =
+    fixture.domain === 'messaging' && isSchemaValid
+      ? validateMessagingSemantics(meta?.schemaRef ?? 'root', data)
+      : { valid: true, errors: [] };
+  const isValid = isSchemaValid && semanticResult.valid;
 
   if (fixture.validity === 'valid') {
-    // Valid fixtures MUST pass schema validation
+    // Valid fixtures MUST pass structural and semantic validation.
     return {
       fixture,
-      passed: isSchemaValid === true,
-      errors: isSchemaValid
+      passed: isValid,
+      errors: isValid
         ? undefined
-        : validate.errors?.map((e) => `${e.instancePath}: ${e.message}`) ?? ['Unknown validation error'],
+        : [
+            ...(validate.errors?.map((e) => `${e.instancePath}: ${e.message}`) ?? []),
+            ...semanticResult.errors.map((e) => `${e.path}: ${e.message}`),
+          ],
     };
   } else {
-    // Invalid fixtures MUST fail schema validation (negative test)
+    // Invalid fixtures may fail either structural or semantic validation.
     return {
       fixture,
-      passed: isSchemaValid === false,
-      errors: isSchemaValid
+      passed: isValid === false,
+      errors: isValid
         ? ['Expected validation to FAIL for invalid fixture, but it passed']
         : undefined,
     };
@@ -206,6 +216,7 @@ async function main(): Promise<void> {
   const schemas = new Map<string, Record<string, unknown>>();
   const manifestSchema = await loadSchema(join(schemasDir, 'manifest.schema.json'));
   const messagingSchema = await loadSchema(join(schemasDir, 'messaging.schema.json'));
+  const behaviorSchema = await loadSchema(join(schemasDir, 'behavior-fixture.schema.json'));
   schemas.set('manifest', manifestSchema);
   schemas.set('messaging', messagingSchema);
 
@@ -214,6 +225,7 @@ async function main(): Promise<void> {
   addFormats(ajv);
   ajv.addSchema(manifestSchema, manifestSchema['$id'] as string);
   ajv.addSchema(messagingSchema, messagingSchema['$id'] as string);
+  ajv.addSchema(behaviorSchema, behaviorSchema['$id'] as string);
 
   // Discover and validate fixtures
   const fixtures = await discoverFixtures(fixturesDir);
@@ -230,7 +242,7 @@ async function main(): Promise<void> {
   }
 
   // Report schema fixtures
-  let failures = 0;
+  let schemaFailures = 0;
   for (const result of results) {
     const icon = result.passed ? '✅' : '❌';
     const expect = result.fixture.validity === 'valid' ? 'should pass' : 'should fail';
@@ -239,13 +251,19 @@ async function main(): Promise<void> {
       for (const err of result.errors) {
         console.log(`   → ${err}`);
       }
-      failures++;
+      schemaFailures++;
     }
   }
 
-  // Discover and report behavioral fixtures (no silent caps — ruling 4)
+  // Validate and report behavioral fixtures before deferring their execution.
   const behaviorDir = join(fixturesDir, 'behavior');
   let behaviorCount = 0;
+  let behaviorFileCount = 0;
+  let behaviorFailures = 0;
+  const validateBehavior = ajv.getSchema(behaviorSchema['$id'] as string);
+  if (!validateBehavior) {
+    throw new Error('Behavior fixture schema was not registered');
+  }
   try {
     const behaviorDomains = await readdir(behaviorDir);
     for (const domain of behaviorDomains) {
@@ -258,10 +276,33 @@ async function main(): Promise<void> {
       }
       for (const entry of entries) {
         if (!entry.endsWith('.json')) continue;
-        const raw = await readFile(join(domainDir, entry), 'utf-8');
-        const data = JSON.parse(raw) as { _meta?: { executor?: string }; cases?: unknown[] };
-        const caseCount = data.cases?.length ?? 0;
+        const path = join(domainDir, entry);
+        const fixturePath = relative(fixturesDir, path);
+        let data: { _meta?: { executor?: string }; cases?: unknown[] };
+        try {
+          data = JSON.parse(await readFile(path, 'utf-8')) as typeof data;
+        } catch (error: unknown) {
+          console.log(`❌ ${fixturePath} (invalid JSON)`);
+          console.log(`   → ${error instanceof Error ? error.message : String(error)}`);
+          behaviorFailures++;
+          continue;
+        }
+
+        if (!validateBehavior(data)) {
+          console.log(`❌ ${fixturePath} (malformed behavior fixture)`);
+          for (const error of validateBehavior.errors ?? []) {
+            console.log(`   → ${error.instancePath}: ${error.message}`);
+          }
+          behaviorFailures++;
+          continue;
+        }
+
+        const caseCount = data.cases!.length;
         behaviorCount += caseCount;
+        behaviorFileCount++;
+        console.log(
+          `✅ ${fixturePath} (${caseCount} validated cases, executor: ${data._meta!.executor}; execution skipped — requires P-2)`,
+        );
       }
     }
   } catch {
@@ -269,12 +310,14 @@ async function main(): Promise<void> {
   }
 
   console.log();
-  console.log(`Results: ${results.length - failures}/${results.length} schema fixtures passed`);
+  console.log(`Results: ${results.length - schemaFailures}/${results.length} contract fixtures passed`);
   if (behaviorCount > 0) {
-    console.log(`⏭️  ${behaviorCount} behavioral fixtures discovered (executor: loopback, requires P-2 — skipped)`);
+    console.log(
+      `⏭️  ${behaviorCount} validated behavioral cases across ${behaviorFileCount} file(s); loopback execution requires P-2`,
+    );
   }
 
-  if (failures > 0) {
+  if (schemaFailures + behaviorFailures > 0) {
     process.exit(1);
   }
 }

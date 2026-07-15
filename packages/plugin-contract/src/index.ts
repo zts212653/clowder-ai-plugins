@@ -23,22 +23,14 @@
  *   RuntimeDeclaration (v0.1 scope — signals/tasks/windows deferred)
  * - **capability**: L0/L1/L2 capability table (candidate until co-signed)
  * - **data-class**: DataClass × DataStrategy validation
- * - **common**: Actor, Provenance, ThreadHandle, ConnectorBindingRef,
- *   MessageHandle, SubscriptionCursor, IngressSourceAddress
+ * - **generated projection**: all public structural types and contract tables
+ *   are deterministically generated from the JSON Schemas
+ * - **validation**: shared semantic checks for constraints JSON Schema cannot
+ *   express, including UTF-8 payload byte budgets
  *
  * @packageDocumentation
  */
 
 // Re-export everything from the types barrel
 export * from './types/index.js';
-
-// Re-export conformance utilities
-export {
-  isValidDataClassStrategy,
-  DATA_CLASS_ALLOWED_STRATEGIES,
-  CAPABILITY_TABLE,
-  getCapabilityLayer,
-  L0_CAPABILITIES,
-  L1_CAPABILITIES,
-  L2_CAPABILITIES,
-} from './conformance/index.js';
+export * from './validation/index.js';

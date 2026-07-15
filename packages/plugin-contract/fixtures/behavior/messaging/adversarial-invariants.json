@@ -1,63 +1,278 @@
 {
   "_meta": {
     "executor": "loopback",
+    "domain": "messaging",
+    "contractVersion": "0.1.0-candidate.1",
     "source": "K-1 mirror adversarial test lines (9 invariants)",
-    "description": "Behavioral assertions that require host+SDK loopback execution (P-2). Schema runner counts and skips these — no silent caps."
+    "description": "Host and SDK loopback scenarios shipped with the contract; P-2 supplies the executor."
   },
   "cases": [
     {
       "id": "raw-thread-id-rejection",
-      "invariant": "Plugins cannot address threads by raw threadId — only host-signed ThreadHandle accepted",
-      "expectedVerdict": "PERMISSION",
-      "coveredBy": "fixtures/messaging/invalid/raw-thread-id.json (schema-level)"
+      "invariant": "Plugins cannot address threads by raw threadId.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.send"],
+        "handles": {},
+        "state": { "threads": [{ "threadId": "thread-1" }] }
+      },
+      "when": {
+        "operation": "send",
+        "input": {
+          "address": { "kind": "thread_id", "threadId": "thread-1" },
+          "idempotencyKey": "raw-thread-id-1",
+          "payload": {
+            "provenance": { "epistemicStatus": "inference" },
+            "elements": [{ "elementId": "text-1", "kind": "text", "payload": { "text": "blocked" } }]
+          }
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "none" },
+          { "target": "idempotency_ledger", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "system-audience-dual-rejection",
-      "invariant": "system audience rejected at both draft schema level (structurally impossible) AND host runtime level (double gate)",
-      "expectedVerdict": "VALIDATION",
-      "coveredBy": "fixtures/messaging/invalid/system-draft-audience.json (schema-level)"
+      "invariant": "Drafts cannot express the host-only system audience.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.send"],
+        "handles": {
+          "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
+        },
+        "state": {}
+      },
+      "when": {
+        "operation": "send",
+        "input": {
+          "address": { "kind": "thread_handle", "handle": "thread-handle-a" },
+          "draftAudience": { "kind": "system" },
+          "idempotencyKey": "system-audience-1",
+          "payload": {
+            "provenance": { "epistemicStatus": "inference" },
+            "elements": [{ "elementId": "text-1", "kind": "text", "payload": { "text": "blocked" } }]
+          }
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "VALIDATION",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "none" },
+          { "target": "idempotency_ledger", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "cross-instance-handle-rejection",
-      "invariant": "MessageHandle from instance A must be rejected when used by instance B — handles are instance-scoped",
-      "expectedVerdict": "PERMISSION",
-      "requiresLoopback": true
+      "invariant": "A message handle issued to one plugin instance cannot authorize another.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.appendElements"],
+        "handles": {
+          "foreignMessage": { "kind": "message_handle", "token": "message-handle-b", "ownerPluginInstanceId": "plugin-b", "threadId": "thread-1", "messageId": "message-1" }
+        },
+        "state": { "messages": [{ "messageId": "message-1", "revision": 1 }] }
+      },
+      "when": {
+        "operation": "appendElements",
+        "input": {
+          "handle": { "kind": "message", "token": "message-handle-b" },
+          "operationId": "cross-instance-append-1",
+          "baseRevision": 1,
+          "elements": [{ "elementId": "text-2", "kind": "text", "payload": { "text": "blocked" } }]
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "none" },
+          { "target": "idempotency_ledger", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "origin-forgery-rejection",
-      "invariant": "Plugin cannot declare origin other than self (D-4: thread_handle only self, connector_binding only matching binding, host undeclarable)",
-      "expectedVerdict": "PERMISSION",
-      "requiresLoopback": true
+      "invariant": "A thread-handle send may only declare the caller's own plugin origin.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.send"],
+        "handles": {
+          "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
+        },
+        "state": {}
+      },
+      "when": {
+        "operation": "send",
+        "input": {
+          "address": { "kind": "thread_handle", "handle": "thread-handle-a" },
+          "idempotencyKey": "origin-forgery-1",
+          "payload": {
+            "provenance": { "origin": { "kind": "plugin", "instanceId": "plugin-b" }, "epistemicStatus": "inference" },
+            "elements": [{ "elementId": "text-1", "kind": "text", "payload": { "text": "blocked" } }]
+          }
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "none" },
+          { "target": "provenance", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "base-revision-conflict-zero-change",
-      "invariant": "appendElements with stale baseRevision must result in CONFLICT error and zero applied changes",
-      "expectedVerdict": "CONFLICT",
-      "requiresLoopback": true
+      "invariant": "A stale baseRevision produces CONFLICT and no mutation.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.appendElements"],
+        "handles": {
+          "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
+        },
+        "state": { "messages": [{ "messageId": "message-1", "revision": 2 }] }
+      },
+      "when": {
+        "operation": "appendElements",
+        "input": {
+          "handle": { "kind": "message", "token": "message-handle-a" },
+          "operationId": "stale-revision-1",
+          "baseRevision": 1,
+          "elements": [{ "elementId": "text-2", "kind": "text", "payload": { "text": "blocked" } }]
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "CONFLICT",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "none" },
+          { "target": "idempotency_ledger", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "stale-cursor-snapshot-roundtrip",
-      "invariant": "Subscription that falls behind event window enters stale state; client must call snapshot; resumed subscription picks up from resumeSequence without gap or duplicate",
-      "expectedVerdict": "STALE_CURSOR then snapshot success",
-      "requiresLoopback": true
+      "invariant": "A stale cursor reports stale and snapshot catch-up supplies an exact resume point.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["message.event.subscribe"],
+        "handles": {
+          "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
+        },
+        "state": { "subscription": { "cursorSequence": 4 }, "eventWindow": { "oldestSequence": 8, "headSequence": 12 } }
+      },
+      "when": {
+        "operation": "read",
+        "input": { "subscriptionId": "subscription-a", "limit": 32 }
+      },
+      "expect": {
+        "status": "success",
+        "sideEffects": [
+          { "target": "subscription", "assertion": "state_equals", "value": { "stale": true, "ackToken": null, "events": [] } },
+          { "target": "snapshot", "assertion": "round_trip", "value": { "operation": "snapshot", "resumeSequence": 12, "nextReadStartsAfter": 12 } },
+          { "target": "output_events", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "cross-subscription-ack-rejection",
-      "invariant": "ackToken from subscription A must be rejected when used on subscription B — tokens are subscription-local",
-      "expectedVerdict": "VALIDATION",
-      "requiresLoopback": true
+      "invariant": "Ack tokens are subscription-local and cannot cross subscriptions.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["message.event.subscribe"],
+        "handles": {
+          "subscriptionA": { "kind": "subscription", "token": "ack-from-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" },
+          "subscriptionB": { "kind": "subscription", "token": "subscription-token-b", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-2", "subscriptionId": "subscription-b" }
+        },
+        "state": { "subscriptions": [{ "subscriptionId": "subscription-a", "ackedSequence": 1 }, { "subscriptionId": "subscription-b", "ackedSequence": 2 }] }
+      },
+      "when": {
+        "operation": "ack",
+        "input": { "subscriptionId": "subscription-b", "ackToken": "ack-from-a" }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "VALIDATION",
+        "sideEffects": [
+          { "target": "subscription", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "unchanged" }
+        ]
+      }
     },
     {
       "id": "reply-to-cross-thread-leakage",
-      "invariant": "replyTo referencing a message in a different thread must be rejected — otherwise replyPreview would leak cross-thread content",
-      "expectedVerdict": "VALIDATION",
-      "requiresLoopback": true
+      "invariant": "replyTo cannot reference a message from another thread.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.send"],
+        "handles": {
+          "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
+        },
+        "state": { "messages": [{ "messageId": "message-other", "threadId": "thread-2", "text": "secret" }] }
+      },
+      "when": {
+        "operation": "send",
+        "input": {
+          "address": { "kind": "thread_handle", "handle": "thread-handle-a" },
+          "replyTo": "message-other",
+          "idempotencyKey": "cross-thread-reply-1",
+          "payload": {
+            "provenance": { "epistemicStatus": "inference" },
+            "elements": [{ "elementId": "text-1", "kind": "text", "payload": { "text": "blocked" } }]
+          }
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "VALIDATION",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "reply_preview", "assertion": "none" },
+          { "target": "output_events", "assertion": "none" }
+        ]
+      }
     },
     {
       "id": "epistemic-status-upgrade-rejection",
-      "invariant": "Element declaring epistemicStatus higher than its derivedFrom source must be rejected (INV-7: inference cannot be promoted to user_intent)",
-      "expectedVerdict": "VALIDATION",
-      "requiresLoopback": true
+      "invariant": "Derived content cannot claim a stronger epistemic status than its source.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": ["messaging.appendElements"],
+        "handles": {
+          "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
+        },
+        "state": { "messages": [{ "messageId": "message-1", "revision": 1, "elements": [{ "elementId": "source-1", "epistemicStatus": "inference" }] }] }
+      },
+      "when": {
+        "operation": "appendElements",
+        "input": {
+          "handle": { "kind": "message", "token": "message-handle-a" },
+          "operationId": "epistemic-upgrade-1",
+          "baseRevision": 1,
+          "elements": [{ "elementId": "derived-1", "kind": "text", "payload": { "text": "blocked" }, "derivedFromElementId": "source-1", "epistemicStatus": "user_intent" }]
+        }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "VALIDATION",
+        "sideEffects": [
+          { "target": "messages", "assertion": "unchanged" },
+          { "target": "output_events", "assertion": "none" },
+          { "target": "provenance", "assertion": "unchanged" }
+        ]
+      }
     }
   ]
 }

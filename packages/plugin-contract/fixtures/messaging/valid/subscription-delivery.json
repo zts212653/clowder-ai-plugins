@@ -6,9 +6,8 @@
     {
       "eventId": "ev_pub_message-1_1",
       "sequence": 1,
-      "event": {
-        "type": "message.publish",
-        "envelope": {
+      "type": "message.publish",
+      "envelope": {
           "messageId": "message-1",
           "revision": 1,
           "threadId": "thread-1",
@@ -16,11 +15,16 @@
             "kind": "plugin",
             "id": "fixture-plugin"
           },
-          "audience": "public",
+          "audience": {
+            "kind": "public"
+          },
           "occurredAt": "2026-07-15T02:42:00Z",
           "payload": {
             "provenance": {
-              "origin": "plugin",
+              "origin": {
+                "kind": "plugin",
+                "instanceId": "fixture-plugin-instance"
+              },
               "epistemicStatus": "inference"
             },
             "elements": [
@@ -33,13 +37,9 @@
               }
             ]
           }
-        }
       }
     }
   ],
-  "ackToken": {
-    "kind": "subscription-cursor",
-    "token": "opaque-subscription-local-cursor"
-  },
+  "ackToken": "opaque-subscription-local-cursor",
   "stale": false
 }

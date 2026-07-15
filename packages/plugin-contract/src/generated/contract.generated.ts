@@ -1,0 +1,249 @@
+/**
+ * Generated from manifest.schema.json and messaging.schema.json.
+ * Do not edit by hand. Run `pnpm generate` after changing a schema.
+ */
+
+export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
+export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
+export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend';
+export type DataDeclaration = {
+  readonly name: string;
+  readonly dataClass: DataClass;
+  readonly strategy: DataStrategy;
+  readonly schemaVersion?: string;
+};
+export type ResourceReference = {
+  readonly type: string;
+  readonly id: string;
+};
+export type PluginFeature = {
+  readonly id: string;
+  readonly name: string;
+  readonly resources: readonly ResourceReference[];
+  readonly capabilities: readonly Capability[];
+};
+export type RuntimeTransport = 'stdio' | 'ipc' | 'builtin';
+export type RuntimeDeclaration = {
+  readonly transport: RuntimeTransport;
+  readonly entrypoint?: string;
+};
+
+export type PluginManifest = {
+  readonly pluginId: string;
+  readonly version: string;
+  readonly contractVersion: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly features: readonly PluginFeature[];
+  readonly data?: readonly DataDeclaration[];
+  readonly runtime: RuntimeDeclaration;
+};
+
+export type ActorKind = 'user' | 'cat' | 'plugin' | 'device' | 'system';
+export type ActorRef = {
+  readonly kind: ActorKind;
+  readonly id: string;
+};
+export type EpistemicStatus = 'observation' | 'user_intent' | 'inference';
+export type ExternalSourceAddress = {
+  readonly connectorId: string;
+  readonly chatId: string;
+  readonly messageId?: string;
+};
+export type IngressSourceAddress = ExternalSourceAddress;
+export type PluginOrigin = {
+  readonly kind: 'plugin';
+  readonly instanceId: string;
+};
+export type ExternalOrigin = {
+  readonly kind: 'external';
+  readonly connectorId: string;
+  readonly sourceAddress?: ExternalSourceAddress;
+};
+export type HostOrigin = {
+  readonly kind: 'host';
+};
+export type ProvenanceOrigin = PluginOrigin | ExternalOrigin | HostOrigin;
+export type DraftOrigin = PluginOrigin | ExternalOrigin;
+export type MessageProvenance = {
+  readonly origin: ProvenanceOrigin;
+  readonly epistemicStatus: EpistemicStatus;
+};
+export type DraftProvenance = {
+  readonly origin?: DraftOrigin;
+  readonly epistemicStatus: EpistemicStatus;
+};
+export type ElementKind = 'text' | 'media_ref' | 'rich_block';
+export type TextElementPayload = {
+  readonly text: string;
+};
+export type MediaRefElementPayload = Readonly<Record<string, unknown>>;
+export type RichBlockElementPayload = Readonly<Record<string, unknown>>;
+export type TextMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'text';
+  readonly payload: TextElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type MediaRefMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'media_ref';
+  readonly payload: MediaRefElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type RichBlockMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'rich_block';
+  readonly payload: RichBlockElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type MessageElement = TextMessageElement | MediaRefMessageElement | RichBlockMessageElement;
+export type MessagePayload = {
+  readonly provenance: MessageProvenance;
+  readonly elements: readonly MessageElement[];
+  readonly correlationId?: string;
+  readonly causationId?: string;
+};
+export type DraftPayload = {
+  readonly provenance: DraftProvenance;
+  readonly elements: readonly MessageElement[];
+  readonly correlationId?: string;
+  readonly causationId?: string;
+};
+export type ThreadHandleAddress = {
+  readonly kind: 'thread_handle';
+  readonly handle: string;
+};
+export type ConnectorBindingAddress = {
+  readonly kind: 'connector_binding';
+  readonly handle: string;
+};
+export type MessageAddress = ThreadHandleAddress | ConnectorBindingAddress;
+export type PublicAudience = {
+  readonly kind: 'public';
+};
+export type WhisperAudience = {
+  readonly kind: 'whisper';
+  readonly targets: readonly string[];
+};
+export type SystemAudience = {
+  readonly kind: 'system';
+};
+export type DraftAudience = PublicAudience | WhisperAudience;
+export type CanonicalAudience = PublicAudience | WhisperAudience | SystemAudience;
+export type MessageDraft = {
+  readonly address: MessageAddress;
+  readonly draftAudience?: DraftAudience;
+  readonly idempotencyKey: string;
+  readonly sourceEventId?: string;
+  readonly replyTo?: string;
+  readonly payload: DraftPayload;
+};
+export type MessageEnvelope = {
+  readonly messageId: string;
+  readonly revision: number;
+  readonly threadId: string;
+  readonly replyTo?: string;
+  readonly actor: ActorRef;
+  readonly audience: CanonicalAudience;
+  readonly occurredAt: string;
+  readonly payload: MessagePayload;
+};
+export type MessagePublishEvent = {
+  readonly eventId: string;
+  readonly sequence: number;
+  readonly type: 'message.publish';
+  readonly envelope: MessageEnvelope;
+};
+export type MessageElementsAppendEvent = {
+  readonly eventId: string;
+  readonly sequence: number;
+  readonly type: 'message.elements.append';
+  readonly messageId: string;
+  readonly threadId: string;
+  readonly operationId: string;
+  readonly baseRevision?: number;
+  readonly revision: number;
+  readonly elements: readonly MessageElement[];
+};
+export type MessageOutputEvent = MessagePublishEvent | MessageElementsAppendEvent;
+export type SendReceipt = {
+  readonly messageId: string;
+  readonly threadId: string;
+  readonly revision: number;
+  readonly publishSequence?: number;
+};
+export type AppendReceipt = {
+  readonly messageId: string;
+  readonly revision: number;
+  readonly appendSequence?: number;
+  readonly appliedElementIds: readonly string[];
+};
+export type MessagingErrorCode = 'VALIDATION' | 'PERMISSION' | 'NOT_FOUND' | 'CONFLICT' | 'RETRYABLE_INFLIGHT' | 'STALE_CURSOR';
+export type MessageHandle = {
+  readonly kind: 'message';
+  readonly token: string;
+};
+export type AppendElementsRequest = {
+  readonly handle: MessageHandle;
+  readonly operationId: string;
+  readonly baseRevision?: number;
+  readonly elements: readonly MessageElement[];
+};
+export type SubscriptionCursor = string;
+export type SubscriptionNormalResponse = {
+  readonly events: readonly MessageOutputEvent[];
+  readonly ackToken: SubscriptionCursor;
+  readonly stale: false;
+};
+export type SubscriptionEmptyResponse = {
+  readonly events: readonly MessageOutputEvent[];
+  readonly ackToken: null;
+  readonly stale: false;
+};
+export type SubscriptionStaleResponse = {
+  readonly events: readonly MessageOutputEvent[];
+  readonly ackToken: null;
+  readonly stale: true;
+};
+export type SubscriptionReadResponse = SubscriptionNormalResponse | SubscriptionEmptyResponse | SubscriptionStaleResponse;
+export type SnapshotResponse = {
+  readonly envelopes: readonly MessageEnvelope[];
+  readonly resumeSequence: number;
+};
+
+export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugin.state.set'] as const;
+export type L0Capability = (typeof L0_CAPABILITIES)[number];
+export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'events.publish', 'messaging.appendElements'] as const;
+export type L1Capability = (typeof L1_CAPABILITIES)[number];
+export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend'] as const;
+export type L2Capability = (typeof L2_CAPABILITIES)[number];
+export const CAPABILITY_TABLE = {
+  L0: L0_CAPABILITIES,
+  L1: L1_CAPABILITIES,
+  L2: L2_CAPABILITIES,
+} as const;
+export type AuthorizationLayer = keyof typeof CAPABILITY_TABLE;
+
+export const DATA_CLASS_ALLOWED_STRATEGIES = {
+  'cache': ['lifecycle', 'retained', 'ask-on-uninstall'],
+  'ephemeral': ['lifecycle', 'retained', 'ask-on-uninstall'],
+  'user-authored': ['retained', 'ask-on-uninstall'],
+  'derived-user-visible': ['retained', 'ask-on-uninstall'],
+  'relationship': ['retained', 'ask-on-uninstall'],
+  'interaction-history': ['retained', 'ask-on-uninstall'],
+} as const satisfies Readonly<Record<DataClass, readonly DataStrategy[]>>;
+
+export const MESSAGING_BOUNDS = {
+  maxElementsPerOperation: 32,
+  maxElementPayloadBytes: 65536,
+  maxTotalPayloadBytes: 262144,
+  maxWhisperTargets: 16,
+  maxIdempotencyKeyLength: 200,
+  maxElementIdLength: 128,
+  maxElementsPerMessage: 128,
+  maxAppendOpsPerMessage: 64,
+} as const;

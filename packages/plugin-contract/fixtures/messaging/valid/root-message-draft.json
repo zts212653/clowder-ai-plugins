@@ -1,12 +1,15 @@
 {
   "address": {
-    "kind": "thread",
-    "token": "opaque-host-signed-thread-handle"
+    "kind": "thread_handle",
+    "handle": "opaque-host-signed-thread-handle"
   },
   "idempotencyKey": "fixture-root-send-001",
   "payload": {
     "provenance": {
-      "origin": "plugin",
+      "origin": {
+        "kind": "plugin",
+        "instanceId": "fixture-plugin-instance"
+      },
       "epistemicStatus": "inference"
     },
     "elements": [

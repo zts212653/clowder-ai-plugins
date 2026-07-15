@@ -3,14 +3,19 @@
     "schemaRef": "MessageDraft"
   },
   "address": {
-    "kind": "thread",
-    "token": "opaque-host-signed-thread-handle"
+    "kind": "thread_handle",
+    "handle": "opaque-host-signed-thread-handle"
   },
-  "draftAudience": "system",
+  "draftAudience": {
+    "kind": "system"
+  },
   "idempotencyKey": "fixture-send-system-audience",
   "payload": {
     "provenance": {
-      "origin": "plugin",
+      "origin": {
+        "kind": "plugin",
+        "instanceId": "fixture-plugin-instance"
+      },
       "epistemicStatus": "inference"
     },
     "elements": [

@@ -3,6 +3,19 @@
   "$id": "https://clowder-ai.dev/schemas/manifest/v0.1",
   "title": "Clowder AI Plugin Manifest (v0.1)",
   "description": "Machine-readable truth source for plugin manifest (§3.4/§3.5). v0.1 covers core manifest + features + data classification. Signals/events (C-2) and schedule/state (C-3) are schema deltas in future contract versions.",
+  "x-clowder-capability-layers": {
+    "L0": ["plugin.config.read", "plugin.state.get", "plugin.state.set"],
+    "L1": ["messaging.send", "schedule.register", "events.publish", "messaging.appendElements"],
+    "L2": ["onMessage", "message.event.subscribe", "secret.read", "thread.listMetadata", "thread.readContent", "memory.query", "memory.append", "memory.retrieve", "windows.create", "whisper.extend"]
+  },
+  "x-clowder-data-class-strategies": {
+    "cache": ["lifecycle", "retained", "ask-on-uninstall"],
+    "ephemeral": ["lifecycle", "retained", "ask-on-uninstall"],
+    "user-authored": ["retained", "ask-on-uninstall"],
+    "derived-user-visible": ["retained", "ask-on-uninstall"],
+    "relationship": ["retained", "ask-on-uninstall"],
+    "interaction-history": ["retained", "ask-on-uninstall"]
+  },
 
   "$defs": {
     "DataClass": {
@@ -13,6 +26,29 @@
     "DataStrategy": {
       "type": "string",
       "enum": ["lifecycle", "retained", "ask-on-uninstall"]
+    },
+
+    "Capability": {
+      "type": "string",
+      "enum": [
+        "plugin.config.read",
+        "plugin.state.get",
+        "plugin.state.set",
+        "messaging.send",
+        "schedule.register",
+        "events.publish",
+        "messaging.appendElements",
+        "onMessage",
+        "message.event.subscribe",
+        "secret.read",
+        "thread.listMetadata",
+        "thread.readContent",
+        "memory.query",
+        "memory.append",
+        "memory.retrieve",
+        "windows.create",
+        "whisper.extend"
+      ]
     },
 
     "DataDeclaration": {
@@ -68,29 +104,8 @@
         },
         "capabilities": {
           "type": "array",
-          "items": {
-            "type": "string",
-            "enum": [
-              "plugin.config.read",
-              "plugin.state.get",
-              "plugin.state.set",
-              "messaging.send",
-              "schedule.register",
-              "events.publish",
-              "messaging.appendElements",
-              "onMessage",
-              "message.event.subscribe",
-              "secret.read",
-              "thread.listMetadata",
-              "thread.readContent",
-              "memory.query",
-              "memory.append",
-              "memory.retrieve",
-              "windows.create",
-              "whisper.extend"
-            ],
-            "description": "@candidate — capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer."
-          }
+          "items": { "$ref": "#/$defs/Capability" },
+          "description": "@candidate — capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer."
         }
       },
       "required": ["id", "name", "resources", "capabilities"],

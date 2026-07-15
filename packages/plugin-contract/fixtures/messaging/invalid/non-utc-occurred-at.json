@@ -9,11 +9,16 @@
     "kind": "plugin",
     "id": "fixture-plugin"
   },
-  "audience": "public",
+  "audience": {
+    "kind": "public"
+  },
   "occurredAt": "2026-07-15T10:42:00+08:00",
   "payload": {
     "provenance": {
-      "origin": "plugin",
+      "origin": {
+        "kind": "plugin",
+        "instanceId": "fixture-plugin-instance"
+      },
       "epistemicStatus": "inference"
     },
     "elements": [

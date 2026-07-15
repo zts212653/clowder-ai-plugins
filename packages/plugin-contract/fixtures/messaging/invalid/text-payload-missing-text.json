@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "schemaRef": "MessageElement"
+  },
+  "elementId": "text-1",
+  "kind": "text",
+  "payload": {
+    "html": "text payloads must carry text"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "schemaRef": "SubscriptionReadResponse"
+  },
+  "events": [],
+  "ackToken": "must-be-null-while-stale",
+  "stale": true
+}
