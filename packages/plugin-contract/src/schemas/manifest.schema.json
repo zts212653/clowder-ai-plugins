@@ -18,6 +18,13 @@
   },
 
   "$defs": {
+    "SemVer": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$",
+      "description": "SemVer 2.0.0 including optional prerelease and build metadata."
+    },
+
     "DataClass": {
       "type": "string",
       "enum": ["cache", "ephemeral", "user-authored", "derived-user-visible", "relationship", "interaction-history"]
@@ -132,15 +139,11 @@
   "properties": {
     "pluginId": { "type": "string", "minLength": 1 },
     "version": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$",
+      "$ref": "#/$defs/SemVer",
       "description": "Plugin version — must be valid semver (§9: numeric prerelease identifiers MUST NOT have leading zeroes)."
     },
     "contractVersion": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$",
+      "$ref": "#/$defs/SemVer",
       "description": "Must be an exact published semver version — no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). §9: numeric prerelease identifiers MUST NOT have leading zeroes."
     },
     "name": { "type": "string", "minLength": 1 },

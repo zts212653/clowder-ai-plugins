@@ -3,13 +3,39 @@
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
 
+export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
 export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
 export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend';
 export type DataDeclaration = {
   readonly name: string;
-  readonly dataClass: DataClass;
-  readonly strategy: DataStrategy;
+  readonly dataClass: 'cache';
+  readonly strategy: 'lifecycle' | 'retained' | 'ask-on-uninstall';
+  readonly schemaVersion?: string;
+} | {
+  readonly name: string;
+  readonly dataClass: 'ephemeral';
+  readonly strategy: 'lifecycle' | 'retained' | 'ask-on-uninstall';
+  readonly schemaVersion?: string;
+} | {
+  readonly name: string;
+  readonly dataClass: 'user-authored';
+  readonly strategy: 'retained' | 'ask-on-uninstall';
+  readonly schemaVersion?: string;
+} | {
+  readonly name: string;
+  readonly dataClass: 'derived-user-visible';
+  readonly strategy: 'retained' | 'ask-on-uninstall';
+  readonly schemaVersion?: string;
+} | {
+  readonly name: string;
+  readonly dataClass: 'relationship';
+  readonly strategy: 'retained' | 'ask-on-uninstall';
+  readonly schemaVersion?: string;
+} | {
+  readonly name: string;
+  readonly dataClass: 'interaction-history';
+  readonly strategy: 'retained' | 'ask-on-uninstall';
   readonly schemaVersion?: string;
 };
 export type ResourceReference = {
@@ -30,8 +56,8 @@ export type RuntimeDeclaration = {
 
 export type PluginManifest = {
   readonly pluginId: string;
-  readonly version: string;
-  readonly contractVersion: string;
+  readonly version: SemVer;
+  readonly contractVersion: SemVer;
   readonly name: string;
   readonly description?: string;
   readonly features: readonly PluginFeature[];

@@ -123,10 +123,29 @@ function renderType(schema: JsonSchema): string {
   }
 }
 
-function renderDefinitions(schema: JsonSchema): string[] {
-  return Object.entries(schema.$defs ?? {}).map(
-    ([name, definition]) => `export type ${name} = ${renderType(definition)};`,
+function renderDataDeclaration(schema: JsonSchema, definition: JsonSchema): string {
+  const strategies = deriveDataClassStrategies(schema);
+  const variants = Object.entries(strategies).map(([dataClass, allowedStrategies]) =>
+    renderType({
+      ...definition,
+      properties: {
+        ...definition.properties,
+        dataClass: { const: dataClass },
+        strategy: { enum: [...allowedStrategies] },
+      },
+    }),
   );
+  return variants.join(' | ');
+}
+
+function renderDefinitions(schema: JsonSchema): string[] {
+  return Object.entries(schema.$defs ?? {}).map(([name, definition]) => {
+    const rendered =
+      name === 'DataDeclaration' && schema['x-clowder-data-class-strategies'] !== undefined
+        ? renderDataDeclaration(schema, definition)
+        : renderType(definition);
+    return `export type ${name} = ${rendered};`;
+  });
 }
 
 function stringArray(value: unknown, label: string): readonly string[] {

@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.semver-build",
+  "version": "1.2.3+build.7",
+  "contractVersion": "0.1.0-candidate.1+sha.359d56e",
+  "name": "SemVer build metadata fixture",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

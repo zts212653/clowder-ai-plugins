@@ -27,12 +27,13 @@
   "scripts": {
     "generate": "node --import tsx src/codegen/generate-contract.ts",
     "generate:check": "node --import tsx src/codegen/generate-contract.ts --check",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/**/*.test.ts",
     "conformance": "node --import tsx src/conformance/runner.ts",
     "lint": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepack": "pnpm build"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
