@@ -1,15 +1,7 @@
 name: Contract CI
 
 on:
-  pull_request:
-    paths:
-      - 'packages/plugin-contract/**'
-      - '.npmrc'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '.github/CODEOWNERS'
-      - '.github/workflows/contract-ci.yml'
+  pull_request: {}
   push:
     branches: [main]
     paths:

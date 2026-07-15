@@ -34,11 +34,6 @@ const releaseDependencyInputs = [
   'pnpm-workspace.yaml',
 ];
 
-const releaseGovernanceInputs = [
-  '.github/CODEOWNERS',
-  '.github/workflows/contract-ci.yml',
-];
-
 const messagingBehaviorSuite = JSON.parse(
   readFileSync(
     new URL('../../fixtures/behavior/messaging/adversarial-invariants.json', import.meta.url),
@@ -88,16 +83,6 @@ test('release dependency inputs require contract owner review', () => {
   }
 });
 
-test('release dependency inputs trigger pull request validation', () => {
-  for (const input of releaseDependencyInputs) {
-    assert.match(
-      releaseWorkflow,
-      new RegExp(`^      - '${input.replace('.', '\\.')}'$`, 'm'),
-      `${input} must trigger contract validation`,
-    );
-  }
-});
-
 test('release governance inputs require contract owner review', () => {
   assert.match(
     codeowners,
@@ -109,12 +94,6 @@ test('release governance inputs require contract owner review', () => {
   );
 });
 
-test('release governance inputs trigger pull request validation', () => {
-  for (const input of releaseGovernanceInputs) {
-    assert.match(
-      releaseWorkflow,
-      new RegExp(`^      - '${input.replaceAll('.', '\\.')}'$`, 'm'),
-      `${input} must trigger contract validation`,
-    );
-  }
+test('contract validation reports on every pull request', () => {
+  assert.match(releaseWorkflow, /^  pull_request: \{\}$/m);
 });
