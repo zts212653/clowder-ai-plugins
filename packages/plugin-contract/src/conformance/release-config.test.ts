@@ -71,6 +71,21 @@ test('main pushes publish only after contract validation', () => {
     publishJob,
     /^        run: npm publish "packages\/plugin-contract\/\$\{\{ steps\.pack\.outputs\.filename \}\}" --tag next --provenance --access public$/m,
   );
+  assert.equal(
+    releaseWorkflow.match(/\bnpm\s+publish\b/g)?.length,
+    1,
+    'the workflow must contain exactly one npm publish path',
+  );
+  assert.doesNotMatch(
+    publishJob,
+    /--tag(?:=|\s+)["']?latest\b/i,
+    'the prerelease publish job must not publish with the latest tag',
+  );
+  assert.doesNotMatch(
+    publishJob,
+    /\bnpm\s+dist-tag\b[^\n]*\blatest\b/i,
+    'the prerelease publish job must not mutate the latest dist-tag',
+  );
 });
 
 test('publish verifies the exact registry version and artifact integrity', () => {
@@ -83,7 +98,24 @@ test('publish verifies the exact registry version and artifact integrity', () =>
   assert.match(publishJob, /^          npm pack --json --ignore-scripts > "\$PACK_JSON_PATH"$/m);
   assert.match(publishJob, /^      - name: Verify registry version and integrity$/m);
   assert.match(publishJob, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
-  assert.match(publishJob, /EXPECTED_INTEGRITY/);
+  assert.match(
+    publishJob,
+    /^          if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{$/m,
+  );
+  assert.match(
+    publishJob,
+    /^          if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{$/m,
+  );
+  assert.match(
+    publishJob,
+    /^          NODE\n              then\n                exit 0\n              fi\n            fi$/m,
+    'registry verification must exit successfully only after both comparisons pass',
+  );
+  assert.match(
+    publishJob,
+    /^          echo "registry verification failed for \$PACKAGE_NAME@\$PACKAGE_VERSION" >&2\n          exit 1$/m,
+    'registry verification exhaustion must fail the publish job',
+  );
 });
 
 test('release dependency inputs require contract owner review', () => {
