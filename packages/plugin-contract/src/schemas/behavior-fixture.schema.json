@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/behavior-fixture/v0.1",
+  "title": "Clowder AI Contract Behavior Fixture",
+  "type": "object",
+  "properties": {
+    "_meta": { "$ref": "#/$defs/FixtureMetadata" },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/BehaviorCase" },
+      "minItems": 1
+    }
+  },
+  "required": ["_meta", "cases"],
+  "additionalProperties": false,
+  "$defs": {
+    "FixtureMetadata": {
+      "type": "object",
+      "properties": {
+        "executor": { "const": "loopback" },
+        "domain": { "const": "messaging" },
+        "contractVersion": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$"
+        },
+        "source": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 }
+      },
+      "required": ["executor", "domain", "contractVersion", "source", "description"],
+      "additionalProperties": false
+    },
+    "FixtureCaller": {
+      "type": "object",
+      "properties": {
+        "pluginInstanceId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["pluginInstanceId"],
+      "additionalProperties": false
+    },
+    "FixtureHandle": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["thread_handle", "connector_binding", "message_handle", "subscription"]
+        },
+        "token": { "type": "string", "minLength": 1 },
+        "ownerPluginInstanceId": { "type": "string", "minLength": 1 },
+        "threadId": { "type": "string", "minLength": 1 },
+        "messageId": { "type": "string", "minLength": 1 },
+        "connectorId": { "type": "string", "minLength": 1 },
+        "subscriptionId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "token", "ownerPluginInstanceId"],
+      "additionalProperties": false
+    },
+    "FixtureSetup": {
+      "type": "object",
+      "properties": {
+        "caller": { "$ref": "#/$defs/FixtureCaller" },
+        "grants": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CapabilityName" },
+          "uniqueItems": true
+        },
+        "handles": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/FixtureHandle" }
+        },
+        "state": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": ["caller", "grants", "handles", "state"],
+      "additionalProperties": false
+    },
+    "FixtureOperation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "send" },
+            "input": { "$ref": "#/$defs/SendOperationInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "appendElements" },
+            "input": { "$ref": "#/$defs/AppendOperationInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "subscribe" },
+            "input": { "$ref": "#/$defs/SubscribeOperationInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "read" },
+            "input": { "$ref": "#/$defs/ReadOperationInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "ack" },
+            "input": { "$ref": "#/$defs/AckOperationInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "snapshot" },
+            "input": { "$ref": "#/$defs/SnapshotOperationInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "applyGrantPreset" },
+            "input": { "$ref": "#/$defs/GrantPresetInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "revokeGrant" },
+            "input": { "$ref": "#/$defs/RevokeGrantInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "deliverOnMessage" },
+            "input": { "$ref": "#/$defs/OnMessageDeliveryInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "checkPermissionMatrix" },
+            "input": { "$ref": "#/$defs/PermissionMatrixInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "deleteReplayEvents" },
+            "input": { "$ref": "#/$defs/DeleteReplayEventsInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SendOperationInput": {
+      "type": "object",
+      "properties": {
+        "address": { "type": "object" },
+        "idempotencyKey": { "type": "string", "minLength": 1 },
+        "payload": { "type": "object" }
+      },
+      "required": ["address", "idempotencyKey", "payload"],
+      "additionalProperties": true
+    },
+    "AppendOperationInput": {
+      "type": "object",
+      "properties": {
+        "handle": { "type": "object" },
+        "operationId": { "type": "string", "minLength": 1 },
+        "elements": { "type": "array", "minItems": 1 }
+      },
+      "required": ["handle", "operationId", "elements"],
+      "additionalProperties": true
+    },
+    "SubscribeOperationInput": {
+      "type": "object",
+      "properties": {
+        "handleId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["handleId"],
+      "additionalProperties": false
+    },
+    "ReadOperationInput": {
+      "type": "object",
+      "properties": {
+        "subscriptionId": { "type": "string", "minLength": 1 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 32 }
+      },
+      "required": ["subscriptionId"],
+      "additionalProperties": false
+    },
+    "AckOperationInput": {
+      "type": "object",
+      "properties": {
+        "subscriptionId": { "type": "string", "minLength": 1 },
+        "ackToken": { "type": "string", "minLength": 1 }
+      },
+      "required": ["subscriptionId", "ackToken"],
+      "additionalProperties": false
+    },
+    "SnapshotOperationInput": {
+      "type": "object",
+      "properties": {
+        "subscriptionId": { "type": "string", "minLength": 1 }
+      },
+      "required": ["subscriptionId"],
+      "additionalProperties": false
+    },
+    "CapabilityName": {
+      "$ref": "https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability"
+    },
+    "GrantPresetInput": {
+      "type": "object",
+      "properties": {
+        "presetKind": { "const": "first_party" },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CapabilityName" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["presetKind", "capabilities"],
+      "additionalProperties": false
+    },
+    "RevokeGrantInput": {
+      "type": "object",
+      "properties": {
+        "capability": { "$ref": "#/$defs/CapabilityName" }
+      },
+      "required": ["capability"],
+      "additionalProperties": false
+    },
+    "OnMessageDeliveryInput": {
+      "type": "object",
+      "properties": {
+        "threadHandle": { "type": "string", "minLength": 1 },
+        "envelope": { "type": "object" }
+      },
+      "required": ["threadHandle", "envelope"],
+      "additionalProperties": false
+    },
+    "PermissionMatrixEntry": {
+      "type": "object",
+      "properties": {
+        "capability": { "$ref": "#/$defs/CapabilityName" },
+        "layer": { "type": "string", "enum": ["L0", "L1", "L2"] },
+        "firstPartyPreset": { "type": "boolean" }
+      },
+      "required": ["capability", "layer", "firstPartyPreset"],
+      "additionalProperties": false
+    },
+    "PermissionMatrixInput": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PermissionMatrixEntry" },
+          "minItems": 17,
+          "maxItems": 17
+        }
+      },
+      "required": ["entries"],
+      "additionalProperties": false
+    },
+    "DeleteReplayEventsInput": {
+      "type": "object",
+      "properties": {
+        "subscriptionId": { "type": "string", "minLength": 1 },
+        "throughSequence": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["subscriptionId", "throughSequence"],
+      "additionalProperties": false
+    },
+    "MessagingErrorCode": {
+      "type": "string",
+      "enum": ["VALIDATION", "PERMISSION", "NOT_FOUND", "CONFLICT", "RETRYABLE_INFLIGHT", "STALE_CURSOR"]
+    },
+    "SideEffectAssertion": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string",
+          "enum": ["messages", "output_events", "idempotency_ledger", "subscription", "snapshot", "reply_preview", "provenance", "grant_state", "permission_matrix", "replay_events"]
+        },
+        "assertion": {
+          "type": "string",
+          "enum": ["unchanged", "none", "state_equals", "round_trip", "matches"]
+        },
+        "value": true
+      },
+      "required": ["target", "assertion"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "assertion": { "enum": ["state_equals", "round_trip", "matches"] }
+            },
+            "required": ["assertion"]
+          },
+          "then": { "required": ["value"] },
+          "else": { "not": { "required": ["value"] } }
+        }
+      ]
+    },
+    "ExpectedVerdict": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["success", "error"] },
+        "errorCode": { "$ref": "#/$defs/MessagingErrorCode" },
+        "sideEffects": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SideEffectAssertion" },
+          "minItems": 1
+        }
+      },
+      "required": ["status", "sideEffects"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "error" } },
+            "required": ["status"]
+          },
+          "then": { "required": ["errorCode"] },
+          "else": { "not": { "required": ["errorCode"] } }
+        }
+      ]
+    },
+    "BehaviorCase": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "invariant": { "type": "string", "minLength": 1 },
+        "given": { "$ref": "#/$defs/FixtureSetup" },
+        "when": { "$ref": "#/$defs/FixtureOperation" },
+        "expect": { "$ref": "#/$defs/ExpectedVerdict" }
+      },
+      "required": ["id", "invariant", "given", "when", "expect"],
+      "additionalProperties": false
+    }
+  }
+}

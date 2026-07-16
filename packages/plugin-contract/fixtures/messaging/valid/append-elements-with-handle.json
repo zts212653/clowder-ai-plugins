@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "schemaRef": "AppendElementsRequest"
+  },
+  "handle": {
+    "kind": "message",
+    "token": "opaque-host-signed-message-handle"
+  },
+  "operationId": "append-operation-001",
+  "baseRevision": 1,
+  "elements": [
+    {
+      "elementId": "summary-1",
+      "kind": "text",
+      "payload": {
+        "text": "Derived summary"
+      },
+      "derivedFromElementId": "text-1"
+    }
+  ]
+}

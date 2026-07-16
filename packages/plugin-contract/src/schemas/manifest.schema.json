@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/manifest/v0.1",
+  "title": "Clowder AI Plugin Manifest (v0.1)",
+  "description": "Machine-readable truth source for plugin manifest (§3.4/§3.5). v0.1 covers core manifest + features + data classification. Signals/events (C-2) and schedule/state (C-3) are schema deltas in future contract versions.",
+  "x-clowder-capability-layers": {
+    "L0": ["plugin.config.read", "plugin.state.get", "plugin.state.set"],
+    "L1": ["messaging.send", "schedule.register", "events.publish", "messaging.appendElements"],
+    "L2": ["onMessage", "message.event.subscribe", "secret.read", "thread.listMetadata", "thread.readContent", "memory.query", "memory.append", "memory.retrieve", "windows.create", "whisper.extend"]
+  },
+  "x-clowder-data-class-strategies": {
+    "cache": ["lifecycle", "retained", "ask-on-uninstall"],
+    "ephemeral": ["lifecycle", "retained", "ask-on-uninstall"],
+    "user-authored": ["retained", "ask-on-uninstall"],
+    "derived-user-visible": ["retained", "ask-on-uninstall"],
+    "relationship": ["retained", "ask-on-uninstall"],
+    "interaction-history": ["retained", "ask-on-uninstall"]
+  },
+
+  "$defs": {
+    "SemVer": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$",
+      "description": "SemVer 2.0.0 including optional prerelease and build metadata."
+    },
+
+    "DataClass": {
+      "type": "string",
+      "enum": ["cache", "ephemeral", "user-authored", "derived-user-visible", "relationship", "interaction-history"]
+    },
+
+    "DataStrategy": {
+      "type": "string",
+      "enum": ["lifecycle", "retained", "ask-on-uninstall"]
+    },
+
+    "Capability": {
+      "type": "string",
+      "enum": [
+        "plugin.config.read",
+        "plugin.state.get",
+        "plugin.state.set",
+        "messaging.send",
+        "schedule.register",
+        "events.publish",
+        "messaging.appendElements",
+        "onMessage",
+        "message.event.subscribe",
+        "secret.read",
+        "thread.listMetadata",
+        "thread.readContent",
+        "memory.query",
+        "memory.append",
+        "memory.retrieve",
+        "windows.create",
+        "whisper.extend"
+      ]
+    },
+
+    "DataDeclaration": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "dataClass": { "$ref": "#/$defs/DataClass" },
+        "strategy": { "$ref": "#/$defs/DataStrategy" },
+        "schemaVersion": { "type": "string" }
+      },
+      "required": ["name", "dataClass", "strategy"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "dataClass": {
+                "enum": ["user-authored", "derived-user-visible", "relationship", "interaction-history"]
+              }
+            },
+            "required": ["dataClass"]
+          },
+          "then": {
+            "properties": {
+              "strategy": {
+                "enum": ["retained", "ask-on-uninstall"],
+                "description": "User-visible/relationship data MUST be retained or ask-on-uninstall. lifecycle is structurally forbidden (铁律 #5: user state defaults to persistent)."
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "ResourceReference": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type", "id"],
+      "additionalProperties": false
+    },
+
+    "PluginFeature": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "resources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ResourceReference" }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Capability" },
+          "description": "@signed(G-0 2026-07-15) — capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer. Lifecycle callbacks are protocol-intrinsic baseline behavior, so they are not grantable or revocable capability IDs."
+        }
+      },
+      "required": ["id", "name", "resources", "capabilities"],
+      "additionalProperties": false
+    },
+
+    "RuntimeTransport": {
+      "type": "string",
+      "enum": ["stdio", "ipc", "builtin"]
+    },
+
+    "ExternalRuntimeTransport": {
+      "type": "string",
+      "enum": ["stdio", "ipc"]
+    },
+
+    "ExternalRuntimeDeclaration": {
+      "type": "object",
+      "properties": {
+        "transport": { "$ref": "#/$defs/ExternalRuntimeTransport" },
+        "entrypoint": { "type": "string", "minLength": 1 }
+      },
+      "required": ["transport", "entrypoint"],
+      "additionalProperties": false
+    },
+
+    "BuiltinRuntimeDeclaration": {
+      "type": "object",
+      "properties": {
+        "transport": { "const": "builtin" },
+        "entrypoint": { "type": "string", "minLength": 1 }
+      },
+      "required": ["transport"],
+      "additionalProperties": false
+    },
+
+    "RuntimeDeclaration": {
+      "oneOf": [
+        { "$ref": "#/$defs/ExternalRuntimeDeclaration" },
+        { "$ref": "#/$defs/BuiltinRuntimeDeclaration" }
+      ]
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "pluginId": { "type": "string", "minLength": 1 },
+    "version": {
+      "$ref": "#/$defs/SemVer",
+      "description": "Plugin version — must be valid semver (§9: numeric prerelease identifiers MUST NOT have leading zeroes)."
+    },
+    "contractVersion": {
+      "$ref": "#/$defs/SemVer",
+      "description": "Must be an exact published semver version — no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). §9: numeric prerelease identifiers MUST NOT have leading zeroes."
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "features": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PluginFeature" },
+      "minItems": 1
+    },
+    "data": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DataDeclaration" }
+    },
+    "runtime": { "$ref": "#/$defs/RuntimeDeclaration" }
+  },
+  "required": ["pluginId", "version", "contractVersion", "name", "features", "runtime"],
+  "additionalProperties": false
+}

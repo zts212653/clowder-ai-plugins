@@ -1,0 +1,31 @@
+{
+  "_meta": {
+    "schemaRef": "MessageDraft"
+  },
+  "address": {
+    "kind": "thread_handle",
+    "handle": "opaque-host-signed-thread-handle"
+  },
+  "draftAudience": {
+    "kind": "system"
+  },
+  "idempotencyKey": "fixture-send-system-audience",
+  "payload": {
+    "provenance": {
+      "origin": {
+        "kind": "plugin",
+        "instanceId": "fixture-plugin-instance"
+      },
+      "epistemicStatus": "inference"
+    },
+    "elements": [
+      {
+        "elementId": "text-1",
+        "kind": "text",
+        "payload": {
+          "text": "Must be rejected"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "name": "@clowder-ai/plugins-workspace",
+  "description": "Clowder AI plugin ecosystem — contract, SDK, and reference plugins",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance"
+  }
+}

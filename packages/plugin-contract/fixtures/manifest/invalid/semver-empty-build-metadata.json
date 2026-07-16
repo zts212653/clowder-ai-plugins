@@ -1,0 +1,17 @@
+{
+  "pluginId": "dev.clowder.fixture.semver-empty-build",
+  "version": "1.2.3+",
+  "contractVersion": "0.1.0",
+  "name": "Invalid empty SemVer build metadata fixture",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "pluginId": "dev.clowder.fixture.protocol-lifecycle",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Protocol-intrinsic lifecycle fixture",
+  "description": "Lifecycle callbacks remain available as protocol baseline behavior without a grantable capability ID.",
+  "features": [
+    {
+      "id": "lifecycle-baseline",
+      "name": "Lifecycle baseline",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

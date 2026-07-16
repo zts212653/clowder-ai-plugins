@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/messaging/v0.1",
+  "title": "Clowder AI Plugin Contract — Messaging Domain (v0.1)",
+  "description": "Machine-readable truth source for messaging types (§3.1). Candidate — do not consume until published.",
+  "x-clowder-bounds": {
+    "maxElementsPerOperation": 32,
+    "maxElementPayloadBytes": 65536,
+    "maxTotalPayloadBytes": 262144,
+    "maxWhisperTargets": 16,
+    "maxIdempotencyKeyLength": 200,
+    "maxElementIdLength": 128,
+    "maxElementsPerMessage": 128,
+    "maxAppendOpsPerMessage": 64
+  },
+  "x-clowder-replay-window-default": "P7D",
+  "oneOf": [
+    { "$ref": "#/$defs/MessageDraft" },
+    { "$ref": "#/$defs/MessageEnvelope" },
+    { "$ref": "#/$defs/MessageOutputEvent" },
+    { "$ref": "#/$defs/AppendElementsRequest" },
+    { "$ref": "#/$defs/SendReceipt" },
+    { "$ref": "#/$defs/AppendReceipt" },
+    { "$ref": "#/$defs/SubscriptionReadResponse" },
+    { "$ref": "#/$defs/SnapshotResponse" }
+  ],
+  "$defs": {
+    "ActorKind": {
+      "type": "string",
+      "enum": ["user", "cat", "plugin", "device", "system"]
+    },
+    "ActorRef": {
+      "type": "object",
+      "properties": {
+        "kind": { "$ref": "#/$defs/ActorKind" },
+        "id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "id"],
+      "additionalProperties": false
+    },
+    "EpistemicStatus": {
+      "type": "string",
+      "enum": ["observation", "user_intent", "inference"]
+    },
+    "ExternalSourceAddress": {
+      "type": "object",
+      "properties": {
+        "connectorId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "chatId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "messageId": { "type": "string", "minLength": 1, "maxLength": 512 }
+      },
+      "required": ["connectorId", "chatId"],
+      "additionalProperties": false
+    },
+    "IngressSourceAddress": {
+      "$ref": "#/$defs/ExternalSourceAddress",
+      "description": "Backward-compatible name for the external ingress address."
+    },
+    "PluginOrigin": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "plugin" },
+        "instanceId": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["kind", "instanceId"],
+      "additionalProperties": false
+    },
+    "ExternalOrigin": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "external" },
+        "connectorId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "sourceAddress": { "$ref": "#/$defs/ExternalSourceAddress" }
+      },
+      "required": ["kind", "connectorId"],
+      "additionalProperties": false
+    },
+    "HostOrigin": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "host" }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "ProvenanceOrigin": {
+      "oneOf": [
+        { "$ref": "#/$defs/PluginOrigin" },
+        { "$ref": "#/$defs/ExternalOrigin" },
+        { "$ref": "#/$defs/HostOrigin" }
+      ]
+    },
+    "DraftOrigin": {
+      "oneOf": [
+        { "$ref": "#/$defs/PluginOrigin" },
+        { "$ref": "#/$defs/ExternalOrigin" }
+      ],
+      "description": "Drafts cannot self-declare host provenance."
+    },
+    "MessageProvenance": {
+      "type": "object",
+      "properties": {
+        "origin": { "$ref": "#/$defs/ProvenanceOrigin" },
+        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+      },
+      "required": ["origin", "epistemicStatus"],
+      "additionalProperties": false
+    },
+    "DraftProvenance": {
+      "type": "object",
+      "properties": {
+        "origin": { "$ref": "#/$defs/DraftOrigin" },
+        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+      },
+      "required": ["epistemicStatus"],
+      "additionalProperties": false
+    },
+    "ElementKind": {
+      "type": "string",
+      "enum": ["text", "media_ref", "rich_block"]
+    },
+    "TextElementPayload": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "MediaRefElementPayload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "RichBlockElementPayload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "TextMessageElement": {
+      "type": "object",
+      "properties": {
+        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "const": "text" },
+        "payload": { "$ref": "#/$defs/TextElementPayload" },
+        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+      },
+      "required": ["elementId", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "MediaRefMessageElement": {
+      "type": "object",
+      "properties": {
+        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "const": "media_ref" },
+        "payload": { "$ref": "#/$defs/MediaRefElementPayload" },
+        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+      },
+      "required": ["elementId", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "RichBlockMessageElement": {
+      "type": "object",
+      "properties": {
+        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": { "const": "rich_block" },
+        "payload": { "$ref": "#/$defs/RichBlockElementPayload" },
+        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+      },
+      "required": ["elementId", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "MessageElement": {
+      "oneOf": [
+        { "$ref": "#/$defs/TextMessageElement" },
+        { "$ref": "#/$defs/MediaRefMessageElement" },
+        { "$ref": "#/$defs/RichBlockMessageElement" }
+      ]
+    },
+    "MessagePayload": {
+      "type": "object",
+      "properties": {
+        "provenance": { "$ref": "#/$defs/MessageProvenance" },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "minItems": 1,
+          "maxItems": 128
+        },
+        "correlationId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "causationId": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["provenance", "elements"],
+      "additionalProperties": false
+    },
+    "DraftPayload": {
+      "type": "object",
+      "properties": {
+        "provenance": { "$ref": "#/$defs/DraftProvenance" },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "correlationId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "causationId": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["provenance", "elements"],
+      "additionalProperties": false
+    },
+    "ThreadHandleAddress": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "thread_handle" },
+        "handle": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["kind", "handle"],
+      "additionalProperties": false
+    },
+    "ConnectorBindingAddress": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "connector_binding" },
+        "handle": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["kind", "handle"],
+      "additionalProperties": false
+    },
+    "MessageAddress": {
+      "oneOf": [
+        { "$ref": "#/$defs/ThreadHandleAddress" },
+        { "$ref": "#/$defs/ConnectorBindingAddress" }
+      ]
+    },
+    "PublicAudience": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "public" }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "WhisperAudience": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "whisper" },
+        "targets": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true
+        }
+      },
+      "required": ["kind", "targets"],
+      "additionalProperties": false
+    },
+    "SystemAudience": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "system" }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "DraftAudience": {
+      "oneOf": [
+        { "$ref": "#/$defs/PublicAudience" },
+        { "$ref": "#/$defs/WhisperAudience" }
+      ]
+    },
+    "CanonicalAudience": {
+      "oneOf": [
+        { "$ref": "#/$defs/PublicAudience" },
+        { "$ref": "#/$defs/WhisperAudience" },
+        { "$ref": "#/$defs/SystemAudience" }
+      ]
+    },
+    "MessageDraft": {
+      "type": "object",
+      "properties": {
+        "address": { "$ref": "#/$defs/MessageAddress" },
+        "draftAudience": { "$ref": "#/$defs/DraftAudience" },
+        "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "sourceEventId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "replyTo": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "payload": { "$ref": "#/$defs/DraftPayload" }
+      },
+      "required": ["address", "idempotencyKey", "payload"],
+      "additionalProperties": false
+    },
+    "MessageEnvelope": {
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "threadId": { "type": "string", "minLength": 1 },
+        "replyTo": { "type": "string", "minLength": 1 },
+        "actor": { "$ref": "#/$defs/ActorRef" },
+        "audience": { "$ref": "#/$defs/CanonicalAudience" },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "Z$"
+        },
+        "payload": { "$ref": "#/$defs/MessagePayload" }
+      },
+      "required": ["messageId", "revision", "threadId", "actor", "audience", "occurredAt", "payload"],
+      "additionalProperties": false
+    },
+    "MessagePublishEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string", "minLength": 1 },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "type": { "const": "message.publish" },
+        "envelope": { "$ref": "#/$defs/MessageEnvelope" }
+      },
+      "required": ["eventId", "sequence", "type", "envelope"],
+      "additionalProperties": false
+    },
+    "MessageElementsAppendEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string", "minLength": 1 },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "type": { "const": "message.elements.append" },
+        "messageId": { "type": "string", "minLength": 1 },
+        "threadId": { "type": "string", "minLength": 1 },
+        "operationId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "baseRevision": { "type": "integer", "minimum": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "minItems": 1,
+          "maxItems": 32
+        }
+      },
+      "required": ["eventId", "sequence", "type", "messageId", "threadId", "operationId", "revision", "elements"],
+      "additionalProperties": false
+    },
+    "MessageOutputEvent": {
+      "oneOf": [
+        { "$ref": "#/$defs/MessagePublishEvent" },
+        { "$ref": "#/$defs/MessageElementsAppendEvent" }
+      ]
+    },
+    "SendReceipt": {
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string", "minLength": 1 },
+        "threadId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "publishSequence": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["messageId", "threadId", "revision"],
+      "additionalProperties": false
+    },
+    "AppendReceipt": {
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string", "minLength": 1 },
+        "revision": { "type": "integer", "minimum": 1 },
+        "appendSequence": { "type": "integer", "minimum": 0 },
+        "appliedElementIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      },
+      "required": ["messageId", "revision", "appliedElementIds"],
+      "additionalProperties": false
+    },
+    "MessagingErrorCode": {
+      "type": "string",
+      "enum": ["VALIDATION", "PERMISSION", "NOT_FOUND", "CONFLICT", "RETRYABLE_INFLIGHT", "STALE_CURSOR"]
+    },
+    "MessageHandle": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "message" },
+        "token": { "type": "string", "minLength": 1 }
+      },
+      "required": ["kind", "token"],
+      "additionalProperties": false
+    },
+    "AppendElementsRequest": {
+      "type": "object",
+      "properties": {
+        "handle": { "$ref": "#/$defs/MessageHandle" },
+        "operationId": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "baseRevision": { "type": "integer", "minimum": 1 },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageElement" },
+          "minItems": 1,
+          "maxItems": 32
+        }
+      },
+      "required": ["handle", "operationId", "elements"],
+      "additionalProperties": false
+    },
+    "SubscriptionCursor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Opaque, subscription-local acknowledgement token."
+    },
+    "SubscriptionNormalResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "ackToken": { "$ref": "#/$defs/SubscriptionCursor" },
+        "stale": { "const": false }
+      },
+      "required": ["events", "ackToken", "stale"],
+      "additionalProperties": false
+    },
+    "SubscriptionEmptyResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "maxItems": 0
+        },
+        "ackToken": { "type": "null" },
+        "stale": { "const": false }
+      },
+      "required": ["events", "ackToken", "stale"],
+      "additionalProperties": false
+    },
+    "SubscriptionStaleResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "maxItems": 0
+        },
+        "ackToken": { "type": "null" },
+        "stale": { "const": true }
+      },
+      "required": ["events", "ackToken", "stale"],
+      "additionalProperties": false
+    },
+    "SubscriptionReadResponse": {
+      "oneOf": [
+        { "$ref": "#/$defs/SubscriptionNormalResponse" },
+        { "$ref": "#/$defs/SubscriptionEmptyResponse" },
+        { "$ref": "#/$defs/SubscriptionStaleResponse" }
+      ]
+    },
+    "SnapshotResponse": {
+      "type": "object",
+      "properties": {
+        "envelopes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MessageEnvelope" }
+        },
+        "resumeSequence": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["envelopes", "resumeSequence"],
+      "additionalProperties": false
+    }
+  }
+}

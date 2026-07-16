@@ -1,0 +1,19 @@
+{
+  "pluginId": "dev.clowder.fixture.unknown-capability",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Unknown capability fixture",
+  "features": [
+    {
+      "id": "escape",
+      "name": "Escape",
+      "resources": [],
+      "capabilities": [
+        "host.unrestricted"
+      ]
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

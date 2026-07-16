@@ -23,4 +23,4 @@ GitHub 对同一条 CODEOWNERS 规则只要求其中任一 owner 的 approval，
 - required status context 为 `Typecheck + Conformance`（workflow：`Contract CI`），且该 workflow 对所有 pull request 上报；
 - 不把管理员 bypass 当常规合入路径。
 
-包清单处于 `0.1.0`、`private: false` 的 public-ready 状态，只用于让满足 gate 的 `main` 合并触发发布。K-1 shape-approved、另一方对 final HEAD 的 approval、required CI、npm scope/`NPM_TOKEN` 与 registry 精确 version+integrity 验证全部完成前，C-1 仍是 candidate，不得发布或消费。
+包清单处于 `0.1.0-beta.1`、`private: false` 的 prerelease-ready 状态，只用于让满足 gate 的 `main` 合并把测试契约发布到 npm `next` channel；显式安装方式为 `npm install @clowder-ai/plugin-contract@next`，不会占用默认 `latest`。行为夹具与插件 manifest 中的 `contractVersion` 仍是签字协议版本 `0.1.0`，不随 npm artifact 的 beta 后缀变化。完整插件系统改造与验收完成后，才发布正式 `0.1.0` 并推进 `latest`。K-1 shape-approved、另一方对 final HEAD 的 approval、required CI、npm scope/`NPM_TOKEN` 与 registry 精确 version+integrity 验证全部完成前，不得合入或消费本 prerelease。

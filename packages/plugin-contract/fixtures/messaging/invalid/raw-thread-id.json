@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "schemaRef": "MessageDraft"
+  },
+  "address": {
+    "kind": "thread",
+    "threadId": "raw-thread-id"
+  },
+  "idempotencyKey": "fixture-send-raw-thread",
+  "payload": {
+    "provenance": {
+      "origin": {
+        "kind": "plugin",
+        "instanceId": "fixture-plugin-instance"
+      },
+      "epistemicStatus": "inference"
+    },
+    "elements": [
+      {
+        "elementId": "text-1",
+        "kind": "text",
+        "payload": {
+          "text": "Must be rejected"
+        }
+      }
+    ]
+  }
+}

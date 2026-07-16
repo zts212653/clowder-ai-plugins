@@ -1,6 +1,6 @@
 # clowder-ai-plugins
 
-> Clowder AI 官方插件仓——体验插件的家。**契约 v0 讨论中**，见 [Issue #1](../../issues/1)。
+> Clowder AI 官方插件生态仓——契约、插件侧 SDK/runtime 与官方插件的家。**契约 v0.1 候选实现中**，见 [Issue #1](https://github.com/zts212653/clowder-ai-plugins/issues/1)。
 
 ## 这个仓在做什么
 
@@ -20,6 +20,44 @@
 │ 前台猫 · 桌面探针 · 语音包 · IM connectors    │
 └────────────────────────────────────────────┘
 ```
+
+## 仓库边界
+
+Clowder AI 采用两仓协作，而不是把插件管理和插件实现混在一起：
+
+| 仓库 | 职责 |
+|---|---|
+| `clowder-ai-plugins`（本仓） | 插件契约、插件侧 SDK/client、standalone runtime、脚手架、官方插件源码与 conformance fixtures |
+| [`clowder-ai`](https://github.com/zts212653/clowder-ai) | 插件发现与安装、统一管理 UI、授权、Host Broker、运行时编排、审计与用户数据管理 |
+
+本仓**不是插件管理器**。官方插件会在这里独立开发、构建和发布；Clowder AI 宿主负责下载或接收插件制品，校验 manifest 与 digest，取得用户授权，然后安装、启用并通过 Host Broker 运行它们。第一方插件与第三方插件走同一套 SDK 和授权通道。
+
+## SDK 被谁使用
+
+插件 SDK 面向插件作者和插件 runtime，而不是 Host 内部实现：
+
+```text
+官方插件 / 第三方插件 / loopback fixture
+                  │
+                  ▼
+       @clowder-ai/plugin-sdk（规划中）
+                  │  call / callback / event / handshake
+                  ▼
+       Clowder AI Host Broker（内核仓）
+
+Host Broker ─────┐
+插件 SDK ────────┴─→ @clowder-ai/plugin-contract
+```
+
+- `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures。
+- `@clowder-ai/plugin-sdk`：供官方和第三方插件调用 Host 能力、接收 callback/event，并处理握手、ack、重试与重连。
+- Host Adapter/Broker：属于 `clowder-ai` 内核，不放在本仓，也不通过插件 client SDK 实现。
+
+仓库名与 npm 包名不需要一一对应；SDK 可以从本 monorepo 的独立 package 构建并单独发布，无需另开一个 `clowder-ai-sdk` 仓。
+
+## 当前阶段
+
+当前首先落地的是 `packages/plugin-contract`。插件 SDK、standalone runtime、脚手架和官方插件仍在后续里程碑中；本仓目前还不是一个已经可被 Clowder AI 远程浏览和安装的完整插件 catalog，也不包含宿主侧安装/管理实现。
 
 ## 插件类型（capability contributions）
 

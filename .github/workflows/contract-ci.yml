@@ -1,0 +1,147 @@
+name: Contract CI
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+    paths:
+      - 'packages/plugin-contract/**'
+
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: contract-ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Typecheck + Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generated contract freshness
+        run: pnpm --filter @clowder-ai/plugin-contract generate:check
+
+      - name: Typecheck
+        run: pnpm --filter @clowder-ai/plugin-contract typecheck
+
+      - name: Unit tests
+        run: pnpm --filter @clowder-ai/plugin-contract test
+
+      - name: Build
+        run: pnpm --filter @clowder-ai/plugin-contract build
+
+      - name: Conformance runner
+        run: pnpm --filter @clowder-ai/plugin-contract conformance
+
+  publish:
+    name: Publish to npm
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm --filter @clowder-ai/plugin-contract build
+
+      - name: Pack release candidate
+        id: pack
+        working-directory: packages/plugin-contract
+        env:
+          PACK_JSON_PATH: ${{ runner.temp }}/plugin-contract-pack.json
+        run: |
+          set -euo pipefail
+          npm pack --json --ignore-scripts > "$PACK_JSON_PATH"
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
+
+          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+          const required = ['name', 'version', 'filename', 'integrity'];
+          for (const field of required) {
+            if (typeof artifact?.[field] !== 'string' || artifact[field].length === 0) {
+              throw new Error(`npm pack did not report ${field}`);
+            }
+          }
+
+          appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            required.map((field) => `${field}=${artifact[field]}\n`).join(''),
+          );
+          NODE
+
+      - name: Publish v0.1 beta to next
+        run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify registry version and integrity
+        env:
+          PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+          EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+          REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-registry.json
+          DIST_TAGS_JSON_PATH: ${{ runner.temp }}/plugin-contract-dist-tags.json
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
+              npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
+              if node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+          const distTags = JSON.parse(readFileSync(process.env.DIST_TAGS_JSON_PATH, 'utf8'));
+          if (metadata.version !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry version mismatch: ${metadata.version}`);
+          }
+          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+            throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+          }
+          if (distTags.next !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry next tag mismatch: ${distTags.next}`);
+          }
+          if (distTags.latest === process.env.PACKAGE_VERSION) {
+            throw new Error(`registry latest tag unexpectedly points to beta: ${distTags.latest}`);
+          }
+          NODE
+              then
+                exit 0
+              fi
+            fi
+
+            if [[ "$attempt" -lt 12 ]]; then
+              sleep 5
+            fi
+          done
+
+          echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2
+          exit 1
