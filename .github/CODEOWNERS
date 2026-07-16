@@ -1,0 +1,30 @@
+# Protected contract surface (P15, §2.3 governance).
+# GitHub accepts one approval from any owner listed on a matching rule. The
+# repository ruleset therefore uses author provenance + approval from the other
+# party, not an impossible requirement for a PR author to approve their own PR.
+packages/plugin-contract/ @mindfn @zts212653
+
+# Fixtures are contract, not second-class tests.
+packages/plugin-contract/fixtures/ @mindfn @zts212653
+
+# Workflows are the validation and publishing trust boundary.
+.github/workflows/ @mindfn @zts212653
+
+# Ownership policy is self-protected.
+/.github/CODEOWNERS @mindfn @zts212653
+
+# Workspace release inputs are dependency and install trust boundaries.
+/.npmrc @mindfn @zts212653
+/package.json @mindfn @zts212653
+/pnpm-lock.yaml @mindfn @zts212653
+/pnpm-workspace.yaml @mindfn @zts212653
+
+# Family-owned foreground-cat assets and their license remain family-first, with
+# the other party reviewing changes. Irreversible license decisions also need
+# the repository owner's explicit sign-off outside GitHub's approval counter.
+/plugins/foreground-cat/ @zts212653 @mindfn
+/assets/foreground-cat/ @zts212653 @mindfn
+/LICENSE-ASSETS @zts212653 @mindfn
+
+# SDK, runtime, probe, and ordinary plugin paths intentionally have no catch-all
+# owner. Their authors may merge after the required CI check is green.
