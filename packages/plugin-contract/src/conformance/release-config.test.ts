@@ -47,6 +47,36 @@ const messagingBehaviorSuite = JSON.parse(
   ),
 ) as BehaviorSuite;
 
+function assertPrereleaseDistTagsVerified(workflow: string): void {
+  const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
+
+  assert.ok(publishJob, 'publish job must be active');
+  assert.match(
+    publishJob,
+    /^          DIST_TAGS_JSON_PATH: \$\{\{ runner\.temp \}\}\/plugin-contract-dist-tags\.json$/m,
+  );
+  assert.match(
+    publishJob,
+    /^            if npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json > "\$REGISTRY_JSON_PATH" 2>\/dev\/null &&\n              npm view "\$PACKAGE_NAME" dist-tags --json > "\$DIST_TAGS_JSON_PATH" 2>\/dev\/null; then$/m,
+  );
+  assert.match(
+    publishJob,
+    /^          if \(distTags\.next !== process\.env\.PACKAGE_VERSION\) \{$/m,
+    'registry verification must require next to resolve to the published beta',
+  );
+  assert.match(
+    publishJob,
+    /^          if \(distTags\.latest === process\.env\.PACKAGE_VERSION\) \{$/m,
+    'registry verification must reject the beta becoming latest',
+  );
+}
+
+function replaceWorkflowOnce(search: string, replacement: string): string {
+  const mutated = releaseWorkflow.replace(search, replacement);
+  assert.notEqual(mutated, releaseWorkflow, `mutation target missing: ${search}`);
+  return mutated;
+}
+
 test('contract package is a v0.1 beta while the protocol stays at signed v0.1', () => {
   assert.equal(contractPackage.version, '0.1.0-beta.1');
   assert.equal(contractPackage.private, false);
@@ -116,6 +146,31 @@ test('publish verifies the exact registry version and artifact integrity', () =>
     /^          echo "registry verification failed for \$PACKAGE_NAME@\$PACKAGE_VERSION" >&2\n          exit 1$/m,
     'registry verification exhaustion must fail the publish job',
   );
+});
+
+test('publish verifies next points to the beta without moving latest', () => {
+  assertPrereleaseDistTagsVerified(releaseWorkflow);
+});
+
+test('prerelease dist-tag guards reject fail-open workflow mutations', () => {
+  const mutations = [
+    replaceWorkflowOnce(
+      'npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null',
+      'true',
+    ),
+    replaceWorkflowOnce(
+      'distTags.next !== process.env.PACKAGE_VERSION',
+      'distTags.next === process.env.PACKAGE_VERSION',
+    ),
+    replaceWorkflowOnce(
+      'distTags.latest === process.env.PACKAGE_VERSION',
+      'distTags.latest !== process.env.PACKAGE_VERSION',
+    ),
+  ];
+
+  for (const mutatedWorkflow of mutations) {
+    assert.throws(() => assertPrereleaseDistTagsVerified(mutatedWorkflow));
+  }
 });
 
 test('release dependency inputs require contract owner review', () => {
