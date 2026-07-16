@@ -61,13 +61,55 @@ function assertPrereleaseDistTagsVerified(workflow: string): void {
   );
   assert.match(
     publishJob,
-    /^          if \(distTags\.next !== process\.env\.PACKAGE_VERSION\) \{$/m,
+    /^          if \(distTags\.next !== process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry next tag mismatch: \$\{distTags\.next\}`\);\n          \}$/m,
     'registry verification must require next to resolve to the published beta',
   );
   assert.match(
     publishJob,
-    /^          if \(distTags\.latest === process\.env\.PACKAGE_VERSION\) \{$/m,
+    /^          if \(distTags\.latest === process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry latest tag unexpectedly points to beta: \$\{distTags\.latest\}`\);\n          \}$/m,
     'registry verification must reject the beta becoming latest',
+  );
+}
+
+function assertReservedLatestUnchanged(workflow: string): void {
+  assert.doesNotMatch(
+    workflow,
+    /--tag(?:=|\s+)["']?latest\b/i,
+    'no workflow job may publish the prerelease with the latest tag',
+  );
+  assert.doesNotMatch(
+    workflow,
+    /\bnpm\s+dist-tag\b[^\n]*\blatest\b/i,
+    'no workflow job may mutate the reserved latest dist-tag',
+  );
+}
+
+function assertRegistryVerificationFailsClosed(workflow: string): void {
+  const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
+
+  assert.ok(publishJob, 'publish job must be active');
+  assert.match(
+    publishJob,
+    /^          if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry version mismatch: \$\{metadata\.version\}`\);\n          \}$/m,
+  );
+  assert.match(
+    publishJob,
+    /^          if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n            throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);\n          \}$/m,
+  );
+  assert.match(
+    publishJob,
+    /^          NODE\n              then\n                exit 0\n              fi\n            fi$/m,
+    'registry verification must exit successfully only after every comparison passes',
+  );
+  assert.equal(
+    publishJob.match(/^\s*exit 0$/gm)?.length,
+    1,
+    'the publish job must have exactly one success exit',
+  );
+  assert.match(
+    publishJob,
+    /^          echo "registry verification failed for \$PACKAGE_NAME@\$PACKAGE_VERSION" >&2\n          exit 1$/m,
+    'registry verification exhaustion must fail the publish job',
   );
 }
 
@@ -107,15 +149,11 @@ test('main pushes publish only after contract validation', () => {
     'the workflow must contain exactly one npm publish path',
   );
   assert.doesNotMatch(
-    publishJob,
-    /--tag(?:=|\s+)["']?latest\b/i,
-    'the prerelease publish job must not publish with the latest tag',
+    releaseWorkflow,
+    /\b(?:pnpm|yarn)\b[^\n]*\bpublish\b/i,
+    'the workflow must not add a second package-manager publish path',
   );
-  assert.doesNotMatch(
-    publishJob,
-    /\bnpm\s+dist-tag\b[^\n]*\blatest\b/i,
-    'the prerelease publish job must not mutate the latest dist-tag',
-  );
+  assertReservedLatestUnchanged(releaseWorkflow);
 });
 
 test('publish verifies the exact registry version and artifact integrity', () => {
@@ -128,24 +166,7 @@ test('publish verifies the exact registry version and artifact integrity', () =>
   assert.match(publishJob, /^          npm pack --json --ignore-scripts > "\$PACK_JSON_PATH"$/m);
   assert.match(publishJob, /^      - name: Verify registry version and integrity$/m);
   assert.match(publishJob, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
-  assert.match(
-    publishJob,
-    /^          if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{$/m,
-  );
-  assert.match(
-    publishJob,
-    /^          if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{$/m,
-  );
-  assert.match(
-    publishJob,
-    /^          NODE\n              then\n                exit 0\n              fi\n            fi$/m,
-    'registry verification must exit successfully only after both comparisons pass',
-  );
-  assert.match(
-    publishJob,
-    /^          echo "registry verification failed for \$PACKAGE_NAME@\$PACKAGE_VERSION" >&2\n          exit 1$/m,
-    'registry verification exhaustion must fail the publish job',
-  );
+  assertRegistryVerificationFailsClosed(releaseWorkflow);
 });
 
 test('publish verifies next points to the beta without moving latest', () => {
@@ -166,11 +187,46 @@ test('prerelease dist-tag guards reject fail-open workflow mutations', () => {
       'distTags.latest === process.env.PACKAGE_VERSION',
       'distTags.latest !== process.env.PACKAGE_VERSION',
     ),
+    replaceWorkflowOnce(
+      'throw new Error(`registry next tag mismatch: ${distTags.next}`);',
+      'console.warn(`registry next tag mismatch: ${distTags.next}`);',
+    ),
   ];
 
   for (const mutatedWorkflow of mutations) {
     assert.throws(() => assertPrereleaseDistTagsVerified(mutatedWorkflow));
   }
+});
+
+test('registry verification rejects hollow comparisons and early success', () => {
+  const mutations = [
+    replaceWorkflowOnce(
+      'throw new Error(`registry version mismatch: ${metadata.version}`);',
+      'console.warn(`registry version mismatch: ${metadata.version}`);',
+    ),
+    replaceWorkflowOnce(
+      'throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
+      'console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
+    ),
+    replaceWorkflowOnce(
+      '          echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
+      '          exit 0\n          echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
+    ),
+  ];
+
+  for (const mutatedWorkflow of mutations) {
+    assert.throws(() => assertRegistryVerificationFailsClosed(mutatedWorkflow));
+  }
+});
+
+test('reserved latest guard spans every workflow job', () => {
+  const mutatedWorkflow = replaceWorkflowOnce(
+    '      - name: Conformance runner\n        run: pnpm --filter @clowder-ai/plugin-contract conformance',
+    '      - name: Conformance runner\n        run: pnpm --filter @clowder-ai/plugin-contract conformance\n\n      - name: Promote beta to latest\n        run: npm dist-tag add @clowder-ai/plugin-contract@0.1.0-beta.1 latest',
+  );
+
+  assertReservedLatestUnchanged(releaseWorkflow);
+  assert.throws(() => assertReservedLatestUnchanged(mutatedWorkflow));
 });
 
 test('release dependency inputs require contract owner review', () => {

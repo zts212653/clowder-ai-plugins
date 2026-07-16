@@ -13,7 +13,7 @@ created: 2026-07-15
 
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-> **2026-07-16 operator override:** This plan records the original direct-to-`0.1.0` activation. The first registry publication is now governed by `2026-07-16-contract-prerelease-channel.md`: publish `0.1.0-beta.1` on `next`, keep protocol `contractVersion` at `0.1.0`, and reserve artifact `0.1.0` plus `latest` for full-system completion.
+> **2026-07-16 direct operator decision:** This plan records the original direct-to-`0.1.0` activation. After being offered option 1 as `0.1.0-beta.1` on `next`, the operator chose it and reserved the formal release until the full transformation is complete (Cat Café thread `thread_mrkn6povq4zzgh45`, message `0001784184743864-000970-787cf35e`). The first registry publication is therefore governed by `2026-07-16-contract-prerelease-channel.md`: publish `0.1.0-beta.1` on `next`, keep protocol `contractVersion` at `0.1.0`, and reserve artifact `0.1.0` plus `latest` for full-system completion.
 
 **Goal:** Make the first merge to `main` validate and publish `@clowder-ai/plugin-contract@0.1.0` automatically, while preventing pull-request events or failed validation from publishing.
 
