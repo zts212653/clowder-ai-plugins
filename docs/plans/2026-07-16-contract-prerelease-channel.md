@@ -16,6 +16,8 @@ created: 2026-07-16
 
 > **Release decision (2026-07-16):** The first public testing artifact is `0.1.0-beta.1` on `next`; artifact `0.1.0` and `latest` remain reserved until the full plugin-system transformation and acceptance are complete. Merge and publication still require independent approval of the final HEAD.
 
+> **Registry recovery (2026-07-16):** npm assigned the first scoped prerelease to `latest` despite the explicit `next` publish tag. Because published npm versions are immutable, `0.1.0-beta.2` is the corrective successor: the workflow publishes or resumes that exact artifact, keeps `next` on it, and removes `latest` only when `latest` points to a prerelease.
+
 **Goal:** Publish the testing-stage contract as `@clowder-ai/plugin-contract@0.1.0-beta.1` on npm's `next` channel while reserving `0.1.0` and `latest` for the fully integrated release.
 
 **Architecture:** The package artifact version becomes `0.1.0-beta.1`, but the signed protocol `contractVersion` remains `0.1.0`; release tests enforce that separation. The existing main-push workflow continues to pack once, publish with `--tag next`, and poll the registry until the exact version, integrity, `next` target, and reserved `latest` boundary all match the signed release intent.

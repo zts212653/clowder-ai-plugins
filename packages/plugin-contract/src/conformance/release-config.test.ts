@@ -66,12 +66,40 @@ function assertPrereleaseDistTagsVerified(workflow: string): void {
   );
   assert.match(
     publishJob,
-    /^          if \(distTags\.latest === process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry latest tag unexpectedly points to beta: \$\{distTags\.latest\}`\);\n          \}$/m,
-    'registry verification must reject the beta becoming latest',
+    /^          process\.stdout\.write\(distTags\.latest \?\? ''\);$/m,
+    'registry verification must expose the current latest target for guarded reconciliation',
+  );
+  assertReservedLatestProtected(workflow);
+}
+
+function assertExactRegistryArtifactCanResume(workflow: string): void {
+  const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
+
+  assert.ok(publishJob, 'publish job must be active');
+  assert.match(publishJob, /^      - name: Inspect existing registry version$/m);
+  assert.match(publishJob, /^        id: registry$/m);
+  assert.match(
+    publishJob,
+    /^          if npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json > "\$REGISTRY_JSON_PATH" 2>\/dev\/null; then$/m,
+  );
+  assert.match(
+    publishJob,
+    /^            if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{\n              throw new Error\(`registry version mismatch: \$\{metadata\.version\}`\);\n            \}$/m,
+  );
+  assert.match(
+    publishJob,
+    /^            if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n              throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);\n            \}$/m,
+  );
+  assert.match(publishJob, /^            echo "already_published=true" >> "\$GITHUB_OUTPUT"$/m);
+  assert.match(publishJob, /^            echo "already_published=false" >> "\$GITHUB_OUTPUT"$/m);
+  assert.match(
+    publishJob,
+    /^        if: steps\.registry\.outputs\.already_published != 'true'$/m,
+    'the publish command must be skipped only for an exact registry artifact match',
   );
 }
 
-function assertReservedLatestUnchanged(workflow: string): void {
+function assertReservedLatestProtected(workflow: string): void {
   assert.doesNotMatch(
     workflow,
     /--tag(?:=|\s+)["']?latest\b/i,
@@ -79,8 +107,22 @@ function assertReservedLatestUnchanged(workflow: string): void {
   );
   assert.doesNotMatch(
     workflow,
-    /\bnpm\s+dist-tag\b[^\n]*\blatest\b/i,
-    'no workflow job may mutate the reserved latest dist-tag',
+    /\bnpm\s+dist-tag\s+add\b[^\n]*\blatest\b/i,
+    'no workflow job may add or move the reserved latest dist-tag',
+  );
+  assert.ok(
+    workflow.includes(
+      '                if [[ "$LATEST_VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+- ]]; then\n' +
+        '                  npm dist-tag rm "$PACKAGE_NAME" latest\n' +
+        '                  continue\n' +
+        '                fi',
+    ),
+    'the workflow may remove latest only when npm assigned it to a prerelease',
+  );
+  assert.equal(
+    workflow.match(/npm dist-tag rm "\$PACKAGE_NAME" latest/g)?.length,
+    1,
+    'the workflow must have exactly one guarded latest-removal path',
   );
 }
 
@@ -96,9 +138,19 @@ function assertRegistryVerificationFailsClosed(workflow: string): void {
     publishJob,
     /^          if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n            throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);\n          \}$/m,
   );
-  assert.match(
-    publishJob,
-    /^          NODE\n              then\n                exit 0\n              fi\n            fi$/m,
+  assert.ok(
+    publishJob.includes(
+      '          NODE\n' +
+        '              );\n' +
+        '              then\n' +
+        '                if [[ "$LATEST_VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+- ]]; then\n' +
+        '                  npm dist-tag rm "$PACKAGE_NAME" latest\n' +
+        '                  continue\n' +
+        '                fi\n' +
+        '                exit 0\n' +
+        '              fi\n' +
+        '            fi',
+    ),
     'registry verification must exit successfully only after every comparison passes',
   );
   assert.equal(
@@ -119,8 +171,8 @@ function replaceWorkflowOnce(search: string, replacement: string): string {
   return mutated;
 }
 
-test('contract package is a v0.1 beta while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.1');
+test('contract package is the current v0.1 beta while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.2');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
@@ -153,7 +205,36 @@ test('main pushes publish only after contract validation', () => {
     /\b(?:pnpm|yarn)\b[^\n]*\bpublish\b/i,
     'the workflow must not add a second package-manager publish path',
   );
-  assertReservedLatestUnchanged(releaseWorkflow);
+  assertReservedLatestProtected(releaseWorkflow);
+});
+
+test('publish resumes only when the existing registry artifact is an exact match', () => {
+  assertExactRegistryArtifactCanResume(releaseWorkflow);
+});
+
+test('registry resume guard rejects hollow matches and inverted publish conditions', () => {
+  const mutations = [
+    replaceWorkflowOnce(
+      '              throw new Error(`registry version mismatch: ${metadata.version}`);',
+      '              console.warn(`registry version mismatch: ${metadata.version}`);',
+    ),
+    replaceWorkflowOnce(
+      '              throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
+      '              console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
+    ),
+    replaceWorkflowOnce(
+      '            echo "already_published=true" >> "$GITHUB_OUTPUT"',
+      '            echo "already_published=false" >> "$GITHUB_OUTPUT"',
+    ),
+    replaceWorkflowOnce(
+      "        if: steps.registry.outputs.already_published != 'true'",
+      "        if: steps.registry.outputs.already_published == 'true'",
+    ),
+  ];
+
+  for (const mutatedWorkflow of mutations) {
+    assert.throws(() => assertExactRegistryArtifactCanResume(mutatedWorkflow));
+  }
 });
 
 test('publish verifies the exact registry version and artifact integrity', () => {
@@ -164,7 +245,7 @@ test('publish verifies the exact registry version and artifact integrity', () =>
   assert.match(publishJob, /^      - name: Pack release candidate$/m);
   assert.match(publishJob, /^        id: pack$/m);
   assert.match(publishJob, /^          npm pack --json --ignore-scripts > "\$PACK_JSON_PATH"$/m);
-  assert.match(publishJob, /^      - name: Verify registry version and integrity$/m);
+  assert.match(publishJob, /^      - name: Reconcile and verify registry version, integrity, and tags$/m);
   assert.match(publishJob, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
   assertRegistryVerificationFailsClosed(releaseWorkflow);
 });
@@ -184,29 +265,40 @@ test('prerelease dist-tag guards reject fail-open workflow mutations', () => {
       'distTags.next === process.env.PACKAGE_VERSION',
     ),
     replaceWorkflowOnce(
-      'distTags.latest === process.env.PACKAGE_VERSION',
-      'distTags.latest !== process.env.PACKAGE_VERSION',
+      "process.stdout.write(distTags.latest ?? '');",
+      "process.stdout.write('');",
     ),
     replaceWorkflowOnce(
       'throw new Error(`registry next tag mismatch: ${distTags.next}`);',
       'console.warn(`registry next tag mismatch: ${distTags.next}`);',
     ),
+    replaceWorkflowOnce(
+      'if [[ "$LATEST_VERSION" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+- ]]; then',
+      'if true; then',
+    ),
+    replaceWorkflowOnce(
+      'npm dist-tag rm "$PACKAGE_NAME" latest',
+      'true',
+    ),
   ];
 
   for (const mutatedWorkflow of mutations) {
-    assert.throws(() => assertPrereleaseDistTagsVerified(mutatedWorkflow));
+    assert.throws(() => {
+      assertPrereleaseDistTagsVerified(mutatedWorkflow);
+      assertReservedLatestProtected(mutatedWorkflow);
+    });
   }
 });
 
 test('registry verification rejects hollow comparisons and early success', () => {
   const mutations = [
     replaceWorkflowOnce(
-      'throw new Error(`registry version mismatch: ${metadata.version}`);',
-      'console.warn(`registry version mismatch: ${metadata.version}`);',
+      '          if (metadata.version !== process.env.PACKAGE_VERSION) {\n            throw new Error(`registry version mismatch: ${metadata.version}`);\n          }',
+      '          if (metadata.version !== process.env.PACKAGE_VERSION) {\n            console.warn(`registry version mismatch: ${metadata.version}`);\n          }',
     ),
     replaceWorkflowOnce(
-      'throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
-      'console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
+      '          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {\n            throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);\n          }',
+      '          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {\n            console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);\n          }',
     ),
     replaceWorkflowOnce(
       '          echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
@@ -214,8 +306,11 @@ test('registry verification rejects hollow comparisons and early success', () =>
     ),
   ];
 
-  for (const mutatedWorkflow of mutations) {
-    assert.throws(() => assertRegistryVerificationFailsClosed(mutatedWorkflow));
+  for (const [index, mutatedWorkflow] of mutations.entries()) {
+    assert.throws(
+      () => assertRegistryVerificationFailsClosed(mutatedWorkflow),
+      `registry verification mutation ${index + 1} must fail`,
+    );
   }
 });
 
@@ -225,8 +320,8 @@ test('reserved latest guard spans every workflow job', () => {
     '      - name: Conformance runner\n        run: pnpm --filter @clowder-ai/plugin-contract conformance\n\n      - name: Promote beta to latest\n        run: npm dist-tag add @clowder-ai/plugin-contract@0.1.0-beta.1 latest',
   );
 
-  assertReservedLatestUnchanged(releaseWorkflow);
-  assert.throws(() => assertReservedLatestUnchanged(mutatedWorkflow));
+  assertReservedLatestProtected(releaseWorkflow);
+  assert.throws(() => assertReservedLatestProtected(mutatedWorkflow));
 });
 
 test('release dependency inputs require contract owner review', () => {

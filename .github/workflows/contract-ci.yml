@@ -98,13 +98,41 @@ jobs:
           );
           NODE
 
+      - name: Inspect existing registry version
+        id: registry
+        env:
+          PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+          EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+          REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.json
+        run: |
+          set -euo pipefail
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null; then
+            node --input-type=module <<'NODE'
+            import { readFileSync } from 'node:fs';
+
+            const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+            if (metadata.version !== process.env.PACKAGE_VERSION) {
+              throw new Error(`registry version mismatch: ${metadata.version}`);
+            }
+            if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+              throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+            }
+          NODE
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish v0.1 beta to next
+        if: steps.registry.outputs.already_published != 'true'
         run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Verify registry version and integrity
+      - name: Reconcile and verify registry version, integrity, and tags
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PACKAGE_NAME: ${{ steps.pack.outputs.name }}
           PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
           EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
@@ -115,7 +143,7 @@ jobs:
           for attempt in $(seq 1 12); do
             if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
               npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
-              if node --input-type=module <<'NODE'
+              if LATEST_VERSION=$(node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs';
 
           const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
@@ -129,11 +157,14 @@ jobs:
           if (distTags.next !== process.env.PACKAGE_VERSION) {
             throw new Error(`registry next tag mismatch: ${distTags.next}`);
           }
-          if (distTags.latest === process.env.PACKAGE_VERSION) {
-            throw new Error(`registry latest tag unexpectedly points to beta: ${distTags.latest}`);
-          }
+          process.stdout.write(distTags.latest ?? '');
           NODE
+              );
               then
+                if [[ "$LATEST_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+- ]]; then
+                  npm dist-tag rm "$PACKAGE_NAME" latest
+                  continue
+                fi
                 exit 0
               fi
             fi
