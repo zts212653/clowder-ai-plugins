@@ -130,6 +130,51 @@
           },
           "required": ["operation", "input"],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "applyGrantPreset" },
+            "input": { "$ref": "#/$defs/GrantPresetInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "revokeGrant" },
+            "input": { "$ref": "#/$defs/RevokeGrantInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "deliverOnMessage" },
+            "input": { "$ref": "#/$defs/OnMessageDeliveryInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "checkPermissionMatrix" },
+            "input": { "$ref": "#/$defs/PermissionMatrixInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "deleteReplayEvents" },
+            "input": { "$ref": "#/$defs/DeleteReplayEventsInput" }
+          },
+          "required": ["operation", "input"],
+          "additionalProperties": false
         }
       ]
     },
@@ -187,6 +232,91 @@
       "required": ["subscriptionId"],
       "additionalProperties": false
     },
+    "CapabilityName": {
+      "type": "string",
+      "enum": [
+        "plugin.config.read",
+        "plugin.state.get",
+        "plugin.state.set",
+        "messaging.send",
+        "schedule.register",
+        "events.publish",
+        "messaging.appendElements",
+        "onMessage",
+        "message.event.subscribe",
+        "secret.read",
+        "thread.listMetadata",
+        "thread.readContent",
+        "memory.query",
+        "memory.append",
+        "memory.retrieve",
+        "windows.create",
+        "whisper.extend"
+      ]
+    },
+    "GrantPresetInput": {
+      "type": "object",
+      "properties": {
+        "presetKind": { "const": "first_party" },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CapabilityName" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["presetKind", "capabilities"],
+      "additionalProperties": false
+    },
+    "RevokeGrantInput": {
+      "type": "object",
+      "properties": {
+        "capability": { "$ref": "#/$defs/CapabilityName" }
+      },
+      "required": ["capability"],
+      "additionalProperties": false
+    },
+    "OnMessageDeliveryInput": {
+      "type": "object",
+      "properties": {
+        "threadHandle": { "type": "string", "minLength": 1 },
+        "envelope": { "type": "object" }
+      },
+      "required": ["threadHandle", "envelope"],
+      "additionalProperties": false
+    },
+    "PermissionMatrixEntry": {
+      "type": "object",
+      "properties": {
+        "capability": { "$ref": "#/$defs/CapabilityName" },
+        "layer": { "type": "string", "enum": ["L0", "L1", "L2"] },
+        "firstPartyPreset": { "type": "boolean" }
+      },
+      "required": ["capability", "layer", "firstPartyPreset"],
+      "additionalProperties": false
+    },
+    "PermissionMatrixInput": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PermissionMatrixEntry" },
+          "minItems": 17,
+          "maxItems": 17
+        }
+      },
+      "required": ["entries"],
+      "additionalProperties": false
+    },
+    "DeleteReplayEventsInput": {
+      "type": "object",
+      "properties": {
+        "subscriptionId": { "type": "string", "minLength": 1 },
+        "throughSequence": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["subscriptionId", "throughSequence"],
+      "additionalProperties": false
+    },
     "MessagingErrorCode": {
       "type": "string",
       "enum": ["VALIDATION", "PERMISSION", "NOT_FOUND", "CONFLICT", "RETRYABLE_INFLIGHT", "STALE_CURSOR"]
@@ -196,7 +326,7 @@
       "properties": {
         "target": {
           "type": "string",
-          "enum": ["messages", "output_events", "idempotency_ledger", "subscription", "snapshot", "reply_preview", "provenance"]
+          "enum": ["messages", "output_events", "idempotency_ledger", "subscription", "snapshot", "reply_preview", "provenance", "grant_state", "permission_matrix", "replay_events"]
         },
         "assertion": {
           "type": "string",

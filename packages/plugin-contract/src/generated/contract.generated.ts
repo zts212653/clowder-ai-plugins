@@ -260,6 +260,13 @@ export const CAPABILITY_TABLE = {
 } as const;
 export type AuthorizationLayer = keyof typeof CAPABILITY_TABLE;
 
+/** @signed(G-0 2026-07-15) Derived from the signed first-party preset layer. */
+export const FIRST_PARTY_PRESET_CAPABILITIES = L1_CAPABILITIES;
+/** @signed(G-0 2026-07-15) Whisper grants are empty until explicitly extended. */
+export const DEFAULT_WHISPER_TARGETS = [] as const;
+/** @signed(G-0 2026-07-15) Lifecycle is protocol baseline, not a capability. */
+export const LIFECYCLE_CALLBACKS_ARE_PROTOCOL_INTRINSIC = true as const;
+
 export const DATA_CLASS_ALLOWED_STRATEGIES = {
   'cache': ['lifecycle', 'retained', 'ask-on-uninstall'],
   'ephemeral': ['lifecycle', 'retained', 'ask-on-uninstall'],
@@ -278,4 +285,15 @@ export const MESSAGING_BOUNDS = {
   maxElementIdLength: 128,
   maxElementsPerMessage: 128,
   maxAppendOpsPerMessage: 64,
+} as const;
+
+/**
+ * @signed(G-0 2026-07-15)
+ * Host runtime state reports the effective replay window; this is the v0 default.
+ * Canonical messages are separate user state and do not expire with the replay buffer.
+ */
+export const MESSAGING_REPLAY_DEFAULTS = {
+  defaultRetentionDays: 7,
+  canonicalMessagesTtl: 0,
+  staleCursorRecovery: 'snapshot',
 } as const;

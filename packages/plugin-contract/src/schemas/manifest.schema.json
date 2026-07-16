@@ -8,6 +8,20 @@
     "L1": ["messaging.send", "schedule.register", "events.publish", "messaging.appendElements"],
     "L2": ["onMessage", "message.event.subscribe", "secret.read", "thread.listMetadata", "thread.readContent", "memory.query", "memory.append", "memory.retrieve", "windows.create", "whisper.extend"]
   },
+  "x-clowder-capability-policy": {
+    "signed": { "gate": "G-0", "date": "2026-07-15" },
+    "firstPartyPreset": {
+      "allowedLayers": ["L1"],
+      "visible": true,
+      "revocable": true
+    },
+    "defaultWhisperTargets": [],
+    "lifecycleCallbacks": {
+      "semantics": "protocol-intrinsic",
+      "grantable": false,
+      "revocable": false
+    }
+  },
   "x-clowder-data-class-strategies": {
     "cache": ["lifecycle", "retained", "ask-on-uninstall"],
     "ephemeral": ["lifecycle", "retained", "ask-on-uninstall"],
@@ -112,7 +126,7 @@
         "capabilities": {
           "type": "array",
           "items": { "$ref": "#/$defs/Capability" },
-          "description": "@candidate — capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer."
+          "description": "@signed(G-0 2026-07-15) — capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer. Lifecycle callbacks are protocol-intrinsic baseline behavior, so they are not grantable or revocable capability IDs."
         }
       },
       "required": ["id", "name", "resources", "capabilities"],

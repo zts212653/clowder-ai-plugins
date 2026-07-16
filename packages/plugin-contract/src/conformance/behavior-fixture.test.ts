@@ -3,6 +3,11 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
+import {
+  CAPABILITY_TABLE,
+  FIRST_PARTY_PRESET_CAPABILITIES,
+} from '../generated/contract.generated.js';
+
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv/dist/2020') as new (options: {
   allErrors: boolean;
@@ -22,6 +27,12 @@ const behaviorFixture = JSON.parse(
 ) as { cases: Array<Record<string, unknown>> };
 
 const validate = new Ajv({ allErrors: true, strict: false }).compile(behaviorSchema);
+
+function caseById(id: string): Record<string, unknown> {
+  const behaviorCase = behaviorFixture.cases.find((candidate) => candidate['id'] === id);
+  assert.ok(behaviorCase, `missing signed behavior case: ${id}`);
+  return behaviorCase;
+}
 
 test('committed behavior fixture is structurally executable', () => {
   assert.equal(validate(behaviorFixture), true, JSON.stringify(validate.errors));
@@ -73,4 +84,76 @@ test('behavior fixture rejects an errorCode on a success verdict', () => {
   };
 
   assert.equal(validate(malformed), false);
+});
+
+test('behavior fixture covers signed first-party preset and empty whisper defaults', () => {
+  const rejectedPreset = caseById('preset-l2-rejected');
+  assert.deepEqual(
+    (rejectedPreset['when'] as { input: { capabilities: string[] } }).input.capabilities,
+    ['onMessage'],
+  );
+  assert.equal(
+    (rejectedPreset['expect'] as { errorCode?: string }).errorCode,
+    'PERMISSION',
+  );
+
+  const revocablePreset = caseById('preset-visible-revocable');
+  assert.deepEqual(
+    (revocablePreset['expect'] as { sideEffects: unknown[] }).sideEffects,
+    [
+      {
+        target: 'grant_state',
+        assertion: 'state_equals',
+        value: { capability: 'messaging.send', visible: true, granted: false },
+      },
+    ],
+  );
+
+  const whisper = caseById('whisper-target-beyond-default-empty-grant-rejected');
+  assert.deepEqual(
+    (whisper['given'] as { grants: string[] }).grants,
+    ['messaging.send'],
+  );
+  assert.equal((whisper['expect'] as { errorCode?: string }).errorCode, 'PERMISSION');
+});
+
+test('behavior fixture covers missing grants and the complete permission matrix', () => {
+  for (const id of ['append-without-grant-rejected', 'denied-on-message-rejected']) {
+    const denied = caseById(id);
+    assert.deepEqual((denied['given'] as { grants: string[] }).grants, []);
+    assert.equal((denied['expect'] as { errorCode?: string }).errorCode, 'PERMISSION');
+  }
+
+  const matrix = caseById('permission-matrix-complete');
+  const entries = (matrix['when'] as {
+    input: {
+      entries: Array<{
+        capability: string;
+        layer: keyof typeof CAPABILITY_TABLE;
+        firstPartyPreset: boolean;
+      }>;
+    };
+  }).input.entries;
+  const expectedEntries = Object.entries(CAPABILITY_TABLE).flatMap(
+    ([layer, capabilities]) =>
+      capabilities.map((capability) => ({
+        capability,
+        layer,
+        firstPartyPreset: FIRST_PARTY_PRESET_CAPABILITIES.includes(
+          capability as (typeof FIRST_PARTY_PRESET_CAPABILITIES)[number],
+        ),
+      })),
+  );
+  assert.deepEqual(entries, expectedEntries);
+});
+
+test('deleting replay events cannot delete canonical messages', () => {
+  const behaviorCase = caseById('delete-replay-events-preserves-canonical-messages');
+  assert.deepEqual(
+    (behaviorCase['expect'] as { sideEffects: unknown[] }).sideEffects,
+    [
+      { target: 'replay_events', assertion: 'none' },
+      { target: 'messages', assertion: 'unchanged' },
+    ],
+  );
 });
