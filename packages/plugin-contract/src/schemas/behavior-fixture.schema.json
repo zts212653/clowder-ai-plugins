@@ -60,7 +60,7 @@
         "caller": { "$ref": "#/$defs/FixtureCaller" },
         "grants": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": { "$ref": "#/$defs/CapabilityName" },
           "uniqueItems": true
         },
         "handles": {

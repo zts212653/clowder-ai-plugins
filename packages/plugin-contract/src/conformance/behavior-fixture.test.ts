@@ -108,6 +108,13 @@ test('behavior fixture rejects a capability absent from the Manifest schema', ()
   assert.equal(validate(malformed), false);
 });
 
+test('behavior fixture rejects a setup grant absent from the Manifest schema', () => {
+  const malformed = structuredClone(behaviorFixture);
+  (malformed.cases[0]!['given'] as { grants: string[] }).grants = ['not.in.manifest'];
+
+  assert.equal(validate(malformed), false);
+});
+
 test('behavior fixture covers signed first-party preset and empty whisper defaults', () => {
   const rejectedPreset = caseById('preset-l2-rejected');
   assert.deepEqual(
@@ -135,6 +142,11 @@ test('behavior fixture covers signed first-party preset and empty whisper defaul
   assert.deepEqual(
     (whisper['given'] as { grants: string[] }).grants,
     ['messaging.send'],
+  );
+  assert.deepEqual(
+    (whisper['given'] as { state: { whisperGrantTargets: string[] } }).state
+      .whisperGrantTargets,
+    [],
   );
   assert.equal((whisper['expect'] as { errorCode?: string }).errorCode, 'PERMISSION');
 });
@@ -165,6 +177,21 @@ test('behavior fixture covers missing grants and the complete permission matrix'
       })),
   );
   assert.deepEqual(entries, expectedEntries);
+
+  const matrixOracle = (
+    matrix['expect'] as {
+      sideEffects: Array<{ target: string; assertion: string; value?: unknown }>;
+    }
+  ).sideEffects.find((sideEffect) => sideEffect.target === 'permission_matrix');
+  assert.deepEqual(matrixOracle, {
+    target: 'permission_matrix',
+    assertion: 'matches',
+    value: {
+      complete: true,
+      firstPartyPresetLayers: ['L1'],
+      defaultWhisperTargets: [],
+    },
+  });
 });
 
 test('deleting replay events cannot delete canonical messages', () => {
