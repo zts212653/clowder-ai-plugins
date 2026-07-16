@@ -233,26 +233,7 @@
       "additionalProperties": false
     },
     "CapabilityName": {
-      "type": "string",
-      "enum": [
-        "plugin.config.read",
-        "plugin.state.get",
-        "plugin.state.set",
-        "messaging.send",
-        "schedule.register",
-        "events.publish",
-        "messaging.appendElements",
-        "onMessage",
-        "message.event.subscribe",
-        "secret.read",
-        "thread.listMetadata",
-        "thread.readContent",
-        "memory.query",
-        "memory.append",
-        "memory.retrieve",
-        "windows.create",
-        "whisper.extend"
-      ]
+      "$ref": "https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability"
     },
     "GrantPresetInput": {
       "type": "object",

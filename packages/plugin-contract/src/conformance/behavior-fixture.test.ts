@@ -10,12 +10,18 @@ const Ajv = require('ajv/dist/2020') as new (options: {
   allErrors: boolean;
   strict: boolean;
 }) => {
+  addSchema(schema: object, id: string): void;
   compile(schema: object): ((data: unknown) => boolean) & { errors?: unknown[] | null };
 };
 
+const manifestSchema = JSON.parse(
+  readFileSync(new URL('../schemas/manifest.schema.json', import.meta.url), 'utf8'),
+) as object & { $id: string };
 const behaviorSchema = JSON.parse(
   readFileSync(new URL('../schemas/behavior-fixture.schema.json', import.meta.url), 'utf8'),
-) as object;
+) as {
+  $defs: { CapabilityName: unknown };
+};
 const behaviorFixture = JSON.parse(
   readFileSync(
     new URL('../../fixtures/behavior/messaging/adversarial-invariants.json', import.meta.url),
@@ -23,7 +29,9 @@ const behaviorFixture = JSON.parse(
   ),
 ) as { cases: Array<Record<string, unknown>> };
 
-const validate = new Ajv({ allErrors: true, strict: false }).compile(behaviorSchema);
+const ajv = new Ajv({ allErrors: true, strict: false });
+ajv.addSchema(manifestSchema, manifestSchema.$id);
+const validate = ajv.compile(behaviorSchema);
 
 function caseById(id: string): Record<string, unknown> {
   const behaviorCase = behaviorFixture.cases.find((candidate) => candidate['id'] === id);
@@ -79,6 +87,23 @@ test('behavior fixture rejects an errorCode on a success verdict', () => {
     errorCode: 'VALIDATION',
     sideEffects: [{ target: 'messages', assertion: 'unchanged' }],
   };
+
+  assert.equal(validate(malformed), false);
+});
+
+test('behavior capability names use the Manifest capability truth source', () => {
+  assert.deepEqual(behaviorSchema.$defs.CapabilityName, {
+    $ref: 'https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability',
+  });
+});
+
+test('behavior fixture rejects a capability absent from the Manifest schema', () => {
+  const malformed = structuredClone(behaviorFixture);
+  const preset = malformed.cases.find((candidate) => candidate['id'] === 'preset-l2-rejected');
+  assert.ok(preset);
+  (preset['when'] as { input: { capabilities: string[] } }).input.capabilities = [
+    'not.in.manifest',
+  ];
 
   assert.equal(validate(malformed), false);
 });
