@@ -3,10 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
 
-import {
-  CAPABILITY_TABLE,
-  FIRST_PARTY_PRESET_CAPABILITIES,
-} from '../generated/contract.generated.js';
+import { CAPABILITY_TABLE } from '../generated/contract.generated.js';
 
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv/dist/2020') as new (options: {
@@ -139,9 +136,7 @@ test('behavior fixture covers missing grants and the complete permission matrix'
       capabilities.map((capability) => ({
         capability,
         layer,
-        firstPartyPreset: FIRST_PARTY_PRESET_CAPABILITIES.includes(
-          capability as (typeof FIRST_PARTY_PRESET_CAPABILITIES)[number],
-        ),
+        firstPartyPreset: layer === 'L1',
       })),
   );
   assert.deepEqual(entries, expectedEntries);

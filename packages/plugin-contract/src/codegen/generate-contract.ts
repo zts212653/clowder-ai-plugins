@@ -175,20 +175,6 @@ function numberMap(value: unknown, label: string): Record<string, number> {
   return Object.fromEntries(entries) as Record<string, number>;
 }
 
-function objectValue(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error(`${label} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function assertSignedG0(value: unknown, label: string): void {
-  const signed = objectValue(value, `${label}.signed`);
-  if (signed['gate'] !== 'G-0' || signed['date'] !== '2026-07-15') {
-    throw new Error(`${label} must be signed by G-0 on 2026-07-15`);
-  }
-}
-
 function renderConstArray(name: string, values: readonly string[]): string {
   return `export const ${name} = [${values.map(quote).join(', ')}] as const;`;
 }
@@ -221,61 +207,6 @@ function renderCapabilityTables(schema: JsonSchema): string[] {
   return lines;
 }
 
-function renderCapabilityPolicy(schema: JsonSchema): string[] {
-  const policy = objectValue(
-    schema['x-clowder-capability-policy'],
-    'x-clowder-capability-policy',
-  );
-  assertSignedG0(policy['signed'], 'capability policy');
-
-  const preset = objectValue(policy['firstPartyPreset'], 'first-party preset policy');
-  const allowedLayers = stringArray(
-    preset['allowedLayers'],
-    'first-party preset policy.allowedLayers',
-  );
-  const knownLayers = Object.keys(
-    stringArrayMap(
-      schema['x-clowder-capability-layers'],
-      'x-clowder-capability-layers',
-    ),
-  );
-  if (
-    allowedLayers.length !== 1 ||
-    !knownLayers.includes(allowedLayers[0]!) ||
-    preset['visible'] !== true ||
-    preset['revocable'] !== true
-  ) {
-    throw new Error(
-      'first-party preset policy must name one known capability layer and remain visible and revocable',
-    );
-  }
-
-  const whisperTargets = stringArray(
-    policy['defaultWhisperTargets'],
-    'capability policy.defaultWhisperTargets',
-  );
-  const lifecycle = objectValue(
-    policy['lifecycleCallbacks'],
-    'capability policy.lifecycleCallbacks',
-  );
-  if (
-    lifecycle['semantics'] !== 'protocol-intrinsic' ||
-    lifecycle['grantable'] !== false ||
-    lifecycle['revocable'] !== false
-  ) {
-    throw new Error('lifecycle callbacks must remain protocol-intrinsic and non-grantable');
-  }
-
-  return [
-    '/** @signed(G-0 2026-07-15) Derived from the signed first-party preset layer. */',
-    `export const FIRST_PARTY_PRESET_CAPABILITIES = ${allowedLayers[0]}_CAPABILITIES;`,
-    '/** @signed(G-0 2026-07-15) Whisper grants are empty until explicitly extended. */',
-    renderConstArray('DEFAULT_WHISPER_TARGETS', whisperTargets),
-    '/** @signed(G-0 2026-07-15) Lifecycle is protocol baseline, not a capability. */',
-    'export const LIFECYCLE_CALLBACKS_ARE_PROTOCOL_INTRINSIC = true as const;',
-  ];
-}
-
 function renderDataStrategyTable(schema: JsonSchema): string[] {
   const strategies = stringArrayMap(
     schema['x-clowder-data-class-strategies'],
@@ -301,37 +232,18 @@ function renderMessagingBounds(schema: JsonSchema): string[] {
   return lines;
 }
 
-function renderMessagingReplayDefaults(schema: JsonSchema): string[] {
-  const replay = objectValue(
-    schema['x-clowder-replay-retention'],
-    'x-clowder-replay-retention',
-  );
-  assertSignedG0(replay['signed'], 'messaging replay retention');
-  if (replay['kind'] !== 'transport-buffer' || replay['staleCursorRecovery'] !== 'snapshot') {
-    throw new Error('messaging replay retention must describe a snapshot-recoverable transport buffer');
+function renderMessagingReplayWindowDefault(schema: JsonSchema): string[] {
+  const replayWindow = schema['x-clowder-replay-window-default'];
+  if (typeof replayWindow !== 'string' || !/^P[1-9][0-9]*D$/.test(replayWindow)) {
+    throw new Error('messaging replay window default must use ISO 8601 days (for example P7D)');
   }
-  if (
-    typeof replay['defaultRetentionDays'] !== 'number' ||
-    !Number.isInteger(replay['defaultRetentionDays']) ||
-    replay['defaultRetentionDays'] <= 0
-  ) {
-    throw new Error('messaging replay defaultRetentionDays must be a positive integer');
-  }
-  if (replay['canonicalMessagesTtl'] !== 0) {
-    throw new Error('canonical messages must retain the signed TTL=0 default');
-  }
-
   return [
     '/**',
     ' * @signed(G-0 2026-07-15)',
-    ' * Host runtime state reports the effective replay window; this is the v0 default.',
-    ' * Canonical messages are separate user state and do not expire with the replay buffer.',
+    ' * Host control plane/UI obligation: expose effective retention to users.',
+    ' * This does not add a plugin handshake field or query API.',
     ' */',
-    'export const MESSAGING_REPLAY_DEFAULTS = {',
-    `  defaultRetentionDays: ${String(replay['defaultRetentionDays'])},`,
-    `  canonicalMessagesTtl: ${String(replay['canonicalMessagesTtl'])},`,
-    `  staleCursorRecovery: ${quote(replay['staleCursorRecovery'] as string)},`,
-    '} as const;',
+    `export const MESSAGING_REPLAY_WINDOW_DEFAULT = ${quote(replayWindow)} as const;`,
   ];
 }
 
@@ -488,13 +400,11 @@ export function generateContractSource(schemas: ContractSchemas): string {
     '',
     ...renderCapabilityTables(schemas.manifest),
     '',
-    ...renderCapabilityPolicy(schemas.manifest),
-    '',
     ...renderDataStrategyTable(schemas.manifest),
     '',
     ...renderMessagingBounds(schemas.messaging),
     '',
-    ...renderMessagingReplayDefaults(schemas.messaging),
+    ...renderMessagingReplayWindowDefault(schemas.messaging),
     '',
   ];
   return `${sections.join('\n').trimEnd()}\n`;

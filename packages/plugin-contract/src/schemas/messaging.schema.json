@@ -13,13 +13,7 @@
     "maxElementsPerMessage": 128,
     "maxAppendOpsPerMessage": 64
   },
-  "x-clowder-replay-retention": {
-    "signed": { "gate": "G-0", "date": "2026-07-15" },
-    "kind": "transport-buffer",
-    "defaultRetentionDays": 7,
-    "canonicalMessagesTtl": 0,
-    "staleCursorRecovery": "snapshot"
-  },
+  "x-clowder-replay-window-default": "P7D",
   "oneOf": [
     { "$ref": "#/$defs/MessageDraft" },
     { "$ref": "#/$defs/MessageEnvelope" },

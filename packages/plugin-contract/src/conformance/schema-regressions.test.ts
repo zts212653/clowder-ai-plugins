@@ -15,7 +15,15 @@ const addFormats = require('ajv-formats') as (ajv: object) => void;
 
 const schema = JSON.parse(
   readFileSync(new URL('../schemas/messaging.schema.json', import.meta.url), 'utf8'),
-) as { $id: string };
+) as { $id: string; 'x-clowder-replay-window-default'?: string };
+const manifestSchema = JSON.parse(
+  readFileSync(new URL('../schemas/manifest.schema.json', import.meta.url), 'utf8'),
+) as {
+  'x-clowder-capability-layers'?: Record<string, string[]>;
+  'x-clowder-data-class-strategies'?: Record<string, string[]>;
+  $defs?: { Capability?: { enum?: string[] } };
+  properties?: Record<string, unknown>;
+};
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
 ajv.addSchema(schema, schema.$id);
@@ -73,8 +81,52 @@ function makeEnvelope(elementCount: number): Record<string, unknown> {
   };
 }
 
-test('MessageDraft accepts the current K-1 candidate shape', () => {
+test('MessageDraft accepts the K-1 shape-approved draft', () => {
   assert.equal(validate('MessageDraft', makeK1Draft()), true);
+});
+
+test('G-0 locks all 17 capability ids to their signed authorization tiers', () => {
+  const expectedLayers = {
+    L0: ['plugin.config.read', 'plugin.state.get', 'plugin.state.set'],
+    L1: ['messaging.send', 'schedule.register', 'events.publish', 'messaging.appendElements'],
+    L2: [
+      'onMessage',
+      'message.event.subscribe',
+      'secret.read',
+      'thread.listMetadata',
+      'thread.readContent',
+      'memory.query',
+      'memory.append',
+      'memory.retrieve',
+      'windows.create',
+      'whisper.extend',
+    ],
+  };
+  const capabilityEnum = manifestSchema.$defs?.Capability?.enum;
+
+  assert.deepEqual(manifestSchema['x-clowder-capability-layers'], expectedLayers);
+  assert.deepEqual(capabilityEnum, Object.values(expectedLayers).flat());
+  assert.equal(capabilityEnum?.length, 17);
+  assert.equal(expectedLayers.L2.includes('whisper.extend'), true);
+  assert.equal(capabilityEnum?.includes('lifecycle'), false);
+  assert.equal('x-clowder-capability-policy' in manifestSchema, false);
+  assert.equal(manifestSchema.properties?.['grantDefaults'], undefined);
+  assert.equal(manifestSchema.properties?.['trustTier'], undefined);
+});
+
+test('G-0 locks the six-row dataClass by strategy matrix', () => {
+  assert.deepEqual(manifestSchema['x-clowder-data-class-strategies'], {
+    cache: ['lifecycle', 'retained', 'ask-on-uninstall'],
+    ephemeral: ['lifecycle', 'retained', 'ask-on-uninstall'],
+    'user-authored': ['retained', 'ask-on-uninstall'],
+    'derived-user-visible': ['retained', 'ask-on-uninstall'],
+    relationship: ['retained', 'ask-on-uninstall'],
+    'interaction-history': ['retained', 'ask-on-uninstall'],
+  });
+});
+
+test('G-0 locks the messaging replay transport window default to P7D', () => {
+  assert.equal(schema['x-clowder-replay-window-default'], 'P7D');
 });
 
 test('raw-thread-id fixture isolates raw address rejection', () => {

@@ -20,62 +20,35 @@ test('generated PluginFeature uses the schema-owned Capability union', async () 
   assert.match(source, /readonly capabilities: readonly Capability\[\]/);
 });
 
-test('generated contract exposes the signed capability grant policy', async () => {
+test('generated contract exposes the signed P7D replay window default', async () => {
   const schemas = await loadContractSchemas();
   const source = generateContractSource(schemas);
 
-  assert.match(source, /export const FIRST_PARTY_PRESET_CAPABILITIES = L1_CAPABILITIES;/);
-  assert.match(source, /export const DEFAULT_WHISPER_TARGETS = \[\] as const;/);
-  assert.match(source, /export const LIFECYCLE_CALLBACKS_ARE_PROTOCOL_INTRINSIC = true as const;/);
+  assert.match(
+    source,
+    /export const MESSAGING_REPLAY_WINDOW_DEFAULT = 'P7D' as const;/,
+  );
   assert.match(source, /@signed\(G-0 2026-07-15\)/);
+  assert.match(source, /Host control plane\/UI obligation/);
 });
 
-test('generated contract exposes the signed seven-day replay default', async () => {
-  const schemas = await loadContractSchemas();
-  const source = generateContractSource(schemas);
-
-  assert.match(source, /export const MESSAGING_REPLAY_DEFAULTS = \{/);
-  assert.match(source, /defaultRetentionDays: 7,/);
-  assert.match(source, /canonicalMessagesTtl: 0,/);
-});
-
-test('generation rejects unsigned or ambiguous first-party grant policy metadata', async () => {
-  const unsigned = structuredClone(await loadContractSchemas());
-  const unsignedPolicy = unsigned.manifest['x-clowder-capability-policy'] as {
-    signed?: { gate?: string };
-  };
-  unsignedPolicy.signed = { gate: 'candidate' };
-
-  assert.throws(() => generateContractSource(unsigned), /capability policy.*signed.*G-0/);
-
-  const widened = structuredClone(await loadContractSchemas());
-  const widenedPolicy = widened.manifest['x-clowder-capability-policy'] as {
-    firstPartyPreset?: { allowedLayers?: string[] };
-  };
-  widenedPolicy.firstPartyPreset!.allowedLayers = ['L1', 'L2'];
-
-  assert.throws(() => generateContractSource(widened), /first-party preset.*one known capability layer/);
-});
-
-test('generation rejects replay metadata that violates canonical TTL=0', async () => {
+test('generation rejects a non-duration replay window default', async () => {
   const mutated = structuredClone(await loadContractSchemas());
-  const replay = mutated.messaging['x-clowder-replay-retention'] as {
-    signed?: { gate?: string };
-    canonicalMessagesTtl?: number;
-  };
-  replay.canonicalMessagesTtl = 7;
+  (mutated.messaging as Record<string, unknown>)['x-clowder-replay-window-default'] =
+    '7 days';
 
-  assert.throws(() => generateContractSource(mutated), /canonical messages.*TTL=0/);
+  assert.throws(() => generateContractSource(mutated), /replay window default.*ISO 8601 days/);
 });
 
-test('replay defaults are projected from schema metadata rather than handwritten constants', async () => {
+test('replay window default is projected from schema metadata', async () => {
   const mutated = structuredClone(await loadContractSchemas());
-  const replay = mutated.messaging['x-clowder-replay-retention'] as {
-    defaultRetentionDays?: number;
-  };
-  replay.defaultRetentionDays = 14;
+  (mutated.messaging as Record<string, unknown>)['x-clowder-replay-window-default'] =
+    'P14D';
 
-  assert.match(generateContractSource(mutated), /defaultRetentionDays: 14,/);
+  assert.match(
+    generateContractSource(mutated),
+    /export const MESSAGING_REPLAY_WINDOW_DEFAULT = 'P14D' as const;/,
+  );
 });
 
 test('generated object fields preserve required and optional schema fields', async () => {

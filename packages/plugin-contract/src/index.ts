@@ -21,8 +21,7 @@
  *   MessageOutputEvent, AppendElementsRequest, SendReceipt
  * - **manifest**: PluginManifest, PluginFeature, DataDeclaration,
  *   RuntimeDeclaration (v0.1 scope — signals/tasks/windows deferred)
- * - **capability**: L0/L1/L2 capability table and grant defaults
- *   (`@signed(G-0 2026-07-15)`)
+ * - **capability**: L0/L1/L2 capability table (`@signed(G-0 2026-07-15)`)
  * - **data-class**: DataClass × DataStrategy validation
  * - **generated projection**: all public structural types and contract tables
  *   are deterministically generated from the JSON Schemas
