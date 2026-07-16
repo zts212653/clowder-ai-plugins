@@ -98,8 +98,8 @@ jobs:
           );
           NODE
 
-      - name: Publish v0.1 contract
-        run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --provenance --access public
+      - name: Publish v0.1 beta to next
+        run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

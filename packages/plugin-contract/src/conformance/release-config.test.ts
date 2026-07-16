@@ -47,10 +47,10 @@ const messagingBehaviorSuite = JSON.parse(
   ),
 ) as BehaviorSuite;
 
-test('contract package is the publishable v0.1 release', () => {
-  assert.equal(contractPackage.version, '0.1.0');
+test('contract package is a v0.1 beta while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.1');
   assert.equal(contractPackage.private, false);
-  assert.equal(messagingBehaviorSuite._meta?.contractVersion, contractPackage.version);
+  assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
 
 test('main pushes publish only after contract validation', () => {
@@ -69,7 +69,7 @@ test('main pushes publish only after contract validation', () => {
   );
   assert.match(
     publishJob,
-    /^        run: npm publish "packages\/plugin-contract\/\$\{\{ steps\.pack\.outputs\.filename \}\}" --provenance --access public$/m,
+    /^        run: npm publish "packages\/plugin-contract\/\$\{\{ steps\.pack\.outputs\.filename \}\}" --tag next --provenance --access public$/m,
   );
 });
 

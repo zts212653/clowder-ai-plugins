@@ -13,6 +13,8 @@ created: 2026-07-15
 
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+> **2026-07-16 operator override:** This plan records the original direct-to-`0.1.0` activation. The first registry publication is now governed by `2026-07-16-contract-prerelease-channel.md`: publish `0.1.0-beta.1` on `next`, keep protocol `contractVersion` at `0.1.0`, and reserve artifact `0.1.0` plus `latest` for full-system completion.
+
 **Goal:** Make the first merge to `main` validate and publish `@clowder-ai/plugin-contract@0.1.0` automatically, while preventing pull-request events or failed validation from publishing.
 
 **Architecture:** Keep `contract-ci.yml` as the single release workflow. The `validate` job remains shared by pull requests and `main` pushes; a dependent `publish` job runs only for `push` on `main`, packs one artifact, publishes that exact tarball with the repository `NPM_TOKEN`, and fails closed unless the registry reports the expected version and integrity digest. A repository-level regression test pins the package release state and workflow gates so the bootstrap cannot silently return to a private candidate, publish from a pull request, or accept an unverified registry artifact.
