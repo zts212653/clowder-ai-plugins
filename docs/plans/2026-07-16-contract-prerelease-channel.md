@@ -14,7 +14,7 @@ created: 2026-07-16
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-> **Direct operator decision (2026-07-16 06:52 UTC):** after being offered option 1 as `0.1.0-beta.1` on `next`, the operator chose it and reserved the formal release until the full transformation is complete: “可以那就是1吧；重跑没关系；pr中说明清楚就好的；我们完整的全部都改造完成后再正式发布的”. Provenance: Cat Café thread `thread_mrkn6povq4zzgh45`, message `0001784184743864-000970-787cf35e`.
+> **Release decision (2026-07-16):** The first public testing artifact is `0.1.0-beta.1` on `next`; artifact `0.1.0` and `latest` remain reserved until the full plugin-system transformation and acceptance are complete. Merge and publication still require independent approval of the final HEAD.
 
 **Goal:** Publish the testing-stage contract as `@clowder-ai/plugin-contract@0.1.0-beta.1` on npm's `next` channel while reserving `0.1.0` and `latest` for the fully integrated release.
 
