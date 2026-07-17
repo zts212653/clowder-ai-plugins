@@ -9,7 +9,7 @@ Branch: `feat/m0-standalone-loopback`
 - Execute every committed behavior case through a reusable evaluator and deterministic reference adapter.
 - Make the repository runner fail closed for malformed, unsupported, thrown, mismatched, or empty conformance runs.
 - Publish the reusable boundary as `@clowder-ai/plugin-contract/conformance`.
-- Prepare the unique `0.1.0-beta.2` artifact with pinned Node 24.18.0/npm 11.16.0/`process.versions.zlib=1.3.1-e00f703` and npm Trusted Publishing while preserving the pre-publish `latest` target.
+- Prepare the unique `0.1.0-beta.2` artifact with pinned Node 24.18.0/npm 11.16.0/`process.versions.zlib=1.3.1-e00f703`, the beta.1-proven token publication path, and the pre-publish `latest` target preserved.
 
 ## Why
 
@@ -42,7 +42,7 @@ Please verify that the diff matches `Map delta: none`, especially that no parall
 | Invariant | Assertion | Verification |
 |---|---|---|
 | INV-1 Schema ownership | Behavior operations, verdicts, targets, capabilities, and error codes project from schema-owned definitions | codegen freshness + drift mutation tests |
-| INV-2 Execute once | Each case captures asserted targets before/after and executes its operation exactly once | `behavior-executor.test.ts` |
+| INV-2 Execute once | Each case snapshots asserted targets before/after and executes its operation exactly once | `behavior-executor.test.ts`, including a live-reference alias regression |
 | INV-3 Zero mutation on denial | Permission, validation, conflict, and ownership failures preserve every asserted collection | 18 distributed behavior cases + adapter sibling tests |
 | INV-4 Canonical handle scope | Every handle-consuming transition requires kind, owner, and non-empty canonical thread; message/envelope scope must match before mutation | unresolved send/subscribe, cross-thread append, and mismatched callback regressions |
 | INV-4A Distinct callback authority | `onMessage` callback delivery requires `onMessage`; event subscription operations independently require `message.event.subscribe` | grant inversion regression + denied distributed callback oracle |
@@ -50,7 +50,7 @@ Please verify that the diff matches `Map delta: none`, especially that no parall
 | INV-4C Subscription authority | Existing subscription operations require `message.event.subscribe` and caller ownership; ack tokens and replay deletion are subscription-local | missing-grant and foreign-caller mutations + two additive behavior oracles + cross-subscription deletion regression |
 | INV-5 Runner completeness | Missing fixtures/cases, malformed fixtures, unsupported executors, adapter throws, and oracle mismatches contribute failures | runner integration + empty-tree + mutated observation tests |
 | INV-6 Published reachability | Host/SDK can import the executor and loopback adapter without importing the Ajv-backed repository runner | exports-map test + built package self-import |
-| INV-7 Release identity | beta.2 uses one exact Node/npm/zlib producer, moves only `next`, preserves the pre-publish `latest`, and can skip publish only after exact integrity match | runtime toolchain countertest + workflow mutation suite + `bash -n` + pack inspection |
+| INV-7 Release identity | beta.2 uses one exact Node/npm/zlib producer, the operator-authorized token only on the publish step, moves only `next`, preserves the pre-publish `latest`, and can skip publish only after exact integrity match | runtime toolchain countertest + auth/removal workflow mutations + `bash -n` + pack inspection |
 
 ## E2E User Path Evidence
 
@@ -66,7 +66,7 @@ No frontend/user interaction is changed. Developer-path dogfood passed:
 
 - Does the reference adapter preserve every authorization and zero-mutation invariant without implying production Broker ownership?
 - Is the runner executor registry and 0/0 lower bound fail-closed under all discovered-file paths?
-- Does the OIDC rerun path prove exact artifact identity before skipping publish and then recheck `next`/`latest`?
+- Does the token-authenticated rerun path prove exact artifact identity before skipping publish and then recheck `next`/`latest` without exposing the token outside the publish step?
 
 Please verify every Invariant Matrix row.
 
@@ -85,7 +85,7 @@ Total findings: 5 (0 P1, 2 P2, 3 P3)
 | FC-1 | Subscription grant/owner checks were asymmetric | fixed (`e72ae61`), including additive behavior oracles | ✅ |
 | FC-2 | Empty conformance tree returned 0/0 success | fixed (`e72ae61`) | ✅ |
 | FC-3 | Documented Host/SDK API was absent from package exports | fixed (`e72ae61`) | ✅ |
-| FC-4 | Push-only OIDC path cannot execute in PR CI | retained as independently verified pre-merge Trusted Publisher gate | ✅ |
+| FC-4 | Push-only publication path cannot execute in PR CI | retained as an independently confirmed `NPM_TOKEN`/push-only gate; Trusted Publishing migration is outside P-2 | ✅ |
 | FC-5 | Positive event generation/read/ack flow has no oracle | bounded to later C-2/M0 expansion; explicit P-2 non-claim | ✅ |
 
 Formal reviewer: annotate findings with `[FC:covered]`, `[FC:new]`, or `[FC:N/A]`.
@@ -154,6 +154,24 @@ Reviewed SHA: `4824952ca1247301d6f358e503524d5670ce0707`
 
 The maintainer reproduced the same sources and npm 11.16.0 as `DA+r...` under Node 24.18.0/`process.versions.zlib=1.3.1-e00f703` and `gaOg...` under Node 24.16.0/zlib 1.2.12, with identical 86 entries and unpacked size. This is the third consecutive pack-identity round, so the plan now defines immutable publication identity as `(source commit, exact Node/npm/zlib producer, packed bytes)`. Both validate and publish fail before build/pack if any observed runtime component differs from the workflow constants; an already-published beta.2 integrity mismatch remains unrecoverable and fail-closed. CI repair round 1 caught the initial shorthand `1.3.1` pin before install and corrected the truth source to the full runtime identity.
 
+## Final Cloud Executor Review R6
+
+Reviewed SHA: `4824952ca1247301d6f358e503524d5670ce0707`
+
+| # | Finding | Failure mode | Author disposition |
+|---|---|---|---|
+| R6-1 | `unchanged` could pass when an adapter returned one live object and mutated it during execution | the generic executor retained adapter-owned observation references instead of snapshots | fixed by immediately `structuredClone`-snapshotting every before/after observation; a shared-array Red→Green regression proves the mutation is detected |
+
+The sibling audit found exactly two generic observation-capture loops, and both now consume the same snapshot helper. Repository adapters already returned clones, which is why prior tests masked the exported interface bug.
+
+## Maintainer Release-Auth Scope Follow-up
+
+| # | Finding | Failure mode | Author disposition |
+|---|---|---|---|
+| AUTH-1 | P-2 migrated beta.2 from the beta.1-proven `NPM_TOKEN` path to npm Trusted Publishing without separate operator approval | provenance and authentication were treated as one interchangeable mechanism | fixed by restoring exactly one publish-step `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` binding, retaining `id-token: write`/`--provenance`, and deferring Trusted Publishing to a dedicated operator-approved release-auth PR |
+
+The release regression now fails if the authorized token is removed, duplicated, moved outside the publish step, or exposed to PR validation. This narrows P-2 back to the existing release authorization rather than broadening it.
+
 ## Next Action
 
 Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHANGES comment anchored to that SHA. This request is for a formal verdict, not another fresh-context scan.
@@ -181,7 +199,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @clowder-ai/plugin-contract generate:check
 pnpm typecheck
 pnpm lint
-pnpm test          # 105/105
+pnpm test          # 106/106
 pnpm build
 pnpm conformance   # 25/25 structural, 18/18 behavior
 git diff --check origin/main...HEAD
