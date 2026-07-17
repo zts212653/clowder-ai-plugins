@@ -676,6 +676,8 @@ The first automated PR review at `4614fab` added two `[FC:new]` P2 findings:
 
 The distributed fixture count remains 18. Existing case IDs, operations, invariants, and expected verdicts remain unchanged; the replay-deletion seed now explicitly carries its `subscriptionId`. Adapter-level regressions cover owned/foreign connector bindings and cross-subscription replay isolation.
 
+The independent R1 delta review found one further P2 in the same handle family: an owned send address could lack a resolved `threadId` and still materialize a non-canonical message. The R2 fix requires a non-empty canonical thread target after kind/owner authorization and before any observation or collection mutation, for both `thread_handle` and `connector_binding`. Its regression locks `NOT_FOUND` plus zero messages, output events, and ledger entries. The replay regression also explicitly proves that an unscoped event is preserved fail-closed.
+
 ### Task 6: Full verification and review handoff
 
 **Files:**
@@ -697,7 +699,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (95/95 after automated-review regressions);
+- all unit tests pass (96/96 after automated and independent delta-review regressions);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;

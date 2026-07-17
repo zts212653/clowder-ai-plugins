@@ -210,6 +210,53 @@ test('connector binding sends require caller ownership', async () => {
   );
 });
 
+test('send rejects owned handles whose canonical thread target is unresolved', async () => {
+  const unresolvedTargets = [
+    {
+      kind: 'thread_handle' as const,
+      token: 'thread-handle-a',
+      ownerPluginInstanceId: 'plugin-a',
+    },
+    {
+      kind: 'connector_binding' as const,
+      token: 'connector-binding-a',
+      ownerPluginInstanceId: 'plugin-a',
+      connectorId: 'connector-a',
+    },
+  ];
+
+  for (const target of unresolvedTargets) {
+    const adapter = new MessagingLoopbackAdapter();
+    await adapter.setup({
+      caller: { pluginInstanceId: 'plugin-a' },
+      grants: ['messaging.send'],
+      handles: { target },
+      state: {},
+    });
+
+    assert.deepEqual(
+      await adapter.execute({
+        operation: 'send',
+        input: {
+          address: { kind: target.kind, handle: target.token },
+          idempotencyKey: `unresolved-${target.kind}`,
+          payload: {
+            provenance: { epistemicStatus: 'inference' },
+            elements: [
+              { elementId: 'text-1', kind: 'text', payload: { text: 'blocked' } },
+            ],
+          },
+        },
+      }),
+      { status: 'error', errorCode: 'NOT_FOUND' },
+      target.kind,
+    );
+    assert.deepEqual(await adapter.observe('messages'), [], target.kind);
+    assert.deepEqual(await adapter.observe('output_events'), [], target.kind);
+    assert.deepEqual(await adapter.observe('idempotency_ledger'), [], target.kind);
+  }
+});
+
 test('replay deletion is scoped to the authorized subscription', async () => {
   const adapter = new MessagingLoopbackAdapter();
   await adapter.setup({
@@ -236,6 +283,7 @@ test('replay deletion is scoped to the authorized subscription', async () => {
         { eventId: 'event-a-1', subscriptionId: 'subscription-a', sequence: 1 },
         { eventId: 'event-a-2', subscriptionId: 'subscription-a', sequence: 2 },
         { eventId: 'event-b-1', subscriptionId: 'subscription-b', sequence: 1 },
+        { eventId: 'event-unscoped', sequence: 1 },
       ],
     },
   });
@@ -250,5 +298,6 @@ test('replay deletion is scoped to the authorized subscription', async () => {
   assert.deepEqual(await adapter.observe('replay_events'), [
     { eventId: 'event-a-2', subscriptionId: 'subscription-a', sequence: 2 },
     { eventId: 'event-b-1', subscriptionId: 'subscription-b', sequence: 1 },
+    { eventId: 'event-unscoped', sequence: 1 },
   ]);
 });

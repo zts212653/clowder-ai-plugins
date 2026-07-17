@@ -137,6 +137,10 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     if (ownershipError) {
       return ownershipError;
     }
+    const target = state.handles.get(address.handle as string);
+    if (typeof target?.threadId !== 'string' || target.threadId.length === 0) {
+      return error('NOT_FOUND');
+    }
 
     const audience = rawInput.draftAudience;
     if (isRecord(audience) && audience.kind === 'system') {
@@ -165,14 +169,13 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
       }
     }
 
-    const target = state.handles.get(address.handle as string);
     const replyTo = rawInput.replyTo;
     if (replyTo !== undefined) {
       if (typeof replyTo !== 'string') {
         return error('VALIDATION');
       }
       const reply = state.messages.get(replyTo);
-      if (!reply || reply.threadId !== target?.threadId) {
+      if (!reply || reply.threadId !== target.threadId) {
         return error('VALIDATION');
       }
       state.observations.set('reply_preview', { messageId: replyTo });
@@ -181,7 +184,7 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     const messageId = `loopback-message-${state.messages.size + 1}`;
     const message = {
       messageId,
-      threadId: target?.threadId,
+      threadId: target.threadId,
       revision: 1,
       payload: structuredClone(input.payload),
     };

@@ -98,6 +98,16 @@ Reviewed SHA: `4614fab7a1d0ec81405a1d8f467183949c0ec0a3`
 
 The 18-case distributed suite does not grow in this round. Existing case IDs, operations, invariants, and expected verdicts remain unchanged; the replay-deletion seed gains an explicit `subscriptionId` so its retention scope is machine-readable.
 
+## Independent Delta Review R2
+
+Reviewed SHA: `ac5fd39dc10d52c60eabc04adbf19f203bbb9a0a`
+
+| # | Finding | Failure mode | Author disposition |
+|---|---|---|---|
+| R2-1 | An owned send handle without `threadId` succeeded and materialized a non-canonical message | repeated optional handle-target assumption | fixed with one pre-mutation target-resolution guard shared by both send address variants |
+
+The regression exercises unresolved `thread_handle` and `connector_binding` targets and requires `NOT_FOUND` with zero changes to messages, output events, and the idempotency ledger. The failure-mode audit found no equivalent canonical-record write in sibling operations: append already rejects a missing `messageId`, ack rejects a missing/mismatched `subscriptionId`, and positive subscription delivery remains outside the P-2 claim.
+
 ## Next Action
 
 Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHANGES comment anchored to that SHA. This request is for a formal verdict, not another fresh-context scan.
@@ -125,7 +135,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @clowder-ai/plugin-contract generate:check
 pnpm typecheck
 pnpm lint
-pnpm test          # 95/95
+pnpm test          # 96/96
 pnpm build
 pnpm conformance   # 25/25 structural, 18/18 behavior
 git diff --check origin/main...HEAD
@@ -135,7 +145,7 @@ Additional evidence:
 
 - Three workflow `run: |` blocks pass `bash -n`.
 - Built package self-import passes.
-- Exact pack integrity after R1: `sha512-qQo4mk5UFCURsAWKww7iHc34oylVLpRjqwRJYSYIYxKCbo01B0AsmZcRSLMTtyIeyxhUtZN56hSCCThV21+v/A==`.
+- Exact pack integrity after R2: `sha512-pZFPehbC7tvaK6hFUn3bJn9PIeTNevzPMdxa+kjVnrVxZkS5DH0xmnL3XBWzibLJB9qcQW8CcPxJnJLosHdtWg==`.
 - Root artifact gates returned no matches.
 
 ## Related Documents
