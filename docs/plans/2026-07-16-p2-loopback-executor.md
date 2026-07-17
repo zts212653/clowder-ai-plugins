@@ -728,7 +728,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (102/102 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, and npm-pack evidence guard);
+- all unit tests pass (103/103 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, and exact-head npm-pack evidence guards);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;
@@ -746,10 +746,14 @@ pack_dir=$(mktemp -d)
 
 Expected: `@clowder-ai/plugin-contract@0.1.0-beta.2`, non-empty `sha512-...` integrity, generated types, schemas, fixtures, and no source-control/private-governance data.
 
-The `integrity` reported by this npm command is the release-candidate truth
-source because the publish workflow packs and publishes with npm. Do not
-substitute `pnpm pack`: for this package pnpm adds `LICENSE` and rewrites the
-packed `package.json`, producing different contents and therefore a different
+This local output is corroborating evidence only. The required CI job is the
+release-candidate truth source: it checks out the exact PR head, verifies the
+actual `git HEAD` and clean tracked tree after build, runs this npm pack path,
+and uploads `plugin-contract-pack-evidence-<head-sha>` containing the SHA and
+pack metadata. The durable review packet cites that machine artifact instead
+of hard-coding a hash that a later commit can stale. Do not substitute
+`pnpm pack`: for this package pnpm adds `LICENSE` and rewrites the packed
+`package.json`, producing different contents and therefore a different
 integrity even after the same build.
 
 - [x] **Step 3: Run the fallback-layer audit**

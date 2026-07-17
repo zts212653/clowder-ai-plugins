@@ -277,6 +277,46 @@ test('review pack evidence uses the publication package manager', () => {
   );
 });
 
+test('required CI binds pack evidence to the exact checked-out head', () => {
+  const validateJob = releaseWorkflow.match(
+    /^  validate:\n[\s\S]*?(?=^  publish:)/m,
+  )?.[0];
+  const captureStep = namedWorkflowStep(
+    releaseWorkflow,
+    'Capture exact-head pack evidence',
+  );
+  const uploadStep = namedWorkflowStep(
+    releaseWorkflow,
+    'Upload exact-head pack evidence',
+  );
+
+  assert.ok(validateJob, 'validate job must be active');
+  assert.match(
+    validateJob,
+    /^          ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
+  );
+  assert.match(
+    captureStep,
+    /^          EXPECTED_HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
+  );
+  assert.match(captureStep, /ACTUAL_HEAD_SHA=\$\(git rev-parse HEAD\)/);
+  assert.match(captureStep, /"\$ACTUAL_HEAD_SHA" != "\$EXPECTED_HEAD_SHA"/);
+  assert.match(captureStep, /git status --porcelain --untracked-files=no/);
+  assert.match(
+    captureStep,
+    /npm pack --json --ignore-scripts --pack-destination "\$RUNNER_TEMP"/,
+  );
+  assert.match(captureStep, /headSha: process\.env\.ACTUAL_HEAD_SHA/);
+  assert.match(
+    uploadStep,
+    /^          name: plugin-contract-pack-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
+  );
+  assert.match(
+    uploadStep,
+    /^          path: \$\{\{ runner\.temp \}\}\/plugin-contract-pack-evidence\.json$/m,
+  );
+});
+
 test('subsequent prereleases preserve the pre-publish latest target', () => {
   assertPrereleaseDistTagsVerified(releaseWorkflow);
 });

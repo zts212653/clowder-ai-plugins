@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -45,6 +47,73 @@ jobs:
 
       - name: Conformance runner
         run: pnpm --filter @clowder-ai/plugin-contract conformance
+
+      - name: Capture exact-head pack evidence
+        working-directory: packages/plugin-contract
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PACK_EVIDENCE_PATH: ${{ runner.temp }}/plugin-contract-pack-evidence.json
+        run: |
+          set -euo pipefail
+          ACTUAL_HEAD_SHA=$(git rev-parse HEAD)
+          export ACTUAL_HEAD_SHA
+          if [[ "$ACTUAL_HEAD_SHA" != "$EXPECTED_HEAD_SHA" ]]; then
+            echo "checkout HEAD mismatch: $ACTUAL_HEAD_SHA != $EXPECTED_HEAD_SHA" >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+            echo "tracked files changed before pack evidence capture" >&2
+            git status --short >&2
+            exit 1
+          fi
+
+          PACK_JSON_PATH="$RUNNER_TEMP/plugin-contract-pack.json"
+          export PACK_JSON_PATH
+          npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" > "$PACK_JSON_PATH"
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+
+          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+          const stringFields = ['name', 'version', 'filename', 'integrity', 'shasum'];
+          const numberFields = ['size', 'unpackedSize'];
+          for (const field of stringFields) {
+            if (typeof artifact?.[field] !== 'string' || artifact[field].length === 0) {
+              throw new Error(`npm pack did not report ${field}`);
+            }
+          }
+          for (const field of numberFields) {
+            if (!Number.isFinite(artifact?.[field]) || artifact[field] <= 0) {
+              throw new Error(`npm pack did not report ${field}`);
+            }
+          }
+          if (!Array.isArray(artifact?.files) || artifact.files.length === 0) {
+            throw new Error('npm pack did not report files');
+          }
+
+          const evidence = {
+            headSha: process.env.ACTUAL_HEAD_SHA,
+            name: artifact.name,
+            version: artifact.version,
+            filename: artifact.filename,
+            integrity: artifact.integrity,
+            shasum: artifact.shasum,
+            size: artifact.size,
+            unpackedSize: artifact.unpackedSize,
+            entryCount: artifact.files?.length,
+          };
+          writeFileSync(process.env.PACK_EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`);
+          appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `### Exact-head pack evidence\n\n\`\`\`json\n${JSON.stringify(evidence, null, 2)}\n\`\`\`\n`,
+          );
+          NODE
+
+      - name: Upload exact-head pack evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-contract-pack-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/plugin-contract-pack-evidence.json
+          if-no-files-found: error
 
   publish:
     name: Publish to npm

@@ -36,7 +36,7 @@ function multilineRunBlocks(workflow: string): string[] {
 
 test('every multiline workflow shell block parses with bash', () => {
   const blocks = multilineRunBlocks(releaseWorkflow);
-  assert.equal(blocks.length, 3, 'update the syntax gate when adding a run block');
+  assert.equal(blocks.length, 4, 'update the syntax gate when adding a run block');
 
   for (const [index, block] of blocks.entries()) {
     const result = spawnSync('bash', ['-n'], {
