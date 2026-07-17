@@ -664,7 +664,7 @@ git commit -m "chore(contract): prepare trusted P-2 beta.2" \
 **Files:**
 - Verify all files above
 
-- [ ] **Step 1: Run the complete repository gate**
+- [x] **Step 1: Run the complete repository gate**
 
 ```bash
 pnpm --filter @clowder-ai/plugin-contract generate:check
@@ -686,7 +686,7 @@ Expected:
 - no “execution skipped” text remains;
 - worktree contains no generated tarball or root media artifact.
 
-- [ ] **Step 2: Pack and inspect the exact artifact**
+- [x] **Step 2: Pack and inspect the exact artifact**
 
 ```bash
 pnpm --filter @clowder-ai/plugin-contract pack --json --ignore-scripts
@@ -694,7 +694,7 @@ pnpm --filter @clowder-ai/plugin-contract pack --json --ignore-scripts
 
 Expected: `@clowder-ai/plugin-contract@0.1.0-beta.2`, non-empty `sha512-...` integrity, generated types, schemas, fixtures, and no source-control/private-governance data.
 
-- [ ] **Step 3: Run the fallback-layer audit**
+- [x] **Step 3: Run the fallback-layer audit**
 
 Run the repository-available fallback checker if present. Otherwise inspect the P-2 diff:
 
