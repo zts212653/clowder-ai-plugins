@@ -66,7 +66,7 @@ If the query returns `E404`, a different integrity, or either dist-tag differs f
 - Modify: `packages/plugin-contract/src/codegen/generate-contract.test.ts`
 - Regenerate: `packages/plugin-contract/src/generated/contract.generated.ts`
 
-- [ ] **Step 1: Write the failing code-generation tests**
+- [x] **Step 1: Write the failing code-generation tests**
 
 Add:
 
@@ -92,7 +92,7 @@ test('behavior capability names resolve to the manifest-owned Capability type', 
 });
 ```
 
-- [ ] **Step 2: Run the focused test to verify RED**
+- [x] **Step 2: Run the focused test to verify RED**
 
 Run:
 
@@ -102,7 +102,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- generate-contract
 
 Expected: FAIL because `ContractSchemas` does not load the behavior schema and no behavior types are generated.
 
-- [ ] **Step 3: Extend the generator input and external-ref resolver**
+- [x] **Step 3: Extend the generator input and external-ref resolver**
 
 Change the schema bundle to:
 
@@ -149,7 +149,7 @@ Append the behavior definitions and root type after the messaging definitions:
 
 Update the generated-file banner to name all three source schemas.
 
-- [ ] **Step 4: Generate and verify GREEN**
+- [x] **Step 4: Generate and verify GREEN**
 
 Run:
 
@@ -161,7 +161,7 @@ pnpm --filter @clowder-ai/plugin-contract generate:check
 
 Expected: focused tests pass and the checked-in projection is current.
 
-- [ ] **Step 5: Commit the schema projection**
+- [x] **Step 5: Commit the schema projection**
 
 ```bash
 git add packages/plugin-contract/src/codegen \
