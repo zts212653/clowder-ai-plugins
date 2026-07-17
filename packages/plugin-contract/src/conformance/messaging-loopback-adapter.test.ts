@@ -354,6 +354,53 @@ test('append rejects canonical messages outside the handle thread with zero muta
   }
 });
 
+test('append validates the public message-handle discriminant before lookup', async () => {
+  for (const malformedHandle of [
+    { token: 'message-handle-a' },
+    { kind: 'thread', token: 'message-handle-a' },
+    { kind: 'message', token: 'message-handle-a', messageId: 'message-1' },
+  ]) {
+    const adapter = new MessagingLoopbackAdapter();
+    await adapter.setup({
+      caller: { pluginInstanceId: 'plugin-a' },
+      grants: ['messaging.appendElements'],
+      handles: {
+        message: {
+          kind: 'message_handle',
+          token: 'message-handle-a',
+          ownerPluginInstanceId: 'plugin-a',
+          threadId: 'thread-1',
+          messageId: 'message-1',
+        },
+      },
+      state: {
+        messages: [
+          { messageId: 'message-1', threadId: 'thread-1', revision: 1 },
+        ],
+      },
+    });
+
+    const before = await adapter.observe('messages');
+    assert.deepEqual(
+      await adapter.execute({
+        operation: 'appendElements',
+        input: {
+          handle: malformedHandle,
+          operationId: 'malformed-handle-append-1',
+          elements: [
+            { elementId: 'text-1', kind: 'text', payload: { text: 'blocked' } },
+          ],
+        },
+      }),
+      { status: 'error', errorCode: 'VALIDATION' },
+      JSON.stringify(malformedHandle),
+    );
+    assert.deepEqual(await adapter.observe('messages'), before);
+    assert.deepEqual(await adapter.observe('output_events'), []);
+    assert.deepEqual(await adapter.observe('idempotency_ledger'), []);
+  }
+});
+
 test('first-party presets accept exactly the schema-owned L1 capabilities', async () => {
   const rejected = [
     ...CAPABILITY_TABLE.L0,

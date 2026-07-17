@@ -331,6 +331,7 @@ in the transition to that same scope.
 | Truth | Writer / owner | Readers | Required invariant |
 |---|---|---|---|
 | capability layer | `manifest.schema.json` → generated `CAPABILITY_TABLE` | preset application, permission-matrix check, callback delivery | first-party presets are exactly the schema-owned L1 set; `onMessage` and `message.event.subscribe` remain distinct L2 grants |
+| request handle reference | `messaging.schema.json#/$defs/MessageHandle` | append request validation before Host lookup | untrusted input is exactly `{ kind: "message", token: non-empty string }`; missing/wrong discriminants and extra properties are validation failures |
 | host handle scope | fixture `handles[*].threadId` standing in for Host-issued state | send, subscribe, append, callback delivery | token exists, kind matches, caller owns it, and canonical `threadId` is non-empty before any mutation |
 | canonical message scope | fixture `state.messages[*].threadId` standing in for Host message state | append and same-thread reply validation | resolved message exists and its `threadId` equals the authorized handle scope |
 | callback envelope scope | `deliverOnMessage.input.envelope.threadId` | callback delivery | envelope `threadId` equals the authorized thread handle scope |
@@ -340,7 +341,7 @@ in the transition to that same scope.
 |---|---|---|---|
 | `send` | `messaging.send` | owned scoped thread/binding handle → new message in the same thread | create message/event/ledger only after all audience, provenance, and reply checks |
 | `subscribe` | `message.event.subscribe` | owned scoped thread handle → subscription carrying the same thread | create subscription only after handle scope resolves |
-| `appendElements` | `messaging.appendElements` | owned scoped message handle → canonical message with the same `threadId` | revise message and emit event/ledger only after scope, revision, and epistemic checks |
+| `appendElements` | `messaging.appendElements` | exact public message-handle reference → owned scoped Host handle → canonical message with the same `threadId` | revise message and emit event/ledger only after request shape, scope, revision, and epistemic checks |
 | `deliverOnMessage` | `onMessage` | owned scoped thread handle + envelope with the same `threadId` | reference callback delivery has no collection mutation; every failed precondition preserves all observations |
 | `applyGrantPreset` | n/a (policy operation) | requested capabilities must be a subset of generated L1 | update grants and visible grant state only after the whole request passes |
 
@@ -704,6 +705,8 @@ The independent R1 delta review found one further P2 in the same handle family: 
 
 The maintainer exact-head R3 review exposed three remaining transitions that the earlier pointwise audit missed: callback delivery conflated `onMessage` with event subscription and discarded envelope scope; append bound message identity but not canonical message thread; and first-party presets used an L2 denylist instead of the signed L1 allowlist. Because this was the third round on the same adapter state object, the Stateful Object Gate above is now the controlling plan boundary. One scope resolver protects send/subscribe/append/callback transitions; append and callback additionally bind their canonical message/envelope thread before mutation; presets derive their complete allowlist from generated `CAPABILITY_TABLE.L1`. The audit also closes the sibling unscoped-subscribe path. Four focused regressions prove Red→Green while the distributed suite remains 18 cases with unchanged IDs, operations, invariants, and expected verdicts.
 
+Cloud exact-head R4 found that append still treated an untrusted request reference as if it were the resolved Host handle: a valid stored token bypassed a missing or wrong request `kind`. The request-handle row in the Stateful Object Gate now distinguishes these truth sources. Append first validates the exact public `MessageHandle` shape from `messaging.schema.json`—including its discriminant, non-empty token, and closed-object boundary—then resolves the separate Host-owned `message_handle`. The sibling audit confirms `send.address` already validates its tagged union before Host lookup and no other operation has the same object-discriminant lookup path.
+
 ### Task 6: Full verification and review handoff
 
 **Files:**
@@ -725,7 +728,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (100/100 after maintainer R3 regressions and the sibling scope audit);
+- all unit tests pass (101/101 after maintainer R3 regressions, sibling scope audit, and Cloud R4 request-shape guard);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;

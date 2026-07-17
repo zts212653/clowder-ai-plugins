@@ -8,6 +8,7 @@ import {
   type FixtureHandle,
   type FixtureOperation,
   type FixtureSetup,
+  type MessageHandle,
   type MessagingErrorCode,
   type OnMessageDeliveryInput,
   type PermissionMatrixEntry,
@@ -27,6 +28,21 @@ import {
 function isRecord(value: unknown): value is LoopbackRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
+function isMessageHandle(value: unknown): value is MessageHandle {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const keys = Object.keys(value);
+  return (
+    value.kind === 'message' &&
+    typeof value.token === 'string' &&
+    value.token.length > 0 &&
+    keys.length === 2 &&
+    keys.every((key) => key === 'kind' || key === 'token')
+  );
+}
+
 function error(errorCode: MessagingErrorCode): BehaviorVerdict {
   return { status: 'error', errorCode };
 }
@@ -217,6 +233,9 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     }
 
     const rawHandle = input.handle;
+    if (!isMessageHandle(rawHandle)) {
+      return error('VALIDATION');
+    }
     const handleAccess = this.accessScopedHandle(rawHandle.token, 'message_handle');
     if (!handleAccess.ok) {
       return handleAccess.verdict;

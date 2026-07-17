@@ -124,6 +124,16 @@ Reviewed SHA: `eff864eeb9ad2cc58b8fbbd127a42ce1fe59c9fd`
 
 Because this was the third review round on the same state object, the implementation plan now contains a stateful-object truth matrix and transition table. The failure-mode sweep also hardened the sibling `subscribe` transition: it rejects unresolved thread scope and persists the resolved canonical thread on the subscription projection. No new distributed case ID or expected verdict was introduced.
 
+## Cloud Exact-Head Review R4
+
+Reviewed SHA: `2c05b6ce38db5b28f899a81258471724ae303655`
+
+| # | Finding | Failure mode | Author disposition |
+|---|---|---|---|
+| R4-1 | append used a valid stored token without validating the request handle's `kind: "message"` | untrusted request reference and trusted Host handle were collapsed | fixed with an exact public `MessageHandle` guard before Host lookup; missing/wrong discriminants and extra properties return VALIDATION with zero mutation |
+
+The forced sibling audit confirms `send.address` already validates its tagged union before Host lookup. No other operation has the same object-discriminant lookup path. The plan truth matrix now names the request reference separately from Host-owned handle state.
+
 ## Next Action
 
 Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHANGES comment anchored to that SHA. This request is for a formal verdict, not another fresh-context scan.
@@ -151,7 +161,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @clowder-ai/plugin-contract generate:check
 pnpm typecheck
 pnpm lint
-pnpm test          # 100/100
+pnpm test          # 101/101
 pnpm build
 pnpm conformance   # 25/25 structural, 18/18 behavior
 git diff --check origin/main...HEAD
@@ -161,7 +171,7 @@ Additional evidence:
 
 - Three workflow `run: |` blocks pass `bash -n`.
 - Built package self-import passes.
-- Exact pack integrity after R3: `sha512-w3mKikO8v7YwN5ZyLY3twqRgrIcSIxHLitCBu1wpsF41ms8ygvN7Qw20u2haoT36DrZRXvCHgC6kXQPj/7G36Q==`.
+- Exact pack integrity after R4: `sha512-I19peh4f/N7MnQpTkSECHaQrCrk3y/Z+b3SRo4tX8G46eEoUGkFoeB4gvLs99FOLEizaYDn4jjVGPMM2p4THLg==`.
 - Root artifact gates returned no matches.
 
 ## Related Documents
