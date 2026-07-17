@@ -52,6 +52,13 @@ function assertionPassed(
   }
 }
 
+async function observeSnapshot(
+  adapter: BehaviorAdapter,
+  target: BehaviorTarget,
+): Promise<unknown> {
+  return structuredClone(await adapter.observe(target));
+}
+
 export async function executeBehaviorCase(
   behaviorCase: BehaviorCase,
   adapter: BehaviorAdapter,
@@ -61,14 +68,14 @@ export async function executeBehaviorCase(
   const targets = [...new Set(behaviorCase.expect.sideEffects.map(({ target }) => target))];
   const before = new Map<BehaviorTarget, unknown>();
   for (const target of targets) {
-    before.set(target, await adapter.observe(target));
+    before.set(target, await observeSnapshot(adapter, target));
   }
 
   const verdict = await adapter.execute(behaviorCase.when);
 
   const after = new Map<BehaviorTarget, unknown>();
   for (const target of targets) {
-    after.set(target, await adapter.observe(target));
+    after.set(target, await observeSnapshot(adapter, target));
   }
 
   const failures: string[] = [];

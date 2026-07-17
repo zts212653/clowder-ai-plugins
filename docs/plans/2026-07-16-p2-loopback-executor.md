@@ -19,7 +19,7 @@ created: 2026-07-16
 
 **Architecture:** The behavior JSON Schema remains the sole fixture vocabulary. Code generation projects its types into `contract.generated.ts`; a reusable executor captures before/after observations and evaluates the schema-owned assertions; a deterministic in-memory loopback adapter implements the messaging semantics needed by the signed cases. This is P-2, the first independently testable M0 slice—it does not claim that the cross-process SDK transport or Host Broker is complete.
 
-**Tech Stack:** TypeScript 5.7, Node.js 24, npm 11.5.1+, Ajv 8, pnpm 9, JSON Schema 2020-12, GitHub Actions OIDC trusted publishing.
+**Tech Stack:** TypeScript 5.7, Node.js 24, npm 11.5.1+, Ajv 8, pnpm 9, JSON Schema 2020-12, GitHub Actions token-authenticated npm publishing with provenance.
 
 ---
 
@@ -565,7 +565,7 @@ git commit -m "feat(contract): require loopback behavior execution" \
   -m "[砚砚/GPT-5.6 Sol🐾]"
 ```
 
-### Task 5: Prepare beta.2 with a pinned Node toolchain and trusted publishing
+### Task 5: Prepare beta.2 with a pinned Node toolchain and the authorized token publication path
 
 **Files:**
 - Modify: `.github/workflows/contract-ci.yml`
@@ -587,11 +587,12 @@ artifact-producing toolchain, not by source content alone.
 | exact source commit | PR/push event SHA | checkout, runtime `git rev-parse HEAD` comparison | validate pack evidence |
 | candidate bytes and integrity | pinned npm pack after pinned build | CI evidence artifact, publish registry guard | immutable npm version and retry comparison |
 | registry version/integrity/tags | npm registry | pre-publish resume guard and post-publish verifier | skip-or-publish decision, `next`/`latest` acceptance |
+| npm write authorization | operator-managed GitHub `NPM_TOKEN` secret | the single publish step only | beta.2 publication; never PR validation or registry reads |
 
 | State | Required transition | Failure behavior |
 |---|---|---|
 | final-head validation | exact checkout → verify toolchain → build → reject tracked drift → npm pack → upload SHA-bound evidence | fail before evidence is accepted |
-| first publication | exact checkout → verify the same toolchain → build → npm pack → registry absent → publish exact tarball | fail closed; never move `latest` |
+| first publication | exact checkout → verify the same toolchain → build → npm pack → registry absent → publish exact tarball through the existing token path | fail closed; never move `latest` |
 | post-publish rerun | exact checkout → verify the same toolchain → build → npm pack → registry exact version/integrity match → skip publish → verify tags | mismatch is unrecoverable and fails closed |
 | toolchain drift | runtime Node/npm/zlib differs from the workflow constants | fail **before** pack or registry inspection; never compare drifted bytes to immutable beta.2 |
 
@@ -606,6 +607,10 @@ Invariants:
 4. Registry integrity comparison remains exact and fail-closed. Toolchain
    pinning prevents drift; it does not turn an integrity mismatch into a
    recoverable state.
+5. Beta.2 retains the beta.1-proven `NPM_TOKEN` authentication path, scoped to
+   the single publish step. `id-token: write` and `--provenance` remain, but a
+   migration to npm Trusted Publishing requires a separate operator-approved
+   release-auth change and is not part of P-2.
 
 - [x] **Step 1: Write failing release and workflow assertions**
 
@@ -618,7 +623,7 @@ test('P-2 publishes beta.2 while the protocol stays at signed v0.1', () => {
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
 
-test('CI and release use the trusted-publishing Node baseline', () => {
+test('CI and release use the pinned toolchain and authorized token path', () => {
   assert.match(releaseWorkflow, /^  ARTIFACT_NODE_VERSION: '24\.18\.0'$/m);
   assert.match(releaseWorkflow, /^  ARTIFACT_NPM_VERSION: '11\.16\.0'$/m);
   assert.match(releaseWorkflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1-e00f703'$/m);
@@ -627,7 +632,10 @@ test('CI and release use the trusted-publishing Node baseline', () => {
     2,
   );
   assert.match(releaseWorkflow, /^      id-token: write$/m);
-  assert.doesNotMatch(releaseWorkflow, /NPM_TOKEN|NODE_AUTH_TOKEN/);
+  assert.match(
+    releaseWorkflow,
+    /^        env:\n          NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}$/m,
+  );
 });
 
 test('subsequent prereleases preserve the pre-publish latest target', () => {
@@ -637,7 +645,7 @@ test('subsequent prereleases preserve the pre-publish latest target', () => {
 });
 ```
 
-Keep the existing exact version/integrity and single-publish-path mutation guards. Add mutations that remove the previous-latest read, invert the comparison, reintroduce `NPM_TOKEN`, or add an `npm dist-tag` latest mutation; every mutation must be killed.
+Keep the existing exact version/integrity and single-publish-path mutation guards. Add mutations that remove the previous-latest read, invert the comparison, remove the authorized token, or add an `npm dist-tag` latest mutation; every mutation must be killed.
 
 - [x] **Step 2: Run the focused test to verify RED**
 
@@ -647,9 +655,9 @@ Run:
 pnpm --filter @clowder-ai/plugin-contract test -- release-config
 ```
 
-Expected: FAIL because the artifact is still beta.1, both jobs use Node 20, the workflow still supplies `NPM_TOKEN`, and the verifier assumes `latest` can be absent.
+Expected: FAIL because the artifact is still beta.1, both jobs use Node 20, and the verifier assumes `latest` can be absent.
 
-- [x] **Step 3: Move the workflow to OIDC and preserve latest**
+- [x] **Step 3: Pin the workflow, retain the authorized token path, and preserve latest**
 
 In both jobs, consume the same exact workflow-level pin:
 
@@ -671,7 +679,17 @@ The verifier compares runtime `process.version`, `npm --version`, and
 `process.versions.zlib` to these constants and fails before build/pack on any
 drift. Record the same values in the validate job's pack-evidence JSON.
 
-Keep `permissions.id-token: write`; remove every `NODE_AUTH_TOKEN`/`NPM_TOKEN` environment entry. Before publishing, read the current dist-tags and expose the exact target:
+Keep `permissions.id-token: write`, `--provenance`, and exactly one publish-step token binding:
+
+```yaml
+- name: Publish v0.1 beta to next
+  if: steps.registry.outputs.already_published != 'true'
+  run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
+  env:
+    NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```
+
+Do not expose the token to pull-request validation or any non-publish step. Before publishing, read the current dist-tags and expose the exact target:
 
 ```bash
 PREVIOUS_LATEST=$(npm view "$PACKAGE_NAME" dist-tags.latest --json | node --input-type=module -e '
@@ -709,19 +727,18 @@ pnpm --filter @clowder-ai/plugin-contract test -- release-config
 pnpm --filter @clowder-ai/plugin-contract test -- workflow-shell-syntax
 ```
 
-Expected: PASS; release guards preserve the existing bootstrap `latest`, move only `next`, and contain no long-lived npm write token.
+Expected: PASS; release guards preserve the existing bootstrap `latest`, move only `next`, and expose the operator-managed npm token only to the single publish step.
 
-- [ ] **Step 7: Record the npm-side trusted publisher gate**
+- [x] **Step 7: Record the release-auth scope gate**
 
-Before merge, require an npm Trusted Publisher for package `@clowder-ai/plugin-contract` with:
+Beta.2 retains the same token authentication mode that published beta.1:
 
-- provider: GitHub Actions;
-- owner: `zts212653`;
-- repository: `clowder-ai-plugins`;
-- workflow filename: `contract-ci.yml`;
-- allowed action: `npm publish`.
+- repository secret: `NPM_TOKEN`;
+- workflow exposure: the single `npm publish` step only;
+- package: `@clowder-ai/plugin-contract`;
+- command: `npm publish ... --tag next --provenance --access public`.
 
-The PR may be reviewed without this external setting, but merge/publication remains blocked until the setting is independently confirmed. After confirmation, revoke the bootstrap GAT and remove the GitHub `NPM_TOKEN` secret.
+The operator confirmed the token was refreshed after enabling account 2FA. GitHub intentionally does not expose the secret value, so merge-gate can verify only the configured secret boundary and the workflow's exact consumption site. Migrating to npm Trusted Publishing, revoking the token, or removing the secret is deferred to a dedicated release-auth PR with explicit operator approval and a rollout/rollback plan.
 
 - [x] **Step 8: Commit the prerelease and release-infrastructure delta**
 
@@ -730,8 +747,8 @@ git add .github/workflows/contract-ci.yml \
   packages/plugin-contract/package.json pnpm-lock.yaml \
   packages/plugin-contract/src/conformance/release-config.test.ts \
   packages/plugin-contract/src/conformance/workflow-shell-syntax.test.ts
-git commit -m "chore(contract): prepare trusted P-2 beta.2" \
-  -m "Why: executable conformance needs a unique artifact, while OIDC and an unchanged latest target remove the bootstrap token and prerelease-channel ambiguity." \
+git commit -m "chore(contract): prepare authorized P-2 beta.2" \
+  -m "Why: executable conformance needs a unique artifact, while the existing release-auth boundary and an unchanged latest target keep the prerelease rollout reviewable." \
   -m "[砚砚/GPT-5.6 Sol🐾]"
 ```
 
@@ -742,7 +759,7 @@ The pre-review scan anchored at `c933d32` produced five findings:
 - **F1 / P2 — fixed:** all existing-subscription operations now consume one grant-and-owner guard; two distributable behavior cases lock missing-grant snapshot rejection and foreign replay-delete rejection.
 - **F2 / P2 — fixed:** both the CLI and programmatic `runConformance()` report failures when contract fixtures or behavior cases are absent.
 - **F3 / P3 — fixed:** the package exports `./conformance`, and its barrel exposes the generic executor plus deterministic loopback adapter without exposing the Ajv-backed repository runner.
-- **F4 / P3 — retained gate:** npm Trusted Publisher configuration remains an independently verified pre-merge requirement because PR CI cannot exercise the push-only publish job.
+- **F4 / P3 — retained gate:** the operator-managed `NPM_TOKEN` secret remains an independently confirmed pre-merge requirement because PR CI cannot exercise the push-only publish job; Trusted Publishing migration is outside this PR.
 - **F5 / P3 — bounded non-claim:** positive event production/read/ack flow remains a later C-2/M0 fixture expansion; P-2 proves the signed adversarial slice, not complete standalone messaging I/O.
 
 The first automated PR review at `4614fab` added two `[FC:new]` P2 findings:
@@ -759,6 +776,10 @@ The maintainer exact-head R3 review exposed three remaining transitions that the
 Cloud exact-head R4 found that append still treated an untrusted request reference as if it were the resolved Host handle: a valid stored token bypassed a missing or wrong request `kind`. The request-handle row in the Stateful Object Gate now distinguishes these truth sources. Append first validates the exact public `MessageHandle` shape from `messaging.schema.json`—including its discriminant, non-empty token, and closed-object boundary—then resolves the separate Host-owned `message_handle`. The sibling audit confirms `send.address` already validates its tagged union before Host lookup and no other operation has the same object-discriminant lookup path.
 
 Maintainer exact-head R5 exposed a third pack-identity failure mode: source and npm version alone do not determine compressed bytes when the floating Node 24 patch changes its embedded zlib. Exact `4824952` produced `DA+r...` under Node 24.18.0/`process.versions.zlib=1.3.1-e00f703` while the same sources and npm 11.16.0 produced `gaOg...` under Node 24.16.0/zlib 1.2.12. Because this is the third consecutive review round on immutable publication identity, the release Stateful Object Gate above is now controlling: both jobs consume one exact Node pin, a shared verifier checks Node/npm/zlib before build, CI evidence records the observed toolchain, and registry integrity remains fail-closed. CI repair round 1 additionally proved why the full runtime identity—not the shorthand `1.3.1`—must be pinned: the verifier correctly stopped before install when the exact Node binary reported the suffixed value.
+
+The final Cloud review found that the exported generic executor retained live references returned by `BehaviorAdapter.observe()`. An adapter that reused one object and mutated it during `execute()` could therefore make the pre-execution and post-execution observations alias, causing `unchanged` to pass falsely. The executor now snapshots every observation immediately with `structuredClone`; a Red→Green regression uses one shared live array and proves the mutation is detected. The sibling audit confirms that every generic before/after observation capture uses the same snapshot boundary.
+
+The maintainer release-auth review also caught a scope error: P-2 had converted the beta.1-proven token workflow to npm Trusted Publishing without separate operator approval. Beta.2 now restores exactly one `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` binding on the publish step, retains provenance and the immutable-artifact guards, and statically rejects token removal or exposure to PR validation. Trusted Publishing remains a future, dedicated release-auth decision.
 
 ### Task 6: Full verification and review handoff
 
@@ -781,7 +802,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (105/105 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, exact-head npm-pack evidence guards, and runtime toolchain drift countertests);
+- all unit tests pass (106/106 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, exact-head npm-pack evidence guards, runtime toolchain drift countertests, and the observation snapshot regression);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;
@@ -834,4 +855,4 @@ Push `feat/m0-standalone-loopback`, open a PR against upstream `main`, register 
 
 - [ ] **Step 5: Preserve the publication boundary**
 
-Do not merge or publish `0.1.0-beta.2` until exact-head review, required CI, npm Trusted Publisher configuration, and explicit merge/publication authorization all cover the final SHA. After publication, independently verify exact version, `dist.integrity`, `next === 0.1.0-beta.2`, and `latest === 0.1.0-beta.1` until a formal release explicitly moves it.
+Do not merge or publish `0.1.0-beta.2` until exact-head review, required CI, the operator-confirmed `NPM_TOKEN` release boundary, and explicit merge/publication authorization all cover the final SHA. After publication, independently verify exact version, `dist.integrity`, `next === 0.1.0-beta.2`, and `latest === 0.1.0-beta.1` until a formal release explicitly moves it.

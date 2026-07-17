@@ -97,7 +97,7 @@ function assertPrereleaseDistTagsVerified(workflow: string): void {
   );
 }
 
-function assertTrustedPublishingBaseline(workflow: string): void {
+function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   const validateJob = workflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
   const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
 
@@ -146,10 +146,21 @@ function assertTrustedPublishingBaseline(workflow: string): void {
     'publication must verify the toolchain before building package bytes',
   );
   assert.match(workflow, /^      id-token: write$/m);
+  const publishStep = namedWorkflowStep(workflow, 'Publish v0.1 beta to next');
+  assert.match(
+    publishStep,
+    /^        env:\n          NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}$/m,
+    'beta.2 must retain the operator-authorized npm token path',
+  );
+  assert.equal(
+    workflow.match(/NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
+    1,
+    'the npm write token must be scoped to the single publish step',
+  );
   assert.doesNotMatch(
-    workflow,
+    validateJob,
     /NPM_TOKEN|NODE_AUTH_TOKEN/,
-    'trusted publishing must not retain a long-lived npm write token',
+    'pull-request validation must never receive the npm write token',
   );
 }
 
@@ -267,8 +278,8 @@ test('host and SDK consumers can import the conformance boundary', () => {
   });
 });
 
-test('CI and release use the trusted-publishing Node baseline', () => {
-  assertTrustedPublishingBaseline(releaseWorkflow);
+test('CI and release use the pinned toolchain and authorized token path', () => {
+  assertAuthorizedTokenPublicationBaseline(releaseWorkflow);
 });
 
 test('main pushes publish only after contract validation', () => {
@@ -430,10 +441,10 @@ test('prerelease dist-tag guards reject fail-open workflow mutations', () => {
   }
 });
 
-test('trusted publishing and exact-resume guards reject workflow mutations', () => {
-  const tokenMutation = replaceWorkflowOnce(
-    '      - name: Publish v0.1 beta to next\n',
-    '      - name: Publish v0.1 beta to next\n        env:\n          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}\n',
+test('authorized token publication and exact-resume guards reject workflow mutations', () => {
+  const tokenRemovalMutation = replaceWorkflowOnce(
+    '        env:\n          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}\n',
+    '',
   );
   const skipMutation = replaceWorkflowOnce(
     "        if: steps.registry.outputs.already_published != 'true'",
@@ -449,8 +460,8 @@ test('trusted publishing and exact-resume guards reject workflow mutations', () 
     "node-version: '24'",
   );
 
-  assert.throws(() => assertTrustedPublishingBaseline(tokenMutation));
-  assert.throws(() => assertTrustedPublishingBaseline(floatingNodeMutation));
+  assert.throws(() => assertAuthorizedTokenPublicationBaseline(tokenRemovalMutation));
+  assert.throws(() => assertAuthorizedTokenPublicationBaseline(floatingNodeMutation));
   assert.throws(() => assertIdempotentExactArtifactResume(skipMutation));
   assert.throws(() => assertIdempotentExactArtifactResume(hollowResumeMutation));
 });

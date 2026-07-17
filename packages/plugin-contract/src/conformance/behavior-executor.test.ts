@@ -85,6 +85,32 @@ test('unchanged compares adapter observations before and after execution', async
   assert.equal(adapter.setupCalls.length, 1);
 });
 
+test('unchanged snapshots live adapter observations before execution', async () => {
+  const liveMessages = [{ messageId: 'message-1', revision: 1 }];
+  const adapter: BehaviorAdapter = {
+    async setup(): Promise<void> {},
+    async observe(target): Promise<unknown> {
+      assert.equal(target, 'messages');
+      return liveMessages;
+    },
+    async execute(): Promise<BehaviorVerdict> {
+      liveMessages[0]!.revision = 2;
+      return { status: 'error', errorCode: 'CONFLICT' };
+    },
+  };
+
+  const report = await executeBehaviorCase(
+    makeCase([{ target: 'messages', assertion: 'unchanged' }], {
+      status: 'error',
+      errorCode: 'CONFLICT',
+    }),
+    adapter,
+  );
+
+  assert.equal(report.passed, false);
+  assert.match(report.failures.join('\n'), /messages.*expected unchanged/);
+});
+
 test('none rejects a non-empty observation', async () => {
   const adapter = new ScriptedAdapter(
     { output_events: [] },
