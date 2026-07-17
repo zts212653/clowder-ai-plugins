@@ -549,7 +549,7 @@ git commit -m "feat(contract): require loopback behavior execution" \
 - Create: `packages/plugin-contract/src/conformance/workflow-shell-syntax.test.ts`
 - Modify: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Write failing release and workflow assertions**
+- [x] **Step 1: Write failing release and workflow assertions**
 
 Require all of the following in `release-config.test.ts` before changing production configuration:
 
@@ -575,7 +575,7 @@ test('subsequent prereleases preserve the pre-publish latest target', () => {
 
 Keep the existing exact version/integrity and single-publish-path mutation guards. Add mutations that remove the previous-latest read, invert the comparison, reintroduce `NPM_TOKEN`, or add an `npm dist-tag` latest mutation; every mutation must be killed.
 
-- [ ] **Step 2: Run the focused test to verify RED**
+- [x] **Step 2: Run the focused test to verify RED**
 
 Run:
 
@@ -585,7 +585,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- release-config
 
 Expected: FAIL because the artifact is still beta.1, both jobs use Node 20, the workflow still supplies `NPM_TOKEN`, and the verifier assumes `latest` can be absent.
 
-- [ ] **Step 3: Move the workflow to OIDC and preserve latest**
+- [x] **Step 3: Move the workflow to OIDC and preserve latest**
 
 In both jobs, set:
 
@@ -610,7 +610,7 @@ Pass that output to the post-publish verifier as `PREVIOUS_LATEST`. Require `nex
 
 Retain PR #5's useful idempotence rule in corrected form: if the exact registry version already exists, skip `npm publish` only after exact version and integrity match; still run the tag verifier. This makes a post-publish rerun safe without pretending an integrity mismatch is recoverable.
 
-- [ ] **Step 4: Bump package and lockfile**
+- [x] **Step 4: Bump package and lockfile**
 
 Set `packages/plugin-contract/package.json` to `0.1.0-beta.2`, then run:
 
@@ -620,11 +620,11 @@ pnpm install --lockfile-only
 
 Do not change any fixture or manifest `contractVersion` away from `0.1.0`.
 
-- [ ] **Step 5: Add executable workflow shell validation**
+- [x] **Step 5: Add executable workflow shell validation**
 
 Create `workflow-shell-syntax.test.ts` that extracts every YAML `run: |` block, normalizes indentation, and runs `bash -n` via `spawnSync`. Assert the exact number of multiline blocks so a newly added block cannot silently escape syntax validation.
 
-- [ ] **Step 6: Verify GREEN**
+- [x] **Step 6: Verify GREEN**
 
 Run:
 
@@ -647,7 +647,7 @@ Before merge, require an npm Trusted Publisher for package `@clowder-ai/plugin-c
 
 The PR may be reviewed without this external setting, but merge/publication remains blocked until the setting is independently confirmed. After confirmation, revoke the bootstrap GAT and remove the GitHub `NPM_TOKEN` secret.
 
-- [ ] **Step 8: Commit the prerelease and release-infrastructure delta**
+- [x] **Step 8: Commit the prerelease and release-infrastructure delta**
 
 ```bash
 git add .github/workflows/contract-ci.yml \

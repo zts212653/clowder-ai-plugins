@@ -23,9 +23,9 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -61,9 +61,9 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
@@ -98,10 +98,48 @@ jobs:
           );
           NODE
 
-      - name: Publish v0.1 beta to next
-        run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
+      - name: Inspect registry before publish
+        id: registry
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+          EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+          REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.json
+        run: |
+          set -euo pipefail
+          PREVIOUS_LATEST=$(npm view "$PACKAGE_NAME" dist-tags.latest --json | node --input-type=module -e '
+          let input = "";
+          process.stdin.on("data", (chunk) => { input += chunk; });
+          process.stdin.on("end", () => {
+            const latest = JSON.parse(input);
+            if (typeof latest !== "string" || latest.length === 0) {
+              throw new Error(`registry latest tag is not a version: ${latest}`);
+            }
+            process.stdout.write(latest);
+          });
+          ')
+          printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
+
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null; then
+            node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+          if (metadata.version !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry version mismatch: ${metadata.version}`);
+          }
+          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+            throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+          }
+          NODE
+            printf 'already_published=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'already_published=false\n' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish v0.1 beta to next
+        if: steps.registry.outputs.already_published != 'true'
+        run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
 
       - name: Verify registry version and integrity
         env:
@@ -110,6 +148,7 @@ jobs:
           EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
           REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-registry.json
           DIST_TAGS_JSON_PATH: ${{ runner.temp }}/plugin-contract-dist-tags.json
+          PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         run: |
           set -euo pipefail
           for attempt in $(seq 1 12); do
@@ -129,8 +168,8 @@ jobs:
           if (distTags.next !== process.env.PACKAGE_VERSION) {
             throw new Error(`registry next tag mismatch: ${distTags.next}`);
           }
-          if (distTags.latest === process.env.PACKAGE_VERSION) {
-            throw new Error(`registry latest tag unexpectedly points to beta: ${distTags.latest}`);
+          if (distTags.latest !== process.env.PREVIOUS_LATEST) {
+            throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
           }
           NODE
               then

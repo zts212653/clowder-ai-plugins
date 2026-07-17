@@ -25,7 +25,6 @@ import {
 function isRecord(value: unknown): value is LoopbackRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
 function error(errorCode: MessagingErrorCode): BehaviorVerdict {
   return { status: 'error', errorCode };
 }
@@ -407,4 +406,3 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     return success;
   }
 }
-
