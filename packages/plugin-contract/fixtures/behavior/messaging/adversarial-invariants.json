@@ -79,7 +79,7 @@
         "handles": {
           "foreignMessage": { "kind": "message_handle", "token": "message-handle-b", "ownerPluginInstanceId": "plugin-b", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 1 }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1 }] }
       },
       "when": {
         "operation": "appendElements",
@@ -141,7 +141,7 @@
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 2 }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 2 }] }
       },
       "when": {
         "operation": "appendElements",
@@ -253,7 +253,7 @@
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 1, "elements": [{ "elementId": "source-1", "epistemicStatus": "inference" }] }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1, "elements": [{ "elementId": "source-1", "epistemicStatus": "inference" }] }] }
       },
       "when": {
         "operation": "appendElements",
@@ -357,7 +357,7 @@
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 1 }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1 }] }
       },
       "when": {
         "operation": "appendElements",
@@ -456,7 +456,7 @@
         },
         "state": {
           "messages": [{ "messageId": "message-1", "threadId": "thread-1" }],
-          "replayEvents": [{ "eventId": "event-1", "sequence": 1 }]
+          "replayEvents": [{ "eventId": "event-1", "subscriptionId": "subscription-a", "sequence": 1 }]
         }
       },
       "when": {
@@ -467,6 +467,57 @@
         "status": "success",
         "sideEffects": [
           { "target": "replay_events", "assertion": "none" },
+          { "target": "messages", "assertion": "unchanged" }
+        ]
+      }
+    },
+    {
+      "id": "snapshot-without-grant-rejected",
+      "invariant": "A subscription identifier cannot bypass the message.event.subscribe grant for snapshots.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": [],
+        "handles": {
+          "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
+        },
+        "state": { "subscription": { "cursorSequence": 4 } }
+      },
+      "when": {
+        "operation": "snapshot",
+        "input": { "subscriptionId": "subscription-a" }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "snapshot", "assertion": "none" },
+          { "target": "subscription", "assertion": "unchanged" }
+        ]
+      }
+    },
+    {
+      "id": "foreign-replay-delete-rejected",
+      "invariant": "A caller cannot delete another plugin instance's subscription replay buffer.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-b" },
+        "grants": ["message.event.subscribe"],
+        "handles": {
+          "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
+        },
+        "state": {
+          "messages": [{ "messageId": "message-1", "threadId": "thread-1" }],
+          "replayEvents": [{ "eventId": "event-1", "subscriptionId": "subscription-a", "sequence": 1 }]
+        }
+      },
+      "when": {
+        "operation": "deleteReplayEvents",
+        "input": { "subscriptionId": "subscription-a", "throughSequence": 1 }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "replay_events", "assertion": "unchanged" },
           { "target": "messages", "assertion": "unchanged" }
         ]
       }

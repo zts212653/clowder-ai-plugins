@@ -20,6 +20,46 @@ test('generated PluginFeature uses the schema-owned Capability union', async () 
   assert.match(source, /readonly capabilities: readonly Capability\[\]/);
 });
 
+test('generated contract projects behavior fixture operations and assertions', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(source, /export type BehaviorFixture =/);
+  assert.match(source, /export type BehaviorCase =/);
+  assert.match(source, /readonly operation: 'send'/);
+  assert.match(source, /readonly operation: 'deleteReplayEvents'/);
+  assert.match(source, /export type SideEffectAssertion =/);
+  assert.match(
+    source,
+    /'unchanged' \| 'none' \| 'state_equals' \| 'round_trip' \| 'matches'/,
+  );
+  assert.equal(
+    source.match(/export type MessagingErrorCode =/g)?.length,
+    1,
+    'shared messaging definitions must be generated exactly once',
+  );
+});
+
+test('behavior capability names resolve to the manifest-owned Capability type', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(source, /export type CapabilityName = Capability;/);
+  assert.doesNotMatch(source, /export type CapabilityName = unknown;/);
+});
+
+test('generation rejects a behavior alias that drifts from its messaging definition', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  const behaviorErrorCode = mutated.behavior.$defs?.['MessagingErrorCode'];
+  assert.ok(behaviorErrorCode?.enum);
+  behaviorErrorCode.enum.push('BEHAVIOR_ONLY_ERROR');
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /behavior MessagingErrorCode must match the messaging schema definition/,
+  );
+});
+
 test('generated contract exposes the signed P7D replay window default', async () => {
   const schemas = await loadContractSchemas();
   const source = generateContractSource(schemas);

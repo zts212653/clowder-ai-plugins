@@ -1,5 +1,5 @@
 /**
- * Generated from manifest.schema.json and messaging.schema.json.
+ * Generated from manifest.schema.json, messaging.schema.json, and behavior-fixture.schema.json.
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
 
@@ -245,6 +245,136 @@ export type SubscriptionReadResponse = SubscriptionNormalResponse | Subscription
 export type SnapshotResponse = {
   readonly envelopes: readonly MessageEnvelope[];
   readonly resumeSequence: number;
+};
+
+export type FixtureMetadata = {
+  readonly executor: 'loopback';
+  readonly domain: 'messaging';
+  readonly contractVersion: string;
+  readonly source: string;
+  readonly description: string;
+};
+export type FixtureCaller = {
+  readonly pluginInstanceId: string;
+};
+export type FixtureHandle = {
+  readonly kind: 'thread_handle' | 'connector_binding' | 'message_handle' | 'subscription';
+  readonly token: string;
+  readonly ownerPluginInstanceId: string;
+  readonly threadId?: string;
+  readonly messageId?: string;
+  readonly connectorId?: string;
+  readonly subscriptionId?: string;
+};
+export type FixtureSetup = {
+  readonly caller: FixtureCaller;
+  readonly grants: readonly CapabilityName[];
+  readonly handles: Readonly<Record<string, FixtureHandle>>;
+  readonly state: Readonly<Record<string, unknown>>;
+};
+export type FixtureOperation = {
+  readonly operation: 'send';
+  readonly input: SendOperationInput;
+} | {
+  readonly operation: 'appendElements';
+  readonly input: AppendOperationInput;
+} | {
+  readonly operation: 'subscribe';
+  readonly input: SubscribeOperationInput;
+} | {
+  readonly operation: 'read';
+  readonly input: ReadOperationInput;
+} | {
+  readonly operation: 'ack';
+  readonly input: AckOperationInput;
+} | {
+  readonly operation: 'snapshot';
+  readonly input: SnapshotOperationInput;
+} | {
+  readonly operation: 'applyGrantPreset';
+  readonly input: GrantPresetInput;
+} | {
+  readonly operation: 'revokeGrant';
+  readonly input: RevokeGrantInput;
+} | {
+  readonly operation: 'deliverOnMessage';
+  readonly input: OnMessageDeliveryInput;
+} | {
+  readonly operation: 'checkPermissionMatrix';
+  readonly input: PermissionMatrixInput;
+} | {
+  readonly operation: 'deleteReplayEvents';
+  readonly input: DeleteReplayEventsInput;
+};
+export type SendOperationInput = {
+  readonly address: Readonly<Record<string, unknown>>;
+  readonly idempotencyKey: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+};
+export type AppendOperationInput = {
+  readonly handle: Readonly<Record<string, unknown>>;
+  readonly operationId: string;
+  readonly elements: readonly unknown[];
+};
+export type SubscribeOperationInput = {
+  readonly handleId: string;
+};
+export type ReadOperationInput = {
+  readonly subscriptionId: string;
+  readonly limit?: number;
+};
+export type AckOperationInput = {
+  readonly subscriptionId: string;
+  readonly ackToken: string;
+};
+export type SnapshotOperationInput = {
+  readonly subscriptionId: string;
+};
+export type CapabilityName = Capability;
+export type GrantPresetInput = {
+  readonly presetKind: 'first_party';
+  readonly capabilities: readonly CapabilityName[];
+};
+export type RevokeGrantInput = {
+  readonly capability: CapabilityName;
+};
+export type OnMessageDeliveryInput = {
+  readonly threadHandle: string;
+  readonly envelope: Readonly<Record<string, unknown>>;
+};
+export type PermissionMatrixEntry = {
+  readonly capability: CapabilityName;
+  readonly layer: 'L0' | 'L1' | 'L2';
+  readonly firstPartyPreset: boolean;
+};
+export type PermissionMatrixInput = {
+  readonly entries: readonly PermissionMatrixEntry[];
+};
+export type DeleteReplayEventsInput = {
+  readonly subscriptionId: string;
+  readonly throughSequence: number;
+};
+export type SideEffectAssertion = {
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly assertion: 'unchanged' | 'none' | 'state_equals' | 'round_trip' | 'matches';
+  readonly value?: unknown;
+};
+export type ExpectedVerdict = {
+  readonly status: 'success' | 'error';
+  readonly errorCode?: MessagingErrorCode;
+  readonly sideEffects: readonly SideEffectAssertion[];
+};
+export type BehaviorCase = {
+  readonly id: string;
+  readonly invariant: string;
+  readonly given: FixtureSetup;
+  readonly when: FixtureOperation;
+  readonly expect: ExpectedVerdict;
+};
+
+export type BehaviorFixture = {
+  readonly _meta: FixtureMetadata;
+  readonly cases: readonly BehaviorCase[];
 };
 
 export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugin.state.set'] as const;

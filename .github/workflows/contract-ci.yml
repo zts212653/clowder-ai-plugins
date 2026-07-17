@@ -1,5 +1,10 @@
 name: Contract CI
 
+env:
+  ARTIFACT_NODE_VERSION: '24.18.0'
+  ARTIFACT_NPM_VERSION: '11.16.0'
+  ARTIFACT_ZLIB_VERSION: '1.3.1-e00f703'
+
 on:
   pull_request: {}
   push:
@@ -18,15 +23,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.ARTIFACT_NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Verify artifact toolchain
+        run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -46,6 +56,79 @@ jobs:
       - name: Conformance runner
         run: pnpm --filter @clowder-ai/plugin-contract conformance
 
+      - name: Capture exact-head pack evidence
+        working-directory: packages/plugin-contract
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          PACK_EVIDENCE_PATH: ${{ runner.temp }}/plugin-contract-pack-evidence.json
+        run: |
+          set -euo pipefail
+          ACTUAL_HEAD_SHA=$(git rev-parse HEAD)
+          export ACTUAL_HEAD_SHA
+          if [[ "$ACTUAL_HEAD_SHA" != "$EXPECTED_HEAD_SHA" ]]; then
+            echo "checkout HEAD mismatch: $ACTUAL_HEAD_SHA != $EXPECTED_HEAD_SHA" >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+            echo "tracked files changed before pack evidence capture" >&2
+            git status --short >&2
+            exit 1
+          fi
+
+          PACK_JSON_PATH="$RUNNER_TEMP/plugin-contract-pack.json"
+          export PACK_JSON_PATH
+          npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" > "$PACK_JSON_PATH"
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+
+          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+          const stringFields = ['name', 'version', 'filename', 'integrity', 'shasum'];
+          const numberFields = ['size', 'unpackedSize'];
+          for (const field of stringFields) {
+            if (typeof artifact?.[field] !== 'string' || artifact[field].length === 0) {
+              throw new Error(`npm pack did not report ${field}`);
+            }
+          }
+          for (const field of numberFields) {
+            if (!Number.isFinite(artifact?.[field]) || artifact[field] <= 0) {
+              throw new Error(`npm pack did not report ${field}`);
+            }
+          }
+          if (!Array.isArray(artifact?.files) || artifact.files.length === 0) {
+            throw new Error('npm pack did not report files');
+          }
+
+          const evidence = {
+            headSha: process.env.ACTUAL_HEAD_SHA,
+            name: artifact.name,
+            version: artifact.version,
+            filename: artifact.filename,
+            integrity: artifact.integrity,
+            shasum: artifact.shasum,
+            size: artifact.size,
+            unpackedSize: artifact.unpackedSize,
+            entryCount: artifact.files?.length,
+            toolchain: {
+              node: process.version,
+              npm: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
+              zlib: process.versions.zlib,
+            },
+          };
+          writeFileSync(process.env.PACK_EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`);
+          appendFileSync(
+            process.env.GITHUB_STEP_SUMMARY,
+            `### Exact-head pack evidence\n\n\`\`\`json\n${JSON.stringify(evidence, null, 2)}\n\`\`\`\n`,
+          );
+          NODE
+
+      - name: Upload exact-head pack evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-contract-pack-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/plugin-contract-pack-evidence.json
+          if-no-files-found: error
+
   publish:
     name: Publish to npm
     needs: validate
@@ -61,11 +144,14 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.ARTIFACT_NODE_VERSION }}
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
+
+      - name: Verify artifact toolchain
+        run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -98,7 +184,47 @@ jobs:
           );
           NODE
 
+      - name: Inspect registry before publish
+        id: registry
+        env:
+          PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+          PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+          EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+          REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.json
+        run: |
+          set -euo pipefail
+          PREVIOUS_LATEST=$(npm view "$PACKAGE_NAME" dist-tags.latest --json | node --input-type=module -e '
+          let input = "";
+          process.stdin.on("data", (chunk) => { input += chunk; });
+          process.stdin.on("end", () => {
+            const latest = JSON.parse(input);
+            if (typeof latest !== "string" || latest.length === 0) {
+              throw new Error(`registry latest tag is not a version: ${latest}`);
+            }
+            process.stdout.write(latest);
+          });
+          ')
+          printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
+
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null; then
+            node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+          if (metadata.version !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry version mismatch: ${metadata.version}`);
+          }
+          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+            throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+          }
+          NODE
+            printf 'already_published=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'already_published=false\n' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish v0.1 beta to next
+        if: steps.registry.outputs.already_published != 'true'
         run: npm publish "packages/plugin-contract/${{ steps.pack.outputs.filename }}" --tag next --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -110,6 +236,7 @@ jobs:
           EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
           REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-registry.json
           DIST_TAGS_JSON_PATH: ${{ runner.temp }}/plugin-contract-dist-tags.json
+          PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         run: |
           set -euo pipefail
           for attempt in $(seq 1 12); do
@@ -129,8 +256,8 @@ jobs:
           if (distTags.next !== process.env.PACKAGE_VERSION) {
             throw new Error(`registry next tag mismatch: ${distTags.next}`);
           }
-          if (distTags.latest === process.env.PACKAGE_VERSION) {
-            throw new Error(`registry latest tag unexpectedly points to beta: ${distTags.latest}`);
+          if (distTags.latest !== process.env.PREVIOUS_LATEST) {
+            throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
           }
           NODE
               then

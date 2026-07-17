@@ -1,9 +1,22 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
-import { CAPABILITY_TABLE } from '../generated/contract.generated.js';
+import {
+  CAPABILITY_TABLE,
+  type FixtureOperation,
+  type FixtureSetup,
+} from '../generated/contract.generated.js';
+import type {
+  BehaviorAdapter,
+  BehaviorTarget,
+  BehaviorVerdict,
+} from './behavior-executor.js';
+import { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
+import { runConformance } from './runner.js';
 
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv/dist/2020') as new (options: {
@@ -203,4 +216,90 @@ test('deleting replay events cannot delete canonical messages', () => {
       { target: 'messages', assertion: 'unchanged' },
     ],
   );
+});
+
+test('behavior fixture ships subscription authorization oracles', () => {
+  const missingGrant = caseById('snapshot-without-grant-rejected');
+  assert.deepEqual(missingGrant['when'], {
+    operation: 'snapshot',
+    input: { subscriptionId: 'subscription-a' },
+  });
+  assert.equal(
+    (missingGrant['expect'] as { errorCode?: string }).errorCode,
+    'PERMISSION',
+  );
+
+  const foreignDelete = caseById('foreign-replay-delete-rejected');
+  assert.deepEqual(
+    (foreignDelete['given'] as { caller: { pluginInstanceId: string } }).caller,
+    { pluginInstanceId: 'plugin-b' },
+  );
+  assert.equal(
+    (foreignDelete['expect'] as { errorCode?: string }).errorCode,
+    'PERMISSION',
+  );
+});
+
+test('conformance executes every loopback behavior case', async () => {
+  const report = await runConformance({ write: () => undefined });
+
+  assert.equal(report.contractFixtures.passed, 25);
+  assert.equal(report.contractFixtures.total, 25);
+  assert.equal(report.behaviorCases.passed, 18);
+  assert.equal(report.behaviorCases.total, 18);
+  assert.deepEqual(report.failures, []);
+});
+
+class MutatedObservationAdapter implements BehaviorAdapter {
+  private readonly inner = new MessagingLoopbackAdapter();
+  private executed = false;
+
+  async setup(given: FixtureSetup): Promise<void> {
+    this.executed = false;
+    await this.inner.setup(given);
+  }
+
+  async observe(target: BehaviorTarget): Promise<unknown> {
+    const observation = await this.inner.observe(target);
+    if (this.executed && target === 'permission_matrix' && observation !== undefined) {
+      return { complete: false };
+    }
+    return observation;
+  }
+
+  async execute(operation: FixtureOperation): Promise<BehaviorVerdict> {
+    const verdict = await this.inner.execute(operation);
+    this.executed = true;
+    return verdict;
+  }
+}
+
+test('conformance fails when an adapter observation violates the oracle', async () => {
+  const report = await runConformance({
+    write: () => undefined,
+    behaviorAdapters: {
+      loopback: () => new MutatedObservationAdapter(),
+    },
+  });
+
+  assert.equal(report.behaviorCases.passed, 17);
+  assert.equal(report.behaviorCases.total, 18);
+  assert.match(report.failures.join('\n'), /permission-matrix-complete.*permission_matrix/);
+});
+
+test('conformance rejects an empty fixture tree', async (context) => {
+  const fixturesDir = mkdtempSync(join(tmpdir(), 'clowder-empty-fixtures-'));
+  context.after(() => rmSync(fixturesDir, { recursive: true, force: true }));
+
+  const report = await runConformance({
+    fixturesDir,
+    write: () => undefined,
+  });
+
+  assert.deepEqual(report.contractFixtures, { passed: 0, total: 0 });
+  assert.deepEqual(report.behaviorCases, { passed: 0, total: 0 });
+  assert.deepEqual(report.failures, [
+    'no contract fixtures discovered',
+    'no behavior cases discovered',
+  ]);
 });

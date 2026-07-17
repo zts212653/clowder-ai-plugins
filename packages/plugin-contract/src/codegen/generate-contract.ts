@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 export interface JsonSchema {
   readonly $defs?: Record<string, JsonSchema>;
@@ -21,9 +22,12 @@ export interface JsonSchema {
 export interface ContractSchemas {
   readonly manifest: JsonSchema;
   readonly messaging: JsonSchema;
+  readonly behavior: JsonSchema;
 }
 
 const GENERATED_URL = new URL('../generated/contract.generated.ts', import.meta.url);
+const MANIFEST_CAPABILITY_REF =
+  'https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability';
 
 async function readSchema(url: URL): Promise<JsonSchema> {
   return JSON.parse(await readFile(url, 'utf8')) as JsonSchema;
@@ -33,6 +37,9 @@ export async function loadContractSchemas(): Promise<ContractSchemas> {
   return {
     manifest: await readSchema(new URL('../schemas/manifest.schema.json', import.meta.url)),
     messaging: await readSchema(new URL('../schemas/messaging.schema.json', import.meta.url)),
+    behavior: await readSchema(
+      new URL('../schemas/behavior-fixture.schema.json', import.meta.url),
+    ),
   };
 }
 
@@ -48,9 +55,11 @@ function literal(value: unknown): string {
 }
 
 function refName(ref: string): string {
+  if (ref === MANIFEST_CAPABILITY_REF) return 'Capability';
+
   const marker = '#/$defs/';
   if (!ref.startsWith(marker)) {
-    throw new Error(`Only local $defs references are supported: ${ref}`);
+    throw new Error(`Unsupported schema reference: ${ref}`);
   }
   return decodeURIComponent(ref.slice(marker.length));
 }
@@ -145,6 +154,32 @@ function renderDefinitions(schema: JsonSchema): string[] {
         ? renderDataDeclaration(schema, definition)
         : renderType(definition);
     return `export type ${name} = ${rendered};`;
+  });
+}
+
+function renderBehaviorDefinitions(
+  behavior: JsonSchema,
+  manifest: JsonSchema,
+  messaging: JsonSchema,
+): string[] {
+  const existingDefinitions = new Map<string, { owner: string; schema: JsonSchema }>([
+    ...Object.entries(manifest.$defs ?? {}).map(
+      ([name, schema]) => [name, { owner: 'manifest', schema }] as const,
+    ),
+    ...Object.entries(messaging.$defs ?? {}).map(
+      ([name, schema]) => [name, { owner: 'messaging', schema }] as const,
+    ),
+  ]);
+
+  return Object.entries(behavior.$defs ?? {}).flatMap(([name, definition]) => {
+    const existing = existingDefinitions.get(name);
+    if (!existing) return [`export type ${name} = ${renderType(definition)};`];
+    if (!isDeepStrictEqual(definition, existing.schema)) {
+      throw new Error(
+        `behavior ${name} must match the ${existing.owner} schema definition`,
+      );
+    }
+    return [];
   });
 }
 
@@ -388,7 +423,7 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from manifest.schema.json and messaging.schema.json.',
+    ' * Generated from manifest.schema.json, messaging.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
     '',
@@ -397,6 +432,10 @@ export function generateContractSource(schemas: ContractSchemas): string {
     `export type PluginManifest = ${renderType(schemas.manifest)};`,
     '',
     ...renderDefinitions(schemas.messaging),
+    '',
+    ...renderBehaviorDefinitions(schemas.behavior, schemas.manifest, schemas.messaging),
+    '',
+    `export type BehaviorFixture = ${renderType(schemas.behavior)};`,
     '',
     ...renderCapabilityTables(schemas.manifest),
     '',

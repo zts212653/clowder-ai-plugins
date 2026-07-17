@@ -13,6 +13,16 @@ export { isValidDataClassStrategy } from '../types/data-class.js';
 export { getCapabilityLayer } from '../types/capability.js';
 
 export {
+  executeBehaviorCase,
+  type BehaviorAdapter,
+  type BehaviorCaseReport,
+  type BehaviorTarget,
+  type BehaviorVerdict,
+} from './behavior-executor.js';
+
+export { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
+
+export {
   DATA_CLASS_ALLOWED_STRATEGIES,
   CAPABILITY_TABLE,
   L0_CAPABILITIES,
