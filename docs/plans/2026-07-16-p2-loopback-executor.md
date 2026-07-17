@@ -178,7 +178,7 @@ git commit -m "feat(contract): project behavior fixture types" \
 - Create: `packages/plugin-contract/src/conformance/behavior-executor.test.ts`
 - Modify: `packages/plugin-contract/src/conformance/index.ts`
 
-- [ ] **Step 1: Write failing executor tests**
+- [x] **Step 1: Write failing executor tests**
 
 Cover status mismatch, error-code mismatch, mutation detection, empty-target detection, and value comparison:
 
@@ -210,7 +210,7 @@ test('none rejects a non-empty observation', async () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify RED**
+- [x] **Step 2: Run the test to verify RED**
 
 Run:
 
@@ -220,7 +220,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- behavior-executor
 
 Expected: FAIL because the executor module does not exist.
 
-- [ ] **Step 3: Define the adapter and report boundary**
+- [x] **Step 3: Define the adapter and report boundary**
 
 Implement:
 
@@ -293,7 +293,7 @@ function assertionPassed(
 }
 ```
 
-- [ ] **Step 4: Export and verify GREEN**
+- [x] **Step 4: Export and verify GREEN**
 
 Export the executor types and functions from `src/conformance/index.ts`, then run:
 
@@ -304,7 +304,7 @@ pnpm --filter @clowder-ai/plugin-contract typecheck
 
 Expected: executor tests and typecheck pass.
 
-- [ ] **Step 5: Commit the generic executor**
+- [x] **Step 5: Commit the generic executor**
 
 ```bash
 git add packages/plugin-contract/src/conformance/behavior-executor*
