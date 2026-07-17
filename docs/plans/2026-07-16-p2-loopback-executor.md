@@ -321,7 +321,7 @@ git commit -m "feat(contract): add behavior fixture executor" \
 - Create: `packages/plugin-contract/src/conformance/messaging-loopback-adapter.ts`
 - Create: `packages/plugin-contract/src/conformance/messaging-loopback-adapter.test.ts`
 
-- [ ] **Step 1: Write one failing test per operation family**
+- [x] **Step 1: Write one failing test per operation family**
 
 The focused suite must cover:
 
@@ -355,7 +355,7 @@ test('removing the append grant still returns PERMISSION with zero mutation', as
 });
 ```
 
-- [ ] **Step 2: Run the focused suite to verify RED**
+- [x] **Step 2: Run the focused suite to verify RED**
 
 Run:
 
@@ -365,7 +365,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- messaging-loopback-adapter
 
 Expected: FAIL because the adapter does not exist.
 
-- [ ] **Step 3: Build normalized in-memory state**
+- [x] **Step 3: Build normalized in-memory state**
 
 `MessagingLoopbackState` must normalize fixture setup into explicit collections:
 
@@ -386,7 +386,7 @@ export interface MessagingLoopbackState {
 
 Never retain or compare fixture input objects by reference. Use `structuredClone` at setup and observation boundaries so `unchanged` assertions detect real mutation.
 
-- [ ] **Step 4: Implement operation dispatch with host-owned checks**
+- [x] **Step 4: Implement operation dispatch with host-owned checks**
 
 Use an exhaustive switch:
 
@@ -433,7 +433,7 @@ Each handler must enforce the signed invariant before mutation:
 
 Do not add fallback success paths. Unknown handles, messages, subscriptions, or operations fail closed with `NOT_FOUND` or `VALIDATION`.
 
-- [ ] **Step 5: Verify all 16 committed cases**
+- [x] **Step 5: Verify all 16 committed cases**
 
 Run:
 
@@ -443,7 +443,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- messaging-loopback-adapter
 
 Expected: all 16 committed cases pass; controlled mutations fail at the intended invariant.
 
-- [ ] **Step 6: Commit the reference adapter**
+- [x] **Step 6: Commit the reference adapter**
 
 ```bash
 git add packages/plugin-contract/src/conformance/messaging-loopback-*
