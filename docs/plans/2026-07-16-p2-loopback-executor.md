@@ -565,14 +565,47 @@ git commit -m "feat(contract): require loopback behavior execution" \
   -m "[砚砚/GPT-5.6 Sol🐾]"
 ```
 
-### Task 5: Prepare beta.2 with Node 24 and trusted publishing
+### Task 5: Prepare beta.2 with a pinned Node toolchain and trusted publishing
 
 **Files:**
 - Modify: `.github/workflows/contract-ci.yml`
 - Modify: `packages/plugin-contract/package.json`
 - Modify: `packages/plugin-contract/src/conformance/release-config.test.ts`
 - Create: `packages/plugin-contract/src/conformance/workflow-shell-syntax.test.ts`
+- Create: `packages/plugin-contract/scripts/verify-artifact-toolchain.mjs`
 - Modify: `pnpm-lock.yaml`
+
+#### Stateful Object Gate: immutable prerelease byte identity
+
+`0.1.0-beta.2` is an immutable registry object. Its retry state machine is
+therefore defined by the bytes produced from a source commit **and** the exact
+artifact-producing toolchain, not by source content alone.
+
+| Truth source | Writer | Readers | Derived consumers |
+|---|---|---|---|
+| exact Node/npm/zlib versions | workflow-level `ARTIFACT_*_VERSION` constants | both `setup-node` steps and both runtime toolchain verifier steps | validate build/pack, first publish, already-published resume |
+| exact source commit | PR/push event SHA | checkout, runtime `git rev-parse HEAD` comparison | validate pack evidence |
+| candidate bytes and integrity | pinned npm pack after pinned build | CI evidence artifact, publish registry guard | immutable npm version and retry comparison |
+| registry version/integrity/tags | npm registry | pre-publish resume guard and post-publish verifier | skip-or-publish decision, `next`/`latest` acceptance |
+
+| State | Required transition | Failure behavior |
+|---|---|---|
+| final-head validation | exact checkout → verify toolchain → build → reject tracked drift → npm pack → upload SHA-bound evidence | fail before evidence is accepted |
+| first publication | exact checkout → verify the same toolchain → build → npm pack → registry absent → publish exact tarball | fail closed; never move `latest` |
+| post-publish rerun | exact checkout → verify the same toolchain → build → npm pack → registry exact version/integrity match → skip publish → verify tags | mismatch is unrecoverable and fails closed |
+| toolchain drift | runtime Node/npm/zlib differs from the workflow constants | fail **before** pack or registry inspection; never compare drifted bytes to immutable beta.2 |
+
+Invariants:
+
+1. Both jobs use exact Node `24.18.0`; its bundled npm must be `11.16.0`
+   and embedded zlib must be `1.3.1`.
+2. A shared runtime verifier enforces all three versions before install/build;
+   the validate evidence also records the observed toolchain.
+3. The consumer package engine remains `node >=20`; release reproducibility
+   pinning does not narrow runtime compatibility.
+4. Registry integrity comparison remains exact and fail-closed. Toolchain
+   pinning prevents drift; it does not turn an integrity mismatch into a
+   recoverable state.
 
 - [x] **Step 1: Write failing release and workflow assertions**
 
@@ -586,7 +619,13 @@ test('P-2 publishes beta.2 while the protocol stays at signed v0.1', () => {
 });
 
 test('CI and release use the trusted-publishing Node baseline', () => {
-  assert.equal(releaseWorkflow.match(/node-version: '24'/g)?.length, 2);
+  assert.match(releaseWorkflow, /^  ARTIFACT_NODE_VERSION: '24\.18\.0'$/m);
+  assert.match(releaseWorkflow, /^  ARTIFACT_NPM_VERSION: '11\.16\.0'$/m);
+  assert.match(releaseWorkflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1'$/m);
+  assert.equal(
+    releaseWorkflow.match(/node-version: \$\{\{ env\.ARTIFACT_NODE_VERSION \}\}/g)?.length,
+    2,
+  );
   assert.match(releaseWorkflow, /^      id-token: write$/m);
   assert.doesNotMatch(releaseWorkflow, /NPM_TOKEN|NODE_AUTH_TOKEN/);
 });
@@ -612,13 +651,25 @@ Expected: FAIL because the artifact is still beta.1, both jobs use Node 20, the 
 
 - [x] **Step 3: Move the workflow to OIDC and preserve latest**
 
-In both jobs, set:
+In both jobs, consume the same exact workflow-level pin:
 
 ```yaml
+env:
+  ARTIFACT_NODE_VERSION: '24.18.0'
+  ARTIFACT_NPM_VERSION: '11.16.0'
+  ARTIFACT_ZLIB_VERSION: '1.3.1'
+
 - uses: actions/setup-node@v6
   with:
-    node-version: '24'
+    node-version: ${{ env.ARTIFACT_NODE_VERSION }}
+
+- name: Verify artifact toolchain
+  run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
 ```
+
+The verifier compares runtime `process.version`, `npm --version`, and
+`process.versions.zlib` to these constants and fails before build/pack on any
+drift. Record the same values in the validate job's pack-evidence JSON.
 
 Keep `permissions.id-token: write`; remove every `NODE_AUTH_TOKEN`/`NPM_TOKEN` environment entry. Before publishing, read the current dist-tags and expose the exact target:
 
@@ -707,6 +758,8 @@ The maintainer exact-head R3 review exposed three remaining transitions that the
 
 Cloud exact-head R4 found that append still treated an untrusted request reference as if it were the resolved Host handle: a valid stored token bypassed a missing or wrong request `kind`. The request-handle row in the Stateful Object Gate now distinguishes these truth sources. Append first validates the exact public `MessageHandle` shape from `messaging.schema.json`—including its discriminant, non-empty token, and closed-object boundary—then resolves the separate Host-owned `message_handle`. The sibling audit confirms `send.address` already validates its tagged union before Host lookup and no other operation has the same object-discriminant lookup path.
 
+Maintainer exact-head R5 exposed a third pack-identity failure mode: source and npm version alone do not determine compressed bytes when the floating Node 24 patch changes its embedded zlib. Exact `4824952` produced `DA+r...` under Node 24.18.0/zlib 1.3.1 while the same sources and npm 11.16.0 produced `gaOg...` under Node 24.16.0/zlib 1.2.12. Because this is the third consecutive review round on immutable publication identity, the release Stateful Object Gate above is now controlling: both jobs consume one exact Node pin, a shared verifier checks Node/npm/zlib before build, CI evidence records the observed toolchain, and registry integrity remains fail-closed.
+
 ### Task 6: Full verification and review handoff
 
 **Files:**
@@ -728,7 +781,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (103/103 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, and exact-head npm-pack evidence guards);
+- all unit tests pass (105/105 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, exact-head npm-pack evidence guards, and runtime toolchain drift countertests);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 interface ContractPackage {
   private?: boolean;
@@ -21,6 +23,11 @@ const contractPackage = JSON.parse(
 const releaseWorkflow = readFileSync(
   new URL('../../../../.github/workflows/contract-ci.yml', import.meta.url),
   'utf8',
+);
+
+const artifactToolchainVerifierUrl = new URL(
+  '../../scripts/verify-artifact-toolchain.mjs',
+  import.meta.url,
 );
 
 const releasePlan = readFileSync(
@@ -91,15 +98,52 @@ function assertPrereleaseDistTagsVerified(workflow: string): void {
 }
 
 function assertTrustedPublishingBaseline(workflow: string): void {
+  const validateJob = workflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+  const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
+
+  assert.ok(validateJob, 'validate job must be active');
+  assert.ok(publishJob, 'publish job must be active');
   assert.equal(
     workflow.match(/uses: actions\/setup-node@v6/g)?.length,
     2,
     'both validation and publication must use setup-node v6',
   );
   assert.equal(
-    workflow.match(/node-version: '24'/g)?.length,
+    workflow.match(
+      /node-version: \$\{\{ env\.ARTIFACT_NODE_VERSION \}\}/g,
+    )?.length,
     2,
-    'both jobs must execute on Node 24',
+    'both jobs must consume the exact artifact-producing Node pin',
+  );
+  assert.match(workflow, /^  ARTIFACT_NODE_VERSION: '24\.18\.0'$/m);
+  assert.match(workflow, /^  ARTIFACT_NPM_VERSION: '11\.16\.0'$/m);
+  assert.match(workflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1'$/m);
+  assert.equal(
+    workflow.match(
+      /^        run: node packages\/plugin-contract\/scripts\/verify-artifact-toolchain\.mjs$/gm,
+    )?.length,
+    2,
+    'both jobs must verify Node, npm, and zlib before producing package bytes',
+  );
+  assert.equal(
+    existsSync(artifactToolchainVerifierUrl),
+    true,
+    'artifact toolchain verifier must be committed',
+  );
+  const verifier = readFileSync(artifactToolchainVerifierUrl, 'utf8');
+  assert.match(verifier, /process\.version\.replace\(\/\^v\//);
+  assert.match(verifier, /execFileSync\('npm', \['--version'\]/);
+  assert.match(verifier, /zlib: process\.versions\.zlib/);
+  assert.match(verifier, /actual\[name\] !== expected\[name\]/);
+  assert.ok(
+    validateJob.indexOf('Verify artifact toolchain') <
+      validateJob.indexOf('- name: Build'),
+    'validation must verify the toolchain before building package bytes',
+  );
+  assert.ok(
+    publishJob.indexOf('Verify artifact toolchain') <
+      publishJob.indexOf('- name: Build package'),
+    'publication must verify the toolchain before building package bytes',
   );
   assert.match(workflow, /^      id-token: write$/m);
   assert.doesNotMatch(
@@ -307,6 +351,9 @@ test('required CI binds pack evidence to the exact checked-out head', () => {
     /npm pack --json --ignore-scripts --pack-destination "\$RUNNER_TEMP"/,
   );
   assert.match(captureStep, /headSha: process\.env\.ACTUAL_HEAD_SHA/);
+  assert.match(captureStep, /node: process\.version/);
+  assert.match(captureStep, /execFileSync\('npm', \['--version'\]/);
+  assert.match(captureStep, /zlib: process\.versions\.zlib/);
   assert.match(
     uploadStep,
     /^          name: plugin-contract-pack-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
@@ -315,6 +362,39 @@ test('required CI binds pack evidence to the exact checked-out head', () => {
     uploadStep,
     /^          path: \$\{\{ runner\.temp \}\}\/plugin-contract-pack-evidence\.json$/m,
   );
+});
+
+test('artifact toolchain verifier accepts the exact runtime tuple', () => {
+  const result = spawnSync(process.execPath, [fileURLToPath(artifactToolchainVerifierUrl)], {
+    env: {
+      ...process.env,
+      ARTIFACT_NODE_VERSION: process.version.replace(/^v/, ''),
+      ARTIFACT_NPM_VERSION: execFileSync('npm', ['--version'], {
+        encoding: 'utf8',
+      }).trim(),
+      ARTIFACT_ZLIB_VERSION: process.versions.zlib,
+    },
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('artifact toolchain verifier rejects runtime drift', () => {
+  const result = spawnSync(process.execPath, [fileURLToPath(artifactToolchainVerifierUrl)], {
+    env: {
+      ...process.env,
+      ARTIFACT_NODE_VERSION: process.version.replace(/^v/, ''),
+      ARTIFACT_NPM_VERSION: execFileSync('npm', ['--version'], {
+        encoding: 'utf8',
+      }).trim(),
+      ARTIFACT_ZLIB_VERSION: '0.0.0-drifted',
+    },
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /artifact zlib version mismatch/);
 });
 
 test('subsequent prereleases preserve the pre-publish latest target', () => {
@@ -364,8 +444,13 @@ test('trusted publishing and exact-resume guards reject workflow mutations', () 
     'throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
     'console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
   );
+  const floatingNodeMutation = replaceWorkflowOnce(
+    'node-version: ${{ env.ARTIFACT_NODE_VERSION }}',
+    "node-version: '24'",
+  );
 
   assert.throws(() => assertTrustedPublishingBaseline(tokenMutation));
+  assert.throws(() => assertTrustedPublishingBaseline(floatingNodeMutation));
   assert.throws(() => assertIdempotentExactArtifactResume(skipMutation));
   assert.throws(() => assertIdempotentExactArtifactResume(hollowResumeMutation));
 });

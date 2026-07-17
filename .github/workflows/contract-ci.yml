@@ -1,5 +1,10 @@
 name: Contract CI
 
+env:
+  ARTIFACT_NODE_VERSION: '24.18.0'
+  ARTIFACT_NPM_VERSION: '11.16.0'
+  ARTIFACT_ZLIB_VERSION: '1.3.1'
+
 on:
   pull_request: {}
   push:
@@ -27,8 +32,11 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: ${{ env.ARTIFACT_NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Verify artifact toolchain
+        run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -71,6 +79,7 @@ jobs:
           export PACK_JSON_PATH
           npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" > "$PACK_JSON_PATH"
           node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
           import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
           const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
@@ -100,6 +109,11 @@ jobs:
             size: artifact.size,
             unpackedSize: artifact.unpackedSize,
             entryCount: artifact.files?.length,
+            toolchain: {
+              node: process.version,
+              npm: execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
+              zlib: process.versions.zlib,
+            },
           };
           writeFileSync(process.env.PACK_EVIDENCE_PATH, `${JSON.stringify(evidence, null, 2)}\n`);
           appendFileSync(
@@ -132,9 +146,12 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: ${{ env.ARTIFACT_NODE_VERSION }}
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
+
+      - name: Verify artifact toolchain
+        run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

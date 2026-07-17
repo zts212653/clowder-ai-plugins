@@ -9,7 +9,7 @@ Branch: `feat/m0-standalone-loopback`
 - Execute every committed behavior case through a reusable evaluator and deterministic reference adapter.
 - Make the repository runner fail closed for malformed, unsupported, thrown, mismatched, or empty conformance runs.
 - Publish the reusable boundary as `@clowder-ai/plugin-contract/conformance`.
-- Prepare the unique `0.1.0-beta.2` artifact with Node 24 and npm Trusted Publishing while preserving the pre-publish `latest` target.
+- Prepare the unique `0.1.0-beta.2` artifact with pinned Node 24.18.0/npm 11.16.0/zlib 1.3.1 and npm Trusted Publishing while preserving the pre-publish `latest` target.
 
 ## Why
 
@@ -50,7 +50,7 @@ Please verify that the diff matches `Map delta: none`, especially that no parall
 | INV-4C Subscription authority | Existing subscription operations require `message.event.subscribe` and caller ownership; ack tokens and replay deletion are subscription-local | missing-grant and foreign-caller mutations + two additive behavior oracles + cross-subscription deletion regression |
 | INV-5 Runner completeness | Missing fixtures/cases, malformed fixtures, unsupported executors, adapter throws, and oracle mismatches contribute failures | runner integration + empty-tree + mutated observation tests |
 | INV-6 Published reachability | Host/SDK can import the executor and loopback adapter without importing the Ajv-backed repository runner | exports-map test + built package self-import |
-| INV-7 Release identity | beta.2 moves only `next`, preserves the pre-publish `latest`, and can skip publish only after exact integrity match | workflow mutation suite + `bash -n` + pack inspection |
+| INV-7 Release identity | beta.2 uses one exact Node/npm/zlib producer, moves only `next`, preserves the pre-publish `latest`, and can skip publish only after exact integrity match | runtime toolchain countertest + workflow mutation suite + `bash -n` + pack inspection |
 
 ## E2E User Path Evidence
 
@@ -144,6 +144,16 @@ Reviewed SHA: `2c05b6ce38db5b28f899a81258471724ae303655`
 
 Root cause reproduction was deterministic: after one build, two `npm pack --json --ignore-scripts` runs were byte-identical, while `pnpm pack` produced a different tarball. The pnpm artifact contained 87 entries rather than npm's 86, added `LICENSE`, and rewrote the packed `package.json`; its integrity therefore could not represent bytes later published by npm. The stale `w3mK...`/`I19p...` evidence entered the packet because the manual gate followed the outdated plan command instead of the workflow truth source. A manual replacement would become stale again whenever a later commit changed packed bytes, so the required CI job now checks `git rev-parse HEAD` against the event's exact source SHA, rejects tracked build drift, and uploads `plugin-contract-pack-evidence-<head-sha>` with the SHA plus npm metadata.
 
+## Maintainer Toolchain Follow-up R5
+
+Reviewed SHA: `4824952ca1247301d6f358e503524d5670ce0707`
+
+| # | Finding | Failure mode | Author disposition |
+|---|---|---|---|
+| R5-1 | floating Node 24 patch changes immutable tarball bytes across retries | exact source and npm version did not pin Node's embedded zlib | fixed by one workflow-owned Node/npm/zlib tuple, exact setup-node consumption in both jobs, a shared pre-build runtime verifier, CI evidence recording, and drift countertests; registry integrity remains exact |
+
+The maintainer reproduced the same sources and npm 11.16.0 as `DA+r...` under Node 24.18.0/zlib 1.3.1 and `gaOg...` under Node 24.16.0/zlib 1.2.12, with identical 86 entries and unpacked size. This is the third consecutive pack-identity round, so the plan now defines immutable publication identity as `(source commit, exact Node/npm/zlib producer, packed bytes)`. Both validate and publish fail before build/pack if any observed runtime component differs from the workflow constants; an already-published beta.2 integrity mismatch remains unrecoverable and fail-closed.
+
 ## Next Action
 
 Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHANGES comment anchored to that SHA. This request is for a formal verdict, not another fresh-context scan.
@@ -171,7 +181,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @clowder-ai/plugin-contract generate:check
 pnpm typecheck
 pnpm lint
-pnpm test          # 103/103
+pnpm test          # 105/105
 pnpm build
 pnpm conformance   # 25/25 structural, 18/18 behavior
 git diff --check origin/main...HEAD
@@ -179,9 +189,10 @@ git diff --check origin/main...HEAD
 
 Additional evidence:
 
-- Three workflow `run: |` blocks pass `bash -n`.
+- Four workflow `run: |` blocks pass `bash -n`.
 - Built package self-import passes.
 - Required CI step `Capture exact-head pack evidence` emits the exact SHA and npm-pack metadata, and `Upload exact-head pack evidence` preserves it as `plugin-contract-pack-evidence-<head-sha>`. Exact values are intentionally not hard-coded here; the artifact from the required final-head run is authoritative.
+- The artifact evidence records Node/npm/zlib; runtime regressions prove an exact tuple passes and any drift fails before build/pack.
 - Root artifact gates returned no matches.
 
 ## Related Documents
