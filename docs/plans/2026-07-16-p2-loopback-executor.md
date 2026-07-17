@@ -19,7 +19,7 @@ created: 2026-07-16
 
 **Architecture:** The behavior JSON Schema remains the sole fixture vocabulary. Code generation projects its types into `contract.generated.ts`; a reusable executor captures before/after observations and evaluates the schema-owned assertions; a deterministic in-memory loopback adapter implements the messaging semantics needed by the signed cases. This is P-2, the first independently testable M0 slice—it does not claim that the cross-process SDK transport or Host Broker is complete.
 
-**Tech Stack:** TypeScript 5.7, Node.js 20 test runner, Ajv 8, pnpm 9, JSON Schema 2020-12.
+**Tech Stack:** TypeScript 5.7, Node.js 24, npm 11.5.1+, Ajv 8, pnpm 9, JSON Schema 2020-12, GitHub Actions OIDC trusted publishing.
 
 ---
 
@@ -37,7 +37,7 @@ created: 2026-07-16
 **Files:**
 - Verify only
 
-- [ ] **Step 1: Query the exact registry version**
+- [x] **Step 1: Query the exact registry version**
 
 Run:
 
@@ -46,11 +46,18 @@ npm view @clowder-ai/plugin-contract@0.1.0-beta.1 \
   name version dist.integrity dist-tags --json
 ```
 
-Expected: exact version `0.1.0-beta.1`, a non-empty `sha512-...` integrity, `next === "0.1.0-beta.1"`, and `latest !== "0.1.0-beta.1"`.
+Expected:
 
-- [ ] **Step 2: Stop if the publication gate is not closed**
+- exact version `0.1.0-beta.1`;
+- exact integrity `sha512-FT02Wl2AOkSvLSFVVE+bx6w8D0Izyqc797cAnNBrKH+QFPqYfeNSUFGWMy+BQwpR798zok3s2NxeEAeMmUFB8g==`;
+- `next === "0.1.0-beta.1"`;
+- `latest === "0.1.0-beta.1"` as the operator-approved npm bootstrap exception.
 
-If the query returns `E404`, an empty integrity, or incorrect dist-tags, stop. P-2 may remain planned on its feature branch, but implementation must not proceed against an unpublished contract artifact.
+npm registry package metadata requires every published package to have a `latest` tag. Because beta.1 is the only published version, deleting `latest` is not a representable registry state and returns HTTP 400. This exception applies only to the first artifact; subsequent prereleases must preserve the pre-publish `latest` target byte-for-byte while moving only `next`.
+
+- [x] **Step 2: Stop if the publication gate is not closed**
+
+If the query returns `E404`, a different integrity, or either dist-tag differs from the accepted bootstrap state, stop. P-2 may remain planned on its feature branch, but implementation must not proceed against an unverified contract artifact.
 
 ### Task 1: Generate behavior-fixture types from the schema
 
@@ -533,16 +540,40 @@ git commit -m "feat(contract): require loopback behavior execution" \
   -m "[砚砚/GPT-5.6 Sol🐾]"
 ```
 
-### Task 5: Publish P-2 as a unique prerelease
+### Task 5: Prepare beta.2 with Node 24 and trusted publishing
 
 **Files:**
+- Modify: `.github/workflows/contract-ci.yml`
 - Modify: `packages/plugin-contract/package.json`
 - Modify: `packages/plugin-contract/src/conformance/release-config.test.ts`
+- Create: `packages/plugin-contract/src/conformance/workflow-shell-syntax.test.ts`
 - Modify: `pnpm-lock.yaml`
 
-- [ ] **Step 1: Pin the next immutable artifact version**
+- [ ] **Step 1: Write failing release and workflow assertions**
 
-Write a failing release-config assertion for package version `0.1.0-beta.2`, while preserving protocol `contractVersion: 0.1.0` and the `next` dist-tag policy.
+Require all of the following in `release-config.test.ts` before changing production configuration:
+
+```ts
+test('P-2 publishes beta.2 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.2');
+  assert.equal(contractPackage.private, false);
+  assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
+});
+
+test('CI and release use the trusted-publishing Node baseline', () => {
+  assert.equal(releaseWorkflow.match(/node-version: '24'/g)?.length, 2);
+  assert.match(releaseWorkflow, /^      id-token: write$/m);
+  assert.doesNotMatch(releaseWorkflow, /NPM_TOKEN|NODE_AUTH_TOKEN/);
+});
+
+test('subsequent prereleases preserve the pre-publish latest target', () => {
+  assert.match(releaseWorkflow, /PREVIOUS_LATEST:/);
+  assert.match(releaseWorkflow, /distTags\.latest !== process\.env\.PREVIOUS_LATEST/);
+  assert.doesNotMatch(releaseWorkflow, /npm\s+dist-tag\s+(?:add|rm)[^\n]*latest/i);
+});
+```
+
+Keep the existing exact version/integrity and single-publish-path mutation guards. Add mutations that remove the previous-latest read, invert the comparison, reintroduce `NPM_TOKEN`, or add an `npm dist-tag` latest mutation; every mutation must be killed.
 
 - [ ] **Step 2: Run the focused test to verify RED**
 
@@ -552,9 +583,34 @@ Run:
 pnpm --filter @clowder-ai/plugin-contract test -- release-config
 ```
 
-Expected: FAIL because the artifact is still `0.1.0-beta.1`.
+Expected: FAIL because the artifact is still beta.1, both jobs use Node 20, the workflow still supplies `NPM_TOKEN`, and the verifier assumes `latest` can be absent.
 
-- [ ] **Step 3: Bump package and lockfile only**
+- [ ] **Step 3: Move the workflow to OIDC and preserve latest**
+
+In both jobs, set:
+
+```yaml
+- uses: actions/setup-node@v6
+  with:
+    node-version: '24'
+```
+
+Keep `permissions.id-token: write`; remove every `NODE_AUTH_TOKEN`/`NPM_TOKEN` environment entry. Before publishing, read the current dist-tags and expose the exact target:
+
+```bash
+PREVIOUS_LATEST=$(npm view "$PACKAGE_NAME" dist-tags.latest --json | node --input-type=module -e '
+  let input = "";
+  process.stdin.on("data", (chunk) => { input += chunk; });
+  process.stdin.on("end", () => process.stdout.write(JSON.parse(input)));
+')
+printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
+```
+
+Pass that output to the post-publish verifier as `PREVIOUS_LATEST`. Require `next === PACKAGE_VERSION` and `latest === PREVIOUS_LATEST`. Never run `npm dist-tag add/rm ... latest` from CI.
+
+Retain PR #5's useful idempotence rule in corrected form: if the exact registry version already exists, skip `npm publish` only after exact version and integrity match; still run the tag verifier. This makes a post-publish rerun safe without pretending an integrity mismatch is recoverable.
+
+- [ ] **Step 4: Bump package and lockfile**
 
 Set `packages/plugin-contract/package.json` to `0.1.0-beta.2`, then run:
 
@@ -564,23 +620,42 @@ pnpm install --lockfile-only
 
 Do not change any fixture or manifest `contractVersion` away from `0.1.0`.
 
-- [ ] **Step 4: Verify GREEN**
+- [ ] **Step 5: Add executable workflow shell validation**
+
+Create `workflow-shell-syntax.test.ts` that extracts every YAML `run: |` block, normalizes indentation, and runs `bash -n` via `spawnSync`. Assert the exact number of multiline blocks so a newly added block cannot silently escape syntax validation.
+
+- [ ] **Step 6: Verify GREEN**
 
 Run:
 
 ```bash
 pnpm --filter @clowder-ai/plugin-contract test -- release-config
+pnpm --filter @clowder-ai/plugin-contract test -- workflow-shell-syntax
 ```
 
-Expected: PASS and release guards still reserve `latest`.
+Expected: PASS; release guards preserve the existing bootstrap `latest`, move only `next`, and contain no long-lived npm write token.
 
-- [ ] **Step 5: Commit the prerelease version**
+- [ ] **Step 7: Record the npm-side trusted publisher gate**
+
+Before merge, require an npm Trusted Publisher for package `@clowder-ai/plugin-contract` with:
+
+- provider: GitHub Actions;
+- owner: `zts212653`;
+- repository: `clowder-ai-plugins`;
+- workflow filename: `contract-ci.yml`;
+- allowed action: `npm publish`.
+
+The PR may be reviewed without this external setting, but merge/publication remains blocked until the setting is independently confirmed. After confirmation, revoke the bootstrap GAT and remove the GitHub `NPM_TOKEN` secret.
+
+- [ ] **Step 8: Commit the prerelease and release-infrastructure delta**
 
 ```bash
-git add packages/plugin-contract/package.json pnpm-lock.yaml \
-  packages/plugin-contract/src/conformance/release-config.test.ts
-git commit -m "chore(contract): prepare P-2 beta.2" \
-  -m "Why: npm artifacts are immutable, so the executable conformance delta requires a unique prerelease while the signed protocol remains v0.1.0." \
+git add .github/workflows/contract-ci.yml \
+  packages/plugin-contract/package.json pnpm-lock.yaml \
+  packages/plugin-contract/src/conformance/release-config.test.ts \
+  packages/plugin-contract/src/conformance/workflow-shell-syntax.test.ts
+git commit -m "chore(contract): prepare trusted P-2 beta.2" \
+  -m "Why: executable conformance needs a unique artifact, while OIDC and an unchanged latest target remove the bootstrap token and prerelease-channel ambiguity." \
   -m "[砚砚/GPT-5.6 Sol🐾]"
 ```
 
@@ -644,4 +719,4 @@ Push `feat/m0-standalone-loopback`, open a PR against upstream `main`, register 
 
 - [ ] **Step 5: Preserve the publication boundary**
 
-Do not merge or publish `0.1.0-beta.2` until exact-head review, required CI, and explicit merge/publication authorization all cover the final SHA. After publication, independently verify exact version, `dist.integrity`, `next === 0.1.0-beta.2`, and `latest !== 0.1.0-beta.2`.
+Do not merge or publish `0.1.0-beta.2` until exact-head review, required CI, npm Trusted Publisher configuration, and explicit merge/publication authorization all cover the final SHA. After publication, independently verify exact version, `dist.integrity`, `next === 0.1.0-beta.2`, and `latest === 0.1.0-beta.1` until a formal release explicitly moves it.
