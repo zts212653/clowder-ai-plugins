@@ -44,7 +44,7 @@ Please verify that the diff matches `Map delta: none`, especially that no parall
 | INV-1 Schema ownership | Behavior operations, verdicts, targets, capabilities, and error codes project from schema-owned definitions | codegen freshness + drift mutation tests |
 | INV-2 Execute once | Each case captures asserted targets before/after and executes its operation exactly once | `behavior-executor.test.ts` |
 | INV-3 Zero mutation on denial | Permission, validation, conflict, and ownership failures preserve every asserted collection | 18 distributed behavior cases + adapter sibling tests |
-| INV-4 Subscription authority | Existing subscription operations require `message.event.subscribe` and caller ownership; ack tokens are subscription-local | missing-grant and foreign-caller mutations + two additive behavior oracles |
+| INV-4 Subscription authority | Existing subscription operations require `message.event.subscribe` and caller ownership; ack tokens and replay deletion are subscription-local | missing-grant and foreign-caller mutations + two additive behavior oracles + cross-subscription deletion regression |
 | INV-5 Runner completeness | Missing fixtures/cases, malformed fixtures, unsupported executors, adapter throws, and oracle mismatches contribute failures | runner integration + empty-tree + mutated observation tests |
 | INV-6 Published reachability | Host/SDK can import the executor and loopback adapter without importing the Ajv-backed repository runner | exports-map test + built package self-import |
 | INV-7 Release identity | beta.2 moves only `next`, preserves the pre-publish `latest`, and can skip publish only after exact integrity match | workflow mutation suite + `bash -n` + pack inspection |
@@ -87,6 +87,17 @@ Total findings: 5 (0 P1, 2 P2, 3 P3)
 
 Formal reviewer: annotate findings with `[FC:covered]`, `[FC:new]`, or `[FC:N/A]`.
 
+## Automated Review R1
+
+Reviewed SHA: `4614fab7a1d0ec81405a1d8f467183949c0ec0a3`
+
+| # | Finding | Delta | Author disposition |
+|---|---|---|---|
+| R1-1 | The loopback rejected schema-valid `connector_binding` send addresses before ownership validation | `[FC:new]` | fixed with owned-success and foreign-owner rejection regressions |
+| R1-2 | Replay deletion authorized one subscription but filtered every low-sequence event | `[FC:new]` | fixed by matching `subscriptionId` before sequence deletion; other and unscoped buffers remain preserved |
+
+The 18-case distributed suite does not grow in this round. Existing case IDs, operations, invariants, and expected verdicts remain unchanged; the replay-deletion seed gains an explicit `subscriptionId` so its retention scope is machine-readable.
+
 ## Next Action
 
 Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHANGES comment anchored to that SHA. This request is for a formal verdict, not another fresh-context scan.
@@ -102,7 +113,7 @@ Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHA
 ### Spec compliance
 
 - P15 remains one package-owned machine truth.
-- Initial 16 behavior cases are unchanged; 2 additive subscription-authorization oracles are disclosed.
+- Initial 16 case IDs, operations, invariants, and expectations are unchanged; 2 additive subscription-authorization oracles are disclosed. The replay-deletion seed now explicitly identifies its subscription after R1.
 - P-2 does not claim complete standalone transport, Host Broker, or positive event lifecycle.
 - npm `contractVersion` remains `0.1.0`; artifact version is uniquely `0.1.0-beta.2`.
 
@@ -114,7 +125,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @clowder-ai/plugin-contract generate:check
 pnpm typecheck
 pnpm lint
-pnpm test          # 93/93
+pnpm test          # 95/95
 pnpm build
 pnpm conformance   # 25/25 structural, 18/18 behavior
 git diff --check origin/main...HEAD
@@ -124,11 +135,10 @@ Additional evidence:
 
 - Three workflow `run: |` blocks pass `bash -n`.
 - Built package self-import passes.
-- Exact pack integrity before this request: `sha512-G1a7UX5qpGMLhL+a3GgA4541rqwZ3ofZVowREqe4MIRoJBVxZNZwRs8XfSQduWGMr8nNJdc4BJ9ENPHv32bnHw==`.
+- Exact pack integrity after R1: `sha512-qQo4mk5UFCURsAWKww7iHc34oylVLpRjqwRJYSYIYxKCbo01B0AsmZcRSLMTtyIeyxhUtZN56hSCCThV21+v/A==`.
 - Root artifact gates returned no matches.
 
 ## Related Documents
 
 - `docs/proposals/plugin-system-principles-and-v0-design.md`
 - `docs/plans/2026-07-16-p2-loopback-executor.md`
-

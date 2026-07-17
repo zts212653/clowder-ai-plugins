@@ -139,3 +139,116 @@ test('every existing-subscription operation rejects a foreign caller', async () 
     }, operation.operation);
   }
 });
+
+test('connector binding sends require caller ownership', async () => {
+  const adapter = new MessagingLoopbackAdapter();
+  await adapter.setup({
+    caller: { pluginInstanceId: 'plugin-a' },
+    grants: ['messaging.send'],
+    handles: {
+      binding: {
+        kind: 'connector_binding',
+        token: 'connector-binding-a',
+        ownerPluginInstanceId: 'plugin-a',
+        connectorId: 'connector-a',
+        threadId: 'thread-1',
+      },
+    },
+    state: {},
+  });
+
+  assert.deepEqual(
+    await adapter.execute({
+      operation: 'send',
+      input: {
+        address: { kind: 'connector_binding', handle: 'connector-binding-a' },
+        idempotencyKey: 'connector-send-1',
+        payload: {
+          provenance: { epistemicStatus: 'inference' },
+          elements: [
+            { elementId: 'text-1', kind: 'text', payload: { text: 'hello' } },
+          ],
+        },
+      },
+    }),
+    { status: 'success' },
+  );
+  const messages = await adapter.observe('messages');
+  assert.ok(Array.isArray(messages));
+  assert.equal(messages[0]?.threadId, 'thread-1');
+
+  const foreignAdapter = new MessagingLoopbackAdapter();
+  await foreignAdapter.setup({
+    caller: { pluginInstanceId: 'plugin-b' },
+    grants: ['messaging.send'],
+    handles: {
+      binding: {
+        kind: 'connector_binding',
+        token: 'connector-binding-a',
+        ownerPluginInstanceId: 'plugin-a',
+        connectorId: 'connector-a',
+        threadId: 'thread-1',
+      },
+    },
+    state: {},
+  });
+  assert.deepEqual(
+    await foreignAdapter.execute({
+      operation: 'send',
+      input: {
+        address: { kind: 'connector_binding', handle: 'connector-binding-a' },
+        idempotencyKey: 'foreign-connector-send-1',
+        payload: {
+          provenance: { epistemicStatus: 'inference' },
+          elements: [
+            { elementId: 'text-1', kind: 'text', payload: { text: 'blocked' } },
+          ],
+        },
+      },
+    }),
+    { status: 'error', errorCode: 'PERMISSION' },
+  );
+});
+
+test('replay deletion is scoped to the authorized subscription', async () => {
+  const adapter = new MessagingLoopbackAdapter();
+  await adapter.setup({
+    caller: { pluginInstanceId: 'plugin-a' },
+    grants: ['message.event.subscribe'],
+    handles: {
+      subscriptionA: {
+        kind: 'subscription',
+        token: 'subscription-token-a',
+        ownerPluginInstanceId: 'plugin-a',
+        threadId: 'thread-1',
+        subscriptionId: 'subscription-a',
+      },
+      subscriptionB: {
+        kind: 'subscription',
+        token: 'subscription-token-b',
+        ownerPluginInstanceId: 'plugin-a',
+        threadId: 'thread-2',
+        subscriptionId: 'subscription-b',
+      },
+    },
+    state: {
+      replayEvents: [
+        { eventId: 'event-a-1', subscriptionId: 'subscription-a', sequence: 1 },
+        { eventId: 'event-a-2', subscriptionId: 'subscription-a', sequence: 2 },
+        { eventId: 'event-b-1', subscriptionId: 'subscription-b', sequence: 1 },
+      ],
+    },
+  });
+
+  assert.deepEqual(
+    await adapter.execute({
+      operation: 'deleteReplayEvents',
+      input: { subscriptionId: 'subscription-a', throughSequence: 1 },
+    }),
+    { status: 'success' },
+  );
+  assert.deepEqual(await adapter.observe('replay_events'), [
+    { eventId: 'event-a-2', subscriptionId: 'subscription-a', sequence: 2 },
+    { eventId: 'event-b-1', subscriptionId: 'subscription-b', sequence: 1 },
+  ]);
+});

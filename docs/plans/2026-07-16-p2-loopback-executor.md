@@ -669,6 +669,13 @@ The pre-review scan anchored at `c933d32` produced five findings:
 - **F4 / P3 — retained gate:** npm Trusted Publisher configuration remains an independently verified pre-merge requirement because PR CI cannot exercise the push-only publish job.
 - **F5 / P3 — bounded non-claim:** positive event production/read/ack flow remains a later C-2/M0 fixture expansion; P-2 proves the signed adversarial slice, not complete standalone messaging I/O.
 
+The first automated PR review at `4614fab` added two `[FC:new]` P2 findings:
+
+- **R1-1 — fixed:** `send` now accepts both schema-owned address variants and applies the same host-issued handle ownership check to `thread_handle` and `connector_binding`.
+- **R1-2 — fixed:** replay deletion now removes only events explicitly associated with the authorized subscription; events for other subscriptions and unscoped events remain fail-closed.
+
+The distributed fixture count remains 18. Existing case IDs, operations, invariants, and expected verdicts remain unchanged; the replay-deletion seed now explicitly carries its `subscriptionId`. Adapter-level regressions cover owned/foreign connector bindings and cross-subscription replay isolation.
+
 ### Task 6: Full verification and review handoff
 
 **Files:**
@@ -690,7 +697,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass;
+- all unit tests pass (95/95 after automated-review regressions);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;

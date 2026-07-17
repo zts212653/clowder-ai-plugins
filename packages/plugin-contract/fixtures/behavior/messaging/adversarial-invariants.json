@@ -456,7 +456,7 @@
         },
         "state": {
           "messages": [{ "messageId": "message-1", "threadId": "thread-1" }],
-          "replayEvents": [{ "eventId": "event-1", "sequence": 1 }]
+          "replayEvents": [{ "eventId": "event-1", "subscriptionId": "subscription-a", "sequence": 1 }]
         }
       },
       "when": {
@@ -506,7 +506,7 @@
         },
         "state": {
           "messages": [{ "messageId": "message-1", "threadId": "thread-1" }],
-          "replayEvents": [{ "eventId": "event-1", "sequence": 1 }]
+          "replayEvents": [{ "eventId": "event-1", "subscriptionId": "subscription-a", "sequence": 1 }]
         }
       },
       "when": {

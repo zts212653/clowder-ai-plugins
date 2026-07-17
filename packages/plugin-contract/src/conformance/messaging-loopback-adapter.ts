@@ -127,10 +127,13 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     if (address.kind === 'thread_id') {
       return error('PERMISSION');
     }
-    if (address.kind !== 'thread_handle') {
+    if (
+      address.kind !== 'thread_handle' &&
+      address.kind !== 'connector_binding'
+    ) {
       return error('VALIDATION');
     }
-    const ownershipError = this.ownsHandle(address.handle, 'thread_handle');
+    const ownershipError = this.ownsHandle(address.handle, address.kind);
     if (ownershipError) {
       return ownershipError;
     }
@@ -423,7 +426,9 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     }
     state.replayEvents = state.replayEvents.filter(
       (event) =>
-        typeof event.sequence !== 'number' || event.sequence > input.throughSequence,
+        event.subscriptionId !== input.subscriptionId ||
+        typeof event.sequence !== 'number' ||
+        event.sequence > input.throughSequence,
     );
     state.observations.set('replay_events', state.replayEvents);
     return success;
