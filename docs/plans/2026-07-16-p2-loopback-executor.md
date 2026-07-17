@@ -598,7 +598,7 @@ artifact-producing toolchain, not by source content alone.
 Invariants:
 
 1. Both jobs use exact Node `24.18.0`; its bundled npm must be `11.16.0`
-   and embedded zlib must be `1.3.1`.
+   and its full `process.versions.zlib` identity must be `1.3.1-e00f703`.
 2. A shared runtime verifier enforces all three versions before install/build;
    the validate evidence also records the observed toolchain.
 3. The consumer package engine remains `node >=20`; release reproducibility
@@ -621,7 +621,7 @@ test('P-2 publishes beta.2 while the protocol stays at signed v0.1', () => {
 test('CI and release use the trusted-publishing Node baseline', () => {
   assert.match(releaseWorkflow, /^  ARTIFACT_NODE_VERSION: '24\.18\.0'$/m);
   assert.match(releaseWorkflow, /^  ARTIFACT_NPM_VERSION: '11\.16\.0'$/m);
-  assert.match(releaseWorkflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1'$/m);
+  assert.match(releaseWorkflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1-e00f703'$/m);
   assert.equal(
     releaseWorkflow.match(/node-version: \$\{\{ env\.ARTIFACT_NODE_VERSION \}\}/g)?.length,
     2,
@@ -657,7 +657,7 @@ In both jobs, consume the same exact workflow-level pin:
 env:
   ARTIFACT_NODE_VERSION: '24.18.0'
   ARTIFACT_NPM_VERSION: '11.16.0'
-  ARTIFACT_ZLIB_VERSION: '1.3.1'
+  ARTIFACT_ZLIB_VERSION: '1.3.1-e00f703'
 
 - uses: actions/setup-node@v6
   with:
@@ -758,7 +758,7 @@ The maintainer exact-head R3 review exposed three remaining transitions that the
 
 Cloud exact-head R4 found that append still treated an untrusted request reference as if it were the resolved Host handle: a valid stored token bypassed a missing or wrong request `kind`. The request-handle row in the Stateful Object Gate now distinguishes these truth sources. Append first validates the exact public `MessageHandle` shape from `messaging.schema.json`—including its discriminant, non-empty token, and closed-object boundary—then resolves the separate Host-owned `message_handle`. The sibling audit confirms `send.address` already validates its tagged union before Host lookup and no other operation has the same object-discriminant lookup path.
 
-Maintainer exact-head R5 exposed a third pack-identity failure mode: source and npm version alone do not determine compressed bytes when the floating Node 24 patch changes its embedded zlib. Exact `4824952` produced `DA+r...` under Node 24.18.0/zlib 1.3.1 while the same sources and npm 11.16.0 produced `gaOg...` under Node 24.16.0/zlib 1.2.12. Because this is the third consecutive review round on immutable publication identity, the release Stateful Object Gate above is now controlling: both jobs consume one exact Node pin, a shared verifier checks Node/npm/zlib before build, CI evidence records the observed toolchain, and registry integrity remains fail-closed.
+Maintainer exact-head R5 exposed a third pack-identity failure mode: source and npm version alone do not determine compressed bytes when the floating Node 24 patch changes its embedded zlib. Exact `4824952` produced `DA+r...` under Node 24.18.0/`process.versions.zlib=1.3.1-e00f703` while the same sources and npm 11.16.0 produced `gaOg...` under Node 24.16.0/zlib 1.2.12. Because this is the third consecutive review round on immutable publication identity, the release Stateful Object Gate above is now controlling: both jobs consume one exact Node pin, a shared verifier checks Node/npm/zlib before build, CI evidence records the observed toolchain, and registry integrity remains fail-closed. CI repair round 1 additionally proved why the full runtime identity—not the shorthand `1.3.1`—must be pinned: the verifier correctly stopped before install when the exact Node binary reported the suffixed value.
 
 ### Task 6: Full verification and review handoff
 

@@ -9,7 +9,7 @@ Branch: `feat/m0-standalone-loopback`
 - Execute every committed behavior case through a reusable evaluator and deterministic reference adapter.
 - Make the repository runner fail closed for malformed, unsupported, thrown, mismatched, or empty conformance runs.
 - Publish the reusable boundary as `@clowder-ai/plugin-contract/conformance`.
-- Prepare the unique `0.1.0-beta.2` artifact with pinned Node 24.18.0/npm 11.16.0/zlib 1.3.1 and npm Trusted Publishing while preserving the pre-publish `latest` target.
+- Prepare the unique `0.1.0-beta.2` artifact with pinned Node 24.18.0/npm 11.16.0/`process.versions.zlib=1.3.1-e00f703` and npm Trusted Publishing while preserving the pre-publish `latest` target.
 
 ## Why
 
@@ -152,7 +152,7 @@ Reviewed SHA: `4824952ca1247301d6f358e503524d5670ce0707`
 |---|---|---|---|
 | R5-1 | floating Node 24 patch changes immutable tarball bytes across retries | exact source and npm version did not pin Node's embedded zlib | fixed by one workflow-owned Node/npm/zlib tuple, exact setup-node consumption in both jobs, a shared pre-build runtime verifier, CI evidence recording, and drift countertests; registry integrity remains exact |
 
-The maintainer reproduced the same sources and npm 11.16.0 as `DA+r...` under Node 24.18.0/zlib 1.3.1 and `gaOg...` under Node 24.16.0/zlib 1.2.12, with identical 86 entries and unpacked size. This is the third consecutive pack-identity round, so the plan now defines immutable publication identity as `(source commit, exact Node/npm/zlib producer, packed bytes)`. Both validate and publish fail before build/pack if any observed runtime component differs from the workflow constants; an already-published beta.2 integrity mismatch remains unrecoverable and fail-closed.
+The maintainer reproduced the same sources and npm 11.16.0 as `DA+r...` under Node 24.18.0/`process.versions.zlib=1.3.1-e00f703` and `gaOg...` under Node 24.16.0/zlib 1.2.12, with identical 86 entries and unpacked size. This is the third consecutive pack-identity round, so the plan now defines immutable publication identity as `(source commit, exact Node/npm/zlib producer, packed bytes)`. Both validate and publish fail before build/pack if any observed runtime component differs from the workflow constants; an already-published beta.2 integrity mismatch remains unrecoverable and fail-closed. CI repair round 1 caught the initial shorthand `1.3.1` pin before install and corrected the truth source to the full runtime identity.
 
 ## Next Action
 

@@ -3,7 +3,7 @@ name: Contract CI
 env:
   ARTIFACT_NODE_VERSION: '24.18.0'
   ARTIFACT_NPM_VERSION: '11.16.0'
-  ARTIFACT_ZLIB_VERSION: '1.3.1'
+  ARTIFACT_ZLIB_VERSION: '1.3.1-e00f703'
 
 on:
   pull_request: {}

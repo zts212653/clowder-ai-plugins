@@ -117,7 +117,7 @@ function assertTrustedPublishingBaseline(workflow: string): void {
   );
   assert.match(workflow, /^  ARTIFACT_NODE_VERSION: '24\.18\.0'$/m);
   assert.match(workflow, /^  ARTIFACT_NPM_VERSION: '11\.16\.0'$/m);
-  assert.match(workflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1'$/m);
+  assert.match(workflow, /^  ARTIFACT_ZLIB_VERSION: '1\.3\.1-e00f703'$/m);
   assert.equal(
     workflow.match(
       /^        run: node packages\/plugin-contract\/scripts\/verify-artifact-toolchain\.mjs$/gm,
