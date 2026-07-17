@@ -223,6 +223,7 @@ export interface ConformanceReport {
 
 export interface ConformanceOptions {
   readonly behaviorAdapters?: Readonly<Record<string, () => BehaviorAdapter>>;
+  readonly fixturesDir?: string;
   readonly write?: (line: string) => void;
 }
 
@@ -242,7 +243,7 @@ function isMissingDirectory(error: unknown): boolean {
 export async function runConformance(
   options: ConformanceOptions = {},
 ): Promise<ConformanceReport> {
-  const fixturesDir = join(PKG_ROOT, 'fixtures');
+  const fixturesDir = options.fixturesDir ?? join(PKG_ROOT, 'fixtures');
   const schemasDir = join(PKG_ROOT, 'src', 'schemas');
   const write = options.write ?? console.log;
   const behaviorAdapters = options.behaviorAdapters ?? defaultBehaviorAdapters;
@@ -400,6 +401,17 @@ export async function runConformance(
     write(
       `         ${behaviorPassed}/${behaviorTotal} behavior cases executed across ${behaviorFileCount} file(s)`,
     );
+  }
+
+  if (results.length === 0) {
+    const message = 'no contract fixtures discovered';
+    failures.push(message);
+    write(`❌ ${message}`);
+  }
+  if (behaviorTotal === 0) {
+    const message = 'no behavior cases discovered';
+    failures.push(message);
+    write(`❌ ${message}`);
   }
 
   return {

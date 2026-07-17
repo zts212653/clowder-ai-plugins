@@ -20,6 +20,8 @@ export {
   type BehaviorVerdict,
 } from './behavior-executor.js';
 
+export { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
+
 export {
   DATA_CLASS_ALLOWED_STRATEGIES,
   CAPABILITY_TABLE,

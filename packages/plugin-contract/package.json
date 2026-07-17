@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./conformance": {
+      "types": "./dist/conformance/index.d.ts",
+      "import": "./dist/conformance/index.js"
+    },
     "./schemas/messaging": "./src/schemas/messaging.schema.json",
     "./schemas/manifest": "./src/schemas/manifest.schema.json",
     "./schemas/behavior-fixture": "./src/schemas/behavior-fixture.schema.json"

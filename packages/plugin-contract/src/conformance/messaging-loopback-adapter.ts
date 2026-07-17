@@ -31,6 +31,10 @@ function error(errorCode: MessagingErrorCode): BehaviorVerdict {
 
 const success: BehaviorVerdict = { status: 'success' };
 
+type SubscriptionAccess =
+  | { readonly ok: true; readonly subscription: LoopbackRecord }
+  | { readonly ok: false; readonly verdict: BehaviorVerdict };
+
 function assertNever(value: never): never {
   throw new Error(`Unsupported fixture operation: ${JSON.stringify(value)}`);
 }
@@ -95,6 +99,21 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
       return error('PERMISSION');
     }
     return undefined;
+  }
+
+  private accessSubscription(subscriptionId: string): SubscriptionAccess {
+    const state = this.requireState();
+    if (!state.grants.has('message.event.subscribe')) {
+      return { ok: false, verdict: error('PERMISSION') };
+    }
+    const subscription = state.subscriptions.get(subscriptionId);
+    if (!subscription) {
+      return { ok: false, verdict: error('NOT_FOUND') };
+    }
+    if (subscription.ownerPluginInstanceId !== state.callerId) {
+      return { ok: false, verdict: error('PERMISSION') };
+    }
+    return { ok: true, subscription };
   }
 
   private send(input: SendOperationInput): BehaviorVerdict {
@@ -241,7 +260,12 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
       return ownershipError;
     }
     const subscriptionId = `loopback-subscription-${state.subscriptions.size + 1}`;
-    const subscription = { subscriptionId, cursorSequence: 0, ackedSequence: 0 };
+    const subscription = {
+      subscriptionId,
+      ownerPluginInstanceId: state.callerId,
+      cursorSequence: 0,
+      ackedSequence: 0,
+    };
     state.subscriptions.set(subscriptionId, subscription);
     state.observations.set('subscription', subscription);
     return success;
@@ -249,13 +273,11 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private read(subscriptionId: string): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('message.event.subscribe')) {
-      return error('PERMISSION');
+    const access = this.accessSubscription(subscriptionId);
+    if (!access.ok) {
+      return access.verdict;
     }
-    const subscription = state.subscriptions.get(subscriptionId);
-    if (!subscription) {
-      return error('NOT_FOUND');
-    }
+    const { subscription } = access;
     const cursor = subscription.cursorSequence;
     const oldest = state.eventWindow?.oldestSequence;
     if (typeof cursor === 'number' && typeof oldest === 'number' && cursor < oldest) {
@@ -285,18 +307,17 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private ack(subscriptionId: string, ackToken: string): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('message.event.subscribe')) {
-      return error('PERMISSION');
+    const access = this.accessSubscription(subscriptionId);
+    if (!access.ok) {
+      return access.verdict;
     }
-    const subscription = state.subscriptions.get(subscriptionId);
-    if (!subscription) {
-      return error('NOT_FOUND');
-    }
+    const { subscription } = access;
     const tokenHandle = state.handles.get(ackToken);
     if (
       !tokenHandle ||
       tokenHandle.kind !== 'subscription' ||
-      tokenHandle.subscriptionId !== subscriptionId
+      tokenHandle.subscriptionId !== subscriptionId ||
+      tokenHandle.ownerPluginInstanceId !== state.callerId
     ) {
       return error('VALIDATION');
     }
@@ -307,8 +328,9 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private snapshot(subscriptionId: string): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.subscriptions.has(subscriptionId)) {
-      return error('NOT_FOUND');
+    const access = this.accessSubscription(subscriptionId);
+    if (!access.ok) {
+      return access.verdict;
     }
     const head = state.eventWindow?.headSequence;
     if (typeof head !== 'number') {
@@ -395,8 +417,9 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private deleteReplayEvents(input: DeleteReplayEventsInput): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.subscriptions.has(input.subscriptionId)) {
-      return error('NOT_FOUND');
+    const access = this.accessSubscription(input.subscriptionId);
+    if (!access.ok) {
+      return access.verdict;
     }
     state.replayEvents = state.replayEvents.filter(
       (event) =>

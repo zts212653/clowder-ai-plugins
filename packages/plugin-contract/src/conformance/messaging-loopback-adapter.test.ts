@@ -5,9 +5,10 @@ import test from 'node:test';
 import type {
   BehaviorCase,
   BehaviorFixture,
+  FixtureOperation,
 } from '../generated/contract.generated.js';
 import { executeBehaviorCase } from './behavior-executor.js';
-import { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
+import { MessagingLoopbackAdapter } from './index.js';
 
 const fixture = JSON.parse(
   readFileSync(
@@ -83,4 +84,58 @@ test('an incomplete permission matrix fails closed', async () => {
 
   assert.equal(report.passed, false);
   assert.match(report.failures.join('\n'), /status.*expected success.*received error/);
+});
+
+const subscriptionOperations: readonly FixtureOperation[] = [
+  {
+    operation: 'read',
+    input: { subscriptionId: 'subscription-a', limit: 32 },
+  },
+  {
+    operation: 'ack',
+    input: { subscriptionId: 'subscription-a', ackToken: 'subscription-token-a' },
+  },
+  {
+    operation: 'snapshot',
+    input: { subscriptionId: 'subscription-a' },
+  },
+  {
+    operation: 'deleteReplayEvents',
+    input: { subscriptionId: 'subscription-a', throughSequence: 12 },
+  },
+];
+
+const subscriptionCase = fixture.cases.find(
+  ({ id }) => id === 'stale-cursor-snapshot-roundtrip',
+);
+assert.ok(subscriptionCase);
+
+test('every existing-subscription operation requires the subscription grant', async () => {
+  for (const operation of subscriptionOperations) {
+    const adapter = new MessagingLoopbackAdapter();
+    await adapter.setup({
+      ...structuredClone(subscriptionCase.given),
+      grants: [],
+    });
+
+    assert.deepEqual(await adapter.execute(operation), {
+      status: 'error',
+      errorCode: 'PERMISSION',
+    }, operation.operation);
+  }
+});
+
+test('every existing-subscription operation rejects a foreign caller', async () => {
+  for (const operation of subscriptionOperations) {
+    const adapter = new MessagingLoopbackAdapter();
+    await adapter.setup({
+      ...structuredClone(subscriptionCase.given),
+      caller: { pluginInstanceId: 'plugin-b' },
+    });
+
+    assert.deepEqual(await adapter.execute(operation), {
+      status: 'error',
+      errorCode: 'PERMISSION',
+    }, operation.operation);
+  }
 });

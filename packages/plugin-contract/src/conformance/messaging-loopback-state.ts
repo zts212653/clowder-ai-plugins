@@ -66,14 +66,18 @@ export function createMessagingLoopbackState(given: FixtureSetup): MessagingLoop
     }
   }
   for (const handle of handles.values()) {
-    if (
-      handle.kind === 'subscription' &&
-      handle.subscriptionId &&
-      !subscriptions.some(
-        (subscription) => subscription.subscriptionId === handle.subscriptionId,
-      )
-    ) {
-      subscriptions.push({ subscriptionId: handle.subscriptionId });
+    if (handle.kind === 'subscription' && handle.subscriptionId) {
+      const subscription = subscriptions.find(
+        (candidate) => candidate.subscriptionId === handle.subscriptionId,
+      );
+      if (subscription) {
+        subscription.ownerPluginInstanceId = handle.ownerPluginInstanceId;
+      } else {
+        subscriptions.push({
+          subscriptionId: handle.subscriptionId,
+          ownerPluginInstanceId: handle.ownerPluginInstanceId,
+        });
+      }
     }
   }
 

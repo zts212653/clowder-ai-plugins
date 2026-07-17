@@ -5,6 +5,7 @@ import test from 'node:test';
 interface ContractPackage {
   private?: boolean;
   version?: string;
+  exports?: Record<string, unknown>;
 }
 
 interface BehaviorSuite {
@@ -205,6 +206,13 @@ test('P-2 publishes beta.2 while the protocol stays at signed v0.1', () => {
   assert.equal(contractPackage.version, '0.1.0-beta.2');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
+});
+
+test('host and SDK consumers can import the conformance boundary', () => {
+  assert.deepEqual(contractPackage.exports?.['./conformance'], {
+    types: './dist/conformance/index.d.ts',
+    import: './dist/conformance/index.js',
+  });
 });
 
 test('CI and release use the trusted-publishing Node baseline', () => {

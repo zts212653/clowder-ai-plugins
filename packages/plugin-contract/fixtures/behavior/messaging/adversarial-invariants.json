@@ -470,6 +470,57 @@
           { "target": "messages", "assertion": "unchanged" }
         ]
       }
+    },
+    {
+      "id": "snapshot-without-grant-rejected",
+      "invariant": "A subscription identifier cannot bypass the message.event.subscribe grant for snapshots.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-a" },
+        "grants": [],
+        "handles": {
+          "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
+        },
+        "state": { "subscription": { "cursorSequence": 4 } }
+      },
+      "when": {
+        "operation": "snapshot",
+        "input": { "subscriptionId": "subscription-a" }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "snapshot", "assertion": "none" },
+          { "target": "subscription", "assertion": "unchanged" }
+        ]
+      }
+    },
+    {
+      "id": "foreign-replay-delete-rejected",
+      "invariant": "A caller cannot delete another plugin instance's subscription replay buffer.",
+      "given": {
+        "caller": { "pluginInstanceId": "plugin-b" },
+        "grants": ["message.event.subscribe"],
+        "handles": {
+          "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
+        },
+        "state": {
+          "messages": [{ "messageId": "message-1", "threadId": "thread-1" }],
+          "replayEvents": [{ "eventId": "event-1", "sequence": 1 }]
+        }
+      },
+      "when": {
+        "operation": "deleteReplayEvents",
+        "input": { "subscriptionId": "subscription-a", "throughSequence": 1 }
+      },
+      "expect": {
+        "status": "error",
+        "errorCode": "PERMISSION",
+        "sideEffects": [
+          { "target": "replay_events", "assertion": "unchanged" },
+          { "target": "messages", "assertion": "unchanged" }
+        ]
+      }
     }
   ]
 }

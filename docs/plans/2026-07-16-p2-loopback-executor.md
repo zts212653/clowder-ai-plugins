@@ -15,7 +15,7 @@ created: 2026-07-16
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the contract runner's 16-case “execution skipped” result with deterministic, fail-closed execution of every signed messaging behavior fixture.
+**Goal:** Replace the contract runner's “execution skipped” result with deterministic, fail-closed execution of every signed messaging behavior fixture; the initial 16-case set grows to 18 through review hardening.
 
 **Architecture:** The behavior JSON Schema remains the sole fixture vocabulary. Code generation projects its types into `contract.generated.ts`; a reusable executor captures before/after observations and evaluates the schema-owned assertions; a deterministic in-memory loopback adapter implements the messaging semantics needed by the signed cases. This is P-2, the first independently testable M0 slice—it does not claim that the cross-process SDK transport or Host Broker is complete.
 
@@ -26,7 +26,7 @@ created: 2026-07-16
 ## Scope and truth-source boundary
 
 - `packages/plugin-contract/src/schemas/behavior-fixture.schema.json` owns operation, verdict, target, and assertion vocabulary.
-- `packages/plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json` owns the 16 signed scenarios and their expected observations.
+- `packages/plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json` owns the 18 signed scenarios and their expected observations (16 initial + 2 subscription-authorization review cases).
 - `packages/plugin-contract/src/conformance/behavior-executor.ts` owns generic fixture orchestration and assertion evaluation.
 - `packages/plugin-contract/src/conformance/messaging-loopback-adapter.ts` owns the deterministic reference-host semantics used by P-2.
 - `packages/plugin-contract/src/conformance/runner.ts` owns discovery, schema validation, execution, and process exit status.
@@ -433,7 +433,7 @@ Each handler must enforce the signed invariant before mutation:
 
 Do not add fallback success paths. Unknown handles, messages, subscriptions, or operations fail closed with `NOT_FOUND` or `VALIDATION`.
 
-- [x] **Step 5: Verify all 16 committed cases**
+- [x] **Step 5: Verify all 18 committed cases**
 
 Run:
 
@@ -441,7 +441,7 @@ Run:
 pnpm --filter @clowder-ai/plugin-contract test -- messaging-loopback-adapter
 ```
 
-Expected: all 16 committed cases pass; controlled mutations fail at the intended invariant.
+Expected: all 18 committed cases pass; controlled mutations fail at the intended invariant.
 
 - [x] **Step 6: Commit the reference adapter**
 
@@ -468,8 +468,8 @@ test('conformance executes every loopback behavior case', async () => {
 
   assert.equal(report.contractFixtures.passed, 25);
   assert.equal(report.contractFixtures.total, 25);
-  assert.equal(report.behaviorCases.passed, 16);
-  assert.equal(report.behaviorCases.total, 16);
+  assert.equal(report.behaviorCases.passed, 18);
+  assert.equal(report.behaviorCases.total, 18);
   assert.deepEqual(report.failures, []);
 });
 ```
@@ -514,7 +514,7 @@ The CLI summary must become:
 
 ```text
 ✅ behavior/messaging/adversarial-invariants.json
-   16/16 loopback behavior cases executed
+   18/18 loopback behavior cases executed
 ```
 
 Delete both “execution skipped” and “requires P-2” output paths. Any malformed fixture, unsupported executor, thrown adapter error, verdict mismatch, or assertion mismatch must contribute to exit code 1.
@@ -528,7 +528,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- behavior-fixture
 pnpm --filter @clowder-ai/plugin-contract conformance
 ```
 
-Expected: tests pass; conformance reports 25/25 structural fixtures and 16/16 executed behavior cases.
+Expected: tests pass; conformance reports 25/25 structural fixtures and 18/18 executed behavior cases.
 
 - [x] **Step 5: Commit mandatory execution**
 
@@ -659,6 +659,16 @@ git commit -m "chore(contract): prepare trusted P-2 beta.2" \
   -m "[砚砚/GPT-5.6 Sol🐾]"
 ```
 
+#### Fresh-context review resolution
+
+The pre-review scan anchored at `c933d32` produced five findings:
+
+- **F1 / P2 — fixed:** all existing-subscription operations now consume one grant-and-owner guard; two distributable behavior cases lock missing-grant snapshot rejection and foreign replay-delete rejection.
+- **F2 / P2 — fixed:** both the CLI and programmatic `runConformance()` report failures when contract fixtures or behavior cases are absent.
+- **F3 / P3 — fixed:** the package exports `./conformance`, and its barrel exposes the generic executor plus deterministic loopback adapter without exposing the Ajv-backed repository runner.
+- **F4 / P3 — retained gate:** npm Trusted Publisher configuration remains an independently verified pre-merge requirement because PR CI cannot exercise the push-only publish job.
+- **F5 / P3 — bounded non-claim:** positive event production/read/ack flow remains a later C-2/M0 fixture expansion; P-2 proves the signed adversarial slice, not complete standalone messaging I/O.
+
 ### Task 6: Full verification and review handoff
 
 **Files:**
@@ -682,7 +692,7 @@ Expected:
 - typecheck/lint/build exit 0;
 - all unit tests pass;
 - 25/25 structural contract fixtures pass;
-- 16/16 behavior cases execute and pass;
+- 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;
 - worktree contains no generated tarball or root media artifact.
 
@@ -713,7 +723,7 @@ Push `feat/m0-standalone-loopback`, open a PR against upstream `main`, register 
 
 - schema-generated behavior types;
 - fail-closed executor registry;
-- all 16 signed cases executed;
+- all 18 signed cases executed;
 - mutation resistance against skip/no-op/hollow adapters;
 - strict non-claim that P-2 alone completes standalone I/O or Host Broker M0.
 
