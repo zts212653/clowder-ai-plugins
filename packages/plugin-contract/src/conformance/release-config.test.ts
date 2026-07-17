@@ -23,6 +23,14 @@ const releaseWorkflow = readFileSync(
   'utf8',
 );
 
+const releasePlan = readFileSync(
+  new URL(
+    '../../../../docs/plans/2026-07-16-p2-loopback-executor.md',
+    import.meta.url,
+  ),
+  'utf8',
+);
+
 const codeowners = readFileSync(
   new URL('../../../../.github/CODEOWNERS', import.meta.url),
   'utf8',
@@ -258,6 +266,15 @@ test('publish verifies the exact registry version and artifact integrity', () =>
   assert.match(publishJob, /^      - name: Verify registry version and integrity$/m);
   assert.match(publishJob, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
   assertRegistryVerificationFailsClosed(releaseWorkflow);
+});
+
+test('review pack evidence uses the publication package manager', () => {
+  assert.match(releasePlan, /npm pack --json --ignore-scripts/);
+  assert.doesNotMatch(
+    releasePlan,
+    /^pnpm\b[^\n]*\bpack\b/m,
+    'pnpm pack produces different package contents and cannot prove npm publication bytes',
+  );
 });
 
 test('subsequent prereleases preserve the pre-publish latest target', () => {

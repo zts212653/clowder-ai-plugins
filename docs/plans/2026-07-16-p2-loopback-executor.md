@@ -728,7 +728,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (101/101 after maintainer R3 regressions, sibling scope audit, and Cloud R4 request-shape guard);
+- all unit tests pass (102/102 after maintainer R3 regressions, sibling scope audit, Cloud R4 request-shape guard, and npm-pack evidence guard);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;
@@ -737,10 +737,20 @@ Expected:
 - [x] **Step 2: Pack and inspect the exact artifact**
 
 ```bash
-pnpm --filter @clowder-ai/plugin-contract pack --json --ignore-scripts
+pack_dir=$(mktemp -d)
+(
+  cd packages/plugin-contract
+  npm pack --json --ignore-scripts --pack-destination "$pack_dir"
+)
 ```
 
 Expected: `@clowder-ai/plugin-contract@0.1.0-beta.2`, non-empty `sha512-...` integrity, generated types, schemas, fixtures, and no source-control/private-governance data.
+
+The `integrity` reported by this npm command is the release-candidate truth
+source because the publish workflow packs and publishes with npm. Do not
+substitute `pnpm pack`: for this package pnpm adds `LICENSE` and rewrites the
+packed `package.json`, producing different contents and therefore a different
+integrity even after the same build.
 
 - [x] **Step 3: Run the fallback-layer audit**
 

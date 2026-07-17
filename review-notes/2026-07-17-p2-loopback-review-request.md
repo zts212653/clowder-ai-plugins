@@ -134,6 +134,16 @@ Reviewed SHA: `2c05b6ce38db5b28f899a81258471724ae303655`
 
 The forced sibling audit confirms `send.address` already validates its tagged union before Host lookup. No other operation has the same object-discriminant lookup path. The plan truth matrix now names the request reference separately from Host-owned handle state.
 
+## Maintainer Pack-Evidence Follow-up
+
+Reviewed SHA: `2c05b6ce38db5b28f899a81258471724ae303655`
+
+| # | Finding | Failure mode | Author disposition |
+|---|---|---|---|
+| PACK-1 | durable integrity came from different bytes than the workflow's `npm pack` artifact | the manual plan used `pnpm pack` while the workflow and release guard use npm | fixed by making the plan use the exact npm package-manager path and adding a regression that rejects any pnpm pack evidence command |
+
+Root cause reproduction was deterministic: after one build, two `npm pack --json --ignore-scripts` runs were byte-identical, while `pnpm pack` produced a different tarball. The pnpm artifact contained 87 entries rather than npm's 86, added `LICENSE`, and rewrote the packed `package.json`; its integrity therefore could not represent bytes later published by npm. The stale `w3mK...`/`I19p...` evidence entered the packet because the manual gate followed the outdated plan command instead of the workflow truth source.
+
 ## Next Action
 
 Review the exact PR HEAD independently and post a logical APPROVE or REQUEST-CHANGES comment anchored to that SHA. This request is for a formal verdict, not another fresh-context scan.
@@ -161,7 +171,7 @@ pnpm install --frozen-lockfile
 pnpm --filter @clowder-ai/plugin-contract generate:check
 pnpm typecheck
 pnpm lint
-pnpm test          # 101/101
+pnpm test          # 102/102
 pnpm build
 pnpm conformance   # 25/25 structural, 18/18 behavior
 git diff --check origin/main...HEAD
@@ -171,7 +181,7 @@ Additional evidence:
 
 - Three workflow `run: |` blocks pass `bash -n`.
 - Built package self-import passes.
-- Exact pack integrity after R4: `sha512-I19peh4f/N7MnQpTkSECHaQrCrk3y/Z+b3SRo4tX8G46eEoUGkFoeB4gvLs99FOLEizaYDn4jjVGPMM2p4THLg==`.
+- Exact npm-pack integrity after R4: `sha512-gaOghnCzpejO4J5O/xyLZHxdXtTub6FjvSFoDuElpcwLD8+QCl7eDJvN6o0qwSZIOXV0gye6a/zLXmMyclhAyQ==` (`shasum da1b5946e1eb9fc77699cb7f6bb78c4660331c27`, 42,739 packed bytes, 224,504 unpacked bytes, 86 entries).
 - Root artifact gates returned no matches.
 
 ## Related Documents
