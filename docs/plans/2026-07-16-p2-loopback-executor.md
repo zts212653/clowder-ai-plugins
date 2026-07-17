@@ -458,7 +458,7 @@ git commit -m "feat(contract): execute messaging invariants in loopback" \
 - Modify: `packages/plugin-contract/src/conformance/runner.ts`
 - Modify: `packages/plugin-contract/src/conformance/behavior-fixture.test.ts`
 
-- [ ] **Step 1: Write the runner integration test**
+- [x] **Step 1: Write the runner integration test**
 
 Export a testable `runConformance()` function and capture its result:
 
@@ -476,7 +476,7 @@ test('conformance executes every loopback behavior case', async () => {
 
 Add a mutation test that replaces one adapter observation and requires a non-zero behavior failure count. This prevents the runner from returning to validate-and-skip.
 
-- [ ] **Step 2: Run the integration test to verify RED**
+- [x] **Step 2: Run the integration test to verify RED**
 
 Run:
 
@@ -486,7 +486,7 @@ pnpm --filter @clowder-ai/plugin-contract test -- behavior-fixture
 
 Expected: FAIL because the runner does not execute behavior cases or expose a report.
 
-- [ ] **Step 3: Register the loopback executor fail-closed**
+- [x] **Step 3: Register the loopback executor fail-closed**
 
 After schema validation, dispatch only registered executor names:
 
@@ -519,7 +519,7 @@ The CLI summary must become:
 
 Delete both “execution skipped” and “requires P-2” output paths. Any malformed fixture, unsupported executor, thrown adapter error, verdict mismatch, or assertion mismatch must contribute to exit code 1.
 
-- [ ] **Step 4: Verify RED mutations and GREEN baseline**
+- [x] **Step 4: Verify RED mutations and GREEN baseline**
 
 Run:
 
@@ -530,7 +530,7 @@ pnpm --filter @clowder-ai/plugin-contract conformance
 
 Expected: tests pass; conformance reports 25/25 structural fixtures and 16/16 executed behavior cases.
 
-- [ ] **Step 5: Commit mandatory execution**
+- [x] **Step 5: Commit mandatory execution**
 
 ```bash
 git add packages/plugin-contract/src/conformance/runner.ts \

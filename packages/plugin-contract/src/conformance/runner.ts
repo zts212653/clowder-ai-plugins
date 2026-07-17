@@ -17,10 +17,16 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { BehaviorFixture } from '../generated/contract.generated.js';
 import { validateMessagingSemantics } from '../validation/messaging-semantic.js';
+import {
+  executeBehaviorCase,
+  type BehaviorAdapter,
+} from './behavior-executor.js';
+import { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
 
 // Ajv is CJS — use createRequire for clean interop with ESM + verbatimModuleSyntax
 // Use ajv/dist/2020 for JSON Schema 2020-12 ($defs, etc.)
@@ -200,17 +206,52 @@ async function validateFixture(
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Runner
 // ---------------------------------------------------------------------------
 
-async function main(): Promise<void> {
+export interface ConformanceReport {
+  readonly contractFixtures: {
+    readonly passed: number;
+    readonly total: number;
+  };
+  readonly behaviorCases: {
+    readonly passed: number;
+    readonly total: number;
+  };
+  readonly failures: readonly string[];
+}
+
+export interface ConformanceOptions {
+  readonly behaviorAdapters?: Readonly<Record<string, () => BehaviorAdapter>>;
+  readonly write?: (line: string) => void;
+}
+
+const defaultBehaviorAdapters = {
+  loopback: () => new MessagingLoopbackAdapter(),
+} satisfies Readonly<Record<string, () => BehaviorAdapter>>;
+
+function isMissingDirectory(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ENOENT'
+  );
+}
+
+export async function runConformance(
+  options: ConformanceOptions = {},
+): Promise<ConformanceReport> {
   const fixturesDir = join(PKG_ROOT, 'fixtures');
   const schemasDir = join(PKG_ROOT, 'src', 'schemas');
+  const write = options.write ?? console.log;
+  const behaviorAdapters = options.behaviorAdapters ?? defaultBehaviorAdapters;
+  const failures: string[] = [];
 
-  console.log('🔍 Conformance runner — @clowder-ai/plugin-contract');
-  console.log(`   Fixtures: ${fixturesDir}`);
-  console.log(`   Schemas:  ${schemasDir}`);
-  console.log();
+  write('🔍 Conformance runner — @clowder-ai/plugin-contract');
+  write(`   Fixtures: ${fixturesDir}`);
+  write(`   Schemas:  ${schemasDir}`);
+  write('');
 
   // Load schemas
   const schemas = new Map<string, Record<string, unknown>>();
@@ -230,99 +271,157 @@ async function main(): Promise<void> {
   // Discover and validate fixtures
   const fixtures = await discoverFixtures(fixturesDir);
 
-  if (fixtures.length === 0) {
-    console.log('📭 No fixtures found — runner OK (empty run).');
-    console.log('   Fixtures will be added by sol per the three-tier fixture plan.');
-    process.exit(0);
-  }
-
   const results: ValidationResult[] = [];
   for (const fixture of fixtures) {
     results.push(await validateFixture(ajv, fixture, schemas));
   }
 
   // Report schema fixtures
-  let schemaFailures = 0;
   for (const result of results) {
     const icon = result.passed ? '✅' : '❌';
     const expect = result.fixture.validity === 'valid' ? 'should pass' : 'should fail';
-    console.log(`${icon} ${result.fixture.relativePath} (${expect})`);
-    if (result.errors) {
+    write(`${icon} ${result.fixture.relativePath} (${expect})`);
+    if (!result.passed) {
+      const errors = result.errors ?? ['fixture did not meet its expected validity'];
+      failures.push(
+        ...errors.map((message) => `${result.fixture.relativePath}: ${message}`),
+      );
+    }
+    if (result.errors && !result.passed) {
       for (const err of result.errors) {
-        console.log(`   → ${err}`);
+        write(`   → ${err}`);
       }
-      schemaFailures++;
     }
   }
 
-  // Validate and report behavioral fixtures before deferring their execution.
+  // Validate and execute behavioral fixtures through registered adapters.
   const behaviorDir = join(fixturesDir, 'behavior');
-  let behaviorCount = 0;
+  let behaviorTotal = 0;
+  let behaviorPassed = 0;
   let behaviorFileCount = 0;
-  let behaviorFailures = 0;
   const validateBehavior = ajv.getSchema(behaviorSchema['$id'] as string);
   if (!validateBehavior) {
     throw new Error('Behavior fixture schema was not registered');
   }
+
+  let behaviorDomains: string[] = [];
   try {
-    const behaviorDomains = await readdir(behaviorDir);
-    for (const domain of behaviorDomains) {
-      const domainDir = join(behaviorDir, domain);
-      let entries: string[];
-      try {
-        entries = await readdir(domainDir);
-      } catch {
-        continue;
-      }
-      for (const entry of entries) {
-        if (!entry.endsWith('.json')) continue;
-        const path = join(domainDir, entry);
-        const fixturePath = relative(fixturesDir, path);
-        let data: { _meta?: { executor?: string }; cases?: unknown[] };
-        try {
-          data = JSON.parse(await readFile(path, 'utf-8')) as typeof data;
-        } catch (error: unknown) {
-          console.log(`❌ ${fixturePath} (invalid JSON)`);
-          console.log(`   → ${error instanceof Error ? error.message : String(error)}`);
-          behaviorFailures++;
-          continue;
-        }
-
-        if (!validateBehavior(data)) {
-          console.log(`❌ ${fixturePath} (malformed behavior fixture)`);
-          for (const error of validateBehavior.errors ?? []) {
-            console.log(`   → ${error.instancePath}: ${error.message}`);
-          }
-          behaviorFailures++;
-          continue;
-        }
-
-        const caseCount = data.cases!.length;
-        behaviorCount += caseCount;
-        behaviorFileCount++;
-        console.log(
-          `✅ ${fixturePath} (${caseCount} validated cases, executor: ${data._meta!.executor}; execution skipped — requires P-2)`,
-        );
-      }
+    behaviorDomains = await readdir(behaviorDir);
+  } catch (error: unknown) {
+    if (!isMissingDirectory(error)) {
+      throw error;
     }
-  } catch {
-    // No behavior directory yet — that's fine
   }
 
-  console.log();
-  console.log(`Results: ${results.length - schemaFailures}/${results.length} contract fixtures passed`);
-  if (behaviorCount > 0) {
-    console.log(
-      `⏭️  ${behaviorCount} validated behavioral cases across ${behaviorFileCount} file(s); loopback execution requires P-2`,
+  for (const domain of behaviorDomains) {
+    const domainDir = join(behaviorDir, domain);
+    let entries: string[];
+    try {
+      entries = await readdir(domainDir);
+    } catch (error: unknown) {
+      if (isMissingDirectory(error)) {
+        continue;
+      }
+      throw error;
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith('.json')) continue;
+      const path = join(domainDir, entry);
+      const fixturePath = relative(fixturesDir, path);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await readFile(path, 'utf-8'));
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        write(`❌ ${fixturePath} (invalid JSON)`);
+        write(`   → ${message}`);
+        failures.push(`${fixturePath}: invalid JSON: ${message}`);
+        continue;
+      }
+
+      if (!validateBehavior(parsed)) {
+        write(`❌ ${fixturePath} (malformed behavior fixture)`);
+        const errors = validateBehavior.errors ?? [];
+        for (const validationError of errors) {
+          const message = `${validationError.instancePath}: ${validationError.message}`;
+          write(`   → ${message}`);
+          failures.push(`${fixturePath}: ${message}`);
+        }
+        if (errors.length === 0) {
+          failures.push(`${fixturePath}: malformed behavior fixture`);
+        }
+        continue;
+      }
+
+      const data = parsed as BehaviorFixture;
+      const caseCount = data.cases.length;
+      behaviorTotal += caseCount;
+      behaviorFileCount++;
+      const createAdapter = behaviorAdapters[data._meta.executor];
+      if (!createAdapter) {
+        const message = `unsupported behavior executor ${data._meta.executor}`;
+        write(`❌ ${fixturePath} (${message})`);
+        failures.push(`${fixturePath}: ${message}`);
+        continue;
+      }
+
+      let filePassed = 0;
+      for (const behaviorCase of data.cases) {
+        try {
+          const report = await executeBehaviorCase(behaviorCase, createAdapter());
+          if (report.passed) {
+            behaviorPassed++;
+            filePassed++;
+          } else {
+            failures.push(
+              ...report.failures.map(
+                (failure) => `${fixturePath}/${report.id}: ${failure}`,
+              ),
+            );
+          }
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          failures.push(`${fixturePath}/${behaviorCase.id}: adapter threw: ${message}`);
+        }
+      }
+
+      write(`${filePassed === caseCount ? '✅' : '❌'} ${fixturePath}`);
+      write(
+        `   ${filePassed}/${caseCount} ${data._meta.executor} behavior cases executed`,
+      );
+    }
+  }
+
+  const contractPassed = results.filter(({ passed }) => passed).length;
+  write('');
+  write(`Results: ${contractPassed}/${results.length} contract fixtures passed`);
+  if (behaviorTotal > 0) {
+    write(
+      `         ${behaviorPassed}/${behaviorTotal} behavior cases executed across ${behaviorFileCount} file(s)`,
     );
   }
 
-  if (schemaFailures + behaviorFailures > 0) {
-    process.exit(1);
-  }
+  return {
+    contractFixtures: { passed: contractPassed, total: results.length },
+    behaviorCases: { passed: behaviorPassed, total: behaviorTotal },
+    failures,
+  };
 }
 
-main().catch((err: unknown) => {
-  console.error('Conformance runner crashed:', err);
-  process.exit(1);
-});
+const isMain =
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isMain) {
+  runConformance()
+    .then((report) => {
+      if (report.failures.length > 0) {
+        process.exitCode = 1;
+      }
+    })
+    .catch((err: unknown) => {
+      console.error('Conformance runner crashed:', err);
+      process.exitCode = 1;
+    });
+}
