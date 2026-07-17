@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-import type {
-  BehaviorCase,
-  BehaviorFixture,
-  FixtureOperation,
+import {
+  CAPABILITY_TABLE,
+  type BehaviorCase,
+  type BehaviorFixture,
+  type Capability,
+  type FixtureOperation,
 } from '../generated/contract.generated.js';
 import { executeBehaviorCase } from './behavior-executor.js';
 import { MessagingLoopbackAdapter } from './index.js';
@@ -255,6 +257,206 @@ test('send rejects owned handles whose canonical thread target is unresolved', a
     assert.deepEqual(await adapter.observe('output_events'), [], target.kind);
     assert.deepEqual(await adapter.observe('idempotency_ledger'), [], target.kind);
   }
+});
+
+test('onMessage delivery requires its distinct grant and matching envelope scope', async () => {
+  const operation = {
+    operation: 'deliverOnMessage' as const,
+    input: {
+      threadHandle: 'thread-handle-a',
+      envelope: { messageId: 'message-1', threadId: 'thread-1' },
+    },
+  };
+  const setup = {
+    caller: { pluginInstanceId: 'plugin-a' },
+    handles: {
+      target: {
+        kind: 'thread_handle' as const,
+        token: 'thread-handle-a',
+        ownerPluginInstanceId: 'plugin-a',
+        threadId: 'thread-1',
+      },
+    },
+    state: {},
+  };
+
+  const allowed = new MessagingLoopbackAdapter();
+  await allowed.setup({ ...setup, grants: ['onMessage'] });
+  assert.deepEqual(await allowed.execute(operation), { status: 'success' });
+
+  const wrongGrant = new MessagingLoopbackAdapter();
+  await wrongGrant.setup({ ...setup, grants: ['message.event.subscribe'] });
+  assert.deepEqual(await wrongGrant.execute(operation), {
+    status: 'error',
+    errorCode: 'PERMISSION',
+  });
+
+  const wrongScope = new MessagingLoopbackAdapter();
+  await wrongScope.setup({ ...setup, grants: ['onMessage'] });
+  assert.deepEqual(
+    await wrongScope.execute({
+      ...operation,
+      input: {
+        ...operation.input,
+        envelope: { messageId: 'message-2', threadId: 'thread-2' },
+      },
+    }),
+    { status: 'error', errorCode: 'VALIDATION' },
+  );
+  assert.deepEqual(await wrongScope.observe('messages'), []);
+  assert.deepEqual(await wrongScope.observe('output_events'), []);
+});
+
+test('append rejects canonical messages outside the handle thread with zero mutation', async () => {
+  for (const messageThreadId of [undefined, 'thread-2']) {
+    const adapter = new MessagingLoopbackAdapter();
+    await adapter.setup({
+      caller: { pluginInstanceId: 'plugin-a' },
+      grants: ['messaging.appendElements'],
+      handles: {
+        message: {
+          kind: 'message_handle',
+          token: 'message-handle-a',
+          ownerPluginInstanceId: 'plugin-a',
+          threadId: 'thread-1',
+          messageId: 'message-1',
+        },
+      },
+      state: {
+        messages: [
+          {
+            messageId: 'message-1',
+            ...(messageThreadId === undefined ? {} : { threadId: messageThreadId }),
+            revision: 1,
+          },
+        ],
+      },
+    });
+
+    const before = await adapter.observe('messages');
+    assert.deepEqual(
+      await adapter.execute({
+        operation: 'appendElements',
+        input: {
+          handle: { kind: 'message', token: 'message-handle-a' },
+          operationId: 'cross-thread-append-1',
+          elements: [
+            { elementId: 'text-1', kind: 'text', payload: { text: 'blocked' } },
+          ],
+        },
+      }),
+      { status: 'error', errorCode: 'VALIDATION' },
+      String(messageThreadId),
+    );
+    assert.deepEqual(await adapter.observe('messages'), before);
+    assert.deepEqual(await adapter.observe('output_events'), []);
+    assert.deepEqual(await adapter.observe('idempotency_ledger'), []);
+  }
+});
+
+test('first-party presets accept exactly the schema-owned L1 capabilities', async () => {
+  const rejected = [
+    ...CAPABILITY_TABLE.L0,
+    ...CAPABILITY_TABLE.L2,
+  ] as readonly Capability[];
+  for (const capability of rejected) {
+    const adapter = new MessagingLoopbackAdapter();
+    await adapter.setup({
+      caller: { pluginInstanceId: 'first-party-plugin' },
+      grants: [],
+      handles: {},
+      state: { grantState: {} },
+    });
+    assert.deepEqual(
+      await adapter.execute({
+        operation: 'applyGrantPreset',
+        input: { presetKind: 'first_party', capabilities: [capability] },
+      }),
+      { status: 'error', errorCode: 'PERMISSION' },
+      capability,
+    );
+    assert.deepEqual(await adapter.observe('grant_state'), {}, capability);
+  }
+
+  const allowed = new MessagingLoopbackAdapter();
+  await allowed.setup({
+    caller: { pluginInstanceId: 'first-party-plugin' },
+    grants: [],
+    handles: {},
+    state: { grantState: {} },
+  });
+  assert.deepEqual(
+    await allowed.execute({
+      operation: 'applyGrantPreset',
+      input: {
+        presetKind: 'first_party',
+        capabilities: CAPABILITY_TABLE.L1,
+      },
+    }),
+    { status: 'success' },
+  );
+  assert.deepEqual(
+    await allowed.observe('grant_state'),
+    Object.fromEntries(
+      CAPABILITY_TABLE.L1.map((capability) => [
+        capability,
+        { visible: true, granted: true },
+      ]),
+    ),
+  );
+});
+
+test('subscribe resolves and preserves the canonical handle thread', async () => {
+  const unresolved = new MessagingLoopbackAdapter();
+  await unresolved.setup({
+    caller: { pluginInstanceId: 'plugin-a' },
+    grants: ['message.event.subscribe'],
+    handles: {
+      target: {
+        kind: 'thread_handle',
+        token: 'thread-handle-a',
+        ownerPluginInstanceId: 'plugin-a',
+      },
+    },
+    state: {},
+  });
+  assert.deepEqual(
+    await unresolved.execute({
+      operation: 'subscribe',
+      input: { handleId: 'thread-handle-a' },
+    }),
+    { status: 'error', errorCode: 'NOT_FOUND' },
+  );
+  assert.equal(await unresolved.observe('subscription'), undefined);
+
+  const scoped = new MessagingLoopbackAdapter();
+  await scoped.setup({
+    caller: { pluginInstanceId: 'plugin-a' },
+    grants: ['message.event.subscribe'],
+    handles: {
+      target: {
+        kind: 'thread_handle',
+        token: 'thread-handle-a',
+        ownerPluginInstanceId: 'plugin-a',
+        threadId: 'thread-1',
+      },
+    },
+    state: {},
+  });
+  assert.deepEqual(
+    await scoped.execute({
+      operation: 'subscribe',
+      input: { handleId: 'thread-handle-a' },
+    }),
+    { status: 'success' },
+  );
+  assert.deepEqual(await scoped.observe('subscription'), {
+    subscriptionId: 'loopback-subscription-1',
+    ownerPluginInstanceId: 'plugin-a',
+    threadId: 'thread-1',
+    cursorSequence: 0,
+    ackedSequence: 0,
+  });
 });
 
 test('replay deletion is scoped to the authorized subscription', async () => {

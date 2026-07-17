@@ -79,7 +79,7 @@
         "handles": {
           "foreignMessage": { "kind": "message_handle", "token": "message-handle-b", "ownerPluginInstanceId": "plugin-b", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 1 }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1 }] }
       },
       "when": {
         "operation": "appendElements",
@@ -141,7 +141,7 @@
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 2 }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 2 }] }
       },
       "when": {
         "operation": "appendElements",
@@ -253,7 +253,7 @@
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 1, "elements": [{ "elementId": "source-1", "epistemicStatus": "inference" }] }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1, "elements": [{ "elementId": "source-1", "epistemicStatus": "inference" }] }] }
       },
       "when": {
         "operation": "appendElements",
@@ -357,7 +357,7 @@
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
-        "state": { "messages": [{ "messageId": "message-1", "revision": 1 }] }
+        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1 }] }
       },
       "when": {
         "operation": "appendElements",

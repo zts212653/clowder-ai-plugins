@@ -5,9 +5,11 @@ import {
   type AppendOperationInput,
   type Capability,
   type DeleteReplayEventsInput,
+  type FixtureHandle,
   type FixtureOperation,
   type FixtureSetup,
   type MessagingErrorCode,
+  type OnMessageDeliveryInput,
   type PermissionMatrixEntry,
   type SendOperationInput,
 } from '../generated/contract.generated.js';
@@ -33,6 +35,11 @@ const success: BehaviorVerdict = { status: 'success' };
 
 type SubscriptionAccess =
   | { readonly ok: true; readonly subscription: LoopbackRecord }
+  | { readonly ok: false; readonly verdict: BehaviorVerdict };
+
+type ScopedHandle = FixtureHandle & { readonly threadId: string };
+type ScopedHandleAccess =
+  | { readonly ok: true; readonly handle: ScopedHandle }
   | { readonly ok: false; readonly verdict: BehaviorVerdict };
 
 function assertNever(value: never): never {
@@ -69,7 +76,7 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
       case 'revokeGrant':
         return this.revokeGrant(operation.input.capability);
       case 'deliverOnMessage':
-        return this.deliverOnMessage(operation.input.threadHandle);
+        return this.deliverOnMessage(operation.input);
       case 'checkPermissionMatrix':
         return this.checkPermissionMatrix(operation.input.entries);
       case 'deleteReplayEvents':
@@ -86,19 +93,25 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     return this.state;
   }
 
-  private ownsHandle(token: unknown, kind: string): BehaviorVerdict | undefined {
+  private accessScopedHandle(
+    token: unknown,
+    kind: FixtureHandle['kind'],
+  ): ScopedHandleAccess {
     const state = this.requireState();
     if (typeof token !== 'string') {
-      return error('VALIDATION');
+      return { ok: false, verdict: error('VALIDATION') };
     }
     const handle = state.handles.get(token);
     if (!handle || handle.kind !== kind) {
-      return error('NOT_FOUND');
+      return { ok: false, verdict: error('NOT_FOUND') };
     }
     if (handle.ownerPluginInstanceId !== state.callerId) {
-      return error('PERMISSION');
+      return { ok: false, verdict: error('PERMISSION') };
     }
-    return undefined;
+    if (typeof handle.threadId !== 'string' || handle.threadId.length === 0) {
+      return { ok: false, verdict: error('NOT_FOUND') };
+    }
+    return { ok: true, handle: handle as ScopedHandle };
   }
 
   private accessSubscription(subscriptionId: string): SubscriptionAccess {
@@ -133,14 +146,11 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     ) {
       return error('VALIDATION');
     }
-    const ownershipError = this.ownsHandle(address.handle, address.kind);
-    if (ownershipError) {
-      return ownershipError;
+    const targetAccess = this.accessScopedHandle(address.handle, address.kind);
+    if (!targetAccess.ok) {
+      return targetAccess.verdict;
     }
-    const target = state.handles.get(address.handle as string);
-    if (typeof target?.threadId !== 'string' || target.threadId.length === 0) {
-      return error('NOT_FOUND');
-    }
+    const { handle: target } = targetAccess;
 
     const audience = rawInput.draftAudience;
     if (isRecord(audience) && audience.kind === 'system') {
@@ -207,14 +217,23 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     }
 
     const rawHandle = input.handle;
-    const ownershipError = this.ownsHandle(rawHandle.token, 'message_handle');
-    if (ownershipError) {
-      return ownershipError;
+    const handleAccess = this.accessScopedHandle(rawHandle.token, 'message_handle');
+    if (!handleAccess.ok) {
+      return handleAccess.verdict;
     }
-    const handle = state.handles.get(rawHandle.token as string);
-    const message = handle?.messageId ? state.messages.get(handle.messageId) : undefined;
+    const { handle } = handleAccess;
+    if (typeof handle.messageId !== 'string' || handle.messageId.length === 0) {
+      return error('NOT_FOUND');
+    }
+    const message = state.messages.get(handle.messageId);
     if (!message) {
       return error('NOT_FOUND');
+    }
+    if (
+      typeof message.threadId !== 'string' ||
+      message.threadId !== handle.threadId
+    ) {
+      return error('VALIDATION');
     }
 
     const baseRevision = (input as unknown as LoopbackRecord).baseRevision;
@@ -261,14 +280,16 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     if (!state.grants.has('message.event.subscribe')) {
       return error('PERMISSION');
     }
-    const ownershipError = this.ownsHandle(handleId, 'thread_handle');
-    if (ownershipError) {
-      return ownershipError;
+    const handleAccess = this.accessScopedHandle(handleId, 'thread_handle');
+    if (!handleAccess.ok) {
+      return handleAccess.verdict;
     }
+    const { handle } = handleAccess;
     const subscriptionId = `loopback-subscription-${state.subscriptions.size + 1}`;
     const subscription = {
       subscriptionId,
       ownerPluginInstanceId: state.callerId,
+      threadId: handle.threadId,
       cursorSequence: 0,
       ackedSequence: 0,
     };
@@ -352,8 +373,8 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private applyGrantPreset(capabilities: readonly Capability[]): BehaviorVerdict {
     const state = this.requireState();
-    const l2 = new Set<string>(CAPABILITY_TABLE.L2);
-    if (capabilities.some((capability) => l2.has(capability))) {
+    const l1 = new Set<Capability>(CAPABILITY_TABLE.L1);
+    if (capabilities.some((capability) => !l1.has(capability))) {
       return error('PERMISSION');
     }
     for (const capability of capabilities) {
@@ -383,14 +404,22 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     return success;
   }
 
-  private deliverOnMessage(threadHandle: string): BehaviorVerdict {
+  private deliverOnMessage(input: OnMessageDeliveryInput): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('message.event.subscribe')) {
+    if (!state.grants.has('onMessage')) {
       return error('PERMISSION');
     }
-    const ownershipError = this.ownsHandle(threadHandle, 'thread_handle');
-    if (ownershipError) {
-      return ownershipError;
+    const handleAccess = this.accessScopedHandle(input.threadHandle, 'thread_handle');
+    if (!handleAccess.ok) {
+      return handleAccess.verdict;
+    }
+    const envelopeThreadId = input.envelope.threadId;
+    if (
+      typeof envelopeThreadId !== 'string' ||
+      envelopeThreadId.length === 0 ||
+      envelopeThreadId !== handleAccess.handle.threadId
+    ) {
+      return error('VALIDATION');
     }
     return success;
   }

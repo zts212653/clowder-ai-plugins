@@ -321,6 +321,29 @@ git commit -m "feat(contract): add behavior fixture executor" \
 - Create: `packages/plugin-contract/src/conformance/messaging-loopback-adapter.ts`
 - Create: `packages/plugin-contract/src/conformance/messaging-loopback-adapter.test.ts`
 
+#### Stateful Object Gate: authorization and canonical scope
+
+R3 review exposed that ownership and capability checks alone do not authorize a
+state transition. Every operation that consumes a host-issued handle must first
+resolve the handle's canonical scope and bind every other state object involved
+in the transition to that same scope.
+
+| Truth | Writer / owner | Readers | Required invariant |
+|---|---|---|---|
+| capability layer | `manifest.schema.json` → generated `CAPABILITY_TABLE` | preset application, permission-matrix check, callback delivery | first-party presets are exactly the schema-owned L1 set; `onMessage` and `message.event.subscribe` remain distinct L2 grants |
+| host handle scope | fixture `handles[*].threadId` standing in for Host-issued state | send, subscribe, append, callback delivery | token exists, kind matches, caller owns it, and canonical `threadId` is non-empty before any mutation |
+| canonical message scope | fixture `state.messages[*].threadId` standing in for Host message state | append and same-thread reply validation | resolved message exists and its `threadId` equals the authorized handle scope |
+| callback envelope scope | `deliverOnMessage.input.envelope.threadId` | callback delivery | envelope `threadId` equals the authorized thread handle scope |
+| grant projection | `grants` plus `grantState` | preset apply/revoke observations | validate the entire requested preset before changing either collection |
+
+| Operation | Required capability | Scope transition | Mutation boundary |
+|---|---|---|---|
+| `send` | `messaging.send` | owned scoped thread/binding handle → new message in the same thread | create message/event/ledger only after all audience, provenance, and reply checks |
+| `subscribe` | `message.event.subscribe` | owned scoped thread handle → subscription carrying the same thread | create subscription only after handle scope resolves |
+| `appendElements` | `messaging.appendElements` | owned scoped message handle → canonical message with the same `threadId` | revise message and emit event/ledger only after scope, revision, and epistemic checks |
+| `deliverOnMessage` | `onMessage` | owned scoped thread handle + envelope with the same `threadId` | reference callback delivery has no collection mutation; every failed precondition preserves all observations |
+| `applyGrantPreset` | n/a (policy operation) | requested capabilities must be a subset of generated L1 | update grants and visible grant state only after the whole request passes |
+
 - [x] **Step 1: Write one failing test per operation family**
 
 The focused suite must cover:
@@ -424,10 +447,11 @@ async execute(operation: FixtureOperation): Promise<BehaviorVerdict> {
 Each handler must enforce the signed invariant before mutation:
 
 - `send`: require `messaging.send`, a caller-owned host handle, no system audience, caller-owned plugin origin, in-grant whisper targets, and same-thread `replyTo`.
-- `appendElements`: require `messaging.appendElements`, caller-owned message handle, matching base revision, and no epistemic upgrade.
+- `appendElements`: require `messaging.appendElements`, a caller-owned message handle with resolved message/thread scope, a canonical message in that same thread, matching base revision, and no epistemic upgrade.
+- `subscribe`: require `message.event.subscribe` and a caller-owned thread handle with a resolved canonical thread; persist that thread on the subscription projection.
 - `read/ack/snapshot`: keep cursor and ack token subscription-local; stale reads return no events and an exact snapshot resume observation.
-- grant preset: reject every L2 capability; L1 preset grants remain visible and revocable; default whisper targets remain empty.
-- `deliverOnMessage`: require `message.event.subscribe`.
+- grant preset: accept only the schema-owned L1 set; reject every L0/L2 capability before mutation; L1 preset grants remain visible and revocable; default whisper targets remain empty.
+- `deliverOnMessage`: require `onMessage`, a caller-owned scoped thread handle, and an envelope whose canonical `threadId` matches that handle.
 - permission matrix: require all 17 unique schema-owned capabilities and the signed L0/L1/L2/preset mapping.
 - replay deletion: delete only replay events; canonical messages are a different collection and remain unchanged.
 
@@ -678,6 +702,8 @@ The distributed fixture count remains 18. Existing case IDs, operations, invaria
 
 The independent R1 delta review found one further P2 in the same handle family: an owned send address could lack a resolved `threadId` and still materialize a non-canonical message. The R2 fix requires a non-empty canonical thread target after kind/owner authorization and before any observation or collection mutation, for both `thread_handle` and `connector_binding`. Its regression locks `NOT_FOUND` plus zero messages, output events, and ledger entries. The replay regression also explicitly proves that an unscoped event is preserved fail-closed.
 
+The maintainer exact-head R3 review exposed three remaining transitions that the earlier pointwise audit missed: callback delivery conflated `onMessage` with event subscription and discarded envelope scope; append bound message identity but not canonical message thread; and first-party presets used an L2 denylist instead of the signed L1 allowlist. Because this was the third round on the same adapter state object, the Stateful Object Gate above is now the controlling plan boundary. One scope resolver protects send/subscribe/append/callback transitions; append and callback additionally bind their canonical message/envelope thread before mutation; presets derive their complete allowlist from generated `CAPABILITY_TABLE.L1`. The audit also closes the sibling unscoped-subscribe path. Four focused regressions prove Red→Green while the distributed suite remains 18 cases with unchanged IDs, operations, invariants, and expected verdicts.
+
 ### Task 6: Full verification and review handoff
 
 **Files:**
@@ -699,7 +725,7 @@ Expected:
 
 - generated projection current;
 - typecheck/lint/build exit 0;
-- all unit tests pass (96/96 after automated and independent delta-review regressions);
+- all unit tests pass (100/100 after maintainer R3 regressions and the sibling scope audit);
 - 25/25 structural contract fixtures pass;
 - 18/18 behavior cases execute and pass;
 - no “execution skipped” text remains;
