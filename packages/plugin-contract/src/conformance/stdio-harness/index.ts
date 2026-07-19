@@ -1,6 +1,7 @@
 export {
   HarnessChild,
   HarnessChildExitedError,
+  HarnessCleanupError,
   HarnessFrameBacklogError,
   HarnessTimeoutError,
   MAX_HARNESS_QUEUED_FRAMES,

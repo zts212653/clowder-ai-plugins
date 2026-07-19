@@ -2,10 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  HarnessCleanupError,
   HarnessTimeoutError,
   MAX_HARNESS_QUEUED_FRAMES,
   runHarnessCase,
   spawnHarnessChild,
+  spawnHarnessChildWithAdapter,
+  type HarnessPlatformAdapter,
 } from './child-process-harness.js';
 import { MAX_NDJSON_FRAME_BYTES, NdjsonFrameError } from './ndjson-frame.js';
 
@@ -88,6 +91,84 @@ test('drains the final stdout frame after the direct child has exited', async ()
     type: 'final',
   });
   await child.stop();
+});
+
+test('Windows cleanup retains a stable sentinel root after target exit', async () => {
+  const adapter: HarnessPlatformAdapter = {
+    platform: 'win32',
+    createProcessTreeRuntime: (signalTarget) => ({
+      platform: 'win32',
+      now: Date.now,
+      sleep: (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)),
+      signalTarget,
+      signalTree: () => assert.fail('Windows cleanup must not signal a POSIX group'),
+      treeIsAlive: processIsAlive,
+      runTaskkill: async (rootPid) => {
+        process.kill(rootPid, 'SIGKILL');
+        return { status: 'success' };
+      },
+    }),
+  };
+  const child = spawnHarnessChildWithAdapter(
+    { command: process.execPath, args: ['-e', 'process.exit(19)'] },
+    adapter,
+  );
+  const rootPid = child.pid;
+  assert.notEqual(rootPid, undefined);
+
+  try {
+    assert.deepEqual(await child.waitForExit(), { code: 19, signal: null });
+    assert.equal(processIsAlive(rootPid as number), true);
+    await child.stop(20);
+    assert.equal(processIsAlive(rootPid as number), false);
+  } finally {
+    killForTestCleanup(rootPid);
+  }
+});
+
+test('Windows cleanup exposes taskkill failure instead of returning silently', async () => {
+  let now = 0;
+  const taskkillPids: number[] = [];
+  const adapter: HarnessPlatformAdapter = {
+    platform: 'win32',
+    createProcessTreeRuntime: (signalTarget) => ({
+      platform: 'win32',
+      now: () => now,
+      sleep: async (delayMs) => {
+        now += delayMs;
+      },
+      signalTarget,
+      signalTree: () => assert.fail('Windows cleanup must not signal a POSIX group'),
+      treeIsAlive: () => true,
+      runTaskkill: async (rootPid) => {
+        taskkillPids.push(rootPid);
+        return { status: 'nonzero', code: 128 };
+      },
+    }),
+  };
+  const child = spawnHarnessChildWithAdapter(
+    { command: process.execPath, args: ['-e', 'process.exit(0)'] },
+    adapter,
+  );
+  const rootPid = child.pid;
+  assert.notEqual(rootPid, undefined);
+
+  try {
+    await child.waitForExit();
+    await assert.rejects(
+      child.stop(0),
+      (error: unknown) =>
+        error instanceof HarnessCleanupError &&
+        error.rootPid === rootPid &&
+        error.message.includes('nonzero'),
+    );
+    assert.deepEqual(taskkillPids, [rootPid]);
+  } finally {
+    killForTestCleanup(rootPid);
+    if (rootPid !== undefined) {
+      await waitForProcessExit(rootPid, 300);
+    }
+  }
 });
 
 test('case timeout kills the isolated child before rejecting', async () => {
