@@ -61,6 +61,8 @@ test('proves the three encoding families against a frozen P-2 message-draft fixt
   const proof = calculateByteProof({
     template: fixture as JsonValue,
     leaves: [
+      // These values copy frozen schema maxLength values (code-point semantics).
+      // They are an input example, never a proposed P-1a public wire bound.
       { id: 'threadHandle', path: ['address', 'handle'], maxCodePoints: 256 },
       { id: 'idempotencyKey', path: ['idempotencyKey'], maxCodePoints: 200 },
       {
@@ -94,5 +96,59 @@ test('rejects a profile that does not resolve to a string leaf', () => {
         frameLimitBytes: 10,
       }),
     /must resolve to a string/,
+  );
+});
+
+test('rejects duplicate byte-proof profile ids', () => {
+  assert.throws(
+    () =>
+      calculateByteProof({
+        template: { left: 'left', right: 'right' },
+        leaves: [
+          { id: 'duplicate', path: ['left'], maxCodePoints: 1 },
+          { id: 'duplicate', path: ['right'], maxCodePoints: 1 },
+        ],
+        frameLimitBytes: 10,
+      }),
+    /duplicate byte-proof profile id/,
+  );
+});
+
+test('rejects duplicate byte-proof profile paths', () => {
+  assert.throws(
+    () =>
+      calculateByteProof({
+        template: { value: 'value' },
+        leaves: [
+          { id: 'first', path: ['value'], maxCodePoints: 1 },
+          { id: 'second', path: ['value'], maxCodePoints: 1 },
+        ],
+        frameLimitBytes: 10,
+      }),
+    /duplicate byte-proof profile path/,
+  );
+});
+
+test('rejects an unresolved byte-proof profile path', () => {
+  assert.throws(
+    () =>
+      calculateByteProof({
+        template: { present: 'value' },
+        leaves: [{ id: 'missing', path: ['absent'], maxCodePoints: 1 }],
+        frameLimitBytes: 10,
+      }),
+    /has an unresolved path/,
+  );
+});
+
+test('rejects a byte-proof template containing a non-finite number', () => {
+  assert.throws(
+    () =>
+      calculateByteProof({
+        template: { value: 'value', malformed: Number.NaN },
+        leaves: [{ id: 'value', path: ['value'], maxCodePoints: 1 }],
+        frameLimitBytes: 10,
+      }),
+    /only finite JSON numbers/,
   );
 });

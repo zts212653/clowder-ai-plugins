@@ -24,6 +24,9 @@ type MutableJsonValue =
   | MutableJsonValue[]
   | { [key: string]: MutableJsonValue };
 
+type JsonRecord = { readonly [key: string]: JsonValue };
+type MutableJsonRecord = { [key: string]: MutableJsonValue };
+
 export const BYTE_PROOF_ENCODING_FAMILIES = [
   'ascii',
   'multibyte',
@@ -78,7 +81,11 @@ const FAMILY_CODE_POINT: Record<ByteProofEncodingFamily, string> = {
   escaping: '\u0000',
 };
 
-function isRecord(value: MutableJsonValue): value is { [key: string]: MutableJsonValue } {
+function isRecord(value: JsonValue): value is JsonRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isMutableRecord(value: MutableJsonValue): value is MutableJsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -113,11 +120,11 @@ function validatePath(profile: ClosedStringLeafProfile): void {
   }
 }
 
-function childAtPath(
-  value: MutableJsonValue,
+function readChildAtPath(
+  value: JsonValue,
   segment: JsonPathSegment,
   profileId: string,
-): MutableJsonValue {
+): JsonValue {
   if (typeof segment === 'number') {
     if (!Array.isArray(value) || segment >= value.length) {
       throw new Error(`byte-proof profile ${profileId} has an unresolved path`);
@@ -131,9 +138,17 @@ function childAtPath(
   return value[segment]!;
 }
 
+function mutableChildAtPath(
+  value: MutableJsonValue,
+  segment: JsonPathSegment,
+  profileId: string,
+): MutableJsonValue {
+  return readChildAtPath(value, segment, profileId) as MutableJsonValue;
+}
+
 function assertStringLeaf(template: JsonValue, profile: ClosedStringLeafProfile): void {
-  let current = cloneJson(template);
-  for (const segment of profile.path) current = childAtPath(current, segment, profile.id);
+  let current = template;
+  for (const segment of profile.path) current = readChildAtPath(current, segment, profile.id);
   if (typeof current !== 'string') {
     throw new Error(`byte-proof profile ${profile.id} must resolve to a string leaf`);
   }
@@ -157,13 +172,29 @@ function replaceStringLeaf(
         return;
       }
 
-      if (!isRecord(parent) || !Object.hasOwn(parent, segment) || typeof parent[segment] !== 'string') {
+      if (!isMutableRecord(parent) || !Object.hasOwn(parent, segment) || typeof parent[segment] !== 'string') {
         throw new Error(`byte-proof profile ${profile.id} must resolve to a string leaf`);
       }
       parent[segment] = replacement;
       return;
     }
-    parent = childAtPath(parent, segment, profile.id);
+    parent = mutableChildAtPath(parent, segment, profile.id);
+  }
+}
+
+function assertFiniteJsonNumbers(value: JsonValue): void {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      throw new Error('byte-proof template must contain only finite JSON numbers');
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) assertFiniteJsonNumbers(item);
+    return;
+  }
+  if (isRecord(value)) {
+    for (const item of Object.values(value)) assertFiniteJsonNumbers(item);
   }
 }
 
@@ -194,6 +225,7 @@ function validateInput(input: ByteProofInput): void {
   if (input.leaves.length === 0) {
     throw new Error('byte-proof requires at least one closed string leaf profile');
   }
+  assertFiniteJsonNumbers(input.template);
 
   const ids = new Set<string>();
   const paths = new Set<string>();
