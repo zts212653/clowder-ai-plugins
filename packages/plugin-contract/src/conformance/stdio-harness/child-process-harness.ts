@@ -68,7 +68,9 @@ export class HarnessChild {
   private readonly exitPromise: Promise<HarnessChildExit>;
   private resolveExit!: (exit: HarnessChildExit) => void;
   private exit: HarnessChildExit | undefined;
+  private streamsClosed = false;
   private fatalError: Error | undefined;
+  private hardKillRequested = false;
 
   constructor(private readonly child: ChildProcessWithoutNullStreams) {
     this.pid = child.pid;
@@ -104,10 +106,20 @@ export class HarnessChild {
       this.failAndKill(error);
     });
     child.stderr.resume();
+    const recordExit = (
+      code: number | null,
+      signal: NodeJS.Signals | null,
+    ): HarnessChildExit => {
+      if (this.exit === undefined) {
+        this.exit = { code, signal };
+        this.resolveExit(this.exit);
+      }
+      return this.exit;
+    };
+    child.once('exit', recordExit);
     child.once('close', (code, signal) => {
-      const exit = { code, signal } satisfies HarnessChildExit;
-      this.exit = exit;
-      this.resolveExit(exit);
+      const exit = recordExit(code, signal);
+      this.streamsClosed = true;
       if (this.fatalError === undefined) {
         this.fail(new HarnessChildExitedError(exit));
       }
@@ -139,7 +151,7 @@ export class HarnessChild {
     if (this.fatalError !== undefined) {
       throw this.fatalError;
     }
-    if (this.exit !== undefined) {
+    if (this.streamsClosed && this.exit !== undefined) {
       throw new HarnessChildExitedError(this.exit);
     }
 
@@ -164,9 +176,7 @@ export class HarnessChild {
   }
 
   kill(signal: NodeJS.Signals = 'SIGKILL'): void {
-    if (this.exit === undefined) {
-      this.child.kill(signal);
-    }
+    this.signalProcessTree(signal);
   }
 
   waitForExit(): Promise<HarnessChildExit> {
@@ -174,11 +184,8 @@ export class HarnessChild {
   }
 
   async stop(terminateGraceMs = 100): Promise<HarnessChildExit> {
-    if (this.exit !== undefined) {
-      return this.exit;
-    }
     this.child.stdin.end();
-    this.child.kill('SIGTERM');
+    this.signalProcessTree('SIGTERM');
 
     const exitedDuringGrace = await new Promise<boolean>((resolve) => {
       const timer = setTimeout(() => resolve(false), terminateGraceMs);
@@ -187,8 +194,11 @@ export class HarnessChild {
         resolve(true);
       });
     });
-    if (!exitedDuringGrace && this.exit === undefined) {
-      this.child.kill('SIGKILL');
+    if (
+      !exitedDuringGrace ||
+      (!this.hardKillRequested && this.processTreeIsAlive())
+    ) {
+      this.signalProcessTree('SIGKILL');
     }
     return this.exitPromise;
   }
@@ -234,13 +244,62 @@ export class HarnessChild {
 
   private failAndKill(error: unknown): void {
     this.fail(error instanceof Error ? error : new Error(String(error)), true);
-    this.child.kill('SIGKILL');
+    this.signalProcessTree('SIGKILL');
+  }
+
+  private signalProcessTree(signal: NodeJS.Signals): void {
+    if (this.hardKillRequested) {
+      return;
+    }
+    if (signal === 'SIGKILL') {
+      this.hardKillRequested = true;
+    }
+    if (this.pid === undefined) {
+      this.child.kill(signal);
+      return;
+    }
+    if (process.platform === 'win32') {
+      const taskkill = spawn(
+        'taskkill',
+        ['/pid', String(this.pid), '/t', '/f'],
+        { stdio: 'ignore', windowsHide: true },
+      );
+      taskkill.once('error', () => {
+        this.child.kill(signal);
+      });
+      return;
+    }
+    try {
+      process.kill(-this.pid, signal);
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
+        this.child.kill(signal);
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private processTreeIsAlive(): boolean {
+    if (this.pid === undefined || process.platform === 'win32') {
+      return this.exit === undefined;
+    }
+    try {
+      process.kill(-this.pid, 0);
+      return true;
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
+        return false;
+      }
+      throw error;
+    }
   }
 }
 
 export function spawnHarnessChild(options: SpawnHarnessChildOptions): HarnessChild {
   const child = spawn(options.command, [...(options.args ?? [])], {
     cwd: options.cwd,
+    detached: process.platform !== 'win32',
     env: options.env,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -262,6 +321,7 @@ export async function runHarnessCase<T>(
       execute(child),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
+          child.kill('SIGKILL');
           reject(
             new HarnessTimeoutError(
               `harness case timed out after ${options.timeoutMs}ms`,
