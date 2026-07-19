@@ -20,6 +20,46 @@ process.stdin.resume();
 setInterval(() => {}, 1_000);
 `;
 
+const inheritedPipeHelperPrelude = `
+const { spawn } = require('node:child_process');
+const helper = spawn(
+  process.execPath,
+  ['-e', "process.on('SIGTERM', () => {}); setInterval(() => {}, 1_000);"],
+  { stdio: ['ignore', 'inherit', 'inherit'] },
+);
+process.stdout.write(JSON.stringify({ helperPid: helper.pid }) + '\\n');
+`;
+
+const inheritedPipeHelperScript = `${inheritedPipeHelperPrelude}
+setInterval(() => {}, 1_000);
+`;
+
+function processIsAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function killForTestCleanup(pid: number | undefined): void {
+  if (pid !== undefined && processIsAlive(pid)) {
+    process.kill(pid, 'SIGKILL');
+  }
+}
+
+async function waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (processIsAlive(pid) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  return !processIsAlive(pid);
+}
+
 test('exchanges a raw schema-neutral NDJSON frame with a child process', async () => {
   const child = spawnHarnessChild({
     command: process.execPath,
@@ -35,6 +75,19 @@ test('exchanges a raw schema-neutral NDJSON frame with a child process', async (
   } finally {
     await child.stop();
   }
+});
+
+test('drains the final stdout frame after the direct child has exited', async () => {
+  const child = spawnHarnessChild({
+    command: process.execPath,
+    args: ['-e', `process.stdout.write('{"type":"final"}\\n');`],
+  });
+
+  await child.waitForExit();
+  assert.deepEqual((await child.receive({ timeoutMs: 1_000 })).value, {
+    type: 'final',
+  });
+  await child.stop();
 });
 
 test('case timeout kills the isolated child before rejecting', async () => {
@@ -60,6 +113,41 @@ test('case timeout kills the isolated child before rejecting', async () => {
   }
   const terminatedPid = pid;
   assert.throws(() => process.kill(terminatedPid, 0), { code: 'ESRCH' });
+});
+
+test('case timeout kills helpers that inherit the child protocol pipes', async () => {
+  let helperPid: number | undefined;
+  let safetyTimer: NodeJS.Timeout | undefined;
+  const startedAt = Date.now();
+
+  try {
+    await assert.rejects(
+      runHarnessCase(
+        {
+          command: process.execPath,
+          args: ['-e', inheritedPipeHelperScript],
+          timeoutMs: 200,
+          terminateGraceMs: 40,
+        },
+        async (child) => {
+          const value = (await child.receive({ timeoutMs: 1_000 })).value;
+          assert.equal(typeof value.helperPid, 'number');
+          helperPid = value.helperPid as number;
+          safetyTimer = setTimeout(() => killForTestCleanup(helperPid), 1_000);
+          return new Promise<never>(() => {});
+        },
+      ),
+      (error: unknown) => error instanceof HarnessTimeoutError,
+    );
+    assert.notEqual(helperPid, undefined);
+    assert.equal(await waitForProcessExit(helperPid as number, 300), true);
+    assert.ok(Date.now() - startedAt < 700, 'timeout cleanup waited for the leaked helper');
+  } finally {
+    if (safetyTimer !== undefined) {
+      clearTimeout(safetyTimer);
+    }
+    killForTestCleanup(helperPid);
+  }
 });
 
 test('SIGKILL of one case does not prevent a subsequent child case', async () => {
@@ -105,6 +193,41 @@ test('oversized stdout fails closed and kills the offending child', async () => 
     code: null,
     signal: 'SIGKILL',
   });
+});
+
+test('fatal protocol output kills helpers that inherit the child protocol pipes', async () => {
+  const script = `${inheritedPipeHelperPrelude}
+setTimeout(() => process.stdout.write('x'.repeat(${MAX_NDJSON_FRAME_BYTES + 1})), 20);
+`;
+  const child = spawnHarnessChild({
+    command: process.execPath,
+    args: ['-e', script],
+  });
+  let helperPid: number | undefined;
+  let safetyTimer: NodeJS.Timeout | undefined;
+
+  try {
+    const value = (await child.receive({ timeoutMs: 1_000 })).value;
+    assert.equal(typeof value.helperPid, 'number');
+    helperPid = value.helperPid as number;
+    safetyTimer = setTimeout(() => killForTestCleanup(helperPid), 1_000);
+    const startedAt = Date.now();
+
+    await assert.rejects(
+      child.receive({ timeoutMs: 1_000 }),
+      (error: unknown) =>
+        error instanceof NdjsonFrameError && error.code === 'FRAME_TOO_LARGE',
+    );
+    await child.waitForExit();
+
+    assert.equal(await waitForProcessExit(helperPid, 200), true);
+    assert.ok(Date.now() - startedAt < 500, 'fatal cleanup waited for the leaked helper');
+  } finally {
+    if (safetyTimer !== undefined) {
+      clearTimeout(safetyTimer);
+    }
+    killForTestCleanup(helperPid);
+  }
 });
 
 test('reports spawn failure through the harness instead of an unhandled child error', async () => {
