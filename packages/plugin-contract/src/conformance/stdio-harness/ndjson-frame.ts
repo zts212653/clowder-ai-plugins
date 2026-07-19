@@ -59,7 +59,15 @@ export function encodeNdjsonFrame(
   maxFrameBytes = MAX_NDJSON_FRAME_BYTES,
 ): Uint8Array {
   assertJsonObject(value);
-  const frame = Buffer.from(JSON.stringify(value), 'utf8');
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) {
+    throw new NdjsonFrameError(
+      'INVALID_FRAME',
+      'NDJSON frames must serialize to one non-array JSON object',
+    );
+  }
+  assertJsonObject(JSON.parse(serialized) as unknown);
+  const frame = Buffer.from(serialized, 'utf8');
   if (frame.byteLength > maxFrameBytes) {
     throw new NdjsonFrameError(
       'FRAME_TOO_LARGE',

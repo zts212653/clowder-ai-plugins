@@ -29,6 +29,19 @@ test('rejects an outbound frame one byte above the hard limit', () => {
   );
 });
 
+test('rejects objects whose serialized top-level value is not an object', () => {
+  for (const serializedValue of [null, 'scalar', ['array'], undefined]) {
+    assert.throws(
+      () =>
+        encodeNdjsonFrame({
+          toJSON: () => serializedValue,
+        }),
+      (error: unknown) =>
+        error instanceof NdjsonFrameError && error.code === 'INVALID_FRAME',
+    );
+  }
+});
+
 test('decodes frames split across arbitrary stdout chunks', () => {
   const decoder = new NdjsonFrameDecoder();
 

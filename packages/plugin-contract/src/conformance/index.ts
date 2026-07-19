@@ -25,7 +25,9 @@ export { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
 export {
   HarnessChild,
   HarnessChildExitedError,
+  HarnessFrameBacklogError,
   HarnessTimeoutError,
+  MAX_HARNESS_QUEUED_FRAMES,
   MAX_NDJSON_FRAME_BYTES,
   NdjsonFrameDecoder,
   NdjsonFrameError,

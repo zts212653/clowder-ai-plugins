@@ -1,7 +1,9 @@
 export {
   HarnessChild,
   HarnessChildExitedError,
+  HarnessFrameBacklogError,
   HarnessTimeoutError,
+  MAX_HARNESS_QUEUED_FRAMES,
   runHarnessCase,
   spawnHarnessChild,
   type HarnessChildExit,

@@ -7,6 +7,8 @@ import {
   type JsonObject,
 } from './ndjson-frame.js';
 
+export const MAX_HARNESS_QUEUED_FRAMES = 16;
+
 export interface SpawnHarnessChildOptions {
   readonly command: string;
   readonly args?: readonly string[];
@@ -44,6 +46,13 @@ export class HarnessChildExitedError extends Error {
   }
 }
 
+export class HarnessFrameBacklogError extends Error {
+  constructor(readonly maxQueuedFrames = MAX_HARNESS_QUEUED_FRAMES) {
+    super(`decoded child frame backlog exceeded ${maxQueuedFrames} queued frames`);
+    this.name = 'HarnessFrameBacklogError';
+  }
+}
+
 interface FrameWaiter {
   readonly resolve: (frame: DecodedNdjsonFrame) => void;
   readonly reject: (error: Error) => void;
@@ -73,8 +82,7 @@ export class HarnessChild {
           this.enqueue(frame);
         }
       } catch (error) {
-        this.fail(error instanceof Error ? error : new Error(String(error)));
-        child.kill('SIGKILL');
+        this.failAndKill(error);
       }
     });
     child.stdout.on('end', () => {
@@ -86,12 +94,14 @@ export class HarnessChild {
           this.enqueue(frame);
         }
       } catch (error) {
-        this.fail(error instanceof Error ? error : new Error(String(error)));
-        child.kill('SIGKILL');
+        this.failAndKill(error);
       }
     });
+    child.stdin.on('error', (error) => this.failAndKill(error));
+    child.stdout.on('error', (error) => this.failAndKill(error));
+    child.stderr.on('error', (error) => this.failAndKill(error));
     child.once('error', (error) => {
-      this.fail(error);
+      this.failAndKill(error);
     });
     child.stderr.resume();
     child.once('close', (code, signal) => {
@@ -195,6 +205,9 @@ export class HarnessChild {
   private enqueue(frame: DecodedNdjsonFrame): void {
     const waiter = this.waiters.shift();
     if (waiter === undefined) {
+      if (this.frames.length >= MAX_HARNESS_QUEUED_FRAMES) {
+        throw new HarnessFrameBacklogError();
+      }
       this.frames.push(frame);
       return;
     }
@@ -202,15 +215,26 @@ export class HarnessChild {
     waiter.resolve(frame);
   }
 
-  private fail(error: Error): void {
+  private fail(error: Error, discardQueuedFrames = false): void {
     if (this.fatalError !== undefined) {
+      if (discardQueuedFrames) {
+        this.frames.splice(0);
+      }
       return;
     }
     this.fatalError = error;
+    if (discardQueuedFrames) {
+      this.frames.splice(0);
+    }
     for (const waiter of this.waiters.splice(0)) {
       clearTimeout(waiter.timer);
       waiter.reject(error);
     }
+  }
+
+  private failAndKill(error: unknown): void {
+    this.fail(error instanceof Error ? error : new Error(String(error)), true);
+    this.child.kill('SIGKILL');
   }
 }
 

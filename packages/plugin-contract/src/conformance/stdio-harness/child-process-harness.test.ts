@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   HarnessTimeoutError,
+  MAX_HARNESS_QUEUED_FRAMES,
   runHarnessCase,
   spawnHarnessChild,
 } from './child-process-harness.js';
@@ -136,4 +137,43 @@ test('drains protocol diagnostics from stderr without blocking stdout', async ()
   } finally {
     await child.stop();
   }
+});
+
+test('rejects a large send when the child closes stdin without crashing the harness', async () => {
+  const child = spawnHarnessChild({
+    command: process.execPath,
+    args: [
+      '-e',
+      `require('node:fs').closeSync(0); process.stdout.write('{"type":"stdin-closed"}\\n'); setInterval(() => {}, 1_000);`,
+    ],
+  });
+
+  try {
+    assert.deepEqual((await child.receive({ timeoutMs: 1_000 })).value, {
+      type: 'stdin-closed',
+    });
+    await assert.rejects(child.send({ payload: 'x'.repeat(512 * 1024) }), {
+      code: 'EPIPE',
+    });
+  } finally {
+    await child.stop();
+  }
+});
+
+test('fails closed when decoded stdout frames exceed the bounded backlog', async () => {
+  const burst = Array.from(
+    { length: MAX_HARNESS_QUEUED_FRAMES + 1 },
+    (_, sequence) => `${JSON.stringify({ sequence })}\n`,
+  ).join('');
+  const child = spawnHarnessChild({
+    command: process.execPath,
+    args: ['-e', `process.stdout.write(${JSON.stringify(burst)});`],
+  });
+
+  await child.waitForExit();
+  await assert.rejects(
+    child.receive({ timeoutMs: 1_000 }),
+    (error: unknown) =>
+      error instanceof Error && error.name === 'HarnessFrameBacklogError',
+  );
 });
