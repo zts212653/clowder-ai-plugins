@@ -136,12 +136,14 @@ test('Windows cleanup exposes taskkill failure instead of returning silently', a
       now: () => now,
       sleep: async (delayMs) => {
         now += delayMs;
+        await new Promise<void>((resolve) => setImmediate(resolve));
       },
       signalTarget,
       signalTree: () => assert.fail('Windows cleanup must not signal a POSIX group'),
-      treeIsAlive: () => true,
+      treeIsAlive: () => false,
       runTaskkill: async (rootPid) => {
         taskkillPids.push(rootPid);
+        process.kill(rootPid, 'SIGKILL');
         return { status: 'nonzero', code: 128 };
       },
     }),
