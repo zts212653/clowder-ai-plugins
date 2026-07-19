@@ -1,20 +1,38 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { type ChildProcessWithoutNullStreams } from 'node:child_process';
 
+import {
+  createDirectTargetLifecycle,
+  spawnHarnessProcess,
+  spawnHarnessProcessWithAdapter,
+  type HarnessPlatformAdapter,
+  type HarnessTargetLifecycle,
+  type SpawnHarnessChildOptions,
+} from './harness-process-spawn.js';
 import {
   NdjsonFrameDecoder,
   encodeNdjsonFrame,
   type DecodedNdjsonFrame,
   type JsonObject,
 } from './ndjson-frame.js';
+import { createNodeProcessTreeRuntime } from './node-process-tree-runtime.js';
+import {
+  HarnessCleanupError,
+  ProcessTreeController,
+  type ProcessTreeRuntime,
+} from './process-tree-controller.js';
+
+export { HarnessCleanupError } from './process-tree-controller.js';
+export type {
+  HarnessPlatformAdapter,
+  SpawnHarnessChildOptions,
+} from './harness-process-spawn.js';
 
 export const MAX_HARNESS_QUEUED_FRAMES = 16;
 
-export interface SpawnHarnessChildOptions {
-  readonly command: string;
-  readonly args?: readonly string[];
-  readonly cwd?: string;
-  readonly env?: NodeJS.ProcessEnv;
-}
+const HARNESS_CLEANUP_TIMEOUT_MS = 1_000;
+const HARNESS_CLEANUP_PROBE_INTERVAL_MS = 5;
+const TASKKILL_TIMEOUT_MS = 500;
+const TARGET_EXIT_GRACE_MS = 500;
 
 export interface HarnessReceiveOptions {
   readonly timeoutMs: number;
@@ -66,14 +84,23 @@ export class HarnessChild {
   private readonly frames: DecodedNdjsonFrame[] = [];
   private readonly waiters: FrameWaiter[] = [];
   private readonly exitPromise: Promise<HarnessChildExit>;
+  private readonly processTree: ProcessTreeController;
   private resolveExit!: (exit: HarnessChildExit) => void;
   private exit: HarnessChildExit | undefined;
   private streamsClosed = false;
   private fatalError: Error | undefined;
-  private hardKillRequested = false;
+  private stopPromise: Promise<HarnessChildExit> | undefined;
 
-  constructor(private readonly child: ChildProcessWithoutNullStreams) {
+  constructor(
+    private readonly child: ChildProcessWithoutNullStreams,
+    target: HarnessTargetLifecycle = createDirectTargetLifecycle(child),
+    runtime: ProcessTreeRuntime = createNodeProcessTreeRuntime(
+      process.platform,
+      target.signalTarget,
+    ),
+  ) {
     this.pid = child.pid;
+    this.processTree = new ProcessTreeController(this.pid, runtime);
     this.exitPromise = new Promise((resolve) => {
       this.resolveExit = resolve;
     });
@@ -102,9 +129,7 @@ export class HarnessChild {
     child.stdin.on('error', (error) => this.failAndKill(error));
     child.stdout.on('error', (error) => this.failAndKill(error));
     child.stderr.on('error', (error) => this.failAndKill(error));
-    child.once('error', (error) => {
-      this.failAndKill(error);
-    });
+    target.onTargetError((error) => this.failAndKill(error));
     child.stderr.resume();
     const recordExit = (
       code: number | null,
@@ -112,18 +137,21 @@ export class HarnessChild {
     ): HarnessChildExit => {
       if (this.exit === undefined) {
         this.exit = { code, signal };
+        this.processTree.markTargetExited();
         this.resolveExit(this.exit);
       }
       return this.exit;
     };
-    child.once('exit', recordExit);
+    target.onTargetExit(recordExit);
     child.once('close', (code, signal) => {
       const exit = recordExit(code, signal);
       this.streamsClosed = true;
+      this.processTree.markStreamsClosed();
       if (this.fatalError === undefined) {
         this.fail(new HarnessChildExitedError(exit));
       }
     });
+    this.processTree.markRunning();
   }
 
   async send(frame: JsonObject): Promise<void> {
@@ -176,7 +204,10 @@ export class HarnessChild {
   }
 
   kill(signal: NodeJS.Signals = 'SIGKILL'): void {
-    this.signalProcessTree(signal);
+    this.processTree.requestTermination(signal);
+    if (signal === 'SIGKILL') {
+      void this.startReap();
+    }
   }
 
   waitForExit(): Promise<HarnessChildExit> {
@@ -184,23 +215,27 @@ export class HarnessChild {
   }
 
   async stop(terminateGraceMs = 100): Promise<HarnessChildExit> {
-    this.child.stdin.end();
-    this.signalProcessTree('SIGTERM');
+    if (!Number.isSafeInteger(terminateGraceMs) || terminateGraceMs < 0) {
+      throw new RangeError('terminateGraceMs must be a non-negative safe integer');
+    }
+    this.stopPromise ??= this.stopOnce(terminateGraceMs);
+    return await this.stopPromise;
+  }
 
-    const exitedDuringGrace = await new Promise<boolean>((resolve) => {
-      const timer = setTimeout(() => resolve(false), terminateGraceMs);
+  private async stopOnce(terminateGraceMs: number): Promise<HarnessChildExit> {
+    this.child.stdin.end();
+    this.processTree.requestTermination('SIGTERM');
+
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, terminateGraceMs);
       this.exitPromise.then(() => {
         clearTimeout(timer);
-        resolve(true);
+        resolve();
       });
     });
-    if (
-      !exitedDuringGrace ||
-      (!this.hardKillRequested && this.processTreeIsAlive())
-    ) {
-      this.signalProcessTree('SIGKILL');
-    }
-    return this.exitPromise;
+    this.processTree.requestTermination('SIGKILL');
+    await this.startReap();
+    return await this.exitPromise;
   }
 
   private assertRunning(): void {
@@ -244,66 +279,34 @@ export class HarnessChild {
 
   private failAndKill(error: unknown): void {
     this.fail(error instanceof Error ? error : new Error(String(error)), true);
-    this.signalProcessTree('SIGKILL');
+    this.kill('SIGKILL');
   }
 
-  private signalProcessTree(signal: NodeJS.Signals): void {
-    if (this.hardKillRequested) {
-      return;
-    }
-    if (signal === 'SIGKILL') {
-      this.hardKillRequested = true;
-    }
-    if (this.pid === undefined) {
-      this.child.kill(signal);
-      return;
-    }
-    if (process.platform === 'win32') {
-      const taskkill = spawn(
-        'taskkill',
-        ['/pid', String(this.pid), '/t', '/f'],
-        { stdio: 'ignore', windowsHide: true },
-      );
-      taskkill.once('error', () => {
-        this.child.kill(signal);
-      });
-      return;
-    }
-    try {
-      process.kill(-this.pid, signal);
-    } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
-        this.child.kill(signal);
-        return;
-      }
-      throw error;
-    }
-  }
-
-  private processTreeIsAlive(): boolean {
-    if (this.pid === undefined || process.platform === 'win32') {
-      return this.exit === undefined;
-    }
-    try {
-      process.kill(-this.pid, 0);
-      return true;
-    } catch (error) {
-      if (error instanceof Error && 'code' in error && error.code === 'ESRCH') {
-        return false;
-      }
-      throw error;
-    }
+  private startReap(): Promise<void> {
+    const cleanup = this.processTree.reap({
+      timeoutMs: HARNESS_CLEANUP_TIMEOUT_MS,
+      probeIntervalMs: HARNESS_CLEANUP_PROBE_INTERVAL_MS,
+      taskkillTimeoutMs: TASKKILL_TIMEOUT_MS,
+      targetExitGraceMs: TARGET_EXIT_GRACE_MS,
+    });
+    void cleanup.catch((error: unknown) => {
+      this.fail(error instanceof Error ? error : new Error(String(error)), true);
+    });
+    return cleanup;
   }
 }
 
 export function spawnHarnessChild(options: SpawnHarnessChildOptions): HarnessChild {
-  const child = spawn(options.command, [...(options.args ?? [])], {
-    cwd: options.cwd,
-    detached: process.platform !== 'win32',
-    env: options.env,
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-  return new HarnessChild(child);
+  const spawned = spawnHarnessProcess(options);
+  return new HarnessChild(spawned.root, spawned.target, spawned.runtime);
+}
+
+export function spawnHarnessChildWithAdapter(
+  options: SpawnHarnessChildOptions,
+  adapter: HarnessPlatformAdapter,
+): HarnessChild {
+  const spawned = spawnHarnessProcessWithAdapter(options, adapter);
+  return new HarnessChild(spawned.root, spawned.target, spawned.runtime);
 }
 
 export async function runHarnessCase<T>(
