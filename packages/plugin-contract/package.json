@@ -31,7 +31,7 @@
   "scripts": {
     "generate": "node --import tsx src/codegen/generate-contract.ts",
     "generate:check": "node --import tsx src/codegen/generate-contract.ts --check",
-    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json && node --test scripts/conformance-public-boundary.test.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/**/*.test.ts src/**/**/*.test.ts",
     "conformance": "node --import tsx src/conformance/runner.ts",
