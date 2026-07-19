@@ -145,6 +145,24 @@ export class ProcessTreeController {
           error: error instanceof Error ? error : new Error(String(error)),
         };
       }
+      if (taskkillOutcome.status !== 'success') {
+        this.currentState = 'cleanup-failed';
+        const outcome = describeTaskkillOutcome(taskkillOutcome);
+        const terminationDetail =
+          this.terminationError === undefined
+            ? ''
+            : `; termination signal failed: ${this.terminationError.message}`;
+        const cause =
+          this.terminationError ??
+          (taskkillOutcome.status === 'spawn-error'
+            ? taskkillOutcome.error
+            : undefined);
+        throw new HarnessCleanupError(
+          this.rootPid,
+          `harness process-tree cleanup has no whole-tree evidence after taskkill ${outcome}${terminationDetail}`,
+          cause === undefined ? undefined : { cause },
+        );
+      }
     }
 
     const deadline = this.runtime.now() + options.timeoutMs;

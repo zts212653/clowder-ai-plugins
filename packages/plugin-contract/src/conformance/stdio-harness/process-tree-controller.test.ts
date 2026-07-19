@@ -172,17 +172,26 @@ for (const outcome of [
   });
 }
 
-test('kill utility failure still reaps when bounded probes prove the tree is gone', async () => {
-  const fake = createFakeRuntime({
-    outcome: { status: 'nonzero', code: 128 },
-    alive: [false],
+for (const outcome of [
+  { status: 'nonzero', code: 128 },
+  { status: 'spawn-error', error: new Error('taskkill missing') },
+  { status: 'timeout' },
+] satisfies readonly TaskkillOutcome[]) {
+  test(`fails closed when taskkill ${outcome.status} kills only the sentinel root`, async () => {
+    const fake = createFakeRuntime({ outcome, alive: [false] });
+    const controller = exitedController(fake);
+
+    await assert.rejects(
+      controller.reap(reapOptions),
+      (error: unknown) =>
+        error instanceof HarnessCleanupError &&
+        error.rootPid === 7_331 &&
+        error.message.includes(outcome.status),
+    );
+    assert.equal(fake.probeCount(), 0);
+    assert.equal(controller.state, 'cleanup-failed');
   });
-  const controller = exitedController(fake);
-
-  await controller.reap(reapOptions);
-
-  assert.equal(controller.state, 'reaped');
-});
+}
 
 test('polls until the whole tree is gone instead of trusting taskkill exit', async () => {
   const fake = createFakeRuntime({ alive: [true, true, false] });
