@@ -4,12 +4,14 @@ import type { DecodedNdjsonFrame, JsonObject } from './ndjson-frame.js';
 /**
  * Deliberate seam for the P-1a contract output.
  *
- * This skeleton owns process and frame transport only. It does not invent the
- * CandidateHello/broker.ready sequence or any method schema while #1165 is
- * pending. P-1a supplies the concrete codec and two-step handshake later.
+ * This skeleton owns process and frame transport only. The #1165 frozen
+ * shape (rev11) is now shape-approved; the wire module mechanizes its
+ * 12-row registry, disposition table, and closed error envelopes. This
+ * seam will be replaced by a concrete codec backed by those wire types
+ * when the handshake rows (1, 2) reach CLOSED leaf closure.
  */
 export interface HarnessWireShape<Outbound, Inbound> {
-  readonly status: 'pending-shape-approved';
+  readonly status: 'shape-approved';
   encode(message: Outbound): JsonObject;
   decode(frame: DecodedNdjsonFrame): Inbound;
   performHelloReady(child: HarnessChild): Promise<void>;
