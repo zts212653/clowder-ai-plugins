@@ -7,6 +7,21 @@ import {
   type JsonValue,
 } from './encoded-byte-proof.js';
 
+interface BuildConfig {
+  exclude?: unknown;
+}
+
+const buildConfig = JSON.parse(
+  readFileSync(new URL('../../tsconfig.build.json', import.meta.url), 'utf8'),
+) as BuildConfig;
+
+test('keeps generic byte-proof tooling out of the published dist artifact', () => {
+  assert.ok(
+    Array.isArray(buildConfig.exclude) && buildConfig.exclude.includes('src/byte-proof'),
+    'the generic calculator must not be compiled into the immutable beta.2 package',
+  );
+});
+
 test('calculates all compact-JSON encoding families with N/N+1 candidates', () => {
   const proof = calculateByteProof({
     template: {

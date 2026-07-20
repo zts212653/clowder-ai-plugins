@@ -122,6 +122,65 @@ jobs:
           );
           NODE
 
+      - name: Verify immutable published package identity
+        working-directory: packages/plugin-contract
+        env:
+          PACK_JSON_PATH: ${{ runner.temp }}/plugin-contract-pack.json
+          REGISTRY_JSON_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.json
+          REGISTRY_ERROR_PATH: ${{ runner.temp }}/plugin-contract-existing-registry.err
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME=$(node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+          if (typeof artifact?.name !== 'string' || artifact.name.length === 0) {
+            throw new Error('npm pack did not report package name');
+          }
+          process.stdout.write(artifact.name);
+          NODE
+          )
+          PACKAGE_VERSION=$(node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+          if (typeof artifact?.version !== 'string' || artifact.version.length === 0) {
+            throw new Error('npm pack did not report package version');
+          }
+          process.stdout.write(artifact.version);
+          NODE
+          )
+          EXPECTED_INTEGRITY=$(node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+          if (typeof artifact?.integrity !== 'string' || artifact.integrity.length === 0) {
+            throw new Error('npm pack did not report package integrity');
+          }
+          process.stdout.write(artifact.integrity);
+          NODE
+          )
+          export PACKAGE_NAME PACKAGE_VERSION EXPECTED_INTEGRITY
+
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2> "$REGISTRY_ERROR_PATH"; then
+            node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+          if (metadata.version !== process.env.PACKAGE_VERSION) {
+            throw new Error(`registry version mismatch: ${metadata.version}`);
+          }
+          if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+            throw new Error(`immutable registry integrity mismatch: ${metadata.dist?.integrity}`);
+          }
+          NODE
+          elif grep -q 'E404' "$REGISTRY_ERROR_PATH"; then
+            echo "No published $PACKAGE_NAME@$PACKAGE_VERSION; release publication remains eligible."
+          else
+            cat "$REGISTRY_ERROR_PATH" >&2
+            exit 1
+          fi
+
       - name: Upload exact-head pack evidence
         uses: actions/upload-artifact@v4
         with:
