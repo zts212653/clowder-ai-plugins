@@ -139,6 +139,7 @@ export type {
 export {
   MAX_GRANT_ITEMS,
   validateEffectiveGrants,
+  VALID_CAPABILITIES,
 } from './grants.js';
 
 export type { GrantSnapshot } from './grants.js';
@@ -151,6 +152,19 @@ export type {
   WireSuccessResponse,
   WireApplicationErrorResponse,
   WireStandardErrorResponse,
+  // Concrete error envelopes (11 variants)
+  HandshakeRejectedEnvelope,
+  DeliveryRejectedEnvelope,
+  DomainErrorEnvelope,
+  DeadlineExpiredEnvelope,
+  SnapshotUnavailableEnvelope,
+  ParseErrorEnvelope,
+  InvalidRequestNullIdEnvelope,
+  InvalidRequestValidIdEnvelope,
+  MethodNotFoundEnvelope,
+  InvalidParamsEnvelope,
+  InternalErrorEnvelope,
+  ClosedWireErrorResponse,
   WireErrorResponse,
   WireResponse,
 } from './envelope.js';

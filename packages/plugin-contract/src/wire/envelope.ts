@@ -17,6 +17,18 @@
  */
 
 import type { RequestId } from './request-id.js';
+import type {
+  HandshakeRejectedError,
+  DeliveryRejectedError,
+  DomainError,
+  DeadlineExpiredError,
+  SnapshotUnavailableError,
+  ParseError,
+  InvalidRequestError,
+  MethodNotFoundError,
+  InvalidParamsError,
+  InternalError,
+} from './errors.js';
 
 // ---------------------------------------------------------------------------
 // CallMeta (CLOSED, v0)
@@ -154,14 +166,167 @@ export interface WireStandardErrorResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Concrete application error envelopes (5 variants, all id: RequestId)
+// ---------------------------------------------------------------------------
+
+/**
+ * HANDSHAKE_REJECTED (-32090) envelope.
+ * additionalProperties: false.
+ */
+export interface HandshakeRejectedEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: HandshakeRejectedError;
+}
+
+/**
+ * DELIVERY_REJECTED (-32091) envelope.
+ * additionalProperties: false.
+ */
+export interface DeliveryRejectedEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: DeliveryRejectedError;
+}
+
+/**
+ * DOMAIN_ERROR (-32092) envelope.
+ * additionalProperties: false.
+ */
+export interface DomainErrorEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: DomainError;
+}
+
+/**
+ * DEADLINE_EXPIRED (-32093) envelope.
+ * additionalProperties: false.
+ */
+export interface DeadlineExpiredEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: DeadlineExpiredError;
+}
+
+/**
+ * SNAPSHOT_UNAVAILABLE (-32094) envelope.
+ * additionalProperties: false.
+ */
+export interface SnapshotUnavailableEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: SnapshotUnavailableError;
+}
+
+// ---------------------------------------------------------------------------
+// Concrete standard error envelopes (6 variants, varying id)
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse error (-32700) envelope.
+ * id is ALWAYS null — no valid frame was parsed.
+ * additionalProperties: false.
+ */
+export interface ParseErrorEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: null;
+  readonly error: ParseError;
+}
+
+/**
+ * Invalid Request (-32600) null-id arm envelope.
+ * id is null — true detection failure, no valid id could be extracted.
+ * additionalProperties: false.
+ */
+export interface InvalidRequestNullIdEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: null;
+  readonly error: InvalidRequestError;
+}
+
+/**
+ * Invalid Request (-32600) valid-id arm envelope.
+ * id is a byte-equal RequestId echo from the malformed request.
+ * additionalProperties: false.
+ */
+export interface InvalidRequestValidIdEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: InvalidRequestError;
+}
+
+/**
+ * Method not found (-32601) envelope.
+ * id is a byte-equal RequestId echo.
+ * additionalProperties: false.
+ */
+export interface MethodNotFoundEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: MethodNotFoundError;
+}
+
+/**
+ * Invalid params (-32602) envelope.
+ * id is a byte-equal RequestId echo.
+ * additionalProperties: false.
+ */
+export interface InvalidParamsEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: InvalidParamsError;
+}
+
+/**
+ * Internal error (-32603) envelope.
+ * id is a byte-equal RequestId echo.
+ * additionalProperties: false.
+ */
+export interface InternalErrorEnvelope {
+  readonly jsonrpc: '2.0';
+  readonly id: RequestId;
+  readonly error: InternalError;
+}
+
+// ---------------------------------------------------------------------------
+// Closed error envelope union (11 variants)
+// ---------------------------------------------------------------------------
+
+/**
+ * Closed union of all 11 error envelope variants.
+ *
+ * 5 application error envelopes (all id: RequestId, error carries data):
+ *   HandshakeRejected, DeliveryRejected, DomainError,
+ *   DeadlineExpired, SnapshotUnavailable
+ *
+ * 6 standard error envelopes (no data, varying id):
+ *   ParseError (id: null), InvalidRequest null-id (id: null),
+ *   InvalidRequest valid-id (id: RequestId),
+ *   MethodNotFound, InvalidParams, InternalError (all id: RequestId)
+ */
+export type ClosedWireErrorResponse =
+  | HandshakeRejectedEnvelope
+  | DeliveryRejectedEnvelope
+  | DomainErrorEnvelope
+  | DeadlineExpiredEnvelope
+  | SnapshotUnavailableEnvelope
+  | ParseErrorEnvelope
+  | InvalidRequestNullIdEnvelope
+  | InvalidRequestValidIdEnvelope
+  | MethodNotFoundEnvelope
+  | InvalidParamsEnvelope
+  | InternalErrorEnvelope;
+
+// ---------------------------------------------------------------------------
 // Union types
 // ---------------------------------------------------------------------------
 
 /**
- * Either error variant — application (with data) or standard (no data).
- * Both variants forbid `result` and additional members.
+ * Either error variant — closed union of all 11 concrete error envelope shapes.
+ * Replaces the previous generic union with the mechanized closed form.
  */
-export type WireErrorResponse = WireApplicationErrorResponse | WireStandardErrorResponse;
+export type WireErrorResponse = ClosedWireErrorResponse;
 
 /**
  * Any JSON-RPC response — success or error, never both.

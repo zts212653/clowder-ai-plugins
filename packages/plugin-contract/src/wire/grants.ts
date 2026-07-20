@@ -13,6 +13,11 @@
  */
 
 import type { Capability } from '../generated/contract.generated.js';
+import {
+  L0_CAPABILITIES,
+  L1_CAPABILITIES,
+  L2_CAPABILITIES,
+} from '../generated/contract.generated.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -55,10 +60,32 @@ export interface GrantSnapshot {
 // ---------------------------------------------------------------------------
 
 /**
- * Validate that effectiveGrants contains no duplicates and
- * does not exceed MAX_GRANT_ITEMS.
+ * Frozen set of all valid Capability values, derived from the generated
+ * L0/L1/L2 capability arrays. Used for closed-enum membership checks.
  */
-export function validateEffectiveGrants(grants: readonly Capability[]): boolean {
+export const VALID_CAPABILITIES: ReadonlySet<string> = new Set<string>([
+  ...L0_CAPABILITIES,
+  ...L1_CAPABILITIES,
+  ...L2_CAPABILITIES,
+]);
+
+/**
+ * Validate that effectiveGrants:
+ *   1. Does not exceed MAX_GRANT_ITEMS (17).
+ *   2. Contains no duplicates.
+ *   3. Contains only valid Capability enum members (closed-enum check).
+ *
+ * Fail-closed: any unrecognized capability value returns false.
+ * This is an authorization boundary — fail-open would allow
+ * uncontrolled privilege escalation.
+ */
+export function validateEffectiveGrants(grants: readonly string[]): boolean {
   if (grants.length > MAX_GRANT_ITEMS) return false;
-  return new Set(grants).size === grants.length;
+  const seen = new Set<string>();
+  for (const g of grants) {
+    if (!VALID_CAPABILITIES.has(g)) return false; // unknown capability
+    if (seen.has(g)) return false;                // duplicate
+    seen.add(g);
+  }
+  return true;
 }

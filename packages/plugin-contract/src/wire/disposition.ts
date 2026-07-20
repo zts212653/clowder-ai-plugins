@@ -56,11 +56,14 @@ export type DispositionOutcome = 'close' | 'respond' | 'accept';
 /**
  * A single row of the disposition table.
  *
- * @property class          - The disposition class identifier (T-A .. T-L).
- * @property outcome        - Transport outcome: close, respond, or accept.
- * @property emitsResponse  - Whether an error response is written to the wire.
- * @property dispatches     - Whether the frame reaches the dispatch layer.
- * @property description    - Human-readable description from #1165.
+ * @property class            - The disposition class identifier (T-A .. T-L).
+ * @property outcome          - Transport outcome: close, respond, or accept.
+ * @property emitsResponse    - Whether an error response is written to the wire.
+ * @property dispatches       - Whether the frame reaches the dispatch layer.
+ * @property description      - Human-readable description from #1165.
+ * @property errorCodes       - Error codes emitted for respond classes, empty for close/accept.
+ * @property predicate        - Deterministic decision rule (human-readable, machine-checkable).
+ * @property canonicalExample - Minimal compact JSON string exemplifying this class.
  */
 export interface DispositionEntry {
   readonly class: DispositionClass;
@@ -68,6 +71,12 @@ export interface DispositionEntry {
   readonly emitsResponse: boolean;
   readonly dispatches: boolean;
   readonly description: string;
+  /** Error codes emitted for respond classes, empty array for close/accept. */
+  readonly errorCodes: readonly number[];
+  /** Deterministic predicate -- human-readable, machine-checkable decision rule. */
+  readonly predicate: string;
+  /** Canonical frame example (compact JSON string) for this class. */
+  readonly canonicalExample: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +109,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'transport/framing failure',
+    errorCodes: [],
+    predicate: 'transport/framing failure before JSON parse',
+    canonicalExample: '\\xFF',
   },
   'T-B': {
     class: 'T-B',
@@ -107,6 +119,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: true,
     dispatches: false,
     description: 'JSON parse error',
+    errorCodes: [-32700],
+    predicate: 'JSON parse fails on well-framed UTF-8 input',
+    canonicalExample: '{invalid json',
   },
   'T-C': {
     class: 'T-C',
@@ -114,6 +129,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'frame-canonicality failure',
+    errorCodes: [],
+    predicate: 'frame parsed but fails compact-canonical check (whitespace, duplicate keys, non-scalar strings, non-canonical numbers)',
+    canonicalExample: '{ "jsonrpc":"2.0" }',
   },
   'T-D': {
     class: 'T-D',
@@ -121,6 +139,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: true,
     dispatches: false,
     description: 'canonical idless non-response-candidate non-Request',
+    errorCodes: [-32600],
+    predicate: 'canonical object, no valid id, not a response candidate (no result/error without method)',
+    canonicalExample: '{"jsonrpc":"2.0","method":0}',
   },
   'T-E': {
     class: 'T-E',
@@ -128,6 +149,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'detected but profile-invalid id',
+    errorCodes: [],
+    predicate: 'id field detected but fails RequestId profile (not ASCII, not 1..128, wrong grammar)',
+    canonicalExample: '{"jsonrpc":"2.0","id":"","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
   },
   'T-F': {
     class: 'T-F',
@@ -135,6 +159,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: true,
     dispatches: false,
     description: 'valid id, envelope violation',
+    errorCodes: [-32600, -32601, -32602, -32603],
+    predicate: 'profile-valid id but envelope violates jsonrpc/method/params structure',
+    canonicalExample: '{"jsonrpc":"2.0","id":"a","method":"broker.hello"}',
   },
   'T-G': {
     class: 'T-G',
@@ -142,6 +169,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: true,
     dispatches: false,
     description: 'valid id Request, value violation',
+    errorCodes: [-32090, -32091, -32092, -32093, -32094, -32602],
+    predicate: 'valid id Request with valid envelope but value-level violation (params content)',
+    canonicalExample: '{"jsonrpc":"2.0","id":"a","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":""}}}',
   },
   'T-H': {
     class: 'T-H',
@@ -149,6 +179,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'response candidate validation/correlation failure',
+    errorCodes: [],
+    predicate: 'response candidate (has result or error, no method) that fails validation or correlation',
+    canonicalExample: '{"jsonrpc":"2.0","id":"phantom","result":null}',
   },
   'T-I': {
     class: 'T-I',
@@ -156,6 +189,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'in-flight id collision',
+    errorCodes: [],
+    predicate: 'valid Request with id that collides with an in-flight request id',
+    canonicalExample: '{"jsonrpc":"2.0","id":"dup","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
   },
   'T-J': {
     class: 'T-J',
@@ -163,6 +199,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: true,
     description: 'legal Notification (row 10)',
+    errorCodes: [],
+    predicate: 'legal Notification: no id, valid method=host.grants.changed (row 10 in v0)',
+    canonicalExample: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
   },
   'T-K': {
     class: 'T-K',
@@ -170,6 +209,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'valid Notification, v0 violation',
+    errorCodes: [],
+    predicate: 'valid Notification structure but method is not row 10 (v0 violation)',
+    canonicalExample: '{"jsonrpc":"2.0","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x"}}}',
   },
   'T-L': {
     class: 'T-L',
@@ -177,6 +219,9 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     emitsResponse: false,
     dispatches: false,
     description: 'valid correlated response',
+    errorCodes: [],
+    predicate: 'valid correlated response matching an in-flight request',
+    canonicalExample: '{"jsonrpc":"2.0","id":"req-1","result":{"nonce":"x"}}',
   },
 } as const;
 

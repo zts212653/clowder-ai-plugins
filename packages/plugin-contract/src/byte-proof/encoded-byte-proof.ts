@@ -43,6 +43,17 @@ export interface ClosedStringLeafProfile {
   readonly path: readonly JsonPathSegment[];
   /** Schema-approved maximum measured in Unicode code points. */
   readonly maxCodePoints: number;
+  /**
+   * When true, this leaf's grammar is restricted to ASCII code points only.
+   * The engine still computes all three encoding families for structural
+   * completeness, but only the 'ascii' family produces semantically valid
+   * values for this leaf. Consumers SHOULD treat the 'ascii' family as the
+   * binding worst-case for this leaf's N+1 rejection proof.
+   *
+   * Example: RequestId grammar is [A-Za-z0-9._:-]{1,128} (ASCII-only),
+   * so multibyte/escaping families produce code points outside the grammar.
+   */
+  readonly asciiOnly?: boolean;
 }
 
 export interface ByteProofInput {

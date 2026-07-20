@@ -109,6 +109,9 @@ export const WIRE_METHOD_REGISTRY: Readonly<Record<WireMethodName, RegistryRow>>
     reservedEntries: ['H1', 'H3', 'H4', 'H5', 'H6'],
     settlementKeySource: '—',
   },
+  // Row 2 own entries (H9 via W0/W1/W2/W3) are all CLOSED.
+  // RESERVED because activation cannot be advertised without a closed
+  // row-1 SessionBinding — H1/H3/H4/H5/H6 block through protocol dependency.
   'broker.ready': {
     rowNumber: 2,
     method: 'broker.ready',
@@ -161,7 +164,7 @@ export const WIRE_METHOD_REGISTRY: Readonly<Record<WireMethodName, RegistryRow>>
     isNotification: false,
     ready: false,
     leafClosure: 'RESERVED',
-    reservedEntries: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'I1'],
+    reservedEntries: ['M1', 'M2', 'M5', 'M6', 'M7', 'I1'],
     settlementKeySource: 'none (at-least-once; bounded page assembly)',
   },
   'messaging.ack': {

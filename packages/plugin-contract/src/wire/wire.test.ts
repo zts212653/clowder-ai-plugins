@@ -261,6 +261,117 @@ test('every disposition class appears in exactly one subset', () => {
   }
 });
 
+test('every disposition class has a non-empty predicate and canonicalExample', () => {
+  for (const cls of DISPOSITION_CLASSES) {
+    const entry = DISPOSITION_TABLE[cls];
+    assert.ok(
+      entry.predicate.length > 0,
+      `${cls} must have a non-empty predicate`,
+    );
+    assert.ok(
+      entry.canonicalExample.length > 0,
+      `${cls} must have a non-empty canonicalExample`,
+    );
+  }
+});
+
+test('canonical examples for T-C through T-L are valid JSON', () => {
+  // T-A is not valid UTF-8, T-B is not valid JSON -- both intentionally.
+  // All others (T-C through T-L) must parse as valid JSON.
+  const jsonClasses: (typeof DISPOSITION_CLASSES)[number][] = [
+    'T-C', 'T-D', 'T-E', 'T-F', 'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L',
+  ];
+  for (const cls of jsonClasses) {
+    const entry = DISPOSITION_TABLE[cls];
+    assert.doesNotThrow(
+      () => JSON.parse(entry.canonicalExample),
+      `${cls} canonicalExample must be valid JSON: ${entry.canonicalExample}`,
+    );
+  }
+});
+
+test('T-A and T-B canonical examples are intentionally not valid JSON', () => {
+  assert.throws(
+    () => JSON.parse(DISPOSITION_TABLE['T-A'].canonicalExample),
+    'T-A canonicalExample must not be valid JSON',
+  );
+  assert.throws(
+    () => JSON.parse(DISPOSITION_TABLE['T-B'].canonicalExample),
+    'T-B canonicalExample must not be valid JSON',
+  );
+});
+
+test('close/accept classes have empty errorCodes arrays', () => {
+  const nonRespondClasses = [...CLOSE_CLASSES, ...ACCEPT_CLASSES];
+  for (const cls of nonRespondClasses) {
+    const entry = DISPOSITION_TABLE[cls];
+    assert.equal(
+      entry.errorCodes.length,
+      0,
+      `${cls} (outcome=${entry.outcome}) must have empty errorCodes`,
+    );
+  }
+});
+
+test('respond classes have non-empty errorCodes arrays', () => {
+  for (const cls of RESPOND_CLASSES) {
+    const entry = DISPOSITION_TABLE[cls];
+    assert.ok(
+      entry.errorCodes.length > 0,
+      `${cls} must have at least one errorCode`,
+    );
+  }
+});
+
+test('no two respond classes share the same errorCodes set', () => {
+  const seen = new Map<string, string>();
+  for (const cls of RESPOND_CLASSES) {
+    const entry = DISPOSITION_TABLE[cls];
+    const key = [...entry.errorCodes].sort((a, b) => a - b).join(',');
+    assert.ok(
+      !seen.has(key),
+      `${cls} errorCodes set [${key}] collides with ${seen.get(key)}`,
+    );
+    seen.set(key, cls);
+  }
+});
+
+test('errorCodes in respond classes are subsets of ALL_ERROR_CODES', () => {
+  const allCodes = new Set<number>(ALL_ERROR_CODES);
+  for (const cls of RESPOND_CLASSES) {
+    const entry = DISPOSITION_TABLE[cls];
+    for (const code of entry.errorCodes) {
+      assert.ok(
+        allCodes.has(code),
+        `${cls} errorCode ${code} must be in ALL_ERROR_CODES`,
+      );
+    }
+  }
+});
+
+test('frozen errorCodes values per respond class', () => {
+  assert.deepEqual(
+    [...DISPOSITION_TABLE['T-B'].errorCodes],
+    [-32700],
+    'T-B: Parse error',
+  );
+  assert.deepEqual(
+    [...DISPOSITION_TABLE['T-D'].errorCodes],
+    [-32600],
+    'T-D: Invalid Request',
+  );
+  assert.deepEqual(
+    [...DISPOSITION_TABLE['T-F'].errorCodes],
+    [-32600, -32601, -32602, -32603],
+    'T-F: envelope violations',
+  );
+  assert.deepEqual(
+    [...DISPOSITION_TABLE['T-G'].errorCodes],
+    [-32090, -32091, -32092, -32093, -32094, -32602],
+    'T-G: value violations',
+  );
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // §6 Handshake regression locks
 // ═══════════════════════════════════════════════════════════════════════════
@@ -318,8 +429,27 @@ test('validateEffectiveGrants rejects invalid arrays', () => {
     'duplicates',
   );
   // 18 items exceeds MAX_GRANT_ITEMS
-  const tooMany = Array.from({ length: 18 }, (_, i) => `cap-${i}`) as any;
+  const tooMany = Array.from({ length: 18 }, (_, i) => `cap-${i}`);
   assert.equal(validateEffectiveGrants(tooMany), false, 'too many');
+});
+
+test('validateEffectiveGrants rejects unknown capabilities (FC-52-4: fail-closed)', () => {
+  // Non-existent capability — must be rejected, not silently accepted
+  assert.equal(
+    validateEffectiveGrants(['not.a.capability']),
+    false,
+    'unknown capability must fail closed',
+  );
+  assert.equal(
+    validateEffectiveGrants(['messaging.send', 'not.a.capability']),
+    false,
+    'valid + unknown must fail closed',
+  );
+  assert.equal(
+    validateEffectiveGrants(['MESSAGING.SEND']),
+    false,
+    'case-sensitive: wrong case must fail closed',
+  );
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
