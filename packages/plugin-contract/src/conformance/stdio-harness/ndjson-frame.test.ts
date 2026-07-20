@@ -7,6 +7,7 @@ import {
   NdjsonFrameError,
   encodeNdjsonFrame,
 } from './ndjson-frame.js';
+import { MAX_FRAME_BYTES } from '../../wire/constants.js';
 
 test('accepts an exact-limit frame and appends LF outside the byte budget', () => {
   const prefixBytes = Buffer.byteLength('{"payload":""}', 'utf8');
@@ -180,5 +181,13 @@ test('rejects a truncated final frame at stream end', () => {
     () => decoder.end(),
     (error: unknown) =>
       error instanceof NdjsonFrameError && error.code === 'TRUNCATED_FRAME',
+  );
+});
+
+test('MAX_NDJSON_FRAME_BYTES is derived from canonical wire MAX_FRAME_BYTES (anti-drift)', () => {
+  assert.equal(
+    MAX_NDJSON_FRAME_BYTES,
+    MAX_FRAME_BYTES,
+    'NDJSON frame ceiling must equal the canonical wire constant — if this fails, the two truth sources have drifted',
   );
 });

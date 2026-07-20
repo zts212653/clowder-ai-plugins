@@ -6,6 +6,7 @@ import {
   HarnessFrameBacklogError,
   HarnessTimeoutError,
   MAX_HARNESS_QUEUED_FRAMES,
+  MAX_TIMER_MS,
   runHarnessCase,
   spawnHarnessChild,
   spawnHarnessChildWithAdapter,
@@ -492,4 +493,79 @@ test('runHarnessCase preserves a successful callback across normal teardown', as
   );
 
   assert.equal(result, 'reported-success');
+});
+
+// ---------------------------------------------------------------------------
+// Node timer overflow — values above 2^31-1 are silently clamped to 1ms
+// by the Node runtime. These tests prove the guard rejects before setTimeout.
+// ---------------------------------------------------------------------------
+
+test('MAX_TIMER_MS equals 2^31-1', () => {
+  assert.equal(MAX_TIMER_MS, 2_147_483_647);
+});
+
+test('receive rejects timeoutMs above Node timer ceiling', async () => {
+  const child = spawnHarnessChild({
+    command: process.execPath,
+    args: ['-e', idleScript],
+  });
+  try {
+    await assert.rejects(
+      child.receive({ timeoutMs: MAX_TIMER_MS + 1 }),
+      RangeError,
+    );
+  } finally {
+    await child.stop();
+  }
+});
+
+test('stop rejects terminateGraceMs above Node timer ceiling', async () => {
+  const child = spawnHarnessChild({
+    command: process.execPath,
+    args: ['-e', idleScript],
+  });
+  await assert.rejects(
+    child.stop(MAX_TIMER_MS + 1),
+    RangeError,
+  );
+  // stop with valid grace to clean up
+  await child.stop();
+});
+
+test('runHarnessCase rejects timeoutMs above Node timer ceiling', async () => {
+  await assert.rejects(
+    runHarnessCase(
+      {
+        command: process.execPath,
+        args: ['-e', idleScript],
+        timeoutMs: MAX_TIMER_MS + 1,
+      },
+      async () => 'should-not-reach',
+    ),
+    RangeError,
+  );
+});
+
+test('runHarnessCase rejects terminateGraceMs above Node timer ceiling before spawning child', async () => {
+  let callbackExecuted = false;
+  await assert.rejects(
+    runHarnessCase(
+      {
+        command: process.execPath,
+        args: ['-e', idleScript],
+        timeoutMs: 5_000,
+        terminateGraceMs: MAX_TIMER_MS + 1,
+      },
+      async () => {
+        callbackExecuted = true;
+        return 'should-not-reach';
+      },
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof RangeError);
+      assert.match(error.message, /terminateGraceMs/);
+      return true;
+    },
+  );
+  assert.equal(callbackExecuted, false, 'callback must not execute when terminateGraceMs is invalid');
 });

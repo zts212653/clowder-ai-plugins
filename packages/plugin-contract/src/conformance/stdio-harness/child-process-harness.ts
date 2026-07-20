@@ -29,6 +29,35 @@ export type {
 
 export const MAX_HARNESS_QUEUED_FRAMES = 16;
 
+/**
+ * Node.js setTimeout uses a 32-bit signed integer internally.
+ * Values above 2^31-1 (2_147_483_647) are silently clamped to 1ms,
+ * making the timer fire immediately — a correctness hazard.
+ */
+export const MAX_TIMER_MS = 2_147_483_647;
+
+function assertTimerMs(value: number, name: string): void {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new RangeError(`${name} must be a positive safe integer`);
+  }
+  if (value > MAX_TIMER_MS) {
+    throw new RangeError(
+      `${name} must not exceed ${MAX_TIMER_MS}ms (Node timer overflow ceiling)`,
+    );
+  }
+}
+
+function assertTimerMsNonNegative(value: number, name: string): void {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new RangeError(`${name} must be a non-negative safe integer`);
+  }
+  if (value > MAX_TIMER_MS) {
+    throw new RangeError(
+      `${name} must not exceed ${MAX_TIMER_MS}ms (Node timer overflow ceiling)`,
+    );
+  }
+}
+
 const HARNESS_CLEANUP_TIMEOUT_MS = 1_000;
 const HARNESS_CLEANUP_PROBE_INTERVAL_MS = 5;
 const TASKKILL_TIMEOUT_MS = 500;
@@ -168,9 +197,7 @@ export class HarnessChild {
   }
 
   async receive(options: HarnessReceiveOptions): Promise<DecodedNdjsonFrame> {
-    if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs <= 0) {
-      throw new RangeError('receive timeoutMs must be a positive safe integer');
-    }
+    assertTimerMs(options.timeoutMs, 'receive timeoutMs');
     const frame = this.frames.shift();
     if (frame !== undefined) {
       return frame;
@@ -215,9 +242,7 @@ export class HarnessChild {
   }
 
   async stop(terminateGraceMs = 100): Promise<HarnessChildExit> {
-    if (!Number.isSafeInteger(terminateGraceMs) || terminateGraceMs < 0) {
-      throw new RangeError('terminateGraceMs must be a non-negative safe integer');
-    }
+    assertTimerMsNonNegative(terminateGraceMs, 'terminateGraceMs');
     this.stopPromise ??= this.stopOnce(terminateGraceMs);
     return await this.stopPromise;
   }
@@ -320,9 +345,11 @@ export async function runHarnessCase<T>(
   options: RunHarnessCaseOptions,
   execute: (child: HarnessChild) => Promise<T>,
 ): Promise<T> {
-  if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs <= 0) {
-    throw new RangeError('case timeoutMs must be a positive safe integer');
-  }
+  assertTimerMs(options.timeoutMs, 'case timeoutMs');
+  assertTimerMsNonNegative(
+    options.terminateGraceMs ?? 100,
+    'case terminateGraceMs',
+  );
   const child = spawnHarnessChild(options);
   let timer: NodeJS.Timeout | undefined;
   let completed = false;
