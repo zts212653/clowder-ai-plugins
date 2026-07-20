@@ -375,6 +375,37 @@ test('required CI binds pack evidence to the exact checked-out head', () => {
   );
 });
 
+function assertImmutablePublishedPackageIdentity(workflow: string): void {
+  const step = namedWorkflowStep(
+    workflow,
+    'Verify immutable published package identity',
+  );
+
+  assert.match(
+    step,
+    /^          PACK_JSON_PATH: \$\{\{ runner\.temp \}\}\/plugin-contract-pack\.json$/m,
+  );
+  assert.match(
+    step,
+    /^          REGISTRY_JSON_PATH: \$\{\{ runner\.temp \}\}\/plugin-contract-existing-registry\.json$/m,
+  );
+  assert.match(step, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
+  assert.match(
+    step,
+    /metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY/,
+    'an existing immutable version must compare registry integrity to exact-head pack bytes',
+  );
+  assert.match(
+    step,
+    /throw new Error\(`immutable registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);/,
+    'an immutable package mismatch must fail validation rather than merely report evidence',
+  );
+}
+
+test('validation fails before merge when an immutable registry version has different bytes', () => {
+  assertImmutablePublishedPackageIdentity(releaseWorkflow);
+});
+
 test('artifact toolchain verifier accepts the exact runtime tuple', () => {
   const result = spawnSync(process.execPath, [fileURLToPath(artifactToolchainVerifierUrl)], {
     env: {
@@ -488,6 +519,16 @@ test('registry verification rejects hollow comparisons and early success', () =>
   for (const mutatedWorkflow of mutations) {
     assert.throws(() => assertRegistryVerificationFailsClosed(mutatedWorkflow));
   }
+});
+
+test('immutable package identity guard rejects a fail-open workflow mutation', () => {
+  const mutatedWorkflow = replaceNamedStepOnce(
+    'Verify immutable published package identity',
+    'throw new Error(`immutable registry integrity mismatch: ${metadata.dist?.integrity}`);',
+    'console.warn(`immutable registry integrity mismatch: ${metadata.dist?.integrity}`);',
+  );
+
+  assert.throws(() => assertImmutablePublishedPackageIdentity(mutatedWorkflow));
 });
 
 test('reserved latest guard spans every workflow job', () => {
