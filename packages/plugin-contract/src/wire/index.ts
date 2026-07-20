@@ -144,14 +144,19 @@ export {
 
 export type { GrantSnapshot } from './grants.js';
 
-// Wire envelope family
+// Wire envelope family — closed public surface (Q1 ruling)
+//
+// Generic building blocks (WireRequest, WireNotification,
+// WireApplicationErrorResponse, WireStandardErrorResponse) are intentionally
+// NOT re-exported. They are internal constructors in envelope.ts.
+//
+// Rationale: #1165 mandates closed enumerations. The public API exposes only
+// the 11 concrete error envelopes, their closed union, and the closed
+// success/response types. Zero external consumers exist for the generics
+// (verified via `rg`). See Q1 architecture ruling by Fable.
 export type {
   CallMeta,
-  WireRequest,
-  WireNotification,
   WireSuccessResponse,
-  WireApplicationErrorResponse,
-  WireStandardErrorResponse,
   // Concrete error envelopes (11 variants)
   HandshakeRejectedEnvelope,
   DeliveryRejectedEnvelope,
