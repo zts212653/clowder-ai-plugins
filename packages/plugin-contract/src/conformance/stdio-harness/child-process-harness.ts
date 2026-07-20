@@ -88,7 +88,6 @@ export class HarnessChild {
   private resolveExit!: (exit: HarnessChildExit) => void;
   private exit: HarnessChildExit | undefined;
   private streamsClosed = false;
-  private fatalError: Error | undefined;
   private stopPromise: Promise<HarnessChildExit> | undefined;
 
   constructor(
@@ -115,7 +114,7 @@ export class HarnessChild {
       }
     });
     child.stdout.on('end', () => {
-      if (this.fatalError !== undefined) {
+      if (harnessFatalErrors.has(this)) {
         return;
       }
       try {
@@ -147,8 +146,8 @@ export class HarnessChild {
       const exit = recordExit(code, signal);
       this.streamsClosed = true;
       this.processTree.markStreamsClosed();
-      if (this.fatalError === undefined) {
-        this.fail(new HarnessChildExitedError(exit));
+      if (!harnessFatalErrors.has(this)) {
+        this.rejectWaiters(new HarnessChildExitedError(exit));
       }
     });
     this.processTree.markRunning();
@@ -176,8 +175,9 @@ export class HarnessChild {
     if (frame !== undefined) {
       return frame;
     }
-    if (this.fatalError !== undefined) {
-      throw this.fatalError;
+    const fatalError = harnessFatalErrors.get(this);
+    if (fatalError !== undefined) {
+      throw fatalError;
     }
     if (this.streamsClosed && this.exit !== undefined) {
       throw new HarnessChildExitedError(this.exit);
@@ -239,8 +239,9 @@ export class HarnessChild {
   }
 
   private assertRunning(): void {
-    if (this.fatalError !== undefined) {
-      throw this.fatalError;
+    const fatalError = harnessFatalErrors.get(this);
+    if (fatalError !== undefined) {
+      throw fatalError;
     }
     if (this.exit !== undefined) {
       throw new HarnessChildExitedError(this.exit);
@@ -261,16 +262,20 @@ export class HarnessChild {
   }
 
   private fail(error: Error, discardQueuedFrames = false): void {
-    if (this.fatalError !== undefined) {
+    if (harnessFatalErrors.has(this)) {
       if (discardQueuedFrames) {
         this.frames.splice(0);
       }
       return;
     }
-    this.fatalError = error;
+    harnessFatalErrors.set(this, error);
     if (discardQueuedFrames) {
       this.frames.splice(0);
     }
+    this.rejectWaiters(error);
+  }
+
+  private rejectWaiters(error: Error): void {
     for (const waiter of this.waiters.splice(0)) {
       clearTimeout(waiter.timer);
       waiter.reject(error);
@@ -296,6 +301,8 @@ export class HarnessChild {
   }
 }
 
+const harnessFatalErrors = new WeakMap<HarnessChild, Error>();
+
 export function spawnHarnessChild(options: SpawnHarnessChildOptions): HarnessChild {
   const spawned = spawnHarnessProcess(options);
   return new HarnessChild(spawned.root, spawned.target, spawned.runtime);
@@ -318,9 +325,12 @@ export async function runHarnessCase<T>(
   }
   const child = spawnHarnessChild(options);
   let timer: NodeJS.Timeout | undefined;
+  let completed = false;
+  let result!: T;
+  let executionError: unknown;
 
   try {
-    return await Promise.race([
+    result = await Promise.race([
       execute(child),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
@@ -333,10 +343,22 @@ export async function runHarnessCase<T>(
         }, options.timeoutMs);
       }),
     ]);
+    completed = true;
+  } catch (error) {
+    executionError = error;
   } finally {
     if (timer !== undefined) {
       clearTimeout(timer);
     }
     await child.stop(options.terminateGraceMs);
   }
+
+  const fatalError = harnessFatalErrors.get(child);
+  if (fatalError !== undefined) {
+    throw fatalError;
+  }
+  if (!completed) {
+    throw executionError;
+  }
+  return result;
 }

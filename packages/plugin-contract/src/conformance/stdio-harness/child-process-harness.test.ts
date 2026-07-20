@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   HarnessCleanupError,
+  HarnessFrameBacklogError,
   HarnessTimeoutError,
   MAX_HARNESS_QUEUED_FRAMES,
   runHarnessCase,
@@ -382,4 +383,113 @@ test('fails closed when decoded stdout frames exceed the bounded backlog', async
     (error: unknown) =>
       error instanceof Error && error.name === 'HarnessFrameBacklogError',
   );
+});
+
+test('runHarnessCase rejects a fatal backlog even when the callback reports success', async () => {
+  const burst = Array.from(
+    { length: MAX_HARNESS_QUEUED_FRAMES + 1 },
+    (_, sequence) => `${JSON.stringify({ sequence })}\n`,
+  ).join('');
+
+  await assert.rejects(
+    runHarnessCase(
+      {
+        command: process.execPath,
+        args: [
+          '-e',
+          `process.stdout.write(${JSON.stringify(burst)}); setInterval(() => {}, 1_000);`,
+        ],
+        timeoutMs: 1_000,
+      },
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return 'reported-success';
+      },
+    ),
+    (error: unknown) => error instanceof HarnessFrameBacklogError,
+  );
+});
+
+test('runHarnessCase rejects fatal trailing output emitted during teardown', async () => {
+  const trailingProtocolFailureScript = `
+process.on('SIGTERM', () => {
+  process.stdout.write('not-json\\n');
+});
+process.stdout.write('{"ready":true}\\n');
+setInterval(() => {}, 1_000);
+`;
+
+  await assert.rejects(
+    runHarnessCase(
+      {
+        command: process.execPath,
+        args: ['-e', trailingProtocolFailureScript],
+        timeoutMs: 1_000,
+      },
+      async (child) => {
+        assert.deepEqual((await child.receive({ timeoutMs: 1_000 })).value, {
+          ready: true,
+        });
+        return 'reported-success';
+      },
+    ),
+    (error: unknown) =>
+      error instanceof NdjsonFrameError && error.code === 'INVALID_JSON',
+  );
+});
+
+test('runHarnessCase surfaces a target spawn error despite a successful callback', async () => {
+  await assert.rejects(
+    runHarnessCase(
+      {
+        command: '/definitely/missing/clowder-plugin',
+        timeoutMs: 1_000,
+      },
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return 'reported-success';
+      },
+    ),
+    (error: unknown) =>
+      error instanceof Error && 'code' in error && error.code === 'ENOENT',
+  );
+});
+
+test('runHarnessCase surfaces a handled stdin stream failure', async () => {
+  await assert.rejects(
+    runHarnessCase(
+      {
+        command: process.execPath,
+        args: [
+          '-e',
+          `require('node:fs').closeSync(0); process.stdout.write('{"ready":true}\\n'); setInterval(() => {}, 1_000);`,
+        ],
+        timeoutMs: 1_000,
+      },
+      async (child) => {
+        assert.deepEqual((await child.receive({ timeoutMs: 1_000 })).value, {
+          ready: true,
+        });
+        await assert.rejects(child.send({ payload: 'x'.repeat(512 * 1024) }), {
+          code: 'EPIPE',
+        });
+        return 'reported-success';
+      },
+    ),
+    (error: unknown) =>
+      error instanceof Error && 'code' in error && error.code === 'EPIPE',
+  );
+});
+
+test('runHarnessCase preserves a successful callback across normal teardown', async () => {
+  const result = await runHarnessCase(
+    {
+      command: process.execPath,
+      args: ['-e', idleScript],
+      timeoutMs: 1_000,
+    },
+    async () => 'reported-success',
+  );
+
+  assert.equal(result, 'reported-success');
 });
