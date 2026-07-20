@@ -21,10 +21,14 @@
  *   14. PreState consistency: all vectors have preState with inFlightRequests;
  *       state-dependent vectors have correct correlation records.
  *   15. Partition semantics: RESPONSE_CANDIDATE_CASES (9 keys) and
- *       NOTIFICATION_PARTITION_CASES (7 keys) map to real fixture vectors.
+ *       NOTIFICATION_PARTITION_CASES (7 keys) map to real fixture vectors
+ *       AND each case's vector has the expected T-class (FC-70-4).
  *   16. Mutual-exclusivity proof pair: T-H-3 and T-L-2 share rawFrame,
  *       differ only in preState.
  *   17. Minimum vector count.
+ *   18. Cross-frame oracle: T-L/T-H vectors with requestSnapshot carry
+ *       correct nonce/deliveryId for byte-equality validation.
+ *   19. InFlightRecord.method is a valid WireMethodName.
  */
 
 import assert from 'node:assert/strict';
@@ -49,6 +53,7 @@ import {
 } from './disposition.js';
 
 import { MAX_FRAME_BYTES } from './constants.js';
+import { WIRE_METHOD_NAMES } from './registry.js';
 
 // Per-arm byte-proof bounds — test files CAN import from byte-proof since
 // tests are excluded from tsconfig.build.json. This is the FC-F0-3 fix:
@@ -464,30 +469,46 @@ test('T-L vectors have method in the in-flight record for schema validation', ()
 });
 
 // ---------------------------------------------------------------------------
-// 15. Partition semantics (FC-6B-1 root cause fix)
+// 15. Partition semantics (FC-6B-1 root cause fix + FC-70-4)
 //
-// Instead of counting to 9/7, we verify NAMED sub-cases. Each key in
-// the partition Record represents a distinct classification path from
-// §3.8-1. The test asserts that:
-//   (a) The Record has the expected number of keys
-//   (b) Every key maps to a real fixture vector
-//   (c) The mapped vector has the expected T-class for that sub-case
+// Each key in the partition Record represents a distinct classification
+// path from §3.8-1. The test asserts:
+//   (a) The Record has the expected number of keys (frozen)
+//   (b) Every key maps to a real fixture vector (vectorId)
+//   (c) The mapped vector has the expected T-class (expectedClass)
+//   (d) No duplicate vectorIds within a partition
+//
+// FC-70-4 fix: The old test only checked (a) + (b) — existence without
+// semantic class verification. A misclassified vector (e.g., T-D-4 when
+// it should be T-K) passed because it existed. Now (c) catches that.
 // ---------------------------------------------------------------------------
 
 test('RESPONSE_CANDIDATE_CASES has exactly 9 named sub-cases', () => {
   const keys = Object.keys(RESPONSE_CANDIDATE_CASES);
   assert.equal(keys.length, 9, `expected 9 response-candidate sub-cases, got ${keys.length}`);
-  // No duplicate values
-  const values = Object.values(RESPONSE_CANDIDATE_CASES);
-  assert.equal(new Set(values).size, values.length, 'duplicate vector ids in RESPONSE_CANDIDATE_CASES');
+  // No duplicate vectorIds
+  const vectorIds = Object.values(RESPONSE_CANDIDATE_CASES).map((c) => c.vectorId);
+  assert.equal(new Set(vectorIds).size, vectorIds.length, 'duplicate vectorIds in RESPONSE_CANDIDATE_CASES');
 });
 
-test('every RESPONSE_CANDIDATE_CASES key maps to a real fixture vector', () => {
-  const vectorIds = new Set(DISPOSITION_FIXTURE_VECTORS.map((v) => v.id));
-  for (const [caseName, vectorId] of Object.entries(RESPONSE_CANDIDATE_CASES)) {
+test('every RESPONSE_CANDIDATE_CASES key maps to a real fixture vector with correct T-class', () => {
+  const vectorIndex = new Map(DISPOSITION_FIXTURE_VECTORS.map((v) => [v.id, v]));
+
+  for (const [caseName, partCase] of Object.entries(RESPONSE_CANDIDATE_CASES)) {
+    const vector = vectorIndex.get(partCase.vectorId);
+
+    // (b) vector exists
     assert.ok(
-      vectorIds.has(vectorId),
-      `response-candidate case '${caseName}': fixture vector '${vectorId}' not found`,
+      vector !== undefined,
+      `response-candidate case '${caseName}': fixture vector '${partCase.vectorId}' not found`,
+    );
+
+    // (c) vector's expectedClass matches the partition case's expectedClass
+    assert.equal(
+      vector!.expectedClass,
+      partCase.expectedClass,
+      `response-candidate case '${caseName}': vector '${partCase.vectorId}' has class ` +
+      `'${vector!.expectedClass}' but partition expects '${partCase.expectedClass}'`,
     );
   }
 });
@@ -495,27 +516,39 @@ test('every RESPONSE_CANDIDATE_CASES key maps to a real fixture vector', () => {
 test('NOTIFICATION_PARTITION_CASES has exactly 7 named sub-cases', () => {
   const keys = Object.keys(NOTIFICATION_PARTITION_CASES);
   assert.equal(keys.length, 7, `expected 7 notification-partition sub-cases, got ${keys.length}`);
-  // No duplicate values
-  const values = Object.values(NOTIFICATION_PARTITION_CASES);
-  assert.equal(new Set(values).size, values.length, 'duplicate vector ids in NOTIFICATION_PARTITION_CASES');
+  // No duplicate vectorIds
+  const vectorIds = Object.values(NOTIFICATION_PARTITION_CASES).map((c) => c.vectorId);
+  assert.equal(new Set(vectorIds).size, vectorIds.length, 'duplicate vectorIds in NOTIFICATION_PARTITION_CASES');
 });
 
-test('every NOTIFICATION_PARTITION_CASES key maps to a real fixture vector', () => {
-  const vectorIds = new Set(DISPOSITION_FIXTURE_VECTORS.map((v) => v.id));
-  for (const [caseName, vectorId] of Object.entries(NOTIFICATION_PARTITION_CASES)) {
+test('every NOTIFICATION_PARTITION_CASES key maps to a real fixture vector with correct T-class', () => {
+  const vectorIndex = new Map(DISPOSITION_FIXTURE_VECTORS.map((v) => [v.id, v]));
+
+  for (const [caseName, partCase] of Object.entries(NOTIFICATION_PARTITION_CASES)) {
+    const vector = vectorIndex.get(partCase.vectorId);
+
+    // (b) vector exists
     assert.ok(
-      vectorIds.has(vectorId),
-      `notification-partition case '${caseName}': fixture vector '${vectorId}' not found`,
+      vector !== undefined,
+      `notification-partition case '${caseName}': fixture vector '${partCase.vectorId}' not found`,
+    );
+
+    // (c) vector's expectedClass matches the partition case's expectedClass
+    assert.equal(
+      vector!.expectedClass,
+      partCase.expectedClass,
+      `notification-partition case '${caseName}': vector '${partCase.vectorId}' has class ` +
+      `'${vector!.expectedClass}' but partition expects '${partCase.expectedClass}'`,
     );
   }
 });
 
 // ---------------------------------------------------------------------------
-// 16. Mutual-exclusivity proof pair (FC-F0-2 / FC-6B-3)
+// 16. Mutual-exclusivity proof pair (FC-F0-2 / FC-6B-3 / FC-70-3)
 //
 // T-H-3 and T-L-2 MUST share the same rawFrame but differ in preState.
 // This proves the classifier must consult preState to distinguish them.
-// With FC-6B-3, preState now carries method for each in-flight record.
+// FC-70-3: rawFrame now has valid PingResult {nonce:"x"} instead of null.
 // ---------------------------------------------------------------------------
 
 test('T-H-3 and T-L-2 share rawFrame but differ in preState (mutual-exclusivity proof)', () => {
@@ -560,12 +593,92 @@ test('T-H-3 and T-L-2 share rawFrame but differ in preState (mutual-exclusivity 
 });
 
 // ---------------------------------------------------------------------------
-// 17. Total vector count ≥ 28 (increased from 25 after FC-6B fixes)
+// 17. Total vector count ≥ 35
 // ---------------------------------------------------------------------------
 
-test('fixture vectors total count is at least 28', () => {
+test('fixture vectors total count is at least 35', () => {
   assert.ok(
-    DISPOSITION_FIXTURE_VECTORS.length >= 28,
-    `expected ≥28 vectors, got ${DISPOSITION_FIXTURE_VECTORS.length}`,
+    DISPOSITION_FIXTURE_VECTORS.length >= 35,
+    `expected ≥35 vectors, got ${DISPOSITION_FIXTURE_VECTORS.length}`,
   );
+});
+
+// ---------------------------------------------------------------------------
+// 18. Cross-frame oracle (FC-70-3)
+//
+// Vectors relying on cross-frame semantic oracles must carry the data
+// needed for byte-equality validation in requestSnapshot:
+//   - T-L-1: ping nonce echo → requestSnapshot.nonce must match result.nonce
+//   - T-L-2: ping nonce echo → requestSnapshot.nonce must match result.nonce
+//   - T-H-9: row-9 deliveryId mismatch → requestSnapshot.deliveryId must
+//             DIFFER from result.deliveryId (that's why it's T-H, not T-L)
+// ---------------------------------------------------------------------------
+
+test('T-L ping vectors have requestSnapshot.nonce matching result nonce', () => {
+  for (const v of DISPOSITION_FIXTURE_VECTORS) {
+    if (v.expectedClass !== 'T-L') continue;
+    const parsed = JSON.parse(v.rawFrame) as { id?: string; result?: { nonce?: string } };
+    if (!parsed.result?.nonce) continue; // only ping settlements have nonce
+
+    const record = v.preState.inFlightRequests.find((r) => r.id === parsed.id);
+    assert.ok(
+      record !== undefined,
+      `${v.id}: T-L ping vector must have an in-flight record`,
+    );
+    assert.ok(
+      record!.requestSnapshot?.nonce !== undefined,
+      `${v.id}: T-L ping settlement must carry requestSnapshot.nonce for byte-equality oracle`,
+    );
+    assert.equal(
+      record!.requestSnapshot!.nonce,
+      parsed.result.nonce,
+      `${v.id}: requestSnapshot.nonce must match result.nonce (byte-equal echo)`,
+    );
+  }
+});
+
+test('T-H-9 wrong-deliveryId vector has mismatched requestSnapshot.deliveryId', () => {
+  const v = findVector('T-H-9');
+  const parsed = JSON.parse(v.rawFrame) as { result?: { deliveryId?: string } };
+
+  assert.ok(
+    parsed.result?.deliveryId !== undefined,
+    'T-H-9 rawFrame must have result.deliveryId',
+  );
+
+  const record = v.preState.inFlightRequests[0];
+  assert.ok(
+    record !== undefined,
+    'T-H-9 must have an in-flight record',
+  );
+  assert.ok(
+    record.requestSnapshot?.deliveryId !== undefined,
+    'T-H-9 in-flight record must have requestSnapshot.deliveryId',
+  );
+  assert.notEqual(
+    record.requestSnapshot!.deliveryId,
+    parsed.result!.deliveryId,
+    'T-H-9: requestSnapshot.deliveryId must DIFFER from result.deliveryId (wrong-id scenario)',
+  );
+});
+
+// ---------------------------------------------------------------------------
+// 19. InFlightRecord.method is a valid WireMethodName (FC-70-3)
+//
+// The method field is typed as WireMethodName at compile time, but this
+// runtime check catches any drift between the fixture data and the
+// registry (e.g., a typo or a renamed method that still compiles due
+// to a stale type union).
+// ---------------------------------------------------------------------------
+
+test('all InFlightRecord.method values are valid WireMethodNames', () => {
+  const validMethods = new Set<string>(WIRE_METHOD_NAMES);
+  for (const v of DISPOSITION_FIXTURE_VECTORS) {
+    for (const rec of v.preState.inFlightRequests) {
+      assert.ok(
+        validMethods.has(rec.method),
+        `${v.id}: InFlightRecord.method '${rec.method}' is not a valid WireMethodName`,
+      );
+    }
+  }
 });

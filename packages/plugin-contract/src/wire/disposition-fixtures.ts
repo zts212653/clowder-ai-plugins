@@ -2,9 +2,10 @@
  * Disposition conformance fixture vectors — machine-readable test data
  * for the pre-dispatch disposition table (T-A through T-L).
  *
- * Mechanized from §3.8-1 of the #1165 frozen plan. Each vector carries:
+ * Mechanized VERBATIM from §3.8-1 of the #1165 frozen plan (rev11,
+ * SHA 7e26e5af). Each vector carries:
  *   - A raw frame (the input to a pre-dispatch classifier)
- *   - Machine-readable pre-state with correlation records (FC-6B-3)
+ *   - Machine-readable pre-state with correlation records + cross-frame oracle
  *   - The expected unique T-class assignment
  *   - For respond classes: a type-checked closed-arm error envelope
  *   - For close/accept classes: null response markers
@@ -12,24 +13,25 @@
  * These are DATA — they do not classify. A future classifier
  * implementation would be tested against these vectors.
  *
- * Coverage per §3.8-1:
+ * Coverage per §3.8-1 (frozen enumerations, not arbitrary counts):
  *   - 9 response-candidate sub-cases (RESPONSE_CANDIDATE_CASES)
+ *     "your R9 correction #5's five required cases plus four controls"
  *   - 7 notification-partition sub-cases (NOTIFICATION_PARTITION_CASES)
+ *     "your correction #4's five, the idless-envelope fixture,
+ *      and the R8 row-10 value-failure fixture"
  *   - All 12 T-classes have ≥1 vector
  *   - Pre-state mutual-exclusivity proof pair (T-H-3 / T-L-2)
  *
  * Response frames are DERIVED from type-checked ClosedWireErrorResponse
- * objects (FC-F0-3), not hand-written strings.
+ * objects, not hand-written strings.
  *
- * Partition records use semantic keys (FC-6B-1), NOT bare counts.
- * Each key is a distinct classification path for frames bearing
- * result/error (response-candidate partition) or method without id
- * (notification partition). Tests verify every key maps to a real
- * fixture vector, preventing arbitrary self-certification.
+ * Partition records carry {vectorId, expectedClass} per case (FC-70-4).
+ * Tests verify both existence AND class correctness per key.
  */
 
 import type { DispositionClass, DispositionOutcome } from './disposition.js';
 import type { RequestId } from './request-id.js';
+import type { WireMethodName } from './registry.js';
 import type {
   ParseErrorEnvelope,
   InvalidRequestNullIdEnvelope,
@@ -48,11 +50,6 @@ import {
 // Closed error arm names — the 11 concrete envelope types from envelope.ts
 // ---------------------------------------------------------------------------
 
-/**
- * Names of the 11 concrete error envelope types.
- * Used to tag fixture vectors with their expected error response arm.
- * Exhaustive — must match the ClosedWireErrorResponse union exactly.
- */
 export const CLOSED_ERROR_ARM_NAMES = [
   'ParseErrorEnvelope',
   'InvalidRequestNullIdEnvelope',
@@ -67,16 +64,10 @@ export const CLOSED_ERROR_ARM_NAMES = [
   'SnapshotUnavailableEnvelope',
 ] as const;
 
-/** Union of all 11 concrete error envelope type names. */
 export type ClosedErrorArmName = (typeof CLOSED_ERROR_ARM_NAMES)[number];
 
 // ---------------------------------------------------------------------------
-// Type-checked response envelopes (FC-F0-3)
-//
-// Each object is annotated with its corresponding concrete envelope type.
-// The expectedResponseFrame strings are DERIVED from these typed objects
-// via JSON.stringify — not hand-written. This breaks the self-certification
-// loop: if an envelope type changes, the fixture fails to compile.
+// Type-checked response envelopes
 // ---------------------------------------------------------------------------
 
 const RESPONSE_PARSE_ERROR: ParseErrorEnvelope = {
@@ -110,32 +101,45 @@ const RESPONSE_INVALID_PARAMS_A: InvalidParamsEnvelope = {
 };
 
 // ---------------------------------------------------------------------------
-// Pre-state shape (FC-6B-3)
+// Pre-state shape (FC-6B-3 / FC-70-3)
 //
-// inFlightRequests carries per-id correlation records, NOT bare id strings.
-// This lets a future classifier validate the response schema against the
-// expected row's response shape — just knowing "id X is in-flight" is
-// insufficient to distinguish a valid settlement from a schema mismatch.
+// InFlightRecord carries:
+//   - id: the request id
+//   - method: closed WireMethodName (not bare string) — compiler-checked
+//   - requestSnapshot: original request fields for cross-frame oracle
+//     (ping nonce for byte-equality echo, row-9 deliveryId for ack match)
+//
+// T-L requires the response to satisfy "the correlated row's result/error
+// schema AND every cross-frame semantic oracle" (§3.8-1). The request
+// snapshot carries enough data for a future classifier to validate this.
 // ---------------------------------------------------------------------------
 
 /**
+ * Original request fields needed for cross-frame semantic oracle validation.
+ * Optional: only populated for rows that have cross-frame invariants.
+ */
+export interface RequestSnapshot {
+  /** Row 11 ping: the nonce that must be echoed byte-equal in the result. */
+  readonly nonce?: string;
+  /** Row 9 deliver: the deliveryId that must match byte-equal in the ack. */
+  readonly deliveryId?: string;
+}
+
+/**
  * A single in-flight request record for pre-state correlation.
- *
- * @property id     — The request id (matches RequestId profile).
- * @property method — The method that was called (determines expected response shape).
+ * The method field is a closed WireMethodName, not a bare string —
+ * the compiler catches typos and detects registry drift.
  */
 export interface InFlightRecord {
   readonly id: string;
-  readonly method: string;
+  readonly method: WireMethodName;
+  /** Original request fields for cross-frame semantic oracle. */
+  readonly requestSnapshot?: RequestSnapshot;
 }
 
 /**
  * Machine-readable pre-state for state-dependent classification.
  * Without this, T-H vs T-L cannot be distinguished from rawFrame alone.
- *
- * @property inFlightRequests — Requests with pending responses at the
- *   moment the rawFrame arrives. Empty array = no in-flight requests.
- *   Each record carries id + method for response schema validation.
  */
 export interface FixturePreState {
   readonly inFlightRequests: readonly InFlightRecord[];
@@ -145,9 +149,6 @@ export interface FixturePreState {
 // Fixture vector shape
 // ---------------------------------------------------------------------------
 
-/**
- * A single conformance fixture vector for the disposition table.
- */
 export interface DispositionFixtureVector {
   readonly id: string;
   readonly rawFrame: string;
@@ -155,89 +156,87 @@ export interface DispositionFixtureVector {
   readonly preState: FixturePreState;
   readonly expectedClass: DispositionClass;
   readonly expectedOutcome: DispositionOutcome;
-  /** For respond outcomes: the expected closed error arm. Null for close/accept. */
   readonly expectedErrorArm: ClosedErrorArmName | null;
-  /** For respond outcomes: the expected error code. Null for close/accept. */
   readonly expectedErrorCode: number | null;
-  /** For respond outcomes: compact-JSON derived from typed envelope. Null for close/accept. */
   readonly expectedResponseFrame: string | null;
   readonly description: string;
 }
 
 // ---------------------------------------------------------------------------
-// §3.8-1 partition records — semantic keys, not bare counts (FC-6B-1)
+// §3.8-1 partition records — verbatim from the frozen enumeration (FC-70-4)
 //
-// Each key is a distinct classification sub-case from the frozen plan.
-// Values are fixture vector ids. Tests verify every key maps to a real
-// vector, preventing "arbitrary 9/7 self-certification" (sol FC-6B root
-// cause: "用 9/7 数量替代冻结案例身份").
+// Each case carries {vectorId, expectedClass}. Tests verify BOTH that the
+// vector exists AND that its expectedClass matches — preventing
+// misclassification from passing as a false green.
 // ---------------------------------------------------------------------------
 
 /**
- * 9 response-candidate sub-cases per §3.8-1.
- *
- * A "response candidate" is any frame bearing result/error fields.
- * The 9 sub-cases cover every distinct classification path such a
- * frame can take — including exit paths where method presence
- * reroutes the frame to a non-T-H/T-L class.
- *
- * Sub-case key → representative fixture vector id.
+ * A single named case from the frozen plan's partition enumeration.
  */
-export const RESPONSE_CANDIDATE_CASES = {
-  /** result/error + numeric id (profile-invalid) → T-H validation failure */
-  'rc-invalid-id': 'T-H-6',
-  /** result + no id field at all → T-H validation failure */
-  'rc-missing-id': 'T-H-7',
-  /** result + valid id not in-flight → T-H correlation failure */
-  'rc-uncorrelated': 'T-H-1',
-  /** both result AND error present → T-H structural failure */
-  'rc-result-and-error': 'T-H-2',
-  /** error body is string, not object → T-H structural failure */
-  'rc-error-structural': 'T-H-5',
-  /** result + valid id in-flight → T-L correlated success */
-  'rc-settled-success': 'T-L-1',
-  /** error + valid id in-flight → T-L correlated error */
-  'rc-settled-error': 'T-L-3',
-  /** result + valid method + valid id → exits to T-F (request envelope violation) */
-  'rc-with-method': 'T-F-4',
-  /** result + invalid method (number) → exits to T-D */
-  'rc-with-invalid-method': 'T-D-3',
-} as const;
+export interface PartitionCase {
+  readonly vectorId: string;
+  readonly expectedClass: DispositionClass;
+}
 
 /**
- * 7 notification-partition sub-cases per §3.8-1.
+ * 9 response-candidate sub-cases per §3.8-1:
+ * "your R9 correction #5's five required cases plus four controls"
  *
- * A "notification" is any frame with method and no id. The 7 sub-cases
- * cover every distinct classification path: T-D (malformed), T-J
- * (legal row-10), T-K (v0 violation).
- *
- * Sub-case key → representative fixture vector id.
+ * A "response candidate" enters the response lane: no method + at least
+ * one of result/error. Controls prove the boundary: frames with method
+ * that exit to T-F/T-K/T-D despite carrying result/error.
  */
-export const NOTIFICATION_PARTITION_CASES = {
-  /** method field is number, not string → T-D */
-  'nt-method-type': 'T-D-1',
-  /** jsonrpc version wrong ("1.0") → T-D */
-  'nt-version': 'T-D-2',
-  /** missing required params field → T-D */
-  'nt-missing-params': 'T-D-4',
-  /** legal row-10, empty grants → T-J accept */
-  'nt-legal-empty': 'T-J-1',
-  /** legal row-10, populated grants → T-J accept */
-  'nt-legal-populated': 'T-J-2',
-  /** known non-row-10 method as notification → T-K v0 violation */
-  'nt-known-v0': 'T-K-1',
-  /** unknown method as notification → T-K v0 violation */
-  'nt-unknown-method': 'T-K-3',
-} as const;
+export const RESPONSE_CANDIDATE_CASES: Readonly<Record<string, PartitionCase>> = {
+  /** §3.8-1 RC required #1: missing-id success shape → T-H close */
+  'rc-1-missing-id-success': { vectorId: 'T-H-7', expectedClass: 'T-H' },
+  /** §3.8-1 RC required #2: missing-id error shape → T-H close */
+  'rc-2-missing-id-error': { vectorId: 'T-H-8', expectedClass: 'T-H' },
+  /** §3.8-1 RC required #3: invalid/malformed-id → T-H close */
+  'rc-3-invalid-id': { vectorId: 'T-H-6', expectedClass: 'T-H' },
+  /** §3.8-1 RC required #4: schema-valid correlated WireSuccessResponse → T-L */
+  'rc-4-settled-valid': { vectorId: 'T-L-1', expectedClass: 'T-L' },
+  /** §3.8-1 RC required #5: row-9 ack wrong deliveryId → T-H, never T-L */
+  'rc-5-row9-wrong-deliveryid': { vectorId: 'T-H-9', expectedClass: 'T-H' },
+  /** §3.8-1 RC control #6: method-bearing Request + extra result → T-F */
+  'rc-6-request-extra-result': { vectorId: 'T-F-4', expectedClass: 'T-F' },
+  /** §3.8-1 RC control #7: idless Notification + extra error → T-K */
+  'rc-7-notification-extra-error': { vectorId: 'T-K-4', expectedClass: 'T-K' },
+  /** §3.8-1 RC control #8: structurally-invalid method:0+result → T-D */
+  'rc-8-invalid-method-result': { vectorId: 'T-D-3', expectedClass: 'T-D' },
+  /** §3.8-1 RC control #9: idless {"jsonrpc":"1.0","method":"x"} → T-D */
+  'rc-9-idless-version-control': { vectorId: 'T-D-5', expectedClass: 'T-D' },
+};
+
+/**
+ * 7 notification-partition sub-cases per §3.8-1:
+ * "your correction #4's five, the idless-envelope fixture,
+ *  and the R8 row-10 value-failure fixture"
+ */
+export const NOTIFICATION_PARTITION_CASES: Readonly<Record<string, PartitionCase>> = {
+  /** §3.8-1 NT #1: legal row-10 notification → T-J accept */
+  'nt-1-legal-row10': { vectorId: 'T-J-1', expectedClass: 'T-J' },
+  /** §3.8-1 NT #2: request-only method without id → T-K close */
+  'nt-2-request-method': { vectorId: 'T-K-1', expectedClass: 'T-K' },
+  /** §3.8-1 NT #3: unknown method without id → T-K close */
+  'nt-3-unknown-method': { vectorId: 'T-K-3', expectedClass: 'T-K' },
+  /** §3.8-1 NT #4: structurally valid notification, invalid params → T-K */
+  'nt-4-invalid-params': { vectorId: 'T-K-6', expectedClass: 'T-K' },
+  /** §3.8-1 NT #5: idless notification extra/missing envelope member → T-K */
+  'nt-5-envelope-violation': { vectorId: 'T-K-5', expectedClass: 'T-K' },
+  /** §3.8-1 NT #6: row-10 deadlineUnixMs:0 value failure (H7/H8) → T-K */
+  'nt-6-value-failure': { vectorId: 'T-K-7', expectedClass: 'T-K' },
+  /** §3.8-1 NT #7: structurally invalid idless object → T-D respond */
+  'nt-7-structurally-invalid': { vectorId: 'T-D-1', expectedClass: 'T-D' },
+};
 
 // ---------------------------------------------------------------------------
-// The fixture vectors (29 total)
+// The fixture vectors (35 total)
 // ---------------------------------------------------------------------------
 
 export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = [
 
   // ═════════════════════════════════════════════════════════════════════════
-  // PRE-STRUCTURAL (T-A, T-B, T-C) — before id/method analysis
+  // PRE-STRUCTURAL (T-A, T-B, T-C)
   // ═════════════════════════════════════════════════════════════════════════
 
   {
@@ -280,12 +279,12 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // NOTIFICATION PARTITION — 8 vectors covering 7 sub-cases (§3.8-1)
-  // Frames with method + no id → T-D (malformed) / T-J (legal) / T-K (v0)
+  // T-D: canonical idless NON-response-candidate, NOT a valid Request
+  // object (missing/non-string jsonrpc/method)
   //
-  // Sub-case mapping: see NOTIFICATION_PARTITION_CASES record.
-  // T-K-2 is additional coverage (known method variant), not a distinct
-  // sub-case — T-K-1 is the representative for 'nt-known-v0'.
+  // §3.8-1: "not a valid JSON-RPC Request object at all"
+  // Frozen vectors: NT-7 (T-D-1), RC-8 (T-D-3), RC-9 (T-D-5)
+  // Additional: T-D-2 (wrong jsonrpc version variant)
   // ═════════════════════════════════════════════════════════════════════════
 
   {
@@ -298,7 +297,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidRequestNullIdEnvelope',
     expectedErrorCode: -32600,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_REQUEST_NULL),
-    description: 'notification partition [nt-method-type]: method is number, not string',
+    description: '[NT-7] structurally invalid: method is number, not string',
   },
 
   {
@@ -311,7 +310,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidRequestNullIdEnvelope',
     expectedErrorCode: -32600,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_REQUEST_NULL),
-    description: 'notification partition [nt-version]: wrong jsonrpc version "1.0"',
+    description: 'structurally invalid: wrong jsonrpc version "1.0" (additional NT-7 variant)',
   },
 
   {
@@ -324,12 +323,12 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidRequestNullIdEnvelope',
     expectedErrorCode: -32600,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_REQUEST_NULL),
-    description: 'response-candidate boundary [rc-with-invalid-method]: method:0 + result:null, method presence routes to T-D',
+    description: '[RC-8] response-candidate boundary: method:0+result, method routes to T-D',
   },
 
   {
-    id: 'T-D-4',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed"}',
+    id: 'T-D-5',
+    rawFrame: '{"jsonrpc":"1.0","method":"x"}',
     rawFrameEncoding: 'utf8',
     preState: { inFlightRequests: [] },
     expectedClass: 'T-D',
@@ -337,80 +336,11 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidRequestNullIdEnvelope',
     expectedErrorCode: -32600,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_REQUEST_NULL),
-    description: 'notification partition [nt-missing-params]: valid method but missing required params field',
-  },
-
-  {
-    id: 'T-J-1',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-J',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: 'notification partition [nt-legal-empty]: legal row-10 grants.changed, empty grants',
-  },
-
-  {
-    id: 'T-J-2',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":1,"effectiveGrants":["message.event.subscribe"]}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-J',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: 'notification partition [nt-legal-populated]: legal row-10 grants.changed, non-empty grants (message.event.subscribe)',
-  },
-
-  {
-    id: 'T-K-1',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x"}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: 'notification partition [nt-known-v0]: ping (row 11) as notification, v0 violation',
-  },
-
-  {
-    id: 'T-K-2',
-    rawFrame: '{"jsonrpc":"2.0","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: 'notification partition: broker.hello (row 1) as notification, v0 violation (additional coverage for nt-known-v0)',
-  },
-
-  {
-    id: 'T-K-3',
-    rawFrame: '{"jsonrpc":"2.0","method":"unknown.rpc","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: 'notification partition [nt-unknown-method]: unknown method as notification, v0 violation',
+    description: '[RC-9] response-candidate control: idless {"jsonrpc":"1.0","method":"x"} → T-D (not a response candidate)',
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // ID ANALYSIS — T-E (profile-invalid id on request/notification path)
-  //
-  // T-E is exclusively for frames on the request/notification path (has
-  // method). Response candidates with profile-invalid id go to T-H
-  // (response-candidate validation failure). See FC-6B-1.
+  // T-E: profile-invalid id on request/notification path
   // ═════════════════════════════════════════════════════════════════════════
 
   {
@@ -423,11 +353,12 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'profile-invalid id on request: empty string violates RequestId min length 1',
+    description: 'profile-invalid id on request: empty string violates min length 1',
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // REQUEST PATH — T-F (envelope violation), T-G (value violation), T-I
+  // T-F: envelope violation (valid id, structural problem)
+  // Frozen: RC-6 (T-F-4). Additional: T-F-1, T-F-2, T-F-3.
   // ═════════════════════════════════════════════════════════════════════════
 
   {
@@ -453,7 +384,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'MethodNotFoundEnvelope',
     expectedErrorCode: -32601,
     expectedResponseFrame: JSON.stringify(RESPONSE_METHOD_NOT_FOUND_A),
-    description: 'envelope violation: method "unknown.method" not in 12-row registry',
+    description: 'envelope violation: unknown method not in 12-row registry',
   },
 
   {
@@ -466,7 +397,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidParamsEnvelope',
     expectedErrorCode: -32602,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
-    description: 'envelope violation: params is array, must be object with meta+input',
+    description: 'envelope violation: params is array, must be object',
   },
 
   {
@@ -479,8 +410,12 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidRequestValidIdEnvelope',
     expectedErrorCode: -32600,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_REQUEST_A),
-    description: 'response-candidate boundary [rc-with-method]: request with extra result field, method routes to T-F',
+    description: '[RC-6] response-candidate control: Request with extra result member → T-F',
   },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // T-G: value violation (valid envelope, bad params values)
+  // ═════════════════════════════════════════════════════════════════════════
 
   {
     id: 'T-G-1',
@@ -495,6 +430,10 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: 'value violation: nonce empty string violates minLength 1',
   },
 
+  // ═════════════════════════════════════════════════════════════════════════
+  // T-I: in-flight id collision
+  // ═════════════════════════════════════════════════════════════════════════
+
   {
     id: 'T-I-1',
     rawFrame: '{"jsonrpc":"2.0","id":"dup","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
@@ -505,22 +444,149 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'in-flight id collision: id "dup" is already in preState.inFlightRequests',
+    description: 'in-flight id collision: id "dup" already in preState',
   },
 
   // ═════════════════════════════════════════════════════════════════════════
-  // RESPONSE-CANDIDATE PARTITION — 13 vectors covering 9 sub-cases (§3.8-1)
+  // NOTIFICATION PARTITION — frozen 7 cases + additional coverage
   //
-  // A "response candidate" = frame bearing result/error. The 9 sub-cases
-  // (RESPONSE_CANDIDATE_CASES) cover every distinct classification path,
-  // including exit paths where method presence reroutes to T-D/T-F.
+  // §3.8-1: "once a canonical object is classified as a Notification,
+  // no JSON-RPC Response is emitted for any downstream method/params/
+  // profile rejection."
   //
-  // Vectors beyond the 9 representative cases are additional coverage:
-  //   - T-H-3 / T-L-2: mutual-exclusivity proof pair (correlation check)
-  //   - T-H-4: additional uncorrelated case (error variant of T-H-1)
+  // Frozen cases: T-J-1 (NT-1), T-K-1 (NT-2), T-K-3 (NT-3),
+  //   T-K-6 (NT-4), T-K-5 (NT-5), T-K-7 (NT-6), T-D-1 (NT-7).
+  // Additional: T-J-2, T-K-2.
+  // ═════════════════════════════════════════════════════════════════════════
+
+  {
+    id: 'T-J-1',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-J',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[NT-1] legal row-10 grants.changed notification, empty grants',
+  },
+
+  {
+    id: 'T-J-2',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":1,"effectiveGrants":["message.event.subscribe"]}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-J',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: 'legal row-10 grants.changed, non-empty grants (additional NT-1 variant)',
+  },
+
+  {
+    id: 'T-K-1',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x"}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[NT-2] request-only method (ping, row 11) as notification → v0 violation',
+  },
+
+  {
+    id: 'T-K-2',
+    rawFrame: '{"jsonrpc":"2.0","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: 'request-only method (hello, row 1) as notification (additional NT-2 variant)',
+  },
+
+  {
+    id: 'T-K-3',
+    rawFrame: '{"jsonrpc":"2.0","method":"unknown.rpc","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[NT-3] unknown method as notification → v0 violation',
+  },
+
+  {
+    id: 'T-K-4',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}},"error":{"code":-32600,"message":"Invalid Request"}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[RC-7 / NT-5 variant] Notification with extra error member → T-K close',
+  },
+
+  {
+    id: 'T-K-5',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed"}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[NT-5] Notification missing params → idless envelope violation → T-K close',
+  },
+
+  {
+    id: 'T-K-6',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":"not-a-number","effectiveGrants":[]}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[NT-4] structurally valid Notification, invocation-level invalid params (grantRevision wrong type)',
+  },
+
+  {
+    id: 'T-K-7',
+    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":0},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[NT-6] row-10 notification with deadlineUnixMs:0 → value failure (H7), T-K close',
+  },
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // RESPONSE-CANDIDATE PARTITION — frozen 9 cases + additional coverage
   //
-  // T-D-3 and T-F-4 (above) are ALSO response-candidate sub-cases
-  // — they have result/error but method presence routes them elsewhere.
+  // §3.8-1: "an object with no method and at least one of result/error
+  // is a response candidate and enters the response lane BEFORE any
+  // Request/Notification or ID-profile routing"
+  //
+  // Frozen cases: T-H-7 (RC-1), T-H-8 (RC-2), T-H-6 (RC-3),
+  //   T-L-1 (RC-4), T-H-9 (RC-5), T-F-4 (RC-6), T-K-4 (RC-7),
+  //   T-D-3 (RC-8), T-D-5 (RC-9).
+  // Additional coverage: T-H-1..T-H-5, T-L-2..T-L-3 (proof pair + extras)
   // ═════════════════════════════════════════════════════════════════════════
 
   // ── T-H: response-candidate validation/correlation failure ────────────
@@ -535,7 +601,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-uncorrelated]: id "phantom" not in-flight, correlation failure',
+    description: 'response-candidate: phantom id, uncorrelated (additional coverage)',
   },
 
   {
@@ -548,17 +614,16 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-result-and-error]: both result AND error present, mutual-exclusivity violation',
+    description: 'response-candidate: both result AND error present (additional coverage)',
   },
 
   // ── MUTUAL-EXCLUSIVITY PROOF PAIR ─────────────────────────────────────
-  // T-H-3 and T-L-2 share IDENTICAL rawFrame. Only preState differs.
-  // This proves the classifier MUST consult preState, not just rawFrame.
-  // Additional coverage for rc-uncorrelated (T-H-3) and rc-settled-success
-  // (T-L-2), not distinct sub-cases.
+  // T-H-3 and T-L-2 share IDENTICAL rawFrame with schema-valid ping
+  // result. Only preState differs. FC-70-3 fix: rawFrame now has valid
+  // PingResult {nonce:"x"} instead of null.
   {
     id: 'T-H-3',
-    rawFrame: '{"jsonrpc":"2.0","id":"corr-test","result":null}',
+    rawFrame: '{"jsonrpc":"2.0","id":"corr-test","result":{"nonce":"x"}}',
     rawFrameEncoding: 'utf8',
     preState: { inFlightRequests: [] },
     expectedClass: 'T-H',
@@ -566,7 +631,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate PAIR: "corr-test" NOT in-flight → T-H (see T-L-2 for pair)',
+    description: 'proof pair: "corr-test" NOT in-flight → T-H (see T-L-2)',
   },
 
   {
@@ -579,7 +644,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate: error response with uncorrelated id (additional coverage for rc-uncorrelated)',
+    description: 'response-candidate: uncorrelated error (additional coverage)',
   },
 
   {
@@ -592,7 +657,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-error-structural]: error body is string not object, structural validation failure',
+    description: 'response-candidate: error body is string not object (additional coverage)',
   },
 
   {
@@ -605,7 +670,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-invalid-id]: numeric id on response candidate → T-H validation failure (FC-6B-1: not T-E, response candidates bypass T-E)',
+    description: '[RC-3] invalid/malformed-id response candidate: numeric id → T-H',
   },
 
   {
@@ -618,7 +683,33 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-missing-id]: result present but no id field, cannot correlate',
+    description: '[RC-1] missing-id success shape: result present, no id → T-H',
+  },
+
+  {
+    id: 'T-H-8',
+    rawFrame: '{"jsonrpc":"2.0","error":{"code":-32602,"message":"Invalid params"}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-H',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[RC-2] missing-id error shape: error present, no id → T-H',
+  },
+
+  {
+    id: 'T-H-9',
+    rawFrame: '{"jsonrpc":"2.0","id":"del-1","result":{"deliveryId":"wrong-id"}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'del-1', method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'correct-id' } }] },
+    expectedClass: 'T-H',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[RC-5] row-9 ack with wrong deliveryId: byte-equality fails → T-H, never T-L',
   },
 
   // ── T-L: valid correlated response (settlement) ──────────────────────
@@ -627,27 +718,27 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     id: 'T-L-1',
     rawFrame: '{"jsonrpc":"2.0","id":"req-1","result":{"nonce":"x"}}',
     rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [{ id: 'req-1', method: 'host.lifecycle.ping' }] },
+    preState: { inFlightRequests: [{ id: 'req-1', method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }] },
     expectedClass: 'T-L',
     expectedOutcome: 'accept',
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-settled-success]: valid success response, id "req-1" correlates to ping',
+    description: '[RC-4] schema-valid correlated WireSuccessResponse: ping nonce echoed byte-equal',
   },
 
   // ── PAIR with T-H-3 ──────────────────────────────────────────────────
   {
     id: 'T-L-2',
-    rawFrame: '{"jsonrpc":"2.0","id":"corr-test","result":null}',
+    rawFrame: '{"jsonrpc":"2.0","id":"corr-test","result":{"nonce":"x"}}',
     rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [{ id: 'corr-test', method: 'host.lifecycle.ping' }] },
+    preState: { inFlightRequests: [{ id: 'corr-test', method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }] },
     expectedClass: 'T-L',
     expectedOutcome: 'accept',
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate PAIR: "corr-test" IS in-flight (ping) → T-L (see T-H-3 for pair)',
+    description: 'proof pair: "corr-test" IS in-flight (ping), nonce matches → T-L (see T-H-3)',
   },
 
   {
@@ -660,6 +751,6 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
-    description: 'response-candidate [rc-settled-error]: valid error response, id "req-err" correlates to ping',
+    description: 'correlated error settlement: valid WireErrorResponse (additional coverage)',
   },
 ];
