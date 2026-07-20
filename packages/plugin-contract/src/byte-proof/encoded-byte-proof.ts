@@ -219,10 +219,15 @@ function materialize(
   nPlusOneProfileId?: string,
 ): JsonValue {
   const materialized = cloneJson(input.template);
-  const codePoint = FAMILY_CODE_POINT[family];
+  const familyCodePoint = FAMILY_CODE_POINT[family];
 
   for (const profile of input.leaves) {
     const count = profile.maxCodePoints + (profile.id === nPlusOneProfileId ? 1 : 0);
+    // asciiOnly leaves always use the ASCII code point regardless of the
+    // encoding family. This produces the true worst-case for mixed-leaf
+    // scenarios (e.g. "ASCII RequestId + escaping Unicode field") rather
+    // than the over-conservative "escaping everything" bound.
+    const codePoint = profile.asciiOnly ? FAMILY_CODE_POINT.ascii : familyCodePoint;
     replaceStringLeaf(materialized, profile, codePoint.repeat(count));
   }
 

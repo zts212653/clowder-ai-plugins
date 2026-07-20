@@ -140,8 +140,10 @@ test('RequestId leaf has asciiOnly annotation', () => {
   );
 });
 
-test('RequestId ascii family produces smaller encoded bytes than multibyte/escaping', () => {
-  // Use a template with only RequestId as the variable leaf
+test('asciiOnly leaves produce identical bytes across all encoding families', () => {
+  // With asciiOnly respected in materialize, a template whose only variable
+  // leaf is RequestId (asciiOnly: true) produces the SAME bytes in all 3
+  // families — the engine substitutes ASCII code points regardless of family.
   const proof = calculateByteProof(drainResponseTemplate());
 
   const asciiCase = proof.cases.find((c) => c.family === 'ascii');
@@ -149,13 +151,15 @@ test('RequestId ascii family produces smaller encoded bytes than multibyte/escap
   const escapingCase = proof.cases.find((c) => c.family === 'escaping');
 
   assert.ok(asciiCase && multibyteCase && escapingCase);
-  assert.ok(
-    asciiCase.encodedBytes < multibyteCase.encodedBytes,
-    'ascii family must produce fewer bytes than multibyte for ASCII-only leaves',
+  assert.equal(
+    asciiCase.encodedBytes,
+    multibyteCase.encodedBytes,
+    'asciiOnly leaf: ascii === multibyte (engine respects grammar constraint)',
   );
-  assert.ok(
-    asciiCase.encodedBytes < escapingCase.encodedBytes,
-    'ascii family must produce fewer bytes than escaping for ASCII-only leaves',
+  assert.equal(
+    asciiCase.encodedBytes,
+    escapingCase.encodedBytes,
+    'asciiOnly leaf: ascii === escaping (engine respects grammar constraint)',
   );
 });
 
