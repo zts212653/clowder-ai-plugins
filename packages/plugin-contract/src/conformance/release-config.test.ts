@@ -265,8 +265,8 @@ function replaceNamedStepOnce(
   return releaseWorkflow.replace(step, mutatedStep);
 }
 
-test('P-1 combined line publishes beta.3 while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.3');
+test('P-1 combined line publishes beta.4 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.4');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
