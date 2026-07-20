@@ -27,6 +27,18 @@ export class NdjsonFrameError extends Error {
   }
 }
 
+function validateMaxFrameBytes(maxFrameBytes: number): void {
+  if (
+    !Number.isSafeInteger(maxFrameBytes) ||
+    maxFrameBytes <= 0 ||
+    maxFrameBytes > MAX_NDJSON_FRAME_BYTES
+  ) {
+    throw new RangeError(
+      `NDJSON maxFrameBytes must be a positive safe integer no greater than ${MAX_NDJSON_FRAME_BYTES}`,
+    );
+  }
+}
+
 function assertJsonObject(value: unknown): asserts value is JsonObject {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new NdjsonFrameError(
@@ -58,6 +70,7 @@ export function encodeNdjsonFrame(
   value: JsonObject,
   maxFrameBytes = MAX_NDJSON_FRAME_BYTES,
 ): Uint8Array {
+  validateMaxFrameBytes(maxFrameBytes);
   assertJsonObject(value);
   const serialized = JSON.stringify(value);
   if (serialized === undefined) {
@@ -82,7 +95,9 @@ export class NdjsonFrameDecoder {
   private closed = false;
   private failed = false;
 
-  constructor(private readonly maxFrameBytes = MAX_NDJSON_FRAME_BYTES) {}
+  constructor(private readonly maxFrameBytes = MAX_NDJSON_FRAME_BYTES) {
+    validateMaxFrameBytes(maxFrameBytes);
+  }
 
   push(chunk: Uint8Array): readonly DecodedNdjsonFrame[] {
     this.assertOpen();
