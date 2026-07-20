@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/plugin-contract",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "private": false,
   "description": "Clowder AI plugin contract — the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
   "license": "MIT",
@@ -31,9 +31,9 @@
   "scripts": {
     "generate": "node --import tsx src/codegen/generate-contract.ts",
     "generate:check": "node --import tsx src/codegen/generate-contract.ts --check",
-    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json && node --test scripts/conformance-public-boundary.test.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts",
+    "test": "node --import tsx --test src/**/*.test.ts src/**/**/*.test.ts",
     "conformance": "node --import tsx src/conformance/runner.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",

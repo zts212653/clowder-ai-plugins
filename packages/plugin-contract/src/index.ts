@@ -34,3 +34,7 @@
 // Re-export everything from the types barrel
 export * from './types/index.js';
 export * from './validation/index.js';
+
+// Wire protocol types, constants, registry, and validators
+// Mechanized from #1165 frozen shape (rev11, SHA 7e26e5af…)
+export * from './wire/index.js';

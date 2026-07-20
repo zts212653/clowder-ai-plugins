@@ -43,6 +43,17 @@ export interface ClosedStringLeafProfile {
   readonly path: readonly JsonPathSegment[];
   /** Schema-approved maximum measured in Unicode code points. */
   readonly maxCodePoints: number;
+  /**
+   * When true, this leaf's grammar is restricted to ASCII code points only.
+   * The engine still computes all three encoding families for structural
+   * completeness, but only the 'ascii' family produces semantically valid
+   * values for this leaf. Consumers SHOULD treat the 'ascii' family as the
+   * binding worst-case for this leaf's N+1 rejection proof.
+   *
+   * Example: RequestId grammar is [A-Za-z0-9._:-]{1,128} (ASCII-only),
+   * so multibyte/escaping families produce code points outside the grammar.
+   */
+  readonly asciiOnly?: boolean;
 }
 
 export interface ByteProofInput {
@@ -208,10 +219,15 @@ function materialize(
   nPlusOneProfileId?: string,
 ): JsonValue {
   const materialized = cloneJson(input.template);
-  const codePoint = FAMILY_CODE_POINT[family];
+  const familyCodePoint = FAMILY_CODE_POINT[family];
 
   for (const profile of input.leaves) {
     const count = profile.maxCodePoints + (profile.id === nPlusOneProfileId ? 1 : 0);
+    // asciiOnly leaves always use the ASCII code point regardless of the
+    // encoding family. This produces the true worst-case for mixed-leaf
+    // scenarios (e.g. "ASCII RequestId + escaping Unicode field") rather
+    // than the over-conservative "escaping everything" bound.
+    const codePoint = profile.asciiOnly ? FAMILY_CODE_POINT.ascii : familyCodePoint;
     replaceStringLeaf(materialized, profile, codePoint.repeat(count));
   }
 

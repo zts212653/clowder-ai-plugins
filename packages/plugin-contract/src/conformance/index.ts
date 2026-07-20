@@ -23,6 +23,34 @@ export {
 export { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
 
 export {
+  HarnessChild,
+  HarnessChildExitedError,
+  HarnessCleanupError,
+  HarnessFrameBacklogError,
+  HarnessTimeoutError,
+  MAX_HARNESS_QUEUED_FRAMES,
+  MAX_NDJSON_FRAME_BYTES,
+  NdjsonFrameDecoder,
+  NdjsonFrameError,
+  encodeNdjsonFrame,
+  runDualTransportOracle,
+  runHarnessCase,
+  spawnHarnessChild,
+  type DecodedNdjsonFrame,
+  type DualTransportOracleCase,
+  type DualTransportOracleReport,
+  type HarnessChildExit,
+  type HarnessReceiveOptions,
+  type HarnessWireShape,
+  type JsonObject,
+  type NdjsonFrameErrorCode,
+  type OracleTransport,
+  type RunHarnessCaseOptions,
+  type SpawnHarnessChildOptions,
+  type TransportTranscript,
+} from './stdio-harness/index.js';
+
+export {
   DATA_CLASS_ALLOWED_STRATEGIES,
   CAPABILITY_TABLE,
   L0_CAPABILITIES,
