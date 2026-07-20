@@ -149,14 +149,28 @@ export function ackResponseTemplate(): ByteProofInput {
 // ---------------------------------------------------------------------------
 
 /**
- * Capability enum values from the generated contract.
- * Listed in alphabetical order for determinism.
+ * All 17 capability enum values from the generated contract.
+ * Listed in alphabetical order for deterministic worst-case computation.
+ * Must stay in sync with the Capability type in contract.generated.ts.
  */
 const ALL_CAPABILITY_VALUES = [
+  'events.publish',
+  'memory.append',
+  'memory.query',
+  'memory.retrieve',
+  'message.event.subscribe',
   'messaging.appendElements',
   'messaging.send',
-  'message.event.subscribe',
   'onMessage',
+  'plugin.config.read',
+  'plugin.state.get',
+  'plugin.state.set',
+  'schedule.register',
+  'secret.read',
+  'thread.listMetadata',
+  'thread.readContent',
+  'whisper.extend',
+  'windows.create',
 ] as const;
 
 /**
