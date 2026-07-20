@@ -29,6 +29,87 @@ test('rejects an outbound frame one byte above the hard limit', () => {
   );
 });
 
+test('rejects limits that could weaken the hard cap before serialization or decoding', () => {
+  const invalidLimits = [
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    0,
+    -1,
+    1.5,
+    MAX_NDJSON_FRAME_BYTES + 1,
+    Number.MAX_SAFE_INTEGER + 1,
+  ];
+
+  for (const limit of invalidLimits) {
+    let serialized = false;
+    assert.throws(
+      () =>
+        encodeNdjsonFrame(
+          {
+            toJSON: () => {
+              serialized = true;
+              return { ok: true };
+            },
+          },
+          limit,
+        ),
+      RangeError,
+    );
+    assert.equal(serialized, false, `limit ${String(limit)} serialized the frame`);
+    assert.throws(() => new NdjsonFrameDecoder(limit), RangeError);
+  }
+});
+
+test('does not let an explicit limit bypass the hard cap', () => {
+  const prefixBytes = Buffer.byteLength('{"payload":""}', 'utf8');
+  const exactPayload = 'x'.repeat(MAX_NDJSON_FRAME_BYTES - prefixBytes);
+  const oversizedPayload = `${exactPayload}x`;
+
+  assert.equal(
+    encodeNdjsonFrame(
+      { payload: exactPayload },
+      MAX_NDJSON_FRAME_BYTES,
+    ).byteLength,
+    MAX_NDJSON_FRAME_BYTES + 1,
+  );
+  const exactDecoder = new NdjsonFrameDecoder(MAX_NDJSON_FRAME_BYTES);
+  const [exactDecoded] = exactDecoder.push(
+    Buffer.from(`{"payload":"${exactPayload}"}\n`),
+  );
+  assert.equal(exactDecoded?.raw.byteLength, MAX_NDJSON_FRAME_BYTES);
+
+  for (const invalidLimit of [
+    Number.POSITIVE_INFINITY,
+    MAX_NDJSON_FRAME_BYTES + 1,
+  ]) {
+    assert.throws(
+      () => encodeNdjsonFrame({ payload: oversizedPayload }, invalidLimit),
+      RangeError,
+    );
+    assert.throws(() => new NdjsonFrameDecoder(invalidLimit), RangeError);
+  }
+});
+
+test('allows a caller to choose a stricter positive safe-integer limit', () => {
+  const strictLimit = 16;
+  const exactFrame = '{"ok":true}';
+  const decoder = new NdjsonFrameDecoder(strictLimit);
+
+  assert.equal(
+    encodeNdjsonFrame({ ok: true }, strictLimit).byteLength,
+    Buffer.byteLength(exactFrame) + 1,
+  );
+  assert.deepEqual(decoder.push(Buffer.from(`${exactFrame}\n`))[0]?.value, {
+    ok: true,
+  });
+
+  assert.throws(
+    () => encodeNdjsonFrame({ payload: 'too large' }, strictLimit),
+    (error: unknown) =>
+      error instanceof NdjsonFrameError && error.code === 'FRAME_TOO_LARGE',
+  );
+});
+
 test('rejects objects whose serialized top-level value is not an object', () => {
   for (const serializedValue of [null, 'scalar', ['array'], undefined]) {
     assert.throws(
