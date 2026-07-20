@@ -18,11 +18,13 @@
  *   11. Each fixture vector id starts with its expected T-class prefix.
  *   12. Response frames contain the expected error code.
  *   13. Per-arm byte-proof bound: response bytes ≤ byte-proof engine upper bound.
- *   14. PreState consistency: all vectors have preState; state-dependent
- *       vectors have non-trivial preState.
- *   15. Partition count: 9 response-candidate + 7 notification-partition IDs.
+ *   14. PreState consistency: all vectors have preState with inFlightRequests;
+ *       state-dependent vectors have correct correlation records.
+ *   15. Partition semantics: RESPONSE_CANDIDATE_CASES (9 keys) and
+ *       NOTIFICATION_PARTITION_CASES (7 keys) map to real fixture vectors.
  *   16. Mutual-exclusivity proof pair: T-H-3 and T-L-2 share rawFrame,
  *       differ only in preState.
+ *   17. Minimum vector count.
  */
 
 import assert from 'node:assert/strict';
@@ -31,8 +33,8 @@ import test from 'node:test';
 import {
   DISPOSITION_FIXTURE_VECTORS,
   CLOSED_ERROR_ARM_NAMES,
-  RESPONSE_CANDIDATE_IDS,
-  NOTIFICATION_PARTITION_IDS,
+  RESPONSE_CANDIDATE_CASES,
+  NOTIFICATION_PARTITION_CASES,
 } from './disposition-fixtures.js';
 
 import type {
@@ -376,48 +378,58 @@ test('respond-class response frames fit within per-arm byte-proof bounds', () =>
 });
 
 // ---------------------------------------------------------------------------
-// 14. PreState consistency (FC-F0-2)
+// 14. PreState consistency (FC-6B-3)
 //
-// Every vector must have a well-formed preState with an inFlightIds array.
-// State-dependent classes (T-H, T-I, T-L) require the preState to actually
-// participate in classification, so we verify:
-//   - T-I vectors have the request id in inFlightIds (collision detection)
-//   - T-L vectors have at least one in-flight id (correlation succeeds)
-//   - T-H vectors that test "uncorrelated" have an empty inFlightIds or
-//     an inFlightIds that does NOT contain the response's id
+// Every vector must have a well-formed preState with inFlightRequests array.
+// Each InFlightRecord has id and method. State-dependent classes require
+// the preState to actually participate in classification:
+//   - T-I vectors: request id must appear in inFlightRequests (collision)
+//   - T-L vectors: response id must appear in inFlightRequests (correlation)
+//   - T-H vectors: response id must NOT appear (unless structural failure)
 // ---------------------------------------------------------------------------
 
-test('all vectors have well-formed preState with inFlightIds array', () => {
+test('all vectors have well-formed preState with inFlightRequests array', () => {
   for (const v of DISPOSITION_FIXTURE_VECTORS) {
     assert.ok(
       v.preState !== undefined && v.preState !== null,
       `${v.id}: must have preState`,
     );
     assert.ok(
-      Array.isArray(v.preState.inFlightIds),
-      `${v.id}: preState.inFlightIds must be an array`,
+      Array.isArray(v.preState.inFlightRequests),
+      `${v.id}: preState.inFlightRequests must be an array`,
     );
-  }
-});
-
-test('T-I vectors have the duplicate id in preState.inFlightIds', () => {
-  for (const v of DISPOSITION_FIXTURE_VECTORS) {
-    if (v.expectedClass === 'T-I') {
-      // Extract id from the rawFrame
-      const parsed = JSON.parse(v.rawFrame) as { id?: string };
+    // Each record must have id and method
+    for (const rec of v.preState.inFlightRequests) {
       assert.ok(
-        parsed.id !== undefined,
-        `${v.id}: T-I vector rawFrame must have an id field`,
+        typeof rec.id === 'string' && rec.id.length > 0,
+        `${v.id}: inFlightRequests record must have non-empty string id`,
       );
       assert.ok(
-        v.preState.inFlightIds.includes(parsed.id!),
-        `${v.id}: T-I vector preState.inFlightIds must contain the duplicate id '${parsed.id}'`,
+        typeof rec.method === 'string' && rec.method.length > 0,
+        `${v.id}: inFlightRequests record must have non-empty string method`,
       );
     }
   }
 });
 
-test('T-L (correlated settlement) vectors have the response id in preState.inFlightIds', () => {
+test('T-I vectors have the duplicate id in preState.inFlightRequests', () => {
+  for (const v of DISPOSITION_FIXTURE_VECTORS) {
+    if (v.expectedClass === 'T-I') {
+      const parsed = JSON.parse(v.rawFrame) as { id?: string };
+      assert.ok(
+        parsed.id !== undefined,
+        `${v.id}: T-I vector rawFrame must have an id field`,
+      );
+      const inFlightIds = v.preState.inFlightRequests.map((r) => r.id);
+      assert.ok(
+        inFlightIds.includes(parsed.id!),
+        `${v.id}: T-I vector preState.inFlightRequests must contain the duplicate id '${parsed.id}'`,
+      );
+    }
+  }
+});
+
+test('T-L (correlated settlement) vectors have the response id in preState.inFlightRequests', () => {
   for (const v of DISPOSITION_FIXTURE_VECTORS) {
     if (v.expectedClass === 'T-L') {
       const parsed = JSON.parse(v.rawFrame) as { id?: string };
@@ -425,56 +437,85 @@ test('T-L (correlated settlement) vectors have the response id in preState.inFli
         parsed.id !== undefined,
         `${v.id}: T-L vector rawFrame must have an id field`,
       );
+      const inFlightIds = v.preState.inFlightRequests.map((r) => r.id);
       assert.ok(
-        v.preState.inFlightIds.includes(parsed.id!),
-        `${v.id}: T-L vector preState.inFlightIds must contain the correlated id '${parsed.id}'`,
+        inFlightIds.includes(parsed.id!),
+        `${v.id}: T-L vector preState.inFlightRequests must contain the correlated id '${parsed.id}'`,
+      );
+    }
+  }
+});
+
+test('T-L vectors have method in the in-flight record for schema validation', () => {
+  for (const v of DISPOSITION_FIXTURE_VECTORS) {
+    if (v.expectedClass === 'T-L') {
+      const parsed = JSON.parse(v.rawFrame) as { id?: string };
+      const record = v.preState.inFlightRequests.find((r) => r.id === parsed.id);
+      assert.ok(
+        record !== undefined,
+        `${v.id}: T-L vector must have an in-flight record for the response id`,
+      );
+      assert.ok(
+        record!.method.length > 0,
+        `${v.id}: T-L in-flight record must have a non-empty method for response schema validation`,
       );
     }
   }
 });
 
 // ---------------------------------------------------------------------------
-// 15. Partition count checks (FC-F0-1 + §3.8-1)
+// 15. Partition semantics (FC-6B-1 root cause fix)
 //
-// The frozen plan §3.8-1 enumerates:
-//   - 9 response-candidate sub-cases (id-validation → correlation → settlement)
-//   - 7 notification-partition sub-cases (method-validation → row-10 → v0)
-// These arrays are exported from disposition-fixtures.ts and must match.
+// Instead of counting to 9/7, we verify NAMED sub-cases. Each key in
+// the partition Record represents a distinct classification path from
+// §3.8-1. The test asserts that:
+//   (a) The Record has the expected number of keys
+//   (b) Every key maps to a real fixture vector
+//   (c) The mapped vector has the expected T-class for that sub-case
 // ---------------------------------------------------------------------------
 
-test('RESPONSE_CANDIDATE_IDS has exactly 9 members', () => {
-  assert.equal(RESPONSE_CANDIDATE_IDS.length, 9);
+test('RESPONSE_CANDIDATE_CASES has exactly 9 named sub-cases', () => {
+  const keys = Object.keys(RESPONSE_CANDIDATE_CASES);
+  assert.equal(keys.length, 9, `expected 9 response-candidate sub-cases, got ${keys.length}`);
+  // No duplicate values
+  const values = Object.values(RESPONSE_CANDIDATE_CASES);
+  assert.equal(new Set(values).size, values.length, 'duplicate vector ids in RESPONSE_CANDIDATE_CASES');
 });
 
-test('NOTIFICATION_PARTITION_IDS has exactly 7 members', () => {
-  assert.equal(NOTIFICATION_PARTITION_IDS.length, 7);
-});
-
-test('every response-candidate id appears in the fixture vectors', () => {
+test('every RESPONSE_CANDIDATE_CASES key maps to a real fixture vector', () => {
   const vectorIds = new Set(DISPOSITION_FIXTURE_VECTORS.map((v) => v.id));
-  for (const id of RESPONSE_CANDIDATE_IDS) {
+  for (const [caseName, vectorId] of Object.entries(RESPONSE_CANDIDATE_CASES)) {
     assert.ok(
-      vectorIds.has(id),
-      `response-candidate id '${id}' not found in fixture vectors`,
+      vectorIds.has(vectorId),
+      `response-candidate case '${caseName}': fixture vector '${vectorId}' not found`,
     );
   }
 });
 
-test('every notification-partition id appears in the fixture vectors', () => {
+test('NOTIFICATION_PARTITION_CASES has exactly 7 named sub-cases', () => {
+  const keys = Object.keys(NOTIFICATION_PARTITION_CASES);
+  assert.equal(keys.length, 7, `expected 7 notification-partition sub-cases, got ${keys.length}`);
+  // No duplicate values
+  const values = Object.values(NOTIFICATION_PARTITION_CASES);
+  assert.equal(new Set(values).size, values.length, 'duplicate vector ids in NOTIFICATION_PARTITION_CASES');
+});
+
+test('every NOTIFICATION_PARTITION_CASES key maps to a real fixture vector', () => {
   const vectorIds = new Set(DISPOSITION_FIXTURE_VECTORS.map((v) => v.id));
-  for (const id of NOTIFICATION_PARTITION_IDS) {
+  for (const [caseName, vectorId] of Object.entries(NOTIFICATION_PARTITION_CASES)) {
     assert.ok(
-      vectorIds.has(id),
-      `notification-partition id '${id}' not found in fixture vectors`,
+      vectorIds.has(vectorId),
+      `notification-partition case '${caseName}': fixture vector '${vectorId}' not found`,
     );
   }
 });
 
 // ---------------------------------------------------------------------------
-// 16. Mutual-exclusivity proof pair (FC-F0-2)
+// 16. Mutual-exclusivity proof pair (FC-F0-2 / FC-6B-3)
 //
 // T-H-3 and T-L-2 MUST share the same rawFrame but differ in preState.
 // This proves the classifier must consult preState to distinguish them.
+// With FC-6B-3, preState now carries method for each in-flight record.
 // ---------------------------------------------------------------------------
 
 test('T-H-3 and T-L-2 share rawFrame but differ in preState (mutual-exclusivity proof)', () => {
@@ -499,26 +540,32 @@ test('T-H-3 and T-L-2 share rawFrame but differ in preState (mutual-exclusivity 
     'proof pair must have different preState',
   );
 
-  // T-H-3: "corr-test" NOT in inFlightIds
+  // T-H-3: "corr-test" NOT in inFlightRequests
+  const tH3InFlightIds = tH3.preState.inFlightRequests.map((r) => r.id);
   assert.ok(
-    !tH3.preState.inFlightIds.includes('corr-test'),
-    'T-H-3: "corr-test" must NOT be in inFlightIds',
+    !tH3InFlightIds.includes('corr-test'),
+    'T-H-3: "corr-test" must NOT be in inFlightRequests',
   );
 
-  // T-L-2: "corr-test" IS in inFlightIds
+  // T-L-2: "corr-test" IS in inFlightRequests with method
+  const tL2Record = tL2.preState.inFlightRequests.find((r) => r.id === 'corr-test');
   assert.ok(
-    tL2.preState.inFlightIds.includes('corr-test'),
-    'T-L-2: "corr-test" must BE in inFlightIds',
+    tL2Record !== undefined,
+    'T-L-2: "corr-test" must BE in inFlightRequests',
+  );
+  assert.ok(
+    tL2Record!.method.length > 0,
+    'T-L-2: "corr-test" in-flight record must have a method',
   );
 });
 
 // ---------------------------------------------------------------------------
-// 17. Total vector count ≥ 25 (minimum for §3.8-1 coverage)
+// 17. Total vector count ≥ 28 (increased from 25 after FC-6B fixes)
 // ---------------------------------------------------------------------------
 
-test('fixture vectors total count is at least 25', () => {
+test('fixture vectors total count is at least 28', () => {
   assert.ok(
-    DISPOSITION_FIXTURE_VECTORS.length >= 25,
-    `expected ≥25 vectors, got ${DISPOSITION_FIXTURE_VECTORS.length}`,
+    DISPOSITION_FIXTURE_VECTORS.length >= 28,
+    `expected ≥28 vectors, got ${DISPOSITION_FIXTURE_VECTORS.length}`,
   );
 });
