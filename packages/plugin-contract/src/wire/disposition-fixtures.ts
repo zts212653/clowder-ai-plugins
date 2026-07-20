@@ -20,7 +20,8 @@
  *     "your correction #4's five, the idless-envelope fixture,
  *      and the R8 row-10 value-failure fixture"
  *   - All 12 T-classes have ≥1 vector
- *   - Pre-state mutual-exclusivity proof pair (T-H-3 / T-L-2)
+ *   - Pre-state mutual-exclusivity proof pairs:
+ *       ping nonce (T-H-3 / T-L-2), row-9 deliveryId (T-H-9 / T-L-4)
  *
  * Response frames are DERIVED from type-checked ClosedWireErrorResponse
  * objects, not hand-written strings.
@@ -586,7 +587,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   // Frozen cases: T-H-7 (RC-1), T-H-8 (RC-2), T-H-6 (RC-3),
   //   T-L-1 (RC-4), T-H-9 (RC-5), T-F-4 (RC-6), T-K-4 (RC-7),
   //   T-D-3 (RC-8), T-D-5 (RC-9).
-  // Additional coverage: T-H-1..T-H-5, T-L-2..T-L-3 (proof pair + extras)
+  // Additional coverage: T-H-1..T-H-5, T-L-2..T-L-4 (proof pairs + extras)
   // ═════════════════════════════════════════════════════════════════════════
 
   // ── T-H: response-candidate validation/correlation failure ────────────
@@ -752,5 +753,24 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorCode: null,
     expectedResponseFrame: null,
     description: 'correlated error settlement: valid WireErrorResponse (additional coverage)',
+  },
+
+  // ── ROW-9 DELIVERYID EXCLUSIVE PAIR (R47) ────────────────────────────
+  // T-H-9 and T-L-4 share the same method/preState structure for
+  // host.messaging.deliver. Only the result.deliveryId differs:
+  //   T-H-9: result.deliveryId="wrong-id"  ≠ snapshot.deliveryId="correct-id" → T-H
+  //   T-L-4: result.deliveryId="correct-id" = snapshot.deliveryId="correct-id" → T-L
+  // This locks the byte-equality oracle's success AND failure sides.
+  {
+    id: 'T-L-4',
+    rawFrame: '{"jsonrpc":"2.0","id":"del-1","result":{"deliveryId":"correct-id"}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'del-1', method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'correct-id' } }] },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[R47 pair] row-9 ack with correct deliveryId: byte-equality passes → T-L (see T-H-9)',
   },
 ];

@@ -544,11 +544,18 @@ test('every NOTIFICATION_PARTITION_CASES key maps to a real fixture vector with 
 });
 
 // ---------------------------------------------------------------------------
-// 16. Mutual-exclusivity proof pair (FC-F0-2 / FC-6B-3 / FC-70-3)
+// 16. Mutual-exclusivity proof pairs
 //
-// T-H-3 and T-L-2 MUST share the same rawFrame but differ in preState.
-// This proves the classifier must consult preState to distinguish them.
-// FC-70-3: rawFrame now has valid PingResult {nonce:"x"} instead of null.
+// 16a. Ping nonce (FC-F0-2 / FC-6B-3 / FC-70-3):
+//   T-H-3 and T-L-2 share rawFrame, differ in preState.
+//   FC-70-3: rawFrame now has valid PingResult {nonce:"x"}.
+//
+// 16b. Row-9 deliveryId (FC-702-1 / R47):
+//   T-H-9 and T-L-4 share method/preState structure for
+//   host.messaging.deliver. Only result.deliveryId differs:
+//     T-H-9: "wrong-id" ≠ snapshot "correct-id" → T-H
+//     T-L-4: "correct-id" = snapshot "correct-id" → T-L
+//   This locks the byte-equality oracle's success AND failure sides.
 // ---------------------------------------------------------------------------
 
 test('T-H-3 and T-L-2 share rawFrame but differ in preState (mutual-exclusivity proof)', () => {
@@ -592,24 +599,77 @@ test('T-H-3 and T-L-2 share rawFrame but differ in preState (mutual-exclusivity 
   );
 });
 
+test('T-H-9 and T-L-4 differ only in result.deliveryId (row-9 exclusive pair, R47)', () => {
+  const tH9 = findVector('T-H-9');
+  const tL4 = findVector('T-L-4');
+
+  // Same method: host.messaging.deliver
+  assert.equal(tH9.preState.inFlightRequests[0]!.method, 'host.messaging.deliver');
+  assert.equal(tL4.preState.inFlightRequests[0]!.method, 'host.messaging.deliver');
+
+  // Same request id
+  const h9Parsed = JSON.parse(tH9.rawFrame) as { id?: string; result?: { deliveryId?: string } };
+  const l4Parsed = JSON.parse(tL4.rawFrame) as { id?: string; result?: { deliveryId?: string } };
+  assert.equal(h9Parsed.id, l4Parsed.id, 'exclusive pair must share the same request id');
+
+  // Same snapshot deliveryId (the "expected" value)
+  assert.equal(
+    tH9.preState.inFlightRequests[0]!.requestSnapshot?.deliveryId,
+    tL4.preState.inFlightRequests[0]!.requestSnapshot?.deliveryId,
+    'exclusive pair must share the same requestSnapshot.deliveryId',
+  );
+
+  // Different result.deliveryId — THE distinguishing factor
+  assert.ok(
+    h9Parsed.result?.deliveryId !== undefined,
+    'T-H-9 must have result.deliveryId',
+  );
+  assert.ok(
+    l4Parsed.result?.deliveryId !== undefined,
+    'T-L-4 must have result.deliveryId',
+  );
+  assert.notEqual(
+    h9Parsed.result!.deliveryId,
+    l4Parsed.result!.deliveryId,
+    'exclusive pair result.deliveryId must differ',
+  );
+
+  // T-H-9: result.deliveryId ≠ snapshot.deliveryId → T-H
+  assert.notEqual(
+    h9Parsed.result!.deliveryId,
+    tH9.preState.inFlightRequests[0]!.requestSnapshot?.deliveryId,
+    'T-H-9: result.deliveryId must NOT match snapshot (wrong-id → T-H)',
+  );
+  assert.equal(tH9.expectedClass, 'T-H');
+
+  // T-L-4: result.deliveryId = snapshot.deliveryId → T-L
+  assert.equal(
+    l4Parsed.result!.deliveryId,
+    tL4.preState.inFlightRequests[0]!.requestSnapshot?.deliveryId,
+    'T-L-4: result.deliveryId must match snapshot (correct-id → T-L)',
+  );
+  assert.equal(tL4.expectedClass, 'T-L');
+});
+
 // ---------------------------------------------------------------------------
-// 17. Total vector count ≥ 35
+// 17. Total vector count ≥ 36
 // ---------------------------------------------------------------------------
 
-test('fixture vectors total count is at least 35', () => {
+test('fixture vectors total count is at least 36', () => {
   assert.ok(
-    DISPOSITION_FIXTURE_VECTORS.length >= 35,
-    `expected ≥35 vectors, got ${DISPOSITION_FIXTURE_VECTORS.length}`,
+    DISPOSITION_FIXTURE_VECTORS.length >= 36,
+    `expected ≥36 vectors, got ${DISPOSITION_FIXTURE_VECTORS.length}`,
   );
 });
 
 // ---------------------------------------------------------------------------
-// 18. Cross-frame oracle (FC-70-3)
+// 18. Cross-frame oracle (FC-70-3 / FC-702-1)
 //
 // Vectors relying on cross-frame semantic oracles must carry the data
 // needed for byte-equality validation in requestSnapshot:
 //   - T-L-1: ping nonce echo → requestSnapshot.nonce must match result.nonce
 //   - T-L-2: ping nonce echo → requestSnapshot.nonce must match result.nonce
+//   - T-L-4: row-9 deliveryId → requestSnapshot.deliveryId must match result
 //   - T-H-9: row-9 deliveryId mismatch → requestSnapshot.deliveryId must
 //             DIFFER from result.deliveryId (that's why it's T-H, not T-L)
 // ---------------------------------------------------------------------------
@@ -659,6 +719,31 @@ test('T-H-9 wrong-deliveryId vector has mismatched requestSnapshot.deliveryId', 
     record.requestSnapshot!.deliveryId,
     parsed.result!.deliveryId,
     'T-H-9: requestSnapshot.deliveryId must DIFFER from result.deliveryId (wrong-id scenario)',
+  );
+});
+
+test('T-L-4 correct-deliveryId vector has matching requestSnapshot.deliveryId', () => {
+  const v = findVector('T-L-4');
+  const parsed = JSON.parse(v.rawFrame) as { result?: { deliveryId?: string } };
+
+  assert.ok(
+    parsed.result?.deliveryId !== undefined,
+    'T-L-4 rawFrame must have result.deliveryId',
+  );
+
+  const record = v.preState.inFlightRequests[0];
+  assert.ok(
+    record !== undefined,
+    'T-L-4 must have an in-flight record',
+  );
+  assert.ok(
+    record.requestSnapshot?.deliveryId !== undefined,
+    'T-L-4 in-flight record must have requestSnapshot.deliveryId',
+  );
+  assert.equal(
+    record.requestSnapshot!.deliveryId,
+    parsed.result!.deliveryId,
+    'T-L-4: requestSnapshot.deliveryId must MATCH result.deliveryId (correct-id → T-L)',
   );
 });
 
