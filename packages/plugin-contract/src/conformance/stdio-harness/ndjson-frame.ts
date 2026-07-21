@@ -1,4 +1,11 @@
-export const MAX_NDJSON_FRAME_BYTES = 1_048_576;
+import { MAX_FRAME_BYTES } from '../../wire/constants.js';
+
+/**
+ * NDJSON frame ceiling — derived from the canonical wire constant.
+ * P-1b consumes P-1a's truth; this alias exists for harness-local naming.
+ * Widened to `number` so callers can pass stricter sub-limits.
+ */
+export const MAX_NDJSON_FRAME_BYTES: number = MAX_FRAME_BYTES;
 
 export type JsonObject = Readonly<Record<string, unknown>>;
 
