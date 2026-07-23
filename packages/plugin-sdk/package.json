@@ -19,7 +19,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/**/*.test.ts",
     "lint": "tsc --noEmit",

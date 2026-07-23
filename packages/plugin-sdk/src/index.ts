@@ -6,13 +6,14 @@
  * become executable.
  */
 export {
-  StdioFrameError,
+  NdjsonFrameError,
   StdioRuntimeFatalError,
   createStdioChannel,
   startStdioRuntime,
-  type JsonObject,
   type StdioChannel,
   type StdioChannelOptions,
+  type JsonObject,
+  type StdioFrame,
   type StdioFrameErrorCode,
   type StdioFrameHandler,
   type StdioRuntimeFatalReason,

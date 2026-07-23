@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import test from 'node:test';
+
+import { createStdioChannel, type JsonObject } from '@clowder-ai/plugin-sdk';
 
 const childFixture = new URL('./test-fixtures/stdio-child.ts', import.meta.url);
 
@@ -101,4 +107,80 @@ test('keeps protocol stdout free of diagnostics and non-frame bytes', async () =
     { type: 'echo', payload: { type: 'first' } },
     { type: 'echo', payload: { type: 'second' } },
   ]);
+});
+
+test('preserves raw frame bytes for pre-parse validation at the SDK handler boundary', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const raw = '{"id":"first","id":"second"}';
+  let received: unknown;
+  let handled!: () => void;
+  const handledFrame = new Promise<void>(resolve => {
+    handled = resolve;
+  });
+  const channel = createStdioChannel(input, output, {
+    onFrame: frame => {
+      received = frame;
+      handled();
+      return undefined;
+    },
+  });
+
+  input.end(Buffer.from(`${raw}\n`, 'utf8'));
+  await handledFrame;
+
+  const frame = received as { readonly raw: Uint8Array; readonly value: JsonObject };
+  assert.equal(Buffer.from(frame.raw).toString('utf8'), raw);
+  assert.deepEqual(frame.value, { id: 'second' });
+  channel.close();
+});
+
+test('rejects a Readable that is already in text mode before invalid UTF-8 can be replaced', () => {
+  const input = new PassThrough();
+  input.setEncoding('utf8');
+
+  assert.throws(
+    () => createStdioChannel(input, new PassThrough(), { onFrame: () => undefined }),
+    RangeError,
+  );
+});
+
+test('detaches all caller-owned stream listeners after a fatal frame and later close', () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const channel = createStdioChannel(input, output, { onFrame: () => undefined });
+
+  input.write(Buffer.from('not-json\n', 'utf8'));
+  channel.close();
+
+  assert.equal(channel.failed, true);
+  assert.equal(input.listenerCount('data'), 0);
+  assert.equal(input.listenerCount('end'), 0);
+  assert.equal(input.listenerCount('error'), 0);
+  assert.equal(output.listenerCount('error'), 0);
+});
+
+test('excludes stale dist files from the packed SDK artifact', async () => {
+  const packageRoot = new URL('../', import.meta.url).pathname;
+  const sentinel = join(packageRoot, 'dist', 'stale-review-sentinel.js');
+  const packDirectory = await mkdtemp(join(tmpdir(), 'plugin-sdk-pack-'));
+
+  try {
+    await writeFile(sentinel, 'stale review sentinel\n');
+    const { execFileSync } = await import('node:child_process');
+    execFileSync('pnpm', ['pack', '--pack-destination', packDirectory], {
+      cwd: packageRoot,
+      stdio: 'pipe',
+    });
+    const { readdir } = await import('node:fs/promises');
+    const tarball = (await readdir(packDirectory)).find(name => name.endsWith('.tgz'));
+    assert.ok(tarball, 'pnpm pack must create a tarball');
+    const listing = execFileSync('tar', ['-tzf', join(packDirectory, tarball)], {
+      encoding: 'utf8',
+    });
+    assert.doesNotMatch(listing, /stale-review-sentinel\.js/);
+  } finally {
+    await rm(sentinel, { force: true });
+    await rm(packDirectory, { force: true, recursive: true });
+  }
 });
