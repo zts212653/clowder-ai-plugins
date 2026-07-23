@@ -74,10 +74,10 @@ function write(output: Writable, frame: Uint8Array): Promise<void> {
   });
 }
 
-function nextInputSliceEnd(chunk: Buffer, offset: number): number {
+function nextInputSliceEnd(chunk: Uint8Array, offset: number): number {
   const boundedEnd = Math.min(offset + MAX_INPUT_DECODE_SLICE_BYTES, chunk.byteLength);
-  const newline = chunk.indexOf(0x0a, offset);
-  return newline === -1 || newline >= boundedEnd ? boundedEnd : newline + 1;
+  const newline = chunk.subarray(offset, boundedEnd).indexOf(0x0a);
+  return newline === -1 ? boundedEnd : offset + newline + 1;
 }
 
 /**
@@ -132,7 +132,7 @@ export function createStdioChannel(
     await write(output, encodeNdjsonFrame(frame, options.maxFrameBytes));
   };
 
-  const onData = (chunk: Buffer | string): void => {
+  const onData = (chunk: unknown): void => {
     if (!accepting) {
       return;
     }
@@ -145,17 +145,17 @@ export function createStdioChannel(
     // chain from later source chunks.
     processing = true;
     input.pause();
-    if (typeof chunk === 'string') {
+    if (!(chunk instanceof Uint8Array)) {
       fail(
-        'FRAME_ERROR',
-        new TypeError('stdio input changed to text mode after channel start'),
+        'INPUT_ERROR',
+        new TypeError('stdio input must emit Uint8Array chunks'),
       );
       return;
     }
     void processChunk(chunk);
   };
 
-  const processChunk = async (chunk: Buffer): Promise<void> => {
+  const processChunk = async (chunk: Uint8Array): Promise<void> => {
     try {
       let offset = 0;
       while (offset < chunk.byteLength && accepting) {

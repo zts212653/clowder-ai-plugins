@@ -17,6 +17,26 @@ interface ChildResult {
   readonly stdout: Buffer;
 }
 
+const trackedScans = new Map<ArrayBuffer, { total: number }>();
+
+class TrackingBytes extends Uint8Array {
+  constructor(source: number | ArrayBuffer, byteOffset?: number, length?: number) {
+    if (typeof source === 'number') {
+      super(source);
+    } else {
+      super(source, byteOffset, length);
+    }
+  }
+
+  override indexOf(searchElement: number, fromIndex?: number): number {
+    const scanned = trackedScans.get(this.buffer as ArrayBuffer);
+    if (scanned !== undefined) {
+      scanned.total += this.byteLength - (fromIndex ?? 0);
+    }
+    return super.indexOf(searchElement, fromIndex);
+  }
+}
+
 async function runRuntimeChild(input: readonly Buffer[]): Promise<ChildResult> {
   const child = spawn(process.execPath, ['--import', 'tsx', childFixture.pathname], {
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -143,6 +163,30 @@ test('rejects a Readable that is already in text mode before invalid UTF-8 can b
     () => createStdioChannel(input, new PassThrough(), { onFrame: () => undefined }),
     RangeError,
   );
+});
+
+test('fails closed on an object-mode chunk before a later legal byte frame can run', () => {
+  const input = new PassThrough({ objectMode: true });
+  const output = new PassThrough();
+  let handled = false;
+  let fatalReason: string | undefined;
+  const channel = createStdioChannel(input, output, {
+    onFrame: () => {
+      handled = true;
+      return undefined;
+    },
+    onFatal: error => {
+      fatalReason = error.reason;
+    },
+  });
+
+  input.write({ invalid: 'object chunk' });
+  input.write(Buffer.from('{"must":"not-run"}\n', 'utf8'));
+
+  assert.equal(channel.failed, true);
+  assert.equal(fatalReason, 'INPUT_ERROR');
+  assert.equal(handled, false);
+  channel.close();
 });
 
 test('detaches all caller-owned stream listeners after a fatal frame and later close', () => {
@@ -307,6 +351,36 @@ test('does not parse a large single chunk past its blocked first frame', async (
   assert.equal(handled, frameCount, 'all legal frames resume in their original order');
   assert.equal(channel.failed, true);
   channel.close();
+});
+
+test('bounds LF scanning to the current decode slice for an unterminated large chunk', () => {
+  const scanned = { total: 0 };
+  const chunk = new TrackingBytes(2 * 1024 * 1024);
+  trackedScans.set(chunk.buffer, scanned);
+  chunk.fill(0x78);
+  const input = new Readable({ read() {} });
+  const output = new PassThrough();
+  let fatalReason: string | undefined;
+  const channel = createStdioChannel(input, output, {
+    onFrame: () => undefined,
+    onFatal: error => {
+      fatalReason = error.reason;
+    },
+  });
+
+  try {
+    input.emit('data', chunk);
+
+    assert.equal(channel.failed, true);
+    assert.equal(fatalReason, 'FRAME_ERROR');
+    assert.ok(
+      scanned.total <= chunk.byteLength,
+      `LF scanning must not rescan the attacker-controlled tail (${scanned.total} bytes scanned)`,
+    );
+    channel.close();
+  } finally {
+    trackedScans.delete(chunk.buffer);
+  }
 });
 
 test('excludes stale dist files from the packed SDK artifact', async () => {
