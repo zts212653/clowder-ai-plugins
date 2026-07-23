@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import test from 'node:test';
 
 import { createStdioChannel, type JsonObject } from '@clowder-ai/plugin-sdk';
@@ -158,6 +158,105 @@ test('detaches all caller-owned stream listeners after a fatal frame and later c
   assert.equal(input.listenerCount('end'), 0);
   assert.equal(input.listenerCount('error'), 0);
   assert.equal(output.listenerCount('error'), 0);
+});
+
+test('pauses upstream while a handler is pending and resumes in frame order after it settles', async () => {
+  let framesPulled = 0;
+  const input = new Readable({
+    highWaterMark: 64,
+    read() {
+      if (framesPulled === 1_000) {
+        this.push(null);
+        return;
+      }
+      this.push(Buffer.from(`{"sequence":${framesPulled}}\n`, 'utf8'));
+      framesPulled += 1;
+    },
+  });
+  const output = new PassThrough();
+  const handled: number[] = [];
+  let releaseFirst!: () => void;
+  const firstMayFinish = new Promise<void>(resolve => {
+    releaseFirst = resolve;
+  });
+  let firstStarted!: () => void;
+  const firstStartedPromise = new Promise<void>(resolve => {
+    firstStarted = resolve;
+  });
+  let threeHandled!: () => void;
+  const threeHandledPromise = new Promise<void>(resolve => {
+    threeHandled = resolve;
+  });
+
+  const channel = createStdioChannel(input, output, {
+    onFrame: async frame => {
+      const sequence = frame.value.sequence as number;
+      handled.push(sequence);
+      if (sequence === 0) {
+        firstStarted();
+        await firstMayFinish;
+      }
+      if (handled.length === 3) {
+        threeHandled();
+      }
+      return undefined;
+    },
+  });
+
+  await firstStartedPromise;
+  const maxPullsBeforePause =
+    Math.ceil(input.readableHighWaterMark / Buffer.byteLength('{"sequence":0}\n', 'utf8')) + 1;
+  assert.ok(
+    framesPulled <= maxPullsBeforePause,
+    `a pending handler may buffer only one high-water-mark window (pulled ${framesPulled})`,
+  );
+  assert.equal(input.readableFlowing, false);
+
+  releaseFirst();
+  await threeHandledPromise;
+  assert.deepEqual(handled, [0, 1, 2]);
+  channel.close();
+});
+
+test('keeps a multi-frame chunk paused until its first handler settles, then preserves order', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const handled: number[] = [];
+  let releaseFirst!: () => void;
+  const firstMayFinish = new Promise<void>(resolve => {
+    releaseFirst = resolve;
+  });
+  let firstStarted!: () => void;
+  const firstStartedPromise = new Promise<void>(resolve => {
+    firstStarted = resolve;
+  });
+  let allHandled!: () => void;
+  const allHandledPromise = new Promise<void>(resolve => {
+    allHandled = resolve;
+  });
+  const channel = createStdioChannel(input, output, {
+    onFrame: async frame => {
+      const sequence = frame.value.sequence as number;
+      handled.push(sequence);
+      if (sequence === 1) {
+        firstStarted();
+        await firstMayFinish;
+      }
+      if (handled.length === 3) {
+        allHandled();
+      }
+      return undefined;
+    },
+  });
+
+  input.write(Buffer.from('{"sequence":1}\n{"sequence":2}\n{"sequence":3}\n', 'utf8'));
+  await firstStartedPromise;
+  assert.equal(input.readableFlowing, false);
+
+  releaseFirst();
+  await allHandledPromise;
+  assert.deepEqual(handled, [1, 2, 3]);
+  channel.close();
 });
 
 test('excludes stale dist files from the packed SDK artifact', async () => {

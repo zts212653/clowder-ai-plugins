@@ -90,7 +90,7 @@ export function createStdioChannel(
   let accepting = true;
   let fatalError: StdioRuntimeFatalError | undefined;
   let detached = false;
-  let queue: Promise<void> = Promise.resolve();
+  let processing = false;
 
   const detach = (): void => {
     if (detached) {
@@ -125,6 +125,15 @@ export function createStdioChannel(
     if (!accepting) {
       return;
     }
+    if (processing) {
+      fail('INPUT_ERROR', new Error('stdio input emitted data while processing was paused'));
+      return;
+    }
+    // A data listener puts Readable into flowing mode. Pause before decoding so
+    // a slow handler or output write cannot accumulate an unbounded Promise
+    // chain from later source chunks.
+    processing = true;
+    input.pause();
     if (typeof chunk === 'string') {
       fail(
         'FRAME_ERROR',
@@ -139,18 +148,27 @@ export function createStdioChannel(
       fail('FRAME_ERROR', error);
       return;
     }
-    for (const frame of frames) {
-      queue = queue
-        .then(async () => {
-          if (!accepting) {
-            return;
-          }
-          const response = await options.onFrame(frame);
-          if (response !== undefined && accepting) {
-            await send(response);
-          }
-        })
-        .catch(error => fail('HANDLER_ERROR', error));
+    void processFrames(frames);
+  };
+
+  const processFrames = async (frames: readonly DecodedNdjsonFrame[]): Promise<void> => {
+    try {
+      for (const frame of frames) {
+        if (!accepting) {
+          return;
+        }
+        const response = await options.onFrame(frame);
+        if (response !== undefined && accepting) {
+          await send(response);
+        }
+      }
+    } catch (error) {
+      fail('HANDLER_ERROR', error);
+    } finally {
+      processing = false;
+      if (accepting) {
+        input.resume();
+      }
     }
   };
 
