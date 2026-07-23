@@ -57,6 +57,11 @@ export interface StdioChannel {
   readonly failed: boolean;
 }
 
+// Keep decoder allocations bounded even when a caller-owned Readable delivers
+// an attacker-sized Buffer in one data event. Each slice stops at its first LF,
+// so it can decode no more than one complete NDJSON frame.
+const MAX_INPUT_DECODE_SLICE_BYTES = 16 * 1024;
+
 function write(output: Writable, frame: Uint8Array): Promise<void> {
   return new Promise((resolve, reject) => {
     output.write(frame, error => {
@@ -67,6 +72,12 @@ function write(output: Writable, frame: Uint8Array): Promise<void> {
       }
     });
   });
+}
+
+function nextInputSliceEnd(chunk: Buffer, offset: number): number {
+  const boundedEnd = Math.min(offset + MAX_INPUT_DECODE_SLICE_BYTES, chunk.byteLength);
+  const newline = chunk.indexOf(0x0a, offset);
+  return newline === -1 || newline >= boundedEnd ? boundedEnd : newline + 1;
 }
 
 /**
@@ -141,25 +152,30 @@ export function createStdioChannel(
       );
       return;
     }
-    let frames: readonly DecodedNdjsonFrame[];
-    try {
-      frames = decoder.push(chunk);
-    } catch (error) {
-      fail('FRAME_ERROR', error);
-      return;
-    }
-    void processFrames(frames);
+    void processChunk(chunk);
   };
 
-  const processFrames = async (frames: readonly DecodedNdjsonFrame[]): Promise<void> => {
+  const processChunk = async (chunk: Buffer): Promise<void> => {
     try {
-      for (const frame of frames) {
-        if (!accepting) {
+      let offset = 0;
+      while (offset < chunk.byteLength && accepting) {
+        const nextOffset = nextInputSliceEnd(chunk, offset);
+        let frames: readonly DecodedNdjsonFrame[];
+        try {
+          frames = decoder.push(chunk.subarray(offset, nextOffset));
+        } catch (error) {
+          fail('FRAME_ERROR', error);
           return;
         }
-        const response = await options.onFrame(frame);
-        if (response !== undefined && accepting) {
-          await send(response);
+        offset = nextOffset;
+        for (const frame of frames) {
+          if (!accepting) {
+            return;
+          }
+          const response = await options.onFrame(frame);
+          if (response !== undefined && accepting) {
+            await send(response);
+          }
         }
       }
     } catch (error) {

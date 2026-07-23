@@ -259,6 +259,56 @@ test('keeps a multi-frame chunk paused until its first handler settles, then pre
   channel.close();
 });
 
+test('does not parse a large single chunk past its blocked first frame', async () => {
+  const frameCount = 10_000;
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let handled = 0;
+  let releaseFirst!: () => void;
+  const firstMayFinish = new Promise<void>(resolve => {
+    releaseFirst = resolve;
+  });
+  let firstStarted!: () => void;
+  const firstStartedPromise = new Promise<void>(resolve => {
+    firstStarted = resolve;
+  });
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
+  const channel = createStdioChannel(input, output, {
+    onFrame: async frame => {
+      assert.equal(frame.value.sequence, handled);
+      handled += 1;
+      if (handled === 1) {
+        firstStarted();
+        await firstMayFinish;
+      }
+      return undefined;
+    },
+    onFatal: () => reportFatal(),
+  });
+  const payload = `${Array.from(
+    { length: frameCount },
+    (_, sequence) => `{"sequence":${sequence}}\n`,
+  ).join('')}not-json\n`;
+
+  input.end(Buffer.from(payload, 'utf8'));
+  const firstOutcome = await Promise.race([
+    firstStartedPromise.then(() => 'started' as const),
+    fatalPromise.then(() => 'fatal' as const),
+  ]);
+  assert.equal(firstOutcome, 'started', 'later frames must remain undecoded while the first blocks');
+  assert.equal(handled, 1);
+  assert.equal(channel.failed, false);
+
+  releaseFirst();
+  await fatalPromise;
+  assert.equal(handled, frameCount, 'all legal frames resume in their original order');
+  assert.equal(channel.failed, true);
+  channel.close();
+});
+
 test('excludes stale dist files from the packed SDK artifact', async () => {
   const packageRoot = new URL('../', import.meta.url).pathname;
   const sentinel = join(packageRoot, 'dist', 'stale-review-sentinel.js');
