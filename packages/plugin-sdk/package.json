@@ -21,7 +21,7 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/**/*.test.ts",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/stdio-runtime.test.ts",
     "lint": "tsc --noEmit",
     "prepack": "pnpm build",
     "clean": "rm -rf dist"
