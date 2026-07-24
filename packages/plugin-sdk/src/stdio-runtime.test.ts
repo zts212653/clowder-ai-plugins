@@ -61,11 +61,32 @@ async function runRuntimeChild(input: readonly Buffer[]): Promise<ChildResult> {
 async function runFatalRuntimeChildWithoutClosingInput(): Promise<ChildResult | undefined> {
   const child = spawn(process.execPath, ['--import', 'tsx', childFixture.pathname], {
     stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, STDIO_RUNTIME_TEST_READY: '1' },
   });
   const stdout: Buffer[] = [];
   const stderr: Buffer[] = [];
   child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
   child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
+
+  let readyTimer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      once(child.stderr, 'data').then(([chunk]) => {
+        assert.equal(Buffer.from(chunk as Uint8Array).toString('utf8'), 'ready\n');
+      }),
+      once(child, 'close').then(([code]) => {
+        throw new Error(`child closed before its runtime became ready (exit ${code})`);
+      }),
+      new Promise<never>((_resolve, reject) => {
+        readyTimer = setTimeout(() => reject(new Error('child runtime did not become ready')), 2_000);
+      }),
+    ]);
+  } finally {
+    if (readyTimer !== undefined) {
+      clearTimeout(readyTimer);
+    }
+  }
+
   child.stdin.write(Buffer.from('this is not JSON\n', 'utf8'));
 
   try {
