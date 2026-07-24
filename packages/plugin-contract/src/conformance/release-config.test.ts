@@ -611,4 +611,9 @@ test('SDK changes execute pull-request validation', () => {
     validateJob,
     /^      - name: SDK build\n        run: pnpm --filter @clowder-ai\/plugin-sdk build$/m,
   );
+  assert.ok(
+    validateJob.indexOf('- name: Build\n        run: pnpm --filter @clowder-ai/plugin-contract build') <
+      validateJob.indexOf('- name: SDK typecheck\n        run: pnpm --filter @clowder-ai/plugin-sdk typecheck'),
+    'SDK checks must run after the contract build that provides their conformance import',
+  );
 });

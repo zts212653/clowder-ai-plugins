@@ -47,17 +47,17 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @clowder-ai/plugin-contract typecheck
 
-      - name: SDK typecheck
-        run: pnpm --filter @clowder-ai/plugin-sdk typecheck
-
       - name: Unit tests
         run: pnpm --filter @clowder-ai/plugin-contract test
 
-      - name: SDK unit tests
-        run: pnpm --filter @clowder-ai/plugin-sdk test
-
       - name: Build
         run: pnpm --filter @clowder-ai/plugin-contract build
+
+      - name: SDK typecheck
+        run: pnpm --filter @clowder-ai/plugin-sdk typecheck
+
+      - name: SDK unit tests
+        run: pnpm --filter @clowder-ai/plugin-sdk test
 
       - name: SDK build
         run: pnpm --filter @clowder-ai/plugin-sdk build
