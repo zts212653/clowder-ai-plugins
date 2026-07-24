@@ -102,6 +102,8 @@ export function createStdioChannel(
   let fatalError: StdioRuntimeFatalError | undefined;
   let detached = false;
   let processing = false;
+  let inputEnded = false;
+  let decoderEnded = false;
 
   const detach = (): void => {
     if (detached) {
@@ -130,6 +132,18 @@ export function createStdioChannel(
       throw new NdjsonFrameError('DECODER_CLOSED', 'stdio channel is closed');
     }
     await write(output, encodeNdjsonFrame(frame, options.maxFrameBytes));
+  };
+
+  const finishDecoder = (): void => {
+    if (!accepting || decoderEnded) {
+      return;
+    }
+    decoderEnded = true;
+    try {
+      decoder.end();
+    } catch (error) {
+      fail('FRAME_ERROR', error);
+    }
   };
 
   const onData = (chunk: unknown): void => {
@@ -182,20 +196,18 @@ export function createStdioChannel(
       fail('HANDLER_ERROR', error);
     } finally {
       processing = false;
-      if (accepting) {
+      if (inputEnded) {
+        finishDecoder();
+      } else if (accepting) {
         input.resume();
       }
     }
   };
 
   const onEnd = (): void => {
-    if (!accepting) {
-      return;
-    }
-    try {
-      decoder.end();
-    } catch (error) {
-      fail('FRAME_ERROR', error);
+    inputEnded = true;
+    if (!processing) {
+      finishDecoder();
     }
   };
 

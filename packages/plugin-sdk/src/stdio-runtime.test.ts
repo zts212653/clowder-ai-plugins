@@ -284,7 +284,17 @@ test('pauses upstream while a handler is pending and resumes in frame order afte
 });
 
 test('keeps a multi-frame chunk paused until its first handler settles, then preserves order', async () => {
-  const input = new PassThrough();
+  let emitted = false;
+  const input = new Readable({
+    read() {
+      if (emitted) {
+        return;
+      }
+      emitted = true;
+      this.push(Buffer.from('{"sequence":1}\n{"sequence":2}\n{"sequence":3}\n', 'utf8'));
+      this.push(null);
+    },
+  });
   const output = new PassThrough();
   const handled: number[] = [];
   let releaseFirst!: () => void;
@@ -299,6 +309,10 @@ test('keeps a multi-frame chunk paused until its first handler settles, then pre
   const allHandledPromise = new Promise<void>(resolve => {
     allHandled = resolve;
   });
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
   const channel = createStdioChannel(input, output, {
     onFrame: async frame => {
       const sequence = frame.value.sequence as number;
@@ -312,15 +326,27 @@ test('keeps a multi-frame chunk paused until its first handler settles, then pre
       }
       return undefined;
     },
+    onFatal: reportFatal,
   });
 
-  input.write(Buffer.from('{"sequence":1}\n{"sequence":2}\n{"sequence":3}\n', 'utf8'));
   await firstStartedPromise;
   assert.equal(input.readableFlowing, false);
 
   releaseFirst();
-  await allHandledPromise;
+  let completionTimer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    allHandledPromise.then(() => 'handled' as const),
+    fatalPromise.then(() => 'fatal' as const),
+    new Promise<'timed-out'>(resolve => {
+      completionTimer = setTimeout(() => resolve('timed-out'), 250);
+    }),
+  ]);
+  if (completionTimer !== undefined) {
+    clearTimeout(completionTimer);
+  }
+  assert.equal(outcome, 'handled', 'EOF must not close the decoder before the active chunk finishes');
   assert.deepEqual(handled, [1, 2, 3]);
+  assert.equal(channel.failed, false);
   channel.close();
 });
 
