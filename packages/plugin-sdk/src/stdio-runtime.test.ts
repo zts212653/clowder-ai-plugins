@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { PassThrough, Readable } from 'node:stream';
+import { PassThrough, Readable, Writable } from 'node:stream';
 import test from 'node:test';
 
 import { createStdioChannel, type JsonObject } from '@clowder-ai/plugin-sdk';
@@ -223,6 +223,37 @@ test('detaches all caller-owned stream listeners after a fatal frame and later c
   assert.equal(input.listenerCount('end'), 0);
   assert.equal(input.listenerCount('error'), 0);
   assert.equal(output.listenerCount('error'), 0);
+});
+
+test('classifies a native writable callback failure as an output fault', async () => {
+  const input = new PassThrough();
+  const writeFailure = new Error('broken pipe');
+  const output = new Writable({
+    write(_chunk, _encoding, callback) {
+      callback(writeFailure);
+    },
+  });
+  let fatalReason: string | undefined;
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
+  const outputError = once(output, 'error');
+  const channel = createStdioChannel(input, output, {
+    onFrame: () => ({ ok: true }),
+    onFatal: error => {
+      fatalReason = error.reason;
+      reportFatal();
+    },
+  });
+
+  input.write(Buffer.from('{"request":"send"}\n', 'utf8'));
+  await Promise.all([fatalPromise, outputError]);
+
+  assert.equal(channel.failed, true);
+  assert.equal(fatalReason, 'OUTPUT_ERROR');
+  assert.equal(output.listenerCount('error'), 0);
+  channel.close();
 });
 
 test('pauses upstream while a handler is pending and resumes in frame order after it settles', async () => {
