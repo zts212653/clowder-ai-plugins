@@ -225,6 +225,58 @@ test('detaches all caller-owned stream listeners after a fatal frame and later c
   assert.equal(output.listenerCount('error'), 0);
 });
 
+test('fails closed when a destroyed output rejects a public send', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let fatalReason: string | undefined;
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
+  const channel = createStdioChannel(input, output, {
+    onFrame: () => undefined,
+    onFatal: error => {
+      fatalReason = error.reason;
+      reportFatal();
+    },
+  });
+  output.destroy();
+
+  await assert.rejects(channel.send({ request: 'send' }), {
+    code: 'ERR_STREAM_DESTROYED',
+  });
+  await fatalPromise;
+
+  assert.equal(channel.failed, true);
+  assert.equal(fatalReason, 'OUTPUT_ERROR');
+  channel.close();
+});
+
+test('classifies a destroyed output during a handler reply as an output fault', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let fatalReason: string | undefined;
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
+  const channel = createStdioChannel(input, output, {
+    onFrame: () => ({ ok: true }),
+    onFatal: error => {
+      fatalReason = error.reason;
+      reportFatal();
+    },
+  });
+  output.destroy();
+
+  input.write(Buffer.from('{"request":"reply"}\n', 'utf8'));
+  await fatalPromise;
+
+  assert.equal(channel.failed, true);
+  assert.equal(fatalReason, 'OUTPUT_ERROR');
+  channel.close();
+});
+
 test('classifies a native writable callback failure as an output fault', async () => {
   const input = new PassThrough();
   const writeFailure = new Error('broken pipe');
@@ -436,6 +488,13 @@ test('bounds LF scanning to the current decode slice for an unterminated large c
   const chunk = new TrackingBytes(2 * 1024 * 1024);
   trackedScans.set(chunk.buffer, scanned);
   chunk.fill(0x78);
+  const originalConcat = Buffer.concat;
+  let concatenatedBytes = 0;
+  Buffer.concat = ((list: readonly Uint8Array[], totalLength?: number): Buffer => {
+    concatenatedBytes +=
+      totalLength ?? list.reduce((total, segment) => total + segment.byteLength, 0);
+    return originalConcat(list, totalLength);
+  }) as typeof Buffer.concat;
   const input = new Readable({ read() {} });
   const output = new PassThrough();
   let fatalReason: string | undefined;
@@ -455,8 +514,13 @@ test('bounds LF scanning to the current decode slice for an unterminated large c
       scanned.total <= chunk.byteLength,
       `LF scanning must not rescan the attacker-controlled tail (${scanned.total} bytes scanned)`,
     );
+    assert.ok(
+      concatenatedBytes <= 2 * 1024 * 1024,
+      `partial frames must not be repeatedly coalesced (${concatenatedBytes} bytes copied)`,
+    );
     channel.close();
   } finally {
+    Buffer.concat = originalConcat;
     trackedScans.delete(chunk.buffer);
   }
 });

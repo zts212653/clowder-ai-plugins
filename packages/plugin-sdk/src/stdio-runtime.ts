@@ -1,6 +1,7 @@
 import type { Readable, Writable } from 'node:stream';
 import {
   encodeNdjsonFrame,
+  MAX_NDJSON_FRAME_BYTES,
   NdjsonFrameDecoder,
   NdjsonFrameError,
   type DecodedNdjsonFrame,
@@ -57,9 +58,9 @@ export interface StdioChannel {
   readonly failed: boolean;
 }
 
-// Keep decoder allocations bounded even when a caller-owned Readable delivers
-// an attacker-sized Buffer in one data event. Each slice stops at its first LF,
-// so it can decode no more than one complete NDJSON frame.
+// Scan a bounded source window at a time. Complete frames are coalesced only
+// once before reaching the contract decoder, so a near-cap partial frame is
+// neither repeatedly copied nor repeatedly scanned by that decoder.
 const MAX_INPUT_DECODE_SLICE_BYTES = 16 * 1024;
 
 function write(output: Writable, frame: Uint8Array): Promise<void> {
@@ -98,12 +99,32 @@ export function createStdioChannel(
     throw new RangeError('stdio input must remain in byte mode');
   }
   const decoder = new NdjsonFrameDecoder(options.maxFrameBytes);
+  const maxFrameBytes = options.maxFrameBytes ?? MAX_NDJSON_FRAME_BYTES;
   let accepting = true;
   let fatalError: StdioRuntimeFatalError | undefined;
   let detached = false;
   let processing = false;
   let inputEnded = false;
   let decoderEnded = false;
+  let undecodedSegments: Uint8Array[] = [];
+  let undecodedBytes = 0;
+
+  const discardUndecodedFrame = (): void => {
+    undecodedSegments = [];
+    undecodedBytes = 0;
+  };
+
+  const takeUndecodedFrame = (): Uint8Array | undefined => {
+    if (undecodedSegments.length === 0) {
+      return undefined;
+    }
+    const frame =
+      undecodedSegments.length === 1
+        ? undecodedSegments[0]!
+        : Buffer.concat(undecodedSegments, undecodedBytes);
+    discardUndecodedFrame();
+    return frame;
+  };
 
   const detach = (): void => {
     if (detached) {
@@ -122,6 +143,7 @@ export function createStdioChannel(
     }
     accepting = false;
     fatalError = new StdioRuntimeFatalError({ reason, cause });
+    discardUndecodedFrame();
     input.pause();
     detach();
     options.onFatal?.(fatalError);
@@ -131,7 +153,13 @@ export function createStdioChannel(
     if (!accepting) {
       throw new NdjsonFrameError('DECODER_CLOSED', 'stdio channel is closed');
     }
-    await write(output, encodeNdjsonFrame(frame, options.maxFrameBytes));
+    const encoded = encodeNdjsonFrame(frame, options.maxFrameBytes);
+    try {
+      await write(output, encoded);
+    } catch (error) {
+      fail('OUTPUT_ERROR', error);
+      throw error;
+    }
   };
 
   const finishDecoder = (): void => {
@@ -140,6 +168,10 @@ export function createStdioChannel(
     }
     decoderEnded = true;
     try {
+      const pendingFrame = takeUndecodedFrame();
+      if (pendingFrame !== undefined) {
+        decoder.push(pendingFrame);
+      }
       decoder.end();
     } catch (error) {
       fail('FRAME_ERROR', error);
@@ -174,14 +206,24 @@ export function createStdioChannel(
       let offset = 0;
       while (offset < chunk.byteLength && accepting) {
         const nextOffset = nextInputSliceEnd(chunk, offset);
+        const segment = chunk.subarray(offset, nextOffset);
+        undecodedSegments.push(segment);
+        undecodedBytes += segment.byteLength;
+        offset = nextOffset;
+        if (segment.at(-1) !== 0x0a && undecodedBytes <= maxFrameBytes) {
+          continue;
+        }
         let frames: readonly DecodedNdjsonFrame[];
         try {
-          frames = decoder.push(chunk.subarray(offset, nextOffset));
+          const frame = takeUndecodedFrame();
+          if (frame === undefined) {
+            continue;
+          }
+          frames = decoder.push(frame);
         } catch (error) {
           fail('FRAME_ERROR', error);
           return;
         }
-        offset = nextOffset;
         for (const frame of frames) {
           if (!accepting) {
             return;
@@ -225,6 +267,7 @@ export function createStdioChannel(
         return;
       }
       accepting = false;
+      discardUndecodedFrame();
       detach();
       input.pause();
     },
