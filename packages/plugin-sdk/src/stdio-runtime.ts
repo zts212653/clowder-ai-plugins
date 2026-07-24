@@ -63,18 +63,6 @@ export interface StdioChannel {
 // neither repeatedly copied nor repeatedly scanned by that decoder.
 const MAX_INPUT_DECODE_SLICE_BYTES = 16 * 1024;
 
-function write(output: Writable, frame: Uint8Array): Promise<void> {
-  return new Promise((resolve, reject) => {
-    output.write(frame, error => {
-      if (error === null || error === undefined) {
-        resolve();
-      } else {
-        reject(error);
-      }
-    });
-  });
-}
-
 function nextInputSliceEnd(chunk: Uint8Array, offset: number): number {
   const boundedEnd = Math.min(offset + MAX_INPUT_DECODE_SLICE_BYTES, chunk.byteLength);
   const newline = chunk.subarray(offset, boundedEnd).indexOf(0x0a);
@@ -108,6 +96,9 @@ export function createStdioChannel(
   let decoderEnded = false;
   let undecodedSegments: Uint8Array[] = [];
   let undecodedBytes = 0;
+  let activeWrites = 0;
+  let outputDetachmentRequested = false;
+  let outputErrorGracePending = false;
 
   const discardUndecodedFrame = (): void => {
     undecodedSegments = [];
@@ -126,15 +117,65 @@ export function createStdioChannel(
     return frame;
   };
 
+  const detachInput = (): void => {
+    input.off('data', onData);
+    input.off('end', onEnd);
+    input.off('error', onInputError);
+    input.off('close', onInputClose);
+  };
+
+  const detachOutputError = (): void => {
+    output.off('error', onOutputError);
+  };
+
+  const maybeDetachOutputError = (): void => {
+    if (
+      outputDetachmentRequested &&
+      activeWrites === 0 &&
+      !outputErrorGracePending
+    ) {
+      detachOutputError();
+    }
+  };
+
+  const requestOutputDetachment = (): void => {
+    outputDetachmentRequested = true;
+    maybeDetachOutputError();
+  };
+
+  const write = (frame: Uint8Array): Promise<void> => {
+    activeWrites += 1;
+    return new Promise<void>((resolve, reject) => {
+      try {
+        output.write(frame, error => {
+          if (error === null || error === undefined) {
+            resolve();
+          } else {
+            reject(error);
+          }
+        });
+      } catch (error) {
+        reject(error);
+      }
+    }).finally(() => {
+      activeWrites -= 1;
+      // A Writable may emit its matching error after invoking its write
+      // callback. Defer detachment by one turn so that event remains handled.
+      outputErrorGracePending = true;
+      setImmediate(() => {
+        outputErrorGracePending = false;
+        maybeDetachOutputError();
+      });
+    });
+  };
+
   const detach = (): void => {
     if (detached) {
       return;
     }
     detached = true;
-    input.off('data', onData);
-    input.off('end', onEnd);
-    input.off('error', onInputError);
-    output.off('error', onOutputError);
+    detachInput();
+    requestOutputDetachment();
   };
 
   const fail = (reason: StdioRuntimeFatalReason, cause: unknown): void => {
@@ -155,7 +196,7 @@ export function createStdioChannel(
     }
     const encoded = encodeNdjsonFrame(frame, options.maxFrameBytes);
     try {
-      await write(output, encoded);
+      await write(encoded);
     } catch (error) {
       fail('OUTPUT_ERROR', error);
       throw error;
@@ -254,10 +295,22 @@ export function createStdioChannel(
   };
 
   const onInputError = (error: Error): void => fail('INPUT_ERROR', error);
+  const onInputClose = (): void => {
+    if (!inputEnded) {
+      inputEnded = true;
+      if (!processing) {
+        finishDecoder();
+      }
+    }
+    if (fatalError === undefined) {
+      detachInput();
+    }
+  };
   const onOutputError = (error: Error): void => fail('OUTPUT_ERROR', error);
   input.on('data', onData);
   input.once('end', onEnd);
   input.once('error', onInputError);
+  input.once('close', onInputClose);
   output.once('error', onOutputError);
 
   return {

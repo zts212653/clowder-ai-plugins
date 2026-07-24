@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -223,6 +223,117 @@ test('detaches all caller-owned stream listeners after a fatal frame and later c
   assert.equal(input.listenerCount('end'), 0);
   assert.equal(input.listenerCount('error'), 0);
   assert.equal(output.listenerCount('error'), 0);
+});
+
+test('keeps output error handling through a write that settles after channel close', async () => {
+  const input = new PassThrough();
+  const writeFailure = new Error('late broken pipe');
+  class CallbackThenErrorOutput extends EventEmitter {
+    write(_chunk: Uint8Array, callback: (error?: Error) => void): boolean {
+      setImmediate(() => {
+        callback(writeFailure);
+        process.nextTick(() => this.emit('error', writeFailure));
+      });
+      return false;
+    }
+  }
+  const output = new CallbackThenErrorOutput();
+  let fatalReason: string | undefined;
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
+  let reportError!: () => void;
+  const errorPromise = new Promise<void>(resolve => {
+    reportError = resolve;
+  });
+  // Keep the test process alive if the runtime incorrectly removes only its
+  // listener before the modeled native error is emitted.
+  output.once('error', () => reportError());
+  const channel = createStdioChannel(input, output as unknown as Writable, {
+    onFrame: () => undefined,
+    onFatal: error => {
+      fatalReason = error.reason;
+      reportFatal();
+    },
+  });
+
+  const sending = channel.send({ request: 'send' });
+  channel.close();
+  assert.equal(
+    output.listenerCount('error'),
+    2,
+    'the runtime listener must remain until the pending write has settled',
+  );
+  await assert.rejects(sending, { message: 'late broken pipe' });
+  let completionTimer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    Promise.all([fatalPromise, errorPromise]).then(() => 'completed' as const),
+    new Promise<'timed-out'>(resolve => {
+      completionTimer = setTimeout(() => resolve('timed-out'), 250);
+    }),
+  ]);
+  if (completionTimer !== undefined) {
+    clearTimeout(completionTimer);
+  }
+
+  assert.equal(outcome, 'completed', 'late output errors must still reach the runtime');
+  assert.equal(channel.failed, true);
+  assert.equal(fatalReason, 'OUTPUT_ERROR');
+});
+
+test('detaches output error handling after a successful pre-close write settles', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const channel = createStdioChannel(input, output, { onFrame: () => undefined });
+
+  const sending = channel.send({ request: 'send' });
+  channel.close();
+  await sending;
+  await new Promise<void>(resolve => setImmediate(resolve));
+
+  assert.equal(channel.failed, false);
+  assert.equal(output.listenerCount('error'), 0);
+});
+
+test('fails closed when input closes with a truncated frame instead of ending', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let fatalReason: string | undefined;
+  let reportFatal!: () => void;
+  const fatalPromise = new Promise<void>(resolve => {
+    reportFatal = resolve;
+  });
+  const channel = createStdioChannel(input, output, {
+    onFrame: () => undefined,
+    onFatal: error => {
+      fatalReason = error.reason;
+      reportFatal();
+    },
+  });
+
+  input.write(Buffer.from('{"truncated":true}', 'utf8'));
+  input.destroy();
+  let completionTimer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    fatalPromise.then(() => 'failed' as const),
+    new Promise<'timed-out'>(resolve => {
+      completionTimer = setTimeout(() => resolve('timed-out'), 250);
+    }),
+  ]);
+  if (completionTimer !== undefined) {
+    clearTimeout(completionTimer);
+  }
+
+  assert.equal(outcome, 'failed', 'close without end must finalize the decoder');
+  assert.equal(channel.failed, true);
+  assert.equal(fatalReason, 'FRAME_ERROR');
+  assert.equal(input.listenerCount('data'), 0);
+  assert.equal(input.listenerCount('end'), 0);
+  assert.equal(input.listenerCount('error'), 0);
+  assert.equal(input.listenerCount('close'), 0);
+  assert.equal(output.listenerCount('error'), 0);
+  channel.close();
 });
 
 test('fails closed when a destroyed output rejects a public send', async () => {
