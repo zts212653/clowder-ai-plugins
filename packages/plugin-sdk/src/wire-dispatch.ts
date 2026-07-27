@@ -869,11 +869,22 @@ export function classifyFrame(
   //   3. containsExponentNumber — V8-canonical exponent form (≥10^21)
   //      also roundtrips, but exponent tokens violate the WireUInt53
   //      raw decimal-digit-only profile.
-  const rawStr = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw);
-  const canonical = JSON.stringify(value);
-  if (rawStr !== canonical) return close('T-C');
-  if (containsNonScalarString(value)) return close('T-C');
-  if (containsExponentNumber(value)) return close('T-C');
+  //
+  // Guard: JSON.stringify and the deep-traversal helpers use recursive
+  // descent. A canonical frame nested thousands of levels deep passes
+  // V8's iterative JSON.parse but overflows the call stack on stringify.
+  // The try-catch ensures classifyFrame never throws — stack overflow
+  // is mapped to T-C (close, no response).
+  try {
+    const rawStr = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw);
+    const canonical = JSON.stringify(value);
+    if (rawStr !== canonical) return close('T-C');
+    if (containsNonScalarString(value)) return close('T-C');
+    if (containsExponentNumber(value)) return close('T-C');
+  } catch {
+    // Stack overflow from deep nesting, or other canonicality edge case.
+    return close('T-C');
+  }
 
   // ── Response candidate detection ─────────────────────────────────────
   const hasMethod = 'method' in value;

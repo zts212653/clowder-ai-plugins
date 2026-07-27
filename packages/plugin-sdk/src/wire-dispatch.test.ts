@@ -304,6 +304,32 @@ test('frame with non-V8-canonical exponent form is already T-C via byte-equality
 });
 
 // ---------------------------------------------------------------------------
+// T-C canonicality: deeply nested frame → stack overflow guard
+// (codex R3 P2-2 — JSON.stringify is recursive, V8 JSON.parse is iterative)
+// ---------------------------------------------------------------------------
+
+test('deeply nested canonical frame is T-C, not a thrown exception', () => {
+  // Build a deeply nested canonical JSON string that V8's iterative
+  // JSON.parse handles but recursive JSON.stringify overflows on.
+  const depth = 10_000;
+  const prefix = '{"a":'.repeat(depth);
+  const core = '{"x":1}';
+  const suffix = '}'.repeat(depth);
+  const json = prefix + core + suffix;
+  const parsed = JSON.parse(json) as JsonObject;
+  // Sanity: JSON.stringify throws for this depth
+  assert.throws(() => JSON.stringify(parsed), RangeError, 'stringify must overflow');
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(json, 'utf8'),
+    value: parsed,
+  };
+  // classifyFrame must NOT throw — it must return T-C close
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'deep nesting must be T-C, not thrown');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
 // Fail-closed anti-examples — each proves a specific fail-open gap is sealed.
 // These are the independent refutation vectors from the R1 review.
 // ---------------------------------------------------------------------------
