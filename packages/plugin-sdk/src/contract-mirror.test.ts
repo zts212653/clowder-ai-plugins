@@ -58,11 +58,25 @@ import {
 // Contract type imports — compile-time drift anchors
 // ---------------------------------------------------------------------------
 
-// Public barrel: types available in published @clowder-ai/plugin-contract
+// Public barrel: types available in published @clowder-ai/plugin-contract.
+// Every contract type that a shared mirror constant serves is imported
+// here — not just one representative per group (Sol R5 matrix closure).
 import type {
   CallMeta,
   WireSuccessResponse,
+  // Concrete error envelopes — all 11 variants for RESPONSE_ERROR_KEYS
   ParseErrorEnvelope,
+  HandshakeRejectedEnvelope,
+  DeliveryRejectedEnvelope,
+  DomainErrorEnvelope,
+  DeadlineExpiredEnvelope,
+  SnapshotUnavailableEnvelope,
+  InvalidRequestNullIdEnvelope,
+  InvalidRequestValidIdEnvelope,
+  MethodNotFoundEnvelope,
+  InvalidParamsEnvelope,
+  InternalErrorEnvelope,
+  // Per-method CLOSED-row input/result shapes
   PingInput,
   PingResult,
   DrainInput,
@@ -70,9 +84,18 @@ import type {
   SubscribeResult,
   MessagingAckRequest,
   GrantsChangedInput,
+  // Standard error body types — all 5 for ERROR_BODY_STANDARD_KEYS
   ParseError,
+  InvalidRequestError,
+  MethodNotFoundError,
+  InvalidParamsError,
+  InternalError,
+  // Application error body types — all 5 for ERROR_BODY_APPLICATION_KEYS
   HandshakeRejectedError,
+  DeliveryRejectedError,
   DomainError,
+  DeadlineExpiredError,
+  SnapshotUnavailableError,
 } from '@clowder-ai/plugin-contract';
 
 // Test-only relative import: generic envelopes NOT in public barrel (Q1 ruling).
@@ -99,42 +122,74 @@ import type {
 type ExactKeys<T, K extends string> =
   [keyof T & string] extends [K] ? [K] extends [keyof T & string] ? true : false : false;
 
-// Envelope outer key sets
-const _driftSuccessResp: ExactKeys<WireSuccessResponse<unknown>, 'jsonrpc' | 'id' | 'result'> = true;
-const _driftErrorResp: ExactKeys<ParseErrorEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
-const _driftRequest: ExactKeys<WireRequest, 'jsonrpc' | 'id' | 'method' | 'params'> = true;
-const _driftNotification: ExactKeys<WireNotification, 'jsonrpc' | 'method' | 'params'> = true;
+// ── RESPONSE_SUCCESS_KEYS ── (1 type: WireSuccessResponse)
+const _d01: ExactKeys<WireSuccessResponse<unknown>, 'jsonrpc' | 'id' | 'result'> = true;
 
-// Nested params / meta
-const _driftParams: ExactKeys<WireRequest['params'], 'meta' | 'input'> = true;
-const _driftMeta: ExactKeys<CallMeta, 'deadlineUnixMs'> = true;
+// ── RESPONSE_ERROR_KEYS ── (11 concrete error envelopes, all must match)
+const _d02: ExactKeys<ParseErrorEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d03: ExactKeys<HandshakeRejectedEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d04: ExactKeys<DeliveryRejectedEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d05: ExactKeys<DomainErrorEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d06: ExactKeys<DeadlineExpiredEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d07: ExactKeys<SnapshotUnavailableEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d08: ExactKeys<InvalidRequestNullIdEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d09: ExactKeys<InvalidRequestValidIdEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d10: ExactKeys<MethodNotFoundEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d11: ExactKeys<InvalidParamsEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _d12: ExactKeys<InternalErrorEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
 
-// Per-method CLOSED-row input shapes
-const _driftPingIn: ExactKeys<PingInput, 'nonce'> = true;
-const _driftDrainIn: ExactKeys<DrainInput, 'deadlineUnixMs'> = true;
-const _driftSubIn: ExactKeys<SubscribeInput, 'handle'> = true;
-const _driftAckIn: ExactKeys<MessagingAckRequest, 'subscriptionId' | 'ackToken'> = true;
-const _driftGrantsIn: ExactKeys<GrantsChangedInput, 'grantRevision' | 'effectiveGrants'> = true;
+// ── REQUEST_ALLOWED_KEYS / NOTIFICATION_ALLOWED_KEYS ──
+const _d13: ExactKeys<WireRequest, 'jsonrpc' | 'id' | 'method' | 'params'> = true;
+const _d14: ExactKeys<WireNotification, 'jsonrpc' | 'method' | 'params'> = true;
 
-// Per-method CLOSED-row result shapes
-const _driftPingRes: ExactKeys<PingResult, 'nonce'> = true;
-const _driftSubRes: ExactKeys<SubscribeResult, 'subscriptionId'> = true;
+// ── PARAMS_ALLOWED_KEYS ── (both Request and Notification params)
+const _d15: ExactKeys<WireRequest['params'], 'meta' | 'input'> = true;
+const _d16: ExactKeys<WireNotification['params'], 'meta' | 'input'> = true;
 
-// Error body key sets
-const _driftStdErr: ExactKeys<ParseError, 'code' | 'message'> = true;
-const _driftAppErr: ExactKeys<HandshakeRejectedError, 'code' | 'message' | 'data'> = true;
+// ── META_ALLOWED_KEYS ──
+const _d17: ExactKeys<CallMeta, 'deadlineUnixMs'> = true;
 
-// Per-arm application error data
-const _driftReasonData: ExactKeys<HandshakeRejectedError['data'], 'reason'> = true;
-const _driftCodeData: ExactKeys<DomainError['data'], 'code'> = true;
+// ── Per-method CLOSED-row input shapes (1:1, no shared mirrors) ──
+const _d18: ExactKeys<PingInput, 'nonce'> = true;
+const _d19: ExactKeys<DrainInput, 'deadlineUnixMs'> = true;
+const _d20: ExactKeys<SubscribeInput, 'handle'> = true;
+const _d21: ExactKeys<MessagingAckRequest, 'subscriptionId' | 'ackToken'> = true;
+const _d22: ExactKeys<GrantsChangedInput, 'grantRevision' | 'effectiveGrants'> = true;
+
+// ── Per-method CLOSED-row result shapes (1:1, no shared mirrors) ──
+const _d23: ExactKeys<PingResult, 'nonce'> = true;
+const _d24: ExactKeys<SubscribeResult, 'subscriptionId'> = true;
+
+// ── ERROR_BODY_STANDARD_KEYS ── (all 5 standard error arms)
+const _d25: ExactKeys<ParseError, 'code' | 'message'> = true;
+const _d26: ExactKeys<InvalidRequestError, 'code' | 'message'> = true;
+const _d27: ExactKeys<MethodNotFoundError, 'code' | 'message'> = true;
+const _d28: ExactKeys<InvalidParamsError, 'code' | 'message'> = true;
+const _d29: ExactKeys<InternalError, 'code' | 'message'> = true;
+
+// ── ERROR_BODY_APPLICATION_KEYS ── (all 5 application error arms)
+const _d30: ExactKeys<HandshakeRejectedError, 'code' | 'message' | 'data'> = true;
+const _d31: ExactKeys<DeliveryRejectedError, 'code' | 'message' | 'data'> = true;
+const _d32: ExactKeys<DomainError, 'code' | 'message' | 'data'> = true;
+const _d33: ExactKeys<DeadlineExpiredError, 'code' | 'message' | 'data'> = true;
+const _d34: ExactKeys<SnapshotUnavailableError, 'code' | 'message' | 'data'> = true;
+
+// ── REASON_DATA_KEYS ── (all 3 reason-bearing error data arms)
+const _d35: ExactKeys<HandshakeRejectedError['data'], 'reason'> = true;
+const _d36: ExactKeys<DeliveryRejectedError['data'], 'reason'> = true;
+const _d37: ExactKeys<SnapshotUnavailableError['data'], 'reason'> = true;
+
+// ── CODE_DATA_KEYS ── (1 type: DomainError.data)
+const _d38: ExactKeys<DomainError['data'], 'code'> = true;
 
 // Suppress "unused" — these are compile-time-only sentinels.
-void _driftSuccessResp; void _driftErrorResp; void _driftRequest; void _driftNotification;
-void _driftParams; void _driftMeta;
-void _driftPingIn; void _driftDrainIn; void _driftSubIn; void _driftAckIn; void _driftGrantsIn;
-void _driftPingRes; void _driftSubRes;
-void _driftStdErr; void _driftAppErr;
-void _driftReasonData; void _driftCodeData;
+void _d01; void _d02; void _d03; void _d04; void _d05; void _d06;
+void _d07; void _d08; void _d09; void _d10; void _d11; void _d12;
+void _d13; void _d14; void _d15; void _d16; void _d17; void _d18;
+void _d19; void _d20; void _d21; void _d22; void _d23; void _d24;
+void _d25; void _d26; void _d27; void _d28; void _d29; void _d30;
+void _d31; void _d32; void _d33; void _d34; void _d35; void _d36;
+void _d37; void _d38;
 
 // ---------------------------------------------------------------------------
 // Schema JSON source path (test-only)
