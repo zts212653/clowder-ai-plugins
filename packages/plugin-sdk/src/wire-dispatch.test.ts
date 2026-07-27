@@ -184,6 +184,69 @@ test('reserved method with valid envelope is T-G (input type never → value vio
 });
 
 // ---------------------------------------------------------------------------
+// Direction gate: plugin SDK rejects inbound plugin-to-host methods
+// (codex R1 P1 — CLOSED plugin-to-host row with valid params)
+// ---------------------------------------------------------------------------
+
+test('CLOSED plugin-to-host method (messaging.subscribe) with valid input is T-F (direction gate)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"s1","method":"messaging.subscribe","params":{"meta":{"deadlineUnixMs":1},"input":{"handle":"chan"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  // Plugin SDK does not serve plugin-to-host methods — T-F MethodNotFound.
+  // Direction gate runs after all envelope/value checks; only CLOSED rows
+  // with valid params reach it (RESERVED rows hit T-G first).
+  assert.equal(result.disposition, 'T-F');
+  assert.equal(result.outcome, 'respond');
+  assert.ok(result.response !== undefined);
+});
+
+test('CLOSED plugin-to-host method (messaging.ack) with valid input is T-F (direction gate)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"a1","method":"messaging.ack","params":{"meta":{"deadlineUnixMs":1},"input":{"subscriptionId":"sub-1","ackToken":"tok-1"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-F');
+  assert.equal(result.outcome, 'respond');
+});
+
+// ---------------------------------------------------------------------------
+// T-C canonicality: non-scalar strings (lone surrogates)
+// (codex R1 P2 — JSON.stringify roundtrips surrogates, byte-equality passes)
+// ---------------------------------------------------------------------------
+
+test('frame with lone high surrogate in string value is T-C (non-scalar string)', () => {
+  // \ud800 is a lone high surrogate — not a valid Unicode scalar value.
+  // JSON.parse produces U+D800, JSON.stringify escapes it back to \ud800,
+  // so byte-equality passes. The non-scalar string check catches it.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"\\ud800"}}}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'lone surrogate must be rejected as non-scalar string');
+  assert.equal(result.outcome, 'close');
+});
+
+test('frame with lone low surrogate in object key is T-C (non-scalar string)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","\\udcba":"extra"}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'lone surrogate in key must be rejected');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
 // Fail-closed anti-examples — each proves a specific fail-open gap is sealed.
 // These are the independent refutation vectors from the R1 review.
 // ---------------------------------------------------------------------------

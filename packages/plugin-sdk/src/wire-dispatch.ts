@@ -165,6 +165,48 @@ function accept(disposition: DispositionClass): DispatchResult {
 }
 
 // ---------------------------------------------------------------------------
+// Non-scalar string detection (T-C canonicality, lone surrogate check)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if any string value or object key in the parsed JSON tree
+ * contains a lone surrogate (U+D800–U+DFFF). These are non-scalar strings
+ * per the Unicode specification and fail the T-C canonicality predicate.
+ *
+ * Lone surrogates roundtrip through JSON.stringify (ES2019+ escapes them
+ * as \uXXXX), so byte-equality alone cannot catch them.
+ */
+function containsNonScalarString(value: unknown): boolean {
+  if (typeof value === 'string') {
+    for (let i = 0; i < value.length; i++) {
+      const c = value.charCodeAt(i);
+      if (c >= 0xD800 && c <= 0xDBFF) {
+        // High surrogate — must be followed by a low surrogate (U+DC00–U+DFFF)
+        const next = i + 1 < value.length ? value.charCodeAt(i + 1) : 0;
+        if (next < 0xDC00 || next > 0xDFFF) return true;
+        i++; // Skip the valid low surrogate pair partner
+      } else if (c >= 0xDC00 && c <= 0xDFFF) {
+        // Lone low surrogate (not preceded by a high surrogate)
+        return true;
+      }
+    }
+    return false;
+  }
+  if (value === null || typeof value !== 'object') return false;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (containsNonScalarString(item)) return true;
+    }
+    return false;
+  }
+  for (const key of Object.keys(value as Record<string, unknown>)) {
+    if (containsNonScalarString(key)) return true;
+    if (containsNonScalarString((value as Record<string, unknown>)[key])) return true;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Contract-mirror imports (key sets from contract-mirror.ts)
 //
 // These mirror contract type-level constraints (additionalProperties: false)
@@ -682,7 +724,17 @@ function classifyRequest(
     return respondInvalidParamsValue(id);
   }
 
-  // All checks passed — valid CLOSED-row request for dispatch
+  // Direction gate: plugin SDK only accepts host-to-plugin methods as
+  // inbound requests. Plugin-to-host methods (rows 1–8) received by
+  // the plugin are protocol violations → T-F MethodNotFound.
+  //
+  // Positioned after all envelope/value checks so that:
+  //   - In-flight collision (T-I) takes precedence (per contract fixtures)
+  //   - RESERVED row rejection (T-G) takes precedence (input type `never`)
+  //   - Only CLOSED plugin-to-host rows with valid params reach here
+  if (row.direction === 'plugin-to-host') return respondMethodNotFound(id);
+
+  // All checks passed — valid host-to-plugin CLOSED-row request for dispatch
   return { disposition: null, outcome: 'accept' };
 }
 
@@ -780,9 +832,13 @@ export function classifyFrame(
   const { raw, value } = frame;
 
   // ── T-C: canonicality check ──────────────────────────────────────────
+  // The T-C predicate covers: whitespace, duplicate keys, non-scalar
+  // strings, and non-canonical numbers. Byte-equality catches all but
+  // non-scalar strings (lone surrogates roundtrip through JSON.stringify).
   const rawStr = new TextDecoder('utf-8', { fatal: true }).decode(raw);
   const canonical = JSON.stringify(value);
   if (rawStr !== canonical) return close('T-C');
+  if (containsNonScalarString(value)) return close('T-C');
 
   // ── Response candidate detection ─────────────────────────────────────
   const hasMethod = 'method' in value;
