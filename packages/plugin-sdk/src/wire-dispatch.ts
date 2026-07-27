@@ -1,0 +1,482 @@
+/**
+ * Wire dispatch classifier — pre-dispatch frame classification per the
+ * frozen disposition table (T-A through T-L, §3.8-1 of #1165).
+ *
+ * This module classifies decoded NDJSON frames into one of the 12
+ * disposition classes. T-A (transport failure) and T-B (JSON parse error)
+ * are handled by the NDJSON frame decoder layer — this classifier covers
+ * T-C through T-L.
+ *
+ * A frame that passes all rejection checks returns disposition=null with
+ * outcome='accept', indicating a valid request that should be dispatched
+ * to a method handler.
+ *
+ * This module defines nothing new — every classification rule traces to
+ * the frozen disposition table in @clowder-ai/plugin-contract.
+ */
+
+import type { DecodedNdjsonFrame, JsonObject } from '@clowder-ai/plugin-contract/conformance';
+
+import {
+  type DispositionClass,
+  type WireMethodName,
+  validateRequestId,
+  validateEffectiveGrants,
+  isWireMethod,
+  isWireUInt53,
+  NOTIFICATION_METHODS,
+  WIRE_METHOD_REGISTRY,
+  INVALID_REQUEST_CODE,
+  INVALID_REQUEST_MESSAGE,
+  METHOD_NOT_FOUND_CODE,
+  METHOD_NOT_FOUND_MESSAGE,
+  INVALID_PARAMS_CODE,
+  INVALID_PARAMS_MESSAGE,
+  PING_NONCE_MIN_LENGTH,
+  PING_NONCE_MAX_LENGTH,
+  SUBSCRIBE_HANDLE_MIN_LENGTH,
+  SUBSCRIBE_HANDLE_MAX_LENGTH,
+  ACK_SUBSCRIPTION_ID_MIN_LENGTH,
+  ACK_SUBSCRIPTION_ID_MAX_LENGTH,
+  ACK_TOKEN_MIN_LENGTH,
+  ACK_TOKEN_MAX_LENGTH,
+} from '@clowder-ai/plugin-contract';
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
+
+/**
+ * Cross-frame oracle snapshot — original request fields needed to
+ * verify byte-equality invariants on correlated responses.
+ *
+ * Structurally identical to contract's internal RequestSnapshot;
+ * defined locally because that type is not part of the published
+ * beta.4 public surface (Fable ruling on F1/immutability).
+ */
+export interface RequestSnapshot {
+  /** Row 11 ping: nonce that must be echoed byte-equal in the result. */
+  readonly nonce?: string;
+  /** Row 9 deliver: deliveryId that must match byte-equal in the ack. */
+  readonly deliveryId?: string;
+}
+
+export interface InFlightEntry {
+  readonly method: WireMethodName;
+  readonly requestSnapshot?: RequestSnapshot;
+}
+
+export interface DispatchResult {
+  /** T-class from the disposition table, or null for valid requests. */
+  readonly disposition: DispositionClass | null;
+  /** Required transport action: close, respond (with error), or accept. */
+  readonly outcome: 'close' | 'respond' | 'accept';
+  /** For 'respond': the error envelope to write back as NDJSON. */
+  readonly response?: JsonObject;
+}
+
+// ---------------------------------------------------------------------------
+// Error response builders
+// ---------------------------------------------------------------------------
+
+function respondInvalidRequestNull(): DispatchResult {
+  return {
+    disposition: 'T-D',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: INVALID_REQUEST_CODE, message: INVALID_REQUEST_MESSAGE },
+    },
+  };
+}
+
+function respondInvalidRequestId(id: string): DispatchResult {
+  return {
+    disposition: 'T-F',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id,
+      error: { code: INVALID_REQUEST_CODE, message: INVALID_REQUEST_MESSAGE },
+    },
+  };
+}
+
+function respondMethodNotFound(id: string): DispatchResult {
+  return {
+    disposition: 'T-F',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id,
+      error: { code: METHOD_NOT_FOUND_CODE, message: METHOD_NOT_FOUND_MESSAGE },
+    },
+  };
+}
+
+function respondInvalidParams(id: string): DispatchResult {
+  return {
+    disposition: 'T-F',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id,
+      error: { code: INVALID_PARAMS_CODE, message: INVALID_PARAMS_MESSAGE },
+    },
+  };
+}
+
+function respondInvalidParamsValue(id: string): DispatchResult {
+  return {
+    disposition: 'T-G',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id,
+      error: { code: INVALID_PARAMS_CODE, message: INVALID_PARAMS_MESSAGE },
+    },
+  };
+}
+
+function close(disposition: DispositionClass): DispatchResult {
+  return { disposition, outcome: 'close' };
+}
+
+function accept(disposition: DispositionClass): DispatchResult {
+  return { disposition, outcome: 'accept' };
+}
+
+// ---------------------------------------------------------------------------
+// Response candidate sub-classifier (T-H / T-L)
+// ---------------------------------------------------------------------------
+
+/** Closed outer key sets for WireSuccessResponse / WireErrorResponse. */
+const RESPONSE_SUCCESS_KEYS = new Set(['jsonrpc', 'id', 'result']);
+const RESPONSE_ERROR_KEYS = new Set(['jsonrpc', 'id', 'error']);
+
+function classifyResponseCandidate(
+  value: JsonObject,
+  inFlight: ReadonlyMap<string, InFlightEntry>,
+): DispatchResult {
+  // Response candidate: no method key, has result or error.
+  const hasResult = 'result' in value;
+  const hasError = 'error' in value;
+
+  // ── Closed envelope structure ──────────────────────────────────────
+  // jsonrpc must be exactly "2.0"
+  if (value.jsonrpc !== '2.0') return close('T-H');
+
+  // Mutual exclusivity: exactly one of result/error
+  if (hasResult && hasError) return close('T-H');
+
+  // Closed outer keys: no additional members allowed
+  const allowedKeys = hasResult ? RESPONSE_SUCCESS_KEYS : RESPONSE_ERROR_KEYS;
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) return close('T-H');
+  }
+
+  // ── id validation ──────────────────────────────────────────────────
+  if (!('id' in value)) return close('T-H');
+  const id = value.id;
+  if (typeof id !== 'string') return close('T-H');
+  if (validateRequestId(id) === null) return close('T-H');
+
+  // ── In-flight correlation ──────────────────────────────────────────
+  const inFlightEntry = inFlight.get(id);
+  if (inFlightEntry === undefined) return close('T-H');
+
+  // ── Error body structure (code: number, message: string) ───────────
+  if (hasError) {
+    const error = value.error;
+    if (error === null || typeof error !== 'object' || Array.isArray(error)) {
+      return close('T-H');
+    }
+    const errObj = error as Record<string, unknown>;
+    if (typeof errObj.code !== 'number') return close('T-H');
+    if (typeof errObj.message !== 'string') return close('T-H');
+  }
+
+  // ── Cross-frame oracle ─────────────────────────────────────────────
+  if (hasResult && inFlightEntry.requestSnapshot !== undefined) {
+    const result = value.result;
+    if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+      return close('T-H');
+    }
+    const resultObj = result as Record<string, unknown>;
+
+    // Ping nonce byte-equality (row 11)
+    if (inFlightEntry.requestSnapshot.nonce !== undefined) {
+      if (resultObj.nonce !== inFlightEntry.requestSnapshot.nonce) {
+        return close('T-H');
+      }
+    }
+
+    // Delivery ID byte-equality (row 9)
+    if (inFlightEntry.requestSnapshot.deliveryId !== undefined) {
+      if (resultObj.deliveryId !== inFlightEntry.requestSnapshot.deliveryId) {
+        return close('T-H');
+      }
+    }
+  }
+
+  return accept('T-L');
+}
+
+// ---------------------------------------------------------------------------
+// Notification sub-classifier (T-J / T-K)
+// ---------------------------------------------------------------------------
+
+const NOTIFICATION_ALLOWED_KEYS = new Set(['jsonrpc', 'method', 'params']);
+
+function classifyNotification(value: JsonObject): DispatchResult {
+  const method = value.method as string;
+
+  // Extra keys beyond jsonrpc/method/params → T-K
+  for (const key of Object.keys(value)) {
+    if (!NOTIFICATION_ALLOWED_KEYS.has(key)) return close('T-K');
+  }
+
+  // Missing params → T-K
+  if (!('params' in value)) return close('T-K');
+
+  // Only row 10 (host.grants.changed) is a legal notification in v0
+  const isLegalNotification = (NOTIFICATION_METHODS as readonly string[]).includes(method);
+  if (!isLegalNotification) return close('T-K');
+
+  // Validate params structure
+  const params = value.params;
+  if (params === null || typeof params !== 'object' || Array.isArray(params)) {
+    return close('T-K');
+  }
+  const paramsObj = params as Record<string, unknown>;
+
+  // meta.deadlineUnixMs
+  if (!('meta' in paramsObj)) return close('T-K');
+  const meta = paramsObj.meta;
+  if (meta === null || typeof meta !== 'object' || Array.isArray(meta)) {
+    return close('T-K');
+  }
+  const metaObj = meta as Record<string, unknown>;
+  const notifDeadline = metaObj.deadlineUnixMs;
+  if (typeof notifDeadline !== 'number' || !isWireUInt53(notifDeadline)) return close('T-K');
+  if (notifDeadline === 0) return close('T-K');
+
+  // input validation for row 10 (grants.changed)
+  if (!('input' in paramsObj)) return close('T-K');
+  const input = paramsObj.input;
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+    return close('T-K');
+  }
+  const inputObj = input as Record<string, unknown>;
+
+  // grantRevision must be WireUInt53 (≥0)
+  const grantRev = inputObj.grantRevision;
+  if (typeof grantRev !== 'number' || !isWireUInt53(grantRev)) return close('T-K');
+
+  // effectiveGrants must pass authorization boundary validation
+  if (!Array.isArray(inputObj.effectiveGrants)) return close('T-K');
+  if (!validateEffectiveGrants(inputObj.effectiveGrants as string[])) return close('T-K');
+
+  return accept('T-J');
+}
+
+// ---------------------------------------------------------------------------
+// Request sub-classifier (T-E / T-F / T-G / T-I / accept)
+// ---------------------------------------------------------------------------
+
+const REQUEST_ALLOWED_KEYS = new Set(['jsonrpc', 'id', 'method', 'params']);
+
+function classifyRequest(
+  value: JsonObject,
+  id: string,
+  method: string,
+  inFlight: ReadonlyMap<string, InFlightEntry>,
+): DispatchResult {
+  // Extra keys (result/error alongside method+id) → T-F
+  for (const key of Object.keys(value)) {
+    if (!REQUEST_ALLOWED_KEYS.has(key)) return respondInvalidRequestId(id);
+  }
+
+  // Missing params → T-F InvalidRequest
+  if (!('params' in value)) return respondInvalidRequestId(id);
+
+  // params must be an object
+  const params = value.params;
+  if (params === null || typeof params !== 'object') {
+    return respondInvalidParams(id);
+  }
+  if (Array.isArray(params)) return respondInvalidParams(id);
+
+  // Method gate: unknown method → T-F MethodNotFound
+  if (!isWireMethod(method)) return respondMethodNotFound(id);
+
+  // Direction gate: notification-only methods must not appear as requests
+  const wireMethod = method as WireMethodName;
+  const row = WIRE_METHOD_REGISTRY[wireMethod];
+  if (row.isNotification) return respondInvalidRequestId(id);
+
+  // In-flight collision → T-I
+  if (inFlight.has(id)) return close('T-I');
+
+  // Validate params.meta structure
+  const paramsObj = params as Record<string, unknown>;
+  if (!('meta' in paramsObj)) return respondInvalidParams(id);
+  const meta = paramsObj.meta;
+  if (meta === null || typeof meta !== 'object' || Array.isArray(meta)) {
+    return respondInvalidParams(id);
+  }
+  const metaObj = meta as Record<string, unknown>;
+
+  // deadlineUnixMs must be positive WireUInt53
+  const reqDeadline = metaObj.deadlineUnixMs;
+  if (typeof reqDeadline !== 'number' || !isWireUInt53(reqDeadline)) return respondInvalidParamsValue(id);
+  if (reqDeadline === 0) return respondInvalidParamsValue(id);
+
+  // Validate params.input exists and is an object
+  if (!('input' in paramsObj)) return respondInvalidParams(id);
+  const input = paramsObj.input;
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+    return respondInvalidParams(id);
+  }
+
+  // Row-specific value validation
+  if (row.leafClosure === 'CLOSED') {
+    const valueResult = validateClosedRowInput(wireMethod, input as Record<string, unknown>, id);
+    if (valueResult !== null) return valueResult;
+  } else {
+    // RESERVED rows: input type is `never` → no legal params value exists
+    // in v0 → any invocation is a value violation (T-G).
+    // Fable ruling: disposition table has no accept class for Requests;
+    // ACCEPT_CLASSES = {T-J (notification), T-L (response)} only.
+    return respondInvalidParamsValue(id);
+  }
+
+  // All checks passed — valid CLOSED-row request for dispatch
+  return { disposition: null, outcome: 'accept' };
+}
+
+// ---------------------------------------------------------------------------
+// CLOSED row input validation (T-G detection)
+// ---------------------------------------------------------------------------
+
+function validateClosedRowInput(
+  method: WireMethodName,
+  input: Record<string, unknown>,
+  id: string,
+): DispatchResult | null {
+  switch (method) {
+    case 'host.lifecycle.ping': {
+      // nonce must be string, 1..512 code points
+      if (typeof input.nonce !== 'string') return respondInvalidParamsValue(id);
+      const cpLen = [...input.nonce].length;
+      if (cpLen < PING_NONCE_MIN_LENGTH || cpLen > PING_NONCE_MAX_LENGTH) {
+        return respondInvalidParamsValue(id);
+      }
+      return null;
+    }
+    case 'host.lifecycle.drain': {
+      // input.deadlineUnixMs must be positive WireUInt53
+      const drainDeadline = input.deadlineUnixMs;
+      if (typeof drainDeadline !== 'number' || !isWireUInt53(drainDeadline)) return respondInvalidParamsValue(id);
+      if (drainDeadline === 0) return respondInvalidParamsValue(id);
+      return null;
+    }
+    case 'messaging.subscribe': {
+      // handle must be string, bounds from contract
+      if (typeof input.handle !== 'string') return respondInvalidParamsValue(id);
+      const cpLen = [...input.handle].length;
+      if (cpLen < SUBSCRIBE_HANDLE_MIN_LENGTH || cpLen > SUBSCRIBE_HANDLE_MAX_LENGTH) {
+        return respondInvalidParamsValue(id);
+      }
+      return null;
+    }
+    case 'messaging.ack': {
+      // subscriptionId + ackToken: string, bounds from contract
+      if (typeof input.subscriptionId !== 'string') return respondInvalidParamsValue(id);
+      if (typeof input.ackToken !== 'string') return respondInvalidParamsValue(id);
+      const subLen = [...input.subscriptionId].length;
+      const tokenLen = [...input.ackToken].length;
+      if (subLen < ACK_SUBSCRIPTION_ID_MIN_LENGTH || subLen > ACK_SUBSCRIPTION_ID_MAX_LENGTH) {
+        return respondInvalidParamsValue(id);
+      }
+      if (tokenLen < ACK_TOKEN_MIN_LENGTH || tokenLen > ACK_TOKEN_MAX_LENGTH) {
+        return respondInvalidParamsValue(id);
+      }
+      return null;
+    }
+    // host.grants.changed (row 10) is notification-only — direction gate
+    // in classifyRequest rejects it before reaching this function.
+    default:
+      // RESERVED rows: skip input validation (shapes are `never`)
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Main classifier entry point
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify a decoded NDJSON frame into a disposition class.
+ *
+ * Covers T-C through T-L of the frozen disposition table. T-A and T-B
+ * are handled by the NDJSON frame decoder layer.
+ *
+ * @param frame   Decoded frame with raw bytes and parsed value.
+ * @param inFlight Map of in-flight request IDs to their entry metadata.
+ * @returns The disposition result with class, outcome, and optional error response.
+ */
+export function classifyFrame(
+  frame: DecodedNdjsonFrame,
+  inFlight: ReadonlyMap<string, InFlightEntry>,
+): DispatchResult {
+  const { raw, value } = frame;
+
+  // ── T-C: canonicality check ──────────────────────────────────────────
+  // The raw bytes must be compact-canonical JSON (no whitespace, no
+  // duplicate keys visible at the byte level).
+  const rawStr = new TextDecoder('utf-8', { fatal: true }).decode(raw);
+  const canonical = JSON.stringify(value);
+  if (rawStr !== canonical) return close('T-C');
+
+  // ── Response candidate detection ─────────────────────────────────────
+  // An object with no `method` key and at least one of `result`/`error`
+  // enters the response lane before any Request/Notification routing.
+  const hasMethod = 'method' in value;
+  const hasResult = 'result' in value;
+  const hasError = 'error' in value;
+
+  if (!hasMethod && (hasResult || hasError)) {
+    return classifyResponseCandidate(value, inFlight);
+  }
+
+  // ── Structural validity ──────────────────────────────────────────────
+  // Must be JSON-RPC 2.0 with a string method.
+  if (value.jsonrpc !== '2.0' || typeof value.method !== 'string') {
+    // T-D: canonical idless non-response-candidate, not a valid Request
+    // (If id exists but is profile-invalid, it's still T-D for idless path)
+    if ('id' in value) {
+      const id = validateRequestId(value.id);
+      if (id !== null) {
+        // Valid id with structural problem → T-F
+        return respondInvalidRequestId(id);
+      }
+    }
+    return respondInvalidRequestNull();
+  }
+
+  const method = value.method as string;
+
+  // ── Notification vs Request fork ─────────────────────────────────────
+  if (!('id' in value)) {
+    return classifyNotification(value);
+  }
+
+  // ── T-E: profile-invalid id ──────────────────────────────────────────
+  const id = validateRequestId(value.id);
+  if (id === null) return close('T-E');
+
+  // ── Request path ─────────────────────────────────────────────────────
+  return classifyRequest(value, id, method, inFlight);
+}
