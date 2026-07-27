@@ -206,6 +206,34 @@ function containsNonScalarString(value: unknown): boolean {
   return false;
 }
 
+/**
+ * Detect numbers whose JSON.stringify form uses exponent notation.
+ *
+ * V8 serialises numbers ≥ 10^21 (and very small fractions) in exponent
+ * form (e.g. `1e+21`). When the raw frame also uses the same exponent
+ * form, byte-equality passes — but exponent-form numeric tokens are
+ * non-canonical per the WireUInt53 profile (which requires raw decimal
+ * digits `0|[1-9][0-9]*`, no exponent). Deep traversal mirrors
+ * containsNonScalarString.
+ */
+function containsExponentNumber(value: unknown): boolean {
+  if (typeof value === 'number') {
+    const s = String(value);
+    return s.includes('e') || s.includes('E');
+  }
+  if (value === null || typeof value !== 'object') return false;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (containsExponentNumber(item)) return true;
+    }
+    return false;
+  }
+  for (const v of Object.values(value as Record<string, unknown>)) {
+    if (containsExponentNumber(v)) return true;
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Contract-mirror imports (key sets from contract-mirror.ts)
 //
@@ -833,12 +861,19 @@ export function classifyFrame(
 
   // ── T-C: canonicality check ──────────────────────────────────────────
   // The T-C predicate covers: whitespace, duplicate keys, non-scalar
-  // strings, and non-canonical numbers. Byte-equality catches all but
-  // non-scalar strings (lone surrogates roundtrip through JSON.stringify).
-  const rawStr = new TextDecoder('utf-8', { fatal: true }).decode(raw);
+  // strings, non-canonical numbers, and BOM-prefixed frames.
+  // Byte-equality catches whitespace, duplicate keys, and most non-
+  // canonical numbers. Three supplementary measures close the gaps:
+  //   1. ignoreBOM:true — keeps BOM visible so it fails byte-equality.
+  //   2. containsNonScalarString — lone surrogates roundtrip thru stringify.
+  //   3. containsExponentNumber — V8-canonical exponent form (≥10^21)
+  //      also roundtrips, but exponent tokens violate the WireUInt53
+  //      raw decimal-digit-only profile.
+  const rawStr = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(raw);
   const canonical = JSON.stringify(value);
   if (rawStr !== canonical) return close('T-C');
   if (containsNonScalarString(value)) return close('T-C');
+  if (containsExponentNumber(value)) return close('T-C');
 
   // ── Response candidate detection ─────────────────────────────────────
   const hasMethod = 'method' in value;

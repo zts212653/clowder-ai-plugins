@@ -247,6 +247,63 @@ test('frame with lone low surrogate in object key is T-C (non-scalar string)', (
 });
 
 // ---------------------------------------------------------------------------
+// T-C canonicality: BOM-prefixed frame
+// (codex R2 P2-1 — TextDecoder default strips BOM, byte-equality passes)
+// ---------------------------------------------------------------------------
+
+test('frame with UTF-8 BOM prefix is T-C (BOM is non-canonical)', () => {
+  // UTF-8 BOM (EF BB BF) is stripped by TextDecoder default (ignoreBOM:false).
+  // With ignoreBOM:true the BOM stays in rawStr, causing byte mismatch → T-C.
+  const json = '{"jsonrpc":"2.0","id":"a","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x"}}}';
+  const bomBytes = new Uint8Array([0xEF, 0xBB, 0xBF, ...Buffer.from(json)]);
+  const frame: DecodedNdjsonFrame = {
+    raw: bomBytes,
+    value: JSON.parse(json) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'BOM-prefixed frame must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
+// T-C canonicality: exponent-form numbers
+// (codex R2 P2-2 — V8 JSON.stringify(1e+21) → "1e+21", byte-equality passes)
+// ---------------------------------------------------------------------------
+
+test('frame with V8-canonical exponent-form number is T-C (non-canonical number)', () => {
+  // 1e+21 ≥ 10^21, so V8's JSON.stringify uses exponent notation "1e+21".
+  // Byte-equality passes because both raw and canonical have the same form.
+  // The containsExponentNumber check catches it — exponent form violates
+  // the WireUInt53 raw decimal-digit-only profile.
+  const json = '{"jsonrpc":"2.0","id":"a","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1e+21},"input":{"nonce":"x"}}}';
+  const parsed = JSON.parse(json) as JsonObject;
+  // Sanity: byte-equality would pass without the exponent check
+  assert.equal(json, JSON.stringify(parsed), 'exponent form roundtrips through JSON');
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(json, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'exponent-form number must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+test('frame with non-V8-canonical exponent form is already T-C via byte-equality', () => {
+  // 1e3 → JSON.parse → 1000 → JSON.stringify → "1000" (not "1e3").
+  // Byte-equality catches this without needing the exponent check.
+  const json = '{"jsonrpc":"2.0","id":"a","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1e3},"input":{"nonce":"x"}}}';
+  const parsed = JSON.parse(json) as JsonObject;
+  assert.notEqual(json, JSON.stringify(parsed), 'non-V8-canonical exponent does not roundtrip');
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(json, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'non-canonical exponent is T-C via byte-equality');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
 // Fail-closed anti-examples — each proves a specific fail-open gap is sealed.
 // These are the independent refutation vectors from the R1 review.
 // ---------------------------------------------------------------------------
