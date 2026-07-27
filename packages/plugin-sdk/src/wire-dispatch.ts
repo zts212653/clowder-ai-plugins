@@ -491,9 +491,22 @@ function validateReservedRowOracle(
   result: unknown,
   entry: InFlightEntry,
 ): DispatchResult | null {
+  // Method-specific oracle requirements: row 9 (host.messaging.deliver)
+  // requires deliveryId snapshot — fail-closed if absent.
+  // Mirrors the ping oracle fail-closed pattern (R3 fix).
+  if (entry.method === 'host.messaging.deliver') {
+    if (entry.requestSnapshot?.deliveryId === undefined) return close('T-H');
+    if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+      return close('T-H');
+    }
+    const resultObj = result as Record<string, unknown>;
+    if (resultObj.deliveryId !== entry.requestSnapshot.deliveryId) return close('T-H');
+    return null;
+  }
+
+  // Other RESERVED rows: oracle check only when snapshot has fields.
   if (entry.requestSnapshot === undefined) return null;
 
-  // Oracle fields require result to be an object
   const hasOracleField =
     entry.requestSnapshot.nonce !== undefined ||
     entry.requestSnapshot.deliveryId !== undefined;
@@ -504,12 +517,12 @@ function validateReservedRowOracle(
   }
   const resultObj = result as Record<string, unknown>;
 
-  // Nonce byte-equality (ping oracle — carried forward for RESERVED rows)
+  // Nonce byte-equality
   if (entry.requestSnapshot.nonce !== undefined) {
     if (resultObj.nonce !== entry.requestSnapshot.nonce) return close('T-H');
   }
 
-  // DeliveryId byte-equality (deliver oracle — row 9)
+  // DeliveryId byte-equality
   if (entry.requestSnapshot.deliveryId !== undefined) {
     if (resultObj.deliveryId !== entry.requestSnapshot.deliveryId) return close('T-H');
   }

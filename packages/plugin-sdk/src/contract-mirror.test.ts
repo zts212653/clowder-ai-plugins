@@ -5,9 +5,22 @@
  * constraint that lacks a runtime export. These tests anchor each
  * mirror to its contract source and fail if they drift apart.
  *
+ * TWO-LAYER DRIFT DETECTION:
+ *
+ * 1. **Compile-time**: ExactKeys<ContractType, LiteralUnion> type assertions
+ *    fail at `tsc -p tsconfig.test.json` time when the contract interface
+ *    adds or removes a field. No runtime cost.
+ *
+ * 2. **Runtime**: each test verifies the mirror Set has the expected
+ *    cardinality and members. Catches mirror literal drift.
+ *
+ * Together they triangulate: any single-party change (contract OR mirror)
+ * is caught. Only coordinated updates to both pass green — which is the
+ * intended outcome (mirror updated to match the contract).
+ *
  * Automated drift tests use test-only relative imports to read contract
- * source data (schema JSON, TypeScript constants). These imports are
- * excluded from the SDK dist artifact (test files not in tsconfig.build).
+ * source data (schema JSON, TypeScript types). These imports are excluded
+ * from the SDK dist artifact (test files not in tsconfig.build).
  *
  * Fable ruling (S1 R3 contract seam): systematic drift prevention for
  * all contract mirrors. Pattern precedent: #10 MAX_FRAME_BYTES.
@@ -40,6 +53,88 @@ import {
   REASON_DATA_KEYS,
   CODE_DATA_KEYS,
 } from './contract-mirror.js';
+
+// ---------------------------------------------------------------------------
+// Contract type imports — compile-time drift anchors
+// ---------------------------------------------------------------------------
+
+// Public barrel: types available in published @clowder-ai/plugin-contract
+import type {
+  CallMeta,
+  WireSuccessResponse,
+  ParseErrorEnvelope,
+  PingInput,
+  PingResult,
+  DrainInput,
+  SubscribeInput,
+  SubscribeResult,
+  MessagingAckRequest,
+  GrantsChangedInput,
+  ParseError,
+  HandshakeRejectedError,
+  DomainError,
+} from '@clowder-ai/plugin-contract';
+
+// Test-only relative import: generic envelopes NOT in public barrel (Q1 ruling).
+// These types are the sole source for REQUEST_ALLOWED_KEYS, NOTIFICATION_ALLOWED_KEYS,
+// and PARAMS_ALLOWED_KEYS. Safe: test files excluded from SDK dist artifact.
+import type {
+  WireRequest,
+  WireNotification,
+} from '../../plugin-contract/src/wire/envelope.js';
+
+// ---------------------------------------------------------------------------
+// Compile-time drift detection: ExactKeys type utility
+// ---------------------------------------------------------------------------
+
+/**
+ * Evaluates to `true` iff `keyof T` is exactly the string literal union K.
+ * Bidirectional: catches both additions and removals.
+ *
+ * If the contract interface changes, the const assignment `const _: ExactKeys<...> = true`
+ * fails at tsc time with "Type 'false' is not assignable to type 'true'".
+ *
+ * Tuple wrapping [A] extends [B] prevents union distribution.
+ */
+type ExactKeys<T, K extends string> =
+  [keyof T & string] extends [K] ? [K] extends [keyof T & string] ? true : false : false;
+
+// Envelope outer key sets
+const _driftSuccessResp: ExactKeys<WireSuccessResponse<unknown>, 'jsonrpc' | 'id' | 'result'> = true;
+const _driftErrorResp: ExactKeys<ParseErrorEnvelope, 'jsonrpc' | 'id' | 'error'> = true;
+const _driftRequest: ExactKeys<WireRequest, 'jsonrpc' | 'id' | 'method' | 'params'> = true;
+const _driftNotification: ExactKeys<WireNotification, 'jsonrpc' | 'method' | 'params'> = true;
+
+// Nested params / meta
+const _driftParams: ExactKeys<WireRequest['params'], 'meta' | 'input'> = true;
+const _driftMeta: ExactKeys<CallMeta, 'deadlineUnixMs'> = true;
+
+// Per-method CLOSED-row input shapes
+const _driftPingIn: ExactKeys<PingInput, 'nonce'> = true;
+const _driftDrainIn: ExactKeys<DrainInput, 'deadlineUnixMs'> = true;
+const _driftSubIn: ExactKeys<SubscribeInput, 'handle'> = true;
+const _driftAckIn: ExactKeys<MessagingAckRequest, 'subscriptionId' | 'ackToken'> = true;
+const _driftGrantsIn: ExactKeys<GrantsChangedInput, 'grantRevision' | 'effectiveGrants'> = true;
+
+// Per-method CLOSED-row result shapes
+const _driftPingRes: ExactKeys<PingResult, 'nonce'> = true;
+const _driftSubRes: ExactKeys<SubscribeResult, 'subscriptionId'> = true;
+
+// Error body key sets
+const _driftStdErr: ExactKeys<ParseError, 'code' | 'message'> = true;
+const _driftAppErr: ExactKeys<HandshakeRejectedError, 'code' | 'message' | 'data'> = true;
+
+// Per-arm application error data
+const _driftReasonData: ExactKeys<HandshakeRejectedError['data'], 'reason'> = true;
+const _driftCodeData: ExactKeys<DomainError['data'], 'code'> = true;
+
+// Suppress "unused" — these are compile-time-only sentinels.
+void _driftSuccessResp; void _driftErrorResp; void _driftRequest; void _driftNotification;
+void _driftParams; void _driftMeta;
+void _driftPingIn; void _driftDrainIn; void _driftSubIn; void _driftAckIn; void _driftGrantsIn;
+void _driftPingRes; void _driftSubRes;
+void _driftStdErr; void _driftAppErr;
+void _driftReasonData; void _driftCodeData;
 
 // ---------------------------------------------------------------------------
 // Schema JSON source path (test-only)
@@ -88,12 +183,13 @@ test('MESSAGING_ERROR_CODE_SET has same cardinality as array', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Structural drift tests: envelope key sets
+// Runtime drift tests: envelope key sets
 //
-// These verify the key sets have the expected cardinality and members.
-// When the contract adds/removes interface fields, update both the
-// mirror constant and this test. The contract source file and line
-// are documented in contract-mirror.ts for each constant.
+// These verify the mirror Set has the expected cardinality and members.
+// Compile-time ExactKeys assertions (above) anchor each key set to the
+// contract interface — if the contract adds/removes a field, tsc fails
+// before these runtime tests even run. These runtime tests catch mirror
+// literal drift (someone changes the Set without updating ExactKeys).
 // ---------------------------------------------------------------------------
 
 test('RESPONSE_SUCCESS_KEYS matches WireSuccessResponse interface', () => {

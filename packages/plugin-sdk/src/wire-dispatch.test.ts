@@ -724,6 +724,40 @@ test('ping success with valid shape but no oracle snapshot is T-H (fail-closed)'
   assert.equal(result.outcome, 'close');
 });
 
+// ---------------------------------------------------------------------------
+// RESERVED row 9 (deliver) oracle fail-closed regression (Sol R4 F1)
+// ---------------------------------------------------------------------------
+
+test('deliver response with missing snapshot is T-H (fail-closed)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"abc"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  // In-flight entry for deliver with NO requestSnapshot
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'missing deliver snapshot must fail-closed');
+  assert.equal(result.outcome, 'close');
+});
+
+test('deliver response with empty snapshot (no deliveryId) is T-H (fail-closed)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"d2","result":{"deliveryId":"abc"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  // In-flight entry for deliver with snapshot but no deliveryId field
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d2', { method: 'host.messaging.deliver', requestSnapshot: {} }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'empty deliver snapshot must fail-closed');
+  assert.equal(result.outcome, 'close');
+});
+
 test('ping success with snapshot nonce present is T-L (oracle pass)', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{"nonce":"hello"}}';
   const frame: DecodedNdjsonFrame = {
