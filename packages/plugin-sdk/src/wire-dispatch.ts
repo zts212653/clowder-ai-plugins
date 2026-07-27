@@ -36,10 +36,15 @@ import {
   PING_NONCE_MAX_LENGTH,
   SUBSCRIBE_HANDLE_MIN_LENGTH,
   SUBSCRIBE_HANDLE_MAX_LENGTH,
+  SUBSCRIBE_SUBSCRIPTION_ID_MIN_LENGTH,
+  SUBSCRIBE_SUBSCRIPTION_ID_MAX_LENGTH,
   ACK_SUBSCRIPTION_ID_MIN_LENGTH,
   ACK_SUBSCRIPTION_ID_MAX_LENGTH,
   ACK_TOKEN_MIN_LENGTH,
   ACK_TOKEN_MAX_LENGTH,
+  ALL_ERROR_CODES,
+  APPLICATION_ERROR_CODES,
+  ERROR_CODE_TO_MESSAGE,
 } from '@clowder-ai/plugin-contract';
 
 // ---------------------------------------------------------------------------
@@ -148,29 +153,60 @@ function accept(disposition: DispositionClass): DispatchResult {
 }
 
 // ---------------------------------------------------------------------------
-// Response candidate sub-classifier (T-H / T-L)
+// Closed key-set constants (additionalProperties: false enforcement)
 // ---------------------------------------------------------------------------
 
-/** Closed outer key sets for WireSuccessResponse / WireErrorResponse. */
+/** Outer envelope: WireSuccessResponse = {jsonrpc, id, result}. */
 const RESPONSE_SUCCESS_KEYS = new Set(['jsonrpc', 'id', 'result']);
+/** Outer envelope: WireErrorResponse = {jsonrpc, id, error}. */
 const RESPONSE_ERROR_KEYS = new Set(['jsonrpc', 'id', 'error']);
+/** Outer envelope: WireNotification = {jsonrpc, method, params}. */
+const NOTIFICATION_ALLOWED_KEYS = new Set(['jsonrpc', 'method', 'params']);
+/** Outer envelope: WireRequest = {jsonrpc, id, method, params}. */
+const REQUEST_ALLOWED_KEYS = new Set(['jsonrpc', 'id', 'method', 'params']);
+
+/** params object: {meta, input} — closed per WireRequest/WireNotification. */
+const PARAMS_ALLOWED_KEYS = new Set(['meta', 'input']);
+/** meta object: CallMeta = {deadlineUnixMs} — closed per envelope.ts. */
+const META_ALLOWED_KEYS = new Set(['deadlineUnixMs']);
+
+// Per-method CLOSED-row input key sets (additionalProperties: false).
+const PING_INPUT_KEYS = new Set(['nonce']);
+const DRAIN_INPUT_KEYS = new Set(['deadlineUnixMs']);
+const SUBSCRIBE_INPUT_KEYS = new Set(['handle']);
+const ACK_INPUT_KEYS = new Set(['subscriptionId', 'ackToken']);
+const GRANTS_CHANGED_INPUT_KEYS = new Set(['grantRevision', 'effectiveGrants']);
+
+// Per-method CLOSED-row result key sets (additionalProperties: false).
+const PING_RESULT_KEYS = new Set(['nonce']);
+const SUBSCRIBE_RESULT_KEYS = new Set(['subscriptionId']);
+
+// Error body closed key sets.
+const ERROR_BODY_STANDARD_KEYS = new Set(['code', 'message']);
+const ERROR_BODY_APPLICATION_KEYS = new Set(['code', 'message', 'data']);
+
+// Error code validation sets (built once from contract arrays).
+const KNOWN_ERROR_CODES = new Set<number>(ALL_ERROR_CODES);
+const APPLICATION_CODES = new Set<number>(APPLICATION_ERROR_CODES);
+
+// ---------------------------------------------------------------------------
+// Response candidate sub-classifier (T-H / T-L)
+// ---------------------------------------------------------------------------
 
 function classifyResponseCandidate(
   value: JsonObject,
   inFlight: ReadonlyMap<string, InFlightEntry>,
 ): DispatchResult {
-  // Response candidate: no method key, has result or error.
   const hasResult = 'result' in value;
   const hasError = 'error' in value;
 
   // ── Closed envelope structure ──────────────────────────────────────
-  // jsonrpc must be exactly "2.0"
   if (value.jsonrpc !== '2.0') return close('T-H');
 
   // Mutual exclusivity: exactly one of result/error
   if (hasResult && hasError) return close('T-H');
 
-  // Closed outer keys: no additional members allowed
+  // Closed outer keys: no additional members
   const allowedKeys = hasResult ? RESPONSE_SUCCESS_KEYS : RESPONSE_ERROR_KEYS;
   for (const key of Object.keys(value)) {
     if (!allowedKeys.has(key)) return close('T-H');
@@ -186,53 +222,196 @@ function classifyResponseCandidate(
   const inFlightEntry = inFlight.get(id);
   if (inFlightEntry === undefined) return close('T-H');
 
-  // ── Error body structure (code: number, message: string) ───────────
+  // ── Error body: closed union validation ────────────────────────────
   if (hasError) {
     const error = value.error;
     if (error === null || typeof error !== 'object' || Array.isArray(error)) {
       return close('T-H');
     }
     const errObj = error as Record<string, unknown>;
+
+    // code: number, message: string (structural)
     if (typeof errObj.code !== 'number') return close('T-H');
     if (typeof errObj.message !== 'string') return close('T-H');
-  }
 
-  // ── Cross-frame oracle ─────────────────────────────────────────────
-  if (hasResult && inFlightEntry.requestSnapshot !== undefined) {
-    const result = value.result;
-    if (result === null || typeof result !== 'object' || Array.isArray(result)) {
-      return close('T-H');
-    }
-    const resultObj = result as Record<string, unknown>;
+    // Error code must be from the closed set
+    if (!KNOWN_ERROR_CODES.has(errObj.code)) return close('T-H');
 
-    // Ping nonce byte-equality (row 11)
-    if (inFlightEntry.requestSnapshot.nonce !== undefined) {
-      if (resultObj.nonce !== inFlightEntry.requestSnapshot.nonce) {
+    // Code → message canonical mapping
+    const expectedMessage = ERROR_CODE_TO_MESSAGE[errObj.code as keyof typeof ERROR_CODE_TO_MESSAGE];
+    if (errObj.message !== expectedMessage) return close('T-H');
+
+    // Standard vs application error body structure
+    if (APPLICATION_CODES.has(errObj.code)) {
+      // Application errors (-32090..-32094) MUST have `data` (object)
+      if (!('data' in errObj)) return close('T-H');
+      if (errObj.data === null || typeof errObj.data !== 'object' || Array.isArray(errObj.data)) {
         return close('T-H');
+      }
+      // Closed keys: {code, message, data} only
+      for (const key of Object.keys(errObj)) {
+        if (!ERROR_BODY_APPLICATION_KEYS.has(key)) return close('T-H');
+      }
+    } else {
+      // Standard errors (-32700..-32603) MUST NOT have `data`
+      if ('data' in errObj) return close('T-H');
+      // Closed keys: {code, message} only
+      for (const key of Object.keys(errObj)) {
+        if (!ERROR_BODY_STANDARD_KEYS.has(key)) return close('T-H');
       }
     }
 
-    // Delivery ID byte-equality (row 9)
-    if (inFlightEntry.requestSnapshot.deliveryId !== undefined) {
-      if (resultObj.deliveryId !== inFlightEntry.requestSnapshot.deliveryId) {
-        return close('T-H');
-      }
-    }
+    return accept('T-L');
   }
+
+  // ── Success result: method-specific shape validation ───────────────
+  const resultCheck = validateResponseResult(value.result, inFlightEntry);
+  if (resultCheck !== null) return resultCheck;
 
   return accept('T-L');
+}
+
+// ---------------------------------------------------------------------------
+// Response result shape validation (per-method, CLOSED rows only)
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate the `result` value of a success response against the
+ * correlated in-flight method's expected result shape.
+ *
+ * CLOSED rows: full per-method result shape validation (additionalProperties: false).
+ * RESERVED rows: no shape contract to validate — only cross-frame oracle applies.
+ *
+ * Returns null if valid; DispatchResult (T-H) if invalid.
+ */
+function validateResponseResult(
+  result: unknown,
+  entry: InFlightEntry,
+): DispatchResult | null {
+  const method = entry.method;
+  const row = WIRE_METHOD_REGISTRY[method];
+
+  // RESERVED rows: no shape contract to validate against.
+  // Only cross-frame oracle checks apply (nonce/deliveryId byte-equality).
+  if (row.leafClosure !== 'CLOSED') {
+    return validateReservedRowOracle(result, entry);
+  }
+
+  switch (method) {
+    case 'host.lifecycle.ping': {
+      // PingResult: {nonce: string} — additionalProperties: false
+      if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+        return close('T-H');
+      }
+      const obj = result as Record<string, unknown>;
+      // Closed keys: {nonce} only
+      for (const key of Object.keys(obj)) {
+        if (!PING_RESULT_KEYS.has(key)) return close('T-H');
+      }
+      if (typeof obj.nonce !== 'string') return close('T-H');
+      // Nonce bounds
+      const cpLen = [...(obj.nonce as string)].length;
+      if (cpLen < PING_NONCE_MIN_LENGTH || cpLen > PING_NONCE_MAX_LENGTH) {
+        return close('T-H');
+      }
+      // Cross-frame oracle: nonce byte-equality
+      if (entry.requestSnapshot?.nonce !== undefined) {
+        if (obj.nonce !== entry.requestSnapshot.nonce) return close('T-H');
+      }
+      return null;
+    }
+
+    case 'host.lifecycle.drain': {
+      // DrainResult: null
+      if (result !== null) return close('T-H');
+      return null;
+    }
+
+    case 'messaging.subscribe': {
+      // SubscribeResult: {subscriptionId: string} — additionalProperties: false
+      if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+        return close('T-H');
+      }
+      const obj = result as Record<string, unknown>;
+      // Closed keys: {subscriptionId} only
+      for (const key of Object.keys(obj)) {
+        if (!SUBSCRIBE_RESULT_KEYS.has(key)) return close('T-H');
+      }
+      if (typeof obj.subscriptionId !== 'string') return close('T-H');
+      const cpLen = [...(obj.subscriptionId as string)].length;
+      if (cpLen < SUBSCRIBE_SUBSCRIPTION_ID_MIN_LENGTH || cpLen > SUBSCRIBE_SUBSCRIPTION_ID_MAX_LENGTH) {
+        return close('T-H');
+      }
+      return null;
+    }
+
+    case 'messaging.ack': {
+      // MessagingAckResult: null
+      if (result !== null) return close('T-H');
+      return null;
+    }
+
+    case 'host.grants.changed': {
+      // Notification-only — should never be in in-flight.
+      // Direction gate prevents this; defense-in-depth.
+      return close('T-H');
+    }
+
+    default: {
+      // Unreachable for CLOSED rows (all covered above).
+      // Defense-in-depth: unknown method in in-flight → T-H.
+      return close('T-H');
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cross-frame oracle for RESERVED row responses
+// ---------------------------------------------------------------------------
+
+/**
+ * For RESERVED rows (no closed result shape), the only validation
+ * available is the cross-frame oracle — byte-equality checks on
+ * nonce/deliveryId from the original request snapshot.
+ */
+function validateReservedRowOracle(
+  result: unknown,
+  entry: InFlightEntry,
+): DispatchResult | null {
+  if (entry.requestSnapshot === undefined) return null;
+
+  // Oracle fields require result to be an object
+  const hasOracleField =
+    entry.requestSnapshot.nonce !== undefined ||
+    entry.requestSnapshot.deliveryId !== undefined;
+  if (!hasOracleField) return null;
+
+  if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+    return close('T-H');
+  }
+  const resultObj = result as Record<string, unknown>;
+
+  // Nonce byte-equality (ping oracle — carried forward for RESERVED rows)
+  if (entry.requestSnapshot.nonce !== undefined) {
+    if (resultObj.nonce !== entry.requestSnapshot.nonce) return close('T-H');
+  }
+
+  // DeliveryId byte-equality (deliver oracle — row 9)
+  if (entry.requestSnapshot.deliveryId !== undefined) {
+    if (resultObj.deliveryId !== entry.requestSnapshot.deliveryId) return close('T-H');
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------
 // Notification sub-classifier (T-J / T-K)
 // ---------------------------------------------------------------------------
 
-const NOTIFICATION_ALLOWED_KEYS = new Set(['jsonrpc', 'method', 'params']);
-
 function classifyNotification(value: JsonObject): DispatchResult {
   const method = value.method as string;
 
-  // Extra keys beyond jsonrpc/method/params → T-K
+  // Closed outer keys: {jsonrpc, method, params} only
   for (const key of Object.keys(value)) {
     if (!NOTIFICATION_ALLOWED_KEYS.has(key)) return close('T-K');
   }
@@ -251,6 +430,11 @@ function classifyNotification(value: JsonObject): DispatchResult {
   }
   const paramsObj = params as Record<string, unknown>;
 
+  // Closed params keys: {meta, input} only
+  for (const key of Object.keys(paramsObj)) {
+    if (!PARAMS_ALLOWED_KEYS.has(key)) return close('T-K');
+  }
+
   // meta.deadlineUnixMs
   if (!('meta' in paramsObj)) return close('T-K');
   const meta = paramsObj.meta;
@@ -258,6 +442,12 @@ function classifyNotification(value: JsonObject): DispatchResult {
     return close('T-K');
   }
   const metaObj = meta as Record<string, unknown>;
+
+  // Closed meta keys: {deadlineUnixMs} only
+  for (const key of Object.keys(metaObj)) {
+    if (!META_ALLOWED_KEYS.has(key)) return close('T-K');
+  }
+
   const notifDeadline = metaObj.deadlineUnixMs;
   if (typeof notifDeadline !== 'number' || !isWireUInt53(notifDeadline)) return close('T-K');
   if (notifDeadline === 0) return close('T-K');
@@ -269,6 +459,11 @@ function classifyNotification(value: JsonObject): DispatchResult {
     return close('T-K');
   }
   const inputObj = input as Record<string, unknown>;
+
+  // Closed input keys: {grantRevision, effectiveGrants} only
+  for (const key of Object.keys(inputObj)) {
+    if (!GRANTS_CHANGED_INPUT_KEYS.has(key)) return close('T-K');
+  }
 
   // grantRevision must be WireUInt53 (≥0)
   const grantRev = inputObj.grantRevision;
@@ -285,15 +480,13 @@ function classifyNotification(value: JsonObject): DispatchResult {
 // Request sub-classifier (T-E / T-F / T-G / T-I / accept)
 // ---------------------------------------------------------------------------
 
-const REQUEST_ALLOWED_KEYS = new Set(['jsonrpc', 'id', 'method', 'params']);
-
 function classifyRequest(
   value: JsonObject,
   id: string,
   method: string,
   inFlight: ReadonlyMap<string, InFlightEntry>,
 ): DispatchResult {
-  // Extra keys (result/error alongside method+id) → T-F
+  // Closed outer keys: {jsonrpc, id, method, params} only
   for (const key of Object.keys(value)) {
     if (!REQUEST_ALLOWED_KEYS.has(key)) return respondInvalidRequestId(id);
   }
@@ -319,14 +512,25 @@ function classifyRequest(
   // In-flight collision → T-I
   if (inFlight.has(id)) return close('T-I');
 
-  // Validate params.meta structure
   const paramsObj = params as Record<string, unknown>;
+
+  // Closed params keys: {meta, input} only
+  for (const key of Object.keys(paramsObj)) {
+    if (!PARAMS_ALLOWED_KEYS.has(key)) return respondInvalidParams(id);
+  }
+
+  // Validate params.meta structure
   if (!('meta' in paramsObj)) return respondInvalidParams(id);
   const meta = paramsObj.meta;
   if (meta === null || typeof meta !== 'object' || Array.isArray(meta)) {
     return respondInvalidParams(id);
   }
   const metaObj = meta as Record<string, unknown>;
+
+  // Closed meta keys: {deadlineUnixMs} only
+  for (const key of Object.keys(metaObj)) {
+    if (!META_ALLOWED_KEYS.has(key)) return respondInvalidParamsValue(id);
+  }
 
   // deadlineUnixMs must be positive WireUInt53
   const reqDeadline = metaObj.deadlineUnixMs;
@@ -367,6 +571,10 @@ function validateClosedRowInput(
 ): DispatchResult | null {
   switch (method) {
     case 'host.lifecycle.ping': {
+      // Closed input keys: {nonce} only
+      for (const key of Object.keys(input)) {
+        if (!PING_INPUT_KEYS.has(key)) return respondInvalidParamsValue(id);
+      }
       // nonce must be string, 1..512 code points
       if (typeof input.nonce !== 'string') return respondInvalidParamsValue(id);
       const cpLen = [...input.nonce].length;
@@ -376,6 +584,10 @@ function validateClosedRowInput(
       return null;
     }
     case 'host.lifecycle.drain': {
+      // Closed input keys: {deadlineUnixMs} only
+      for (const key of Object.keys(input)) {
+        if (!DRAIN_INPUT_KEYS.has(key)) return respondInvalidParamsValue(id);
+      }
       // input.deadlineUnixMs must be positive WireUInt53
       const drainDeadline = input.deadlineUnixMs;
       if (typeof drainDeadline !== 'number' || !isWireUInt53(drainDeadline)) return respondInvalidParamsValue(id);
@@ -383,6 +595,10 @@ function validateClosedRowInput(
       return null;
     }
     case 'messaging.subscribe': {
+      // Closed input keys: {handle} only
+      for (const key of Object.keys(input)) {
+        if (!SUBSCRIBE_INPUT_KEYS.has(key)) return respondInvalidParamsValue(id);
+      }
       // handle must be string, bounds from contract
       if (typeof input.handle !== 'string') return respondInvalidParamsValue(id);
       const cpLen = [...input.handle].length;
@@ -392,6 +608,10 @@ function validateClosedRowInput(
       return null;
     }
     case 'messaging.ack': {
+      // Closed input keys: {subscriptionId, ackToken} only
+      for (const key of Object.keys(input)) {
+        if (!ACK_INPUT_KEYS.has(key)) return respondInvalidParamsValue(id);
+      }
       // subscriptionId + ackToken: string, bounds from contract
       if (typeof input.subscriptionId !== 'string') return respondInvalidParamsValue(id);
       if (typeof input.ackToken !== 'string') return respondInvalidParamsValue(id);
@@ -434,15 +654,11 @@ export function classifyFrame(
   const { raw, value } = frame;
 
   // ── T-C: canonicality check ──────────────────────────────────────────
-  // The raw bytes must be compact-canonical JSON (no whitespace, no
-  // duplicate keys visible at the byte level).
   const rawStr = new TextDecoder('utf-8', { fatal: true }).decode(raw);
   const canonical = JSON.stringify(value);
   if (rawStr !== canonical) return close('T-C');
 
   // ── Response candidate detection ─────────────────────────────────────
-  // An object with no `method` key and at least one of `result`/`error`
-  // enters the response lane before any Request/Notification routing.
   const hasMethod = 'method' in value;
   const hasResult = 'result' in value;
   const hasError = 'error' in value;
@@ -452,14 +668,10 @@ export function classifyFrame(
   }
 
   // ── Structural validity ──────────────────────────────────────────────
-  // Must be JSON-RPC 2.0 with a string method.
   if (value.jsonrpc !== '2.0' || typeof value.method !== 'string') {
-    // T-D: canonical idless non-response-candidate, not a valid Request
-    // (If id exists but is profile-invalid, it's still T-D for idless path)
     if ('id' in value) {
       const id = validateRequestId(value.id);
       if (id !== null) {
-        // Valid id with structural problem → T-F
         return respondInvalidRequestId(id);
       }
     }

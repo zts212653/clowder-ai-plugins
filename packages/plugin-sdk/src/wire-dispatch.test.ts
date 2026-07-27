@@ -264,6 +264,290 @@ test('notification-only method (host.grants.changed) with id is T-F (direction g
 });
 
 // ---------------------------------------------------------------------------
+// R2 Finding 1: Response result shape validation (fail-closed)
+// ---------------------------------------------------------------------------
+
+test('ping result:null without snapshot is T-H (null is not {nonce:string})', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'null result for ping must not accept');
+  assert.equal(result.outcome, 'close');
+});
+
+test('ping result with extra field is T-H (closed shape)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{"nonce":"x","extra":1}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'extra field in ping result must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('ack result:{} is T-H (ack result must be null)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'messaging.ack' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'non-null result for ack must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('subscribe result:null is T-H (must be {subscriptionId:string})', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'messaging.subscribe' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'null result for subscribe must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('drain result:{} is T-H (drain result must be null)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.drain' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'non-null result for drain must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('error with unknown code 123 is T-H (closed error code set)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":123,"message":"whatever"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'unknown error code must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('standard error with data field is T-H (standard errors forbid data)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"Internal error","data":{}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'standard error with data must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('application error without data field is T-H (application errors require data)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32093,"message":"deadline expired"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'application error without data must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('error with wrong code→message mapping is T-H (canonical mapping)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"wrong message"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'wrong code→message mapping must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('valid standard error (Internal error) with in-flight is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"Internal error"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid standard error with in-flight must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('valid application error (deadline_expired) with in-flight is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32093,"message":"deadline expired","data":{}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid application error with in-flight must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('valid subscribe result {subscriptionId:"sub-1"} is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{"subscriptionId":"sub-1"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'messaging.subscribe' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid subscribe result must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('valid ack result null is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'messaging.ack' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid ack null result must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('valid drain result null is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.drain' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid drain null result must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+// ---------------------------------------------------------------------------
+// R2 Finding 2: Nested closed-shape key enforcement
+// ---------------------------------------------------------------------------
+
+test('request params with extra key beyond meta+input is T-F', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x"},"extra":1}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-F', 'extra params key must reject');
+  assert.equal(result.outcome, 'respond');
+});
+
+test('request meta with extra key beyond deadlineUnixMs is T-G', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1,"extra":true},"input":{"nonce":"x"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-G', 'extra meta key must reject');
+  assert.equal(result.outcome, 'respond');
+});
+
+test('ping input with extra key beyond nonce is T-G', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x","extra":1}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-G', 'extra input key must reject');
+  assert.equal(result.outcome, 'respond');
+});
+
+test('notification params with extra key is T-K', () => {
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]},"extra":1}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-K', 'extra notification params key must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('notification meta with extra key is T-K', () => {
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1,"extra":true},"input":{"grantRevision":0,"effectiveGrants":[]}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-K', 'extra notification meta key must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('notification input with extra key is T-K (grants.changed input closed)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[],"extra":1}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-K', 'extra notification input key must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('error body with extra field beyond code/message is T-H (standard error)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"Internal error","extra":1}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'extra error body key must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
 // Mutual-exclusivity proof pair (pre-existing)
 // ---------------------------------------------------------------------------
 
