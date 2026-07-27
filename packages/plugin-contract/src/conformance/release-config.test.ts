@@ -593,3 +593,27 @@ test('family assets require cross-party review without owning ordinary plugin pa
 test('contract validation reports on every pull request', () => {
   assert.match(releaseWorkflow, /^  pull_request: \{\}$/m);
 });
+
+test('SDK changes execute pull-request validation', () => {
+  const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+
+  assert.ok(validateJob, 'validation job must be active');
+  assert.match(releaseWorkflow, /^  pull_request: \{\}$/m);
+  assert.match(
+    validateJob,
+    /^      - name: SDK typecheck\n        run: pnpm --filter @clowder-ai\/plugin-sdk typecheck$/m,
+  );
+  assert.match(
+    validateJob,
+    /^      - name: SDK unit tests\n        run: pnpm --filter @clowder-ai\/plugin-sdk test$/m,
+  );
+  assert.match(
+    validateJob,
+    /^      - name: SDK build\n        run: pnpm --filter @clowder-ai\/plugin-sdk build$/m,
+  );
+  assert.ok(
+    validateJob.indexOf('- name: Build\n        run: pnpm --filter @clowder-ai/plugin-contract build') <
+      validateJob.indexOf('- name: SDK typecheck\n        run: pnpm --filter @clowder-ai/plugin-sdk typecheck'),
+    'SDK checks must run after the contract build that provides their conformance import',
+  );
+});

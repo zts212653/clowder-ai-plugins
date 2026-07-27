@@ -40,7 +40,7 @@ Clowder AI 采用两仓协作，而不是把插件管理和插件实现混在一
 官方插件 / 第三方插件 / loopback fixture
                   │
                   ▼
-       @clowder-ai/plugin-sdk（规划中）
+       @clowder-ai/plugin-sdk（P-1 首切片）
                   │  call / callback / event / handshake
                   ▼
        Clowder AI Host Broker（内核仓）
@@ -50,14 +50,14 @@ Host Broker ─────┐
 ```
 
 - `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures。
-- `@clowder-ai/plugin-sdk`：供官方和第三方插件调用 Host 能力、接收 callback/event，并处理握手、ack、重试与重连。
+- `@clowder-ai/plugin-sdk`：P-1 首切片已提供 schema-neutral 的 standalone stdio runtime；Host 调用、callback/event、握手、ack、重试与重连仍须等对应 contract row 从 reservation 变为 executable。
 - Host Adapter/Broker：属于 `clowder-ai` 内核，不放在本仓，也不通过插件 client SDK 实现。
 
 仓库名与 npm 包名不需要一一对应；SDK 可以从本 monorepo 的独立 package 构建并单独发布，无需另开一个 `clowder-ai-sdk` 仓。
 
 ## 当前阶段
 
-当前首先落地的是 `packages/plugin-contract`。插件 SDK、standalone runtime、脚手架和官方插件仍在后续里程碑中；本仓目前还不是一个已经可被 Clowder AI 远程浏览和安装的完整插件 catalog，也不包含宿主侧安装/管理实现。
+`packages/plugin-contract` 是机器契约真相源；`packages/plugin-sdk` 已落地 P-1 的 schema-neutral standalone stdio runtime（真实 child-process loopback、坏帧 fail-closed、protocol-only stdout）。它不包含生产 RPC、Host Broker 或 M0 验收声明。脚手架和官方插件仍在后续里程碑中；本仓目前还不是一个已经可被 Clowder AI 远程浏览和安装的完整插件 catalog，也不包含宿主侧安装/管理实现。
 
 ## 插件类型（capability contributions）
 

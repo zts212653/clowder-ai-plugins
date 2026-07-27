@@ -1,0 +1,48 @@
+{
+  "name": "@clowder-ai/plugin-sdk",
+  "version": "0.1.0-beta.4",
+  "description": "Schema-neutral standalone runtime primitives for Clowder AI plugins",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/stdio-runtime.test.ts",
+    "lint": "tsc --noEmit",
+    "prepack": "pnpm build",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "clowder-ai",
+    "plugin",
+    "sdk",
+    "stdio"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/plugin-sdk"
+  }
+}
