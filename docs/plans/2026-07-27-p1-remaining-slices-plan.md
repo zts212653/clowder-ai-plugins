@@ -65,8 +65,9 @@ S2 handler shell may keep a defensive assertion but is not the primary gate.
 SDK production code imports only from `@clowder-ai/plugin-contract`
 public barrel. Test files may use relative imports to contract source
 when the needed symbol is not part of the published surface. Typecheck
-uses `tsconfig.build.json` (excludes test files); test types validated
-by tsx at runtime.
+uses `tsconfig.build.json` (production code) + `tsconfig.test.json`
+(test files, separate due to rootDir constraint from cross-package
+relative imports). Both are run by `pnpm typecheck`.
 
 ## Branch / Gate / Handoff
 

@@ -45,6 +45,18 @@ import {
   ALL_ERROR_CODES,
   APPLICATION_ERROR_CODES,
   ERROR_CODE_TO_MESSAGE,
+  // Per-arm application error codes (for data schema dispatch)
+  HANDSHAKE_REJECTED_CODE,
+  DELIVERY_REJECTED_CODE,
+  DOMAIN_ERROR_CODE,
+  DEADLINE_EXPIRED_CODE,
+  SNAPSHOT_UNAVAILABLE_CODE,
+  // Standard error code (ParseError null-id arm validation)
+  PARSE_ERROR_CODE,
+  // Reject-reason closed enums (application error data validation)
+  HANDSHAKE_REJECT_REASONS,
+  DELIVERY_REJECT_REASONS,
+  SNAPSHOT_UNAVAILABLE_REASONS,
 } from '@clowder-ai/plugin-contract';
 
 // ---------------------------------------------------------------------------
@@ -189,6 +201,21 @@ const ERROR_BODY_APPLICATION_KEYS = new Set(['code', 'message', 'data']);
 const KNOWN_ERROR_CODES = new Set<number>(ALL_ERROR_CODES);
 const APPLICATION_CODES = new Set<number>(APPLICATION_ERROR_CODES);
 
+// Per-arm application error data key sets (additionalProperties: false).
+const REASON_DATA_KEYS = new Set(['reason']);
+const CODE_DATA_KEYS = new Set(['code']);
+
+// Per-arm reason enum sets (built once from contract arrays).
+const HANDSHAKE_REASONS = new Set<string>(HANDSHAKE_REJECT_REASONS);
+const DELIVERY_REASONS = new Set<string>(DELIVERY_REJECT_REASONS);
+const SNAPSHOT_REASONS = new Set<string>(SNAPSHOT_UNAVAILABLE_REASONS);
+
+// Standard error codes that mandate null id (not string RequestId).
+// ParseError (-32700) ALWAYS has id: null per the contract envelope.
+// If we reach the error validation path, id is already a valid string
+// (verified upstream), so ParseError with string id is invalid.
+const NULL_ID_ERROR_CODES = new Set<number>([PARSE_ERROR_CODE]);
+
 // ---------------------------------------------------------------------------
 // Response candidate sub-classifier (T-H / T-L)
 // ---------------------------------------------------------------------------
@@ -252,7 +279,18 @@ function classifyResponseCandidate(
       for (const key of Object.keys(errObj)) {
         if (!ERROR_BODY_APPLICATION_KEYS.has(key)) return close('T-H');
       }
+      // Per-arm data schema validation
+      const dataCheck = validateApplicationErrorData(
+        errObj.code,
+        errObj.data as Record<string, unknown>,
+      );
+      if (dataCheck !== null) return dataCheck;
     } else {
+      // Standard errors: ParseError (-32700) mandates id: null.
+      // We already validated id is a string (not null) upstream.
+      // Therefore ParseError with string id is a protocol violation.
+      if (NULL_ID_ERROR_CODES.has(errObj.code)) return close('T-H');
+
       // Standard errors (-32700..-32603) MUST NOT have `data`
       if ('data' in errObj) return close('T-H');
       // Closed keys: {code, message} only
@@ -269,6 +307,82 @@ function classifyResponseCandidate(
   if (resultCheck !== null) return resultCheck;
 
   return accept('T-L');
+}
+
+// ---------------------------------------------------------------------------
+// Application error data schema validation (per-arm)
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate the `data` field of an application error against the
+ * per-arm closed schema (additionalProperties: false).
+ *
+ * 5 arms: HandshakeRejected, DeliveryRejected, DomainError,
+ * DeadlineExpired, SnapshotUnavailable.
+ *
+ * Contract seam: DomainError.data.code (MessagingErrorCode) has no
+ * runtime enum in the contract public surface — only the TypeScript
+ * type union exists. We validate structure (key + string type) but
+ * skip enum validation to avoid a second truth source (P15).
+ * See Sol R3 F1 → Fable escalation.
+ */
+function validateApplicationErrorData(
+  code: number,
+  data: Record<string, unknown>,
+): DispatchResult | null {
+  switch (code) {
+    case HANDSHAKE_REJECTED_CODE: {
+      // data: { reason: HandshakeRejectReason } — closed
+      for (const key of Object.keys(data)) {
+        if (!REASON_DATA_KEYS.has(key)) return close('T-H');
+      }
+      if (typeof data.reason !== 'string') return close('T-H');
+      if (!HANDSHAKE_REASONS.has(data.reason)) return close('T-H');
+      return null;
+    }
+
+    case DELIVERY_REJECTED_CODE: {
+      // data: { reason: DeliveryRejectReason } — closed
+      for (const key of Object.keys(data)) {
+        if (!REASON_DATA_KEYS.has(key)) return close('T-H');
+      }
+      if (typeof data.reason !== 'string') return close('T-H');
+      if (!DELIVERY_REASONS.has(data.reason)) return close('T-H');
+      return null;
+    }
+
+    case DOMAIN_ERROR_CODE: {
+      // data: { code: MessagingErrorCode } — closed keys
+      // NOTE: MessagingErrorCode enum validation deferred — no runtime
+      // array in contract public surface. Validates structure only.
+      for (const key of Object.keys(data)) {
+        if (!CODE_DATA_KEYS.has(key)) return close('T-H');
+      }
+      if (typeof data.code !== 'string') return close('T-H');
+      return null;
+    }
+
+    case DEADLINE_EXPIRED_CODE: {
+      // data: Record<string, never> — must be empty object
+      if (Object.keys(data).length !== 0) return close('T-H');
+      return null;
+    }
+
+    case SNAPSHOT_UNAVAILABLE_CODE: {
+      // data: { reason: SnapshotUnavailableReason } — closed
+      for (const key of Object.keys(data)) {
+        if (!REASON_DATA_KEYS.has(key)) return close('T-H');
+      }
+      if (typeof data.reason !== 'string') return close('T-H');
+      if (!SNAPSHOT_REASONS.has(data.reason)) return close('T-H');
+      return null;
+    }
+
+    default:
+      // Unknown application code — should be unreachable since
+      // APPLICATION_CODES was already checked. Defense-in-depth.
+      return close('T-H');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -314,10 +428,12 @@ function validateResponseResult(
       if (cpLen < PING_NONCE_MIN_LENGTH || cpLen > PING_NONCE_MAX_LENGTH) {
         return close('T-H');
       }
-      // Cross-frame oracle: nonce byte-equality
-      if (entry.requestSnapshot?.nonce !== undefined) {
-        if (obj.nonce !== entry.requestSnapshot.nonce) return close('T-H');
-      }
+      // Cross-frame oracle: nonce byte-equality (REQUIRED for ping).
+      // Ping's nonce echo is the fundamental liveness proof — accepting
+      // a response without verifying the oracle defeats the purpose.
+      // Missing snapshot is a caller bug; fail-closed, not fail-open.
+      if (entry.requestSnapshot?.nonce === undefined) return close('T-H');
+      if (obj.nonce !== entry.requestSnapshot.nonce) return close('T-H');
       return null;
     }
 

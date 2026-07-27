@@ -548,6 +548,169 @@ test('error body with extra field beyond code/message is T-H (standard error)', 
 });
 
 // ---------------------------------------------------------------------------
+// R3 Finding 1: Per-arm application error data schema validation
+// ---------------------------------------------------------------------------
+
+test('handshake rejection with missing reason is T-H', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'handshake rejection missing reason must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('handshake rejection with unknown reason is T-H', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"UNKNOWN_REASON"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'unknown handshake rejection reason must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('handshake rejection with extra data key is T-H', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"MALFORMED_HELLO","extra":1}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'extra key in handshake rejection data must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('deadline_expired with non-empty data is T-H (must be Record<string,never>)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32093,"message":"deadline expired","data":{"extra":1}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'non-empty deadline_expired data must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('domain_error with extra data key is T-H', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":"VALIDATION","extra":1}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'extra key in domain error data must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('domain_error with non-string code is T-H', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":42}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'non-string domain error code must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('snapshot_unavailable with valid reason is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32094,"message":"snapshot unavailable","data":{"reason":"VIEW_EXPIRED"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid snapshot_unavailable must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('valid handshake_rejected with known reason is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"PACKAGE_MISMATCH"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid handshake_rejected must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('ParseError (-32700) with correlated string id is T-H (must have null id)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32700,"message":"Parse error"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'ParseError with string id violates null-id mandate');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
+// R3 Finding 2: Oracle fail-closed on missing snapshot
+// ---------------------------------------------------------------------------
+
+test('ping success with valid shape but no oracle snapshot is T-H (fail-closed)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{"nonce":"hello"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  // In-flight entry for ping WITHOUT requestSnapshot — caller bug
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'missing ping oracle snapshot must fail-closed');
+  assert.equal(result.outcome, 'close');
+});
+
+test('ping success with snapshot nonce present is T-L (oracle pass)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{"nonce":"hello"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'hello' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'ping with matching nonce oracle must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+// ---------------------------------------------------------------------------
 // Mutual-exclusivity proof pair (pre-existing)
 // ---------------------------------------------------------------------------
 
