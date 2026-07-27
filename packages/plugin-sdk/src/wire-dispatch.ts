@@ -165,47 +165,43 @@ function accept(disposition: DispositionClass): DispatchResult {
 }
 
 // ---------------------------------------------------------------------------
-// Closed key-set constants (additionalProperties: false enforcement)
+// Contract-mirror imports (key sets from contract-mirror.ts)
+//
+// These mirror contract type-level constraints (additionalProperties: false)
+// that lack runtime exports. Each is drift-tested in contract-mirror.test.ts.
+// See contract-mirror.ts for deletion schedule and anchoring.
 // ---------------------------------------------------------------------------
 
-/** Outer envelope: WireSuccessResponse = {jsonrpc, id, result}. */
-const RESPONSE_SUCCESS_KEYS = new Set(['jsonrpc', 'id', 'result']);
-/** Outer envelope: WireErrorResponse = {jsonrpc, id, error}. */
-const RESPONSE_ERROR_KEYS = new Set(['jsonrpc', 'id', 'error']);
-/** Outer envelope: WireNotification = {jsonrpc, method, params}. */
-const NOTIFICATION_ALLOWED_KEYS = new Set(['jsonrpc', 'method', 'params']);
-/** Outer envelope: WireRequest = {jsonrpc, id, method, params}. */
-const REQUEST_ALLOWED_KEYS = new Set(['jsonrpc', 'id', 'method', 'params']);
+import {
+  MESSAGING_ERROR_CODE_SET,
+  RESPONSE_SUCCESS_KEYS,
+  RESPONSE_ERROR_KEYS,
+  NOTIFICATION_ALLOWED_KEYS,
+  REQUEST_ALLOWED_KEYS,
+  PARAMS_ALLOWED_KEYS,
+  META_ALLOWED_KEYS,
+  PING_INPUT_KEYS,
+  DRAIN_INPUT_KEYS,
+  SUBSCRIBE_INPUT_KEYS,
+  ACK_INPUT_KEYS,
+  GRANTS_CHANGED_INPUT_KEYS,
+  PING_RESULT_KEYS,
+  SUBSCRIBE_RESULT_KEYS,
+  ERROR_BODY_STANDARD_KEYS,
+  ERROR_BODY_APPLICATION_KEYS,
+  REASON_DATA_KEYS,
+  CODE_DATA_KEYS,
+} from './contract-mirror.js';
 
-/** params object: {meta, input} — closed per WireRequest/WireNotification. */
-const PARAMS_ALLOWED_KEYS = new Set(['meta', 'input']);
-/** meta object: CallMeta = {deadlineUnixMs} — closed per envelope.ts. */
-const META_ALLOWED_KEYS = new Set(['deadlineUnixMs']);
+// ---------------------------------------------------------------------------
+// Derived constants (built from contract runtime imports, NOT mirrors)
+// ---------------------------------------------------------------------------
 
-// Per-method CLOSED-row input key sets (additionalProperties: false).
-const PING_INPUT_KEYS = new Set(['nonce']);
-const DRAIN_INPUT_KEYS = new Set(['deadlineUnixMs']);
-const SUBSCRIBE_INPUT_KEYS = new Set(['handle']);
-const ACK_INPUT_KEYS = new Set(['subscriptionId', 'ackToken']);
-const GRANTS_CHANGED_INPUT_KEYS = new Set(['grantRevision', 'effectiveGrants']);
-
-// Per-method CLOSED-row result key sets (additionalProperties: false).
-const PING_RESULT_KEYS = new Set(['nonce']);
-const SUBSCRIBE_RESULT_KEYS = new Set(['subscriptionId']);
-
-// Error body closed key sets.
-const ERROR_BODY_STANDARD_KEYS = new Set(['code', 'message']);
-const ERROR_BODY_APPLICATION_KEYS = new Set(['code', 'message', 'data']);
-
-// Error code validation sets (built once from contract arrays).
+// Error code validation sets (built from contract arrays).
 const KNOWN_ERROR_CODES = new Set<number>(ALL_ERROR_CODES);
 const APPLICATION_CODES = new Set<number>(APPLICATION_ERROR_CODES);
 
-// Per-arm application error data key sets (additionalProperties: false).
-const REASON_DATA_KEYS = new Set(['reason']);
-const CODE_DATA_KEYS = new Set(['code']);
-
-// Per-arm reason enum sets (built once from contract arrays).
+// Reason enum sets (built from contract arrays).
 const HANDSHAKE_REASONS = new Set<string>(HANDSHAKE_REJECT_REASONS);
 const DELIVERY_REASONS = new Set<string>(DELIVERY_REJECT_REASONS);
 const SNAPSHOT_REASONS = new Set<string>(SNAPSHOT_UNAVAILABLE_REASONS);
@@ -352,13 +348,14 @@ function validateApplicationErrorData(
     }
 
     case DOMAIN_ERROR_CODE: {
-      // data: { code: MessagingErrorCode } — closed keys
-      // NOTE: MessagingErrorCode enum validation deferred — no runtime
-      // array in contract public surface. Validates structure only.
+      // data: { code: MessagingErrorCode } — closed keys + enum
+      // MESSAGING_ERROR_CODE_SET from contract-mirror.ts (drift-tested
+      // against messaging.schema.json enum, Fable ruling on R3 seam).
       for (const key of Object.keys(data)) {
         if (!CODE_DATA_KEYS.has(key)) return close('T-H');
       }
       if (typeof data.code !== 'string') return close('T-H');
+      if (!MESSAGING_ERROR_CODE_SET.has(data.code)) return close('T-H');
       return null;
     }
 

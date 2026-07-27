@@ -60,14 +60,38 @@ Contract evidence chain:
 
 S2 handler shell may keep a defensive assertion but is not the primary gate.
 
-### Consumption path (F1 method — applies to S1 and future slices)
+### F3: Contract-mirror drift prevention (R3 seam ruling)
 
-SDK production code imports only from `@clowder-ai/plugin-contract`
-public barrel. Test files may use relative imports to contract source
-when the needed symbol is not part of the published surface. Typecheck
-uses `tsconfig.build.json` (production code) + `tsconfig.test.json`
-(test files, separate due to rootDir constraint from cross-package
-relative imports). Both are run by `pnpm typecheck`.
+When the contract expresses a closed constraint only at the type level
+(additionalProperties: false, enum unions) with no runtime export,
+the SDK may create a **mirror constant** under these rules:
+
+1. **Centralized**: all mirrors live in `contract-mirror.ts` (self-documenting
+   name: "this is a deletable mirror")
+2. **Drift-tested**: each mirror has a test in `contract-mirror.test.ts`
+   anchored to the contract source (schema JSON enum where available,
+   structural assertions against contract types elsewhere). Drift = CI red.
+3. **Delta-listed**: all mirrors are scheduled for deletion in the beta.5
+   delta scope when the contract exports runtime equivalents.
+
+Pattern precedent: #10 MAX_FRAME_BYTES alias + drift test → F1 fixtures
+test-only import → F3 systematic contract-mirror.
+
+**beta.5 delta scope** (accumulated):
+- (a) from F1: Promote disposition fixtures to public conformance export
+- (b) from F1: Add reserved-method fixture vectors
+- (c) from F3: codegen "schema enum → runtime const array" for MessagingErrorCode
+- (d) from F3: Delete `contract-mirror.ts` — replace with public contract imports
+
+### Consumption path (F1/F3 method — applies to S1 and future slices)
+
+SDK production code imports from `@clowder-ai/plugin-contract` public
+barrel and `./contract-mirror.js` (for type-level-only constraints).
+Test files may use relative imports to contract source when the needed
+symbol is not part of the published surface. Typecheck uses
+`tsconfig.build.json` (production code) + `tsconfig.test.json` (test
+files, separate due to rootDir constraint from cross-package relative
+imports). Both are run by `pnpm typecheck`.
 
 ## Branch / Gate / Handoff
 

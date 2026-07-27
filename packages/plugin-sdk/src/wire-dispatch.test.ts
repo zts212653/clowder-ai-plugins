@@ -621,6 +621,34 @@ test('domain_error with extra data key is T-H', () => {
   assert.equal(result.outcome, 'close');
 });
 
+test('domain_error with unknown MessagingErrorCode is T-H', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":"UNKNOWN_CODE"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'unknown MessagingErrorCode must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('domain_error with valid MessagingErrorCode is T-L', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":"VALIDATION"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'valid MessagingErrorCode must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
 test('domain_error with non-string code is T-H', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":42}}}';
   const frame: DecodedNdjsonFrame = {
