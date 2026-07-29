@@ -818,21 +818,19 @@ test('domain_error with non-string code is T-H', () => {
   assert.equal(result.outcome, 'close');
 });
 
-test('snapshot_unavailable with valid reason on ping is T-H (per-method error restriction)', () => {
+test('snapshot_unavailable with valid reason on messaging.snapshot is T-L', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32094,"message":"snapshot unavailable","data":{"reason":"VIEW_EXPIRED"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
-  // Ping (row 11) is standard-only. snapshot_unavailable belongs to
-  // rows 6/8 (RESERVED) which also reject application errors.
-  // No CLOSED row currently allows snapshot_unavailable → always T-H.
+  // Row 8 (messaging.snapshot) allows snapshot_unavailable per the frozen error table.
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'messaging.snapshot' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-H', 'snapshot_unavailable on standard-only row must reject');
-  assert.equal(result.outcome, 'close');
+  assert.equal(result.disposition, 'T-L', 'snapshot_unavailable on messaging.snapshot must accept');
+  assert.equal(result.outcome, 'accept');
 });
 
 test('valid handshake_rejected on ping is T-H (per-method error restriction, maintainer RED)', () => {
@@ -1011,6 +1009,80 @@ test('drain input with deadlineUnixMs:-100 is T-C (negative drain deadline)', ()
 // designated rows, standard-only rows reject application errors)
 // ---------------------------------------------------------------------------
 
+test('drain response with deadline_expired is T-L (row 12 allows deadline)', () => {
+  // Maintainer probe: drain + canonical DEADLINE_EXPIRED must be T-L.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32093,"message":"deadline expired","data":{}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.drain' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'deadline_expired on drain must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('deliver response with delivery_rejected is T-L (row 9 allows it)', () => {
+  // Maintainer probe: deliver + canonical DELIVERY_REJECTED must be T-L.
+  const rawFrame = '{"jsonrpc":"2.0","id":"d1","error":{"code":-32091,"message":"delivery rejected","data":{"reason":"PLUGIN_BUSY"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'abc' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'delivery_rejected on deliver must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('drain response with handshake_rejected is T-H (wrong-row error)', () => {
+  // Negative: HANDSHAKE_REJECTED only allowed on rows 1-2, not row 12.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"MALFORMED_HELLO"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.drain' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'handshake_rejected on drain must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('deliver response with domain_error is T-H (wrong-row error)', () => {
+  // Negative: DOMAIN_ERROR not allowed on row 9 (only DELIVERY_REJECTED).
+  const rawFrame = '{"jsonrpc":"2.0","id":"d1","error":{"code":-32092,"message":"domain error","data":{"code":"VALIDATION"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'abc' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'domain_error on deliver must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('snapshot_unavailable on ping is T-H (wrong-row error, standard-only)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32094,"message":"snapshot unavailable","data":{"reason":"VIEW_EXPIRED"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'snapshot_unavailable on ping must reject');
+  assert.equal(result.outcome, 'close');
+});
+
 test('ping response with deadline_expired is T-H (row 11 standard-only)', () => {
   // Ping (row 11) permits standard errors only (maintainer-confirmed).
   // deadline_expired is an application error → per-method rejection.
@@ -1041,9 +1113,9 @@ test('drain response with domain_error is T-H (row 12 standard-only)', () => {
   assert.equal(result.outcome, 'close');
 });
 
-test('RESERVED row (broker.hello) response with handshake_rejected is T-H (RESERVED = standard only)', () => {
-  // handshake_rejected belongs to rows 1-2 per the maintainer, but
-  // rows 1-2 are RESERVED — application errors not yet frozen → T-H.
+test('broker.hello response with valid handshake_rejected is T-L (row 1 allows it)', () => {
+  // Rows 1-2 allow HANDSHAKE_REJECTED per the frozen per-row error table.
+  // Error eligibility is keyed off the row, not leafClosure.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"PACKAGE_MISMATCH"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1053,8 +1125,8 @@ test('RESERVED row (broker.hello) response with handshake_rejected is T-H (RESER
     ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-H', 'application error on RESERVED row must reject');
-  assert.equal(result.outcome, 'close');
+  assert.equal(result.disposition, 'T-L', 'handshake_rejected on broker.hello must accept');
+  assert.equal(result.outcome, 'accept');
 });
 
 test('RESERVED row (broker.hello) standard error is T-L (standard errors always allowed)', () => {
@@ -1140,6 +1212,86 @@ test('deliver result with only deliveryId (matching) is T-L (closed ack shape)',
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-L', 'exact closed ack shape with matching oracle must accept');
   assert.equal(result.outcome, 'accept');
+});
+
+// ---------------------------------------------------------------------------
+// P1-2 (R2): deliveryId string bounds enforcement (1..128 code points)
+// ---------------------------------------------------------------------------
+
+test('deliver result with deliveryId length 1 is T-L (min bound)', () => {
+  const id = 'x';
+  const rawFrame = `{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"${id}"}}`;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: id } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'deliveryId at min bound must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('deliver result with deliveryId length 128 is T-L (max bound)', () => {
+  const id = 'a'.repeat(128);
+  const rawFrame = `{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"${id}"}}`;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: id } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'deliveryId at max bound must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+test('deliver result with deliveryId length 129 is T-H (N+1 above max)', () => {
+  // Maintainer P1-2: frozen row-9 ack has deliveryId 1..128; 129 is invalid.
+  const id = 'a'.repeat(129);
+  const rawFrame = `{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"${id}"}}`;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: id } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'deliveryId exceeding max bound must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('deliver result with empty deliveryId is T-H (below min bound)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":""}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: '' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'empty deliveryId must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('deliver snapshot with deliveryId length 129 is T-H (snapshot fail-closed)', () => {
+  // Snapshot itself must also be a legal oracle value (1..128 code points).
+  const id = 'b'.repeat(129);
+  const rawFrame = `{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"${id}"}}`;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: id } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'out-of-bounds snapshot deliveryId must fail-closed');
+  assert.equal(result.outcome, 'close');
 });
 
 // ---------------------------------------------------------------------------

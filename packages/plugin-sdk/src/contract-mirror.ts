@@ -121,15 +121,21 @@ export const SUBSCRIBE_RESULT_KEYS = new Set(['subscriptionId']);
 /**
  * Mirror of: deliver acknowledgement result closed member set.
  * Row 9 (host.messaging.deliver) has a frozen ack result shape
- * {deliveryId: string} — additionalProperties: false.
+ * {deliveryId: string, length 1..128 code points} — additionalProperties: false.
  *
  * Despite row 9 being RESERVED overall (DeliverResult = never in types),
  * the ack shape is frozen per the #1165 protocol specification. The
  * deliveryId echo is the fundamental delivery acknowledgement mechanism.
  *
- * P1-2 maintainer requirement: enforce closed member set, no extras.
+ * Maintainer requirement: enforce closed member set + string bounds.
  */
 export const DELIVER_RESULT_KEYS = new Set(['deliveryId']);
+
+/** Minimum deliveryId code-point length (frozen row 9 ack shape). */
+export const DELIVER_DELIVERY_ID_MIN_LENGTH = 1 as const;
+
+/** Maximum deliveryId code-point length (frozen row 9 ack shape). */
+export const DELIVER_DELIVERY_ID_MAX_LENGTH = 128 as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Error body key sets (closed per error variant)

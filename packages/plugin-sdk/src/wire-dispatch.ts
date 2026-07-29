@@ -309,6 +309,8 @@ import {
   PING_RESULT_KEYS,
   SUBSCRIBE_RESULT_KEYS,
   DELIVER_RESULT_KEYS,
+  DELIVER_DELIVERY_ID_MIN_LENGTH,
+  DELIVER_DELIVERY_ID_MAX_LENGTH,
   ERROR_BODY_STANDARD_KEYS,
   ERROR_BODY_APPLICATION_KEYS,
   REASON_DATA_KEYS,
@@ -335,26 +337,44 @@ const SNAPSHOT_REASONS = new Set<string>(SNAPSHOT_UNAVAILABLE_REASONS);
 const NULL_ID_ERROR_CODES = new Set<number>([PARSE_ERROR_CODE]);
 
 // ---------------------------------------------------------------------------
-// Per-method application error allowlists (P1-2 maintainer requirement)
+// Per-method application error allowlists (frozen per-row registry)
 // ---------------------------------------------------------------------------
 //
-// The frozen disposition table says T-L requires the response to satisfy
-// "the correlated row's result/error schema". Each CLOSED row has a
-// specific set of allowed application error codes. RESERVED rows and
-// lifecycle rows accept standard errors only (no application errors).
+// Every registry row's application-error set resolves through the closed
+// application table in #1165. Eligibility is keyed off the row, NOT
+// leafClosure — RESERVED rows have frozen error sets too.
 //
-//   Row 5  (messaging.subscribe): DOMAIN_ERROR, DEADLINE_EXPIRED
-//   Row 7  (messaging.ack):       DOMAIN_ERROR, DEADLINE_EXPIRED
-//   Row 11 (host.lifecycle.ping): standard only (maintainer-confirmed)
-//   Row 12 (host.lifecycle.drain): standard only
-//   RESERVED rows: standard only (fail-closed — no frozen error set)
+//   Rows 1-2 (broker.hello/ready):           HANDSHAKE_REJECTED
+//   Rows 3-7 (messaging send/append/sub/read/ack): DOMAIN_ERROR, DEADLINE_EXPIRED
+//   Row 8  (messaging.snapshot):              DOMAIN_ERROR, DEADLINE_EXPIRED, SNAPSHOT_UNAVAILABLE
+//   Row 9  (host.messaging.deliver):          DELIVERY_REJECTED
+//   Row 10 (host.grants.changed):             notification-only (no response)
+//   Row 11 (host.lifecycle.ping):             standard only (no application errors)
+//   Row 12 (host.lifecycle.drain):            DEADLINE_EXPIRED
 //
-// Any application error code NOT in the per-method allowlist is T-H.
-// Absence from this map = empty allowlist (standard errors only).
+// Standard errors are always allowed on every row. Application error
+// codes NOT in the per-row allowlist → T-H.
 
-const METHOD_APPLICATION_ERROR_ALLOW: Readonly<Partial<Record<WireMethodName, ReadonlySet<number>>>> = {
-  'messaging.subscribe': new Set([DOMAIN_ERROR_CODE, DEADLINE_EXPIRED_CODE]),
-  'messaging.ack': new Set([DOMAIN_ERROR_CODE, DEADLINE_EXPIRED_CODE]),
+const EMPTY_ERROR_SET: ReadonlySet<number> = new Set();
+const HANDSHAKE_ERROR_SET: ReadonlySet<number> = new Set([HANDSHAKE_REJECTED_CODE]);
+const MESSAGING_ERROR_SET: ReadonlySet<number> = new Set([DOMAIN_ERROR_CODE, DEADLINE_EXPIRED_CODE]);
+const SNAPSHOT_ERROR_SET: ReadonlySet<number> = new Set([DOMAIN_ERROR_CODE, DEADLINE_EXPIRED_CODE, SNAPSHOT_UNAVAILABLE_CODE]);
+const DELIVERY_ERROR_SET: ReadonlySet<number> = new Set([DELIVERY_REJECTED_CODE]);
+const DEADLINE_ONLY_SET: ReadonlySet<number> = new Set([DEADLINE_EXPIRED_CODE]);
+
+const METHOD_APPLICATION_ERROR_ALLOW: Readonly<Record<WireMethodName, ReadonlySet<number>>> = {
+  'broker.hello': HANDSHAKE_ERROR_SET,
+  'broker.ready': HANDSHAKE_ERROR_SET,
+  'messaging.send': MESSAGING_ERROR_SET,
+  'messaging.appendElements': MESSAGING_ERROR_SET,
+  'messaging.subscribe': MESSAGING_ERROR_SET,
+  'messaging.read': MESSAGING_ERROR_SET,
+  'messaging.ack': MESSAGING_ERROR_SET,
+  'messaging.snapshot': SNAPSHOT_ERROR_SET,
+  'host.messaging.deliver': DELIVERY_ERROR_SET,
+  'host.grants.changed': EMPTY_ERROR_SET, // notification-only
+  'host.lifecycle.ping': EMPTY_ERROR_SET,  // standard only
+  'host.lifecycle.drain': DEADLINE_ONLY_SET,
 };
 
 // DELIVER_RESULT_KEYS imported from contract-mirror.ts (row 9 ack shape).
@@ -442,13 +462,14 @@ function classifyResponseCandidate(
       }
     }
 
-    // ── P1-2: Per-method error code restriction ──────────────────────
-    // Application errors are only valid on methods whose frozen row
-    // includes them. Standard errors are always allowed. RESERVED rows
-    // and lifecycle rows (11, 12) accept standard errors only.
+    // ── Per-method error code restriction ────────────────────────────
+    // Application errors are only valid on methods whose frozen per-row
+    // error set includes them. Standard errors are always allowed.
+    // The complete map covers all 12 rows — no fallback needed.
     if (APPLICATION_CODES.has(errObj.code)) {
-      const allowed = METHOD_APPLICATION_ERROR_ALLOW[inFlightEntry.method];
-      if (!allowed || !allowed.has(errObj.code)) return close('T-H');
+      if (!METHOD_APPLICATION_ERROR_ALLOW[inFlightEntry.method].has(errObj.code)) {
+        return close('T-H');
+      }
     }
 
     return accept('T-L');
@@ -656,20 +677,38 @@ function validateReservedRowResult(
   result: unknown,
   entry: InFlightEntry,
 ): DispatchResult | null {
-  // ── Row 9 deliver: frozen ack shape {deliveryId} ──────────────────
+  // ── Row 9 deliver: frozen ack shape {deliveryId: string, 1..128 cp} ──
   if (entry.method === 'host.messaging.deliver') {
-    // Fail-closed if snapshot absent (caller bug)
-    if (entry.requestSnapshot?.deliveryId === undefined) return close('T-H');
+    // Fail-closed if snapshot absent or snapshot deliveryId is not a
+    // legal oracle value (string within 1..128 code points).
+    const snapId = entry.requestSnapshot?.deliveryId;
+    if (snapId === undefined) return close('T-H');
+    if (typeof snapId !== 'string') return close('T-H');
+    const snapLen = [...snapId].length;
+    if (snapLen < DELIVER_DELIVERY_ID_MIN_LENGTH || snapLen > DELIVER_DELIVERY_ID_MAX_LENGTH) {
+      return close('T-H');
+    }
+
+    // Result must be a non-null object
     if (result === null || typeof result !== 'object' || Array.isArray(result)) {
       return close('T-H');
     }
     const resultObj = result as Record<string, unknown>;
+
     // Closed member set: {deliveryId} only — no extras
     for (const key of Object.keys(resultObj)) {
       if (!DELIVER_RESULT_KEYS.has(key)) return close('T-H');
     }
-    // deliveryId must be present and byte-equal to snapshot
-    if (resultObj.deliveryId !== entry.requestSnapshot.deliveryId) return close('T-H');
+
+    // deliveryId must be a string within frozen bounds (1..128 code points)
+    if (typeof resultObj.deliveryId !== 'string') return close('T-H');
+    const resultIdLen = [...(resultObj.deliveryId as string)].length;
+    if (resultIdLen < DELIVER_DELIVERY_ID_MIN_LENGTH || resultIdLen > DELIVER_DELIVERY_ID_MAX_LENGTH) {
+      return close('T-H');
+    }
+
+    // Byte-equality oracle: result.deliveryId must match snapshot
+    if (resultObj.deliveryId !== snapId) return close('T-H');
     return null;
   }
 
