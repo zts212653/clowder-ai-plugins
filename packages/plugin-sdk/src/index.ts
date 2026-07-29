@@ -1,9 +1,14 @@
 /**
  * Public SDK entrypoint.
  *
- * This package intentionally exposes schema-neutral runtime primitives only.
+ * This package exposes:
+ *   1. Schema-neutral NDJSON transport (stdio-runtime, S0/#12)
+ *   2. Wire dispatch classifier (wire-dispatch, S1)
+ *
  * Production RPC methods remain reserved in plugin-contract until their rows
- * become executable.
+ * become executable. The dispatch classifier gates all methods: CLOSED rows
+ * validate input shapes, RESERVED rows fail-closed with T-G (input type is
+ * `never` in v0 — no legal params exist).
  */
 export {
   NdjsonFrameError,
@@ -20,3 +25,10 @@ export {
   type StdioRuntimeFatalErrorOptions,
   type StdioRuntimeOptions,
 } from './stdio-runtime.js';
+
+export {
+  classifyFrame,
+  type DispatchResult,
+  type InFlightEntry,
+  type RequestSnapshot,
+} from './wire-dispatch.js';
