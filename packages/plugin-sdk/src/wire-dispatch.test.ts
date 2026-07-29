@@ -553,17 +553,19 @@ test('valid standard error (Internal error) with in-flight is T-L', () => {
   assert.equal(result.outcome, 'accept');
 });
 
-test('valid application error (deadline_expired) with in-flight is T-L', () => {
+test('valid application error (deadline_expired) on messaging.ack is T-L', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32093,"message":"deadline expired","data":{}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Use messaging.ack (CLOSED row 7) — allows deadline_expired.
+  // Ping (row 11) is standard-only per P1-2.
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping' }],
+    ['r1', { method: 'messaging.ack' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-L', 'valid application error with in-flight must accept');
+  assert.equal(result.disposition, 'T-L', 'valid application error on allowed method must accept');
   assert.equal(result.outcome, 'accept');
 });
 
@@ -697,42 +699,44 @@ test('error body with extra field beyond code/message is T-H (standard error)', 
 // R3 Finding 1: Per-arm application error data schema validation
 // ---------------------------------------------------------------------------
 
-test('handshake rejection with missing reason is T-H', () => {
+test('handshake rejection with missing reason is T-H (data validation)', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // broker.hello (RESERVED) — data validation rejects missing reason
+  // before the per-method check would also reject it.
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'handshake rejection missing reason must reject');
   assert.equal(result.outcome, 'close');
 });
 
-test('handshake rejection with unknown reason is T-H', () => {
+test('handshake rejection with unknown reason is T-H (data validation)', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"UNKNOWN_REASON"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'unknown handshake rejection reason must reject');
   assert.equal(result.outcome, 'close');
 });
 
-test('handshake rejection with extra data key is T-H', () => {
+test('handshake rejection with extra data key is T-H (data validation)', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"MALFORMED_HELLO","extra":1}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'extra key in handshake rejection data must reject');
@@ -745,8 +749,9 @@ test('deadline_expired with non-empty data is T-H (must be Record<string,never>)
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Use messaging.ack (allows deadline_expired) to exercise DATA validation
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'messaging.ack' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'non-empty deadline_expired data must reject');
@@ -759,8 +764,9 @@ test('domain_error with extra data key is T-H', () => {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Use messaging.subscribe (allows domain_error) to exercise DATA validation
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'messaging.subscribe' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'extra key in domain error data must reject');
@@ -773,25 +779,27 @@ test('domain_error with unknown MessagingErrorCode is T-H', () => {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Use messaging.subscribe (allows domain_error) to exercise DATA validation
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'messaging.subscribe' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'unknown MessagingErrorCode must reject');
   assert.equal(result.outcome, 'close');
 });
 
-test('domain_error with valid MessagingErrorCode is T-L', () => {
+test('domain_error with valid MessagingErrorCode on messaging.subscribe is T-L', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":"VALIDATION"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Use messaging.subscribe (CLOSED row 5) — allows domain_error.
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'messaging.subscribe' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-L', 'valid MessagingErrorCode must accept');
+  assert.equal(result.disposition, 'T-L', 'valid MessagingErrorCode on allowed method must accept');
   assert.equal(result.outcome, 'accept');
 });
 
@@ -801,29 +809,35 @@ test('domain_error with non-string code is T-H', () => {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Use messaging.subscribe (allows domain_error) to exercise DATA validation
   const inFlight = new Map<string, InFlightEntry>([
-    ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
+    ['r1', { method: 'messaging.subscribe' }],
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-H', 'non-string domain error code must reject');
   assert.equal(result.outcome, 'close');
 });
 
-test('snapshot_unavailable with valid reason is T-L', () => {
+test('snapshot_unavailable with valid reason on ping is T-H (per-method error restriction)', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32094,"message":"snapshot unavailable","data":{"reason":"VIEW_EXPIRED"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
+  // Ping (row 11) is standard-only. snapshot_unavailable belongs to
+  // rows 6/8 (RESERVED) which also reject application errors.
+  // No CLOSED row currently allows snapshot_unavailable → always T-H.
   const inFlight = new Map<string, InFlightEntry>([
     ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-L', 'valid snapshot_unavailable must accept');
-  assert.equal(result.outcome, 'accept');
+  assert.equal(result.disposition, 'T-H', 'snapshot_unavailable on standard-only row must reject');
+  assert.equal(result.outcome, 'close');
 });
 
-test('valid handshake_rejected with known reason is T-L', () => {
+test('valid handshake_rejected on ping is T-H (per-method error restriction, maintainer RED)', () => {
+  // Maintainer P1-2 RED: ping (row 11) permits standard errors only.
+  // HANDSHAKE_REJECTED belongs to rows 1-2 (RESERVED) — not row 11.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"PACKAGE_MISMATCH"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -833,8 +847,8 @@ test('valid handshake_rejected with known reason is T-L', () => {
     ['r1', { method: 'host.lifecycle.ping', requestSnapshot: { nonce: 'x' } }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-L', 'valid handshake_rejected must accept');
-  assert.equal(result.outcome, 'accept');
+  assert.equal(result.disposition, 'T-H', 'handshake_rejected on ping must reject (per-method)');
+  assert.equal(result.outcome, 'close');
 });
 
 test('ParseError (-32700) with correlated string id is T-H (must have null id)', () => {
@@ -915,6 +929,216 @@ test('ping success with snapshot nonce present is T-L (oracle pass)', () => {
   ]);
   const result = classifyFrame(frame, inFlight);
   assert.equal(result.disposition, 'T-L', 'ping with matching nonce oracle must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+// ---------------------------------------------------------------------------
+// Mutual-exclusivity proof pair (pre-existing)
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// P1-1: WireUInt53 raw-token grammar at T-C
+// (maintainer requirement — non-canonical numeric tokens at WireUInt53
+// positions must be T-C/close, not deferred to T-G/T-K)
+// ---------------------------------------------------------------------------
+
+test('request with deadlineUnixMs:-1 is T-C (negative token violates WireUInt53 grammar)', () => {
+  // -1 passes byte-equality (JSON.stringify(-1) = "-1") but violates
+  // the WireUInt53 raw grammar 0|[1-9][0-9]{0,15} — no sign allowed.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":-1},"input":{"nonce":"x"}}}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'negative deadlineUnixMs must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+test('request with deadlineUnixMs:1.5 is T-C (fractional token violates WireUInt53 grammar)', () => {
+  // 1.5 passes byte-equality but violates WireUInt53 — no decimal allowed.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1.5},"input":{"nonce":"x"}}}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'fractional deadlineUnixMs must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+test('notification with grantRevision:-1 is T-C (negative token at WireUInt53 position)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":-1,"effectiveGrants":[]}}}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'negative grantRevision must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+test('notification with deadlineUnixMs:0.5 is T-C (fractional meta token)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":0.5},"input":{"grantRevision":0,"effectiveGrants":[]}}}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'fractional notification deadlineUnixMs must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+test('drain input with deadlineUnixMs:-100 is T-C (negative drain deadline)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":1},"input":{"deadlineUnixMs":-100}}}';
+  const parsed = JSON.parse(rawFrame) as JsonObject;
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: parsed,
+  };
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-C', 'negative drain input deadline must be T-C');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
+// P1-2: Per-method error code restriction
+// (maintainer requirement — application errors only allowed on their
+// designated rows, standard-only rows reject application errors)
+// ---------------------------------------------------------------------------
+
+test('ping response with deadline_expired is T-H (row 11 standard-only)', () => {
+  // Ping (row 11) permits standard errors only (maintainer-confirmed).
+  // deadline_expired is an application error → per-method rejection.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32093,"message":"deadline expired","data":{}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.ping' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'application error on standard-only row must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('drain response with domain_error is T-H (row 12 standard-only)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32092,"message":"domain error","data":{"code":"VALIDATION"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'host.lifecycle.drain' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'application error on drain must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('RESERVED row (broker.hello) response with handshake_rejected is T-H (RESERVED = standard only)', () => {
+  // handshake_rejected belongs to rows 1-2 per the maintainer, but
+  // rows 1-2 are RESERVED — application errors not yet frozen → T-H.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"PACKAGE_MISMATCH"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'broker.hello' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'application error on RESERVED row must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('RESERVED row (broker.hello) standard error is T-L (standard errors always allowed)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"Internal error"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'broker.hello' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'standard error on RESERVED row must accept');
+  assert.equal(result.outcome, 'accept');
+});
+
+// ---------------------------------------------------------------------------
+// P1-2: RESERVED row result fail-closed
+// (maintainer requirement — no executable result schema → T-H)
+// ---------------------------------------------------------------------------
+
+test('broker.hello response with result:null is T-H (RESERVED row fail-closed)', () => {
+  // Maintainer P1-2 RED: broker.hello in-flight entry accepts result:null.
+  // RESERVED rows have no executable result schema → T-H.
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'broker.hello' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.outcome, 'close');
+});
+
+test('messaging.send response with result:{} is T-H (RESERVED row fail-closed)', () => {
+  const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'messaging.send' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.outcome, 'close');
+});
+
+// ---------------------------------------------------------------------------
+// P1-2: Row 9 deliver closed member set enforcement
+// (maintainer requirement — {deliveryId} only, no extras)
+// ---------------------------------------------------------------------------
+
+test('deliver result with extra field is T-H (closed ack member set)', () => {
+  // Maintainer P1-2 RED: row 9 accepts {deliveryId:"d1",extra:true}
+  // despite the frozen closed acknowledgement member set {deliveryId}.
+  const rawFrame = '{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"abc","extra":true}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'abc' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'extra field in deliver result must reject');
+  assert.equal(result.outcome, 'close');
+});
+
+test('deliver result with only deliveryId (matching) is T-L (closed ack shape)', () => {
+  // Positive counterexample: exact closed member set {deliveryId}, matches oracle.
+  const rawFrame = '{"jsonrpc":"2.0","id":"d1","result":{"deliveryId":"correct"}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['d1', { method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'correct' } }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-L', 'exact closed ack shape with matching oracle must accept');
   assert.equal(result.outcome, 'accept');
 });
 

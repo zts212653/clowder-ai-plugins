@@ -118,6 +118,19 @@ export const PING_RESULT_KEYS = new Set(['nonce']);
 /** Mirror of: SubscribeResult (row-shapes.ts:35-39). Keys: {subscriptionId} */
 export const SUBSCRIBE_RESULT_KEYS = new Set(['subscriptionId']);
 
+/**
+ * Mirror of: deliver acknowledgement result closed member set.
+ * Row 9 (host.messaging.deliver) has a frozen ack result shape
+ * {deliveryId: string} — additionalProperties: false.
+ *
+ * Despite row 9 being RESERVED overall (DeliverResult = never in types),
+ * the ack shape is frozen per the #1165 protocol specification. The
+ * deliveryId echo is the fundamental delivery acknowledgement mechanism.
+ *
+ * P1-2 maintainer requirement: enforce closed member set, no extras.
+ */
+export const DELIVER_RESULT_KEYS = new Set(['deliveryId']);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Error body key sets (closed per error variant)
 // ═══════════════════════════════════════════════════════════════════════════

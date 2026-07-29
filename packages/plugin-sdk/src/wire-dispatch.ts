@@ -24,6 +24,7 @@ import {
   validateEffectiveGrants,
   isWireMethod,
   isWireUInt53,
+  isCanonicalUInt53Token,
   NOTIFICATION_METHODS,
   WIRE_METHOD_REGISTRY,
   INVALID_REQUEST_CODE,
@@ -235,6 +236,56 @@ function containsExponentNumber(value: unknown): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// WireUInt53 raw-token validation (P1-1 maintainer requirement)
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether any WireUInt53 position in the parsed frame value has a
+ * numeric token whose V8-canonical form violates the WireUInt53 raw grammar
+ * (0|[1-9][0-9]{0,15}, no sign, no decimal, no exponent).
+ *
+ * After byte-equality passes (rawStr === JSON.stringify(value)), the raw
+ * token at any numeric position IS String(parsedValue). So we walk the
+ * parsed structure to WireUInt53 positions and validate String(n) against
+ * isCanonicalUInt53Token. This catches negative integers (-1), fractions
+ * (1.5), and oversized values (>2^53-1) at the T-C layer, before any
+ * method-specific validation runs.
+ *
+ * WireUInt53 positions in the frozen schema:
+ *   - params.meta.deadlineUnixMs  (every request/notification)
+ *   - params.input.deadlineUnixMs (host.lifecycle.drain input)
+ *   - params.input.grantRevision  (host.grants.changed input)
+ */
+function hasNonCanonicalUInt53Token(value: JsonObject): boolean {
+  const params = value.params;
+  if (params === null || typeof params !== 'object' || Array.isArray(params)) return false;
+  const paramsObj = params as Record<string, unknown>;
+
+  // ── params.meta.deadlineUnixMs ──
+  const meta = paramsObj.meta;
+  if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
+    const metaObj = meta as Record<string, unknown>;
+    if (typeof metaObj.deadlineUnixMs === 'number') {
+      if (!isCanonicalUInt53Token(String(metaObj.deadlineUnixMs))) return true;
+    }
+  }
+
+  // ── params.input.deadlineUnixMs (drain) + params.input.grantRevision (grants.changed) ──
+  const input = paramsObj.input;
+  if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
+    const inputObj = input as Record<string, unknown>;
+    if (typeof inputObj.deadlineUnixMs === 'number') {
+      if (!isCanonicalUInt53Token(String(inputObj.deadlineUnixMs))) return true;
+    }
+    if (typeof inputObj.grantRevision === 'number') {
+      if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
+    }
+  }
+
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Contract-mirror imports (key sets from contract-mirror.ts)
 //
 // These mirror contract type-level constraints (additionalProperties: false)
@@ -257,6 +308,7 @@ import {
   GRANTS_CHANGED_INPUT_KEYS,
   PING_RESULT_KEYS,
   SUBSCRIBE_RESULT_KEYS,
+  DELIVER_RESULT_KEYS,
   ERROR_BODY_STANDARD_KEYS,
   ERROR_BODY_APPLICATION_KEYS,
   REASON_DATA_KEYS,
@@ -281,6 +333,31 @@ const SNAPSHOT_REASONS = new Set<string>(SNAPSHOT_UNAVAILABLE_REASONS);
 // If we reach the error validation path, id is already a valid string
 // (verified upstream), so ParseError with string id is invalid.
 const NULL_ID_ERROR_CODES = new Set<number>([PARSE_ERROR_CODE]);
+
+// ---------------------------------------------------------------------------
+// Per-method application error allowlists (P1-2 maintainer requirement)
+// ---------------------------------------------------------------------------
+//
+// The frozen disposition table says T-L requires the response to satisfy
+// "the correlated row's result/error schema". Each CLOSED row has a
+// specific set of allowed application error codes. RESERVED rows and
+// lifecycle rows accept standard errors only (no application errors).
+//
+//   Row 5  (messaging.subscribe): DOMAIN_ERROR, DEADLINE_EXPIRED
+//   Row 7  (messaging.ack):       DOMAIN_ERROR, DEADLINE_EXPIRED
+//   Row 11 (host.lifecycle.ping): standard only (maintainer-confirmed)
+//   Row 12 (host.lifecycle.drain): standard only
+//   RESERVED rows: standard only (fail-closed — no frozen error set)
+//
+// Any application error code NOT in the per-method allowlist is T-H.
+// Absence from this map = empty allowlist (standard errors only).
+
+const METHOD_APPLICATION_ERROR_ALLOW: Readonly<Partial<Record<WireMethodName, ReadonlySet<number>>>> = {
+  'messaging.subscribe': new Set([DOMAIN_ERROR_CODE, DEADLINE_EXPIRED_CODE]),
+  'messaging.ack': new Set([DOMAIN_ERROR_CODE, DEADLINE_EXPIRED_CODE]),
+};
+
+// DELIVER_RESULT_KEYS imported from contract-mirror.ts (row 9 ack shape).
 
 // ---------------------------------------------------------------------------
 // Response candidate sub-classifier (T-H / T-L)
@@ -363,6 +440,15 @@ function classifyResponseCandidate(
       for (const key of Object.keys(errObj)) {
         if (!ERROR_BODY_STANDARD_KEYS.has(key)) return close('T-H');
       }
+    }
+
+    // ── P1-2: Per-method error code restriction ──────────────────────
+    // Application errors are only valid on methods whose frozen row
+    // includes them. Standard errors are always allowed. RESERVED rows
+    // and lifecycle rows (11, 12) accept standard errors only.
+    if (APPLICATION_CODES.has(errObj.code)) {
+      const allowed = METHOD_APPLICATION_ERROR_ALLOW[inFlightEntry.method];
+      if (!allowed || !allowed.has(errObj.code)) return close('T-H');
     }
 
     return accept('T-L');
@@ -472,10 +558,10 @@ function validateResponseResult(
   const method = entry.method;
   const row = WIRE_METHOD_REGISTRY[method];
 
-  // RESERVED rows: no shape contract to validate against.
-  // Only cross-frame oracle checks apply (nonce/deliveryId byte-equality).
+  // RESERVED rows: fail closed — no executable result schema exists.
+  // Row 9 (deliver) has a frozen ack shape; all others → T-H.
   if (row.leafClosure !== 'CLOSED') {
-    return validateReservedRowOracle(result, entry);
+    return validateReservedRowResult(result, entry);
   }
 
   switch (method) {
@@ -553,51 +639,44 @@ function validateResponseResult(
 // ---------------------------------------------------------------------------
 
 /**
- * For RESERVED rows (no closed result shape), the only validation
- * available is the cross-frame oracle — byte-equality checks on
- * nonce/deliveryId from the original request snapshot.
+ * Validate results for RESERVED rows.
+ *
+ * P1-2 maintainer requirement: fail closed when no executable result
+ * schema exists, rather than treating absence of an oracle as validity.
+ *
+ * Row 9 (host.messaging.deliver) is the ONE exception among RESERVED
+ * rows — its acknowledgement result shape {deliveryId} is frozen as a
+ * closed member set. Validated with deliveryId byte-equality oracle
+ * AND strict closed-key enforcement.
+ *
+ * ALL other RESERVED rows: no executable result schema exists → T-H
+ * for any result value (fail-closed).
  */
-function validateReservedRowOracle(
+function validateReservedRowResult(
   result: unknown,
   entry: InFlightEntry,
 ): DispatchResult | null {
-  // Method-specific oracle requirements: row 9 (host.messaging.deliver)
-  // requires deliveryId snapshot — fail-closed if absent.
-  // Mirrors the ping oracle fail-closed pattern (R3 fix).
+  // ── Row 9 deliver: frozen ack shape {deliveryId} ──────────────────
   if (entry.method === 'host.messaging.deliver') {
+    // Fail-closed if snapshot absent (caller bug)
     if (entry.requestSnapshot?.deliveryId === undefined) return close('T-H');
     if (result === null || typeof result !== 'object' || Array.isArray(result)) {
       return close('T-H');
     }
     const resultObj = result as Record<string, unknown>;
+    // Closed member set: {deliveryId} only — no extras
+    for (const key of Object.keys(resultObj)) {
+      if (!DELIVER_RESULT_KEYS.has(key)) return close('T-H');
+    }
+    // deliveryId must be present and byte-equal to snapshot
     if (resultObj.deliveryId !== entry.requestSnapshot.deliveryId) return close('T-H');
     return null;
   }
 
-  // Other RESERVED rows: oracle check only when snapshot has fields.
-  if (entry.requestSnapshot === undefined) return null;
-
-  const hasOracleField =
-    entry.requestSnapshot.nonce !== undefined ||
-    entry.requestSnapshot.deliveryId !== undefined;
-  if (!hasOracleField) return null;
-
-  if (result === null || typeof result !== 'object' || Array.isArray(result)) {
-    return close('T-H');
-  }
-  const resultObj = result as Record<string, unknown>;
-
-  // Nonce byte-equality
-  if (entry.requestSnapshot.nonce !== undefined) {
-    if (resultObj.nonce !== entry.requestSnapshot.nonce) return close('T-H');
-  }
-
-  // DeliveryId byte-equality
-  if (entry.requestSnapshot.deliveryId !== undefined) {
-    if (resultObj.deliveryId !== entry.requestSnapshot.deliveryId) return close('T-H');
-  }
-
-  return null;
+  // ── All other RESERVED rows: no executable result schema → T-H ────
+  // The row's result shape is RESERVED (type = `never`). No legal result
+  // value exists in v0 — accepting anything would be fail-open.
+  return close('T-H');
 }
 
 // ---------------------------------------------------------------------------
@@ -881,6 +960,10 @@ export function classifyFrame(
     if (rawStr !== canonical) return close('T-C');
     if (containsNonScalarString(value)) return close('T-C');
     if (containsExponentNumber(value)) return close('T-C');
+    // P1-1: WireUInt53 raw-token grammar — after byte-equality, the raw
+    // token at each WireUInt53 position is String(parsedValue). Tokens
+    // like "-1" or "1.5" violate 0|[1-9][0-9]{0,15} → T-C.
+    if (hasNonCanonicalUInt53Token(value)) return close('T-C');
   } catch {
     // Stack overflow from deep nesting, or other canonicality edge case.
     return close('T-C');
