@@ -36,6 +36,12 @@ export type GrantRequirement = Capability | 'protocol-intrinsic';
 /** Leaf closure status from the variable-width leaf matrix. */
 export type LeafClosureStatus = 'CLOSED' | 'RESERVED';
 
+/** A schema field that must exist before or with a method's leaf closure. */
+export interface SchemaClosurePrerequisite {
+  readonly schemaPath: string;
+  readonly timing: 'before-or-with-closure';
+}
+
 // ---------------------------------------------------------------------------
 // Registry row shape
 // ---------------------------------------------------------------------------
@@ -55,6 +61,8 @@ export interface RegistryRow {
   readonly leafClosure: LeafClosureStatus;
   readonly reservedEntries: readonly string[];
   readonly settlementKeySource: string;
+  /** Schema fields required before this row may change from RESERVED to CLOSED. */
+  readonly schemaClosurePrerequisites?: readonly SchemaClosurePrerequisite[];
 }
 
 // ---------------------------------------------------------------------------
@@ -133,6 +141,11 @@ export const WIRE_METHOD_REGISTRY: Readonly<Record<WireMethodName, RegistryRow>>
     leafClosure: 'RESERVED',
     reservedEntries: ['M1', 'M2', 'M5', 'I1'],
     settlementKeySource: 'input.idempotencyKey',
+    // The receipt handle is publishable independently, but it is never a
+    // substitute for closing this row's remaining M1/M2/M5/I1 obligations.
+    schemaClosurePrerequisites: [
+      { schemaPath: 'SendReceipt.handle', timing: 'before-or-with-closure' },
+    ],
   },
   'messaging.appendElements': {
     rowNumber: 4,
