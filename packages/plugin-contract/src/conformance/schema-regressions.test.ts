@@ -313,6 +313,14 @@ test('SendReceipt may return a closed MessageHandle without closing messaging.se
   assert.equal(
     validate('SendReceipt', {
       ...receipt,
+      handle: { kind: 'thread_handle', token: 'host-issued-message-handle' },
+    }),
+    false,
+    'the receipt handle keeps the MessageHandle kind discriminant',
+  );
+  assert.equal(
+    validate('SendReceipt', {
+      ...receipt,
       handle: { kind: 'message', token: 'host-issued-message-handle', extra: true },
     }),
     false,
