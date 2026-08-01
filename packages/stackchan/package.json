@@ -27,7 +27,9 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "workspace:*"
+    "@clowder-ai/plugin-contract": "workspace:*",
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
