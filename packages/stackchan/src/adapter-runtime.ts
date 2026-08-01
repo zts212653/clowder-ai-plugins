@@ -78,7 +78,6 @@ export function createStackChanAdapterRuntime(
       timer = undefined;
       void runtime.runOnce().catch(() => undefined).finally(scheduleNext);
     }, cycleIntervalMs);
-    timer.unref?.();
   }
 
   const runtime: StackChanAdapterRuntime = {
