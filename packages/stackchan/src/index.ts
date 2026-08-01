@@ -16,6 +16,13 @@ export {
 } from './gateway-client.js';
 
 export {
+  createStackChanStreamableHttpMcpCaller,
+  type StackChanMcpClientLike,
+  type StackChanStreamableHttpMcpCaller,
+  type StackChanStreamableHttpMcpCallerOptions,
+} from './mcp-transport.js';
+
+export {
   createStackChanActionExecutor,
   type StackChanActionExecutor,
   type StackChanActionExecutorOptions,
@@ -54,3 +61,23 @@ export {
   type StackChanAdapterRuntime,
   type StackChanAdapterRuntimeOptions,
 } from './adapter-runtime.js';
+
+export {
+  createStackChanAdapterApp,
+  type StackChanAdapterApp,
+  type StackChanAdapterAppOverrides,
+} from './adapter-app.js';
+
+export {
+  loadStackChanAdapterConfig,
+  type StackChanAdapterConfig,
+  type StackChanAdapterListenConfig,
+} from './runtime-config.js';
+
+export {
+  readSecretFile,
+  writeSecretFile,
+  type ReadSecretFileOptions,
+} from './secret-file.js';
+
+export { resolveStackChanConfigPath } from './cli-options.js';

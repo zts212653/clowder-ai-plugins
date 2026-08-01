@@ -174,3 +174,44 @@ test('reports transient scheduled failures and remains retryable', async () => {
   assert.equal(attempts, 2);
   await runtime.stop();
 });
+
+test('keeps the retry timer referenced so a pending daemon stays alive', async () => {
+  let unrefCalls = 0;
+  const runtime = createStackChanAdapterRuntime({
+    client: {
+      async register() {
+        return { requestId: 'pair-1', apiKey: 'pairing-secret', status: 'pending' };
+      },
+      async heartbeat() {},
+      async emitObservation() {
+        return { status: 'reflex_only' };
+      },
+      async deregister() {},
+      getApiKey() {
+        return undefined;
+      },
+    },
+    createServer() {
+      return {
+        async start() {
+          return { host: '127.0.0.1', port: 8788, url: 'http://127.0.0.1:8788' };
+        },
+        async stop() {},
+      };
+    },
+    eventSource: { async pollOnce() { return 0; } },
+    schedule() {
+      return {
+        unref() {
+          unrefCalls += 1;
+          return this;
+        },
+      } as unknown as NodeJS.Timeout;
+    },
+    cancelSchedule: () => undefined,
+  });
+
+  await runtime.start();
+  assert.equal(unrefCalls, 0);
+  await runtime.stop();
+});
