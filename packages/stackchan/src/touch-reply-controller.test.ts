@@ -241,3 +241,32 @@ test('fails closed when local listen fails and emits no transcript observation',
   });
   assert.deepEqual(observations.map(({ kind }) => kind), ['touch']);
 });
+
+test('fails closed when safe pose restore fails and emits no transcript observation', async () => {
+  const observations: PhysicalLimbObservation[] = [];
+  const controller = createStackChanTouchReplyController({
+    nodeId: 'stackchan-desk-1',
+    gateway: {
+      async listen() {
+        return {
+          text: '这句话不能在头部尚未安全复位时投递',
+          language: 'zh',
+          durationMs: 4_800,
+        };
+      },
+      async restoreSafePose() {
+        throw new Error('servo restore timed out');
+      },
+    },
+    emitObservation(observation) {
+      observations.push(observation);
+    },
+    createId: createIdFactory(),
+  });
+
+  assert.deepEqual(await controller.handleGatewayEvent(RAW_STROKE_EVENT), {
+    status: 'failed',
+    reason: 'safe pose restore failed: servo restore timed out',
+  });
+  assert.deepEqual(observations.map(({ kind }) => kind), ['touch']);
+});
