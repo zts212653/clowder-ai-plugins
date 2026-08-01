@@ -306,7 +306,7 @@ export type PhysicalLimbDisplayPayload = {
   readonly expression: string;
   readonly expressionSource: PhysicalLimbExpressionSource;
 };
-export type PhysicalLimbRgb = readonly number[];
+export type PhysicalLimbRgb = readonly [number, number, number];
 export type PhysicalLimbLightPayload = {
   readonly colors: readonly PhysicalLimbRgb[];
 };
@@ -488,7 +488,7 @@ export type PermissionMatrixEntry = {
   readonly firstPartyPreset: boolean;
 };
 export type PermissionMatrixInput = {
-  readonly entries: readonly PermissionMatrixEntry[];
+  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;

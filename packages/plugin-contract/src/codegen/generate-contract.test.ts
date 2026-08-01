@@ -51,6 +51,16 @@ test('generated contract projects the physical-limb schema from the same truth s
   assert.match(source, /'limb\.sensor\.microphone'/);
 });
 
+test('generated contract preserves fixed-length arrays as readonly tuples', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(
+    source,
+    /export type PhysicalLimbRgb = readonly \[number, number, number\];/,
+  );
+});
+
 test('behavior capability names resolve to the manifest-owned Capability type', async () => {
   const schemas = await loadContractSchemas();
   const source = generateContractSource(schemas);

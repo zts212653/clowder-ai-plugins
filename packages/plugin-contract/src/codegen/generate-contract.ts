@@ -12,6 +12,8 @@ export interface JsonSchema {
   readonly properties?: Record<string, JsonSchema>;
   readonly required?: readonly string[];
   readonly items?: JsonSchema;
+  readonly minItems?: number;
+  readonly maxItems?: number;
   readonly oneOf?: readonly JsonSchema[];
   readonly anyOf?: readonly JsonSchema[];
   readonly allOf?: readonly JsonSchema[];
@@ -68,7 +70,16 @@ function refName(ref: string): string {
   return decodeURIComponent(ref.slice(marker.length));
 }
 
-function arrayType(itemType: string): string {
+function arrayType(schema: JsonSchema, itemType: string): string {
+  const fixedLength = schema.minItems;
+  if (
+    typeof fixedLength === 'number' &&
+    Number.isInteger(fixedLength) &&
+    fixedLength === schema.maxItems &&
+    fixedLength >= 0
+  ) {
+    return `readonly [${Array.from({ length: fixedLength }, () => itemType).join(', ')}]`;
+  }
   const needsParentheses = itemType.includes(' | ') || itemType.includes('\n');
   return `readonly ${needsParentheses ? `(${itemType})` : itemType}[]`;
 }
@@ -119,7 +130,7 @@ function renderType(schema: JsonSchema): string {
     case 'object':
       return renderObject(schema);
     case 'array':
-      return arrayType(renderType(schema.items ?? {}));
+      return arrayType(schema, renderType(schema.items ?? {}));
     case 'string':
       return 'string';
     case 'integer':

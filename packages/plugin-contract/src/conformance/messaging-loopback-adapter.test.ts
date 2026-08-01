@@ -72,7 +72,7 @@ test('changing every signed error code is detected by the executor', async () =>
 test('an incomplete permission matrix fails closed', async () => {
   const behaviorCase = fixture.cases.find(({ id }) => id === 'permission-matrix-complete');
   assert.ok(behaviorCase?.when.operation === 'checkPermissionMatrix');
-  const mutated: BehaviorCase = {
+  const mutated = {
     ...structuredClone(behaviorCase),
     when: {
       operation: 'checkPermissionMatrix',
@@ -80,7 +80,7 @@ test('an incomplete permission matrix fails closed', async () => {
         entries: behaviorCase.when.input.entries.slice(1),
       },
     },
-  };
+  } as unknown as BehaviorCase;
 
   const report = await runCase(mutated);
 
