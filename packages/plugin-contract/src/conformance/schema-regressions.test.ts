@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
+import { WIRE_METHOD_REGISTRY } from '../wire/registry.js';
 
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv/dist/2020') as new (options: {
@@ -290,4 +291,46 @@ test('message revisions are one-based across envelopes, receipts, and append gua
     }),
     true,
   );
+});
+
+test('SendReceipt may return a closed MessageHandle without closing messaging.send', () => {
+  const receipt = {
+    messageId: 'message-1',
+    threadId: 'thread-1',
+    revision: 1,
+    handle: { kind: 'message', token: 'host-issued-message-handle' },
+  };
+
+  assert.equal(validate('SendReceipt', receipt), true);
+  assert.equal(
+    validate('SendReceipt', {
+      ...receipt,
+      handle: { kind: 'message', token: '' },
+    }),
+    false,
+    'the receipt handle keeps MessageHandle token admission',
+  );
+  assert.equal(
+    validate('SendReceipt', {
+      ...receipt,
+      handle: { kind: 'thread_handle', token: 'host-issued-message-handle' },
+    }),
+    false,
+    'the receipt handle keeps the MessageHandle kind discriminant',
+  );
+  assert.equal(
+    validate('SendReceipt', {
+      ...receipt,
+      handle: { kind: 'message', token: 'host-issued-message-handle', extra: true },
+    }),
+    false,
+    'the receipt handle keeps the closed MessageHandle object boundary',
+  );
+
+  const sendRow = WIRE_METHOD_REGISTRY['messaging.send'];
+  assert.equal(sendRow.leafClosure, 'RESERVED');
+  assert.equal(sendRow.ready, false);
+  assert.deepEqual(sendRow.schemaClosurePrerequisites, [
+    { schemaPath: 'SendReceipt.handle', timing: 'before-or-with-closure' },
+  ]);
 });

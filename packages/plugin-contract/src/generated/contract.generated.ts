@@ -206,6 +206,7 @@ export type SendReceipt = {
   readonly messageId: string;
   readonly threadId: string;
   readonly revision: number;
+  readonly handle?: MessageHandle;
   readonly publishSequence?: number;
 };
 export type AppendReceipt = {

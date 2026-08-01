@@ -1178,6 +1178,23 @@ test('messaging.send response with result:{} is T-H (RESERVED row fail-closed)',
   assert.equal(result.outcome, 'close');
 });
 
+test('messaging.send receipt with handle is T-H while the row remains RESERVED', () => {
+  // Publishing SendReceipt.handle is schema-only. It must not make the
+  // reserved messaging.send row executable before its closure obligations.
+  const rawFrame =
+    '{"jsonrpc":"2.0","id":"r1","result":{"messageId":"message-1","threadId":"thread-1","revision":1,"handle":{"kind":"message","token":"host-issued-message-handle"}}}';
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+  const inFlight = new Map<string, InFlightEntry>([
+    ['r1', { method: 'messaging.send' }],
+  ]);
+  const result = classifyFrame(frame, inFlight);
+  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.outcome, 'close');
+});
+
 // ---------------------------------------------------------------------------
 // P1-2: Row 9 deliver closed member set enforcement
 // (maintainer requirement — {deliveryId} only, no extras)
