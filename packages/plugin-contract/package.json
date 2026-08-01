@@ -16,6 +16,7 @@
     },
     "./schemas/messaging": "./src/schemas/messaging.schema.json",
     "./schemas/manifest": "./src/schemas/manifest.schema.json",
+    "./schemas/physical-limb": "./src/schemas/physical-limb.schema.json",
     "./schemas/behavior-fixture": "./src/schemas/behavior-fixture.schema.json"
   },
   "main": "./dist/index.js",

@@ -40,6 +40,17 @@ test('generated contract projects behavior fixture operations and assertions', a
   );
 });
 
+test('generated contract projects the physical-limb schema from the same truth source', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(source, /export type PhysicalLimbContribution =/);
+  assert.match(source, /export type PhysicalLimbObservation =/);
+  assert.match(source, /export type PhysicalLimbAction =/);
+  assert.match(source, /export type PhysicalLimbReadiness =/);
+  assert.match(source, /'limb\.sensor\.microphone'/);
+});
+
 test('behavior capability names resolve to the manifest-owned Capability type', async () => {
   const schemas = await loadContractSchemas();
   const source = generateContractSource(schemas);

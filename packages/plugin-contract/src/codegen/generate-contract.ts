@@ -22,6 +22,7 @@ export interface JsonSchema {
 export interface ContractSchemas {
   readonly manifest: JsonSchema;
   readonly messaging: JsonSchema;
+  readonly physicalLimb: JsonSchema;
   readonly behavior: JsonSchema;
 }
 
@@ -37,6 +38,9 @@ export async function loadContractSchemas(): Promise<ContractSchemas> {
   return {
     manifest: await readSchema(new URL('../schemas/manifest.schema.json', import.meta.url)),
     messaging: await readSchema(new URL('../schemas/messaging.schema.json', import.meta.url)),
+    physicalLimb: await readSchema(
+      new URL('../schemas/physical-limb.schema.json', import.meta.url),
+    ),
     behavior: await readSchema(
       new URL('../schemas/behavior-fixture.schema.json', import.meta.url),
     ),
@@ -423,7 +427,7 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from manifest.schema.json, messaging.schema.json, and behavior-fixture.schema.json.',
+    ' * Generated from manifest.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
     '',
@@ -432,6 +436,8 @@ export function generateContractSource(schemas: ContractSchemas): string {
     `export type PluginManifest = ${renderType(schemas.manifest)};`,
     '',
     ...renderDefinitions(schemas.messaging),
+    '',
+    ...renderDefinitions(schemas.physicalLimb),
     '',
     ...renderBehaviorDefinitions(schemas.behavior, schemas.manifest, schemas.messaging),
     '',

@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/physical-limb/v0.1",
+  "title": "Clowder AI Physical Limb Contribution (v0.1)",
+  "description": "Typed, bounded contract for a Host-governed physical limb contribution. Raw sensor media is intentionally absent.",
+  "x-clowder-physical-limb-grants": [
+    "limb.action.motion",
+    "limb.action.display",
+    "limb.action.light",
+    "limb.action.speaker",
+    "limb.observe.touch",
+    "limb.sensor.microphone",
+    "limb.sensor.camera"
+  ],
+  "x-clowder-physical-limb-bounds": {
+    "maxIdentifierLength": 128,
+    "maxTranscriptCodePoints": 4096,
+    "maxTouchDurationMs": 10000,
+    "minListenDurationMs": 100,
+    "maxListenDurationMs": 30000,
+    "maxActionTimeoutMs": 30000
+  },
+  "$defs": {
+    "PhysicalLimbIdentifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "PhysicalLimbGrant": {
+      "type": "string",
+      "enum": [
+        "limb.action.motion",
+        "limb.action.display",
+        "limb.action.light",
+        "limb.action.speaker",
+        "limb.observe.touch",
+        "limb.sensor.microphone",
+        "limb.sensor.camera"
+      ]
+    },
+    "PhysicalLimbSafePose": {
+      "type": "object",
+      "properties": {
+        "yawDeg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "pitchDeg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "timeoutMs": { "type": "integer", "minimum": 100, "maximum": 30000 }
+      },
+      "required": ["yawDeg", "pitchDeg", "timeoutMs"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbContribution": {
+      "type": "object",
+      "properties": {
+        "contributionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeType": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "grants": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PhysicalLimbGrant" },
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true
+        },
+        "safePose": { "$ref": "#/$defs/PhysicalLimbSafePose" }
+      },
+      "required": ["contributionId", "nodeType", "displayName", "grants", "safePose"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbExpressionSource": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["cat_state", "play", "degraded"] },
+        "ref": { "$ref": "#/$defs/PhysicalLimbIdentifier" }
+      },
+      "required": ["kind", "ref"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbTouchPayload": {
+      "type": "object",
+      "properties": {
+        "gesture": { "type": "string", "enum": ["tap", "stroke"] },
+        "durationMs": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["gesture", "durationMs", "confidence"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbTranscriptPayload": {
+      "type": "object",
+      "properties": {
+        "interactionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "language": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "captureDurationMs": { "type": "integer", "minimum": 100, "maximum": 30000 }
+      },
+      "required": ["interactionId", "text", "captureDurationMs"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbTouchObservation": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "observationId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "occurredAt": { "type": "string", "format": "date-time" },
+        "sessionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "kind": { "const": "touch" },
+        "payload": { "$ref": "#/$defs/PhysicalLimbTouchPayload" }
+      },
+      "required": ["v", "observationId", "nodeId", "occurredAt", "sessionId", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbTranscriptObservation": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "observationId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "occurredAt": { "type": "string", "format": "date-time" },
+        "sessionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "kind": { "const": "transcript" },
+        "payload": { "$ref": "#/$defs/PhysicalLimbTranscriptPayload" }
+      },
+      "required": ["v", "observationId", "nodeId", "occurredAt", "sessionId", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbObservation": {
+      "oneOf": [
+        { "$ref": "#/$defs/PhysicalLimbTouchObservation" },
+        { "$ref": "#/$defs/PhysicalLimbTranscriptObservation" }
+      ]
+    },
+    "PhysicalLimbMotionPayload": {
+      "type": "object",
+      "properties": {
+        "yawDeg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "pitchDeg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "speedDps": { "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+        "accelerationDps2": { "type": "number", "exclusiveMinimum": 0, "maximum": 720 }
+      },
+      "required": ["yawDeg", "pitchDeg", "speedDps", "accelerationDps2"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbDisplayPayload": {
+      "type": "object",
+      "properties": {
+        "expression": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "expressionSource": { "$ref": "#/$defs/PhysicalLimbExpressionSource" }
+      },
+      "required": ["expression", "expressionSource"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbRgb": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0, "maximum": 255 },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "PhysicalLimbLightPayload": {
+      "type": "object",
+      "properties": {
+        "colors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PhysicalLimbRgb" },
+          "minItems": 1,
+          "maxItems": 256
+        }
+      },
+      "required": ["colors"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbSpeakerPayload": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "voiceProfileRef": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "volumePercent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      },
+      "required": ["text", "voiceProfileRef", "volumePercent"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbMotionAction": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "actionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "deadlineUnixMs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "cancelToken": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "kind": { "const": "motion" },
+        "payload": { "$ref": "#/$defs/PhysicalLimbMotionPayload" }
+      },
+      "required": ["v", "actionId", "nodeId", "deadlineUnixMs", "timeoutMs", "cancelToken", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbDisplayAction": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "actionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "deadlineUnixMs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "cancelToken": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "kind": { "const": "display" },
+        "payload": { "$ref": "#/$defs/PhysicalLimbDisplayPayload" }
+      },
+      "required": ["v", "actionId", "nodeId", "deadlineUnixMs", "timeoutMs", "cancelToken", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbLightAction": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "actionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "deadlineUnixMs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "cancelToken": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "kind": { "const": "light" },
+        "payload": { "$ref": "#/$defs/PhysicalLimbLightPayload" }
+      },
+      "required": ["v", "actionId", "nodeId", "deadlineUnixMs", "timeoutMs", "cancelToken", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbSpeakerAction": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "actionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "deadlineUnixMs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "cancelToken": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "kind": { "const": "speaker" },
+        "payload": { "$ref": "#/$defs/PhysicalLimbSpeakerPayload" }
+      },
+      "required": ["v", "actionId", "nodeId", "deadlineUnixMs", "timeoutMs", "cancelToken", "kind", "payload"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbAction": {
+      "oneOf": [
+        { "$ref": "#/$defs/PhysicalLimbMotionAction" },
+        { "$ref": "#/$defs/PhysicalLimbDisplayAction" },
+        { "$ref": "#/$defs/PhysicalLimbLightAction" },
+        { "$ref": "#/$defs/PhysicalLimbSpeakerAction" }
+      ]
+    },
+    "PhysicalLimbCancel": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "actionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "cancelToken": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "reason": { "type": "string", "enum": ["user", "timeout", "lease_lost", "host_lost", "superseded"] }
+      },
+      "required": ["v", "nodeId", "actionId", "cancelToken", "reason"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbActionResult": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "actionId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "outcome": { "type": "string", "enum": ["succeeded", "refused", "failed", "canceled"] },
+        "reason": { "type": "string", "maxLength": 512 },
+        "observedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["v", "actionId", "nodeId", "outcome", "observedAt"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbReadinessReason": {
+      "type": "string",
+      "enum": [
+        "gateway_disconnected",
+        "device_disconnected",
+        "firmware_incompatible",
+        "sensor_unavailable",
+        "speech_dependency_missing",
+        "skin_unavailable",
+        "grant_revoked",
+        "host_unavailable"
+      ]
+    },
+    "PhysicalLimbReadyReadiness": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "status": { "const": "ready" },
+        "observedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["v", "nodeId", "status", "observedAt"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbUnavailableReadiness": {
+      "type": "object",
+      "properties": {
+        "v": { "const": 1 },
+        "nodeId": { "$ref": "#/$defs/PhysicalLimbIdentifier" },
+        "status": { "type": "string", "enum": ["degraded", "offline"] },
+        "reason": { "$ref": "#/$defs/PhysicalLimbReadinessReason" },
+        "observedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["v", "nodeId", "status", "reason", "observedAt"],
+      "additionalProperties": false
+    },
+    "PhysicalLimbReadiness": {
+      "oneOf": [
+        { "$ref": "#/$defs/PhysicalLimbReadyReadiness" },
+        { "$ref": "#/$defs/PhysicalLimbUnavailableReadiness" }
+      ]
+    }
+  },
+  "$ref": "#/$defs/PhysicalLimbContribution"
+}
