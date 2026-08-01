@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+
 import {
   createStackChanStreamableHttpMcpCaller,
   type StackChanMcpClientLike,
@@ -135,4 +137,45 @@ test('does not poison the daemon after one rejected tool call', async () => {
   assert.equal(caller.status(), 'online');
   assert.deepEqual(await caller.callTool('say', {}), { ok: true });
   assert.equal(attempts, 2);
+});
+
+test('reports a stale MCP session as degraded and reconnects on the next tool call', async () => {
+  let generation = 0;
+  const connected: number[] = [];
+  const closed: number[] = [];
+  const caller = createStackChanStreamableHttpMcpCaller({
+    endpointUrl: 'http://127.0.0.1:8767/mcp',
+    token: '0123456789abcdef',
+    createClient: () => {
+      generation += 1;
+      const current = generation;
+      return {
+        async connect(): Promise<void> {
+          connected.push(current);
+        },
+        async callTool(): Promise<unknown> {
+          if (current === 1) {
+            throw new StreamableHTTPError(404, 'session expired');
+          }
+          return { generation: current };
+        },
+        async close(): Promise<void> {
+          closed.push(current);
+        },
+      };
+    },
+    createTransport: () => ({}),
+  });
+
+  await caller.connect();
+  await assert.rejects(caller.callTool('status', {}), /session expired/i);
+  assert.equal(caller.status(), 'degraded');
+
+  assert.deepEqual(await caller.callTool('status', {}), { generation: 2 });
+  assert.equal(caller.status(), 'online');
+  assert.deepEqual(connected, [1, 2]);
+  assert.deepEqual(closed, [1]);
+
+  await caller.close();
+  assert.deepEqual(closed, [1, 2]);
 });
