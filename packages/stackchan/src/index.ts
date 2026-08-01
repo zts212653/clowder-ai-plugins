@@ -24,6 +24,13 @@ export {
 } from './action-executor.js';
 
 export {
+  createStackChanRemoteLimbServer,
+  type StackChanRemoteLimbServer,
+  type StackChanRemoteLimbServerAddress,
+  type StackChanRemoteLimbServerOptions,
+} from './limb-server.js';
+
+export {
   createFileStackChanCursorStore,
   createStackChanJsonlEventSource,
   type StackChanEventCursor,
@@ -31,3 +38,19 @@ export {
   type StackChanJsonlEventSource,
   type StackChanJsonlEventSourceOptions,
 } from './event-source.js';
+
+export {
+  createCatCafeLimbClient,
+  type CatCafeLimbCapability,
+  type CatCafeLimbClient,
+  type CatCafeLimbClientOptions,
+  type CatCafeLimbRegistration,
+  type CatCafeObservationReceipt,
+} from './cat-cafe-client.js';
+
+export {
+  createStackChanAdapterRuntime,
+  type StackChanAdapterCycleResult,
+  type StackChanAdapterRuntime,
+  type StackChanAdapterRuntimeOptions,
+} from './adapter-runtime.js';

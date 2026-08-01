@@ -47,6 +47,12 @@ importers:
       '@clowder-ai/plugin-contract':
         specifier: workspace:*
         version: link:../plugin-contract
+      ajv:
+        specifier: ^8.17.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.0
+        version: 3.0.1(ajv@8.20.0)
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
