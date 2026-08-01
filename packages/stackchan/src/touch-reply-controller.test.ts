@@ -92,6 +92,9 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
         finishListen = resolve;
       });
     },
+    async restoreSafePose() {
+      order.push('restore-safe-pose');
+    },
   };
 
   const controller = createStackChanTouchReplyController({
@@ -120,7 +123,12 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
     interactionId: 'generated-2',
     transcriptObservationId: 'generated-3',
   });
-  assert.deepEqual(order, ['listen', 'emit:touch', 'emit:transcript']);
+  assert.deepEqual(order, [
+    'listen',
+    'emit:touch',
+    'restore-safe-pose',
+    'emit:transcript',
+  ]);
   assert.deepEqual(observations[1], {
     v: 1,
     observationId: 'generated-3',
@@ -135,6 +143,34 @@ test('starts the local look-up listen reflex before emitting touch and transcrip
       captureDurationMs: 4_920,
     },
   });
+});
+
+test('returns the head to its configured safe pose after a successful listen window', async () => {
+  const order: string[] = [];
+  const gateway = {
+    async listen() {
+      order.push('listen');
+      return { text: '', language: 'zh', durationMs: 5_000 };
+    },
+    async restoreSafePose() {
+      order.push('restore-safe-pose');
+    },
+  } as StackChanGatewayClient & { restoreSafePose(): Promise<void> };
+
+  const controller = createStackChanTouchReplyController({
+    nodeId: 'stackchan-desk-1',
+    gateway,
+    emitObservation(observation) {
+      order.push(`emit:${observation.kind}`);
+    },
+    createId: createIdFactory(),
+  });
+
+  assert.deepEqual(await controller.handleGatewayEvent(RAW_STROKE_EVENT), {
+    status: 'completed',
+    interactionId: 'generated-2',
+  });
+  assert.deepEqual(order, ['listen', 'emit:touch', 'restore-safe-pose']);
 });
 
 test('debounces duplicate or concurrent touches and never opens two microphone windows', async () => {
@@ -154,6 +190,7 @@ test('debounces duplicate or concurrent touches and never opens two microphone w
           finishListen = resolve;
         });
       },
+      async restoreSafePose() {},
     },
     emitObservation() {},
     createId: createIdFactory(),
@@ -190,6 +227,7 @@ test('fails closed when local listen fails and emits no transcript observation',
       async listen() {
         throw new Error('speech dependency missing');
       },
+      async restoreSafePose() {},
     },
     emitObservation(observation) {
       observations.push(observation);

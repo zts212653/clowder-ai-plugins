@@ -1,4 +1,8 @@
 import type {
+  PhysicalLimbSafePose,
+} from '@clowder-ai/plugin-contract';
+
+import type {
   StackChanGatewayClient,
   StackChanListenRequest,
   StackChanListenResult,
@@ -17,6 +21,33 @@ export interface StackChanMcpToolCaller {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function toolError(raw: unknown): string | undefined {
+  if (!isRecord(raw)) return undefined;
+  if (raw.isError === true) return 'stackchan-mcp reported a tool error';
+  if (!Array.isArray(raw.content)) return undefined;
+
+  for (const block of raw.content) {
+    if (!isRecord(block) || block.type !== 'text' || typeof block.text !== 'string') {
+      continue;
+    }
+    try {
+      const payload: unknown = JSON.parse(block.text);
+      if (!isRecord(payload)) continue;
+      if (typeof payload.error === 'string' && payload.error.length > 0) {
+        return payload.error;
+      }
+      if (payload.ok === false) {
+        return typeof payload.message === 'string'
+          ? payload.message
+          : 'stackchan-mcp reported ok=false';
+      }
+    } catch {
+      // Successful gateway tools may return plain text.
+    }
+  }
+  return undefined;
 }
 
 function parseListenResponse(
@@ -77,7 +108,22 @@ function parseListenResponse(
 
 export function createStackChanGatewayClient(
   caller: StackChanMcpToolCaller,
+  safePose: PhysicalLimbSafePose,
 ): StackChanGatewayClient {
+  if (
+    !Number.isFinite(safePose.yawDeg) ||
+    safePose.yawDeg < -90 ||
+    safePose.yawDeg > 90 ||
+    !Number.isFinite(safePose.pitchDeg) ||
+    safePose.pitchDeg < 5 ||
+    safePose.pitchDeg > 85 ||
+    !Number.isSafeInteger(safePose.timeoutMs) ||
+    safePose.timeoutMs < 100 ||
+    safePose.timeoutMs > 30_000
+  ) {
+    throw new TypeError('Invalid StackChan safe pose configuration');
+  }
+
   return {
     async listen(request): Promise<StackChanListenResult> {
       if (
@@ -106,6 +152,26 @@ export function createStackChanGatewayClient(
         look_up_pitch: request.lookUpPitch,
       });
       return parseListenResponse(result, request);
+    },
+
+    async restoreSafePose(): Promise<void> {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), safePose.timeoutMs);
+      try {
+        const result = await caller.callTool(
+          'move_head',
+          {
+            yaw: Math.round(safePose.yawDeg),
+            pitch: Math.round(safePose.pitchDeg),
+            speed: 'low',
+          },
+          { signal: controller.signal },
+        );
+        const error = toolError(result);
+        if (error) throw new Error(error);
+      } finally {
+        clearTimeout(timer);
+      }
     },
   };
 }

@@ -56,7 +56,7 @@ export async function createStackChanAdapterApp(
       ...(initialApiKey === undefined ? {} : { apiKey: initialApiKey }),
       onApiKeyChanged: async (apiKey) => writeSecretFile(config.apiKeyPath, apiKey),
     });
-  const gateway = createStackChanGatewayClient(caller);
+  const gateway = createStackChanGatewayClient(caller, config.safePose);
   const controller = createStackChanTouchReplyController({
     nodeId: config.nodeId,
     gateway,
