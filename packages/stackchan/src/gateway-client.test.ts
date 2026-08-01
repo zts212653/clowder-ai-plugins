@@ -5,27 +5,30 @@ import { createStackChanGatewayClient } from './gateway-client.js';
 
 test('maps the bounded listen request to stackchan-mcp and projects transcript metadata only', async () => {
   const calls: Array<{ name: string; arguments: Record<string, unknown> }> = [];
-  const client = createStackChanGatewayClient({
-    async callTool(name, input) {
-      calls.push({ name, arguments: input });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              engine: 'faster-whisper',
-              text: '砚砚你在吗',
-              language: 'zh',
-              duration_ms: 4_920,
-              frame_count: 82,
-              sample_rate: 16_000,
-              raw_audio: 'must-not-cross',
-            }),
-          },
-        ],
-      };
+  const client = createStackChanGatewayClient(
+    {
+      async callTool(name, input) {
+        calls.push({ name, arguments: input });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                engine: 'faster-whisper',
+                text: '砚砚你在吗',
+                language: 'zh',
+                duration_ms: 4_920,
+                frame_count: 82,
+                sample_rate: 16_000,
+                raw_audio: 'must-not-cross',
+              }),
+            },
+          ],
+        };
+      },
     },
-  });
+    { yawDeg: 0, pitchDeg: 35, timeoutMs: 2_000 },
+  );
 
   assert.deepEqual(
     await client.listen({
@@ -65,11 +68,14 @@ test('fails closed on MCP errors, non-text output, or malformed transcript metad
   ];
 
   for (const result of results) {
-    const client = createStackChanGatewayClient({
-      async callTool() {
-        return result;
+    const client = createStackChanGatewayClient(
+      {
+        async callTool() {
+          return result;
+        },
       },
-    });
+      { yawDeg: 0, pitchDeg: 35, timeoutMs: 2_000 },
+    );
 
     await assert.rejects(
       client.listen({
@@ -81,4 +87,25 @@ test('fails closed on MCP errors, non-text output, or malformed transcript metad
       }),
     );
   }
+});
+
+test('restores the configured safe pose through the bounded gateway tool', async () => {
+  const calls: Array<{ name: string; input: Readonly<Record<string, unknown>> }> = [];
+  const client = createStackChanGatewayClient(
+    {
+      async callTool(name, input) {
+        calls.push({ name, input });
+        return { content: [{ type: 'text', text: '{"ok":true}' }] };
+      },
+    },
+    { yawDeg: 0, pitchDeg: 35, timeoutMs: 2_000 },
+  );
+
+  await client.restoreSafePose();
+  assert.deepEqual(calls, [
+    {
+      name: 'move_head',
+      input: { yaw: 0, pitch: 35, speed: 'low' },
+    },
+  ]);
 });

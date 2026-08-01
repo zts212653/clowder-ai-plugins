@@ -27,6 +27,7 @@ export interface StackChanListenResult {
 
 export interface StackChanGatewayClient {
   listen(request: StackChanListenRequest): Promise<StackChanListenResult>;
+  restoreSafePose(): Promise<void>;
 }
 
 export interface ParseStackChanTouchEventOptions {
@@ -274,11 +275,39 @@ export function createStackChanTouchReplyController(
           touchEmitError = error;
         }
 
-        let listenResult: StackChanListenResult;
+        let listenResult: StackChanListenResult | undefined;
+        let listenError: unknown;
         try {
           listenResult = await listenPromise;
         } catch (error) {
-          return { status: 'failed', reason: errorMessage(error) };
+          listenError = error;
+        }
+
+        let restoreError: unknown;
+        try {
+          await options.gateway.restoreSafePose();
+        } catch (error) {
+          restoreError = error;
+        }
+
+        if (listenError !== undefined) {
+          const reason = errorMessage(listenError);
+          return {
+            status: 'failed',
+            reason:
+              restoreError === undefined
+                ? reason
+                : `${reason}; safe pose restore failed: ${errorMessage(restoreError)}`,
+          };
+        }
+        if (restoreError !== undefined) {
+          return {
+            status: 'failed',
+            reason: `safe pose restore failed: ${errorMessage(restoreError)}`,
+          };
+        }
+        if (listenResult === undefined) {
+          return { status: 'failed', reason: 'listen returned no result' };
         }
 
         if (touchEmitError !== undefined) {
