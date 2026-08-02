@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import { createStackChanActionExecutor } from './action-executor.js';
 import { createStackChanAdapterRuntime } from './adapter-runtime.js';
 import {
@@ -16,6 +14,7 @@ import {
   createStackChanStreamableHttpMcpCaller,
   type StackChanStreamableHttpMcpCaller,
 } from './mcp-transport.js';
+import { createFileStackChanObservationOutbox } from './observation-outbox.js';
 import type { StackChanAdapterConfig } from './runtime-config.js';
 import { readSecretFile, writeSecretFile } from './secret-file.js';
 import { createStackChanTouchReplyController } from './touch-reply-controller.js';
@@ -57,13 +56,18 @@ export async function createStackChanAdapterApp(
       onApiKeyChanged: async (apiKey) => writeSecretFile(config.apiKeyPath, apiKey),
     });
   const gateway = createStackChanGatewayClient(caller, config.safePose);
+  const outbox = createFileStackChanObservationOutbox(
+    `${config.cursorPath}.observations`,
+  );
   const controller = createStackChanTouchReplyController({
     nodeId: config.nodeId,
     gateway,
-    async emitObservation(observation): Promise<void> {
-      await client.emitObservation(observation);
+    async beginInteraction(interactionId, touch): Promise<boolean> {
+      return outbox.beginInteraction(interactionId, touch);
     },
-    createId: randomUUID,
+    async emitObservation(observation): Promise<void> {
+      await outbox.enqueue(observation);
+    },
     listenDurationMs: config.listen.durationMs,
     listenEngine: config.listen.engine,
     language: config.listen.language,
@@ -80,6 +84,13 @@ export async function createStackChanAdapterApp(
           new Error(`StackChan touch-to-reply failed: ${result.reason}`),
         );
       }
+      await outbox
+        .flush((observation) => client.emitObservation(observation))
+        .catch((error: unknown) => {
+          overrides.onError?.(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        });
     },
   });
   const executor = createStackChanActionExecutor({
@@ -92,6 +103,8 @@ export async function createStackChanAdapterApp(
   const runtime = createStackChanAdapterRuntime({
     client,
     eventSource,
+    flushPending: () =>
+      outbox.flush((observation) => client.emitObservation(observation)),
     cycleIntervalMs: config.cycleIntervalMs,
     onError: overrides.onError,
     createServer(apiKey) {

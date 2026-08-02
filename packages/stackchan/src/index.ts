@@ -47,6 +47,11 @@ export {
 } from './event-source.js';
 
 export {
+  createFileStackChanObservationOutbox,
+  type StackChanObservationOutbox,
+} from './observation-outbox.js';
+
+export {
   createCatCafeLimbClient,
   type CatCafeLimbCapability,
   type CatCafeLimbClient,

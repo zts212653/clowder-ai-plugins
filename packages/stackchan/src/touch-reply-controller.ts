@@ -1,11 +1,22 @@
+import { createHash } from 'node:crypto';
+
 import type {
   PhysicalLimbObservation,
   PhysicalLimbTouchObservation,
   PhysicalLimbTranscriptObservation,
 } from '@clowder-ai/plugin-contract';
 
+import {
+  parseStackChanTouchEventRecord,
+  type ParsedStackChanTouchEvent,
+} from './touch-event.js';
+
+export {
+  parseStackChanTouchEvent,
+  type ParseStackChanTouchEventOptions,
+} from './touch-event.js';
+
 const MAX_IDENTIFIER_LENGTH = 128;
-const MAX_TOUCH_DURATION_MS = 10_000;
 const MAX_TRANSCRIPT_CODE_POINTS = 4_096;
 const MIN_LISTEN_DURATION_MS = 100;
 const MAX_LISTEN_DURATION_MS = 30_000;
@@ -28,11 +39,6 @@ export interface StackChanListenResult {
 export interface StackChanGatewayClient {
   listen(request: StackChanListenRequest): Promise<StackChanListenResult>;
   restoreSafePose(): Promise<void>;
-}
-
-export interface ParseStackChanTouchEventOptions {
-  readonly nodeId: string;
-  readonly observationId: string;
 }
 
 export type StackChanTouchReplyResult =
@@ -60,32 +66,19 @@ export interface StackChanTouchReplyControllerOptions {
   readonly emitObservation: (
     observation: PhysicalLimbObservation,
   ) => void | Promise<void>;
-  readonly createId: () => string;
+  readonly beginInteraction?: (
+    interactionId: string,
+    touch: PhysicalLimbTouchObservation,
+  ) => boolean | Promise<boolean>;
+  readonly createId?: (
+    eventKey: string,
+    purpose: 'touch' | 'interaction' | 'transcript',
+  ) => string;
   readonly listenDurationMs?: number;
   readonly listenEngine?: string;
   readonly language?: string;
   readonly lookUpPitch?: number;
   readonly debounceMs?: number;
-}
-
-interface ParsedStackChanTouchEvent {
-  readonly observation: PhysicalLimbTouchObservation;
-  readonly eventKey: string;
-  readonly eventUnixMs: number;
-}
-
-const STACKCHAN_EVENT_KEYS = new Set([
-  'event_type',
-  'subtype',
-  'duration_ms',
-  'action',
-  'ts',
-  'ts_unix',
-  'session_id',
-]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isIdentifier(value: unknown): value is string {
@@ -100,79 +93,23 @@ function isFiniteInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value);
 }
 
-function parseTouchEvent(
-  event: unknown,
-  options: ParseStackChanTouchEventOptions,
-): ParsedStackChanTouchEvent | null {
-  if (
-    !isRecord(event) ||
-    Object.keys(event).some((key) => !STACKCHAN_EVENT_KEYS.has(key)) ||
-    !isIdentifier(options.nodeId) ||
-    !isIdentifier(options.observationId)
-  ) {
-    return null;
-  }
-
-  const gesture = event.subtype;
-  const durationMs = event.duration_ms;
-  const deviceTimestampMs = event.ts;
-  const eventUnixSeconds = event.ts_unix;
-  const sessionId = event.session_id;
-
-  if (
-    event.event_type !== 'touch' ||
-    (gesture !== 'tap' && gesture !== 'stroke') ||
-    !isFiniteInteger(durationMs) ||
-    durationMs < 0 ||
-    durationMs > MAX_TOUCH_DURATION_MS ||
-    !isFiniteInteger(deviceTimestampMs) ||
-    deviceTimestampMs < 0 ||
-    typeof eventUnixSeconds !== 'number' ||
-    !Number.isFinite(eventUnixSeconds) ||
-    eventUnixSeconds < 0 ||
-    !isIdentifier(sessionId) ||
-    (event.action !== undefined && !isIdentifier(event.action))
-  ) {
-    return null;
-  }
-
-  const eventUnixMs = eventUnixSeconds * 1_000;
-  const occurredAt = new Date(eventUnixMs);
-  if (Number.isNaN(occurredAt.getTime())) {
-    return null;
-  }
-
-  return {
-    eventKey: `${sessionId}:${deviceTimestampMs}:${gesture}`,
-    eventUnixMs,
-    observation: {
-      v: 1,
-      observationId: options.observationId,
-      nodeId: options.nodeId,
-      occurredAt: occurredAt.toISOString(),
-      sessionId,
-      kind: 'touch',
-      payload: {
-        gesture,
-        durationMs,
-        confidence: 1,
-      },
-    },
-  };
-}
-
-export function parseStackChanTouchEvent(
-  event: unknown,
-  options: ParseStackChanTouchEventOptions,
-): PhysicalLimbTouchObservation | null {
-  return parseTouchEvent(event, options)?.observation ?? null;
-}
-
 function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message.length > 0) {
     return error.message;
   }
   return 'StackChan touch-to-listen failed';
+}
+
+function stableId(
+  nodeId: string,
+  eventKey: string,
+  purpose: 'touch' | 'interaction' | 'transcript',
+): string {
+  const digest = createHash('sha256')
+    .update(`${nodeId}\0${eventKey}\0${purpose}`)
+    .digest('hex')
+    .slice(0, 32);
+  return `stackchan-${purpose}-${digest}`;
 }
 
 function validateListenResult(
@@ -228,14 +165,23 @@ export function createStackChanTouchReplyController(
 
   return {
     async handleGatewayEvent(event: unknown): Promise<StackChanTouchReplyResult> {
-      const touchObservationId = options.createId();
-      const parsed = parseTouchEvent(event, {
+      const preliminary = parseStackChanTouchEventRecord(event, {
         nodeId: options.nodeId,
-        observationId: touchObservationId,
+        observationId: 'stackchan-preliminary-touch',
       });
-      if (parsed === null) {
+      if (preliminary === null) {
         return { status: 'ignored', reason: 'invalid_event' };
       }
+      const createId =
+        options.createId ??
+        ((eventKey, purpose) => stableId(options.nodeId, eventKey, purpose));
+      const parsed: ParsedStackChanTouchEvent = {
+        ...preliminary,
+        observation: {
+          ...preliminary.observation,
+          observationId: createId(preliminary.eventKey, 'touch'),
+        },
+      };
       if (captureActive) {
         return { status: 'ignored', reason: 'capture_active' };
       }
@@ -249,10 +195,18 @@ export function createStackChanTouchReplyController(
         return { status: 'ignored', reason: 'debounced' };
       }
 
+      const interactionId = createId(parsed.eventKey, 'interaction');
+      const beganDurableInteraction =
+        options.beginInteraction === undefined
+          ? true
+          : await options.beginInteraction(interactionId, parsed.observation);
+      if (!beganDurableInteraction) {
+        return { status: 'ignored', reason: 'duplicate' };
+      }
+
       captureActive = true;
       lastEventKey = parsed.eventKey;
       lastAcceptedUnixMs = parsed.eventUnixMs;
-      const interactionId = options.createId();
 
       let listenPromise: Promise<StackChanListenResult>;
       try {
@@ -270,7 +224,9 @@ export function createStackChanTouchReplyController(
       try {
         let touchEmitError: unknown;
         try {
-          await options.emitObservation(parsed.observation);
+          if (options.beginInteraction === undefined) {
+            await options.emitObservation(parsed.observation);
+          }
         } catch (error) {
           touchEmitError = error;
         }
@@ -324,7 +280,7 @@ export function createStackChanTouchReplyController(
           return { status: 'completed', interactionId };
         }
 
-        const transcriptObservationId = options.createId();
+        const transcriptObservationId = createId(parsed.eventKey, 'transcript');
         const transcript: PhysicalLimbTranscriptObservation = {
           v: 1,
           observationId: transcriptObservationId,

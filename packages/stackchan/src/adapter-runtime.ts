@@ -12,6 +12,7 @@ export interface StackChanAdapterCycleResult {
 export interface StackChanAdapterRuntimeOptions {
   readonly client: CatCafeLimbClient;
   readonly eventSource: StackChanJsonlEventSource;
+  readonly flushPending?: () => Promise<number>;
   readonly createServer: (apiKey: string) => StackChanRemoteLimbServer;
   readonly cycleIntervalMs?: number;
   readonly onError?: (error: Error) => void;
@@ -66,6 +67,7 @@ export function createStackChanAdapterRuntime(
       return { status: registration.status, events: 0 };
     }
     await options.client.heartbeat();
+    await options.flushPending?.();
     return {
       status: 'approved',
       events: await options.eventSource.pollOnce(),

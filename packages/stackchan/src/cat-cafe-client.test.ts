@@ -133,3 +133,30 @@ test('refuses authenticated operations before registration supplies a credential
   await assert.rejects(client.emitObservation(touch()), /not registered/);
   await assert.rejects(client.deregister(), /not registered/);
 });
+
+test('cancels a streaming response as soon as the 64 KiB limit is crossed', async () => {
+  let pulls = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulls += 1;
+      controller.enqueue(new Uint8Array(16 * 1_024));
+      if (pulls === 16) controller.close();
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const client = createCatCafeLimbClient({
+    baseUrl: 'http://127.0.0.1:3012',
+    nodeId: 'stackchan-home',
+    displayName: 'StackChan Home',
+    endpointUrl: 'http://127.0.0.1:8788',
+    capabilities,
+    fetchFn: async () => new Response(body),
+  });
+
+  await assert.rejects(client.register(), /response exceeds 64 KiB/);
+  assert.equal(cancelled, true);
+  assert.ok(pulls < 16, `expected an early stop, got ${pulls} pulls`);
+});

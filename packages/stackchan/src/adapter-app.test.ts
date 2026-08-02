@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -131,4 +131,102 @@ test('keeps retrying after a transient Host registration failure', async () => {
   await app.start();
   assert.deepEqual(errors, ['Host unavailable']);
   await app.stop();
+});
+
+test('retries durable observations after restart without replaying the physical listen reflex', async () => {
+  const config = await fixtureConfig();
+  await writeFile(
+    config.eventJsonlPath,
+    `${JSON.stringify({
+      event_type: 'touch',
+      subtype: 'stroke',
+      duration_ms: 840,
+      action: 'head_stroke',
+      ts: 12_340,
+      ts_unix: 1_785_576_000.25,
+      session_id: 'device-session-1',
+    })}\n`,
+    'utf8',
+  );
+
+  let listenCalls = 0;
+  const caller: StackChanStreamableHttpMcpCaller = {
+    async connect() {},
+    async callTool(name) {
+      if (name === 'listen') {
+        listenCalls += 1;
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                text: '砚砚听到了',
+                language: 'zh',
+                duration_ms: 4_800,
+              }),
+            },
+          ],
+        };
+      }
+      return { content: [{ type: 'text', text: '{"ok":true}' }] };
+    },
+    async close() {},
+    status() {
+      return 'online';
+    },
+  };
+
+  const failedIds: string[] = [];
+  const unavailableClient: CatCafeLimbClient = {
+    async register() {
+      return { requestId: 'pair-1', apiKey: 'pairing-secret', status: 'approved' };
+    },
+    async heartbeat() {},
+    async emitObservation(observation) {
+      failedIds.push(observation.observationId);
+      throw new Error('Host temporarily unavailable');
+    },
+    async deregister() {},
+    getApiKey() {
+      return 'pairing-secret';
+    },
+  };
+  const errors: string[] = [];
+  const first = await createStackChanAdapterApp(config, {
+    caller,
+    client: unavailableClient,
+    onError: (error) => errors.push(error.message),
+  });
+
+  await first.start();
+  await first.stop();
+  assert.equal(listenCalls, 1);
+  assert.ok(errors.some((message) => message.includes('Host temporarily unavailable')));
+
+  const deliveredIds: string[] = [];
+  const recoveredClient: CatCafeLimbClient = {
+    async register() {
+      return { requestId: 'pair-1', apiKey: 'pairing-secret', status: 'approved' };
+    },
+    async heartbeat() {},
+    async emitObservation(observation) {
+      deliveredIds.push(observation.observationId);
+      return { status: 'reflex_only' };
+    },
+    async deregister() {},
+    getApiKey() {
+      return 'pairing-secret';
+    },
+  };
+  const restarted = await createStackChanAdapterApp(config, {
+    caller,
+    client: recoveredClient,
+  });
+
+  await restarted.start();
+  await restarted.stop();
+
+  assert.equal(listenCalls, 1);
+  assert.equal(deliveredIds[0], failedIds[0]);
+  assert.equal(new Set(deliveredIds).size, 2);
 });
