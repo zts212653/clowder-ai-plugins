@@ -1,5 +1,5 @@
 /**
- * Generated from manifest.schema.json, messaging.schema.json, and behavior-fixture.schema.json.
+ * Generated from manifest.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
 
@@ -248,6 +248,145 @@ export type SnapshotResponse = {
   readonly resumeSequence: number;
 };
 
+export type PhysicalLimbIdentifier = string;
+export type PhysicalLimbGrant = 'limb.action.motion' | 'limb.action.display' | 'limb.action.light' | 'limb.action.speaker' | 'limb.observe.touch' | 'limb.sensor.microphone' | 'limb.sensor.camera';
+export type PhysicalLimbSafePose = {
+  readonly yawDeg: number;
+  readonly pitchDeg: number;
+  readonly timeoutMs: number;
+};
+export type PhysicalLimbContribution = {
+  readonly contributionId: PhysicalLimbIdentifier;
+  readonly nodeType: PhysicalLimbIdentifier;
+  readonly displayName: string;
+  readonly grants: readonly PhysicalLimbGrant[];
+  readonly safePose: PhysicalLimbSafePose;
+};
+export type PhysicalLimbExpressionSource = {
+  readonly kind: 'cat_state' | 'play' | 'degraded';
+  readonly ref: PhysicalLimbIdentifier;
+};
+export type PhysicalLimbTouchPayload = {
+  readonly gesture: 'tap' | 'stroke';
+  readonly durationMs: number;
+  readonly confidence: number;
+};
+export type PhysicalLimbTranscriptPayload = {
+  readonly interactionId: PhysicalLimbIdentifier;
+  readonly text: string;
+  readonly language?: string;
+  readonly captureDurationMs: number;
+};
+export type PhysicalLimbTouchObservation = {
+  readonly v: 1;
+  readonly observationId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly occurredAt: string;
+  readonly sessionId: PhysicalLimbIdentifier;
+  readonly kind: 'touch';
+  readonly payload: PhysicalLimbTouchPayload;
+};
+export type PhysicalLimbTranscriptObservation = {
+  readonly v: 1;
+  readonly observationId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly occurredAt: string;
+  readonly sessionId: PhysicalLimbIdentifier;
+  readonly kind: 'transcript';
+  readonly payload: PhysicalLimbTranscriptPayload;
+};
+export type PhysicalLimbObservation = PhysicalLimbTouchObservation | PhysicalLimbTranscriptObservation;
+export type PhysicalLimbMotionPayload = {
+  readonly yawDeg: number;
+  readonly pitchDeg: number;
+  readonly speedDps: number;
+  readonly accelerationDps2: number;
+};
+export type PhysicalLimbDisplayPayload = {
+  readonly expression: string;
+  readonly expressionSource: PhysicalLimbExpressionSource;
+};
+export type PhysicalLimbRgb = readonly [number, number, number];
+export type PhysicalLimbLightPayload = {
+  readonly colors: readonly PhysicalLimbRgb[];
+};
+export type PhysicalLimbSpeakerPayload = {
+  readonly text: string;
+  readonly voiceProfileRef: PhysicalLimbIdentifier;
+  readonly volumePercent: number;
+};
+export type PhysicalLimbMotionAction = {
+  readonly v: 1;
+  readonly actionId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly deadlineUnixMs: number;
+  readonly timeoutMs: number;
+  readonly cancelToken: PhysicalLimbIdentifier;
+  readonly kind: 'motion';
+  readonly payload: PhysicalLimbMotionPayload;
+};
+export type PhysicalLimbDisplayAction = {
+  readonly v: 1;
+  readonly actionId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly deadlineUnixMs: number;
+  readonly timeoutMs: number;
+  readonly cancelToken: PhysicalLimbIdentifier;
+  readonly kind: 'display';
+  readonly payload: PhysicalLimbDisplayPayload;
+};
+export type PhysicalLimbLightAction = {
+  readonly v: 1;
+  readonly actionId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly deadlineUnixMs: number;
+  readonly timeoutMs: number;
+  readonly cancelToken: PhysicalLimbIdentifier;
+  readonly kind: 'light';
+  readonly payload: PhysicalLimbLightPayload;
+};
+export type PhysicalLimbSpeakerAction = {
+  readonly v: 1;
+  readonly actionId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly deadlineUnixMs: number;
+  readonly timeoutMs: number;
+  readonly cancelToken: PhysicalLimbIdentifier;
+  readonly kind: 'speaker';
+  readonly payload: PhysicalLimbSpeakerPayload;
+};
+export type PhysicalLimbAction = PhysicalLimbMotionAction | PhysicalLimbDisplayAction | PhysicalLimbLightAction | PhysicalLimbSpeakerAction;
+export type PhysicalLimbCancel = {
+  readonly v: 1;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly actionId: PhysicalLimbIdentifier;
+  readonly cancelToken: PhysicalLimbIdentifier;
+  readonly reason: 'user' | 'timeout' | 'lease_lost' | 'host_lost' | 'superseded';
+};
+export type PhysicalLimbActionResult = {
+  readonly v: 1;
+  readonly actionId: PhysicalLimbIdentifier;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly outcome: 'succeeded' | 'refused' | 'failed' | 'canceled';
+  readonly reason?: string;
+  readonly observedAt: string;
+};
+export type PhysicalLimbReadinessReason = 'gateway_disconnected' | 'device_disconnected' | 'firmware_incompatible' | 'sensor_unavailable' | 'speech_dependency_missing' | 'skin_unavailable' | 'grant_revoked' | 'host_unavailable';
+export type PhysicalLimbReadyReadiness = {
+  readonly v: 1;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly status: 'ready';
+  readonly observedAt: string;
+};
+export type PhysicalLimbUnavailableReadiness = {
+  readonly v: 1;
+  readonly nodeId: PhysicalLimbIdentifier;
+  readonly status: 'degraded' | 'offline';
+  readonly reason: PhysicalLimbReadinessReason;
+  readonly observedAt: string;
+};
+export type PhysicalLimbReadiness = PhysicalLimbReadyReadiness | PhysicalLimbUnavailableReadiness;
+
 export type FixtureMetadata = {
   readonly executor: 'loopback';
   readonly domain: 'messaging';
@@ -349,7 +488,7 @@ export type PermissionMatrixEntry = {
   readonly firstPartyPreset: boolean;
 };
 export type PermissionMatrixInput = {
-  readonly entries: readonly PermissionMatrixEntry[];
+  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;

@@ -49,7 +49,7 @@ Host Broker ─────┐
 插件 SDK ────────┴─→ @clowder-ai/plugin-contract
 ```
 
-- `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures。
+- `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures；F285 的 `physical-limb` contribution schema 在这里定义物理动作、观察、readiness 与独立设备 grant，刻意不包含 raw sensor media。
 - `@clowder-ai/plugin-sdk`：P-1 首切片已提供 schema-neutral 的 standalone stdio runtime；Host 调用、callback/event、握手、ack、重试与重连仍须等对应 contract row 从 reservation 变为 executable。
 - Host Adapter/Broker：属于 `clowder-ai` 内核，不放在本仓，也不通过插件 client SDK 实现。
 
@@ -57,7 +57,7 @@ Host Broker ─────┐
 
 ## 当前阶段
 
-`packages/plugin-contract` 是机器契约真相源；`packages/plugin-sdk` 已落地 P-1 的 schema-neutral standalone stdio runtime（真实 child-process loopback、坏帧 fail-closed、protocol-only stdout）。它不包含生产 RPC、Host Broker 或 M0 验收声明。脚手架和官方插件仍在后续里程碑中；本仓目前还不是一个已经可被 Clowder AI 远程浏览和安装的完整插件 catalog，也不包含宿主侧安装/管理实现。
+`packages/plugin-contract` 是机器契约真相源；`packages/plugin-sdk` 已落地 P-1 的 schema-neutral standalone stdio runtime（真实 child-process loopback、坏帧 fail-closed、protocol-only stdout）。它不包含生产 RPC、Host Broker 或 M0 验收声明。F285 的 physical-limb contract 只冻结 Host-owned adapter 可以消费的资源边界，并不声称生产 Host Broker 已落地。官方 StackChan adapter、catalog 与宿主侧安装/管理仍是后续里程碑。
 
 ## 插件类型（capability contributions）
 

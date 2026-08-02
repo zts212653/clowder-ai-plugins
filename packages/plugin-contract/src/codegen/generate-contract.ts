@@ -12,6 +12,8 @@ export interface JsonSchema {
   readonly properties?: Record<string, JsonSchema>;
   readonly required?: readonly string[];
   readonly items?: JsonSchema;
+  readonly minItems?: number;
+  readonly maxItems?: number;
   readonly oneOf?: readonly JsonSchema[];
   readonly anyOf?: readonly JsonSchema[];
   readonly allOf?: readonly JsonSchema[];
@@ -22,6 +24,7 @@ export interface JsonSchema {
 export interface ContractSchemas {
   readonly manifest: JsonSchema;
   readonly messaging: JsonSchema;
+  readonly physicalLimb: JsonSchema;
   readonly behavior: JsonSchema;
 }
 
@@ -37,6 +40,9 @@ export async function loadContractSchemas(): Promise<ContractSchemas> {
   return {
     manifest: await readSchema(new URL('../schemas/manifest.schema.json', import.meta.url)),
     messaging: await readSchema(new URL('../schemas/messaging.schema.json', import.meta.url)),
+    physicalLimb: await readSchema(
+      new URL('../schemas/physical-limb.schema.json', import.meta.url),
+    ),
     behavior: await readSchema(
       new URL('../schemas/behavior-fixture.schema.json', import.meta.url),
     ),
@@ -64,7 +70,16 @@ function refName(ref: string): string {
   return decodeURIComponent(ref.slice(marker.length));
 }
 
-function arrayType(itemType: string): string {
+function arrayType(schema: JsonSchema, itemType: string): string {
+  const fixedLength = schema.minItems;
+  if (
+    typeof fixedLength === 'number' &&
+    Number.isInteger(fixedLength) &&
+    fixedLength === schema.maxItems &&
+    fixedLength >= 0
+  ) {
+    return `readonly [${Array.from({ length: fixedLength }, () => itemType).join(', ')}]`;
+  }
   const needsParentheses = itemType.includes(' | ') || itemType.includes('\n');
   return `readonly ${needsParentheses ? `(${itemType})` : itemType}[]`;
 }
@@ -115,7 +130,7 @@ function renderType(schema: JsonSchema): string {
     case 'object':
       return renderObject(schema);
     case 'array':
-      return arrayType(renderType(schema.items ?? {}));
+      return arrayType(schema, renderType(schema.items ?? {}));
     case 'string':
       return 'string';
     case 'integer':
@@ -423,7 +438,7 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from manifest.schema.json, messaging.schema.json, and behavior-fixture.schema.json.',
+    ' * Generated from manifest.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
     '',
@@ -432,6 +447,8 @@ export function generateContractSource(schemas: ContractSchemas): string {
     `export type PluginManifest = ${renderType(schemas.manifest)};`,
     '',
     ...renderDefinitions(schemas.messaging),
+    '',
+    ...renderDefinitions(schemas.physicalLimb),
     '',
     ...renderBehaviorDefinitions(schemas.behavior, schemas.manifest, schemas.messaging),
     '',
