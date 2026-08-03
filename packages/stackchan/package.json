@@ -1,0 +1,54 @@
+{
+  "name": "@clowder-ai/stackchan",
+  "version": "0.1.0-alpha.0",
+  "description": "Official StackChan physical-limb adapter for Clowder AI hosts",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "clowder-stackchan": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts",
+    "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "clean": "rm -rf dist",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-contract": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "clowder-ai",
+    "stackchan",
+    "physical-limb"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/stackchan"
+  }
+}
