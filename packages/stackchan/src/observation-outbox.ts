@@ -183,6 +183,12 @@ export function createFileStackChanObservationOutbox(
   return {
     beginInteraction(interactionId, touch): Promise<boolean> {
       return serialized(async () => {
+        if (!isIdentifier(interactionId)) {
+          throw new TypeError('Invalid StackChan interaction identifier');
+        }
+        if (!isObservation(touch) || touch.kind !== 'touch') {
+          throw new TypeError('Invalid StackChan touch observation');
+        }
         await load();
         if (state.seenInteractionIds.includes(interactionId)) return false;
         if (state.pending.length >= MAX_PENDING_OBSERVATIONS) {
@@ -213,6 +219,9 @@ export function createFileStackChanObservationOutbox(
 
     enqueue(observation): Promise<void> {
       return serialized(async () => {
+        if (!isObservation(observation)) {
+          throw new TypeError('Invalid StackChan observation');
+        }
         await load();
         if (
           state.pending.some(

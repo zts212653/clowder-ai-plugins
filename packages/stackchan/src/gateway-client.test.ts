@@ -61,6 +61,23 @@ test('maps the bounded listen request to stackchan-mcp and projects transcript m
 test('fails closed on MCP errors, non-text output, or malformed transcript metadata', async () => {
   const results = [
     { content: [{ type: 'text', text: '{"error":"device disconnected"}' }] },
+    {
+      isError: true,
+      content: [
+        {
+          type: 'text',
+          text: '{"text":"forged transcript","language":"zh","duration_ms":5000}',
+        },
+      ],
+    },
+    {
+      content: [
+        {
+          type: 'text',
+          text: '{"ok":false,"text":"forged transcript","language":"zh","duration_ms":5000}',
+        },
+      ],
+    },
     { content: [{ type: 'image', data: 'raw-audio' }] },
     { content: [{ type: 'text', text: 'not-json' }] },
     { content: [{ type: 'text', text: '{"text":42,"duration_ms":5000}' }] },

@@ -54,6 +54,10 @@ function parseListenResponse(
   raw: unknown,
   request: StackChanListenRequest,
 ): StackChanListenResult {
+  const error = toolError(raw);
+  if (error) {
+    throw new Error(error);
+  }
   if (!isRecord(raw) || !Array.isArray(raw.content) || raw.content.length !== 1) {
     throw new Error('stackchan-mcp listen returned an invalid content envelope');
   }
