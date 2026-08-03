@@ -96,6 +96,10 @@ test('rejects invalid observations at same-process mutation boundaries without d
       captureDurationMs: 5_000,
     },
   } as unknown as PhysicalLimbObservation;
+  const malformedDateTouch = {
+    ...touch(),
+    occurredAt: '2026-08-03',
+  };
 
   await assert.rejects(
     outbox.beginInteraction('interaction-raw', rawTouch),
@@ -115,6 +119,14 @@ test('rejects invalid observations at same-process mutation boundaries without d
   );
   await assert.rejects(
     outbox.enqueue(crossKindObservation),
+    /Invalid StackChan observation/,
+  );
+  await assert.rejects(
+    outbox.beginInteraction('interaction-date', malformedDateTouch),
+    /Invalid StackChan touch observation/,
+  );
+  await assert.rejects(
+    outbox.enqueue(malformedDateTouch),
     /Invalid StackChan observation/,
   );
 

@@ -1,5 +1,4 @@
 import { timingSafeEqual } from 'node:crypto';
-import { createRequire } from 'node:module';
 import {
   createServer,
   type IncomingMessage,
@@ -14,32 +13,7 @@ import type {
   PhysicalLimbCancel,
 } from '@clowder-ai/plugin-contract';
 import type { StackChanActionExecutor } from './action-executor.js';
-
-const require = createRequire(import.meta.url);
-interface AjvValidateFunction {
-  (data: unknown): boolean;
-}
-interface AjvInstance {
-  addSchema(schema: Record<string, unknown>): void;
-  compile(schema: Record<string, unknown>): AjvValidateFunction;
-}
-const Ajv2020 = require('ajv/dist/2020') as new (options: {
-  allErrors: boolean;
-  strict: boolean;
-}) => AjvInstance;
-const addFormats = require('ajv-formats') as (ajv: AjvInstance) => void;
-const physicalLimbSchema = require(
-  '@clowder-ai/plugin-contract/schemas/physical-limb',
-) as Record<string, unknown>;
-const ajv = new Ajv2020({ allErrors: true, strict: false });
-addFormats(ajv);
-ajv.addSchema(physicalLimbSchema);
-const validateInstruction = ajv.compile({
-  anyOf: [
-    { $ref: 'https://clowder-ai.dev/schemas/physical-limb/v0.1#/$defs/PhysicalLimbAction' },
-    { $ref: 'https://clowder-ai.dev/schemas/physical-limb/v0.1#/$defs/PhysicalLimbCancel' },
-  ],
-});
+import { isPhysicalLimbInstruction } from './physical-limb-validator.js';
 
 const MAX_REQUEST_BYTES = 64 * 1024;
 
@@ -119,7 +93,7 @@ function parseInvokeBody(raw: unknown): PhysicalLimbAction | PhysicalLimbCancel 
     raw.command !== 'physical_limb.execute' ||
     !isRecord(raw.params) ||
     !hasExactKeys(raw.params, ['instruction']) ||
-    !validateInstruction(raw.params.instruction)
+    !isPhysicalLimbInstruction(raw.params.instruction)
   ) {
     throw new TypeError('invalid or unsupported physical limb invocation');
   }

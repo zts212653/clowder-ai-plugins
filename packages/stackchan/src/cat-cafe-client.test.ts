@@ -87,6 +87,32 @@ test('registers, retains the issued credential, heartbeats, and emits only the o
   assert.deepEqual(requests[2]?.body, { observation: touch() });
 });
 
+test('rejects observations outside the canonical contract before sending them to Cat Cafe', async () => {
+  let fetchCount = 0;
+  const client = createCatCafeLimbClient({
+    baseUrl: 'http://127.0.0.1:3012',
+    nodeId: 'stackchan-home',
+    displayName: 'StackChan Home',
+    endpointUrl: 'http://127.0.0.1:8788',
+    capabilities,
+    apiKey: 'remembered-secret',
+    fetchFn: async () => {
+      fetchCount += 1;
+      return Response.json({ status: 'reflex_only' }, { status: 202 });
+    },
+  });
+  const malformedDateTouch = {
+    ...touch(),
+    occurredAt: '2026-08-03',
+  } as PhysicalLimbObservation;
+
+  await assert.rejects(
+    client.emitObservation(malformedDateTouch),
+    /Invalid StackChan observation/,
+  );
+  assert.equal(fetchCount, 0);
+});
+
 test('reconnect sends only the configured credential and fails closed on bad or oversized responses', async () => {
   const bodies: unknown[] = [];
   let mode: 'bad' | 'oversized' = 'bad';

@@ -1,4 +1,5 @@
 import type { PhysicalLimbObservation } from '@clowder-ai/plugin-contract';
+import { isPhysicalLimbObservation } from './physical-limb-validator.js';
 
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -217,6 +218,9 @@ export function createCatCafeLimbClient(options: CatCafeLimbClientOptions): CatC
     async emitObservation(
       observation: PhysicalLimbObservation,
     ): Promise<CatCafeObservationReceipt> {
+      if (!isPhysicalLimbObservation(observation)) {
+        throw new TypeError('Invalid StackChan observation');
+      }
       return parseObservationReceipt(
         await post('/api/limb/observations', { observation }, true),
       );

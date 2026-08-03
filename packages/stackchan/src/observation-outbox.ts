@@ -6,6 +6,7 @@ import type {
   PhysicalLimbObservation,
   PhysicalLimbTouchObservation,
 } from '@clowder-ai/plugin-contract';
+import { isPhysicalLimbObservation } from './physical-limb-validator.js';
 
 const OUTBOX_VERSION = 1;
 const MAX_PENDING_OBSERVATIONS = 256;
@@ -36,77 +37,6 @@ function isIdentifier(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 128;
 }
 
-function hasExactKeys(
-  value: Record<string, unknown>,
-  expected: readonly string[],
-): boolean {
-  const actual = Object.keys(value).sort();
-  const sorted = [...expected].sort();
-  return (
-    actual.length === sorted.length &&
-    actual.every((key, index) => key === sorted[index])
-  );
-}
-
-function isObservation(value: unknown): value is PhysicalLimbObservation {
-  if (
-    !isRecord(value) ||
-    !hasExactKeys(value, [
-      'v',
-      'observationId',
-      'nodeId',
-      'occurredAt',
-      'sessionId',
-      'kind',
-      'payload',
-    ]) ||
-    value.v !== 1 ||
-    !isIdentifier(value.observationId) ||
-    !isIdentifier(value.nodeId) ||
-    !isIdentifier(value.sessionId) ||
-    typeof value.occurredAt !== 'string' ||
-    Number.isNaN(new Date(value.occurredAt).getTime()) ||
-    (value.kind !== 'touch' && value.kind !== 'transcript') ||
-    !isRecord(value.payload)
-  ) {
-    return false;
-  }
-
-  if (value.kind === 'touch') {
-    return (
-      hasExactKeys(value.payload, ['gesture', 'durationMs', 'confidence']) &&
-      (value.payload.gesture === 'tap' || value.payload.gesture === 'stroke') &&
-      Number.isSafeInteger(value.payload.durationMs) &&
-      (value.payload.durationMs as number) >= 0 &&
-      (value.payload.durationMs as number) <= 10_000 &&
-      typeof value.payload.confidence === 'number' &&
-      Number.isFinite(value.payload.confidence) &&
-      value.payload.confidence >= 0 &&
-      value.payload.confidence <= 1
-    );
-  }
-
-  return (
-    hasExactKeys(
-      value.payload,
-      value.payload.language === undefined
-        ? ['interactionId', 'text', 'captureDurationMs']
-        : ['interactionId', 'text', 'language', 'captureDurationMs'],
-    ) &&
-    isIdentifier(value.payload.interactionId) &&
-    typeof value.payload.text === 'string' &&
-    Array.from(value.payload.text).length >= 1 &&
-    Array.from(value.payload.text).length <= 4_096 &&
-    (value.payload.language === undefined ||
-      (typeof value.payload.language === 'string' &&
-        value.payload.language.length >= 1 &&
-        value.payload.language.length <= 32)) &&
-    Number.isSafeInteger(value.payload.captureDurationMs) &&
-    (value.payload.captureDurationMs as number) >= 100 &&
-    (value.payload.captureDurationMs as number) <= 30_000
-  );
-}
-
 function isState(value: unknown): value is StackChanObservationOutboxState {
   return Boolean(
     isRecord(value) &&
@@ -114,7 +44,7 @@ function isState(value: unknown): value is StackChanObservationOutboxState {
       value.v === OUTBOX_VERSION &&
       Array.isArray(value.pending) &&
       value.pending.length <= MAX_PENDING_OBSERVATIONS &&
-      value.pending.every(isObservation) &&
+      value.pending.every(isPhysicalLimbObservation) &&
       new Set(
         value.pending.map((observation) =>
           (observation as PhysicalLimbObservation).observationId,
@@ -186,7 +116,7 @@ export function createFileStackChanObservationOutbox(
         if (!isIdentifier(interactionId)) {
           throw new TypeError('Invalid StackChan interaction identifier');
         }
-        if (!isObservation(touch) || touch.kind !== 'touch') {
+        if (!isPhysicalLimbObservation(touch) || touch.kind !== 'touch') {
           throw new TypeError('Invalid StackChan touch observation');
         }
         await load();
@@ -219,7 +149,7 @@ export function createFileStackChanObservationOutbox(
 
     enqueue(observation): Promise<void> {
       return serialized(async () => {
-        if (!isObservation(observation)) {
+        if (!isPhysicalLimbObservation(observation)) {
           throw new TypeError('Invalid StackChan observation');
         }
         await load();
