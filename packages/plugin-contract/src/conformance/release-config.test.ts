@@ -617,3 +617,30 @@ test('SDK changes execute pull-request validation', () => {
     'SDK checks must run after the contract build that provides their conformance import',
   );
 });
+
+test('loopback fixture changes execute pull-request validation', () => {
+  const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+
+  assert.ok(validateJob, 'validation job must be active');
+  assert.match(
+    validateJob,
+    /^      - name: Loopback fixture typecheck\n        run: pnpm --filter @clowder-ai\/loopback-fixture-plugin typecheck$/m,
+  );
+  assert.match(
+    validateJob,
+    /^      - name: Loopback fixture tests\n        run: pnpm --filter @clowder-ai\/loopback-fixture-plugin test$/m,
+  );
+  assert.match(
+    validateJob,
+    /^      - name: Loopback fixture lint\n        run: pnpm --filter @clowder-ai\/loopback-fixture-plugin lint$/m,
+  );
+  assert.match(
+    validateJob,
+    /^      - name: Loopback fixture build\n        run: pnpm --filter @clowder-ai\/loopback-fixture-plugin build$/m,
+  );
+  assert.ok(
+    validateJob.indexOf('- name: SDK build\n        run: pnpm --filter @clowder-ai/plugin-sdk build') <
+      validateJob.indexOf('- name: Loopback fixture typecheck\n        run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck'),
+    'loopback validation must run after its SDK dependency is built',
+  );
+});

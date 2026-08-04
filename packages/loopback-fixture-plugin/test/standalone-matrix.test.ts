@@ -23,7 +23,6 @@ const Ajv = require('ajv/dist/2020') as new (options: {
 const entrypointUrl = new URL('../dist/standalone-host.js', import.meta.url);
 const behaviorSchemaUrl = new URL('../../plugin-contract/src/schemas/behavior-fixture.schema.json', import.meta.url);
 const manifestSchemaUrl = new URL('../../plugin-contract/src/schemas/manifest.schema.json', import.meta.url);
-const behaviorFixtureUrl = new URL('../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json', import.meta.url);
 const hostHalfSeamManifestUrl = new URL('./host-half-seam-manifest.json', import.meta.url);
 const lifecycleDeadlineUnixMs = Date.now() + 60_000;
 
@@ -190,12 +189,16 @@ for (const matrixCase of LOCAL_STANDALONE_CASES) {
 }
 
 test('schema-validates and records every behavior fixture for the K-2 host half', async () => {
-  const [manifestSchema, behaviorSchema, behaviorFixture, seamManifest] = await Promise.all([
+  const [manifestSchema, behaviorSchema, seamManifest] = await Promise.all([
     readFile(manifestSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(behaviorSchemaUrl, 'utf8').then(text => JSON.parse(text) as object),
-    readFile(behaviorFixtureUrl, 'utf8').then(text => JSON.parse(text) as { cases: Array<{ id: string }> }),
     readFile(hostHalfSeamManifestUrl, 'utf8').then(text => JSON.parse(text) as HostHalfSeamManifest),
   ]);
+  const [behaviorSeam] = seamManifest.behaviorFixtures;
+  assert.ok(behaviorSeam, 'the K-2 host half needs one declared behavior fixture seam');
+  const behaviorFixture = JSON.parse(
+    await readFile(new URL(behaviorSeam.source, hostHalfSeamManifestUrl), 'utf8'),
+  ) as { cases: Array<{ id: string }> };
   const ajv = new Ajv({ allErrors: true, strict: false });
   ajv.addSchema(manifestSchema, manifestSchema.$id);
   const validate = ajv.compile(behaviorSchema);
@@ -205,7 +208,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
     version: 1,
     behaviorFixtures: [
       {
-        source: '../../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json',
+        source: '../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json',
         requires: 'K-2 host half',
         caseIds: behaviorFixture.cases.map(behaviorCase => behaviorCase.id),
       },

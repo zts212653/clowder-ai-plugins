@@ -2,7 +2,7 @@
   "version": 1,
   "behaviorFixtures": [
     {
-      "source": "../../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json",
+      "source": "../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json",
       "requires": "K-2 host half",
       "caseIds": [
         "raw-thread-id-rejection",
