@@ -104,6 +104,22 @@ test('rejects an incomplete external runtime manifest before attaching a stdio t
   assert.equal(output.listenerCount('error'), 0);
 });
 
+test('rejects a schema-valid non-stdio manifest before attaching a stdio transport', () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const manifest = {
+    ...validManifest,
+    runtime: { transport: 'ipc', entrypoint: 'dist/ipc.js' },
+  };
+
+  assert.throws(
+    () => startStandaloneHost({ manifest, input, output }),
+    /requires a manifest with runtime\.transport "stdio"/,
+  );
+  assert.equal(input.listenerCount('data'), 0);
+  assert.equal(output.listenerCount('error'), 0);
+});
+
 test('responds to closed lifecycle rows only after the manifest is valid', async () => {
   const input = new PassThrough();
   const output = new PassThrough();
@@ -216,6 +232,33 @@ test('rejects a drain whose cleanup remains pending beyond its deadline', async 
       },
     ]);
   }
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
+test('does not expire a drain whose valid deadline spans Node timer chunks', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({
+    manifest: validManifest,
+    input,
+    output,
+    onDrain: () => new Promise<void>(resolve => setTimeout(resolve, 20)),
+  });
+  const requestDeadline = Date.now() + 60_000;
+  const drainDeadline = Date.now() + 2 ** 40;
+
+  input.end(
+    Buffer.from(
+      `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${requestDeadline}},"input":{"deadlineUnixMs":${drainDeadline}}}}\n`,
+      'utf8',
+    ),
+  );
+
+  assert.deepEqual(await frames, [
+    { jsonrpc: '2.0', id: 'drain-1', result: null },
+  ]);
   assert.equal(channel.failed, false);
   channel.close();
 });

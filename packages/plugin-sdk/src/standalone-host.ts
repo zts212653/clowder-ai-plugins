@@ -65,6 +65,14 @@ function requireValidManifest(value: unknown): PluginManifest {
   return validation.manifest;
 }
 
+function requireStdioManifest(value: unknown): PluginManifest {
+  const manifest = requireValidManifest(value);
+  if (manifest.runtime.transport !== 'stdio') {
+    throw new TypeError('standalone stdio host requires a manifest with runtime.transport "stdio"');
+  }
+  return manifest;
+}
+
 /**
  * Loads and contract-validates a manifest file for a standalone plugin.
  *
@@ -111,19 +119,28 @@ async function completesBeforeDrainDeadline(
     return false;
   }
 
-  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
   const cleanup = Promise.resolve().then(() => onDrain?.({ deadlineUnixMs }));
-  try {
-    const completed = await Promise.race([
-      cleanup.then(() => true),
-      new Promise<false>(resolve => {
-        deadlineTimer = setTimeout(() => resolve(false), Math.max(0, deadlineUnixMs - Date.now()));
-      }),
-    ]);
-    return completed && Date.now() < deadlineUnixMs;
-  } finally {
-    if (deadlineTimer !== undefined) {
-      clearTimeout(deadlineTimer);
+  while (true) {
+    const remaining = deadlineUnixMs - Date.now();
+    if (remaining <= 0) {
+      return false;
+    }
+
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const completed = await Promise.race([
+        cleanup.then(() => true),
+        new Promise<false>(resolve => {
+          deadlineTimer = setTimeout(resolve, Math.min(remaining, 2 ** 31 - 1), false);
+        }),
+      ]);
+      if (completed) {
+        return Date.now() < deadlineUnixMs;
+      }
+    } finally {
+      if (deadlineTimer !== undefined) {
+        clearTimeout(deadlineTimer);
+      }
     }
   }
 }
@@ -203,7 +220,7 @@ function attachManifest(channel: StdioChannel, manifest: PluginManifest): Standa
  * RESERVED handshake and messaging rows remain in S1's reject path.
  */
 export function startStandaloneHost(options: StandaloneHostOptions): StandaloneHost {
-  const manifest = requireValidManifest(options.manifest);
+  const manifest = requireStdioManifest(options.manifest);
 
   const hasInput = options.input !== undefined;
   const hasOutput = options.output !== undefined;
