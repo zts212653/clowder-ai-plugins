@@ -182,3 +182,31 @@ test('rejects out-of-order and nonce-mismatched activation without creating a wi
   assert.equal(mismatch.accepted, false);
   assert.equal(mismatch.reason, 'BINDING_REPLAY');
 });
+
+test('locks every non-source state against repeated binding and activation transitions', () => {
+  const candidate = beginLocalHandshake(candidateHello);
+  expectAccepted(candidate);
+  const binding = acceptSessionBinding(candidate.state, sessionBinding());
+  expectAccepted(binding);
+  const activation = prepareActivation(binding.state, { bindingNonce: 'binding-nonce' });
+  expectAccepted(activation);
+
+  const rejected = beginLocalHandshake({ ...candidateHello, packageDigest: 'invalid' });
+  assert.equal(rejected.accepted, false);
+
+  const illegalTransitions = [
+    acceptSessionBinding(binding.state, sessionBinding()),
+    acceptSessionBinding(activation.state, sessionBinding()),
+    acceptSessionBinding(rejected.state, sessionBinding()),
+    prepareActivation(activation.state, { bindingNonce: 'binding-nonce' }),
+    prepareActivation(rejected.state, { bindingNonce: 'binding-nonce' }),
+  ];
+
+  for (const transition of illegalTransitions) {
+    assert.deepEqual(transition, {
+      accepted: false,
+      reason: 'BINDING_REPLAY',
+      state: { phase: 'rejected', reason: 'BINDING_REPLAY' },
+    });
+  }
+});
