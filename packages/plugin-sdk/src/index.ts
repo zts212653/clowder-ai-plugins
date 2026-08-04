@@ -27,6 +27,14 @@ export {
 } from './stdio-runtime.js';
 
 export {
+  loadStandaloneManifest,
+  ManifestStartupError,
+  startStandaloneHost,
+  type StandaloneHost,
+  type StandaloneHostOptions,
+} from './standalone-host.js';
+
+export {
   classifyFrame,
   type DispatchResult,
   type InFlightEntry,
