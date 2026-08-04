@@ -42,10 +42,18 @@ export class StdioRuntimeFatalError extends Error {
 export type StdioFrameHandler = (
   frame: DecodedNdjsonFrame,
 ) => JsonObject | undefined | Promise<JsonObject | undefined>;
+export type StdioFrameErrorHandler = (
+  error: NdjsonFrameError,
+) => JsonObject | undefined | Promise<JsonObject | undefined>;
 export interface StdioChannelOptions {
   /** Defaults to the contract-owned hard cap; callers may only choose a stricter cap. */
   readonly maxFrameBytes?: number;
   readonly onFrame: StdioFrameHandler;
+  /**
+   * Lets a protocol shell map an otherwise terminal decoder error to its
+   * contract-defined response before this schema-neutral runtime closes.
+   */
+  readonly onFrameError?: StdioFrameErrorHandler;
   readonly onFatal?: (error: StdioRuntimeFatalError) => void;
 }
 
@@ -86,7 +94,7 @@ export function createStdioChannel(
   if (readableEncoding !== undefined && readableEncoding !== null) {
     throw new RangeError('stdio input must remain in byte mode');
   }
-  const decoder = new NdjsonFrameDecoder(options.maxFrameBytes);
+  let decoder = new NdjsonFrameDecoder(options.maxFrameBytes);
   const maxFrameBytes = options.maxFrameBytes ?? MAX_NDJSON_FRAME_BYTES;
   let accepting = true;
   let fatalError: StdioRuntimeFatalError | undefined;
@@ -262,6 +270,19 @@ export function createStdioChannel(
           }
           frames = decoder.push(frame);
         } catch (error) {
+          if (error instanceof NdjsonFrameError) {
+            const response = options.onFrameError === undefined
+              ? undefined
+              : await options.onFrameError(error);
+            if (response !== undefined && accepting) {
+              await send(response);
+              // The decoder deliberately fails closed after any bad frame.
+              // A protocol shell that supplied a response has consumed that
+              // complete frame, so it may explicitly resume at the next LF.
+              decoder = new NdjsonFrameDecoder(options.maxFrameBytes);
+              continue;
+            }
+          }
           fail('FRAME_ERROR', error);
           return;
         }

@@ -1,15 +1,32 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 import { loadStandaloneManifest } from '@clowder-ai/plugin-sdk';
 
 const manifestUrl = new URL('../manifest.json', import.meta.url);
 const packageUrl = new URL('../package.json', import.meta.url);
-const sourceUrl = new URL('../src/plugin.ts', import.meta.url);
+const sourceDirectoryUrl = new URL('../src/', import.meta.url);
 const entrypointUrl = new URL('../dist/plugin.js', import.meta.url);
+
+async function sourceFiles(directory: URL): Promise<readonly { name: string; source: string }[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(
+    entries.map(async entry => {
+      const entryUrl = new URL(entry.name, directory);
+      if (entry.isDirectory()) {
+        return sourceFiles(new URL(`${entry.name}/`, directory));
+      }
+      if (!entry.isFile() || !entry.name.endsWith('.ts')) {
+        return [];
+      }
+      return [{ name: entryUrl.pathname.slice(sourceDirectoryUrl.pathname.length), source: await readFile(entryUrl, 'utf8') }];
+    }),
+  );
+  return nested.flat();
+}
 
 interface ChildResult {
   readonly code: number | null;
@@ -61,10 +78,26 @@ test('is private and imports the SDK only through its public package entrypoint'
     readonly private?: unknown;
     readonly dependencies?: Record<string, string>;
   };
-  const source = await readFile(sourceUrl, 'utf8');
+  const sources = await sourceFiles(sourceDirectoryUrl);
+  const sourceNames = sources.map(({ name }) => name).sort();
 
   assert.equal(packageJson.private, true);
   assert.deepEqual(packageJson.dependencies, { '@clowder-ai/plugin-sdk': 'workspace:*' });
-  assert.match(source, /from '@clowder-ai\/plugin-sdk';/);
-  assert.doesNotMatch(source, /from ['"](?:@clowder-ai\/plugin-contract|\.\.?\/)/);
+  const entrypoints = sources.filter(({ name }) =>
+    name === 'plugin.ts' || name === 'standalone-host.ts',
+  );
+  assert.deepEqual(sourceNames.filter(name => name === 'plugin.ts' || name === 'standalone-host.ts'), [
+    'plugin.ts',
+    'standalone-host.ts',
+  ]);
+  for (const { name, source } of entrypoints) {
+    assert.match(source, /from '@clowder-ai\/plugin-sdk';/, `${name} must use the public SDK`);
+  }
+  for (const { name, source } of sources) {
+    assert.doesNotMatch(
+      source,
+      /from ['"](?:@clowder-ai\/plugin-contract|\.\.?\/)/,
+      `${name} must not bypass the public SDK`,
+    );
+  }
 });

@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import type { Readable, Writable } from 'node:stream';
 
 import {
+  PARSE_ERROR_CODE,
+  PARSE_ERROR_MESSAGE,
   validateManifest,
   type ManifestValidationError,
   type PluginManifest,
@@ -12,6 +14,7 @@ import {
   startStdioRuntime,
   type JsonObject,
   type StdioChannel,
+  type StdioFrameErrorHandler,
   type StdioRuntimeFatalError,
 } from './stdio-runtime.js';
 import { classifyFrame, type InFlightEntry } from './wire-dispatch.js';
@@ -127,6 +130,15 @@ function createFrameHandler(options: StandaloneHostOptions) {
   };
 }
 
+const respondToInvalidJson: StdioFrameErrorHandler = error =>
+  error.code === 'INVALID_JSON'
+    ? {
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: PARSE_ERROR_CODE, message: PARSE_ERROR_MESSAGE },
+      }
+    : undefined;
+
 function attachManifest(channel: StdioChannel, manifest: PluginManifest): StandaloneHost {
   return {
     manifest,
@@ -156,7 +168,15 @@ export function startStandaloneHost(options: StandaloneHostOptions): StandaloneH
 
   const onFrame = createFrameHandler(options);
   const channel = hasInput
-    ? createStdioChannel(options.input!, options.output!, { onFrame, onFatal: options.onFatal })
-    : startStdioRuntime({ onFrame, onFatal: options.onFatal });
+    ? createStdioChannel(options.input!, options.output!, {
+        onFrame,
+        onFrameError: respondToInvalidJson,
+        onFatal: options.onFatal,
+      })
+    : startStdioRuntime({
+        onFrame,
+        onFrameError: respondToInvalidJson,
+        onFatal: options.onFatal,
+      });
   return attachManifest(channel, manifest);
 }

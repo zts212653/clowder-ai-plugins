@@ -194,3 +194,25 @@ test('closes without emitting a frame when S1 rejects a protocol violation', asy
   assert.equal(channel.failed, true);
   assert.equal(Buffer.concat(stdout).byteLength, 0);
 });
+
+test('emits a parse error and continues with the next complete frame', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 2);
+  const channel = startStandaloneHost({ manifest: validManifest, input, output });
+
+  input.end(
+    Buffer.from(
+      '{invalid json\n' +
+        '{"jsonrpc":"2.0","id":"ping-1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"nonce-1"}}}\n',
+      'utf8',
+    ),
+  );
+
+  assert.deepEqual(await frames, [
+    { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } },
+    { jsonrpc: '2.0', id: 'ping-1', result: { nonce: 'nonce-1' } },
+  ]);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
