@@ -35,6 +35,24 @@ export {
 } from './standalone-host.js';
 
 export {
+  acceptSessionBinding,
+  beginLocalHandshake,
+  prepareActivation,
+  type ActivatedHandshakeState,
+  type ActivationHandshakeIntent,
+  type BindingHandshakeIntent,
+  type BoundHandshakeState,
+  type CandidateHandshakeIntent,
+  type CandidateHandshakeState,
+  type HandshakePhase,
+  type HandshakeValidationLevels,
+  type LocalHandshakeIntent,
+  type LocalHandshakeState,
+  type LocalHandshakeTransition,
+  type RejectedHandshakeState,
+} from './handshake-client.js';
+
+export {
   classifyFrame,
   type DispatchResult,
   type InFlightEntry,

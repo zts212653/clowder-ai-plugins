@@ -109,6 +109,34 @@ export const ACK_INPUT_KEYS = new Set(['subscriptionId', 'ackToken']);
 export const GRANTS_CHANGED_INPUT_KEYS = new Set(['grantRevision', 'effectiveGrants']);
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Handshake object key sets (type-only structural contract)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Mirror of: CandidateHello (handshake.ts:62-71). */
+export const CANDIDATE_HELLO_KEYS = new Set([
+  'pluginId',
+  'packageDigest',
+  'contractVersion',
+  'wireVersion',
+]);
+
+/** Mirror of: SessionBinding (handshake.ts:82-101). */
+export const SESSION_BINDING_KEYS = new Set([
+  'pluginId',
+  'packageDigest',
+  'contractVersion',
+  'wireVersion',
+  'pluginInstanceId',
+  'brokerSessionId',
+  'grantRevision',
+  'effectiveGrants',
+  'bindingNonce',
+]);
+
+/** Mirror of: BrokerReadyParams (handshake.ts:113-116). */
+export const BROKER_READY_PARAMS_KEYS = new Set(['bindingNonce']);
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Per-method CLOSED-row result key sets (additionalProperties: false)
 // ═══════════════════════════════════════════════════════════════════════════
 

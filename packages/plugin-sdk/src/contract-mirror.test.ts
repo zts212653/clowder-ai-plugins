@@ -46,6 +46,9 @@ import {
   SUBSCRIBE_INPUT_KEYS,
   ACK_INPUT_KEYS,
   GRANTS_CHANGED_INPUT_KEYS,
+  CANDIDATE_HELLO_KEYS,
+  SESSION_BINDING_KEYS,
+  BROKER_READY_PARAMS_KEYS,
   PING_RESULT_KEYS,
   SUBSCRIBE_RESULT_KEYS,
   ERROR_BODY_STANDARD_KEYS,
@@ -84,6 +87,9 @@ import type {
   SubscribeResult,
   MessagingAckRequest,
   GrantsChangedInput,
+  CandidateHello,
+  SessionBinding,
+  BrokerReadyParams,
   // Standard error body types — all 5 for ERROR_BODY_STANDARD_KEYS
   ParseError,
   InvalidRequestError,
@@ -156,6 +162,11 @@ const _d20: ExactKeys<SubscribeInput, 'handle'> = true;
 const _d21: ExactKeys<MessagingAckRequest, 'subscriptionId' | 'ackToken'> = true;
 const _d22: ExactKeys<GrantsChangedInput, 'grantRevision' | 'effectiveGrants'> = true;
 
+// ── Handshake structural shapes (all runtime checks live in S3) ──
+const _d22a: ExactKeys<CandidateHello, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion'> = true;
+const _d22b: ExactKeys<SessionBinding, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion' | 'pluginInstanceId' | 'brokerSessionId' | 'grantRevision' | 'effectiveGrants' | 'bindingNonce'> = true;
+const _d22c: ExactKeys<BrokerReadyParams, 'bindingNonce'> = true;
+
 // ── Per-method CLOSED-row result shapes (1:1, no shared mirrors) ──
 const _d23: ExactKeys<PingResult, 'nonce'> = true;
 const _d24: ExactKeys<SubscribeResult, 'subscriptionId'> = true;
@@ -187,6 +198,7 @@ void _d01; void _d02; void _d03; void _d04; void _d05; void _d06;
 void _d07; void _d08; void _d09; void _d10; void _d11; void _d12;
 void _d13; void _d14; void _d15; void _d16; void _d17; void _d18;
 void _d19; void _d20; void _d21; void _d22; void _d23; void _d24;
+void _d22a; void _d22b; void _d22c;
 void _d25; void _d26; void _d27; void _d28; void _d29; void _d30;
 void _d31; void _d32; void _d33; void _d34; void _d35; void _d36;
 void _d37; void _d38;
@@ -322,6 +334,27 @@ test('GRANTS_CHANGED_INPUT_KEYS matches GrantSnapshot interface', () => {
   assert.equal(GRANTS_CHANGED_INPUT_KEYS.size, 2);
   assert.ok(GRANTS_CHANGED_INPUT_KEYS.has('grantRevision'));
   assert.ok(GRANTS_CHANGED_INPUT_KEYS.has('effectiveGrants'));
+});
+
+test('handshake key sets match their structural contract interfaces', () => {
+  assert.deepEqual([...CANDIDATE_HELLO_KEYS], [
+    'pluginId',
+    'packageDigest',
+    'contractVersion',
+    'wireVersion',
+  ]);
+  assert.deepEqual([...SESSION_BINDING_KEYS], [
+    'pluginId',
+    'packageDigest',
+    'contractVersion',
+    'wireVersion',
+    'pluginInstanceId',
+    'brokerSessionId',
+    'grantRevision',
+    'effectiveGrants',
+    'bindingNonce',
+  ]);
+  assert.deepEqual([...BROKER_READY_PARAMS_KEYS], ['bindingNonce']);
 });
 
 // ---------------------------------------------------------------------------
