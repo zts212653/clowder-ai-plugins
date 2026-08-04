@@ -14,3 +14,8 @@ test('the built conformance boundary exports the stdio harness', async () => {
   assert.deepEqual(missingPublicExports, []);
   assert.equal(conformance.MAX_NDJSON_FRAME_BYTES, 1_048_576);
 });
+
+test('the built public entry exports the runtime manifest validator', async () => {
+  const contract = await import('@clowder-ai/plugin-contract');
+  assert.equal(typeof contract.validateManifest, 'function');
+});
