@@ -1,0 +1,25 @@
+{
+  "name": "@clowder-ai/loopback-fixture-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Private P14 loopback fixture that consumes the public plugin SDK entrypoint",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "pnpm --filter @clowder-ai/plugin-sdk build && pnpm build && node --import tsx --test test/**/*.test.ts",
+    "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
