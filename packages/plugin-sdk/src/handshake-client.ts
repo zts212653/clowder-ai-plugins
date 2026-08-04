@@ -123,6 +123,33 @@ function hasExactKeys(value: Record<string, unknown>, keys: ReadonlySet<string>)
   return actual.length === keys.size && actual.every(key => keys.has(key));
 }
 
+function snapshotCandidate(candidate: CandidateHello): CandidateHello {
+  return {
+    pluginId: candidate.pluginId,
+    packageDigest: candidate.packageDigest,
+    contractVersion: candidate.contractVersion,
+    wireVersion: candidate.wireVersion,
+  };
+}
+
+function snapshotBinding(binding: SessionBinding): SessionBinding {
+  return {
+    pluginId: binding.pluginId,
+    packageDigest: binding.packageDigest,
+    contractVersion: binding.contractVersion,
+    wireVersion: binding.wireVersion,
+    pluginInstanceId: binding.pluginInstanceId,
+    brokerSessionId: binding.brokerSessionId,
+    grantRevision: binding.grantRevision,
+    effectiveGrants: [...binding.effectiveGrants],
+    bindingNonce: binding.bindingNonce,
+  };
+}
+
+function snapshotReady(ready: BrokerReadyParams): BrokerReadyParams {
+  return { bindingNonce: ready.bindingNonce };
+}
+
 function isCandidateHello(value: unknown): value is CandidateHello {
   if (!isRecord(value) || !hasExactKeys(value, CANDIDATE_HELLO_KEYS)) return false;
   return (
@@ -170,7 +197,7 @@ function validateBinding(candidate: CandidateHello, value: unknown):
   ) {
     return { valid: false, reason: 'AUTHORITY_VIOLATION' };
   }
-  return { valid: true, binding: value as unknown as SessionBinding };
+  return { valid: true, binding: snapshotBinding(value as unknown as SessionBinding) };
 }
 
 function validateReady(value: unknown, binding: SessionBinding): value is BrokerReadyParams {
@@ -188,14 +215,15 @@ export function beginLocalHandshake(candidate: unknown): LocalHandshakeTransitio
   if (!isCandidateHello(candidate)) {
     return reject('MALFORMED_HELLO');
   }
-  const state: CandidateHandshakeState = { phase: 'candidate', candidate };
+  const candidateSnapshot = snapshotCandidate(candidate);
+  const state: CandidateHandshakeState = { phase: 'candidate', candidate: candidateSnapshot };
   return {
     accepted: true,
     state,
     intent: {
       kind: 'candidate',
       transport: 'local-only',
-      candidate,
+      candidate: candidateSnapshot,
       validation: STRUCTURAL_AND_CLOSED,
     },
   };
@@ -238,11 +266,12 @@ export function prepareActivation(
   if (state.phase !== 'bound' || !validateReady(ready, state.binding)) {
     return reject('BINDING_REPLAY');
   }
+  const readySnapshot = snapshotReady(ready);
   const next: ActivatedHandshakeState = {
     phase: 'activated',
     candidate: state.candidate,
     binding: state.binding,
-    activation: ready,
+    activation: readySnapshot,
   };
   return {
     accepted: true,
@@ -250,7 +279,7 @@ export function prepareActivation(
     intent: {
       kind: 'activation',
       transport: 'local-only',
-      ready,
+      ready: readySnapshot,
       validation: CLOSED_ONLY,
     },
   };

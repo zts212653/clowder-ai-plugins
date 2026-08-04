@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import type { Readable, Writable } from 'node:stream';
 
 import {
+  DEADLINE_EXPIRED_CODE,
+  DEADLINE_EXPIRED_MESSAGE,
   PARSE_ERROR_CODE,
   PARSE_ERROR_MESSAGE,
   validateManifest,
@@ -35,7 +37,11 @@ export interface StandaloneHostOptions {
   /** Caller-owned streams are useful for embedding and tests; provide both or neither. */
   readonly input?: Readable;
   readonly output?: Writable;
-  /** Runs before the closed drain row is acknowledged with `result: null`. */
+  /**
+   * Runs before the closed drain row is acknowledged with `result: null`.
+   * A cleanup that outlives its drain deadline is acknowledged as expired;
+   * callers that need cancellation must arrange it within their callback.
+   */
   readonly onDrain?: (input: { readonly deadlineUnixMs: number }) => void | Promise<void>;
   readonly onFatal?: (error: StdioRuntimeFatalError) => void;
 }
@@ -85,6 +91,43 @@ function requireRequest(value: JsonObject): {
   return { id, method, input: params.input };
 }
 
+function deadlineExpiredResponse(id: string): JsonObject {
+  return {
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code: DEADLINE_EXPIRED_CODE,
+      message: DEADLINE_EXPIRED_MESSAGE,
+      data: {},
+    },
+  };
+}
+
+async function completesBeforeDrainDeadline(
+  onDrain: StandaloneHostOptions['onDrain'],
+  deadlineUnixMs: number,
+): Promise<boolean> {
+  if (Date.now() >= deadlineUnixMs) {
+    return false;
+  }
+
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+  const cleanup = Promise.resolve().then(() => onDrain?.({ deadlineUnixMs }));
+  try {
+    const completed = await Promise.race([
+      cleanup.then(() => true),
+      new Promise<false>(resolve => {
+        deadlineTimer = setTimeout(() => resolve(false), Math.max(0, deadlineUnixMs - Date.now()));
+      }),
+    ]);
+    return completed && Date.now() < deadlineUnixMs;
+  } finally {
+    if (deadlineTimer !== undefined) {
+      clearTimeout(deadlineTimer);
+    }
+  }
+}
+
 function createFrameHandler(options: StandaloneHostOptions) {
   const inFlight = new Map<string, InFlightEntry>();
 
@@ -120,7 +163,9 @@ function createFrameHandler(options: StandaloneHostOptions) {
       if (typeof deadlineUnixMs !== 'number') {
         throw new StandaloneProtocolError('classifier accepted drain without a deadline');
       }
-      await options.onDrain?.({ deadlineUnixMs });
+      if (!(await completesBeforeDrainDeadline(options.onDrain, deadlineUnixMs))) {
+        return deadlineExpiredResponse(request.id);
+      }
       return { jsonrpc: '2.0', id: request.id, result: null };
     }
     // No RESERVED method reaches this branch: S1 rejects those rows before

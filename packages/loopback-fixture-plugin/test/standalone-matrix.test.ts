@@ -25,6 +25,7 @@ const behaviorSchemaUrl = new URL('../../plugin-contract/src/schemas/behavior-fi
 const manifestSchemaUrl = new URL('../../plugin-contract/src/schemas/manifest.schema.json', import.meta.url);
 const behaviorFixtureUrl = new URL('../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json', import.meta.url);
 const hostHalfSeamManifestUrl = new URL('./host-half-seam-manifest.json', import.meta.url);
+const lifecycleDeadlineUnixMs = Date.now() + 60_000;
 
 interface ChildResult {
   readonly code: number | null;
@@ -152,7 +153,7 @@ const LOCAL_STANDALONE_CASES: readonly {
     id: 'lifecycle-drain-round-trip',
     input: [
       Buffer.from(
-        '{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":1},"input":{"deadlineUnixMs":2}}}\n',
+        `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${lifecycleDeadlineUnixMs}},"input":{"deadlineUnixMs":${lifecycleDeadlineUnixMs}}}}\n`,
         'utf8',
       ),
     ],

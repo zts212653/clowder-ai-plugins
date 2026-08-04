@@ -108,6 +108,7 @@ test('responds to closed lifecycle rows only after the manifest is valid', async
   const input = new PassThrough();
   const output = new PassThrough();
   let drainedAt: number | undefined;
+  const deadlineUnixMs = Date.now() + 60_000;
   const frames = collectFrames(output, 2);
   const channel = startStandaloneHost({
     manifest: validManifest,
@@ -120,8 +121,8 @@ test('responds to closed lifecycle rows only after the manifest is valid', async
 
   input.end(
     Buffer.from(
-      '{"jsonrpc":"2.0","id":"ping-1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"nonce-1"}}}\n' +
-        '{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":2},"input":{"deadlineUnixMs":3}}}\n',
+      `{"jsonrpc":"2.0","id":"ping-1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":${deadlineUnixMs}},"input":{"nonce":"nonce-1"}}}\n` +
+        `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${deadlineUnixMs}},"input":{"deadlineUnixMs":${deadlineUnixMs}}}}\n`,
       'utf8',
     ),
   );
@@ -130,7 +131,92 @@ test('responds to closed lifecycle rows only after the manifest is valid', async
     { jsonrpc: '2.0', id: 'ping-1', result: { nonce: 'nonce-1' } },
     { jsonrpc: '2.0', id: 'drain-1', result: null },
   ]);
-  assert.equal(drainedAt, 3, 'drain acknowledgement follows graceful shutdown work');
+  assert.equal(drainedAt, deadlineUnixMs, 'drain acknowledgement follows graceful shutdown work');
+  channel.close();
+});
+
+test('rejects an already-expired drain deadline without starting shutdown work', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let drainCalls = 0;
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({
+    manifest: validManifest,
+    input,
+    output,
+    onDrain: () => {
+      drainCalls += 1;
+    },
+  });
+  const requestDeadline = Date.now() + 60_000;
+  const expiredDrainDeadline = Date.now() - 1;
+
+  input.end(
+    Buffer.from(
+      `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${requestDeadline}},"input":{"deadlineUnixMs":${expiredDrainDeadline}}}}\n`,
+      'utf8',
+    ),
+  );
+
+  assert.deepEqual(await frames, [
+    {
+      jsonrpc: '2.0',
+      id: 'drain-1',
+      error: { code: -32093, message: 'deadline expired', data: {} },
+    },
+  ]);
+  assert.equal(drainCalls, 0);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
+test('rejects a drain whose cleanup remains pending beyond its deadline', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  let releaseDrain!: () => void;
+  const blockedDrain = new Promise<void>(resolve => {
+    releaseDrain = resolve;
+  });
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({
+    manifest: validManifest,
+    input,
+    output,
+    onDrain: () => blockedDrain,
+  });
+  const requestDeadline = Date.now() + 60_000;
+  const drainDeadline = Date.now() + 20;
+
+  input.end(
+    Buffer.from(
+      `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${requestDeadline}},"input":{"deadlineUnixMs":${drainDeadline}}}}\n`,
+      'utf8',
+    ),
+  );
+
+  let observationTimer: ReturnType<typeof setTimeout> | undefined;
+  const outcome = await Promise.race([
+    frames.then(value => ({ kind: 'response' as const, value })),
+    new Promise<{ readonly kind: 'timeout' }>(resolve => {
+      observationTimer = setTimeout(() => resolve({ kind: 'timeout' }), 150);
+    }),
+  ]);
+  if (observationTimer !== undefined) {
+    clearTimeout(observationTimer);
+  }
+  releaseDrain();
+
+  assert.notEqual(outcome.kind, 'timeout', 'drain must not wait past its deadline');
+  if (outcome.kind === 'response') {
+    assert.deepEqual(outcome.value, [
+      {
+        jsonrpc: '2.0',
+        id: 'drain-1',
+        error: { code: -32093, message: 'deadline expired', data: {} },
+      },
+    ]);
+  }
+  assert.equal(channel.failed, false);
   channel.close();
 });
 

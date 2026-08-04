@@ -134,6 +134,39 @@ test('rejects invalid CLOSED binding values without narrowing RESERVED field gra
   }
 });
 
+test('snapshots accepted handshake inputs before later local transitions', () => {
+  const mutableCandidate = { ...candidateHello };
+  const candidate = beginLocalHandshake(mutableCandidate);
+  expectAccepted(candidate);
+  mutableCandidate.packageDigest = 'sha512-not-a-digest';
+
+  const mutableBinding = {
+    ...sessionBinding(),
+    effectiveGrants: ['plugin.config.read'],
+  };
+  const binding = acceptSessionBinding(candidate.state, mutableBinding);
+  expectAccepted(binding);
+  assert.equal(binding.state.phase, 'bound');
+  if (binding.state.phase !== 'bound') {
+    throw new Error('accepted binding transition must enter the bound state');
+  }
+  mutableBinding.effectiveGrants.push('not.a.contract.capability');
+
+  assert.deepEqual(binding.state.candidate, candidateHello);
+  assert.deepEqual(binding.state.binding.effectiveGrants, ['plugin.config.read']);
+
+  const mutableReady = { bindingNonce: 'binding-nonce' };
+  const activation = prepareActivation(binding.state, mutableReady);
+  expectAccepted(activation);
+  assert.equal(activation.state.phase, 'activated');
+  if (activation.state.phase !== 'activated') {
+    throw new Error('accepted activation transition must enter the activated state');
+  }
+  mutableReady.bindingNonce = 'different-nonce';
+  assert.deepEqual(activation.state.binding.effectiveGrants, ['plugin.config.read']);
+  assert.deepEqual(activation.state.activation, { bindingNonce: 'binding-nonce' });
+});
+
 test('rejects malformed candidates and mismatched authoritative bindings through closed reasons', () => {
   assert.deepEqual(beginLocalHandshake({ ...candidateHello, packageDigest: 'sha512-not-a-digest' }), {
     accepted: false,
