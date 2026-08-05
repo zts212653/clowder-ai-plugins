@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "behaviorFixtures": [
+    {
+      "source": "../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json",
+      "requires": "K-2 host half",
+      "caseIds": [
+        "raw-thread-id-rejection",
+        "system-audience-dual-rejection",
+        "cross-instance-handle-rejection",
+        "origin-forgery-rejection",
+        "base-revision-conflict-zero-change",
+        "stale-cursor-snapshot-roundtrip",
+        "cross-subscription-ack-rejection",
+        "reply-to-cross-thread-leakage",
+        "epistemic-status-upgrade-rejection",
+        "preset-l2-rejected",
+        "preset-visible-revocable",
+        "whisper-target-beyond-default-empty-grant-rejected",
+        "append-without-grant-rejected",
+        "denied-on-message-rejected",
+        "permission-matrix-complete",
+        "delete-replay-events-preserves-canonical-messages",
+        "snapshot-without-grant-rejected",
+        "foreign-replay-delete-rejected"
+      ]
+    }
+  ]
+}

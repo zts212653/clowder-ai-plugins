@@ -21,7 +21,7 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/stdio-runtime.test.ts src/wire-dispatch.test.ts src/contract-mirror.test.ts",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/stdio-runtime.test.ts src/wire-dispatch.test.ts src/contract-mirror.test.ts src/standalone-host.test.ts src/handshake-client.test.ts",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "prepack": "pnpm build",
     "clean": "rm -rf dist"

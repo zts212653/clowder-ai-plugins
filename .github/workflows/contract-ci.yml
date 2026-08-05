@@ -62,6 +62,18 @@ jobs:
       - name: SDK build
         run: pnpm --filter @clowder-ai/plugin-sdk build
 
+      - name: Loopback fixture typecheck
+        run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck
+
+      - name: Loopback fixture tests
+        run: pnpm --filter @clowder-ai/loopback-fixture-plugin test
+
+      - name: Loopback fixture lint
+        run: pnpm --filter @clowder-ai/loopback-fixture-plugin lint
+
+      - name: Loopback fixture build
+        run: pnpm --filter @clowder-ai/loopback-fixture-plugin build
+
       - name: Conformance runner
         run: pnpm --filter @clowder-ai/plugin-contract conformance
 

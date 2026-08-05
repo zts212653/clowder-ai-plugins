@@ -1,0 +1,18 @@
+{
+  "pluginId": "dev.clowder.loopback-fixture",
+  "version": "0.1.0",
+  "contractVersion": "0.1.0",
+  "name": "Loopback fixture plugin",
+  "features": [
+    {
+      "id": "echo",
+      "name": "Schema-neutral echo",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "stdio",
+    "entrypoint": "dist/plugin.js"
+  }
+}
