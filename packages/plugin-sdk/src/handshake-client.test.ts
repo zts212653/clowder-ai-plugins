@@ -42,7 +42,7 @@ test('models the candidate → binding → activation sequence as local intents 
     kind: 'candidate',
     transport: 'local-only',
     candidate: candidateHello,
-    validation: { reservedFields: 'structural', closedFields: 'full' },
+    validation: { contractFields: 'full' },
   });
 
   const binding = acceptSessionBinding(candidate.state, sessionBinding());
@@ -51,8 +51,7 @@ test('models the candidate → binding → activation sequence as local intents 
   assert.equal(binding.intent.kind, 'binding');
   assert.equal(binding.intent.transport, 'local-only');
   assert.deepEqual(binding.intent.validation, {
-    reservedFields: 'structural',
-    closedFields: 'full',
+    contractFields: 'full',
   });
 
   const activation = prepareActivation(binding.state, { bindingNonce: 'binding-nonce' });
@@ -62,7 +61,7 @@ test('models the candidate → binding → activation sequence as local intents 
     kind: 'activation',
     transport: 'local-only',
     ready: { bindingNonce: 'binding-nonce' },
-    validation: { reservedFields: 'none', closedFields: 'full' },
+    validation: { contractFields: 'full' },
   });
 });
 
@@ -89,15 +88,19 @@ test('feeds fake Host objects through an object-mode seam without creating wire 
   assert.equal(activation.intent.transport, 'local-only');
 });
 
-test('validates CLOSED binding fields without inventing grammar for RESERVED identity fields', () => {
+test('uses the published beta.8 grammar for every binding field', () => {
   const candidate = beginLocalHandshake(candidateHello);
   expectAccepted(candidate);
 
-  const structurallyReserved = acceptSessionBinding(
+  const emptyHostIdentifiers = acceptSessionBinding(
     candidate.state,
     sessionBinding({ pluginInstanceId: '', brokerSessionId: '' }),
   );
-  expectAccepted(structurallyReserved);
+  assert.deepEqual(emptyHostIdentifiers, {
+    accepted: false,
+    reason: 'AUTHORITY_VIOLATION',
+    state: { phase: 'rejected', reason: 'AUTHORITY_VIOLATION' },
+  });
 
   const duplicateGrants = acceptSessionBinding(
     candidate.state,
@@ -109,15 +112,15 @@ test('validates CLOSED binding fields without inventing grammar for RESERVED ide
     state: { phase: 'rejected', reason: 'AUTHORITY_VIOLATION' },
   });
 
-  const nonStringReservedField = acceptSessionBinding(
+  const nonStringHostIdentifier = acceptSessionBinding(
     candidate.state,
     sessionBinding({ pluginInstanceId: 42 }),
   );
-  assert.equal(nonStringReservedField.accepted, false);
-  assert.equal(nonStringReservedField.reason, 'AUTHORITY_VIOLATION');
+  assert.equal(nonStringHostIdentifier.accepted, false);
+  assert.equal(nonStringHostIdentifier.reason, 'AUTHORITY_VIOLATION');
 });
 
-test('rejects invalid CLOSED binding values without narrowing RESERVED field grammar', () => {
+test('rejects N+1 identities and version grammar outside the public contract', () => {
   const candidate = beginLocalHandshake(candidateHello);
   expectAccepted(candidate);
 
@@ -125,6 +128,9 @@ test('rejects invalid CLOSED binding values without narrowing RESERVED field gra
     ['non-WireUInt53 grant revision', { grantRevision: 1.5 }],
     ['unknown effective grant', { effectiveGrants: ['not.a.contract.capability'] }],
     ['overlong binding nonce', { bindingNonce: 'n'.repeat(513) }],
+    ['overlong plugin instance id', { pluginInstanceId: 'i'.repeat(513) }],
+    ['overlong broker session id', { brokerSessionId: 's'.repeat(513) }],
+    ['contract version range', { contractVersion: '^0.1.0' }],
   ] as const;
 
   for (const [description, overrides] of invalidBindings) {
@@ -185,14 +191,14 @@ test('rejects malformed candidates and mismatched authoritative bindings through
 
   const contractMismatch = acceptSessionBinding(
     candidate.state,
-    sessionBinding({ contractVersion: 'other-compatible-later' }),
+    sessionBinding({ contractVersion: '0.1.1' }),
   );
   assert.equal(contractMismatch.accepted, false);
   assert.equal(contractMismatch.reason, 'CONTRACT_INCOMPATIBLE');
 
   const wireMismatch = acceptSessionBinding(
     candidate.state,
-    sessionBinding({ wireVersion: 'other-wire-later' }),
+    sessionBinding({ wireVersion: '0.1.1' }),
   );
   assert.equal(wireMismatch.accepted, false);
   assert.equal(wireMismatch.reason, 'WIRE_INCOMPATIBLE');

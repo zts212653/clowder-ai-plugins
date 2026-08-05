@@ -1,6 +1,7 @@
 /**
- * Pre-dispatch disposition table -- T-A through T-L.
- * Mechanized verbatim from #1165 R35/R39/R44.
+ * Pre-dispatch disposition table -- T-A through T-M.
+ * T-A through T-L are mechanized from #1165 R35/R39/R44; beta.8 adds T-M
+ * because a ready request row now has a legal input shape.
  *
  * Every raw-frame/profile/request rejection class has exactly one
  * deterministic transport disposition. The table is frozen: adding
@@ -14,7 +15,7 @@
  * Derived subsets (exported):
  *   - CLOSE_CLASSES:   close with no response (T-A, T-C, T-E, T-H, T-I, T-K).
  *   - RESPOND_CLASSES: respond with an error  (T-B, T-D, T-F, T-G).
- *   - ACCEPT_CLASSES:  accept and process     (T-J, T-L).
+ *   - ACCEPT_CLASSES:  accept and process     (T-J, T-L, T-M).
  *
  * These subsets are used in byte-proof exclusion: close/accept classes
  * are excluded from error byte proofs because they never emit an error
@@ -26,12 +27,12 @@
 // ---------------------------------------------------------------------------
 
 /**
- * The 12 pre-dispatch disposition classes, T-A through T-L.
- * Mechanized from #1165 R35.
+ * The 13 pre-dispatch disposition classes, T-A through T-M.
+ * Adding a class requires a reviewed contract revision.
  */
 export const DISPOSITION_CLASSES = [
   'T-A', 'T-B', 'T-C', 'T-D', 'T-E', 'T-F',
-  'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L',
+  'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L', 'T-M',
 ] as const;
 
 /** Union of all disposition class identifiers. */
@@ -56,7 +57,7 @@ export type DispositionOutcome = 'close' | 'respond' | 'accept';
 /**
  * A single row of the disposition table.
  *
- * @property class            - The disposition class identifier (T-A .. T-L).
+ * @property class            - The disposition class identifier (T-A .. T-M).
  * @property outcome          - Transport outcome: close, respond, or accept.
  * @property emitsResponse    - Whether an error response is written to the wire.
  * @property dispatches       - Whether the frame reaches the dispatch layer.
@@ -85,7 +86,7 @@ export interface DispositionEntry {
 
 /**
  * The complete pre-dispatch disposition table.
- * Every row is mechanized from #1165 R35/R39/R44 -- no interpretation.
+ * T-A through T-L are frozen #1165 rows; T-M is beta.8's ready-row closure.
  *
  * | #   | Rejection class                                        | Disposition                       |
  * |-----|--------------------------------------------------------|-----------------------------------|
@@ -101,6 +102,7 @@ export interface DispositionEntry {
  * | T-J | legal Notification (row 10)                             | accept, dispatch, no response     |
  * | T-K | valid Notification, v0 violation                        | close, no response, zero dispatch |
  * | T-L | valid correlated response                               | accept, settle, no response       |
+ * | T-M | legal Request on a ready row                            | accept, dispatch, no response     |
  */
 export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
   'T-A': {
@@ -223,6 +225,16 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     predicate: 'valid correlated response matching an in-flight request',
     canonicalExample: '{"jsonrpc":"2.0","id":"req-1","result":{"nonce":"x"}}',
   },
+  'T-M': {
+    class: 'T-M',
+    outcome: 'accept',
+    emitsResponse: false,
+    dispatches: true,
+    description: 'legal Request on a ready row',
+    errorCodes: [],
+    predicate: 'profile-valid Request with a closed valid input for a registry row marked ready=true',
+    canonicalExample: '{"jsonrpc":"2.0","id":"hello-1","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{"pluginId":"example.loopback","packageDigest":"sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","contractVersion":"0.1.0-beta.8","wireVersion":"0.1.0"}}}',
+  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -253,5 +265,5 @@ export const RESPOND_CLASSES: readonly DispositionClass[] = [
  * Mechanized from #1165 R35.
  */
 export const ACCEPT_CLASSES: readonly DispositionClass[] = [
-  'T-J', 'T-L',
+  'T-J', 'T-L', 'T-M',
 ] as const;

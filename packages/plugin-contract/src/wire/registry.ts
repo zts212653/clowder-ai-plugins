@@ -5,7 +5,7 @@
  * Every row carries machine-readable metadata:
  *   - method name, direction, grant requirement
  *   - notification flag (only row 10)
- *   - ready status (ALL false — reservation-only lifecycle, D0 = A)
+ *   - ready status (only rows 1–2 true in beta.8)
  *   - leaf closure status and which matrix entries cause reservation
  *   - settlement key source
  *
@@ -22,6 +22,7 @@
  */
 
 import type { Capability } from '../generated/contract.generated.js';
+import { HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS } from './handshake-byte-bounds.js';
 
 // ---------------------------------------------------------------------------
 // Direction + Grant types
@@ -48,8 +49,8 @@ export interface SchemaClosurePrerequisite {
 
 /**
  * A single row of the production method registry.
- * ready is typed as `false` — the reservation-only lifecycle means
- * every row is unpublished and unadvertised.
+ * Most rows remain unpublished and unadvertised. beta.8 closes and exposes
+ * only the two handshake rows.
  */
 export interface RegistryRow {
   readonly rowNumber: number;
@@ -57,12 +58,26 @@ export interface RegistryRow {
   readonly direction: MethodDirection;
   readonly grant: GrantRequirement;
   readonly isNotification: boolean;
-  readonly ready: false;
+  readonly ready: boolean;
   readonly leafClosure: LeafClosureStatus;
   readonly reservedEntries: readonly string[];
   readonly settlementKeySource: string;
+  /** Derived compact-frame maxima, present only for rows with closed wire shapes. */
+  readonly maxEncodedRequestBytes?: number;
+  readonly maxEncodedResultBytes?: number;
+  readonly maxEncodedErrorBytes?: number;
   /** Schema fields required before this row may change from RESERVED to CLOSED. */
   readonly schemaClosurePrerequisites?: readonly SchemaClosurePrerequisite[];
+}
+
+/** A registry row whose input is publicly ready for dispatch. */
+export interface ReadyRegistryRow extends RegistryRow {
+  readonly ready: true;
+}
+
+/** A registry row that remains unready, whether its leaves are CLOSED or RESERVED. */
+export interface UnreadyRegistryRow extends RegistryRow {
+  readonly ready: false;
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +107,16 @@ export const WIRE_METHOD_NAMES = [
 /** Union of all 12 production method names. */
 export type WireMethodName = (typeof WIRE_METHOD_NAMES)[number];
 
+/**
+ * Literal readiness partition. This prevents a registry edit from widening a
+ * newly closed row back to `boolean` or accidentally advertising another row.
+ */
+export type WireMethodRegistry = {
+  readonly [Method in WireMethodName]: Method extends 'broker.hello' | 'broker.ready'
+    ? ReadyRegistryRow
+    : UnreadyRegistryRow;
+};
+
 // ---------------------------------------------------------------------------
 // The complete registry (frozen)
 // ---------------------------------------------------------------------------
@@ -103,33 +128,32 @@ export type WireMethodName = (typeof WIRE_METHOD_NAMES)[number];
  * the exact matrix entry IDs that block leaf closure. Settlement key
  * sources follow the canonical per-row specification.
  *
- * All 12 rows have ready=false (reservation-only lifecycle, D0 = A).
+ * Rows 1–2 are ready after beta.8's closure; rows 3–12 remain false.
  */
-export const WIRE_METHOD_REGISTRY: Readonly<Record<WireMethodName, RegistryRow>> = {
+export const WIRE_METHOD_REGISTRY = {
   'broker.hello': {
     rowNumber: 1,
     method: 'broker.hello',
     direction: 'plugin-to-host',
     grant: 'protocol-intrinsic',
     isNotification: false,
-    ready: false,
-    leafClosure: 'RESERVED',
-    reservedEntries: ['H1', 'H3', 'H4', 'H5', 'H6'],
+    ready: true,
+    leafClosure: 'CLOSED',
+    reservedEntries: [],
     settlementKeySource: '—',
+    ...HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.hello'],
   },
-  // Row 2 own entries (H9 via W0/W1/W2/W3) are all CLOSED.
-  // RESERVED because activation cannot be advertised without a closed
-  // row-1 SessionBinding — H1/H3/H4/H5/H6 block through protocol dependency.
   'broker.ready': {
     rowNumber: 2,
     method: 'broker.ready',
     direction: 'plugin-to-host',
     grant: 'protocol-intrinsic',
     isNotification: false,
-    ready: false,
-    leafClosure: 'RESERVED',
-    reservedEntries: ['H1', 'H3', 'H4', 'H5', 'H6'],
+    ready: true,
+    leafClosure: 'CLOSED',
+    reservedEntries: [],
     settlementKeySource: '—',
+    ...HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.ready'],
   },
   'messaging.send': {
     rowNumber: 3,
@@ -246,7 +270,7 @@ export const WIRE_METHOD_REGISTRY: Readonly<Record<WireMethodName, RegistryRow>>
     reservedEntries: [],
     settlementKeySource: '—',
   },
-} as const;
+} as const satisfies WireMethodRegistry;
 
 // ---------------------------------------------------------------------------
 // Derived helpers
@@ -271,6 +295,10 @@ export const CLOSED_LEAF_ROWS: readonly WireMethodName[] =
 /** Method names with RESERVED leaf shapes (may change). */
 export const RESERVED_LEAF_ROWS: readonly WireMethodName[] =
   WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].leafClosure === 'RESERVED');
+
+/** Method names that are legal for wire advertisement in beta.8. */
+export const READY_ROWS: readonly WireMethodName[] =
+  WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].ready);
 
 /** Total number of production methods. */
 export const WIRE_METHOD_COUNT = 12 as const;

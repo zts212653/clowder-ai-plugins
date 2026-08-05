@@ -1,12 +1,12 @@
 /**
- * Per-row byte-proof templates for all 5 closed rows.
+ * Per-row byte-proof templates for all 7 closed rows.
  *
  * Each template defines the worst-case wire frame for one closed row's
  * request/notification + response. The byte-proof engine
  * (calculateByteProof) measures these to verify frame budget compliance
  * and generate N+1 rejection proofs.
  *
- * Only CLOSED rows get byte proofs: 5, 7, 10, 11, 12.
+ * Only CLOSED rows get byte proofs: 1, 2, 5, 7, 10, 11, 12.
  * RESERVED rows cannot be measured — their shapes are not yet frozen.
  *
  * Templates use placeholder strings ('') for closed string leaves.
@@ -18,6 +18,11 @@ import { WIRE_UINT53_MAX } from '../wire/wire-uint53.js';
 import { MAX_FRAME_BYTES } from '../wire/constants.js';
 import {
   REQUEST_ID_MAX_LENGTH,
+  PLUGIN_ID_MAX_LENGTH,
+  HANDSHAKE_VERSION_MAX_LENGTH,
+  HOST_IDENTIFIER_MAX_LENGTH,
+  BINDING_NONCE_MAX_LENGTH,
+  PACKAGE_DIGEST_LENGTH,
   SUBSCRIBE_HANDLE_MAX_LENGTH,
   SUBSCRIBE_SUBSCRIPTION_ID_MAX_LENGTH,
   ACK_SUBSCRIPTION_ID_MAX_LENGTH,
@@ -78,6 +83,114 @@ const ALL_MESSAGING_ERROR_CODES = [
   'RETRYABLE_INFLIGHT',
   'STALE_CURSOR',
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Rows 1–2 — beta.8 handshake (CLOSED)
+//
+// SemVer leaves are represented by a valid maximum literal: the generic
+// engine substitutes whole string leaves and cannot preserve SemVer's fixed
+// `0.0.0-` prefix. Their N+1 rejection is exercised by wire validators.
+// ---------------------------------------------------------------------------
+
+const MAX_PACKAGE_DIGEST = `sha512-${'A'.repeat(PACKAGE_DIGEST_LENGTH - 9)}==`;
+const MAX_HANDSHAKE_SEMVER = `0.0.0-${'a'.repeat(HANDSHAKE_VERSION_MAX_LENGTH - 6)}`;
+
+/** Row 1 request template: broker.hello CandidateHello. */
+export function helloRequestTemplate(): ByteProofInput {
+  const template: JsonValue = {
+    jsonrpc: '2.0',
+    id: '',
+    method: 'broker.hello',
+    params: {
+      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
+      input: {
+        pluginId: '',
+        packageDigest: MAX_PACKAGE_DIGEST,
+        contractVersion: MAX_HANDSHAKE_SEMVER,
+        wireVersion: MAX_HANDSHAKE_SEMVER,
+      },
+    },
+  };
+
+  return {
+    template,
+    leaves: [
+      REQUEST_ID_LEAF,
+      {
+        id: 'pluginId',
+        path: ['params', 'input', 'pluginId'],
+        maxCodePoints: PLUGIN_ID_MAX_LENGTH,
+      },
+    ],
+    frameLimitBytes: MAX_FRAME_BYTES,
+  };
+}
+
+/** Row 1 result template: broker.hello SessionBinding. */
+export function helloResponseTemplate(): ByteProofInput {
+  const template: JsonValue = {
+    jsonrpc: '2.0',
+    id: '',
+    result: {
+      pluginId: '',
+      packageDigest: MAX_PACKAGE_DIGEST,
+      contractVersion: MAX_HANDSHAKE_SEMVER,
+      wireVersion: MAX_HANDSHAKE_SEMVER,
+      pluginInstanceId: '',
+      brokerSessionId: '',
+      grantRevision: WIRE_UINT53_MAX,
+      effectiveGrants: ALL_CAPABILITY_VALUES,
+      bindingNonce: '',
+    },
+  };
+
+  return {
+    template,
+    leaves: [
+      REQUEST_ID_LEAF,
+      { id: 'pluginId', path: ['result', 'pluginId'], maxCodePoints: PLUGIN_ID_MAX_LENGTH },
+      { id: 'pluginInstanceId', path: ['result', 'pluginInstanceId'], maxCodePoints: HOST_IDENTIFIER_MAX_LENGTH },
+      { id: 'brokerSessionId', path: ['result', 'brokerSessionId'], maxCodePoints: HOST_IDENTIFIER_MAX_LENGTH },
+      { id: 'bindingNonce', path: ['result', 'bindingNonce'], maxCodePoints: BINDING_NONCE_MAX_LENGTH },
+    ],
+    frameLimitBytes: MAX_FRAME_BYTES,
+  };
+}
+
+/** Row 2 request template: broker.ready BrokerReadyParams. */
+export function readyRequestTemplate(): ByteProofInput {
+  const template: JsonValue = {
+    jsonrpc: '2.0',
+    id: '',
+    method: 'broker.ready',
+    params: {
+      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
+      input: { bindingNonce: '' },
+    },
+  };
+
+  return {
+    template,
+    leaves: [
+      REQUEST_ID_LEAF,
+      {
+        id: 'bindingNonce',
+        path: ['params', 'input', 'bindingNonce'],
+        maxCodePoints: BINDING_NONCE_MAX_LENGTH,
+      },
+    ],
+    frameLimitBytes: MAX_FRAME_BYTES,
+  };
+}
+
+/** Row 2 success result is the exact JSON-RPC value `null`. */
+export function readyResponseMaxBytes(): number {
+  return Buffer.byteLength(JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'a'.repeat(REQUEST_ID_MAX_LENGTH),
+    result: null,
+  }), 'utf8');
+}
 
 // ---------------------------------------------------------------------------
 // Row 5 — messaging.subscribe (CLOSED)
@@ -549,8 +662,14 @@ export interface ClosedRowNotificationTemplate {
  * All closed row templates indexed by row number.
  * Row 10 is special — it's a notification with no variable-length leaves.
  */
-export function getClosedRowTemplates(): Record<5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> {
+export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> {
   return {
+    1: { request: helloRequestTemplate(), response: helloResponseTemplate() },
+    2: { request: readyRequestTemplate(), response: {
+      template: { jsonrpc: '2.0', id: '', result: null },
+      leaves: [REQUEST_ID_LEAF],
+      frameLimitBytes: MAX_FRAME_BYTES,
+    } },
     5: { request: subscribeRequestTemplate(), response: subscribeResponseTemplate() },
     7: { request: ackRequestTemplate(), response: ackResponseTemplate() },
     10: { notification: { maxBytes: grantsChangedMaxBytes(), nPlusOneBytes: grantsChangedNPlusOneBytes() } },

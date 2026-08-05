@@ -1,11 +1,11 @@
 /**
  * Wire dispatch classifier — pre-dispatch frame classification per the
- * frozen disposition table (T-A through T-L, §3.8-1 of #1165).
+ * disposition table (T-A through T-M, §3.8-1 plus beta.8 closure).
  *
- * This module classifies decoded NDJSON frames into one of the 12
+ * This module classifies decoded NDJSON frames into one of the 13
  * disposition classes. T-A (transport failure) and T-B (JSON parse error)
  * are handled by the NDJSON frame decoder layer — this classifier covers
- * T-C through T-L.
+ * T-C through T-M.
  *
  * A frame that passes all rejection checks returns disposition=null with
  * outcome='accept', indicating a valid request that should be dispatched
@@ -21,6 +21,9 @@ import {
   type DispositionClass,
   type WireMethodName,
   validateRequestId,
+  validateCandidateHello,
+  validateBrokerReadyParams,
+  validateSessionBinding,
   validateEffectiveGrants,
   isWireMethod,
   isWireUInt53,
@@ -611,6 +614,16 @@ function validateResponseResult(
       return null;
     }
 
+    case 'broker.hello': {
+      if (!validateSessionBinding(result)) return close('T-H');
+      return null;
+    }
+
+    case 'broker.ready': {
+      if (result !== null) return close('T-H');
+      return null;
+    }
+
     case 'host.lifecycle.drain': {
       // DrainResult: null
       if (result !== null) return close('T-H');
@@ -864,10 +877,16 @@ function classifyRequest(
     if (valueResult !== null) return valueResult;
   } else {
     // RESERVED rows: input type is `never` → no legal params value exists
-    // in v0 → any invocation is a value violation (T-G).
-    // Fable ruling: disposition table has no accept class for Requests;
-    // ACCEPT_CLASSES = {T-J (notification), T-L (response)} only.
+    // in beta.8 → any invocation is a value violation (T-G). T-M is limited
+    // to the two registry rows explicitly marked ready=true.
     return respondInvalidParamsValue(id);
+  }
+
+  // The two beta.8 handshake rows are now legal Requests. The standalone
+  // shell will deliberately return MethodNotFound until its later codec slice;
+  // classification itself must not relabel their valid input as T-G or T-F.
+  if (row.ready && (wireMethod === 'broker.hello' || wireMethod === 'broker.ready')) {
+    return accept('T-M');
   }
 
   // Direction gate: plugin SDK only accepts host-to-plugin methods as
@@ -894,6 +913,10 @@ function validateClosedRowInput(
   id: string,
 ): DispatchResult | null {
   switch (method) {
+    case 'broker.hello':
+      return validateCandidateHello(input) ? null : respondInvalidParamsValue(id);
+    case 'broker.ready':
+      return validateBrokerReadyParams(input) ? null : respondInvalidParamsValue(id);
     case 'host.lifecycle.ping': {
       // Closed input keys: {nonce} only
       for (const key of Object.keys(input)) {
@@ -964,7 +987,7 @@ function validateClosedRowInput(
 /**
  * Classify a decoded NDJSON frame into a disposition class.
  *
- * Covers T-C through T-L of the frozen disposition table. T-A and T-B
+ * Covers T-C through T-M of the disposition table. T-A and T-B
  * are handled by the NDJSON frame decoder layer.
  *
  * @param frame   Decoded frame with raw bytes and parsed value.

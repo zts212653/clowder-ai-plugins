@@ -12,6 +12,11 @@
 
 import type { Capability } from '../generated/contract.generated.js';
 import type { GrantSnapshot } from './grants.js';
+import type {
+  BrokerReadyParams,
+  CandidateHello,
+  SessionBinding,
+} from './handshake.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Row 5 — messaging.subscribe (CLOSED leaf shape)
@@ -210,24 +215,23 @@ export type DrainResult = null;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Row 1 — broker.hello: RESERVED (H1/H3/H4/H5/H6).
+ * Row 1 — broker.hello: CLOSED in beta.8.
  *
  * Plugin → Host handshake. CandidateHello → SessionBinding.
  * See handshake.ts for structural types.
- * No executable wire input/result contract until reserved entries close.
+ * Candidate grammar and the Host-authoritative binding are closed by beta.8.
  */
-export type HelloInput = never;
-export type HelloResult = never;
+export type HelloInput = CandidateHello;
+export type HelloResult = SessionBinding;
 
 /**
- * Row 2 — broker.ready: RESERVED (H1/H3/H4/H5/H6).
+ * Row 2 — broker.ready: CLOSED in beta.8.
  *
  * Plugin → Host activation. The structural type (BrokerReadyParams)
- * exists in handshake.ts, but the wire input/result shapes remain
- * reserved until the row's matrix entries close.
+ * is the executable input shape; success is a null JSON-RPC result.
  */
-export type ReadyInput = never;
-export type ReadyResult = never;
+export type ReadyInput = BrokerReadyParams;
+export type ReadyResult = null;
 
 /**
  * Row 3 — messaging.send: RESERVED (M1/M2/M5/I1).

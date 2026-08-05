@@ -9,6 +9,10 @@ import {
   DISPOSITION_FIXTURE_VECTORS,
   type DispositionFixtureVector,
 } from '../../plugin-contract/src/wire/disposition-fixtures.js';
+import {
+  METHOD_NOT_FOUND_CODE,
+  METHOD_NOT_FOUND_MESSAGE,
+} from '../../plugin-contract/src/wire/errors.js';
 import { MAX_NDJSON_FRAME_BYTES } from '../../plugin-contract/src/conformance/stdio-harness/ndjson-frame.js';
 
 const require = createRequire(new URL('../../plugin-contract/package.json', import.meta.url));
@@ -75,6 +79,17 @@ function fixtureInput(vector: DispositionFixtureVector): Buffer {
 function expectedForFixture(vector: DispositionFixtureVector): ExpectedChildResult {
   if (vector.expectedOutcome === 'respond') {
     return { code: 0, stdout: `${vector.expectedResponseFrame}\n` };
+  }
+  if (vector.expectedClass === 'T-M') {
+    const frame = JSON.parse(vector.rawFrame) as { id: string };
+    return {
+      code: 0,
+      stdout: `${JSON.stringify({
+        jsonrpc: '2.0',
+        id: frame.id,
+        error: { code: METHOD_NOT_FOUND_CODE, message: METHOD_NOT_FOUND_MESSAGE },
+      })}\n`,
+    };
   }
   return { code: vector.expectedOutcome === 'close' ? 1 : 0, stdout: '' };
 }
@@ -159,7 +174,7 @@ const LOCAL_STANDALONE_CASES: readonly {
     expected: { code: 0, stdout: '{"jsonrpc":"2.0","id":"drain-1","result":null}\n' },
   },
   {
-    id: 'reserved-handshake-request-is-rejected',
+    id: 'malformed-handshake-request-is-rejected-before-dispatch',
     input: [
       Buffer.from(
         '{"jsonrpc":"2.0","id":"hello-1","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}\n',

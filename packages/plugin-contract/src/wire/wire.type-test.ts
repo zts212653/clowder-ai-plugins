@@ -7,7 +7,7 @@
  *
  * Three probe families:
  *   (a) Generic envelope constructors NOT in public barrel
- *   (b) RESERVED row inputs are `never` — no value satisfies
+ *   (b) still-RESERVED row inputs are `never` — no value satisfies
  *   (c) Error response beyond 11 closed arms cannot be constructed
  *
  * This file is excluded from tsconfig.build.json (production build) but
@@ -18,8 +18,9 @@ import type {
   // Closed types that SHOULD be in the barrel
   WireErrorResponse,
   WireMethodName,
+  WireMethodRegistry,
   RequestId,
-  // RESERVED row input stubs (all = never)
+  // beta.8 handshake inputs plus still-RESERVED row stubs
   HelloInput,
   ReadyInput,
   SendInput,
@@ -53,18 +54,23 @@ type _OpenAppErr = import('./index.js').WireApplicationErrorResponse;
 type _OpenStdErr = import('./index.js').WireStandardErrorResponse;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RED (b): RESERVED row inputs are `never` — no concrete value satisfies.
+// RED (b): still-RESERVED row inputs are `never` — no concrete value satisfies.
 //
-// Rows 1-4, 6, 8-9 are RESERVED. Their input types are `never`, which
+// Rows 3-4, 6, 8-9 are RESERVED. Their input types are `never`, which
 // means no code can construct or consume these shapes until the row's
 // matrix entries close. Assigning any value to `never` is a type error.
 // ═══════════════════════════════════════════════════════════════════════════
 
-// @ts-expect-error — Row 1 (broker.hello) input is never
-const _reservedHello: HelloInput = '';
+const _closedHello: HelloInput = {
+  pluginId: 'example.loopback',
+  packageDigest: 'sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==',
+  contractVersion: '0.1.0-beta.8',
+  wireVersion: '0.1.0',
+};
 
-// @ts-expect-error — Row 2 (broker.ready) input is never
-const _reservedReady: ReadyInput = '';
+const _closedReady: ReadyInput = { bindingNonce: 'nonce-1' };
+void _closedHello;
+void _closedReady;
 
 // @ts-expect-error — Row 3 (messaging.send) input is never
 const _reservedSend: SendInput = '';
@@ -123,3 +129,12 @@ const _probeC2: WireErrorResponse = _fakeErrorNullId;
 
 // @ts-expect-error — 'not.a.method' is not in the 12-row closed method enum
 const _badMethod: WireMethodName = 'not.a.method';
+
+// beta.8's ready partition must remain literal rather than widening to boolean.
+declare const _registry: WireMethodRegistry;
+const _helloReady: true = _registry['broker.hello'].ready;
+const _readyReady: true = _registry['broker.ready'].ready;
+const _sendUnready: false = _registry['messaging.send'].ready;
+void _helloReady;
+void _readyReady;
+void _sendUnready;

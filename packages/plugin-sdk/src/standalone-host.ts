@@ -4,6 +4,8 @@ import type { Readable, Writable } from 'node:stream';
 import {
   DEADLINE_EXPIRED_CODE,
   DEADLINE_EXPIRED_MESSAGE,
+  METHOD_NOT_FOUND_CODE,
+  METHOD_NOT_FOUND_MESSAGE,
   PARSE_ERROR_CODE,
   PARSE_ERROR_MESSAGE,
   validateManifest,
@@ -111,6 +113,14 @@ function deadlineExpiredResponse(id: string): JsonObject {
   };
 }
 
+function methodNotFoundResponse(id: string): JsonObject {
+  return {
+    jsonrpc: '2.0',
+    id,
+    error: { code: METHOD_NOT_FOUND_CODE, message: METHOD_NOT_FOUND_MESSAGE },
+  };
+}
+
 async function completesBeforeDrainDeadline(
   onDrain: StandaloneHostOptions['onDrain'],
   deadlineUnixMs: number,
@@ -168,6 +178,12 @@ function createFrameHandler(options: StandaloneHostOptions) {
     }
 
     const request = requireRequest(frame.value);
+    if (request.method === 'broker.hello' || request.method === 'broker.ready') {
+      // beta.8 makes these inputs legal at the contract boundary (T-M), but
+      // this standalone plugin has no Host Broker or handshake codec. Reply
+      // conservatively without storing state, emitting ready, or activating.
+      return methodNotFoundResponse(request.id);
+    }
     if (request.method === 'host.lifecycle.ping') {
       const nonce = request.input.nonce;
       if (typeof nonce !== 'string') {
@@ -185,9 +201,8 @@ function createFrameHandler(options: StandaloneHostOptions) {
       }
       return { jsonrpc: '2.0', id: request.id, result: null };
     }
-    // No RESERVED method reaches this branch: S1 rejects those rows before
-    // dispatch. Keep the assertion so a future registry expansion cannot
-    // silently create behavior in the standalone shell.
+    // No other unsupported method reaches this branch. Keep the assertion so
+    // a future ready row cannot silently create standalone-shell behavior.
     throw new StandaloneProtocolError(`unsupported accepted method: ${request.method}`);
   };
 }
@@ -216,8 +231,9 @@ function attachManifest(channel: StdioChannel, manifest: PluginManifest): Standa
  * Starts the fail-closed plugin-side standalone shell.
  *
  * A manifest is validated by the published contract runtime before any stdio
- * listener is attached. Only the already-CLOSED lifecycle rows are executed;
- * RESERVED handshake and messaging rows remain in S1's reject path.
+ * listener is attached. Lifecycle rows execute locally. beta.8 handshake
+ * requests reach the handler only to receive a conservative standard error;
+ * no Broker behavior is present in this shell.
  */
 export function startStandaloneHost(options: StandaloneHostOptions): StandaloneHost {
   const manifest = requireStdioManifest(options.manifest);

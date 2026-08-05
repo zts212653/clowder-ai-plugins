@@ -1,6 +1,6 @@
 /**
  * Disposition conformance fixture vectors — machine-readable test data
- * for the pre-dispatch disposition table (T-A through T-L).
+ * for the pre-dispatch disposition table (T-A through T-M).
  *
  * Mechanized VERBATIM from §3.8-1 of the #1165 frozen plan (rev11,
  * SHA 7e26e5af). Each vector carries:
@@ -19,7 +19,7 @@
  *   - 7 notification-partition sub-cases (NOTIFICATION_PARTITION_CASES)
  *     "your correction #4's five, the idless-envelope fixture,
  *      and the R8 row-10 value-failure fixture"
- *   - All 12 T-classes have ≥1 vector
+ *   - All 13 T-classes have ≥1 vector
  *   - Pre-state mutual-exclusivity proof pairs:
  *       ping nonce (T-H-3 / T-L-2), row-9 deliveryId (T-H-9 / T-L-4)
  *
@@ -160,6 +160,8 @@ export interface DispositionFixtureVector {
   readonly expectedErrorArm: ClosedErrorArmName | null;
   readonly expectedErrorCode: number | null;
   readonly expectedResponseFrame: string | null;
+  /** Pre-dispatch vector must not allocate state, enqueue work, or activate. */
+  readonly zeroSideEffects?: true;
   readonly description: string;
 }
 
@@ -772,5 +774,46 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorCode: null,
     expectedResponseFrame: null,
     description: '[R47 pair] row-9 ack with correct deliveryId: byte-equality passes → T-L (see T-H-9)',
+  },
+
+  // ── T-M: legal Request on a ready row ─────────────────────────────────
+  {
+    id: 'T-M-1',
+    rawFrame: '{"jsonrpc":"2.0","id":"hello-1","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{"pluginId":"example.loopback","packageDigest":"sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","contractVersion":"0.1.0-beta.8","wireVersion":"0.1.0"}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: 'legal broker.hello Request after beta.8 closes and readies row 1',
+  },
+  {
+    id: 'T-M-2',
+    rawFrame: '{"jsonrpc":"2.0","id":"ready-1","method":"broker.ready","params":{"meta":{"deadlineUnixMs":1},"input":{"bindingNonce":"nonce-1"}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: 'legal broker.ready activation request reaches dispatch but does not activate during classification',
+  },
+  {
+    id: 'T-G-2',
+    rawFrame: '{"jsonrpc":"2.0","id":"a","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{"pluginId":"example.loopback","packageDigest":"sha512-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==","contractVersion":"0.1.0-beta.8","wireVersion":"0.1.0","pluginInstanceId":"caller-injected"}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: 'broker.hello authority injection is rejected before dispatch with zero side effects',
   },
 ];

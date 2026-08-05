@@ -160,6 +160,32 @@ test('valid request that passes all checks returns accept with null disposition'
   assert.equal(result.disposition, null);
 });
 
+test('valid broker.hello reaches T-M once the handshake row is ready', () => {
+  const rawFrame = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'hello-1',
+    method: 'broker.hello',
+    params: {
+      meta: { deadlineUnixMs: 1 },
+      input: {
+        pluginId: 'example.loopback',
+        packageDigest: `sha512-${'A'.repeat(86)}==`,
+        contractVersion: '0.1.0-beta.8',
+        wireVersion: '0.1.0',
+      },
+    },
+  });
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-M');
+  assert.equal(result.outcome, 'accept');
+  assert.equal(result.response, undefined);
+});
+
 test('reserved method with valid envelope is T-G (input type never → value violation)', () => {
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(
@@ -175,9 +201,8 @@ test('reserved method with valid envelope is T-G (input type never → value vio
   };
 
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  // RESERVED rows have input type `never` — no legal params value exists
-  // in v0. The disposition table has no accept class for Requests
-  // (ACCEPT_CLASSES = {T-J, T-L} only). Fable ruling: T-G respond error.
+  // This still-RESERVED row has input type `never` — no legal params value
+  // exists. T-M is limited to the two explicitly ready handshake rows.
   assert.equal(result.disposition, 'T-G');
   assert.equal(result.outcome, 'respond');
   assert.ok(result.response !== undefined);
@@ -705,7 +730,7 @@ test('handshake rejection with missing reason is T-H (data validation)', () => {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
-  // broker.hello (RESERVED) — data validation rejects missing reason
+  // broker.hello (ready) — data validation rejects missing reason
   // before the per-method check would also reject it.
   const inFlight = new Map<string, InFlightEntry>([
     ['r1', { method: 'broker.hello' }],
@@ -835,7 +860,7 @@ test('snapshot_unavailable with valid reason on messaging.snapshot is T-L', () =
 
 test('valid handshake_rejected on ping is T-H (per-method error restriction, maintainer RED)', () => {
   // Maintainer P1-2 RED: ping (row 11) permits standard errors only.
-  // HANDSHAKE_REJECTED belongs to rows 1-2 (RESERVED) — not row 11.
+  // HANDSHAKE_REJECTED belongs to the ready handshake rows 1-2 — not row 11.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"PACKAGE_MISMATCH"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1129,7 +1154,7 @@ test('broker.hello response with valid handshake_rejected is T-L (row 1 allows i
   assert.equal(result.outcome, 'accept');
 });
 
-test('RESERVED row (broker.hello) standard error is T-L (standard errors always allowed)', () => {
+test('ready broker.hello row accepts a correlated standard error as T-L', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"Internal error"}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1139,7 +1164,7 @@ test('RESERVED row (broker.hello) standard error is T-L (standard errors always 
     ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-L', 'standard error on RESERVED row must accept');
+  assert.equal(result.disposition, 'T-L', 'standard error on broker.hello must accept');
   assert.equal(result.outcome, 'accept');
 });
 
@@ -1148,7 +1173,7 @@ test('RESERVED row (broker.hello) standard error is T-L (standard errors always 
 // (maintainer requirement — no executable result schema → T-H)
 // ---------------------------------------------------------------------------
 
-test('broker.hello response with result:null is T-H (RESERVED row fail-closed)', () => {
+test('broker.hello response with result:null is T-H (closed result shape rejects null)', () => {
   // Maintainer P1-2 RED: broker.hello in-flight entry accepts result:null.
   // RESERVED rows have no executable result schema → T-H.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';

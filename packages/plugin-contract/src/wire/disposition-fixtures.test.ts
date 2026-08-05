@@ -117,7 +117,7 @@ function findVector(id: string): DispositionFixtureVector {
 // 1. Coverage: every T-class has at least one fixture vector
 // ---------------------------------------------------------------------------
 
-test('every disposition class T-A through T-L has at least one fixture vector', () => {
+test('every disposition class T-A through T-M has at least one fixture vector', () => {
   const coveredClasses = new Set(
     DISPOSITION_FIXTURE_VECTORS.map((v) => v.expectedClass),
   );
@@ -285,6 +285,16 @@ test('close/accept vectors have null response markers', () => {
         `${v.id}: non-respond class must have null expectedResponseFrame`,
       );
     }
+  }
+});
+
+test('beta.8 handshake vectors declare pre-dispatch zero-side-effect safety', () => {
+  const beta8HandshakeVectors = DISPOSITION_FIXTURE_VECTORS.filter((vector) =>
+    ['T-M-1', 'T-M-2', 'T-G-2'].includes(vector.id),
+  );
+  assert.equal(beta8HandshakeVectors.length, 3, 'all beta.8 handshake vectors must be present');
+  for (const vector of beta8HandshakeVectors) {
+    assert.equal(vector.zeroSideEffects, true, `${vector.id} must be zero-side-effect pre-dispatch`);
   }
 });
 
