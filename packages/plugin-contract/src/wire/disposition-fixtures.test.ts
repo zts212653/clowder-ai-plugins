@@ -36,6 +36,7 @@ import test from 'node:test';
 
 import {
   DISPOSITION_FIXTURE_VECTORS,
+  BETA8_HANDSHAKE_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -288,13 +289,43 @@ test('close/accept vectors have null response markers', () => {
   }
 });
 
-test('beta.8 handshake vectors declare pre-dispatch zero-side-effect safety', () => {
-  const beta8HandshakeVectors = DISPOSITION_FIXTURE_VECTORS.filter((vector) =>
-    ['T-M-1', 'T-M-2', 'T-G-2'].includes(vector.id),
+test('beta.8 handshake vectors declare zero-side-effect safety', () => {
+  assert.equal(
+    new Set(BETA8_HANDSHAKE_VECTOR_IDS).size,
+    BETA8_HANDSHAKE_VECTOR_IDS.length,
+    'beta.8 handshake vector ids must be unique',
   );
-  assert.equal(beta8HandshakeVectors.length, 3, 'all beta.8 handshake vectors must be present');
+  const beta8HandshakeVectors = BETA8_HANDSHAKE_VECTOR_IDS.map((id) => findVector(id));
+  assert.equal(beta8HandshakeVectors.length, 13, 'all beta.8 handshake vectors must be present');
   for (const vector of beta8HandshakeVectors) {
     assert.equal(vector.zeroSideEffects, true, `${vector.id} must be zero-side-effect pre-dispatch`);
+  }
+});
+
+test('beta.8 exported safety vectors cover request, result, error, and raw-byte N/N+1 boundaries', () => {
+  const covered = new Set(BETA8_HANDSHAKE_VECTOR_IDS);
+  for (const id of ['T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6']) {
+    assert.ok(covered.has(id as (typeof BETA8_HANDSHAKE_VECTOR_IDS)[number]), `${id} must be exported`);
+  }
+
+  const h1Max = JSON.parse(findVector('T-M-3').rawFrame) as { params: { input: { pluginId: string } } };
+  const h1NPlusOne = JSON.parse(findVector('T-G-7').rawFrame) as { params: { input: { pluginId: string } } };
+  assert.equal(h1Max.params.input.pluginId.length, 256);
+  assert.equal(h1NPlusOne.params.input.pluginId.length, 257);
+  assert.ok(
+    Buffer.byteLength(findVector('T-G-7').rawFrame, 'utf8') > Buffer.byteLength(findVector('T-M-3').rawFrame, 'utf8'),
+    'N+1 vector must carry a larger raw UTF-8 frame than the legal maximum vector',
+  );
+
+  for (const id of ['T-H-10', 'T-H-11']) {
+    const vector = findVector(id);
+    const parsed = JSON.parse(vector.rawFrame) as {
+      result: { pluginInstanceId: string; brokerSessionId: string };
+    };
+    const record = vector.preState.inFlightRequests[0];
+    assert.ok(record?.requestSnapshot?.candidateHello, `${id} must carry the correlated CandidateHello`);
+    const oversizeField = id === 'T-H-10' ? parsed.result.pluginInstanceId : parsed.result.brokerSessionId;
+    assert.equal(oversizeField.length, 513, `${id} must exercise its H5/H6 N+1 result bound`);
   }
 });
 

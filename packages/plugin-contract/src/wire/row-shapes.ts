@@ -2,8 +2,8 @@
  * Per-row input/result shapes for the 12-row method registry.
  * Mechanized from #1165 frozen shape.
  *
- * CLOSED rows (5, 7, 10, 11, 12): full executable shapes with bounds.
- * RESERVED rows (1, 2, 3, 4, 6, 8, 9): type stubs only — no executable
+ * CLOSED rows (1, 2, 5, 7, 10, 11, 12): full executable shapes with bounds.
+ * RESERVED rows (3, 4, 6, 8, 9): type stubs only — no executable
  * contract may be exported until the row's matrix entries close.
  *
  * Each closed row's shape is additionalProperties: false.
@@ -205,11 +205,11 @@ export interface DrainInput {
 export type DrainResult = null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RESERVED rows — type stubs only
+// Rows 1–2 — CLOSED beta.8 handshake shapes
 //
-// No executable input/result contract may be exported for these rows
-// until their matrix entries close. The `never` type ensures no code
-// can accidentally construct or consume these shapes.
+// CandidateHello / SessionBinding and BrokerReadyParams / null are executable
+// structural contracts. Transport, codec, and Host activation remain outside
+// this shape-only beta.8 slice.
 //
 // Row numbering matches WIRE_METHOD_REGISTRY in registry.ts.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -232,6 +232,14 @@ export type HelloResult = SessionBinding;
  */
 export type ReadyInput = BrokerReadyParams;
 export type ReadyResult = null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Remaining RESERVED rows — type stubs only
+//
+// No executable input/result contract may be exported for these rows until
+// their matrix entries close. The `never` type ensures no code can
+// accidentally construct or consume these shapes.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Row 3 — messaging.send: RESERVED (M1/M2/M5/I1).

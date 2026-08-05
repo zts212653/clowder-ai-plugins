@@ -124,6 +124,10 @@ test('records every pre-state vector as an explicit non-black-box seam', () => {
       { id: 'T-L-2', coveredBy: 'S1 unit layer' },
       { id: 'T-L-3', coveredBy: 'S1 unit layer' },
       { id: 'T-L-4', coveredBy: 'S1 unit layer' },
+      { id: 'T-H-10', coveredBy: 'S1 unit layer' },
+      { id: 'T-H-11', coveredBy: 'S1 unit layer' },
+      { id: 'T-L-5', coveredBy: 'S1 unit layer' },
+      { id: 'T-L-6', coveredBy: 'S1 unit layer' },
     ],
     'child-process execution cannot inject in-flight correlation state',
   );

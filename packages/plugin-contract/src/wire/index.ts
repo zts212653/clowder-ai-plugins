@@ -111,6 +111,24 @@ export {
   ACCEPT_CLASSES,
 } from './disposition.js';
 
+// Machine-readable disposition/conformance vectors
+export {
+  DISPOSITION_FIXTURE_VECTORS,
+  BETA8_HANDSHAKE_VECTOR_IDS,
+  CLOSED_ERROR_ARM_NAMES,
+  RESPONSE_CANDIDATE_CASES,
+  NOTIFICATION_PARTITION_CASES,
+} from './disposition-fixtures.js';
+
+export type {
+  ClosedErrorArmName,
+  RequestSnapshot,
+  InFlightRecord,
+  FixturePreState,
+  DispositionFixtureVector,
+  PartitionCase,
+} from './disposition-fixtures.js';
+
 export type {
   DispositionClass,
   DispositionOutcome,
@@ -245,6 +263,10 @@ export type {
 // Per-row input/result shapes
 export type {
   // Closed rows
+  HelloInput,
+  HelloResult,
+  ReadyInput,
+  ReadyResult,
   SubscribeInput,
   SubscribeResult,
   MessagingAckRequest,
@@ -255,10 +277,6 @@ export type {
   DrainInput,
   DrainResult,
   // Reserved row stubs
-  HelloInput,
-  HelloResult,
-  ReadyInput,
-  ReadyResult,
   SendInput,
   SendResult,
   AppendInput,

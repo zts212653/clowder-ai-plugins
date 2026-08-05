@@ -65,6 +65,37 @@ function inFlightFromFixture(
 
 const NO_IN_FLIGHT: ReadonlyMap<string, InFlightEntry> = new Map();
 
+const HELLO_CANDIDATE = {
+  pluginId: 'example.loopback',
+  packageDigest: `sha512-${'A'.repeat(86)}==`,
+  contractVersion: '0.1.0-beta.8',
+  wireVersion: '0.1.0',
+} as const;
+
+const HELLO_BINDING = {
+  ...HELLO_CANDIDATE,
+  pluginInstanceId: 'instance-1',
+  brokerSessionId: 'session-1',
+  grantRevision: 0,
+  effectiveGrants: [],
+  bindingNonce: 'nonce-1',
+} as const;
+
+function helloResponseFrame(result: object): DecodedNdjsonFrame {
+  const rawFrame = JSON.stringify({ jsonrpc: '2.0', id: 'hello-response', result });
+  return {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+}
+
+function helloInFlightEntry(): InFlightEntry {
+  return {
+    method: 'broker.hello',
+    requestSnapshot: { candidateHello: HELLO_CANDIDATE },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Fixture-driven sweep: all T-C through T-L vectors
 // ---------------------------------------------------------------------------
@@ -184,6 +215,42 @@ test('valid broker.hello reaches T-M once the handshake row is ready', () => {
   assert.equal(result.disposition, 'T-M');
   assert.equal(result.outcome, 'accept');
   assert.equal(result.response, undefined);
+});
+
+test('broker.hello SessionBinding is T-L only when it echoes the in-flight candidate', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['hello-response', helloInFlightEntry()],
+  ]);
+
+  const positive = classifyFrame(helloResponseFrame(HELLO_BINDING), inFlight);
+  assert.equal(positive.disposition, 'T-L');
+  assert.equal(positive.outcome, 'accept');
+
+  const mismatches: ReadonlyArray<readonly [keyof typeof HELLO_CANDIDATE, string]> = [
+    ['pluginId', 'different.plugin'],
+    ['packageDigest', `sha512-${'B'.repeat(86)}==`],
+    ['contractVersion', '0.1.0-beta.9'],
+    ['wireVersion', '0.2.0'],
+  ];
+
+  for (const [field, value] of mismatches) {
+    const result = classifyFrame(
+      helloResponseFrame({ ...HELLO_BINDING, [field]: value }),
+      inFlight,
+    );
+    assert.equal(result.disposition, 'T-H', `${field} mismatch must close before T-L`);
+    assert.equal(result.outcome, 'close');
+  }
+});
+
+test('broker.hello SessionBinding without a candidate snapshot fails closed', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['hello-response', { method: 'broker.hello' }],
+  ]);
+
+  const result = classifyFrame(helloResponseFrame(HELLO_BINDING), inFlight);
+  assert.equal(result.disposition, 'T-H');
+  assert.equal(result.outcome, 'close');
 });
 
 test('reserved method with valid envelope is T-G (input type never → value violation)', () => {
@@ -1169,13 +1236,12 @@ test('ready broker.hello row accepts a correlated standard error as T-L', () => 
 });
 
 // ---------------------------------------------------------------------------
-// P1-2: RESERVED row result fail-closed
-// (maintainer requirement — no executable result schema → T-H)
+// P1-2: closed handshake result validation and reserved-row fail-closed
+// (maintainer requirement — no unvalidated result may reach T-L)
 // ---------------------------------------------------------------------------
 
 test('broker.hello response with result:null is T-H (closed result shape rejects null)', () => {
-  // Maintainer P1-2 RED: broker.hello in-flight entry accepts result:null.
-  // RESERVED rows have no executable result schema → T-H.
+  // The beta.8 CLOSED broker.hello result is SessionBinding, never null.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1185,7 +1251,7 @@ test('broker.hello response with result:null is T-H (closed result shape rejects
     ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.disposition, 'T-H', 'broker.hello null result must fail-closed');
   assert.equal(result.outcome, 'close');
 });
 

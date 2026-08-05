@@ -19,6 +19,7 @@ import type { DecodedNdjsonFrame, JsonObject } from '@clowder-ai/plugin-contract
 
 import {
   type DispositionClass,
+  type RequestSnapshot,
   type WireMethodName,
   validateRequestId,
   validateCandidateHello,
@@ -67,20 +68,9 @@ import {
 // Public types
 // ---------------------------------------------------------------------------
 
-/**
- * Cross-frame oracle snapshot — original request fields needed to
- * verify byte-equality invariants on correlated responses.
- *
- * Structurally identical to contract's internal RequestSnapshot;
- * defined locally because that type is not part of the published
- * beta.4 public surface (Fable ruling on F1/immutability).
- */
-export interface RequestSnapshot {
-  /** Row 11 ping: nonce that must be echoed byte-equal in the result. */
-  readonly nonce?: string;
-  /** Row 9 deliver: deliveryId that must match byte-equal in the ack. */
-  readonly deliveryId?: string;
-}
+// Re-export the contract-owned snapshot so an in-flight response classifier
+// cannot drift from the published conformance vectors.
+export type { RequestSnapshot } from '@clowder-ai/plugin-contract';
 
 export interface InFlightEntry {
   readonly method: WireMethodName;
@@ -616,6 +606,19 @@ function validateResponseResult(
 
     case 'broker.hello': {
       if (!validateSessionBinding(result)) return close('T-H');
+      // SessionBinding is Host-authoritative only for H5–H9. Its four
+      // candidate fields are cross-frame echoes, so accepting a structurally
+      // valid but different binding would settle the wrong in-flight hello.
+      const candidateHello = entry.requestSnapshot?.candidateHello;
+      if (candidateHello === undefined) return close('T-H');
+      if (
+        result.pluginId !== candidateHello.pluginId ||
+        result.packageDigest !== candidateHello.packageDigest ||
+        result.contractVersion !== candidateHello.contractVersion ||
+        result.wireVersion !== candidateHello.wireVersion
+      ) {
+        return close('T-H');
+      }
       return null;
     }
 

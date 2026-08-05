@@ -93,13 +93,13 @@ export const BINDING_NONCE_MAX_ENCODED_BYTES = 3074 as const;
  * Additional identity/instance/grant/session fields are REJECTED.
  */
 export interface CandidateHello {
-  /** RESERVED (H1) — manifest pluginId, no maximum bound declared. */
+  /** CLOSED (H1) — manifest pluginId, 1..256 Unicode code points. */
   readonly pluginId: string;
   /** CLOSED (H2) — exactly 95 chars, sha512 SRI digest. */
   readonly packageDigest: string;
-  /** RESERVED (H3) — SemVer contract version, no maximum bound declared. */
+  /** CLOSED (H3) — SemVer contract version, at most 256 ASCII characters. */
   readonly contractVersion: string;
-  /** RESERVED (H4) — wire protocol version, not yet owner-declared. */
+  /** CLOSED (H4) — SemVer wire protocol version, at most 256 ASCII characters. */
   readonly wireVersion: string;
 }
 
@@ -121,9 +121,9 @@ export interface SessionBinding {
   readonly contractVersion: string;
   /** Echoed from CandidateHello. */
   readonly wireVersion: string;
-  /** RESERVED (H5) — Host-minted instance id, grammar pending. */
+  /** CLOSED (H5) — Host-minted instance id, 1..512 Unicode code points. */
   readonly pluginInstanceId: string;
-  /** RESERVED (H6) — Host-minted session id, grammar pending. */
+  /** CLOSED (H6) — Host-minted session id, 1..512 Unicode code points. */
   readonly brokerSessionId: string;
   /** CLOSED (H7) — WireUInt53(0, 9_007_199_254_740_991), monotonically increasing. */
   readonly grantRevision: number;

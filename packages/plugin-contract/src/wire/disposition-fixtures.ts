@@ -31,6 +31,7 @@
  */
 
 import type { DispositionClass, DispositionOutcome } from './disposition.js';
+import type { CandidateHello, SessionBinding } from './handshake.js';
 import type { RequestId } from './request-id.js';
 import type { WireMethodName } from './registry.js';
 import type {
@@ -39,12 +40,14 @@ import type {
   InvalidRequestValidIdEnvelope,
   MethodNotFoundEnvelope,
   InvalidParamsEnvelope,
+  HandshakeRejectedEnvelope,
 } from './envelope.js';
 import {
   PARSE_ERROR_CODE, PARSE_ERROR_MESSAGE,
   INVALID_REQUEST_CODE, INVALID_REQUEST_MESSAGE,
   METHOD_NOT_FOUND_CODE, METHOD_NOT_FOUND_MESSAGE,
   INVALID_PARAMS_CODE, INVALID_PARAMS_MESSAGE,
+  HANDSHAKE_REJECTED_CODE, HANDSHAKE_REJECTED_MESSAGE,
 } from './errors.js';
 
 // ---------------------------------------------------------------------------
@@ -101,6 +104,45 @@ const RESPONSE_INVALID_PARAMS_A: InvalidParamsEnvelope = {
   error: { code: INVALID_PARAMS_CODE, message: INVALID_PARAMS_MESSAGE },
 };
 
+const BETA8_HELLO: CandidateHello = {
+  pluginId: 'example.loopback',
+  packageDigest: `sha512-${'A'.repeat(86)}==`,
+  contractVersion: '0.1.0-beta.8',
+  wireVersion: '0.1.0',
+};
+
+const BETA8_BINDING: SessionBinding = {
+  ...BETA8_HELLO,
+  pluginInstanceId: 'instance-1',
+  brokerSessionId: 'session-1',
+  grantRevision: 0,
+  effectiveGrants: [],
+  bindingNonce: 'nonce-1',
+};
+
+const RESPONSE_HANDSHAKE_REJECTED_HELLO: HandshakeRejectedEnvelope = {
+  jsonrpc: '2.0' as const,
+  id: 'hello-error' as RequestId,
+  error: {
+    code: HANDSHAKE_REJECTED_CODE,
+    message: HANDSHAKE_REJECTED_MESSAGE,
+    data: { reason: 'PACKAGE_MISMATCH' },
+  },
+};
+
+function helloRequestFrame(id: string, input: Record<string, unknown>): string {
+  return JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    method: 'broker.hello',
+    params: { meta: { deadlineUnixMs: 1 }, input },
+  });
+}
+
+function helloResultFrame(id: string, result: object): string {
+  return JSON.stringify({ jsonrpc: '2.0', id, result });
+}
+
 // ---------------------------------------------------------------------------
 // Pre-state shape (FC-6B-3 / FC-70-3)
 //
@@ -108,7 +150,7 @@ const RESPONSE_INVALID_PARAMS_A: InvalidParamsEnvelope = {
 //   - id: the request id
 //   - method: closed WireMethodName (not bare string) — compiler-checked
 //   - requestSnapshot: original request fields for cross-frame oracle
-//     (ping nonce for byte-equality echo, row-9 deliveryId for ack match)
+//     (hello candidate echoes, ping nonce echo, row-9 deliveryId ack match)
 //
 // T-L requires the response to satisfy "the correlated row's result/error
 // schema AND every cross-frame semantic oracle" (§3.8-1). The request
@@ -124,6 +166,8 @@ export interface RequestSnapshot {
   readonly nonce?: string;
   /** Row 9 deliver: the deliveryId that must match byte-equal in the ack. */
   readonly deliveryId?: string;
+  /** Row 1 hello: the candidate claims that SessionBinding must echo byte-equal. */
+  readonly candidateHello?: CandidateHello;
 }
 
 /**
@@ -160,7 +204,7 @@ export interface DispositionFixtureVector {
   readonly expectedErrorArm: ClosedErrorArmName | null;
   readonly expectedErrorCode: number | null;
   readonly expectedResponseFrame: string | null;
-  /** Pre-dispatch vector must not allocate state, enqueue work, or activate. */
+  /** This vector must not allocate state, enqueue work, or activate. */
   readonly zeroSideEffects?: true;
   readonly description: string;
 }
@@ -816,4 +860,148 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     zeroSideEffects: true,
     description: 'broker.hello authority injection is rejected before dispatch with zero side effects',
   },
+  {
+    id: 'T-M-3',
+    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, pluginId: 'a'.repeat(256) }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H1 raw-byte N] maximum pluginId request is legal before dispatch',
+  },
+  {
+    id: 'T-G-3',
+    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, pluginId: '' }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H1] empty pluginId is rejected before dispatch',
+  },
+  {
+    id: 'T-G-4',
+    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, packageDigest: 'sha512-invalid==' }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H2] malformed package digest is rejected before dispatch',
+  },
+  {
+    id: 'T-G-5',
+    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, contractVersion: 'beta.8' }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H3] non-SemVer contractVersion is rejected before dispatch',
+  },
+  {
+    id: 'T-G-6',
+    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, wireVersion: 'wire-v1' }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H4] non-SemVer wireVersion is rejected before dispatch',
+  },
+  {
+    id: 'T-G-7',
+    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, pluginId: 'a'.repeat(257) }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H1 raw-byte N+1] oversize pluginId is rejected before dispatch',
+  },
+  {
+    id: 'T-H-10',
+    rawFrame: helloResultFrame('hello-h5-n-plus-1', {
+      ...BETA8_BINDING,
+      pluginInstanceId: 'a'.repeat(513),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'hello-h5-n-plus-1', method: 'broker.hello', requestSnapshot: { candidateHello: BETA8_HELLO } }] },
+    expectedClass: 'T-H',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H5 raw-byte N+1] oversize Host instance id is rejected with a correlated hello snapshot',
+  },
+  {
+    id: 'T-H-11',
+    rawFrame: helloResultFrame('hello-h6-n-plus-1', {
+      ...BETA8_BINDING,
+      brokerSessionId: 'a'.repeat(513),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'hello-h6-n-plus-1', method: 'broker.hello', requestSnapshot: { candidateHello: BETA8_HELLO } }] },
+    expectedClass: 'T-H',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H6 raw-byte N+1] oversize Host session id is rejected with a correlated hello snapshot',
+  },
+  {
+    id: 'T-L-5',
+    rawFrame: helloResultFrame('hello-binding', BETA8_BINDING),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'hello-binding', method: 'broker.hello', requestSnapshot: { candidateHello: BETA8_HELLO } }] },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 result] SessionBinding settles only with the correlated CandidateHello echo',
+  },
+  {
+    id: 'T-L-6',
+    rawFrame: JSON.stringify(RESPONSE_HANDSHAKE_REJECTED_HELLO),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'hello-error', method: 'broker.hello', requestSnapshot: { candidateHello: BETA8_HELLO } }] },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 error] closed HANDSHAKE_REJECTED error settles the correlated hello',
+  },
 ];
+
+/** Complete beta.8 handshake safety surface exported for downstream runners. */
+export const BETA8_HANDSHAKE_VECTOR_IDS = [
+  'T-M-1', 'T-M-2', 'T-M-3',
+  'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7',
+  'T-H-10', 'T-H-11',
+  'T-L-5', 'T-L-6',
+] as const;

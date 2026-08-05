@@ -13,6 +13,9 @@ test('the built conformance boundary exports the stdio harness', async () => {
 
   assert.deepEqual(missingPublicExports, []);
   assert.equal(conformance.MAX_NDJSON_FRAME_BYTES, 1_048_576);
+  assert.ok(Array.isArray(conformance.DISPOSITION_FIXTURE_VECTORS));
+  assert.ok(Array.isArray(conformance.BETA8_HANDSHAKE_VECTOR_IDS));
+  assert.ok(conformance.BETA8_HANDSHAKE_VECTOR_IDS.includes('T-L-5'));
 });
 
 test('the built public entry exports the runtime manifest validator', async () => {
