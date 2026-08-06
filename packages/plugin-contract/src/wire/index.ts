@@ -159,6 +159,7 @@ export {
   validatePluginInstanceId,
   validateBrokerSessionId,
   validateBindingNonce,
+  hasHandshakeAuthorityInjection,
   validateCandidateHello,
   validateSessionBinding,
   validateBrokerReadyParams,

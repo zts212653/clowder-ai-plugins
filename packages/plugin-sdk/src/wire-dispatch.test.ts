@@ -28,6 +28,11 @@ import type {
 } from '@clowder-ai/plugin-contract/conformance';
 
 import {
+  HANDSHAKE_REJECTED_CODE,
+  HANDSHAKE_REJECTED_MESSAGE,
+} from '@clowder-ai/plugin-contract';
+
+import {
   classifyFrame,
   type DispatchResult,
   type InFlightEntry,
@@ -215,6 +220,44 @@ test('valid broker.hello reaches T-M once the handshake row is ready', () => {
   assert.equal(result.disposition, 'T-M');
   assert.equal(result.outcome, 'accept');
   assert.equal(result.response, undefined);
+});
+
+test('Host-owned fields injected into either handshake request are authority violations', () => {
+  const authorityFields = [
+    ['pluginInstanceId', 'instance-1'],
+    ['brokerSessionId', 'session-1'],
+    ['grantRevision', 1],
+    ['effectiveGrants', []],
+  ] as const;
+
+  for (const [field, injected] of authorityFields) {
+    for (const [method, input] of [
+      ['broker.hello', { ...HELLO_CANDIDATE, [field]: injected }],
+      ['broker.ready', { bindingNonce: 'nonce-1', [field]: injected }],
+    ] as const) {
+      const rawFrame = JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'a',
+        method,
+        params: { meta: { deadlineUnixMs: 1 }, input },
+      });
+      const result = classifyFrame({
+        raw: Buffer.from(rawFrame, 'utf8'),
+        value: JSON.parse(rawFrame) as JsonObject,
+      }, NO_IN_FLIGHT);
+
+      assert.equal(result.disposition, 'T-G', `${method}.${field} must remain a value-level rejection`);
+      assert.deepEqual(result.response, {
+        jsonrpc: '2.0',
+        id: 'a',
+        error: {
+          code: HANDSHAKE_REJECTED_CODE,
+          message: HANDSHAKE_REJECTED_MESSAGE,
+          data: { reason: 'AUTHORITY_VIOLATION' },
+        },
+      }, `${method}.${field} must return HANDSHAKE_REJECTED/AUTHORITY_VIOLATION`);
+    }
+  }
 });
 
 test('broker.hello SessionBinding is T-L only when it echoes the in-flight candidate', () => {

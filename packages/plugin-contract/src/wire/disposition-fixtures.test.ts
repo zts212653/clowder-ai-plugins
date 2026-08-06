@@ -350,6 +350,18 @@ test('beta.8 exported broker.ready safety vectors reject bad activation inputs b
   assert.equal(authorityInjection.params.input.pluginInstanceId, 'caller-injected');
 });
 
+test('beta.8 authority-injection vectors use the closed handshake rejection arm', () => {
+  for (const id of ['T-G-2', 'T-G-10']) {
+    const vector = findVector(id);
+    const response = JSON.parse(vector.expectedResponseFrame!) as {
+      error: { code: number; data: { reason: string } };
+    };
+    assert.equal(vector.expectedErrorArm, 'HandshakeRejectedEnvelope');
+    assert.equal(response.error.code, -32090);
+    assert.equal(response.error.data.reason, 'AUTHORITY_VIOLATION');
+  }
+});
+
 // ---------------------------------------------------------------------------
 // 9. Response frames are valid compact JSON
 // ---------------------------------------------------------------------------

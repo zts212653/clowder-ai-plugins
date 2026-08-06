@@ -230,9 +230,24 @@ const SESSION_BINDING_KEYS = new Set([
   'bindingNonce',
 ]);
 const BROKER_READY_PARAMS_KEYS = new Set(['bindingNonce']);
+const HANDSHAKE_AUTHORITY_KEYS = new Set([
+  'pluginInstanceId',
+  'brokerSessionId',
+  'grantRevision',
+  'effectiveGrants',
+]);
 
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Detect caller-supplied fields that belong exclusively to the Host's
+ * SessionBinding authority. These are a closed handshake rejection rather
+ * than an ordinary grammar error.
+ */
+export function hasHandshakeAuthorityInjection(value: unknown): boolean {
+  return isRecord(value) && Object.keys(value).some(key => HANDSHAKE_AUTHORITY_KEYS.has(key));
 }
 
 function hasExactKeys(value: UnknownRecord, expected: ReadonlySet<string>): boolean {

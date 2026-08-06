@@ -105,6 +105,16 @@ const RESPONSE_INVALID_PARAMS_A: InvalidParamsEnvelope = {
   error: { code: INVALID_PARAMS_CODE, message: INVALID_PARAMS_MESSAGE },
 };
 
+const RESPONSE_HANDSHAKE_REJECTED_AUTHORITY_A: HandshakeRejectedEnvelope = {
+  jsonrpc: '2.0' as const,
+  id: 'a' as RequestId,
+  error: {
+    code: HANDSHAKE_REJECTED_CODE,
+    message: HANDSHAKE_REJECTED_MESSAGE,
+    data: { reason: 'AUTHORITY_VIOLATION' },
+  },
+};
+
 const BETA8_HELLO: CandidateHello = {
   pluginId: 'example.loopback',
   packageDigest: `sha512-${'A'.repeat(86)}==`,
@@ -864,9 +874,9 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     preState: { inFlightRequests: [] },
     expectedClass: 'T-G',
     expectedOutcome: 'respond',
-    expectedErrorArm: 'InvalidParamsEnvelope',
-    expectedErrorCode: INVALID_PARAMS_CODE,
-    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    expectedErrorArm: 'HandshakeRejectedEnvelope',
+    expectedErrorCode: HANDSHAKE_REJECTED_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_HANDSHAKE_REJECTED_AUTHORITY_A),
     zeroSideEffects: true,
     description: 'broker.hello authority injection is rejected before dispatch with zero side effects',
   },
@@ -986,9 +996,9 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     preState: { inFlightRequests: [] },
     expectedClass: 'T-G',
     expectedOutcome: 'respond',
-    expectedErrorArm: 'InvalidParamsEnvelope',
-    expectedErrorCode: INVALID_PARAMS_CODE,
-    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    expectedErrorArm: 'HandshakeRejectedEnvelope',
+    expectedErrorCode: HANDSHAKE_REJECTED_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_HANDSHAKE_REJECTED_AUTHORITY_A),
     zeroSideEffects: true,
     description: '[beta.8 authority] broker.ready Host instance injection is rejected before activation',
   },

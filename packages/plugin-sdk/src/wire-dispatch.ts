@@ -22,6 +22,7 @@ import {
   type RequestSnapshot,
   type WireMethodName,
   validateRequestId,
+  hasHandshakeAuthorityInjection,
   validateCandidateHello,
   validateBrokerReadyParams,
   validateSessionBinding,
@@ -52,6 +53,7 @@ import {
   ERROR_CODE_TO_MESSAGE,
   // Per-arm application error codes (for data schema dispatch)
   HANDSHAKE_REJECTED_CODE,
+  HANDSHAKE_REJECTED_MESSAGE,
   DELIVERY_REJECTED_CODE,
   DOMAIN_ERROR_CODE,
   DEADLINE_EXPIRED_CODE,
@@ -146,6 +148,22 @@ function respondInvalidParamsValue(id: string): DispatchResult {
       jsonrpc: '2.0',
       id,
       error: { code: INVALID_PARAMS_CODE, message: INVALID_PARAMS_MESSAGE },
+    },
+  };
+}
+
+function respondHandshakeAuthorityViolation(id: string): DispatchResult {
+  return {
+    disposition: 'T-G',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code: HANDSHAKE_REJECTED_CODE,
+        message: HANDSHAKE_REJECTED_MESSAGE,
+        data: { reason: 'AUTHORITY_VIOLATION' },
+      },
     },
   };
 }
@@ -917,8 +935,10 @@ function validateClosedRowInput(
 ): DispatchResult | null {
   switch (method) {
     case 'broker.hello':
+      if (hasHandshakeAuthorityInjection(input)) return respondHandshakeAuthorityViolation(id);
       return validateCandidateHello(input) ? null : respondInvalidParamsValue(id);
     case 'broker.ready':
+      if (hasHandshakeAuthorityInjection(input)) return respondHandshakeAuthorityViolation(id);
       return validateBrokerReadyParams(input) ? null : respondInvalidParamsValue(id);
     case 'host.lifecycle.ping': {
       // Closed input keys: {nonce} only

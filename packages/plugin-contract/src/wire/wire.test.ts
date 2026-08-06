@@ -75,6 +75,7 @@ import {
   validateWireVersion,
   validatePluginInstanceId,
   validateBrokerSessionId,
+  hasHandshakeAuthorityInjection,
   validateCandidateHello,
   validateSessionBinding,
   validateBrokerReadyParams,
@@ -454,6 +455,12 @@ test('beta.8 closes H1/H3/H4/H5/H6 bounded grammars', () => {
   };
   assert.ok(validateCandidateHello(hello));
   assert.equal(validateCandidateHello({ ...hello, pluginInstanceId: 'injected' }), false);
+  for (const field of ['pluginInstanceId', 'brokerSessionId', 'grantRevision', 'effectiveGrants']) {
+    assert.ok(hasHandshakeAuthorityInjection({ ...hello, [field]: 'injected' }));
+    assert.ok(hasHandshakeAuthorityInjection({ bindingNonce: 'nonce-1', [field]: 'injected' }));
+  }
+  assert.equal(hasHandshakeAuthorityInjection(hello), false);
+  assert.equal(hasHandshakeAuthorityInjection({ bindingNonce: 'nonce-1' }), false);
   assert.ok(validateBrokerReadyParams({ bindingNonce: 'nonce-1' }));
   assert.equal(validateBrokerReadyParams({ bindingNonce: 'nonce-1', grantRevision: 1 }), false);
   assert.ok(validateSessionBinding({
