@@ -266,30 +266,43 @@ function containsExponentNumber(value: unknown): boolean {
  *   - params.meta.deadlineUnixMs  (every request/notification)
  *   - params.input.deadlineUnixMs (host.lifecycle.drain input)
  *   - params.input.grantRevision  (host.grants.changed input)
+ *   - result.grantRevision        (broker.hello SessionBinding)
  */
 function hasNonCanonicalUInt53Token(value: JsonObject): boolean {
   const params = value.params;
-  if (params === null || typeof params !== 'object' || Array.isArray(params)) return false;
-  const paramsObj = params as Record<string, unknown>;
+  if (params !== null && typeof params === 'object' && !Array.isArray(params)) {
+    const paramsObj = params as Record<string, unknown>;
 
-  // ── params.meta.deadlineUnixMs ──
-  const meta = paramsObj.meta;
-  if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
-    const metaObj = meta as Record<string, unknown>;
-    if (typeof metaObj.deadlineUnixMs === 'number') {
-      if (!isCanonicalUInt53Token(String(metaObj.deadlineUnixMs))) return true;
+    // ── params.meta.deadlineUnixMs ──
+    const meta = paramsObj.meta;
+    if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
+      const metaObj = meta as Record<string, unknown>;
+      if (typeof metaObj.deadlineUnixMs === 'number') {
+        if (!isCanonicalUInt53Token(String(metaObj.deadlineUnixMs))) return true;
+      }
+    }
+
+    // ── params.input.deadlineUnixMs (drain) + params.input.grantRevision (grants.changed) ──
+    const input = paramsObj.input;
+    if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
+      const inputObj = input as Record<string, unknown>;
+      if (typeof inputObj.deadlineUnixMs === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.deadlineUnixMs))) return true;
+      }
+      if (typeof inputObj.grantRevision === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
+      }
     }
   }
 
-  // ── params.input.deadlineUnixMs (drain) + params.input.grantRevision (grants.changed) ──
-  const input = paramsObj.input;
-  if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
-    const inputObj = input as Record<string, unknown>;
-    if (typeof inputObj.deadlineUnixMs === 'number') {
-      if (!isCanonicalUInt53Token(String(inputObj.deadlineUnixMs))) return true;
-    }
-    if (typeof inputObj.grantRevision === 'number') {
-      if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
+  // Response envelopes have no method. H7 is the only WireUInt53 leaf in a
+  // result shape today, so it must receive the same raw-token gate before
+  // response correlation and SessionBinding schema validation.
+  const result = value.result;
+  if (!('method' in value) && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+    const resultObj = result as Record<string, unknown>;
+    if (typeof resultObj.grantRevision === 'number') {
+      if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
     }
   }
 

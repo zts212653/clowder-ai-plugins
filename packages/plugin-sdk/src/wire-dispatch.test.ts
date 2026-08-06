@@ -286,6 +286,21 @@ test('broker.hello SessionBinding is T-L only when it echoes the in-flight candi
   }
 });
 
+test('broker.hello non-canonical H7 raw integers close at T-C before response validation', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['hello-response', helloInFlightEntry()],
+  ]);
+
+  for (const grantRevision of [-1, 1.5]) {
+    const result = classifyFrame(
+      helloResponseFrame({ ...HELLO_BINDING, grantRevision }),
+      inFlight,
+    );
+    assert.equal(result.disposition, 'T-C', `${grantRevision} must fail raw WireUInt53 canonicality`);
+    assert.equal(result.outcome, 'close');
+  }
+});
+
 test('broker.hello SessionBinding without a candidate snapshot fails closed', () => {
   const inFlight = new Map<string, InFlightEntry>([
     ['hello-response', { method: 'broker.hello' }],

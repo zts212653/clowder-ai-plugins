@@ -353,6 +353,22 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedResponseFrame: null,
     description: 'frame-canonicality failure: whitespace in compact JSON',
   },
+  {
+    id: 'T-C-2',
+    rawFrame: helloResultFrame('hello-h7-negative', {
+      ...BETA8_BINDING,
+      grantRevision: -1,
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'hello-h7-negative', method: 'broker.hello', requestSnapshot: { candidateHello: BETA8_HELLO } }] },
+    expectedClass: 'T-C',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H7 raw token] negative SessionBinding grantRevision is rejected at canonicality before correlation',
+  },
 
   // ═════════════════════════════════════════════════════════════════════════
   // T-D: canonical idless NON-response-candidate, NOT a valid Request
@@ -1218,6 +1234,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
 export const BETA8_HANDSHAKE_VECTOR_IDS = [
+  'T-C-2',
   'T-M-1', 'T-M-2', 'T-M-3', 'T-M-4', 'T-M-5', 'T-M-6', 'T-M-7', 'T-M-8',
   'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10',
   'T-G-11', 'T-G-12', 'T-G-13', 'T-G-14',

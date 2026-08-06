@@ -300,7 +300,7 @@ test('beta.8 handshake vectors declare zero-side-effect safety', () => {
     'beta.8 handshake vector ids must be unique',
   );
   const beta8HandshakeVectors = BETA8_HANDSHAKE_VECTOR_IDS.map((id) => findVector(id));
-  assert.equal(beta8HandshakeVectors.length, 25, 'all beta.8 handshake vectors must be present');
+  assert.equal(beta8HandshakeVectors.length, 26, 'all beta.8 handshake vectors must be present');
   for (const vector of beta8HandshakeVectors) {
     assert.equal(vector.zeroSideEffects, true, `${vector.id} must be zero-side-effect pre-dispatch`);
   }
@@ -308,9 +308,14 @@ test('beta.8 handshake vectors declare zero-side-effect safety', () => {
 
 test('beta.8 exported safety vectors cover request, result, error, and raw-byte N/N+1 boundaries', () => {
   const covered = new Set(BETA8_HANDSHAKE_VECTOR_IDS);
-  for (const id of ['T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6', 'T-M-4', 'T-G-11', 'T-M-5', 'T-G-12', 'T-M-6', 'T-M-7', 'T-G-13', 'T-M-8', 'T-G-14']) {
+  for (const id of ['T-C-2', 'T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6', 'T-M-4', 'T-G-11', 'T-M-5', 'T-G-12', 'T-M-6', 'T-M-7', 'T-G-13', 'T-M-8', 'T-G-14']) {
     assert.ok(covered.has(id as (typeof BETA8_HANDSHAKE_VECTOR_IDS)[number]), `${id} must be exported`);
   }
+
+  const h7Negative = JSON.parse(findVector('T-C-2').rawFrame) as {
+    result: { grantRevision: number };
+  };
+  assert.equal(h7Negative.result.grantRevision, -1, 'T-C-2 must carry a non-canonical H7 raw token');
 
   const h1Max = JSON.parse(findVector('T-M-3').rawFrame) as { params: { input: { pluginId: string } } };
   const h1NPlusOne = JSON.parse(findVector('T-G-7').rawFrame) as { params: { input: { pluginId: string } } };
