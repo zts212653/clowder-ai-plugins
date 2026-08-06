@@ -31,7 +31,10 @@
  */
 
 import type { DispositionClass, DispositionOutcome } from './disposition.js';
-import { BINDING_NONCE_MAX_LENGTH } from './handshake.js';
+import {
+  BINDING_NONCE_MAX_LENGTH,
+  PLUGIN_ID_MAX_LENGTH,
+} from './handshake.js';
 import type { CandidateHello, SessionBinding } from './handshake.js';
 import type { RequestId } from './request-id.js';
 import type { WireMethodName } from './registry.js';
@@ -121,6 +124,12 @@ const BETA8_HELLO: CandidateHello = {
   contractVersion: '0.1.0-beta.8',
   wireVersion: '0.1.0',
 };
+
+const RAW_UTF8_BOUNDARY_CODE_POINTS = {
+  ascii: 'a',
+  multibyte: '😀',
+  escaping: '\u0000',
+} as const;
 
 const BETA8_BINDING: SessionBinding = {
   ...BETA8_HELLO,
@@ -882,7 +891,10 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   },
   {
     id: 'T-M-3',
-    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, pluginId: 'a'.repeat(256) }),
+    rawFrame: helloRequestFrame('a', {
+      ...BETA8_HELLO,
+      pluginId: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(PLUGIN_ID_MAX_LENGTH),
+    }),
     rawFrameEncoding: 'utf8',
     preState: { inFlightRequests: [] },
     expectedClass: 'T-M',
@@ -947,7 +959,10 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   },
   {
     id: 'T-G-7',
-    rawFrame: helloRequestFrame('a', { ...BETA8_HELLO, pluginId: 'a'.repeat(257) }),
+    rawFrame: helloRequestFrame('a', {
+      ...BETA8_HELLO,
+      pluginId: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(PLUGIN_ID_MAX_LENGTH + 1),
+    }),
     rawFrameEncoding: 'utf8',
     preState: { inFlightRequests: [] },
     expectedClass: 'T-G',
@@ -957,6 +972,70 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
     zeroSideEffects: true,
     description: '[beta.8 H1 raw-byte N+1] oversize pluginId is rejected before dispatch',
+  },
+  {
+    id: 'T-M-4',
+    rawFrame: helloRequestFrame('a', {
+      ...BETA8_HELLO,
+      pluginId: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(PLUGIN_ID_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H1 multibyte N] maximum pluginId request is legal before dispatch',
+  },
+  {
+    id: 'T-G-11',
+    rawFrame: helloRequestFrame('a', {
+      ...BETA8_HELLO,
+      pluginId: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(PLUGIN_ID_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H1 multibyte N+1] oversize pluginId is rejected before dispatch',
+  },
+  {
+    id: 'T-M-5',
+    rawFrame: helloRequestFrame('a', {
+      ...BETA8_HELLO,
+      pluginId: RAW_UTF8_BOUNDARY_CODE_POINTS.escaping.repeat(PLUGIN_ID_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H1 JSON-escaping N] maximum pluginId request is legal before dispatch',
+  },
+  {
+    id: 'T-G-12',
+    rawFrame: helloRequestFrame('a', {
+      ...BETA8_HELLO,
+      pluginId: RAW_UTF8_BOUNDARY_CODE_POINTS.escaping.repeat(PLUGIN_ID_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H1 JSON-escaping N+1] oversize pluginId is rejected before dispatch',
   },
   {
     id: 'T-G-8',
@@ -974,7 +1053,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   {
     id: 'T-G-9',
     rawFrame: readyRequestFrame('a', {
-      bindingNonce: 'a'.repeat(BINDING_NONCE_MAX_LENGTH + 1),
+      bindingNonce: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(BINDING_NONCE_MAX_LENGTH + 1),
     }),
     rawFrameEncoding: 'utf8',
     preState: { inFlightRequests: [] },
@@ -985,6 +1064,81 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
     zeroSideEffects: true,
     description: '[beta.8 H9 code-point N+1] oversize broker.ready bindingNonce is rejected before activation',
+  },
+  {
+    id: 'T-M-6',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(BINDING_NONCE_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H9 ASCII N] maximum broker.ready bindingNonce is legal before activation',
+  },
+  {
+    id: 'T-M-7',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(BINDING_NONCE_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H9 multibyte N] maximum broker.ready bindingNonce is legal before activation',
+  },
+  {
+    id: 'T-G-13',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(BINDING_NONCE_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H9 multibyte N+1] oversize broker.ready bindingNonce is rejected before activation',
+  },
+  {
+    id: 'T-M-8',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: RAW_UTF8_BOUNDARY_CODE_POINTS.escaping.repeat(BINDING_NONCE_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.8 H9 JSON-escaping N] maximum broker.ready bindingNonce is legal before activation',
+  },
+  {
+    id: 'T-G-14',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: RAW_UTF8_BOUNDARY_CODE_POINTS.escaping.repeat(BINDING_NONCE_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H9 JSON-escaping N+1] oversize broker.ready bindingNonce is rejected before activation',
   },
   {
     id: 'T-G-10',
@@ -1064,8 +1218,9 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
 export const BETA8_HANDSHAKE_VECTOR_IDS = [
-  'T-M-1', 'T-M-2', 'T-M-3',
+  'T-M-1', 'T-M-2', 'T-M-3', 'T-M-4', 'T-M-5', 'T-M-6', 'T-M-7', 'T-M-8',
   'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10',
+  'T-G-11', 'T-G-12', 'T-G-13', 'T-G-14',
   'T-H-10', 'T-H-11',
   'T-L-5', 'T-L-6',
 ] as const;

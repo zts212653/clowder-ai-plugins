@@ -54,7 +54,10 @@ import {
 } from './disposition.js';
 
 import { MAX_FRAME_BYTES } from './constants.js';
-import { BINDING_NONCE_MAX_LENGTH } from './handshake.js';
+import {
+  BINDING_NONCE_MAX_LENGTH,
+  PLUGIN_ID_MAX_LENGTH,
+} from './handshake.js';
 import { WIRE_METHOD_NAMES } from './registry.js';
 
 // Per-arm byte-proof bounds — test files CAN import from byte-proof since
@@ -297,7 +300,7 @@ test('beta.8 handshake vectors declare zero-side-effect safety', () => {
     'beta.8 handshake vector ids must be unique',
   );
   const beta8HandshakeVectors = BETA8_HANDSHAKE_VECTOR_IDS.map((id) => findVector(id));
-  assert.equal(beta8HandshakeVectors.length, 16, 'all beta.8 handshake vectors must be present');
+  assert.equal(beta8HandshakeVectors.length, 25, 'all beta.8 handshake vectors must be present');
   for (const vector of beta8HandshakeVectors) {
     assert.equal(vector.zeroSideEffects, true, `${vector.id} must be zero-side-effect pre-dispatch`);
   }
@@ -305,7 +308,7 @@ test('beta.8 handshake vectors declare zero-side-effect safety', () => {
 
 test('beta.8 exported safety vectors cover request, result, error, and raw-byte N/N+1 boundaries', () => {
   const covered = new Set(BETA8_HANDSHAKE_VECTOR_IDS);
-  for (const id of ['T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6']) {
+  for (const id of ['T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6', 'T-M-4', 'T-G-11', 'T-M-5', 'T-G-12', 'T-M-6', 'T-M-7', 'T-G-13', 'T-M-8', 'T-G-14']) {
     assert.ok(covered.has(id as (typeof BETA8_HANDSHAKE_VECTOR_IDS)[number]), `${id} must be exported`);
   }
 
@@ -327,6 +330,33 @@ test('beta.8 exported safety vectors cover request, result, error, and raw-byte 
     assert.ok(record?.requestSnapshot?.candidateHello, `${id} must carry the correlated CandidateHello`);
     const oversizeField = id === 'T-H-10' ? parsed.result.pluginInstanceId : parsed.result.brokerSessionId;
     assert.equal(oversizeField.length, 513, `${id} must exercise its H5/H6 N+1 result bound`);
+  }
+});
+
+test('beta.8 exports executable maximum and N+1 requests for every raw UTF-8 family', () => {
+  const boundaryCases = [
+    { maxId: 'T-M-3', nPlusOneId: 'T-G-7', field: 'pluginId', limit: PLUGIN_ID_MAX_LENGTH, codePoint: 'a' },
+    { maxId: 'T-M-4', nPlusOneId: 'T-G-11', field: 'pluginId', limit: PLUGIN_ID_MAX_LENGTH, codePoint: '😀' },
+    { maxId: 'T-M-5', nPlusOneId: 'T-G-12', field: 'pluginId', limit: PLUGIN_ID_MAX_LENGTH, codePoint: '\u0000' },
+    { maxId: 'T-M-6', nPlusOneId: 'T-G-9', field: 'bindingNonce', limit: BINDING_NONCE_MAX_LENGTH, codePoint: 'a' },
+    { maxId: 'T-M-7', nPlusOneId: 'T-G-13', field: 'bindingNonce', limit: BINDING_NONCE_MAX_LENGTH, codePoint: '😀' },
+    { maxId: 'T-M-8', nPlusOneId: 'T-G-14', field: 'bindingNonce', limit: BINDING_NONCE_MAX_LENGTH, codePoint: '\u0000' },
+  ] as const;
+
+  for (const { maxId, nPlusOneId, field, limit, codePoint } of boundaryCases) {
+    const maxVector = findVector(maxId);
+    const nPlusOneVector = findVector(nPlusOneId);
+    const maxInput = JSON.parse(maxVector.rawFrame) as { params: { input: Record<string, string> } };
+    const nPlusOneInput = JSON.parse(nPlusOneVector.rawFrame) as { params: { input: Record<string, string> } };
+
+    assert.equal(maxVector.expectedClass, 'T-M', `${maxId} must accept the legal maximum`);
+    assert.equal(nPlusOneVector.expectedClass, 'T-G', `${nPlusOneId} must reject N+1 before dispatch`);
+    assert.equal(maxInput.params.input[field], codePoint.repeat(limit), `${maxId} must preserve the requested family`);
+    assert.equal(nPlusOneInput.params.input[field], codePoint.repeat(limit + 1), `${nPlusOneId} must preserve the requested family`);
+    assert.ok(
+      Buffer.byteLength(nPlusOneVector.rawFrame, 'utf8') > Buffer.byteLength(maxVector.rawFrame, 'utf8'),
+      `${nPlusOneId} must carry a larger raw UTF-8 frame than ${maxId}`,
+    );
   }
 });
 
