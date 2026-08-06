@@ -31,6 +31,7 @@
  */
 
 import type { DispositionClass, DispositionOutcome } from './disposition.js';
+import { BINDING_NONCE_MAX_LENGTH } from './handshake.js';
 import type { CandidateHello, SessionBinding } from './handshake.js';
 import type { RequestId } from './request-id.js';
 import type { WireMethodName } from './registry.js';
@@ -135,6 +136,15 @@ function helloRequestFrame(id: string, input: Record<string, unknown>): string {
     jsonrpc: '2.0',
     id,
     method: 'broker.hello',
+    params: { meta: { deadlineUnixMs: 1 }, input },
+  });
+}
+
+function readyRequestFrame(id: string, input: Record<string, unknown>): string {
+  return JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    method: 'broker.ready',
     params: { meta: { deadlineUnixMs: 1 }, input },
   });
 }
@@ -939,6 +949,50 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[beta.8 H1 raw-byte N+1] oversize pluginId is rejected before dispatch',
   },
   {
+    id: 'T-G-8',
+    rawFrame: readyRequestFrame('a', { bindingNonce: 1 }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H9] broker.ready wrong-type bindingNonce is rejected before activation',
+  },
+  {
+    id: 'T-G-9',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: 'a'.repeat(BINDING_NONCE_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 H9 code-point N+1] oversize broker.ready bindingNonce is rejected before activation',
+  },
+  {
+    id: 'T-G-10',
+    rawFrame: readyRequestFrame('a', {
+      bindingNonce: 'nonce-1',
+      pluginInstanceId: 'caller-injected',
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.8 authority] broker.ready Host instance injection is rejected before activation',
+  },
+  {
     id: 'T-H-10',
     rawFrame: helloResultFrame('hello-h5-n-plus-1', {
       ...BETA8_BINDING,
@@ -1001,7 +1055,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
 export const BETA8_HANDSHAKE_VECTOR_IDS = [
   'T-M-1', 'T-M-2', 'T-M-3',
-  'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7',
+  'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10',
   'T-H-10', 'T-H-11',
   'T-L-5', 'T-L-6',
 ] as const;

@@ -54,6 +54,7 @@ import {
 } from './disposition.js';
 
 import { MAX_FRAME_BYTES } from './constants.js';
+import { BINDING_NONCE_MAX_LENGTH } from './handshake.js';
 import { WIRE_METHOD_NAMES } from './registry.js';
 
 // Per-arm byte-proof bounds — test files CAN import from byte-proof since
@@ -296,7 +297,7 @@ test('beta.8 handshake vectors declare zero-side-effect safety', () => {
     'beta.8 handshake vector ids must be unique',
   );
   const beta8HandshakeVectors = BETA8_HANDSHAKE_VECTOR_IDS.map((id) => findVector(id));
-  assert.equal(beta8HandshakeVectors.length, 13, 'all beta.8 handshake vectors must be present');
+  assert.equal(beta8HandshakeVectors.length, 16, 'all beta.8 handshake vectors must be present');
   for (const vector of beta8HandshakeVectors) {
     assert.equal(vector.zeroSideEffects, true, `${vector.id} must be zero-side-effect pre-dispatch`);
   }
@@ -304,7 +305,7 @@ test('beta.8 handshake vectors declare zero-side-effect safety', () => {
 
 test('beta.8 exported safety vectors cover request, result, error, and raw-byte N/N+1 boundaries', () => {
   const covered = new Set(BETA8_HANDSHAKE_VECTOR_IDS);
-  for (const id of ['T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6']) {
+  for (const id of ['T-M-1', 'T-M-2', 'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10', 'T-H-10', 'T-H-11', 'T-L-5', 'T-L-6']) {
     assert.ok(covered.has(id as (typeof BETA8_HANDSHAKE_VECTOR_IDS)[number]), `${id} must be exported`);
   }
 
@@ -327,6 +328,26 @@ test('beta.8 exported safety vectors cover request, result, error, and raw-byte 
     const oversizeField = id === 'T-H-10' ? parsed.result.pluginInstanceId : parsed.result.brokerSessionId;
     assert.equal(oversizeField.length, 513, `${id} must exercise its H5/H6 N+1 result bound`);
   }
+});
+
+test('beta.8 exported broker.ready safety vectors reject bad activation inputs before side effects', () => {
+  const wrongType = JSON.parse(findVector('T-G-8').rawFrame) as {
+    params: { input: { bindingNonce: unknown } };
+  };
+  const nPlusOne = JSON.parse(findVector('T-G-9').rawFrame) as {
+    params: { input: { bindingNonce: string } };
+  };
+  const authorityInjection = JSON.parse(findVector('T-G-10').rawFrame) as {
+    params: { input: { pluginInstanceId: string } };
+  };
+
+  assert.equal(typeof wrongType.params.input.bindingNonce, 'number');
+  assert.equal(nPlusOne.params.input.bindingNonce.length, BINDING_NONCE_MAX_LENGTH + 1);
+  assert.ok(
+    Buffer.byteLength(findVector('T-G-9').rawFrame, 'utf8') > Buffer.byteLength(findVector('T-M-2').rawFrame, 'utf8'),
+    'broker.ready N+1 vector must carry a larger raw UTF-8 frame than the legal activation request',
+  );
+  assert.equal(authorityInjection.params.input.pluginInstanceId, 'caller-injected');
 });
 
 // ---------------------------------------------------------------------------
