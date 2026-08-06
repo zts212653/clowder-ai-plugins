@@ -87,6 +87,7 @@ import {
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
   MAX_GRANT_ITEMS,
+  VALID_CAPABILITIES,
   validateEffectiveGrants,
   // Registry
   WIRE_METHOD_NAMES,
@@ -471,6 +472,79 @@ test('beta.8 closes H1/H3/H4/H5/H6 bounded grammars', () => {
     effectiveGrants: [],
     bindingNonce: 'nonce-1',
   }));
+});
+
+test('beta.8 exact-validation evidence covers every H field boundary and type', () => {
+  const digest = `sha512-${'A'.repeat(86)}==`;
+  const maxVersion = `0.0.0-${'a'.repeat(HANDSHAKE_VERSION_MAX_LENGTH - 6)}`;
+  const maxGrants = [...VALID_CAPABILITIES];
+  const binding = {
+    pluginId: 'a',
+    packageDigest: digest,
+    contractVersion: '0.0.0',
+    wireVersion: '0.0.0',
+    pluginInstanceId: 'a',
+    brokerSessionId: 'a',
+    grantRevision: 0,
+    effectiveGrants: [],
+    bindingNonce: 'a',
+  };
+
+  // H1: Unicode code points, not UTF-16 code units.
+  assert.ok(validatePluginId('a'));
+  assert.ok(validatePluginId('😀'.repeat(PLUGIN_ID_MAX_LENGTH)));
+  assert.equal(validatePluginId(''), false);
+  assert.equal(validatePluginId('😀'.repeat(PLUGIN_ID_MAX_LENGTH + 1)), false);
+  assert.equal(validatePluginId(1), false);
+
+  // H2: exactly one sha512 SRI grammar and length.
+  assert.ok(validatePackageDigest(digest));
+  assert.equal(validatePackageDigest(''), false);
+  assert.equal(validatePackageDigest(`${digest}A`), false);
+  assert.equal(validatePackageDigest(1), false);
+
+  // H3/H4 are the only SemVer-constrained handshake fields.
+  for (const validateVersion of [validateContractVersion, validateWireVersion]) {
+    assert.ok(validateVersion('0.0.0'));
+    assert.ok(validateVersion(maxVersion));
+    assert.equal(validateVersion(''), false);
+    assert.equal(validateVersion(`${maxVersion}a`), false);
+    assert.equal(validateVersion(1), false);
+  }
+
+  // H5/H6 preserve the shared opaque-string code-point grammar.
+  for (const validateIdentifier of [validatePluginInstanceId, validateBrokerSessionId]) {
+    assert.ok(validateIdentifier('a'));
+    assert.ok(validateIdentifier('😀'.repeat(HOST_IDENTIFIER_MAX_LENGTH)));
+    assert.equal(validateIdentifier(''), false);
+    assert.equal(validateIdentifier('😀'.repeat(HOST_IDENTIFIER_MAX_LENGTH + 1)), false);
+    assert.equal(validateIdentifier(1), false);
+  }
+
+  // H7/H8 are closed SessionBinding values, including their numeric and set bounds.
+  assert.ok(validateSessionBinding({ ...binding, grantRevision: 0 }));
+  assert.ok(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX }));
+  assert.equal(validateSessionBinding({ ...binding, grantRevision: -1 }), false);
+  assert.equal(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX + 1 }), false);
+  assert.equal(validateSessionBinding({ ...binding, grantRevision: '0' }), false);
+  assert.ok(validateSessionBinding({ ...binding, effectiveGrants: [] }));
+  assert.equal(maxGrants.length, MAX_GRANT_ITEMS);
+  assert.ok(validateSessionBinding({ ...binding, effectiveGrants: maxGrants }));
+  assert.equal(
+    validateSessionBinding({
+      ...binding,
+      effectiveGrants: Array.from({ length: MAX_GRANT_ITEMS + 1 }, () => 'messaging.send'),
+    }),
+    false,
+  );
+  assert.equal(validateSessionBinding({ ...binding, effectiveGrants: 'messaging.send' }), false);
+
+  // H9 is the activation nonce and follows the same code-point rule as H5/H6.
+  assert.ok(validateBindingNonce('a'));
+  assert.ok(validateBindingNonce('😀'.repeat(BINDING_NONCE_MAX_LENGTH)));
+  assert.equal(validateBindingNonce(''), false);
+  assert.equal(validateBindingNonce('😀'.repeat(BINDING_NONCE_MAX_LENGTH + 1)), false);
+  assert.equal(validateBindingNonce(1), false);
 });
 
 test('beta.8 raw UTF-8 proofs bind maximum and rejected N+1 handshake values', () => {
