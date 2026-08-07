@@ -116,6 +116,7 @@ test('records every pre-state vector as an explicit non-black-box seam', () => {
   assert.deepEqual(
     excludedFixtureVectors.map(vector => ({ id: vector.id, coveredBy: 'S1 unit layer' })),
     [
+      { id: 'T-C-2', coveredBy: 'S1 unit layer' },
       { id: 'T-I-1', coveredBy: 'S1 unit layer' },
       { id: 'T-H-2', coveredBy: 'S1 unit layer' },
       { id: 'T-H-5', coveredBy: 'S1 unit layer' },
