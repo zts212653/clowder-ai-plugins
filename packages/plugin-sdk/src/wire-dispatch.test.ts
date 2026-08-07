@@ -301,6 +301,28 @@ test('broker.hello non-canonical H7 raw integers close at T-C before response va
   }
 });
 
+test('non-hello result grantRevision is validated at T-H, not treated as H7', () => {
+  for (const [id, method] of [
+    ['ready-response', 'broker.ready'],
+    ['ping-response', 'host.lifecycle.ping'],
+  ] as const) {
+    const rawFrame = JSON.stringify({
+      jsonrpc: '2.0',
+      id,
+      result: { grantRevision: -1 },
+    });
+    const result = classifyFrame(
+      {
+        raw: Buffer.from(rawFrame, 'utf8'),
+        value: JSON.parse(rawFrame) as JsonObject,
+      },
+      new Map<string, InFlightEntry>([[id, { method }]]),
+    );
+    assert.equal(result.disposition, 'T-H', `${method} must use its own result grammar`);
+    assert.equal(result.outcome, 'close');
+  }
+});
+
 test('broker.hello SessionBinding without a candidate snapshot fails closed', () => {
   const inFlight = new Map<string, InFlightEntry>([
     ['hello-response', { method: 'broker.hello' }],

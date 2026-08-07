@@ -268,7 +268,10 @@ function containsExponentNumber(value: unknown): boolean {
  *   - params.input.grantRevision  (host.grants.changed input)
  *   - result.grantRevision        (broker.hello SessionBinding)
  */
-function hasNonCanonicalUInt53Token(value: JsonObject): boolean {
+function hasNonCanonicalUInt53Token(
+  value: JsonObject,
+  inFlight: ReadonlyMap<string, InFlightEntry>,
+): boolean {
   const params = value.params;
   if (params !== null && typeof params === 'object' && !Array.isArray(params)) {
     const paramsObj = params as Record<string, unknown>;
@@ -295,11 +298,15 @@ function hasNonCanonicalUInt53Token(value: JsonObject): boolean {
     }
   }
 
-  // Response envelopes have no method. H7 is the only WireUInt53 leaf in a
-  // result shape today, so it must receive the same raw-token gate before
-  // response correlation and SessionBinding schema validation.
+  // H7 is a WireUInt53 result leaf only for broker.hello's SessionBinding.
+  // Consult the correlated in-flight row before applying this raw-token gate:
+  // result.grantRevision on every other response belongs to that row's own
+  // result grammar and must therefore reach T-H rather than T-C.
   const result = value.result;
-  if (!('method' in value) && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+  const responseMethod = typeof value.id === 'string'
+    ? inFlight.get(value.id)?.method
+    : undefined;
+  if (responseMethod === 'broker.hello' && result !== null && typeof result === 'object' && !Array.isArray(result)) {
     const resultObj = result as Record<string, unknown>;
     if (typeof resultObj.grantRevision === 'number') {
       if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
@@ -1061,7 +1068,7 @@ export function classifyFrame(
     // P1-1: WireUInt53 raw-token grammar — after byte-equality, the raw
     // token at each WireUInt53 position is String(parsedValue). Tokens
     // like "-1" or "1.5" violate 0|[1-9][0-9]{0,15} → T-C.
-    if (hasNonCanonicalUInt53Token(value)) return close('T-C');
+    if (hasNonCanonicalUInt53Token(value, inFlight)) return close('T-C');
   } catch {
     // Stack overflow from deep nesting, or other canonicality edge case.
     return close('T-C');
