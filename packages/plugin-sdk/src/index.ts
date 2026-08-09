@@ -5,8 +5,8 @@
  *   1. Schema-neutral NDJSON transport (stdio-runtime, S0/#12)
  *   2. Wire dispatch classifier (wire-dispatch, S1)
  *
- * Apart from the beta.8 handshake rows, production RPC methods remain
- * reserved in plugin-contract until their rows become executable. The dispatch
+ * The beta.8 handshake rows and beta.9 events.publish row are executable;
+ * remaining production RPC methods stay reserved. The dispatch
  * classifier gates all methods: CLOSED rows validate input shapes, RESERVED
  * rows fail-closed with T-G (input type is `never` in v0 — no legal params
  * exist).
@@ -59,3 +59,13 @@ export {
   type InFlightEntry,
   type RequestSnapshot,
 } from './wire-dispatch.js';
+
+export {
+  EventsPublishError,
+  createEventsPublisher,
+  type EventsPublishErrorCode,
+  type EventsPublishHostTransport,
+  type StdioSessionLiveness,
+  type EventsPublisherOptions,
+  type EventsPublisher,
+} from './events-publisher.js';

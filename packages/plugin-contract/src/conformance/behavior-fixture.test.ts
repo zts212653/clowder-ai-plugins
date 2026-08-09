@@ -26,9 +26,13 @@ const Ajv = require('ajv/dist/2020') as new (options: {
   addSchema(schema: object, id: string): void;
   compile(schema: object): ((data: unknown) => boolean) & { errors?: unknown[] | null };
 };
+const addFormats = require('ajv-formats') as (ajv: object) => void;
 
 const manifestSchema = JSON.parse(
   readFileSync(new URL('../schemas/manifest.schema.json', import.meta.url), 'utf8'),
+) as object & { $id: string };
+const signalSchema = JSON.parse(
+  readFileSync(new URL('../schemas/signal.schema.json', import.meta.url), 'utf8'),
 ) as object & { $id: string };
 const behaviorSchema = JSON.parse(
   readFileSync(new URL('../schemas/behavior-fixture.schema.json', import.meta.url), 'utf8'),
@@ -43,6 +47,8 @@ const behaviorFixture = JSON.parse(
 ) as { cases: Array<Record<string, unknown>> };
 
 const ajv = new Ajv({ allErrors: true, strict: false });
+addFormats(ajv);
+ajv.addSchema(signalSchema, signalSchema.$id);
 ajv.addSchema(manifestSchema, manifestSchema.$id);
 const validate = ajv.compile(behaviorSchema);
 
@@ -243,8 +249,8 @@ test('behavior fixture ships subscription authorization oracles', () => {
 test('conformance executes every loopback behavior case', async () => {
   const report = await runConformance({ write: () => undefined });
 
-  assert.equal(report.contractFixtures.passed, 25);
-  assert.equal(report.contractFixtures.total, 25);
+  assert.equal(report.contractFixtures.passed, 32);
+  assert.equal(report.contractFixtures.total, 32);
   assert.equal(report.behaviorCases.passed, 18);
   assert.equal(report.behaviorCases.total, 18);
   assert.deepEqual(report.failures, []);

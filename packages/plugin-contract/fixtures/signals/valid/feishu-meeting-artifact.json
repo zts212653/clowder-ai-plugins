@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "schemaRef": "EventsPublishInput"
+  },
+  "signalType": "feishu.meeting_artifact.generated.v1",
+  "eventId": "feishu-minute-om_abc123-v7",
+  "idempotencyKey": "feishu:minute:om_abc123:7",
+  "occurredAt": "2026-08-09T04:12:31Z",
+  "payload": {
+    "artifactId": "om_abc123",
+    "artifactKind": "minute",
+    "revision": "7",
+    "title": "F292 design review"
+  },
+  "source": {
+    "handle": "feishu://minutes/om_abc123?revision=7"
+  }
+}

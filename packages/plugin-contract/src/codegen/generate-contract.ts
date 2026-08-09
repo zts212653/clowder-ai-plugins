@@ -23,6 +23,7 @@ export interface JsonSchema {
 
 export interface ContractSchemas {
   readonly manifest: JsonSchema;
+  readonly signals: JsonSchema;
   readonly messaging: JsonSchema;
   readonly physicalLimb: JsonSchema;
   readonly behavior: JsonSchema;
@@ -31,6 +32,7 @@ export interface ContractSchemas {
 const GENERATED_URL = new URL('../generated/contract.generated.ts', import.meta.url);
 const MANIFEST_CAPABILITY_REF =
   'https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability';
+const SIGNAL_SCHEMA_PREFIX = 'https://clowder-ai.dev/schemas/signals/v0.2#/$defs/';
 
 async function readSchema(url: URL): Promise<JsonSchema> {
   return JSON.parse(await readFile(url, 'utf8')) as JsonSchema;
@@ -39,6 +41,7 @@ async function readSchema(url: URL): Promise<JsonSchema> {
 export async function loadContractSchemas(): Promise<ContractSchemas> {
   return {
     manifest: await readSchema(new URL('../schemas/manifest.schema.json', import.meta.url)),
+    signals: await readSchema(new URL('../schemas/signal.schema.json', import.meta.url)),
     messaging: await readSchema(new URL('../schemas/messaging.schema.json', import.meta.url)),
     physicalLimb: await readSchema(
       new URL('../schemas/physical-limb.schema.json', import.meta.url),
@@ -62,6 +65,9 @@ function literal(value: unknown): string {
 
 function refName(ref: string): string {
   if (ref === MANIFEST_CAPABILITY_REF) return 'Capability';
+  if (ref.startsWith(SIGNAL_SCHEMA_PREFIX)) {
+    return decodeURIComponent(ref.slice(SIGNAL_SCHEMA_PREFIX.length));
+  }
 
   const marker = '#/$defs/';
   if (!ref.startsWith(marker)) {
@@ -438,13 +444,15 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from manifest.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
+    ' * Generated from manifest.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
     '',
     ...renderDefinitions(schemas.manifest),
     '',
     `export type PluginManifest = ${renderType(schemas.manifest)};`,
+    '',
+    ...renderDefinitions(schemas.signals),
     '',
     ...renderDefinitions(schemas.messaging),
     '',

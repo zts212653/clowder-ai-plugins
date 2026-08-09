@@ -265,8 +265,8 @@ function replaceNamedStepOnce(
   return releaseWorkflow.replace(step, mutatedStep);
 }
 
-test('runtime manifest validation publishes beta.8 while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.8');
+test('runtime manifest validation publishes beta.9 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.9');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
@@ -642,5 +642,27 @@ test('loopback fixture changes execute pull-request validation', () => {
     validateJob.indexOf('- name: SDK build\n        run: pnpm --filter @clowder-ai/plugin-sdk build') <
       validateJob.indexOf('- name: Loopback fixture typecheck\n        run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck'),
     'loopback validation must run after its SDK dependency is built',
+  );
+});
+
+test('official Feishu intake changes execute pull-request validation', () => {
+  const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+
+  assert.ok(validateJob, 'validation job must be active');
+  for (const [name, command] of [
+    ['Feishu intake typecheck', 'pnpm --filter @clowder-ai/feishu-meeting-intake typecheck'],
+    ['Feishu intake tests', 'pnpm --filter @clowder-ai/feishu-meeting-intake test'],
+    ['Feishu intake lint', 'pnpm --filter @clowder-ai/feishu-meeting-intake lint'],
+    ['Feishu intake build', 'pnpm --filter @clowder-ai/feishu-meeting-intake build'],
+  ] as const) {
+    assert.match(
+      validateJob,
+      new RegExp(`^      - name: ${name}\\n        run: ${command.replaceAll('/', '\\/')}$$`, 'm'),
+    );
+  }
+  assert.ok(
+    validateJob.indexOf('- name: SDK build\n        run: pnpm --filter @clowder-ai/plugin-sdk build') <
+      validateJob.indexOf('- name: Feishu intake typecheck\n        run: pnpm --filter @clowder-ai/feishu-meeting-intake typecheck'),
+    'Feishu intake validation must run after its SDK dependency is built',
   );
 });

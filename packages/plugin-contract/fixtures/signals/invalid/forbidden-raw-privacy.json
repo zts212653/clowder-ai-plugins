@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "schemaRef": "SignalDeclaration"
+  },
+  "type": "local.microphone.frame.v1",
+  "schemaRef": "schemas/microphone-frame.schema.json",
+  "epistemicStatus": "observation",
+  "privacyClass": "av-raw",
+  "sourceClass": "os-metadata"
+}

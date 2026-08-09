@@ -23,6 +23,8 @@ import type {
   // beta.8 handshake inputs plus still-RESERVED row stubs
   HelloInput,
   ReadyInput,
+  EventsPublishInput,
+  EventsPublishResult,
   SendInput,
   AppendInput,
   ReadInput,
@@ -71,6 +73,21 @@ const _closedHello: HelloInput = {
 const _closedReady: ReadyInput = { bindingNonce: 'nonce-1' };
 void _closedHello;
 void _closedReady;
+
+const _closedPublish: EventsPublishInput = {
+  signalType: 'feishu.meeting_artifact.generated.v1',
+  eventId: 'event-1',
+  idempotencyKey: 'artifact-1',
+  occurredAt: '2026-08-09T05:55:00Z',
+  payload: { artifactId: 'artifact-1' },
+  source: { handle: 'feishu-minute:artifact-1' },
+};
+const _closedPublishResult: EventsPublishResult = {
+  publicationId: 'publication-1',
+  disposition: 'accepted',
+};
+void _closedPublish;
+void _closedPublishResult;
 
 // @ts-expect-error — Row 3 (messaging.send) input is never
 const _reservedSend: SendInput = '';
@@ -123,18 +140,20 @@ const _probeC2: WireErrorResponse = _fakeErrorNullId;
 // ═══════════════════════════════════════════════════════════════════════════
 // RED (method): Unknown method string is not a WireMethodName.
 //
-// The 12-row registry defines a closed set of method names. A string
+// The 13-row registry defines a closed set of method names. A string
 // not in that set must not be assignable to WireMethodName.
 // ═══════════════════════════════════════════════════════════════════════════
 
-// @ts-expect-error — 'not.a.method' is not in the 12-row closed method enum
+// @ts-expect-error — 'not.a.method' is not in the 13-row closed method enum
 const _badMethod: WireMethodName = 'not.a.method';
 
 // beta.8's ready partition must remain literal rather than widening to boolean.
 declare const _registry: WireMethodRegistry;
 const _helloReady: true = _registry['broker.hello'].ready;
 const _readyReady: true = _registry['broker.ready'].ready;
+const _publishReady: true = _registry['events.publish'].ready;
 const _sendUnready: false = _registry['messaging.send'].ready;
 void _helloReady;
 void _readyReady;
+void _publishReady;
 void _sendUnready;

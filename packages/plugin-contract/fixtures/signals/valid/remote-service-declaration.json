@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "schemaRef": "SignalDeclaration"
+  },
+  "type": "feishu.meeting_artifact.generated.v1",
+  "schemaRef": "schemas/feishu-meeting-artifact.schema.json",
+  "epistemicStatus": "observation",
+  "privacyClass": "content-adjacent",
+  "sourceClass": "remote-service"
+}

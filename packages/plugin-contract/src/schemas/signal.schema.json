@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/signals/v0.2",
+  "title": "Clowder AI Signal Ingress Contract (C-2)",
+  "description": "Declared external signals and the closed events.publish wire payload. Producer identity, provenance, grants, routing, and liveness are Host-bound and intentionally absent from plugin input.",
+  "x-clowder-payload-max-encoded-bytes": 65536,
+  "x-clowder-forbidden-privacy-classes": ["av-raw", "input-raw"],
+  "x-clowder-forbidden-source-classes": ["av-capture", "input-hardware"],
+  "$defs": {
+    "SignalType": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_-]*)+$"
+    },
+    "SignalSchemaRef": {
+      "type": "string",
+      "minLength": 21,
+      "maxLength": 256,
+      "pattern": "^schemas/([A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.schema\\.json$"
+    },
+    "SignalEpistemicStatus": {
+      "type": "string",
+      "enum": ["observation", "inference"]
+    },
+    "SignalPrivacyClass": {
+      "type": "string",
+      "enum": ["behavioral", "content-adjacent", "content", "av-raw", "input-raw"]
+    },
+    "AdmissibleSignalPrivacyClass": {
+      "type": "string",
+      "enum": ["behavioral", "content-adjacent", "content"]
+    },
+    "SignalSourceClass": {
+      "type": "string",
+      "enum": ["os-metadata", "accessibility-api", "remote-service", "av-capture", "input-hardware"]
+    },
+    "AdmissibleSignalSourceClass": {
+      "type": "string",
+      "enum": ["os-metadata", "accessibility-api", "remote-service"]
+    },
+    "SignalDeclaration": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/$defs/SignalType" },
+        "schemaRef": { "$ref": "#/$defs/SignalSchemaRef" },
+        "epistemicStatus": { "$ref": "#/$defs/SignalEpistemicStatus" },
+        "privacyClass": { "$ref": "#/$defs/AdmissibleSignalPrivacyClass" },
+        "sourceClass": { "$ref": "#/$defs/AdmissibleSignalSourceClass" }
+      },
+      "required": ["type", "schemaRef", "epistemicStatus", "privacyClass", "sourceClass"],
+      "additionalProperties": false
+    },
+    "SignalContribution": {
+      "type": "object",
+      "properties": {
+        "provides": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SignalDeclaration" },
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true
+        }
+      },
+      "required": ["provides"],
+      "additionalProperties": false
+    },
+    "SignalEventId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "SignalIdempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "OpaqueSourceHandle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "SignalSourceRef": {
+      "type": "object",
+      "properties": {
+        "handle": { "$ref": "#/$defs/OpaqueSourceHandle" }
+      },
+      "required": ["handle"],
+      "additionalProperties": false
+    },
+    "EventsPublishInput": {
+      "type": "object",
+      "properties": {
+        "signalType": { "$ref": "#/$defs/SignalType" },
+        "eventId": { "$ref": "#/$defs/SignalEventId" },
+        "idempotencyKey": { "$ref": "#/$defs/SignalIdempotencyKey" },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time",
+          "minLength": 20,
+          "maxLength": 30,
+          "pattern": "Z$"
+        },
+        "payload": { "type": "object", "additionalProperties": true },
+        "source": { "$ref": "#/$defs/SignalSourceRef" }
+      },
+      "required": ["signalType", "eventId", "idempotencyKey", "occurredAt", "payload"],
+      "additionalProperties": false
+    },
+    "EventsPublishDisposition": {
+      "type": "string",
+      "enum": ["accepted", "duplicate"]
+    },
+    "EventsPublishResult": {
+      "type": "object",
+      "properties": {
+        "publicationId": { "$ref": "#/$defs/SignalEventId" },
+        "disposition": { "$ref": "#/$defs/EventsPublishDisposition" }
+      },
+      "required": ["publicationId", "disposition"],
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/$defs/EventsPublishInput"
+}

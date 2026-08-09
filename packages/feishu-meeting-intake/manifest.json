@@ -1,0 +1,33 @@
+{
+  "pluginId": "official.feishu-meeting-intake",
+  "version": "0.1.0-alpha.0",
+  "contractVersion": "0.1.0",
+  "name": "Feishu Meeting Intake",
+  "features": [
+    {
+      "id": "generated-meeting-artifacts",
+      "name": "Generated meeting artifacts",
+      "resources": [
+        {
+          "type": "input-source",
+          "id": "feishu.meeting_artifact.generated.v1"
+        }
+      ],
+      "capabilities": ["events.publish"]
+    }
+  ],
+  "signals": {
+    "provides": [
+      {
+        "type": "feishu.meeting_artifact.generated.v1",
+        "schemaRef": "schemas/feishu-meeting-artifact.schema.json",
+        "epistemicStatus": "observation",
+        "privacyClass": "content-adjacent",
+        "sourceClass": "remote-service"
+      }
+    ]
+  },
+  "runtime": {
+    "transport": "builtin"
+  }
+}

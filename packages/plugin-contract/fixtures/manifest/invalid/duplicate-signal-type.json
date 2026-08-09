@@ -1,0 +1,33 @@
+{
+  "pluginId": "example.duplicate-signal",
+  "version": "1.0.0",
+  "contractVersion": "0.1.0",
+  "name": "Duplicate Signal Type",
+  "features": [
+    {
+      "id": "meeting-intake",
+      "name": "Meeting intake",
+      "resources": [],
+      "capabilities": ["events.publish"]
+    }
+  ],
+  "signals": {
+    "provides": [
+      {
+        "type": "feishu.meeting_artifact.generated.v1",
+        "schemaRef": "schemas/meeting-a.schema.json",
+        "epistemicStatus": "observation",
+        "privacyClass": "content-adjacent",
+        "sourceClass": "remote-service"
+      },
+      {
+        "type": "feishu.meeting_artifact.generated.v1",
+        "schemaRef": "schemas/meeting-b.schema.json",
+        "epistemicStatus": "inference",
+        "privacyClass": "content",
+        "sourceClass": "remote-service"
+      }
+    ]
+  },
+  "runtime": { "transport": "builtin" }
+}

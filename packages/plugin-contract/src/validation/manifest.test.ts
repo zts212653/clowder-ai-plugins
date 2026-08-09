@@ -82,3 +82,69 @@ test('returns the original caller-owned data only after full validation', () => 
     assert.equal(result.manifest, manifest);
   }
 });
+
+test('admits a declared remote meeting signal without granting routing authority', () => {
+  const manifest = {
+    pluginId: 'dev.clowder.feishu-meeting-intake',
+    version: '0.1.0',
+    contractVersion: '0.1.0-beta.9',
+    name: 'Feishu Meeting Intake',
+    features: [
+      {
+        id: 'meeting-intake',
+        name: 'Meeting Intake',
+        resources: [],
+        capabilities: ['events.publish'],
+      },
+    ],
+    signals: {
+      provides: [
+        {
+          type: 'feishu.meeting_artifact.generated.v1',
+          schemaRef: 'schemas/feishu-meeting-artifact.v1.schema.json',
+          epistemicStatus: 'observation',
+          privacyClass: 'content-adjacent',
+          sourceClass: 'remote-service',
+        },
+      ],
+    },
+    runtime: { transport: 'builtin' },
+  };
+
+  assert.equal(validateManifest(manifest).valid, true);
+  assert.equal(
+    validateManifest({
+      ...manifest,
+      signals: {
+        ...manifest.signals,
+        target: { catId: 'codex-sol' },
+      },
+    }).valid,
+    false,
+  );
+  assert.equal(
+    validateManifest({
+      ...manifest,
+      signals: {
+        provides: [{ ...manifest.signals.provides[0], privacyClass: 'av-raw' }],
+      },
+    }).valid,
+    false,
+  );
+  assert.equal(
+    validateManifest({
+      ...manifest,
+      signals: {
+        provides: [
+          manifest.signals.provides[0],
+          {
+            ...manifest.signals.provides[0],
+            schemaRef: 'schemas/another-meeting-artifact.schema.json',
+          },
+        ],
+      },
+    }).valid,
+    false,
+    'one manifest must not declare the same signal type with conflicting metadata',
+  );
+});

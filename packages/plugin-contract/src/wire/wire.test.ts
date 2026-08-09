@@ -85,6 +85,7 @@ import {
   BROKER_READY_REQUEST_BYTE_PROOF,
   HANDSHAKE_REJECTED_ERROR_BYTE_PROOF,
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
+  EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
   MAX_GRANT_ITEMS,
   VALID_CAPABILITIES,
@@ -666,9 +667,9 @@ test('validateEffectiveGrants rejects unknown capabilities (FC-52-4: fail-closed
 // §8 Registry regression locks
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('registry has exactly 12 production methods', () => {
-  assert.equal(WIRE_METHOD_NAMES.length, 12);
-  assert.equal(WIRE_METHOD_COUNT, 12);
+test('beta.9 appends one C-2 publish row without renumbering the original 12', () => {
+  assert.equal(WIRE_METHOD_NAMES.length, 13);
+  assert.equal(WIRE_METHOD_COUNT, 13);
 });
 
 test('method names are frozen in order', () => {
@@ -685,20 +686,21 @@ test('method names are frozen in order', () => {
     'host.grants.changed',
     'host.lifecycle.ping',
     'host.lifecycle.drain',
+    'events.publish',
   ];
   assert.deepEqual([...WIRE_METHOD_NAMES], expected);
 });
 
-test('only beta.8 handshake rows are ready', () => {
+test('only beta.8 handshake and beta.9 event publish rows are ready', () => {
   for (const method of WIRE_METHOD_NAMES) {
     const row = WIRE_METHOD_REGISTRY[method];
     assert.equal(
       row.ready,
-      method === 'broker.hello' || method === 'broker.ready',
-      `${method} readiness must match beta.8 scope`,
+      method === 'broker.hello' || method === 'broker.ready' || method === 'events.publish',
+      `${method} readiness must match beta.9 scope`,
     );
   }
-  assert.deepEqual([...READY_ROWS], ['broker.hello', 'broker.ready']);
+  assert.deepEqual([...READY_ROWS], ['broker.hello', 'broker.ready', 'events.publish']);
   assert.deepEqual(
     {
       maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedRequestBytes,
@@ -715,7 +717,15 @@ test('only beta.8 handshake rows are ready', () => {
     },
     HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.ready'],
   );
-  for (const method of WIRE_METHOD_NAMES.slice(2)) {
+  assert.deepEqual(
+    {
+      maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['events.publish'].maxEncodedRequestBytes,
+      maxEncodedResultBytes: WIRE_METHOD_REGISTRY['events.publish'].maxEncodedResultBytes,
+      maxEncodedErrorBytes: WIRE_METHOD_REGISTRY['events.publish'].maxEncodedErrorBytes,
+    },
+    EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
+  );
+  for (const method of WIRE_METHOD_NAMES.slice(2, 12)) {
     const row = getRegistryRow(method);
     assert.equal(row?.maxEncodedRequestBytes, undefined);
     assert.equal(row?.maxEncodedResultBytes, undefined);
@@ -723,7 +733,7 @@ test('only beta.8 handshake rows are ready', () => {
   }
 });
 
-test('row numbers are sequential 1-12', () => {
+test('row numbers are sequential 1-13', () => {
   WIRE_METHOD_NAMES.forEach((method, i) => {
     assert.equal(
       WIRE_METHOD_REGISTRY[method].rowNumber,
@@ -733,11 +743,11 @@ test('row numbers are sequential 1-12', () => {
   });
 });
 
-test('leaf closure partition is frozen', () => {
-  const closed = ['broker.hello', 'broker.ready', 'messaging.subscribe', 'messaging.ack', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain'];
+test('leaf closure partition adds only events.publish', () => {
+  const closed = ['broker.hello', 'broker.ready', 'messaging.subscribe', 'messaging.ack', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain', 'events.publish'];
   const reserved = ['messaging.send', 'messaging.appendElements', 'messaging.read', 'messaging.snapshot', 'host.messaging.deliver'];
 
-  assert.equal(CLOSED_LEAF_ROWS.length, 7, '7 closed rows');
+  assert.equal(CLOSED_LEAF_ROWS.length, 8, '8 closed rows');
   assert.equal(RESERVED_LEAF_ROWS.length, 5, '5 reserved rows');
 
   for (const m of closed) {
@@ -748,11 +758,11 @@ test('leaf closure partition is frozen', () => {
   }
 });
 
-test('direction partition is frozen', () => {
-  const p2h = ['broker.hello', 'broker.ready', 'messaging.send', 'messaging.appendElements', 'messaging.subscribe', 'messaging.read', 'messaging.ack', 'messaging.snapshot'];
+test('direction partition appends events.publish to plugin-to-host', () => {
+  const p2h = ['broker.hello', 'broker.ready', 'messaging.send', 'messaging.appendElements', 'messaging.subscribe', 'messaging.read', 'messaging.ack', 'messaging.snapshot', 'events.publish'];
   const h2p = ['host.messaging.deliver', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain'];
 
-  assert.equal(PLUGIN_TO_HOST_METHODS.length, 8, '8 plugin-to-host');
+  assert.equal(PLUGIN_TO_HOST_METHODS.length, 9, '9 plugin-to-host');
   assert.equal(HOST_TO_PLUGIN_METHODS.length, 4, '4 host-to-plugin');
 
   for (const m of p2h) {

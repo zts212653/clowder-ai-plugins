@@ -1,5 +1,5 @@
 /**
- * Generated from manifest.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
+ * Generated from manifest.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
 
@@ -69,6 +69,44 @@ export type PluginManifest = {
   readonly features: readonly PluginFeature[];
   readonly data?: readonly DataDeclaration[];
   readonly runtime: RuntimeDeclaration;
+  readonly signals?: SignalContribution;
+};
+
+export type SignalType = string;
+export type SignalSchemaRef = string;
+export type SignalEpistemicStatus = 'observation' | 'inference';
+export type SignalPrivacyClass = 'behavioral' | 'content-adjacent' | 'content' | 'av-raw' | 'input-raw';
+export type AdmissibleSignalPrivacyClass = 'behavioral' | 'content-adjacent' | 'content';
+export type SignalSourceClass = 'os-metadata' | 'accessibility-api' | 'remote-service' | 'av-capture' | 'input-hardware';
+export type AdmissibleSignalSourceClass = 'os-metadata' | 'accessibility-api' | 'remote-service';
+export type SignalDeclaration = {
+  readonly type: SignalType;
+  readonly schemaRef: SignalSchemaRef;
+  readonly epistemicStatus: SignalEpistemicStatus;
+  readonly privacyClass: AdmissibleSignalPrivacyClass;
+  readonly sourceClass: AdmissibleSignalSourceClass;
+};
+export type SignalContribution = {
+  readonly provides: readonly SignalDeclaration[];
+};
+export type SignalEventId = string;
+export type SignalIdempotencyKey = string;
+export type OpaqueSourceHandle = string;
+export type SignalSourceRef = {
+  readonly handle: OpaqueSourceHandle;
+};
+export type EventsPublishInput = {
+  readonly signalType: SignalType;
+  readonly eventId: SignalEventId;
+  readonly idempotencyKey: SignalIdempotencyKey;
+  readonly occurredAt: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly source?: SignalSourceRef;
+};
+export type EventsPublishDisposition = 'accepted' | 'duplicate';
+export type EventsPublishResult = {
+  readonly publicationId: SignalEventId;
+  readonly disposition: EventsPublishDisposition;
 };
 
 export type ActorKind = 'user' | 'cat' | 'plugin' | 'device' | 'system';

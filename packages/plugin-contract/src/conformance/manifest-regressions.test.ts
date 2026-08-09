@@ -11,11 +11,17 @@ const Ajv = require('ajv/dist/2020') as new (options: {
   addSchema(schema: object, id: string): void;
   getSchema(ref: string): ((data: unknown) => boolean) | undefined;
 };
+const addFormats = require('ajv-formats') as (ajv: object) => void;
 
 const schema = JSON.parse(
   readFileSync(new URL('../schemas/manifest.schema.json', import.meta.url), 'utf8'),
 ) as { $id: string };
+const signalSchema = JSON.parse(
+  readFileSync(new URL('../schemas/signal.schema.json', import.meta.url), 'utf8'),
+) as { $id: string };
 const ajv = new Ajv({ allErrors: true, strict: false });
+addFormats(ajv);
+ajv.addSchema(signalSchema, signalSchema.$id);
 ajv.addSchema(schema, schema.$id);
 
 function validate(definition: string, value: unknown): boolean {

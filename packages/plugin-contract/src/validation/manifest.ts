@@ -12,6 +12,10 @@ const manifestSchema = require('@clowder-ai/plugin-contract/schemas/manifest') a
   string,
   unknown
 >;
+const signalSchema = require('@clowder-ai/plugin-contract/schemas/signals') as Record<
+  string,
+  unknown
+>;
 
 interface AjvErrorObject {
   readonly instancePath: string;
@@ -26,6 +30,7 @@ interface AjvValidateFunction {
 }
 
 interface AjvInstance {
+  addSchema(schema: Record<string, unknown>, id?: string): void;
   compile(schema: Record<string, unknown>): AjvValidateFunction;
 }
 
@@ -49,6 +54,7 @@ export type ManifestValidationResult =
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
+ajv.addSchema(signalSchema, signalSchema['$id'] as string);
 const validateSchema = ajv.compile(manifestSchema);
 
 /**
@@ -59,9 +65,27 @@ const validateSchema = ajv.compile(manifestSchema);
  */
 export function validateManifest(value: unknown): ManifestValidationResult {
   if (validateSchema(value)) {
+    const manifest = value as PluginManifest;
+    const declaredTypes = new Set<string>();
+    for (const [index, declaration] of (manifest.signals?.provides ?? []).entries()) {
+      if (declaredTypes.has(declaration.type)) {
+        return {
+          valid: false,
+          errors: [
+            {
+              instancePath: `/signals/provides/${index}/type`,
+              schemaPath: '#/$defs/SignalContribution/uniqueSignalTypes',
+              keyword: 'uniqueSignalTypes',
+              message: 'signal type must be declared at most once per manifest',
+            },
+          ],
+        };
+      }
+      declaredTypes.add(declaration.type);
+    }
     return {
       valid: true,
-      manifest: value as PluginManifest,
+      manifest,
       errors: [],
     };
   }

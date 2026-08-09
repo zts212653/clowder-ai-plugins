@@ -222,6 +222,57 @@ test('valid broker.hello reaches T-M once the handshake row is ready', () => {
   assert.equal(result.response, undefined);
 });
 
+test('valid events.publish reaches T-M while authority-bearing input is T-G', () => {
+  const input = {
+    signalType: 'feishu.meeting_artifact.generated.v1',
+    eventId: 'feishu-minute-om_abc123-v7',
+    idempotencyKey: 'feishu:minute:om_abc123:7',
+    occurredAt: '2026-08-09T04:12:31Z',
+    payload: { artifactId: 'om_abc123', revision: '7' },
+    source: { handle: 'feishu://minutes/om_abc123?revision=7' },
+  };
+
+  for (const [candidate, expected] of [
+    [input, 'T-M'],
+    [{ ...input, destination: { threadId: 'thread-1' } }, 'T-G'],
+  ] as const) {
+    const rawFrame = JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'publish-1',
+      method: 'events.publish',
+      params: { meta: { deadlineUnixMs: 1 }, input: candidate },
+    });
+    const result = classifyFrame({
+      raw: Buffer.from(rawFrame, 'utf8'),
+      value: JSON.parse(rawFrame) as JsonObject,
+    }, NO_IN_FLIGHT);
+
+    assert.equal(result.disposition, expected);
+    assert.equal(result.outcome, expected === 'T-M' ? 'accept' : 'respond');
+  }
+});
+
+test('events.publish accepts only closed Host receipts and standard errors', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['publish-1', { method: 'events.publish' }],
+  ]);
+
+  for (const [settlement, disposition] of [
+    [{ result: { publicationId: 'publication-1', disposition: 'accepted' } }, 'T-L'],
+    [{ result: { publicationId: 'publication-1', disposition: 'accepted', destination: 'thread-1' } }, 'T-H'],
+    [{ error: { code: -32602, message: 'Invalid params' } }, 'T-L'],
+    [{ error: { code: -32093, message: 'deadline expired', data: {} } }, 'T-H'],
+  ] as const) {
+    const rawFrame = JSON.stringify({ jsonrpc: '2.0', id: 'publish-1', ...settlement });
+    const result = classifyFrame({
+      raw: Buffer.from(rawFrame, 'utf8'),
+      value: JSON.parse(rawFrame) as JsonObject,
+    }, inFlight);
+    assert.equal(result.disposition, disposition);
+    assert.equal(result.outcome, disposition === 'T-L' ? 'accept' : 'close');
+  }
+});
+
 test('Host-owned fields injected into either handshake request are authority violations', () => {
   const authorityFields = [
     ['pluginInstanceId', 'instance-1'],

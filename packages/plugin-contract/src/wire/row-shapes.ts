@@ -1,5 +1,5 @@
 /**
- * Per-row input/result shapes for the 12-row method registry.
+ * Per-row input/result shapes for the 13-row method registry.
  * Mechanized from #1165 frozen shape.
  *
  * CLOSED rows (1, 2, 5, 7, 10, 11, 12): full executable shapes with bounds.
@@ -232,6 +232,11 @@ export type HelloResult = SessionBinding;
  */
 export type ReadyInput = BrokerReadyParams;
 export type ReadyResult = null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Row 13 — CLOSED beta.9 C-2 signal publication
+// ═══════════════════════════════════════════════════════════════════════════
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Remaining RESERVED rows — type stubs only
