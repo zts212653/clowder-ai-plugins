@@ -476,7 +476,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'MethodNotFoundEnvelope',
     expectedErrorCode: -32601,
     expectedResponseFrame: JSON.stringify(RESPONSE_METHOD_NOT_FOUND_A),
-    description: 'envelope violation: unknown method not in 12-row registry',
+    description: 'envelope violation: unknown method not in 13-row registry',
   },
 
   {
@@ -1230,6 +1230,58 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     zeroSideEffects: true,
     description: '[beta.8 error] closed HANDSHAKE_REJECTED error settles the correlated hello',
   },
+  {
+    id: 'T-M-9',
+    rawFrame: '{"jsonrpc":"2.0","id":"publish-1","method":"events.publish","params":{"meta":{"deadlineUnixMs":1},"input":{"signalType":"feishu.meeting_artifact.generated.v1","eventId":"feishu-minute-om_abc123-v7","idempotencyKey":"feishu:minute:om_abc123:7","occurredAt":"2026-08-09T04:12:31Z","payload":{"artifactId":"om_abc123","revision":"7"},"source":{"handle":"feishu://meeting-artifacts/minute/om_abc123?revision=7"}}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.9 C-2] declared-shape events.publish request reaches Host dispatch without a destination',
+  },
+  {
+    id: 'T-G-15',
+    rawFrame: '{"jsonrpc":"2.0","id":"a","method":"events.publish","params":{"meta":{"deadlineUnixMs":1},"input":{"signalType":"feishu.meeting_artifact.generated.v1","eventId":"event-1","idempotencyKey":"event-1","occurredAt":"2026-08-09T04:12:31Z","payload":{},"destination":{"threadId":"thread-1"}}}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.9 C-2] plugin-supplied destination is rejected before Host routing',
+  },
+  {
+    id: 'T-H-12',
+    rawFrame: '{"jsonrpc":"2.0","id":"publish-result","result":{"publicationId":"publication-1","disposition":"accepted","destination":"thread-1"}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'publish-result', method: 'events.publish' }] },
+    expectedClass: 'T-H',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.9 C-2] open Host receipt is rejected as a protocol violation',
+  },
+  {
+    id: 'T-L-7',
+    rawFrame: '{"jsonrpc":"2.0","id":"publish-result","result":{"publicationId":"publication-1","disposition":"duplicate"}}',
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'publish-result', method: 'events.publish' }] },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.9 C-2] duplicate receipt legally settles a correlated publication',
+  },
 ];
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
@@ -1240,4 +1292,12 @@ export const BETA8_HANDSHAKE_VECTOR_IDS = [
   'T-G-11', 'T-G-12', 'T-G-13', 'T-G-14',
   'T-H-10', 'T-H-11',
   'T-L-5', 'T-L-6',
+] as const;
+
+/** Complete beta.9 C-2 publish safety surface exported for downstream runners. */
+export const BETA9_EVENTS_PUBLISH_VECTOR_IDS = [
+  'T-M-9',
+  'T-G-15',
+  'T-H-12',
+  'T-L-7',
 ] as const;

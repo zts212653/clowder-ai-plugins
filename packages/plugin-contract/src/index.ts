@@ -20,7 +20,8 @@
  * - **messaging**: MessagePayload, MessageDraft, MessageEnvelope,
  *   MessageOutputEvent, AppendElementsRequest, SendReceipt
  * - **manifest**: PluginManifest, PluginFeature, DataDeclaration,
- *   RuntimeDeclaration (v0.1 scope — signals/tasks/windows deferred)
+ *   RuntimeDeclaration plus C-2 SignalContribution
+ * - **signals**: declared input sources and closed events.publish input/result
  * - **capability**: L0/L1/L2 capability table (`@signed(G-0 2026-07-15)`)
  * - **data-class**: DataClass × DataStrategy validation
  * - **generated projection**: all public structural types and contract tables

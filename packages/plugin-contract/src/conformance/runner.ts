@@ -21,6 +21,7 @@ import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { BehaviorFixture } from '../generated/contract.generated.js';
+import { validateManifest } from '../validation/manifest.js';
 import { validateMessagingSemantics } from '../validation/messaging-semantic.js';
 import {
   executeBehaviorCase,
@@ -78,7 +79,7 @@ interface FixtureFile {
 
 async function discoverFixtures(fixturesDir: string): Promise<FixtureFile[]> {
   const fixtures: FixtureFile[] = [];
-  const domains = ['manifest', 'messaging'];
+  const domains = ['manifest', 'messaging', 'signals'];
 
   for (const domain of domains) {
     for (const validity of ['valid', 'invalid'] as const) {
@@ -120,6 +121,7 @@ function getDefaultSchemaId(domain: string): string {
   const ids: Record<string, string> = {
     manifest: 'https://clowder-ai.dev/schemas/manifest/v0.1',
     messaging: 'https://clowder-ai.dev/schemas/messaging/v0.1',
+    signals: 'https://clowder-ai.dev/schemas/signals/v0.2',
   };
   return ids[domain] ?? '';
 }
@@ -175,9 +177,21 @@ async function validateFixture(
   }
 
   const isSchemaValid = validate(data);
-  const semanticResult =
-    fixture.domain === 'messaging' && isSchemaValid
-      ? validateMessagingSemantics(meta?.schemaRef ?? 'root', data)
+  const semanticResult = fixture.domain === 'messaging' && isSchemaValid
+    ? validateMessagingSemantics(meta?.schemaRef ?? 'root', data)
+    : fixture.domain === 'manifest' && isSchemaValid
+      ? (() => {
+          const result = validateManifest(data);
+          return result.valid
+            ? { valid: true, errors: [] }
+            : {
+                valid: false,
+                errors: result.errors.map(({ instancePath, message }) => ({
+                  path: instancePath,
+                  message,
+                })),
+              };
+        })()
       : { valid: true, errors: [] };
   const isValid = isSchemaValid && semanticResult.valid;
 
@@ -258,13 +272,16 @@ export async function runConformance(
   const schemas = new Map<string, Record<string, unknown>>();
   const manifestSchema = await loadSchema(join(schemasDir, 'manifest.schema.json'));
   const messagingSchema = await loadSchema(join(schemasDir, 'messaging.schema.json'));
+  const signalSchema = await loadSchema(join(schemasDir, 'signal.schema.json'));
   const behaviorSchema = await loadSchema(join(schemasDir, 'behavior-fixture.schema.json'));
   schemas.set('manifest', manifestSchema);
   schemas.set('messaging', messagingSchema);
+  schemas.set('signals', signalSchema);
 
   // Set up Ajv with format validation (date-time, uri, email, etc.)
   const ajv = new Ajv({ allErrors: true, strict: false });
   addFormats(ajv);
+  ajv.addSchema(signalSchema, signalSchema['$id'] as string);
   ajv.addSchema(manifestSchema, manifestSchema['$id'] as string);
   ajv.addSchema(messagingSchema, messagingSchema['$id'] as string);
   ajv.addSchema(behaviorSchema, behaviorSchema['$id'] as string);

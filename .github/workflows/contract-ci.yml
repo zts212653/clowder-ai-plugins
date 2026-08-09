@@ -11,6 +11,13 @@ on:
     branches: [main]
     paths:
       - 'packages/plugin-contract/**'
+      - 'packages/plugin-sdk/**'
+      - 'packages/feishu-meeting-intake/**'
+      - 'scripts/fresh-consumer-install.test.mjs'
+      - 'package.json'
+      - '.npmrc'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/contract-ci.yml'
 
 # Cancel in-progress runs for the same PR/branch
 concurrency:
@@ -61,6 +68,21 @@ jobs:
 
       - name: SDK build
         run: pnpm --filter @clowder-ai/plugin-sdk build
+
+      - name: Feishu intake typecheck
+        run: pnpm --filter @clowder-ai/feishu-meeting-intake typecheck
+
+      - name: Feishu intake tests
+        run: pnpm --filter @clowder-ai/feishu-meeting-intake test
+
+      - name: Feishu intake lint
+        run: pnpm --filter @clowder-ai/feishu-meeting-intake lint
+
+      - name: Feishu intake build
+        run: pnpm --filter @clowder-ai/feishu-meeting-intake build
+
+      - name: Fresh consumer install
+        run: pnpm test:fresh-consumer
 
       - name: Loopback fixture typecheck
         run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck

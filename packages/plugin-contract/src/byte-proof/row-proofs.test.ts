@@ -212,13 +212,13 @@ test('grantsChangedNPlusOneBytes still fits within MAX_FRAME_BYTES (cardinality 
 });
 
 // ---------------------------------------------------------------------------
-// 6. getClosedRowTemplates covers all 7 closed rows
+// 6. getClosedRowTemplates covers all 8 closed rows
 // ---------------------------------------------------------------------------
 
-test('getClosedRowTemplates covers rows 1, 2, 5, 7, 10, 11, 12', () => {
+test('getClosedRowTemplates covers rows 1, 2, 5, 7, 10, 11, 12, 13', () => {
   const templates = getClosedRowTemplates();
   const rowNumbers = Object.keys(templates).map(Number).sort((a, b) => a - b);
-  assert.deepEqual(rowNumbers, [1, 2, 5, 7, 10, 11, 12]);
+  assert.deepEqual(rowNumbers, [1, 2, 5, 7, 10, 11, 12, 13]);
 });
 
 test('getClosedRowTemplates request/response rows have valid ByteProofInput', () => {

@@ -27,6 +27,8 @@ import {
   validateBrokerReadyParams,
   validateSessionBinding,
   validateEffectiveGrants,
+  validateEventsPublishInput,
+  validateEventsPublishResult,
   isWireMethod,
   isWireUInt53,
   isCanonicalUInt53Token,
@@ -385,6 +387,7 @@ const NULL_ID_ERROR_CODES = new Set<number>([PARSE_ERROR_CODE]);
 //   Row 10 (host.grants.changed):             notification-only (no response)
 //   Row 11 (host.lifecycle.ping):             standard only (no application errors)
 //   Row 12 (host.lifecycle.drain):            DEADLINE_EXPIRED
+//   Row 13 (events.publish):                   standard only (Host policy errors stay transport-owned)
 //
 // Standard errors are always allowed on every row. Application error
 // codes NOT in the per-row allowlist → T-H.
@@ -409,6 +412,7 @@ const METHOD_APPLICATION_ERROR_ALLOW: Readonly<Record<WireMethodName, ReadonlySe
   'host.grants.changed': EMPTY_ERROR_SET, // notification-only
   'host.lifecycle.ping': EMPTY_ERROR_SET,  // standard only
   'host.lifecycle.drain': DEADLINE_ONLY_SET,
+  'events.publish': EMPTY_ERROR_SET,
 };
 
 // DELIVER_RESULT_KEYS imported from contract-mirror.ts (row 9 ack shape).
@@ -499,7 +503,7 @@ function classifyResponseCandidate(
     // ── Per-method error code restriction ────────────────────────────
     // Application errors are only valid on methods whose frozen per-row
     // error set includes them. Standard errors are always allowed.
-    // The complete map covers all 12 rows — no fallback needed.
+// The complete map covers all 13 rows — no fallback needed.
     if (APPLICATION_CODES.has(errObj.code)) {
       if (!METHOD_APPLICATION_ERROR_ALLOW[inFlightEntry.method].has(errObj.code)) {
         return close('T-H');
@@ -696,6 +700,10 @@ function validateResponseResult(
       // MessagingAckResult: null
       if (result !== null) return close('T-H');
       return null;
+    }
+
+    case 'events.publish': {
+      return validateEventsPublishResult(result).valid ? null : close('T-H');
     }
 
     case 'host.grants.changed': {
@@ -921,15 +929,20 @@ function classifyRequest(
     if (valueResult !== null) return valueResult;
   } else {
     // RESERVED rows: input type is `never` → no legal params value exists
-    // in beta.8 → any invocation is a value violation (T-G). T-M is limited
-    // to the two registry rows explicitly marked ready=true.
+    // in the current contract → any invocation is a value violation (T-G).
     return respondInvalidParamsValue(id);
   }
 
-  // The two beta.8 handshake rows are now legal Requests. The standalone
-  // shell will deliberately return MethodNotFound until its later codec slice;
+  // Ready plugin-to-Host rows are legal Requests at the contract boundary.
+  // The standalone shell deliberately returns MethodNotFound because it is
+  // not a Host Broker and must not absorb Host-owned ingress or handshake work;
   // classification itself must not relabel their valid input as T-G or T-F.
-  if (row.ready && (wireMethod === 'broker.hello' || wireMethod === 'broker.ready')) {
+  if (
+    row.ready &&
+    (wireMethod === 'broker.hello' ||
+      wireMethod === 'broker.ready' ||
+      wireMethod === 'events.publish')
+  ) {
     return accept('T-M');
   }
 
@@ -963,6 +976,10 @@ function validateClosedRowInput(
     case 'broker.ready':
       if (hasHandshakeAuthorityInjection(input)) return respondHandshakeAuthorityViolation(id);
       return validateBrokerReadyParams(input) ? null : respondInvalidParamsValue(id);
+    case 'events.publish':
+      return validateEventsPublishInput(input).valid
+        ? null
+        : respondInvalidParamsValue(id);
     case 'host.lifecycle.ping': {
       // Closed input keys: {nonce} only
       for (const key of Object.keys(input)) {

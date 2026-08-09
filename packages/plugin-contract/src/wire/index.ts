@@ -115,6 +115,7 @@ export {
 export {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
+  BETA9_EVENTS_PUBLISH_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -187,6 +188,28 @@ export {
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
 } from './handshake-byte-bounds.js';
 
+// Derived beta.9 C-2 signal-publish byte-bound evidence
+export {
+  EVENTS_PUBLISH_BYTE_PROOF_ENCODING_FAMILIES,
+  SIGNAL_TYPE_MAX_LENGTH,
+  SIGNAL_EVENT_ID_MAX_LENGTH,
+  SIGNAL_IDEMPOTENCY_KEY_MAX_LENGTH,
+  SIGNAL_OCCURRED_AT_MAX_LENGTH,
+  SIGNAL_SOURCE_HANDLE_MAX_LENGTH,
+  EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
+  EVENTS_PUBLISH_RESULT_BYTE_PROOF,
+  EVENTS_PUBLISH_ERROR_BYTE_PROOF,
+  EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
+} from './signal-byte-bounds.js';
+
+export type {
+  EventsPublishByteProofEncodingFamily,
+  EventsPublishNPlusOneWitness,
+  EventsPublishEncodedByteProofCase,
+  EventsPublishEncodedByteProof,
+  EventsPublishRowEncodedByteBounds,
+} from './signal-byte-bounds.js';
+
 export type {
   HandshakeByteProofEncodingFamily,
   HandshakeNPlusOneByteProof,
@@ -234,7 +257,7 @@ export type {
   WireResponse,
 } from './envelope.js';
 
-// 12-row method registry
+// 13-row method registry (frozen original 12 + C-2 publish)
 export {
   WIRE_METHOD_NAMES,
   WIRE_METHOD_REGISTRY,
@@ -289,6 +312,11 @@ export type {
   DeliverInput,
   DeliverResult,
 } from './row-shapes.js';
+
+export type {
+  EventsPublishInput,
+  EventsPublishResult,
+} from '../generated/contract.generated.js';
 
 export {
   // Row 5 bounds

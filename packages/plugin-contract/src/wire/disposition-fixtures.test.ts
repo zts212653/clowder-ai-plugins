@@ -37,6 +37,7 @@ import test from 'node:test';
 import {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
+  BETA9_EVENTS_PUBLISH_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -395,6 +396,22 @@ test('beta.8 authority-injection vectors use the closed handshake rejection arm'
     assert.equal(response.error.code, -32090);
     assert.equal(response.error.data.reason, 'AUTHORITY_VIOLATION');
   }
+});
+
+test('beta.9 exports the closed C-2 request, rejection, and settlement vectors', () => {
+  assert.deepEqual(BETA9_EVENTS_PUBLISH_VECTOR_IDS, [
+    'T-M-9',
+    'T-G-15',
+    'T-H-12',
+    'T-L-7',
+  ]);
+  for (const id of BETA9_EVENTS_PUBLISH_VECTOR_IDS) {
+    assert.equal(findVector(id).zeroSideEffects, true, `${id} must be pre-side-effect`);
+  }
+  assert.equal(findVector('T-M-9').expectedClass, 'T-M');
+  assert.equal(findVector('T-G-15').expectedErrorArm, 'InvalidParamsEnvelope');
+  assert.equal(findVector('T-H-12').expectedClass, 'T-H');
+  assert.equal(findVector('T-L-7').expectedClass, 'T-L');
 });
 
 // ---------------------------------------------------------------------------

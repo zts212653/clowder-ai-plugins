@@ -27,6 +27,7 @@ const Ajv = require('ajv/dist/2020') as new (options: {
 const entrypointUrl = new URL('../dist/standalone-host.js', import.meta.url);
 const behaviorSchemaUrl = new URL('../../plugin-contract/src/schemas/behavior-fixture.schema.json', import.meta.url);
 const manifestSchemaUrl = new URL('../../plugin-contract/src/schemas/manifest.schema.json', import.meta.url);
+const signalSchemaUrl = new URL('../../plugin-contract/src/schemas/signal.schema.json', import.meta.url);
 const hostHalfSeamManifestUrl = new URL('./host-half-seam-manifest.json', import.meta.url);
 const lifecycleDeadlineUnixMs = Date.now() + 60_000;
 
@@ -129,6 +130,8 @@ test('records every pre-state vector as an explicit non-black-box seam', () => {
       { id: 'T-H-11', coveredBy: 'S1 unit layer' },
       { id: 'T-L-5', coveredBy: 'S1 unit layer' },
       { id: 'T-L-6', coveredBy: 'S1 unit layer' },
+      { id: 'T-H-12', coveredBy: 'S1 unit layer' },
+      { id: 'T-L-7', coveredBy: 'S1 unit layer' },
     ],
     'child-process execution cannot inject in-flight correlation state',
   );
@@ -209,8 +212,9 @@ for (const matrixCase of LOCAL_STANDALONE_CASES) {
 }
 
 test('schema-validates and records every behavior fixture for the K-2 host half', async () => {
-  const [manifestSchema, behaviorSchema, seamManifest] = await Promise.all([
+  const [manifestSchema, signalSchema, behaviorSchema, seamManifest] = await Promise.all([
     readFile(manifestSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
+    readFile(signalSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(behaviorSchemaUrl, 'utf8').then(text => JSON.parse(text) as object),
     readFile(hostHalfSeamManifestUrl, 'utf8').then(text => JSON.parse(text) as HostHalfSeamManifest),
   ]);
@@ -220,6 +224,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
     await readFile(new URL(behaviorSeam.source, hostHalfSeamManifestUrl), 'utf8'),
   ) as { cases: Array<{ id: string }> };
   const ajv = new Ajv({ allErrors: true, strict: false });
+  ajv.addSchema(signalSchema, signalSchema.$id);
   ajv.addSchema(manifestSchema, manifestSchema.$id);
   const validate = ajv.compile(behaviorSchema);
 

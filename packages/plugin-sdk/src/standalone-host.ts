@@ -178,10 +178,14 @@ function createFrameHandler(options: StandaloneHostOptions) {
     }
 
     const request = requireRequest(frame.value);
-    if (request.method === 'broker.hello' || request.method === 'broker.ready') {
-      // beta.8 makes these inputs legal at the contract boundary (T-M), but
-      // this standalone plugin has no Host Broker or handshake codec. Reply
-      // conservatively without storing state, emitting ready, or activating.
+    if (
+      request.method === 'broker.hello' ||
+      request.method === 'broker.ready' ||
+      request.method === 'events.publish'
+    ) {
+      // The public contract makes these Host-bound inputs legal at T-M, but
+      // this standalone plugin has no Host Broker. Reply conservatively
+      // without storing ingress, session state, or activation.
       return methodNotFoundResponse(request.id);
     }
     if (request.method === 'host.lifecycle.ping') {

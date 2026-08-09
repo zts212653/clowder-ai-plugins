@@ -1,11 +1,11 @@
 /**
- * 12-row production method registry.
+ * 13-row production method registry: the frozen original 12 plus C-2 row 13.
  * Mechanized verbatim from the #1165 frozen shape (rev11).
  *
  * Every row carries machine-readable metadata:
  *   - method name, direction, grant requirement
  *   - notification flag (only row 10)
- *   - ready status (only rows 1–2 true in beta.8)
+ *   - ready status (rows 1–2 in beta.8 and row 13 in beta.9)
  *   - leaf closure status and which matrix entries cause reservation
  *   - settlement key source
  *
@@ -23,6 +23,7 @@
 
 import type { Capability } from '../generated/contract.generated.js';
 import { HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS } from './handshake-byte-bounds.js';
+import { EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS } from './signal-byte-bounds.js';
 
 // ---------------------------------------------------------------------------
 // Direction + Grant types
@@ -49,8 +50,8 @@ export interface SchemaClosurePrerequisite {
 
 /**
  * A single row of the production method registry.
- * Most rows remain unpublished and unadvertised. beta.8 closes and exposes
- * only the two handshake rows.
+ * Most rows remain unpublished and unadvertised. beta.8 closes the two
+ * handshake rows; beta.9 appends the C-2 events.publish row.
  */
 export interface RegistryRow {
   readonly rowNumber: number;
@@ -85,7 +86,7 @@ export interface UnreadyRegistryRow extends RegistryRow {
 // ---------------------------------------------------------------------------
 
 /**
- * The exact 12 production method names, in registry order.
+ * The exact 13 production method names, in registry order.
  * No production method exists for fixture setup/observe, grant presets,
  * revocation, permission-matrix inspection, or replay deletion.
  */
@@ -102,9 +103,10 @@ export const WIRE_METHOD_NAMES = [
   'host.grants.changed',
   'host.lifecycle.ping',
   'host.lifecycle.drain',
+  'events.publish',
 ] as const;
 
-/** Union of all 12 production method names. */
+/** Union of all 13 production method names. */
 export type WireMethodName = (typeof WIRE_METHOD_NAMES)[number];
 
 /**
@@ -112,7 +114,7 @@ export type WireMethodName = (typeof WIRE_METHOD_NAMES)[number];
  * newly closed row back to `boolean` or accidentally advertising another row.
  */
 export type WireMethodRegistry = {
-  readonly [Method in WireMethodName]: Method extends 'broker.hello' | 'broker.ready'
+  readonly [Method in WireMethodName]: Method extends 'broker.hello' | 'broker.ready' | 'events.publish'
     ? ReadyRegistryRow
     : UnreadyRegistryRow;
 };
@@ -122,13 +124,13 @@ export type WireMethodRegistry = {
 // ---------------------------------------------------------------------------
 
 /**
- * Machine-readable registry of all 12 production methods.
+ * Machine-readable registry of all 13 production methods.
  *
  * Every value traces to the #1165 frozen shape. Row metadata includes
  * the exact matrix entry IDs that block leaf closure. Settlement key
  * sources follow the canonical per-row specification.
  *
- * Rows 1–2 are ready after beta.8's closure; rows 3–12 remain false.
+ * Rows 1–2 are ready after beta.8; row 13 is ready after beta.9.
  */
 export const WIRE_METHOD_REGISTRY = {
   'broker.hello': {
@@ -270,6 +272,18 @@ export const WIRE_METHOD_REGISTRY = {
     reservedEntries: [],
     settlementKeySource: '—',
   },
+  'events.publish': {
+    rowNumber: 13,
+    method: 'events.publish',
+    direction: 'plugin-to-host',
+    grant: 'events.publish',
+    isNotification: false,
+    ready: true,
+    leafClosure: 'CLOSED',
+    reservedEntries: [],
+    settlementKeySource: '(Host-bound producer instance, input.signalType, input.idempotencyKey)',
+    ...EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
+  },
 } as const satisfies WireMethodRegistry;
 
 // ---------------------------------------------------------------------------
@@ -296,12 +310,12 @@ export const CLOSED_LEAF_ROWS: readonly WireMethodName[] =
 export const RESERVED_LEAF_ROWS: readonly WireMethodName[] =
   WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].leafClosure === 'RESERVED');
 
-/** Method names that are legal for wire advertisement in beta.8. */
+/** Method names that are legal for wire advertisement in beta.9. */
 export const READY_ROWS: readonly WireMethodName[] =
   WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].ready);
 
 /** Total number of production methods. */
-export const WIRE_METHOD_COUNT = 12 as const;
+export const WIRE_METHOD_COUNT = 13 as const;
 
 // ---------------------------------------------------------------------------
 // Lookup helpers

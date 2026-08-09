@@ -189,6 +189,42 @@ test('returns Method Not Found for a valid ready handshake request without activ
   channel.close();
 });
 
+test('returns Method Not Found for Host-bound events.publish without ingesting it locally', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({ manifest: validManifest, input, output });
+
+  input.end(
+    Buffer.from(`${JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'publish-1',
+      method: 'events.publish',
+      params: {
+        meta: { deadlineUnixMs: Date.now() + 10_000 },
+        input: {
+          signalType: 'feishu.meeting_artifact.generated.v1',
+          eventId: 'event-1',
+          idempotencyKey: 'idempotency-1',
+          occurredAt: '2026-08-09T04:12:31Z',
+          payload: { artifactId: 'om_abc123' },
+          source: {
+            handle: 'feishu://meeting-artifacts/minute/om_abc123?revision=rev-1',
+          },
+        },
+      },
+    })}\n`, 'utf8'),
+  );
+
+  assert.deepEqual(await frames, [{
+      jsonrpc: '2.0',
+      id: 'publish-1',
+      error: { code: -32601, message: 'Method not found' },
+  }]);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
 test('rejects an already-expired drain deadline without starting shutdown work', async () => {
   const input = new PassThrough();
   const output = new PassThrough();

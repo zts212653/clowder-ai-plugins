@@ -1,12 +1,12 @@
 /**
- * Per-row byte-proof templates for all 7 closed rows.
+ * Per-row byte-proof templates for all 8 closed rows.
  *
  * Each template defines the worst-case wire frame for one closed row's
  * request/notification + response. The byte-proof engine
  * (calculateByteProof) measures these to verify frame budget compliance
  * and generate N+1 rejection proofs.
  *
- * Only CLOSED rows get byte proofs: 1, 2, 5, 7, 10, 11, 12.
+ * Only CLOSED rows get byte proofs: 1, 2, 5, 7, 10, 11, 12, 13.
  * RESERVED rows cannot be measured — their shapes are not yet frozen.
  *
  * Templates use placeholder strings ('') for closed string leaves.
@@ -16,6 +16,11 @@
 import type { ByteProofInput, ClosedStringLeafProfile, JsonValue } from './encoded-byte-proof.js';
 import { WIRE_UINT53_MAX } from '../wire/wire-uint53.js';
 import { MAX_FRAME_BYTES } from '../wire/constants.js';
+import {
+  EVENTS_PUBLISH_ERROR_BYTE_PROOF,
+  EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
+  EVENTS_PUBLISH_RESULT_BYTE_PROOF,
+} from '../wire/signal-byte-bounds.js';
 import {
   REQUEST_ID_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
@@ -658,11 +663,19 @@ export interface ClosedRowNotificationTemplate {
   };
 }
 
+export interface ClosedRowEncodedProofTemplate {
+  readonly encoded: {
+    readonly request: typeof EVENTS_PUBLISH_REQUEST_BYTE_PROOF;
+    readonly response: typeof EVENTS_PUBLISH_RESULT_BYTE_PROOF;
+    readonly error: typeof EVENTS_PUBLISH_ERROR_BYTE_PROOF;
+  };
+}
+
 /**
  * All closed row templates indexed by row number.
  * Row 10 is special — it's a notification with no variable-length leaves.
  */
-export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> {
+export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> & Record<13, ClosedRowEncodedProofTemplate> {
   return {
     1: { request: helloRequestTemplate(), response: helloResponseTemplate() },
     2: { request: readyRequestTemplate(), response: {
@@ -675,5 +688,12 @@ export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedR
     10: { notification: { maxBytes: grantsChangedMaxBytes(), nPlusOneBytes: grantsChangedNPlusOneBytes() } },
     11: { request: pingRequestTemplate(), response: pingResponseTemplate() },
     12: { request: drainRequestTemplate(), response: drainResponseTemplate() },
+    13: {
+      encoded: {
+        request: EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
+        response: EVENTS_PUBLISH_RESULT_BYTE_PROOF,
+        error: EVENTS_PUBLISH_ERROR_BYTE_PROOF,
+      },
+    },
   };
 }

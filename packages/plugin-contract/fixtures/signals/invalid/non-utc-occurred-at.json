@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "schemaRef": "EventsPublishInput"
+  },
+  "signalType": "feishu.meeting_artifact.generated.v1",
+  "eventId": "feishu-minute-om_abc123-v7",
+  "idempotencyKey": "feishu:minute:om_abc123:7",
+  "occurredAt": "2026-08-09T12:12:31+08:00",
+  "payload": {
+    "artifactId": "om_abc123"
+  }
+}

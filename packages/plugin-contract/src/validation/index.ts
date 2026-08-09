@@ -8,3 +8,13 @@ export {
   type ManifestValidationError,
   type ManifestValidationResult,
 } from './manifest.js';
+export {
+  SIGNAL_PAYLOAD_MAX_ENCODED_BYTES,
+  validateDeclaredEventsPublishInput,
+  validateEventsPublishInput,
+  validateEventsPublishResult,
+  validateSignalDeclaration,
+  type SignalSchemaCatalog,
+  type SignalValidationError,
+  type SignalValidationResult,
+} from './signals.js';
