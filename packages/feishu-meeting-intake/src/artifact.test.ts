@@ -120,9 +120,20 @@ test('parses only canonical source handles and resolves transcript through the i
     'file:///tmp/meeting.txt',
     'https://attacker.example/minutes/om_abc123',
     'feishu://meeting-artifacts/minute/om_abc123?revision=7&threadId=thread-1',
+    'feishu://meeting-artifacts/minute/om_abc123?revision=7#',
+    'feishu://meeting-artifacts/minute/om_abc123?revision=7&',
+    'feishu://meeting-artifacts:8443/minute/om_abc123?revision=7',
   ]) {
     assert.throws(() => parseFeishuSourceHandle(invalid));
+    await assert.rejects(
+      adapter.resolve({
+        sourceHandle: invalid,
+        intakeId: 'intake-1',
+        sourceGrant: 'source-grant-1',
+      }, signal),
+    );
   }
+  assert.equal(calls.length, 1, 'noncanonical aliases must stop before Host gateway');
 });
 
 test('keeps polling metadata gateway separate from transcript authority', () => {

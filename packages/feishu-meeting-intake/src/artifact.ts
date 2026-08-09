@@ -101,7 +101,11 @@ function requireDescriptor(value: unknown): FeishuGeneratedArtifact {
 }
 
 function sourceHandle(descriptor: FeishuGeneratedArtifact): string {
-  return `feishu://meeting-artifacts/${descriptor.kind}/${descriptor.artifactId}?revision=${descriptor.revision}`;
+  return canonicalSourceHandle(descriptor);
+}
+
+function canonicalSourceHandle(locator: Required<FeishuArtifactLocator>): string {
+  return `feishu://meeting-artifacts/${locator.kind}/${locator.artifactId}?revision=${locator.revision}`;
 }
 
 export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
@@ -191,7 +195,11 @@ export function parseFeishuSourceHandle(value: string): Required<FeishuArtifactL
   if (!boundedSafeId(path[1], 128) || !boundedSafeId(revision, 64)) {
     throw new TypeError('Feishu source handle has invalid identifiers');
   }
-  return { artifactId: path[1], kind: path[0] as FeishuArtifactKind, revision };
+  const locator = { artifactId: path[1], kind: path[0] as FeishuArtifactKind, revision };
+  if (value !== canonicalSourceHandle(locator)) {
+    throw new TypeError('Feishu source handle must use its exact canonical serialization');
+  }
+  return locator;
 }
 
 function requireTranscript(value: unknown): FeishuTranscript {

@@ -8,14 +8,32 @@ import {
 import { MAX_FRAME_BYTES } from './constants.js';
 import { validateRequestId } from './request-id.js';
 import {
+  ERROR_CODE_TO_MESSAGE,
+  INVALID_REQUEST_CODE,
+  PARSE_ERROR_CODE,
+  STANDARD_ERROR_CODES,
+} from './errors.js';
+import {
   EVENTS_PUBLISH_BYTE_PROOF_ENCODING_FAMILIES,
   EVENTS_PUBLISH_ERROR_BYTE_PROOF,
   EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
   EVENTS_PUBLISH_RESULT_BYTE_PROOF,
   EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   eventsPublishMaximumInput,
+  eventsPublishMaximumResult,
   eventsPublishNPlusOneInputs,
+  eventsPublishResultNPlusOneWitnesses,
+  eventsPublishStandardErrorEnvelopes,
+  eventsPublishStandardErrorNPlusOneWitnesses,
 } from './signal-byte-bounds.js';
+
+function resultEnvelope(requestId: string, result: object): object {
+  return { jsonrpc: '2.0', id: requestId, result };
+}
+
+function errorEnvelope(id: string | null, error: object): object {
+  return { jsonrpc: '2.0', id, error };
+}
 
 test('row 13 maximum frames are legal in every raw UTF-8 family', () => {
   const encodedRequestBytes: number[] = [];
@@ -44,13 +62,55 @@ test('row 13 maximum frames are legal in every raw UTF-8 family', () => {
     EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS.maxEncodedRequestBytes,
   );
 
+});
+
+test('row 13 maximum result envelope equals its proof and rejects every N+1 leaf', () => {
+  const maximum = eventsPublishMaximumResult();
+  assert.notEqual(validateRequestId(maximum.requestId), null);
+  assert.equal(validateEventsPublishResult(maximum.result).valid, true);
   assert.equal(
-    validateEventsPublishResult({
-      publicationId: 'a'.repeat(128),
-      disposition: 'duplicate',
-    }).valid,
-    true,
+    Buffer.byteLength(JSON.stringify(resultEnvelope(maximum.requestId, maximum.result)), 'utf8'),
+    EVENTS_PUBLISH_RESULT_BYTE_PROOF.maxEncodedBytes,
   );
+
+  assert.deepEqual(
+    eventsPublishResultNPlusOneWitnesses().map(({ leaf }) => leaf),
+    ['requestId', 'publicationId'],
+  );
+  for (const witness of eventsPublishResultNPlusOneWitnesses()) {
+    const rejected = witness.leaf === 'requestId'
+      ? validateRequestId(witness.requestId) === null
+      : !validateEventsPublishResult(witness.result).valid;
+    assert.equal(rejected, true, `result.${witness.leaf} must reject`);
+  }
+});
+
+test('row 13 measures every permitted standard error envelope and its N+1 id', () => {
+  const envelopes = eventsPublishStandardErrorEnvelopes();
+  assert.equal(envelopes.length, 6, 'five standard errors plus the second Invalid Request id arm');
+  assert.deepEqual([...new Set(envelopes.map(({ error }) => error.code))], STANDARD_ERROR_CODES);
+
+  const encodedBytes = envelopes.map(({ id, error }) => {
+    assert.equal(error.message, ERROR_CODE_TO_MESSAGE[error.code]);
+    if (error.code === PARSE_ERROR_CODE) assert.equal(id, null);
+    if (id === null) {
+      assert.equal(
+        error.code === PARSE_ERROR_CODE || error.code === INVALID_REQUEST_CODE,
+        true,
+        `unexpected null-id arm for ${error.code}`,
+      );
+    } else {
+      assert.notEqual(validateRequestId(id), null);
+    }
+    return Buffer.byteLength(JSON.stringify(errorEnvelope(id, error)), 'utf8');
+  });
+  assert.equal(Math.max(...encodedBytes), EVENTS_PUBLISH_ERROR_BYTE_PROOF.maxEncodedBytes);
+
+  const nPlusOne = eventsPublishStandardErrorNPlusOneWitnesses();
+  assert.equal(nPlusOne.length, 4, 'every string-id standard error arm has an N+1 witness');
+  for (const witness of nPlusOne) {
+    assert.equal(validateRequestId(witness.id), null, `${witness.arm}.requestId must reject`);
+  }
 });
 
 test('row 13 exports one rejected N+1 witness for every bounded leaf', () => {

@@ -8,10 +8,18 @@
  * request envelope and one rejected N+1 witness for every bounded leaf.
  */
 
-import type { EventsPublishInput } from '../generated/contract.generated.js';
+import type {
+  EventsPublishInput,
+  EventsPublishResult,
+} from '../generated/contract.generated.js';
 import { SIGNAL_PAYLOAD_MAX_ENCODED_BYTES } from '../validation/signals.js';
 import { MAX_FRAME_BYTES } from './constants.js';
-import { METHOD_NOT_FOUND_CODE, METHOD_NOT_FOUND_MESSAGE } from './errors.js';
+import {
+  ERROR_CODE_TO_MESSAGE,
+  INVALID_REQUEST_CODE,
+  PARSE_ERROR_CODE,
+  STANDARD_ERROR_CODES,
+} from './errors.js';
 import { REQUEST_ID_MAX_LENGTH } from './request-id.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';
 
@@ -236,56 +244,87 @@ function requestProof(): EventsPublishEncodedByteProof {
   };
 }
 
-function fixedLeafProof(
-  leaf: 'requestId' | 'publicationId',
-  maxLength: number,
-  frame: (length: number) => object,
+function responseFrame(requestId: string, result: EventsPublishResult): object {
+  return { jsonrpc: '2.0', id: requestId, result };
+}
+
+export function eventsPublishMaximumResult(): {
+  readonly requestId: string;
+  readonly result: EventsPublishResult;
+} {
+  return {
+    requestId: 'a'.repeat(REQUEST_ID_MAX_LENGTH),
+    result: { publicationId: 'a'.repeat(SIGNAL_EVENT_ID_MAX_LENGTH), disposition: 'duplicate' },
+  };
+}
+
+export function eventsPublishResultNPlusOneWitnesses() {
+  const maximum = eventsPublishMaximumResult();
+  return [
+    { ...maximum, leaf: 'requestId', requestId: 'a'.repeat(REQUEST_ID_MAX_LENGTH + 1) },
+    {
+      ...maximum,
+      leaf: 'publicationId',
+      result: { ...maximum.result, publicationId: 'a'.repeat(SIGNAL_EVENT_ID_MAX_LENGTH + 1) },
+    },
+  ] as const;
+}
+
+export function eventsPublishStandardErrorEnvelopes() {
+  const requestId = 'a'.repeat(REQUEST_ID_MAX_LENGTH);
+  return STANDARD_ERROR_CODES.flatMap((code) => {
+    const error = { code, message: ERROR_CODE_TO_MESSAGE[code] };
+    const arm = `standard:${code}`;
+    if (code === PARSE_ERROR_CODE) return [{ arm, id: null, error }];
+    if (code === INVALID_REQUEST_CODE) {
+      return [{ arm: `${arm}:null`, id: null, error }, { arm, id: requestId, error }];
+    }
+    return [{ arm, id: requestId, error }];
+  });
+}
+
+export function eventsPublishStandardErrorNPlusOneWitnesses() {
+  return eventsPublishStandardErrorEnvelopes()
+    .filter((envelope) => envelope.id !== null)
+    .map((envelope) => ({ ...envelope, id: 'a'.repeat(REQUEST_ID_MAX_LENGTH + 1) }));
+}
+
+function repeatedProof(
+  encodedBytes: number,
+  nPlusOne: readonly { readonly leaf: string; readonly encodedBytes: number }[],
 ): EventsPublishEncodedByteProof {
-  const encodedBytes = byteLength(frame(maxLength));
-  const nPlusOneBytes = byteLength(frame(maxLength + 1));
   return {
     maxEncodedBytes: encodedBytes,
     cases: EVENTS_PUBLISH_BYTE_PROOF_ENCODING_FAMILIES.map((family) => ({
       family,
       encodedBytes,
       fitsFrame: encodedBytes <= MAX_FRAME_BYTES,
-      nPlusOne: [
-        {
-          leaf,
-          encodedBytes: nPlusOneBytes,
-          fitsFrame: nPlusOneBytes <= MAX_FRAME_BYTES,
-        },
-      ],
+      nPlusOne: nPlusOne.map((witness) => ({
+        ...witness,
+        fitsFrame: witness.encodedBytes <= MAX_FRAME_BYTES,
+      })),
     })),
   };
 }
 
 export const EVENTS_PUBLISH_REQUEST_BYTE_PROOF = requestProof();
 
-export const EVENTS_PUBLISH_RESULT_BYTE_PROOF = fixedLeafProof(
-  'publicationId',
-  SIGNAL_EVENT_ID_MAX_LENGTH,
-  (length) => ({
-    jsonrpc: '2.0',
-    id: 'a'.repeat(REQUEST_ID_MAX_LENGTH),
-    result: {
-      publicationId: 'a'.repeat(length),
-      disposition: 'duplicate',
-    },
-  }),
+const maximumResult = eventsPublishMaximumResult();
+export const EVENTS_PUBLISH_RESULT_BYTE_PROOF = repeatedProof(
+  byteLength(responseFrame(maximumResult.requestId, maximumResult.result)),
+  eventsPublishResultNPlusOneWitnesses().map(({ leaf, requestId, result }) => ({
+    leaf,
+    encodedBytes: byteLength(responseFrame(requestId, result)),
+  })),
 );
 
-export const EVENTS_PUBLISH_ERROR_BYTE_PROOF = fixedLeafProof(
-  'requestId',
-  REQUEST_ID_MAX_LENGTH,
-  (length) => ({
-    jsonrpc: '2.0',
-    id: 'a'.repeat(length),
-    error: {
-      code: METHOD_NOT_FOUND_CODE,
-      message: METHOD_NOT_FOUND_MESSAGE,
-    },
-  }),
+export const EVENTS_PUBLISH_ERROR_BYTE_PROOF = repeatedProof(
+  Math.max(...eventsPublishStandardErrorEnvelopes().map(({ id, error }) =>
+    byteLength({ jsonrpc: '2.0', id, error }))),
+  eventsPublishStandardErrorNPlusOneWitnesses().map(({ arm, id, error }) => ({
+    leaf: `${arm}.requestId`,
+    encodedBytes: byteLength({ jsonrpc: '2.0', id, error }),
+  })),
 );
 
 export const EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS = {
