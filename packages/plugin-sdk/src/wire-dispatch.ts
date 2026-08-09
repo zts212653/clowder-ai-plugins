@@ -272,8 +272,11 @@ function hasNonCanonicalUInt53Token(
   value: JsonObject,
   inFlight: ReadonlyMap<string, InFlightEntry>,
 ): boolean {
+  const requestMethod = typeof value.method === 'string'
+    ? value.method
+    : undefined;
   const params = value.params;
-  if (params !== null && typeof params === 'object' && !Array.isArray(params)) {
+  if (requestMethod !== undefined && params !== null && typeof params === 'object' && !Array.isArray(params)) {
     const paramsObj = params as Record<string, unknown>;
 
     // ── params.meta.deadlineUnixMs ──
@@ -285,14 +288,14 @@ function hasNonCanonicalUInt53Token(
       }
     }
 
-    // ── params.input.deadlineUnixMs (drain) + params.input.grantRevision (grants.changed) ──
+    // ── method-owned input WireUInt53 leaves ──
     const input = paramsObj.input;
     if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
       const inputObj = input as Record<string, unknown>;
-      if (typeof inputObj.deadlineUnixMs === 'number') {
+      if (requestMethod === 'host.lifecycle.drain' && typeof inputObj.deadlineUnixMs === 'number') {
         if (!isCanonicalUInt53Token(String(inputObj.deadlineUnixMs))) return true;
       }
-      if (typeof inputObj.grantRevision === 'number') {
+      if (requestMethod === 'host.grants.changed' && typeof inputObj.grantRevision === 'number') {
         if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
       }
     }
@@ -306,7 +309,7 @@ function hasNonCanonicalUInt53Token(
   const responseMethod = typeof value.id === 'string'
     ? inFlight.get(value.id)?.method
     : undefined;
-  if (responseMethod === 'broker.hello' && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+  if (!('method' in value) && responseMethod === 'broker.hello' && result !== null && typeof result === 'object' && !Array.isArray(result)) {
     const resultObj = result as Record<string, unknown>;
     if (typeof resultObj.grantRevision === 'number') {
       if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;

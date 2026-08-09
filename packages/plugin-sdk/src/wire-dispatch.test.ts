@@ -260,6 +260,40 @@ test('Host-owned fields injected into either handshake request are authority vio
   }
 });
 
+test('non-canonical injected grantRevision remains a handshake authority violation', () => {
+  for (const grantRevision of [-1, 1.5]) {
+    for (const [method, input] of [
+      ['broker.hello', { ...HELLO_CANDIDATE, grantRevision }],
+      ['broker.ready', { bindingNonce: 'nonce-1', grantRevision }],
+    ] as const) {
+      const rawFrame = JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'authority-injection',
+        method,
+        params: { meta: { deadlineUnixMs: 1 }, input },
+      });
+      const result = classifyFrame(
+        {
+          raw: Buffer.from(rawFrame, 'utf8'),
+          value: JSON.parse(rawFrame) as JsonObject,
+        },
+        NO_IN_FLIGHT,
+      );
+
+      assert.equal(result.disposition, 'T-G', `${method}.${grantRevision} must reach the authority gate`);
+      assert.deepEqual(result.response, {
+        jsonrpc: '2.0',
+        id: 'authority-injection',
+        error: {
+          code: HANDSHAKE_REJECTED_CODE,
+          message: HANDSHAKE_REJECTED_MESSAGE,
+          data: { reason: 'AUTHORITY_VIOLATION' },
+        },
+      });
+    }
+  }
+});
+
 test('broker.hello SessionBinding is T-L only when it echoes the in-flight candidate', () => {
   const inFlight = new Map<string, InFlightEntry>([
     ['hello-response', helloInFlightEntry()],
@@ -321,6 +355,70 @@ test('non-hello result grantRevision is validated at T-H, not treated as H7', ()
     assert.equal(result.disposition, 'T-H', `${method} must use its own result grammar`);
     assert.equal(result.outcome, 'close');
   }
+});
+
+test('method-bearing frame with a hello id does not apply the H7 result gate', () => {
+  const rawFrame = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'hello-response',
+    method: 'host.lifecycle.ping',
+    params: {
+      meta: { deadlineUnixMs: 1 },
+      input: { nonce: 'hello' },
+    },
+    result: { grantRevision: -1 },
+  });
+  const result = classifyFrame(
+    {
+      raw: Buffer.from(rawFrame, 'utf8'),
+      value: JSON.parse(rawFrame) as JsonObject,
+    },
+    new Map<string, InFlightEntry>([
+      ['hello-response', helloInFlightEntry()],
+    ]),
+  );
+
+  assert.equal(result.disposition, 'T-F');
+  assert.equal(result.outcome, 'respond');
+});
+
+test('WireUInt53 input gates are scoped to their owning methods', () => {
+  const requestRaw = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'ping-with-foreign-leaf',
+    method: 'host.lifecycle.ping',
+    params: {
+      meta: { deadlineUnixMs: 1 },
+      input: { nonce: 'hello', deadlineUnixMs: -1 },
+    },
+  });
+  const requestResult = classifyFrame(
+    {
+      raw: Buffer.from(requestRaw, 'utf8'),
+      value: JSON.parse(requestRaw) as JsonObject,
+    },
+    NO_IN_FLIGHT,
+  );
+  assert.equal(requestResult.disposition, 'T-G');
+  assert.equal(requestResult.outcome, 'respond');
+
+  const responseRaw = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'ping-response',
+    params: { meta: { deadlineUnixMs: -1 } },
+    result: { nonce: 'hello' },
+  });
+  const responseResult = classifyFrame(
+    {
+      raw: Buffer.from(responseRaw, 'utf8'),
+      value: JSON.parse(responseRaw) as JsonObject,
+    },
+    new Map<string, InFlightEntry>([
+      ['ping-response', { method: 'host.lifecycle.ping' }],
+    ]),
+  );
+  assert.equal(responseResult.disposition, 'T-H');
+  assert.equal(responseResult.outcome, 'close');
 });
 
 test('broker.hello SessionBinding without a candidate snapshot fails closed', () => {
