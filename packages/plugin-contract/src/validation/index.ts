@@ -14,6 +14,7 @@ export {
   validateEventsPublishInput,
   validateEventsPublishResult,
   validateSignalDeclaration,
+  type SignalSchemaCatalog,
   type SignalValidationError,
   type SignalValidationResult,
 } from './signals.js';

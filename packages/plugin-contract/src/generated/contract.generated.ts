@@ -101,7 +101,7 @@ export type EventsPublishInput = {
   readonly idempotencyKey: SignalIdempotencyKey;
   readonly occurredAt: string;
   readonly payload: Readonly<Record<string, unknown>>;
-  readonly source?: SignalSourceRef;
+  readonly source: SignalSourceRef;
 };
 export type EventsPublishDisposition = 'accepted' | 'duplicate';
 export type EventsPublishResult = {

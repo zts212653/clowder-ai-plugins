@@ -17,6 +17,34 @@ const declaration = {
   sourceClass: 'remote-service',
 } as const;
 
+const signalSchemas = {
+  [declaration.schemaRef]: {
+    type: 'object',
+    properties: {
+      payload: {
+        type: 'object',
+        properties: {
+          artifactId: { type: 'string' },
+          kind: { const: 'minutes' },
+          title: { type: 'string' },
+        },
+        required: ['artifactId', 'kind'],
+        additionalProperties: false,
+      },
+      source: {
+        type: 'object',
+        properties: {
+          handle: { type: 'string', pattern: '^feishu-minute:[A-Za-z0-9._:-]+$' },
+        },
+        required: ['handle'],
+        additionalProperties: false,
+      },
+    },
+    required: ['payload', 'source'],
+    additionalProperties: false,
+  },
+} as const;
+
 function publishInput(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     signalType: declaration.type,
@@ -77,15 +105,39 @@ test('accepts the bounded row-13 publish input and Host-issued receipt', () => {
 
 test('binds publish admission to the manifest-declared signal types', () => {
   assert.equal(
-    validateDeclaredEventsPublishInput([declaration], publishInput()).valid,
+    validateDeclaredEventsPublishInput([declaration], signalSchemas, publishInput()).valid,
     true,
   );
   const result = validateDeclaredEventsPublishInput(
     [{ ...declaration, type: 'another.source.generated.v1' }],
+    signalSchemas,
     publishInput(),
   );
   assert.equal(result.valid, false);
   if (!result.valid) assert.equal(result.errors[0]?.keyword, 'declaredSignalType');
+});
+
+test('binds publish admission to the resolved package schema and required source', () => {
+  for (const value of [
+    publishInput({ payload: { transcript: 'must not cross ingress' } }),
+    publishInput({ source: undefined }),
+    publishInput({ source: { handle: 'https://attacker.example/transcript' } }),
+  ]) {
+    const result = validateDeclaredEventsPublishInput(
+      [declaration],
+      signalSchemas,
+      value,
+    );
+    assert.equal(result.valid, false, JSON.stringify(value));
+  }
+
+  const unresolved = validateDeclaredEventsPublishInput(
+    [declaration],
+    {},
+    publishInput(),
+  );
+  assert.equal(unresolved.valid, false);
+  if (!unresolved.valid) assert.equal(unresolved.errors[0]?.keyword, 'signalSchemaUnresolved');
 });
 
 test('rejects plugin-owned authority fields and malformed source handles', () => {
@@ -94,8 +146,18 @@ test('rejects plugin-owned authority fields and malformed source handles', () =>
     publishInput({ producer: { pluginInstanceId: 'forged' } }),
     publishInput({ epistemicStatus: 'user_intent' }),
     publishInput({ leaseExpiry: Number.MAX_SAFE_INTEGER }),
+    publishInput({ source: undefined }),
     publishInput({ source: { handle: '' } }),
     publishInput({ source: { handle: 'x'.repeat(513) } }),
+  ]) {
+    assert.equal(validateEventsPublishInput(value).valid, false, JSON.stringify(value));
+  }
+});
+
+test('rejects non-scalar idempotency keys and source handles', () => {
+  for (const value of [
+    publishInput({ idempotencyKey: '\ud800'.repeat(256) }),
+    publishInput({ source: { handle: '\ud800'.repeat(512) } }),
   ]) {
     assert.equal(validateEventsPublishInput(value).valid, false, JSON.stringify(value));
   }

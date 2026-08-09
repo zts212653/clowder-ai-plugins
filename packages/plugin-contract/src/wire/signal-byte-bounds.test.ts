@@ -18,12 +18,31 @@ import {
 } from './signal-byte-bounds.js';
 
 test('row 13 maximum frames are legal in every raw UTF-8 family', () => {
+  const encodedRequestBytes: number[] = [];
   for (const family of EVENTS_PUBLISH_BYTE_PROOF_ENCODING_FAMILIES) {
     const maximum = eventsPublishMaximumInput(family);
     assert.equal(validateEventsPublishInput(maximum.input).valid, true, family);
     assert.notEqual(validateRequestId(maximum.requestId), null, family);
     assert.equal(maximum.payloadEncodedBytes, 65_536, family);
+    encodedRequestBytes.push(Buffer.byteLength(JSON.stringify({
+      jsonrpc: '2.0',
+      id: maximum.requestId,
+      method: 'events.publish',
+      params: {
+        meta: { deadlineUnixMs: Number.MAX_SAFE_INTEGER },
+        input: maximum.input,
+      },
+    }), 'utf8'));
   }
+
+  assert.deepEqual(
+    encodedRequestBytes,
+    EVENTS_PUBLISH_REQUEST_BYTE_PROOF.cases.map(({ encodedBytes }) => encodedBytes),
+  );
+  assert.equal(
+    Math.max(...encodedRequestBytes),
+    EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS.maxEncodedRequestBytes,
+  );
 
   assert.equal(
     validateEventsPublishResult({

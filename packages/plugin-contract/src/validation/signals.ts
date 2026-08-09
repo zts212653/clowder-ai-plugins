@@ -31,6 +31,7 @@ interface AjvValidateFunction {
 
 interface AjvInstance {
   addSchema(schema: Record<string, unknown>, id?: string): void;
+  compile(schema: Record<string, unknown>): AjvValidateFunction;
   getSchema(ref: string): AjvValidateFunction | undefined;
 }
 
@@ -47,6 +48,10 @@ export type SignalValidationResult<Value> =
 
 export const SIGNAL_PAYLOAD_MAX_ENCODED_BYTES = 65_536 as const;
 
+export type SignalSchemaCatalog = Readonly<
+  Record<string, Readonly<Record<string, unknown>>>
+>;
+
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
 ajv.addSchema(signalSchema, signalSchema['$id'] as string);
@@ -62,6 +67,7 @@ function validator(definition: string): AjvValidateFunction {
 const validateDeclarationSchema = validator('SignalDeclaration');
 const validatePublishInputSchema = validator('EventsPublishInput');
 const validatePublishResultSchema = validator('EventsPublishResult');
+const resolvedSchemaValidators = new WeakMap<object, AjvValidateFunction | null>();
 
 function errorsOf(validate: AjvValidateFunction): SignalValidationError[] {
   return (validate.errors ?? []).map((error) => ({
@@ -172,12 +178,13 @@ export function validateEventsPublishInput(
  */
 export function validateDeclaredEventsPublishInput(
   declarations: readonly unknown[],
+  signalSchemas: SignalSchemaCatalog,
   value: unknown,
 ): SignalValidationResult<EventsPublishInput> {
   const input = validateEventsPublishInput(value);
   if (!input.valid) return input;
 
-  const declaredTypes = new Set<string>();
+  let matchingDeclaration: SignalDeclaration | undefined;
   for (const candidate of declarations) {
     const declaration = validateSignalDeclaration(candidate);
     if (!declaration.valid) {
@@ -193,10 +200,12 @@ export function validateDeclaredEventsPublishInput(
         ],
       };
     }
-    declaredTypes.add(declaration.value.type);
+    if (declaration.value.type === input.value.signalType) {
+      matchingDeclaration = declaration.value;
+    }
   }
 
-  if (!declaredTypes.has(input.value.signalType)) {
+  if (matchingDeclaration === undefined) {
     return {
       valid: false,
       errors: [
@@ -208,6 +217,59 @@ export function validateDeclaredEventsPublishInput(
         },
       ],
     };
+  }
+
+  const resolvedSchema = signalSchemas[matchingDeclaration.schemaRef];
+  if (
+    typeof resolvedSchema !== 'object' ||
+    resolvedSchema === null ||
+    Array.isArray(resolvedSchema)
+  ) {
+    return {
+      valid: false,
+      errors: [
+        {
+          instancePath: '/signalType',
+          schemaPath: matchingDeclaration.schemaRef,
+          keyword: 'signalSchemaUnresolved',
+          message: 'declared signal schema is not resolved from the installed package',
+        },
+      ],
+    };
+  }
+
+  let validateResolved = resolvedSchemaValidators.get(resolvedSchema);
+  if (validateResolved === undefined) {
+    try {
+      const schemaAjv = new Ajv2020({ allErrors: true, strict: false });
+      addFormats(schemaAjv);
+      validateResolved = schemaAjv.compile(resolvedSchema as Record<string, unknown>);
+      resolvedSchemaValidators.set(resolvedSchema, validateResolved);
+    } catch {
+      resolvedSchemaValidators.set(resolvedSchema, null);
+      validateResolved = null;
+    }
+  }
+  if (validateResolved === null) {
+    return {
+      valid: false,
+      errors: [
+        {
+          instancePath: '/signalType',
+          schemaPath: matchingDeclaration.schemaRef,
+          keyword: 'signalSchemaInvalid',
+          message: 'declared signal schema could not be compiled safely',
+        },
+      ],
+    };
+  }
+
+  const content = {
+    payload: input.value.payload,
+    source: input.value.source,
+  };
+  if (!validateResolved(content)) {
+    return { valid: false, errors: errorsOf(validateResolved) };
   }
   return input;
 }

@@ -1,15 +1,33 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/plugins/feishu-meeting-intake/schemas/meeting-artifact/v1",
-  "title": "Feishu generated meeting artifact metadata",
+  "title": "Feishu generated meeting artifact signal content",
   "type": "object",
   "properties": {
-    "artifactId": { "type": "string", "minLength": 1, "maxLength": 128 },
-    "artifactKind": { "type": "string", "enum": ["note", "minute"] },
-    "revision": { "type": "string", "minLength": 1, "maxLength": 64 },
-    "title": { "type": "string", "minLength": 1, "maxLength": 512 },
-    "meetingId": { "type": "string", "minLength": 1, "maxLength": 128 }
+    "payload": {
+      "type": "object",
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+        "artifactKind": { "type": "string", "enum": ["note", "minute"] },
+        "revision": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "meetingId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" }
+      },
+      "required": ["artifactId", "artifactKind", "revision"],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "handle": {
+          "type": "string",
+          "pattern": "^feishu://meeting-artifacts/(note|minute)/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\\?revision=[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+        }
+      },
+      "required": ["handle"],
+      "additionalProperties": false
+    }
   },
-  "required": ["artifactId", "artifactKind", "revision"],
+  "required": ["payload", "source"],
   "additionalProperties": false
 }

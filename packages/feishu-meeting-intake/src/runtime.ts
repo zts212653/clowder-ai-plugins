@@ -4,7 +4,7 @@ import { normalizeGeneratedArtifact } from './artifact.js';
 import {
   FeishuGatewayError,
   type FeishuArtifactLocator,
-  type FeishuGateway,
+  type FeishuPollingGateway,
   type FeishuGeneratedArtifactPage,
 } from './gateway.js';
 import type { MeetingIntakeStateStore } from './state-store.js';
@@ -12,7 +12,7 @@ import type { MeetingIntakeStateStore } from './state-store.js';
 const PAGE_LIMIT = 64;
 
 export interface FeishuMeetingIntakeRuntimeOptions {
-  readonly gateway: FeishuGateway;
+  readonly gateway: FeishuPollingGateway;
   readonly publisher: Pick<EventsPublisher, 'publish'>;
   readonly store: MeetingIntakeStateStore;
 }

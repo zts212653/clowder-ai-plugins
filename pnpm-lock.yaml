@@ -11,10 +11,10 @@ importers:
   packages/feishu-meeting-intake:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: workspace:*
+        specifier: 0.1.0-beta.9
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: workspace:*
+        specifier: 0.1.0-beta.5
         version: link:../plugin-sdk
     devDependencies:
       '@types/node':
@@ -65,7 +65,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: workspace:*
+        specifier: 0.1.0-beta.9
         version: link:../plugin-contract
     devDependencies:
       '@types/node':

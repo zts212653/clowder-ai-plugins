@@ -10,7 +10,8 @@ import {
   FeishuGatewayError,
   createFeishuMeetingIntakeRuntime,
   createFileMeetingIntakeStateStore,
-  type FeishuGateway,
+  normalizeGeneratedArtifact,
+  type FeishuPollingGateway,
   type FeishuGeneratedArtifact,
   type MeetingIntakeStateStore,
 } from './index.js';
@@ -24,14 +25,13 @@ const ARTIFACT: FeishuGeneratedArtifact = {
 };
 const SIGNAL = new AbortController().signal;
 
-function gateway(overrides: Partial<FeishuGateway> = {}): FeishuGateway {
+function gateway(overrides: Partial<FeishuPollingGateway> = {}): FeishuPollingGateway {
   return {
     listGeneratedArtifacts: async () => ({
       artifacts: [ARTIFACT],
       nextCursor: 'cursor-2',
     }),
     inspectArtifact: async () => ARTIFACT,
-    resolveTranscript: async () => ({ text: 'transcript', contentType: 'text/plain' }),
     ...overrides,
   };
 }
@@ -149,6 +149,25 @@ test('does not advance cursor when any page artifact is invalid', async () => {
   await assert.rejects(runtime.pollOnce(SIGNAL));
   assert.equal((await store.load()).cursor, null);
   assert.equal(publisher.calls.length, 0);
+});
+
+test('state store rejects direct transcript and forged-source bypasses', async () => {
+  const store = await fileStore();
+  const valid = normalizeGeneratedArtifact(ARTIFACT);
+  for (const candidate of [
+    { ...valid, payload: { transcript: 'private meeting' } },
+    { ...valid, source: { handle: 'https://attacker.example/transcript' } },
+    {
+      ...valid,
+      source: { handle: 'feishu://meeting-artifacts/minute/other?revision=7' },
+    },
+  ]) {
+    await assert.rejects(
+      store.enqueue([candidate as EventsPublishInput]),
+      /invalid signal/,
+    );
+  }
+  assert.equal((await store.load()).pending.length, 0);
 });
 
 test('manual import deduplicates with later page delivery by source artifact identity', async () => {

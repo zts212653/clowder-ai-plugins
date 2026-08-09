@@ -20,7 +20,7 @@ const INPUT: EventsPublishInput = {
     artifactKind: 'minute',
     revision: '7',
   },
-  source: { handle: 'feishu://minutes/om_abc123?revision=7' },
+  source: { handle: 'feishu://meeting-artifacts/minute/om_abc123?revision=7' },
 };
 
 const DECLARED_SIGNALS = [
@@ -32,6 +32,34 @@ const DECLARED_SIGNALS = [
     sourceClass: 'remote-service',
   },
 ] as const;
+
+const SIGNAL_SCHEMAS = {
+  [DECLARED_SIGNALS[0].schemaRef]: {
+    type: 'object',
+    properties: {
+      payload: {
+        type: 'object',
+        properties: {
+          artifactId: { type: 'string' },
+          artifactKind: { const: 'minute' },
+          revision: { type: 'string' },
+        },
+        required: ['artifactId', 'artifactKind', 'revision'],
+        additionalProperties: false,
+      },
+      source: {
+        type: 'object',
+        properties: {
+          handle: { type: 'string', pattern: '^feishu://meeting-artifacts/minute/' },
+        },
+        required: ['handle'],
+        additionalProperties: false,
+      },
+    },
+    required: ['payload', 'source'],
+    additionalProperties: false,
+  },
+} as const;
 
 function activated(grants: readonly ('events.publish' | 'plugin.state.get')[] = ['events.publish']): ActivatedHandshakeState {
   return {
@@ -82,6 +110,7 @@ test('publishes through the Host-bound row without adding routing authority', as
   const publisher = createEventsPublisher({
     transport,
     declaredSignals: DECLARED_SIGNALS,
+    signalSchemas: SIGNAL_SCHEMAS,
     getHandshakeState: () => activated(),
     liveness: { kind: 'stdio-session', isLive: () => live },
   });
@@ -114,6 +143,7 @@ test('requires an activated session and current events.publish grant', async () 
     const publisher = createEventsPublisher({
       transport,
       declaredSignals: DECLARED_SIGNALS,
+      signalSchemas: SIGNAL_SCHEMAS,
       getHandshakeState: () => state,
       liveness: { kind: 'stdio-session', isLive: () => true },
     });
@@ -131,6 +161,7 @@ test('rejects invalid or authority-bearing input before transport', async () => 
   const publisher = createEventsPublisher({
     transport,
     declaredSignals: DECLARED_SIGNALS,
+    signalSchemas: SIGNAL_SCHEMAS,
     getHandshakeState: () => activated(),
     liveness: { kind: 'stdio-session', isLive: () => true },
   });
@@ -143,6 +174,14 @@ test('rejects invalid or authority-bearing input before transport', async () => 
     publisher.publish({ ...INPUT, payload: { text: 'a'.repeat(65_537) } }),
     (error) => assertPublishError(error, 'INVALID_INPUT'),
   );
+  await assert.rejects(
+    publisher.publish({ ...INPUT, payload: { transcript: 'private meeting' } }),
+    (error) => assertPublishError(error, 'INVALID_INPUT'),
+  );
+  await assert.rejects(
+    publisher.publish({ ...INPUT, source: undefined }),
+    (error) => assertPublishError(error, 'INVALID_INPUT'),
+  );
   assert.equal(transport.calls.length, 0);
 });
 
@@ -153,6 +192,7 @@ test('rejects a structurally valid but undeclared signal before transport', asyn
     declaredSignals: [
       { ...DECLARED_SIGNALS[0], type: 'another.source.generated.v1' },
     ],
+    signalSchemas: SIGNAL_SCHEMAS,
     getHandshakeState: () => activated(),
     liveness: { kind: 'stdio-session', isLive: () => true },
   });
@@ -169,6 +209,7 @@ test('accepts duplicate receipts and fails closed on malformed Host results', as
   const publisher = createEventsPublisher({
     transport,
     declaredSignals: DECLARED_SIGNALS,
+    signalSchemas: SIGNAL_SCHEMAS,
     getHandshakeState: () => activated(),
     liveness: { kind: 'stdio-session', isLive: () => true },
   });

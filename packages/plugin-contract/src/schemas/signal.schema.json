@@ -15,6 +15,7 @@
     },
     "SignalSchemaRef": {
       "type": "string",
+      "description": "Package-local schema applied to the {payload, source} signal content at publish admission.",
       "minLength": 21,
       "maxLength": 256,
       "pattern": "^schemas/([A-Za-z0-9][A-Za-z0-9._-]*/)*[A-Za-z0-9][A-Za-z0-9._-]*\\.schema\\.json$"
@@ -75,13 +76,13 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+      "pattern": "^[^\\u0000-\\u001F\\u007F\\uD800-\\uDFFF]+$"
     },
     "OpaqueSourceHandle": {
       "type": "string",
       "minLength": 1,
       "maxLength": 512,
-      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+      "pattern": "^[^\\u0000-\\u001F\\u007F\\uD800-\\uDFFF]+$"
     },
     "SignalSourceRef": {
       "type": "object",
@@ -107,7 +108,7 @@
         "payload": { "type": "object", "additionalProperties": true },
         "source": { "$ref": "#/$defs/SignalSourceRef" }
       },
-      "required": ["signalType", "eventId", "idempotencyKey", "occurredAt", "payload"],
+      "required": ["signalType", "eventId", "idempotencyKey", "occurredAt", "payload", "source"],
       "additionalProperties": false
     },
     "EventsPublishDisposition": {

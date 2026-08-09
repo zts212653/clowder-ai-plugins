@@ -2,10 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute } from 'node:path';
 
-import {
-  validateEventsPublishInput,
-  type EventsPublishInput,
-} from '@clowder-ai/plugin-contract';
+import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
+
+import { validateFeishuMeetingPublishInput } from './artifact.js';
 
 const STATE_VERSION = 1;
 const MAX_PENDING = 512;
@@ -69,7 +68,7 @@ function isState(value: unknown): value is MeetingIntakeState {
   }
   const keys = new Set<string>();
   for (const candidate of state.pending) {
-    const validation = validateEventsPublishInput(candidate);
+    const validation = validateFeishuMeetingPublishInput(candidate);
     if (!validation.valid || keys.has(validation.value.idempotencyKey)) return false;
     keys.add(validation.value.idempotencyKey);
   }
@@ -78,7 +77,7 @@ function isState(value: unknown): value is MeetingIntakeState {
 
 function validatedEvents(events: readonly EventsPublishInput[]): EventsPublishInput[] {
   return events.map((candidate) => {
-    const validation = validateEventsPublishInput(candidate);
+    const validation = validateFeishuMeetingPublishInput(candidate);
     if (!validation.valid) throw new TypeError('refusing to persist an invalid signal');
     return structuredClone(validation.value);
   });

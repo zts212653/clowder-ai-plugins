@@ -666,3 +666,24 @@ test('official Feishu intake changes execute pull-request validation', () => {
     'Feishu intake validation must run after its SDK dependency is built',
   );
 });
+
+test('public consumer packages contain no workspace protocol and CI installs packed artifacts', () => {
+  const npmrc = readFileSync(new URL('../../../../.npmrc', import.meta.url), 'utf8');
+  const sdkPackage = JSON.parse(
+    readFileSync(new URL('../../../../packages/plugin-sdk/package.json', import.meta.url), 'utf8'),
+  ) as { dependencies: Record<string, string> };
+  const feishuPackage = JSON.parse(
+    readFileSync(
+      new URL('../../../../packages/feishu-meeting-intake/package.json', import.meta.url),
+      'utf8',
+    ),
+  ) as { dependencies: Record<string, string> };
+  for (const dependencies of [sdkPackage.dependencies, feishuPackage.dependencies]) {
+    assert.equal(
+      Object.values(dependencies).some((version) => version.startsWith('workspace:')),
+      false,
+    );
+  }
+  assert.match(npmrc, /^link-workspace-packages=true$/m);
+  assert.match(releaseWorkflow, /pnpm test:fresh-consumer/);
+});

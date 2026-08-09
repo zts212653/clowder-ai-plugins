@@ -5,13 +5,19 @@ export {
   type FeishuGeneratedArtifact,
   type FeishuGeneratedArtifactPage,
   type FeishuTranscript,
-  type FeishuGateway,
+  type FeishuPollingGateway,
+  type FeishuTranscriptGateway,
+  type FeishuTranscriptGatewayRequest,
   type FeishuGatewayErrorCode,
 } from './gateway.js';
 
 export {
   FEISHU_MEETING_SIGNAL_TYPE,
+  FEISHU_MEETING_SIGNAL_SCHEMA_REF,
+  FEISHU_MEETING_SIGNAL_DECLARATION,
+  FEISHU_MEETING_SIGNAL_SCHEMAS,
   normalizeGeneratedArtifact,
+  validateFeishuMeetingPublishInput,
   parseFeishuSourceHandle,
   createFeishuTranscriptSourceAdapter,
   type FeishuTranscriptSourceAdapter,

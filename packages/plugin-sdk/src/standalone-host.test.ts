@@ -208,6 +208,9 @@ test('returns Method Not Found for Host-bound events.publish without ingesting i
           idempotencyKey: 'idempotency-1',
           occurredAt: '2026-08-09T04:12:31Z',
           payload: { artifactId: 'om_abc123' },
+          source: {
+            handle: 'feishu://meeting-artifacts/minute/om_abc123?revision=rev-1',
+          },
         },
       },
     })}\n`, 'utf8'),

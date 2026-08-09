@@ -8,7 +8,8 @@ import {
   createFeishuTranscriptSourceAdapter,
   normalizeGeneratedArtifact,
   parseFeishuSourceHandle,
-  type FeishuGateway,
+  type FeishuPollingGateway,
+  type FeishuTranscriptGateway,
 } from './index.js';
 
 const DESCRIPTOR = {
@@ -72,11 +73,9 @@ test('rejects transcript leakage, open descriptors, and hostile identifiers', ()
 test('parses only canonical source handles and resolves transcript through the injected gateway', async () => {
   const calls: unknown[] = [];
   const signal = new AbortController().signal;
-  const gateway: FeishuGateway = {
-    listGeneratedArtifacts: async () => ({ artifacts: [], nextCursor: null }),
-    inspectArtifact: async () => DESCRIPTOR,
-    resolveTranscript: async (locator, receivedSignal) => {
-      calls.push([locator, receivedSignal]);
+  const gateway: FeishuTranscriptGateway = {
+    resolveGrantedTranscript: async (request) => {
+      calls.push(request);
       return { text: 'Speaker 1: hello', contentType: 'text/plain' };
     },
   };
@@ -88,13 +87,33 @@ test('parses only canonical source handles and resolves transcript through the i
     kind: 'minute',
     revision: '7',
   });
-  assert.deepEqual(await adapter.resolve(handle, signal), {
+  assert.deepEqual(await adapter.resolve({
+    sourceHandle: handle,
+    intakeId: 'intake-1',
+    sourceGrant: 'source-grant-1',
+  }, signal), {
     text: 'Speaker 1: hello',
     contentType: 'text/plain',
   });
   assert.deepEqual(calls, [
-    [{ artifactId: 'om_abc123', kind: 'minute', revision: '7' }, signal],
+    {
+      locator: { artifactId: 'om_abc123', kind: 'minute', revision: '7' },
+      sourceHandle: handle,
+      intakeId: 'intake-1',
+      sourceGrant: 'source-grant-1',
+      signal,
+    },
   ]);
+
+  await assert.rejects(
+    adapter.resolve({
+      sourceHandle: handle,
+      intakeId: 'intake-1',
+      sourceGrant: '',
+    }, signal),
+    /source grant/,
+  );
+  assert.equal(calls.length, 1, 'ungranted resolution must stop before Host gateway');
 
   for (const invalid of [
     '/tmp/meeting.txt',
@@ -104,4 +123,12 @@ test('parses only canonical source handles and resolves transcript through the i
   ]) {
     assert.throws(() => parseFeishuSourceHandle(invalid));
   }
+});
+
+test('keeps polling metadata gateway separate from transcript authority', () => {
+  const polling: FeishuPollingGateway = {
+    listGeneratedArtifacts: async () => ({ artifacts: [], nextCursor: null }),
+    inspectArtifact: async () => DESCRIPTOR,
+  };
+  assert.deepEqual(Object.keys(polling).sort(), ['inspectArtifact', 'listGeneratedArtifacts']);
 });

@@ -6,6 +6,7 @@ import {
   type EventsPublishInput,
   type EventsPublishResult,
   type SignalDeclaration,
+  type SignalSchemaCatalog,
 } from '@clowder-ai/plugin-contract';
 
 import type { LocalHandshakeState } from './handshake-client.js';
@@ -47,6 +48,8 @@ export interface EventsPublisherOptions {
   readonly transport: EventsPublishHostTransport;
   /** Contract-validated manifest signals.provides snapshot. */
   readonly declaredSignals: readonly SignalDeclaration[];
+  /** Host/package-loader-resolved schemas keyed by the declaration schemaRef. */
+  readonly signalSchemas: SignalSchemaCatalog;
   readonly getHandshakeState: () => LocalHandshakeState;
   readonly liveness: StdioSessionLiveness;
 }
@@ -91,13 +94,16 @@ export function createEventsPublisher(options: EventsPublisherOptions): EventsPu
 
       const inputValidation = validateDeclaredEventsPublishInput(
         options.declaredSignals,
+        options.signalSchemas,
         candidate,
       );
       if (!inputValidation.valid) {
         const keywords = new Set(inputValidation.errors.map(({ keyword }) => keyword));
         const code: EventsPublishErrorCode = keywords.has('declaredSignalType')
           ? 'SIGNAL_UNDECLARED'
-          : keywords.has('signalDeclaration')
+          : keywords.has('signalDeclaration') ||
+              keywords.has('signalSchemaUnresolved') ||
+              keywords.has('signalSchemaInvalid')
             ? 'INVALID_DECLARATIONS'
             : 'INVALID_INPUT';
         throw new EventsPublishError(

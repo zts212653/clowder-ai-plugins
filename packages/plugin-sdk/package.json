@@ -27,7 +27,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "workspace:*"
+    "@clowder-ai/plugin-contract": "0.1.0-beta.9"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",

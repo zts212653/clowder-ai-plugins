@@ -1,18 +1,41 @@
+import { createRequire } from 'node:module';
+
 import {
-  validateEventsPublishInput,
+  validateDeclaredEventsPublishInput,
   type EventsPublishInput,
+  type SignalDeclaration,
+  type SignalSchemaCatalog,
+  type SignalValidationResult,
 } from '@clowder-ai/plugin-contract';
 
 import type {
   FeishuArtifactKind,
   FeishuArtifactLocator,
-  FeishuGateway,
+  FeishuTranscriptGateway,
   FeishuGeneratedArtifact,
   FeishuTranscript,
 } from './gateway.js';
 
 export const FEISHU_MEETING_SIGNAL_TYPE =
   'feishu.meeting_artifact.generated.v1' as const;
+export const FEISHU_MEETING_SIGNAL_SCHEMA_REF =
+  'schemas/feishu-meeting-artifact.schema.json' as const;
+
+export const FEISHU_MEETING_SIGNAL_DECLARATION = {
+  type: FEISHU_MEETING_SIGNAL_TYPE,
+  schemaRef: FEISHU_MEETING_SIGNAL_SCHEMA_REF,
+  epistemicStatus: 'observation',
+  privacyClass: 'content-adjacent',
+  sourceClass: 'remote-service',
+} as const satisfies SignalDeclaration;
+
+const require = createRequire(import.meta.url);
+const meetingArtifactSchema = require('../schemas/feishu-meeting-artifact.schema.json') as Readonly<
+  Record<string, unknown>
+>;
+export const FEISHU_MEETING_SIGNAL_SCHEMAS: SignalSchemaCatalog = Object.freeze({
+  [FEISHU_MEETING_SIGNAL_SCHEMA_REF]: meetingArtifactSchema,
+});
 
 const DESCRIPTOR_KEYS = new Set([
   'artifactId',
@@ -98,7 +121,7 @@ export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
     payload,
     source: { handle: sourceHandle(descriptor) },
   } satisfies EventsPublishInput;
-  const validation = validateEventsPublishInput(input);
+  const validation = validateFeishuMeetingPublishInput(input);
   if (!validation.valid) {
     throw new TypeError(
       `Feishu artifact cannot form a signal: ${validation.errors
@@ -107,6 +130,38 @@ export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
     );
   }
   return structuredClone(validation.value);
+}
+
+export function validateFeishuMeetingPublishInput(
+  value: unknown,
+): SignalValidationResult<EventsPublishInput> {
+  const validation = validateDeclaredEventsPublishInput(
+    [FEISHU_MEETING_SIGNAL_DECLARATION],
+    FEISHU_MEETING_SIGNAL_SCHEMAS,
+    value,
+  );
+  if (!validation.valid) return validation;
+
+  const payload = validation.value.payload as Record<string, unknown>;
+  const locator = parseFeishuSourceHandle(validation.value.source.handle);
+  if (
+    payload.artifactId !== locator.artifactId ||
+    payload.artifactKind !== locator.kind ||
+    payload.revision !== locator.revision
+  ) {
+    return {
+      valid: false,
+      errors: [
+        {
+          instancePath: '/source/handle',
+          schemaPath: FEISHU_MEETING_SIGNAL_SCHEMA_REF,
+          keyword: 'sourceBinding',
+          message: 'source handle must identify the exact payload artifact and revision',
+        },
+      ],
+    };
+  }
+  return validation;
 }
 
 export function parseFeishuSourceHandle(value: string): Required<FeishuArtifactLocator> {
@@ -153,16 +208,37 @@ function requireTranscript(value: unknown): FeishuTranscript {
 }
 
 export interface FeishuTranscriptSourceAdapter {
-  resolve(sourceHandle: string, signal: AbortSignal): Promise<FeishuTranscript>;
+  resolve(access: {
+    readonly sourceHandle: string;
+    readonly intakeId: string;
+    readonly sourceGrant: string;
+  }, signal: AbortSignal): Promise<FeishuTranscript>;
 }
 
 export function createFeishuTranscriptSourceAdapter(
-  gateway: FeishuGateway,
+  gateway: FeishuTranscriptGateway,
 ): FeishuTranscriptSourceAdapter {
   return {
-    async resolve(handle, signal): Promise<FeishuTranscript> {
-      const locator = parseFeishuSourceHandle(handle);
-      return requireTranscript(await gateway.resolveTranscript(locator, signal));
+    async resolve(access, signal): Promise<FeishuTranscript> {
+      if (!boundedSafeId(access.intakeId, 128)) {
+        throw new TypeError('Feishu transcript access requires a bounded intake binding');
+      }
+      if (
+        typeof access.sourceGrant !== 'string' ||
+        access.sourceGrant.length < 1 ||
+        access.sourceGrant.length > 2048 ||
+        /[\u0000-\u001F\u007F]/u.test(access.sourceGrant)
+      ) {
+        throw new TypeError('Feishu transcript access requires a Host-issued source grant');
+      }
+      const locator = parseFeishuSourceHandle(access.sourceHandle);
+      return requireTranscript(await gateway.resolveGrantedTranscript({
+        locator,
+        sourceHandle: access.sourceHandle,
+        intakeId: access.intakeId,
+        sourceGrant: access.sourceGrant,
+        signal,
+      }));
     },
   };
 }

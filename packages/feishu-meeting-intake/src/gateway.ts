@@ -29,17 +29,27 @@ export interface FeishuTranscript {
  * Credential-free interface injected by the Host. Implementations own all
  * long-lived Feishu/lark-cli credentials and never expose them to this plugin.
  */
-export interface FeishuGateway {
+export interface FeishuPollingGateway {
   listGeneratedArtifacts(request: {
     readonly cursor: string | null;
     readonly limit: number;
     readonly signal: AbortSignal;
   }): Promise<FeishuGeneratedArtifactPage>;
   inspectArtifact(locator: FeishuArtifactLocator, signal: AbortSignal): Promise<unknown>;
-  resolveTranscript(
-    locator: Required<FeishuArtifactLocator>,
-    signal: AbortSignal,
-  ): Promise<unknown>;
+}
+
+export interface FeishuTranscriptGatewayRequest {
+  readonly locator: Required<FeishuArtifactLocator>;
+  readonly sourceHandle: string;
+  readonly intakeId: string;
+  /** Opaque Host-issued grant; the gateway verifies scope, expiry, and revocation. */
+  readonly sourceGrant: string;
+  readonly signal: AbortSignal;
+}
+
+/** Host-only transcript capability, deliberately absent from the polling runtime. */
+export interface FeishuTranscriptGateway {
+  resolveGrantedTranscript(request: FeishuTranscriptGatewayRequest): Promise<unknown>;
 }
 
 export type FeishuGatewayErrorCode =
