@@ -111,6 +111,24 @@ export {
   ACCEPT_CLASSES,
 } from './disposition.js';
 
+// Machine-readable disposition/conformance vectors
+export {
+  DISPOSITION_FIXTURE_VECTORS,
+  BETA8_HANDSHAKE_VECTOR_IDS,
+  CLOSED_ERROR_ARM_NAMES,
+  RESPONSE_CANDIDATE_CASES,
+  NOTIFICATION_PARTITION_CASES,
+} from './disposition-fixtures.js';
+
+export type {
+  ClosedErrorArmName,
+  RequestSnapshot,
+  InFlightRecord,
+  FixturePreState,
+  DispositionFixtureVector,
+  PartitionCase,
+} from './disposition-fixtures.js';
+
 export type {
   DispositionClass,
   DispositionOutcome,
@@ -122,11 +140,29 @@ export {
   PACKAGE_DIGEST_LENGTH,
   PACKAGE_DIGEST_PATTERN,
   PACKAGE_DIGEST_ENCODED_BYTES,
+  PLUGIN_ID_MIN_LENGTH,
+  PLUGIN_ID_MAX_LENGTH,
+  PLUGIN_ID_MAX_ENCODED_BYTES,
+  HANDSHAKE_VERSION_MAX_LENGTH,
+  HANDSHAKE_VERSION_MAX_ENCODED_BYTES,
+  HANDSHAKE_SEMVER_PATTERN,
+  HOST_IDENTIFIER_MIN_LENGTH,
+  HOST_IDENTIFIER_MAX_LENGTH,
+  HOST_IDENTIFIER_MAX_ENCODED_BYTES,
   BINDING_NONCE_MIN_LENGTH,
   BINDING_NONCE_MAX_LENGTH,
   BINDING_NONCE_MAX_ENCODED_BYTES,
   validatePackageDigest,
+  validatePluginId,
+  validateContractVersion,
+  validateWireVersion,
+  validatePluginInstanceId,
+  validateBrokerSessionId,
   validateBindingNonce,
+  hasHandshakeAuthorityInjection,
+  validateCandidateHello,
+  validateSessionBinding,
+  validateBrokerReadyParams,
 } from './handshake.js';
 
 export type {
@@ -134,6 +170,30 @@ export type {
   SessionBinding,
   BrokerReadyParams,
 } from './handshake.js';
+
+// Derived beta.8 handshake byte-bound evidence
+export {
+  HANDSHAKE_BYTE_PROOF_ENCODING_FAMILIES,
+  BROKER_HELLO_REQUEST_BYTE_PROOF,
+  BROKER_HELLO_RESULT_BYTE_PROOF,
+  BROKER_READY_REQUEST_BYTE_PROOF,
+  HANDSHAKE_REJECTED_ERROR_BYTE_PROOF,
+  BROKER_HELLO_MAX_ENCODED_REQUEST_BYTES,
+  BROKER_HELLO_MAX_ENCODED_RESULT_BYTES,
+  BROKER_HELLO_MAX_ENCODED_ERROR_BYTES,
+  BROKER_READY_MAX_ENCODED_REQUEST_BYTES,
+  BROKER_READY_MAX_ENCODED_RESULT_BYTES,
+  BROKER_READY_MAX_ENCODED_ERROR_BYTES,
+  HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
+} from './handshake-byte-bounds.js';
+
+export type {
+  HandshakeByteProofEncodingFamily,
+  HandshakeNPlusOneByteProof,
+  HandshakeEncodedByteProofCase,
+  HandshakeEncodedByteProof,
+  HandshakeRowEncodedByteBounds,
+} from './handshake-byte-bounds.js';
 
 // Grant snapshot
 export {
@@ -184,6 +244,7 @@ export {
   NOTIFICATION_METHODS,
   CLOSED_LEAF_ROWS,
   RESERVED_LEAF_ROWS,
+  READY_ROWS,
   getRegistryRow,
   isWireMethod,
   getMethodGrant,
@@ -194,12 +255,19 @@ export type {
   GrantRequirement,
   LeafClosureStatus,
   RegistryRow,
+  ReadyRegistryRow,
+  UnreadyRegistryRow,
+  WireMethodRegistry,
   WireMethodName,
 } from './registry.js';
 
 // Per-row input/result shapes
 export type {
   // Closed rows
+  HelloInput,
+  HelloResult,
+  ReadyInput,
+  ReadyResult,
   SubscribeInput,
   SubscribeResult,
   MessagingAckRequest,
@@ -210,10 +278,6 @@ export type {
   DrainInput,
   DrainResult,
   // Reserved row stubs
-  HelloInput,
-  HelloResult,
-  ReadyInput,
-  ReadyResult,
   SendInput,
   SendResult,
   AppendInput,

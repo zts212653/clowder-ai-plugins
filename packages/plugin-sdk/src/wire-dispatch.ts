@@ -1,11 +1,11 @@
 /**
  * Wire dispatch classifier — pre-dispatch frame classification per the
- * frozen disposition table (T-A through T-L, §3.8-1 of #1165).
+ * disposition table (T-A through T-M, §3.8-1 plus beta.8 closure).
  *
- * This module classifies decoded NDJSON frames into one of the 12
+ * This module classifies decoded NDJSON frames into one of the 13
  * disposition classes. T-A (transport failure) and T-B (JSON parse error)
  * are handled by the NDJSON frame decoder layer — this classifier covers
- * T-C through T-L.
+ * T-C through T-M.
  *
  * A frame that passes all rejection checks returns disposition=null with
  * outcome='accept', indicating a valid request that should be dispatched
@@ -19,8 +19,13 @@ import type { DecodedNdjsonFrame, JsonObject } from '@clowder-ai/plugin-contract
 
 import {
   type DispositionClass,
+  type RequestSnapshot,
   type WireMethodName,
   validateRequestId,
+  hasHandshakeAuthorityInjection,
+  validateCandidateHello,
+  validateBrokerReadyParams,
+  validateSessionBinding,
   validateEffectiveGrants,
   isWireMethod,
   isWireUInt53,
@@ -48,6 +53,7 @@ import {
   ERROR_CODE_TO_MESSAGE,
   // Per-arm application error codes (for data schema dispatch)
   HANDSHAKE_REJECTED_CODE,
+  HANDSHAKE_REJECTED_MESSAGE,
   DELIVERY_REJECTED_CODE,
   DOMAIN_ERROR_CODE,
   DEADLINE_EXPIRED_CODE,
@@ -64,20 +70,9 @@ import {
 // Public types
 // ---------------------------------------------------------------------------
 
-/**
- * Cross-frame oracle snapshot — original request fields needed to
- * verify byte-equality invariants on correlated responses.
- *
- * Structurally identical to contract's internal RequestSnapshot;
- * defined locally because that type is not part of the published
- * beta.4 public surface (Fable ruling on F1/immutability).
- */
-export interface RequestSnapshot {
-  /** Row 11 ping: nonce that must be echoed byte-equal in the result. */
-  readonly nonce?: string;
-  /** Row 9 deliver: deliveryId that must match byte-equal in the ack. */
-  readonly deliveryId?: string;
-}
+// Re-export the contract-owned snapshot so an in-flight response classifier
+// cannot drift from the published conformance vectors.
+export type { RequestSnapshot } from '@clowder-ai/plugin-contract';
 
 export interface InFlightEntry {
   readonly method: WireMethodName;
@@ -153,6 +148,22 @@ function respondInvalidParamsValue(id: string): DispatchResult {
       jsonrpc: '2.0',
       id,
       error: { code: INVALID_PARAMS_CODE, message: INVALID_PARAMS_MESSAGE },
+    },
+  };
+}
+
+function respondHandshakeAuthorityViolation(id: string): DispatchResult {
+  return {
+    disposition: 'T-G',
+    outcome: 'respond',
+    response: {
+      jsonrpc: '2.0',
+      id,
+      error: {
+        code: HANDSHAKE_REJECTED_CODE,
+        message: HANDSHAKE_REJECTED_MESSAGE,
+        data: { reason: 'AUTHORITY_VIOLATION' },
+      },
     },
   };
 }
@@ -255,30 +266,53 @@ function containsExponentNumber(value: unknown): boolean {
  *   - params.meta.deadlineUnixMs  (every request/notification)
  *   - params.input.deadlineUnixMs (host.lifecycle.drain input)
  *   - params.input.grantRevision  (host.grants.changed input)
+ *   - result.grantRevision        (broker.hello SessionBinding)
  */
-function hasNonCanonicalUInt53Token(value: JsonObject): boolean {
+function hasNonCanonicalUInt53Token(
+  value: JsonObject,
+  inFlight: ReadonlyMap<string, InFlightEntry>,
+): boolean {
+  const requestMethod = typeof value.method === 'string'
+    ? value.method
+    : undefined;
   const params = value.params;
-  if (params === null || typeof params !== 'object' || Array.isArray(params)) return false;
-  const paramsObj = params as Record<string, unknown>;
+  if (requestMethod !== undefined && params !== null && typeof params === 'object' && !Array.isArray(params)) {
+    const paramsObj = params as Record<string, unknown>;
 
-  // ── params.meta.deadlineUnixMs ──
-  const meta = paramsObj.meta;
-  if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
-    const metaObj = meta as Record<string, unknown>;
-    if (typeof metaObj.deadlineUnixMs === 'number') {
-      if (!isCanonicalUInt53Token(String(metaObj.deadlineUnixMs))) return true;
+    // ── params.meta.deadlineUnixMs ──
+    const meta = paramsObj.meta;
+    if (meta !== null && typeof meta === 'object' && !Array.isArray(meta)) {
+      const metaObj = meta as Record<string, unknown>;
+      if (typeof metaObj.deadlineUnixMs === 'number') {
+        if (!isCanonicalUInt53Token(String(metaObj.deadlineUnixMs))) return true;
+      }
+    }
+
+    // ── method-owned input WireUInt53 leaves ──
+    const input = paramsObj.input;
+    if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
+      const inputObj = input as Record<string, unknown>;
+      if (requestMethod === 'host.lifecycle.drain' && typeof inputObj.deadlineUnixMs === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.deadlineUnixMs))) return true;
+      }
+      if (requestMethod === 'host.grants.changed' && typeof inputObj.grantRevision === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
+      }
     }
   }
 
-  // ── params.input.deadlineUnixMs (drain) + params.input.grantRevision (grants.changed) ──
-  const input = paramsObj.input;
-  if (input !== null && typeof input === 'object' && !Array.isArray(input)) {
-    const inputObj = input as Record<string, unknown>;
-    if (typeof inputObj.deadlineUnixMs === 'number') {
-      if (!isCanonicalUInt53Token(String(inputObj.deadlineUnixMs))) return true;
-    }
-    if (typeof inputObj.grantRevision === 'number') {
-      if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
+  // H7 is a WireUInt53 result leaf only for broker.hello's SessionBinding.
+  // Consult the correlated in-flight row before applying this raw-token gate:
+  // result.grantRevision on every other response belongs to that row's own
+  // result grammar and must therefore reach T-H rather than T-C.
+  const result = value.result;
+  const responseMethod = typeof value.id === 'string'
+    ? inFlight.get(value.id)?.method
+    : undefined;
+  if (!('method' in value) && responseMethod === 'broker.hello' && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+    const resultObj = result as Record<string, unknown>;
+    if (typeof resultObj.grantRevision === 'number') {
+      if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
     }
   }
 
@@ -611,6 +645,29 @@ function validateResponseResult(
       return null;
     }
 
+    case 'broker.hello': {
+      if (!validateSessionBinding(result)) return close('T-H');
+      // SessionBinding is Host-authoritative only for H5–H9. Its four
+      // candidate fields are cross-frame echoes, so accepting a structurally
+      // valid but different binding would settle the wrong in-flight hello.
+      const candidateHello = entry.requestSnapshot?.candidateHello;
+      if (candidateHello === undefined) return close('T-H');
+      if (
+        result.pluginId !== candidateHello.pluginId ||
+        result.packageDigest !== candidateHello.packageDigest ||
+        result.contractVersion !== candidateHello.contractVersion ||
+        result.wireVersion !== candidateHello.wireVersion
+      ) {
+        return close('T-H');
+      }
+      return null;
+    }
+
+    case 'broker.ready': {
+      if (result !== null) return close('T-H');
+      return null;
+    }
+
     case 'host.lifecycle.drain': {
       // DrainResult: null
       if (result !== null) return close('T-H');
@@ -864,10 +921,16 @@ function classifyRequest(
     if (valueResult !== null) return valueResult;
   } else {
     // RESERVED rows: input type is `never` → no legal params value exists
-    // in v0 → any invocation is a value violation (T-G).
-    // Fable ruling: disposition table has no accept class for Requests;
-    // ACCEPT_CLASSES = {T-J (notification), T-L (response)} only.
+    // in beta.8 → any invocation is a value violation (T-G). T-M is limited
+    // to the two registry rows explicitly marked ready=true.
     return respondInvalidParamsValue(id);
+  }
+
+  // The two beta.8 handshake rows are now legal Requests. The standalone
+  // shell will deliberately return MethodNotFound until its later codec slice;
+  // classification itself must not relabel their valid input as T-G or T-F.
+  if (row.ready && (wireMethod === 'broker.hello' || wireMethod === 'broker.ready')) {
+    return accept('T-M');
   }
 
   // Direction gate: plugin SDK only accepts host-to-plugin methods as
@@ -894,6 +957,12 @@ function validateClosedRowInput(
   id: string,
 ): DispatchResult | null {
   switch (method) {
+    case 'broker.hello':
+      if (hasHandshakeAuthorityInjection(input)) return respondHandshakeAuthorityViolation(id);
+      return validateCandidateHello(input) ? null : respondInvalidParamsValue(id);
+    case 'broker.ready':
+      if (hasHandshakeAuthorityInjection(input)) return respondHandshakeAuthorityViolation(id);
+      return validateBrokerReadyParams(input) ? null : respondInvalidParamsValue(id);
     case 'host.lifecycle.ping': {
       // Closed input keys: {nonce} only
       for (const key of Object.keys(input)) {
@@ -964,7 +1033,7 @@ function validateClosedRowInput(
 /**
  * Classify a decoded NDJSON frame into a disposition class.
  *
- * Covers T-C through T-L of the frozen disposition table. T-A and T-B
+ * Covers T-C through T-M of the disposition table. T-A and T-B
  * are handled by the NDJSON frame decoder layer.
  *
  * @param frame   Decoded frame with raw bytes and parsed value.
@@ -1002,7 +1071,7 @@ export function classifyFrame(
     // P1-1: WireUInt53 raw-token grammar — after byte-equality, the raw
     // token at each WireUInt53 position is String(parsedValue). Tokens
     // like "-1" or "1.5" violate 0|[1-9][0-9]{0,15} → T-C.
-    if (hasNonCanonicalUInt53Token(value)) return close('T-C');
+    if (hasNonCanonicalUInt53Token(value, inFlight)) return close('T-C');
   } catch {
     // Stack overflow from deep nesting, or other canonicality edge case.
     return close('T-C');

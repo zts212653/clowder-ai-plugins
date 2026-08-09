@@ -151,6 +151,44 @@ test('responds to closed lifecycle rows only after the manifest is valid', async
   channel.close();
 });
 
+test('returns Method Not Found for a valid ready handshake request without activating it', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({ manifest: validManifest, input, output });
+  const deadlineUnixMs = Date.now() + 60_000;
+
+  input.end(
+    Buffer.from(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'hello-1',
+        method: 'broker.hello',
+        params: {
+          meta: { deadlineUnixMs },
+          input: {
+            pluginId: 'example.loopback',
+            packageDigest: `sha512-${'A'.repeat(86)}==`,
+            contractVersion: '0.1.0-beta.8',
+            wireVersion: '0.1.0',
+          },
+        },
+      }) + '\n',
+      'utf8',
+    ),
+  );
+
+  assert.deepEqual(await frames, [
+    {
+      jsonrpc: '2.0',
+      id: 'hello-1',
+      error: { code: -32601, message: 'Method not found' },
+    },
+  ]);
+  assert.equal(channel.failed, false, 'an unconnected handshake must not close the shell');
+  channel.close();
+});
+
 test('rejects an already-expired drain deadline without starting shutdown work', async () => {
   const input = new PassThrough();
   const output = new PassThrough();

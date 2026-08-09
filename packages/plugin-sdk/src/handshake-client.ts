@@ -1,20 +1,13 @@
 import {
   HANDSHAKE_REJECT_REASONS,
-  isWireUInt53,
-  validateBindingNonce,
-  validateEffectiveGrants,
-  validatePackageDigest,
+  validateBrokerReadyParams,
+  validateCandidateHello,
+  validateSessionBinding,
   type BrokerReadyParams,
   type CandidateHello,
   type HandshakeRejectReason,
   type SessionBinding,
 } from '@clowder-ai/plugin-contract';
-
-import {
-  BROKER_READY_PARAMS_KEYS,
-  CANDIDATE_HELLO_KEYS,
-  SESSION_BINDING_KEYS,
-} from './contract-mirror.js';
 
 export type HandshakePhase = 'candidate' | 'bound' | 'activated' | 'rejected';
 
@@ -48,10 +41,8 @@ export type LocalHandshakeState =
   | RejectedHandshakeState;
 
 export interface HandshakeValidationLevels {
-  /** H1/H3–H6: field presence and primitive type only; grammar remains reserved. */
-  readonly reservedFields: 'none' | 'structural';
-  /** H2/H7–H9: complete public runtime validation. */
-  readonly closedFields: 'full';
+  /** All H1–H9 fields use the published beta.8 closed grammar. */
+  readonly contractFields: 'full';
 }
 
 export interface CandidateHandshakeIntent {
@@ -77,8 +68,8 @@ export interface ActivationHandshakeIntent {
 
 /**
  * Objects in this union are deliberately codec-free. They retain the future
- * HarnessWireShape outbound/inbound orientation without defining executable
- * broker.hello or broker.ready frames while rows 1–2 remain RESERVED.
+ * HarnessWireShape outbound/inbound orientation without constructing wire
+ * frames. The published contract now owns the complete beta.8 grammar.
  */
 export type LocalHandshakeIntent =
   | CandidateHandshakeIntent
@@ -98,13 +89,8 @@ export type LocalHandshakeTransition =
     };
 
 const HANDSHAKE_REASON_SET = new Set<string>(HANDSHAKE_REJECT_REASONS);
-const STRUCTURAL_AND_CLOSED: HandshakeValidationLevels = {
-  reservedFields: 'structural',
-  closedFields: 'full',
-};
-const CLOSED_ONLY: HandshakeValidationLevels = {
-  reservedFields: 'none',
-  closedFields: 'full',
+const CLOSED_CONTRACT: HandshakeValidationLevels = {
+  contractFields: 'full',
 };
 
 function reject(reason: HandshakeRejectReason): LocalHandshakeTransition {
@@ -112,15 +98,6 @@ function reject(reason: HandshakeRejectReason): LocalHandshakeTransition {
     throw new RangeError(`unknown handshake rejection reason: ${reason}`);
   }
   return { accepted: false, reason, state: { phase: 'rejected', reason } };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function hasExactKeys(value: Record<string, unknown>, keys: ReadonlySet<string>): boolean {
-  const actual = Object.keys(value);
-  return actual.length === keys.size && actual.every(key => keys.has(key));
 }
 
 function snapshotCandidate(candidate: CandidateHello): CandidateHello {
@@ -151,34 +128,16 @@ function snapshotReady(ready: BrokerReadyParams): BrokerReadyParams {
 }
 
 function isCandidateHello(value: unknown): value is CandidateHello {
-  if (!isRecord(value) || !hasExactKeys(value, CANDIDATE_HELLO_KEYS)) return false;
-  return (
-    typeof value.pluginId === 'string' &&
-    typeof value.packageDigest === 'string' &&
-    validatePackageDigest(value.packageDigest) &&
-    typeof value.contractVersion === 'string' &&
-    typeof value.wireVersion === 'string'
-  );
+  return validateCandidateHello(value);
 }
 
 function validateBinding(candidate: CandidateHello, value: unknown):
   | { readonly valid: true; readonly binding: SessionBinding }
   | { readonly valid: false; readonly reason: HandshakeRejectReason } {
-  if (!isRecord(value) || !hasExactKeys(value, SESSION_BINDING_KEYS)) {
+  if (!validateSessionBinding(value)) {
     return { valid: false, reason: 'AUTHORITY_VIOLATION' };
   }
-  if (
-    typeof value.pluginId !== 'string' ||
-    typeof value.packageDigest !== 'string' ||
-    typeof value.contractVersion !== 'string' ||
-    typeof value.wireVersion !== 'string' ||
-    typeof value.pluginInstanceId !== 'string' ||
-    typeof value.brokerSessionId !== 'string' ||
-    typeof value.bindingNonce !== 'string'
-  ) {
-    return { valid: false, reason: 'AUTHORITY_VIOLATION' };
-  }
-  if (!validatePackageDigest(value.packageDigest) || value.pluginId !== candidate.pluginId || value.packageDigest !== candidate.packageDigest) {
+  if (value.pluginId !== candidate.pluginId || value.packageDigest !== candidate.packageDigest) {
     return { valid: false, reason: 'PACKAGE_MISMATCH' };
   }
   if (value.contractVersion !== candidate.contractVersion) {
@@ -187,25 +146,12 @@ function validateBinding(candidate: CandidateHello, value: unknown):
   if (value.wireVersion !== candidate.wireVersion) {
     return { valid: false, reason: 'WIRE_INCOMPATIBLE' };
   }
-  if (
-    typeof value.grantRevision !== 'number' ||
-    !isWireUInt53(value.grantRevision) ||
-    !Array.isArray(value.effectiveGrants) ||
-    !value.effectiveGrants.every(grant => typeof grant === 'string') ||
-    !validateEffectiveGrants(value.effectiveGrants) ||
-    !validateBindingNonce(value.bindingNonce)
-  ) {
-    return { valid: false, reason: 'AUTHORITY_VIOLATION' };
-  }
-  return { valid: true, binding: snapshotBinding(value as unknown as SessionBinding) };
+  return { valid: true, binding: snapshotBinding(value) };
 }
 
 function validateReady(value: unknown, binding: SessionBinding): value is BrokerReadyParams {
   return (
-    isRecord(value) &&
-    hasExactKeys(value, BROKER_READY_PARAMS_KEYS) &&
-    typeof value.bindingNonce === 'string' &&
-    validateBindingNonce(value.bindingNonce) &&
+    validateBrokerReadyParams(value) &&
     value.bindingNonce === binding.bindingNonce
   );
 }
@@ -224,7 +170,7 @@ export function beginLocalHandshake(candidate: unknown): LocalHandshakeTransitio
       kind: 'candidate',
       transport: 'local-only',
       candidate: candidateSnapshot,
-      validation: STRUCTURAL_AND_CLOSED,
+      validation: CLOSED_CONTRACT,
     },
   };
 }
@@ -253,7 +199,7 @@ export function acceptSessionBinding(
       kind: 'binding',
       transport: 'local-only',
       binding: result.binding,
-      validation: STRUCTURAL_AND_CLOSED,
+      validation: CLOSED_CONTRACT,
     },
   };
 }
@@ -280,7 +226,7 @@ export function prepareActivation(
       kind: 'activation',
       transport: 'local-only',
       ready: readySnapshot,
-      validation: CLOSED_ONLY,
+      validation: CLOSED_CONTRACT,
     },
   };
 }

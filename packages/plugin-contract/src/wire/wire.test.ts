@@ -58,13 +58,36 @@ import {
   // Handshake
   PACKAGE_DIGEST_LENGTH,
   PACKAGE_DIGEST_ENCODED_BYTES,
+  PLUGIN_ID_MIN_LENGTH,
+  PLUGIN_ID_MAX_LENGTH,
+  PLUGIN_ID_MAX_ENCODED_BYTES,
+  HANDSHAKE_VERSION_MAX_LENGTH,
+  HANDSHAKE_VERSION_MAX_ENCODED_BYTES,
+  HOST_IDENTIFIER_MIN_LENGTH,
+  HOST_IDENTIFIER_MAX_LENGTH,
+  HOST_IDENTIFIER_MAX_ENCODED_BYTES,
   BINDING_NONCE_MIN_LENGTH,
   BINDING_NONCE_MAX_LENGTH,
   BINDING_NONCE_MAX_ENCODED_BYTES,
   validatePackageDigest,
+  validatePluginId,
+  validateContractVersion,
+  validateWireVersion,
+  validatePluginInstanceId,
+  validateBrokerSessionId,
+  hasHandshakeAuthorityInjection,
+  validateCandidateHello,
+  validateSessionBinding,
+  validateBrokerReadyParams,
   validateBindingNonce,
+  BROKER_HELLO_REQUEST_BYTE_PROOF,
+  BROKER_HELLO_RESULT_BYTE_PROOF,
+  BROKER_READY_REQUEST_BYTE_PROOF,
+  HANDSHAKE_REJECTED_ERROR_BYTE_PROOF,
+  HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
   MAX_GRANT_ITEMS,
+  VALID_CAPABILITIES,
   validateEffectiveGrants,
   // Registry
   WIRE_METHOD_NAMES,
@@ -75,6 +98,7 @@ import {
   NOTIFICATION_METHODS,
   CLOSED_LEAF_ROWS,
   RESERVED_LEAF_ROWS,
+  READY_ROWS,
   getRegistryRow,
   isWireMethod,
   // Row shape bounds
@@ -234,28 +258,28 @@ test('reject-reason taxonomies are frozen', () => {
 // §5 Disposition table regression locks
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('disposition table has exactly 12 classes T-A through T-L', () => {
-  assert.equal(DISPOSITION_CLASSES.length, 12);
+test('disposition table has exactly 13 classes T-A through T-M', () => {
+  assert.equal(DISPOSITION_CLASSES.length, 13);
   assert.equal(DISPOSITION_CLASSES[0], 'T-A');
-  assert.equal(DISPOSITION_CLASSES[11], 'T-L');
-  assert.equal(Object.keys(DISPOSITION_TABLE).length, 12);
+  assert.equal(DISPOSITION_CLASSES[12], 'T-M');
+  assert.equal(Object.keys(DISPOSITION_TABLE).length, 13);
 });
 
 test('disposition subsets partition correctly', () => {
   assert.equal(CLOSE_CLASSES.length, 6, '6 close classes');
   assert.equal(RESPOND_CLASSES.length, 4, '4 respond classes');
-  assert.equal(ACCEPT_CLASSES.length, 2, '2 accept classes');
+  assert.equal(ACCEPT_CLASSES.length, 3, '3 accept classes');
   assert.equal(
     CLOSE_CLASSES.length + RESPOND_CLASSES.length + ACCEPT_CLASSES.length,
-    12,
-    'subsets cover all 12',
+    13,
+    'subsets cover all 13',
   );
 });
 
 test('every disposition class appears in exactly one subset', () => {
   const allInSubsets = [...CLOSE_CLASSES, ...RESPOND_CLASSES, ...ACCEPT_CLASSES];
   const unique = new Set(allInSubsets);
-  assert.equal(unique.size, 12, 'no duplicates');
+  assert.equal(unique.size, 13, 'no duplicates');
   for (const cls of DISPOSITION_CLASSES) {
     assert.ok(unique.has(cls), `${cls} must appear in exactly one subset`);
   }
@@ -275,11 +299,11 @@ test('every disposition class has a non-empty predicate and canonicalExample', (
   }
 });
 
-test('canonical examples for T-C through T-L are valid JSON', () => {
+test('canonical examples for T-C through T-M are valid JSON', () => {
   // T-A is not valid UTF-8, T-B is not valid JSON -- both intentionally.
-  // All others (T-C through T-L) must parse as valid JSON.
+  // All others (T-C through T-M) must parse as valid JSON.
   const jsonClasses: (typeof DISPOSITION_CLASSES)[number][] = [
-    'T-C', 'T-D', 'T-E', 'T-F', 'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L',
+    'T-C', 'T-D', 'T-E', 'T-F', 'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L', 'T-M',
   ];
   for (const cls of jsonClasses) {
     const entry = DISPOSITION_TABLE[cls];
@@ -401,6 +425,192 @@ test('binding nonce bounds are frozen', () => {
   assert.equal(BINDING_NONCE_MAX_ENCODED_BYTES, 3074, '6 * 512 + 2');
 });
 
+test('beta.8 closes H1/H3/H4/H5/H6 bounded grammars', () => {
+  const digest = 'sha512-' + 'A'.repeat(86) + '==';
+  assert.equal(PLUGIN_ID_MIN_LENGTH, 1);
+  assert.equal(PLUGIN_ID_MAX_LENGTH, 256);
+  assert.equal(PLUGIN_ID_MAX_ENCODED_BYTES, 1538);
+  assert.equal(HANDSHAKE_VERSION_MAX_LENGTH, 256);
+  assert.equal(HANDSHAKE_VERSION_MAX_ENCODED_BYTES, 258);
+  assert.equal(HOST_IDENTIFIER_MIN_LENGTH, 1);
+  assert.equal(HOST_IDENTIFIER_MAX_LENGTH, 512);
+  assert.equal(HOST_IDENTIFIER_MAX_ENCODED_BYTES, 3074);
+
+  assert.ok(validatePluginId('😀'.repeat(256)));
+  assert.equal(validatePluginId(''), false);
+  assert.equal(validatePluginId('x'.repeat(257)), false);
+  assert.ok(validateContractVersion('0.1.0-beta.8'));
+  assert.equal(validateContractVersion('^0.1.0'), false);
+  assert.ok(validateWireVersion('0.1.0'));
+  assert.equal(validateWireVersion('1.0'), false);
+  assert.ok(validatePluginInstanceId('instance-1'));
+  assert.ok(validateBrokerSessionId('session-1'));
+  assert.equal(validatePluginInstanceId('x'.repeat(513)), false);
+  assert.equal(validateBrokerSessionId(''), false);
+
+  const hello = {
+    pluginId: 'example.loopback',
+    packageDigest: digest,
+    contractVersion: '0.1.0-beta.8',
+    wireVersion: '0.1.0',
+  };
+  assert.ok(validateCandidateHello(hello));
+  assert.equal(validateCandidateHello({ ...hello, pluginInstanceId: 'injected' }), false);
+  for (const field of ['pluginInstanceId', 'brokerSessionId', 'grantRevision', 'effectiveGrants']) {
+    assert.ok(hasHandshakeAuthorityInjection({ ...hello, [field]: 'injected' }));
+    assert.ok(hasHandshakeAuthorityInjection({ bindingNonce: 'nonce-1', [field]: 'injected' }));
+  }
+  assert.equal(hasHandshakeAuthorityInjection(hello), false);
+  assert.equal(hasHandshakeAuthorityInjection({ bindingNonce: 'nonce-1' }), false);
+  assert.ok(validateBrokerReadyParams({ bindingNonce: 'nonce-1' }));
+  assert.equal(validateBrokerReadyParams({ bindingNonce: 'nonce-1', grantRevision: 1 }), false);
+  assert.ok(validateSessionBinding({
+    ...hello,
+    pluginInstanceId: 'instance-1',
+    brokerSessionId: 'session-1',
+    grantRevision: 0,
+    effectiveGrants: [],
+    bindingNonce: 'nonce-1',
+  }));
+});
+
+test('beta.8 exact-validation evidence covers every H field boundary and type', () => {
+  const digest = `sha512-${'A'.repeat(86)}==`;
+  const maxVersion = `0.0.0-${'a'.repeat(HANDSHAKE_VERSION_MAX_LENGTH - 6)}`;
+  const maxGrants = [...VALID_CAPABILITIES];
+  const binding = {
+    pluginId: 'a',
+    packageDigest: digest,
+    contractVersion: '0.0.0',
+    wireVersion: '0.0.0',
+    pluginInstanceId: 'a',
+    brokerSessionId: 'a',
+    grantRevision: 0,
+    effectiveGrants: [],
+    bindingNonce: 'a',
+  };
+
+  // H1: Unicode code points, not UTF-16 code units.
+  assert.ok(validatePluginId('a'));
+  assert.ok(validatePluginId('😀'.repeat(PLUGIN_ID_MAX_LENGTH)));
+  assert.equal(validatePluginId(''), false);
+  assert.equal(validatePluginId('😀'.repeat(PLUGIN_ID_MAX_LENGTH + 1)), false);
+  assert.equal(validatePluginId(1), false);
+
+  // H2: exactly one sha512 SRI grammar and length.
+  assert.ok(validatePackageDigest(digest));
+  assert.equal(validatePackageDigest(''), false);
+  assert.equal(validatePackageDigest(`${digest}A`), false);
+  assert.equal(validatePackageDigest(1), false);
+
+  // H3/H4 are the only SemVer-constrained handshake fields.
+  for (const validateVersion of [validateContractVersion, validateWireVersion]) {
+    assert.ok(validateVersion('0.0.0'));
+    assert.ok(validateVersion(maxVersion));
+    assert.equal(validateVersion(''), false);
+    assert.equal(validateVersion(`${maxVersion}a`), false);
+    assert.equal(validateVersion(1), false);
+  }
+
+  // H5/H6 preserve the shared opaque-string code-point grammar.
+  for (const validateIdentifier of [validatePluginInstanceId, validateBrokerSessionId]) {
+    assert.ok(validateIdentifier('a'));
+    assert.ok(validateIdentifier('😀'.repeat(HOST_IDENTIFIER_MAX_LENGTH)));
+    assert.equal(validateIdentifier(''), false);
+    assert.equal(validateIdentifier('😀'.repeat(HOST_IDENTIFIER_MAX_LENGTH + 1)), false);
+    assert.equal(validateIdentifier(1), false);
+  }
+
+  // H7/H8 are closed SessionBinding values, including their numeric and set bounds.
+  assert.ok(validateSessionBinding({ ...binding, grantRevision: 0 }));
+  assert.ok(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX }));
+  assert.equal(validateSessionBinding({ ...binding, grantRevision: -1 }), false);
+  assert.equal(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX + 1 }), false);
+  assert.equal(validateSessionBinding({ ...binding, grantRevision: '0' }), false);
+  assert.ok(validateSessionBinding({ ...binding, effectiveGrants: [] }));
+  assert.equal(maxGrants.length, MAX_GRANT_ITEMS);
+  assert.ok(validateSessionBinding({ ...binding, effectiveGrants: maxGrants }));
+  assert.equal(
+    validateSessionBinding({
+      ...binding,
+      effectiveGrants: Array.from({ length: MAX_GRANT_ITEMS + 1 }, () => 'messaging.send'),
+    }),
+    false,
+  );
+  assert.equal(validateSessionBinding({ ...binding, effectiveGrants: 'messaging.send' }), false);
+
+  // H9 is the activation nonce and follows the same code-point rule as H5/H6.
+  assert.ok(validateBindingNonce('a'));
+  assert.ok(validateBindingNonce('😀'.repeat(BINDING_NONCE_MAX_LENGTH)));
+  assert.equal(validateBindingNonce(''), false);
+  assert.equal(validateBindingNonce('😀'.repeat(BINDING_NONCE_MAX_LENGTH + 1)), false);
+  assert.equal(validateBindingNonce(1), false);
+});
+
+test('beta.8 raw UTF-8 proofs bind maximum and rejected N+1 handshake values', () => {
+  const digest = 'sha512-' + 'A'.repeat(86) + '==';
+  const maxSemVer = `0.0.0-${'a'.repeat(HANDSHAKE_VERSION_MAX_LENGTH - 6)}`;
+  const hello = {
+    pluginId: 'example.loopback',
+    packageDigest: digest,
+    contractVersion: maxSemVer,
+    wireVersion: maxSemVer,
+  };
+  const binding = {
+    ...hello,
+    pluginInstanceId: 'instance-1',
+    brokerSessionId: 'session-1',
+    grantRevision: 0,
+    effectiveGrants: [],
+    bindingNonce: 'nonce-1',
+  };
+
+  for (const proof of [
+    BROKER_HELLO_REQUEST_BYTE_PROOF,
+    BROKER_HELLO_RESULT_BYTE_PROOF,
+    BROKER_READY_REQUEST_BYTE_PROOF,
+    HANDSHAKE_REJECTED_ERROR_BYTE_PROOF,
+  ]) {
+    for (const entry of proof.cases) {
+      assert.ok(entry.fitsFrame, `${entry.family} maximum must fit the frame budget`);
+      assert.ok(entry.nPlusOne.every(candidate => candidate.fitsFrame),
+        `${entry.family} N+1 is rejected by grammar, not by the frame ceiling`);
+    }
+  }
+
+  for (const codePoint of ['a', '😀', '\u0000']) {
+    assert.equal(
+      validateCandidateHello({ ...hello, pluginId: codePoint.repeat(PLUGIN_ID_MAX_LENGTH + 1) }),
+      false,
+      `H1 ${JSON.stringify(codePoint)} N+1 must be rejected`,
+    );
+  }
+  assert.equal(validateCandidateHello({ ...hello, contractVersion: `${maxSemVer}a` }), false);
+  assert.equal(validateCandidateHello({ ...hello, wireVersion: `${maxSemVer}a` }), false);
+  for (const codePoint of ['a', '😀', '\u0000']) {
+    assert.equal(
+      validateSessionBinding({
+        ...binding,
+        pluginInstanceId: codePoint.repeat(HOST_IDENTIFIER_MAX_LENGTH + 1),
+      }),
+      false,
+      `H5 ${JSON.stringify(codePoint)} N+1 must be rejected`,
+    );
+    assert.equal(
+      validateSessionBinding({
+        ...binding,
+        brokerSessionId: codePoint.repeat(HOST_IDENTIFIER_MAX_LENGTH + 1),
+      }),
+      false,
+      `H6 ${JSON.stringify(codePoint)} N+1 must be rejected`,
+    );
+  }
+
+  assert.equal(validateCandidateHello(hello), true);
+  assert.equal(validateSessionBinding(binding), true);
+  assert.equal(validateBrokerReadyParams({ bindingNonce: '😀'.repeat(BINDING_NONCE_MAX_LENGTH + 1) }), false);
+});
+
 test('validateBindingNonce boundary cases', () => {
   assert.ok(validateBindingNonce('x'), 'min length');
   assert.ok(validateBindingNonce('x'.repeat(512)), 'max length');
@@ -479,10 +689,37 @@ test('method names are frozen in order', () => {
   assert.deepEqual([...WIRE_METHOD_NAMES], expected);
 });
 
-test('all 12 rows have ready=false (reservation-only lifecycle)', () => {
+test('only beta.8 handshake rows are ready', () => {
   for (const method of WIRE_METHOD_NAMES) {
     const row = WIRE_METHOD_REGISTRY[method];
-    assert.equal(row.ready, false, `${method} must be ready=false`);
+    assert.equal(
+      row.ready,
+      method === 'broker.hello' || method === 'broker.ready',
+      `${method} readiness must match beta.8 scope`,
+    );
+  }
+  assert.deepEqual([...READY_ROWS], ['broker.hello', 'broker.ready']);
+  assert.deepEqual(
+    {
+      maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedRequestBytes,
+      maxEncodedResultBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedResultBytes,
+      maxEncodedErrorBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedErrorBytes,
+    },
+    HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.hello'],
+  );
+  assert.deepEqual(
+    {
+      maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['broker.ready'].maxEncodedRequestBytes,
+      maxEncodedResultBytes: WIRE_METHOD_REGISTRY['broker.ready'].maxEncodedResultBytes,
+      maxEncodedErrorBytes: WIRE_METHOD_REGISTRY['broker.ready'].maxEncodedErrorBytes,
+    },
+    HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.ready'],
+  );
+  for (const method of WIRE_METHOD_NAMES.slice(2)) {
+    const row = getRegistryRow(method);
+    assert.equal(row?.maxEncodedRequestBytes, undefined);
+    assert.equal(row?.maxEncodedResultBytes, undefined);
+    assert.equal(row?.maxEncodedErrorBytes, undefined);
   }
 });
 
@@ -497,11 +734,11 @@ test('row numbers are sequential 1-12', () => {
 });
 
 test('leaf closure partition is frozen', () => {
-  const closed = ['messaging.subscribe', 'messaging.ack', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain'];
-  const reserved = ['broker.hello', 'broker.ready', 'messaging.send', 'messaging.appendElements', 'messaging.read', 'messaging.snapshot', 'host.messaging.deliver'];
+  const closed = ['broker.hello', 'broker.ready', 'messaging.subscribe', 'messaging.ack', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain'];
+  const reserved = ['messaging.send', 'messaging.appendElements', 'messaging.read', 'messaging.snapshot', 'host.messaging.deliver'];
 
-  assert.equal(CLOSED_LEAF_ROWS.length, 5, '5 closed rows');
-  assert.equal(RESERVED_LEAF_ROWS.length, 7, '7 reserved rows');
+  assert.equal(CLOSED_LEAF_ROWS.length, 7, '7 closed rows');
+  assert.equal(RESERVED_LEAF_ROWS.length, 5, '5 reserved rows');
 
   for (const m of closed) {
     assert.equal(WIRE_METHOD_REGISTRY[m as keyof typeof WIRE_METHOD_REGISTRY].leafClosure, 'CLOSED', `${m} CLOSED`);

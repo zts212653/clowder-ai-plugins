@@ -23,6 +23,23 @@ export {
 export { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
 
 export {
+  DISPOSITION_FIXTURE_VECTORS,
+  BETA8_HANDSHAKE_VECTOR_IDS,
+  CLOSED_ERROR_ARM_NAMES,
+  RESPONSE_CANDIDATE_CASES,
+  NOTIFICATION_PARTITION_CASES,
+} from './fixtures.js';
+
+export type {
+  ClosedErrorArmName,
+  RequestSnapshot,
+  InFlightRecord,
+  FixturePreState,
+  DispositionFixtureVector,
+  PartitionCase,
+} from './fixtures.js';
+
+export {
   HarnessChild,
   HarnessChildExitedError,
   HarnessCleanupError,

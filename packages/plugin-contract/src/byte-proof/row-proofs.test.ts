@@ -5,6 +5,10 @@ import { calculateByteProof } from './encoded-byte-proof.js';
 import {
   subscribeRequestTemplate,
   subscribeResponseTemplate,
+  helloRequestTemplate,
+  helloResponseTemplate,
+  readyRequestTemplate,
+  readyResponseMaxBytes,
   ackRequestTemplate,
   ackResponseTemplate,
   pingRequestTemplate,
@@ -24,12 +28,23 @@ import {
   getClosedRowTemplates,
 } from './row-proofs.js';
 import { MAX_FRAME_BYTES } from '../wire/constants.js';
+import {
+  BROKER_HELLO_MAX_ENCODED_ERROR_BYTES,
+  BROKER_HELLO_MAX_ENCODED_REQUEST_BYTES,
+  BROKER_HELLO_MAX_ENCODED_RESULT_BYTES,
+  BROKER_READY_MAX_ENCODED_ERROR_BYTES,
+  BROKER_READY_MAX_ENCODED_REQUEST_BYTES,
+  BROKER_READY_MAX_ENCODED_RESULT_BYTES,
+} from '../wire/handshake-byte-bounds.js';
 
 // ---------------------------------------------------------------------------
 // Helper: all byte-proof templates (request/response + error)
 // ---------------------------------------------------------------------------
 
 const ALL_BYTEPROOF_TEMPLATES = [
+  { label: 'Row 1 hello request', factory: helloRequestTemplate },
+  { label: 'Row 1 hello response', factory: helloResponseTemplate },
+  { label: 'Row 2 ready request', factory: readyRequestTemplate },
   { label: 'Row 5 subscribe request', factory: subscribeRequestTemplate },
   { label: 'Row 5 subscribe response', factory: subscribeResponseTemplate },
   { label: 'Row 7 ack request', factory: ackRequestTemplate },
@@ -197,24 +212,45 @@ test('grantsChangedNPlusOneBytes still fits within MAX_FRAME_BYTES (cardinality 
 });
 
 // ---------------------------------------------------------------------------
-// 6. getClosedRowTemplates covers all 5 closed rows
+// 6. getClosedRowTemplates covers all 7 closed rows
 // ---------------------------------------------------------------------------
 
-test('getClosedRowTemplates covers rows 5, 7, 10, 11, 12', () => {
+test('getClosedRowTemplates covers rows 1, 2, 5, 7, 10, 11, 12', () => {
   const templates = getClosedRowTemplates();
   const rowNumbers = Object.keys(templates).map(Number).sort((a, b) => a - b);
-  assert.deepEqual(rowNumbers, [5, 7, 10, 11, 12]);
+  assert.deepEqual(rowNumbers, [1, 2, 5, 7, 10, 11, 12]);
 });
 
 test('getClosedRowTemplates request/response rows have valid ByteProofInput', () => {
   const templates = getClosedRowTemplates();
-  for (const row of [5, 7, 11, 12] as const) {
+  for (const row of [1, 2, 5, 7, 11, 12] as const) {
     const entry = templates[row];
     assert.ok(entry.request.template, `row ${row} request must have a template`);
     assert.ok(entry.request.leaves.length > 0, `row ${row} request must have leaves`);
     assert.ok(entry.response.template, `row ${row} response must have a template`);
     assert.ok(entry.response.leaves.length > 0, `row ${row} response must have leaves`);
   }
+});
+
+test('published beta.8 maxima equal the generic raw byte-proof calculation', () => {
+  assert.equal(
+    BROKER_HELLO_MAX_ENCODED_REQUEST_BYTES,
+    calculateByteProof(helloRequestTemplate()).maxEncodedBytes,
+  );
+  assert.equal(
+    BROKER_HELLO_MAX_ENCODED_RESULT_BYTES,
+    calculateByteProof(helloResponseTemplate()).maxEncodedBytes,
+  );
+  assert.equal(
+    BROKER_READY_MAX_ENCODED_REQUEST_BYTES,
+    calculateByteProof(readyRequestTemplate()).maxEncodedBytes,
+  );
+  assert.equal(BROKER_READY_MAX_ENCODED_RESULT_BYTES, readyResponseMaxBytes());
+  assert.equal(
+    BROKER_HELLO_MAX_ENCODED_ERROR_BYTES,
+    calculateByteProof(handshakeRejectedErrorTemplate()).maxEncodedBytes,
+  );
+  assert.equal(BROKER_READY_MAX_ENCODED_ERROR_BYTES, BROKER_HELLO_MAX_ENCODED_ERROR_BYTES);
 });
 
 test('getClosedRowTemplates row 10 notification has maxBytes and nPlusOneBytes', () => {

@@ -2,8 +2,8 @@
  * Per-row input/result shapes for the 12-row method registry.
  * Mechanized from #1165 frozen shape.
  *
- * CLOSED rows (5, 7, 10, 11, 12): full executable shapes with bounds.
- * RESERVED rows (1, 2, 3, 4, 6, 8, 9): type stubs only — no executable
+ * CLOSED rows (1, 2, 5, 7, 10, 11, 12): full executable shapes with bounds.
+ * RESERVED rows (3, 4, 6, 8, 9): type stubs only — no executable
  * contract may be exported until the row's matrix entries close.
  *
  * Each closed row's shape is additionalProperties: false.
@@ -12,6 +12,11 @@
 
 import type { Capability } from '../generated/contract.generated.js';
 import type { GrantSnapshot } from './grants.js';
+import type {
+  BrokerReadyParams,
+  CandidateHello,
+  SessionBinding,
+} from './handshake.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Row 5 — messaging.subscribe (CLOSED leaf shape)
@@ -200,34 +205,41 @@ export interface DrainInput {
 export type DrainResult = null;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RESERVED rows — type stubs only
+// Rows 1–2 — CLOSED beta.8 handshake shapes
 //
-// No executable input/result contract may be exported for these rows
-// until their matrix entries close. The `never` type ensures no code
-// can accidentally construct or consume these shapes.
+// CandidateHello / SessionBinding and BrokerReadyParams / null are executable
+// structural contracts. Transport, codec, and Host activation remain outside
+// this shape-only beta.8 slice.
 //
 // Row numbering matches WIRE_METHOD_REGISTRY in registry.ts.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Row 1 — broker.hello: RESERVED (H1/H3/H4/H5/H6).
+ * Row 1 — broker.hello: CLOSED in beta.8.
  *
  * Plugin → Host handshake. CandidateHello → SessionBinding.
  * See handshake.ts for structural types.
- * No executable wire input/result contract until reserved entries close.
+ * Candidate grammar and the Host-authoritative binding are closed by beta.8.
  */
-export type HelloInput = never;
-export type HelloResult = never;
+export type HelloInput = CandidateHello;
+export type HelloResult = SessionBinding;
 
 /**
- * Row 2 — broker.ready: RESERVED (H1/H3/H4/H5/H6).
+ * Row 2 — broker.ready: CLOSED in beta.8.
  *
  * Plugin → Host activation. The structural type (BrokerReadyParams)
- * exists in handshake.ts, but the wire input/result shapes remain
- * reserved until the row's matrix entries close.
+ * is the executable input shape; success is a null JSON-RPC result.
  */
-export type ReadyInput = never;
-export type ReadyResult = never;
+export type ReadyInput = BrokerReadyParams;
+export type ReadyResult = null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Remaining RESERVED rows — type stubs only
+//
+// No executable input/result contract may be exported for these rows until
+// their matrix entries close. The `never` type ensures no code can
+// accidentally construct or consume these shapes.
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
  * Row 3 — messaging.send: RESERVED (M1/M2/M5/I1).

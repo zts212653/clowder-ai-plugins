@@ -28,6 +28,11 @@ import type {
 } from '@clowder-ai/plugin-contract/conformance';
 
 import {
+  HANDSHAKE_REJECTED_CODE,
+  HANDSHAKE_REJECTED_MESSAGE,
+} from '@clowder-ai/plugin-contract';
+
+import {
   classifyFrame,
   type DispatchResult,
   type InFlightEntry,
@@ -64,6 +69,37 @@ function inFlightFromFixture(
 }
 
 const NO_IN_FLIGHT: ReadonlyMap<string, InFlightEntry> = new Map();
+
+const HELLO_CANDIDATE = {
+  pluginId: 'example.loopback',
+  packageDigest: `sha512-${'A'.repeat(86)}==`,
+  contractVersion: '0.1.0-beta.8',
+  wireVersion: '0.1.0',
+} as const;
+
+const HELLO_BINDING = {
+  ...HELLO_CANDIDATE,
+  pluginInstanceId: 'instance-1',
+  brokerSessionId: 'session-1',
+  grantRevision: 0,
+  effectiveGrants: [],
+  bindingNonce: 'nonce-1',
+} as const;
+
+function helloResponseFrame(result: object): DecodedNdjsonFrame {
+  const rawFrame = JSON.stringify({ jsonrpc: '2.0', id: 'hello-response', result });
+  return {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+}
+
+function helloInFlightEntry(): InFlightEntry {
+  return {
+    method: 'broker.hello',
+    requestSnapshot: { candidateHello: HELLO_CANDIDATE },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Fixture-driven sweep: all T-C through T-L vectors
@@ -160,6 +196,241 @@ test('valid request that passes all checks returns accept with null disposition'
   assert.equal(result.disposition, null);
 });
 
+test('valid broker.hello reaches T-M once the handshake row is ready', () => {
+  const rawFrame = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'hello-1',
+    method: 'broker.hello',
+    params: {
+      meta: { deadlineUnixMs: 1 },
+      input: {
+        pluginId: 'example.loopback',
+        packageDigest: `sha512-${'A'.repeat(86)}==`,
+        contractVersion: '0.1.0-beta.8',
+        wireVersion: '0.1.0',
+      },
+    },
+  });
+  const frame: DecodedNdjsonFrame = {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+
+  const result = classifyFrame(frame, NO_IN_FLIGHT);
+  assert.equal(result.disposition, 'T-M');
+  assert.equal(result.outcome, 'accept');
+  assert.equal(result.response, undefined);
+});
+
+test('Host-owned fields injected into either handshake request are authority violations', () => {
+  const authorityFields = [
+    ['pluginInstanceId', 'instance-1'],
+    ['brokerSessionId', 'session-1'],
+    ['grantRevision', 1],
+    ['effectiveGrants', []],
+  ] as const;
+
+  for (const [field, injected] of authorityFields) {
+    for (const [method, input] of [
+      ['broker.hello', { ...HELLO_CANDIDATE, [field]: injected }],
+      ['broker.ready', { bindingNonce: 'nonce-1', [field]: injected }],
+    ] as const) {
+      const rawFrame = JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'a',
+        method,
+        params: { meta: { deadlineUnixMs: 1 }, input },
+      });
+      const result = classifyFrame({
+        raw: Buffer.from(rawFrame, 'utf8'),
+        value: JSON.parse(rawFrame) as JsonObject,
+      }, NO_IN_FLIGHT);
+
+      assert.equal(result.disposition, 'T-G', `${method}.${field} must remain a value-level rejection`);
+      assert.deepEqual(result.response, {
+        jsonrpc: '2.0',
+        id: 'a',
+        error: {
+          code: HANDSHAKE_REJECTED_CODE,
+          message: HANDSHAKE_REJECTED_MESSAGE,
+          data: { reason: 'AUTHORITY_VIOLATION' },
+        },
+      }, `${method}.${field} must return HANDSHAKE_REJECTED/AUTHORITY_VIOLATION`);
+    }
+  }
+});
+
+test('non-canonical injected grantRevision remains a handshake authority violation', () => {
+  for (const grantRevision of [-1, 1.5]) {
+    for (const [method, input] of [
+      ['broker.hello', { ...HELLO_CANDIDATE, grantRevision }],
+      ['broker.ready', { bindingNonce: 'nonce-1', grantRevision }],
+    ] as const) {
+      const rawFrame = JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'authority-injection',
+        method,
+        params: { meta: { deadlineUnixMs: 1 }, input },
+      });
+      const result = classifyFrame(
+        {
+          raw: Buffer.from(rawFrame, 'utf8'),
+          value: JSON.parse(rawFrame) as JsonObject,
+        },
+        NO_IN_FLIGHT,
+      );
+
+      assert.equal(result.disposition, 'T-G', `${method}.${grantRevision} must reach the authority gate`);
+      assert.deepEqual(result.response, {
+        jsonrpc: '2.0',
+        id: 'authority-injection',
+        error: {
+          code: HANDSHAKE_REJECTED_CODE,
+          message: HANDSHAKE_REJECTED_MESSAGE,
+          data: { reason: 'AUTHORITY_VIOLATION' },
+        },
+      });
+    }
+  }
+});
+
+test('broker.hello SessionBinding is T-L only when it echoes the in-flight candidate', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['hello-response', helloInFlightEntry()],
+  ]);
+
+  const positive = classifyFrame(helloResponseFrame(HELLO_BINDING), inFlight);
+  assert.equal(positive.disposition, 'T-L');
+  assert.equal(positive.outcome, 'accept');
+
+  const mismatches: ReadonlyArray<readonly [keyof typeof HELLO_CANDIDATE, string]> = [
+    ['pluginId', 'different.plugin'],
+    ['packageDigest', `sha512-${'B'.repeat(86)}==`],
+    ['contractVersion', '0.1.0-beta.9'],
+    ['wireVersion', '0.2.0'],
+  ];
+
+  for (const [field, value] of mismatches) {
+    const result = classifyFrame(
+      helloResponseFrame({ ...HELLO_BINDING, [field]: value }),
+      inFlight,
+    );
+    assert.equal(result.disposition, 'T-H', `${field} mismatch must close before T-L`);
+    assert.equal(result.outcome, 'close');
+  }
+});
+
+test('broker.hello non-canonical H7 raw integers close at T-C before response validation', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['hello-response', helloInFlightEntry()],
+  ]);
+
+  for (const grantRevision of [-1, 1.5]) {
+    const result = classifyFrame(
+      helloResponseFrame({ ...HELLO_BINDING, grantRevision }),
+      inFlight,
+    );
+    assert.equal(result.disposition, 'T-C', `${grantRevision} must fail raw WireUInt53 canonicality`);
+    assert.equal(result.outcome, 'close');
+  }
+});
+
+test('non-hello result grantRevision is validated at T-H, not treated as H7', () => {
+  for (const [id, method] of [
+    ['ready-response', 'broker.ready'],
+    ['ping-response', 'host.lifecycle.ping'],
+  ] as const) {
+    const rawFrame = JSON.stringify({
+      jsonrpc: '2.0',
+      id,
+      result: { grantRevision: -1 },
+    });
+    const result = classifyFrame(
+      {
+        raw: Buffer.from(rawFrame, 'utf8'),
+        value: JSON.parse(rawFrame) as JsonObject,
+      },
+      new Map<string, InFlightEntry>([[id, { method }]]),
+    );
+    assert.equal(result.disposition, 'T-H', `${method} must use its own result grammar`);
+    assert.equal(result.outcome, 'close');
+  }
+});
+
+test('method-bearing frame with a hello id does not apply the H7 result gate', () => {
+  const rawFrame = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'hello-response',
+    method: 'host.lifecycle.ping',
+    params: {
+      meta: { deadlineUnixMs: 1 },
+      input: { nonce: 'hello' },
+    },
+    result: { grantRevision: -1 },
+  });
+  const result = classifyFrame(
+    {
+      raw: Buffer.from(rawFrame, 'utf8'),
+      value: JSON.parse(rawFrame) as JsonObject,
+    },
+    new Map<string, InFlightEntry>([
+      ['hello-response', helloInFlightEntry()],
+    ]),
+  );
+
+  assert.equal(result.disposition, 'T-F');
+  assert.equal(result.outcome, 'respond');
+});
+
+test('WireUInt53 input gates are scoped to their owning methods', () => {
+  const requestRaw = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'ping-with-foreign-leaf',
+    method: 'host.lifecycle.ping',
+    params: {
+      meta: { deadlineUnixMs: 1 },
+      input: { nonce: 'hello', deadlineUnixMs: -1 },
+    },
+  });
+  const requestResult = classifyFrame(
+    {
+      raw: Buffer.from(requestRaw, 'utf8'),
+      value: JSON.parse(requestRaw) as JsonObject,
+    },
+    NO_IN_FLIGHT,
+  );
+  assert.equal(requestResult.disposition, 'T-G');
+  assert.equal(requestResult.outcome, 'respond');
+
+  const responseRaw = JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'ping-response',
+    params: { meta: { deadlineUnixMs: -1 } },
+    result: { nonce: 'hello' },
+  });
+  const responseResult = classifyFrame(
+    {
+      raw: Buffer.from(responseRaw, 'utf8'),
+      value: JSON.parse(responseRaw) as JsonObject,
+    },
+    new Map<string, InFlightEntry>([
+      ['ping-response', { method: 'host.lifecycle.ping' }],
+    ]),
+  );
+  assert.equal(responseResult.disposition, 'T-H');
+  assert.equal(responseResult.outcome, 'close');
+});
+
+test('broker.hello SessionBinding without a candidate snapshot fails closed', () => {
+  const inFlight = new Map<string, InFlightEntry>([
+    ['hello-response', { method: 'broker.hello' }],
+  ]);
+
+  const result = classifyFrame(helloResponseFrame(HELLO_BINDING), inFlight);
+  assert.equal(result.disposition, 'T-H');
+  assert.equal(result.outcome, 'close');
+});
+
 test('reserved method with valid envelope is T-G (input type never → value violation)', () => {
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(
@@ -175,9 +446,8 @@ test('reserved method with valid envelope is T-G (input type never → value vio
   };
 
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  // RESERVED rows have input type `never` — no legal params value exists
-  // in v0. The disposition table has no accept class for Requests
-  // (ACCEPT_CLASSES = {T-J, T-L} only). Fable ruling: T-G respond error.
+  // This still-RESERVED row has input type `never` — no legal params value
+  // exists. T-M is limited to the two explicitly ready handshake rows.
   assert.equal(result.disposition, 'T-G');
   assert.equal(result.outcome, 'respond');
   assert.ok(result.response !== undefined);
@@ -705,7 +975,7 @@ test('handshake rejection with missing reason is T-H (data validation)', () => {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
-  // broker.hello (RESERVED) — data validation rejects missing reason
+  // broker.hello (ready) — data validation rejects missing reason
   // before the per-method check would also reject it.
   const inFlight = new Map<string, InFlightEntry>([
     ['r1', { method: 'broker.hello' }],
@@ -835,7 +1105,7 @@ test('snapshot_unavailable with valid reason on messaging.snapshot is T-L', () =
 
 test('valid handshake_rejected on ping is T-H (per-method error restriction, maintainer RED)', () => {
   // Maintainer P1-2 RED: ping (row 11) permits standard errors only.
-  // HANDSHAKE_REJECTED belongs to rows 1-2 (RESERVED) — not row 11.
+  // HANDSHAKE_REJECTED belongs to the ready handshake rows 1-2 — not row 11.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32090,"message":"handshake rejected","data":{"reason":"PACKAGE_MISMATCH"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1129,7 +1399,7 @@ test('broker.hello response with valid handshake_rejected is T-L (row 1 allows i
   assert.equal(result.outcome, 'accept');
 });
 
-test('RESERVED row (broker.hello) standard error is T-L (standard errors always allowed)', () => {
+test('ready broker.hello row accepts a correlated standard error as T-L', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","error":{"code":-32603,"message":"Internal error"}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1139,18 +1409,17 @@ test('RESERVED row (broker.hello) standard error is T-L (standard errors always 
     ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-L', 'standard error on RESERVED row must accept');
+  assert.equal(result.disposition, 'T-L', 'standard error on broker.hello must accept');
   assert.equal(result.outcome, 'accept');
 });
 
 // ---------------------------------------------------------------------------
-// P1-2: RESERVED row result fail-closed
-// (maintainer requirement — no executable result schema → T-H)
+// P1-2: closed handshake result validation and reserved-row fail-closed
+// (maintainer requirement — no unvalidated result may reach T-L)
 // ---------------------------------------------------------------------------
 
-test('broker.hello response with result:null is T-H (RESERVED row fail-closed)', () => {
-  // Maintainer P1-2 RED: broker.hello in-flight entry accepts result:null.
-  // RESERVED rows have no executable result schema → T-H.
+test('broker.hello response with result:null is T-H (closed result shape rejects null)', () => {
+  // The beta.8 CLOSED broker.hello result is SessionBinding, never null.
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":null}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1160,7 +1429,7 @@ test('broker.hello response with result:null is T-H (RESERVED row fail-closed)',
     ['r1', { method: 'broker.hello' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.disposition, 'T-H', 'broker.hello null result must fail-closed');
   assert.equal(result.outcome, 'close');
 });
 
