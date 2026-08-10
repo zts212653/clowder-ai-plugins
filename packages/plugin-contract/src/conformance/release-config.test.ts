@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -35,6 +37,11 @@ const prereleasePublishAction = existsSync(prereleasePublishActionUrl)
 
 const artifactToolchainVerifierUrl = new URL(
   '../../scripts/verify-artifact-toolchain.mjs',
+  import.meta.url,
+);
+
+const prereleaseLatestClassifierUrl = new URL(
+  '../../scripts/classify-prerelease-latest.mjs',
   import.meta.url,
 );
 
@@ -185,6 +192,34 @@ function assertIdempotentExactArtifactResume(action: string): void {
     inspectionStep,
     /if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n          throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);/,
   );
+}
+
+function classifyPreviousLatest(
+  distTags: Record<string, unknown>,
+  packageVersion: string,
+): string {
+  const fixtureDirectory = mkdtempSync(join(tmpdir(), 'clowder-prerelease-tags-'));
+  const fixturePath = join(fixtureDirectory, 'dist-tags.json');
+  writeFileSync(fixturePath, JSON.stringify(distTags));
+
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [fileURLToPath(prereleaseLatestClassifierUrl)],
+      {
+        env: {
+          ...process.env,
+          PACKAGE_TAGS_PATH: fixturePath,
+          PACKAGE_VERSION: packageVersion,
+        },
+        encoding: 'utf8',
+      },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  } finally {
+    rmSync(fixtureDirectory, { recursive: true, force: true });
+  }
 }
 
 function assertReservedLatestUnchanged(surface: string): void {
@@ -495,6 +530,29 @@ test('artifact toolchain verifier rejects runtime drift', () => {
 
 test('subsequent prereleases preserve the pre-publish latest target', () => {
   assertPrereleaseDistTagsVerified(prereleasePublishAction);
+});
+
+test('partial first-release resume retries cleanup without erasing historical latest', () => {
+  assert.match(
+    prereleasePublishAction,
+    /node packages\/plugin-contract\/scripts\/classify-prerelease-latest\.mjs/,
+  );
+  assert.equal(
+    classifyPreviousLatest(
+      { latest: '0.1.0-beta.5', next: '0.1.0-beta.5' },
+      '0.1.0-beta.5',
+    ),
+    '',
+    'an npm-assigned latest on the exact prerelease remains cleanup-required after a retry',
+  );
+  assert.equal(
+    classifyPreviousLatest(
+      { latest: '0.1.0-beta.1', next: '0.1.0-beta.9' },
+      '0.1.0-beta.9',
+    ),
+    '0.1.0-beta.1',
+    'an earlier historical latest must remain reserved',
+  );
 });
 
 test('prerelease dist-tag guards reject fail-open action mutations', () => {
