@@ -73,17 +73,7 @@ runs:
       run: |
         set -euo pipefail
         if npm view "$PACKAGE_NAME" dist-tags --json > "$PACKAGE_TAGS_PATH" 2> "$PACKAGE_TAGS_ERROR_PATH"; then
-          PREVIOUS_LATEST=$(node --input-type=module <<'NODE'
-        import { readFileSync } from 'node:fs';
-
-        const distTags = JSON.parse(readFileSync(process.env.PACKAGE_TAGS_PATH, 'utf8'));
-        const latest = distTags.latest;
-        if (latest !== undefined && (typeof latest !== 'string' || latest.length === 0)) {
-          throw new Error(`registry latest tag is not a version: ${latest}`);
-        }
-        process.stdout.write(latest ?? '');
-        NODE
-          )
+          PREVIOUS_LATEST=$(node packages/plugin-contract/scripts/classify-prerelease-latest.mjs)
           printf 'had_previous_latest=%s\n' "$([[ -n "$PREVIOUS_LATEST" ]] && printf true || printf false)" >> "$GITHUB_OUTPUT"
           printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
         elif grep -q 'E404' "$PACKAGE_TAGS_ERROR_PATH"; then
