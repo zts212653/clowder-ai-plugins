@@ -350,6 +350,11 @@ test('main publishes the public dependency chain through one hardened action', (
     'changes to the publication action must trigger the workflow',
   );
   assert.match(prereleasePublishAction, /npm pack --json --ignore-scripts/);
+  assert.match(
+    prereleasePublishAction,
+    /npm pack --json --ignore-scripts --pack-destination "\$RUNNER_TEMP" "\.\/\$\{PACKAGE_DIRECTORY\}"/,
+    'workspace package paths must be explicit relative directories, not registry or git package specs',
+  );
   assert.match(prereleasePublishAction, /metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY/);
   assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL" --tag next --provenance --access public/);
   assert.match(prereleasePublishAction, /distTags\.next !== process\.env\.PACKAGE_VERSION/);
