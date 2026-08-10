@@ -21,13 +21,26 @@ const DESCRIPTOR = {
   meetingId: 'meeting-42',
 } as const;
 
-test('ships a contract-valid builtin manifest with one declared signal', async () => {
+test('ships a contract-valid stdio manifest with one declared signal', async () => {
   const manifest: unknown = JSON.parse(
     await readFile(new URL('../manifest.json', import.meta.url), 'utf8'),
+  );
+  const packageMetadata: unknown = JSON.parse(
+    await readFile(new URL('../package.json', import.meta.url), 'utf8'),
   );
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, result.valid ? undefined : JSON.stringify(result.errors));
   if (result.valid) {
+    assert.equal(result.manifest.version, '0.1.0-alpha.1');
+    assert.equal(
+      (packageMetadata as { readonly version?: unknown }).version,
+      result.manifest.version,
+      'manifest and immutable npm artifact versions must match',
+    );
+    assert.deepEqual(result.manifest.runtime, {
+      transport: 'stdio',
+      entrypoint: 'dist/entrypoint.js',
+    });
     assert.deepEqual(result.manifest.signals?.provides, [
       {
         type: 'feishu.meeting_artifact.generated.v1',

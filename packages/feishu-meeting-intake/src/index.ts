@@ -37,3 +37,22 @@ export {
   type FeishuMeetingIntakeCycleResult,
   type FeishuMeetingIntakeRuntime,
 } from './runtime.js';
+
+export {
+  createLarkCliFeishuEventGateway,
+  larkCliChildEnvironment,
+  resolveBundledLarkCliEntrypoint,
+  type LarkCliEventConsumer,
+  type LarkCliFeishuEventGateway,
+  type LarkCliFeishuEventGatewayOptions,
+} from './lark-cli-gateway.js';
+
+export {
+  meetingIntakeStatePath,
+  readRuntimeClaims,
+  runFeishuMeetingIntakeEntrypoint,
+  startFeishuMeetingIntakeStdio,
+  type FeishuMeetingIntakeStdioController,
+  type FeishuMeetingIntakeStdioOptions,
+  type FeishuStdioRuntimeContext,
+} from './stdio-entrypoint.js';

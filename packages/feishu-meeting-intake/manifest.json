@@ -1,6 +1,6 @@
 {
   "pluginId": "official.feishu-meeting-intake",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "contractVersion": "0.1.0",
   "name": "Feishu Meeting Intake",
   "features": [
@@ -28,6 +28,7 @@
     ]
   },
   "runtime": {
-    "transport": "builtin"
+    "transport": "stdio",
+    "entrypoint": "dist/entrypoint.js"
   }
 }
