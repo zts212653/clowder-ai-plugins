@@ -25,6 +25,14 @@ const releaseWorkflow = readFileSync(
   'utf8',
 );
 
+const prereleasePublishActionUrl = new URL(
+  '../../../../.github/actions/publish-prerelease/action.yml',
+  import.meta.url,
+);
+const prereleasePublishAction = existsSync(prereleasePublishActionUrl)
+  ? readFileSync(prereleasePublishActionUrl, 'utf8')
+  : '';
+
 const artifactToolchainVerifierUrl = new URL(
   '../../scripts/verify-artifact-toolchain.mjs',
   import.meta.url,
@@ -63,37 +71,23 @@ const messagingBehaviorSuite = JSON.parse(
   ),
 ) as BehaviorSuite;
 
-function assertPrereleaseDistTagsVerified(workflow: string): void {
-  const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
-
-  assert.ok(publishJob, 'publish job must be active');
-  assert.match(
-    publishJob,
-    /^          DIST_TAGS_JSON_PATH: \$\{\{ runner\.temp \}\}\/plugin-contract-dist-tags\.json$/m,
+function assertPrereleaseDistTagsVerified(action: string): void {
+  assert.equal(action.match(/npm view "\$PACKAGE_NAME" dist-tags --json/g)?.length, 3);
+  assert.equal(
+    action.match(/distTags\.next !== process\.env\.PACKAGE_VERSION/g)?.length,
+    2,
   );
-  assert.match(
-    publishJob,
-    /^            if npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json > "\$REGISTRY_JSON_PATH" 2>\/dev\/null &&\n              npm view "\$PACKAGE_NAME" dist-tags --json > "\$DIST_TAGS_JSON_PATH" 2>\/dev\/null; then$/m,
+  assert.equal(
+    action.match(/distTags\.latest !== process\.env\.PREVIOUS_LATEST/g)?.length,
+    2,
   );
+  assert.match(action, /process\.env\.HAD_PREVIOUS_LATEST === 'true'/);
+  assert.match(action, /!process\.env\.PACKAGE_VERSION\.includes\('-'\)/);
+  assert.match(action, /Object\.hasOwn\(distTags, 'latest'\)/);
   assert.match(
-    publishJob,
-    /^          if \(distTags\.next !== process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry next tag mismatch: \$\{distTags\.next\}`\);\n          \}$/m,
-    'registry verification must require next to resolve to the published beta',
-  );
-  assert.match(
-    publishJob,
-    /^          PREVIOUS_LATEST: \$\{\{ steps\.registry\.outputs\.previous_latest \}\}$/m,
-    'registry verification must receive the exact pre-publish latest target',
-  );
-  assert.match(
-    publishJob,
-    /PREVIOUS_LATEST=\$\(npm view "\$PACKAGE_NAME" dist-tags\.latest --json \| node --input-type=module -e '/,
-    'the publish job must read latest before publishing',
-  );
-  assert.match(
-    publishJob,
-    /^          if \(distTags\.latest !== process\.env\.PREVIOUS_LATEST\) \{\n            throw new Error\(`registry latest tag mismatch: \$\{distTags\.latest\}`\);\n          \}$/m,
-    'registry verification must preserve the pre-publish latest target',
+    action,
+    /^      run: npm dist-tag rm "\$PACKAGE_NAME" latest$/m,
+    'latest may be removed only by the guarded cleanup step',
   );
 }
 
@@ -142,20 +136,19 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   );
   assert.ok(
     publishJob.indexOf('Verify artifact toolchain') <
-      publishJob.indexOf('- name: Build package'),
+      publishJob.indexOf('- name: Build public packages'),
     'publication must verify the toolchain before building package bytes',
   );
   assert.match(workflow, /^      id-token: write$/m);
-  const publishStep = namedWorkflowStep(workflow, 'Publish v0.1 beta to next');
-  assert.match(
-    publishStep,
-    /^        env:\n          NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}$/m,
-    'beta.2 must retain the operator-authorized npm token path',
+  assert.equal(
+    workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
+    3,
+    'each public package action must receive the operator-authorized npm token',
   );
   assert.equal(
-    workflow.match(/NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    1,
-    'the npm write token must be scoped to the single publish step',
+    prereleasePublishAction.match(/NODE_AUTH_TOKEN: \$\{\{ inputs\.npm-token \}\}/g)?.length,
+    2,
+    'the write token must be scoped to publish and guarded latest cleanup only',
   );
   assert.doesNotMatch(
     validateJob,
@@ -164,48 +157,46 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   );
 }
 
-function assertIdempotentExactArtifactResume(workflow: string): void {
-  const publishJob = workflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
-  const inspectionStep = namedWorkflowStep(workflow, 'Inspect registry before publish');
-  assert.ok(publishJob, 'publish job must be active');
-  assert.match(publishJob, /^        id: registry$/m);
+function assertIdempotentExactArtifactResume(action: string): void {
+  const inspectionStep = namedActionStep(action, 'Inspect registry before publish');
+  assert.match(inspectionStep, /^      id: registry$/m);
   assert.match(
-    publishJob,
-    /^          if npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json > "\$REGISTRY_JSON_PATH" 2>\/dev\/null; then$/m,
+    inspectionStep,
+    /if npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json > "\$VERSION_METADATA_PATH" 2> "\$VERSION_METADATA_ERROR_PATH"; then/,
   );
   assert.match(
-    publishJob,
-    /^            printf 'already_published=true\\n' >> "\$GITHUB_OUTPUT"$/m,
+    inspectionStep,
+    /^          printf 'already_published=true\\n' >> "\$GITHUB_OUTPUT"$/m,
   );
   assert.match(
-    publishJob,
-    /^            printf 'already_published=false\\n' >> "\$GITHUB_OUTPUT"$/m,
+    inspectionStep,
+    /^          printf 'already_published=false\\n' >> "\$GITHUB_OUTPUT"$/m,
   );
   assert.match(
-    publishJob,
-    /^        if: steps\.registry\.outputs\.already_published != 'true'$/m,
+    action,
+    /^      if: steps\.registry\.outputs\.already_published != 'true'$/m,
     'npm publish may be skipped only after exact artifact verification',
   );
   assert.match(
     inspectionStep,
-    /^          if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry version mismatch: \$\{metadata\.version\}`\);\n          \}$/m,
+    /if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{\n          throw new Error\(`registry version mismatch: \$\{metadata\.version\}`\);/,
   );
   assert.match(
     inspectionStep,
-    /^          if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n            throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);\n          \}$/m,
+    /if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n          throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);/,
   );
 }
 
-function assertReservedLatestUnchanged(workflow: string): void {
+function assertReservedLatestUnchanged(surface: string): void {
   assert.doesNotMatch(
-    workflow,
+    surface,
     /--tag(?:=|\s+)["']?latest\b/i,
     'no workflow job may publish the prerelease with the latest tag',
   );
   assert.doesNotMatch(
-    workflow,
-    /\bnpm\s+dist-tag\b[^\n]*\blatest\b/i,
-    'no workflow job may mutate the reserved latest dist-tag',
+    surface,
+    /\bnpm\s+dist-tag\s+add\b[^\n]*\blatest\b/i,
+    'no release surface may add or move the reserved latest dist-tag',
   );
 }
 
@@ -217,23 +208,28 @@ function namedWorkflowStep(workflow: string, name: string): string {
   return workflow.slice(start, next === -1 ? undefined : next);
 }
 
-function assertRegistryVerificationFailsClosed(workflow: string): void {
-  const verificationStep = namedWorkflowStep(
-    workflow,
-    'Verify registry version and integrity',
-  );
+function namedActionStep(action: string, name: string): string {
+  const marker = `    - name: ${name}\n`;
+  const start = action.indexOf(marker);
+  assert.notEqual(start, -1, `action step missing: ${name}`);
+  const next = action.indexOf('\n    - ', start + marker.length);
+  return action.slice(start, next === -1 ? undefined : next);
+}
+
+function assertRegistryVerificationFailsClosed(action: string): void {
+  const verificationStep = namedActionStep(action, 'Verify final registry state');
 
   assert.match(
     verificationStep,
-    /^          if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{\n            throw new Error\(`registry version mismatch: \$\{metadata\.version\}`\);\n          \}$/m,
+    /if \(metadata\.version !== process\.env\.PACKAGE_VERSION\) \{\n          throw new Error\(`registry version mismatch: \$\{metadata\.version\}`\);/,
   );
   assert.match(
     verificationStep,
-    /^          if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n            throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);\n          \}$/m,
+    /if \(metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY\) \{\n          throw new Error\(`registry integrity mismatch: \$\{metadata\.dist\?\.integrity\}`\);/,
   );
   assert.match(
     verificationStep,
-    /^          NODE\n              then\n                exit 0\n              fi\n            fi$/m,
+    /^        NODE\n            then\n              exit 0\n            fi\n          fi$/m,
     'registry verification must exit successfully only after every comparison passes',
   );
   assert.equal(
@@ -243,7 +239,7 @@ function assertRegistryVerificationFailsClosed(workflow: string): void {
   );
   assert.match(
     verificationStep,
-    /^          echo "registry verification failed for \$PACKAGE_NAME@\$PACKAGE_VERSION" >&2\n          exit 1$/m,
+    /^        echo "registry verification failed for \$PACKAGE_NAME@\$PACKAGE_VERSION" >&2\n        exit 1$/m,
     'registry verification exhaustion must fail the publish job',
   );
 }
@@ -251,6 +247,12 @@ function assertRegistryVerificationFailsClosed(workflow: string): void {
 function replaceWorkflowOnce(search: string, replacement: string): string {
   const mutated = releaseWorkflow.replace(search, replacement);
   assert.notEqual(mutated, releaseWorkflow, `mutation target missing: ${search}`);
+  return mutated;
+}
+
+function replaceActionOnce(search: string, replacement: string): string {
+  const mutated = prereleasePublishAction.replace(search, replacement);
+  assert.notEqual(mutated, prereleasePublishAction, `action mutation target missing: ${search}`);
   return mutated;
 }
 
@@ -263,6 +265,17 @@ function replaceNamedStepOnce(
   const mutatedStep = step.replace(search, replacement);
   assert.notEqual(mutatedStep, step, `${stepName} mutation target missing: ${search}`);
   return releaseWorkflow.replace(step, mutatedStep);
+}
+
+function replaceNamedActionStepOnce(
+  stepName: string,
+  search: string,
+  replacement: string,
+): string {
+  const step = namedActionStep(prereleasePublishAction, stepName);
+  const mutatedStep = step.replace(search, replacement);
+  assert.notEqual(mutatedStep, step, `${stepName} mutation target missing: ${search}`);
+  return prereleasePublishAction.replace(step, mutatedStep);
 }
 
 test('runtime manifest validation publishes beta.9 while the protocol stays at signed v0.1', () => {
@@ -292,35 +305,71 @@ test('main pushes publish only after contract validation', () => {
     /^    if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'$/m,
   );
   assert.match(publishJob, /^      id-token: write$/m);
-  assert.match(
-    publishJob,
-    /^        run: npm publish "packages\/plugin-contract\/\$\{\{ steps\.pack\.outputs\.filename \}\}" --tag next --provenance --access public$/m,
-  );
   assert.equal(
-    releaseWorkflow.match(/\bnpm\s+publish\b/g)?.length,
+    prereleasePublishAction.match(/\bnpm\s+publish\b/g)?.length,
     1,
-    'the workflow must contain exactly one npm publish path',
+    'the shared action must contain exactly one npm publish path',
   );
+  assert.doesNotMatch(releaseWorkflow, /\bnpm\s+publish\b/);
   assert.doesNotMatch(
-    releaseWorkflow,
+    `${releaseWorkflow}\n${prereleasePublishAction}`,
     /\b(?:pnpm|yarn)\b[^\n]*\bpublish\b/i,
     'the workflow must not add a second package-manager publish path',
   );
-  assertIdempotentExactArtifactResume(releaseWorkflow);
-  assertReservedLatestUnchanged(releaseWorkflow);
+  assertIdempotentExactArtifactResume(prereleasePublishAction);
+  assertReservedLatestUnchanged(`${releaseWorkflow}\n${prereleasePublishAction}`);
+});
+
+test('main publishes the public dependency chain through one hardened action', () => {
+  assert.equal(
+    existsSync(prereleasePublishActionUrl),
+    true,
+    'the prerelease publication action must be committed',
+  );
+  const orderedPackages = [
+    'packages/plugin-contract',
+    'packages/plugin-sdk',
+    'packages/feishu-meeting-intake',
+  ];
+  let previousIndex = -1;
+
+  for (const packageDirectory of orderedPackages) {
+    const marker = `          package-directory: ${packageDirectory}`;
+    const index = releaseWorkflow.indexOf(marker);
+    assert.ok(index > previousIndex, `${packageDirectory} must publish in dependency order`);
+    previousIndex = index;
+  }
+  assert.equal(
+    releaseWorkflow.match(/uses: \.\/\.github\/actions\/publish-prerelease/g)?.length,
+    3,
+    'all public packages must use the same hardened publication action',
+  );
+  assert.match(
+    releaseWorkflow,
+    /^      - '\.github\/actions\/publish-prerelease\/\*\*'$/m,
+    'changes to the publication action must trigger the workflow',
+  );
+  assert.match(prereleasePublishAction, /npm pack --json --ignore-scripts/);
+  assert.match(prereleasePublishAction, /metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY/);
+  assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL" --tag next --provenance --access public/);
+  assert.match(prereleasePublishAction, /distTags\.next !== process\.env\.PACKAGE_VERSION/);
+  assert.match(prereleasePublishAction, /distTags\.latest !== process\.env\.PREVIOUS_LATEST/);
+  assert.match(prereleasePublishAction, /process\.env\.PACKAGE_VERSION\.includes\('-'\)/);
+  assert.match(prereleasePublishAction, /npm dist-tag rm "\$PACKAGE_NAME" latest/);
+  assert.doesNotMatch(prereleasePublishAction, /npm dist-tag add[^\n]*latest/);
 });
 
 test('publish verifies the exact registry version and artifact integrity', () => {
   const publishJob = releaseWorkflow.match(/^  publish:\n[\s\S]*$/m)?.[0];
 
   assert.ok(publishJob, 'publish job must be active');
-  assert.match(publishJob, /^      - name: Build package$/m);
-  assert.match(publishJob, /^      - name: Pack release candidate$/m);
-  assert.match(publishJob, /^        id: pack$/m);
-  assert.match(publishJob, /^          npm pack --json --ignore-scripts > "\$PACK_JSON_PATH"$/m);
-  assert.match(publishJob, /^      - name: Verify registry version and integrity$/m);
-  assert.match(publishJob, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
-  assertRegistryVerificationFailsClosed(releaseWorkflow);
+  assert.match(publishJob, /^      - name: Build public packages$/m);
+  assert.match(prereleasePublishAction, /^    - name: Pack release candidate$/m);
+  assert.match(prereleasePublishAction, /^      id: pack$/m);
+  assert.match(prereleasePublishAction, /npm pack --json --ignore-scripts/);
+  assert.match(prereleasePublishAction, /^    - name: Verify final registry state$/m);
+  assert.match(prereleasePublishAction, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
+  assertRegistryVerificationFailsClosed(prereleasePublishAction);
 });
 
 test('review pack evidence uses the publication package manager', () => {
@@ -440,48 +489,48 @@ test('artifact toolchain verifier rejects runtime drift', () => {
 });
 
 test('subsequent prereleases preserve the pre-publish latest target', () => {
-  assertPrereleaseDistTagsVerified(releaseWorkflow);
+  assertPrereleaseDistTagsVerified(prereleasePublishAction);
 });
 
-test('prerelease dist-tag guards reject fail-open workflow mutations', () => {
+test('prerelease dist-tag guards reject fail-open action mutations', () => {
   const mutations = [
-    replaceWorkflowOnce(
-      'npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null',
+    replaceActionOnce(
+      'npm view "$PACKAGE_NAME" dist-tags --json',
       'true',
     ),
-    replaceWorkflowOnce(
+    replaceActionOnce(
       'distTags.next !== process.env.PACKAGE_VERSION',
       'distTags.next === process.env.PACKAGE_VERSION',
     ),
-    replaceWorkflowOnce(
-      'PREVIOUS_LATEST=$(npm view "$PACKAGE_NAME" dist-tags.latest --json | node --input-type=module -e \'',
-      'PREVIOUS_LATEST="0.0.0" # removed registry read\n          : <<\'REMOVED\'',
-    ),
-    replaceWorkflowOnce(
+    replaceActionOnce(
       'distTags.latest !== process.env.PREVIOUS_LATEST',
       'distTags.latest === process.env.PREVIOUS_LATEST',
     ),
-    replaceWorkflowOnce(
-      'throw new Error(`registry next tag mismatch: ${distTags.next}`);',
-      'console.warn(`registry next tag mismatch: ${distTags.next}`);',
+    replaceActionOnce(
+      "!process.env.PACKAGE_VERSION.includes('-')",
+      "process.env.PACKAGE_VERSION.includes('-')",
+    ),
+    replaceActionOnce(
+      "Object.hasOwn(distTags, 'latest')",
+      "Object.hasOwn(distTags, 'missing')",
     ),
   ];
 
-  for (const mutatedWorkflow of mutations) {
-    assert.throws(() => assertPrereleaseDistTagsVerified(mutatedWorkflow));
+  for (const mutatedAction of mutations) {
+    assert.throws(() => assertPrereleaseDistTagsVerified(mutatedAction));
   }
 });
 
 test('authorized token publication and exact-resume guards reject workflow mutations', () => {
   const tokenRemovalMutation = replaceWorkflowOnce(
-    '        env:\n          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}\n',
+    '          npm-token: ${{ secrets.NPM_TOKEN }}\n',
     '',
   );
-  const skipMutation = replaceWorkflowOnce(
-    "        if: steps.registry.outputs.already_published != 'true'",
-    "        if: steps.registry.outputs.already_published == 'true'",
+  const skipMutation = replaceActionOnce(
+    "      if: steps.registry.outputs.already_published != 'true'",
+    "      if: steps.registry.outputs.already_published == 'true'",
   );
-  const hollowResumeMutation = replaceNamedStepOnce(
+  const hollowResumeMutation = replaceNamedActionStepOnce(
     'Inspect registry before publish',
     'throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
     'console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
@@ -499,25 +548,25 @@ test('authorized token publication and exact-resume guards reject workflow mutat
 
 test('registry verification rejects hollow comparisons and early success', () => {
   const mutations = [
-    replaceNamedStepOnce(
-      'Verify registry version and integrity',
+    replaceNamedActionStepOnce(
+      'Verify final registry state',
       'throw new Error(`registry version mismatch: ${metadata.version}`);',
       'console.warn(`registry version mismatch: ${metadata.version}`);',
     ),
-    replaceNamedStepOnce(
-      'Verify registry version and integrity',
+    replaceNamedActionStepOnce(
+      'Verify final registry state',
       'throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
       'console.warn(`registry integrity mismatch: ${metadata.dist?.integrity}`);',
     ),
-    replaceNamedStepOnce(
-      'Verify registry version and integrity',
-      '          echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
-      '          exit 0\n          echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
+    replaceNamedActionStepOnce(
+      'Verify final registry state',
+      '        echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
+      '        exit 0\n        echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2',
     ),
   ];
 
-  for (const mutatedWorkflow of mutations) {
-    assert.throws(() => assertRegistryVerificationFailsClosed(mutatedWorkflow));
+  for (const mutatedAction of mutations) {
+    assert.throws(() => assertRegistryVerificationFailsClosed(mutatedAction));
   }
 });
 
@@ -537,8 +586,10 @@ test('reserved latest guard spans every workflow job', () => {
     '      - name: Conformance runner\n        run: pnpm --filter @clowder-ai/plugin-contract conformance\n\n      - name: Promote beta to latest\n        run: npm dist-tag add @clowder-ai/plugin-contract@0.1.0-beta.2 latest',
   );
 
-  assertReservedLatestUnchanged(releaseWorkflow);
-  assert.throws(() => assertReservedLatestUnchanged(mutatedWorkflow));
+  assertReservedLatestUnchanged(`${releaseWorkflow}\n${prereleasePublishAction}`);
+  assert.throws(() =>
+    assertReservedLatestUnchanged(`${mutatedWorkflow}\n${prereleasePublishAction}`),
+  );
 });
 
 test('release dependency inputs require contract owner review', () => {
@@ -565,6 +616,10 @@ test('release governance inputs require contract owner review', () => {
   assert.match(
     codeowners,
     /^\.github\/workflows\/ @mindfn @zts212653$/m,
+  );
+  assert.match(
+    codeowners,
+    /^\/\.github\/actions\/publish-prerelease\/ @mindfn @zts212653$/m,
   );
 });
 

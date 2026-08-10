@@ -1,0 +1,240 @@
+name: Publish verified prerelease
+description: Pack, publish, and verify one immutable public prerelease without promoting latest
+
+inputs:
+  package-directory:
+    description: Repository-relative public package directory
+    required: true
+  npm-token:
+    description: npm automation token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Pack release candidate
+      id: pack
+      shell: bash
+      env:
+        PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
+        PACK_JSON_PATH: ${{ runner.temp }}/prerelease-pack.json
+      run: |
+        set -euo pipefail
+        if [[ ! "$PACKAGE_DIRECTORY" =~ ^packages/[a-z0-9-]+$ ]]; then
+          echo "invalid package directory: $PACKAGE_DIRECTORY" >&2
+          exit 1
+        fi
+
+        npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" "$PACKAGE_DIRECTORY" > "$PACK_JSON_PATH"
+        node --input-type=module <<'NODE'
+        import { appendFileSync, readFileSync } from 'node:fs';
+        import { join } from 'node:path';
+
+        const [artifact] = JSON.parse(readFileSync(process.env.PACK_JSON_PATH, 'utf8'));
+        const packageJson = JSON.parse(
+          readFileSync(join(process.env.PACKAGE_DIRECTORY, 'package.json'), 'utf8'),
+        );
+        for (const field of ['name', 'version', 'filename', 'integrity']) {
+          if (typeof artifact?.[field] !== 'string' || artifact[field].length === 0) {
+            throw new Error(`npm pack did not report ${field}`);
+          }
+        }
+        if (artifact.name !== packageJson.name || artifact.version !== packageJson.version) {
+          throw new Error(
+            `packed identity mismatch: ${artifact.name}@${artifact.version} != ${packageJson.name}@${packageJson.version}`,
+          );
+        }
+        if (!artifact.version.includes('-')) {
+          throw new Error(`stable publication is not authorized: ${artifact.version}`);
+        }
+
+        appendFileSync(
+          process.env.GITHUB_OUTPUT,
+          [
+            `name=${artifact.name}`,
+            `version=${artifact.version}`,
+            `filename=${artifact.filename}`,
+            `integrity=${artifact.integrity}`,
+          ].join('\n') + '\n',
+        );
+        NODE
+
+    - name: Inspect registry before publish
+      id: registry
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+        PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+        EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        PACKAGE_TAGS_PATH: ${{ runner.temp }}/prerelease-existing-tags.json
+        PACKAGE_TAGS_ERROR_PATH: ${{ runner.temp }}/prerelease-existing-tags.err
+        VERSION_METADATA_PATH: ${{ runner.temp }}/prerelease-existing-version.json
+        VERSION_METADATA_ERROR_PATH: ${{ runner.temp }}/prerelease-existing-version.err
+      run: |
+        set -euo pipefail
+        if npm view "$PACKAGE_NAME" dist-tags --json > "$PACKAGE_TAGS_PATH" 2> "$PACKAGE_TAGS_ERROR_PATH"; then
+          PREVIOUS_LATEST=$(node --input-type=module <<'NODE'
+        import { readFileSync } from 'node:fs';
+
+        const distTags = JSON.parse(readFileSync(process.env.PACKAGE_TAGS_PATH, 'utf8'));
+        const latest = distTags.latest;
+        if (latest !== undefined && (typeof latest !== 'string' || latest.length === 0)) {
+          throw new Error(`registry latest tag is not a version: ${latest}`);
+        }
+        process.stdout.write(latest ?? '');
+        NODE
+          )
+          printf 'had_previous_latest=%s\n' "$([[ -n "$PREVIOUS_LATEST" ]] && printf true || printf false)" >> "$GITHUB_OUTPUT"
+          printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
+        elif grep -q 'E404' "$PACKAGE_TAGS_ERROR_PATH"; then
+          printf 'had_previous_latest=false\n' >> "$GITHUB_OUTPUT"
+          printf 'previous_latest=\n' >> "$GITHUB_OUTPUT"
+        else
+          cat "$PACKAGE_TAGS_ERROR_PATH" >&2
+          exit 1
+        fi
+
+        if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$VERSION_METADATA_PATH" 2> "$VERSION_METADATA_ERROR_PATH"; then
+          node --input-type=module <<'NODE'
+        import { readFileSync } from 'node:fs';
+
+        const metadata = JSON.parse(readFileSync(process.env.VERSION_METADATA_PATH, 'utf8'));
+        if (metadata.version !== process.env.PACKAGE_VERSION) {
+          throw new Error(`registry version mismatch: ${metadata.version}`);
+        }
+        if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+          throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+        }
+        NODE
+          printf 'already_published=true\n' >> "$GITHUB_OUTPUT"
+        elif grep -q 'E404' "$VERSION_METADATA_ERROR_PATH"; then
+          printf 'already_published=false\n' >> "$GITHUB_OUTPUT"
+        else
+          cat "$VERSION_METADATA_ERROR_PATH" >&2
+          exit 1
+        fi
+
+    - name: Publish prerelease to next
+      if: steps.registry.outputs.already_published != 'true'
+      shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
+        PACKAGE_TARBALL: ${{ runner.temp }}/${{ steps.pack.outputs.filename }}
+      run: npm publish "$PACKAGE_TARBALL" --tag next --provenance --access public
+
+    - name: Inspect published registry state
+      id: published
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+        PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+        EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
+        PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
+        REGISTRY_JSON_PATH: ${{ runner.temp }}/prerelease-published-version.json
+        DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-published-tags.json
+      run: |
+        set -euo pipefail
+        for attempt in $(seq 1 12); do
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
+            npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
+            if node --input-type=module <<'NODE'
+        import { appendFileSync, readFileSync } from 'node:fs';
+
+        const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+        const distTags = JSON.parse(readFileSync(process.env.DIST_TAGS_JSON_PATH, 'utf8'));
+        if (metadata.version !== process.env.PACKAGE_VERSION) {
+          throw new Error(`registry version mismatch: ${metadata.version}`);
+        }
+        if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+          throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+        }
+        if (distTags.next !== process.env.PACKAGE_VERSION) {
+          throw new Error(`registry next tag mismatch: ${distTags.next}`);
+        }
+
+        let cleanupRequired = false;
+        if (process.env.HAD_PREVIOUS_LATEST === 'true') {
+          if (distTags.latest !== process.env.PREVIOUS_LATEST) {
+            throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
+          }
+        } else if (distTags.latest !== undefined) {
+          if (
+            distTags.latest !== process.env.PACKAGE_VERSION ||
+            !process.env.PACKAGE_VERSION.includes('-')
+          ) {
+            throw new Error(`unexpected registry latest tag: ${distTags.latest}`);
+          }
+          cleanupRequired = true;
+        }
+        appendFileSync(
+          process.env.GITHUB_OUTPUT,
+          `cleanup_required=${cleanupRequired ? 'true' : 'false'}\n`,
+        );
+        NODE
+            then
+              exit 0
+            fi
+          fi
+          if [[ "$attempt" -lt 12 ]]; then
+            sleep 5
+          fi
+        done
+        echo "registry inspection failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2
+        exit 1
+
+    - name: Remove npm-assigned prerelease latest
+      if: steps.published.outputs.cleanup_required == 'true'
+      shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
+        PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+      run: npm dist-tag rm "$PACKAGE_NAME" latest
+
+    - name: Verify final registry state
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ steps.pack.outputs.name }}
+        PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
+        EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
+        PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
+        REGISTRY_JSON_PATH: ${{ runner.temp }}/prerelease-final-version.json
+        DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-final-tags.json
+      run: |
+        set -euo pipefail
+        for attempt in $(seq 1 12); do
+          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
+            npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
+            if node --input-type=module <<'NODE'
+        import { readFileSync } from 'node:fs';
+
+        const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
+        const distTags = JSON.parse(readFileSync(process.env.DIST_TAGS_JSON_PATH, 'utf8'));
+        if (metadata.version !== process.env.PACKAGE_VERSION) {
+          throw new Error(`registry version mismatch: ${metadata.version}`);
+        }
+        if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
+          throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
+        }
+        if (distTags.next !== process.env.PACKAGE_VERSION) {
+          throw new Error(`registry next tag mismatch: ${distTags.next}`);
+        }
+        if (process.env.HAD_PREVIOUS_LATEST === 'true') {
+          if (distTags.latest !== process.env.PREVIOUS_LATEST) {
+            throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
+          }
+        } else if (Object.hasOwn(distTags, 'latest')) {
+          throw new Error(`registry latest tag must remain absent: ${distTags.latest}`);
+        }
+        NODE
+            then
+              exit 0
+            fi
+          fi
+          if [[ "$attempt" -lt 12 ]]; then
+            sleep 5
+          fi
+        done
+        echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2
+        exit 1

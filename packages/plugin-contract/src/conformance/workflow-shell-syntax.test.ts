@@ -8,6 +8,14 @@ const releaseWorkflow = readFileSync(
   'utf8',
 );
 
+const prereleasePublishAction = readFileSync(
+  new URL(
+    '../../../../.github/actions/publish-prerelease/action.yml',
+    import.meta.url,
+  ),
+  'utf8',
+);
+
 function multilineRunBlocks(workflow: string): string[] {
   const lines = workflow.split('\n');
   const blocks: string[] = [];
@@ -35,10 +43,12 @@ function multilineRunBlocks(workflow: string): string[] {
 }
 
 test('every multiline workflow shell block parses with bash', () => {
-  const blocks = multilineRunBlocks(releaseWorkflow);
-  assert.equal(blocks.length, 5, 'update the syntax gate when adding a run block');
+  const workflowBlocks = multilineRunBlocks(releaseWorkflow);
+  const actionBlocks = multilineRunBlocks(prereleasePublishAction);
+  assert.equal(workflowBlocks.length, 2, 'update the syntax gate when changing workflow blocks');
+  assert.equal(actionBlocks.length, 4, 'update the syntax gate when changing action blocks');
 
-  for (const [index, block] of blocks.entries()) {
+  for (const [index, block] of [...workflowBlocks, ...actionBlocks].entries()) {
     const result = spawnSync('bash', ['-n'], {
       input: block,
       encoding: 'utf8',

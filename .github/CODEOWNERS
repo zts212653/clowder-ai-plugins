@@ -9,6 +9,7 @@ packages/plugin-contract/fixtures/ @mindfn @zts212653
 
 # Workflows are the validation and publishing trust boundary.
 .github/workflows/ @mindfn @zts212653
+/.github/actions/publish-prerelease/ @mindfn @zts212653
 
 # Ownership policy is self-protected.
 /.github/CODEOWNERS @mindfn @zts212653
