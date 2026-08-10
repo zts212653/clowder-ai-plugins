@@ -1,0 +1,167 @@
+import { homedir } from 'node:os';
+
+import {
+  FeishuGatewayError,
+  type FeishuArtifactLocator,
+  type FeishuGeneratedArtifact,
+  type FeishuGeneratedArtifactPage,
+  type FeishuPollingGateway,
+} from './gateway.js';
+import {
+  normalizeLarkCliGeneratedEvent,
+  readLarkCliEventId,
+} from './lark-event-normalizer.js';
+import {
+  LARK_EVENT_KEYS,
+  startDefaultLarkCliConsumer,
+  type LarkCliEventConsumer,
+} from './lark-cli-consumer.js';
+
+const MAX_BUFFERED_EVENTS = 512;
+
+export interface LarkCliFeishuEventGateway extends FeishuPollingGateway {
+  close(): Promise<void>;
+}
+
+export interface LarkCliFeishuEventGatewayOptions {
+  readonly homeDirectory?: string;
+  readonly createConsumer?: (
+    eventKey: typeof LARK_EVENT_KEYS[number],
+    signal: AbortSignal,
+  ) => Promise<LarkCliEventConsumer>;
+  readonly inspectArtifact?: (
+    locator: FeishuArtifactLocator,
+    signal: AbortSignal,
+  ) => Promise<unknown>;
+}
+
+interface QueueWaiter {
+  readonly resolve: () => void;
+  readonly reject: (error: unknown) => void;
+  readonly signal: AbortSignal;
+  readonly onAbort: () => void;
+}
+
+function defaultInspectArtifact(locator: FeishuArtifactLocator): Promise<unknown> {
+  throw new FeishuGatewayError(
+    'UNAVAILABLE',
+    `manual ${locator.kind} inspection is not available in the event process`,
+  );
+}
+
+export function createLarkCliFeishuEventGateway(
+  options: LarkCliFeishuEventGatewayOptions = {},
+): LarkCliFeishuEventGateway {
+  const homeDirectory = options.homeDirectory ?? homedir();
+  const lifecycle = new AbortController();
+  const buffered: Array<{ readonly eventId: string; readonly artifact: FeishuGeneratedArtifact }> = [];
+  const consumers: LarkCliEventConsumer[] = [];
+  let starting: Promise<void> | undefined;
+  let failure: unknown;
+  let waiter: QueueWaiter | undefined;
+
+  const notify = (): void => {
+    const current = waiter;
+    waiter = undefined;
+    if (current === undefined) return;
+    current.signal.removeEventListener('abort', current.onAbort);
+    if (failure !== undefined) current.reject(failure);
+    else current.resolve();
+  };
+
+  const pump = async (consumer: LarkCliEventConsumer): Promise<void> => {
+    try {
+      for await (const candidate of consumer.events) {
+        const artifact = normalizeLarkCliGeneratedEvent(candidate);
+        const eventId = readLarkCliEventId(candidate);
+        if (buffered.length >= MAX_BUFFERED_EVENTS) {
+          throw new FeishuGatewayError('UNAVAILABLE', 'lark-cli generated-event buffer is full');
+        }
+        buffered.push({ eventId, artifact });
+        notify();
+      }
+      if (!lifecycle.signal.aborted) {
+        throw new FeishuGatewayError('UNAVAILABLE', 'lark-cli generated-event source ended');
+      }
+    } catch (error) {
+      if (!lifecycle.signal.aborted) {
+        failure = error;
+        lifecycle.abort(error);
+        notify();
+        const opened = consumers.splice(0);
+        await Promise.all(opened.map(current => current.close()));
+      }
+    }
+  };
+
+  const ensureStarted = async (): Promise<void> => {
+    if (starting !== undefined) return starting;
+    starting = (async () => {
+      const createConsumer = options.createConsumer ?? ((eventKey, signal) =>
+        startDefaultLarkCliConsumer(eventKey, signal, homeDirectory));
+      for (const eventKey of LARK_EVENT_KEYS) {
+        if (lifecycle.signal.aborted) throw lifecycle.signal.reason;
+        const consumer = await createConsumer(eventKey, lifecycle.signal);
+        if (lifecycle.signal.aborted) {
+          await consumer.close();
+          throw lifecycle.signal.reason;
+        }
+        consumers.push(consumer);
+      }
+      for (const consumer of consumers) void pump(consumer);
+    })().catch(async error => {
+      failure = error;
+      lifecycle.abort(error);
+      notify();
+      const opened = consumers.splice(0);
+      await Promise.all(opened.map(consumer => consumer.close()));
+      throw error;
+    });
+    return starting;
+  };
+
+  const waitForEvent = (signal: AbortSignal): Promise<void> => {
+    if (buffered.length > 0) return Promise.resolve();
+    if (failure !== undefined) return Promise.reject(failure);
+    if (signal.aborted) return Promise.reject(signal.reason);
+    return new Promise<void>((resolve, reject) => {
+      const onAbort = (): void => {
+        if (waiter?.onAbort === onAbort) waiter = undefined;
+        reject(signal.reason);
+      };
+      waiter = { resolve, reject, signal, onAbort };
+      signal.addEventListener('abort', onAbort, { once: true });
+    });
+  };
+
+  return {
+    async listGeneratedArtifacts({ limit, signal }): Promise<FeishuGeneratedArtifactPage> {
+      if (!Number.isInteger(limit) || limit < 1 || limit > 64) {
+        throw new TypeError('generated-artifact page limit must be 1..64');
+      }
+      await ensureStarted();
+      await waitForEvent(signal);
+      await new Promise<void>(resolve => setImmediate(resolve));
+      const page = buffered.splice(0, limit);
+      return {
+        artifacts: page.map(item => item.artifact),
+        nextCursor: page.at(-1)?.eventId ?? null,
+      };
+    },
+    inspectArtifact(locator, signal): Promise<unknown> {
+      return options.inspectArtifact?.(locator, signal) ?? defaultInspectArtifact(locator);
+    },
+    async close(): Promise<void> {
+      lifecycle.abort(new Error('Feishu event gateway closed'));
+      notify();
+      await starting?.catch(() => undefined);
+      await Promise.all(consumers.map(consumer => consumer.close()));
+    },
+  };
+}
+
+export {
+  larkCliChildEnvironment,
+  resolveBundledLarkCliEntrypoint,
+} from './lark-cli-runner.js';
+export type { LarkCliEventConsumer } from './lark-cli-consumer.js';
