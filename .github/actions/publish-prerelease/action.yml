@@ -1,5 +1,5 @@
 name: Publish verified prerelease
-description: Pack, publish, and verify one immutable public prerelease without promoting latest
+description: Pack, publish, and verify one immutable public prerelease without explicitly promoting latest
 
 inputs:
   package-directory:
@@ -113,7 +113,6 @@ runs:
       run: npm publish "$PACKAGE_TARBALL" --tag next --provenance --access public
 
     - name: Inspect published registry state
-      id: published
       shell: bash
       env:
         PACKAGE_NAME: ${{ steps.pack.outputs.name }}
@@ -129,7 +128,7 @@ runs:
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
             npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
             if node --input-type=module <<'NODE'
-        import { appendFileSync, readFileSync } from 'node:fs';
+        import { readFileSync } from 'node:fs';
 
         const metadata = JSON.parse(readFileSync(process.env.REGISTRY_JSON_PATH, 'utf8'));
         const distTags = JSON.parse(readFileSync(process.env.DIST_TAGS_JSON_PATH, 'utf8'));
@@ -143,24 +142,18 @@ runs:
           throw new Error(`registry next tag mismatch: ${distTags.next}`);
         }
 
-        let cleanupRequired = false;
         if (process.env.HAD_PREVIOUS_LATEST === 'true') {
           if (distTags.latest !== process.env.PREVIOUS_LATEST) {
             throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
           }
-        } else if (distTags.latest !== undefined) {
-          if (
-            distTags.latest !== process.env.PACKAGE_VERSION ||
-            !process.env.PACKAGE_VERSION.includes('-')
-          ) {
-            throw new Error(`unexpected registry latest tag: ${distTags.latest}`);
-          }
-          cleanupRequired = true;
+        } else if (
+          distTags.latest !== undefined &&
+          distTags.latest !== process.env.PACKAGE_VERSION
+        ) {
+          throw new Error(`unexpected registry latest tag: ${distTags.latest}`);
+        } else if (!process.env.PACKAGE_VERSION.includes('-')) {
+          throw new Error(`stable publication is not authorized: ${process.env.PACKAGE_VERSION}`);
         }
-        appendFileSync(
-          process.env.GITHUB_OUTPUT,
-          `cleanup_required=${cleanupRequired ? 'true' : 'false'}\n`,
-        );
         NODE
             then
               exit 0
@@ -172,14 +165,6 @@ runs:
         done
         echo "registry inspection failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2
         exit 1
-
-    - name: Remove npm-assigned prerelease latest
-      if: steps.published.outputs.cleanup_required == 'true'
-      shell: bash
-      env:
-        NODE_AUTH_TOKEN: ${{ inputs.npm-token }}
-        PACKAGE_NAME: ${{ steps.pack.outputs.name }}
-      run: npm dist-tag rm "$PACKAGE_NAME" latest
 
     - name: Verify final registry state
       shell: bash
@@ -214,8 +199,13 @@ runs:
           if (distTags.latest !== process.env.PREVIOUS_LATEST) {
             throw new Error(`registry latest tag mismatch: ${distTags.latest}`);
           }
-        } else if (Object.hasOwn(distTags, 'latest')) {
-          throw new Error(`registry latest tag must remain absent: ${distTags.latest}`);
+        } else if (
+          distTags.latest !== undefined &&
+          distTags.latest !== process.env.PACKAGE_VERSION
+        ) {
+          throw new Error(`unexpected registry latest tag: ${distTags.latest}`);
+        } else if (!process.env.PACKAGE_VERSION.includes('-')) {
+          throw new Error(`stable publication is not authorized: ${process.env.PACKAGE_VERSION}`);
         }
         NODE
             then

@@ -15,7 +15,7 @@ if (latest !== undefined && (typeof latest !== 'string' || latest.length === 0))
   throw new Error(`registry latest tag is not a version: ${latest}`);
 }
 
-// npm assigns latest during a package's first publication even when --tag next
-// is explicit. On a resumed run, that exact prerelease is incomplete release
-// state, not a historical latest target that the workflow may preserve.
-process.stdout.write(latest === packageVersion ? '' : (latest ?? ''));
+// Preserve the historical NPM_TOKEN release semantics: npm may assign latest
+// during a package's first publication even when --tag next is explicit.
+// A resumed run treats that exact prerelease as existing registry truth.
+process.stdout.write(latest ?? '');

@@ -89,12 +89,22 @@ function assertPrereleaseDistTagsVerified(action: string): void {
     2,
   );
   assert.match(action, /process\.env\.HAD_PREVIOUS_LATEST === 'true'/);
-  assert.match(action, /!process\.env\.PACKAGE_VERSION\.includes\('-'\)/);
-  assert.match(action, /Object\.hasOwn\(distTags, 'latest'\)/);
-  assert.match(
+  assert.equal(
+    action.match(/!process\.env\.PACKAGE_VERSION\.includes\('-'\)/g)?.length,
+    2,
+    'both registry inspections must reject stable versions on the prerelease path',
+  );
+  assert.equal(
+    action.match(
+      /distTags\.latest !== undefined &&\n\s+distTags\.latest !== process\.env\.PACKAGE_VERSION/g,
+    )?.length,
+    2,
+    'a first prerelease may keep npm-assigned latest only when it targets the exact artifact',
+  );
+  assert.doesNotMatch(
     action,
-    /^      run: npm dist-tag rm "\$PACKAGE_NAME" latest$/m,
-    'latest may be removed only by the guarded cleanup step',
+    /\bnpm\s+dist-tag\s+rm\b/,
+    'the historical NPM_TOKEN route must not require unproven dist-tag deletion authority',
   );
 }
 
@@ -154,8 +164,8 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   );
   assert.equal(
     prereleasePublishAction.match(/NODE_AUTH_TOKEN: \$\{\{ inputs\.npm-token \}\}/g)?.length,
-    2,
-    'the write token must be scoped to publish and guarded latest cleanup only',
+    1,
+    'the write token must be scoped to publication only',
   );
   assert.doesNotMatch(
     validateJob,
@@ -395,7 +405,7 @@ test('main publishes the public dependency chain through one hardened action', (
   assert.match(prereleasePublishAction, /distTags\.next !== process\.env\.PACKAGE_VERSION/);
   assert.match(prereleasePublishAction, /distTags\.latest !== process\.env\.PREVIOUS_LATEST/);
   assert.match(prereleasePublishAction, /process\.env\.PACKAGE_VERSION\.includes\('-'\)/);
-  assert.match(prereleasePublishAction, /npm dist-tag rm "\$PACKAGE_NAME" latest/);
+  assert.doesNotMatch(prereleasePublishAction, /npm dist-tag rm "\$PACKAGE_NAME" latest/);
   assert.doesNotMatch(prereleasePublishAction, /npm dist-tag add[^\n]*latest/);
 });
 
@@ -532,7 +542,7 @@ test('subsequent prereleases preserve the pre-publish latest target', () => {
   assertPrereleaseDistTagsVerified(prereleasePublishAction);
 });
 
-test('partial first-release resume retries cleanup without erasing historical latest', () => {
+test('first-release resume preserves npm-assigned latest without erasing historical latest', () => {
   assert.match(
     prereleasePublishAction,
     /node packages\/plugin-contract\/scripts\/classify-prerelease-latest\.mjs/,
@@ -542,8 +552,8 @@ test('partial first-release resume retries cleanup without erasing historical la
       { latest: '0.1.0-beta.5', next: '0.1.0-beta.5' },
       '0.1.0-beta.5',
     ),
-    '',
-    'an npm-assigned latest on the exact prerelease remains cleanup-required after a retry',
+    '0.1.0-beta.5',
+    'an npm-assigned latest on the exact prerelease is valid historical release state',
   );
   assert.equal(
     classifyPreviousLatest(
@@ -574,8 +584,8 @@ test('prerelease dist-tag guards reject fail-open action mutations', () => {
       "process.env.PACKAGE_VERSION.includes('-')",
     ),
     replaceActionOnce(
-      "Object.hasOwn(distTags, 'latest')",
-      "Object.hasOwn(distTags, 'missing')",
+      'distTags.latest !== undefined &&\n          distTags.latest !== process.env.PACKAGE_VERSION',
+      'distTags.latest === undefined ||\n          distTags.latest !== process.env.PACKAGE_VERSION',
     ),
   ];
 
