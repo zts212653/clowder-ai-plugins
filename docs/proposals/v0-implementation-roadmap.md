@@ -1,10 +1,11 @@
 ---
 title: Clowder AI plugin system implementation roadmap
-status: EXECUTION REFRESH PROPOSED — verified progress current through beta.9; authorship refresh pending maintainer acknowledgement in issue #1
+status: EXECUTION REFRESH ACCEPTED — standing ownership rule confirmed; verified progress current through beta.9 and the dormant K-2D runtime draft
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
+acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
 created: 2026-07-14
-revised: 2026-08-10
+revised: 2026-08-11
 feature_ids: [clowder-ai-plugins-init, P-1, F288, F292]
 topics: [roadmap, plugin-contract, host-broker, standalone-io, signal-ingress]
 doc_kind: roadmap
@@ -22,7 +23,7 @@ first-party plugins, and their Host-side convergence. It replaces the
 `@clowder-ai/plugin-contract@0.1.0-beta.9`.
 
 The architectural principles remain unchanged. This refresh changes only
-status, execution order, and the proposed authorship model.
+status, execution order, and the standing authorship model.
 
 ## 1. Operating rules
 
@@ -37,11 +38,13 @@ status, execution order, and the proposed authorship model.
    itself. A row is advertised only when the registry records `ready: true`
    and its validators, encoded-byte proofs, conformance vectors, and runtime
    enforcement agree.
-4. **Default implementation authorship is proposed to move to `mindfn`.** If no
-   conflicting private branch exists, `mindfn` may draft any remaining
-   roadmap implementation. This does not move Host-domain ownership:
-   `zts212653` retains Host integration boundaries, review/merge authority,
-   runtime responsibility, and independent acceptance.
+4. **Default implementation authorship belongs to `mindfn` for unclaimed
+   lanes.** `mindfn` may lead public contract, SDK, plugin, conformance, and
+   roadmap work, plus Host/Core work where a writable contribution surface is
+   available. This does not move Host-domain ownership: `zts212653` retains
+   Host integration boundaries, review/merge authority, runtime
+   responsibility, production data/credential decisions, and independent
+   acceptance. Private Cat Café-only composition remains maintainer-owned.
 5. **No self-review.** Public contract changes remain dual-CODEOWNER. When
    `mindfn` authors both plugin and Host halves, `zts212653` leads the final
    cross-boundary verdict.
@@ -50,10 +53,15 @@ status, execution order, and the proposed authorship model.
    that acceptance design.
 7. **No duplicate private work.** Before claiming a Host lane, the two owners
    disclose any active private branch/PR and choose one author. This is a
-   collision check, not a new design gate.
+   collision check, not a new design gate. When private source is unavailable,
+   `mindfn` leads the public seam, validators, fixtures, black-box vectors, and
+   executable package; maintainers make the narrow private composition change.
 
-Rules 4–7 are the proposed 2026-08-10 authorship refresh. They become confirmed
-only after the maintainer acknowledgement requested in issue #1.
+Rules 4–7 are the standing ownership decision accepted by `zts212653` on
+2026-08-11. Ordinary unclaimed work no longer needs a per-PR permission ping;
+new public semantics, production data/credential boundaries, runtime
+activation, irreversible registry actions, or a discovered collision still
+return to maintainer review.
 
 ## 2. Current system map
 
@@ -62,15 +70,16 @@ only after the maintainer acknowledgement requested in issue #1.
 | Phase 0 | G-0 values and contract foundation | **DONE.** Four policy sets are co-signed; package, CI, code generation, conformance, CODEOWNERS, and automated prerelease publication are live. | None. |
 | Phase 1 / M0 | K-1 MessagingDomain | **DONE.** `clowder-ai#1270` merged as `3251eea`. | None. |
 | Phase 1 / M0 | P-1 standalone plugin half | **DONE.** PRs #12, #13, #20, and #21 deliver the stdio runtime, S1 dispatch, manifest validator, S2 shell, S3 handshake client, S4 loopback fixture, and S5 adversarial matrix. | None on the plugin half. |
-| Phase 1 / M0 | K-2A dormant Host foundation | **MAINTAINER-REPORTED DONE.** `zts212653` reports private `cat-cafe#3422` merged as `a6b38ac`, pinned to beta.7 with activation dormant. The private patch is not independently visible from this repository. | Re-pin and activate only against a reviewed ready-row release. |
-| Phase 1 / M0 | K-2B handshake activation | **CONTRACT READY, HOST PENDING.** PR #22 merged as `c6c59fa`; beta.8 makes only `broker.hello` and `broker.ready` ready. | Host implementation/pin/conformance and independent review. |
+| Phase 1 / M0 | K-2A dormant Host foundation | **MAINTAINER-REPORTED DONE.** `zts212653` reports private `cat-cafe#3422` merged as `a6b38ac`, originally pinned to beta.7 with activation dormant. The private patch is not independently visible from this repository. | Superseded as an active gate by K-2B's exact beta.9 pin; retain only as provenance. |
+| Phase 1 / M0 | K-2B Host Broker | **MAINTAINER-REPORTED LANDED, RUNTIME DORMANT.** Cat Café #3555 merged as `f7fe823`; the Host pins exact beta.9 and implements the contract-native state machine plus `events.publish` edge. | External process/stdio activation and real black-box acceptance remain off. |
 | Phase 1 / M0 | K-2B lifecycle and messaging transport | **NOT CONTRACT-READY.** Rows 3–12 remain `ready:false`; several messaging rows still contain RESERVED leaves. | Close and publish the exact M0 row set, then implement the matching Host routes. |
+| Phase 1 / M0 | K-2D external runtime | **DRAFT / DORMANT.** Cat Café #3558 is active at `894c4e4`; its generic supervised stdio/environment boundary is implemented. | Cat Café #3467 typed data-root catalog, then rebase, typed project persistence/restart wiring, full gate, non-author review, merge, and a separate activation decision. |
 | Phase 1 / M0 | Joint acceptance | **NOT STARTED.** The plugin-side 18-case Host seam manifest is merged. | Real Host ↔ standalone plugin co-run, fail-closed matrix, and plugin-crash isolation verdict. |
-| Phase 2 / signal ingress | C-2 signal-ingress slice + Feishu adapter | **DONE FOR PR 1/3.** PR #24 merged as `9d4a76c`; beta.9 makes `events.publish` ready and ships SDK helpers plus the official Feishu meeting-intake adapter. | Host admission/intake and user journey are separate PRs. |
-| Phase 2 / F292 | Host intake | **PENDING / PRIVATE STATUS UNKNOWN.** K-3a admission, source-grant verification, durable `MeetingIntake`, health, and repair truth. | Collision/ownership confirmation, Host PR, conformance. |
-| Phase 2 / F292 | Experience journey | **PENDING.** Needs Me projection, private-thread journey, real meeting dogfood, and release evidence. | Host intake merged and real acceptance data. |
-| Phase 2 / M1 | K-3b + P-4 + FG-1 | **PENDING.** Windows/presence domain, desktop probe, and foreground-cat reference plugin are not complete. | Contract closures, Host mechanisms, plugin implementations, M1 joint acceptance. |
-| Phase 2 / collection | K-5 + C-3 + P-5 | **PENDING.** Schedule/state domain, schedule/state contract delta, and GitHub migration have not started. | M0 and the per-domain contract return loop. |
+| Phase 2 / signal ingress | C-2 signal-ingress slice + Feishu adapter | **PUBLIC HALF LANDED.** PR #24 merged as `9d4a76c`; beta.9 makes `events.publish` ready. `@clowder-ai/feishu-meeting-intake@0.1.0-alpha.1` is registry-visible with a reviewed stdio entrypoint. | External runtime activation and end-to-end dogfood remain separate gates. |
+| Phase 2 / F292 | Host intake | **MAINTAINER-REPORTED LANDED.** Cat Café #3522 and #3542 merged as `55c663a` and `d603b76`, covering Host intake and Needs Me flow. | Production activation, credentials, and black-box verification are not claimed. |
+| Phase 2 / F292 | Experience journey | **PRIVATE FLOW LANDED, EXTERNAL JOURNEY PENDING.** Needs Me exists in the Host, but the external runtime is dormant. | Activate only after K-2D closes; then run real meeting dogfood and collect release evidence. |
+| Phase 2 / M1 | K-3b + P-4 + FG-1 | **PENDING; K-3b UNCLAIMED.** Collision scan found no active K-3b implementation; windows/presence, desktop probe, and foreground-cat reference plugin are not complete. | Contract closures, Host mechanisms, plugin implementations, M1 joint acceptance. |
+| Phase 2 / collection | K-5 + C-3 + P-5 | **PENDING / UNCLAIMED.** Collision scan found no active K-5 implementation; schedule/state contract work and GitHub migration have not started. | M0 and the per-domain contract return loop. |
 | Phase 3 | Service/UI, connectors, memory, community, v1 | **PENDING.** | M1 or the explicit per-lane prerequisites below. |
 
 ### Published row partition
@@ -91,15 +100,15 @@ not replace this gate.
 
 ### M0-A — Host handshake activation
 
-- Confirm no conflicting private K-2B implementation exists.
-- Reuse the K-2A dormant Host seam; do not create another process manager or
-  protocol mirror.
-- Pin one exact contract artifact:
-  - beta.8 for a handshake-only Host PR; or
-  - beta.9 if the same Host dependency also consumes the already-reviewed
-    `events.publish` contract.
-- Implement snapshot-before-validation at the Host authorization boundary.
-- Run the published handshake byte-bound and zero-side-effect conformance.
+- K-2B is already merged against exact beta.9; do not create another Host
+  state machine, process manager, or protocol mirror.
+- Finish K-2D through Cat Café #3558 after #3467 supplies the canonical typed
+  data-root catalog: rebase, add typed project-scoped persistence/restart
+  wiring, run the full gate, obtain non-author exact-HEAD review, and merge.
+- Keep external process/stdio composition dormant until a separate activation
+  gate authorizes it.
+- At activation, run the published handshake byte-bound and zero-side-effect
+  conformance against the real Host boundary.
 
 ### M0-B — lifecycle ready-row closure
 
@@ -142,22 +151,26 @@ Only this verdict closes M0.
 
 ### 4.1 F292 / signal-ingress journey
 
-PR #24 is PR 1/3, not feature completion:
+The original three-part split has advanced, but runtime activation still
+separates landed code from feature acceptance:
 
-1. **Contract + SDK + Feishu adapter — DONE.**
-2. **Host PR — PENDING.** K-3a admission, declaration/grant verification,
-   canonical source-handle equality, durable idempotent intake, health, and
-   repair truth. The Host owns credentials, destinations, and all wake policy.
-3. **Experience PR — PENDING.** Needs Me only for unresolved choices, private
-   thread resolution, provenance-preserving artifacts, real meeting dogfood,
-   and release evidence.
+1. **Contract + SDK + Feishu adapter — LANDED.** Beta.9 and PR #24 are merged;
+   `@clowder-ai/feishu-meeting-intake@0.1.0-alpha.1` is public at integrity
+   `sha512-KxdTlM24eKnXy6NE3TmbP78ro5D6lAX+m0H3LN4MrfI6SVz9BQnntHDxobjz4B+5wJ3gl0i7BX3ZOjBnhFby/w==`.
+2. **Host intake + Needs Me — MAINTAINER-REPORTED LANDED.** Cat Café #3522 and
+   #3542 own admission, settlement, and the private Host experience flow.
+3. **External journey — PENDING.** K-2D remains dormant in Draft #3558; after
+   its dependency/review/merge and a separate activation decision, run real
+   meeting dogfood, provenance-preserving artifact checks, and release
+   evidence.
 
-This lane may proceed alongside M0 after the private-work collision check. Its
-`events.publish` readiness does not imply K-3b windows/presence or M1 is done.
+The private-work collision check is complete. This lane now waits on the K-2D
+runtime/activation boundary and its own end-to-end evidence; `events.publish`
+readiness does not imply K-3b windows/presence or M1 is done.
 
 ### 4.2 M1 experience gate
 
-| Unit | Default proposed author | Required outcome |
+| Unit | Standing author | Required outcome |
 |---|---|---|
 | K-3b windows/presence | `mindfn` draft; `zts212653` Host review/merge | B-class windows, presence/lease projection, grants and control surface |
 | Remaining C-2 closures | `mindfn`; dual CODEOWNER | Only schemas/rows required by K-3b and probe/FG integration |
@@ -183,7 +196,7 @@ M0:
 
 ## 5. Phase 3 map
 
-| Lane | Sequence | Proposed authorship / authority | Gate |
+| Lane | Sequence | Standing authorship / authority | Gate |
 |---|---|---|---|
 | Service + UI | K-6 Host mechanism → contract delta → P-6 voice-suite | `mindfn` may draft; `zts212653` owns Host review/runtime; plugin and contract work dual-reviewed | M0; UI contribution passes Console Design Gate |
 | Thread + connectors | K-7 thread/settings mechanism → contract delta → P-7 IM migration; P-8 Weixin may move earlier when its contract prerequisites exist | `mindfn` may draft; Host merge remains `zts212653` | M0 plus K-7 for P-7; exact schedule/state prerequisite for P-8 |
@@ -194,17 +207,19 @@ M0:
 ## 6. Dependency view
 
 ```text
-DONE: Phase 0 + K-1 + P-1 + beta.8 handshake contract
+DONE: Phase 0 + K-1 + P-1 + beta.9 public ready rows
                          │
-                         ├─ M0-A Host handshake activation
+                         ├─ DONE: K-2B Host state machine (runtime dormant)
+                         ├─ K-2D #3558 + #3467 dependency + review/merge
+                         ├─ M0-A explicit external-runtime activation
                          ├─ M0-B lifecycle row closure + Host support
                          └─ M0-C messaging row closure + Host support
                                       │
                                       └─ M0-D joint acceptance ──► M0
 
-DONE: beta.9 events.publish + Feishu adapter
+DONE: beta.9 + Feishu alpha.1 + private F292 Host/Needs Me flow
                          │
-                         ├─ F292 Host intake ──► F292 experience journey
+                         ├─ K-2D activation ──► F292 external dogfood/release evidence
                          └─ K-3b + P-4 + FG-1 ──► M1
 
 M0 ──► K-5 + C-3 + P-5 ──► GitHub collection gate
@@ -213,25 +228,25 @@ M1 / per-lane prerequisites ──► Phase 3 lanes ──► v1 freeze
 
 The two Phase 2 lanes may overlap. Their acceptance gates remain independent.
 
-## 7. Maintainer acknowledgement requested
+## 7. Standing ownership decision
 
-Before new production implementation starts, issue #1 should record one
-complete response covering:
+The six-item acknowledgement is complete in
+`zts212653/clowder-ai-plugins#1` issue comment `5248175358`:
 
-1. whether any private K-2B, F292 Host, K-3b, or K-5 implementation is active,
-   with branch/PR coordinates sufficient to avoid duplicate work;
-2. whether the default authorship rule is accepted: `mindfn` drafts an
-   unclaimed implementation, while `zts212653` retains Host review/merge,
-   runtime ownership, and integration boundaries;
-3. whether dual-CODEOWNER contract review and exact publish/integrity gates
-   remain unchanged;
-4. whether `zts212653` will lead M0/M1/GitHub-gate acceptance when `mindfn`
-   authored the implementation under test;
-5. whether FG-1/FG-2 remain `zts212653`-authored;
-6. for the first Host PR, whether it is handshake-only on beta.8 or combines
-   handshake with the already-published beta.9 signal-ingress dependency.
+1. K-2B and F292 Host/Needs Me are landed; K-2D is the only active private
+   runtime coordinate. K-3b and K-5 are unclaimed.
+2. `mindfn` leads ordinary unclaimed work; `zts212653` retains Host
+   review/merge, runtime ownership, integration boundaries, and private
+   composition.
+3. Dual-CODEOWNER contract review and exact publication/version/integrity
+   verification remain mandatory.
+4. `zts212653` leads independent acceptance whenever `mindfn` authored the
+   implementation under test.
+5. FG-1 and FG-2 remain `zts212653`-authored.
+6. The old beta.8 choice is superseded: the current Host pins exact beta.9 and
+   consumes only `broker.hello`, `broker.ready`, and `events.publish`.
 
-After that acknowledgement, ordinary implementation proceeds without asking
-for a new ownership decision on every PR. Only new public semantics,
-production data/credential boundaries, or a discovered private-work collision
-return to joint decision.
+This is the standing rule. Ordinary unclaimed implementation proceeds without
+another authorship round trip. New public semantics, production
+data/credential boundaries, runtime activation, irreversible registry
+actions, or a discovered collision return to maintainer review.
