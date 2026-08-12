@@ -67,7 +67,7 @@ references:
 | Phase 1 / M0 | 联合验收 | **未开始。** plugin 侧 18-case Host seam manifest 已合入。 | 真实 Host ↔ standalone plugin 共跑、完整 fail-closed matrix、P14、事件输入断言与 plugin crash isolation verdict。 |
 | Phase 2 / signal ingress | C-2 signal-ingress slice + Feishu adapter | **公共半场已落地。** PR #24 已按 `9d4a76c` 合入；beta.9 使 `events.publish` ready。`@clowder-ai/feishu-meeting-intake@0.1.0-alpha.1` 已在 registry 可见，并带经 review 的 stdio entrypoint。 | 外部 runtime activation 与端到端 dogfood 仍是独立门禁。 |
 | Phase 2 / F292 | Host intake | **维护者报告已落地。** Cat Café #3522、#3542 已按 `55c663a`、`d603b76` 合入，覆盖 Host intake 与 Needs Me flow。 | 不宣称生产 activation、凭据或黑盒验证已经完成。 |
-| Phase 2 / F292 | 体验旅程 | **私有 flow 已落地，外部旅程待完成。** Needs Me 已存在于 Host，但外部 runtime 仍休眠。 | K-2D 关闭后才能 activation；随后运行真实 meeting dogfood 并收集发布证据。 |
+| Phase 2 / F292 | 体验旅程 | **私有 flow 已落地，外部旅程待完成。** Needs Me 已存在于 Host，但外部 runtime 仍休眠。 | 等独立 runtime activation 决策；随后运行真实 meeting dogfood 并收集发布证据。 |
 | Phase 2 / M1 | K-3b + P-4 + FG-1 | **待开始；K-3b 无人认领。** 碰撞扫描未发现活跃 K-3b 实现；windows/presence、desktop probe 和 foreground-cat reference plugin 均未完成。 | 契约关闭、Host mechanism、plugin 实现与 M1 联合验收。 |
 | Phase 2 / collection | K-5 + C-3 + P-5 | **待开始 / 无人认领。** 碰撞扫描未发现活跃 K-5 实现；schedule/state 契约工作与 GitHub migration 尚未开始。 | M0 与逐域 contract return loop。 |
 | Phase 3 | Service/UI、connector、memory、community、v1 | **待开始。** | M1 或下文列出的逐工作线前置条件。 |
