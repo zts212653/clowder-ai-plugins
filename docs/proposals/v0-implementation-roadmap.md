@@ -1,11 +1,12 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行刷新已确认 — 常驻分工规则已经确认；事实进度更新至 beta.9 与休眠中的 K-2D runtime Draft
+status: 执行刷新已确认 — 常驻分工规则已经确认；事实进度更新至 beta.9 与已落地但未启用的 K-2D external runtime
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
+progress_refresh: https://github.com/zts212653/clowder-ai-plugins/pull/25#issuecomment-5261613034
 created: 2026-07-14
-revised: 2026-08-11
+revised: 2026-08-12
 feature_ids: [clowder-ai-plugins-init, P-1, F288, F292]
 topics: [roadmap, plugin-contract, host-broker, standalone-io, signal-ingress]
 doc_kind: roadmap
@@ -62,7 +63,7 @@ references:
 | Phase 1 / M0 | K-2A 休眠 Host 地基 | **维护者报告已完成。** `zts212653` 报告私有 `cat-cafe#3422` 已按 `a6b38ac` 合入；最初 pin beta.7，activation 保持休眠。本仓无法独立读取该私有 patch。 | 已被 K-2B 的精确 beta.9 pin 取代为活动门禁；本行仅保留 provenance。 |
 | Phase 1 / M0 | K-2B Host Broker | **维护者报告已落地，runtime 休眠。** Cat Café #3555 已按 `f7fe823` 合入；Host 精确 pin beta.9，并实现 contract-native state machine 与 `events.publish` edge。 | 外部进程/stdio activation 与真实黑盒验收均未开启。 |
 | Phase 1 / M0 | K-2B lifecycle 与 messaging transport | **尚未契约就绪。** 第 3–12 行仍为 `ready:false`；多个 messaging row 仍含 RESERVED leaf。 | 精确关闭并发布 M0 所需 row，再实现对应 Host route。 |
-| Phase 1 / M0 | K-2D 外部 runtime | **Draft / 休眠。** Cat Café #3558 活跃于 `894c4e4`；通用 supervised stdio/environment 边界已实现。 | 等 Cat Café #3467 typed data-root catalog；随后 rebase、补 typed project persistence/restart wiring、跑 full gate、非作者 review、merge，并另行做 activation 决策。 |
+| Phase 1 / M0 | K-2D 外部 runtime | **维护者报告已落地，runtime 休眠。** Cat Café #3558 已在 exact HEAD `b0d95187826baeb5fd47357965fcb1d3270e723b` 通过非作者 review，并按 `ae23934d5a1e6dba64fd087c3033158c9516e5a2` squash merge；已落地 generic external-package integrity boundary、supervised process/stdio/environment transport 与保持休眠的 production composition。 | 仍需独立 activation 决策、真实 Host ↔ plugin 共跑、dogfood 与 M0 验收。F289 #3467 的暂停 migration 不是前置依赖。 |
 | Phase 1 / M0 | 联合验收 | **未开始。** plugin 侧 18-case Host seam manifest 已合入。 | 真实 Host ↔ standalone plugin 共跑、完整 fail-closed matrix、P14、事件输入断言与 plugin crash isolation verdict。 |
 | Phase 2 / signal ingress | C-2 signal-ingress slice + Feishu adapter | **公共半场已落地。** PR #24 已按 `9d4a76c` 合入；beta.9 使 `events.publish` ready。`@clowder-ai/feishu-meeting-intake@0.1.0-alpha.1` 已在 registry 可见，并带经 review 的 stdio entrypoint。 | 外部 runtime activation 与端到端 dogfood 仍是独立门禁。 |
 | Phase 2 / F292 | Host intake | **维护者报告已落地。** Cat Café #3522、#3542 已按 `55c663a`、`d603b76` 合入，覆盖 Host intake 与 Needs Me flow。 | 不宣称生产 activation、凭据或黑盒验证已经完成。 |
@@ -83,16 +84,17 @@ references:
 
 ## 3. 当前关键路径：关闭 M0
 
-M0 是当前唯一关键路径。工作拆成四个可独立 review 的 slice；后续 Phase 2 工作
-可以并行起草，但不能替代这道门禁。
+M0 是当前唯一关键路径。K-2D 的实现落地已经移除 composition merge 前置；剩余工作
+仍拆成四个可独立 review 的 slice，关键门禁是 runtime activation、缺失 row 闭合与
+联合验收。后续 Phase 2 工作可以并行起草，但不能替代这些门禁。
 
 ### M0-A — Host 握手启用
 
-- K-2B 已基于精确 beta.9 合入；不得另建 Host state machine、process manager
-  或 protocol mirror。
-- Cat Café #3467 提供 canonical typed data-root catalog 后，通过 #3558 完成
-  K-2D：rebase、补 typed project-scoped persistence/restart wiring、跑 full gate、
-  获得非作者 exact-HEAD review 并合入。
+- K-2B 已基于精确 beta.9 合入；K-2D 也已通过 Cat Café #3558 落地。不得另建
+  Host state machine、process manager 或 protocol mirror。
+- F289 #3467 的 one-shot production migration 当前为 NO-GO；Cat Café main
+  `5f24395ebac7a518d62a7effb257887045dfd689` 明确下游不得等待 #3467，也不得
+  复制其 catalog/migration layer。
 - 在独立 activation gate 明确授权前，外部进程/stdio composition 必须保持休眠。
 - activation 时，必须在真实 Host 边界运行已发布的 handshake byte-bound 与
   zero-side-effect conformance。
@@ -155,12 +157,13 @@ M0 是当前唯一关键路径。工作拆成四个可独立 review 的 slice；
    `sha512-KxdTlM24eKnXy6NE3TmbP78ro5D6lAX+m0H3LN4MrfI6SVz9BQnntHDxobjz4B+5wJ3gl0i7BX3ZOjBnhFby/w==`。
 2. **Host intake + Needs Me — 维护者报告已落地。** Cat Café #3522 与
    #3542 负责 admission、settlement 和私有 Host experience flow。
-3. **外部旅程 — 待完成。** K-2D 在 Draft #3558 中保持休眠；待其依赖、review、
-   merge 以及独立 activation 决策完成后，再运行真实 meeting dogfood、
-   provenance-preserving artifact 检查和发布证据采集。
+3. **外部旅程 — 待完成。** K-2D 实现已经落地但 runtime 保持休眠；待独立
+   activation 决策完成后，再运行真实 meeting dogfood、provenance-preserving
+   artifact 检查和发布证据采集。
 
-私有开发碰撞检查已经完成。本工作线当前等待 K-2D runtime/activation 边界及自身的
-端到端证据；`events.publish` ready 不代表 K-3b windows/presence 或 M1 已完成。
+私有开发碰撞检查已经完成。本工作线不再等待 K-2D merge 或 F289 #3467，只等待
+runtime activation 边界及自身的端到端证据；`events.publish` ready 不代表 K-3b
+windows/presence 或 M1 已完成。
 
 ### 4.2 M1 体验门禁
 
@@ -202,7 +205,7 @@ M0 是当前唯一关键路径。工作拆成四个可独立 review 的 slice；
 已完成：Phase 0 + K-1 + P-1 + beta.9 公共 ready rows
                          │
                          ├─ 已完成：K-2B Host state machine（runtime 休眠）
-                         ├─ K-2D #3558 + #3467 依赖 + review/merge
+                         ├─ 已完成：K-2D external runtime 实现（runtime 休眠）
                          ├─ M0-A 显式 external-runtime activation
                          ├─ M0-B lifecycle row closure + Host support
                          └─ M0-C messaging row closure + Host support
@@ -220,13 +223,13 @@ M1 / 逐工作线前置条件 ──► Phase 3 工作线 ──► v1 freeze
 
 两条 Phase 2 工作线可以交叠推进，但各自的验收门禁保持独立。
 
-## 7. 常驻分工决定
+## 7. 常驻分工与当前私有工作线
 
 `zts212653/clowder-ai-plugins#1` 的 issue comment `5248175358`
 已经完整回答六项确认：
 
-1. K-2B 与 F292 Host/Needs Me 已落地；K-2D 是当前唯一活跃的私有 runtime
-   coordinate；K-3b 与 K-5 无人认领。
+1. K-2B、F292 Host/Needs Me 与 K-2D 实现均已落地；K-2D runtime 仍未启用，
+   当前不再有等待 #3467 的 K-2D 私有实现 coordinate；K-3b 与 K-5 无人认领。
 2. `mindfn` 主导普通无人认领工作；`zts212653` 保留 Host review/merge、
    runtime ownership、集成边界和私有 composition。
 3. 双 CODEOWNER contract review 与精确 publication/version/integrity 核验
@@ -235,6 +238,9 @@ M1 / 逐工作线前置条件 ──► Phase 3 工作线 ──► v1 freeze
 5. FG-1 与 FG-2 继续由 `zts212653` 主笔。
 6. 旧 beta.8 选择已经被新事实取代：当前 Host 精确 pin beta.9，并且只消费
    `broker.hello`、`broker.ready` 与 `events.publish`。
+
+2026-08-12 的维护者进度刷新进一步确认：K-2D 已落地；F289 #3467 的暂停 migration
+不是其前置条件。该更新只改变事实进度，不重开上述常驻分工决定。
 
 这是常驻规则。普通无人认领实现不再需要逐项申请主笔权限。只有新公共语义、
 生产数据/凭据边界、runtime activation、不可逆 registry 动作或新发现的碰撞，
