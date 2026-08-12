@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
@@ -24,9 +24,9 @@ function run(command, args, cwd) {
 
 function pack(packageDirectory, destination) {
   const output = run(
-    'npm',
-    ['pack', '--json', '--ignore-scripts', '--pack-destination', destination],
-    join(repoRoot, packageDirectory),
+    'node',
+    ['scripts/pack-publish-artifact.mjs', packageDirectory, destination],
+    repoRoot,
   );
   const [artifact] = JSON.parse(output);
   assert.equal(typeof artifact?.filename, 'string');
@@ -54,6 +54,23 @@ test('packed public packages install and import in a fresh npm consumer', async 
       pack('packages/plugin-sdk', packs),
       pack('packages/feishu-meeting-intake', packs),
     ];
+
+    const staged = join(root, 'staged');
+    await mkdir(staged);
+    run('tar', ['-xzf', tarballs[2], '-C', staged], root);
+    const stagedPackage = join(staged, 'package');
+    const stagedRunnerUrl = pathToFileURL(join(stagedPackage, 'dist/lark-cli-runner.js')).href;
+    const stagedEntrypointUrl = pathToFileURL(join(stagedPackage, 'dist/stdio-entrypoint.js')).href;
+    run(
+      'node',
+      [
+        '--input-type=module',
+        '--eval',
+        `await import(${JSON.stringify(stagedEntrypointUrl)}); const { resolveBundledLarkCliEntrypoint } = await import(${JSON.stringify(stagedRunnerUrl)}); const runner = resolveBundledLarkCliEntrypoint(); if (!runner.endsWith('/@larksuite/cli/scripts/run.js')) process.exit(1);`,
+      ],
+      stagedPackage,
+    );
+
     run(
       'npm',
       ['install', '--ignore-scripts', '--package-lock=false', ...tarballs],
@@ -76,11 +93,13 @@ test('packed public packages install and import in a fresh npm consumer', async 
       ),
     );
     assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.9');
-    assert.deepEqual(feishuPackage.dependencies, {
-      '@clowder-ai/plugin-contract': '0.1.0-beta.9',
-      '@clowder-ai/plugin-sdk': '0.1.0-beta.5',
-      '@larksuite/cli': '1.0.85',
-    });
+    assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.9');
+    assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-sdk'], '0.1.0-beta.5');
+    assert.equal(feishuPackage.dependencies['@larksuite/cli'], '1.0.85');
+    assert.deepEqual(
+      [...feishuPackage.bundledDependencies].sort(),
+      Object.keys(feishuPackage.dependencies).sort(),
+    );
     assert.equal(feishuManifest.version, feishuPackage.version);
     assert.deepEqual(feishuManifest.runtime, {
       transport: 'stdio',

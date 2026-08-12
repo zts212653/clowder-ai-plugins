@@ -19,6 +19,7 @@ packages/plugin-contract/fixtures/ @mindfn @zts212653
 /package.json @mindfn @zts212653
 /pnpm-lock.yaml @mindfn @zts212653
 /pnpm-workspace.yaml @mindfn @zts212653
+/scripts/pack-publish-artifact.mjs @mindfn @zts212653
 
 # Family-owned foreground-cat assets and their license remain family-first, with
 # the other party reviewing changes. Irreversible license decisions also need

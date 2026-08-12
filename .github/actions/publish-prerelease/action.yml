@@ -25,7 +25,7 @@ runs:
           exit 1
         fi
 
-        npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" "./${PACKAGE_DIRECTORY}" > "$PACK_JSON_PATH"
+        node scripts/pack-publish-artifact.mjs "$PACKAGE_DIRECTORY" "$RUNNER_TEMP" > "$PACK_JSON_PATH"
         node --input-type=module <<'NODE'
         import { appendFileSync, readFileSync } from 'node:fs';
         import { join } from 'node:path';

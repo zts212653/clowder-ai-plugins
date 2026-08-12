@@ -10,6 +10,12 @@ importers:
 
   packages/feishu-meeting-intake:
     dependencies:
+      '@clack/core':
+        specifier: 1.4.3
+        version: 1.4.3
+      '@clack/prompts':
+        specifier: 1.7.0
+        version: 1.7.0
       '@clowder-ai/plugin-contract':
         specifier: 0.1.0-beta.9
         version: link:../plugin-contract
@@ -19,6 +25,36 @@ importers:
       '@larksuite/cli':
         specifier: 1.0.85
         version: 1.0.85
+      ajv:
+        specifier: 8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: 3.0.1
+        version: 3.0.1(ajv@8.20.0)
+      fast-deep-equal:
+        specifier: 3.1.3
+        version: 3.1.3
+      fast-string-truncated-width:
+        specifier: 3.0.3
+        version: 3.0.3
+      fast-string-width:
+        specifier: 3.0.2
+        version: 3.0.2
+      fast-uri:
+        specifier: 3.1.3
+        version: 3.1.3
+      fast-wrap-ansi:
+        specifier: 0.2.2
+        version: 0.2.2
+      json-schema-traverse:
+        specifier: 1.0.0
+        version: 1.0.0
+      require-from-string:
+        specifier: 2.0.2
+        version: 2.0.2
+      sisteransi:
+        specifier: 1.0.5
+        version: 1.0.5
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
