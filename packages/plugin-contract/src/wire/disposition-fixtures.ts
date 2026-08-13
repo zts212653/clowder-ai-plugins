@@ -562,6 +562,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidParamsEnvelope',
     expectedErrorCode: -32602,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
     description: 'value violation: nonce empty string violates minLength 1',
   },
 
@@ -630,6 +631,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-2] request-only method (ping, row 11) as notification → v0 violation',
   },
 
@@ -669,6 +671,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[RC-7 / NT-5 variant] Notification with extra error member → T-K close',
   },
 
@@ -682,6 +685,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-5] Notification missing params → idless envelope violation → T-K close',
   },
 
@@ -695,6 +699,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-4] structurally valid Notification, invocation-level invalid params (grantRevision wrong type)',
   },
 
@@ -708,6 +713,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-6] row-10 notification with deadlineUnixMs:0 → value failure (H7), T-K close',
   },
 
@@ -766,6 +772,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: 'proof pair: "corr-test" NOT in-flight → T-H (see T-L-2)',
   },
 
@@ -1354,6 +1361,35 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[beta.10 lifecycle] N+1 grant snapshot notification closes before dispatch',
   },
   {
+    id: 'T-K-9',
+    rawFrame: grantsChangedNotificationFrame([
+      ALL_CAPABILITY_VALUES[0]!,
+      ALL_CAPABILITY_VALUES[0]!,
+    ]),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] duplicate grants within the cardinality bound close before dispatch',
+  },
+  {
+    id: 'T-K-10',
+    rawFrame: grantsChangedNotificationFrame(['unknown.capability']),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] unknown grant closes before dispatch',
+  },
+  {
     id: 'T-M-10',
     rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
       nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(PING_NONCE_MAX_LENGTH),
@@ -1581,8 +1617,22 @@ export const BETA9_EVENTS_PUBLISH_VECTOR_IDS = [
 
 /** Complete beta.10 M0-B lifecycle safety surface for rows 10 through 12. */
 export const BETA10_LIFECYCLE_VECTOR_IDS = [
+  'T-G-1',
+  'T-J-1',
+  'T-J-2',
+  'T-K-1',
+  'T-K-4',
+  'T-K-5',
+  'T-K-6',
+  'T-K-7',
+  'T-H-3',
+  'T-L-1',
+  'T-L-2',
+  'T-L-3',
   'T-J-3',
   'T-K-8',
+  'T-K-9',
+  'T-K-10',
   'T-M-10',
   'T-G-16',
   'T-M-11',
