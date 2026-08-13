@@ -195,7 +195,8 @@ Acceptance requires:
 - registry, derived byte proofs, public exports, fixture membership, SDK
   classification, and packed artifact all agree;
 - no Host activation or messaging-row readiness appears in the diff;
-- a fresh-context cross-individual review approves the exact final SHA;
+- a cross-individual formal review approves the exact final SHA; an optional
+  fresh-context pre-scan may generate findings but is not approval authority;
 - CI and maintainer review pass before merge; no self-merge;
 - after merge, publication plus exact version/integrity verification remains a
   separate gate before Host support may advertise or emit these rows.
