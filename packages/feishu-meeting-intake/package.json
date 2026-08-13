@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/feishu-meeting-intake",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Official Feishu/Lark generated-meeting-artifact intake adapter for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -31,10 +31,39 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
+    "@clack/core": "1.4.3",
+    "@clack/prompts": "1.7.0",
     "@clowder-ai/plugin-contract": "0.1.0-beta.9",
     "@clowder-ai/plugin-sdk": "0.1.0-beta.5",
-    "@larksuite/cli": "1.0.85"
+    "@larksuite/cli": "1.0.85",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "fast-deep-equal": "3.1.3",
+    "fast-string-truncated-width": "3.0.3",
+    "fast-string-width": "3.0.2",
+    "fast-uri": "3.1.3",
+    "fast-wrap-ansi": "0.2.2",
+    "json-schema-traverse": "1.0.0",
+    "require-from-string": "2.0.2",
+    "sisteransi": "1.0.5"
   },
+  "bundledDependencies": [
+    "@clack/core",
+    "@clack/prompts",
+    "@clowder-ai/plugin-contract",
+    "@clowder-ai/plugin-sdk",
+    "@larksuite/cli",
+    "ajv",
+    "ajv-formats",
+    "fast-deep-equal",
+    "fast-string-truncated-width",
+    "fast-string-width",
+    "fast-uri",
+    "fast-wrap-ansi",
+    "json-schema-traverse",
+    "require-from-string",
+    "sisteransi"
+  ],
   "devDependencies": {
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",

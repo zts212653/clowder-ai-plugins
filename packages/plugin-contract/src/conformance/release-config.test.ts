@@ -35,6 +35,14 @@ const prereleasePublishAction = existsSync(prereleasePublishActionUrl)
   ? readFileSync(prereleasePublishActionUrl, 'utf8')
   : '';
 
+const publishArtifactPackerUrl = new URL(
+  '../../../../scripts/pack-publish-artifact.mjs',
+  import.meta.url,
+);
+const publishArtifactPacker = existsSync(publishArtifactPackerUrl)
+  ? readFileSync(publishArtifactPackerUrl, 'utf8')
+  : '';
+
 const artifactToolchainVerifierUrl = new URL(
   '../../scripts/verify-artifact-toolchain.mjs',
   import.meta.url,
@@ -63,6 +71,7 @@ const releaseDependencyInputs = [
   'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
+  'scripts/pack-publish-artifact.mjs',
 ];
 
 const familyOwnedInputs = [
@@ -394,12 +403,19 @@ test('main publishes the public dependency chain through one hardened action', (
     /^      - '\.github\/actions\/publish-prerelease\/\*\*'$/m,
     'changes to the publication action must trigger the workflow',
   );
-  assert.match(prereleasePublishAction, /npm pack --json --ignore-scripts/);
   assert.match(
     prereleasePublishAction,
-    /npm pack --json --ignore-scripts --pack-destination "\$RUNNER_TEMP" "\.\/\$\{PACKAGE_DIRECTORY\}"/,
-    'workspace package paths must be explicit relative directories, not registry or git package specs',
+    /node scripts\/pack-publish-artifact\.mjs "\$PACKAGE_DIRECTORY" "\$RUNNER_TEMP"/,
   );
+  assert.match(
+    publishArtifactPacker,
+    /'pnpm',[\s\S]*'--config\.ignore-scripts=true',[\s\S]*'--config\.node-linker=hoisted',[\s\S]*'pack'/,
+    'runtime closure materialization must be script-free and explicit',
+  );
+  assert.match(publishArtifactPacker, /assertCanonicalArchiveMembers/);
+  assert.match(publishArtifactPacker, /assertPhysicalTree\(stagedPackageRoot\)/);
+  assert.match(publishArtifactPacker, /createHash\('sha512'\)/);
+  assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL"/);
   assert.match(prereleasePublishAction, /metadata\.dist\?\.integrity !== process\.env\.EXPECTED_INTEGRITY/);
   assert.match(prereleasePublishAction, /npm publish "\$PACKAGE_TARBALL" --tag next --provenance --access public/);
   assert.match(prereleasePublishAction, /distTags\.next !== process\.env\.PACKAGE_VERSION/);
@@ -416,7 +432,8 @@ test('publish verifies the exact registry version and artifact integrity', () =>
   assert.match(publishJob, /^      - name: Build public packages$/m);
   assert.match(prereleasePublishAction, /^    - name: Pack release candidate$/m);
   assert.match(prereleasePublishAction, /^      id: pack$/m);
-  assert.match(prereleasePublishAction, /npm pack --json --ignore-scripts/);
+  assert.match(prereleasePublishAction, /node scripts\/pack-publish-artifact\.mjs/);
+  assert.match(publishArtifactPacker, /createHash\('sha512'\)/);
   assert.match(prereleasePublishAction, /^    - name: Verify final registry state$/m);
   assert.match(prereleasePublishAction, /npm view "\$PACKAGE_NAME@\$PACKAGE_VERSION" --json/);
   assertRegistryVerificationFailsClosed(prereleasePublishAction);
