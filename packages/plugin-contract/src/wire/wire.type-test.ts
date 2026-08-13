@@ -147,13 +147,19 @@ const _probeC2: WireErrorResponse = _fakeErrorNullId;
 // @ts-expect-error — 'not.a.method' is not in the 13-row closed method enum
 const _badMethod: WireMethodName = 'not.a.method';
 
-// beta.8's ready partition must remain literal rather than widening to boolean.
+// beta.10's ready partition must remain literal rather than widening to boolean.
 declare const _registry: WireMethodRegistry;
 const _helloReady: true = _registry['broker.hello'].ready;
 const _readyReady: true = _registry['broker.ready'].ready;
+const _grantsChangedReady: true = _registry['host.grants.changed'].ready;
+const _pingReady: true = _registry['host.lifecycle.ping'].ready;
+const _drainReady: true = _registry['host.lifecycle.drain'].ready;
 const _publishReady: true = _registry['events.publish'].ready;
 const _sendUnready: false = _registry['messaging.send'].ready;
 void _helloReady;
 void _readyReady;
+void _grantsChangedReady;
+void _pingReady;
+void _drainReady;
 void _publishReady;
 void _sendUnready;

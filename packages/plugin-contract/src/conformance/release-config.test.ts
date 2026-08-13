@@ -332,8 +332,8 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('runtime manifest validation publishes beta.9 while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.9');
+test('lifecycle closure publishes beta.10 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.10');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });

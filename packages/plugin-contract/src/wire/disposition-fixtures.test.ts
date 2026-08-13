@@ -38,6 +38,7 @@ import {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
   BETA9_EVENTS_PUBLISH_VECTOR_IDS,
+  BETA10_LIFECYCLE_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -412,6 +413,42 @@ test('beta.9 exports the closed C-2 request, rejection, and settlement vectors',
   assert.equal(findVector('T-G-15').expectedErrorArm, 'InvalidParamsEnvelope');
   assert.equal(findVector('T-H-12').expectedClass, 'T-H');
   assert.equal(findVector('T-L-7').expectedClass, 'T-L');
+});
+
+test('beta.10 exports one lifecycle safety set spanning rows 10 through 12', () => {
+  assert.deepEqual(BETA10_LIFECYCLE_VECTOR_IDS, [
+    'T-J-3',
+    'T-K-8',
+    'T-M-10',
+    'T-G-16',
+    'T-M-11',
+    'T-G-17',
+    'T-M-12',
+    'T-G-18',
+    'T-L-8',
+    'T-H-13',
+    'T-M-13',
+    'T-G-19',
+    'T-G-20',
+    'T-L-9',
+    'T-L-10',
+  ]);
+
+  const invalidIds = new Set([
+    'T-K-8',
+    'T-G-16',
+    'T-G-17',
+    'T-G-18',
+    'T-H-13',
+    'T-G-19',
+    'T-G-20',
+  ]);
+  for (const id of BETA10_LIFECYCLE_VECTOR_IDS) {
+    const vector = findVector(id);
+    if (invalidIds.has(id)) {
+      assert.equal(vector.zeroSideEffects, true, `${id} must reject before side effects`);
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------
