@@ -5,7 +5,7 @@
  * Every row carries machine-readable metadata:
  *   - method name, direction, grant requirement
  *   - notification flag (only row 10)
- *   - ready status (rows 1–2 in beta.8 and row 13 in beta.9)
+ *   - ready status (rows 1–2 in beta.8, row 13 in beta.9, rows 10–12 in beta.10)
  *   - leaf closure status and which matrix entries cause reservation
  *   - settlement key source
  *
@@ -23,6 +23,7 @@
 
 import type { Capability } from '../generated/contract.generated.js';
 import { HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS } from './handshake-byte-bounds.js';
+import { LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS } from './lifecycle-byte-bounds.js';
 import { EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS } from './signal-byte-bounds.js';
 
 // ---------------------------------------------------------------------------
@@ -114,7 +115,13 @@ export type WireMethodName = (typeof WIRE_METHOD_NAMES)[number];
  * newly closed row back to `boolean` or accidentally advertising another row.
  */
 export type WireMethodRegistry = {
-  readonly [Method in WireMethodName]: Method extends 'broker.hello' | 'broker.ready' | 'events.publish'
+  readonly [Method in WireMethodName]: Method extends
+    | 'broker.hello'
+    | 'broker.ready'
+    | 'host.grants.changed'
+    | 'host.lifecycle.ping'
+    | 'host.lifecycle.drain'
+    | 'events.publish'
     ? ReadyRegistryRow
     : UnreadyRegistryRow;
 };
@@ -130,7 +137,8 @@ export type WireMethodRegistry = {
  * the exact matrix entry IDs that block leaf closure. Settlement key
  * sources follow the canonical per-row specification.
  *
- * Rows 1–2 are ready after beta.8; row 13 is ready after beta.9.
+ * Rows 1–2 are ready after beta.8; row 13 after beta.9; rows 10–12
+ * after beta.10.
  */
 export const WIRE_METHOD_REGISTRY = {
   'broker.hello': {
@@ -245,10 +253,11 @@ export const WIRE_METHOD_REGISTRY = {
     direction: 'host-to-plugin',
     grant: 'protocol-intrinsic',
     isNotification: true,
-    ready: false,
+    ready: true,
     leafClosure: 'CLOSED',
     reservedEntries: [],
     settlementKeySource: '(grantRevision monotonic)',
+    ...LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS['host.grants.changed'],
   },
   'host.lifecycle.ping': {
     rowNumber: 11,
@@ -256,10 +265,11 @@ export const WIRE_METHOD_REGISTRY = {
     direction: 'host-to-plugin',
     grant: 'protocol-intrinsic',
     isNotification: false,
-    ready: false,
+    ready: true,
     leafClosure: 'CLOSED',
     reservedEntries: [],
     settlementKeySource: '—',
+    ...LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS['host.lifecycle.ping'],
   },
   'host.lifecycle.drain': {
     rowNumber: 12,
@@ -267,10 +277,11 @@ export const WIRE_METHOD_REGISTRY = {
     direction: 'host-to-plugin',
     grant: 'protocol-intrinsic',
     isNotification: false,
-    ready: false,
+    ready: true,
     leafClosure: 'CLOSED',
     reservedEntries: [],
     settlementKeySource: '—',
+    ...LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS['host.lifecycle.drain'],
   },
   'events.publish': {
     rowNumber: 13,
@@ -310,7 +321,7 @@ export const CLOSED_LEAF_ROWS: readonly WireMethodName[] =
 export const RESERVED_LEAF_ROWS: readonly WireMethodName[] =
   WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].leafClosure === 'RESERVED');
 
-/** Method names that are legal for wire advertisement in beta.9. */
+/** Method names that are legal for wire advertisement in beta.10. */
 export const READY_ROWS: readonly WireMethodName[] =
   WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].ready);
 

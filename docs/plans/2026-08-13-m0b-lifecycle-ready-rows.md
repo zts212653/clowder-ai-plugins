@@ -17,11 +17,11 @@ created: 2026-08-13
 defines M0-B as the next public contract slice. The row grammars and SDK
 runtime behavior already exist; this slice closes their publication evidence.
 
-**Finish line:** publish a review-ready `0.1.0-beta.10` contract candidate in
-which exactly rows 10–12 are newly `ready: true`, with public derived byte
-bounds and executable conformance vectors consumed by both the SDK and the
-standalone loopback fixture. Merge is not publication, and publication is not
-Host activation.
+**Finish line:** publish a review-ready `0.1.0-beta.10` contract candidate and
+`@clowder-ai/plugin-sdk@0.1.0-beta.6` consumer in which exactly rows 10–12 are
+newly `ready: true`, with public derived byte bounds and executable conformance
+vectors consumed by both the SDK and the standalone loopback fixture. Merge is
+not publication, and publication is not Host activation.
 
 ## Scope fence
 
@@ -36,8 +36,9 @@ In scope:
   vectors required to make the set executable and reviewable.
 - Make the contract, SDK classifier, standalone shell, and loopback fixture
   consume the same public vector truth.
-- Bump the contract package candidate from beta.9 to beta.10 and update the
-  release assertion. No registry publication occurs in this branch.
+- Bump the contract candidate from beta.9 to beta.10 and the SDK from beta.5
+  to beta.6, pinning the latter to beta.10. No registry publication occurs in
+  this branch.
 
 Out of scope:
 
@@ -156,7 +157,11 @@ that a child process cannot inject.
 
 ### Step 5 — lock release and compatibility evidence
 
-- Bump only `packages/plugin-contract/package.json` to `0.1.0-beta.10`.
+- Bump `packages/plugin-contract/package.json` to `0.1.0-beta.10` and
+  `packages/plugin-sdk/package.json` to `0.1.0-beta.6`, with the SDK pinned to
+  the exact beta.10 contract. The Feishu alpha.1 package remains unchanged and
+  continues to declare the versions against which its immutable tarball was
+  published.
 - Update `conformance/release-config.test.ts` to lock the package candidate.
 - Re-run generated-output checks; do not regenerate unrelated schema output.
 - Prove existing SDK lifecycle behavior remains green without new Host code.

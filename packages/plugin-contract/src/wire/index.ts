@@ -116,6 +116,7 @@ export {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
   BETA9_EVENTS_PUBLISH_VECTOR_IDS,
+  BETA10_LIFECYCLE_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -201,6 +202,28 @@ export {
   EVENTS_PUBLISH_ERROR_BYTE_PROOF,
   EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
 } from './signal-byte-bounds.js';
+
+// Derived beta.10 M0-B lifecycle byte-bound evidence
+export {
+  LIFECYCLE_BYTE_PROOF_ENCODING_FAMILIES,
+  HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF,
+  HOST_LIFECYCLE_PING_REQUEST_BYTE_PROOF,
+  HOST_LIFECYCLE_PING_RESULT_BYTE_PROOF,
+  HOST_LIFECYCLE_PING_ERROR_BYTE_PROOF,
+  HOST_LIFECYCLE_DRAIN_REQUEST_BYTE_PROOF,
+  HOST_LIFECYCLE_DRAIN_RESULT_BYTE_PROOF,
+  HOST_LIFECYCLE_DRAIN_ERROR_BYTE_PROOF,
+  LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
+} from './lifecycle-byte-bounds.js';
+
+export type {
+  LifecycleByteProofEncodingFamily,
+  LifecycleNPlusOneByteProof,
+  LifecycleEncodedByteProofCase,
+  LifecycleEncodedByteProof,
+  LifecycleRequestRowEncodedByteBounds,
+  LifecycleNotificationRowEncodedByteBounds,
+} from './lifecycle-byte-bounds.js';
 
 export type {
   EventsPublishByteProofEncodingFamily,

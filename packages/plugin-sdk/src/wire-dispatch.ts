@@ -933,16 +933,11 @@ function classifyRequest(
     return respondInvalidParamsValue(id);
   }
 
-  // Ready plugin-to-Host rows are legal Requests at the contract boundary.
-  // The standalone shell deliberately returns MethodNotFound because it is
-  // not a Host Broker and must not absorb Host-owned ingress or handshake work;
-  // classification itself must not relabel their valid input as T-G or T-F.
-  if (
-    row.ready &&
-    (wireMethod === 'broker.hello' ||
-      wireMethod === 'broker.ready' ||
-      wireMethod === 'events.publish')
-  ) {
+  // Every ready request row is legal at the contract boundary. The standalone
+  // shell decides whether a legal request is Host-bound or locally executable;
+  // classification must not relabel either family as a rejection or as an
+  // unclassified accept.
+  if (row.ready) {
     return accept('T-M');
   }
 
