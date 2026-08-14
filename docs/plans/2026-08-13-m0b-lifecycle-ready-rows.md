@@ -9,19 +9,24 @@ created: 2026-08-13
 
 ## Authority, baseline, and finish line
 
-**Baseline:** `clowder-ai-plugins/main@44f6461` with
-`@clowder-ai/plugin-contract@0.1.0-beta.9`.
+**Baseline:** `clowder-ai-plugins/origin/main@81ce38c6c7d111ecdd628a9c2446d246dbf49d5f`
+(merged PR #31), with `@clowder-ai/plugin-contract@0.1.0-beta.9`,
+`@clowder-ai/plugin-sdk@0.1.0-beta.5`, and
+`@clowder-ai/feishu-meeting-intake@0.1.0-alpha.2`.
 
 **Authority:** the merged
 [`v0-implementation-roadmap.md`](../proposals/v0-implementation-roadmap.md)
 defines M0-B as the next public contract slice. The row grammars and SDK
 runtime behavior already exist; this slice closes their publication evidence.
 
-**Finish line:** publish a review-ready `0.1.0-beta.10` contract candidate and
+**Finish line:** deliver a merge-ready `0.1.0-beta.10` contract candidate and
 `@clowder-ai/plugin-sdk@0.1.0-beta.6` consumer in which exactly rows 10–12 are
 newly `ready: true`, with public derived byte bounds and executable conformance
-vectors consumed by both the SDK and the standalone loopback fixture. Merge is
-not publication, and publication is not Host activation.
+vectors consumed by both the SDK and the standalone loopback fixture. A
+maintainer merge to `main` authorizes publication: the existing Contract CI
+push workflow validates the merged tree and publishes either absent immutable
+prerelease under the `next` tag. Publication is not Host activation or M0
+acceptance.
 
 ## Scope fence
 
@@ -38,12 +43,16 @@ In scope:
   consume the same public vector truth.
 - Bump the contract candidate from beta.9 to beta.10 and the SDK from beta.5
   to beta.6, pinning the latter to beta.10. No registry publication occurs in
-  this branch.
+  this branch; maintainer merge authorizes the existing `main` push workflow
+  to publish and verify both currently absent immutable prereleases.
+- Treat maintainer approval and merge as the irreversible publication gate;
+  there is no second approval boundary between merge and `npm publish`.
 
 Out of scope:
 
 - Host Broker changes, external-process composition, runtime activation,
-  package publication, integrity verification, or consumer re-pin.
+  manual publication outside the existing workflow, `latest` promotion,
+  release-workflow redesign, or consumer re-pin.
 - Any messaging row (3–9), its RESERVED leaves, or K-1 ledger/cursor behavior.
 - A new lifecycle state machine, a second validator, or a Host-local fixture
   matrix. Existing SDK/standalone enforcement remains authoritative.
@@ -159,7 +168,7 @@ that a child process cannot inject.
 
 - Bump `packages/plugin-contract/package.json` to `0.1.0-beta.10` and
   `packages/plugin-sdk/package.json` to `0.1.0-beta.6`, with the SDK pinned to
-  the exact beta.10 contract. The Feishu alpha.1 package remains unchanged and
+  the exact beta.10 contract. The Feishu alpha.2 package remains unchanged and
   continues to declare the versions against which its immutable tarball was
   published.
 - Update `conformance/release-config.test.ts` to lock the package candidate.
@@ -197,6 +206,10 @@ Acceptance requires:
 - no Host activation or messaging-row readiness appears in the diff;
 - a cross-individual formal review approves the exact final SHA; an optional
   fresh-context pre-scan may generate findings but is not approval authority;
-- CI and maintainer review pass before merge; no self-merge;
-- after merge, publication plus exact version/integrity verification remains a
-  separate gate before Host support may advertise or emit these rows.
+- CI and maintainer review pass before merge; maintainer merge is explicit
+  authorization for the automated immutable beta.10/beta.6 publication, and
+  the author performs neither self-merge nor manual publication;
+- after merge, the same `main` push workflow must publish or verify the exact
+  versions and integrities while preserving `latest`; successful registry
+  verification remains a downstream acceptance predicate before Host support
+  may advertise or emit these rows, not a second publication-approval gate.
