@@ -54,6 +54,7 @@ export interface FeishuTranscriptGateway {
 
 export type FeishuGatewayErrorCode =
   | 'AUTH_EXPIRED'
+  | 'EVENT_BUS_CONFLICT'
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'RATE_LIMITED'

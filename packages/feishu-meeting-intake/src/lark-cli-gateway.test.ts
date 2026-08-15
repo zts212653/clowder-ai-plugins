@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  classifyLarkCliFailure,
   createLarkCliFeishuEventGateway,
   larkCliChildEnvironment,
   resolveBundledLarkCliEntrypoint,
@@ -64,6 +65,40 @@ test('resolves the package-owned lark-cli runner and gives it only the derived h
   assert.equal(existsSync(runner), true);
   assert.match(runner, /@larksuite[\\/]cli[\\/]scripts[\\/]run\.js$/u);
   assert.deepEqual(larkCliChildEnvironment('/Users/example'), { HOME: '/Users/example' });
+});
+
+test('classifies the structured global event-bus collision without copying remote diagnostics', () => {
+  const failure = classifyLarkCliFailure([
+    '[event] connecting',
+    JSON.stringify({
+      error: {
+        type: 'validation',
+        subtype: 'failed_precondition',
+        message: 'another event bus owns secret-account@example.com',
+      },
+    }),
+  ].join('\n'));
+
+  assert.equal(failure.code, 'EVENT_BUS_CONFLICT');
+  assert.equal(failure.message, 'another Feishu event bus owns this application');
+  assert.doesNotMatch(failure.message, /secret-account/u);
+});
+
+test('start confirms both generated-event sources without waiting for an event', async () => {
+  let starts = 0;
+  const gateway = createLarkCliFeishuEventGateway({
+    createConsumer: async () => {
+      starts += 1;
+      return {
+        events: events([]),
+        close: async () => undefined,
+      };
+    },
+  });
+
+  await gateway.start();
+  assert.equal(starts, 2);
+  await gateway.close();
 });
 
 test('combines the two generated-artifact streams and carries only an opaque cursor', async () => {

@@ -20,6 +20,7 @@ import {
   FEISHU_MEETING_SIGNAL_DECLARATION,
   FEISHU_MEETING_SIGNAL_SCHEMAS,
 } from './artifact.js';
+import { FeishuGatewayError } from './gateway.js';
 import {
   createLarkCliFeishuEventGateway,
   type LarkCliFeishuEventGateway,
@@ -52,8 +53,17 @@ export interface FeishuMeetingIntakeStdioOptions {
   readonly claims: CandidateHello;
   readonly homeDirectory?: string;
   readonly createRuntime?: (context: FeishuStdioRuntimeContext) => FeishuMeetingIntakeRuntime;
+  readonly createGateway?: () => LarkCliFeishuEventGateway;
   readonly onFatal?: (error: unknown) => void;
   readonly now?: () => number;
+}
+
+export function formatFeishuRuntimeDiagnostic(error: unknown): string {
+  return JSON.stringify({
+    kind: 'clowder.plugin.runtime-error',
+    v: 1,
+    code: error instanceof FeishuGatewayError ? error.code : 'UNEXPECTED_RUNTIME_FAILURE',
+  });
 }
 
 export interface FeishuMeetingIntakeStdioController {
@@ -211,6 +221,12 @@ export function startFeishuMeetingIntakeStdio(
     }
     handshakeState = bound.state;
 
+    if (options.createRuntime === undefined) {
+      const homeDirectory = options.homeDirectory ?? homedir();
+      gateway = options.createGateway?.() ?? createLarkCliFeishuEventGateway({ homeDirectory });
+      await gateway.start();
+    }
+
     const ready = { bindingNonce: bound.state.binding.bindingNonce };
     const readyResult = await call('broker.ready', ready);
     if (readyResult !== null) throw new FeishuStdioProtocolError('broker.ready result must be null');
@@ -238,7 +254,9 @@ export function startFeishuMeetingIntakeStdio(
       signal: lifecycle.signal,
     }) ?? (() => {
       const homeDirectory = options.homeDirectory ?? homedir();
-      gateway = createLarkCliFeishuEventGateway({ homeDirectory });
+      if (gateway === undefined) {
+        throw new FeishuStdioProtocolError('Feishu event gateway was not started before activation');
+      }
       return createFeishuMeetingIntakeRuntime({
         gateway,
         publisher,
@@ -288,8 +306,7 @@ export function runFeishuMeetingIntakeEntrypoint(): FeishuMeetingIntakeStdioCont
     claims: readRuntimeClaims(process.env),
     onFatal: (error: unknown) => {
       process.exitCode = 1;
-      const message = error instanceof Error ? error.message : 'unknown fatal error';
-      process.stderr.write(`[feishu-meeting-intake] ${message.slice(0, 512)}\n`);
+      process.stderr.write(`${formatFeishuRuntimeDiagnostic(error)}\n`);
     },
   });
   void controller.activated.catch(() => undefined);

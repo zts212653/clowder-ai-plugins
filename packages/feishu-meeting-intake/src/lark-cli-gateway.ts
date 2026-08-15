@@ -20,6 +20,7 @@ import {
 const MAX_BUFFERED_EVENTS = 512;
 
 export interface LarkCliFeishuEventGateway extends FeishuPollingGateway {
+  start(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -135,6 +136,7 @@ export function createLarkCliFeishuEventGateway(
   };
 
   return {
+    start: ensureStarted,
     async listGeneratedArtifacts({ limit, signal }): Promise<FeishuGeneratedArtifactPage> {
       if (!Number.isInteger(limit) || limit < 1 || limit > 64) {
         throw new TypeError('generated-artifact page limit must be 1..64');
@@ -160,6 +162,7 @@ export function createLarkCliFeishuEventGateway(
   };
 }
 
+export { classifyLarkCliFailure } from './lark-cli-consumer.js';
 export {
   larkCliChildEnvironment,
   resolveBundledLarkCliEntrypoint,
