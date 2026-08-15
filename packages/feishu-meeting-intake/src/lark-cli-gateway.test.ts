@@ -9,6 +9,7 @@ import {
   resolveBundledLarkCliEntrypoint,
   type LarkCliEventConsumer,
 } from './lark-cli-gateway.js';
+import { FeishuGatewayError } from './gateway.js';
 import { normalizeLarkCliGeneratedEvent } from './lark-event-normalizer.js';
 
 const SIGNAL = new AbortController().signal;
@@ -98,6 +99,37 @@ test('start confirms both generated-event sources without waiting for an event',
 
   await gateway.start();
   assert.equal(starts, 2);
+  await gateway.close();
+});
+
+test('start rejects stalled source readiness with a typed unavailable failure', async () => {
+  let aborted = false;
+  const gateway = createLarkCliFeishuEventGateway({
+    sourceReadinessDeadlineMs: 5,
+    createConsumer: async (_eventKey, signal) => new Promise((_, reject) => {
+      signal.addEventListener('abort', () => {
+        aborted = true;
+        reject(signal.reason);
+      }, { once: true });
+    }),
+  });
+
+  const outcome = await Promise.race([
+    gateway.start().then(
+      () => ({ kind: 'resolved' as const }),
+      error => ({ kind: 'rejected' as const, error }),
+    ),
+    new Promise<{ readonly kind: 'timed-out' }>(resolve => {
+      setTimeout(() => resolve({ kind: 'timed-out' }), 50);
+    }),
+  ]);
+
+  assert.equal(outcome.kind, 'rejected');
+  if (outcome.kind !== 'rejected') return;
+  assert.ok(outcome.error instanceof FeishuGatewayError);
+  assert.equal(outcome.error.code, 'UNAVAILABLE');
+  assert.match(outcome.error.message, /source readiness deadline expired/u);
+  assert.equal(aborted, true, 'deadline must abort stalled consumer startup');
   await gateway.close();
 });
 

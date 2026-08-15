@@ -178,6 +178,7 @@ export async function startDefaultLarkCliConsumer(
   const onAbort = (): void => {
     if (!readySeen) readyReject(signal.reason);
     child.stdin.end();
+    if (!closed) child.kill('SIGTERM');
   };
   signal.addEventListener('abort', onAbort, { once: true });
   try {

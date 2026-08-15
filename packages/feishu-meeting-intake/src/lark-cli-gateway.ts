@@ -18,6 +18,7 @@ import {
 } from './lark-cli-consumer.js';
 
 const MAX_BUFFERED_EVENTS = 512;
+const DEFAULT_SOURCE_READINESS_DEADLINE_MS = 30_000;
 
 export interface LarkCliFeishuEventGateway extends FeishuPollingGateway {
   start(): Promise<void>;
@@ -26,6 +27,7 @@ export interface LarkCliFeishuEventGateway extends FeishuPollingGateway {
 
 export interface LarkCliFeishuEventGatewayOptions {
   readonly homeDirectory?: string;
+  readonly sourceReadinessDeadlineMs?: number;
   readonly createConsumer?: (
     eventKey: typeof LARK_EVENT_KEYS[number],
     signal: AbortSignal,
@@ -34,6 +36,31 @@ export interface LarkCliFeishuEventGatewayOptions {
     locator: FeishuArtifactLocator,
     signal: AbortSignal,
   ) => Promise<unknown>;
+}
+
+type CreateConsumer = NonNullable<LarkCliFeishuEventGatewayOptions['createConsumer']>;
+
+async function createConsumerBeforeDeadline(
+  createConsumer: CreateConsumer,
+  eventKey: typeof LARK_EVENT_KEYS[number],
+  signal: AbortSignal,
+  deadlineMs: number,
+): Promise<LarkCliEventConsumer> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(new FeishuGatewayError(
+        'UNAVAILABLE',
+        `lark-cli source readiness deadline expired for ${eventKey}`,
+      ));
+    }, deadlineMs);
+    timer.unref();
+  });
+  try {
+    return await Promise.race([createConsumer(eventKey, signal), deadline]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 interface QueueWaiter {
@@ -54,6 +81,11 @@ export function createLarkCliFeishuEventGateway(
   options: LarkCliFeishuEventGatewayOptions = {},
 ): LarkCliFeishuEventGateway {
   const homeDirectory = options.homeDirectory ?? homedir();
+  const sourceReadinessDeadlineMs = options.sourceReadinessDeadlineMs ??
+    DEFAULT_SOURCE_READINESS_DEADLINE_MS;
+  if (!Number.isSafeInteger(sourceReadinessDeadlineMs) || sourceReadinessDeadlineMs < 1) {
+    throw new TypeError('source readiness deadline must be a positive safe integer');
+  }
   const lifecycle = new AbortController();
   const buffered: Array<{ readonly eventId: string; readonly artifact: FeishuGeneratedArtifact }> = [];
   const consumers: LarkCliEventConsumer[] = [];
@@ -102,7 +134,12 @@ export function createLarkCliFeishuEventGateway(
         startDefaultLarkCliConsumer(eventKey, signal, homeDirectory));
       for (const eventKey of LARK_EVENT_KEYS) {
         if (lifecycle.signal.aborted) throw lifecycle.signal.reason;
-        const consumer = await createConsumer(eventKey, lifecycle.signal);
+        const consumer = await createConsumerBeforeDeadline(
+          createConsumer,
+          eventKey,
+          lifecycle.signal,
+          sourceReadinessDeadlineMs,
+        );
         if (lifecycle.signal.aborted) {
           await consumer.close();
           throw lifecycle.signal.reason;
