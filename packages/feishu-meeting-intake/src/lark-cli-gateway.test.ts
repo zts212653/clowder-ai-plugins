@@ -16,6 +16,20 @@ const SIGNAL = new AbortController().signal;
 
 async function* events(values: readonly unknown[]): AsyncGenerator<unknown> {
   for (const value of values) yield value;
+  await new Promise<never>(() => undefined);
+}
+
+async function* eventsUntilEnded(ended: Promise<void>): AsyncGenerator<unknown> {
+  await ended;
+  yield* [];
+}
+
+function deferred<Value = void>() {
+  let resolve!: (value: Value) => void;
+  const promise = new Promise<Value>(done => {
+    resolve = done;
+  });
+  return { promise, resolve };
 }
 
 test('maps minute and note events to bounded descriptors without transcript or destination authority', () => {
@@ -130,6 +144,50 @@ test('start rejects stalled source readiness with a typed unavailable failure', 
   assert.equal(outcome.error.code, 'UNAVAILABLE');
   assert.match(outcome.error.message, /source readiness deadline expired/u);
   assert.equal(aborted, true, 'deadline must abort stalled consumer startup');
+  await gateway.close();
+});
+
+test('start rejects when an opened source ends while the next source is still starting', async () => {
+  const endFirstSource = deferred();
+  const secondSourceStarted = deferred();
+  const releaseSecondSource = deferred();
+  let starts = 0;
+  let closes = 0;
+  const gateway = createLarkCliFeishuEventGateway({
+    createConsumer: async () => {
+      starts += 1;
+      if (starts === 1) {
+        return {
+          events: eventsUntilEnded(endFirstSource.promise),
+          close: async () => {
+            closes += 1;
+          },
+        };
+      }
+      secondSourceStarted.resolve();
+      await releaseSecondSource.promise;
+      return {
+        events: events([]),
+        close: async () => {
+          closes += 1;
+        },
+      };
+    },
+  });
+
+  const starting = gateway.start();
+  await secondSourceStarted.promise;
+  endFirstSource.resolve();
+  await new Promise<void>(resolve => setImmediate(resolve));
+  releaseSecondSource.resolve();
+
+  await assert.rejects(
+    starting,
+    error => error instanceof FeishuGatewayError &&
+      error.code === 'UNAVAILABLE' &&
+      /generated-event source ended/u.test(error.message),
+  );
+  assert.equal(closes, 2, 'startup failure must close every opened lark-cli process');
   await gateway.close();
 });
 

@@ -145,8 +145,8 @@ export function createLarkCliFeishuEventGateway(
           throw lifecycle.signal.reason;
         }
         consumers.push(consumer);
+        void pump(consumer);
       }
-      for (const consumer of consumers) void pump(consumer);
     })().catch(async error => {
       failure = error;
       lifecycle.abort(error);
