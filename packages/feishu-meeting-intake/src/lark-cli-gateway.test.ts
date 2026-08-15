@@ -191,6 +191,31 @@ test('start rejects when an opened source ends while the next source is still st
   await gateway.close();
 });
 
+test('start rejects when the final source ends during the pump handoff', async () => {
+  let starts = 0;
+  let closes = 0;
+  const gateway = createLarkCliFeishuEventGateway({
+    createConsumer: async () => {
+      starts += 1;
+      return {
+        events: starts === 1 ? events([]) : eventsUntilEnded(Promise.resolve()),
+        close: async () => {
+          closes += 1;
+        },
+      };
+    },
+  });
+
+  await assert.rejects(
+    gateway.start(),
+    error => error instanceof FeishuGatewayError &&
+      error.code === 'UNAVAILABLE' &&
+      /generated-event source ended/u.test(error.message),
+  );
+  assert.equal(closes, 2, 'handoff failure must close every opened lark-cli process');
+  await gateway.close();
+});
+
 test('combines the two generated-artifact streams and carries only an opaque cursor', async () => {
   const consumers: LarkCliEventConsumer[] = [
     { events: events([{

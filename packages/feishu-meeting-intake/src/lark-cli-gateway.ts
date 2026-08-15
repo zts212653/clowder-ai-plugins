@@ -147,6 +147,8 @@ export function createLarkCliFeishuEventGateway(
         consumers.push(consumer);
         void pump(consumer);
       }
+      await new Promise<void>(resolve => setImmediate(resolve));
+      if (lifecycle.signal.aborted) throw lifecycle.signal.reason;
     })().catch(async error => {
       failure = error;
       lifecycle.abort(error);
