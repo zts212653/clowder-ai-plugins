@@ -13,6 +13,7 @@ export const LARK_EVENT_KEYS = [
 
 const MAX_EVENT_LINE_BYTES = 256 * 1024;
 const MAX_DIAGNOSTIC_BYTES = 32 * 1024;
+const LARK_CLI_INSTALLER_NOTICE = /^lark-cli v\d+\.\d+\.\d+ installed successfully\r?$/u;
 
 export interface LarkCliEventConsumer {
   readonly events: AsyncIterable<unknown>;
@@ -21,6 +22,40 @@ export interface LarkCliEventConsumer {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseJsonObjects(detail: string): unknown[] {
+  const values: unknown[] = [];
+  for (let start = 0; start < detail.length; start += 1) {
+    if (detail[start] !== '{') continue;
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let end = start; end < detail.length; end += 1) {
+      const character = detail[end];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') inString = false;
+        continue;
+      }
+      if (character === '"') {
+        inString = true;
+        continue;
+      }
+      if (character === '{') depth += 1;
+      else if (character === '}') depth -= 1;
+      if (depth !== 0) continue;
+      try {
+        values.push(JSON.parse(detail.slice(start, end + 1)) as unknown);
+        start = end;
+      } catch {
+        // A balanced brace sequence may be non-JSON diagnostic text.
+      }
+      break;
+    }
+  }
+  return values;
 }
 
 class AsyncEventQueue implements AsyncIterable<unknown> {
@@ -68,15 +103,10 @@ class AsyncEventQueue implements AsyncIterable<unknown> {
 export function classifyLarkCliFailure(detail: string): FeishuGatewayError {
   let errorType = '';
   let errorSubtype = '';
-  for (const line of detail.split('\n')) {
-    try {
-      const candidate: unknown = JSON.parse(line);
-      if (isRecord(candidate) && isRecord(candidate.error)) {
-        errorType = String(candidate.error.type ?? '');
-        errorSubtype = String(candidate.error.subtype ?? '');
-      }
-    } catch {
-      // Readiness and exit diagnostics are intentionally non-JSON.
+  for (const candidate of parseJsonObjects(detail)) {
+    if (isRecord(candidate) && isRecord(candidate.error)) {
+      errorType = String(candidate.error.type ?? '');
+      errorSubtype = String(candidate.error.subtype ?? '');
     }
   }
   const classification = `${errorType}:${errorSubtype}`.toLowerCase();
@@ -96,6 +126,15 @@ export function classifyLarkCliFailure(detail: string): FeishuGatewayError {
     return new FeishuGatewayError('RATE_LIMITED', 'lark-cli generated-event source is rate limited');
   }
   return new FeishuGatewayError('UNAVAILABLE', 'lark-cli generated-event source stopped');
+}
+
+export function parseLarkCliEventOutputLine(line: string): unknown | undefined {
+  if (LARK_CLI_INSTALLER_NOTICE.test(line)) return undefined;
+  try {
+    return JSON.parse(line) as unknown;
+  } catch {
+    throw new FeishuGatewayError('UNAVAILABLE', 'lark-cli emitted invalid event JSON');
+  }
 }
 
 function startBoundedJsonLines(
@@ -121,9 +160,10 @@ function startBoundedJsonLines(
         return;
       }
       try {
-        queue.push(JSON.parse(line.toString('utf8')) as unknown);
-      } catch {
-        fail(new FeishuGatewayError('UNAVAILABLE', 'lark-cli emitted invalid event JSON'));
+        const event = parseLarkCliEventOutputLine(line.toString('utf8'));
+        if (event !== undefined) queue.push(event);
+      } catch (error) {
+        fail(error);
         return;
       }
     }
