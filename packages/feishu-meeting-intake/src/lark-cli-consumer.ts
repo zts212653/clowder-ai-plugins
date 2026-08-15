@@ -65,7 +65,7 @@ class AsyncEventQueue implements AsyncIterable<unknown> {
   }
 }
 
-function mappedCliFailure(detail: string): FeishuGatewayError {
+export function classifyLarkCliFailure(detail: string): FeishuGatewayError {
   let errorType = '';
   let errorSubtype = '';
   for (const line of detail.split('\n')) {
@@ -80,6 +80,12 @@ function mappedCliFailure(detail: string): FeishuGatewayError {
     }
   }
   const classification = `${errorType}:${errorSubtype}`.toLowerCase();
+  if (classification === 'validation:failed_precondition') {
+    return new FeishuGatewayError(
+      'EVENT_BUS_CONFLICT',
+      'another Feishu event bus owns this application',
+    );
+  }
   if (/auth|login|token|not_configured/u.test(classification)) {
     return new FeishuGatewayError('AUTH_EXPIRED', 'lark-cli user authorization is unavailable');
   }
@@ -165,13 +171,14 @@ export async function startDefaultLarkCliConsumer(
   child.once('error', fail);
   child.once('exit', (code) => {
     closed = true;
-    if (!readySeen) fail(mappedCliFailure(diagnostic));
+    if (!readySeen) fail(classifyLarkCliFailure(diagnostic));
     else if (code === 0) queue.end();
-    else fail(mappedCliFailure(diagnostic));
+    else fail(classifyLarkCliFailure(diagnostic));
   });
   const onAbort = (): void => {
     if (!readySeen) readyReject(signal.reason);
     child.stdin.end();
+    if (!closed) child.kill('SIGTERM');
   };
   signal.addEventListener('abort', onAbort, { once: true });
   try {

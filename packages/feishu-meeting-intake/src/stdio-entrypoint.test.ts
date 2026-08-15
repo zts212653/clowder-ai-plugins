@@ -1,15 +1,20 @@
 import assert from 'node:assert/strict';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import test from 'node:test';
 
 import type { SessionBinding } from '@clowder-ai/plugin-contract';
 
 import {
+  formatFeishuRuntimeDiagnostic,
   meetingIntakeStatePath,
   readRuntimeClaims,
   startFeishuMeetingIntakeStdio,
 } from './stdio-entrypoint.js';
 import { normalizeGeneratedArtifact } from './artifact.js';
+import { FeishuGatewayError } from './gateway.js';
 
 const DIGEST = `sha512-${'A'.repeat(86)}==`;
 const CLAIMS = {
@@ -78,6 +83,67 @@ test('derives durable instance state without trusting the Host identifier as a p
   const path = meetingIntakeStatePath('/Users/example', '../host-instance');
   assert.match(path, /^\/Users\/example\/\.clowder-ai\/plugin-state\/feishu-meeting-intake\/[a-f0-9]{64}\.json$/u);
   assert.doesNotMatch(path, /host-instance/u);
+});
+
+test('emits only a bounded typed diagnostic for an event-bus conflict', () => {
+  const line = formatFeishuRuntimeDiagnostic(
+    new FeishuGatewayError('EVENT_BUS_CONFLICT', 'secret account and remote host path'),
+  );
+
+  assert.deepEqual(JSON.parse(line), {
+    kind: 'clowder.plugin.runtime-error',
+    v: 1,
+    code: 'EVENT_BUS_CONFLICT',
+  });
+  assert.doesNotMatch(line, /secret|remote host path/u);
+});
+
+test('does not report broker.ready until both Feishu event sources are connected', async () => {
+  const hostToPlugin = new PassThrough();
+  const pluginToHost = new PassThrough();
+  const nextFrame = lineReader(pluginToHost);
+  const homeDirectory = await mkdtemp(join(tmpdir(), 'f292-source-ready-'));
+  let sourceStarts = 0;
+  let resolveSourceStart!: () => void;
+  const sourceStarted = new Promise<void>(resolve => {
+    resolveSourceStart = resolve;
+  });
+  const controller = startFeishuMeetingIntakeStdio({
+    input: hostToPlugin,
+    output: pluginToHost,
+    claims: readRuntimeClaims(CLAIMS),
+    homeDirectory,
+    createGateway: () => ({
+      start: async () => {
+        sourceStarts += 1;
+        await sourceStarted;
+      },
+      listGeneratedArtifacts: async ({ signal }) => new Promise((_, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      }),
+      inspectArtifact: async () => {
+        throw new Error('not used');
+      },
+      close: async () => undefined,
+    }),
+  });
+
+  const hello = await nextFrame();
+  send(hostToPlugin, { jsonrpc: '2.0', id: hello.id, result: binding() });
+  const readyFrame = nextFrame();
+  const readyBeforeSource = await Promise.race([
+    readyFrame.then(() => true),
+    new Promise<false>(resolve => setImmediate(() => resolve(false))),
+  ]);
+  assert.equal(readyBeforeSource, false);
+  assert.equal(sourceStarts, 1);
+
+  resolveSourceStart();
+  const ready = await readyFrame;
+  assert.equal(ready.method, 'broker.ready');
+  send(hostToPlugin, { jsonrpc: '2.0', id: ready.id, result: null });
+  await controller.activated;
+  await controller.close();
 });
 
 test('handshakes before source startup, publishes after ready, and rejects reserved rows', async () => {
