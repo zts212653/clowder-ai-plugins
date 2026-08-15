@@ -10,6 +10,7 @@ import {
   type LarkCliEventConsumer,
 } from './lark-cli-gateway.js';
 import { FeishuGatewayError } from './gateway.js';
+import { parseLarkCliEventOutputLine } from './lark-cli-consumer.js';
 import { normalizeLarkCliGeneratedEvent } from './lark-event-normalizer.js';
 
 const SIGNAL = new AbortController().signal;
@@ -82,16 +83,35 @@ test('resolves the package-owned lark-cli runner and gives it only the derived h
   assert.deepEqual(larkCliChildEnvironment('/Users/example'), { HOME: '/Users/example' });
 });
 
-test('classifies the structured global event-bus collision without copying remote diagnostics', () => {
+test('ignores only the package-owned installer notice while preserving strict JSON event framing', () => {
+  assert.equal(
+    parseLarkCliEventOutputLine('lark-cli v1.0.85 installed successfully'),
+    undefined,
+  );
+  assert.deepEqual(
+    parseLarkCliEventOutputLine('{"type":"minutes.minute.generated_v1","event_id":"evt-1"}'),
+    { type: 'minutes.minute.generated_v1', event_id: 'evt-1' },
+  );
+  assert.throws(
+    () => parseLarkCliEventOutputLine('lark-cli installed successfully'),
+    error => error instanceof FeishuGatewayError &&
+      error.code === 'UNAVAILABLE' &&
+      /invalid event JSON/u.test(error.message),
+  );
+});
+
+test('classifies a pretty-printed global event-bus collision without copying remote diagnostics', () => {
   const failure = classifyLarkCliFailure([
-    '[event] connecting',
+    '[event] remote connection check: online_instance_cnt=1',
     JSON.stringify({
+      ok: false,
+      identity: 'user',
       error: {
         type: 'validation',
         subtype: 'failed_precondition',
         message: 'another event bus owns secret-account@example.com',
       },
-    }),
+    }, null, 2),
   ].join('\n'));
 
   assert.equal(failure.code, 'EVENT_BUS_CONFLICT');
