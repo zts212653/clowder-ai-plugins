@@ -48,6 +48,12 @@ export {
 } from './lark-cli-gateway.js';
 
 export {
+  createLarkCliFeishuArtifactInspector,
+  parseFeishuMinutesReference,
+  type LarkCliFeishuArtifactInspectorOptions,
+} from './lark-cli-artifact-inspector.js';
+
+export {
   meetingIntakeStatePath,
   readRuntimeClaims,
   runFeishuMeetingIntakeEntrypoint,
