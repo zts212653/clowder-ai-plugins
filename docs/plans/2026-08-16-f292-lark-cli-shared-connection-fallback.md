@@ -3,6 +3,10 @@ feature_ids: [F292, K-2]
 topics: [feishu, lark-cli, meeting-intake, event-conflict, polling]
 doc_kind: plan
 created: 2026-08-16
+architecture_cell: feishu-generated-artifact-source-adapter
+map_delta: none
+architecture_why: package-owned source-mode fallback stays behind the existing polling gateway and durable outbox boundary
+tips_exempt: internal recovery path with no new user action or discoverable Host capability
 ---
 
 # F292 shared Feishu connection fallback plan
@@ -146,7 +150,9 @@ pnpm --filter @clowder-ai/feishu-meeting-intake lint
 pnpm --filter @clowder-ai/feishu-meeting-intake build
 pnpm test
 pnpm typecheck
+pnpm lint
 pnpm build
+pnpm test:fresh-consumer
 ```
 
 Then obtain one non-author exact-HEAD review, merge through the repository PR
