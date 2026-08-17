@@ -13,6 +13,7 @@ import {
   minuteArtifacts,
   noteArtifact,
   requireMeetingDetails,
+  requirePollingAuthorization,
   requireSearchPage,
   safeId,
   stableArtifacts,
@@ -151,6 +152,10 @@ export function createLarkCliFeishuPollingGateway(
     starting ??= (async () => {
       const end = now();
       const signal = lifecycle.signal;
+      requirePollingAuthorization(await runCommand(
+        ['auth', 'status', '--json', '--verify'],
+        signal,
+      ));
       for (const source of ['minutes-owner', 'minutes-participant', 'vc'] as const) {
         requireSearchPage(await runCommand(searchArgs(source, end - 1_000, end, 1), signal));
       }

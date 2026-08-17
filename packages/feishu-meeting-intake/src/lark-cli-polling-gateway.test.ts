@@ -19,24 +19,44 @@ function emptySearch() {
   return { ok: true, data: { items: [], has_more: false, page_token: '' } };
 }
 
-test('readiness probes Minutes owner, Minutes participant, and VC with only user identity', async () => {
+function validAuthStatus() {
+  return {
+    verified: true,
+    identities: {
+      user: {
+        scope: [
+          'minutes:minutes.search:read',
+          'minutes:minutes.basic:read',
+          'vc:meeting.search:read',
+          'vc:meeting.meetingevent:read',
+          'vc:record:readonly',
+        ].join(' '),
+      },
+    },
+  };
+}
+
+test('readiness verifies detail scopes and probes Minutes owner, participant, and VC as user', async () => {
   const calls: string[][] = [];
   const gateway = createLarkCliFeishuPollingGateway({
     homeDirectory: '/Users/example',
     now: () => NOW,
     runCommand: async (args) => {
       calls.push([...args]);
+      if (args[0] === 'auth') return validAuthStatus();
       return emptySearch();
     },
   });
 
   await gateway.start();
 
-  assert.equal(calls.length, 3);
-  assert.ok(calls.some(args => flag(args, '--owner-ids') === 'me'));
-  assert.ok(calls.some(args => flag(args, '--participant-ids') === 'me'));
-  assert.ok(calls.some(args => args[0] === 'vc' && args[1] === '+search'));
-  for (const args of calls) {
+  assert.equal(calls.length, 4);
+  assert.deepEqual(calls[0], ['auth', 'status', '--json', '--verify']);
+  const probes = calls.slice(1);
+  assert.ok(probes.some(args => flag(args, '--owner-ids') === 'me'));
+  assert.ok(probes.some(args => flag(args, '--participant-ids') === 'me'));
+  assert.ok(probes.some(args => args[0] === 'vc' && args[1] === '+search'));
+  for (const args of probes) {
     assert.equal(flag(args, '--as'), 'user');
     assert.equal(flag(args, '--page-size'), '1');
     assert.equal(flag(args, '--start'), new Date(NOW - 1_000).toISOString());
@@ -45,10 +65,32 @@ test('readiness probes Minutes owner, Minutes participant, and VC with only user
   await gateway.close();
 });
 
+test('readiness fails closed before search when a required detail scope is absent', async () => {
+  const calls: string[][] = [];
+  const status = validAuthStatus();
+  status.identities.user.scope = status.identities.user.scope.replace('vc:record:readonly', '');
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    runCommand: async (args) => {
+      calls.push([...args]);
+      return status;
+    },
+  });
+
+  await assert.rejects(
+    gateway.start(),
+    error => error instanceof FeishuGatewayError && error.code === 'PERMISSION_DENIED',
+  );
+  assert.deepEqual(calls, [['auth', 'status', '--json', '--verify']]);
+  await gateway.close();
+});
+
 test('polls owner and participant Minutes plus VC details, paginates, and deduplicates artifacts', async () => {
   const calls: string[][] = [];
   const runCommand: LarkCliReadCommand = async (args) => {
     calls.push([...args]);
+    if (args[0] === 'auth') return validAuthStatus();
     if (flag(args, '--page-size') === '1') return emptySearch();
     if (args[0] === 'minutes' && args[1] === '+search') {
       if (flag(args, '--participant-ids') === 'me') {
@@ -159,7 +201,9 @@ test('polls owner and participant Minutes plus VC details, paginates, and dedupl
   });
   const searches = calls.filter(args => args[1] === '+search' && flag(args, '--page-size') === '30');
   assert.equal(searches.length, 4, 'owner pagination plus participant and VC search');
-  for (const args of calls) assert.equal(flag(args, '--as'), 'user');
+  for (const args of calls.filter(args => args[0] !== 'auth')) {
+    assert.equal(flag(args, '--as'), 'user');
+  }
   assert.equal(flag(searches[0], '--start'), new Date(NOW - 5 * 60_000).toISOString());
   assert.equal(flag(searches[0], '--end'), new Date(NOW).toISOString());
   await gateway.close();
@@ -173,6 +217,7 @@ test('uses a bounded overlap for stored cursors and cadence-blocks an empty poll
     now: () => NOW,
     runCommand: async (args) => {
       calls.push([...args]);
+      if (args[0] === 'auth') return validAuthStatus();
       return emptySearch();
     },
     sleep: async () => {
@@ -198,9 +243,12 @@ test('fails closed on malformed read responses without converting them to empty 
   const gateway = createLarkCliFeishuPollingGateway({
     homeDirectory: '/Users/example',
     now: () => NOW,
-    runCommand: async (args) => flag(args, '--page-size') === '1'
-      ? emptySearch()
-      : { ok: true, data: { items: 'not-an-array' } },
+    runCommand: async (args) => {
+      if (args[0] === 'auth') return validAuthStatus();
+      return flag(args, '--page-size') === '1'
+        ? emptySearch()
+        : { ok: true, data: { items: 'not-an-array' } };
+    },
   });
 
   await assert.rejects(

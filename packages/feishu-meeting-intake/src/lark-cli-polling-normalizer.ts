@@ -1,6 +1,17 @@
 import { FeishuGatewayError, type FeishuGeneratedArtifact } from './gateway.js';
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u;
+const REQUIRED_POLLING_SCOPES = [
+  'minutes:minutes.search:read',
+  'vc:meeting.search:read',
+  'vc:meeting.meetingevent:read',
+  'vc:record:readonly',
+] as const;
+const MINUTE_DETAIL_SCOPES = [
+  'minutes:minutes',
+  'minutes:minutes:readonly',
+  'minutes:minutes.basic:read',
+] as const;
 
 export interface SearchPage {
   readonly items: readonly Record<string, unknown>[];
@@ -23,6 +34,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function unavailable(message: string): never {
   throw new FeishuGatewayError('UNAVAILABLE', message);
+}
+
+export function requirePollingAuthorization(value: unknown): void {
+  if (!isRecord(value) || typeof value.verified !== 'boolean') {
+    return unavailable('lark-cli authorization response is malformed');
+  }
+  if (!value.verified) {
+    throw new FeishuGatewayError('AUTH_EXPIRED', 'lark-cli user authorization is not verified');
+  }
+  if (!isRecord(value.identities) || !isRecord(value.identities.user)) {
+    throw new FeishuGatewayError('AUTH_EXPIRED', 'lark-cli user authorization is unavailable');
+  }
+  const rawScopes = value.identities.user.scope;
+  if (typeof rawScopes !== 'string' || rawScopes.length > 32 * 1024) {
+    return unavailable('lark-cli user authorization scopes are malformed');
+  }
+  const scopes = new Set(rawScopes.split(/[ ,]+/u).filter(Boolean));
+  if (
+    REQUIRED_POLLING_SCOPES.some(scope => !scopes.has(scope)) ||
+    !MINUTE_DETAIL_SCOPES.some(scope => scopes.has(scope))
+  ) {
+    throw new FeishuGatewayError(
+      'PERMISSION_DENIED',
+      'lark-cli user authorization does not cover Feishu meeting polling',
+    );
+  }
 }
 
 function requireData(value: unknown): Record<string, unknown> {
