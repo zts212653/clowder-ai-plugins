@@ -1,6 +1,6 @@
 {
   "pluginId": "official.feishu-meeting-intake",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "contractVersion": "0.1.0",
   "name": "Feishu Meeting Intake",
   "features": [

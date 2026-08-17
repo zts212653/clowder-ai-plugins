@@ -31,7 +31,7 @@ test('ships a contract-valid stdio manifest with one declared signal', async () 
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, result.valid ? undefined : JSON.stringify(result.errors));
   if (result.valid) {
-    assert.equal(result.manifest.version, '0.1.0-alpha.4');
+    assert.equal(result.manifest.version, '0.1.0-alpha.5');
     assert.equal(
       (packageMetadata as { readonly version?: unknown }).version,
       result.manifest.version,

@@ -16,6 +16,10 @@ import {
   startDefaultLarkCliConsumer,
   type LarkCliEventConsumer,
 } from './lark-cli-consumer.js';
+import {
+  createLarkCliFeishuPollingGateway,
+  type LarkCliFeishuPollingGateway,
+} from './lark-cli-polling-gateway.js';
 
 const MAX_BUFFERED_EVENTS = 512;
 const DEFAULT_SOURCE_READINESS_DEADLINE_MS = 30_000;
@@ -36,6 +40,7 @@ export interface LarkCliFeishuEventGatewayOptions {
     locator: FeishuArtifactLocator,
     signal: AbortSignal,
   ) => Promise<unknown>;
+  readonly createPollingGateway?: () => LarkCliFeishuPollingGateway;
 }
 
 type CreateConsumer = NonNullable<LarkCliFeishuEventGatewayOptions['createConsumer']>;
@@ -77,7 +82,7 @@ function defaultInspectArtifact(locator: FeishuArtifactLocator): Promise<unknown
   );
 }
 
-export function createLarkCliFeishuEventGateway(
+function createEventSourceGateway(
   options: LarkCliFeishuEventGatewayOptions = {},
 ): LarkCliFeishuEventGateway {
   const homeDirectory = options.homeDirectory ?? homedir();
@@ -197,6 +202,63 @@ export function createLarkCliFeishuEventGateway(
       notify();
       await starting?.catch(() => undefined);
       await Promise.all(consumers.map(consumer => consumer.close()));
+    },
+  };
+}
+
+export function createLarkCliFeishuEventGateway(
+  options: LarkCliFeishuEventGatewayOptions = {},
+): LarkCliFeishuEventGateway {
+  const homeDirectory = options.homeDirectory ?? homedir();
+  const eventSource = createEventSourceGateway(options);
+  let pollingSource: LarkCliFeishuPollingGateway | undefined;
+  let activeSource: LarkCliFeishuEventGateway | LarkCliFeishuPollingGateway | undefined;
+  let starting: Promise<void> | undefined;
+
+  const start = (): Promise<void> => {
+    starting ??= (async () => {
+      try {
+        await eventSource.start();
+        activeSource = eventSource;
+      } catch (error) {
+        if (!(error instanceof FeishuGatewayError) || error.code !== 'EVENT_BUS_CONFLICT') {
+          throw error;
+        }
+        await eventSource.close();
+        pollingSource = options.createPollingGateway?.() ??
+          createLarkCliFeishuPollingGateway({
+            homeDirectory,
+            ...(options.inspectArtifact === undefined
+              ? {} : { inspectArtifact: options.inspectArtifact }),
+          });
+        await pollingSource.start();
+        activeSource = pollingSource;
+      }
+    })();
+    return starting;
+  };
+
+  return {
+    start,
+    async listGeneratedArtifacts(request): Promise<FeishuGeneratedArtifactPage> {
+      await start();
+      if (activeSource === undefined) {
+        throw new FeishuGatewayError('UNAVAILABLE', 'Feishu source did not become ready');
+      }
+      return activeSource.listGeneratedArtifacts(request);
+    },
+    async inspectArtifact(locator, signal): Promise<unknown> {
+      await start();
+      if (activeSource === undefined) {
+        throw new FeishuGatewayError('UNAVAILABLE', 'Feishu source did not become ready');
+      }
+      return activeSource.inspectArtifact(locator, signal);
+    },
+    async close(): Promise<void> {
+      await Promise.all([
+        eventSource.close(),
+        pollingSource?.close(),
+      ]);
     },
   };
 }
