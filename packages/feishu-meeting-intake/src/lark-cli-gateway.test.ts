@@ -269,6 +269,37 @@ test('combines the two generated-artifact streams and carries only an opaque cur
   await gateway.close();
 });
 
+test('manual history inspection reuses the default user-authorized lark-cli adapter', async () => {
+  const token = 'obcne9c5d9z4l3o3nk9mg777';
+  const calls: string[][] = [];
+  const gateway = createLarkCliFeishuEventGateway({
+    homeDirectory: '/Users/example',
+    createConsumer: async () => ({ events: events([]), close: async () => undefined }),
+    runCommand: async (args) => {
+      calls.push([...args]);
+      return {
+        ok: true,
+        data: {
+          minute: {
+            token,
+            create_time: '1786665850000',
+            title: 'Historical meeting',
+          },
+        },
+      };
+    },
+  });
+
+  const artifact = await gateway.inspectArtifact({ artifactId: token, kind: 'minute' }, SIGNAL);
+
+  assert.equal((artifact as { artifactId: string }).artifactId, token);
+  assert.deepEqual(calls, [[
+    'minutes', 'minutes', 'get', '--minute-token', token,
+    '--as', 'user', '--format', 'json',
+  ]]);
+  await gateway.close();
+});
+
 test('closes an opened event source when the second source cannot start', async () => {
   let starts = 0;
   let closes = 0;

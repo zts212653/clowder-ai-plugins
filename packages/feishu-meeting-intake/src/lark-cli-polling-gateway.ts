@@ -19,10 +19,12 @@ import {
   stableArtifacts,
   type MeetingDetail,
 } from './lark-cli-polling-normalizer.js';
+import { createLarkCliFeishuArtifactInspector } from './lark-cli-artifact-inspector.js';
 
 const CURSOR_PREFIX = 'poll-v1:';
 const DEFAULT_LOOKBACK_MS = 5 * 60_000;
 const DEFAULT_OVERLAP_MS = 30_000;
+const DEFAULT_SEARCH_CONSISTENCY_LAG_MS = 10 * 60_000;
 const DEFAULT_POLL_INTERVAL_MS = 30_000;
 const SEARCH_PAGE_SIZE = 30;
 const MAX_SEARCH_PAGES = 4;
@@ -41,6 +43,7 @@ export interface LarkCliFeishuPollingGatewayOptions {
   readonly now?: () => number;
   readonly lookbackMs?: number;
   readonly overlapMs?: number;
+  readonly searchConsistencyLagMs?: number;
   readonly pollIntervalMs?: number;
   readonly runCommand?: LarkCliReadCommand;
   readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
@@ -54,13 +57,19 @@ function unavailable(message: string): never {
   throw new FeishuGatewayError('UNAVAILABLE', message);
 }
 
-function parseCursor(cursor: string | null, now: number, lookbackMs: number, overlapMs: number) {
-  if (cursor === null || !cursor.startsWith(CURSOR_PREFIX)) return now - lookbackMs;
+function parseCursor(
+  cursor: string | null,
+  now: number,
+  safeEnd: number,
+  lookbackMs: number,
+  overlapMs: number,
+) {
+  if (cursor === null || !cursor.startsWith(CURSOR_PREFIX)) return Math.max(0, safeEnd - lookbackMs);
   const value = Number(cursor.slice(CURSOR_PREFIX.length));
   if (!Number.isSafeInteger(value) || value < 0 || value > now) {
     return unavailable('Feishu polling cursor is malformed');
   }
-  return Math.max(0, value - overlapMs);
+  return Math.max(0, Math.min(value, safeEnd) - overlapMs);
 }
 
 function cursor(value: number): string {
@@ -136,11 +145,22 @@ export function createLarkCliFeishuPollingGateway(
   const now = options.now ?? Date.now;
   const lookbackMs = options.lookbackMs ?? DEFAULT_LOOKBACK_MS;
   const overlapMs = options.overlapMs ?? DEFAULT_OVERLAP_MS;
+  const searchConsistencyLagMs = options.searchConsistencyLagMs ??
+    DEFAULT_SEARCH_CONSISTENCY_LAG_MS;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
-  for (const [label, value] of Object.entries({ lookbackMs, overlapMs, pollIntervalMs })) {
+  for (const [label, value] of Object.entries({
+    lookbackMs,
+    overlapMs,
+    searchConsistencyLagMs,
+    pollIntervalMs,
+  })) {
     if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${label} must be positive`);
   }
   const runCommand = options.runCommand ?? createDefaultLarkCliReadCommand(options.homeDirectory);
+  const inspectArtifact = options.inspectArtifact ?? createLarkCliFeishuArtifactInspector({
+    homeDirectory: options.homeDirectory,
+    runCommand,
+  });
   const sleep = options.sleep ?? defaultSleep;
   const lifecycle = new AbortController();
   let starting: Promise<void> | undefined;
@@ -167,8 +187,9 @@ export function createLarkCliFeishuPollingGateway(
     inputCursor: string | null,
     signal: AbortSignal,
   ): Promise<{ readonly artifacts: FeishuGeneratedArtifact[]; readonly nextCursor: string }> => {
-    const end = now();
-    const begin = parseCursor(inputCursor, end, lookbackMs, overlapMs);
+    const currentTime = now();
+    const end = Math.max(0, currentTime - searchConsistencyLagMs);
+    const begin = parseCursor(inputCursor, currentTime, end, lookbackMs, overlapMs);
     const [owned, participated, meetingItems] = await Promise.all([
       collectSearch(runCommand, 'minutes-owner', begin, end, signal),
       collectSearch(runCommand, 'minutes-participant', begin, end, signal),
@@ -241,8 +262,7 @@ export function createLarkCliFeishuPollingGateway(
       return { artifacts, nextCursor };
     },
     inspectArtifact(locator, signal): Promise<unknown> {
-      if (options.inspectArtifact !== undefined) return options.inspectArtifact(locator, signal);
-      throw new FeishuGatewayError('UNAVAILABLE', `manual ${locator.kind} inspection is unavailable`);
+      return inspectArtifact(locator, signal);
     },
     async close(): Promise<void> {
       lifecycle.abort(new Error('Feishu polling gateway closed'));

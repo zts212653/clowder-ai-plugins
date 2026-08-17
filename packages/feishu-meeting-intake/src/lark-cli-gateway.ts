@@ -20,6 +20,10 @@ import {
   createLarkCliFeishuPollingGateway,
   type LarkCliFeishuPollingGateway,
 } from './lark-cli-polling-gateway.js';
+import {
+  createLarkCliFeishuArtifactInspector,
+} from './lark-cli-artifact-inspector.js';
+import type { LarkCliReadCommand } from './lark-cli-read-command.js';
 
 const MAX_BUFFERED_EVENTS = 512;
 const DEFAULT_SOURCE_READINESS_DEADLINE_MS = 30_000;
@@ -40,6 +44,7 @@ export interface LarkCliFeishuEventGatewayOptions {
     locator: FeishuArtifactLocator,
     signal: AbortSignal,
   ) => Promise<unknown>;
+  readonly runCommand?: LarkCliReadCommand;
   readonly createPollingGateway?: () => LarkCliFeishuPollingGateway;
 }
 
@@ -75,17 +80,14 @@ interface QueueWaiter {
   readonly onAbort: () => void;
 }
 
-function defaultInspectArtifact(locator: FeishuArtifactLocator): Promise<unknown> {
-  throw new FeishuGatewayError(
-    'UNAVAILABLE',
-    `manual ${locator.kind} inspection is not available in the event process`,
-  );
-}
-
 function createEventSourceGateway(
   options: LarkCliFeishuEventGatewayOptions = {},
 ): LarkCliFeishuEventGateway {
   const homeDirectory = options.homeDirectory ?? homedir();
+  const inspectArtifact = options.inspectArtifact ?? createLarkCliFeishuArtifactInspector({
+    homeDirectory,
+    ...(options.runCommand === undefined ? {} : { runCommand: options.runCommand }),
+  });
   const sourceReadinessDeadlineMs = options.sourceReadinessDeadlineMs ??
     DEFAULT_SOURCE_READINESS_DEADLINE_MS;
   if (!Number.isSafeInteger(sourceReadinessDeadlineMs) || sourceReadinessDeadlineMs < 1) {
@@ -195,7 +197,7 @@ function createEventSourceGateway(
       };
     },
     inspectArtifact(locator, signal): Promise<unknown> {
-      return options.inspectArtifact?.(locator, signal) ?? defaultInspectArtifact(locator);
+      return inspectArtifact(locator, signal);
     },
     async close(): Promise<void> {
       lifecycle.abort(new Error('Feishu event gateway closed'));
@@ -228,6 +230,7 @@ export function createLarkCliFeishuEventGateway(
         pollingSource = options.createPollingGateway?.() ??
           createLarkCliFeishuPollingGateway({
             homeDirectory,
+            ...(options.runCommand === undefined ? {} : { runCommand: options.runCommand }),
             ...(options.inspectArtifact === undefined
               ? {} : { inspectArtifact: options.inspectArtifact }),
           });

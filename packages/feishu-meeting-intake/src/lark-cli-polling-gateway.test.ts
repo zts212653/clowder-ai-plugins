@@ -9,6 +9,7 @@ import {
 
 const NOW = 1_786_381_500_000;
 const SIGNAL = new AbortController().signal;
+const CONSISTENCY_LAG_MS = 10 * 60_000;
 
 function flag(args: readonly string[], name: string): string | undefined {
   const index = args.indexOf(name);
@@ -197,19 +198,22 @@ test('polls owner and participant Minutes plus VC details, paginates, and dedupl
         title: 'Second minute',
       },
     ],
-    nextCursor: `poll-v1:${NOW}`,
+    nextCursor: `poll-v1:${NOW - CONSISTENCY_LAG_MS}`,
   });
   const searches = calls.filter(args => args[1] === '+search' && flag(args, '--page-size') === '30');
   assert.equal(searches.length, 4, 'owner pagination plus participant and VC search');
   for (const args of calls.filter(args => args[0] !== 'auth')) {
     assert.equal(flag(args, '--as'), 'user');
   }
-  assert.equal(flag(searches[0], '--start'), new Date(NOW - 5 * 60_000).toISOString());
-  assert.equal(flag(searches[0], '--end'), new Date(NOW).toISOString());
+  assert.equal(
+    flag(searches[0], '--start'),
+    new Date(NOW - CONSISTENCY_LAG_MS - 5 * 60_000).toISOString(),
+  );
+  assert.equal(flag(searches[0], '--end'), new Date(NOW - CONSISTENCY_LAG_MS).toISOString());
   await gateway.close();
 });
 
-test('uses a bounded overlap for stored cursors and cadence-blocks an empty poll', async () => {
+test('never advances a stored cursor beyond the bounded Feishu search-consistency horizon', async () => {
   const calls: string[][] = [];
   let sleeps = 0;
   const gateway = createLarkCliFeishuPollingGateway({
@@ -231,11 +235,46 @@ test('uses a bounded overlap for stored cursors and cadence-blocks an empty poll
     signal: SIGNAL,
   });
 
-  assert.deepEqual(page, { artifacts: [], nextCursor: `poll-v1:${NOW}` });
+  assert.deepEqual(page, {
+    artifacts: [],
+    nextCursor: `poll-v1:${NOW - CONSISTENCY_LAG_MS}`,
+  });
   assert.equal(sleeps, 1);
   const poll = calls.find(args => flag(args, '--page-size') === '30');
   assert.ok(poll);
-  assert.equal(flag(poll, '--start'), new Date(NOW - 90_000).toISOString());
+  assert.equal(
+    flag(poll, '--start'),
+    new Date(NOW - CONSISTENCY_LAG_MS - 30_000).toISOString(),
+  );
+  assert.equal(flag(poll, '--end'), new Date(NOW - CONSISTENCY_LAG_MS).toISOString());
+  await gateway.close();
+});
+
+test('retains a caller-configured search-consistency horizon without widening the scan unboundedly', async () => {
+  const calls: string[][] = [];
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    searchConsistencyLagMs: 2 * 60_000,
+    runCommand: async (args) => {
+      calls.push([...args]);
+      if (args[0] === 'auth') return validAuthStatus();
+      return emptySearch();
+    },
+    sleep: async () => undefined,
+  });
+
+  const page = await gateway.listGeneratedArtifacts({
+    cursor: `poll-v1:${NOW - 5 * 60_000}`,
+    limit: 64,
+    signal: SIGNAL,
+  });
+
+  assert.equal(page.nextCursor, `poll-v1:${NOW - 2 * 60_000}`);
+  const poll = calls.find(args => flag(args, '--page-size') === '30');
+  assert.ok(poll);
+  assert.equal(flag(poll, '--start'), new Date(NOW - 5 * 60_000 - 30_000).toISOString());
+  assert.equal(flag(poll, '--end'), new Date(NOW - 2 * 60_000).toISOString());
   await gateway.close();
 });
 
