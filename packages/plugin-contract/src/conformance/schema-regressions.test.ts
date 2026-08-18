@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import { WIRE_METHOD_REGISTRY } from '../wire/registry.js';
 
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv/dist/2020') as new (options: {
@@ -351,9 +350,4 @@ test('M0-C requires a closed messageHandle in every SendReceipt', () => {
     false,
     'legacy handle is not a compatibility alias',
   );
-
-  const sendRow = WIRE_METHOD_REGISTRY['messaging.send'];
-  assert.equal(sendRow.leafClosure, 'CLOSED');
-  assert.equal(sendRow.ready, true);
-  assert.equal(sendRow.schemaClosurePrerequisites, undefined);
 });

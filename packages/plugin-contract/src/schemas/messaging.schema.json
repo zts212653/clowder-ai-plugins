@@ -354,10 +354,10 @@
         "messageId": { "type": "string", "minLength": 1 },
         "threadId": { "type": "string", "minLength": 1 },
         "revision": { "type": "integer", "minimum": 1 },
-        "handle": { "$ref": "#/$defs/MessageHandle" },
+        "messageHandle": { "$ref": "#/$defs/MessageHandle" },
         "publishSequence": { "type": "integer", "minimum": 0 }
       },
-      "required": ["messageId", "threadId", "revision"],
+      "required": ["messageId", "threadId", "revision", "messageHandle"],
       "additionalProperties": false
     },
     "AppendReceipt": {
