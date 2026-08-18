@@ -26,11 +26,23 @@ import type {
   EventsPublishInput,
   EventsPublishResult,
   SendInput,
+  SendResult,
   AppendInput,
+  AppendResult,
   ReadInput,
+  ReadResult,
   SnapshotInput,
+  SnapshotResult,
   DeliverInput,
+  DeliverResult,
 } from './index.js';
+import type {
+  AppendElementsRequest,
+  AppendReceipt,
+  MessageDraft,
+  MessageEnvelope,
+  SendReceipt,
+} from '../generated/contract.generated.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RED (a): Generic envelope constructors are NOT in the public barrel.
@@ -89,20 +101,48 @@ const _closedPublishResult: EventsPublishResult = {
 void _closedPublish;
 void _closedPublishResult;
 
-// @ts-expect-error — Row 3 (messaging.send) input is never
-const _reservedSend: SendInput = '';
+declare const _draft: MessageDraft;
+declare const _sendReceipt: SendReceipt;
+declare const _appendRequest: AppendElementsRequest;
+declare const _appendReceipt: AppendReceipt;
+declare const _envelope: MessageEnvelope;
 
-// @ts-expect-error — Row 4 (messaging.appendElements) input is never
-const _reservedAppend: AppendInput = '';
+const _closedSend: SendInput = _draft;
+const _closedSendResult: SendResult = _sendReceipt;
+const _closedAppend: AppendInput = _appendRequest;
+const _closedAppendResult: AppendResult = _appendReceipt;
+const _closedRead: ReadInput = { subscriptionId: 'sub-1', limit: 32 };
+const _closedReadResult: ReadResult = {
+  events: [],
+  ackToken: null,
+  stale: false,
+};
+const _closedSnapshot: SnapshotInput = {
+  subscriptionId: 'sub-1',
+  maxItems: 64,
+};
+const _closedSnapshotResult: SnapshotResult = {
+  items: [],
+  nextPageToken: null,
+  snapshotAckToken: 'snapshot-ack-1',
+};
+const _closedDeliver: DeliverInput = {
+  deliveryId: 'delivery-1',
+  threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+  envelope: _envelope,
+};
+const _closedDeliverResult: DeliverResult = { deliveryId: 'delivery-1' };
 
-// @ts-expect-error — Row 6 (messaging.read) input is never
-const _reservedRead: ReadInput = '';
-
-// @ts-expect-error — Row 8 (messaging.snapshot) input is never
-const _reservedSnapshot: SnapshotInput = '';
-
-// @ts-expect-error — Row 9 (host.messaging.deliver) input is never
-const _reservedDeliver: DeliverInput = '';
+void _closedSend;
+void _closedSendResult;
+void _closedAppend;
+void _closedAppendResult;
+void _closedRead;
+void _closedReadResult;
+void _closedSnapshot;
+void _closedSnapshotResult;
+void _closedDeliver;
+void _closedDeliverResult;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RED (c): Error responses beyond the 11 closed arms cannot be constructed.

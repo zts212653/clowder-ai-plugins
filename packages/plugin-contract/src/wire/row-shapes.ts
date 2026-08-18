@@ -2,15 +2,24 @@
  * Per-row input/result shapes for the 13-row method registry.
  * Mechanized from #1165 frozen shape.
  *
- * CLOSED rows (1, 2, 5, 7, 10, 11, 12): full executable shapes with bounds.
- * RESERVED rows (3, 4, 6, 8, 9): type stubs only — no executable
- * contract may be exported until the row's matrix entries close.
+ * Every row has a closed executable target shape. Rows 3–9 are exposed for
+ * the beta.11 M0-C slice; registry readiness still depends on the exact
+ * source-admission and byte-proof evidence tracked by that slice.
  *
  * Each closed row's shape is additionalProperties: false.
  * Bounds constants are provided for runtime validation.
  */
 
-import type { Capability } from '../generated/contract.generated.js';
+import type {
+  AppendElementsRequest,
+  AppendReceipt,
+  Capability,
+  MessageDraft,
+  MessageEnvelope,
+  MessageOutputEvent,
+  SendReceipt,
+  ThreadHandleAddress,
+} from '../generated/contract.generated.js';
 import type { GrantSnapshot } from './grants.js';
 import type {
   BrokerReadyParams,
@@ -239,56 +248,119 @@ export type ReadyResult = null;
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Remaining RESERVED rows — type stubs only
-//
-// No executable input/result contract may be exported for these rows until
-// their matrix entries close. The `never` type ensures no code can
-// accidentally construct or consume these shapes.
+// M0-C messaging rows — CLOSED beta.11 shapes
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Row 3 — messaging.send: RESERVED (M1/M2/M5/I1).
- *
- * Plugin → Host message send. The domain types (MessageDraft,
- * SendReceipt) exist in the generated contract types, but the wire
- * input/result shapes remain reserved until the row's matrix entries close.
+ * Row 3 — messaging.send.
+ * Plugin → Host message send using the canonical generated domain types.
  */
-export type SendInput = never;
-export type SendResult = never;
+export type SendInput = MessageDraft;
+export type SendResult = SendReceipt;
 
 /**
- * Row 4 — messaging.appendElements: RESERVED (M1/M2/M5/I1).
- *
- * Plugin → Host element append. The domain types exist in the
- * generated contract types, but the wire input/result shapes remain
- * reserved until the row's matrix entries close.
+ * Row 4 — messaging.appendElements.
+ * Plugin → Host append with revision-CAS settlement in K-1.
  */
-export type AppendInput = never;
-export type AppendResult = never;
+export type AppendInput = AppendElementsRequest;
+export type AppendResult = AppendReceipt;
 
 /**
- * Row 6 — messaging.read: RESERVED (M1/M2/M3/M4/M5/M6/M7/I1).
- *
- * Plugin → Host subscription read. The wire input/result shapes
- * remain reserved until the row's matrix entries close.
+ * Row 6 request. No page token is exposed: reads resume from the Host-owned
+ * acknowledged cursor.
  */
-export type ReadInput = never;
-export type ReadResult = never;
+export interface SubscriptionReadPageRequest {
+  readonly subscriptionId: string;
+  readonly limit: number;
+}
+
+export interface SubscriptionNormalPageResponse {
+  readonly events: readonly MessageOutputEvent[];
+  readonly ackToken: string;
+  readonly stale: false;
+}
+
+export interface SubscriptionEmptyPageResponse {
+  readonly events: readonly [];
+  readonly ackToken: null;
+  readonly stale: false;
+}
+
+export interface SubscriptionStalePageResponse {
+  readonly events: readonly [];
+  readonly ackToken: null;
+  readonly stale: true;
+}
+
+/** Closed three-variant row-6 result. */
+export type BoundedSubscriptionReadPageResponse =
+  | SubscriptionNormalPageResponse
+  | SubscriptionEmptyPageResponse
+  | SubscriptionStalePageResponse;
+
+export type ReadInput = SubscriptionReadPageRequest;
+export type ReadResult = BoundedSubscriptionReadPageResponse;
+
+export const READ_SUBSCRIPTION_ID_MIN_LENGTH = 1 as const;
+export const READ_SUBSCRIPTION_ID_MAX_LENGTH = 128 as const;
+export const READ_LIMIT_MIN = 1 as const;
+export const READ_LIMIT_MAX = 32 as const;
+export const READ_ACK_TOKEN_MIN_LENGTH = 1 as const;
+export const READ_ACK_TOKEN_MAX_LENGTH = 512 as const;
 
 /**
- * Row 8 — messaging.snapshot: RESERVED (M1/M2/M5/M7/I1).
- *
- * Plugin → Host snapshot request. The wire input/result shapes
- * remain reserved until the row's matrix entries close.
+ * Row 8 request. An absent pageToken starts an immutable Host view.
  */
-export type SnapshotInput = never;
-export type SnapshotResult = never;
+export interface SnapshotPageRequest {
+  readonly subscriptionId: string;
+  readonly maxItems: number;
+  readonly pageToken?: string;
+}
+
+export interface SnapshotIntermediatePageResponse {
+  readonly items: readonly MessageEnvelope[];
+  readonly nextPageToken: string;
+  readonly snapshotAckToken: null;
+}
+
+export interface SnapshotFinalPageResponse {
+  readonly items: readonly MessageEnvelope[];
+  readonly nextPageToken: null;
+  readonly snapshotAckToken: string;
+}
+
+/** Closed intermediate/final row-8 result. */
+export type SnapshotPageResponse =
+  | SnapshotIntermediatePageResponse
+  | SnapshotFinalPageResponse;
+
+export type SnapshotInput = SnapshotPageRequest;
+export type SnapshotResult = SnapshotPageResponse;
+
+export const SNAPSHOT_SUBSCRIPTION_ID_MIN_LENGTH = 1 as const;
+export const SNAPSHOT_SUBSCRIPTION_ID_MAX_LENGTH = 128 as const;
+export const SNAPSHOT_MAX_ITEMS_MIN = 1 as const;
+export const SNAPSHOT_MAX_ITEMS_MAX = 64 as const;
+export const SNAPSHOT_PAGE_TOKEN_MIN_LENGTH = 1 as const;
+export const SNAPSHOT_PAGE_TOKEN_MAX_LENGTH = 512 as const;
+export const SNAPSHOT_ACK_TOKEN_MIN_LENGTH = 1 as const;
+export const SNAPSHOT_ACK_TOKEN_MAX_LENGTH = 512 as const;
 
 /**
- * Row 9 — host.messaging.deliver: RESERVED (M1/M2/M5/M7/I1).
- *
- * Host → Plugin delivery push. The wire input/result shapes
- * remain reserved until the row's matrix entries close.
+ * Row 9 — Host → Plugin callback request and byte-equal acknowledgement.
  */
-export type DeliverInput = never;
-export type DeliverResult = never;
+export interface HostMessagingDeliverRequest {
+  readonly deliveryId: string;
+  readonly threadHandle: ThreadHandleAddress;
+  readonly envelope: MessageEnvelope;
+}
+
+export interface HostMessagingDeliverResult {
+  readonly deliveryId: string;
+}
+
+export type DeliverInput = HostMessagingDeliverRequest;
+export type DeliverResult = HostMessagingDeliverResult;
+
+export const DELIVER_DELIVERY_ID_MIN_LENGTH = 1 as const;
+export const DELIVER_DELIVERY_ID_MAX_LENGTH = 128 as const;
