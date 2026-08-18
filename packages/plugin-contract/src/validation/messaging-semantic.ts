@@ -29,6 +29,48 @@ function payloadBytes(payload: unknown): number | undefined {
   }
 }
 
+function isCanonicalOccurredAt(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  try {
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) && date.toISOString() === value;
+  } catch {
+    return false;
+  }
+}
+
+function envelopesFor(schemaRef: string, value: unknown): readonly unknown[] {
+  if (schemaRef === 'MessageEnvelope') return [value];
+  if (!isRecord(value)) return [];
+
+  if (schemaRef === 'MessagePublishEvent' || schemaRef === 'M0CDeliverInput') {
+    return [value['envelope']];
+  }
+
+  if (schemaRef === 'MessageOutputEvent') {
+    return value['type'] === 'message.publish' ? [value['envelope']] : [];
+  }
+
+  if (
+    (schemaRef === 'SubscriptionReadResponse' || schemaRef === 'M0CReadResult') &&
+    Array.isArray(value['events'])
+  ) {
+    return value['events'].flatMap((event) =>
+      envelopesFor('MessageOutputEvent', event),
+    );
+  }
+
+  if (schemaRef === 'SnapshotResponse' && Array.isArray(value['envelopes'])) {
+    return value['envelopes'];
+  }
+
+  if (schemaRef === 'M0CSnapshotResult' && Array.isArray(value['items'])) {
+    return value['items'];
+  }
+
+  return [];
+}
+
 function elementGroups(schemaRef: string, value: unknown): readonly unknown[][] {
   if (!isRecord(value)) return [];
 
@@ -65,10 +107,28 @@ function elementGroups(schemaRef: string, value: unknown): readonly unknown[][] 
     );
   }
 
+  if (schemaRef === 'M0CReadResult' && Array.isArray(value['events'])) {
+    return value['events'].flatMap((event) =>
+      elementGroups('MessageOutputEvent', event),
+    );
+  }
+
   if (schemaRef === 'SnapshotResponse' && Array.isArray(value['envelopes'])) {
     return value['envelopes'].flatMap((envelope) =>
       elementGroups('MessageEnvelope', envelope),
     );
+  }
+
+  if (schemaRef === 'M0CSnapshotResult' && Array.isArray(value['items'])) {
+    return value['items'].flatMap((envelope) =>
+      elementGroups('MessageEnvelope', envelope),
+    );
+  }
+
+  if (schemaRef === 'M0CDeliverInput') {
+    return isRecord(value['envelope'])
+      ? elementGroups('MessageEnvelope', value['envelope'])
+      : [];
   }
 
   if (schemaRef === 'root') {
@@ -129,6 +189,16 @@ export function validateMessagingSemantics(
       errors.push({
         path: `/elementGroups/${groupIndex}`,
         message: `total element payload exceeds ${MESSAGING_BOUNDS.maxTotalPayloadBytes} bytes`,
+      });
+    }
+  }
+
+  const envelopes = envelopesFor(schemaRef, value);
+  for (const [index, rawEnvelope] of envelopes.entries()) {
+    if (!isRecord(rawEnvelope) || !isCanonicalOccurredAt(rawEnvelope['occurredAt'])) {
+      errors.push({
+        path: `/envelopes/${index}/occurredAt`,
+        message: 'occurredAt must be canonical Date.toISOString output',
       });
     }
   }

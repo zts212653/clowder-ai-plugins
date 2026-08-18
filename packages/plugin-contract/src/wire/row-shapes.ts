@@ -14,11 +14,23 @@ import type {
   AppendElementsRequest,
   AppendReceipt,
   Capability,
+  M0CAckInput,
+  M0CAckResult,
+  M0CDeliverInput,
+  M0CDeliverResult,
+  M0CReadEmptyResult,
+  M0CReadInput,
+  M0CReadNormalResult,
+  M0CReadResult,
+  M0CReadStaleResult,
+  M0CSnapshotFinalResult,
+  M0CSnapshotInput,
+  M0CSnapshotIntermediateResult,
+  M0CSnapshotResult,
+  M0CSubscribeInput,
+  M0CSubscribeResult,
   MessageDraft,
-  MessageEnvelope,
-  MessageOutputEvent,
   SendReceipt,
-  ThreadHandleAddress,
 } from '../generated/contract.generated.js';
 import type { GrantSnapshot } from './grants.js';
 import type {
@@ -38,19 +50,13 @@ import type {
  * The handle is a reference identifier (1..256 code points, M4 CLOSED).
  * The peer responds with a subscriptionId for subsequent read/ack calls.
  */
-export interface SubscribeInput {
-  /** M4 CLOSED — 1..256 code points. */
-  readonly handle: string;
-}
+export type SubscribeInput = M0CSubscribeInput;
 
 /**
  * Row 5 result: the created subscription identifier.
  * Wire shape: `{ subscriptionId: string }` — additionalProperties: false.
  */
-export interface SubscribeResult {
-  /** M4 CLOSED — 1..128 code points. */
-  readonly subscriptionId: string;
-}
+export type SubscribeResult = M0CSubscribeResult;
 
 /** Minimum code-point length for subscribe handle. */
 export const SUBSCRIBE_HANDLE_MIN_LENGTH = 1 as const;
@@ -87,18 +93,13 @@ export const SUBSCRIBE_SUBSCRIPTION_ID_MAX_ENCODED_BYTES = 770 as const;
  *
  * Closed shape per R3 addendum (owner-specified).
  */
-export interface MessagingAckRequest {
-  /** M4 CLOSED — 1..128 code points. */
-  readonly subscriptionId: string;
-  /** M4 CLOSED — 1..512 code points. */
-  readonly ackToken: string;
-}
+export type MessagingAckRequest = M0CAckInput;
 
 /**
  * Row 7 result: null.
  * Ack is fire-and-confirm — a null result signals success.
  */
-export type MessagingAckResult = null;
+export type MessagingAckResult = M0CAckResult;
 
 /** Minimum code-point length for ack subscriptionId. */
 export const ACK_SUBSCRIPTION_ID_MIN_LENGTH = 1 as const;
@@ -269,34 +270,16 @@ export type AppendResult = AppendReceipt;
  * Row 6 request. No page token is exposed: reads resume from the Host-owned
  * acknowledged cursor.
  */
-export interface SubscriptionReadPageRequest {
-  readonly subscriptionId: string;
-  readonly limit: number;
-}
+export type SubscriptionReadPageRequest = M0CReadInput;
 
-export interface SubscriptionNormalPageResponse {
-  readonly events: readonly MessageOutputEvent[];
-  readonly ackToken: string;
-  readonly stale: false;
-}
+export type SubscriptionNormalPageResponse = M0CReadNormalResult;
 
-export interface SubscriptionEmptyPageResponse {
-  readonly events: readonly [];
-  readonly ackToken: null;
-  readonly stale: false;
-}
+export type SubscriptionEmptyPageResponse = M0CReadEmptyResult;
 
-export interface SubscriptionStalePageResponse {
-  readonly events: readonly [];
-  readonly ackToken: null;
-  readonly stale: true;
-}
+export type SubscriptionStalePageResponse = M0CReadStaleResult;
 
 /** Closed three-variant row-6 result. */
-export type BoundedSubscriptionReadPageResponse =
-  | SubscriptionNormalPageResponse
-  | SubscriptionEmptyPageResponse
-  | SubscriptionStalePageResponse;
+export type BoundedSubscriptionReadPageResponse = M0CReadResult;
 
 export type ReadInput = SubscriptionReadPageRequest;
 export type ReadResult = BoundedSubscriptionReadPageResponse;
@@ -311,28 +294,14 @@ export const READ_ACK_TOKEN_MAX_LENGTH = 512 as const;
 /**
  * Row 8 request. An absent pageToken starts an immutable Host view.
  */
-export interface SnapshotPageRequest {
-  readonly subscriptionId: string;
-  readonly maxItems: number;
-  readonly pageToken?: string;
-}
+export type SnapshotPageRequest = M0CSnapshotInput;
 
-export interface SnapshotIntermediatePageResponse {
-  readonly items: readonly MessageEnvelope[];
-  readonly nextPageToken: string;
-  readonly snapshotAckToken: null;
-}
+export type SnapshotIntermediatePageResponse = M0CSnapshotIntermediateResult;
 
-export interface SnapshotFinalPageResponse {
-  readonly items: readonly MessageEnvelope[];
-  readonly nextPageToken: null;
-  readonly snapshotAckToken: string;
-}
+export type SnapshotFinalPageResponse = M0CSnapshotFinalResult;
 
 /** Closed intermediate/final row-8 result. */
-export type SnapshotPageResponse =
-  | SnapshotIntermediatePageResponse
-  | SnapshotFinalPageResponse;
+export type SnapshotPageResponse = M0CSnapshotResult;
 
 export type SnapshotInput = SnapshotPageRequest;
 export type SnapshotResult = SnapshotPageResponse;
@@ -349,15 +318,9 @@ export const SNAPSHOT_ACK_TOKEN_MAX_LENGTH = 512 as const;
 /**
  * Row 9 — Host → Plugin callback request and byte-equal acknowledgement.
  */
-export interface HostMessagingDeliverRequest {
-  readonly deliveryId: string;
-  readonly threadHandle: ThreadHandleAddress;
-  readonly envelope: MessageEnvelope;
-}
+export type HostMessagingDeliverRequest = M0CDeliverInput;
 
-export interface HostMessagingDeliverResult {
-  readonly deliveryId: string;
-}
+export type HostMessagingDeliverResult = M0CDeliverResult;
 
 export type DeliverInput = HostMessagingDeliverRequest;
 export type DeliverResult = HostMessagingDeliverResult;
