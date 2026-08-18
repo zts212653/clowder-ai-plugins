@@ -86,6 +86,7 @@ import {
   HANDSHAKE_REJECTED_ERROR_BYTE_PROOF,
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
   EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
+  LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
   MAX_GRANT_ITEMS,
   VALID_CAPABILITIES,
@@ -691,16 +692,31 @@ test('method names are frozen in order', () => {
   assert.deepEqual([...WIRE_METHOD_NAMES], expected);
 });
 
-test('only beta.8 handshake and beta.9 event publish rows are ready', () => {
+test('beta.10 readies handshake, lifecycle, and event publish rows only', () => {
+  const expectedReady = new Set([
+    'broker.hello',
+    'broker.ready',
+    'host.grants.changed',
+    'host.lifecycle.ping',
+    'host.lifecycle.drain',
+    'events.publish',
+  ]);
   for (const method of WIRE_METHOD_NAMES) {
     const row = WIRE_METHOD_REGISTRY[method];
     assert.equal(
       row.ready,
-      method === 'broker.hello' || method === 'broker.ready' || method === 'events.publish',
-      `${method} readiness must match beta.9 scope`,
+      expectedReady.has(method),
+      `${method} readiness must match beta.10 scope`,
     );
   }
-  assert.deepEqual([...READY_ROWS], ['broker.hello', 'broker.ready', 'events.publish']);
+  assert.deepEqual([...READY_ROWS], [
+    'broker.hello',
+    'broker.ready',
+    'host.grants.changed',
+    'host.lifecycle.ping',
+    'host.lifecycle.drain',
+    'events.publish',
+  ]);
   assert.deepEqual(
     {
       maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedRequestBytes,
@@ -725,7 +741,26 @@ test('only beta.8 handshake and beta.9 event publish rows are ready', () => {
     },
     EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   );
-  for (const method of WIRE_METHOD_NAMES.slice(2, 12)) {
+  for (const method of [
+    'host.grants.changed',
+    'host.lifecycle.ping',
+    'host.lifecycle.drain',
+  ] as const) {
+    const row = WIRE_METHOD_REGISTRY[method];
+    assert.deepEqual(
+      {
+        maxEncodedRequestBytes: row.maxEncodedRequestBytes,
+        ...('maxEncodedResultBytes' in row
+          ? { maxEncodedResultBytes: row.maxEncodedResultBytes }
+          : {}),
+        ...('maxEncodedErrorBytes' in row
+          ? { maxEncodedErrorBytes: row.maxEncodedErrorBytes }
+          : {}),
+      },
+      LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS[method],
+    );
+  }
+  for (const method of WIRE_METHOD_NAMES.slice(2, 9)) {
     const row = getRegistryRow(method);
     assert.equal(row?.maxEncodedRequestBytes, undefined);
     assert.equal(row?.maxEncodedResultBytes, undefined);

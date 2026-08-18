@@ -35,6 +35,9 @@ import {
   BINDING_NONCE_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
 } from './handshake.js';
+import { VALID_CAPABILITIES } from './grants.js';
+import { PING_NONCE_MAX_LENGTH } from './row-shapes.js';
+import { WIRE_UINT53_MAX } from './wire-uint53.js';
 import type { CandidateHello, SessionBinding } from './handshake.js';
 import type { RequestId } from './request-id.js';
 import type { WireMethodName } from './registry.js';
@@ -45,6 +48,7 @@ import type {
   MethodNotFoundEnvelope,
   InvalidParamsEnvelope,
   HandshakeRejectedEnvelope,
+  DeadlineExpiredEnvelope,
 } from './envelope.js';
 import {
   PARSE_ERROR_CODE, PARSE_ERROR_MESSAGE,
@@ -52,6 +56,7 @@ import {
   METHOD_NOT_FOUND_CODE, METHOD_NOT_FOUND_MESSAGE,
   INVALID_PARAMS_CODE, INVALID_PARAMS_MESSAGE,
   HANDSHAKE_REJECTED_CODE, HANDSHAKE_REJECTED_MESSAGE,
+  DEADLINE_EXPIRED_CODE, DEADLINE_EXPIRED_MESSAGE,
 } from './errors.js';
 
 // ---------------------------------------------------------------------------
@@ -118,6 +123,16 @@ const RESPONSE_HANDSHAKE_REJECTED_AUTHORITY_A: HandshakeRejectedEnvelope = {
   },
 };
 
+const RESPONSE_DEADLINE_EXPIRED_DRAIN: DeadlineExpiredEnvelope = {
+  jsonrpc: '2.0' as const,
+  id: 'drain-deadline' as RequestId,
+  error: {
+    code: DEADLINE_EXPIRED_CODE,
+    message: DEADLINE_EXPIRED_MESSAGE,
+    data: {},
+  },
+};
+
 const BETA8_HELLO: CandidateHello = {
   pluginId: 'example.loopback',
   packageDigest: `sha512-${'A'.repeat(86)}==`,
@@ -130,6 +145,8 @@ const RAW_UTF8_BOUNDARY_CODE_POINTS = {
   multibyte: '😀',
   escaping: '\u0000',
 } as const;
+
+const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES];
 
 const BETA8_BINDING: SessionBinding = {
   ...BETA8_HELLO,
@@ -170,6 +187,32 @@ function readyRequestFrame(id: string, input: Record<string, unknown>): string {
 
 function helloResultFrame(id: string, result: object): string {
   return JSON.stringify({ jsonrpc: '2.0', id, result });
+}
+
+function lifecycleRequestFrame(
+  id: string,
+  method: 'host.lifecycle.ping' | 'host.lifecycle.drain',
+  input: Record<string, unknown>,
+): string {
+  return JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    method,
+    params: { meta: { deadlineUnixMs: WIRE_UINT53_MAX }, input },
+  });
+}
+
+function grantsChangedNotificationFrame(
+  effectiveGrants: readonly string[],
+): string {
+  return JSON.stringify({
+    jsonrpc: '2.0',
+    method: 'host.grants.changed',
+    params: {
+      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
+      input: { grantRevision: WIRE_UINT53_MAX, effectiveGrants },
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -519,6 +562,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: 'InvalidParamsEnvelope',
     expectedErrorCode: -32602,
     expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
     description: 'value violation: nonce empty string violates minLength 1',
   },
 
@@ -587,6 +631,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-2] request-only method (ping, row 11) as notification → v0 violation',
   },
 
@@ -626,6 +671,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[RC-7 / NT-5 variant] Notification with extra error member → T-K close',
   },
 
@@ -639,6 +685,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-5] Notification missing params → idless envelope violation → T-K close',
   },
 
@@ -652,6 +699,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-4] structurally valid Notification, invocation-level invalid params (grantRevision wrong type)',
   },
 
@@ -665,6 +713,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[NT-6] row-10 notification with deadlineUnixMs:0 → value failure (H7), T-K close',
   },
 
@@ -723,6 +772,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: 'proof pair: "corr-test" NOT in-flight → T-H (see T-L-2)',
   },
 
@@ -1282,6 +1332,269 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     zeroSideEffects: true,
     description: '[beta.9 C-2] duplicate receipt legally settles a correlated publication',
   },
+  {
+    id: 'T-J-3',
+    rawFrame: grantsChangedNotificationFrame(ALL_CAPABILITY_VALUES),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-J',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] maximum legal grant snapshot notification reaches dispatch without a response',
+  },
+  {
+    id: 'T-K-8',
+    rawFrame: grantsChangedNotificationFrame([
+      ...ALL_CAPABILITY_VALUES,
+      ALL_CAPABILITY_VALUES[0]!,
+    ]),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] N+1 grant snapshot notification closes before dispatch',
+  },
+  {
+    id: 'T-K-9',
+    rawFrame: grantsChangedNotificationFrame([
+      ALL_CAPABILITY_VALUES[0]!,
+      ALL_CAPABILITY_VALUES[0]!,
+    ]),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] duplicate grants within the cardinality bound close before dispatch',
+  },
+  {
+    id: 'T-K-10',
+    rawFrame: grantsChangedNotificationFrame(['unknown.capability']),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-K',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] unknown grant closes before dispatch',
+  },
+  {
+    id: 'T-M-10',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
+      nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(PING_NONCE_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] maximum ASCII ping nonce reaches dispatch',
+  },
+  {
+    id: 'T-G-16',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
+      nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(PING_NONCE_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] ASCII ping nonce N+1 rejects before dispatch',
+  },
+  {
+    id: 'T-M-11',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
+      nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(PING_NONCE_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] maximum multibyte ping nonce reaches dispatch',
+  },
+  {
+    id: 'T-G-17',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
+      nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(PING_NONCE_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] multibyte ping nonce N+1 rejects before dispatch',
+  },
+  {
+    id: 'T-M-12',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
+      nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.escaping.repeat(PING_NONCE_MAX_LENGTH),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] maximum JSON-escaping ping nonce reaches dispatch',
+  },
+  {
+    id: 'T-G-18',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
+      nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.escaping.repeat(PING_NONCE_MAX_LENGTH + 1),
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] JSON-escaping ping nonce N+1 rejects before dispatch',
+  },
+  {
+    id: 'T-L-8',
+    rawFrame: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'ping-max',
+      result: { nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(PING_NONCE_MAX_LENGTH) },
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: {
+      inFlightRequests: [{
+        id: 'ping-max',
+        method: 'host.lifecycle.ping',
+        requestSnapshot: {
+          nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.multibyte.repeat(PING_NONCE_MAX_LENGTH),
+        },
+      }],
+    },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] maximum ping nonce settles only when echoed byte-equal',
+  },
+  {
+    id: 'T-H-13',
+    rawFrame: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'ping-mismatch',
+      result: { nonce: 'different' },
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: {
+      inFlightRequests: [{
+        id: 'ping-mismatch',
+        method: 'host.lifecycle.ping',
+        requestSnapshot: { nonce: 'expected' },
+      }],
+    },
+    expectedClass: 'T-H',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] ping result with a non-equal nonce closes without settlement',
+  },
+  {
+    id: 'T-M-13',
+    rawFrame: lifecycleRequestFrame('drain-max', 'host.lifecycle.drain', {
+      deadlineUnixMs: WIRE_UINT53_MAX,
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] maximum legal drain deadline reaches dispatch',
+  },
+  {
+    id: 'T-G-19',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.drain', {
+      deadlineUnixMs: WIRE_UINT53_MAX + 1,
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] drain WireUInt53 N+1 rejects before dispatch',
+  },
+  {
+    id: 'T-G-20',
+    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.drain', {
+      deadlineUnixMs: 0,
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G',
+    expectedOutcome: 'respond',
+    expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE,
+    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.10 lifecycle] zero drain deadline rejects before dispatch',
+  },
+  {
+    id: 'T-L-9',
+    rawFrame: '{"jsonrpc":"2.0","id":"drain-null","result":null}',
+    rawFrameEncoding: 'utf8',
+    preState: {
+      inFlightRequests: [{ id: 'drain-null', method: 'host.lifecycle.drain' }],
+    },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] exact null drain result settles its request',
+  },
+  {
+    id: 'T-L-10',
+    rawFrame: JSON.stringify(RESPONSE_DEADLINE_EXPIRED_DRAIN),
+    rawFrameEncoding: 'utf8',
+    preState: {
+      inFlightRequests: [{ id: 'drain-deadline', method: 'host.lifecycle.drain' }],
+    },
+    expectedClass: 'T-L',
+    expectedOutcome: 'accept',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    description: '[beta.10 lifecycle] DEADLINE_EXPIRED legally settles a drain request',
+  },
 ];
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
@@ -1300,4 +1613,37 @@ export const BETA9_EVENTS_PUBLISH_VECTOR_IDS = [
   'T-G-15',
   'T-H-12',
   'T-L-7',
+] as const;
+
+/** Complete beta.10 M0-B lifecycle safety surface for rows 10 through 12. */
+export const BETA10_LIFECYCLE_VECTOR_IDS = [
+  'T-G-1',
+  'T-J-1',
+  'T-J-2',
+  'T-K-1',
+  'T-K-4',
+  'T-K-5',
+  'T-K-6',
+  'T-K-7',
+  'T-H-3',
+  'T-L-1',
+  'T-L-2',
+  'T-L-3',
+  'T-J-3',
+  'T-K-8',
+  'T-K-9',
+  'T-K-10',
+  'T-M-10',
+  'T-G-16',
+  'T-M-11',
+  'T-G-17',
+  'T-M-12',
+  'T-G-18',
+  'T-L-8',
+  'T-H-13',
+  'T-M-13',
+  'T-G-19',
+  'T-G-20',
+  'T-L-9',
+  'T-L-10',
 ] as const;

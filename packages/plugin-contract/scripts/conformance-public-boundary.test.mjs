@@ -16,6 +16,15 @@ test('the built conformance boundary exports the stdio harness', async () => {
   assert.ok(Array.isArray(conformance.DISPOSITION_FIXTURE_VECTORS));
   assert.ok(Array.isArray(conformance.BETA8_HANDSHAKE_VECTOR_IDS));
   assert.ok(conformance.BETA8_HANDSHAKE_VECTOR_IDS.includes('T-L-5'));
+  assert.ok(Array.isArray(conformance.BETA10_LIFECYCLE_VECTOR_IDS));
+  assert.ok(conformance.BETA10_LIFECYCLE_VECTOR_IDS.includes('T-L-10'));
+
+  const contract = await import('@clowder-ai/plugin-contract');
+  assert.equal(
+    contract.LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS['host.lifecycle.ping']
+      .maxEncodedRequestBytes > 0,
+    true,
+  );
 });
 
 test('the built public entry exports the runtime manifest validator', async () => {

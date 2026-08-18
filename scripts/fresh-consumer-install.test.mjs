@@ -92,8 +92,12 @@ test('packed public packages install and import in a fresh npm consumer', async 
         'utf8',
       ),
     );
-    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.9');
-    assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.9');
+    assert.equal(sdkPackage.version, '0.1.0-beta.6');
+    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.10');
+    assert.equal(
+      feishuPackage.dependencies['@clowder-ai/plugin-contract'],
+      '0.1.0-beta.9',
+    );
     assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-sdk'], '0.1.0-beta.5');
     assert.equal(feishuPackage.dependencies['@larksuite/cli'], '1.0.85');
     assert.deepEqual(

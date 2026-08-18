@@ -82,7 +82,27 @@ function expectedForFixture(vector: DispositionFixtureVector): ExpectedChildResu
     return { code: 0, stdout: `${vector.expectedResponseFrame}\n` };
   }
   if (vector.expectedClass === 'T-M') {
-    const frame = JSON.parse(vector.rawFrame) as { id: string };
+    const frame = JSON.parse(vector.rawFrame) as {
+      id: string;
+      method: string;
+      params: { input: Record<string, unknown> };
+    };
+    if (frame.method === 'host.lifecycle.ping') {
+      return {
+        code: 0,
+        stdout: `${JSON.stringify({
+          jsonrpc: '2.0',
+          id: frame.id,
+          result: { nonce: frame.params.input.nonce },
+        })}\n`,
+      };
+    }
+    if (frame.method === 'host.lifecycle.drain') {
+      return {
+        code: 0,
+        stdout: `${JSON.stringify({ jsonrpc: '2.0', id: frame.id, result: null })}\n`,
+      };
+    }
     return {
       code: 0,
       stdout: `${JSON.stringify({
@@ -132,6 +152,10 @@ test('records every pre-state vector as an explicit non-black-box seam', () => {
       { id: 'T-L-6', coveredBy: 'S1 unit layer' },
       { id: 'T-H-12', coveredBy: 'S1 unit layer' },
       { id: 'T-L-7', coveredBy: 'S1 unit layer' },
+      { id: 'T-L-8', coveredBy: 'S1 unit layer' },
+      { id: 'T-H-13', coveredBy: 'S1 unit layer' },
+      { id: 'T-L-9', coveredBy: 'S1 unit layer' },
+      { id: 'T-L-10', coveredBy: 'S1 unit layer' },
     ],
     'child-process execution cannot inject in-flight correlation state',
   );

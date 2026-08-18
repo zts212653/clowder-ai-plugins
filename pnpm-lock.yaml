@@ -18,10 +18,10 @@ importers:
         version: 1.7.0
       '@clowder-ai/plugin-contract':
         specifier: 0.1.0-beta.9
-        version: link:../plugin-contract
+        version: 0.1.0-beta.9
       '@clowder-ai/plugin-sdk':
         specifier: 0.1.0-beta.5
-        version: link:../plugin-sdk
+        version: 0.1.0-beta.5
       '@larksuite/cli':
         specifier: 1.0.85
         version: 1.0.85
@@ -104,7 +104,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.9
+        specifier: 0.1.0-beta.10
         version: link:../plugin-contract
     devDependencies:
       '@types/node':
@@ -151,6 +151,14 @@ packages:
   '@clack/prompts@1.7.0':
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
+
+  '@clowder-ai/plugin-contract@0.1.0-beta.9':
+    resolution: {integrity: sha512-YPpJguiVd0qdoOX8HdU26k36b+58zj0V9w02z/GpRnF8WBubfwuoZ5RBQPE2gf5qwSQwCl/+WVRhsMG/i65Epg==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.1.0-beta.5':
+    resolution: {integrity: sha512-NHSoIqMjA3ymyyxAHdVmj99Sd+1Enem6Y9/twQAzHkspzuamGMvkdz/+6w0X9oxvbYeAdPQ/4749TB7ykTS2tA==}
+    engines: {node: '>=20.0.0'}
 
   '@esbuild/aix-ppc64@0.28.1':
     resolution: {integrity: sha512-Svl7tq8k/08+p6CXPpRjQ1fKX+1odH/BQbb48fV6fj3CWHhsoIOoY87w1oHXm0qEpkIK3ZfVgp0hed3XBXzXMQ==}
@@ -736,6 +744,15 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
+
+  '@clowder-ai/plugin-contract@0.1.0-beta.9':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+
+  '@clowder-ai/plugin-sdk@0.1.0-beta.5':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.1.0-beta.9
 
   '@esbuild/aix-ppc64@0.28.1':
     optional: true

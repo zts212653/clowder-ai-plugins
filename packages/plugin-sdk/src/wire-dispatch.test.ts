@@ -174,7 +174,7 @@ test('fixture sweep covers all post-decode vectors from the contract', () => {
 // testing with explicit intent
 // ---------------------------------------------------------------------------
 
-test('valid request that passes all checks returns accept with null disposition', () => {
+test('valid lifecycle request reaches T-M once its row is ready', () => {
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(
       '{"jsonrpc":"2.0","id":"req-1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"hello"}}}',
@@ -193,7 +193,7 @@ test('valid request that passes all checks returns accept with null disposition'
 
   const result = classifyFrame(frame, NO_IN_FLIGHT);
   assert.equal(result.outcome, 'accept');
-  assert.equal(result.disposition, null);
+  assert.equal(result.disposition, 'T-M');
 });
 
 test('valid broker.hello reaches T-M once the handshake row is ready', () => {
