@@ -23,10 +23,17 @@ export {
 export { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
 
 export {
+  M0C_BEHAVIOR_CASE_IDS,
+  M0C_BEHAVIOR_FIXTURE_EXPORT,
+  type M0CBehaviorCaseId,
+} from './messaging-behavior-fixture.js';
+
+export {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
   BETA9_EVENTS_PUBLISH_VECTOR_IDS,
   BETA10_LIFECYCLE_VECTOR_IDS,
+  BETA11_MESSAGING_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,

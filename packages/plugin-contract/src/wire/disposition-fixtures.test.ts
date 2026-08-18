@@ -39,6 +39,7 @@ import {
   BETA8_HANDSHAKE_VECTOR_IDS,
   BETA9_EVENTS_PUBLISH_VECTOR_IDS,
   BETA10_LIFECYCLE_VECTOR_IDS,
+  BETA11_MESSAGING_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -511,6 +512,48 @@ test('beta.10 exports one lifecycle safety set spanning rows 10 through 12', () 
     params: { input: { effectiveGrants: string[] } };
   };
   assert.deepEqual(unknown.params.input.effectiveGrants, ['unknown.capability']);
+});
+
+test('beta.11 exports one messaging safety set spanning rows 3 through 9', () => {
+  const messagingMethods = new Set([
+    'messaging.send',
+    'messaging.appendElements',
+    'messaging.subscribe',
+    'messaging.read',
+    'messaging.ack',
+    'messaging.snapshot',
+    'host.messaging.deliver',
+  ]);
+  const directlyScopedFrames = new Set(
+    DISPOSITION_FIXTURE_VECTORS.filter(vector => {
+      let method: unknown;
+      try {
+        method = (JSON.parse(vector.rawFrame) as { method?: unknown }).method;
+      } catch {
+        method = undefined;
+      }
+      return (
+        (typeof method === 'string' && messagingMethods.has(method))
+        || vector.preState.inFlightRequests.some(request => messagingMethods.has(request.method))
+      );
+    }).map(vector => vector.rawFrame),
+  );
+  const completeMessagingIds = DISPOSITION_FIXTURE_VECTORS
+    .filter(vector => directlyScopedFrames.has(vector.rawFrame))
+    .map(vector => vector.id);
+
+  assert.deepEqual(
+    BETA11_MESSAGING_VECTOR_IDS,
+    completeMessagingIds,
+    'public beta.11 safety set must include every canonical messaging fixture and proof companion',
+  );
+  assert.equal(BETA11_MESSAGING_VECTOR_IDS.length, 32);
+  for (const id of BETA11_MESSAGING_VECTOR_IDS) {
+    const vector = findVector(id);
+    if (vector.expectedClass === 'T-G' || vector.expectedClass === 'T-H') {
+      assert.equal(vector.zeroSideEffects, true, `${id} must reject before mutation or settlement`);
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------

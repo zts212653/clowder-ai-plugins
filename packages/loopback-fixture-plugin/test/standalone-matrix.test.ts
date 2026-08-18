@@ -6,9 +6,14 @@ import { createRequire } from 'node:module';
 import test from 'node:test';
 
 import {
+  BETA11_MESSAGING_VECTOR_IDS,
   DISPOSITION_FIXTURE_VECTORS,
   type DispositionFixtureVector,
 } from '../../plugin-contract/src/wire/disposition-fixtures.js';
+import {
+  M0C_BEHAVIOR_CASE_IDS,
+  M0C_BEHAVIOR_FIXTURE_EXPORT,
+} from '../../plugin-contract/src/conformance/messaging-behavior-fixture.js';
 import {
   METHOD_NOT_FOUND_CODE,
   METHOD_NOT_FOUND_MESSAGE,
@@ -44,6 +49,11 @@ interface ExpectedChildResult {
 
 interface HostHalfSeamManifest {
   readonly version: number;
+  readonly contract: {
+    readonly package: string;
+    readonly version: string;
+    readonly behaviorFixture: string;
+  };
   readonly behaviorFixtures: readonly {
     readonly source: string;
     readonly requires: string;
@@ -103,6 +113,16 @@ function expectedForFixture(vector: DispositionFixtureVector): ExpectedChildResu
         stdout: `${JSON.stringify({ jsonrpc: '2.0', id: frame.id, result: null })}\n`,
       };
     }
+    if (frame.method === 'host.messaging.deliver') {
+      return {
+        code: 0,
+        stdout: `${JSON.stringify({
+          jsonrpc: '2.0',
+          id: frame.id,
+          result: { deliveryId: frame.params.input.deliveryId },
+        })}\n`,
+      };
+    }
     return {
       code: 0,
       stdout: `${JSON.stringify({
@@ -134,9 +154,7 @@ for (const vector of executableFixtureVectors) {
 }
 
 test('records every pre-state vector as an explicit non-black-box seam', () => {
-  assert.deepEqual(
-    excludedFixtureVectors.map(vector => ({ id: vector.id, coveredBy: 'S1 unit layer' })),
-    [
+  const legacyExpected = [
       { id: 'T-C-2', coveredBy: 'S1 unit layer' },
       { id: 'T-I-1', coveredBy: 'S1 unit layer' },
       { id: 'T-H-2', coveredBy: 'S1 unit layer' },
@@ -156,7 +174,18 @@ test('records every pre-state vector as an explicit non-black-box seam', () => {
       { id: 'T-H-13', coveredBy: 'S1 unit layer' },
       { id: 'T-L-9', coveredBy: 'S1 unit layer' },
       { id: 'T-L-10', coveredBy: 'S1 unit layer' },
-    ],
+  ] as const;
+  const legacyIds = new Set<string>(legacyExpected.map(entry => entry.id));
+  const beta11Expected = BETA11_MESSAGING_VECTOR_IDS
+    .filter(id => !legacyIds.has(id))
+    .map(id => DISPOSITION_FIXTURE_VECTORS.find(vector => vector.id === id))
+    .filter((vector): vector is DispositionFixtureVector =>
+      vector !== undefined && vector.preState.inFlightRequests.length > 0)
+    .map(vector => ({ id: vector.id, coveredBy: 'S1 unit layer' }));
+
+  assert.deepEqual(
+    excludedFixtureVectors.map(vector => ({ id: vector.id, coveredBy: 'S1 unit layer' })),
+    [...legacyExpected, ...beta11Expected],
     'child-process execution cannot inject in-flight correlation state',
   );
 });
@@ -253,14 +282,33 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
   const validate = ajv.compile(behaviorSchema);
 
   assert.equal(validate(behaviorFixture), true, JSON.stringify(validate.errors));
+  assert.deepEqual(behaviorFixture.cases.map(behaviorCase => behaviorCase.id), M0C_BEHAVIOR_CASE_IDS);
   assert.deepEqual(seamManifest, {
     version: 1,
+    contract: {
+      package: '@clowder-ai/plugin-contract',
+      version: '0.1.0-beta.11',
+      behaviorFixture: M0C_BEHAVIOR_FIXTURE_EXPORT,
+    },
     behaviorFixtures: [
       {
         source: '../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json',
         requires: 'K-2 host half',
-        caseIds: behaviorFixture.cases.map(behaviorCase => behaviorCase.id),
+        caseIds: M0C_BEHAVIOR_CASE_IDS,
       },
     ],
   });
+});
+
+test('standalone child selects every beta.11 request vector from the public catalog', () => {
+  const beta11RequestIds = BETA11_MESSAGING_VECTOR_IDS.filter(id => id.startsWith('T-M-'));
+  assert.deepEqual(
+    beta11RequestIds,
+    executableFixtureVectors
+      .filter(vector => BETA11_MESSAGING_VECTOR_IDS.includes(
+        vector.id as (typeof BETA11_MESSAGING_VECTOR_IDS)[number],
+      ) && vector.expectedClass === 'T-M')
+      .map(vector => vector.id),
+  );
+  assert.equal(beta11RequestIds.length, 7);
 });

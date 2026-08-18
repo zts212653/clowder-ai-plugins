@@ -92,8 +92,8 @@ test('packed public packages install and import in a fresh npm consumer', async 
         'utf8',
       ),
     );
-    assert.equal(sdkPackage.version, '0.1.0-beta.6');
-    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.10');
+    assert.equal(sdkPackage.version, '0.1.0-beta.7');
+    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.11');
     assert.equal(
       feishuPackage.dependencies['@clowder-ai/plugin-contract'],
       '0.1.0-beta.9',
@@ -119,7 +119,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       [
         '--input-type=module',
         '--eval',
-        "await import('@clowder-ai/plugin-contract'); await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); if (typeof plugin.createFeishuMeetingIntakeRuntime !== 'function') process.exit(1);",
+        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); if (typeof contract.validateManifest !== 'function' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function') process.exit(1);",
       ],
       consumer,
     );

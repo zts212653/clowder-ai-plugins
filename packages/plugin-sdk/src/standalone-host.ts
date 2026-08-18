@@ -4,11 +4,16 @@ import type { Readable, Writable } from 'node:stream';
 import {
   DEADLINE_EXPIRED_CODE,
   DEADLINE_EXPIRED_MESSAGE,
+  DELIVERY_REJECTED_CODE,
+  DELIVERY_REJECTED_MESSAGE,
+  DELIVERY_REJECT_REASONS,
   METHOD_NOT_FOUND_CODE,
   METHOD_NOT_FOUND_MESSAGE,
   PARSE_ERROR_CODE,
   PARSE_ERROR_MESSAGE,
   validateManifest,
+  type DeliverInput,
+  type DeliveryRejectReason,
   type ManifestValidationError,
   type PluginManifest,
 } from '@clowder-ai/plugin-contract';
@@ -45,8 +50,21 @@ export interface StandaloneHostOptions {
    * callers that need cancellation must arrange it within their callback.
    */
   readonly onDrain?: (input: { readonly deadlineUnixMs: number }) => void | Promise<void>;
+  /**
+   * Handles the ready Host-to-plugin messaging callback and reports only the
+   * plugin-observed delivery fact. Retry and dead-letter policy remain Host-owned.
+   */
+  readonly onMessage?: StandaloneMessageHandler;
   readonly onFatal?: (error: StdioRuntimeFatalError) => void;
 }
+
+export type StandaloneMessageDisposition =
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly reason: DeliveryRejectReason };
+
+export type StandaloneMessageHandler = (
+  input: DeliverInput,
+) => StandaloneMessageDisposition | Promise<StandaloneMessageDisposition>;
 
 export interface StandaloneHost extends StdioChannel {
   readonly manifest: PluginManifest;
@@ -121,6 +139,68 @@ function methodNotFoundResponse(id: string): JsonObject {
   };
 }
 
+function deliveryRejectedResponse(id: string, reason: DeliveryRejectReason): JsonObject {
+  return {
+    jsonrpc: '2.0',
+    id,
+    error: {
+      code: DELIVERY_REJECTED_CODE,
+      message: DELIVERY_REJECTED_MESSAGE,
+      data: { reason },
+    },
+  };
+}
+
+const DELIVERY_REJECT_REASON_SET = new Set<string>(DELIVERY_REJECT_REASONS);
+const HOST_BOUND_REQUEST_METHODS = new Set([
+  'broker.hello',
+  'broker.ready',
+  'events.publish',
+  'messaging.send',
+  'messaging.appendElements',
+  'messaging.subscribe',
+  'messaging.read',
+  'messaging.ack',
+  'messaging.snapshot',
+]);
+
+function isStandaloneMessageDisposition(value: unknown): value is StandaloneMessageDisposition {
+  if (!isObject(value) || typeof value.accepted !== 'boolean') {
+    return false;
+  }
+  if (value.accepted) {
+    return Object.keys(value).length === 1;
+  }
+  return Object.keys(value).length === 2
+    && typeof value.reason === 'string'
+    && DELIVERY_REJECT_REASON_SET.has(value.reason);
+}
+
+async function dispatchMessage(
+  id: string,
+  input: JsonObject,
+  onMessage: StandaloneHostOptions['onMessage'],
+): Promise<JsonObject> {
+  if (onMessage === undefined) {
+    return deliveryRejectedResponse(id, 'NO_HANDLER');
+  }
+
+  let disposition: unknown;
+  try {
+    disposition = await onMessage(structuredClone(input) as DeliverInput);
+  } catch {
+    return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
+  }
+
+  if (!isStandaloneMessageDisposition(disposition)) {
+    return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
+  }
+  if (!disposition.accepted) {
+    return deliveryRejectedResponse(id, disposition.reason);
+  }
+  return { jsonrpc: '2.0', id, result: { deliveryId: input.deliveryId } };
+}
+
 async function completesBeforeDrainDeadline(
   onDrain: StandaloneHostOptions['onDrain'],
   deadlineUnixMs: number,
@@ -178,11 +258,7 @@ function createFrameHandler(options: StandaloneHostOptions) {
     }
 
     const request = requireRequest(frame.value);
-    if (
-      request.method === 'broker.hello' ||
-      request.method === 'broker.ready' ||
-      request.method === 'events.publish'
-    ) {
+    if (HOST_BOUND_REQUEST_METHODS.has(request.method)) {
       // The public contract makes these Host-bound inputs legal at T-M, but
       // this standalone plugin has no Host Broker. Reply conservatively
       // without storing ingress, session state, or activation.
@@ -194,6 +270,9 @@ function createFrameHandler(options: StandaloneHostOptions) {
         throw new StandaloneProtocolError('classifier accepted ping without a nonce');
       }
       return { jsonrpc: '2.0', id: request.id, result: { nonce } };
+    }
+    if (request.method === 'host.messaging.deliver') {
+      return dispatchMessage(request.id, request.input, options.onMessage);
     }
     if (request.method === 'host.lifecycle.drain') {
       const deadlineUnixMs = request.input.deadlineUnixMs;

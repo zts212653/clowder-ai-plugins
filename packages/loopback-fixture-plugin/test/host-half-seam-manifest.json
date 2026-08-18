@@ -1,5 +1,10 @@
 {
   "version": 1,
+  "contract": {
+    "package": "@clowder-ai/plugin-contract",
+    "version": "0.1.0-beta.11",
+    "behaviorFixture": "@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants"
+  },
   "behaviorFixtures": [
     {
       "source": "../../plugin-contract/fixtures/behavior/messaging/adversarial-invariants.json",

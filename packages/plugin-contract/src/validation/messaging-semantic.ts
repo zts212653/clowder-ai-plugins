@@ -31,12 +31,8 @@ function payloadBytes(payload: unknown): number | undefined {
 
 function isCanonicalOccurredAt(value: unknown): boolean {
   if (typeof value !== 'string') return false;
-  try {
-    const date = new Date(value);
-    return Number.isFinite(date.getTime()) && date.toISOString() === value;
-  } catch {
-    return false;
-  }
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
 }
 
 function envelopesFor(schemaRef: string, value: unknown): readonly unknown[] {

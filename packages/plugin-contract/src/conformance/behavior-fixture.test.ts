@@ -15,6 +15,7 @@ import type {
   BehaviorTarget,
   BehaviorVerdict,
 } from './behavior-executor.js';
+import { M0C_BEHAVIOR_CASE_IDS } from './messaging-behavior-fixture.js';
 import { MessagingLoopbackAdapter } from './messaging-loopback-adapter.js';
 import { runConformance } from './runner.js';
 
@@ -60,6 +61,14 @@ function caseById(id: string): Record<string, unknown> {
 
 test('committed behavior fixture is structurally executable', () => {
   assert.equal(validate(behaviorFixture), true, JSON.stringify(validate.errors));
+});
+
+test('M0-C exports the canonical 18 behavior-case identities in fixture order', () => {
+  assert.equal(M0C_BEHAVIOR_CASE_IDS.length, 18);
+  assert.deepEqual(
+    M0C_BEHAVIOR_CASE_IDS,
+    behaviorFixture.cases.map(behaviorCase => behaviorCase['id']),
+  );
 });
 
 test('behavior fixture rejects a case without an operation input', () => {
