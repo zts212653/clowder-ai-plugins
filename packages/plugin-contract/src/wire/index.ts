@@ -225,6 +225,24 @@ export type {
   LifecycleNotificationRowEncodedByteBounds,
 } from './lifecycle-byte-bounds.js';
 
+// Derived beta.11 M0-C messaging byte-bound evidence
+export {
+  MESSAGING_BYTE_PROOF_ENCODING_FAMILIES,
+  MESSAGING_REQUEST_BYTE_PROOFS,
+  MESSAGING_RESULT_BYTE_PROOFS,
+  MESSAGING_ERROR_BYTE_PROOFS,
+  MESSAGING_ROW_ENCODED_BYTE_BOUNDS,
+} from './messaging-byte-bounds.js';
+
+export type {
+  MessagingByteProofEncodingFamily,
+  MessagingByteProofBasis,
+  MessagingNPlusOneByteProof,
+  MessagingEncodedByteProofCase,
+  MessagingEncodedByteProof,
+  MessagingRowEncodedByteBounds,
+} from './messaging-byte-bounds.js';
+
 export type {
   EventsPublishByteProofEncodingFamily,
   EventsPublishNPlusOneWitness,

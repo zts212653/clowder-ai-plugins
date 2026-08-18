@@ -238,6 +238,10 @@ export interface RequestSnapshot {
   readonly nonce?: string;
   /** Row 9 deliver: the deliveryId that must match byte-equal in the ack. */
   readonly deliveryId?: string;
+  /** Row 6 read: the validated request limit that bounds result.events. */
+  readonly readLimit?: number;
+  /** Row 8 snapshot: the validated request maxItems that bounds result.items. */
+  readonly snapshotMaxItems?: number;
   /** Row 1 hello: the candidate claims that SessionBinding must echo byte-equal. */
   readonly candidateHello?: CandidateHello;
 }

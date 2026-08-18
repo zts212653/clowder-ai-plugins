@@ -212,7 +212,7 @@ test('grantsChangedNPlusOneBytes still fits within MAX_FRAME_BYTES (cardinality 
 });
 
 // ---------------------------------------------------------------------------
-// 6. getClosedRowTemplates covers all 8 closed rows
+// 6. getClosedRowTemplates covers the generic scalar-leaf proof rows
 // ---------------------------------------------------------------------------
 
 test('getClosedRowTemplates covers rows 1, 2, 5, 7, 10, 11, 12, 13', () => {

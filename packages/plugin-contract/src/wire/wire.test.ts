@@ -87,6 +87,7 @@ import {
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
   EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
+  MESSAGING_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
   MAX_GRANT_ITEMS,
   VALID_CAPABILITIES,
@@ -760,11 +761,18 @@ test('beta.11 readies the complete 13-row standalone contract', () => {
       LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS[method],
     );
   }
-  for (const method of WIRE_METHOD_NAMES.slice(2, 9)) {
-    const row = getRegistryRow(method);
-    assert.equal(row?.maxEncodedRequestBytes, undefined);
-    assert.equal(row?.maxEncodedResultBytes, undefined);
-    assert.equal(row?.maxEncodedErrorBytes, undefined);
+  for (const method of WIRE_METHOD_NAMES.slice(2, 9) as readonly (
+    keyof typeof MESSAGING_ROW_ENCODED_BYTE_BOUNDS
+  )[]) {
+    const row = WIRE_METHOD_REGISTRY[method];
+    assert.deepEqual(
+      {
+        maxEncodedRequestBytes: row.maxEncodedRequestBytes,
+        maxEncodedResultBytes: row.maxEncodedResultBytes,
+        maxEncodedErrorBytes: row.maxEncodedErrorBytes,
+      },
+      MESSAGING_ROW_ENCODED_BYTE_BOUNDS[method],
+    );
   }
 });
 

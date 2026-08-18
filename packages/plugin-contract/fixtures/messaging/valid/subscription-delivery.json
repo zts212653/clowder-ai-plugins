@@ -18,7 +18,7 @@
           "audience": {
             "kind": "public"
           },
-          "occurredAt": "2026-07-15T02:42:00Z",
+          "occurredAt": "2026-07-15T02:42:00.000Z",
           "payload": {
             "provenance": {
               "origin": {

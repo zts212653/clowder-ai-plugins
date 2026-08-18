@@ -1,13 +1,15 @@
 /**
- * Per-row byte-proof templates for all 8 closed rows.
+ * Generic scalar-leaf byte-proof templates for the pre-M0-C rows.
  *
  * Each template defines the worst-case wire frame for one closed row's
  * request/notification + response. The byte-proof engine
  * (calculateByteProof) measures these to verify frame budget compliance
  * and generate N+1 rejection proofs.
  *
- * Only CLOSED rows get byte proofs: 1, 2, 5, 7, 10, 11, 12, 13.
- * RESERVED rows cannot be measured — their shapes are not yet frozen.
+ * These templates cover rows 1, 2, 5, 7, 10, 11, 12, and 13. The aggregate
+ * payload and assembler-budget proofs for M0-C rows 3 through 9 live in
+ * messaging-byte-bounds.ts instead of being forced into this scalar-leaf
+ * template model.
  *
  * Templates use placeholder strings ('') for closed string leaves.
  * The engine replaces them with worst-case code points per encoding family.
