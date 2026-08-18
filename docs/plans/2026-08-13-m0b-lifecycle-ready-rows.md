@@ -9,10 +9,11 @@ created: 2026-08-13
 
 ## Authority, baseline, and finish line
 
-**Baseline:** `clowder-ai-plugins/origin/main@81ce38c6c7d111ecdd628a9c2446d246dbf49d5f`
-(merged PR #31), with `@clowder-ai/plugin-contract@0.1.0-beta.9`,
+**Baseline:** `clowder-ai-plugins/origin/main@f5a71fcd541e5040c8386af20c7d39a81d8762c4`
+(merged PR #36), with `@clowder-ai/plugin-contract@0.1.0-beta.9`,
 `@clowder-ai/plugin-sdk@0.1.0-beta.5`, and
-`@clowder-ai/feishu-meeting-intake@0.1.0-alpha.2`.
+`@clowder-ai/feishu-meeting-intake@0.1.0-alpha.6`. Registry verification on
+2026-08-18 also found the Feishu package's `next` tag at `0.1.0-alpha.6`.
 
 **Authority:** the merged
 [`v0-implementation-roadmap.md`](../proposals/v0-implementation-roadmap.md)
@@ -168,9 +169,9 @@ that a child process cannot inject.
 
 - Bump `packages/plugin-contract/package.json` to `0.1.0-beta.10` and
   `packages/plugin-sdk/package.json` to `0.1.0-beta.6`, with the SDK pinned to
-  the exact beta.10 contract. The Feishu alpha.2 package remains unchanged and
-  continues to declare the versions against which its immutable tarball was
-  published.
+  the exact beta.10 contract. This slice leaves the rebased Feishu alpha.6
+  package unchanged; it continues to declare the beta.9 contract and beta.5
+  SDK versions against which its immutable tarball was published.
 - Update `conformance/release-config.test.ts` to lock the package candidate.
 - Re-run generated-output checks; do not regenerate unrelated schema output.
 - Prove existing SDK lifecycle behavior remains green without new Host code.
@@ -201,6 +202,10 @@ git diff --check
 Acceptance requires:
 
 - observed RED before the production change and GREEN at the final exact SHA;
+- immediately before each maintainer re-review, fetch `origin/main`, require
+  the PR head to descend from it, and re-verify the exact source baseline plus
+  the Feishu registry `next` tag; if `main` advances, rebase and refresh this
+  review packet before claiming merge readiness;
 - registry, derived byte proofs, public exports, fixture membership, SDK
   classification, and packed artifact all agree;
 - no Host activation or messaging-row readiness appears in the diff;
