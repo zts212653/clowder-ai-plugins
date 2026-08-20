@@ -19,6 +19,7 @@ import type { DecodedNdjsonFrame, JsonObject } from '@clowder-ai/plugin-contract
 
 import {
   type DispositionClass,
+  type AppendResult,
   type DeliverResult,
   type MessagingRowMethod,
   type ReadResult,
@@ -219,34 +220,6 @@ function containsNonScalarString(value: unknown): boolean {
   return false;
 }
 
-/**
- * Detect numbers whose JSON.stringify form uses exponent notation.
- *
- * V8 serialises numbers ≥ 10^21 (and very small fractions) in exponent
- * form (e.g. `1e+21`). When the raw frame also uses the same exponent
- * form, byte-equality passes — but exponent-form numeric tokens are
- * non-canonical per the WireUInt53 profile (which requires raw decimal
- * digits `0|[1-9][0-9]*`, no exponent). Deep traversal mirrors
- * containsNonScalarString.
- */
-function containsExponentNumber(value: unknown): boolean {
-  if (typeof value === 'number') {
-    const s = String(value);
-    return s.includes('e') || s.includes('E');
-  }
-  if (value === null || typeof value !== 'object') return false;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      if (containsExponentNumber(item)) return true;
-    }
-    return false;
-  }
-  for (const v of Object.values(value as Record<string, unknown>)) {
-    if (containsExponentNumber(v)) return true;
-  }
-  return false;
-}
-
 // ---------------------------------------------------------------------------
 // WireUInt53 raw-token validation (P1-1 maintainer requirement)
 // ---------------------------------------------------------------------------
@@ -267,7 +240,16 @@ function containsExponentNumber(value: unknown): boolean {
  *   - params.meta.deadlineUnixMs  (every request/notification)
  *   - params.input.deadlineUnixMs (host.lifecycle.drain input)
  *   - params.input.grantRevision  (host.grants.changed input)
+ *   - params.input.baseRevision   (messaging.appendElements input)
+ *   - params.input.limit          (messaging.read input)
+ *   - params.input.maxItems       (messaging.snapshot input)
+ *   - params.input.envelope.revision (host.messaging.deliver input)
  *   - result.grantRevision        (broker.hello SessionBinding)
+ *   - result.revision             (messaging.send, messaging.appendElements)
+ *   - result.publishSequence      (messaging.send)
+ *   - result.appendSequence       (messaging.appendElements)
+ *   - result.events[].sequence    (messaging.read)
+ *   - result.items[].revision     (messaging.snapshot)
  */
 function hasNonCanonicalUInt53Token(
   value: JsonObject,
@@ -299,21 +281,76 @@ function hasNonCanonicalUInt53Token(
       if (requestMethod === 'host.grants.changed' && typeof inputObj.grantRevision === 'number') {
         if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
       }
+
+      // ── M0-C messaging request WireUInt53 leaves ──
+      if (requestMethod === 'messaging.appendElements' && typeof inputObj.baseRevision === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.baseRevision))) return true;
+      }
+      if (requestMethod === 'messaging.read' && typeof inputObj.limit === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.limit))) return true;
+      }
+      if (requestMethod === 'messaging.snapshot' && typeof inputObj.maxItems === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.maxItems))) return true;
+      }
+      if (requestMethod === 'host.messaging.deliver') {
+        const envelope = inputObj.envelope;
+        if (envelope !== null && typeof envelope === 'object' && !Array.isArray(envelope)) {
+          const envelopeObj = envelope as Record<string, unknown>;
+          if (typeof envelopeObj.revision === 'number') {
+            if (!isCanonicalUInt53Token(String(envelopeObj.revision))) return true;
+          }
+        }
+      }
     }
   }
 
-  // H7 is a WireUInt53 result leaf only for broker.hello's SessionBinding.
-  // Consult the correlated in-flight row before applying this raw-token gate:
-  // result.grantRevision on every other response belongs to that row's own
-  // result grammar and must therefore reach T-H rather than T-C.
+  // Response-side WireUInt53 positions: consult the correlated in-flight
+  // row before applying raw-token gates. Only protocol-defined numeric
+  // leaves at known positions are checked — open payloads are not covered.
   const result = value.result;
   const responseMethod = typeof value.id === 'string'
     ? inFlight.get(value.id)?.method
     : undefined;
-  if (!('method' in value) && responseMethod === 'broker.hello' && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+  if (!('method' in value) && result !== null && typeof result === 'object' && !Array.isArray(result)) {
     const resultObj = result as Record<string, unknown>;
-    if (typeof resultObj.grantRevision === 'number') {
-      if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
+
+    // H7: broker.hello SessionBinding.grantRevision
+    if (responseMethod === 'broker.hello') {
+      if (typeof resultObj.grantRevision === 'number') {
+        if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
+      }
+    }
+
+    // messaging.send: result.revision, result.publishSequence
+    if (responseMethod === 'messaging.send') {
+      if (typeof resultObj.revision === 'number' && !isCanonicalUInt53Token(String(resultObj.revision))) return true;
+      if (typeof resultObj.publishSequence === 'number' && !isCanonicalUInt53Token(String(resultObj.publishSequence))) return true;
+    }
+
+    // messaging.appendElements: result.revision, result.appendSequence
+    if (responseMethod === 'messaging.appendElements') {
+      if (typeof resultObj.revision === 'number' && !isCanonicalUInt53Token(String(resultObj.revision))) return true;
+      if (typeof resultObj.appendSequence === 'number' && !isCanonicalUInt53Token(String(resultObj.appendSequence))) return true;
+    }
+
+    // messaging.read: result.events[].sequence
+    if (responseMethod === 'messaging.read' && Array.isArray(resultObj.events)) {
+      for (const event of resultObj.events as unknown[]) {
+        if (event !== null && typeof event === 'object' && !Array.isArray(event)) {
+          const eventObj = event as Record<string, unknown>;
+          if (typeof eventObj.sequence === 'number' && !isCanonicalUInt53Token(String(eventObj.sequence))) return true;
+        }
+      }
+    }
+
+    // messaging.snapshot: result.items[].revision
+    if (responseMethod === 'messaging.snapshot' && Array.isArray(resultObj.items)) {
+      for (const item of resultObj.items as unknown[]) {
+        if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+          const itemObj = item as Record<string, unknown>;
+          if (typeof itemObj.revision === 'number' && !isCanonicalUInt53Token(String(itemObj.revision))) return true;
+        }
+      }
     }
   }
 
@@ -647,6 +684,15 @@ function validateResponseResult(
         (validated.value as SnapshotResult).items.length > snapshotMaxItems
       ) {
         return close('T-H');
+      }
+    }
+
+    if (method === 'messaging.appendElements') {
+      const appendElementIds = entry.requestSnapshot?.appendElementIds;
+      if (appendElementIds === undefined) return close('T-H');
+      const appliedIds = (validated.value as AppendResult).appliedElementIds;
+      for (const id of appliedIds) {
+        if (!appendElementIds.includes(id)) return close('T-H');
       }
     }
 
@@ -988,12 +1034,17 @@ export function classifyFrame(
   // The T-C predicate covers: whitespace, duplicate keys, non-scalar
   // strings, non-canonical numbers, and BOM-prefixed frames.
   // Byte-equality catches whitespace, duplicate keys, and most non-
-  // canonical numbers. Three supplementary measures close the gaps:
+  // canonical numbers. Two supplementary measures close the remaining
+  // gaps:
   //   1. ignoreBOM:true — keeps BOM visible so it fails byte-equality.
   //   2. containsNonScalarString — lone surrogates roundtrip thru stringify.
-  //   3. containsExponentNumber — V8-canonical exponent form (≥10^21)
-  //      also roundtrips, but exponent tokens violate the WireUInt53
-  //      raw decimal-digit-only profile.
+  // For protocol-defined WireUInt53 positions (meta.deadlineUnixMs, row-
+  // specific input/result leaves including M0-C messaging fields),
+  // hasNonCanonicalUInt53Token validates String(n) against the canonical
+  // grammar (0|[1-9][0-9]{0,15}) — this catches fractions (1.5),
+  // negatives (-1), and V8-canonical exponent form (1e+21) at protocol
+  // positions, without rejecting valid numbers in open payloads
+  // (e.g. MessageElement.payload).
   //
   // Guard: JSON.stringify and the deep-traversal helpers use recursive
   // descent. A canonical frame nested thousands of levels deep passes
@@ -1005,10 +1056,9 @@ export function classifyFrame(
     const canonical = JSON.stringify(value);
     if (rawStr !== canonical) return close('T-C');
     if (containsNonScalarString(value)) return close('T-C');
-    if (containsExponentNumber(value)) return close('T-C');
     // P1-1: WireUInt53 raw-token grammar — after byte-equality, the raw
     // token at each WireUInt53 position is String(parsedValue). Tokens
-    // like "-1" or "1.5" violate 0|[1-9][0-9]{0,15} → T-C.
+    // like "-1", "1.5", or "1e+21" violate 0|[1-9][0-9]{0,15} → T-C.
     if (hasNonCanonicalUInt53Token(value, inFlight)) return close('T-C');
   } catch {
     // Stack overflow from deep nesting, or other canonicality edge case.

@@ -621,21 +621,22 @@ test('frame with UTF-8 BOM prefix is T-C (BOM is non-canonical)', () => {
 // (codex R2 P2-2 — V8 JSON.stringify(1e+21) → "1e+21", byte-equality passes)
 // ---------------------------------------------------------------------------
 
-test('frame with V8-canonical exponent-form number is T-C (non-canonical number)', () => {
+test('frame with V8-canonical exponent-form number at WireUInt53 position is T-C', () => {
   // 1e+21 ≥ 10^21, so V8's JSON.stringify uses exponent notation "1e+21".
   // Byte-equality passes because both raw and canonical have the same form.
-  // The containsExponentNumber check catches it — exponent form violates
-  // the WireUInt53 raw decimal-digit-only profile.
+  // hasNonCanonicalUInt53Token catches it — at the meta.deadlineUnixMs
+  // WireUInt53 position, isCanonicalUInt53Token("1e+21") is false because
+  // exponent form violates the raw decimal-digit-only profile.
   const json = '{"jsonrpc":"2.0","id":"a","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1e+21},"input":{"nonce":"x"}}}';
   const parsed = JSON.parse(json) as JsonObject;
-  // Sanity: byte-equality would pass without the exponent check
+  // Sanity: byte-equality would pass without the WireUInt53 position check
   assert.equal(json, JSON.stringify(parsed), 'exponent form roundtrips through JSON');
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(json, 'utf8'),
     value: parsed,
   };
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-C', 'exponent-form number must be T-C');
+  assert.equal(result.disposition, 'T-C', 'exponent-form number at WireUInt53 position must be T-C');
   assert.equal(result.outcome, 'close');
 });
 
@@ -1625,7 +1626,7 @@ test('M0-C valid results reach T-L and malformed results reach T-H', () => {
       'messaging.appendElements',
       { messageId: 'message-1', revision: 2, appliedElementIds: ['element-2'] },
       { messageId: 'message-1', revision: 2, appliedElementIds: [] },
-      {},
+      { appendElementIds: ['element-2'] },
     ],
     [
       'messaging.subscribe',

@@ -302,6 +302,8 @@ export interface RequestSnapshot {
   readonly snapshotMaxItems?: number;
   /** Row 1 hello: the candidate claims that SessionBinding must echo byte-equal. */
   readonly candidateHello?: CandidateHello;
+  /** Row 4 append: the input element IDs for cross-frame provenance. */
+  readonly appendElementIds?: readonly string[];
 }
 
 /**
@@ -473,6 +475,22 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedResponseFrame: null,
     zeroSideEffects: true,
     description: '[beta.8 H7 raw token] negative SessionBinding grantRevision is rejected at canonicality before correlation',
+  },
+  {
+    id: 'T-C-3',
+    rawFrame: messagingRequestFrame('read-fractional', 'messaging.read', {
+      subscriptionId: 'subscription-1',
+      limit: 1.5,
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-C',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional read limit is rejected at canonicality before method validation',
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -1784,6 +1802,23 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[beta.11 messaging] legal Host delivery reaches plugin dispatch',
   },
   {
+    id: 'T-M-21',
+    rawFrame: messagingRequestFrame('send-exponent', 'messaging.send', {
+      address: { kind: 'thread_handle', handle: 'thread-handle-1' },
+      idempotencyKey: 'send-exp',
+      payload: {
+        provenance: { epistemicStatus: 'inference' },
+        elements: [
+          { elementId: 'element-1', kind: 'rich_block', payload: { data: 1e+21 } },
+        ],
+      },
+    }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] V8-canonical exponent in open payload is legal at T-C',
+  },
+  {
     id: 'T-G-27',
     rawFrame: messagingRequestFrame('a', 'host.messaging.deliver', {
       deliveryId: 'delivery-1',
@@ -1823,7 +1858,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-result', result: {
       messageId: 'message-1', revision: 2, appliedElementIds: ['element-2'],
     } }),
-    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'append-result', method: 'messaging.appendElements' }] },
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'append-result', method: 'messaging.appendElements', requestSnapshot: { appendElementIds: ['element-2'] } }] },
     expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
     expectedErrorCode: null, expectedResponseFrame: null,
     description: '[beta.11 messaging] closed append receipt settles the request',
@@ -1833,7 +1868,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-empty', result: {
       messageId: 'message-1', revision: 2, appliedElementIds: [],
     } }),
-    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'append-empty', method: 'messaging.appendElements' }] },
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'append-empty', method: 'messaging.appendElements', requestSnapshot: { appendElementIds: ['element-2'] } }] },
     expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
     expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
     description: '[beta.11 messaging] empty append receipt closes without settlement',
@@ -1924,6 +1959,28 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
     description: '[beta.11 messaging] mismatched delivery acknowledgement closes without settlement',
   },
+  {
+    id: 'T-H-21',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-provenance', result: {
+      messageId: 'message-1', revision: 2, appliedElementIds: ['wrong-element'],
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'append-provenance', method: 'messaging.appendElements', requestSnapshot: { appendElementIds: ['element-2'] } }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] append receipt with foreign element IDs closes without settlement',
+  },
+  {
+    id: 'T-H-22',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-no-snapshot', result: {
+      messageId: 'message-1', revision: 2, appliedElementIds: ['element-2'],
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'append-no-snapshot', method: 'messaging.appendElements' }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] append receipt without provenance snapshot closes without settlement',
+  },
 ];
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
@@ -1979,11 +2036,12 @@ export const BETA10_LIFECYCLE_VECTOR_IDS = [
 
 /** Complete beta.11 M0-C messaging safety surface for rows 3 through 9. */
 export const BETA11_MESSAGING_VECTOR_IDS = [
+  'T-C-3',
   'T-H-2', 'T-H-5', 'T-H-9', 'T-L-4',
   'T-M-14', 'T-G-21', 'T-M-15', 'T-G-22', 'T-M-16', 'T-G-23',
   'T-M-17', 'T-G-24', 'T-M-18', 'T-G-25', 'T-M-19', 'T-G-26',
-  'T-M-20', 'T-G-27',
+  'T-M-20', 'T-M-21', 'T-G-27',
   'T-L-11', 'T-H-14', 'T-L-12', 'T-H-15', 'T-L-13', 'T-H-16',
   'T-L-14', 'T-H-17', 'T-L-15', 'T-H-18', 'T-L-16', 'T-H-19',
-  'T-L-17', 'T-H-20',
+  'T-L-17', 'T-H-20', 'T-H-21', 'T-H-22',
 ] as const;

@@ -310,5 +310,5 @@ test('standalone child selects every beta.11 request vector from the public cata
       ) && vector.expectedClass === 'T-M')
       .map(vector => vector.id),
   );
-  assert.equal(beta11RequestIds.length, 7);
+  assert.equal(beta11RequestIds.length, 8);
 });

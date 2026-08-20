@@ -547,7 +547,7 @@ test('beta.11 exports one messaging safety set spanning rows 3 through 9', () =>
     completeMessagingIds,
     'public beta.11 safety set must include every canonical messaging fixture and proof companion',
   );
-  assert.equal(BETA11_MESSAGING_VECTOR_IDS.length, 32);
+  assert.equal(BETA11_MESSAGING_VECTOR_IDS.length, 36);
   for (const id of BETA11_MESSAGING_VECTOR_IDS) {
     const vector = findVector(id);
     if (vector.expectedClass === 'T-G' || vector.expectedClass === 'T-H') {
