@@ -1832,6 +1832,50 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[beta.11 messaging] non-canonical stored timestamp rejects before callback dispatch',
   },
   {
+    id: 'T-C-4',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-publish-rev', result: {
+      events: [{ ...M0C_PUBLISH_EVENT, envelope: { ...M0C_ENVELOPE, revision: 1.5 } }],
+      ackToken: 'ack-1', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'read-publish-rev', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-C', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional publish envelope revision in read response is rejected at canonicality',
+  },
+  {
+    id: 'T-C-5',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-append-rev', result: {
+      events: [{
+        eventId: 'event-append-1', sequence: 1, type: 'message.elements.append',
+        messageId: 'message-1', threadId: 'thread-1', operationId: 'op-1',
+        revision: 1.5, elements: [],
+      }],
+      ackToken: 'ack-1', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'read-append-rev', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-C', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional append event revision in read response is rejected at canonicality',
+  },
+  {
+    id: 'T-C-6',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-append-baserev', result: {
+      events: [{
+        eventId: 'event-append-2', sequence: 1, type: 'message.elements.append',
+        messageId: 'message-1', threadId: 'thread-1', operationId: 'op-1',
+        baseRevision: 1.5, revision: 2, elements: [],
+      }],
+      ackToken: 'ack-1', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'read-append-baserev', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-C', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional append event baseRevision in read response is rejected at canonicality',
+  },
+  {
     id: 'T-L-11',
     rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'send-result', result: {
       messageId: 'message-1', threadId: 'thread-1', revision: 1,
@@ -2041,6 +2085,7 @@ export const BETA11_MESSAGING_VECTOR_IDS = [
   'T-M-14', 'T-G-21', 'T-M-15', 'T-G-22', 'T-M-16', 'T-G-23',
   'T-M-17', 'T-G-24', 'T-M-18', 'T-G-25', 'T-M-19', 'T-G-26',
   'T-M-20', 'T-M-21', 'T-G-27',
+  'T-C-4', 'T-C-5', 'T-C-6',
   'T-L-11', 'T-H-14', 'T-L-12', 'T-H-15', 'T-L-13', 'T-H-16',
   'T-L-14', 'T-H-17', 'T-L-15', 'T-H-18', 'T-L-16', 'T-H-19',
   'T-L-17', 'T-H-20', 'T-H-21', 'T-H-22',

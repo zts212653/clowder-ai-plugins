@@ -22,7 +22,7 @@ test('the built conformance boundary exports the stdio harness', async () => {
   assert.ok(Array.isArray(conformance.BETA10_LIFECYCLE_VECTOR_IDS));
   assert.ok(conformance.BETA10_LIFECYCLE_VECTOR_IDS.includes('T-L-10'));
   assert.ok(Array.isArray(conformance.BETA11_MESSAGING_VECTOR_IDS));
-  assert.equal(conformance.BETA11_MESSAGING_VECTOR_IDS.length, 36);
+  assert.equal(conformance.BETA11_MESSAGING_VECTOR_IDS.length, 39);
   assert.deepEqual(conformance.M0C_BEHAVIOR_CASE_IDS, [
     'raw-thread-id-rejection',
     'system-audience-dual-rejection',

@@ -333,12 +333,24 @@ function hasNonCanonicalUInt53Token(
       if (typeof resultObj.appendSequence === 'number' && !isCanonicalUInt53Token(String(resultObj.appendSequence))) return true;
     }
 
-    // messaging.read: result.events[].sequence
+    // messaging.read: result.events[] WireUInt53 leaves
+    // Common: events[].sequence
+    // Publish arm: events[].envelope.revision (not traversing open payload)
+    // Elements-append arm: events[].revision, events[].baseRevision
     if (responseMethod === 'messaging.read' && Array.isArray(resultObj.events)) {
       for (const event of resultObj.events as unknown[]) {
         if (event !== null && typeof event === 'object' && !Array.isArray(event)) {
           const eventObj = event as Record<string, unknown>;
           if (typeof eventObj.sequence === 'number' && !isCanonicalUInt53Token(String(eventObj.sequence))) return true;
+          // publish arm: envelope.revision
+          const eventEnvelope = eventObj.envelope;
+          if (eventEnvelope !== null && typeof eventEnvelope === 'object' && !Array.isArray(eventEnvelope)) {
+            const envObj = eventEnvelope as Record<string, unknown>;
+            if (typeof envObj.revision === 'number' && !isCanonicalUInt53Token(String(envObj.revision))) return true;
+          }
+          // elements-append arm: revision, baseRevision
+          if (typeof eventObj.revision === 'number' && !isCanonicalUInt53Token(String(eventObj.revision))) return true;
+          if (typeof eventObj.baseRevision === 'number' && !isCanonicalUInt53Token(String(eventObj.baseRevision))) return true;
         }
       }
     }
