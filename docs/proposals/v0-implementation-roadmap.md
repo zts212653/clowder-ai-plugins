@@ -1,14 +1,14 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行刷新已确认 — 常驻分工规则已经确认；事实进度更新至 beta.9 与已落地但未启用的 K-2D external runtime
+status: 执行中 — beta.11 公共契约已就绪；M0 Host messaging 待收口；下一阶段冻结为完整基础底座与存量迁移
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
 progress_refresh: https://github.com/zts212653/clowder-ai-plugins/pull/25#issuecomment-5261613034
 created: 2026-07-14
-revised: 2026-08-12
-feature_ids: [clowder-ai-plugins-init, P-1, F288, F292]
-topics: [roadmap, plugin-contract, host-broker, standalone-io, signal-ingress]
+revised: 2026-08-21
+feature_ids: [clowder-ai-plugins-init, P-1, F202, F288, F292]
+topics: [roadmap, plugin-contract, plugin-sdk, host-broker, plugin-manager, contribution-plane, migration]
 doc_kind: roadmap
 references:
   - docs/proposals/plugin-system-principles-and-v0-design.md
@@ -18,230 +18,234 @@ references:
 
 # Clowder AI 插件系统实施路线图
 
-本文是公共插件契约、SDK、第一方插件及其 Host 侧收敛工作的执行真相源。
-它用截至 `@clowder-ai/plugin-contract@0.1.0-beta.9` 的已核验进度，
-取代 2026-07-14 版本中的规划数量与任务分配。
+本文是公共插件契约、SDK、第一方插件及其 Host 侧收敛工作的跨仓执行真相源。
+Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥有跨仓顺序、
+版本坐标、交付列车与基础底座完成线，避免两仓维护两套相互漂移的阶段表。
 
-架构原则保持不变。本次刷新只更新事实状态、执行顺序和常驻主笔分工模型。
+本次刷新以 2026-08-21 已核验代码为准。它取代旧版“beta.9 row closure →
+逐能力 Phase 2/3 扩张”的顺序。目标不是继续增加协议行或拆出大量小 PR，
+而是尽快且可验证地完成完整插件底座，再集中迁移现有能力形成产品闭环。
 
-## 1. 执行规则
+## 1. 目标架构与硬边界
 
-1. **契约只有一个真相源。** Host 与插件必须消费精确发布的
-   `@clowder-ai/plugin-contract` 版本。内核本地不得再建立第二份 wire mirror，
-   从而形成平行协议真相。
-2. **契约回边闭环。** 一个 wire slice 只有完成以下全链后才可使用：
-   `shape 共识 → 双 CODEOWNER 契约 PR → 精确包版本发布与 integrity 核验
-   → Host 精确 pin + conformance → Host 合入 → 验收`。
-3. **ready row 是机器声明。** 只有 `leafClosure: CLOSED` 不够。必须同时满足：
-   registry 记录 `ready: true`，且 validator、编码后字节证明、conformance vector
-   和 runtime enforcement 全部一致，才允许对外宣告该 row 可用。
-4. **无人认领的 lane 默认由 `mindfn` 主笔。** `mindfn` 可以主导公共 contract、
-   SDK、plugin、conformance 与 roadmap 工作，也可以主导存在可写贡献面的
-   Host/Core 工作。这不会转移 Host 域所有权：`zts212653` 继续保留 Host
-   集成边界、review/merge 权限、runtime 责任、生产数据/凭据决策和独立验收。
-   仅存在于私有 Cat Café 的 composition 仍由 maintainer 负责。
-5. **禁止自审。** 公共契约变更继续要求双 CODEOWNER。当 `mindfn` 同时主笔
-   plugin 与 Host 两半时，由 `zts212653` 主导最终跨边界 verdict。
-6. **FG 独立性是刻意设计。** 除非双方明确修改验收设计，FG-1 与 FG-2
-   继续由 `zts212653` 主笔，避免 same-power evidence 由同一方自证。
-7. **禁止重复私有开发。** 认领 Host lane 前，双方公开活跃的私有 branch/PR
-   并确定唯一主笔。这只是防撞检查，不是新的设计门禁。私有源码不可访问时，
-   `mindfn` 主导公共 seam、validator、fixture、黑盒 vector 与 executable
-   package；maintainer 只完成狭窄的私有 composition 改动。
+### 1.1 基础底座完成线
 
-第 4–7 条是 `zts212653` 于 2026-08-11 确认的常驻分工决定。普通无人认领工作
-不再需要逐 PR 申请权限；只有新公共语义、生产数据/凭据边界、runtime activation、
-不可逆 registry 动作或新发现的开发碰撞，才需要重新回到 maintainer review。
+一个独立 npm 插件必须能够：
 
-## 2. 当前系统全景
+1. 从 Host 配置的 catalog provider 被发现、查询和安装；
+2. 通过统一 Plugin Manager 完成校验、配置、启用、禁用、更新、修复和卸载；
+3. 只依赖公共 `@clowder-ai/plugin-sdk` 使用授权后的消息、事件、配置、状态、
+   secrets、scheduler、MCP、hook、service、connector 与 Console contribution；
+4. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
+   保留或清理数据；
+5. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径。
 
-| 阶段 / 工作线 | 单元 | 当前事实 | 尚未关闭的门禁 |
-|---|---|---|---|
-| Phase 0 | G-0 价值与契约地基 | **已完成。** 四组政策已经共签；package、CI、codegen、conformance、CODEOWNERS 与自动 prerelease 发布均已运行。 | 无。 |
-| Phase 1 / M0 | K-1 MessagingDomain | **已完成。** `clowder-ai#1270` 已按 `3251eea` 合入。 | 无。 |
-| Phase 1 / M0 | P-1 standalone plugin 半场 | **已完成。** PR #12、#13、#20、#21 已交付 stdio runtime、S1 dispatch、manifest validator、S2 shell、S3 handshake client、S4 loopback fixture 和 S5 adversarial matrix。 | plugin 半场无待办。 |
-| Phase 1 / M0 | K-2A 休眠 Host 地基 | **维护者报告已完成。** `zts212653` 报告私有 `cat-cafe#3422` 已按 `a6b38ac` 合入；最初 pin beta.7，activation 保持休眠。本仓无法独立读取该私有 patch。 | 已被 K-2B 的精确 beta.9 pin 取代为活动门禁；本行仅保留 provenance。 |
-| Phase 1 / M0 | K-2B Host Broker | **维护者报告已落地，runtime 休眠。** Cat Café #3555 已按 `f7fe823` 合入；Host 精确 pin beta.9，并实现 contract-native state machine 与 `events.publish` edge。 | 外部进程/stdio activation 与真实黑盒验收均未开启。 |
-| Phase 1 / M0 | K-2B lifecycle 与 messaging transport | **尚未契约就绪。** 第 3–12 行仍为 `ready:false`；多个 messaging row 仍含 RESERVED leaf。 | 精确关闭并发布 M0 所需 row，再实现对应 Host route。 |
-| Phase 1 / M0 | K-2D 外部 runtime | **维护者报告已落地，runtime 休眠。** Cat Café #3558 已在 exact HEAD `b0d95187826baeb5fd47357965fcb1d3270e723b` 通过非作者 review，并按 `ae23934d5a1e6dba64fd087c3033158c9516e5a2` squash merge；已落地 generic external-package integrity boundary、supervised process/stdio/environment transport 与保持休眠的 production composition。 | 仍需独立 activation 决策、真实 Host ↔ plugin 共跑、dogfood 与 M0 验收。F289 #3467 的暂停 migration 不是前置依赖。 |
-| Phase 1 / M0 | 联合验收 | **未开始。** plugin 侧 18-case Host seam manifest 已合入。 | 真实 Host ↔ standalone plugin 共跑、完整 fail-closed matrix、P14、事件输入断言与 plugin crash isolation verdict。 |
-| Phase 2 / signal ingress | C-2 signal-ingress slice + Feishu adapter | **公共半场已落地。** PR #24 已按 `9d4a76c` 合入；beta.9 使 `events.publish` ready。`@clowder-ai/feishu-meeting-intake@0.1.0-alpha.1` 已在 registry 可见，并带经 review 的 stdio entrypoint。 | 外部 runtime activation 与端到端 dogfood 仍是独立门禁。 |
-| Phase 2 / F292 | Host intake | **维护者报告已落地。** Cat Café #3522、#3542 已按 `55c663a`、`d603b76` 合入，覆盖 Host intake 与 Needs Me flow。 | 不宣称生产 activation、凭据或黑盒验证已经完成。 |
-| Phase 2 / F292 | 体验旅程 | **私有 flow 已落地，外部旅程待完成。** Needs Me 已存在于 Host，但外部 runtime 仍休眠。 | 等独立 runtime activation 决策；随后运行真实 meeting dogfood 并收集发布证据。 |
-| Phase 2 / M1 | K-3b + P-4 + FG-1 | **待开始；K-3b 无人认领。** 碰撞扫描未发现活跃 K-3b 实现；windows/presence、desktop probe 和 foreground-cat reference plugin 均未完成。 | 契约关闭、Host mechanism、plugin 实现与 M1 联合验收。 |
-| Phase 2 / collection | K-5 + C-3 + P-5 | **待开始 / 无人认领。** 碰撞扫描未发现活跃 K-5 实现；schedule/state 契约工作与 GitHub migration 尚未开始。 | M0 与逐域 contract return loop。 |
-| Phase 3 | Service/UI、connector、memory、community、v1 | **待开始。** | M1 或下文列出的逐工作线前置条件。 |
+达到以上五条，才算“基础底座完成”。某个 package 发布、某组 wire row ready、
+Host merge 或 loopback 单测通过，都不能单独替代该完成线。
 
-### 已发布 ready row 分区
+### 1.2 留在 Core 的能力
 
-| 版本 | 新增 ready rows | Integrity |
+- Plugin Manager，以及 package/install/config/activation/runtime 的权威状态机；
+- catalog trust policy、package digest/provenance、quarantine、授权和审计；
+- 通用 scheduler、MCP、connector binding、service lifecycle、state/secret persistence；
+- Host Broker、外部进程监督、domain ledger 与用户数据保留策略；
+- Console contribution 的 slot registry、renderer policy 和 capability gate。
+
+插件化的是具体业务实现，不是管理器本身。IM provider、ASR/TTS 等具体服务、
+现有业务插件及其 UI contribution 进入 `clowder-ai-plugins`；通用控制面继续留在 Core。
+
+### 1.3 Cordis 参考边界
+
+吸收 Cordis / DeepSeek Harness 的 `Context` 注入、effect/disposer、统一生命周期、
+runtime inventory、UI slot 和真实 composition test；不采用“everything is an
+in-process plugin”、把 `node:vm` 当安全边界、插件持有另一插件实例或运行时状态
+代替持久真相。Clowder AI 保留 Host Broker、grant、digest、外部进程隔离和 durable
+ledger 这些更严格的边界。
+
+## 2. 2026-08-21 已核验现状
+
+### 2.1 精确坐标
+
+| 真相源 | 精确坐标 | 已核验事实 |
 |---|---|---|
-| `0.1.0-beta.8` | `broker.hello`、`broker.ready` | `sha512-X3Si54oCuEN71K3EthHaZATjIphnUIXqGNDyxvOoN4lK/T193tIuxm8+jMf5MBrURNPbfaEmJneynVDGTgAbDg==` |
-| `0.1.0-beta.9` | beta.8 rows 加 `events.publish` | `sha512-YPpJguiVd0qdoOX8HdU26k36b+58zj0V9w02z/GpRnF8WBubfwuoZ5RBQPE2gf5qwSQwCl/+WVRhsMG/i65Epg==` |
+| `clowder-ai-plugins` | `a0b3554d5ebbe71a9043bbb63cca5bf5dcba74b5` | beta.10 lifecycle 与 beta.11 messaging 已合入；当前无开放 PR。 |
+| `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
+| `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
+| `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.6` | 已有真实独立 npm/stdio 插件、owner auth 与事件输入；仍需作为基础底座的真实 dogfood。 |
+| Clowder AI upstream | `3ea629e28747c80b1ce92d883740feea6a28fd68` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在。 |
+| M0 Host candidate | `2907a04260dd79a7c4f7230abc9b668ca2e2ead5` | beta.11 Host messaging routes、durable snapshot paging 与 stdio delivery 已实现；仍落后 upstream 一个提交，未完成 exact-HEAD review、upstream PR 和联合验收。 |
 
-第 3–12 行仍未对外宣告可用。因此 beta.8 与 beta.9 都不能证明完整 M0 Broker
-接口面已经就绪。
+`latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
-## 3. 当前关键路径：关闭 M0
+### 2.2 成熟度判断
 
-M0 是当前唯一关键路径。K-2D 的实现落地已经移除 composition merge 前置；剩余工作
-仍拆成四个可独立 review 的 slice，关键门禁是 runtime activation、缺失 row 闭合与
-联合验收。后续 Phase 2 工作可以并行起草，但不能替代这些门禁。
-
-### M0-A — Host 握手启用
-
-- K-2B 已基于精确 beta.9 合入；K-2D 也已通过 Cat Café #3558 落地。不得另建
-  Host state machine、process manager 或 protocol mirror。
-- F289 #3467 的 one-shot production migration 当前为 NO-GO；Cat Café main
-  `5f24395ebac7a518d62a7effb257887045dfd689` 明确下游不得等待 #3467，也不得
-  复制其 catalog/migration layer。
-- 在独立 activation gate 明确授权前，外部进程/stdio composition 必须保持休眠。
-- activation 时，必须在真实 Host 边界运行已发布的 handshake byte-bound 与
-  zero-side-effect conformance。
-
-### M0-B — lifecycle 就绪行闭合
-
-- 只有具备精确 validator、编码后字节证明和 runtime enforcement 后，才推进 M0
-  必需的 lifecycle rows：`host.grants.changed`、`host.lifecycle.ping` 与
-  `host.lifecycle.drain`。
-- 无关 messaging row 继续保持 reserved；CLOSED leaf 不代表允许宣告 method 可用。
-- Host 发出这些 method 前，必须先发布并核验对应的精确 package。
-
-### M0-C — messaging 传输闭合
-
-- 对照 M0 Host seam 与 K-1 API，精确确定以下 rows 中哪些是 M0 必需项：
-  `messaging.send`、`messaging.appendElements`、`messaging.subscribe`、
-  `messaging.read`、`messaging.ack`、`messaging.snapshot`、
-  `host.messaging.deliver`。
-- 在 contract-owned slice 内关闭 RESERVED leaf；不得为了匹配旧 PR 数量而一次性
-  翻转所有 row。
-- 每个 ready slice 都必须以 K-1 MessagingDomain 作为唯一 ledger/cursor/message
-  真相源来实现。
-- SDK 与 Host 必须消费同一批 contract fixture；不得把 18 个 behavior case
-  复制成 Host 本地 matrix。
-
-### M0-D — 独立联合验收
-
-由维护者主导的验收结论必须证明：
-
-1. 真实 Broker ↔ 编译后的 standalone plugin 完成 handshake 与 activation；
-2. `packages/loopback-fixture-plugin/test/host-half-seam-manifest.json` 中列出的
-   **全部 18 个用例**均通过；不得把其中任何用例解释为“当前不适用”并在
-   延后它的同时关闭 M0；
-3. `plugin-system-principles-and-v0-design.md` §3.8 冻结的 Host+SDK
-   fail-closed 全集均通过，包括 actor/system audience/whisper target 伪造、
-   裸或越权 thread 寻址、namespace escape、provenance 升级、denied grant、
-   重复 idempotencyKey/operationId、deadline expiry、callback retry/dead-letter、
-   断线后 cursor 续投与 ack 前崩溃重投、retention 越界 stale 追平、
-   卸载后 retained/ask durable state 保留，以及 plugin crash isolation；
-4. **P14 断言**明确成立：第一方插件与第三方插件走同一 SDK 入口和同一授权流；
-5. **事件输入面四项断言**全部通过：拒绝 undeclared/forbidden-class signal，
-   拒绝 producer 伪造与 observation→user_intent 认识论升级，拒绝插件自报
-   wake route target，并在 lease 过期后正确判定 offline；
-6. malformed、unauthorized、oversize、stale-cursor、cross-instance 与
-   cross-subscription 输入按要求零副作用 fail closed；
-7. plugin crash、invalid output 与 drain failure 不会拖垮 Host；
-8. restart/reconcile 保留 K-1 canonical state 且不会 double-settle。
-
-只有上述完整验收结论才能关闭 M0。
-
-## 4. Phase 2 执行工作线
-
-### 4.1 F292 / signal-ingress 旅程
-
-原三段式拆分已经推进，但 runtime activation 仍把“代码已落地”与“feature 已验收”
-严格分开：
-
-1. **Contract + SDK + Feishu adapter — 已落地。** Beta.9 与 PR #24 已合入；
-   `@clowder-ai/feishu-meeting-intake@0.1.0-alpha.1` 已公开，integrity 为
-   `sha512-KxdTlM24eKnXy6NE3TmbP78ro5D6lAX+m0H3LN4MrfI6SVz9BQnntHDxobjz4B+5wJ3gl0i7BX3ZOjBnhFby/w==`。
-2. **Host intake + Needs Me — 维护者报告已落地。** Cat Café #3522 与
-   #3542 负责 admission、settlement 和私有 Host experience flow。
-3. **外部旅程 — 待完成。** K-2D 实现已经落地但 runtime 保持休眠；待独立
-   activation 决策完成后，再运行真实 meeting dogfood、provenance-preserving
-   artifact 检查和发布证据采集。
-
-私有开发碰撞检查已经完成。本工作线不再等待 K-2D merge 或 F289 #3467，只等待
-runtime activation 边界及自身的端到端证据；`events.publish` ready 不代表 K-3b
-windows/presence 或 M1 已完成。
-
-### 4.2 M1 体验门禁
-
-| 单元 | 常驻主笔 | 必须交付的结果 |
+| 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
-| K-3b windows/presence | `mindfn` 起草；`zts212653` 负责 Host review/merge | B 类窗口、presence/lease projection、grant 与 control surface |
-| 剩余 C-2 closure | `mindfn`；双 CODEOWNER | 仅关闭 K-3b 与 probe/FG 集成必需的 schema/row |
-| P-4 desktop probe | `mindfn` | Tier 0/1 声明式 signal、lease 行为、可见且可撤销的授权 |
-| FG-1 foreground cat | `zts212653` | 使用与第三方相同 SDK/runtime/grant 路径的 reference plugin |
+| Contract / trust | 高 | stable compatibility 与完整产品验收。 |
+| Host runtime | 中高 | M0 Host candidate 收口、生命周期/消息联合验收。 |
+| Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
+| Public Plugin SDK | 低中 | 缺统一 `PluginContext` 与绝大多数领域 facade。 |
+| Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
+| 存量迁移 | 低 | Feishu 是真实先例；IM、具体服务和现有插件尚未统一迁移。 |
 
-只有真实路径
-`file/activity signal → Host-owned wake → foreground cat → 用户确认 → artifact`
-通过，且 P14 same-power evidence 明确成立，M1 才能关闭。
+按用户可完成的端到端旅程而不是代码量估算，整体约为 **45%–50%**。
+该比例只用于解释路线，不作为关闭 feature 的指标。
 
-### 4.3 GitHub 收编门禁
+## 3. 执行规则与 PR 预算
 
-该工作线与 M1 相互独立，可以在 M0 之后并行开发：
+1. **契约只有一个机器真相源。** Host 与 SDK 精确消费发布的
+   `@clowder-ai/plugin-contract`，Core 不得恢复 wire/schema mirror。
+2. **交付按纵切列车，不按接口拆 PR。** lifecycle、messaging、MCP、scheduler、
+   hook、service 或 UI contribution 都不是各开一串 PR 的理由。
+3. **剩余基础闭环默认五个聚合 PR。** 每个 PR 内用小提交、TDD、按域测试矩阵和
+   review 修订保证可审查性；review finding 继续修在原 PR。
+4. **只有边界而非规模允许拆分。** 新信任边界、不可逆 registry/数据迁移，或确实
+   无法在一个 review 单元内安全证明的状态机，才允许突破预算。
+5. **双仓以 release train 协调。** Plugins 侧先发布精确 package，Core 在同一列车
+   的聚合 PR 中 pin 一次；最终用两个 exact SHA 做联合验收。
+6. **禁止边迁移边补底座。** Train B 完成前不迁移 IM/service，也不开始 foreground
+   cat、memory、windows 等新插件化能力，避免每个迁移再次发明私有接口。
 
-1. K-5 Host schedule/state domain — `mindfn` 起草，`zts212653` review/merge。
-2. C-3 schedule/state contract 与 migration/rollback fixture — 双 CODEOWNER。
-3. P-5 GitHub plugin migration — `mindfn` 主笔，必须完整映射 config、secret、
-   state、schedule 与 binding。
-4. 隔离验收必须证明 migration 幂等、旧新版本不会双跑、数据保持且可 rollback；
-   `zts212653` review integrity report。
+## 4. Train A — M0 Runtime 收口（剩余 PR 1/5）
 
-## 5. Phase 3 全景
+Plugins 侧 beta.11 已合入，本列车只剩一个 Core Host PR。当前分支不再扩 SDK、
+marketplace 或 Console scope。
 
-| 工作线 | 顺序 | 常驻主笔 / 权限 | 门禁 |
-|---|---|---|---|
-| Service + UI | K-6 Host mechanism → contract delta → P-6 voice-suite | `mindfn` 可起草；`zts212653` 保留 Host review/runtime；plugin 与 contract 变更双审 | M0；UI contribution 通过 Console Design Gate |
-| Thread + connector | K-7 thread/settings mechanism → contract delta → P-7 IM migration；P-8 Weixin 可在契约前置具备时提前 | `mindfn` 可起草；Host merge 仍由 `zts212653` 负责 | P-7 需要 M0 + K-7；P-8 需要精确 schedule/state 前置 |
-| Memory + foreground cat | #1047 acceptance → K-8 memory namespace → contract delta → FG-2 | #1047/K-8 Host 权限归 `zts212653`；fixture 由 `mindfn`；FG-2 仍由 `zts212653` 主笔 | #1047 verdict；`cat_private` 继续硬排除 |
-| Community readiness | create-clowder-plugin、quarantine CI、signature/digest pipeline | `mindfn` | M1 |
-| v1 freeze | compatibility review 与 breaking-window closure | 双方 | 所有选定 v1 lane 已验收 |
+### 必须完成
 
-## 6. 依赖视图
+1. 将 M0 Host candidate rebase 到最新 upstream，得到 behind=0 的 exact SHA；
+2. 关闭分支自身的 build/test/gate 回归；基线漂移单独给出 provenance，不伪装绿色；
+3. 由非作者跨家族 reviewer 审查授权、durable cursor、Redis 原子性、stdio
+   correlation、deadline、crash/recovery 与默认安全 composition；
+4. 创建并跟踪一个 upstream Core PR；
+5. 冻结 reviewed Host SHA 与 Plugins `a0b3554d...`，运行 canonical 18-case
+   Host ↔ compiled standalone plugin 联合验收；
+6. 用真实 Feishu plugin 证明 install/enable/start/publish/disable/restart 不绕过
+   Broker、inventory 与 domain settlement。
+
+### 完成线
+
+- 全部 18 个 canonical vector 通过；
+- malformed、unauthorized、oversize、stale、cross-instance/subscription、deadline、
+  crash、drain 和 restart/reconcile 均 fail closed；
+- P14 成立：第一方与第三方走同一 runtime/grant 路径；
+- M0 关闭不附带新的 SDK/UI/迁移欠账声明。
+
+## 5. Train B — 完整基础底座（剩余 PR 2–3/5）
+
+Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Core 聚合 PR 组成。
+实现可以按领域提交，但不得把每个 facade、adapter 或 contribution point 拆成 PR。
+
+### 5.1 Plugins 聚合 PR：公共 SDK 与 Contribution Contract（PR 2/5）
+
+- `definePlugin(...)` 与类型化 `PluginContext`；
+- `activate` / `deactivate` / `dispose` 生命周期，以及注册即返回 disposer 的
+  `ctx.effect(...)`；
+- `ctx.messaging`、`ctx.events`、`ctx.config`、`ctx.state`、`ctx.secrets`；
+- `ctx.scheduler.register(...)`、`ctx.mcp.register(...)`；
+- 生命周期 hook 与按真实消费点审查的类型化领域 hook；不开放任意内部 hook；
+- `ctx.services`、`ctx.connectors`、`ctx.ui` contribution API；
+- typed manifest contribution schemas、generated types、conformance fixtures；
+- create-plugin template、API reference、升级兼容规则和真实 composition fixture。
+
+所有公开注册 API 必须证明：grant 拒绝零副作用、重复注册可判定、dispose 后注册项
+消失、重连/重启语义明确、插件不能自报 Host identity 或持有另一插件实例。
+
+### 5.2 Core 聚合 PR：统一 Manager、Adapters、Marketplace 与 Console（PR 3/5）
+
+在现有 F202、official catalog、external lifecycle 和 Settings 上收敛，不另建平行系统：
+
+- Plugin Manager 统一 package/config/activation/runtime 正交状态；
+- 本地插件、官方 npm 插件与后续 community package 共享生命周期投影；
+- `.env` 只选择 catalog provider/索引位置；Host 继续验证允许的 origin、版本、
+  digest、provenance、trust tier 与 quarantine，配置来源不能自动变成信任来源；
+- `clowder-ai-plugins` 发布机器可读 catalog index，支持查询、详情、版本和兼容性；
+- Console 与 Agent 使用同一组 revision-fenced、带授权和审计的管理 API；
+- resource adapters 将 SDK contribution 接入现有 scheduler/MCP/service/connector；
+- Console 提供声明式 slot/command/settings/message-element contribution，挂载与销毁
+  绑定 plugin instance lifecycle；v0 不执行不受信任的任意 DOM/React 代码；
+- install/update/uninstall 与 retained/ask-on-uninstall 数据策略经过 crash、并发、
+  stale revision、rollback 和 restart 对抗测试。
+
+### Train B 完成线
+
+一个不含产品特判的 fixture npm 插件必须能从 catalog 安装，只使用公共 SDK 注册
+至少 messaging、schedule/MCP、lifecycle 和 Console contribution，经历配置、启用、
+重启、禁用、更新、卸载后，Host inventory、注册表、UI 和 retained data 全部一致。
+
+## 6. Train C — 存量能力集中迁移（剩余 PR 4–5/5）
+
+基础底座验收后再迁移。一个 Plugins 聚合 PR 承载业务包，一个 Core 聚合 PR 承载
+数据切换、兼容窗口和旧路径清理；不为每个 provider 单独开 PR。
+
+### 6.1 Plugins 迁移聚合 PR（PR 4/5）
+
+- 迁移现有 IM connector 的具体 provider/adapters 与其 UI contribution；
+- 迁移现有 repository-local 业务插件；
+- 迁移 ASR/TTS 等具体服务定义、模型/二进制 artifact 描述和安装逻辑；
+- 所有包只依赖公共 SDK，不从 Core import 私有类型、store、registry 或 service instance；
+- 每个迁移包携带 config/state/secret/data mapping、rollback fixture 与真实 composition test。
+
+### 6.2 Core cutover 聚合 PR（PR 5/5）
+
+- 将 connector binding、通用 service lifecycle 与 scheduler 等既有 Core control plane
+  接到公共 contribution adapters；
+- 幂等迁移配置、binding、schedule、state 和用户可见数据；
+- 旧新实现不得双跑；失败可恢复到旧路径且不丢数据；
+- 删除业务特定的平行安装/启禁用 UI 和加载器，保留统一 Plugin Manager；
+- Console 和 Agent 均能完成同一套安装、配置、启用、禁用和卸载旅程。
+
+### Train C 完成线
+
+IM、至少一个现有业务插件、至少一个 ASR/TTS service package 三种形态均从
+`clowder-ai-plugins` 安装并通过公共 SDK 工作；Core 不再包含它们的业务实现或
+第二套管理入口。达到此处，插件基础平台形成闭环。
+
+## 7. 闭环后的能力扩张
+
+Train C 通过前，以下工作只保留需求输入，不进入实现关键路径：
+
+1. foreground cat / windows / presence；
+2. memory/thread 高敏能力；
+3. 更多 signal producer、内容发布和 physical limb；
+4. community arbitrary executable trust、network/filesystem sandbox；
+5. v1 compatibility freeze。
+
+闭环后按真实插件消费需求成组开放，不预先把所有 Core API 暴露成 SDK，也不因为
+“未来可能需要”开放任意 hook 或 UI code execution。
+
+## 8. 依赖视图
 
 ```text
-已完成：Phase 0 + K-1 + P-1 + beta.9 公共 ready rows
-                         │
-                         ├─ 已完成：K-2B Host state machine（runtime 休眠）
-                         ├─ 已完成：K-2D external runtime 实现（runtime 休眠）
-                         ├─ M0-A 显式 external-runtime activation
-                         ├─ M0-B lifecycle row closure + Host support
-                         └─ M0-C messaging row closure + Host support
+已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
                                       │
-                                      └─ M0-D 联合验收 ──► M0
-
-已完成：beta.9 + Feishu alpha.1 + 私有 F292 Host/Needs Me flow
-                         │
-                         ├─ K-2D activation ──► F292 外部 dogfood/发布证据
-                         └─ K-3b + P-4 + FG-1 ──► M1
-
-M0 ──► K-5 + C-3 + P-5 ──► GitHub 收编门禁
-M1 / 逐工作线前置条件 ──► Phase 3 工作线 ──► v1 freeze
+                                      ▼
+Train A：M0 Host exact-HEAD + review + PR + 18-case + Feishu dogfood
+                                      │
+                                      ▼
+Train B：Public SDK/Contribution Contract ──exact publish──► Core Manager/Adapters/Console
+                                      │
+                                      ▼
+Train C：IM + existing plugins + services ──► Core migration/cutover ──► 基础平台闭环
+                                      │
+                                      ▼
+foreground cat / memory / windows / other capabilities / v1
 ```
 
-两条 Phase 2 工作线可以交叠推进，但各自的验收门禁保持独立。
+## 9. 常驻分工与治理
 
-## 7. 常驻分工与当前私有工作线
+`zts212653/clowder-ai-plugins#1` 中确认的常驻规则继续有效：
 
-`zts212653/clowder-ai-plugins#1` 的 issue comment `5248175358`
-已经完整回答六项确认：
+1. `mindfn` 可主导公共 contract、SDK、plugin、conformance、roadmap 及普通无人认领
+   的可写 Host seam；
+2. `zts212653` 保留 Host review/merge、runtime ownership、生产数据/凭据边界和
+   最终跨仓验收；
+3. 公共契约继续要求双 CODEOWNER，作者不得自审；
+4. runtime activation、新公共语义、不可逆 registry/数据动作和开发碰撞必须回到
+   maintainer review；
+5. 私有源码不可访问时，公共 seam、fixture 和 executable package 先行，Core 只补
+   狭窄 composition，不复制公共真相。
 
-1. K-2B、F292 Host/Needs Me 与 K-2D 实现均已落地；K-2D runtime 仍未启用，
-   当前不再有等待 #3467 的 K-2D 私有实现 coordinate；K-3b 与 K-5 无人认领。
-2. `mindfn` 主导普通无人认领工作；`zts212653` 保留 Host review/merge、
-   runtime ownership、集成边界和私有 composition。
-3. 双 CODEOWNER contract review 与精确 publication/version/integrity 核验
-   继续为强制门禁。
-4. 当 `mindfn` 主笔被测实现时，由 `zts212653` 主导独立验收。
-5. FG-1 与 FG-2 继续由 `zts212653` 主笔。
-6. 旧 beta.8 选择已经被新事实取代：当前 Host 精确 pin beta.9，并且只消费
-   `broker.hello`、`broker.ready` 与 `events.publish`。
-
-2026-08-12 的维护者进度刷新进一步确认：K-2D 已落地；F289 #3467 的暂停 migration
-不是其前置条件。该更新只改变事实进度，不重开上述常驻分工决定。
-
-这是常驻规则。普通无人认领实现不再需要逐项申请主笔权限。只有新公共语义、
-生产数据/凭据边界、runtime activation、不可逆 registry 动作或新发现的碰撞，
-才重新回到 maintainer review。
+旧版 K-3b、GitHub、Service/UI、connector、memory 各自平行推进的 Phase 2/3 排期
+自本次刷新起停止生效。GitHub repository-local schedule 实现可以继续运行，但其
+外部公共 SDK 迁移不抢占 Train B/C；foreground-cat 保持后续能力扩张项。
