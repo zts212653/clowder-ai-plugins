@@ -101,6 +101,43 @@ function helloInFlightEntry(): InFlightEntry {
   };
 }
 
+function frameFromValue(value: JsonObject): DecodedNdjsonFrame {
+  const rawFrame = JSON.stringify(value);
+  return {
+    raw: Buffer.from(rawFrame, 'utf8'),
+    value: JSON.parse(rawFrame) as JsonObject,
+  };
+}
+
+const M0C_DRAFT = {
+  address: { kind: 'thread_handle', handle: 'thread-handle-1' },
+  idempotencyKey: 'send-1',
+  payload: {
+    provenance: { epistemicStatus: 'inference' },
+    elements: [
+      { elementId: 'element-1', kind: 'text', payload: { text: 'hello' } },
+    ],
+  },
+} as const;
+
+const M0C_ENVELOPE = {
+  messageId: 'message-1',
+  revision: 1,
+  threadId: 'thread-1',
+  actor: { kind: 'user', id: 'user-1' },
+  audience: { kind: 'public' },
+  occurredAt: '2026-08-18T03:00:00.000Z',
+  payload: {
+    provenance: {
+      origin: { kind: 'host' },
+      epistemicStatus: 'user_intent',
+    },
+    elements: [
+      { elementId: 'element-1', kind: 'text', payload: { text: 'hello' } },
+    ],
+  },
+} as const;
+
 // ---------------------------------------------------------------------------
 // Fixture-driven sweep: all T-C through T-L vectors
 // ---------------------------------------------------------------------------
@@ -482,7 +519,7 @@ test('broker.hello SessionBinding without a candidate snapshot fails closed', ()
   assert.equal(result.outcome, 'close');
 });
 
-test('reserved method with valid envelope is T-G (input type never → value violation)', () => {
+test('ready messaging.send with malformed input is T-G', () => {
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(
       '{"jsonrpc":"2.0","id":"r1","method":"messaging.send","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
@@ -497,42 +534,35 @@ test('reserved method with valid envelope is T-G (input type never → value vio
   };
 
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  // This still-RESERVED row has input type `never` — no legal params value
-  // exists. T-M is limited to the two explicitly ready handshake rows.
   assert.equal(result.disposition, 'T-G');
   assert.equal(result.outcome, 'respond');
   assert.ok(result.response !== undefined);
 });
 
 // ---------------------------------------------------------------------------
-// Direction gate: plugin SDK rejects inbound plugin-to-host methods
-// (codex R1 P1 — CLOSED plugin-to-host row with valid params)
+// Ready standalone requests reach the dispatch boundary in either direction.
 // ---------------------------------------------------------------------------
 
-test('CLOSED plugin-to-host method (messaging.subscribe) with valid input is T-F (direction gate)', () => {
+test('ready messaging.subscribe with valid input is T-M', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"s1","method":"messaging.subscribe","params":{"meta":{"deadlineUnixMs":1},"input":{"handle":"chan"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  // Plugin SDK does not serve plugin-to-host methods — T-F MethodNotFound.
-  // Direction gate runs after all envelope/value checks; only CLOSED rows
-  // with valid params reach it (RESERVED rows hit T-G first).
-  assert.equal(result.disposition, 'T-F');
-  assert.equal(result.outcome, 'respond');
-  assert.ok(result.response !== undefined);
+  assert.equal(result.disposition, 'T-M');
+  assert.equal(result.outcome, 'accept');
 });
 
-test('CLOSED plugin-to-host method (messaging.ack) with valid input is T-F (direction gate)', () => {
+test('ready messaging.ack with valid input is T-M', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"a1","method":"messaging.ack","params":{"meta":{"deadlineUnixMs":1},"input":{"subscriptionId":"sub-1","ackToken":"tok-1"}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-F');
-  assert.equal(result.outcome, 'respond');
+  assert.equal(result.disposition, 'T-M');
+  assert.equal(result.outcome, 'accept');
 });
 
 // ---------------------------------------------------------------------------
@@ -591,21 +621,22 @@ test('frame with UTF-8 BOM prefix is T-C (BOM is non-canonical)', () => {
 // (codex R2 P2-2 — V8 JSON.stringify(1e+21) → "1e+21", byte-equality passes)
 // ---------------------------------------------------------------------------
 
-test('frame with V8-canonical exponent-form number is T-C (non-canonical number)', () => {
+test('frame with V8-canonical exponent-form number at WireUInt53 position is T-C', () => {
   // 1e+21 ≥ 10^21, so V8's JSON.stringify uses exponent notation "1e+21".
   // Byte-equality passes because both raw and canonical have the same form.
-  // The containsExponentNumber check catches it — exponent form violates
-  // the WireUInt53 raw decimal-digit-only profile.
+  // hasNonCanonicalUInt53Token catches it — at the meta.deadlineUnixMs
+  // WireUInt53 position, isCanonicalUInt53Token("1e+21") is false because
+  // exponent form violates the raw decimal-digit-only profile.
   const json = '{"jsonrpc":"2.0","id":"a","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1e+21},"input":{"nonce":"x"}}}';
   const parsed = JSON.parse(json) as JsonObject;
-  // Sanity: byte-equality would pass without the exponent check
+  // Sanity: byte-equality would pass without the WireUInt53 position check
   assert.equal(json, JSON.stringify(parsed), 'exponent form roundtrips through JSON');
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(json, 'utf8'),
     value: parsed,
   };
   const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-C', 'exponent-form number must be T-C');
+  assert.equal(result.disposition, 'T-C', 'exponent-form number at WireUInt53 position must be T-C');
   assert.equal(result.outcome, 'close');
 });
 
@@ -1204,7 +1235,7 @@ test('ping success with valid shape but no oracle snapshot is T-H (fail-closed)'
 });
 
 // ---------------------------------------------------------------------------
-// RESERVED row 9 (deliver) oracle fail-closed regression (Sol R4 F1)
+// Row 9 (deliver) oracle fail-closed regression (Sol R4 F1)
 // ---------------------------------------------------------------------------
 
 test('deliver response with missing snapshot is T-H (fail-closed)', () => {
@@ -1465,7 +1496,7 @@ test('ready broker.hello row accepts a correlated standard error as T-L', () => 
 });
 
 // ---------------------------------------------------------------------------
-// P1-2: closed handshake result validation and reserved-row fail-closed
+// P1-2: closed result validation remains fail-closed
 // (maintainer requirement — no unvalidated result may reach T-L)
 // ---------------------------------------------------------------------------
 
@@ -1484,7 +1515,7 @@ test('broker.hello response with result:null is T-H (closed result shape rejects
   assert.equal(result.outcome, 'close');
 });
 
-test('messaging.send response with result:{} is T-H (RESERVED row fail-closed)', () => {
+test('messaging.send response with result:{} is T-H (closed result validation)', () => {
   const rawFrame = '{"jsonrpc":"2.0","id":"r1","result":{}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
@@ -1494,13 +1525,11 @@ test('messaging.send response with result:{} is T-H (RESERVED row fail-closed)',
     ['r1', { method: 'messaging.send' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.disposition, 'T-H', 'malformed send result must fail-closed');
   assert.equal(result.outcome, 'close');
 });
 
-test('messaging.send receipt with handle is T-H while the row remains RESERVED', () => {
-  // Publishing SendReceipt.handle is schema-only. It must not make the
-  // reserved messaging.send row executable before its closure obligations.
+test('messaging.send legacy receipt handle is T-H after messageHandle closure', () => {
   const rawFrame =
     '{"jsonrpc":"2.0","id":"r1","result":{"messageId":"message-1","threadId":"thread-1","revision":1,"handle":{"kind":"message","token":"host-issued-message-handle"}}}';
   const frame: DecodedNdjsonFrame = {
@@ -1511,8 +1540,174 @@ test('messaging.send receipt with handle is T-H while the row remains RESERVED',
     ['r1', { method: 'messaging.send' }],
   ]);
   const result = classifyFrame(frame, inFlight);
-  assert.equal(result.disposition, 'T-H', 'RESERVED row result must fail-closed');
+  assert.equal(result.disposition, 'T-H', 'legacy handle field must fail-closed');
   assert.equal(result.outcome, 'close');
+});
+
+test('M0-C valid requests reach T-M and malformed requests reach T-G', () => {
+  const cases = [
+    ['messaging.send', M0C_DRAFT, { ...M0C_DRAFT, authority: 'host' }],
+    [
+      'messaging.appendElements',
+      {
+        handle: { kind: 'message', token: 'message-handle-1' },
+        operationId: 'append-1',
+        baseRevision: 1,
+        elements: [
+          { elementId: 'element-2', kind: 'text', payload: { text: 'more' } },
+        ],
+      },
+      { handle: 'raw-handle', operationId: 'append-1', elements: [] },
+    ],
+    ['messaging.subscribe', { handle: 'thread-handle-1' }, { handle: '' }],
+    [
+      'messaging.read',
+      { subscriptionId: 'subscription-1', limit: 2 },
+      { subscriptionId: 'subscription-1', limit: 33 },
+    ],
+    [
+      'messaging.ack',
+      { subscriptionId: 'subscription-1', ackToken: 'ack-1' },
+      { subscriptionId: 'subscription-1', ackToken: '' },
+    ],
+    [
+      'messaging.snapshot',
+      { subscriptionId: 'subscription-1', maxItems: 2 },
+      { subscriptionId: 'subscription-1', maxItems: 0 },
+    ],
+    [
+      'host.messaging.deliver',
+      {
+        deliveryId: 'delivery-1',
+        threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+        envelope: M0C_ENVELOPE,
+      },
+      {
+        deliveryId: 'delivery-1',
+        threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+        envelope: { ...M0C_ENVELOPE, occurredAt: '2026-08-18T03:00:00Z' },
+      },
+    ],
+  ] as const;
+
+  for (const [method, validInput, malformedInput] of cases) {
+    for (const [input, expected] of [
+      [validInput, 'T-M'],
+      [malformedInput, 'T-G'],
+    ] as const) {
+      const result = classifyFrame(
+        frameFromValue({
+          jsonrpc: '2.0',
+          id: `request-${method}`,
+          method,
+          params: { meta: { deadlineUnixMs: 1 }, input },
+        }),
+        NO_IN_FLIGHT,
+      );
+      assert.equal(result.disposition, expected, `${method} must classify as ${expected}`);
+    }
+  }
+});
+
+test('M0-C valid results reach T-L and malformed results reach T-H', () => {
+  const cases = [
+    [
+      'messaging.send',
+      {
+        messageId: 'message-1',
+        threadId: 'thread-1',
+        revision: 1,
+        messageHandle: { kind: 'message', token: 'message-handle-1' },
+      },
+      { messageId: 'message-1', threadId: 'thread-1', revision: 1 },
+      {},
+    ],
+    [
+      'messaging.appendElements',
+      { messageId: 'message-1', revision: 2, appliedElementIds: ['element-2'] },
+      { messageId: 'message-1', revision: 2, appliedElementIds: [] },
+      { appendElementIds: ['element-2'] },
+    ],
+    [
+      'messaging.subscribe',
+      { subscriptionId: 'subscription-1' },
+      { subscriptionId: 'subscription-1', extra: true },
+      {},
+    ],
+    [
+      'messaging.read',
+      { events: [], ackToken: null, stale: false },
+      { events: [], ackToken: 'ack-1', stale: false },
+      { readLimit: 1 },
+    ],
+    ['messaging.ack', null, {}, {}],
+    [
+      'messaging.snapshot',
+      { items: [], nextPageToken: null, snapshotAckToken: 'snapshot-ack-1' },
+      { items: [], nextPageToken: null, snapshotAckToken: null },
+      { snapshotMaxItems: 1 },
+    ],
+    [
+      'host.messaging.deliver',
+      { deliveryId: 'delivery-1' },
+      { deliveryId: 'wrong-delivery' },
+      { deliveryId: 'delivery-1' },
+    ],
+  ] as const;
+
+  for (const [method, validResult, malformedResult, requestSnapshot] of cases) {
+    for (const [result, expected] of [
+      [validResult, 'T-L'],
+      [malformedResult, 'T-H'],
+    ] as const) {
+      const classified = classifyFrame(
+        frameFromValue({ jsonrpc: '2.0', id: `response-${method}`, result }),
+        new Map<string, InFlightEntry>([
+          [
+            `response-${method}`,
+            { method, requestSnapshot },
+          ],
+        ]),
+      );
+      assert.equal(
+        classified.disposition,
+        expected,
+        `${method} result must classify as ${expected}`,
+      );
+    }
+  }
+});
+
+test('M0-C read and snapshot enforce request-relative page limits', () => {
+  const publishEvent = {
+    eventId: 'event-1',
+    sequence: 1,
+    type: 'message.publish',
+    envelope: M0C_ENVELOPE,
+  } as const;
+  const readResult = {
+    events: [publishEvent, { ...publishEvent, eventId: 'event-2', sequence: 2 }],
+    ackToken: 'ack-2',
+    stale: false,
+  } as const;
+  const snapshotResult = {
+    items: [M0C_ENVELOPE, { ...M0C_ENVELOPE, messageId: 'message-2' }],
+    nextPageToken: null,
+    snapshotAckToken: 'snapshot-ack-2',
+  } as const;
+
+  for (const [method, result, requestSnapshot] of [
+    ['messaging.read', readResult, { readLimit: 1 }],
+    ['messaging.snapshot', snapshotResult, { snapshotMaxItems: 1 }],
+  ] as const) {
+    const classified = classifyFrame(
+      frameFromValue({ jsonrpc: '2.0', id: 'page-response', result }),
+      new Map<string, InFlightEntry>([
+        ['page-response', { method, requestSnapshot }],
+      ]),
+    );
+    assert.equal(classified.disposition, 'T-H', `${method} must enforce its request limit`);
+  }
 });
 
 // ---------------------------------------------------------------------------

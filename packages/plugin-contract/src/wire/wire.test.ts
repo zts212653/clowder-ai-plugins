@@ -87,6 +87,7 @@ import {
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
   EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
+  MESSAGING_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
   MAX_GRANT_ITEMS,
   VALID_CAPABILITIES,
@@ -692,26 +693,26 @@ test('method names are frozen in order', () => {
   assert.deepEqual([...WIRE_METHOD_NAMES], expected);
 });
 
-test('beta.10 readies handshake, lifecycle, and event publish rows only', () => {
-  const expectedReady = new Set([
-    'broker.hello',
-    'broker.ready',
-    'host.grants.changed',
-    'host.lifecycle.ping',
-    'host.lifecycle.drain',
-    'events.publish',
-  ]);
+test('beta.11 readies the complete 13-row standalone contract', () => {
+  const expectedReady = new Set(WIRE_METHOD_NAMES);
   for (const method of WIRE_METHOD_NAMES) {
     const row = WIRE_METHOD_REGISTRY[method];
     assert.equal(
       row.ready,
       expectedReady.has(method),
-      `${method} readiness must match beta.10 scope`,
+      `${method} readiness must match beta.11 scope`,
     );
   }
   assert.deepEqual([...READY_ROWS], [
     'broker.hello',
     'broker.ready',
+    'messaging.send',
+    'messaging.appendElements',
+    'messaging.subscribe',
+    'messaging.read',
+    'messaging.ack',
+    'messaging.snapshot',
+    'host.messaging.deliver',
     'host.grants.changed',
     'host.lifecycle.ping',
     'host.lifecycle.drain',
@@ -760,11 +761,18 @@ test('beta.10 readies handshake, lifecycle, and event publish rows only', () => 
       LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS[method],
     );
   }
-  for (const method of WIRE_METHOD_NAMES.slice(2, 9)) {
-    const row = getRegistryRow(method);
-    assert.equal(row?.maxEncodedRequestBytes, undefined);
-    assert.equal(row?.maxEncodedResultBytes, undefined);
-    assert.equal(row?.maxEncodedErrorBytes, undefined);
+  for (const method of WIRE_METHOD_NAMES.slice(2, 9) as readonly (
+    keyof typeof MESSAGING_ROW_ENCODED_BYTE_BOUNDS
+  )[]) {
+    const row = WIRE_METHOD_REGISTRY[method];
+    assert.deepEqual(
+      {
+        maxEncodedRequestBytes: row.maxEncodedRequestBytes,
+        maxEncodedResultBytes: row.maxEncodedResultBytes,
+        maxEncodedErrorBytes: row.maxEncodedErrorBytes,
+      },
+      MESSAGING_ROW_ENCODED_BYTE_BOUNDS[method],
+    );
   }
 });
 
@@ -778,18 +786,14 @@ test('row numbers are sequential 1-13', () => {
   });
 });
 
-test('leaf closure partition adds only events.publish', () => {
-  const closed = ['broker.hello', 'broker.ready', 'messaging.subscribe', 'messaging.ack', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain', 'events.publish'];
-  const reserved = ['messaging.send', 'messaging.appendElements', 'messaging.read', 'messaging.snapshot', 'host.messaging.deliver'];
+test('beta.11 closes every registry leaf', () => {
+  const closed = [...WIRE_METHOD_NAMES];
 
-  assert.equal(CLOSED_LEAF_ROWS.length, 8, '8 closed rows');
-  assert.equal(RESERVED_LEAF_ROWS.length, 5, '5 reserved rows');
+  assert.equal(CLOSED_LEAF_ROWS.length, 13, '13 closed rows');
+  assert.equal(RESERVED_LEAF_ROWS.length, 0, 'no reserved rows');
 
   for (const m of closed) {
     assert.equal(WIRE_METHOD_REGISTRY[m as keyof typeof WIRE_METHOD_REGISTRY].leafClosure, 'CLOSED', `${m} CLOSED`);
-  }
-  for (const m of reserved) {
-    assert.equal(WIRE_METHOD_REGISTRY[m as keyof typeof WIRE_METHOD_REGISTRY].leafClosure, 'RESERVED', `${m} RESERVED`);
   }
 });
 

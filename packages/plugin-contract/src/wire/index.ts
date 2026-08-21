@@ -117,6 +117,7 @@ export {
   BETA8_HANDSHAKE_VECTOR_IDS,
   BETA9_EVENTS_PUBLISH_VECTOR_IDS,
   BETA10_LIFECYCLE_VECTOR_IDS,
+  BETA11_MESSAGING_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
   NOTIFICATION_PARTITION_CASES,
@@ -225,6 +226,24 @@ export type {
   LifecycleNotificationRowEncodedByteBounds,
 } from './lifecycle-byte-bounds.js';
 
+// Derived beta.11 M0-C messaging byte-bound evidence
+export {
+  MESSAGING_BYTE_PROOF_ENCODING_FAMILIES,
+  MESSAGING_REQUEST_BYTE_PROOFS,
+  MESSAGING_RESULT_BYTE_PROOFS,
+  MESSAGING_ERROR_BYTE_PROOFS,
+  MESSAGING_ROW_ENCODED_BYTE_BOUNDS,
+} from './messaging-byte-bounds.js';
+
+export type {
+  MessagingByteProofEncodingFamily,
+  MessagingByteProofBasis,
+  MessagingNPlusOneByteProof,
+  MessagingEncodedByteProofCase,
+  MessagingEncodedByteProof,
+  MessagingRowEncodedByteBounds,
+} from './messaging-byte-bounds.js';
+
 export type {
   EventsPublishByteProofEncodingFamily,
   EventsPublishNPlusOneWitness,
@@ -323,15 +342,25 @@ export type {
   PingResult,
   DrainInput,
   DrainResult,
-  // Reserved row stubs
   SendInput,
   SendResult,
   AppendInput,
   AppendResult,
+  SubscriptionReadPageRequest,
+  SubscriptionNormalPageResponse,
+  SubscriptionEmptyPageResponse,
+  SubscriptionStalePageResponse,
+  BoundedSubscriptionReadPageResponse,
   ReadInput,
   ReadResult,
+  SnapshotPageRequest,
+  SnapshotIntermediatePageResponse,
+  SnapshotFinalPageResponse,
+  SnapshotPageResponse,
   SnapshotInput,
   SnapshotResult,
+  HostMessagingDeliverRequest,
+  HostMessagingDeliverResult,
   DeliverInput,
   DeliverResult,
 } from './row-shapes.js';
@@ -356,6 +385,25 @@ export {
   ACK_TOKEN_MIN_LENGTH,
   ACK_TOKEN_MAX_LENGTH,
   ACK_TOKEN_MAX_ENCODED_BYTES,
+  // Row 6 bounds
+  READ_SUBSCRIPTION_ID_MIN_LENGTH,
+  READ_SUBSCRIPTION_ID_MAX_LENGTH,
+  READ_LIMIT_MIN,
+  READ_LIMIT_MAX,
+  READ_ACK_TOKEN_MIN_LENGTH,
+  READ_ACK_TOKEN_MAX_LENGTH,
+  // Row 8 bounds
+  SNAPSHOT_SUBSCRIPTION_ID_MIN_LENGTH,
+  SNAPSHOT_SUBSCRIPTION_ID_MAX_LENGTH,
+  SNAPSHOT_MAX_ITEMS_MIN,
+  SNAPSHOT_MAX_ITEMS_MAX,
+  SNAPSHOT_PAGE_TOKEN_MIN_LENGTH,
+  SNAPSHOT_PAGE_TOKEN_MAX_LENGTH,
+  SNAPSHOT_ACK_TOKEN_MIN_LENGTH,
+  SNAPSHOT_ACK_TOKEN_MAX_LENGTH,
+  // Row 9 bounds
+  DELIVER_DELIVERY_ID_MIN_LENGTH,
+  DELIVER_DELIVERY_ID_MAX_LENGTH,
   // Row 11 bounds
   PING_NONCE_MIN_LENGTH,
   PING_NONCE_MAX_LENGTH,

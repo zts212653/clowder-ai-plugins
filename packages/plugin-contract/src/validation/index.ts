@@ -4,6 +4,16 @@ export {
   type SemanticValidationResult,
 } from './messaging-semantic.js';
 export {
+  MESSAGING_ROW_METHODS,
+  validateMessagingRowInput,
+  validateMessagingRowResult,
+  type MessagingRowInputByMethod,
+  type MessagingRowMethod,
+  type MessagingRowResultByMethod,
+  type MessagingRowValidationError,
+  type MessagingRowValidationResult,
+} from './messaging-wire.js';
+export {
   validateManifest,
   type ManifestValidationError,
   type ManifestValidationResult,

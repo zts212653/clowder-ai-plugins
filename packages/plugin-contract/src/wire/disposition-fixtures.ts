@@ -215,6 +215,64 @@ function grantsChangedNotificationFrame(
   });
 }
 
+type MessagingMethod =
+  | 'messaging.send'
+  | 'messaging.appendElements'
+  | 'messaging.subscribe'
+  | 'messaging.read'
+  | 'messaging.ack'
+  | 'messaging.snapshot'
+  | 'host.messaging.deliver';
+
+function messagingRequestFrame(
+  id: string,
+  method: MessagingMethod,
+  input: Record<string, unknown>,
+): string {
+  return JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    method,
+    params: { meta: { deadlineUnixMs: WIRE_UINT53_MAX }, input },
+  });
+}
+
+const M0C_DRAFT = {
+  address: { kind: 'thread_handle', handle: 'thread-handle-1' },
+  idempotencyKey: 'send-1',
+  payload: {
+    provenance: { epistemicStatus: 'inference' },
+    elements: [
+      { elementId: 'element-1', kind: 'text', payload: { text: 'hello' } },
+    ],
+  },
+} as const;
+
+const M0C_ENVELOPE = {
+  messageId: 'message-1',
+  revision: 1,
+  threadId: 'thread-1',
+  actor: { kind: 'user', id: 'user-1' },
+  audience: { kind: 'public' },
+  occurredAt: '2026-08-18T03:00:00.000Z',
+  payload: {
+    provenance: {
+      origin: { kind: 'host' },
+      epistemicStatus: 'user_intent',
+    },
+    elements: [
+      { elementId: 'element-1', kind: 'text', payload: { text: 'hello' } },
+    ],
+  },
+} as const;
+
+const M0C_PUBLISH_EVENT = {
+  eventId: 'event-1',
+  sequence: 1,
+  type: 'message.publish',
+  envelope: M0C_ENVELOPE,
+} as const;
+
 // ---------------------------------------------------------------------------
 // Pre-state shape (FC-6B-3 / FC-70-3)
 //
@@ -238,8 +296,14 @@ export interface RequestSnapshot {
   readonly nonce?: string;
   /** Row 9 deliver: the deliveryId that must match byte-equal in the ack. */
   readonly deliveryId?: string;
+  /** Row 6 read: the validated request limit that bounds result.events. */
+  readonly readLimit?: number;
+  /** Row 8 snapshot: the validated request maxItems that bounds result.items. */
+  readonly snapshotMaxItems?: number;
   /** Row 1 hello: the candidate claims that SessionBinding must echo byte-equal. */
   readonly candidateHello?: CandidateHello;
+  /** Row 4 append: the input element IDs for cross-frame provenance. */
+  readonly appendElementIds?: readonly string[];
 }
 
 /**
@@ -411,6 +475,22 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedResponseFrame: null,
     zeroSideEffects: true,
     description: '[beta.8 H7 raw token] negative SessionBinding grantRevision is rejected at canonicality before correlation',
+  },
+  {
+    id: 'T-C-3',
+    rawFrame: messagingRequestFrame('read-fractional', 'messaging.read', {
+      subscriptionId: 'subscription-1',
+      limit: 1.5,
+    }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-C',
+    expectedOutcome: 'close',
+    expectedErrorArm: null,
+    expectedErrorCode: null,
+    expectedResponseFrame: null,
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional read limit is rejected at canonicality before method validation',
   },
 
   // ═════════════════════════════════════════════════════════════════════════
@@ -755,6 +835,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: 'response-candidate: both result AND error present (additional coverage)',
   },
 
@@ -799,6 +880,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: 'response-candidate: error body is string not object (additional coverage)',
   },
 
@@ -851,6 +933,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
+    zeroSideEffects: true,
     description: '[RC-5] row-9 ack with wrong deliveryId: byte-equality fails → T-H, never T-L',
   },
 
@@ -1595,6 +1678,353 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedResponseFrame: null,
     description: '[beta.10 lifecycle] DEADLINE_EXPIRED legally settles a drain request',
   },
+  {
+    id: 'T-M-14',
+    rawFrame: messagingRequestFrame('send-1', 'messaging.send', M0C_DRAFT),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal send reaches Host dispatch',
+  },
+  {
+    id: 'T-G-21',
+    rawFrame: messagingRequestFrame('a', 'messaging.send', { ...M0C_DRAFT, authority: 'host' }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] authority-bearing send rejects before dispatch',
+  },
+  {
+    id: 'T-M-15',
+    rawFrame: messagingRequestFrame('append-1', 'messaging.appendElements', {
+      handle: { kind: 'message', token: 'message-handle-1' },
+      operationId: 'append-1',
+      baseRevision: 1,
+      elements: [{ elementId: 'element-2', kind: 'text', payload: { text: 'more' } }],
+    }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal append reaches Host dispatch',
+  },
+  {
+    id: 'T-G-22',
+    rawFrame: messagingRequestFrame('a', 'messaging.appendElements', {
+      handle: 'raw-handle', operationId: 'append-1', elements: [],
+    }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] malformed append rejects before dispatch',
+  },
+  {
+    id: 'T-M-16',
+    rawFrame: messagingRequestFrame('subscribe-1', 'messaging.subscribe', { handle: 'thread-handle-1' }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal subscribe reaches Host dispatch',
+  },
+  {
+    id: 'T-G-23',
+    rawFrame: messagingRequestFrame('a', 'messaging.subscribe', { handle: '' }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] empty subscribe handle rejects before dispatch',
+  },
+  {
+    id: 'T-M-17',
+    rawFrame: messagingRequestFrame('read-1', 'messaging.read', { subscriptionId: 'subscription-1', limit: 2 }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal read reaches Host dispatch',
+  },
+  {
+    id: 'T-G-24',
+    rawFrame: messagingRequestFrame('a', 'messaging.read', { subscriptionId: 'subscription-1', limit: 33 }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] read limit N+1 rejects before dispatch',
+  },
+  {
+    id: 'T-M-18',
+    rawFrame: messagingRequestFrame('ack-1', 'messaging.ack', { subscriptionId: 'subscription-1', ackToken: 'ack-1' }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal acknowledgement reaches Host dispatch',
+  },
+  {
+    id: 'T-G-25',
+    rawFrame: messagingRequestFrame('a', 'messaging.ack', { subscriptionId: 'subscription-1', ackToken: '' }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] empty acknowledgement token rejects before dispatch',
+  },
+  {
+    id: 'T-M-19',
+    rawFrame: messagingRequestFrame('snapshot-1', 'messaging.snapshot', { subscriptionId: 'subscription-1', maxItems: 2 }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal snapshot page reaches Host dispatch',
+  },
+  {
+    id: 'T-G-26',
+    rawFrame: messagingRequestFrame('a', 'messaging.snapshot', { subscriptionId: 'subscription-1', maxItems: 0 }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] zero snapshot maxItems rejects before dispatch',
+  },
+  {
+    id: 'T-M-20',
+    rawFrame: messagingRequestFrame('deliver-1', 'host.messaging.deliver', {
+      deliveryId: 'delivery-1',
+      threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+      envelope: M0C_ENVELOPE,
+    }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] legal Host delivery reaches plugin dispatch',
+  },
+  {
+    id: 'T-M-21',
+    rawFrame: messagingRequestFrame('send-exponent', 'messaging.send', {
+      address: { kind: 'thread_handle', handle: 'thread-handle-1' },
+      idempotencyKey: 'send-exp',
+      payload: {
+        provenance: { epistemicStatus: 'inference' },
+        elements: [
+          { elementId: 'element-1', kind: 'rich_block', payload: { data: 1e+21 } },
+        ],
+      },
+    }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-M', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] V8-canonical exponent in open payload is legal at T-C',
+  },
+  {
+    id: 'T-G-27',
+    rawFrame: messagingRequestFrame('a', 'host.messaging.deliver', {
+      deliveryId: 'delivery-1',
+      threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+      envelope: { ...M0C_ENVELOPE, occurredAt: '2026-08-18T03:00:00Z' },
+    }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
+    expectedClass: 'T-G', expectedOutcome: 'respond', expectedErrorArm: 'InvalidParamsEnvelope',
+    expectedErrorCode: INVALID_PARAMS_CODE, expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
+    zeroSideEffects: true,
+    description: '[beta.11 messaging] non-canonical stored timestamp rejects before callback dispatch',
+  },
+  {
+    id: 'T-C-4',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-publish-rev', result: {
+      events: [{ ...M0C_PUBLISH_EVENT, envelope: { ...M0C_ENVELOPE, revision: 1.5 } }],
+      ackToken: 'ack-1', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'read-publish-rev', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-C', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional publish envelope revision in read response is rejected at canonicality',
+  },
+  {
+    id: 'T-C-5',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-append-rev', result: {
+      events: [{
+        eventId: 'event-append-1', sequence: 1, type: 'message.elements.append',
+        messageId: 'message-1', threadId: 'thread-1', operationId: 'op-1',
+        revision: 1.5, elements: [],
+      }],
+      ackToken: 'ack-1', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'read-append-rev', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-C', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional append event revision in read response is rejected at canonicality',
+  },
+  {
+    id: 'T-C-6',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-append-baserev', result: {
+      events: [{
+        eventId: 'event-append-2', sequence: 1, type: 'message.elements.append',
+        messageId: 'message-1', threadId: 'thread-1', operationId: 'op-1',
+        baseRevision: 1.5, revision: 2, elements: [],
+      }],
+      ackToken: 'ack-1', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'read-append-baserev', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-C', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] fractional append event baseRevision in read response is rejected at canonicality',
+  },
+  {
+    id: 'T-L-11',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'send-result', result: {
+      messageId: 'message-1', threadId: 'thread-1', revision: 1,
+      messageHandle: { kind: 'message', token: 'message-handle-1' },
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'send-result', method: 'messaging.send' }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] closed send receipt settles the request',
+  },
+  {
+    id: 'T-H-14',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'send-legacy', result: {
+      messageId: 'message-1', threadId: 'thread-1', revision: 1,
+      handle: { kind: 'message', token: 'message-handle-1' },
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'send-legacy', method: 'messaging.send' }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] legacy send receipt closes without settlement',
+  },
+  {
+    id: 'T-L-12',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-result', result: {
+      messageId: 'message-1', revision: 2, appliedElementIds: ['element-2'],
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'append-result', method: 'messaging.appendElements', requestSnapshot: { appendElementIds: ['element-2'] } }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] closed append receipt settles the request',
+  },
+  {
+    id: 'T-H-15',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-empty', result: {
+      messageId: 'message-1', revision: 2, appliedElementIds: [],
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'append-empty', method: 'messaging.appendElements', requestSnapshot: { appendElementIds: ['element-2'] } }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] empty append receipt closes without settlement',
+  },
+  {
+    id: 'T-L-13',
+    rawFrame: '{"jsonrpc":"2.0","id":"subscribe-result","result":{"subscriptionId":"subscription-1"}}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'subscribe-result', method: 'messaging.subscribe' }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] closed subscription receipt settles the request',
+  },
+  {
+    id: 'T-H-16',
+    rawFrame: '{"jsonrpc":"2.0","id":"subscribe-open","result":{"subscriptionId":"subscription-1","extra":true}}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'subscribe-open', method: 'messaging.subscribe' }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] open subscription receipt closes without settlement',
+  },
+  {
+    id: 'T-L-14',
+    rawFrame: '{"jsonrpc":"2.0","id":"read-result","result":{"events":[],"ackToken":null,"stale":false}}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'read-result', method: 'messaging.read', requestSnapshot: { readLimit: 2 } }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] empty read page settles the request',
+  },
+  {
+    id: 'T-H-17',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'read-over-limit', result: {
+      events: [M0C_PUBLISH_EVENT, { ...M0C_PUBLISH_EVENT, eventId: 'event-2', sequence: 2 }],
+      ackToken: 'ack-2', stale: false,
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'read-over-limit', method: 'messaging.read', requestSnapshot: { readLimit: 1 } }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] read page beyond the request limit closes without cursor progress',
+  },
+  {
+    id: 'T-L-15', rawFrame: '{"jsonrpc":"2.0","id":"ack-result","result":null}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'ack-result', method: 'messaging.ack' }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] null acknowledgement settles the request',
+  },
+  {
+    id: 'T-H-18', rawFrame: '{"jsonrpc":"2.0","id":"ack-open","result":{}}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'ack-open', method: 'messaging.ack' }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] non-null acknowledgement closes without cursor progress',
+  },
+  {
+    id: 'T-L-16',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'snapshot-result', result: {
+      items: [], nextPageToken: null, snapshotAckToken: 'snapshot-ack-1',
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'snapshot-result', method: 'messaging.snapshot', requestSnapshot: { snapshotMaxItems: 2 } }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] final snapshot page settles the traversal request',
+  },
+  {
+    id: 'T-H-19',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'snapshot-over-limit', result: {
+      items: [M0C_ENVELOPE, { ...M0C_ENVELOPE, messageId: 'message-2' }],
+      nextPageToken: null, snapshotAckToken: 'snapshot-ack-2',
+    } }),
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'snapshot-over-limit', method: 'messaging.snapshot', requestSnapshot: { snapshotMaxItems: 1 } }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] snapshot page beyond request maxItems closes without progress',
+  },
+  {
+    id: 'T-L-17',
+    rawFrame: '{"jsonrpc":"2.0","id":"deliver-result","result":{"deliveryId":"delivery-1"}}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'deliver-result', method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'delivery-1' } }] },
+    expectedClass: 'T-L', expectedOutcome: 'accept', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null,
+    description: '[beta.11 messaging] byte-equal delivery acknowledgement settles the callback',
+  },
+  {
+    id: 'T-H-20',
+    rawFrame: '{"jsonrpc":"2.0","id":"deliver-mismatch","result":{"deliveryId":"wrong-delivery"}}',
+    rawFrameEncoding: 'utf8', preState: { inFlightRequests: [{ id: 'deliver-mismatch', method: 'host.messaging.deliver', requestSnapshot: { deliveryId: 'delivery-1' } }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] mismatched delivery acknowledgement closes without settlement',
+  },
+  {
+    id: 'T-H-21',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-provenance', result: {
+      messageId: 'message-1', revision: 2, appliedElementIds: ['wrong-element'],
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'append-provenance', method: 'messaging.appendElements', requestSnapshot: { appendElementIds: ['element-2'] } }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] append receipt with foreign element IDs closes without settlement',
+  },
+  {
+    id: 'T-H-22',
+    rawFrame: JSON.stringify({ jsonrpc: '2.0', id: 'append-no-snapshot', result: {
+      messageId: 'message-1', revision: 2, appliedElementIds: ['element-2'],
+    } }),
+    rawFrameEncoding: 'utf8',
+    preState: { inFlightRequests: [{ id: 'append-no-snapshot', method: 'messaging.appendElements' }] },
+    expectedClass: 'T-H', expectedOutcome: 'close', expectedErrorArm: null,
+    expectedErrorCode: null, expectedResponseFrame: null, zeroSideEffects: true,
+    description: '[beta.11 messaging] append receipt without provenance snapshot closes without settlement',
+  },
 ];
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
@@ -1646,4 +2076,17 @@ export const BETA10_LIFECYCLE_VECTOR_IDS = [
   'T-G-20',
   'T-L-9',
   'T-L-10',
+] as const;
+
+/** Complete beta.11 M0-C messaging safety surface for rows 3 through 9. */
+export const BETA11_MESSAGING_VECTOR_IDS = [
+  'T-C-3',
+  'T-H-2', 'T-H-5', 'T-H-9', 'T-L-4',
+  'T-M-14', 'T-G-21', 'T-M-15', 'T-G-22', 'T-M-16', 'T-G-23',
+  'T-M-17', 'T-G-24', 'T-M-18', 'T-G-25', 'T-M-19', 'T-G-26',
+  'T-M-20', 'T-M-21', 'T-G-27',
+  'T-C-4', 'T-C-5', 'T-C-6',
+  'T-L-11', 'T-H-14', 'T-L-12', 'T-H-15', 'T-L-13', 'T-H-16',
+  'T-L-14', 'T-H-17', 'T-L-15', 'T-H-18', 'T-L-16', 'T-H-19',
+  'T-L-17', 'T-H-20', 'T-H-21', 'T-H-22',
 ] as const;

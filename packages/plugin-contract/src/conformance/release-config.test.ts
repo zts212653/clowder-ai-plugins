@@ -332,17 +332,21 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('lifecycle closure publishes beta.10 while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.10');
+test('messaging closure publishes beta.11 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.11');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
 
-test('host and SDK consumers can import the conformance boundary', () => {
+test('host and SDK consumers can import the conformance and behavior boundaries', () => {
   assert.deepEqual(contractPackage.exports?.['./conformance'], {
     types: './dist/conformance/index.d.ts',
     import: './dist/conformance/index.js',
   });
+  assert.equal(
+    contractPackage.exports?.['./fixtures/behavior/messaging/adversarial-invariants'],
+    './fixtures/behavior/messaging/adversarial-invariants.json',
+  );
 });
 
 test('CI and release use the pinned toolchain and authorized token path', () => {

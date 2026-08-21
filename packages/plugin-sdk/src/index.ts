@@ -5,11 +5,9 @@
  *   1. Schema-neutral NDJSON transport (stdio-runtime, S0/#12)
  *   2. Wire dispatch classifier (wire-dispatch, S1)
  *
- * The beta.8 handshake rows and beta.9 events.publish row are executable;
- * remaining production RPC methods stay reserved. The dispatch
- * classifier gates all methods: CLOSED rows validate input shapes, RESERVED
- * rows fail-closed with T-G (input type is `never` in v0 — no legal params
- * exist).
+ * The beta.8 handshake, beta.9 events.publish, beta.10 lifecycle, and beta.11
+ * messaging rows are executable. The dispatch classifier gates every method
+ * before standalone callbacks or Host-bound transport behavior can run.
  */
 export {
   NdjsonFrameError,
@@ -33,6 +31,8 @@ export {
   startStandaloneHost,
   type StandaloneHost,
   type StandaloneHostOptions,
+  type StandaloneMessageDisposition,
+  type StandaloneMessageHandler,
 } from './standalone-host.js';
 
 export {

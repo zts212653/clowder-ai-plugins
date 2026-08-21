@@ -26,11 +26,23 @@ import type {
   EventsPublishInput,
   EventsPublishResult,
   SendInput,
+  SendResult,
   AppendInput,
+  AppendResult,
   ReadInput,
+  ReadResult,
   SnapshotInput,
+  SnapshotResult,
   DeliverInput,
+  DeliverResult,
 } from './index.js';
+import type {
+  AppendElementsRequest,
+  AppendReceipt,
+  MessageDraft,
+  MessageEnvelope,
+  SendReceipt,
+} from '../generated/contract.generated.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RED (a): Generic envelope constructors are NOT in the public barrel.
@@ -89,20 +101,48 @@ const _closedPublishResult: EventsPublishResult = {
 void _closedPublish;
 void _closedPublishResult;
 
-// @ts-expect-error — Row 3 (messaging.send) input is never
-const _reservedSend: SendInput = '';
+declare const _draft: MessageDraft;
+declare const _sendReceipt: SendReceipt;
+declare const _appendRequest: AppendElementsRequest;
+declare const _appendReceipt: AppendReceipt;
+declare const _envelope: MessageEnvelope;
 
-// @ts-expect-error — Row 4 (messaging.appendElements) input is never
-const _reservedAppend: AppendInput = '';
+const _closedSend: SendInput = _draft;
+const _closedSendResult: SendResult = _sendReceipt;
+const _closedAppend: AppendInput = _appendRequest;
+const _closedAppendResult: AppendResult = _appendReceipt;
+const _closedRead: ReadInput = { subscriptionId: 'sub-1', limit: 32 };
+const _closedReadResult: ReadResult = {
+  events: [],
+  ackToken: null,
+  stale: false,
+};
+const _closedSnapshot: SnapshotInput = {
+  subscriptionId: 'sub-1',
+  maxItems: 64,
+};
+const _closedSnapshotResult: SnapshotResult = {
+  items: [],
+  nextPageToken: null,
+  snapshotAckToken: 'snapshot-ack-1',
+};
+const _closedDeliver: DeliverInput = {
+  deliveryId: 'delivery-1',
+  threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+  envelope: _envelope,
+};
+const _closedDeliverResult: DeliverResult = { deliveryId: 'delivery-1' };
 
-// @ts-expect-error — Row 6 (messaging.read) input is never
-const _reservedRead: ReadInput = '';
-
-// @ts-expect-error — Row 8 (messaging.snapshot) input is never
-const _reservedSnapshot: SnapshotInput = '';
-
-// @ts-expect-error — Row 9 (host.messaging.deliver) input is never
-const _reservedDeliver: DeliverInput = '';
+void _closedSend;
+void _closedSendResult;
+void _closedAppend;
+void _closedAppendResult;
+void _closedRead;
+void _closedReadResult;
+void _closedSnapshot;
+void _closedSnapshotResult;
+void _closedDeliver;
+void _closedDeliverResult;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RED (c): Error responses beyond the 11 closed arms cannot be constructed.
@@ -147,19 +187,31 @@ const _probeC2: WireErrorResponse = _fakeErrorNullId;
 // @ts-expect-error — 'not.a.method' is not in the 13-row closed method enum
 const _badMethod: WireMethodName = 'not.a.method';
 
-// beta.10's ready partition must remain literal rather than widening to boolean.
+// beta.11's ready partition must remain literal rather than widening to boolean.
 declare const _registry: WireMethodRegistry;
 const _helloReady: true = _registry['broker.hello'].ready;
 const _readyReady: true = _registry['broker.ready'].ready;
+const _sendReady: true = _registry['messaging.send'].ready;
+const _appendReady: true = _registry['messaging.appendElements'].ready;
+const _subscribeReady: true = _registry['messaging.subscribe'].ready;
+const _readReady: true = _registry['messaging.read'].ready;
+const _ackReady: true = _registry['messaging.ack'].ready;
+const _snapshotReady: true = _registry['messaging.snapshot'].ready;
+const _deliverReady: true = _registry['host.messaging.deliver'].ready;
 const _grantsChangedReady: true = _registry['host.grants.changed'].ready;
 const _pingReady: true = _registry['host.lifecycle.ping'].ready;
 const _drainReady: true = _registry['host.lifecycle.drain'].ready;
 const _publishReady: true = _registry['events.publish'].ready;
-const _sendUnready: false = _registry['messaging.send'].ready;
 void _helloReady;
 void _readyReady;
+void _sendReady;
+void _appendReady;
+void _subscribeReady;
+void _readReady;
+void _ackReady;
+void _snapshotReady;
+void _deliverReady;
 void _grantsChangedReady;
 void _pingReady;
 void _drainReady;
 void _publishReady;
-void _sendUnready;

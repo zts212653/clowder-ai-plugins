@@ -212,6 +212,7 @@ export type MessageDraft = {
   readonly replyTo?: string;
   readonly payload: DraftPayload;
 };
+export type OccurredAt = string | string;
 export type MessageEnvelope = {
   readonly messageId: string;
   readonly revision: number;
@@ -219,7 +220,7 @@ export type MessageEnvelope = {
   readonly replyTo?: string;
   readonly actor: ActorRef;
   readonly audience: CanonicalAudience;
-  readonly occurredAt: string;
+  readonly occurredAt: OccurredAt;
   readonly payload: MessagePayload;
 };
 export type MessagePublishEvent = {
@@ -244,7 +245,7 @@ export type SendReceipt = {
   readonly messageId: string;
   readonly threadId: string;
   readonly revision: number;
-  readonly handle?: MessageHandle;
+  readonly messageHandle: MessageHandle;
   readonly publishSequence?: number;
 };
 export type AppendReceipt = {
@@ -271,12 +272,12 @@ export type SubscriptionNormalResponse = {
   readonly stale: false;
 };
 export type SubscriptionEmptyResponse = {
-  readonly events: readonly MessageOutputEvent[];
+  readonly events: readonly [];
   readonly ackToken: null;
   readonly stale: false;
 };
 export type SubscriptionStaleResponse = {
-  readonly events: readonly MessageOutputEvent[];
+  readonly events: readonly [];
   readonly ackToken: null;
   readonly stale: true;
 };
@@ -284,6 +285,61 @@ export type SubscriptionReadResponse = SubscriptionNormalResponse | Subscription
 export type SnapshotResponse = {
   readonly envelopes: readonly MessageEnvelope[];
   readonly resumeSequence: number;
+};
+export type M0CSubscribeInput = {
+  readonly handle: string;
+};
+export type M0CSubscribeResult = {
+  readonly subscriptionId: string;
+};
+export type M0CReadInput = {
+  readonly subscriptionId: string;
+  readonly limit: number;
+};
+export type M0CReadNormalResult = {
+  readonly events: readonly MessageOutputEvent[];
+  readonly ackToken: string;
+  readonly stale: false;
+};
+export type M0CReadEmptyResult = {
+  readonly events: readonly [];
+  readonly ackToken: null;
+  readonly stale: false;
+};
+export type M0CReadStaleResult = {
+  readonly events: readonly [];
+  readonly ackToken: null;
+  readonly stale: true;
+};
+export type M0CReadResult = M0CReadNormalResult | M0CReadEmptyResult | M0CReadStaleResult;
+export type M0CAckInput = {
+  readonly subscriptionId: string;
+  readonly ackToken: string;
+};
+export type M0CAckResult = null;
+export type M0CSnapshotInput = {
+  readonly subscriptionId: string;
+  readonly maxItems: number;
+  readonly pageToken?: string;
+};
+export type M0CSnapshotIntermediateResult = {
+  readonly items: readonly MessageEnvelope[];
+  readonly nextPageToken: string;
+  readonly snapshotAckToken: null;
+};
+export type M0CSnapshotFinalResult = {
+  readonly items: readonly MessageEnvelope[];
+  readonly nextPageToken: null;
+  readonly snapshotAckToken: string;
+};
+export type M0CSnapshotResult = M0CSnapshotIntermediateResult | M0CSnapshotFinalResult;
+export type M0CDeliverInput = {
+  readonly deliveryId: string;
+  readonly threadHandle: ThreadHandleAddress;
+  readonly envelope: MessageEnvelope;
+};
+export type M0CDeliverResult = {
+  readonly deliveryId: string;
 };
 
 export type PhysicalLimbIdentifier = string;
@@ -586,6 +642,12 @@ export const MESSAGING_BOUNDS = {
   maxElementIdLength: 128,
   maxElementsPerMessage: 128,
   maxAppendOpsPerMessage: 64,
+  maxMessageIdLength: 512,
+  maxThreadIdLength: 512,
+  maxActorIdLength: 512,
+  maxMessageHandleTokenLength: 512,
+  maxEventIdLength: 720,
+  maxOccurredAtLength: 27,
 } as const;
 
 /**

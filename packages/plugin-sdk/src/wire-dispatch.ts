@@ -19,7 +19,12 @@ import type { DecodedNdjsonFrame, JsonObject } from '@clowder-ai/plugin-contract
 
 import {
   type DispositionClass,
+  type AppendResult,
+  type DeliverResult,
+  type MessagingRowMethod,
+  type ReadResult,
   type RequestSnapshot,
+  type SnapshotResult,
   type WireMethodName,
   validateRequestId,
   hasHandshakeAuthorityInjection,
@@ -29,10 +34,13 @@ import {
   validateEffectiveGrants,
   validateEventsPublishInput,
   validateEventsPublishResult,
+  validateMessagingRowInput,
+  validateMessagingRowResult,
   isWireMethod,
   isWireUInt53,
   isCanonicalUInt53Token,
   NOTIFICATION_METHODS,
+  MESSAGING_ROW_METHODS,
   WIRE_METHOD_REGISTRY,
   INVALID_REQUEST_CODE,
   INVALID_REQUEST_MESSAGE,
@@ -42,14 +50,6 @@ import {
   INVALID_PARAMS_MESSAGE,
   PING_NONCE_MIN_LENGTH,
   PING_NONCE_MAX_LENGTH,
-  SUBSCRIBE_HANDLE_MIN_LENGTH,
-  SUBSCRIBE_HANDLE_MAX_LENGTH,
-  SUBSCRIBE_SUBSCRIPTION_ID_MIN_LENGTH,
-  SUBSCRIBE_SUBSCRIPTION_ID_MAX_LENGTH,
-  ACK_SUBSCRIPTION_ID_MIN_LENGTH,
-  ACK_SUBSCRIPTION_ID_MAX_LENGTH,
-  ACK_TOKEN_MIN_LENGTH,
-  ACK_TOKEN_MAX_LENGTH,
   ALL_ERROR_CODES,
   APPLICATION_ERROR_CODES,
   ERROR_CODE_TO_MESSAGE,
@@ -220,34 +220,6 @@ function containsNonScalarString(value: unknown): boolean {
   return false;
 }
 
-/**
- * Detect numbers whose JSON.stringify form uses exponent notation.
- *
- * V8 serialises numbers ≥ 10^21 (and very small fractions) in exponent
- * form (e.g. `1e+21`). When the raw frame also uses the same exponent
- * form, byte-equality passes — but exponent-form numeric tokens are
- * non-canonical per the WireUInt53 profile (which requires raw decimal
- * digits `0|[1-9][0-9]*`, no exponent). Deep traversal mirrors
- * containsNonScalarString.
- */
-function containsExponentNumber(value: unknown): boolean {
-  if (typeof value === 'number') {
-    const s = String(value);
-    return s.includes('e') || s.includes('E');
-  }
-  if (value === null || typeof value !== 'object') return false;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      if (containsExponentNumber(item)) return true;
-    }
-    return false;
-  }
-  for (const v of Object.values(value as Record<string, unknown>)) {
-    if (containsExponentNumber(v)) return true;
-  }
-  return false;
-}
-
 // ---------------------------------------------------------------------------
 // WireUInt53 raw-token validation (P1-1 maintainer requirement)
 // ---------------------------------------------------------------------------
@@ -268,7 +240,16 @@ function containsExponentNumber(value: unknown): boolean {
  *   - params.meta.deadlineUnixMs  (every request/notification)
  *   - params.input.deadlineUnixMs (host.lifecycle.drain input)
  *   - params.input.grantRevision  (host.grants.changed input)
+ *   - params.input.baseRevision   (messaging.appendElements input)
+ *   - params.input.limit          (messaging.read input)
+ *   - params.input.maxItems       (messaging.snapshot input)
+ *   - params.input.envelope.revision (host.messaging.deliver input)
  *   - result.grantRevision        (broker.hello SessionBinding)
+ *   - result.revision             (messaging.send, messaging.appendElements)
+ *   - result.publishSequence      (messaging.send)
+ *   - result.appendSequence       (messaging.appendElements)
+ *   - result.events[].sequence    (messaging.read)
+ *   - result.items[].revision     (messaging.snapshot)
  */
 function hasNonCanonicalUInt53Token(
   value: JsonObject,
@@ -300,21 +281,88 @@ function hasNonCanonicalUInt53Token(
       if (requestMethod === 'host.grants.changed' && typeof inputObj.grantRevision === 'number') {
         if (!isCanonicalUInt53Token(String(inputObj.grantRevision))) return true;
       }
+
+      // ── M0-C messaging request WireUInt53 leaves ──
+      if (requestMethod === 'messaging.appendElements' && typeof inputObj.baseRevision === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.baseRevision))) return true;
+      }
+      if (requestMethod === 'messaging.read' && typeof inputObj.limit === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.limit))) return true;
+      }
+      if (requestMethod === 'messaging.snapshot' && typeof inputObj.maxItems === 'number') {
+        if (!isCanonicalUInt53Token(String(inputObj.maxItems))) return true;
+      }
+      if (requestMethod === 'host.messaging.deliver') {
+        const envelope = inputObj.envelope;
+        if (envelope !== null && typeof envelope === 'object' && !Array.isArray(envelope)) {
+          const envelopeObj = envelope as Record<string, unknown>;
+          if (typeof envelopeObj.revision === 'number') {
+            if (!isCanonicalUInt53Token(String(envelopeObj.revision))) return true;
+          }
+        }
+      }
     }
   }
 
-  // H7 is a WireUInt53 result leaf only for broker.hello's SessionBinding.
-  // Consult the correlated in-flight row before applying this raw-token gate:
-  // result.grantRevision on every other response belongs to that row's own
-  // result grammar and must therefore reach T-H rather than T-C.
+  // Response-side WireUInt53 positions: consult the correlated in-flight
+  // row before applying raw-token gates. Only protocol-defined numeric
+  // leaves at known positions are checked — open payloads are not covered.
   const result = value.result;
   const responseMethod = typeof value.id === 'string'
     ? inFlight.get(value.id)?.method
     : undefined;
-  if (!('method' in value) && responseMethod === 'broker.hello' && result !== null && typeof result === 'object' && !Array.isArray(result)) {
+  if (!('method' in value) && result !== null && typeof result === 'object' && !Array.isArray(result)) {
     const resultObj = result as Record<string, unknown>;
-    if (typeof resultObj.grantRevision === 'number') {
-      if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
+
+    // H7: broker.hello SessionBinding.grantRevision
+    if (responseMethod === 'broker.hello') {
+      if (typeof resultObj.grantRevision === 'number') {
+        if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
+      }
+    }
+
+    // messaging.send: result.revision, result.publishSequence
+    if (responseMethod === 'messaging.send') {
+      if (typeof resultObj.revision === 'number' && !isCanonicalUInt53Token(String(resultObj.revision))) return true;
+      if (typeof resultObj.publishSequence === 'number' && !isCanonicalUInt53Token(String(resultObj.publishSequence))) return true;
+    }
+
+    // messaging.appendElements: result.revision, result.appendSequence
+    if (responseMethod === 'messaging.appendElements') {
+      if (typeof resultObj.revision === 'number' && !isCanonicalUInt53Token(String(resultObj.revision))) return true;
+      if (typeof resultObj.appendSequence === 'number' && !isCanonicalUInt53Token(String(resultObj.appendSequence))) return true;
+    }
+
+    // messaging.read: result.events[] WireUInt53 leaves
+    // Common: events[].sequence
+    // Publish arm: events[].envelope.revision (not traversing open payload)
+    // Elements-append arm: events[].revision, events[].baseRevision
+    if (responseMethod === 'messaging.read' && Array.isArray(resultObj.events)) {
+      for (const event of resultObj.events as unknown[]) {
+        if (event !== null && typeof event === 'object' && !Array.isArray(event)) {
+          const eventObj = event as Record<string, unknown>;
+          if (typeof eventObj.sequence === 'number' && !isCanonicalUInt53Token(String(eventObj.sequence))) return true;
+          // publish arm: envelope.revision
+          const eventEnvelope = eventObj.envelope;
+          if (eventEnvelope !== null && typeof eventEnvelope === 'object' && !Array.isArray(eventEnvelope)) {
+            const envObj = eventEnvelope as Record<string, unknown>;
+            if (typeof envObj.revision === 'number' && !isCanonicalUInt53Token(String(envObj.revision))) return true;
+          }
+          // elements-append arm: revision, baseRevision
+          if (typeof eventObj.revision === 'number' && !isCanonicalUInt53Token(String(eventObj.revision))) return true;
+          if (typeof eventObj.baseRevision === 'number' && !isCanonicalUInt53Token(String(eventObj.baseRevision))) return true;
+        }
+      }
+    }
+
+    // messaging.snapshot: result.items[].revision
+    if (responseMethod === 'messaging.snapshot' && Array.isArray(resultObj.items)) {
+      for (const item of resultObj.items as unknown[]) {
+        if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+          const itemObj = item as Record<string, unknown>;
+          if (typeof itemObj.revision === 'number' && !isCanonicalUInt53Token(String(itemObj.revision))) return true;
+        }
+      }
     }
   }
 
@@ -339,14 +387,8 @@ import {
   META_ALLOWED_KEYS,
   PING_INPUT_KEYS,
   DRAIN_INPUT_KEYS,
-  SUBSCRIBE_INPUT_KEYS,
-  ACK_INPUT_KEYS,
   GRANTS_CHANGED_INPUT_KEYS,
   PING_RESULT_KEYS,
-  SUBSCRIBE_RESULT_KEYS,
-  DELIVER_RESULT_KEYS,
-  DELIVER_DELIVERY_ID_MIN_LENGTH,
-  DELIVER_DELIVERY_ID_MAX_LENGTH,
   ERROR_BODY_STANDARD_KEYS,
   ERROR_BODY_APPLICATION_KEYS,
   REASON_DATA_KEYS,
@@ -365,6 +407,11 @@ const APPLICATION_CODES = new Set<number>(APPLICATION_ERROR_CODES);
 const HANDSHAKE_REASONS = new Set<string>(HANDSHAKE_REJECT_REASONS);
 const DELIVERY_REASONS = new Set<string>(DELIVERY_REJECT_REASONS);
 const SNAPSHOT_REASONS = new Set<string>(SNAPSHOT_UNAVAILABLE_REASONS);
+const MESSAGING_METHODS = new Set<WireMethodName>(MESSAGING_ROW_METHODS);
+
+function isMessagingRowMethod(method: WireMethodName): method is MessagingRowMethod {
+  return MESSAGING_METHODS.has(method);
+}
 
 // Standard error codes that mandate null id (not string RequestId).
 // ParseError (-32700) ALWAYS has id: null per the contract envelope.
@@ -378,7 +425,7 @@ const NULL_ID_ERROR_CODES = new Set<number>([PARSE_ERROR_CODE]);
 //
 // Every registry row's application-error set resolves through the closed
 // application table in #1165. Eligibility is keyed off the row, NOT
-// leafClosure — RESERVED rows have frozen error sets too.
+// leafClosure — eligibility is a per-row contract property.
 //
 //   Rows 1-2 (broker.hello/ready):           HANDSHAKE_REJECTED
 //   Rows 3-7 (messaging send/append/sub/read/ack): DOMAIN_ERROR, DEADLINE_EXPIRED
@@ -414,8 +461,6 @@ const METHOD_APPLICATION_ERROR_ALLOW: Readonly<Record<WireMethodName, ReadonlySe
   'host.lifecycle.drain': DEADLINE_ONLY_SET,
   'events.publish': EMPTY_ERROR_SET,
 };
-
-// DELIVER_RESULT_KEYS imported from contract-mirror.ts (row 9 ack shape).
 
 // ---------------------------------------------------------------------------
 // Response candidate sub-classifier (T-H / T-L)
@@ -598,15 +643,15 @@ function validateApplicationErrorData(
 }
 
 // ---------------------------------------------------------------------------
-// Response result shape validation (per-method, CLOSED rows only)
+// Response result shape validation (per-method)
 // ---------------------------------------------------------------------------
 
 /**
  * Validate the `result` value of a success response against the
  * correlated in-flight method's expected result shape.
  *
- * CLOSED rows: full per-method result shape validation (additionalProperties: false).
- * RESERVED rows: no shape contract to validate — only cross-frame oracle applies.
+ * CLOSED rows receive full per-method result validation
+ * (additionalProperties: false). Any future RESERVED row fails closed.
  *
  * Returns null if valid; DispatchResult (T-H) if invalid.
  */
@@ -617,10 +662,64 @@ function validateResponseResult(
   const method = entry.method;
   const row = WIRE_METHOD_REGISTRY[method];
 
-  // RESERVED rows: fail closed — no executable result schema exists.
-  // Row 9 (deliver) has a frozen ack shape; all others → T-H.
+  // Defense-in-depth for a future RESERVED row without an executable result.
   if (row.leafClosure !== 'CLOSED') {
-    return validateReservedRowResult(result, entry);
+    return close('T-H');
+  }
+
+  if (isMessagingRowMethod(method)) {
+    const validated = validateMessagingRowResult(method, result);
+    if (!validated.valid) return close('T-H');
+
+    if (method === 'messaging.read') {
+      const readLimit = entry.requestSnapshot?.readLimit;
+      if (
+        readLimit === undefined ||
+        !validateMessagingRowInput('messaging.read', {
+          subscriptionId: 'request-snapshot',
+          limit: readLimit,
+        }).valid ||
+        (validated.value as ReadResult).events.length > readLimit
+      ) {
+        return close('T-H');
+      }
+    }
+
+    if (method === 'messaging.snapshot') {
+      const snapshotMaxItems = entry.requestSnapshot?.snapshotMaxItems;
+      if (
+        snapshotMaxItems === undefined ||
+        !validateMessagingRowInput('messaging.snapshot', {
+          subscriptionId: 'request-snapshot',
+          maxItems: snapshotMaxItems,
+        }).valid ||
+        (validated.value as SnapshotResult).items.length > snapshotMaxItems
+      ) {
+        return close('T-H');
+      }
+    }
+
+    if (method === 'messaging.appendElements') {
+      const appendElementIds = entry.requestSnapshot?.appendElementIds;
+      if (appendElementIds === undefined) return close('T-H');
+      const appliedIds = (validated.value as AppendResult).appliedElementIds;
+      for (const id of appliedIds) {
+        if (!appendElementIds.includes(id)) return close('T-H');
+      }
+    }
+
+    if (method === 'host.messaging.deliver') {
+      const deliveryId = entry.requestSnapshot?.deliveryId;
+      if (
+        deliveryId === undefined ||
+        !validateMessagingRowResult('host.messaging.deliver', { deliveryId }).valid ||
+        (validated.value as DeliverResult).deliveryId !== deliveryId
+      ) {
+        return close('T-H');
+      }
+    }
+
+    return null;
   }
 
   switch (method) {
@@ -678,30 +777,6 @@ function validateResponseResult(
       return null;
     }
 
-    case 'messaging.subscribe': {
-      // SubscribeResult: {subscriptionId: string} — additionalProperties: false
-      if (result === null || typeof result !== 'object' || Array.isArray(result)) {
-        return close('T-H');
-      }
-      const obj = result as Record<string, unknown>;
-      // Closed keys: {subscriptionId} only
-      for (const key of Object.keys(obj)) {
-        if (!SUBSCRIBE_RESULT_KEYS.has(key)) return close('T-H');
-      }
-      if (typeof obj.subscriptionId !== 'string') return close('T-H');
-      const cpLen = [...(obj.subscriptionId as string)].length;
-      if (cpLen < SUBSCRIBE_SUBSCRIPTION_ID_MIN_LENGTH || cpLen > SUBSCRIBE_SUBSCRIPTION_ID_MAX_LENGTH) {
-        return close('T-H');
-      }
-      return null;
-    }
-
-    case 'messaging.ack': {
-      // MessagingAckResult: null
-      if (result !== null) return close('T-H');
-      return null;
-    }
-
     case 'events.publish': {
       return validateEventsPublishResult(result).valid ? null : close('T-H');
     }
@@ -718,69 +793,6 @@ function validateResponseResult(
       return close('T-H');
     }
   }
-}
-
-// ---------------------------------------------------------------------------
-// Cross-frame oracle for RESERVED row responses
-// ---------------------------------------------------------------------------
-
-/**
- * Validate results for RESERVED rows.
- *
- * P1-2 maintainer requirement: fail closed when no executable result
- * schema exists, rather than treating absence of an oracle as validity.
- *
- * Row 9 (host.messaging.deliver) is the ONE exception among RESERVED
- * rows — its acknowledgement result shape {deliveryId} is frozen as a
- * closed member set. Validated with deliveryId byte-equality oracle
- * AND strict closed-key enforcement.
- *
- * ALL other RESERVED rows: no executable result schema exists → T-H
- * for any result value (fail-closed).
- */
-function validateReservedRowResult(
-  result: unknown,
-  entry: InFlightEntry,
-): DispatchResult | null {
-  // ── Row 9 deliver: frozen ack shape {deliveryId: string, 1..128 cp} ──
-  if (entry.method === 'host.messaging.deliver') {
-    // Fail-closed if snapshot absent or snapshot deliveryId is not a
-    // legal oracle value (string within 1..128 code points).
-    const snapId = entry.requestSnapshot?.deliveryId;
-    if (snapId === undefined) return close('T-H');
-    if (typeof snapId !== 'string') return close('T-H');
-    const snapLen = [...snapId].length;
-    if (snapLen < DELIVER_DELIVERY_ID_MIN_LENGTH || snapLen > DELIVER_DELIVERY_ID_MAX_LENGTH) {
-      return close('T-H');
-    }
-
-    // Result must be a non-null object
-    if (result === null || typeof result !== 'object' || Array.isArray(result)) {
-      return close('T-H');
-    }
-    const resultObj = result as Record<string, unknown>;
-
-    // Closed member set: {deliveryId} only — no extras
-    for (const key of Object.keys(resultObj)) {
-      if (!DELIVER_RESULT_KEYS.has(key)) return close('T-H');
-    }
-
-    // deliveryId must be a string within frozen bounds (1..128 code points)
-    if (typeof resultObj.deliveryId !== 'string') return close('T-H');
-    const resultIdLen = [...(resultObj.deliveryId as string)].length;
-    if (resultIdLen < DELIVER_DELIVERY_ID_MIN_LENGTH || resultIdLen > DELIVER_DELIVERY_ID_MAX_LENGTH) {
-      return close('T-H');
-    }
-
-    // Byte-equality oracle: result.deliveryId must match snapshot
-    if (resultObj.deliveryId !== snapId) return close('T-H');
-    return null;
-  }
-
-  // ── All other RESERVED rows: no executable result schema → T-H ────
-  // The row's result shape is RESERVED (type = `never`). No legal result
-  // value exists in v0 — accepting anything would be fail-open.
-  return close('T-H');
 }
 
 // ---------------------------------------------------------------------------
@@ -928,8 +940,8 @@ function classifyRequest(
     const valueResult = validateClosedRowInput(wireMethod, input as Record<string, unknown>, id);
     if (valueResult !== null) return valueResult;
   } else {
-    // RESERVED rows: input type is `never` → no legal params value exists
-    // in the current contract → any invocation is a value violation (T-G).
+    // Fail closed if a future registry revision introduces a RESERVED row:
+    // its input type is `never`, so no legal params value exists.
     return respondInvalidParamsValue(id);
   }
 
@@ -941,14 +953,12 @@ function classifyRequest(
     return accept('T-M');
   }
 
-  // Direction gate: plugin SDK only accepts host-to-plugin methods as
-  // inbound requests. Plugin-to-host methods (rows 1–8) received by
-  // the plugin are protocol violations → T-F MethodNotFound.
+  // Defense-in-depth for a future closed-but-unready plugin-to-host row.
   //
   // Positioned after all envelope/value checks so that:
   //   - In-flight collision (T-I) takes precedence (per contract fixtures)
-  //   - RESERVED row rejection (T-G) takes precedence (input type `never`)
-  //   - Only CLOSED plugin-to-host rows with valid params reach here
+  //   - Future RESERVED-row rejection (T-G) takes precedence
+  //   - Only CLOSED, unready plugin-to-host rows can reach here
   if (row.direction === 'plugin-to-host') return respondMethodNotFound(id);
 
   // All checks passed — valid host-to-plugin CLOSED-row request for dispatch
@@ -964,6 +974,12 @@ function validateClosedRowInput(
   input: Record<string, unknown>,
   id: string,
 ): DispatchResult | null {
+  if (isMessagingRowMethod(method)) {
+    return validateMessagingRowInput(method, input).valid
+      ? null
+      : respondInvalidParamsValue(id);
+  }
+
   switch (method) {
     case 'broker.hello':
       if (hasHandshakeAuthorityInjection(input)) return respondHandshakeAuthorityViolation(id);
@@ -999,41 +1015,9 @@ function validateClosedRowInput(
       if (drainDeadline === 0) return respondInvalidParamsValue(id);
       return null;
     }
-    case 'messaging.subscribe': {
-      // Closed input keys: {handle} only
-      for (const key of Object.keys(input)) {
-        if (!SUBSCRIBE_INPUT_KEYS.has(key)) return respondInvalidParamsValue(id);
-      }
-      // handle must be string, bounds from contract
-      if (typeof input.handle !== 'string') return respondInvalidParamsValue(id);
-      const cpLen = [...input.handle].length;
-      if (cpLen < SUBSCRIBE_HANDLE_MIN_LENGTH || cpLen > SUBSCRIBE_HANDLE_MAX_LENGTH) {
-        return respondInvalidParamsValue(id);
-      }
-      return null;
-    }
-    case 'messaging.ack': {
-      // Closed input keys: {subscriptionId, ackToken} only
-      for (const key of Object.keys(input)) {
-        if (!ACK_INPUT_KEYS.has(key)) return respondInvalidParamsValue(id);
-      }
-      // subscriptionId + ackToken: string, bounds from contract
-      if (typeof input.subscriptionId !== 'string') return respondInvalidParamsValue(id);
-      if (typeof input.ackToken !== 'string') return respondInvalidParamsValue(id);
-      const subLen = [...input.subscriptionId].length;
-      const tokenLen = [...input.ackToken].length;
-      if (subLen < ACK_SUBSCRIPTION_ID_MIN_LENGTH || subLen > ACK_SUBSCRIPTION_ID_MAX_LENGTH) {
-        return respondInvalidParamsValue(id);
-      }
-      if (tokenLen < ACK_TOKEN_MIN_LENGTH || tokenLen > ACK_TOKEN_MAX_LENGTH) {
-        return respondInvalidParamsValue(id);
-      }
-      return null;
-    }
     // host.grants.changed (row 10) is notification-only — direction gate
     // in classifyRequest rejects it before reaching this function.
     default:
-      // RESERVED rows: skip input validation (shapes are `never`)
       return null;
   }
 }
@@ -1062,12 +1046,17 @@ export function classifyFrame(
   // The T-C predicate covers: whitespace, duplicate keys, non-scalar
   // strings, non-canonical numbers, and BOM-prefixed frames.
   // Byte-equality catches whitespace, duplicate keys, and most non-
-  // canonical numbers. Three supplementary measures close the gaps:
+  // canonical numbers. Two supplementary measures close the remaining
+  // gaps:
   //   1. ignoreBOM:true — keeps BOM visible so it fails byte-equality.
   //   2. containsNonScalarString — lone surrogates roundtrip thru stringify.
-  //   3. containsExponentNumber — V8-canonical exponent form (≥10^21)
-  //      also roundtrips, but exponent tokens violate the WireUInt53
-  //      raw decimal-digit-only profile.
+  // For protocol-defined WireUInt53 positions (meta.deadlineUnixMs, row-
+  // specific input/result leaves including M0-C messaging fields),
+  // hasNonCanonicalUInt53Token validates String(n) against the canonical
+  // grammar (0|[1-9][0-9]{0,15}) — this catches fractions (1.5),
+  // negatives (-1), and V8-canonical exponent form (1e+21) at protocol
+  // positions, without rejecting valid numbers in open payloads
+  // (e.g. MessageElement.payload).
   //
   // Guard: JSON.stringify and the deep-traversal helpers use recursive
   // descent. A canonical frame nested thousands of levels deep passes
@@ -1079,10 +1068,9 @@ export function classifyFrame(
     const canonical = JSON.stringify(value);
     if (rawStr !== canonical) return close('T-C');
     if (containsNonScalarString(value)) return close('T-C');
-    if (containsExponentNumber(value)) return close('T-C');
     // P1-1: WireUInt53 raw-token grammar — after byte-equality, the raw
     // token at each WireUInt53 position is String(parsedValue). Tokens
-    // like "-1" or "1.5" violate 0|[1-9][0-9]{0,15} → T-C.
+    // like "-1", "1.5", or "1e+21" violate 0|[1-9][0-9]{0,15} → T-C.
     if (hasNonCanonicalUInt53Token(value, inFlight)) return close('T-C');
   } catch {
     // Stack overflow from deep nesting, or other canonicality edge case.

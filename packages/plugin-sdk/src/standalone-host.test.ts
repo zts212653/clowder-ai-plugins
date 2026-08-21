@@ -28,6 +28,40 @@ const validManifest = {
   runtime: { transport: 'stdio', entrypoint: 'dist/index.js' },
 } as const;
 
+const deliverInput = {
+  deliveryId: 'delivery-1',
+  threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+  envelope: {
+    messageId: 'message-1',
+    revision: 1,
+    threadId: 'thread-1',
+    actor: { kind: 'user', id: 'user-1' },
+    audience: { kind: 'public' },
+    occurredAt: '2026-08-18T03:00:00.000Z',
+    payload: {
+      provenance: {
+        origin: { kind: 'host' },
+        epistemicStatus: 'user_intent',
+      },
+      elements: [
+        { elementId: 'element-1', kind: 'text', payload: { text: 'hello' } },
+      ],
+    },
+  },
+} as const;
+
+function deliverRequest(id: string): Buffer {
+  return Buffer.from(`${JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    method: 'host.messaging.deliver',
+    params: {
+      meta: { deadlineUnixMs: Date.now() + 60_000 },
+      input: deliverInput,
+    },
+  })}\n`, 'utf8');
+}
+
 test('loads a manifest file only after the contract validates its full content', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'plugin-sdk-manifest-'));
   const manifestPath = join(directory, 'manifest.json');
@@ -221,6 +255,112 @@ test('returns Method Not Found for Host-bound events.publish without ingesting i
       id: 'publish-1',
       error: { code: -32601, message: 'Method not found' },
   }]);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
+test('dispatches a legal host.messaging.deliver request and echoes deliveryId exactly', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  let observedInput: unknown;
+  const channel = startStandaloneHost({
+    manifest: validManifest,
+    input,
+    output,
+    onMessage: received => {
+      observedInput = received;
+      return { accepted: true };
+    },
+  });
+
+  input.end(deliverRequest('deliver-1'));
+
+  assert.deepEqual(await frames, [
+    { jsonrpc: '2.0', id: 'deliver-1', result: { deliveryId: 'delivery-1' } },
+  ]);
+  assert.deepEqual(observedInput, deliverInput);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
+test('reports NO_HANDLER for delivery when no plugin callback is registered', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({ manifest: validManifest, input, output });
+
+  input.end(deliverRequest('deliver-no-handler'));
+
+  assert.deepEqual(await frames, [
+    {
+      jsonrpc: '2.0',
+      id: 'deliver-no-handler',
+      error: {
+        code: -32091,
+        message: 'delivery rejected',
+        data: { reason: 'NO_HANDLER' },
+      },
+    },
+  ]);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
+test('maps an explicit delivery rejection to the closed DELIVERY_REJECTED arm', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({
+    manifest: validManifest,
+    input,
+    output,
+    onMessage: () => ({ accepted: false, reason: 'PLUGIN_BUSY' }),
+  });
+
+  input.end(deliverRequest('deliver-busy'));
+
+  assert.deepEqual(await frames, [
+    {
+      jsonrpc: '2.0',
+      id: 'deliver-busy',
+      error: {
+        code: -32091,
+        message: 'delivery rejected',
+        data: { reason: 'PLUGIN_BUSY' },
+      },
+    },
+  ]);
+  assert.equal(channel.failed, false);
+  channel.close();
+});
+
+test('maps a thrown delivery callback to PLUGIN_INTERNAL without closing stdio', async () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const frames = collectFrames(output, 1);
+  const channel = startStandaloneHost({
+    manifest: validManifest,
+    input,
+    output,
+    onMessage: () => {
+      throw new Error('plugin implementation detail');
+    },
+  });
+
+  input.end(deliverRequest('deliver-internal'));
+
+  assert.deepEqual(await frames, [
+    {
+      jsonrpc: '2.0',
+      id: 'deliver-internal',
+      error: {
+        code: -32091,
+        message: 'delivery rejected',
+        data: { reason: 'PLUGIN_INTERNAL' },
+      },
+    },
+  ]);
   assert.equal(channel.failed, false);
   channel.close();
 });

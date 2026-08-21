@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
-import { WIRE_METHOD_REGISTRY } from '../wire/registry.js';
 
 const require = createRequire(import.meta.url);
 const Ajv = require('ajv/dist/2020') as new (options: {
@@ -244,6 +243,7 @@ test('message revisions are one-based across envelopes, receipts, and append gua
       messageId: 'message-1',
       threadId: 'thread-1',
       revision: 0,
+      messageHandle: { kind: 'message', token: 'host-issued-message-handle' },
     }),
     false,
   );
@@ -271,6 +271,7 @@ test('message revisions are one-based across envelopes, receipts, and append gua
       messageId: 'message-1',
       threadId: 'thread-1',
       revision: 1,
+      messageHandle: { kind: 'message', token: 'host-issued-message-handle' },
     }),
     true,
   );
@@ -293,44 +294,60 @@ test('message revisions are one-based across envelopes, receipts, and append gua
   );
 });
 
-test('SendReceipt may return a closed MessageHandle without closing messaging.send', () => {
+test('M0-C requires a closed messageHandle in every SendReceipt', () => {
   const receipt = {
     messageId: 'message-1',
     threadId: 'thread-1',
     revision: 1,
-    handle: { kind: 'message', token: 'host-issued-message-handle' },
+    messageHandle: { kind: 'message', token: 'host-issued-message-handle' },
   };
 
   assert.equal(validate('SendReceipt', receipt), true);
   assert.equal(
     validate('SendReceipt', {
       ...receipt,
-      handle: { kind: 'message', token: '' },
+      messageHandle: { kind: 'message', token: '' },
     }),
     false,
-    'the receipt handle keeps MessageHandle token admission',
+    'the receipt messageHandle keeps MessageHandle token admission',
   );
   assert.equal(
     validate('SendReceipt', {
       ...receipt,
-      handle: { kind: 'thread_handle', token: 'host-issued-message-handle' },
+      messageHandle: { kind: 'thread_handle', token: 'host-issued-message-handle' },
     }),
     false,
-    'the receipt handle keeps the MessageHandle kind discriminant',
+    'the receipt messageHandle keeps the MessageHandle kind discriminant',
   );
   assert.equal(
     validate('SendReceipt', {
       ...receipt,
-      handle: { kind: 'message', token: 'host-issued-message-handle', extra: true },
+      messageHandle: {
+        kind: 'message',
+        token: 'host-issued-message-handle',
+        extra: true,
+      },
     }),
     false,
-    'the receipt handle keeps the closed MessageHandle object boundary',
+    'the receipt messageHandle keeps the closed MessageHandle object boundary',
   );
-
-  const sendRow = WIRE_METHOD_REGISTRY['messaging.send'];
-  assert.equal(sendRow.leafClosure, 'RESERVED');
-  assert.equal(sendRow.ready, false);
-  assert.deepEqual(sendRow.schemaClosurePrerequisites, [
-    { schemaPath: 'SendReceipt.handle', timing: 'before-or-with-closure' },
-  ]);
+  assert.equal(
+    validate('SendReceipt', {
+      messageId: 'message-1',
+      threadId: 'thread-1',
+      revision: 1,
+    }),
+    false,
+    'messageHandle is required',
+  );
+  assert.equal(
+    validate('SendReceipt', {
+      messageId: 'message-1',
+      threadId: 'thread-1',
+      revision: 1,
+      handle: { kind: 'message', token: 'legacy-handle' },
+    }),
+    false,
+    'legacy handle is not a compatibility alias',
+  );
 });
