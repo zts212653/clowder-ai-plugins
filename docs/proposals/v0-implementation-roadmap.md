@@ -68,12 +68,12 @@ ledger 这些更严格的边界。
 
 | 真相源 | 精确坐标 | 已核验事实 |
 |---|---|---|
-| `clowder-ai-plugins` | `a0b3554d5ebbe71a9043bbb63cca5bf5dcba74b5` | beta.10 lifecycle 与 beta.11 messaging 已合入；当前无开放 PR。 |
+| `clowder-ai-plugins` | `a0b3554d5ebbe71a9043bbb63cca5bf5dcba74b5` | beta.10 lifecycle 与 beta.11 messaging 已合入；当前无开放实施 PR。路线图文档 PR #38 不占实施预算。 |
 | `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
 | `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
 | `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.6` | 已有真实独立 npm/stdio 插件、owner auth 与事件输入；仍需作为基础底座的真实 dogfood。 |
 | Clowder AI upstream | `3ea629e28747c80b1ce92d883740feea6a28fd68` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在。 |
-| M0 Host candidate | `2907a04260dd79a7c4f7230abc9b668ca2e2ead5` | beta.11 Host messaging routes、durable snapshot paging 与 stdio delivery 已实现；仍落后 upstream 一个提交，未完成 exact-HEAD review、upstream PR 和联合验收。 |
+| M0 Host candidate | `9691dc752595e2516737cfac1db4f7dbf9e87c78` | 已 rebase 到 Clowder AI upstream `3ea629e28747c80b1ce92d883740feea6a28fd68`（behind=0）；beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现，exact-HEAD 跨家族 review 已发起，尚未创建 upstream PR 或运行联合验收。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -105,6 +105,9 @@ ledger 这些更严格的边界。
    的聚合 PR 中 pin 一次；最终用两个 exact SHA 做联合验收。
 6. **禁止边迁移边补底座。** Train B 完成前不迁移 IM/service，也不开始 foreground
    cat、memory、windows 等新插件化能力，避免每个迁移再次发明私有接口。
+
+受保护分支强制产生的路线图文档 PR #38 是一次治理落盘，不计入上述五个实施 PR；
+后续进度只在该路线图或对应实施 PR 内更新，不再为状态同步新开 PR。
 
 ## 4. Train A — M0 Runtime 收口（剩余 PR 1/5）
 
