@@ -1,6 +1,6 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行中 — M0 Core PR #1380 的 maintainer findings 已修复，等待 exact-HEAD CI/复审；下一阶段冻结为联合验收、完整基础底座与存量迁移
+status: 执行中 — M0 Core PR #1380 的 maintainer findings 已修复且 CI 5/5 全绿，等待 exact-HEAD 复审；下一阶段冻结为联合验收、完整基础底座与存量迁移
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
@@ -73,7 +73,7 @@ ledger 这些更严格的边界。
 | `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
 | `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.6` | 已有真实独立 npm/stdio 插件、owner auth 与事件输入；仍需作为基础底座的真实 dogfood。 |
 | Clowder AI upstream | `8fd4824cb7db9124a0d863ba1b085a59b865c722` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 分支已 rebase 到该目标基线。 |
-| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `1097b70dc059dc22b3f9fe99515aa4d10321a9e2` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 已 APPROVE；maintainer 对旧 HEAD `81d32be5...` 提出的 bounded snapshot capture、historical scalar admission 和 `Refs #1165` 三项 finding 已在当前 HEAD 修复并回复。当前 HEAD 本地 public suite 21,043 tests / 0 fail，focused 296/296、isolated Redis 25/25；等待 CI 与 exact-HEAD maintainer 复审，canonical 18-case 与 Feishu 联合验收尚未运行。 |
+| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `1097b70dc059dc22b3f9fe99515aa4d10321a9e2` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 已 APPROVE；maintainer 对旧 HEAD `81d32be5...` 提出的 bounded snapshot capture、historical scalar admission 和 `Refs #1165` 三项 finding 已在当前 HEAD 修复并回复。当前 HEAD 本地 public suite 21,043 tests / 0 fail，focused 296/296、isolated Redis 25/25，远端 CI 5/5 全绿且无冲突；等待 exact-HEAD maintainer 复审，canonical 18-case 与 Feishu 联合验收尚未运行。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -82,7 +82,7 @@ ledger 这些更严格的边界。
 | 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
-| Host runtime | 中高 | M0 Core PR #1380 的 review findings 已修复，等待 exact-HEAD CI/maintainer 复审；随后完成生命周期/消息联合验收。 |
+| Host runtime | 中高 | M0 Core PR #1380 的 review findings 已修复且 CI 5/5 全绿，等待 exact-HEAD maintainer 复审；随后完成生命周期/消息联合验收。 |
 | Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
 | Public Plugin SDK | 低中 | 缺统一 `PluginContext` 与绝大多数领域 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
@@ -119,7 +119,7 @@ marketplace 或 Console scope。
 1. ✅ M0 Host candidate 已 rebase 到 upstream `8fd4824cb...`；review finding 修复后的
    PR HEAD 为 `1097b70dc059dc22b3f9fe99515aa4d10321a9e2`；
 2. ✅ 分支 build、TypeScript、public tests（21,043 tests / 0 fail）、Web lint 与
-   真实 upstream 基线 check 已闭合；
+   真实 upstream 基线 check 已闭合；PR exact-HEAD CI 5/5 全绿且无冲突；
    fork `origin/main` 漂移与系统 Python 3.9 的既有解释器差异均单独保留 provenance；
 3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
    correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
@@ -229,7 +229,7 @@ Train C 通过前，以下工作只保留需求输入，不进入实现关键路
 已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
                                       │
                                       ▼
-Train A：M0 Host PR #1380（local reviewed，maintainer findings fixed）+ exact-HEAD CI/review + 18-case + Feishu dogfood
+Train A：M0 Host PR #1380（local reviewed，maintainer findings fixed，CI 5/5）+ exact-HEAD review + 18-case + Feishu dogfood
                                       │
                                       ▼
 Train B：Public SDK/Contribution Contract ──exact publish──► Core Manager/Adapters/Console
