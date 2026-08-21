@@ -1,6 +1,6 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行中 — beta.11 公共契约已就绪；M0 Host messaging 待收口；下一阶段冻结为完整基础底座与存量迁移
+status: 执行中 — M0 Core PR #1380 已提交并等待 CI/maintainer；下一阶段冻结为联合验收、完整基础底座与存量迁移
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
@@ -72,8 +72,8 @@ ledger 这些更严格的边界。
 | `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
 | `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
 | `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.6` | 已有真实独立 npm/stdio 插件、owner auth 与事件输入；仍需作为基础底座的真实 dogfood。 |
-| Clowder AI upstream | `3ea629e28747c80b1ce92d883740feea6a28fd68` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在。 |
-| M0 Host candidate | `9691dc752595e2516737cfac1db4f7dbf9e87c78` | 已 rebase 到 Clowder AI upstream `3ea629e28747c80b1ce92d883740feea6a28fd68`（behind=0）；beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现，exact-HEAD 跨家族 review 已发起，尚未创建 upstream PR 或运行联合验收。 |
+| Clowder AI upstream | `8fd4824cb7db9124a0d863ba1b085a59b865c722` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 分支已 rebase 到该目标基线。 |
+| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `81d32be5751e1cc3cea6cb52f379399af22e603a` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 对 source HEAD `d4ce8f4f533cc273ba34c83461d37925eaa4ff2a` APPROVE；rebase 后 10/10 commits range-diff 等价、aggregate stable patch-id 不变。最新 upstream 上 build/tsc/public tests/web lint 与真实基线 check 已闭合；PR 已登记 CI/conflict/review 跟踪，canonical 18-case 与 Feishu 联合验收尚未运行。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -82,7 +82,7 @@ ledger 这些更严格的边界。
 | 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
-| Host runtime | 中高 | M0 Host candidate 收口、生命周期/消息联合验收。 |
+| Host runtime | 中高 | M0 Core PR #1380 等待 CI/maintainer；随后完成生命周期/消息联合验收。 |
 | Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
 | Public Plugin SDK | 低中 | 缺统一 `PluginContext` 与绝大多数领域 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
@@ -116,11 +116,15 @@ marketplace 或 Console scope。
 
 ### 必须完成
 
-1. 将 M0 Host candidate rebase 到最新 upstream，得到 behind=0 的 exact SHA；
-2. 关闭分支自身的 build/test/gate 回归；基线漂移单独给出 provenance，不伪装绿色；
-3. 由非作者跨家族 reviewer 审查授权、durable cursor、Redis 原子性、stdio
-   correlation、deadline、crash/recovery 与默认安全 composition；
-4. 创建并跟踪一个 upstream Core PR；
+1. ✅ M0 Host candidate 已 rebase 到 upstream `8fd4824cb...`，PR HEAD 为
+   `81d32be5751e1cc3cea6cb52f379399af22e603a`（behind=0）；
+2. ✅ 分支 build、TypeScript、public tests、Web lint 与真实 upstream 基线 check 已闭合；
+   fork `origin/main` 漂移与系统 Python 3.9 的既有解释器差异均单独保留 provenance；
+3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
+   correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
+4. ✅ 单一 upstream Core PR
+   [`#1380`](https://github.com/zts212653/clowder-ai/pull/1380) 已创建并登记
+   CI、conflict 与 maintainer review 跟踪；
 5. 冻结 reviewed Host SHA 与 Plugins `a0b3554d...`，运行 canonical 18-case
    Host ↔ compiled standalone plugin 联合验收；
 6. 用真实 Feishu plugin 证明 install/enable/start/publish/disable/restart 不绕过
@@ -223,7 +227,7 @@ Train C 通过前，以下工作只保留需求输入，不进入实现关键路
 已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
                                       │
                                       ▼
-Train A：M0 Host exact-HEAD + review + PR + 18-case + Feishu dogfood
+Train A：M0 Host PR #1380（reviewed）+ CI/maintainer + 18-case + Feishu dogfood
                                       │
                                       ▼
 Train B：Public SDK/Contribution Contract ──exact publish──► Core Manager/Adapters/Console
