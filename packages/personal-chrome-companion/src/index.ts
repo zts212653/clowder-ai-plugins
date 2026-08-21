@@ -1,0 +1,30 @@
+export {
+  PERSONAL_CHROME_MAX_LOCAL_FRAME_BYTES,
+  PERSONAL_CHROME_MAX_TEXT_BYTES,
+  PERSONAL_CHROME_PROTOCOL_VERSION,
+  conversationIdFromExactChatGptUrl,
+  parsePersonalChromeAppendProgress,
+  parsePersonalChromeAppendRequest,
+  parsePersonalChromeAppendResult,
+  parsePersonalChromeBindingQuery,
+  parsePersonalChromeBindingRequest,
+  parsePersonalChromeBindingResult,
+  parsePersonalChromeBindingStatus,
+  parsePersonalChromeLocalEnvelope,
+  sameAppendCorrelation,
+} from './protocol.js';
+
+export type {
+  PersonalChromeAppendFailure,
+  PersonalChromeAppendProgress,
+  PersonalChromeAppendRequest,
+  PersonalChromeAppendResult,
+  PersonalChromeAppendSuccess,
+  PersonalChromeBindingFailure,
+  PersonalChromeBindingQuery,
+  PersonalChromeBindingRequest,
+  PersonalChromeBindingResult,
+  PersonalChromeBindingStatus,
+  PersonalChromeLocalEnvelope,
+  PersonalChromeNativeMessage,
+} from './protocol.js';

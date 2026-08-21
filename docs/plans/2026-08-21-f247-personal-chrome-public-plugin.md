@@ -97,8 +97,8 @@ bounded by the supplied Host configuration.
 | --- | --- | --- | --- |
 | pairing record / secret | Cat Café Host | strict read-only input grammar | creation, rotation, redaction, removal |
 | Native Messaging manifest / launcher | Cat Café Host | source artifact only | platform install, allowed-origin policy, repair/uninstall |
-| conversation authorization | Cat Café Host | typed bind/query messages | durable authorization, UI and recovery policy |
-| delivery ledger | Cat Café Host | bounded helper implementation under injected paths | retention, lifecycle and user-visible status |
+| conversation authorization | installed Native Messaging helper, under Cat Café lifecycle supervision | typed bind/query messages and strict mode-0600 record | Cat Café thread routing, Settings policy, and user-visible recovery state |
+| delivery ledger | installed Native Messaging helper, under Cat Café lifecycle supervision | bounded durable implementation under injected paths | retention policy, lifecycle supervision, and user-visible status |
 | extension service-worker view | Chrome | stateless projection | no `chrome.storage` binding copy |
 
 ## Invariants and adversarial matrix

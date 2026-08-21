@@ -1,0 +1,56 @@
+{
+  "name": "@clowder-ai/personal-chrome-companion",
+  "version": "0.1.0-alpha.0",
+  "description": "F247 Chrome MV3 and Native Messaging companion for an already-authorized personal ChatGPT conversation",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "clowder-personal-chrome-host": "native-host/native-host-cli.mjs"
+  },
+  "files": [
+    "dist",
+    "extension",
+    "native-host",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "pnpm build && node --import tsx --test test/**/*.test.ts test/**/*.test.mjs",
+    "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "clean": "rm -rf dist",
+    "prepack": "pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "clowder-ai",
+    "chrome",
+    "native-messaging",
+    "personal-chrome",
+    "f247"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/personal-chrome-companion"
+  }
+}
