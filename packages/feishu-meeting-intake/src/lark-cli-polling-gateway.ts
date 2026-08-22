@@ -224,11 +224,9 @@ export function createLarkCliFeishuPollingGateway(
         '--as', 'user', '--format', 'json',
       ], signal), meetingByMinute.get(token)));
     }
-    const seenNotes = new Set(artifacts.filter(item => item.kind === 'note').map(item => item.artifactId));
     for (const meeting of meetings) {
-      if (meeting.noteId === undefined || seenNotes.has(meeting.noteId)) continue;
+      if (meeting.minuteToken !== undefined || meeting.noteId === undefined) continue;
       artifacts.push(noteArtifact(meeting));
-      seenNotes.add(meeting.noteId);
     }
     return { artifacts: stableArtifacts(artifacts), nextCursor: cursor(end) };
   };

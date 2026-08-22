@@ -160,11 +160,10 @@ export function minuteArtifacts(
     ...(title === undefined ? {} : { title }),
     ...(meeting === undefined ? {} : { meetingId: meeting.meetingId }),
   };
-  const artifacts: FeishuGeneratedArtifact[] = [{ artifactId, kind: 'minute', ...common }];
   if (minute.note_id !== undefined && minute.note_id !== '') {
-    artifacts.push({ artifactId: safeId(minute.note_id, 'note ID'), kind: 'note', ...common });
+    safeId(minute.note_id, 'note ID');
   }
-  return artifacts;
+  return [{ artifactId, kind: 'minute', ...common }];
 }
 
 export function noteArtifact(meeting: MeetingDetail): FeishuGeneratedArtifact {

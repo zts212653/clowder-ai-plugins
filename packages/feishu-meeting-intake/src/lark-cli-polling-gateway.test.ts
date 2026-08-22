@@ -127,7 +127,10 @@ test('polls owner and participant Minutes plus VC details, paginates, and dedupl
       return {
         ok: true,
         data: {
-          items: [{ id: 'meeting_1', display_info: 'F292 dogfood' }],
+          items: [
+            { id: 'meeting_1', display_info: 'F292 dogfood' },
+            { id: 'meeting_2', display_info: 'Note-only fallback' },
+          ],
           has_more: false,
           page_token: '',
         },
@@ -144,6 +147,12 @@ test('polls owner and participant Minutes plus VC details, paginates, and dedupl
             end_time: '2026-08-10T17:00:00.000Z',
             note_id: 'note_1',
             minute_token: 'minute_1',
+          }, {
+            meeting_id: 'meeting_2',
+            topic: 'Note-only fallback',
+            start_time: '2026-08-10T18:30:00.000Z',
+            end_time: '2026-08-10T19:00:00.000Z',
+            note_id: 'note_2',
           }],
         },
       };
@@ -183,19 +192,19 @@ test('polls owner and participant Minutes plus VC details, paginates, and dedupl
         meetingId: 'meeting_1',
       },
       {
-        artifactId: 'note_1',
-        kind: 'note',
-        revision: '1786381200000',
-        generatedAt: '2026-08-10T17:00:00.000Z',
-        title: 'F292 dogfood',
-        meetingId: 'meeting_1',
-      },
-      {
         artifactId: 'minute_2',
         kind: 'minute',
         revision: '1786381201000',
         generatedAt: '2026-08-10T17:00:01.000Z',
         title: 'Second minute',
+      },
+      {
+        artifactId: 'note_2',
+        kind: 'note',
+        revision: '1786388400000',
+        generatedAt: '2026-08-10T19:00:00.000Z',
+        title: 'Note-only fallback',
+        meetingId: 'meeting_2',
       },
     ],
     nextCursor: `poll-v1:${NOW - CONSISTENCY_LAG_MS}`,
