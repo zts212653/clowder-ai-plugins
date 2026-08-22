@@ -208,27 +208,36 @@ export function createLarkCliFeishuPollingGateway(
       ], signal)));
     }
     const meetingByMinute = new Map<string, MeetingDetail>();
+    const meetingByNote = new Map<string, MeetingDetail>();
     for (const meeting of meetings) {
       if (meeting.minuteToken !== undefined) {
         minuteTokens.add(meeting.minuteToken);
         meetingByMinute.set(meeting.minuteToken, meeting);
       }
+      if (meeting.noteId !== undefined) meetingByNote.set(meeting.noteId, meeting);
     }
     if (minuteTokens.size + meetings.length > MAX_CANDIDATES) {
       return unavailable('Feishu polling candidate bound exceeded');
     }
     const artifacts: FeishuGeneratedArtifact[] = [];
+    const meetingIdsWithMinute = new Set<string>();
     for (const token of minuteTokens) {
-      artifacts.push(...minuteArtifacts(await runCommand([
+      const minutes = minuteArtifacts(await runCommand([
         'minutes', 'minutes', 'get', '--minute-token', token,
         '--as', 'user', '--format', 'json',
-      ], signal), meetingByMinute.get(token)));
+      ], signal), meetingByMinute.get(token), meetingByNote);
+      artifacts.push(...minutes);
+      for (const minute of minutes) {
+        if (minute.meetingId !== undefined) meetingIdsWithMinute.add(minute.meetingId);
+      }
     }
-    const seenNotes = new Set(artifacts.filter(item => item.kind === 'note').map(item => item.artifactId));
     for (const meeting of meetings) {
-      if (meeting.noteId === undefined || seenNotes.has(meeting.noteId)) continue;
+      if (
+        meeting.minuteToken !== undefined ||
+        meeting.noteId === undefined ||
+        meetingIdsWithMinute.has(meeting.meetingId)
+      ) continue;
       artifacts.push(noteArtifact(meeting));
-      seenNotes.add(meeting.noteId);
     }
     return { artifacts: stableArtifacts(artifacts), nextCursor: cursor(end) };
   };
