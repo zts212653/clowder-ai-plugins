@@ -147,22 +147,24 @@ export function requireMeetingDetails(value: unknown): MeetingDetail[] {
 export function minuteArtifacts(
   value: unknown,
   meeting: MeetingDetail | undefined,
+  meetingByNoteId?: ReadonlyMap<string, MeetingDetail>,
 ): FeishuGeneratedArtifact[] {
   const data = requireData(value);
   if (!isRecord(data.minute)) return unavailable('lark-cli minute detail response is malformed');
   const minute = data.minute;
   const artifactId = safeId(minute.token, 'minute token');
   const created = timestamp(minute.create_time, 'minute create time');
-  const title = optionalText(minute.title, 'minute title') ?? meeting?.topic;
+  const noteId = minute.note_id === undefined || minute.note_id === ''
+    ? undefined
+    : safeId(minute.note_id, 'note ID');
+  const resolvedMeeting = meeting ?? (noteId === undefined ? undefined : meetingByNoteId?.get(noteId));
+  const title = optionalText(minute.title, 'minute title') ?? resolvedMeeting?.topic;
   const common = {
     revision: created.revision,
     generatedAt: created.iso,
     ...(title === undefined ? {} : { title }),
-    ...(meeting === undefined ? {} : { meetingId: meeting.meetingId }),
+    ...(resolvedMeeting === undefined ? {} : { meetingId: resolvedMeeting.meetingId }),
   };
-  if (minute.note_id !== undefined && minute.note_id !== '') {
-    safeId(minute.note_id, 'note ID');
-  }
   return [{ artifactId, kind: 'minute', ...common }];
 }
 

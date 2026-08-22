@@ -222,6 +222,96 @@ test('polls owner and participant Minutes plus VC details, paginates, and dedupl
   await gateway.close();
 });
 
+test('pairs a discovered Minute to VC note identity before minute_token becomes visible', async () => {
+  const runCommand: LarkCliReadCommand = async (args) => {
+    if (args[0] === 'auth') return validAuthStatus();
+    if (flag(args, '--page-size') === '1') return emptySearch();
+    if (args[0] === 'minutes' && args[1] === '+search') {
+      return flag(args, '--owner-ids') === 'me'
+        ? {
+            ok: true,
+            data: {
+              items: [{ token: 'minute_1' }],
+              has_more: false,
+              page_token: '',
+            },
+          }
+        : emptySearch();
+    }
+    if (args[0] === 'vc' && args[1] === '+search') {
+      return {
+        ok: true,
+        data: {
+          items: [{ id: 'meeting_1' }, { id: 'meeting_2' }],
+          has_more: false,
+          page_token: '',
+        },
+      };
+    }
+    if (args[0] === 'vc' && args[1] === '+detail') {
+      return {
+        ok: true,
+        data: {
+          meetings: [{
+            meeting_id: 'meeting_1',
+            topic: 'Delayed Minute association',
+            start_time: '2026-08-10T16:30:00.000Z',
+            end_time: '2026-08-10T17:00:00.000Z',
+            note_id: 'note_1',
+          }, {
+            meeting_id: 'meeting_2',
+            topic: 'Independent Note-only meeting',
+            start_time: '2026-08-10T17:30:00.000Z',
+            end_time: '2026-08-10T18:00:00.000Z',
+            note_id: 'note_2',
+          }],
+        },
+      };
+    }
+    if (args[0] === 'minutes' && args[1] === 'minutes') {
+      return {
+        ok: true,
+        data: {
+          minute: {
+            token: 'minute_1',
+            create_time: '1786381500000',
+            title: 'Delayed Minute association',
+            note_id: 'note_1',
+          },
+        },
+      };
+    }
+    throw new Error(`unexpected command: ${args.join(' ')}`);
+  };
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    runCommand,
+  });
+
+  const page = await gateway.listGeneratedArtifacts({ cursor: null, limit: 64, signal: SIGNAL });
+
+  assert.deepEqual(page.artifacts, [
+    {
+      artifactId: 'minute_1',
+      kind: 'minute',
+      revision: '1786381500000',
+      generatedAt: '2026-08-10T17:05:00.000Z',
+      title: 'Delayed Minute association',
+      meetingId: 'meeting_1',
+    },
+    {
+      artifactId: 'note_2',
+      kind: 'note',
+      revision: '1786384800000',
+      generatedAt: '2026-08-10T18:00:00.000Z',
+      title: 'Independent Note-only meeting',
+      meetingId: 'meeting_2',
+    },
+  ]);
+  await gateway.close();
+});
+
 test('never advances a stored cursor beyond the bounded Feishu search-consistency horizon', async () => {
   const calls: string[][] = [];
   let sleeps = 0;
