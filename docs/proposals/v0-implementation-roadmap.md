@@ -1,12 +1,12 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行中 — M0 Core PR #1380 的 maintainer findings 已修复且 CI 5/5 全绿，等待 exact-HEAD 复审；下一阶段冻结为联合验收、完整基础底座与存量迁移
+status: 执行中 — M0 Core PR #1380 已 rebase 到当前 upstream/main，rebased exact HEAD 完整门禁通过并已推送，等待新 CI 与 maintainer exact-HEAD 复审；下一阶段冻结为联合验收、完整基础底座与存量迁移
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
 progress_refresh: https://github.com/zts212653/clowder-ai-plugins/pull/25#issuecomment-5261613034
 created: 2026-07-14
-revised: 2026-08-21
+revised: 2026-08-23
 feature_ids: [clowder-ai-plugins-init, P-1, F202, F288, F292]
 topics: [roadmap, plugin-contract, plugin-sdk, host-broker, plugin-manager, contribution-plane, migration]
 doc_kind: roadmap
@@ -22,7 +22,7 @@ references:
 Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥有跨仓顺序、
 版本坐标、交付列车与基础底座完成线，避免两仓维护两套相互漂移的阶段表。
 
-本次刷新以 2026-08-21 已核验代码为准。它取代旧版“beta.9 row closure →
+本次刷新以 2026-08-23 已核验代码为准。它取代旧版“beta.9 row closure →
 逐能力 Phase 2/3 扩张”的顺序。目标不是继续增加协议行或拆出大量小 PR，
 而是尽快且可验证地完成完整插件底座，再集中迁移现有能力形成产品闭环。
 
@@ -62,18 +62,18 @@ in-process plugin”、把 `node:vm` 当安全边界、插件持有另一插件�
 代替持久真相。Clowder AI 保留 Host Broker、grant、digest、外部进程隔离和 durable
 ledger 这些更严格的边界。
 
-## 2. 2026-08-21 已核验现状
+## 2. 2026-08-23 已核验现状
 
 ### 2.1 精确坐标
 
 | 真相源 | 精确坐标 | 已核验事实 |
 |---|---|---|
-| `clowder-ai-plugins` | `a0b3554d5ebbe71a9043bbb63cca5bf5dcba74b5` | beta.10 lifecycle 与 beta.11 messaging 已合入；当前无开放实施 PR。路线图文档 PR #38 不占实施预算。 |
+| `clowder-ai-plugins` | `e60e6560fb19bc290a9c08bc4f5f1026cb085ffd` | beta.10 lifecycle、beta.11 messaging 与 Feishu Minutes/Notes 选择修复 #40 已合入。路线图 PR #38 不占实施预算；开放的 Personal Chrome candidate #39 是既有独立候选，不属于 Train B/C 基础闭环关键路径。 |
 | `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
 | `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
 | `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.6` | 已有真实独立 npm/stdio 插件、owner auth 与事件输入；仍需作为基础底座的真实 dogfood。 |
-| Clowder AI upstream | `8fd4824cb7db9124a0d863ba1b085a59b865c722` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 分支已 rebase 到该目标基线。 |
-| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `1097b70dc059dc22b3f9fe99515aa4d10321a9e2` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 已 APPROVE；maintainer 对旧 HEAD `81d32be5...` 提出的 bounded snapshot capture、historical scalar admission 和 `Refs #1165` 三项 finding 已在当前 HEAD 修复并回复。当前 HEAD 本地 public suite 21,043 tests / 0 fail，focused 296/296、isolated Redis 25/25，远端 CI 5/5 全绿且无冲突；等待 exact-HEAD maintainer 复审，canonical 18-case 与 Feishu 联合验收尚未运行。 |
+| Clowder AI upstream | `bc9ff2d395a8522a4e5cc93fd317b65cdd9ea1bc` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 分支已 rebase 到该当前目标基线。 |
+| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 已 APPROVE；maintainer 对旧 HEAD `81d32be5...` 提出的 bounded snapshot capture、historical scalar admission 和 `Refs #1165` 三项 finding 均保留在 rebased HEAD。11 个 M0 commit 全部 1:1 映射；focused 307/307、isolated Redis 44/44，真实 upstream/main + Python 3.11 的完整 public gate（build、tsc、tests、lint、check）通过。新 HEAD 已推送，远端 CI 与 mergeability 正在重新计算，等待 maintainer exact-HEAD 复审；canonical 18-case 与 Feishu 联合验收尚未运行。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -82,7 +82,7 @@ ledger 这些更严格的边界。
 | 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
-| Host runtime | 中高 | M0 Core PR #1380 的 review findings 已修复且 CI 5/5 全绿，等待 exact-HEAD maintainer 复审；随后完成生命周期/消息联合验收。 |
+| Host runtime | 中高 | M0 Core PR #1380 已完成当前 upstream rebase、review finding continuity 与完整门禁，等待新 exact-HEAD CI/mergeability truth 和 maintainer 复审；随后完成生命周期/消息联合验收。 |
 | Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
 | Public Plugin SDK | 低中 | 缺统一 `PluginContext` 与绝大多数领域 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
@@ -116,14 +116,14 @@ marketplace 或 Console scope。
 
 ### 必须完成
 
-1. ✅ M0 Host candidate 已 rebase 到 upstream `8fd4824cb...`；review finding 修复后的
-   PR HEAD 为 `1097b70dc059dc22b3f9fe99515aa4d10321a9e2`；
-2. ✅ 分支 build、TypeScript、public tests（21,043 tests / 0 fail）、Web lint 与
-   真实 upstream 基线 check 已闭合；PR exact-HEAD CI 5/5 全绿且无冲突；
-   fork `origin/main` 漂移与系统 Python 3.9 的既有解释器差异均单独保留 provenance；
+1. ✅ M0 Host candidate 已 rebase 到 upstream `bc9ff2d3...`；review finding continuity
+   核验后的 PR HEAD 为 `7bac631569f9607f248f5ff01ad3b79b00ffcd0d`；
+2. ✅ 分支 build、TypeScript、focused 307/307、isolated Redis 44/44、完整 public tests、
+   Web lint 与真实 upstream 基线 check 已闭合；完整门禁使用仓库支持的 Python 3.11
+   通过。新 exact HEAD 已推送，PR CI 与 mergeability 正在重新计算，尚不提前宣称远端绿灯；
 3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
    correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
-   maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复，等待新 HEAD 复审；
+   maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复并跨 rebase 保留，等待新 HEAD 复审；
 4. ✅ 单一 upstream Core PR
    [`#1380`](https://github.com/zts212653/clowder-ai/pull/1380) 已创建并登记
    CI、conflict 与 maintainer review 跟踪；
@@ -229,7 +229,7 @@ Train C 通过前，以下工作只保留需求输入，不进入实现关键路
 已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
                                       │
                                       ▼
-Train A：M0 Host PR #1380（local reviewed，maintainer findings fixed，CI 5/5）+ exact-HEAD review + 18-case + Feishu dogfood
+Train A：M0 Host PR #1380（local reviewed，maintainer findings fixed，rebased gate green）+ new exact-HEAD CI/review + 18-case + Feishu dogfood
                                       │
                                       ▼
 Train B：Public SDK/Contribution Contract ──exact publish──► Core Manager/Adapters/Console
