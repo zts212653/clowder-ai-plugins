@@ -243,17 +243,47 @@ feature disable、grant revoke、package update 或 runtime reconnect 会先撤�
 sibling 读取内存或窃取凭据，manifest 必须请求独立 runtime/process 边界，Host 不接受
 “共享进程 + 逻辑 context”作为该威胁模型的证明。
 
+activation callback 需要的 bootstrap 读取不等于提前获得 active effect authority。
+`provisioning` lease 只允许 Host 代为执行只读 bootstrap：读取该 feature 已声明且已授权的 config、secret 与
+自身 state namespace/checkpoint；读取绑定同一 activation revision、全程审计，并来自
+Host 固定的 activation snapshot。声明式注册和必要的 state 写入进入同一 activation
+transaction，支持 read-your-writes，但在提交前不对其他调用或重启恢复路径可见。普通
+messaging/service call、事件或 callback delivery 仍必须拒绝。activation 成功时 Host 原子
+提交注册项与 staged state write，再把 lease 转为 `active`；失败、取消或 revision 失效时
+一起回滚并撤销 lease。因此插件既不需要绕过 `FeatureContext` 读取凭据或检查点，也不能
+用“正在 setup”取得对外副作用权限。
+
 lease 自身只有三态，且不能由插件推进：
 
 | lease state | Host 允许的行为 | 退出条件 |
 |---|---|---|
-| `provisioning` | 仅允许声明式注册/资源 setup 进入 Host 管理的 activation transaction；普通消息、service call、事件投递与 secret/state 访问拒绝 | activation 成功原子提交为 `active`；失败则回滚并转 `revoked` |
+| `provisioning` | 允许声明范围内、Host 审计的 config/secret/state bootstrap 读取；声明式注册与 state write 只进入 activation transaction。普通消息、service call、事件/callback delivery 及未声明/跨 namespace 访问拒绝 | activation 成功原子提交 transaction 并转 `active`；失败、取消或 revision 失效则回滚并转 `revoked` |
 | `active` | 按绑定的 feature grants 使用 SDK surface，所有动作归入该 feature ledger | disable/revoke/update/reconnect 先原子转 `revoked`，再执行 disposer |
 | `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；历史 operation 只允许结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
 
+lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restore、迟到 disposer
+或 payload identity 都不能直接改 lease state。完整转移表如下：
+
+| 当前态 | Host 事件与 guard | 下一态 | 原子效果 |
+|---|---|---|---|
+| 无 lease | plugin 与 feature desired state 均 enabled，package revision、grants、config readiness 校验通过 | `provisioning` | 签发新 activation revision 的 lease，固定 bootstrap snapshot，开启 activation transaction |
+| `provisioning` | callback 成功且 revision/grants 未变化 | `active` | 提交 staged registrations/state writes 后才开放 effect 与 delivery |
+| `provisioning` | callback 失败、取消、disable/revoke/update/reconnect 或 revision 变化 | `revoked` | 回滚 transaction；不留下注册、写入、事件消费或外部副作用 |
+| `active` | disable/revoke/update/reconnect | `revoked` | 先撤销 authority，再运行 disposer；迟到完成只能结算旧 operation |
+| `revoked` | 任意 plugin call、restore/reconcile 或迟到 callback | `revoked` | 拒绝；重新启用只能走“无 lease → provisioning”并签发新 revision |
+
+- **INV-FA1 — authority 不可自选：** 每次 bootstrap/read/write/call/registration/delivery
+  都从 Host ledger 解析 lease 主体；伪造或借用 sibling `featureId` 必须拒绝。
+- **INV-FA2 — activation 原子：** `active` 与本次 registrations/staged state writes 同批可见；
+  任一失败路径均全量回滚，不能产生半激活或 durable checkpoint 泄漏。
+- **INV-FA3 — revoke 单调：** `revoked` 永不恢复，restore/reconcile 只能创建新 revision；
+  旧 context、旧 callback 与旧 transaction 都不能复活资源。
+
 状态按正交维度记录，避免线性状态机把不同事实混在一起：
 
-- package：`absent/staged/verified/installed`
+- package materialization：`absent/staged/installed`
+- package integrity：`unknown/verified/damaged`
+- manager operation：`idle/installing/updating/repairing/uninstalling`
 - config readiness：`incomplete/ready`
 - plugin activation：`disabled/enabling/enabled/disabling/error`
 - feature activation（逐 `pluginInstanceId + featureId + packageRevision`）：`disabled/enabling/enabled/disabling/error`
@@ -320,6 +350,8 @@ surface：
 2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
    环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
    lifecycle/feature activation/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；
+   Manager lifecycle journey 必须包含损坏注入后的同版本 repair、crash recovery、并发
+   operation 串行化，以及 config/secrets/state/retained data 守恒；
    voice-suite 必须独立切换 ASR/TTS，并证明 Host-issued feature execution lease 绑定所有
    SDK effect：撤销 TTS 后旧 TTS context 的调用、注册、事件、callback 与 secret 访问均
    被拒绝，ASR context 仍可工作；slice 不提前切换生产默认路径。

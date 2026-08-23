@@ -226,7 +226,7 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 
 在现有 F202、official catalog、external lifecycle 和 Settings 上收敛，不另建平行系统：
 
-- Plugin Manager 统一 package/config/activation/runtime 正交状态；
+- Plugin Manager 统一 package、package integrity、config、activation、runtime 正交状态；
 - Manager 持久化逐 `pluginInstanceId + featureId + packageRevision` 的 desired/current
   activation，拒绝 stale completion；feature 失败只回滚本次资源，不能扰动 sibling；
 - Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
@@ -241,8 +241,20 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 - Console 提供逐 feature 启停与声明式 slot/command/settings/message-element
   contribution；挂载与销毁同时受 plugin、feature lifecycle 和 grant 约束；v0 不执行
   不受信任的任意 DOM/React 代码；
-- install/update/uninstall 与 retained/ask-on-uninstall 数据策略经过 crash、并发、
+- install/update/repair/uninstall 与 retained/ask-on-uninstall 数据策略经过 crash、并发、
   stale revision、rollback 和 restart 对抗测试。
+
+repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在同一
+`pluginInstanceId` operation revision 下推进，并与 install/update/uninstall/第二个 repair
+串行化；generic restore、catalog refresh 或 plugin callback 不得直接把 integrity 标成
+`verified`，也不得复活旧 feature lease：
+
+| 当前 package / integrity / operation | 事件 | 成功终态 | 失败或 crash 终态 |
+|---|---|---|---|
+| `installed / damaged / idle` | 用户或诊断请求 repair；catalog、版本、digest 与 trust policy 仍有效 | staging 中重取同一选定版本，验证后原子替换 package tree；`installed / verified / idle`，保留 config/secrets/state/retained data，并按 desired state 用新 activation revision reconcile | 回滚到可验证的旧 tree；若不存在可用 tree，则保持 `installed / damaged / idle` 且 current activation fail closed，不留下半替换 runtime |
+| `installed / verified / idle` | 显式 repair | 幂等复验；内容相同则 inventory 与数据零变化，需重建 runtime 时仍撤销旧 lease 后用新 revision reconcile | 仍保持最后一个 verified tree；失败不得降级或改写用户数据 |
+| 任意 `/ repairing` | restart/crash recovery | Manager 根据 durable transaction journal 收敛到一次完整 atomic swap 与一次 reconcile | 回滚 staging 并回到上述可判定失败态；不得同时暴露 old/new tree |
+| 任意非 `idle` | 并发 install/update/uninstall/repair | 拒绝或排队到当前 operation 终态，不改变 revision | 不允许双写 inventory、重复注册或交错删除数据 |
 
 ### Train B 完成线
 
@@ -250,13 +262,24 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 逐项执行 §5.1 承诺的全部 v0 surface：lifecycle/effect、feature activation、messaging/events、
 config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution。
 验收既覆盖适用的 register/dispose，也覆盖 read/write/call/delivery 语义；类型存在或
-只验证其中几类不能通过。插件经历配置、启用、重启、禁用、更新、卸载后，Host
+只验证其中几类不能通过。插件经历配置、启用、重启、注入 package 损坏、修复、禁用、
+更新、卸载后，Host
 inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
+repair 必须验证同版本内容重新 stage/verify/atomic swap，config/secrets/state/retained data
+不被覆盖，desired state 保留，current runtime 只用新 activation revision 恢复且注册恰好
+一次；旧 context 继续 fail closed。还必须覆盖 repair 中途 crash/restart、与 update/uninstall
+并发以及无可用 rollback tree 的失败态，证明不会出现半替换 package 或双份 runtime。
 fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
 activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。撤销其中一个
 feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
 subscription/callback、state/secret access 逐类发起对抗调用并全部拒绝，同时证明健康
 sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过。
+
+fixture 的 activation callback 还必须实际读取声明内 config、secret 与自身 checkpoint，
+并产生一笔 staged state write：同 revision 的合法 bootstrap 读取与 read-your-writes 成功，
+未声明、跨 namespace 或 sibling 读取拒绝；在 lease 进入 `active` 前，普通 effect、事件和
+callback delivery 全部拒绝。成功路径同时提交注册与 state write，失败/取消/revision 变化
+路径同时回滚，逐项证明 INV-FA1～FA3。
 
 ### 5.3 真实消费者 acceptance matrix
 
@@ -297,7 +320,7 @@ sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过
 - 幂等迁移配置、binding、schedule、state 和用户可见数据；
 - 旧新实现不得双跑；失败可恢复到旧路径且不丢数据；
 - 删除业务特定的平行安装/启禁用 UI 和加载器，保留统一 Plugin Manager；
-- Console 和 Agent 均能完成同一套安装、配置、启用、禁用和卸载旅程。
+- Console 和 Agent 均能完成同一套安装、配置、启用、禁用、更新、修复和卸载旅程。
 
 ### 6.3 冻结迁移 inventory
 
