@@ -135,9 +135,20 @@ marketplace 或 Console scope。
 ### 完成线
 
 - 全部 18 个 canonical vector 通过；
+- `plugin-system-principles-and-v0-design.md` §3.8 的 Host+SDK fail-closed
+  对抗矩阵必须逐项完整通过；18 个 canonical vector 或下列摘要都不能替代该全集；
+- 全集必须覆盖 actor/system audience/whisper target 伪造、裸或越权 thread 寻址、
+  namespace escape、provenance 升级、denied grant、重复
+  idempotencyKey/operationId、deadline expiry、callback retry/dead-letter、断线后
+  cursor 续投与 ack 前崩溃重投、retention 越界 stale 追平、卸载后
+  retained/ask-on-uninstall durable state 保留，以及 plugin crash isolation；
+- 事件输入面四项断言必须全部通过：拒绝 undeclared/forbidden-class signal，拒绝
+  producer 伪造与 observation→user_intent 认识论升级，拒绝插件自报 wake route
+  target，并在 lease 过期后正确判定 offline；
 - malformed、unauthorized、oversize、stale、cross-instance/subscription、deadline、
   crash、drain 和 restart/reconcile 均 fail closed；
-- P14 成立：第一方与第三方走同一 runtime/grant 路径；
+- P14 成立：第一方与第三方走同一公开 SDK 入口和同一授权流；仅共享下游
+  runtime/grant 路径不足以通过该门禁；
 - M0 关闭不附带新的 SDK/UI/迁移欠账声明。
 
 ## 5. Train B — 完整基础底座（剩余 PR 2–3/5）
