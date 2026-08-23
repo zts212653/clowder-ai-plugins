@@ -176,11 +176,16 @@ callback（内核→插件）:
   onEvent(event, cursor)【通知；含 message.publish/append 订阅，凭游标续读】
 ```
 
+上表只描述 wire 形状，不定义授权主体。除 runtime bootstrap/health 与 plugin 总闸
+lifecycle 外，所有 effect-bearing call、resource callback 与 event delivery 都必须由
+§3.4 的 Host-issued feature execution lease 绑定；payload 中的 `featureId` 仅可用于一致性
+校验，不能选择或升级 authority。
+
 Train B 的插件作者层还必须提供 roadmap §5.1 冻结的类型化 contribution facade：
-`ctx.mcp`、`ctx.services`、`ctx.connectors`、`ctx.ui`，以及 lifecycle/effect 与 feature
-activation settlement。它们最终仍通过 Broker grant、resource adapter 与 ledger，不是绕开
-call/callback 的内核对象引用。具体 generated type/schema 以插件仓 contract package 为机器
-真相源；本段不另写一份手工 mirror。
+`featureCtx.mcp`、`featureCtx.services`、`featureCtx.connectors`、`featureCtx.ui`，以及
+lifecycle/effect 与 feature activation settlement。它们最终仍通过 Broker grant、resource
+adapter 与 ledger，不是绕开 call/callback 的内核对象引用。具体 generated type/schema
+以插件仓 contract package 为机器真相源；本段不另写一份手工 mirror。
 
 - **v0 无 hook 类接口**：原拟的 `output.message.augment` 与"订阅 message.publish 事件 + `appendElements`"能力重复（TTS 本就是异步增补），同步读取全部输出的高敏点位没有不可替代消费者，违反 P1——删。`input.pre` 同理不进 v0。hook 作为机制方向保留（F237 输入侧同构），点位在 M1 出现真实同步增补需求时再按 P5 逐个评审。
 - 通知回调可忽略；职责回调必须 ack，超时/重试/死信显式。
@@ -221,6 +226,31 @@ feature 启用必须先完成其 capability/grant 校验；拒绝或失败时零
 全部 feature runtime；重新启用后按 revision-fenced desired state 恢复，旧 revision 的
 完成回调不得复活资源。
 
+feature 也是 SDK effect 的授权主体，而不只是控制面分组。Host 每次激活 feature 时签发
+opaque、不可由插件自构造的 **feature execution lease**，绑定
+`pluginInstanceId + featureId + packageRevision + activationRevision + grantedCapabilities`；
+SDK runtime 只把绑定该 lease 的 `FeatureContext` 交给对应 activation callback。顶层
+plugin lifecycle context 不暴露 plugin-level effect API，也不能通过自报 `featureId`
+取得 feature context。`FeatureContext` 的 messaging/events/config/state/secrets、scheduler、
+MCP、service、connector 与 UI 注册/调用都自动携带该 lease；Broker/adapter 每次使用都
+从 Host ledger 解析主体，并复核 plugin/feature enabled、revision 与 grant，而不信任
+payload 中的 identity。
+
+feature disable、grant revoke、package update 或 runtime reconnect 会先撤销旧 lease，再
+销毁注册；旧 context 的新调用、事件消费、callback completion 与迟到注册全部 fail closed，
+不能因 sibling 仍 enabled 而继续生效。该 lease 提供 Host 可验证的生命周期和授权隔离，
+不把同一 OS 进程内的代码模块冒充安全沙箱：若一个 package 内的 feature 需要抵御恶意
+sibling 读取内存或窃取凭据，manifest 必须请求独立 runtime/process 边界，Host 不接受
+“共享进程 + 逻辑 context”作为该威胁模型的证明。
+
+lease 自身只有三态，且不能由插件推进：
+
+| lease state | Host 允许的行为 | 退出条件 |
+|---|---|---|
+| `provisioning` | 仅允许声明式注册/资源 setup 进入 Host 管理的 activation transaction；普通消息、service call、事件投递与 secret/state 访问拒绝 | activation 成功原子提交为 `active`；失败则回滚并转 `revoked` |
+| `active` | 按绑定的 feature grants 使用 SDK surface，所有动作归入该 feature ledger | disable/revoke/update/reconnect 先原子转 `revoked`，再执行 disposer |
+| `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；历史 operation 只允许结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
+
 状态按正交维度记录，避免线性状态机把不同事实混在一起：
 
 - package：`absent/staged/verified/installed`
@@ -235,10 +265,10 @@ feature 启用必须先完成其 capability/grant 校验；拒绝或失败时零
 ### 3.5 Host Broker 与插件 runtime 握手（P7、P11、P12、P15）
 
 - 插件 manifest 声明 contract version、runtime entrypoint/transport、task/contribution、请求的 capabilities；声明只是请求，不是授权。
-- Host Broker 启动或连接插件 runtime，完成 `pluginId + packageDigest + contractVersion + instanceId + grantedCapabilities` 握手；所有身份字段由宿主绑定，插件自报值只作候选。
+- Host Broker 启动或连接插件 runtime，完成 `pluginId + packageDigest + contractVersion + instanceId` 握手；所有身份字段由宿主绑定，插件自报值只作候选。plugin-level handshake 只建立 runtime 身份，不授予共享 effect authority；逐 feature grant 由 §3.4 的 Host-issued feature execution lease 承载。
 - call/callback 统一使用 `requestId/operationId/deadline`；职责回调 ack 与动作结算写 durable ledger，重启后 reconcile。
 - runtime 可是 standalone 壳、child process 或 builtin adapter；载体不同不改变 contract。builtin 也必须经过同一 broker 语义，但可使用 in-process transport 优化。
-- Broker 的 capability 校验只是逻辑隔离，不等于 OS sandbox。同一用户权限下的普通 child process 仍可能读宿主文件；在可验证的 filesystem/network sandbox 落地前，community 可执行插件只能 quarantine + 明示 same-power 风险，不能因“已出进程”就自动升为安全。runner 默认最小 env/工作目录，secret 只按 grant 注入。
+- Broker 的 capability 校验只是逻辑隔离，不等于 OS sandbox。同一用户权限下的普通 child process 仍可能读宿主文件；在可验证的 filesystem/network sandbox 落地前，community 可执行插件只能 quarantine + 明示 same-power 风险，不能因“已出进程”就自动升为安全。runner 默认最小 env/工作目录；多 feature 共享进程不得把 feature secret 批量注入进程环境，secret 必须经对应 `FeatureContext` 按 lease/grant 读取，或为需要进程级注入的 feature 启动独立 runtime。
 - SDK client/runtime 在插件仓；Host Broker/Adapter 在内核仓；双方只依赖同一 `plugin-contract` 包。
 
 ### 3.6 数据、secret 与 migration（P3、P8、P9、P13）
@@ -290,7 +320,9 @@ surface：
 2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
    环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
    lifecycle/feature activation/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；
-   voice-suite 必须独立切换 ASR/TTS 并验证失败隔离；slice 不提前切换生产默认路径。
+   voice-suite 必须独立切换 ASR/TTS，并证明 Host-issued feature execution lease 绑定所有
+   SDK effect：撤销 TTS 后旧 TTS context 的调用、注册、事件、callback 与 secret 访问均
+   被拒绝，ASR context 仍可工作；slice 不提前切换生产默认路径。
    具体矩阵与关闭条件见 roadmap §5。
 3. **Train C 全量存量迁移**：按 roadmap §6 的冻结 inventory 迁移 GitHub、
    video-analysis/video-gen、weixin-mp/wechat-visible-reader、全部现有 IM provider 与全部具体

@@ -37,7 +37,8 @@ Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥
 3. 只依赖公共 `@clowder-ai/plugin-sdk` 使用授权后的消息、事件、配置、状态、
    secrets、scheduler、MCP、service、connector 与 Console contribution；
 4. 对多 feature 插件可独立启停 feature，并在拒绝或失败时只回滚该 feature、
-   不泄漏注册或扰动健康 sibling；
+   不泄漏注册或扰动健康 sibling；每项 SDK effect 都绑定 Host-authenticated feature
+   execution lease，不能退化为共享的 plugin-level authority；
 5. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
    保留或清理数据；
 6. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径。
@@ -86,7 +87,7 @@ ledger 这些更严格的边界。
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
 | Host runtime | 中高 | M0 Core PR #1380 已完成当前 upstream rebase、review finding continuity 与完整门禁；exact HEAD 的 5 项 CI 已全绿且 PR 为 MERGEABLE，当前只等待 maintainer exact-HEAD 复审，随后完成生命周期/消息联合验收。 |
 | Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
-| Public Plugin SDK | 低中 | 缺统一 `PluginContext` 与绝大多数领域 facade。 |
+| Public Plugin SDK | 低中 | 缺统一的 plugin lifecycle / Host-issued `FeatureContext` 分层与绝大多数领域 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
 | 存量迁移 | 低 | Feishu 是真实先例；IM、具体服务和现有插件尚未统一迁移。 |
 
@@ -141,6 +142,10 @@ ledger 这些更严格的边界。
 - **INV-R6 — 坐标与门禁事实一致：** Train A 的 acceptance 指令、状态表与依赖图中
   复制的 Host/Plugins SHA 必须等于 §2.1 精确坐标；CI、mergeability 与 review 等外部
   门禁每次刷新必须全文件同批更新，已满足的 gate 不得继续出现在等待项中。
+- **INV-R7 — feature authority 不可伪造：** feature activation 不是 UI/状态标签。每个
+  effect-bearing SDK context 必须由 Host-issued lease 绑定
+  `pluginInstanceId + featureId + packageRevision + activationRevision + grants`；插件自报
+  identity 不能选择授权主体，lease 撤销后 sibling 存活也不能让旧 context 继续产生副作用。
 
 ## 4. Train A — M0 Runtime 收口（剩余 PR 1/5）
 
@@ -193,14 +198,17 @@ Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Cor
 
 ### 5.1 Plugins 聚合 PR：公共 SDK 与 Contribution Contract（PR 2/5）
 
-- `definePlugin(...)` 与类型化 `PluginContext`；
+- `definePlugin(...)`、无 effect authority 的 plugin lifecycle context，以及只由 Host
+  activation callback 注入的类型化 `FeatureContext`；
 - `activate` / `deactivate` / `dispose` 生命周期，以及注册即返回 disposer 的
-  `ctx.effect(...)`；
+  `featureCtx.effect(...)`；
 - `features[{id, resources, capabilities}]` 的机器契约，以及逐 feature、revision-fenced
-  activation/settlement；插件总闸与 feature desired/current state 正交；
-- `ctx.messaging`、`ctx.events`、`ctx.config`、`ctx.state`、`ctx.secrets`；
-- `ctx.scheduler.register(...)`、`ctx.mcp.register(...)`；
-- `ctx.services`、`ctx.connectors`、`ctx.ui` contribution API；
+  activation/settlement 与 opaque feature execution lease；插件总闸与 feature
+  desired/current state 正交，插件不能用自报 `featureId` 构造或切换 context；
+- `featureCtx.messaging`、`featureCtx.events`、`featureCtx.config`、`featureCtx.state`、
+  `featureCtx.secrets`；
+- `featureCtx.scheduler.register(...)`、`featureCtx.mcp.register(...)`；
+- `featureCtx.services`、`featureCtx.connectors`、`featureCtx.ui` contribution API；
 - typed manifest contribution schemas、generated types、conformance fixtures；
 - create-plugin template、API reference、升级兼容规则和真实 composition fixture。
 
@@ -208,8 +216,11 @@ Hook 继续 future-reserved，不进入 v0 contract、SDK 或 Train B 完成线�
 无法由事件订阅与 `appendElements` 覆盖的真实同步消费者后，才按 governing design
 P5 逐点定义数据形状、隔离、授权、超时与重试语义。
 
-所有公开注册 API 必须证明：grant 拒绝零副作用、重复注册可判定、dispose 后注册项
-消失、重连/重启语义明确、插件不能自报 Host identity 或持有另一插件实例。
+所有 effect-bearing 公开 API 必须从 `FeatureContext` 取得 Host-issued lease，并证明：
+grant 拒绝零副作用、重复注册可判定、dispose 后注册项消失、重连/重启后旧 lease 失效、
+插件不能自报 Host/feature identity 或持有另一插件实例。多 feature 共享进程不得接收
+plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需要进程环境凭据时
+必须使用独立 runtime。
 
 ### 5.2 Core 聚合 PR：统一 Manager、Adapters、Marketplace 与 Console（PR 3/5）
 
@@ -218,6 +229,9 @@ P5 逐点定义数据形状、隔离、授权、超时与重试语义。
 - Plugin Manager 统一 package/config/activation/runtime 正交状态；
 - Manager 持久化逐 `pluginInstanceId + featureId + packageRevision` 的 desired/current
   activation，拒绝 stale completion；feature 失败只回滚本次资源，不能扰动 sibling；
+- Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
+  event/callback delivery 与 secret/state access 都从 Host ledger 解析 feature 主体并复核
+  plugin/feature activation、revision 与 grants，不接受 payload 自报 identity；
 - 本地插件、官方 npm 插件与后续 community package 共享生命周期投影；
 - `.env` 只选择 catalog provider/索引位置；Host 继续验证允许的 origin、版本、
   digest、provenance、trust tier 与 quarantine，配置来源不能自动变成信任来源；
@@ -239,7 +253,10 @@ config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution�
 只验证其中几类不能通过。插件经历配置、启用、重启、禁用、更新、卸载后，Host
 inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
 fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
-activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。
+activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。撤销其中一个
+feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
+subscription/callback、state/secret access 逐类发起对抗调用并全部拒绝，同时证明健康
+sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过。
 
 ### 5.3 真实消费者 acceptance matrix
 
@@ -253,10 +270,11 @@ activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒�
 | Core `github` repository-local plugin 的外部化 slice | scheduler + state，以及 schedule 的重复执行/重启恢复 |
 | Core `video-analysis` 或 `video-gen` 的外部化 slice | MCP registration/call/dispose；两者最终仍都在 Train C inventory 内迁移 |
 | 一个现有 IM provider 的外部化 slice | connector、messaging、binding/callback、config/secrets 与声明式 UI contribution |
-| voice-suite（至少覆盖 ASR 与 TTS）外部化 slice | service、message event/cursor、`appendElements`、Console slot/message-element；分别验证“仅 ASR”“仅 TTS”“两者启用”，以及一方 denied/activation failure 不泄漏资源、不打断另一方 |
+| voice-suite（至少覆盖 ASR 与 TTS）外部化 slice | service、message event/cursor、`appendElements`、Console slot/message-element；分别验证“仅 ASR”“仅 TTS”“两者启用”，以及一方 denied/activation failure 不泄漏资源、不打断另一方；撤销后的旧 feature context 对调用、注册、事件、callback 与 secret 访问全部 fail closed |
 
 矩阵中的每一行都要跑 register/use/dispose、disable/re-enable、restart 与 denied-grant；
-多 feature 行还要逐 feature 跑 revision-fenced activate/deactivate、失败回滚与 sibling 隔离；
+多 feature 行还要逐 feature 跑 revision-fenced activate/deactivate、Host-issued lease
+轮换/撤销、旧 context 对抗调用、失败回滚与 sibling 隔离；
 §5.1 任一 surface 没有落入至少一行的真实消费者证据，Train B 不得完成。
 
 ## 6. Train C — 存量能力集中迁移（剩余 PR 4–5/5）
