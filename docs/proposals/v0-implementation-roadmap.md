@@ -1,6 +1,6 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行中 — M0 Core PR #1380 已 rebase 到当前 upstream/main，rebased exact HEAD 完整门禁通过并已推送，等待新 CI 与 maintainer exact-HEAD 复审；下一阶段冻结为联合验收、完整基础底座与存量迁移
+status: 执行中 — M0 Core PR #1380 exact HEAD 的 5 项 CI 已全绿且 MERGEABLE，等待 maintainer exact-HEAD 复审；下一阶段冻结为联合验收、完整基础底座与存量迁移
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
@@ -36,11 +36,13 @@ Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥
 2. 通过统一 Plugin Manager 完成校验、配置、启用、禁用、更新、修复和卸载；
 3. 只依赖公共 `@clowder-ai/plugin-sdk` 使用授权后的消息、事件、配置、状态、
    secrets、scheduler、MCP、service、connector 与 Console contribution；
-4. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
+4. 对多 feature 插件可独立启停 feature，并在拒绝或失败时只回滚该 feature、
+   不泄漏注册或扰动健康 sibling；
+5. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
    保留或清理数据；
-5. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径。
+6. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径。
 
-达到以上五条，才算“基础底座完成”。某个 package 发布、某组 wire row ready、
+达到以上六条，才算“基础底座完成”。某个 package 发布、某组 wire row ready、
 Host merge 或 loopback 单测通过，都不能单独替代该完成线。
 
 ### 1.2 留在 Core 的能力
@@ -71,9 +73,9 @@ ledger 这些更严格的边界。
 | `clowder-ai-plugins` | `e60e6560fb19bc290a9c08bc4f5f1026cb085ffd` | beta.10 lifecycle、beta.11 messaging 与 Feishu Minutes/Notes 选择修复 #40 已合入。路线图 PR #38 不占实施预算；开放的 Personal Chrome candidate #39 是既有独立候选，不属于 Train B/C 基础闭环关键路径。 |
 | `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
 | `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
-| `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.6` | 已有真实独立 npm/stdio 插件、owner auth 与事件输入；仍需作为基础底座的真实 dogfood。 |
+| `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.7` | exact coordinate 的 package 与 manifest 均为 alpha.7；已有真实独立 npm/stdio 插件、owner auth、事件输入与 Feishu Minutes/Notes 选择修复 #40，仍需作为基础底座的真实 dogfood。 |
 | Clowder AI upstream | `bc9ff2d395a8522a4e5cc93fd317b65cdd9ea1bc` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 分支已 rebase 到该当前目标基线。 |
-| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 已 APPROVE；maintainer 对旧 HEAD `81d32be5...` 提出的 bounded snapshot capture、historical scalar admission 和 `Refs #1165` 三项 finding 均保留在 rebased HEAD。11 个 M0 commit 全部 1:1 映射；focused 307/307、isolated Redis 44/44，真实 upstream/main + Python 3.11 的完整 public gate（build、tsc、tests、lint、check）通过。新 HEAD 已推送，远端 CI 与 mergeability 正在重新计算，等待 maintainer exact-HEAD 复审；canonical 18-case 与 Feishu 联合验收尚未运行。 |
+| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。跨家族 review 已 APPROVE；maintainer 对旧 HEAD `81d32be5...` 提出的 bounded snapshot capture、historical scalar admission 和 `Refs #1165` 三项 finding 均保留在 rebased HEAD。11 个 M0 commit 全部 1:1 映射；focused 307/307、isolated Redis 44/44，真实 upstream/main + Python 3.11 的完整 public gate（build、tsc、tests、lint、check）通过。exact HEAD 的 5 项远端 CI 已全绿且 PR 为 MERGEABLE；旧 HEAD 的 CHANGES_REQUESTED 尚无 current-head verdict，maintainer review 已重新请求。canonical 18-case 与 Feishu 联合验收尚未运行。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -131,6 +133,11 @@ ledger 这些更严格的边界。
 - **INV-R4 — 顺序单一真相：** 本路线图拥有跨仓执行顺序；governing design 拥有架构
   原则和验收语义。`plugin-system-principles-and-v0-design.md` §2.2/§3.8 已同步本次
   operator 改序，不再保留与本路线图冲突的 M1 并行排期。
+- **INV-R5 — v0 边界闭合：** Train B 当前公开 surface 仅为 lifecycle/effect、
+  feature activation、messaging/events、config/state/secrets、scheduler/MCP、
+  services/connectors 与 UI contribution；memory/thread/hook/windows 不得从 governing
+  design 的未来约束反向漏入 contract、SDK 或完成矩阵。messaging 的 opaque
+  `ThreadHandle` 不等于开放 thread create/list/read 域。
 
 ## 4. Train A — M0 Runtime 收口（剩余 PR 1/5）
 
@@ -143,7 +150,7 @@ marketplace 或 Console scope。
    核验后的 PR HEAD 为 `7bac631569f9607f248f5ff01ad3b79b00ffcd0d`；
 2. ✅ 分支 build、TypeScript、focused 307/307、isolated Redis 44/44、完整 public tests、
    Web lint 与真实 upstream 基线 check 已闭合；完整门禁使用仓库支持的 Python 3.11
-   通过。新 exact HEAD 已推送，PR CI 与 mergeability 正在重新计算，尚不提前宣称远端绿灯；
+   通过。exact HEAD 的 5 项远端 CI 已全绿且 PR 为 MERGEABLE；
 3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
    correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
    maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复并跨 rebase 保留，等待新 HEAD 复审；
@@ -184,6 +191,8 @@ Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Cor
 - `definePlugin(...)` 与类型化 `PluginContext`；
 - `activate` / `deactivate` / `dispose` 生命周期，以及注册即返回 disposer 的
   `ctx.effect(...)`；
+- `features[{id, resources, capabilities}]` 的机器契约，以及逐 feature、revision-fenced
+  activation/settlement；插件总闸与 feature desired/current state 正交；
 - `ctx.messaging`、`ctx.events`、`ctx.config`、`ctx.state`、`ctx.secrets`；
 - `ctx.scheduler.register(...)`、`ctx.mcp.register(...)`；
 - `ctx.services`、`ctx.connectors`、`ctx.ui` contribution API；
@@ -202,25 +211,30 @@ P5 逐点定义数据形状、隔离、授权、超时与重试语义。
 在现有 F202、official catalog、external lifecycle 和 Settings 上收敛，不另建平行系统：
 
 - Plugin Manager 统一 package/config/activation/runtime 正交状态；
+- Manager 持久化逐 `pluginInstanceId + featureId + packageRevision` 的 desired/current
+  activation，拒绝 stale completion；feature 失败只回滚本次资源，不能扰动 sibling；
 - 本地插件、官方 npm 插件与后续 community package 共享生命周期投影；
 - `.env` 只选择 catalog provider/索引位置；Host 继续验证允许的 origin、版本、
   digest、provenance、trust tier 与 quarantine，配置来源不能自动变成信任来源；
 - `clowder-ai-plugins` 发布机器可读 catalog index，支持查询、详情、版本和兼容性；
 - Console 与 Agent 使用同一组 revision-fenced、带授权和审计的管理 API；
 - resource adapters 将 SDK contribution 接入现有 scheduler/MCP/service/connector；
-- Console 提供声明式 slot/command/settings/message-element contribution，挂载与销毁
-  绑定 plugin instance lifecycle；v0 不执行不受信任的任意 DOM/React 代码；
+- Console 提供逐 feature 启停与声明式 slot/command/settings/message-element
+  contribution；挂载与销毁同时受 plugin、feature lifecycle 和 grant 约束；v0 不执行
+  不受信任的任意 DOM/React 代码；
 - install/update/uninstall 与 retained/ask-on-uninstall 数据策略经过 crash、并发、
   stale revision、rollback 和 restart 对抗测试。
 
 ### Train B 完成线
 
 一个不含产品特判的 fixture npm 插件必须能从 catalog 安装，并只使用公共 SDK
-逐项执行 §5.1 承诺的全部 v0 surface：lifecycle/effect、messaging/events、
+逐项执行 §5.1 承诺的全部 v0 surface：lifecycle/effect、feature activation、messaging/events、
 config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution。
 验收既覆盖适用的 register/dispose，也覆盖 read/write/call/delivery 语义；类型存在或
 只验证其中几类不能通过。插件经历配置、启用、重启、禁用、更新、卸载后，Host
-inventory、注册表、UI 和 retained data 必须全部一致。
+inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
+fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
+activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。
 
 ### 5.3 真实消费者 acceptance matrix
 
@@ -234,9 +248,10 @@ inventory、注册表、UI 和 retained data 必须全部一致。
 | Core `github` repository-local plugin 的外部化 slice | scheduler + state，以及 schedule 的重复执行/重启恢复 |
 | Core `video-analysis` 或 `video-gen` 的外部化 slice | MCP registration/call/dispose；两者最终仍都在 Train C inventory 内迁移 |
 | 一个现有 IM provider 的外部化 slice | connector、messaging、binding/callback、config/secrets 与声明式 UI contribution |
-| voice-suite（至少覆盖 ASR 与 TTS）外部化 slice | service、message event/cursor、`appendElements` 与 Console slot/message-element |
+| voice-suite（至少覆盖 ASR 与 TTS）外部化 slice | service、message event/cursor、`appendElements`、Console slot/message-element；分别验证“仅 ASR”“仅 TTS”“两者启用”，以及一方 denied/activation failure 不泄漏资源、不打断另一方 |
 
 矩阵中的每一行都要跑 register/use/dispose、disable/re-enable、restart 与 denied-grant；
+多 feature 行还要逐 feature 跑 revision-fenced activate/deactivate、失败回滚与 sibling 隔离；
 §5.1 任一 surface 没有落入至少一行的真实消费者证据，Train B 不得完成。
 
 ## 6. Train C — 存量能力集中迁移（剩余 PR 4–5/5）

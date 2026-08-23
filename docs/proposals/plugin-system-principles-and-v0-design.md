@@ -24,7 +24,7 @@ references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F24
 | P5 | **hook 点位先审数据形状**：开点位 = 内部结构升格为公开契约 | hook 会把当下结构的不合理冻结进插件生态 |
 | P6 | **宿主编排取代插件点对点绑定**：插件不得持有另一插件实例或私有 API；组合经宿主编排（v0 = 事件订阅 + `appendElements` 增补；hook 点位 future-reserved，非 v0 公开协议） | 避免插件网状耦合；F237 已验证宿主管理的 resolve→fire→trace 模式（内核既有），第三方 hook 的隔离/超时语义待 M1 需求出现再定义 |
 | P7 | **壳无关**：契约不规定实现载体 | 抽象对了，Electron/Tauri 是插件自己的实现细节 |
-| P8 | **数据归属分明**：config/secrets/state 三分；插件数据 namespace 隔离；身份/记忆/会话真相只在内核，全局记忆写入走蒸馏晋升。**记忆接口唯一改造场是 #1047**：插件记忆需求（namespace 强制注入、宿主中介的受限 `memory.retrieve` 等）作为输入提给 #1047 的接口抽象，不满足就推动那边调整，不绕开自建 | 插件不成为真相第二来源；桌宠"真"的来源在内核；记忆接口双轨会立刻违反 P15 |
+| P8 | **数据归属分明**：config/secrets/state 三分；插件数据 namespace 隔离；身份/记忆/会话真相只在内核，全局记忆写入走蒸馏晋升。**闭环后 memory 候选域的唯一改造场是 #1047**：namespace 强制注入、宿主中介的受限检索等需求只作为输入提给 #1047 的接口抽象，不满足就推动那边调整，不绕开自建；该原则不承诺当前 v0 memory API | 插件不成为真相第二来源；桌宠"真"的来源在内核；记忆接口双轨会立刻违反 P15 |
 | P9 | **桌面单用户检查**：每条安全约束先问“威胁在单用户桌面存在吗”；核心边界是跨插件隔离，而不是阻止用户查看自己的数据 | 不制造 SaaS 式虚空防御；但仍防 renderer/XSS/日志/截图意外泄露，用户显式查看自己的 secret ≠ 向所有前端或插件广播明文 |
 | P10 | **推断不执行**：origin × epistemicStatus 两轴原生长在 envelope；inference 只能触发建议/确认 | issue #1 中 maintainer 提出的不让步项 2；本条即我方确认接受的表态 |
 | P11 | **一切插件行为可追溯**：call/callback/事件投递全部留痕（future hook 同规则） | trace 语义必须长在接口签名里，事后补加等于重做；F237 resolve→fire→trace 已验证 |
@@ -57,7 +57,7 @@ foreground-cat/windows/memory 等后续扩张。M1 的“打开文件→猫跑�
 ### 2.3 两仓职责划分（本阶段核心产出）
 
 **clowder-ai（内核仓）——改什么**：
-1. 按能力域收敛接口（§3.2）：messaging envelope 统一（三个 send 收敛为一）、schedule 增加 entrypoint 触发、state namespace KV、memory namespace 接口（依赖 #1047 acceptance）、thread 域能力
+1. 按本阶段能力域收敛接口（§3.2）：messaging envelope 统一（三个 send 收敛为一）、schedule 增加 entrypoint 触发、state namespace KV、signals/events 与 UI contribution；memory/thread 是 Train C 闭环后的高敏候选域，不进入当前 v0 contract/SDK
 2. 插件控制面与 Host Broker：F202 继续做统一编排，service/connector/schedule 等由各自 resource runtime adapter 承担，不把不同运行时压成一个万能接口（§3.4/§3.5）
 3. 输出事件流：带单调 sequence/cursor 的 message 事件订阅 + `appendElements` 增补通道（覆盖 TTS 类异步增补）；hook 点位 v0 不开放，机制方向保留（F237 输入侧同构），M1 有真实同步需求再按 P5 逐个评审
 4. 控制面：Settings 插件管理 UI（**IM connector 现有独立管理面并入统一插件管理**——connector 是插件的一类，不再有第二个管理入口）、capability-gate 前端装配（启用才出现）、审计/trace 存储
@@ -125,19 +125,28 @@ MessageOutputEvent（宿主事件流）
 
 ### 3.2 能力域与收敛单位（P4）
 
-域是渐进单位，**不是一条不可调整的全局瀑布顺序**。选中某域时必须把该域的数据结构、call/callback/事件、权限、持久化、migration 与测试一起收敛：
+域是渐进单位，**不是一条不可调整的全局瀑布顺序**。跨域执行顺序由 roadmap 持有；
+选中某域时必须把该域的数据结构、call/callback/事件、权限、持久化、migration 与测试
+一起收敛。当前基础平台 v0 的公开域边界是：
 
 - **messaging**：canonical envelope + ingress binding + send/appendElements + 职责回调 + 带游标的输出事件订阅
 - **schedule**：manifest 声明允许的 task entrypoint；`schedule.register` 只创建调度实例并引用该 entrypoint，禁止任意命令。宿主持有时间、持久化、重试；插件持有 task 实现
-- **state**：宿主 namespace KV + schema version/migration
-- **memory**：own namespace query/append + `memory.retrieve`（宿主中介受限检索，高敏；依赖 #1047 acceptance）
-- **thread**：create/post/list-metadata/read-content/events，按内容敏感度拆授权
+- **config/state/secrets**：宿主持久化、namespace、schema version/migration 与按声明授权的 secret 读取
+- **MCP/service/connector**：类型化 contribution + 分类型 resource adapter + grant/settlement
 - **ui-contribution**：slot 注册 + capability-gate + renderer 隔离
 - **signals/events（事件输入面）**：声明式信号 + 发布 + wake route + 类型化 liveness（§3.2a）
+- **lifecycle/effect/feature activation**：plugin 总闸、逐 feature revision-fenced 状态与注册即返回 disposer
+
+**闭环后候选域（不属于当前 v0 surface）**：memory 与 thread。它们要等 Train C
+完成，再分别以真实消费者、权限/数据形状审查和独立纵切验收开启；memory 还依赖
+#1047 acceptance。P8、§3.3、§3.6 与 §3.9 对二者的描述是届时必须满足的安全约束，
+不是已经冻结的 contract/SDK API。messaging 使用宿主签发的 opaque `ThreadHandle`
+只完成受限寻址，不因此开放 thread create/list/read 等通用域能力。
 
 ### 3.2a 事件输入面（Event Ingress）——最小骨架四件与排除清单（P1、P5、P10、P12）
 
-M1 引用 desktop event source，故 ingress 契约必须随 v0 落地（否则为悬空引用）。**先排除后定义**：
+已发布 Feishu standalone plugin 是 event ingress 的当前真实消费者；desktop event source
+继续作为闭环后输入。因此 ingress 契约必须随 v0 落地，且由现有消费者验收。**先排除后定义**：
 
 **v0 明确不造**：stream delivery（无真实消费者；未来经握手 `supportedDeliveryModes` 声明取交集、随新 contract version 进入——不用 enum 预留位，追加枚举值对旧 validator/exhaustive union 是 breaking）；通用 discover/query_manifest 动词（callable 能力披露走各 resource 面，"谁在线"归 Broker registry 内部语义）；统一 heartbeat 动词（liveness 按 runtime 类型拆）；动态 `subscribe()/unsubscribe()`（M1 不需要；动态持久订阅待真实消费者出现后随版本演进，届时再定义 owner/持久化/撤销语义）。
 
@@ -149,7 +158,7 @@ M1 引用 desktop event source，故 ingress 契约必须随 v0 落地（否则�
 
 **隐私边界（类型级，双检）**：不做按事件名匹配的 denied 清单（改名可绕）——按 `privacyClass/sourceClass` **类型级禁止**：受禁类别的数据不可被声明、不可被发布，manifest conformance 与 Broker ingress **双检**；采集端逐级授权（Tier 0/1）仍是最前一道边界。
 
-### 3.3 SDK 两类接口与敏感分级（P1、P6、P9、P13）
+### 3.3 Host call/callback、SDK contribution 与敏感分级（P1、P6、P9、P13）
 
 ```
 call（插件→内核；身份由 Host Broker 注入，动作类入 ledger）:
@@ -159,10 +168,7 @@ call（插件→内核；身份由 Host Broker 注入，动作类入 ledger）:
   schedule.register/unregister(declared task)
   messaging.send(draft)
   messaging.appendElements(messageHandle, elements[], operationId)【需订阅 grant，异步增补通道】
-  memory.query/append(own ns)
-  memory.retrieve(purposeScopedQuery)【高敏；宿主中介检索，见下】
-  thread.create/post
-  thread.listMetadata【敏感】 · thread.readContent【高敏】
+  events.publish(declaredSignal)
 
 callback（内核→插件）:
   onLifecycle(init/enable/disable/shutdown)
@@ -170,12 +176,23 @@ callback（内核→插件）:
   onEvent(event, cursor)【通知；含 message.publish/append 订阅，凭游标续读】
 ```
 
+Train B 的插件作者层还必须提供 roadmap §5.1 冻结的类型化 contribution facade：
+`ctx.mcp`、`ctx.services`、`ctx.connectors`、`ctx.ui`，以及 lifecycle/effect 与 feature
+activation settlement。它们最终仍通过 Broker grant、resource adapter 与 ledger，不是绕开
+call/callback 的内核对象引用。具体 generated type/schema 以插件仓 contract package 为机器
+真相源；本段不另写一份手工 mirror。
+
 - **v0 无 hook 类接口**：原拟的 `output.message.augment` 与"订阅 message.publish 事件 + `appendElements`"能力重复（TTS 本就是异步增补），同步读取全部输出的高敏点位没有不可替代消费者，违反 P1——删。`input.pre` 同理不进 v0。hook 作为机制方向保留（F237 输入侧同构），点位在 M1 出现真实同步增补需求时再按 P5 逐个评审。
-- **memory.retrieve 替代 queryGlobal**：不提供"任意查询全局记忆"的后门——请求必须带 `purpose + user/thread scope`，由宿主执行检索并返回**受限 context snapshot**（宿主控制返回形态与量），全程审计。前台猫的"帮用户找回讨论"场景走 `purpose=user-recall` 且用户在场，语义不受损。
 - 通知回调可忽略；职责回调必须 ack，超时/重试/死信显式。
 - 第一方可以拿预置 grant，但授权仍在 UI 可见、可撤销；“第一方默认持有”不等于隐藏后门。
-- `thread.listMetadata` 与 `thread.readContent` 分开；默认 scope 是插件自己创建/被绑定的 thread。全局 metadata/content 分别升级授权。
-- #1047 namespace 由 Host Adapter 按 `pluginInstanceId` 强制注入；插件不得自行传 `X-Memory-Namespace` 冒充其他 namespace。跨 namespace 记忆访问**仅经 `memory.retrieve`**（宿主中介受限检索），不存在任意 query 面，不开放直接写入。
+
+**闭环后 memory/thread 开放约束（非 v0 API 签名）**：memory 不提供任意
+`queryGlobal`；如真实消费者需要跨 namespace 检索，必须由宿主以
+`purpose + user/thread scope` 中介并只返回受限 context snapshot，全程审计。#1047
+namespace 由 Host Adapter 按 `pluginInstanceId` 强制注入，插件不得自报其他 namespace，
+全局写入仍走内核蒸馏晋升。thread metadata 与 content 必须拆成不同授权；默认 scope
+只能是插件自己创建或被绑定的 thread，全局 metadata/content 分别升级授权。具体 call
+名称和数据形状在对应域开启时随 contract version 与真实 fixture 冻结，本文不预签名。
 
 ### 3.4 控制面与运行时：统一编排，分开 resource adapter（P1、P2、P12）
 
@@ -190,13 +207,26 @@ PluginControlPlane
   └─ UiContributionAdapter    → slot/capability/renderer policy
 ```
 
-**manifest 的 feature 聚合层（结构先行，引擎渐进）**：一个插件可含多个"能力"（feature = 基于 mcp/skill/limb/schedule/sdk 资源组合成的一个完整用户可感知能力，如 github 插件的"PR 追踪"= schedule + mcp tool + UI 入口）。manifest v0 就按 `features[{id, name, resources[], capabilities[]}]` 组织——**数据结构上 feature 是一等公民**（v0 后再拆是 breaking，违反 P5），但 v0 生命周期引擎只支持插件级启停；feature 级启停作为 activation 维度的自然扩展，等 voice-suite（首个真实多能力插件：用户可能只要 TTS 不要 ASR）落地时开。UI 展示粒度可先按 feature，启停粒度后跟上。
+**manifest 的 feature 聚合与 activation**：一个插件可含多个"能力"（feature = 基于
+mcp/skill/limb/schedule/sdk 资源组合成的一个完整用户可感知能力，如 github 插件的
+"PR 追踪"= schedule + mcp tool + UI 入口）。manifest v0 按
+`features[{id, name, resources[], capabilities[]}]` 组织，feature 是一等公民。Train B
+随首个真实多能力消费者 voice-suite 同步交付 feature-level activation：用户可独立启用
+TTS 或 ASR；不能先展示 feature、却只允许整包启停。
+
+插件 activation 是外层总闸；每个 feature 另有独立 desired/current activation 与
+revision。只有插件与 feature 都 enabled 时，adapter 才装配该 feature 的资源和 UI。
+feature 启用必须先完成其 capability/grant 校验；拒绝或失败时零注册、零事件消费、零
+持久副作用，并只回滚该 feature 本次已装配资源，不扰动健康 sibling。禁用插件会撤销
+全部 feature runtime；重新启用后按 revision-fenced desired state 恢复，旧 revision 的
+完成回调不得复活资源。
 
 状态按正交维度记录，避免线性状态机把不同事实混在一起：
 
 - package：`absent/staged/verified/installed`
 - config readiness：`incomplete/ready`
-- activation：`disabled/enabling/enabled/disabling/error`
+- plugin activation：`disabled/enabling/enabled/disabling/error`
+- feature activation（逐 `pluginInstanceId + featureId + packageRevision`）：`disabled/enabling/enabled/disabling/error`
 - runtime：`stopped/starting/healthy/degraded/crashed`
 - 另存 trust tier、grants、health、rollback snapshot
 
@@ -218,8 +248,8 @@ PluginControlPlane
 - **state**：v0 以宿主 namespace KV 为默认且 TTL=0；schema/version/migration 属插件，宿主负责原子切换与失败回滚。需要自管文件时必须在 manifest 声明数据目录；插件不得在卸载流程回调中自行删除未声明数据。
 - **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除 ②`retained`：由宿主统一管理、永不随卸载消亡（静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定。
 - **dataClass 约束（宿主可验证，策略的前置分类）**：每个数据集必须先声明 `dataClass: cache/ephemeral | user-authored/derived-user-visible | relationship/interaction-history`。**只有 cache/ephemeral 类允许 `lifecycle`**；用户可见/可恢复预期的数据强制 `retained` 或 `ask-on-uninstall`；**关系与记忆类数据（relationship / 对话衍生记忆 / interaction-history——即使不直接展示）同样只能 `retained | ask-on-uninstall`，插件不得声明为 `lifecycle`**——互动痕迹属于用户与猫的共同历史，不因插件卸载而蒸发。用户状态默认持久化、删除只能用户 opt-in 是硬边界，开发者声明不能越过它。宿主对 dataClass 与策略组合做安装期校验，不合法组合拒绝安装。
-- 记忆：插件默认仅自己 namespace 读写；`memory.retrieve` 独立授权（宿主中介、purpose-scoped）；全局写入走内核蒸馏晋升，不直接写。
-- **猫的私密空间为 dataClass 级排除（非授权级）**：记忆数据模型预留 `visibility: normal | cat_private` 维度（作为需求提给 #1047 的数据模型，P8）；`retrieve` **硬排除 `cat_private`**——即使用户授权检索，猫的主体性数据（私人日记/私人时间痕迹）也不经插件通道暴露，除非猫侧主动策展公开。"猫把日记给你看"与"插件替猫翻日记"是两件事，前者是产品机制，后者结构性不可达。
+- **闭环后 memory 域约束**：插件默认仅自己 namespace 读写；跨 namespace 检索如被真实消费者证明必要，只能走宿主中介、purpose-scoped 的独立授权；全局写入走内核蒸馏晋升，不直接写。该条不构成当前 v0 API。
+- **猫的私密空间为 dataClass 级排除（非授权级）**：记忆数据模型预留 `visibility: normal | cat_private` 维度（作为需求提给 #1047 的数据模型，P8）；任何未来宿主中介检索都**硬排除 `cat_private`**——即使用户授权检索，猫的主体性数据（私人日记/私人时间痕迹）也不经插件通道暴露，除非猫侧主动策展公开。"猫把日记给你看"与"插件替猫翻日记"是两件事，前者是产品机制，后者结构性不可达。
 - 每个能力域开放前必须列出存量数据 mapping + migration + rollback；本轮不为旧接口留 adapter，但不能丢旧消息、配置、binding、schedule 或 plugin state。
 
 ### 3.7 UI Contribution：两类形态（P5、P7、P13）
@@ -235,10 +265,16 @@ PluginControlPlane
 3. **settings 不开自定义**：插件配置页由 config schema 自动生成（现有 connector/plugin 配置模式的延续，已足够通用）；插件最多声明字段分组/描述/顺序，不提供自定义 settings UI——省掉一个高成本低收益且样式易失控的扩展点。
 
 - **声明式 + 宿主渲染**：contribution 是数据，不是插件自带 DOM/iframe——样式语言天然一致，主题/无障碍/布局由宿主统一保证。不受信插件的自由 UI（iframe 沙箱）不进 v0。
-- **capability-gate 原生集成**：contribution 挂在 feature 上，feature 未启用 → 不装配。由此"默认折叠/关闭、启用才出现"不是独立的前端改造工程，而是**存量功能插件化收编的自动副产品**——语音收编完成时，语音按钮的按需装配随之成立。
+- **capability-gate 原生集成**：contribution 挂在 feature 上；只有 plugin 与 feature
+  都启用且 grants 满足才装配。由此"默认折叠/关闭、启用才出现"不是独立的前端改造
+  工程，而是**存量功能插件化收编的自动副产品**——Train B 的 voice-suite acceptance
+  必须证明 ASR/TTS 分别启停时，按钮、消息元素和 runtime 注册同步生灭。
 - slot 开放节奏跟随首验：voice-suite 开 `composer.actions` + 消息元素渲染；GitHub 视需要开 `nav.sections`；每次开放走 Console 既有 Design Gate 流程。
 
-**B 类：独立窗口 contribution（插件自有 surface）**——插件拉起独立于主窗口的原生窗口（桌宠在桌面游走、未来的视频/语音实况交互窗）：
+**B 类（闭环后候选，不属于当前 v0）：独立窗口 contribution（插件自有 surface）**——
+插件拉起独立于主窗口的原生窗口（桌宠在桌面游走、未来的视频/语音实况交互窗）。
+下列内容是 foreground-cat 开启该域时必须验证的设计约束，不是 Train B contract/SDK
+surface：
 
 - manifest 声明 `windows[]`；宿主 SDK 提供窗口生命周期与属性（create/show/hide · frameless/transparent/always-on-top/skip-taskbar），**窗口内容完全属于插件**（自选技术栈，P7 壳无关在 UI 层的体现）
 - **窗口生命周期独立于主窗口**：主窗口最小化/收进托盘后，已启用插件的窗口继续存活——"桌宠在桌面上玩"的技术前提；具体行为逻辑在插件实现内
@@ -250,16 +286,18 @@ PluginControlPlane
 
 ### 3.8 首验覆盖与执行顺序（P4、P14）
 
-1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言，全集）**：actor 伪造、system audience 伪造、任意 whisper target 伪造（超出 grant 允许集）、裸/越权 thread 寻址、namespace escape（state/memory 跨实例访问）、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、deadline expiry（超时调用的结算与拒绝）、职责 callback retry/dead-letter 路径、断线后 cursor 续投 + 消费幂等（含 ack 前崩溃重投）、retention 越界的 stale 订阅追平、卸载后 retained/ask 类 durable state 不丢失、**P14 断言：第一方插件与第三方走同一 SDK 入口/同一授权流**、插件崩溃不拖垮宿主；**事件输入面四项**：undeclared/forbidden-class signal 发布拒绝、producer 伪造与认识论升级（observation→user_intent）拒绝、插件自报 wake route target 拒绝、lease 过期后 offline 判定生效。它是测试夹具，不是产品插件。
+1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言，全集）**：actor 伪造、system audience 伪造、任意 whisper target 伪造（超出 grant 允许集）、裸/越权 thread 寻址、state namespace escape（跨实例访问）、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、deadline expiry（超时调用的结算与拒绝）、职责 callback retry/dead-letter 路径、断线后 cursor 续投 + 消费幂等（含 ack 前崩溃重投）、retention 越界的 stale 订阅追平、卸载后 retained/ask 类 durable state 不丢失、**P14 断言：第一方插件与第三方走同一 SDK 入口/同一授权流**、插件崩溃不拖垮宿主；**事件输入面四项**：undeclared/forbidden-class signal 发布拒绝、producer 伪造与认识论升级（observation→user_intent）拒绝、插件自报 wake route target 拒绝、lease 过期后 offline 判定生效。它是测试夹具，不是产品插件。
 2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
    环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
-   lifecycle/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；slice 不提前
-   切换生产默认路径。具体矩阵与关闭条件见 roadmap §5。
+   lifecycle/feature activation/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；
+   voice-suite 必须独立切换 ASR/TTS 并验证失败隔离；slice 不提前切换生产默认路径。
+   具体矩阵与关闭条件见 roadmap §5。
 3. **Train C 全量存量迁移**：按 roadmap §6 的冻结 inventory 迁移 GitHub、
    video-analysis/video-gen、weixin-mp/wechat-visible-reader、全部现有 IM provider 与全部具体
    managed service；不是抽样迁移。Host 保留通用控制面，删除已迁移业务实现与第二入口。
-4. **闭环后能力扩张**：foreground-cat 首先验证第一方同通道、memory/thread 高敏授权
-   与 B 类 UI surface；随后才按真实消费者继续开放 windows/presence 等能力。
+4. **闭环后能力扩张**：foreground-cat 首先验证第一方同通道与 B 类 UI surface；
+   memory/thread 则分别等待自己的真实消费者、权限/数据形状审查与独立验收，不能由
+   foreground-cat 一次性代验；windows/presence 等其余能力同样按真实消费者成组开放。
 
 GitHub 是 schedule/state 的真实验证器，但**不能单独验证 M0 的标准 I/O**；M0 必须先有
 最小 loopback/standalone 纵切。通用 fixture 也不能单独冻结 Train B：每个公开 surface
@@ -274,7 +312,7 @@ GitHub 是 schedule/state 的真实验证器，但**不能单独验证 M0 的标
 
 **本轮已收敛**：
 1. MessageEnvelope 需要 actor、稳定 elementId、causation/correlation、外部幂等键；异步 TTS 通过 `message.elements.append` 事件，不重发整个 envelope。
-2. 高敏能力不止 thread/memory：凡读消息内容者（事件订阅、`onMessage`）均按 scope 授权；v0 不设 hook 类接口——`input.pre` 与 `output.message.augment` 都没有不可替代消费者，TTS 类异步增补由"事件订阅 + `appendElements`"覆盖。
+2. 高敏能力不止闭环后的 thread/memory：当前凡读消息内容者（事件订阅、`onMessage`）也均按 scope 授权；v0 不设 hook 类接口——`input.pre` 与 `output.message.augment` 都没有不可替代消费者，TTS 类异步增补由"事件订阅 + `appendElements`"覆盖。
 3. 生命周期方向不是“service manifest 泛化成万能引擎”，而是 F202 控制面 + 分类型 resource adapter + 正交状态投影。
 4. contract schema 在插件仓单一真相，Host 实现在内核仓；双签的是 contract PR，不是两仓各写一份接口。
 
