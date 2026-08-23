@@ -3,6 +3,7 @@ title: Clowder 插件体系：设计原则与 v0 方案
 status: draft-for-discussion (v0)
 discussion: zts212653/clowder-ai-plugins#1
 created: 2026-07-12
+revised: 2026-08-23
 authors: 宪宪/Fable（mindfn 侧）
 internal-review: 砚砚/gpt-5.6-sol（mindfn 侧，2026-07-12 迁移前完成；PR 行内评审独立进行，不在此代签）
 references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F240 IM connector · clowder-ai#1047 memory primitives
@@ -40,14 +41,18 @@ references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F24
 
 - **F202 plugin framework**（Phase 1 merged；schedule/GitHub migration 已落地）：manifest 发现/校验/启停/test/审计/rehydrate，资源类型 skill/mcp/limb/schedule
 - **F240 IM connector**：双向接口雏形（startInbound/webhook → InboundMessageCallback；IOutboundAdapter.sendReply/sendRichMessage/sendMedia）+ installer；已知 same-power 加载风险待治理
-- **service manifest**：6 个本地服务的 install/start/stop/uninstall/health（含 deep health）/模型下载生命周期
+- **service manifest**：5 个本地服务的 install/start/stop/uninstall/health（含 deep health）/模型下载生命周期
 - **F237 hook pipeline**（上游 PR #1075 merged）：HookRegistry（46 个 hook.yaml）+ resolve→fire→trace + order 唯一性 + 双路验证。它证明的是**宿主管理的声明式 prompt hook**；第三方进程 hook 的隔离、授权、超时和补投仍需本设计定义
 - **#1047 记忆三原语**（ADR proposed，待 maintainer accept）：TextBlock/RelationEdge/Timeline + namespace 隔离
 - **F229 前台猫**（in-progress）：Hub 内 concierge 与自主行为已有；OS 级透明桌宠/跨应用 overlay 仍是后续 native 能力，不冒充现有 Phase E 已覆盖
 
 ### 2.2 目标
 
-issue #1 的节奏：v0 契约收敛 → M0（standalone 壳 + 标准 I/O）→ M1（"打开文件→猫跑过来→问要不要总结"全链）→ 冻结 v1 兼容承诺。存量收编（GitHub/语音/IM/前台猫）与新插件并行推进。
+issue #1 给出了 v0 契约、M0 standalone 与 M1 体验样板的产品目标；跨仓执行顺序由
+`v0-implementation-roadmap.md` 持有。2026-08-23 operator 已将顺序改为：M0 收口 →
+完整公共 SDK/Contribution/Manager 底座 → 现有 IM、业务插件与具体服务集中迁移 →
+foreground-cat/windows/memory 等后续扩张。M1 的“打开文件→猫跑过来→问要不要总结”
+目标保留，但不再作为与底座/存量收编并行的排期承诺。
 
 ### 2.3 两仓职责划分（本阶段核心产出）
 
@@ -243,20 +248,27 @@ PluginControlPlane
 
 分工含义：A 类 slot 体系随 Console 属内核仓；B 类窗口 runtime 属插件仓 standalone 壳（issue #1 底盘范围），内核只提供窗口 API 薄层与授权控制面。
 
-### 3.8 首验次序（P4、P14）
+### 3.8 首验覆盖与执行顺序（P4、P14）
 
 1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言，全集）**：actor 伪造、system audience 伪造、任意 whisper target 伪造（超出 grant 允许集）、裸/越权 thread 寻址、namespace escape（state/memory 跨实例访问）、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、deadline expiry（超时调用的结算与拒绝）、职责 callback retry/dead-letter 路径、断线后 cursor 续投 + 消费幂等（含 ack 前崩溃重投）、retention 越界的 stale 订阅追平、卸载后 retained/ask 类 durable state 不丢失、**P14 断言：第一方插件与第三方走同一 SDK 入口/同一授权流**、插件崩溃不拖垮宿主；**事件输入面四项**：undeclared/forbidden-class signal 发布拒绝、producer 伪造与认识论升级（observation→user_intent）拒绝、插件自报 wake route target 拒绝、lease 过期后 offline 判定生效。它是测试夹具，不是产品插件。
-2. **GitHub**：验证 schedule + state。当前 F202 `factoryId` 是宿主白名单工厂；目标是宿主持有调度、插件 runtime 持有声明过的 task 实现，不把 GitHub 业务继续留在内核。
-3. **voice-suite**：验证 service resource + message 事件订阅（cursor 续读）+ `appendElements` 异步增补 + UI capability-gate。
-4. **IM connector**：验证 messaging 全域、external binding、职责回调离线补投与平台降级。
-5. **weixin-mp 微信公众号**（F204，`plugins/weixin-mp` 已有 manifest 雏形）：验证内容发布类插件形态（非对话型 connector）+ 三策略数据声明。
-6. **foreground-cat**：验证第一方同通道、memory/thread 高敏授权、UI surface。
+2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
+   环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
+   lifecycle/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；slice 不提前
+   切换生产默认路径。具体矩阵与关闭条件见 roadmap §5。
+3. **Train C 全量存量迁移**：按 roadmap §6 的冻结 inventory 迁移 GitHub、
+   video-analysis/video-gen、weixin-mp/wechat-visible-reader、全部现有 IM provider 与全部具体
+   managed service；不是抽样迁移。Host 保留通用控制面，删除已迁移业务实现与第二入口。
+4. **闭环后能力扩张**：foreground-cat 首先验证第一方同通道、memory/thread 高敏授权
+   与 B 类 UI surface；随后才按真实消费者继续开放 windows/presence 等能力。
 
-GitHub 是第一个真实插件验证器，但**不能单独验证 M0 的标准 I/O**；M0 必须先有最小 loopback/standalone 纵切。
+GitHub 是 schedule/state 的真实验证器，但**不能单独验证 M0 的标准 I/O**；M0 必须先有
+最小 loopback/standalone 纵切。通用 fixture 也不能单独冻结 Train B：每个公开 surface
+必须同时有真实消费者证据。
 
-**两条并行线（显式化，避免单序列误读）**：
-- **收编线**（契约域完备性验证）：loopback fixture(M0) → GitHub → voice-suite → IM connector → weixin-mp → foreground-cat 全量
-- **体验线**（产品里程碑，与收编线并行推进）：M0 fixture → **M1 = probe-desktop 最小版 + foreground-cat 最小版垂直切片**（"打开文件→猫跑过来→问要不要总结"），只消费已冻结域子集（messaging + B 类窗口 + desktop event source + 结算骨架）——M1 是双方确认的 aha 样板，排期不被收编线吃掉；两个插件的全量收编仍按收编线尾部进行。
+旧版“收编线/体验线并行，M1 排期不等待收编”的安排已被 2026-08-23 operator 改序
+取代。该变化只调整执行时序，不撤销 M1 产品目标，也不降低 P4/P14：foreground-cat
+将来仍必须走同一公开 SDK/授权路径并完成真实纵切验收；在 Train C 闭环前只保留需求
+与设计输入，不进入实现关键路径。
 
 ### 3.9 已收敛结论与回应结构
 
