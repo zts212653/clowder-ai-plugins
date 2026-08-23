@@ -84,7 +84,7 @@ ledger 这些更严格的边界。
 | 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
-| Host runtime | 中高 | M0 Core PR #1380 已完成当前 upstream rebase、review finding continuity 与完整门禁，等待新 exact-HEAD CI/mergeability truth 和 maintainer 复审；随后完成生命周期/消息联合验收。 |
+| Host runtime | 中高 | M0 Core PR #1380 已完成当前 upstream rebase、review finding continuity 与完整门禁；exact HEAD 的 5 项 CI 已全绿且 PR 为 MERGEABLE，当前只等待 maintainer exact-HEAD 复审，随后完成生命周期/消息联合验收。 |
 | Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
 | Public Plugin SDK | 低中 | 缺统一 `PluginContext` 与绝大多数领域 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
@@ -138,6 +138,9 @@ ledger 这些更严格的边界。
   services/connectors 与 UI contribution；memory/thread/hook/windows 不得从 governing
   design 的未来约束反向漏入 contract、SDK 或完成矩阵。messaging 的 opaque
   `ThreadHandle` 不等于开放 thread create/list/read 域。
+- **INV-R6 — 坐标与门禁事实一致：** Train A 的 acceptance 指令、状态表与依赖图中
+  复制的 Host/Plugins SHA 必须等于 §2.1 精确坐标；CI、mergeability 与 review 等外部
+  门禁每次刷新必须全文件同批更新，已满足的 gate 不得继续出现在等待项中。
 
 ## 4. Train A — M0 Runtime 收口（剩余 PR 1/5）
 
@@ -153,11 +156,13 @@ marketplace 或 Console scope。
    通过。exact HEAD 的 5 项远端 CI 已全绿且 PR 为 MERGEABLE；
 3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
    correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
-   maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复并跨 rebase 保留，等待新 HEAD 复审；
+   maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复并跨 rebase 保留，等待 maintainer
+   对 exact HEAD `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` 复审；
 4. ✅ 单一 upstream Core PR
    [`#1380`](https://github.com/zts212653/clowder-ai/pull/1380) 已创建并登记
    CI、conflict 与 maintainer review 跟踪；
-5. 冻结 reviewed Host SHA 与 Plugins `a0b3554d...`，运行 canonical 18-case
+5. 冻结 reviewed Host SHA 与 §2.1 当前 Plugins exact SHA
+   `e60e6560fb19bc290a9c08bc4f5f1026cb085ffd`，运行 canonical 18-case
    Host ↔ compiled standalone plugin 联合验收；
 6. 用真实 Feishu plugin 证明 install/enable/start/publish/disable/restart 不绕过
    Broker、inventory 与 domain settlement。
@@ -321,7 +326,7 @@ Train C 通过前，以下工作只保留需求输入，不进入实现关键路
 已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
                                       │
                                       ▼
-Train A：M0 Host PR #1380（local reviewed，maintainer findings fixed，rebased gate green）+ new exact-HEAD CI/review + 18-case + Feishu dogfood
+Train A：M0 Host PR #1380（local reviewed，maintainer findings fixed，exact-HEAD CI green / MERGEABLE）+ maintainer exact-HEAD review + 18-case + Feishu alpha.7 dogfood
                                       │
                                       ▼
 Train B：Public SDK/Contribution Contract ──exact publish──► Core Manager/Adapters/Console
