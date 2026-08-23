@@ -35,7 +35,7 @@ Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥
 1. 从 Host 配置的 catalog provider 被发现、查询和安装；
 2. 通过统一 Plugin Manager 完成校验、配置、启用、禁用、更新、修复和卸载；
 3. 只依赖公共 `@clowder-ai/plugin-sdk` 使用授权后的消息、事件、配置、状态、
-   secrets、scheduler、MCP、hook、service、connector 与 Console contribution；
+   secrets、scheduler、MCP、service、connector 与 Console contribution；
 4. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
    保留或清理数据；
 5. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径。
@@ -96,7 +96,7 @@ ledger 这些更严格的边界。
 1. **契约只有一个机器真相源。** Host 与 SDK 精确消费发布的
    `@clowder-ai/plugin-contract`，Core 不得恢复 wire/schema mirror。
 2. **交付按纵切列车，不按接口拆 PR。** lifecycle、messaging、MCP、scheduler、
-   hook、service 或 UI contribution 都不是各开一串 PR 的理由。
+   service 或 UI contribution 都不是各开一串 PR 的理由。
 3. **剩余基础闭环默认五个聚合 PR。** 每个 PR 内用小提交、TDD、按域测试矩阵和
    review 修订保证可审查性；review finding 继续修在原 PR。
 4. **只有边界而非规模允许拆分。** 新信任边界、不可逆 registry/数据迁移，或确实
@@ -163,10 +163,13 @@ Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Cor
   `ctx.effect(...)`；
 - `ctx.messaging`、`ctx.events`、`ctx.config`、`ctx.state`、`ctx.secrets`；
 - `ctx.scheduler.register(...)`、`ctx.mcp.register(...)`；
-- 生命周期 hook 与按真实消费点审查的类型化领域 hook；不开放任意内部 hook；
 - `ctx.services`、`ctx.connectors`、`ctx.ui` contribution API；
 - typed manifest contribution schemas、generated types、conformance fixtures；
 - create-plugin template、API reference、升级兼容规则和真实 composition fixture。
+
+Hook 继续 future-reserved，不进入 v0 contract、SDK 或 Train B 完成线。只有 M1 出现
+无法由事件订阅与 `appendElements` 覆盖的真实同步消费者后，才按 governing design
+P5 逐点定义数据形状、隔离、授权、超时与重试语义。
 
 所有公开注册 API 必须证明：grant 拒绝零副作用、重复注册可判定、dispose 后注册项
 消失、重连/重启语义明确、插件不能自报 Host identity 或持有另一插件实例。
@@ -189,9 +192,12 @@ Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Cor
 
 ### Train B 完成线
 
-一个不含产品特判的 fixture npm 插件必须能从 catalog 安装，只使用公共 SDK 注册
-至少 messaging、schedule/MCP、lifecycle 和 Console contribution，经历配置、启用、
-重启、禁用、更新、卸载后，Host inventory、注册表、UI 和 retained data 全部一致。
+一个不含产品特判的 fixture npm 插件必须能从 catalog 安装，并只使用公共 SDK
+逐项执行 §5.1 承诺的全部 v0 surface：lifecycle/effect、messaging/events、
+config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution。
+验收既覆盖适用的 register/dispose，也覆盖 read/write/call/delivery 语义；类型存在或
+只验证其中几类不能通过。插件经历配置、启用、重启、禁用、更新、卸载后，Host
+inventory、注册表、UI 和 retained data 必须全部一致。
 
 ## 6. Train C — 存量能力集中迁移（剩余 PR 4–5/5）
 
