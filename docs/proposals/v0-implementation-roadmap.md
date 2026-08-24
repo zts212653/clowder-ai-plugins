@@ -254,8 +254,13 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
   非交互调用缺少选择时 fail closed。fresh install 为空；disable/restart/reconnect 保全全部
   store 并只轮换 authority；删除不是 dataset policy 的隐式副作用；
 - reinstall 创建 fresh pluginInstanceId 与全新 lease/cursor/ledger。仅相同
-  `pluginId + publisher identity + origin` 且用户显式恢复时，旧内建 store 才经新 schema
-  migration 原子绑定；失败保留 detached record 并让新实例保持未配置、disabled；
+  `pluginId + publisher identity + origin` 且用户显式恢复时，旧内建 store 与 detached
+  datasets 才经新 schema migration 原子绑定；失败保留 detached snapshot 并让新实例保持
+  未配置、disabled；
+- 每个 manifest dataset 使用 stable datasetId。uninstall journal 将 `retained` 及用户选择
+  保留的 `ask-on-uninstall` 连同 dataClass/policy/schemaVersion/contentDigest 写入 detached
+  dataset inventory，`lifecycle` 删除且不得复活。重装只恢复新 manifest 中同 ID、声明兼容
+  且 migration 成功的 dataset；删除 ID 继续 detached 并由 Settings 管理，新增 ID 从空开始；
 - Host 控制面提供 config/secrets/state 的逐 store explicit clear。已安装实例 clear 前撤销
   相关 lease，journal 原子删除后用新 activation revision reconcile；detached record 也能从
   Settings 清除，插件 callback 无权触发，crash/failure 回滚且审计 ledger 保留。
@@ -305,15 +310,21 @@ crash/restart 与无可用 rollback tree 的失败态逐一断言内容守恒；
 `ask-on-uninstall`。还必须覆盖 repair 与 update/uninstall 并发，证明不会出现半替换 package、
 双份 runtime 或 repair 路径误触发数据处置。
 fixture 还必须执行一条 **uninstall/reinstall/explicit-clear journey**：第一次卸载选择保留
-secrets，证明 config/state 默认进入 detached record、三个 store 均不能再被旧 context 或
-任意 runtime 读取，且 Settings 能列出并逐 store 管理；随后以相同 verified
+secrets 与 `ask-on-uninstall` dataset，证明 config/state 默认进入 detached record、`retained`
+和被选择保留的数据连同 stable datasetId/dataClass/policy/schemaVersion/contentDigest 进入
+detached dataset inventory、`lifecycle` 被删除，且这些内容均不能再被旧 context 或任意
+runtime 读取；Settings 必须能列出并逐项管理。随后以相同 verified
 `pluginId + publisher identity + origin` 重装，断言获得 fresh pluginInstanceId、旧 lease/cursor/
-幂等与结算账本均不复用，只有用户显式恢复后 config/secrets/state 才经 migration 原子绑定。
-用不同 signer/origin 认领必须拒绝，恢复失败必须保留 detached snapshot 并让新实例保持
-未配置、disabled。fixture 再分别覆盖卸载时选择清除 secrets，以及已安装和 detached 状态下
-逐项 clear config/secrets/state；断言 clear 前 authority 已撤销、readiness/credential/
-namespace 投影正确、新 activation revision reconcile、crash 回滚且 audit/transaction ledger
-不被用户数据清除连带抹除。
+幂等与结算账本均不复用，只有用户显式恢复后 config/secrets/state 与新 manifest 中同
+stable datasetId 的 `retained`/保留的 `ask-on-uninstall` 才经 migration 作为一个 bundle
+原子绑定。fresh context 激活后必须验证 **post-reinstall readability** 与迁移输出，旧 context
+仍 fail closed；新增/`lifecycle` dataset 为空，已删除 ID 继续 detached 且不可被 runtime 认领。
+用不同 signer/origin、伪造 datasetId 或不兼容声明认领必须拒绝，任一 built-in store/dataset
+migration 失败必须保留全部 detached snapshot 并让新实例保持未配置、disabled，不能部分恢复。
+这条 **retained/ask-on-uninstall reattach journey** 还要分别覆盖卸载时选择清除 secrets/
+`ask-on-uninstall`，以及已安装和 detached 状态下逐项 clear config/secrets/state 与 detached
+dataset；断言 clear 前 authority 已撤销、readiness/credential/namespace/inventory 投影正确、
+新 activation revision reconcile、crash 回滚且 audit/transaction ledger 不被数据清除连带抹除。
 fixture 还必须执行一条**两版本 update 旅程**：从已填充 config、secrets、state 与三类数据集
 的 v1 更新到带 config/state schema migration 的 v2，断言 migration 输出、未迁移数据守恒、
 旧 runtime 退出后才开放新 runtime；再分别在 migration 中途和原子切换前注入 crash/failure，
