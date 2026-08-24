@@ -270,7 +270,12 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
   `absorbedDetachedBundleIds` / `absorbedByDetachedBundleId`；不得吸收其他 instance 的历史 uninstall
   generation。entry 保留原 `U + datasetId` key，Settings 在 A 下嵌套展示/精确 clear。重装只接纳
   用户显式选择的单一 A logical closure 中同 ID、声明兼容且 migration 成功的 dataset；同一 closure
-  有多个同 ID entry 时要求用户显式选至多一个 exact candidate，默认不猜“最新”；
+  有多个同 ID entry 时，候选全集必须覆盖 A direct 与全部 child U，并以
+  `(entry.detachedBundleId, datasetId)` 为 exact candidate key。用户显式选至多一个 eligible candidate，
+  未选则该 ID 不恢复，Host 不得偏向 direct/child 或猜“最新”。candidate list 只从 committed
+  inventory/lineage 与 verified manifest/migration plan 投影；restore journal 冻结 A、inventory revision、
+  verified package revision 与 exact keys，和 clear 串行；stale/foreign/ineligible/duplicate selection 或
+  package revision 漂移在消费任何 entry 前 fail closed；
 - Host 控制面提供 config/secrets/state 的逐 store explicit clear。已安装实例 clear 前撤销
   相关 lease，journal 原子删除后用新 activation revision reconcile；detached record 也能从
   Settings 清除，插件 callback 无权触发，crash/failure 回滚且审计 ledger 保留。
@@ -383,8 +388,14 @@ A 的 `absorbedDetachedBundleIds` 含 U、U 的 `absorbedByDetachedBundleId` 指
 可选但 entry key/provenance 不变，而其他 pluginInstanceId 的历史 snapshots 不变。用相同 identity
 重装并显式选择 A logical closure，必须满足
 **A restores both built-in stores and the update-detached dataset**（后者仍须 stable ID/声明兼容且
-migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 注入两个同 stable ID 的
-U entries，断言未显式选择 exact candidate 时该 ID 默认不恢复。分别在 policy census、link edge、
+migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 分别注入两个同 stable ID 的
+U entries，以及一个同 ID 的 A direct entry 与 child U entry。断言 Settings 用
+`(entry.detachedBundleId, datasetId)` 展示完整候选集，未显式选择时该 ID 默认不恢复；分别选择 direct
+与 child 时只把被选的可区分内容送入 migration staging，另一项保持原 key/lineage detached，不得隐式
+偏向“当前”或“历史”内容。再提交属于另一个 top-level snapshot 的 foreign key、已被 concurrent clear
+移除的 stale key、ineligible key 与同 ID 双选，并在选择后替换 verified package revision，断言 restore
+在消费任何 entry 前 fail closed；clear/restore 按 inventory revision 串行，crash/retry 复用 journal 中
+同一 package revision/选择且不产生第二份 selector state。分别在 policy census、link edge、
 A commit 前后注入 crash/restart：只允许“installed + 完整 standalone U、无 A”或“absent + 完整 A
 closure、无 standalone U”，重试复用同一 A 且无重复/多父/环；验收必须断言 **no split lineage**。
 再分别通过 restore 与 explicit clear 排空一个 child U，断言 U metadata、A→U 与 U→A 在同一 commit
