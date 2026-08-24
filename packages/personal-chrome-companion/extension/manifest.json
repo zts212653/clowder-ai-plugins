@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Cat Café Personal Chrome Companion",
+  "version": "0.1.0",
+  "description": "User-authorized append bridge for an already-bound personal ChatGPT conversation.",
+  "permissions": ["nativeMessaging", "tabs"],
+  "host_permissions": ["https://chatgpt.com/*"],
+  "action": {
+    "default_title": "绑定此会话"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["chatgpt-page-adapter.mjs"],
+      "matches": ["https://chatgpt.com/*"]
+    }
+  ]
+}

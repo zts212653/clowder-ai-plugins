@@ -45,6 +45,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       '@clowder-ai/plugin-contract',
       '@clowder-ai/plugin-sdk',
       '@clowder-ai/feishu-meeting-intake',
+      '@clowder-ai/personal-chrome-companion',
     ]) {
       run('pnpm', ['--filter', packageName, 'build'], repoRoot);
     }
@@ -53,6 +54,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       pack('packages/plugin-contract', packs),
       pack('packages/plugin-sdk', packs),
       pack('packages/feishu-meeting-intake', packs),
+      pack('packages/personal-chrome-companion', packs),
     ];
 
     const staged = join(root, 'staged');
@@ -71,6 +73,19 @@ test('packed public packages install and import in a fresh npm consumer', async 
       stagedPackage,
     );
 
+    const stagedCompanion = join(root, 'staged-personal-chrome-companion');
+    await mkdir(stagedCompanion);
+    run('tar', ['-xzf', tarballs[3], '-C', stagedCompanion], root);
+    const stagedCompanionPackage = join(stagedCompanion, 'package');
+    const stagedCompanionManifest = JSON.parse(
+      await readFile(join(stagedCompanionPackage, 'extension/manifest.json'), 'utf8'),
+    );
+    assert.equal(stagedCompanionManifest.manifest_version, 3);
+    assert.equal(stagedCompanionManifest.key, undefined);
+    assert.deepEqual(stagedCompanionManifest.permissions, ['nativeMessaging', 'tabs']);
+    await readFile(join(stagedCompanionPackage, 'native-host/native-host-cli.mjs'), 'utf8');
+    run('node', ['native-host/native-host-cli.mjs', '--help'], stagedCompanionPackage);
+
     run(
       'npm',
       ['install', '--ignore-scripts', '--package-lock=false', ...tarballs],
@@ -83,6 +98,12 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const feishuPackage = JSON.parse(
       await readFile(
         join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/package.json'),
+        'utf8',
+      ),
+    );
+    const companionPackage = JSON.parse(
+      await readFile(
+        join(consumer, 'node_modules/@clowder-ai/personal-chrome-companion/package.json'),
         'utf8',
       ),
     );
@@ -113,13 +134,31 @@ test('packed public packages install and import in a fresh npm consumer', async 
       join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/dist/entrypoint.js'),
       'utf8',
     );
+    assert.equal(companionPackage.version, '0.1.0-alpha.0');
+    assert.equal(companionPackage.private, undefined);
+    assert.deepEqual(companionPackage.dependencies, undefined);
+    assert.deepEqual(companionPackage.bin, {
+      'clowder-personal-chrome-host': 'native-host/native-host-cli.mjs',
+    });
+    await readFile(
+      join(consumer, 'node_modules/@clowder-ai/personal-chrome-companion/extension/manifest.json'),
+      'utf8',
+    );
+    run(
+      'node',
+      [
+        'node_modules/@clowder-ai/personal-chrome-companion/native-host/native-host-cli.mjs',
+        '--help',
+      ],
+      consumer,
+    );
 
     run(
       'node',
       [
         '--input-type=module',
         '--eval',
-        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); if (typeof contract.validateManifest !== 'function' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function') process.exit(1);",
+        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const request = companion.parsePersonalChromeAppendRequest({ v: 1, kind: 'append_message', requestId: 'fresh-1', conversationId: 'conversation-1', text: 'fresh consumer', idempotencyKey: 'delivery-1' }); if (typeof contract.validateManifest !== 'function' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || request.conversationId !== 'conversation-1') process.exit(1);",
       ],
       consumer,
     );
