@@ -281,14 +281,18 @@ update 也必须是同一 Manager 拥有的版本化事务，而不是“覆盖 
 Train B fixture 必须提供 v1/v2 两个真实 package artifact：v1 预先写入 versioned config/state、
 secrets 与三种处置策略的数据集，v2 声明 config/state migration。Host 先 staging 新 tree 与
 migration output；成功时 package/inventory、迁移数据和新 activation revision 原子切换，
-旧 runtime 先退出且永不与新 runtime 双跑。migration 失败、切换前 crash 或 restart recovery
-必须恢复完整 v1 tree/data/runtime 投影；secrets 与未声明迁移的数据集逐字节守恒，update
-不得执行 `lifecycle`、`retained` 或 `ask-on-uninstall` 的卸载处置。
+旧 runtime 先退出且永不与新 runtime 双跑。切换边界前的 migration/crash 失败若尚未撤销旧
+lease，必须丢弃 staging 并保持原 v1 runtime/revision；切换边界后旧 lease 已撤销或 runtime
+已退出的失败，则恢复 v1 tree/data/desired projection，但必须签发全新的 rollback activation
+revision 重新 reconcile，不能把已 revoked 的 v1 current/revision 改回 active。后一分支中旧
+v1 context 与失败 v2 attempt context 均继续 fail closed；secrets 与未声明迁移的数据集逐字节
+守恒，update 不得执行 `lifecycle`、`retained` 或 `ask-on-uninstall` 的卸载处置。
 v1/v2 manifest 还必须覆盖 plugin 总闸 desired、enabled 与 disabled 的存续 ID、一个新增 ID、
 一个删除 ID、稳定 ID 下的显示名变更，以及一次 ID 变更。只有存续 ID 继承 desired；新增与
 改 ID 后的 feature 默认 disabled，删除 ID 不得残留 v2 current/lease/resource；current 只按
 v2 grants/config reconcile，新增 grant 未获批时不能因旧 desired 自动扩权。任一 update
-失败必须恢复完整 v1 plugin/feature desired/current 选择投影。
+失败必须恢复完整 v1 plugin/feature desired 选择；current 只能保留未被撤销的切换前投影，
+或在撤销发生后由新的 rollback activation revision reconcile 生成。
 
 ### Train B 完成线
 
@@ -311,25 +315,35 @@ crash/restart 与无可用 rollback tree 的失败态逐一断言内容守恒；
 双份 runtime 或 repair 路径误触发数据处置。
 fixture 还必须执行一条 **uninstall/reinstall/explicit-clear journey**：第一次卸载选择保留
 secrets 与 `ask-on-uninstall` dataset，证明 config/state 默认进入 detached record、`retained`
-和被选择保留的数据连同 stable datasetId/dataClass/policy/schemaVersion/contentDigest 进入
-detached dataset inventory、`lifecycle` 被删除，且这些内容均不能再被旧 context 或任意
-runtime 读取；Settings 必须能列出并逐项管理。随后以相同 verified
-`pluginId + publisher identity + origin` 重装，断言获得 fresh pluginInstanceId、旧 lease/cursor/
-幂等与结算账本均不复用，只有用户显式恢复后 config/secrets/state 与新 manifest 中同
-stable datasetId 的 `retained`/保留的 `ask-on-uninstall` 才经 migration 作为一个 bundle
-原子绑定。fresh context 激活后必须验证 **post-reinstall readability** 与迁移输出，旧 context
-仍 fail closed；新增/`lifecycle` dataset 为空，已删除 ID 继续 detached 且不可被 runtime 认领。
+和被选择保留的数据连同 Host-issued `detachedBundleId A`、stable datasetId/dataClass/policy/
+schemaVersion/contentDigest 进入 detached dataset inventory、`lifecycle` 被删除，且这些内容
+均不能再被旧 context 或任意 runtime 读取。随后不恢复 A 地重装，写入可区分的第二代 store/
+dataset 内容并再次选择保留卸载，产生相同 plugin/publisher/origin 与 stable datasetId、但具有
+`detachedBundleId B` 的第二代 detached snapshot；Settings 必须按 generation 列出并逐项管理
+A/B。再次以相同 verified `pluginId + publisher identity + origin` 重装时，断言获得 fresh
+pluginInstanceId、旧 lease/cursor/幂等与结算账本均不复用；用户必须显式选择恰好一个
+`detachedBundleId`，Host 只能把选中 generation 的 config/secrets/state 与新 manifest 中同
+stable datasetId 的 `retained`/保留的 `ask-on-uninstall` 经 migration 作为一个 bundle 原子
+绑定，禁止把 A/B 跨代拼接或隐式选择“最新”。未选 generation 与选中 bundle 中未被新
+manifest 接纳的条目继续 detached。fresh context 激活后必须验证 **post-reinstall readability**
+与所选 generation 的迁移输出，旧 context 仍 fail closed；新增/`lifecycle` dataset 为空，
+已删除 ID 继续 detached 且不可被 runtime 认领。
 用不同 signer/origin、伪造 datasetId 或不兼容声明认领必须拒绝，任一 built-in store/dataset
 migration 失败必须保留全部 detached snapshot 并让新实例保持未配置、disabled，不能部分恢复。
 这条 **retained/ask-on-uninstall reattach journey** 还要分别覆盖卸载时选择清除 secrets/
 `ask-on-uninstall`，以及已安装和 detached 状态下逐项 clear config/secrets/state 与 detached
-dataset；断言 clear 前 authority 已撤销、readiness/credential/namespace/inventory 投影正确、
-新 activation revision reconcile、crash 回滚且 audit/transaction ledger 不被数据清除连带抹除。
+dataset；detached clear 必须用 `detachedBundleId + store kind/datasetId` 命中指定 generation，
+并证明同 stable datasetId 的另一代不受影响。还要断言 clear 前 authority 已撤销、readiness/
+credential/namespace/inventory 投影正确、新 activation revision reconcile、crash 回滚且
+audit/transaction ledger 不被数据清除连带抹除。
 fixture 还必须执行一条**两版本 update 旅程**：从已填充 config、secrets、state 与三类数据集
 的 v1 更新到带 config/state schema migration 的 v2，断言 migration 输出、未迁移数据守恒、
-旧 runtime 退出后才开放新 runtime；再分别在 migration 中途和原子切换前注入 crash/failure，
-证明 package tree、inventory、全部数据 snapshot 与 activation revision 一起回滚到 v1，
-restart reconcile 后也不存在 old/new 双 runtime。只检查最终版本号或 retained data 不能通过。
+旧 runtime 退出后才开放新 runtime。先在 migration 中途和切换边界前注入 crash/failure，证明
+未被撤销的 v1 runtime/revision 保持原样；再在旧 runtime 已退出且 lease 已 revoked、但 v2
+尚未可见时注入失败，证明 package tree、inventory、全部数据 snapshot 与 desired 选择恢复为
+v1，却由全新的 rollback activation revision reconcile，绝不复用旧 v1 或失败 v2 revision。
+保存的旧 v1 context 与失败 v2 attempt context 必须全部 fail closed，restart reconcile 后也不
+存在 old/new 双 runtime。只检查最终版本号或 retained data 不能通过。
 fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
 activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。撤销其中一个
 feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
