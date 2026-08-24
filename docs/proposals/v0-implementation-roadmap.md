@@ -260,9 +260,13 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 - reinstall 创建 fresh pluginInstanceId 与全新 lease/cursor/ledger。仅相同
   `pluginId + publisher identity + origin` 且用户显式恢复时，旧内建 store 与 detached
   datasets 才经新 schema migration 原子绑定；失败保留 detached snapshot 并让新实例保持
-  未配置、disabled；成功但只接纳部分 entry 时，source snapshot 的非空 residual root 必须在
-  同一 commit 以 Host-issued `restoreCarryOwnerPluginInstanceId` 独占绑定 fresh instance，
-  不再作为独立 top-level generation 可选且仍不可被 runtime 读取；
+  未配置、disabled；只有至少一项 durable store record 或 dataset inventory entry 实际绑定的
+  positive-yield restore 才能提交 fresh instance。成功但只接纳部分 entry 时，source snapshot
+  的非空 residual root 必须在同一 commit 以 Host-issued
+  `restoreCarryOwnerPluginInstanceId` 独占绑定 fresh instance，不再作为独立 top-level
+  generation 可选且仍不可被 runtime 读取。若 built-in stores 已清且所有剩余 dataset 都不兼容
+  或未选择，zero-yield 必须以 `no_compatible_restore_input` 在 instance/package activation 与
+  carry commit 前终止，package 保持 absent、source snapshot 保持 top-level selectable；
 - 每个 manifest dataset 使用 stable datasetId。Host 为每个 durable detach generation 签发
   `detachedBundleId`；bundle 标注 `bundleKind: update-holding | uninstall-snapshot`，entry 保留首次
   `sourceOperation: uninstall | update` 及原始 dataClass/policy/schemaVersion/contentDigest。update
@@ -367,8 +371,9 @@ pluginInstanceId、旧 lease/cursor/幂等与结算账本均不复用；用户�
 `detachedBundleId`，Host 只能把选中 generation 的 config/secrets/state 与新 manifest 中同
 stable datasetId 的 `retained`/保留的 `ask-on-uninstall` 经 migration 作为一个 bundle 原子
 绑定，禁止把 A/B 跨代拼接或隐式选择“最新”。未选 generation 继续 top-level detached；选中
-root 中未被新 manifest 接纳的条目仍留原 recursive closure，并在成功 commit 原子 carry-bound
-给 fresh instance，不得继续作为另一个 top-level generation 可选。fresh context 激活后必须验证 **post-reinstall readability**
+root 中未被新 manifest 接纳的条目仍留原 recursive closure，并在至少一项 durable record
+已绑定的 positive-yield commit 原子 carry-bound 给 fresh instance，不得继续作为另一个
+top-level generation 可选。fresh context 激活后必须验证 **post-reinstall readability**
 与所选 generation 的迁移输出，旧 context 仍 fail closed；新增/`lifecycle` dataset 为空，
 已删除 ID 继续 detached 且不可被 runtime 认领。
 用不同 signer/origin、伪造 datasetId 或不兼容声明认领必须拒绝，任一 built-in store/dataset
@@ -379,6 +384,16 @@ dataset；detached clear 必须用 `detachedBundleId + store kind/datasetId` 命
 并证明同 stable datasetId 的另一代不受影响。还要断言 clear 前 authority 已撤销、readiness/
 credential/namespace/inventory 投影正确、新 activation revision reconcile、crash 回滚且
 audit/transaction ledger 不被数据清除连带抹除。
+
+fixture 还必须执行一条 **zero-yield restore journey**：先显式清除 source snapshot A 的全部
+built-in stores，使 A 只剩当版 verified manifest 不兼容或用户未选择的 datasets。提交恢复 A 时，
+restore journal 可以完成候选枚举与 staging 检查，但在 commit gate 必须得到零条 durable record
+binding，并返回 typed `no_compatible_restore_input`；不得提交 package/fresh instance、不得写
+`restoreCarryOwnerPluginInstanceId`、不得消费 entry 或改变 A 的 lineage/inventory revision，终态仍是
+`absent + top-level selectable A`。随后换用能兼容并迁移其中一项 dataset 的 verified package 重试，
+必须直接从同一个 A 成功产生 positive-yield restore，无需先卸载任何空实例。在 yield 计算、instance
+commit 与 carry commit 前后注入 crash/retry，均只能观察到完整 unchanged A，或至少绑定一项且 residual
+原子 carry-bound 的完整 fresh instance；禁止 zero-yield instance、隐藏 A、空 carry 或重复消费。
 fixture 还必须执行一条**两版本 update 旅程**：从已填充 config、secrets、state 与三类数据集
 的 v1 更新到带 config/state schema migration 的 v2。v1/v2 dataset fixture 必须同时包含一个
 同 stable ID 且 migration 成功的存续 dataset、一个 removed datasetId、一次 stable ID 变更、
@@ -394,8 +409,8 @@ stores、`retained` 与用户选择保留的 `ask-on-uninstall`，生成唯一 *
 A 的 `absorbedDetachedBundleIds` 含 U、U 的 `absorbedByDetachedBundleId` 指向 A，U 不再 standalone
 可选但 entry key/provenance 不变，而其他 pluginInstanceId 的历史 snapshots 不变。用相同 identity
 重装并显式选择 A recursive logical closure，必须满足
-**A restores both built-in stores and the update-detached dataset**（后者仍须 stable ID/声明兼容且
-migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 分别注入两个同 stable ID 的
+**A restores both built-in stores and the update-detached dataset**（这是 positive-yield；后者仍须
+stable ID/声明兼容且 migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 分别注入两个同 stable ID 的
 descendant entries，以及一个同 ID 的 A direct entry 与 descendant entry。断言 Settings 用
 `(entry.detachedBundleId, datasetId)` 展示完整候选集，未显式选择时该 ID 默认不恢复；分别选择 direct
 与任意 depth descendant 时只把被选的可区分内容送入 migration staging，另一项保持原 key/lineage detached，不得隐式
