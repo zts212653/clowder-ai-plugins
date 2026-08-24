@@ -262,12 +262,15 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
   datasets 才经新 schema migration 原子绑定；失败保留 detached snapshot 并让新实例保持
   未配置、disabled；
 - 每个 manifest dataset 使用 stable datasetId。Host 为每个 durable detach generation 签发
-  `detachedBundleId`，inventory 记录 `sourceOperation: uninstall | update` 及原始
-  dataClass/policy/schemaVersion/contentDigest。uninstall 对 `lifecycle` 删除、对 `retained` 和用户
-  选择保留的 `ask-on-uninstall` 建档；update 不执行卸载策略，而把 v2 移除、改 ID 或无法兼容
-  接纳的旧 dataset 原子放入 update-sourced detached bundle。重装/恢复只接纳用户显式选择的
-  单一 bundle 中同 ID、声明兼容且 migration 成功的 dataset；其余条目继续 detached、Settings
-  可见并可按 bundle + datasetId 清除，任何 runtime 都不可读；新增/替代 ID 从空开始；
+  `detachedBundleId`；bundle 标注 `bundleKind: update-holding | uninstall-snapshot`，entry 保留首次
+  `sourceOperation: uninstall | update` 及原始 dataClass/policy/schemaVersion/contentDigest。update
+  不执行卸载策略，而把 v2 移除、改 ID 或无法兼容接纳的旧 dataset 原子放入 update-holding。
+  later uninstall 必须枚举同 pluginInstanceId 的全部 standalone update-holding entries，按原 policy
+  处置后将非空 U 作为 immutable child link 到唯一 uninstall snapshot，并原子写去重的
+  `absorbedDetachedBundleIds` / `absorbedByDetachedBundleId`；不得吸收其他 instance 的历史 uninstall
+  generation。entry 保留原 `U + datasetId` key，Settings 在 A 下嵌套展示/精确 clear。重装只接纳
+  用户显式选择的单一 A logical closure 中同 ID、声明兼容且 migration 成功的 dataset；同一 closure
+  有多个同 ID entry 时要求用户显式选至多一个 exact candidate，默认不猜“最新”；
 - Host 控制面提供 config/secrets/state 的逐 store explicit clear。已安装实例 clear 前撤销
   相关 lease，journal 原子删除后用新 activation revision reconcile；detached record 也能从
   Settings 清除，插件 callback 无权触发，crash/failure 回滚且审计 ledger 保留。
@@ -301,9 +304,10 @@ v1 context 与失败 v2 attempt context 均继续 fail closed；secrets 与所�
 update 不得执行 `lifecycle`、`retained` 或 `ask-on-uninstall` 的卸载处置。相同 stable datasetId
 且声明兼容、migration 成功的内容绑定到 v2；removed datasetId、stable ID 变更或不兼容声明的
 旧内容必须按原 metadata 建入 update-sourced inventory，v2 新/替代 dataset 从空开始。runtime
-cannot read detached 内容，Settings lists the update-sourced bundle 并提供精确 clear；后续恢复
-仍需用户显式选择单一 bundle，不能自动认领。任一失败恢复完整 v1 binding，且不得留下 orphan、
-partial or duplicate detached bundle；后续 uninstall 按原 policy 处置这些 update-detached 条目。
+cannot read detached 内容，Settings lists the update-sourced bundle 并提供精确 clear；这些
+update-holding 内容不能被 runtime、后续 package 或 reinstall 自动认领。任一失败恢复完整 v1 binding，且不得留下
+orphan、partial or duplicate detached bundle；后续 uninstall 按原 policy 处置这些条目，把非空 U
+与该 instance 的内建 stores/current datasets 原子 link 成一个 uninstall snapshot closure，不能留下 split lineage。
 v1/v2 manifest 还必须覆盖 plugin 总闸 desired、enabled 与 disabled 的存续 ID、一个新增 ID、
 一个删除 ID、稳定 ID 下的显示名变更，以及一次 ID 变更。只有存续 ID 继承 desired；新增与
 改 ID 后的 feature 默认 disabled，删除 ID 不得残留 v2 current/lease/resource；current 只按
@@ -371,6 +375,20 @@ fixture 还必须执行一条**两版本 update 旅程**：从已填充 config�
 runtime cannot read detached，Settings lists the update-sourced bundle 且能按
 `detachedBundleId + datasetId` 精确 clear。还须证明没有用户显式选择就不能恢复/认领 detached
 内容，后续 uninstall 按旧 metadata 的原 policy 处置 update-detached 条目。
+
+成功 update 后继续执行 lineage journey：被移除的 dataset 先进入 **update-holding bundle U**，
+Settings 可列出并精确 clear，但 runtime/reinstall 均不可读或选取 U。随后卸载同一 instance，保留
+stores、`retained` 与用户选择保留的 `ask-on-uninstall`，生成唯一 **uninstall snapshot A**；断言
+A 的 `absorbedDetachedBundleIds` 含 U、U 的 `absorbedByDetachedBundleId` 指向 A，U 不再 standalone
+可选但 entry key/provenance 不变，而其他 pluginInstanceId 的历史 snapshots 不变。用相同 identity
+重装并显式选择 A logical closure，必须满足
+**A restores both built-in stores and the update-detached dataset**（后者仍须 stable ID/声明兼容且
+migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 注入两个同 stable ID 的
+U entries，断言未显式选择 exact candidate 时该 ID 默认不恢复。分别在 policy census、link edge、
+A commit 前后注入 crash/restart：只允许“installed + 完整 standalone U、无 A”或“absent + 完整 A
+closure、无 standalone U”，重试复用同一 A 且无重复/多父/环；验收必须断言 **no split lineage**。
+再分别通过 restore 与 explicit clear 排空一个 child U，断言 U metadata、A→U 与 U→A 在同一 commit
+删除且其他 child 不变；A direct records/children 全空后才删除 A，任一 crash 不得留下 dangling edge。
 
 旅程同时断言 config/state migration 输出、未迁移数据守恒、旧 runtime 退出后才开放新 runtime。
 先在 migration 中途和切换边界前注入 crash/failure，证明
