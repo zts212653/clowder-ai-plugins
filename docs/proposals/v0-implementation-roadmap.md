@@ -260,22 +260,27 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 - reinstall 创建 fresh pluginInstanceId 与全新 lease/cursor/ledger。仅相同
   `pluginId + publisher identity + origin` 且用户显式恢复时，旧内建 store 与 detached
   datasets 才经新 schema migration 原子绑定；失败保留 detached snapshot 并让新实例保持
-  未配置、disabled；
+  未配置、disabled；成功但只接纳部分 entry 时，source snapshot 的非空 residual root 必须在
+  同一 commit 以 Host-issued `restoreCarryOwnerPluginInstanceId` 独占绑定 fresh instance，
+  不再作为独立 top-level generation 可选且仍不可被 runtime 读取；
 - 每个 manifest dataset 使用 stable datasetId。Host 为每个 durable detach generation 签发
   `detachedBundleId`；bundle 标注 `bundleKind: update-holding | uninstall-snapshot`，entry 保留首次
   `sourceOperation: uninstall | update` 及原始 dataClass/policy/schemaVersion/contentDigest。update
   不执行卸载策略，而把 v2 移除、改 ID 或无法兼容接纳的旧 dataset 原子放入 update-holding。
-  later uninstall 必须枚举同 pluginInstanceId 的全部 standalone update-holding entries，按原 policy
-  处置后将非空 U 作为 immutable child link 到唯一 uninstall snapshot，并原子写去重的
-  `absorbedDetachedBundleIds` / `absorbedByDetachedBundleId`；不得吸收其他 instance 的历史 uninstall
-  generation。entry 保留原 `U + datasetId` key，Settings 在 A 下嵌套展示/精确 clear。重装只接纳
-  用户显式选择的单一 A logical closure 中同 ID、声明兼容且 migration 成功的 dataset；同一 closure
-  有多个同 ID entry 时，候选全集必须覆盖 A direct 与全部 child U，并以
+  later uninstall 必须枚举同 pluginInstanceId 的全部 standalone update-holding entries，以及该
+  instance 至多一个 **carried source snapshot A**。按原 policy 处置本代 attached/U 后，将非空 U 与
+  carried A 作为 immutable children link 到唯一新 uninstall snapshot B，并原子写去重的
+  `absorbedDetachedBundleIds` / `absorbedByDetachedBundleId`、清除 A carry owner；不得吸收其他
+  unrelated instance 的历史 uninstall generation。A 的既有 descendants 原样递归可达，entry 保留首次
+  bundle 的 exact key，Settings 在 B 下递归展示/精确 clear。重装只接纳用户显式选择的单一
+  top-level recursive logical closure 中同 ID、声明兼容且 migration 成功的 dataset；同一 closure
+  有多个同 ID entry 时，候选全集必须覆盖 root direct 与任意深度 descendants，并以
   `(entry.detachedBundleId, datasetId)` 为 exact candidate key。用户显式选至多一个 eligible candidate，
   未选则该 ID 不恢复，Host 不得偏向 direct/child 或猜“最新”。candidate list 只从 committed
   inventory/lineage 与 verified manifest/migration plan 投影；restore journal 冻结 A、inventory revision、
   verified package revision 与 exact keys，和 clear 串行；stale/foreign/ineligible/duplicate selection 或
-  package revision 漂移在消费任何 entry 前 fail closed；
+  package revision 漂移在消费任何 entry 前 fail closed；graph 必须无环、child 单父，Host 以
+  inventory 大小为界迭代遍历，不能靠递归调用栈；
 - Host 控制面提供 config/secrets/state 的逐 store explicit clear。已安装实例 clear 前撤销
   相关 lease，journal 原子删除后用新 activation revision reconcile；detached record 也能从
   Settings 清除，插件 callback 无权触发，crash/failure 回滚且审计 ledger 保留。
@@ -311,8 +316,9 @@ update 不得执行 `lifecycle`、`retained` 或 `ask-on-uninstall` 的卸载处
 旧内容必须按原 metadata 建入 update-sourced inventory，v2 新/替代 dataset 从空开始。runtime
 cannot read detached 内容，Settings lists the update-sourced bundle 并提供精确 clear；这些
 update-holding 内容不能被 runtime、后续 package 或 reinstall 自动认领。任一失败恢复完整 v1 binding，且不得留下
-orphan、partial or duplicate detached bundle；后续 uninstall 按原 policy 处置这些条目，把非空 U
-与该 instance 的内建 stores/current datasets 原子 link 成一个 uninstall snapshot closure，不能留下 split lineage。
+orphan、partial or duplicate detached bundle；后续 uninstall 按原 policy 处置这些条目，把非空 U、
+该 instance 的内建 stores/current datasets，以及上次部分恢复 carry 给该 instance 的 source root
+原子 link 成一个新的 top-level uninstall snapshot recursive closure，不能留下 split lineage。
 v1/v2 manifest 还必须覆盖 plugin 总闸 desired、enabled 与 disabled 的存续 ID、一个新增 ID、
 一个删除 ID、稳定 ID 下的显示名变更，以及一次 ID 变更。只有存续 ID 继承 desired；新增与
 改 ID 后的 feature 默认 disabled，删除 ID 不得残留 v2 current/lease/resource；current 只按
@@ -360,8 +366,9 @@ A/B。再次以相同 verified `pluginId + publisher identity + origin` 重装�
 pluginInstanceId、旧 lease/cursor/幂等与结算账本均不复用；用户必须显式选择恰好一个
 `detachedBundleId`，Host 只能把选中 generation 的 config/secrets/state 与新 manifest 中同
 stable datasetId 的 `retained`/保留的 `ask-on-uninstall` 经 migration 作为一个 bundle 原子
-绑定，禁止把 A/B 跨代拼接或隐式选择“最新”。未选 generation 与选中 bundle 中未被新
-manifest 接纳的条目继续 detached。fresh context 激活后必须验证 **post-reinstall readability**
+绑定，禁止把 A/B 跨代拼接或隐式选择“最新”。未选 generation 继续 top-level detached；选中
+root 中未被新 manifest 接纳的条目仍留原 recursive closure，并在成功 commit 原子 carry-bound
+给 fresh instance，不得继续作为另一个 top-level generation 可选。fresh context 激活后必须验证 **post-reinstall readability**
 与所选 generation 的迁移输出，旧 context 仍 fail closed；新增/`lifecycle` dataset 为空，
 已删除 ID 继续 detached 且不可被 runtime 认领。
 用不同 signer/origin、伪造 datasetId 或不兼容声明认领必须拒绝，任一 built-in store/dataset
@@ -386,20 +393,37 @@ Settings 可列出并精确 clear，但 runtime/reinstall 均不可读或选取 
 stores、`retained` 与用户选择保留的 `ask-on-uninstall`，生成唯一 **uninstall snapshot A**；断言
 A 的 `absorbedDetachedBundleIds` 含 U、U 的 `absorbedByDetachedBundleId` 指向 A，U 不再 standalone
 可选但 entry key/provenance 不变，而其他 pluginInstanceId 的历史 snapshots 不变。用相同 identity
-重装并显式选择 A logical closure，必须满足
+重装并显式选择 A recursive logical closure，必须满足
 **A restores both built-in stores and the update-detached dataset**（后者仍须 stable ID/声明兼容且
 migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 分别注入两个同 stable ID 的
-U entries，以及一个同 ID 的 A direct entry 与 child U entry。断言 Settings 用
+descendant entries，以及一个同 ID 的 A direct entry 与 descendant entry。断言 Settings 用
 `(entry.detachedBundleId, datasetId)` 展示完整候选集，未显式选择时该 ID 默认不恢复；分别选择 direct
-与 child 时只把被选的可区分内容送入 migration staging，另一项保持原 key/lineage detached，不得隐式
+与任意 depth descendant 时只把被选的可区分内容送入 migration staging，另一项保持原 key/lineage detached，不得隐式
 偏向“当前”或“历史”内容。再提交属于另一个 top-level snapshot 的 foreign key、已被 concurrent clear
 移除的 stale key、ineligible key 与同 ID 双选，并在选择后替换 verified package revision，断言 restore
 在消费任何 entry 前 fail closed；clear/restore 按 inventory revision 串行，crash/retry 复用 journal 中
 同一 package revision/选择且不产生第二份 selector state。分别在 policy census、link edge、
 A commit 前后注入 crash/restart：只允许“installed + 完整 standalone U、无 A”或“absent + 完整 A
 closure、无 standalone U”，重试复用同一 A 且无重复/多父/环；验收必须断言 **no split lineage**。
-再分别通过 restore 与 explicit clear 排空一个 child U，断言 U metadata、A→U 与 U→A 在同一 commit
-删除且其他 child 不变；A direct records/children 全空后才删除 A，任一 crash 不得留下 dangling edge。
+再分别通过 restore 与 explicit clear 排空一个 descendant leaf，断言 leaf metadata 与双向 parent edge 在
+同一 commit 删除且其他 branch 不变；从 leaf 向 root 级联清理空节点，root direct records/children 全空后
+才删除 root/carry owner，任一 crash 不得留下 dangling edge。
+
+紧接着执行一条 **partial-restore continuity journey**：令 source snapshot A 同时包含可接纳的 built-in
+stores/dataset X 与当版 manifest 不兼容的 dataset Y。恢复 A 到 fresh instance I2 时，只允许 stores/X
+原子绑定；residual A 必须在同一 commit 写 `restoreCarryOwnerPluginInstanceId=I2`，从 top-level selectable
+转成 installed-carried，Settings 仍可递归查看/精确 clear，I2 runtime 仍不可读取 Y。随后让 I2 产生可区分
+的最新 stores/X 与一个 update-holding U2，再卸载 I2：Host 必须生成唯一 top-level snapshot B，把本代保留
+内容写成 B direct，并把 U2 与 **carried source snapshot A** 原子 link 为 B children、清 A carry owner；
+A 的既有 descendants、entry exact keys 与 provenance 原样保留。即使本代没有其他保留内容，只要 A residual
+非空也必须生成 B，不能把 A 留成 sibling top-level。下一次 manifest 已能迁移 Y 时，用户只选择 B 就必须
+同时枚举 B 的最新 stores/X、U2 与 A subtree 的 Y，禁止再单独选择 A 或临时拼 bundle-set。
+在 restore 绑定 selected entries/carry owner、uninstall 创建 B/link A/clear carry owner 的各 commit 边界注入
+crash/restart，只允许“absent + 完整 top-level A”“installed I2 + 完整 carried A、无 B”或“absent + 完整
+top-level B（递归含 A）”三种终态，禁止 sibling A/B、双 carry、环、多父或 orphan entry。再重复一次
+partial restore→uninstall 形成至少三层 closure，断言 Host 以 committed inventory 为界迭代遍历、每个 bundle
+恰好访问一次，并从 leaf 向 root 级联清理空节点；测试不得通过限制 closure 为固定一层。该 journey 是
+INV-DL10 的 multi-generation proof，不得用“选最新 snapshot”或跨 top-level 组合代替。
 
 旅程同时断言 config/state migration 输出、未迁移数据守恒、旧 runtime 退出后才开放新 runtime。
 先在 migration 中途和切换边界前注入 crash/failure，证明
