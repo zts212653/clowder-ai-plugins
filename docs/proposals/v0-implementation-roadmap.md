@@ -251,8 +251,8 @@ repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在�
 
 | 当前 package / integrity / operation | 事件 | 成功终态 | 失败或 crash 终态 |
 |---|---|---|---|
-| `installed / damaged / idle` | 用户或诊断请求 repair；catalog、版本、digest 与 trust policy 仍有效 | staging 中重取同一选定版本，验证后原子替换 package tree；`installed / verified / idle`，保留 config/secrets/state/retained data，并按 desired state 用新 activation revision reconcile | 回滚到可验证的旧 tree；若不存在可用 tree，则保持 `installed / damaged / idle` 且 current activation fail closed，不留下半替换 runtime |
-| `installed / verified / idle` | 显式 repair | 幂等复验；内容相同则 inventory 与数据零变化，需重建 runtime 时仍撤销旧 lease 后用新 revision reconcile | 仍保持最后一个 verified tree；失败不得降级或改写用户数据 |
+| `installed / damaged / idle` | 用户或诊断请求 repair；catalog、版本、digest 与 trust policy 仍有效 | staging 中重取同一选定版本，验证后原子替换 package tree；`installed / verified / idle`，保留 config/secrets/state 与每个声明数据集（`lifecycle`、`retained`、`ask-on-uninstall`），不执行任何 uninstall 处置，并按 desired state 用新 activation revision reconcile | 回滚到可验证的旧 tree；若不存在可用 tree，则保持 `installed / damaged / idle` 且 current activation fail closed，不留下半替换 runtime，也不删除或改写任何声明数据集 |
+| `installed / verified / idle` | 显式 repair | 幂等复验；内容相同则 inventory、config/secrets/state 与全部声明数据集零变化，需重建 runtime 时仍撤销旧 lease 后用新 revision reconcile | 仍保持最后一个 verified tree；失败不得降级或改写用户数据，也不得按卸载策略处置数据集 |
 | 任意 `/ repairing` | restart/crash recovery | Manager 根据 durable transaction journal 收敛到一次完整 atomic swap 与一次 reconcile | 回滚 staging 并回到上述可判定失败态；不得同时暴露 old/new tree |
 | 任意非 `idle` | 并发 install/update/uninstall/repair | 拒绝或排队到当前 operation 终态，不改变 revision | 不允许双写 inventory、重复注册或交错删除数据 |
 
@@ -265,10 +265,14 @@ config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution�
 只验证其中几类不能通过。插件经历配置、启用、重启、注入 package 损坏、修复、禁用、
 更新、卸载后，Host
 inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
-repair 必须验证同版本内容重新 stage/verify/atomic swap，config/secrets/state/retained data
-不被覆盖，desired state 保留，current runtime 只用新 activation revision 恢复且注册恰好
-一次；旧 context 继续 fail closed。还必须覆盖 repair 中途 crash/restart、与 update/uninstall
-并发以及无可用 rollback tree 的失败态，证明不会出现半替换 package 或双份 runtime。
+repair 必须验证同版本内容重新 stage/verify/atomic swap，config/secrets/state 与
+每个声明数据集（`lifecycle`、`retained`、`ask-on-uninstall`）不被覆盖或删除，desired state
+保留，current runtime 只用新 activation revision 恢复且注册恰好一次；旧 context 继续
+fail closed。fixture 必须分别声明并写入三种处置策略的数据集，在成功 repair、repair 中途
+crash/restart 与无可用 rollback tree 的失败态逐一断言内容守恒；随后单独执行 uninstall，
+验证只有该操作才会清除 `lifecycle`、保留 `retained`，并按用户选择处置
+`ask-on-uninstall`。还必须覆盖 repair 与 update/uninstall 并发，证明不会出现半替换 package、
+双份 runtime 或 repair 路径误触发数据处置。
 fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
 activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。撤销其中一个
 feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
