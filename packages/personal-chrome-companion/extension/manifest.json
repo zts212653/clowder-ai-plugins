@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "User-authorized append bridge for an already-bound personal ChatGPT conversation.",
   "permissions": ["nativeMessaging", "tabs"],
-  "host_permissions": ["https://chatgpt.com/c/*"],
+  "host_permissions": ["https://chatgpt.com/*"],
   "action": {
     "default_title": "绑定此会话"
   },
@@ -13,7 +13,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/c/*"],
+      "matches": ["https://chatgpt.com/*"],
       "js": ["content-script.js"],
       "run_at": "document_idle"
     }
