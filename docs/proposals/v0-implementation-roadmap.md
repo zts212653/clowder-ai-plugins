@@ -232,8 +232,10 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 - package update 保留 plugin 总闸 desired，并只将新旧 manifest 中**存续 feature ID** 的
   desired activation 投影到新 package revision；plugin/feature current 必须按新 grants/config
   重算。新增 ID 默认 disabled，删除 ID 不产生新 revision state/lease，改 ID 视为删除+新增；
-  显示名变化必须保留稳定 ID。失败回滚恢复完整旧 revision 的 plugin/feature desired/current
-  投影，不从部分 v2 reconcile 反推用户选择；
+  显示名变化必须保留稳定 ID。失败发生在切换边界前且旧 lease/runtime 从未撤销时，保留
+  原 v1 desired/current 与 activation revision；切换边界后只恢复完整 v1 desired 投影，
+  并由全新的 rollback activation revision 重新 reconcile current。不得恢复或复用已撤销的
+  current/revision，也不得从部分 v2 reconcile 反推用户选择；
 - Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
   event/callback delivery 与 secret/state access 都从 Host ledger 解析 feature 主体并复核
   plugin/feature activation、revision 与 grants，不接受 payload 自报 identity；
