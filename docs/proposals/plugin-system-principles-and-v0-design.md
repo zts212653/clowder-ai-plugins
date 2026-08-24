@@ -234,12 +234,13 @@ SDK runtime 只把绑定该 lease 的 `FeatureContext` 交给对应 activation c
 plugin lifecycle context 不暴露 plugin-level effect API，也不能通过自报 `featureId`
 取得 feature context。`FeatureContext` 的 messaging/events/config/state/secrets、scheduler、
 MCP、service、connector 与 UI 注册/调用都自动携带该 lease；Broker/adapter 每次使用都
-从 Host ledger 解析主体，并复核 plugin/feature enabled、revision 与 grant，而不信任
-payload 中的 identity。
+从 Host ledger 解析主体，并复核 plugin/feature enabled、package integrity 恰为
+`verified`、revision 与 grant，而不信任 payload 中的 identity。
 
-feature disable、grant revoke、package update 或 runtime reconnect 会先撤销旧 lease，再
-销毁注册；旧 context 的新调用、新事件/callback delivery、迟到注册与未绑定历史 operation
-的 completion 全部 fail closed，不能因 sibling 仍 enabled 而继续生效。唯一例外是撤权前
+feature disable、grant revoke、package update、package integrity 进入 `damaged` 或 runtime
+reconnect 会先撤销旧 lease，再销毁注册；旧 context 的新调用、新事件/callback delivery、
+迟到注册与未绑定历史 operation 的 completion 全部 fail closed，不能因 sibling 仍 enabled
+而继续生效。唯一例外是撤权前
 已经投递并开始执行的职责 callback：它可在原 deadline 内携带 Host 签发、绑定
 `pluginInstanceId + featureId + packageRevision + activationRevision + operationId` 的结算凭据（settlement token）
 提交 settlement-only completion。Broker 只允许该 operation 的 durable ledger 幂等落账一次，
@@ -264,7 +265,7 @@ lease 自身只有三态，且不能由插件推进：
 | lease state | Host 允许的行为 | 退出条件 |
 |---|---|---|
 | `provisioning` | 允许声明范围内、Host 审计的 config/secret/state bootstrap 读取；声明式注册与 state write 只进入 activation transaction。普通消息、service call、事件/callback delivery 及未声明/跨 namespace 访问拒绝 | activation 成功原子提交 transaction 并转 `active`；失败、取消或 revision 失效则回滚并转 `revoked` |
-| `active` | 按绑定的 feature grants 使用 SDK surface，所有动作归入该 feature ledger | disable/revoke/update/reconnect 先原子转 `revoked`，再执行 disposer |
+| `active` | 按绑定的 feature grants 使用 SDK surface，所有动作归入该 feature ledger | disable/revoke/update、package integrity 进入 `damaged` 或 reconnect 时先原子转 `revoked`，再执行 disposer |
 | `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；仅允许持有效 settlement token 的历史 operation 在原 deadline 内幂等结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
 
 lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restore、迟到 disposer
@@ -272,10 +273,10 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 
 | 当前态 | Host 事件与 guard | 下一态 | 原子效果 |
 |---|---|---|---|
-| 无 lease | plugin 与 feature desired state 均 enabled，package revision、grants、config readiness 校验通过 | `provisioning` | 签发新 activation revision 的 lease，固定 bootstrap snapshot，开启 activation transaction |
-| `provisioning` | callback 成功且 revision/grants 未变化 | `active` | 提交 staged registrations/state writes 后才开放 effect 与 delivery |
-| `provisioning` | callback 失败、取消、disable/revoke/update/reconnect 或 revision 变化 | `revoked` | 回滚 transaction；不留下注册、写入、事件消费或外部副作用 |
-| `active` | disable/revoke/update/reconnect | `revoked` | 先撤销 authority，再运行 disposer；迟到完成只能结算旧 operation |
+| 无 lease | plugin 与 feature desired state 均 enabled，package materialization 为 `installed`、integrity 为 `verified`，且 package revision、grants、config readiness 校验通过 | `provisioning` | 签发新 activation revision 的 lease，固定 bootstrap snapshot，开启 activation transaction |
+| `provisioning` | callback 成功，package integrity 仍为 `verified` 且 revision/grants 未变化 | `active` | 提交 staged registrations/state writes 后才开放 effect 与 delivery |
+| `provisioning` | callback 失败、取消、disable/revoke/update、package integrity 进入 `damaged`、reconnect 或 revision 变化 | `revoked` | 回滚 transaction；不留下注册、写入、事件消费或外部副作用 |
+| `active` | disable/revoke/update、package integrity 进入 `damaged` 或 reconnect | `revoked` | 先撤销 authority 并停止新 delivery，再运行 disposer；迟到完成只能结算旧 operation |
 | `revoked` | 任意新 plugin call、restore/reconcile、迟到 delivery 或无效 completion | `revoked` | 拒绝；有效 settlement-only completion 只落旧 operation ledger 且不改变 lease/resource state；重新启用只能走“无 lease → provisioning”并签发新 revision |
 
 - **INV-FA1 — authority 不可自选：** 每次 bootstrap/read/write/call/registration/delivery
@@ -284,6 +285,10 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
   任一失败路径均全量回滚，不能产生半激活或 durable checkpoint 泄漏。
 - **INV-FA3 — revoke 单调：** `revoked` 永不恢复，restore/reconcile 只能创建新 revision；
   旧 context、旧 callback 与旧 transaction 都不能复活资源。
+- **INV-FA4 — integrity 闸住 authority：** package integrity 非 `verified` 时不得签发或维持
+  `provisioning/active` lease；`verified → damaged` 必须先撤销该 package 全部 feature
+  authority、停止新 delivery 并使 current fail closed，repair 成功也只能用新 activation
+  revision 恢复。
 
 状态按正交维度记录，避免线性状态机把不同事实混在一起：
 
@@ -295,6 +300,18 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 - feature activation（逐 `pluginInstanceId + featureId + packageRevision`）：`disabled/enabling/enabled/disabling/error`
 - runtime：`stopped/starting/healthy/degraded/crashed`
 - 另存 trust tier、grants、health、rollback snapshot
+
+package integrity 的唯一 lifecycle owner 是 Host Manager；integrity verifier 只提交校验结果，
+由 Manager 推进下表。repair 请求、generic restore、catalog refresh、plugin callback 或
+runtime 自报都不能写回 `verified`。
+它与 authority/runtime 的跨维度转移固定如下：
+
+| 当前 integrity / operation | Host 事件与 guard | 下一态 | 原子效果与恢复边界 |
+|---|---|---|---|
+| `verified / idle` | 已安装 tree 的 digest、provenance 或 trust 校验出现 mismatch | `damaged / idle` | 先在 durable transaction 中同批写入 `damaged`、撤销该 package 全部 feature lease、停止新 event/callback delivery 并把 current 投影为 fail closed；随后停止或 quarantine runtime。runtime 未停止/隔离前不得开始 repair |
+| `damaged / idle` | 用户或诊断请求同版本 repair，且 catalog/version/digest/trust policy 仍有效 | `damaged / repairing` | desired 与全部用户数据保持不变；无 runtime authority，旧 context 全部拒绝；只允许 staging 获取与校验 replacement tree |
+| `damaged / repairing` | replacement tree 完整验证并完成原子 swap | `verified / idle` | 只有 swap 后才能按 desired 签发全新 activation revision 并 reconcile；旧 lease/revision 永不复用 |
+| `damaged / repairing` | 获取、验证、swap 或 restart recovery 失败 | `damaged / idle` | 丢弃 staging 并保持 authority/delivery/current fail closed；不得以 repair 失败为由恢复旧 runtime |
 
 `configured` 不是 `installed` 的下一站，`healthy` 也不等于 `enabled`。community 包默认 quarantine、显式审批、不自动 import；现有 F240 same-power 路径必须先被 Host Broker/runner 替代。
 
@@ -318,7 +335,7 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 - explicit clear 是 Host 控制面的用户动作，可分别针对 config、secrets、namespaced state 或单个 stable datasetId，已安装与 detached 两种记录都必须支持；`retained` 只禁止生命周期隐式删除，不得阻止用户主动 clear。对已安装实例，Host 先撤销能访问目标的 lease、停止 delivery、在 journal 中原子清除所选 store/dataset，再用新 activation revision reconcile；clear config 使 readiness 回到 `incomplete`，clear secrets 立即撤销对应凭据访问，clear state 删除完整 namespace/checkpoint，clear dataset 删除其内容但不改写 manifest declaration/policy。detached clear 必须以 `detachedBundleId + store kind` 或 `detachedBundleId + datasetId` 定位并同批删除对应 record/inventory entry，不能误清同 stable datasetId 的其他 generation；bundle 最后一项被清除后才移除其 generation 元数据。失败或 crash 必须回滚到清除前 snapshot；clear 不删除审计/transaction ledger，也不能由插件自行调用或伪装成 uninstall/repair/update 的副作用。
 - **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除 ②`retained`：由宿主统一管理、永不随卸载消亡（静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定。
 - **dataClass 约束（宿主可验证，策略的前置分类）**：每个数据集必须先声明 `dataClass: cache/ephemeral | user-authored/derived-user-visible | relationship/interaction-history`。**只有 cache/ephemeral 类允许 `lifecycle`**；用户可见/可恢复预期的数据强制 `retained` 或 `ask-on-uninstall`；**关系与记忆类数据（relationship / 对话衍生记忆 / interaction-history——即使不直接展示）同样只能 `retained | ask-on-uninstall`，插件不得声明为 `lifecycle`**——互动痕迹属于用户与猫的共同历史，不因插件卸载而蒸发。用户状态默认持久化、删除只能用户 opt-in 是硬边界，开发者声明不能越过它。宿主对 dataClass 与策略组合做安装期校验，不合法组合拒绝安装。
-- **repair 不触发卸载处置**：同版本 repair 只允许替换损坏的 package tree，必须保留 config、secrets、state 与 manifest 声明的每个数据集；`lifecycle`、`retained`、`ask-on-uninstall` 三种策略在 repair 中一律不执行删除。数据处置只能由独立的 uninstall 或显式清除操作按上述策略推进。
+- **repair 不触发卸载处置**：完整性检测把已启用 package 标为 `damaged` 时，必须先按 §3.4 的 integrity 转移撤销整包 authority、停止 delivery/runtime 并使 current fail closed，不能等 repair 开始或成功后才隔离。同版本 repair 只允许在该 fail-closed 状态替换损坏的 package tree，必须保留 config、secrets、state 与 manifest 声明的每个数据集；`lifecycle`、`retained`、`ask-on-uninstall` 三种策略在 repair 中一律不执行删除。成功只从 verified replacement tree 签发新 activation revision；失败/crash 继续保持 damaged 且无 runtime authority。数据处置只能由独立的 uninstall 或显式清除操作按上述策略推进。
 - **update 是版本化数据事务**：Host 先在 staging 验证新 package 与 migration plan，以旧版本 config/state snapshot 为输入生成 staged migration output；secrets 和 `lifecycle`、`retained`、`ask-on-uninstall` 全部数据集默认原样保留，只有声明了版本迁移的数据结构可由 migration 改写。plugin 总闸与新旧 manifest 中同 ID feature 的用户 desired activation 携带到新 package revision；任何 current activation 都不复制，必须按 v2 grants/config 与新 activation revision 重新 reconcile，新增 capability 未获批时保持 fail closed。新 ID 默认 disabled，删除的 ID 不创建 v2 activation/lease，feature ID 变化按“删除 + 新增”处理而不自动继承；仅修改 name/description 必须保留稳定 ID。成功时 package tree、inventory version、迁移后的 config/state、plugin/feature desired projection 与新 activation revision 原子切换，旧 runtime 在新 runtime 可见前退出。失败或 crash/restart 分两类收敛：**切换边界前**若旧 lease/runtime 从未撤销，则丢弃 staging 并保持原 v1 current/revision；**切换边界后**一旦旧 lease 已撤销或 runtime 已退出，就只恢复旧 package、旧数据 snapshot 与 v1 desired projection，绝不恢复或复用旧 current/activation revision，而是签发全新的 rollback activation revision 重新 reconcile。后一分支中的旧 v1 context 与失败 v2 attempt 的 context 均继续 fail closed；两类分支都不得暴露 old/new 双 runtime、半迁移数据或触发 uninstall 处置。
 - **闭环后 memory 域约束**：插件默认仅自己 namespace 读写；跨 namespace 检索如被真实消费者证明必要，只能走宿主中介、purpose-scoped 的独立授权；全局写入走内核蒸馏晋升，不直接写。该条不构成当前 v0 API。
 - **猫的私密空间为 dataClass 级排除（非授权级）**：记忆数据模型预留 `visibility: normal | cat_private` 维度（作为需求提给 #1047 的数据模型，P8）；任何未来宿主中介检索都**硬排除 `cat_private`**——即使用户授权检索，猫的主体性数据（私人日记/私人时间痕迹）也不经插件通道暴露，除非猫侧主动策展公开。"猫把日记给你看"与"插件替猫翻日记"是两件事，前者是产品机制，后者结构性不可达。
@@ -362,7 +379,10 @@ surface：
 2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
    环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
    lifecycle/feature activation/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；
-   Manager lifecycle journey 必须包含损坏注入后的同版本 repair、两版本 update migration、
+   Manager lifecycle journey 必须包含已启用 package 的损坏注入，并证明 integrity 进入
+   `damaged` 的同一 durable transition 已撤销整包 lease、停止 delivery/runtime 且 current
+   fail closed，再开始同版本 repair；repair 失败/crash 不得复活旧 authority，成功只能从
+   verified replacement tree 用新 revision 恢复。旅程还覆盖两版本 update migration、
    crash recovery、并发 operation 串行化，以及 config/secrets/state 与全部声明数据集（覆盖
    `lifecycle`、`retained`、`ask-on-uninstall`）在 repair/update 中按声明迁移或守恒；
    voice-suite 必须独立切换 ASR/TTS，并证明 Host-issued feature execution lease 绑定所有

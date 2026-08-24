@@ -238,7 +238,8 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
   current/revision，也不得从部分 v2 reconcile 反推用户选择；
 - Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
   event/callback delivery 与 secret/state access 都从 Host ledger 解析 feature 主体并复核
-  plugin/feature activation、revision 与 grants，不接受 payload 自报 identity；
+  plugin/feature activation、package integrity 恰为 `verified`、revision 与 grants，不接受
+  payload 自报 identity；
 - 本地插件、官方 npm 插件与后续 community package 共享生命周期投影；
 - `.env` 只选择 catalog provider/索引位置；Host 继续验证允许的 origin、版本、
   digest、provenance、trust tier 与 quarantine，配置来源不能自动变成信任来源；
@@ -274,9 +275,10 @@ repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在�
 
 | 当前 package / integrity / operation | 事件 | 成功终态 | 失败或 crash 终态 |
 |---|---|---|---|
-| `installed / damaged / idle` | 用户或诊断请求 repair；catalog、版本、digest 与 trust policy 仍有效 | staging 中重取同一选定版本，验证后原子替换 package tree；`installed / verified / idle`，保留 config/secrets/state 与每个声明数据集（`lifecycle`、`retained`、`ask-on-uninstall`），不执行任何 uninstall 处置，并按 desired state 用新 activation revision reconcile | 回滚到可验证的旧 tree；若不存在可用 tree，则保持 `installed / damaged / idle` 且 current activation fail closed，不留下半替换 runtime，也不删除或改写任何声明数据集 |
+| `installed / verified / idle`，零个或多个 current runtime/lease | integrity verifier 检出已安装 tree 的 digest、provenance 或 trust mismatch | 先在 durable transaction 中同批写 `damaged`、撤销该 package 全部 feature lease、停止新 delivery 并把 current 投影为 fail closed，再停止或 quarantine runtime；desired 与用户数据不变，runtime 未停止/隔离前 repair 不得开始 | containment 没有 permissive rollback：即使 disposer/stop 失败也保持 authority 与 delivery revoked，journal 重试停止/隔离，package 仍为 `installed / damaged / idle` |
+| `installed / damaged / idle`，已无 runtime authority | 用户或诊断请求 repair；catalog、版本、digest 与 trust policy 仍有效 | staging 中重取同一选定版本，验证后原子替换 package tree；`installed / verified / idle`，保留 config/secrets/state 与每个声明数据集（`lifecycle`、`retained`、`ask-on-uninstall`），不执行任何 uninstall 处置，并按 desired state 用新 activation revision reconcile | 丢弃 staging 并保持 `installed / damaged / idle`、全部旧 lease/context revoked、delivery stopped、current fail closed；不得恢复损坏 tree 的 runtime，也不删除或改写任何声明数据集 |
 | `installed / verified / idle` | 显式 repair | 幂等复验；内容相同则 inventory、config/secrets/state 与全部声明数据集零变化，需重建 runtime 时仍撤销旧 lease 后用新 revision reconcile | 仍保持最后一个 verified tree；失败不得降级或改写用户数据，也不得按卸载策略处置数据集 |
-| 任意 `/ repairing` | restart/crash recovery | Manager 根据 durable transaction journal 收敛到一次完整 atomic swap 与一次 reconcile | 回滚 staging 并回到上述可判定失败态；不得同时暴露 old/new tree |
+| 任意 `/ repairing` | restart/crash recovery | Manager 根据 durable transaction journal 收敛到一次完整 atomic swap 与一次 reconcile | 回滚 staging 并回到上述可判定失败态；若 journal 记录 integrity damage，必须先重放 revoke/delivery stop/runtime quarantine containment，始终不得暴露 old/new tree 或旧 authority |
 | 任意非 `idle` | 并发 install/update/uninstall/repair | 拒绝或排队到当前 operation 终态，不改变 revision | 不允许双写 inventory、重复注册或交错删除数据 |
 
 update 也必须是同一 Manager 拥有的版本化事务，而不是“覆盖 package 后再尝试迁移”。
@@ -305,6 +307,12 @@ config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution�
 只验证其中几类不能通过。插件经历配置、启用、重启、注入 package 损坏、修复、禁用、
 更新、卸载后，Host
 inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
+损坏注入本身必须在 repair 请求之前触发 governing design INV-FA4：同一 durable transition
+将 integrity 置为 `damaged`、撤销整包全部 feature lease、停止新 event/callback delivery、
+使 current fail closed，并在 repair 开始前停止或 quarantine runtime。保存的每个 feature
+旧 context 都要对 messaging/events、scheduler/MCP、service/connector、UI registration
+以及 config/state/secret 访问逐类失败；repair 失败、stop 失败与 crash/restart 均不得重开 authority，只有 replacement
+tree 完整验证并原子替换后才能用全新 activation revision 按 desired reconcile。
 首次写入 config/secrets/state 后的 disable、restart 与 reconnect 必须逐字节保全三个 store，
 同时证明旧 lease 已失效；fresh install 未显式恢复 detached record 时三个 store 必须为空。
 repair 必须验证同版本内容重新 stage/verify/atomic swap，config/secrets/state 与
@@ -364,7 +372,7 @@ fixture 的 activation callback 还必须实际读取声明内 config、secret �
 并产生一笔 staged state write：同 revision 的合法 bootstrap 读取与 read-your-writes 成功，
 未声明、跨 namespace 或 sibling 读取拒绝；在 lease 进入 `active` 前，普通 effect、事件和
 callback delivery 全部拒绝。成功路径同时提交注册与 state write，失败/取消/revision 变化
-路径同时回滚，逐项证明 INV-FA1～FA3。
+路径同时回滚，逐项证明 INV-FA1～FA4。
 
 ### 5.3 真实消费者 acceptance matrix
 
