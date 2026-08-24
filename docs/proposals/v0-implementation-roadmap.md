@@ -229,6 +229,11 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
 - Plugin Manager 统一 package、package integrity、config、activation、runtime 正交状态；
 - Manager 持久化逐 `pluginInstanceId + featureId + packageRevision` 的 desired/current
   activation，拒绝 stale completion；feature 失败只回滚本次资源，不能扰动 sibling；
+- package update 保留 plugin 总闸 desired，并只将新旧 manifest 中**存续 feature ID** 的
+  desired activation 投影到新 package revision；plugin/feature current 必须按新 grants/config
+  重算。新增 ID 默认 disabled，删除 ID 不产生新 revision state/lease，改 ID 视为删除+新增；
+  显示名变化必须保留稳定 ID。失败回滚恢复完整旧 revision 的 plugin/feature desired/current
+  投影，不从部分 v2 reconcile 反推用户选择；
 - Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
   event/callback delivery 与 secret/state access 都从 Host ledger 解析 feature 主体并复核
   plugin/feature activation、revision 与 grants，不接受 payload 自报 identity；
@@ -263,6 +268,11 @@ migration output；成功时 package/inventory、迁移数据和新 activation r
 旧 runtime 先退出且永不与新 runtime 双跑。migration 失败、切换前 crash 或 restart recovery
 必须恢复完整 v1 tree/data/runtime 投影；secrets 与未声明迁移的数据集逐字节守恒，update
 不得执行 `lifecycle`、`retained` 或 `ask-on-uninstall` 的卸载处置。
+v1/v2 manifest 还必须覆盖 plugin 总闸 desired、enabled 与 disabled 的存续 ID、一个新增 ID、
+一个删除 ID、稳定 ID 下的显示名变更，以及一次 ID 变更。只有存续 ID 继承 desired；新增与
+改 ID 后的 feature 默认 disabled，删除 ID 不得残留 v2 current/lease/resource；current 只按
+v2 grants/config reconcile，新增 grant 未获批时不能因旧 desired 自动扩权。任一 update
+失败必须恢复完整 v1 plugin/feature desired/current 选择投影。
 
 ### Train B 完成线
 
@@ -291,9 +301,11 @@ activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒�
 feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
 subscription/callback、state/secret access 逐类发起对抗调用并全部拒绝，同时证明健康
 sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过。
-同一 fixture 还必须让两个 enabled feature 分别以相同 `idempotencyKey` 发送消息、对同一
-`messageId` 以相同 `operationId` append，证明 Host 从 lease 绑定 feature identity、两者各自得到独立 receipt/
-ledger entry；随后重试各自调用，仍只能命中本 feature 原 receipt。撤权前已投递并开始执行的
+同一 fixture 还必须让两个 enabled feature 分别以相同 `idempotencyKey` 发送消息与
+`events.publish`、对同一 `messageId` 以相同 `operationId` append，证明 Host 从 lease 绑定
+feature identity、三条路径都各自得到独立 receipt/ledger entry；两个 feature 的 subscription
+cursor/ack ledger 也必须独立，任一 ack token 不得推进 sibling cursor。随后重试各自调用，
+仍只能命中本 feature 原 receipt。撤权前已投递并开始执行的
 职责 callback 则必须在撤权后用 Host-issued settlement token 于 deadline 内成功落账一次，
 同结果重放只返回原 settlement 且不重复落账；篡改结果、跨 feature/operation 使用、过期结算
 与夹带新 effect 全部拒绝。

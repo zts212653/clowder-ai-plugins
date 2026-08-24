@@ -107,8 +107,9 @@ MessageOutputEvent（宿主事件流）
 ├─ message.publish { envelope }
 └─ message.elements.append { messageId, operationId, baseRevision?, elements[] }
 订阅与投递语义（写实，不承诺笼统"不漏不重"）：
-├─ cursor scope = 每消费者（pluginInstanceId × subscription）；ack 为 durable，
-│  宿主持久化每消费者已 ack 游标，重启后从游标续投
+├─ cursor scope = 每消费者（pluginInstanceId × featureId × subscriptionId）；featureId
+│  由 Host 从订阅创建时的 lease 绑定，ack 为 durable，宿主持久化每消费者已 ack 游标，
+│  重启后从游标续投；sibling feature 的 ack 不得推进彼此 cursor
 ├─ 投递保证 = 未 ack **至少一次投递** + 消费者凭 eventId 去重/幂等消费；
 │  消费成功与 ack 非原子——ack 前崩溃会重投，消费者实现必须幂等
 ├─ 防误用：cursor 是 **opaque 的 subscription-local token，不等同于 sequence**；
@@ -120,7 +121,7 @@ MessageOutputEvent（宿主事件流）
 - 外部 ingress 在绑定 thread 前先带 `sourceAddress(connectorId/chatId/messageId)`；Host Adapter 完成 binding、actor/provenance 校验后才生成 canonical envelope。**Draft 的寻址只能使用宿主签发的 `ThreadHandle`/`ConnectorBindingRef`**——schema 层面即不存在"自报裸 threadId"的通道。
 - **audience 两态**：Draft 侧 `draftAudience` 仅 public/whisper（whisper 目标限于 grant 允许集）；canonical `audience` 由宿主派生，`system` 只能由宿主产生——插件无法借草稿伪装系统消息。
 - `derivedFromElementId` 指向稳定的 `elementId`；增补元素由宿主校验并原子 append，不能改写原文，也不能把 `inference` 提升为 `observation/user_intent`。
-- **幂等分层（账本键写实）**：send 幂等账本键 = `(pluginInstanceId, featureId, idempotencyKey)`；append 幂等键 = `(pluginInstanceId, featureId, messageId, operationId)`。其中 `featureId` 必须由 Broker 从 Host-issued feature lease 绑定，不能采信 payload 自报值；同一 feature 重试返回同一 receipt，而 sibling feature 使用相同业务键时必须进入彼此独立的 ledger entry。插件间互不干扰、重装实例也不复用旧键空间。`baseRevision` 做并发冲突检测；`sourceEventId` 仅是外部 provenance。delivery ack/重试进入同一 feature-scoped ledger，不污染内容模型。
+- **幂等分层（账本键写实）**：send 幂等账本键 = `(pluginInstanceId, featureId, idempotencyKey)`；append 幂等键 = `(pluginInstanceId, featureId, messageId, operationId)`；events.publish ledger key = `(pluginInstanceId, featureId, idempotencyKey)`。其中 `featureId` 必须由 Broker 从 Host-issued feature lease 绑定，不能采信 payload 自报值；同一 feature 重试返回同一 receipt，而 sibling feature 使用相同业务键时必须进入彼此独立的 ledger entry。插件间互不干扰、重装实例也不复用旧键空间。`baseRevision` 做并发冲突检测；`sourceEventId` 仅是外部 provenance。delivery ack/重试进入同一 feature-scoped ledger，不污染内容模型。
 - outbound 收敛：`sendReply/sendRichMessage/sendMedia` → `messaging.send(draft)`，返回宿主 receipt/messageId（同 idempotencyKey 重试返回同一 receipt）；平台降级（卡片→纯文本、media fallback）由 connector adapter 负责。
 
 ### 3.2 能力域与收敛单位（P4）
@@ -152,7 +153,7 @@ MessageOutputEvent（宿主事件流）
 
 **最小骨架四件**：
 1. **`manifest.signals.provides[]`**：`type + schemaRef + epistemicStatus + privacyClass + sourceClass`——信号是声明出来的，不是运行时冒出来的；`sourceClass` 为机器字段（安装期据此做 conformance 校验，不留在 prose）。
-2. **`events.publish()`**：`eventId + idempotencyKey + occurredAt + payload`；producer identity/provenance 由宿主绑定（与 MessageDraft/Envelope 同款防伪造语义）；插件不得将 `observation` 升格为 `user_intent`。
+2. **`events.publish()`**：`eventId + idempotencyKey + occurredAt + payload`；producer identity/provenance 与幂等账本的 `featureId` 都由宿主从 feature lease 绑定（与 MessageDraft/Envelope 同款防伪造语义），同 feature 重试返回原 receipt，sibling feature 的同键发布互不去重；插件不得将 `observation` 升格为 `user_intent`。
 3. **Host-owned wake route（持久化与寻址权都归宿主）**：producer manifest 只声明"我能提供什么信号"；**具体 consumer/cat/feature、filter 与 wake policy 由宿主按授权配置创建，插件不得指定任意猫、thread 或 invocation target**。route 与插件启停、授权撤销同步生灭；grant-bound + revocable + 入账。
 4. **类型化 liveness 契约（权威时间由 Broker 生成）**：standalone/长连接 = broker ping-pong 或带 expiry 的 lease；service = shallow/deep health probe（复用既有 service manifest 语义）；remote/paired = 显式 heartbeat；schedule 型 = 不心跳、只记执行结算。**插件侧只能发送 authenticated ping/pong/renewal；`lastSeen` 由 Broker 收包时盖时钟，`leaseExpiry` 由 Broker 按协商 TTL 计算**——防失控/恶意 runtime 自报遥远 expiry。窗口/身体的存活为续租语义，非一次性布尔。
 
@@ -240,7 +241,7 @@ feature disable、grant revoke、package update 或 runtime reconnect 会先撤�
 销毁注册；旧 context 的新调用、新事件/callback delivery、迟到注册与未绑定历史 operation
 的 completion 全部 fail closed，不能因 sibling 仍 enabled 而继续生效。唯一例外是撤权前
 已经投递并开始执行的职责 callback：它可在原 deadline 内携带 Host 签发、绑定
-`pluginInstanceId + featureId + activationRevision + operationId` 的结算凭据（settlement token）
+`pluginInstanceId + featureId + packageRevision + activationRevision + operationId` 的结算凭据（settlement token）
 提交 settlement-only completion。Broker 只允许该 operation 的 durable ledger 幂等落账一次，
 不得由此签发新 authority、投递新 callback 或执行新的 effect；token 过期、重放到其他
 operation/feature、或夹带新调用都必须拒绝。该 lease 提供 Host 可验证的生命周期和授权隔离，
@@ -314,7 +315,7 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 - **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除 ②`retained`：由宿主统一管理、永不随卸载消亡（静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定。
 - **dataClass 约束（宿主可验证，策略的前置分类）**：每个数据集必须先声明 `dataClass: cache/ephemeral | user-authored/derived-user-visible | relationship/interaction-history`。**只有 cache/ephemeral 类允许 `lifecycle`**；用户可见/可恢复预期的数据强制 `retained` 或 `ask-on-uninstall`；**关系与记忆类数据（relationship / 对话衍生记忆 / interaction-history——即使不直接展示）同样只能 `retained | ask-on-uninstall`，插件不得声明为 `lifecycle`**——互动痕迹属于用户与猫的共同历史，不因插件卸载而蒸发。用户状态默认持久化、删除只能用户 opt-in 是硬边界，开发者声明不能越过它。宿主对 dataClass 与策略组合做安装期校验，不合法组合拒绝安装。
 - **repair 不触发卸载处置**：同版本 repair 只允许替换损坏的 package tree，必须保留 config、secrets、state 与 manifest 声明的每个数据集；`lifecycle`、`retained`、`ask-on-uninstall` 三种策略在 repair 中一律不执行删除。数据处置只能由独立的 uninstall 或显式清除操作按上述策略推进。
-- **update 是版本化数据事务**：Host 先在 staging 验证新 package 与 migration plan，以旧版本 config/state snapshot 为输入生成 staged migration output；secrets 和 `lifecycle`、`retained`、`ask-on-uninstall` 全部数据集默认原样保留，只有声明了版本迁移的数据结构可由 migration 改写。成功时 package tree、inventory version、迁移后的 config/state 与新 activation revision 原子切换，旧 runtime 在新 runtime 可见前退出；失败或 crash/restart 必须同时回滚旧 package、旧数据 snapshot 与 activation 投影，不得暴露 old/new 双 runtime、半迁移数据或触发 uninstall 处置。
+- **update 是版本化数据事务**：Host 先在 staging 验证新 package 与 migration plan，以旧版本 config/state snapshot 为输入生成 staged migration output；secrets 和 `lifecycle`、`retained`、`ask-on-uninstall` 全部数据集默认原样保留，只有声明了版本迁移的数据结构可由 migration 改写。plugin 总闸与新旧 manifest 中同 ID feature 的用户 desired activation 携带到新 package revision；任何 current activation 都不复制，必须按 v2 grants/config 与新 activation revision 重新 reconcile，新增 capability 未获批时保持 fail closed。新 ID 默认 disabled，删除的 ID 不创建 v2 activation/lease，feature ID 变化按“删除 + 新增”处理而不自动继承；仅修改 name/description 必须保留稳定 ID。成功时 package tree、inventory version、迁移后的 config/state、plugin/feature desired projection 与新 activation revision 原子切换，旧 runtime 在新 runtime 可见前退出；失败或 crash/restart 必须同时回滚旧 package、旧数据 snapshot 与完整 v1 plugin/feature desired/current activation 投影，不得暴露 old/new 双 runtime、半迁移数据或触发 uninstall 处置。
 - **闭环后 memory 域约束**：插件默认仅自己 namespace 读写；跨 namespace 检索如被真实消费者证明必要，只能走宿主中介、purpose-scoped 的独立授权；全局写入走内核蒸馏晋升，不直接写。该条不构成当前 v0 API。
 - **猫的私密空间为 dataClass 级排除（非授权级）**：记忆数据模型预留 `visibility: normal | cat_private` 维度（作为需求提给 #1047 的数据模型，P8）；任何未来宿主中介检索都**硬排除 `cat_private`**——即使用户授权检索，猫的主体性数据（私人日记/私人时间痕迹）也不经插件通道暴露，除非猫侧主动策展公开。"猫把日记给你看"与"插件替猫翻日记"是两件事，前者是产品机制，后者结构性不可达。
 - 每个能力域开放前必须列出存量数据 mapping + migration + rollback；本轮不为旧接口留 adapter，但不能丢旧消息、配置、binding、schedule 或 plugin state。
