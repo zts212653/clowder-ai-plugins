@@ -238,7 +238,8 @@ plugin-wide secret 注入；feature secret 只经 lease-scoped API 读取，需�
   current/revision，也不得从部分 v2 reconcile 反推用户选择；
 - Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
   event/callback delivery 与 secret/state access 都从 Host ledger 解析 feature 主体并复核
-  plugin/feature activation、package integrity 恰为 `verified`、revision 与 grants，不接受
+  plugin/feature activation、package integrity 恰为 `verified`、Host-monotonic
+  `integrityEpoch`、revision 与 grants，不接受
   payload 自报 identity；
 - 本地插件、官方 npm 插件与后续 community package 共享生命周期投影；
 - `.env` 只选择 catalog provider/索引位置；Host 继续验证允许的 origin、版本、
@@ -275,11 +276,14 @@ repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在�
 
 | 当前 package / integrity / operation | 事件 | 成功终态 | 失败或 crash 终态 |
 |---|---|---|---|
-| `installed / verified / idle`，零个或多个 current runtime/lease | integrity verifier 检出已安装 tree 的 digest、provenance 或 trust mismatch | 先在 durable transaction 中同批写 `damaged`、撤销该 package 全部 feature lease、停止新 delivery 并把 current 投影为 fail closed，再停止或 quarantine runtime；desired 与用户数据不变，runtime 未停止/隔离前 repair 不得开始 | containment 没有 permissive rollback：即使 disposer/stop 失败也保持 authority 与 delivery revoked，journal 重试停止/隔离，package 仍为 `installed / damaged / idle` |
+| `installed / verified / idle\|updating\|repairing`，零个或多个 current runtime/lease | verifier 以 `treeRole=active` 报告已安装 active tree 的 digest、provenance 或 trust mismatch | 抢占并中止当前 operation、丢弃未提交 staging；同一 durable transaction 写 `damaged`、撤销整包 lease、停止新 delivery、使 current fail closed，并 quarantine active `integrityEpoch` 的全部未结算 settlement token，再停止或 quarantine runtime；desired 与用户数据不变 | containment 没有 permissive rollback：即使 operation/disposer/stop 失败也保持 authority、delivery 与 settlement trust revoked，journal 重试停止/隔离并收敛到 `installed / damaged / idle` |
+| `installed / verified / uninstalling` | active tree mismatch；uninstall 已先撤销 authority | 将 damage evidence 与 integrityEpoch/token quarantine 合入 uninstall journal并继续用户请求的删除 | uninstall 失败或 rollback 只能回到 `installed / damaged / idle` 且无 authority，不能恢复旧 runtime |
+| `installed / verified / updating\|repairing`，active tree evidence 仍 verified | verifier 以 `treeRole=staging candidate` 报告候选 mismatch | 只拒绝候选并中止所属 staging transaction；不得误标 damaged 或 quarantine active integrityEpoch，按既有 cutover boundary 保留 runtime 或用同一可信 active tree 的新 revision reconcile | 不得让失败候选获得 lease/settlement authority，也不得把 candidate failure 伪装成 active-tree incident |
+| `staged / unknown / installing`，没有 active tree | staging candidate mismatch | 拒绝安装、丢弃 staging，回到 `absent / unknown / idle` | 保持零 runtime/lease/settlement authority，不留下半安装 inventory |
 | `installed / damaged / idle`，已无 runtime authority | 用户或诊断请求 repair；catalog、版本、digest 与 trust policy 仍有效 | staging 中重取同一选定版本，验证后原子替换 package tree；`installed / verified / idle`，保留 config/secrets/state 与每个声明数据集（`lifecycle`、`retained`、`ask-on-uninstall`），不执行任何 uninstall 处置，并按 desired state 用新 activation revision reconcile | 丢弃 staging 并保持 `installed / damaged / idle`、全部旧 lease/context revoked、delivery stopped、current fail closed；不得恢复损坏 tree 的 runtime，也不删除或改写任何声明数据集 |
 | `installed / verified / idle` | 显式 repair | 幂等复验；内容相同则 inventory、config/secrets/state 与全部声明数据集零变化，需重建 runtime 时仍撤销旧 lease 后用新 revision reconcile | 仍保持最后一个 verified tree；失败不得降级或改写用户数据，也不得按卸载策略处置数据集 |
 | 任意 `/ repairing` | restart/crash recovery | Manager 根据 durable transaction journal 收敛到一次完整 atomic swap 与一次 reconcile | 回滚 staging 并回到上述可判定失败态；若 journal 记录 integrity damage，必须先重放 revoke/delivery stop/runtime quarantine containment，始终不得暴露 old/new tree 或旧 authority |
-| 任意非 `idle` | 并发 install/update/uninstall/repair | 拒绝或排队到当前 operation 终态，不改变 revision | 不允许双写 inventory、重复注册或交错删除数据 |
+| 任意非 `idle` | 并发 install/update/uninstall/repair | 拒绝或排队到当前 operation 终态，不改变 revision；**active-tree integrity evidence 不走此队列，必须按首行抢占** | 不允许双写 inventory、重复注册或交错删除数据 |
 
 update 也必须是同一 Manager 拥有的版本化事务，而不是“覆盖 package 后再尝试迁移”。
 Train B fixture 必须提供 v1/v2 两个真实 package artifact：v1 预先写入 versioned config/state、
@@ -307,9 +311,13 @@ config/state/secrets、scheduler/MCP、services/connectors 与 UI contribution�
 只验证其中几类不能通过。插件经历配置、启用、重启、注入 package 损坏、修复、禁用、
 更新、卸载后，Host
 inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
-损坏注入本身必须在 repair 请求之前触发 governing design INV-FA4：同一 durable transition
+损坏注入本身必须在 repair 请求之前触发 governing design INV-FA4/FA5：同一 durable transition
 将 integrity 置为 `damaged`、撤销整包全部 feature lease、停止新 event/callback delivery、
-使 current fail closed，并在 repair 开始前停止或 quarantine runtime。保存的每个 feature
+使 current fail closed、quarantine active integrityEpoch 的全部未结算 settlement token，并在
+repair 开始前停止或 quarantine runtime。fixture 还必须分别在 update staging 与 verified
+explicit repair staging 期间向 **active tree** 注入损坏，证明 evidence 抢占当前 operation、
+丢弃 staging 且不能等 operation 完成；另向 **staging candidate** 单独注入 mismatch，证明只
+中止候选、不误伤仍 verified 的 active tree/epoch。保存的每个 feature
 旧 context 都要对 messaging/events、scheduler/MCP、service/connector、UI registration
 以及 config/state/secret 访问逐类失败；repair 失败、stop 失败与 crash/restart 均不得重开 authority，只有 replacement
 tree 完整验证并原子替换后才能用全新 activation revision 按 desired reconcile。
@@ -364,15 +372,18 @@ sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过
 feature identity、三条路径都各自得到独立 receipt/ledger entry；两个 feature 的 subscription
 cursor/ack ledger 也必须独立，任一 ack token 不得推进 sibling cursor。随后重试各自调用，
 仍只能命中本 feature 原 receipt。撤权前已投递并开始执行的
-职责 callback 则必须在撤权后用 Host-issued settlement token 于 deadline 内成功落账一次，
-同结果重放只返回原 settlement 且不重复落账；篡改结果、跨 feature/operation 使用、过期结算
-与夹带新 effect 全部拒绝。
+职责 callback 则必须区分撤权原因：disable/grant revoke/update/reconnect 等普通撤权后，绑定
+可信 `integrityEpoch` 的 Host-issued settlement token 可在 deadline 内成功落账一次，同结果
+重放只返回原 settlement 且不重复落账；active-tree damage 的 durable transition 必须先
+quarantine 该 epoch 的全部未结算 token，随后 success settlement 以 `integrity_untrusted`
+拒绝、不得抑制 retry/dead-letter。篡改结果、跨 feature/operation 使用、过期结算与夹带新
+effect 同样全部拒绝；staging candidate mismatch 不得 quarantine active-tree token。
 
 fixture 的 activation callback 还必须实际读取声明内 config、secret 与自身 checkpoint，
 并产生一笔 staged state write：同 revision 的合法 bootstrap 读取与 read-your-writes 成功，
 未声明、跨 namespace 或 sibling 读取拒绝；在 lease 进入 `active` 前，普通 effect、事件和
 callback delivery 全部拒绝。成功路径同时提交注册与 state write，失败/取消/revision 变化
-路径同时回滚，逐项证明 INV-FA1～FA4。
+路径同时回滚，逐项证明 INV-FA1～FA5。
 
 ### 5.3 真实消费者 acceptance matrix
 

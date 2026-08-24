@@ -229,7 +229,7 @@ feature 启用必须先完成其 capability/grant 校验；拒绝或失败时零
 
 feature 也是 SDK effect 的授权主体，而不只是控制面分组。Host 每次激活 feature 时签发
 opaque、不可由插件自构造的 **feature execution lease**，绑定
-`pluginInstanceId + featureId + packageRevision + activationRevision + grantedCapabilities`；
+`pluginInstanceId + featureId + packageRevision + integrityEpoch + activationRevision + grantedCapabilities`；
 SDK runtime 只把绑定该 lease 的 `FeatureContext` 交给对应 activation callback。顶层
 plugin lifecycle context 不暴露 plugin-level effect API，也不能通过自报 `featureId`
 取得 feature context。`FeatureContext` 的 messaging/events/config/state/secrets、scheduler、
@@ -242,10 +242,18 @@ reconnect 会先撤销旧 lease，再销毁注册；旧 context 的新调用、�
 迟到注册与未绑定历史 operation 的 completion 全部 fail closed，不能因 sibling 仍 enabled
 而继续生效。唯一例外是撤权前
 已经投递并开始执行的职责 callback：它可在原 deadline 内携带 Host 签发、绑定
-`pluginInstanceId + featureId + packageRevision + activationRevision + operationId` 的结算凭据（settlement token）
+`pluginInstanceId + featureId + packageRevision + integrityEpoch + activationRevision + operationId` 的结算凭据（settlement token）
 提交 settlement-only completion。Broker 只允许该 operation 的 durable ledger 幂等落账一次，
 不得由此签发新 authority、投递新 callback 或执行新的 effect；token 过期、重放到其他
-operation/feature、或夹带新调用都必须拒绝。该 lease 提供 Host 可验证的生命周期和授权隔离，
+operation/feature、或夹带新调用都必须拒绝。这个例外只适用于 disable、grant revoke、update、
+reconnect 等**没有否定 package trust** 的普通撤权。Host 为每次 active tree 的 verified
+结果签发单调 `integrityEpoch`，lease 与 settlement token 都绑定该 epoch；active tree
+一旦因 digest/provenance/trust mismatch 进入 `damaged`，同一 durable containment transaction
+必须 quarantine 该 epoch 的全部未结算 settlement token。其后 success settlement 一律以
+`integrity_untrusted` 拒绝，不能标记 callback 成功或应用返回结果；Host 只能在新的 verified
+runtime/epoch 下按 callback policy 重试，或在无法安全重试时 dead-letter。损坏判定前已经完成
+的 durable settlement 保留为历史事实，不倒带重开；仅 staging candidate 校验失败不得污染
+仍 verified 的 active-tree epoch。该 lease 提供 Host 可验证的生命周期和授权隔离，
 不把同一 OS 进程内的代码模块冒充安全沙箱：若一个 package 内的 feature 需要抵御恶意
 sibling 读取内存或窃取凭据，manifest 必须请求独立 runtime/process 边界，Host 不接受
 “共享进程 + 逻辑 context”作为该威胁模型的证明。
@@ -266,7 +274,7 @@ lease 自身只有三态，且不能由插件推进：
 |---|---|---|
 | `provisioning` | 允许声明范围内、Host 审计的 config/secret/state bootstrap 读取；声明式注册与 state write 只进入 activation transaction。普通消息、service call、事件/callback delivery 及未声明/跨 namespace 访问拒绝 | activation 成功原子提交 transaction 并转 `active`；失败、取消或 revision 失效则回滚并转 `revoked` |
 | `active` | 按绑定的 feature grants 使用 SDK surface，所有动作归入该 feature ledger | disable/revoke/update、package integrity 进入 `damaged` 或 reconnect 时先原子转 `revoked`，再执行 disposer |
-| `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；仅允许持有效 settlement token 的历史 operation 在原 deadline 内幂等结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
+| `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；仅允许 integrityEpoch 未被 quarantine 且持有效 settlement token 的历史 operation 在原 deadline 内幂等结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
 
 lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restore、迟到 disposer
 或 payload identity 都不能直接改 lease state。完整转移表如下：
@@ -276,8 +284,8 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 | 无 lease | plugin 与 feature desired state 均 enabled，package materialization 为 `installed`、integrity 为 `verified`，且 package revision、grants、config readiness 校验通过 | `provisioning` | 签发新 activation revision 的 lease，固定 bootstrap snapshot，开启 activation transaction |
 | `provisioning` | callback 成功，package integrity 仍为 `verified` 且 revision/grants 未变化 | `active` | 提交 staged registrations/state writes 后才开放 effect 与 delivery |
 | `provisioning` | callback 失败、取消、disable/revoke/update、package integrity 进入 `damaged`、reconnect 或 revision 变化 | `revoked` | 回滚 transaction；不留下注册、写入、事件消费或外部副作用 |
-| `active` | disable/revoke/update、package integrity 进入 `damaged` 或 reconnect | `revoked` | 先撤销 authority 并停止新 delivery，再运行 disposer；迟到完成只能结算旧 operation |
-| `revoked` | 任意新 plugin call、restore/reconcile、迟到 delivery 或无效 completion | `revoked` | 拒绝；有效 settlement-only completion 只落旧 operation ledger 且不改变 lease/resource state；重新启用只能走“无 lease → provisioning”并签发新 revision |
+| `active` | disable/revoke/update、package integrity 进入 `damaged` 或 reconnect | `revoked` | 先撤销 authority 并停止新 delivery，再运行 disposer；普通撤权的迟到完成只能结算旧 operation，integrity damage 则同时 quarantine 对应 integrityEpoch 的未结算 token |
+| `revoked` | 任意新 plugin call、restore/reconcile、迟到 delivery 或无效 completion | `revoked` | 拒绝；仅 integrityEpoch 仍可信的有效 settlement-only completion 可落旧 operation ledger且不改变 lease/resource state；重新启用只能走“无 lease → provisioning”并签发新 revision |
 
 - **INV-FA1 — authority 不可自选：** 每次 bootstrap/read/write/call/registration/delivery
   都从 Host ledger 解析 lease 主体；伪造或借用 sibling `featureId` 必须拒绝。
@@ -286,9 +294,12 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 - **INV-FA3 — revoke 单调：** `revoked` 永不恢复，restore/reconcile 只能创建新 revision；
   旧 context、旧 callback 与旧 transaction 都不能复活资源。
 - **INV-FA4 — integrity 闸住 authority：** package integrity 非 `verified` 时不得签发或维持
-  `provisioning/active` lease；`verified → damaged` 必须先撤销该 package 全部 feature
-  authority、停止新 delivery 并使 current fail closed，repair 成功也只能用新 activation
-  revision 恢复。
+  `provisioning/active` lease；active tree 的 `verified → damaged` 不受 manager operation
+  是否 idle 影响，必须抢占当前 operation，先撤销该 package 全部 feature authority、停止新
+  delivery 并使 current fail closed，repair 成功也只能用新 activation revision 恢复。
+- **INV-FA5 — integrity 也闸住 settlement trust：** ordinary revoke 可在 deadline 内接受绑定
+  可信 integrityEpoch 的 settlement-only completion；active tree 损坏必须 quarantine 该 epoch
+  的全部未结算 token，任何迟到 success 都不能抑制 retry/dead-letter。
 
 状态按正交维度记录，避免线性状态机把不同事实混在一起：
 
@@ -299,19 +310,26 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 - plugin activation：`disabled/enabling/enabled/disabling/error`
 - feature activation（逐 `pluginInstanceId + featureId + packageRevision`）：`disabled/enabling/enabled/disabling/error`
 - runtime：`stopped/starting/healthy/degraded/crashed`
-- 另存 trust tier、grants、health、rollback snapshot
+- 另存 trust tier、grants、health、rollback snapshot 与 Host-monotonic `integrityEpoch`
 
-package integrity 的唯一 lifecycle owner 是 Host Manager；integrity verifier 只提交校验结果，
-由 Manager 推进下表。repair 请求、generic restore、catalog refresh、plugin callback 或
-runtime 自报都不能写回 `verified`。
+package integrity 的唯一 lifecycle owner 是 Host Manager；integrity verifier 只提交带
+`treeRole`（`active` / `staging candidate`）、package revision、digest/provenance/trust evidence
+的校验结果，由 Manager 对照 durable inventory 与 operation journal 推进下表。active tree
+证据是高优先级安全事件，不能按普通并发 operation 排队或延迟到 update/repair 完成；staging
+candidate 失败只处置候选与所属 transaction，不能把仍 verified 的 active tree 误标为 damaged。
+repair 请求、generic restore、catalog refresh、plugin callback 或 runtime 自报都不能写回 `verified`。
 它与 authority/runtime 的跨维度转移固定如下：
 
 | 当前 integrity / operation | Host 事件与 guard | 下一态 | 原子效果与恢复边界 |
 |---|---|---|---|
-| `verified / idle` | 已安装 tree 的 digest、provenance 或 trust 校验出现 mismatch | `damaged / idle` | 先在 durable transaction 中同批写入 `damaged`、撤销该 package 全部 feature lease、停止新 event/callback delivery 并把 current 投影为 fail closed；随后停止或 quarantine runtime。runtime 未停止/隔离前不得开始 repair |
+| `verified / idle \| updating \| repairing` | **active tree** 的 digest、provenance 或 trust 校验出现 mismatch | `damaged / idle` | 立即抢占当前 operation、丢弃未提交 staging，并在同一 durable transaction 中写入 `damaged`、撤销该 package 全部 feature lease、停止新 event/callback delivery、把 current 投影为 fail closed，同时 quarantine active integrityEpoch 的全部未结算 settlement token；随后停止或 quarantine runtime。operation 不得先完成，runtime 未停止/隔离前不得开始 repair |
+| `verified / uninstalling` | active tree mismatch 到达；uninstall 已先进入 authority revoke 阶段 | `damaged / uninstalling` | 将 damage evidence 与 integrityEpoch/token quarantine 合入 uninstall journal并继续用户请求的删除；若 uninstall 失败或 rollback，只能回到 `installed / damaged / idle` 且无 authority，不能恢复旧 runtime |
+| `unknown / installing` | staging candidate 校验 mismatch | `unknown / idle` | 拒绝安装并丢弃 staging；没有 active tree、lease 或 settlement 可撤销 |
+| `verified / updating \| repairing` | staging candidate 校验 mismatch，active tree evidence 仍 verified | `verified / idle` | 中止当前 staging transaction；按既有 cutover boundary 保留未撤销的 active runtime，或在已撤权时用同一可信 active tree 的新 activation revision reconcile。不得 quarantine active integrityEpoch |
+| `verified / idle` | 用户请求对仍 verified 的同版本 package 显式 repair | `verified / repairing` | staging candidate 与 active tree 分开验证；staging 期间 active tree 可继续服务，若需要 runtime cutover 则先 ordinary revoke 并用新 activation revision reconcile；任一 active-tree mismatch 由首行抢占 |
 | `damaged / idle` | 用户或诊断请求同版本 repair，且 catalog/version/digest/trust policy 仍有效 | `damaged / repairing` | desired 与全部用户数据保持不变；无 runtime authority，旧 context 全部拒绝；只允许 staging 获取与校验 replacement tree |
 | `damaged / repairing` | replacement tree 完整验证并完成原子 swap | `verified / idle` | 只有 swap 后才能按 desired 签发全新 activation revision 并 reconcile；旧 lease/revision 永不复用 |
-| `damaged / repairing` | 获取、验证、swap 或 restart recovery 失败 | `damaged / idle` | 丢弃 staging 并保持 authority/delivery/current fail closed；不得以 repair 失败为由恢复旧 runtime |
+| `damaged / repairing` | staging candidate mismatch，或获取、swap、restart recovery 失败 | `damaged / idle` | 丢弃 staging 并保持 authority/delivery/current fail closed；不得以 repair 失败为由恢复旧 runtime，旧 quarantined integrityEpoch 永不重新可信 |
 
 `configured` 不是 `installed` 的下一站，`healthy` 也不等于 `enabled`。community 包默认 quarantine、显式审批、不自动 import；现有 F240 same-power 路径必须先被 Host Broker/runner 替代。
 
