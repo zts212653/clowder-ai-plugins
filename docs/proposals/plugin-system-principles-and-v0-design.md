@@ -120,7 +120,7 @@ MessageOutputEvent（宿主事件流）
 - 外部 ingress 在绑定 thread 前先带 `sourceAddress(connectorId/chatId/messageId)`；Host Adapter 完成 binding、actor/provenance 校验后才生成 canonical envelope。**Draft 的寻址只能使用宿主签发的 `ThreadHandle`/`ConnectorBindingRef`**——schema 层面即不存在"自报裸 threadId"的通道。
 - **audience 两态**：Draft 侧 `draftAudience` 仅 public/whisper（whisper 目标限于 grant 允许集）；canonical `audience` 由宿主派生，`system` 只能由宿主产生——插件无法借草稿伪装系统消息。
 - `derivedFromElementId` 指向稳定的 `elementId`；增补元素由宿主校验并原子 append，不能改写原文，也不能把 `inference` 提升为 `observation/user_intent`。
-- **幂等分层（账本键写实）**：send 幂等账本键 = `(pluginInstanceId, idempotencyKey)`；append 幂等键 = `(pluginInstanceId, messageId, operationId)`——均为实例作用域，插件间互不干扰、重装实例不复用旧键空间。`baseRevision` 做并发冲突检测；`sourceEventId` 仅是外部 provenance。delivery ack/重试进入 ledger，不污染内容模型。
+- **幂等分层（账本键写实）**：send 幂等账本键 = `(pluginInstanceId, featureId, idempotencyKey)`；append 幂等键 = `(pluginInstanceId, featureId, messageId, operationId)`。其中 `featureId` 必须由 Broker 从 Host-issued feature lease 绑定，不能采信 payload 自报值；同一 feature 重试返回同一 receipt，而 sibling feature 使用相同业务键时必须进入彼此独立的 ledger entry。插件间互不干扰、重装实例也不复用旧键空间。`baseRevision` 做并发冲突检测；`sourceEventId` 仅是外部 provenance。delivery ack/重试进入同一 feature-scoped ledger，不污染内容模型。
 - outbound 收敛：`sendReply/sendRichMessage/sendMedia` → `messaging.send(draft)`，返回宿主 receipt/messageId（同 idempotencyKey 重试返回同一 receipt）；平台降级（卡片→纯文本、media fallback）由 connector adapter 负责。
 
 ### 3.2 能力域与收敛单位（P4）
@@ -237,8 +237,13 @@ MCP、service、connector 与 UI 注册/调用都自动携带该 lease；Broker/
 payload 中的 identity。
 
 feature disable、grant revoke、package update 或 runtime reconnect 会先撤销旧 lease，再
-销毁注册；旧 context 的新调用、事件消费、callback completion 与迟到注册全部 fail closed，
-不能因 sibling 仍 enabled 而继续生效。该 lease 提供 Host 可验证的生命周期和授权隔离，
+销毁注册；旧 context 的新调用、新事件/callback delivery、迟到注册与未绑定历史 operation
+的 completion 全部 fail closed，不能因 sibling 仍 enabled 而继续生效。唯一例外是撤权前
+已经投递并开始执行的职责 callback：它可在原 deadline 内携带 Host 签发、绑定
+`pluginInstanceId + featureId + activationRevision + operationId` 的结算凭据（settlement token）
+提交 settlement-only completion。Broker 只允许该 operation 的 durable ledger 幂等落账一次，
+不得由此签发新 authority、投递新 callback 或执行新的 effect；token 过期、重放到其他
+operation/feature、或夹带新调用都必须拒绝。该 lease 提供 Host 可验证的生命周期和授权隔离，
 不把同一 OS 进程内的代码模块冒充安全沙箱：若一个 package 内的 feature 需要抵御恶意
 sibling 读取内存或窃取凭据，manifest 必须请求独立 runtime/process 边界，Host 不接受
 “共享进程 + 逻辑 context”作为该威胁模型的证明。
@@ -259,7 +264,7 @@ lease 自身只有三态，且不能由插件推进：
 |---|---|---|
 | `provisioning` | 允许声明范围内、Host 审计的 config/secret/state bootstrap 读取；声明式注册与 state write 只进入 activation transaction。普通消息、service call、事件/callback delivery 及未声明/跨 namespace 访问拒绝 | activation 成功原子提交 transaction 并转 `active`；失败、取消或 revision 失效则回滚并转 `revoked` |
 | `active` | 按绑定的 feature grants 使用 SDK surface，所有动作归入该 feature ledger | disable/revoke/update/reconnect 先原子转 `revoked`，再执行 disposer |
-| `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；历史 operation 只允许结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
+| `revoked` | 所有新调用、迟到注册、事件/callback delivery 与凭据访问拒绝；仅允许持有效 settlement token 的历史 operation 在原 deadline 内幂等结算，不重新授权 | 终态；再次启用必须签发新 activation revision 的 lease |
 
 lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restore、迟到 disposer
 或 payload identity 都不能直接改 lease state。完整转移表如下：
@@ -270,7 +275,7 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 | `provisioning` | callback 成功且 revision/grants 未变化 | `active` | 提交 staged registrations/state writes 后才开放 effect 与 delivery |
 | `provisioning` | callback 失败、取消、disable/revoke/update/reconnect 或 revision 变化 | `revoked` | 回滚 transaction；不留下注册、写入、事件消费或外部副作用 |
 | `active` | disable/revoke/update/reconnect | `revoked` | 先撤销 authority，再运行 disposer；迟到完成只能结算旧 operation |
-| `revoked` | 任意 plugin call、restore/reconcile 或迟到 callback | `revoked` | 拒绝；重新启用只能走“无 lease → provisioning”并签发新 revision |
+| `revoked` | 任意新 plugin call、restore/reconcile、迟到 delivery 或无效 completion | `revoked` | 拒绝；有效 settlement-only completion 只落旧 operation ledger 且不改变 lease/resource state；重新启用只能走“无 lease → provisioning”并签发新 revision |
 
 - **INV-FA1 — authority 不可自选：** 每次 bootstrap/read/write/call/registration/delivery
   都从 Host ledger 解析 lease 主体；伪造或借用 sibling `featureId` 必须拒绝。
@@ -296,7 +301,7 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 
 - 插件 manifest 声明 contract version、runtime entrypoint/transport、task/contribution、请求的 capabilities；声明只是请求，不是授权。
 - Host Broker 启动或连接插件 runtime，完成 `pluginId + packageDigest + contractVersion + instanceId` 握手；所有身份字段由宿主绑定，插件自报值只作候选。plugin-level handshake 只建立 runtime 身份，不授予共享 effect authority；逐 feature grant 由 §3.4 的 Host-issued feature execution lease 承载。
-- call/callback 统一使用 `requestId/operationId/deadline`；职责回调 ack 与动作结算写 durable ledger，重启后 reconcile。
+- call/callback 统一使用 `requestId/operationId/deadline`；职责回调投递同时签发仅供该 operation 结算的 settlement token，ack 与动作结算写 feature-scoped durable ledger，重启后 reconcile。
 - runtime 可是 standalone 壳、child process 或 builtin adapter；载体不同不改变 contract。builtin 也必须经过同一 broker 语义，但可使用 in-process transport 优化。
 - Broker 的 capability 校验只是逻辑隔离，不等于 OS sandbox。同一用户权限下的普通 child process 仍可能读宿主文件；在可验证的 filesystem/network sandbox 落地前，community 可执行插件只能 quarantine + 明示 same-power 风险，不能因“已出进程”就自动升为安全。runner 默认最小 env/工作目录；多 feature 共享进程不得把 feature secret 批量注入进程环境，secret 必须经对应 `FeatureContext` 按 lease/grant 读取，或为需要进程级注入的 feature 启动独立 runtime。
 - SDK client/runtime 在插件仓；Host Broker/Adapter 在内核仓；双方只依赖同一 `plugin-contract` 包。
@@ -309,6 +314,7 @@ lifecycle owner 唯一是 Host Broker/Manager；plugin callback、generic restor
 - **数据处置策略声明制（开发者声明，不转嫁用户）**：插件在 manifest 里按数据集声明三选一——①`lifecycle`：随插件生命周期，卸载即清除 ②`retained`：由宿主统一管理、永不随卸载消亡（静态配置与运行数据可分别声明）③`ask-on-uninstall`：卸载时由用户选择保留/清除。开发者按数据性质选策略，用户只在 ③ 或显式清除入口做决定。
 - **dataClass 约束（宿主可验证，策略的前置分类）**：每个数据集必须先声明 `dataClass: cache/ephemeral | user-authored/derived-user-visible | relationship/interaction-history`。**只有 cache/ephemeral 类允许 `lifecycle`**；用户可见/可恢复预期的数据强制 `retained` 或 `ask-on-uninstall`；**关系与记忆类数据（relationship / 对话衍生记忆 / interaction-history——即使不直接展示）同样只能 `retained | ask-on-uninstall`，插件不得声明为 `lifecycle`**——互动痕迹属于用户与猫的共同历史，不因插件卸载而蒸发。用户状态默认持久化、删除只能用户 opt-in 是硬边界，开发者声明不能越过它。宿主对 dataClass 与策略组合做安装期校验，不合法组合拒绝安装。
 - **repair 不触发卸载处置**：同版本 repair 只允许替换损坏的 package tree，必须保留 config、secrets、state 与 manifest 声明的每个数据集；`lifecycle`、`retained`、`ask-on-uninstall` 三种策略在 repair 中一律不执行删除。数据处置只能由独立的 uninstall 或显式清除操作按上述策略推进。
+- **update 是版本化数据事务**：Host 先在 staging 验证新 package 与 migration plan，以旧版本 config/state snapshot 为输入生成 staged migration output；secrets 和 `lifecycle`、`retained`、`ask-on-uninstall` 全部数据集默认原样保留，只有声明了版本迁移的数据结构可由 migration 改写。成功时 package tree、inventory version、迁移后的 config/state 与新 activation revision 原子切换，旧 runtime 在新 runtime 可见前退出；失败或 crash/restart 必须同时回滚旧 package、旧数据 snapshot 与 activation 投影，不得暴露 old/new 双 runtime、半迁移数据或触发 uninstall 处置。
 - **闭环后 memory 域约束**：插件默认仅自己 namespace 读写；跨 namespace 检索如被真实消费者证明必要，只能走宿主中介、purpose-scoped 的独立授权；全局写入走内核蒸馏晋升，不直接写。该条不构成当前 v0 API。
 - **猫的私密空间为 dataClass 级排除（非授权级）**：记忆数据模型预留 `visibility: normal | cat_private` 维度（作为需求提给 #1047 的数据模型，P8）；任何未来宿主中介检索都**硬排除 `cat_private`**——即使用户授权检索，猫的主体性数据（私人日记/私人时间痕迹）也不经插件通道暴露，除非猫侧主动策展公开。"猫把日记给你看"与"插件替猫翻日记"是两件事，前者是产品机制，后者结构性不可达。
 - 每个能力域开放前必须列出存量数据 mapping + migration + rollback；本轮不为旧接口留 adapter，但不能丢旧消息、配置、binding、schedule 或 plugin state。
@@ -351,12 +357,14 @@ surface：
 2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
    环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
    lifecycle/feature activation/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；
-   Manager lifecycle journey 必须包含损坏注入后的同版本 repair、crash recovery、并发
-   operation 串行化，以及 config/secrets/state 与全部声明数据集（覆盖
-   `lifecycle`、`retained`、`ask-on-uninstall`）在 repair 中守恒；
+   Manager lifecycle journey 必须包含损坏注入后的同版本 repair、两版本 update migration、
+   crash recovery、并发 operation 串行化，以及 config/secrets/state 与全部声明数据集（覆盖
+   `lifecycle`、`retained`、`ask-on-uninstall`）在 repair/update 中按声明迁移或守恒；
    voice-suite 必须独立切换 ASR/TTS，并证明 Host-issued feature execution lease 绑定所有
-   SDK effect：撤销 TTS 后旧 TTS context 的调用、注册、事件、callback 与 secret 访问均
-   被拒绝，ASR context 仍可工作；slice 不提前切换生产默认路径。
+   SDK effect：撤销 TTS 后旧 TTS context 的新调用、注册、事件/callback delivery 与 secret
+   访问均被拒绝；撤权前已投递 callback 只能凭 settlement token 在 deadline 内幂等落账，
+   不得产生新 effect。ASR context 仍可工作，且 ASR/TTS 使用相同 idempotencyKey 或
+   operationId 时各自得到独立 ledger/receipt；slice 不提前切换生产默认路径。
    具体矩阵与关闭条件见 roadmap §5。
 3. **Train C 全量存量迁移**：按 roadmap §6 的冻结 inventory 迁移 GitHub、
    video-analysis/video-gen、weixin-mp/wechat-visible-reader、全部现有 IM provider 与全部具体

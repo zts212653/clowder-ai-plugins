@@ -256,6 +256,14 @@ repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在�
 | 任意 `/ repairing` | restart/crash recovery | Manager 根据 durable transaction journal 收敛到一次完整 atomic swap 与一次 reconcile | 回滚 staging 并回到上述可判定失败态；不得同时暴露 old/new tree |
 | 任意非 `idle` | 并发 install/update/uninstall/repair | 拒绝或排队到当前 operation 终态，不改变 revision | 不允许双写 inventory、重复注册或交错删除数据 |
 
+update 也必须是同一 Manager 拥有的版本化事务，而不是“覆盖 package 后再尝试迁移”。
+Train B fixture 必须提供 v1/v2 两个真实 package artifact：v1 预先写入 versioned config/state、
+secrets 与三种处置策略的数据集，v2 声明 config/state migration。Host 先 staging 新 tree 与
+migration output；成功时 package/inventory、迁移数据和新 activation revision 原子切换，
+旧 runtime 先退出且永不与新 runtime 双跑。migration 失败、切换前 crash 或 restart recovery
+必须恢复完整 v1 tree/data/runtime 投影；secrets 与未声明迁移的数据集逐字节守恒，update
+不得执行 `lifecycle`、`retained` 或 `ask-on-uninstall` 的卸载处置。
+
 ### Train B 完成线
 
 一个不含产品特判的 fixture npm 插件必须能从 catalog 安装，并只使用公共 SDK
@@ -273,11 +281,22 @@ crash/restart 与无可用 rollback tree 的失败态逐一断言内容守恒；
 验证只有该操作才会清除 `lifecycle`、保留 `retained`，并按用户选择处置
 `ask-on-uninstall`。还必须覆盖 repair 与 update/uninstall 并发，证明不会出现半替换 package、
 双份 runtime 或 repair 路径误触发数据处置。
+fixture 还必须执行一条**两版本 update 旅程**：从已填充 config、secrets、state 与三类数据集
+的 v1 更新到带 config/state schema migration 的 v2，断言 migration 输出、未迁移数据守恒、
+旧 runtime 退出后才开放新 runtime；再分别在 migration 中途和原子切换前注入 crash/failure，
+证明 package tree、inventory、全部数据 snapshot 与 activation revision 一起回滚到 v1，
+restart reconcile 后也不存在 old/new 双 runtime。只检查最终版本号或 retained data 不能通过。
 fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
 activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。撤销其中一个
 feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
 subscription/callback、state/secret access 逐类发起对抗调用并全部拒绝，同时证明健康
 sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过。
+同一 fixture 还必须让两个 enabled feature 分别以相同 `idempotencyKey` 发送消息、对同一
+`messageId` 以相同 `operationId` append，证明 Host 从 lease 绑定 feature identity、两者各自得到独立 receipt/
+ledger entry；随后重试各自调用，仍只能命中本 feature 原 receipt。撤权前已投递并开始执行的
+职责 callback 则必须在撤权后用 Host-issued settlement token 于 deadline 内成功落账一次，
+同结果重放只返回原 settlement 且不重复落账；篡改结果、跨 feature/operation 使用、过期结算
+与夹带新 effect 全部拒绝。
 
 fixture 的 activation callback 还必须实际读取声明内 config、secret 与自身 checkpoint，
 并产生一笔 staged state write：同 revision 的合法 bootstrap 读取与 read-your-writes 成功，
