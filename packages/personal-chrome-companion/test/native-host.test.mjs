@@ -26,6 +26,20 @@ function requestOverLocalSocket(socketPath, envelope) {
   });
 }
 
+async function settledWithin(promise, timeoutMs) {
+  let timeout;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((resolve) => {
+        timeout = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 test('native framing round-trips only complete object messages', () => {
   const frame = encodeNativeMessage({ v: 1, kind: 'query_binding', requestId: 'query-1' });
   const decoder = new NativeMessageDecoder();
@@ -150,6 +164,146 @@ test('explicit binding gates dispatch, preserves real Host receipt, and replays 
       },
     );
     assert.equal(nativeMessages.length, 0, 'a terminal retry must not dispatch a second append');
+  } finally {
+    await bridge.stop();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('rejects a concurrent requestId collision without corrupting either append admission', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'f247-native-host-'));
+  const socketPath = join(root, 'host.sock');
+  const ledgerPath = join(root, 'ledger.json');
+  const conversationBindingPath = join(root, 'conversation-binding.json');
+  const pairingSecret = 'A'.repeat(43);
+  const nativeMessages = [];
+  let releaseFirstPersist;
+  const firstPersistStarted = new Promise((resolve) => {
+    releaseFirstPersist = resolve;
+  });
+  let allowFirstPersist;
+  const firstPersistAllowed = new Promise((resolve) => {
+    allowFirstPersist = resolve;
+  });
+  const bridge = await createNativeHostBridge({
+    socketPath,
+    ledgerPath,
+    conversationBindingPath,
+    pairingSecret,
+    now: () => new Date('2026-08-21T16:18:00.000Z'),
+    sendNative: async (message) => nativeMessages.push(message),
+    writeLedger: async (path, entries) => {
+      if (entries.has('conversation-1\u0000delivery-1')) {
+        releaseFirstPersist();
+        await firstPersistAllowed;
+      }
+      const { writeAtomicLedger } = await import('../native-host/native-ledger.mjs');
+      return writeAtomicLedger(path, entries);
+    },
+  });
+
+  try {
+    await bridge.acceptNativeMessage({
+      v: 1,
+      kind: 'bind_conversation',
+      requestId: 'binding-1',
+      conversationId: 'conversation-1',
+      chatUrl: 'https://chatgpt.com/c/conversation-1',
+    });
+    nativeMessages.length = 0;
+
+    const firstAppend = {
+      v: 1,
+      kind: 'append_message',
+      requestId: 'shared-request-id',
+      conversationId: 'conversation-1',
+      text: 'first append',
+      idempotencyKey: 'delivery-1',
+    };
+    const secondAppend = {
+      ...firstAppend,
+      text: 'second append',
+      idempotencyKey: 'delivery-2',
+    };
+    const firstReply = requestOverLocalSocket(socketPath, { pairingSecret, request: firstAppend });
+    await firstPersistStarted;
+    const secondReply = requestOverLocalSocket(socketPath, { pairingSecret, request: secondAppend });
+    assert.deepEqual(await settledWithin(secondReply, 250), {
+      v: 1,
+      kind: 'append_result',
+      requestId: 'shared-request-id',
+      idempotencyKey: 'delivery-2',
+      status: 'failed',
+      errorCode: 'REQUEST_ID_CONFLICT',
+    });
+
+    allowFirstPersist();
+    await bridge.waitForDispatchCount(1);
+    assert.deepEqual(nativeMessages.shift(), firstAppend);
+    await bridge.acceptNativeMessage({
+      v: 1,
+      kind: 'append_result',
+      requestId: 'shared-request-id',
+      idempotencyKey: 'delivery-1',
+      status: 'host_observed',
+      hostMessageId: 'message-1',
+    });
+    assert.deepEqual(await firstReply, {
+      v: 1,
+      kind: 'append_result',
+      requestId: 'shared-request-id',
+      idempotencyKey: 'delivery-1',
+      status: 'host_observed',
+      hostMessageId: 'message-1',
+    });
+  } finally {
+    allowFirstPersist?.();
+    await bridge.stop();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('serializes consecutive conversation bindings so the latest native input remains persisted', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'f247-native-host-'));
+  const socketPath = join(root, 'host.sock');
+  const ledgerPath = join(root, 'ledger.json');
+  const conversationBindingPath = join(root, 'conversation-binding.json');
+  const writes = [];
+  const bridge = await createNativeHostBridge({
+    socketPath,
+    ledgerPath,
+    conversationBindingPath,
+    pairingSecret: 'A'.repeat(43),
+    now: () => new Date('2026-08-21T16:18:00.000Z'),
+    writeConversationBinding: async (_path, record) => {
+      if (record.conversationId === 'older-conversation') {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      writes.push(record);
+      return record;
+    },
+    sendNative: async () => undefined,
+  });
+
+  try {
+    await Promise.all([
+      bridge.acceptNativeMessage({
+        v: 1,
+        kind: 'bind_conversation',
+        requestId: 'binding-older',
+        conversationId: 'older-conversation',
+        chatUrl: 'https://chatgpt.com/c/older-conversation',
+      }),
+      bridge.acceptNativeMessage({
+        v: 1,
+        kind: 'bind_conversation',
+        requestId: 'binding-latest',
+        conversationId: 'latest-conversation',
+        chatUrl: 'https://chatgpt.com/c/latest-conversation',
+      }),
+    ]);
+
+    assert.equal(writes.at(-1).conversationId, 'latest-conversation');
   } finally {
     await bridge.stop();
     await rm(root, { recursive: true, force: true });

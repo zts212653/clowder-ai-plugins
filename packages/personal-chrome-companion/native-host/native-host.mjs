@@ -175,6 +175,7 @@ export async function createNativeHostBridge(options) {
   let dispatchCount = 0;
   let stopped = false;
   let persistenceQueue = Promise.resolve();
+  let nativeInputQueue = Promise.resolve();
 
   const persist = () => {
     const snapshot = new Map([...ledger].map(([key, value]) => [key, { ...value }]));
@@ -198,7 +199,6 @@ export async function createNativeHostBridge(options) {
     applyTerminalResult(entry, result);
     await persist();
     pendingByKey.delete(key);
-    keyByRequestId.delete(pending.canonicalRequestId);
     for (const responder of pending.responders) {
       sendSocketResult(responder.socket, terminalResult(entry, responder.requestId));
     }
@@ -218,6 +218,11 @@ export async function createNativeHostBridge(options) {
     }
     const key = ledgerKey(request.conversationId, request.idempotencyKey);
     const digest = textDigest(request.text);
+    const requestIdKey = keyByRequestId.get(request.requestId);
+    if (requestIdKey && requestIdKey !== key) {
+      sendSocketResult(socket, failureFor(request, 'REQUEST_ID_CONFLICT'));
+      return;
+    }
     const existing = ledger.get(key);
     const pending = pendingByKey.get(key);
     if (respondFromExistingAdmission({ socket, request, digest, existing, pending })) return;
@@ -233,7 +238,6 @@ export async function createNativeHostBridge(options) {
     }
     ledger.set(key, acceptedEntry);
     pendingByKey.set(key, {
-      canonicalRequestId: request.requestId,
       responders: [{ socket, requestId: request.requestId }],
     });
     keyByRequestId.set(request.requestId, key);
@@ -400,11 +404,15 @@ export async function createNativeHostBridge(options) {
   return {
     socketPath: options.socketPath,
     ledgerPath: options.ledgerPath,
-    async acceptNativeMessage(message) {
-      if (await acceptBindingRequest(message)) return;
-      if (await acceptBindingQuery(message)) return;
-      if (await acceptProgress(message)) return;
-      await acceptTerminalResult(message);
+    acceptNativeMessage(message) {
+      const input = nativeInputQueue.then(async () => {
+        if (await acceptBindingRequest(message)) return;
+        if (await acceptBindingQuery(message)) return;
+        if (await acceptProgress(message)) return;
+        await acceptTerminalResult(message);
+      });
+      nativeInputQueue = input.catch(() => undefined);
+      return input;
     },
     waitForDispatchCount(count) {
       if (dispatchCount >= count) return Promise.resolve();
