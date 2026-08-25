@@ -1,6 +1,6 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行中 — M0 Core PR #1380 current exact HEAD 已获 maintainer 批准且 5 项 CI 全绿，等待合入与联合验收；下一阶段冻结为解耦 SDK/Contribution 底座、存量迁移与正式版狗粮门
+status: 执行中 — M0 Core PR #1380 reviewed Host HEAD 已合入 upstream main，live runtime 保持 dormant；等待 canonical 18-case 与真实 Feishu 联合验收；下一阶段冻结为解耦 SDK/Contribution 底座、存量迁移与正式版狗粮门
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
@@ -123,8 +123,8 @@ ledger 这些更严格的边界。
 | `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
 | `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
 | `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.8` | npm `next` 已为 alpha.8；已有真实独立 npm/stdio 插件、owner auth 与事件输入，仍需在解耦 surface 上作为真实 dogfood。 |
-| Clowder AI upstream | `dd86a8029ed89542c9e38f6ab0687b0938a845c0` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；当前 M0 HEAD 已 merge 该 main。 |
-| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · HEAD `ebb1790052cf6999cfbfbecb39fa09ae27776e9e` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现。maintainer 已对当前 exact HEAD 正式 APPROVED，Lint、Windows、Build、Public Test 与 Directory Size Guard 5 项公开检查全绿；PR 仍受合入门禁约束。canonical 18-case 与 Feishu 联合验收尚未运行。 |
+| Clowder AI upstream | `31105179e1da9b365709c00f0f925e4247e7f3d8` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 Host messaging 已随 PR #1380 合入 main，但当前 live runtime 尚未加载该 merge。 |
+| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · reviewed HEAD `016a7767065a58cdebe08b39a416aba3174429cb` · merge `31105179e1da9b365709c00f0f925e4247e7f3d8` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现并合入。maintainer APPROVED 精确覆盖 reviewed HEAD，Lint、Windows、Build、Public Test 与 Directory Size Guard 5 项公开检查全绿；canonical 18-case 与 Feishu 联合验收尚未运行，runtime activation 未获授权。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -133,7 +133,7 @@ ledger 这些更严格的边界。
 | 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
-| Host runtime | 中高 | M0 Core PR #1380 current exact HEAD 已获 maintainer approve 且 5 项 CI 全绿；等待合入，随后仍须完成生命周期/消息联合验收。 |
+| Host runtime | 中高 | M0 Core PR #1380 reviewed HEAD 已合入 upstream main，5 项 CI 全绿；live runtime 保持 dormant，仍须完成生命周期/消息联合验收。 |
 | Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
 | Public Plugin SDK | 低中 | 缺统一的 plugin lifecycle / Host-issued `FeatureContext`，以及 identity/scheduler/tool/webhook/subscription 等 YAML+SDK 双通道 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
@@ -213,30 +213,31 @@ ledger 这些更严格的边界。
 - **INV-R11 — 正式版门禁：** Train C、§7 狗粮和文档任一未完成时，contract/SDK 只能留在
   prerelease dist-tag，不能把 `latest` 或版本号变化当作兼容性冻结。
 
-## 4. Train A — M0 Runtime 收口（剩余 PR 1/5）
+## 4. Train A — M0 Runtime 收口（实施 PR 1/5 已合入；联合验收待执行）
 
-Plugins 侧 beta.11 已合入，本列车只剩一个 Core Host PR。当前分支不再扩 SDK、
-marketplace 或 Console scope。
+Plugins 侧 beta.11 与 Core Host PR 均已合入，本列车只剩 canonical 联合验收与真实
+Feishu dogfood。当前分支不再扩 SDK、marketplace 或 Console scope。
 
 ### 必须完成
 
 1. ✅ M0 行为 candidate 已 rebase 到 upstream `bc9ff2d3...`，并在
-   `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` 完成 finding continuity；当前 PR HEAD
-   `ebb1790052cf6999cfbfbecb39fa09ae27776e9e` 只新增 merge 最新 main
-   `dd86a8029ed89542c9e38f6ab0687b0938a845c0`；
+   `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` 完成 finding continuity；最终 reviewed
+   Host HEAD 为 `016a7767065a58cdebe08b39a416aba3174429cb`，已以
+   `31105179e1da9b365709c00f0f925e4247e7f3d8` 合入 upstream main；
 2. ✅ 行为 HEAD 的 build、TypeScript、focused 307/307、isolated Redis 44/44、完整 public
    tests、Web lint 与真实 upstream 基线 check 已闭合；完整门禁使用仓库支持的 Python 3.11
-   通过。当前 merge-main exact HEAD 的 Lint、Windows、Build、Public Test 与 Directory Size Guard
+   通过。最终 reviewed Host HEAD 的 Lint、Windows、Build、Public Test 与 Directory Size Guard
    5 项公开检查也已全绿；
 3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
    correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
    maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复并跨 rebase 保留；maintainer 已正式
-   APPROVE 当前 exact HEAD `ebb1790052cf6999cfbfbecb39fa09ae27776e9e`；
+   APPROVE 最终 exact HEAD `016a7767065a58cdebe08b39a416aba3174429cb`；
 4. ✅ 单一 upstream Core PR
-   [`#1380`](https://github.com/zts212653/clowder-ai/pull/1380) 已创建并登记
-   CI、conflict 与 maintainer review 跟踪；
-5. 冻结 reviewed Host SHA 与 §2.1 当前 Plugins exact SHA
-   `37796035e4dd519747a63c8454d753c3ca9e2a86`，运行 canonical 18-case
+   [`#1380`](https://github.com/zts212653/clowder-ai/pull/1380) 已合入，PR tracking 已按
+   `subject_terminal=merged` 终结；
+5. 已冻结 reviewed Host SHA `016a7767065a58cdebe08b39a416aba3174429cb`、merge SHA
+   `31105179e1da9b365709c00f0f925e4247e7f3d8` 与 §2.1 当前 Plugins exact SHA
+   `37796035e4dd519747a63c8454d753c3ca9e2a86`；待运行 canonical 18-case
    Host ↔ compiled standalone plugin 联合验收；
 6. 用真实 Feishu plugin 证明 install/enable/start/publish/disable/restart 不绕过
    Broker、inventory 与 domain settlement。
@@ -752,7 +753,7 @@ Train C 通过前，以下工作只保留需求输入，不进入实现关键路
 已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
                                       │
                                       ▼
-Train A：M0 Host PR #1380（current exact HEAD approved + 5 CI green）+ 18-case + Feishu alpha.8 dogfood
+Train A：M0 Host reviewed HEAD 016a776 已合入为 3110517 + 18-case 待执行 + Feishu alpha.8 dogfood
                                       │
                                       ▼
 Train B：YAML + SDK Contribution Contract ──prerelease exact publish──► Core Manager/Adapters/Console
