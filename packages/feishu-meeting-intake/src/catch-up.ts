@@ -3,7 +3,12 @@ import { createHash } from 'node:crypto';
 import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
 
 import { normalizeGeneratedArtifact } from './artifact.js';
-import { FeishuCatchUpRequiredError, type FeishuCatchUpScanner } from './gateway.js';
+import {
+  FeishuCatchUpRequiredError,
+  type FeishuCatchUpDetector,
+  type FeishuCatchUpScanner,
+} from './gateway.js';
+import type { MeetingIntakeCatchUp } from './state-model.js';
 import type { MeetingIntakeState, MeetingIntakeStateStore } from './state-store.js';
 
 export interface FeishuMeetingCatchUpPreview {
@@ -14,6 +19,7 @@ export interface FeishuMeetingCatchUpPreview {
 }
 
 export interface FeishuMeetingCatchUpService {
+  detect(signal: AbortSignal): Promise<MeetingIntakeCatchUp>;
   preview(signal: AbortSignal): Promise<FeishuMeetingCatchUpPreview>;
   futureOnly(fingerprint: string): Promise<{ readonly action: 'future-only'; readonly candidateCount: number }>;
   replay(
@@ -23,6 +29,7 @@ export interface FeishuMeetingCatchUpService {
 }
 
 export interface FeishuMeetingCatchUpServiceOptions {
+  readonly detector: FeishuCatchUpDetector;
   readonly scanner: FeishuCatchUpScanner;
   readonly store: MeetingIntakeStateStore;
   readonly now?: () => number;
@@ -78,6 +85,30 @@ export function createFeishuMeetingCatchUpService(
   }
 
   return {
+    async detect(signal) {
+      const state = await options.store.load();
+      if (state.catchUp.status !== 'idle') return state.catchUp;
+      try {
+        await options.detector.detectCatchUpRequirement({
+          cursor: state.cursor,
+          lastSuccessfulObservationAt: state.health.lastSuccessfulObservationAt,
+          signal,
+        });
+        return state.catchUp;
+      } catch (error) {
+        if (!(error instanceof FeishuCatchUpRequiredError)) throw error;
+        await options.store.requireCatchUp({
+          fromCursor: error.fromCursor,
+          throughCursor: error.throughCursor,
+          reason: error.reason,
+          ...(error.candidateCountAtLeast === undefined
+            ? {} : { candidateCountAtLeast: error.candidateCountAtLeast }),
+          detectedAt: now(),
+        });
+        return (await options.store.load()).catchUp;
+      }
+    },
+
     async preview(signal) {
       const scanned = await scan(signal);
       const window = decisionWindow(scanned.state);

@@ -6,6 +6,7 @@ export {
   type FeishuGeneratedArtifact,
   type FeishuGeneratedArtifactPage,
   type FeishuCatchUpReason,
+  type FeishuCatchUpDetector,
   type FeishuCatchUpScanner,
   type FeishuTranscript,
   type FeishuPollingGateway,

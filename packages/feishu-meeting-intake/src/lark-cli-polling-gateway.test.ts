@@ -374,6 +374,33 @@ test('freezes an offline cursor gap for owner recovery instead of silently scann
   await gateway.close();
 });
 
+test('detects an offline cursor gap before starting the disabled source runtime', async () => {
+  const calls: string[][] = [];
+  const fromCursor = `poll-v1:${NOW - 2 * 60 * 60_000}`;
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    maxAutomaticCatchUpMs: 60 * 60_000,
+    runCommand: async (args) => {
+      calls.push([...args]);
+      return args[0] === 'auth' ? validAuthStatus() : emptySearch();
+    },
+  });
+
+  await assert.rejects(
+    gateway.detectCatchUpRequirement({
+      cursor: fromCursor,
+      lastSuccessfulObservationAt: null,
+      signal: SIGNAL,
+    }),
+    error => error instanceof FeishuCatchUpRequiredError &&
+      error.fromCursor === fromCursor &&
+      error.throughCursor === `poll-v1:${NOW - CONSISTENCY_LAG_MS}`,
+  );
+  assert.deepEqual(calls, []);
+  await gateway.close();
+});
+
 test('uses the last durable observation when an event cursor falls back to polling', async () => {
   const gateway = createLarkCliFeishuPollingGateway({
     homeDirectory: '/Users/example',

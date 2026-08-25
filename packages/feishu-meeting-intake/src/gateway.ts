@@ -49,6 +49,14 @@ export interface FeishuCatchUpScanner {
   }): Promise<FeishuGeneratedArtifactPage>;
 }
 
+export interface FeishuCatchUpDetector {
+  detectCatchUpRequirement(request: {
+    readonly cursor: string | null;
+    readonly lastSuccessfulObservationAt: number | null;
+    readonly signal: AbortSignal;
+  }): Promise<void>;
+}
+
 export interface FeishuTranscriptGatewayRequest {
   readonly locator: Required<FeishuArtifactLocator>;
   readonly sourceHandle: string;

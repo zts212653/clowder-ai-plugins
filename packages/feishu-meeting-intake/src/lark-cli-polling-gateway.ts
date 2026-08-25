@@ -2,6 +2,7 @@ import {
   FeishuCatchUpRequiredError,
   FeishuGatewayError,
   type FeishuArtifactLocator,
+  type FeishuCatchUpDetector,
   type FeishuCatchUpScanner,
   type FeishuGeneratedArtifact,
   type FeishuGeneratedArtifactPage,
@@ -37,7 +38,8 @@ const VC_DETAIL_BATCH_SIZE = 50;
 
 export type { LarkCliReadCommand } from './lark-cli-read-command.js';
 
-export interface LarkCliFeishuPollingGateway extends FeishuPollingGateway, FeishuCatchUpScanner {
+export interface LarkCliFeishuPollingGateway extends FeishuPollingGateway,
+  FeishuCatchUpDetector, FeishuCatchUpScanner {
   start(): Promise<void>;
   close(): Promise<void>;
 }
@@ -52,23 +54,14 @@ export interface LarkCliFeishuPollingGatewayOptions {
   readonly maxAutomaticCatchUpMs?: number;
   readonly runCommand?: LarkCliReadCommand;
   readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
-  readonly inspectArtifact?: (
-    locator: FeishuArtifactLocator,
-    signal: AbortSignal,
-  ) => Promise<unknown>;
+  readonly inspectArtifact?: (locator: FeishuArtifactLocator, signal: AbortSignal) => Promise<unknown>;
 }
 
 function unavailable(message: string): never {
   throw new FeishuGatewayError('UNAVAILABLE', message);
 }
-
-function parseCursor(
-  cursor: string | null,
-  now: number,
-  safeEnd: number,
-  lookbackMs: number,
-  overlapMs: number,
-) {
+function parseCursor(cursor: string | null, now: number, safeEnd: number, lookbackMs: number,
+  overlapMs: number) {
   if (cursor === null || !cursor.startsWith(CURSOR_PREFIX)) return Math.max(0, safeEnd - lookbackMs);
   const value = Number(cursor.slice(CURSOR_PREFIX.length));
   if (!Number.isSafeInteger(value) || value < 0 || value > now) {
@@ -80,7 +73,6 @@ function parseCursor(
 function cursor(value: number): string {
   return `${CURSOR_PREFIX}${value}`;
 }
-
 function catchUpBoundary(
   inputCursor: string | null,
   lastSuccessfulObservationAt: number | null | undefined,
@@ -94,10 +86,8 @@ function catchUpBoundary(
     return { cursor: inputCursor, timestamp };
   }
   if (
-    lastSuccessfulObservationAt !== undefined &&
-    lastSuccessfulObservationAt !== null &&
-    Number.isSafeInteger(lastSuccessfulObservationAt) &&
-    lastSuccessfulObservationAt >= 0 &&
+    lastSuccessfulObservationAt !== undefined && lastSuccessfulObservationAt !== null &&
+    Number.isSafeInteger(lastSuccessfulObservationAt) && lastSuccessfulObservationAt >= 0 &&
     lastSuccessfulObservationAt <= now
   ) {
     return { cursor: cursor(lastSuccessfulObservationAt), timestamp: lastSuccessfulObservationAt };
@@ -294,6 +284,18 @@ export function createLarkCliFeishuPollingGateway(
 
   return {
     start,
+    async detectCatchUpRequirement({ cursor: inputCursor, lastSuccessfulObservationAt }) {
+      const currentTime = now();
+      const end = Math.max(0, currentTime - searchConsistencyLagMs);
+      const boundary = catchUpBoundary(inputCursor, lastSuccessfulObservationAt, currentTime);
+      if (boundary !== undefined && end - boundary.timestamp > maxAutomaticCatchUpMs) {
+        throw new FeishuCatchUpRequiredError({
+          fromCursor: boundary.cursor,
+          throughCursor: cursor(end),
+          reason: 'CURSOR_GAP',
+        });
+      }
+    },
     async listGeneratedArtifacts({
       cursor: inputCursor,
       lastSuccessfulObservationAt,

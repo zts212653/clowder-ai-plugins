@@ -30,6 +30,7 @@ test('falls back to the shared user-auth polling source only for an exact event-
       start: async () => {
         pollingStarts += 1;
       },
+      detectCatchUpRequirement: async () => undefined,
       listGeneratedArtifacts: async () => ({
         artifacts: [{
           artifactId: 'minute_shared',
@@ -72,6 +73,7 @@ test('does not hide non-conflict source failures behind polling', async () => {
       start: async () => {
         pollingStarts += 1;
       },
+      detectCatchUpRequirement: async () => undefined,
       listGeneratedArtifacts: async () => ({ artifacts: [], nextCursor: null }),
       inspectArtifact: async () => {
         throw new Error('not used');

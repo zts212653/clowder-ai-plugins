@@ -8,6 +8,7 @@ import {
   FeishuCatchUpRequiredError,
   createFeishuMeetingCatchUpService,
   createFileMeetingIntakeStateStore,
+  type FeishuCatchUpDetector,
   type FeishuCatchUpScanner,
   type FeishuGeneratedArtifact,
 } from './index.js';
@@ -31,11 +32,63 @@ async function fixture(scan: FeishuCatchUpScanner['scanGeneratedArtifacts']) {
     detectedAt: 5_100,
   });
   const scanner: FeishuCatchUpScanner = { scanGeneratedArtifacts: scan };
+  const detector: FeishuCatchUpDetector = { detectCatchUpRequirement: async () => undefined };
   return {
     store,
-    service: createFeishuMeetingCatchUpService({ scanner, store, now: () => 5_200 }),
+    service: createFeishuMeetingCatchUpService({ detector, scanner, store, now: () => 5_200 }),
   };
 }
+
+test('detect persists an old polling cursor as an owner decision before activation', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'feishu-catch-up-detect-'));
+  const store = createFileMeetingIntakeStateStore(join(directory, 'state.json'));
+  await store.commitPage(null, 'poll-v1:1000', [], 1_000);
+  const detector: FeishuCatchUpDetector = {
+    async detectCatchUpRequirement(request) {
+      assert.equal(request.cursor, 'poll-v1:1000');
+      assert.equal(request.lastSuccessfulObservationAt, 1_000);
+      throw new FeishuCatchUpRequiredError({
+        fromCursor: request.cursor,
+        throughCursor: 'poll-v1:5000',
+        reason: 'CURSOR_GAP',
+      });
+    },
+  };
+  const scanner: FeishuCatchUpScanner = {
+    scanGeneratedArtifacts: async request => ({ artifacts: [], nextCursor: request.throughCursor }),
+  };
+  const service = createFeishuMeetingCatchUpService({ detector, scanner, store, now: () => 5_200 });
+
+  const result = await service.detect(SIGNAL);
+
+  assert.equal(result.status, 'needs-owner');
+  assert.deepEqual((await store.load()).catchUp, {
+    status: 'needs-owner',
+    fromCursor: 'poll-v1:1000',
+    throughCursor: 'poll-v1:5000',
+    detectedAt: 5_200,
+  });
+});
+
+test('detect leaves current cursors idle and does not scan or enqueue candidates', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'feishu-catch-up-current-'));
+  const store = createFileMeetingIntakeStateStore(join(directory, 'state.json'));
+  let scans = 0;
+  const detector: FeishuCatchUpDetector = { detectCatchUpRequirement: async () => undefined };
+  const scanner: FeishuCatchUpScanner = {
+    scanGeneratedArtifacts: async request => {
+      scans += 1;
+      return { artifacts: [], nextCursor: request.throughCursor };
+    },
+  };
+  const service = createFeishuMeetingCatchUpService({ detector, scanner, store, now: () => 5_200 });
+
+  const result = await service.detect(SIGNAL);
+
+  assert.equal(result.status, 'idle');
+  assert.equal(scans, 0);
+  assert.deepEqual((await store.load()).pending, []);
+});
 
 test('preview reads the frozen window but does not enqueue or advance it', async () => {
   const { service, store } = await fixture(async request => {
