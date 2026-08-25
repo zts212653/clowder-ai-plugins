@@ -269,7 +269,14 @@ export function startFeishuMeetingIntakeStdio(
     activated.resolve();
     runtimeTask = (async () => {
       while (active && !lifecycle.signal.aborted) {
-        await runtime.pollOnce(lifecycle.signal);
+        const result = await runtime.pollOnce(lifecycle.signal);
+        if (result.blocked === 'catch-up') {
+          await new Promise<void>((_resolve, reject) => {
+            const rejectOnAbort = (): void => reject(lifecycle.signal.reason);
+            if (lifecycle.signal.aborted) rejectOnAbort();
+            else lifecycle.signal.addEventListener('abort', rejectOnAbort, { once: true });
+          });
+        }
       }
     })();
     await runtimeTask;

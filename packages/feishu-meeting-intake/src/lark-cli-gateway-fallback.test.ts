@@ -42,6 +42,10 @@ test('falls back to the shared user-auth polling source only for an exact event-
       inspectArtifact: async () => {
         throw new Error('not used');
       },
+      scanGeneratedArtifacts: async ({ throughCursor }) => ({
+        artifacts: [],
+        nextCursor: throughCursor,
+      }),
       close: async () => {
         pollingCloses += 1;
       },
@@ -72,6 +76,10 @@ test('does not hide non-conflict source failures behind polling', async () => {
       inspectArtifact: async () => {
         throw new Error('not used');
       },
+      scanGeneratedArtifacts: async ({ throughCursor }) => ({
+        artifacts: [],
+        nextCursor: throughCursor,
+      }),
       close: async () => undefined,
     }),
   });

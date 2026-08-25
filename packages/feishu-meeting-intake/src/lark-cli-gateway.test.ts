@@ -269,6 +269,22 @@ test('combines the two generated-artifact streams and carries only an opaque cur
   await gateway.close();
 });
 
+test('records a successful empty observation while the event source is quiet', async () => {
+  const gateway = createLarkCliFeishuEventGateway({
+    sourceObservationIntervalMs: 5,
+    createConsumer: async () => ({ events: events([]), close: async () => undefined }),
+  });
+
+  const page = await gateway.listGeneratedArtifacts({
+    cursor: 'evt-last-seen',
+    limit: 64,
+    signal: SIGNAL,
+  });
+
+  assert.deepEqual(page, { artifacts: [], nextCursor: 'evt-last-seen' });
+  await gateway.close();
+});
+
 test('manual history inspection reuses the default user-authorized lark-cli adapter', async () => {
   const token = 'obcne9c5d9z4l3o3nk9mg777';
   const calls: string[][] = [];
