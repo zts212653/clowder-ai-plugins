@@ -3,7 +3,7 @@ title: Clowder 插件体系：设计原则与 v0 方案
 status: draft-for-discussion (v0)
 discussion: zts212653/clowder-ai-plugins#1
 created: 2026-07-12
-revised: 2026-08-23
+revised: 2026-08-25
 authors: 宪宪/Fable（mindfn 侧）
 internal-review: 砚砚/gpt-5.6-sol（mindfn 侧，2026-07-12 迁移前完成；PR 行内评审独立进行，不在此代签）
 references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F240 IM connector · clowder-ai#1047 memory primitives
@@ -49,16 +49,29 @@ references: F202 plugin framework · F237 hook pipeline (clowder-ai#1075) · F24
 ### 2.2 目标
 
 issue #1 给出了 v0 契约、M0 standalone 与 M1 体验样板的产品目标；跨仓执行顺序由
-`v0-implementation-roadmap.md` 持有。2026-08-23 operator 已将顺序改为：M0 收口 →
-完整公共 SDK/Contribution/Manager 底座 → 现有 IM、业务插件与具体服务集中迁移 →
-foreground-cat/windows/memory 等后续扩张。M1 的“打开文件→猫跑过来→问要不要总结”
-目标保留，但不再作为与底座/存量收编并行的排期承诺。
+`v0-implementation-roadmap.md` 持有。2026-08-25 operator 将终态进一步收敛为：M0 收口 →
+YAML 声明 + SDK 编程式调用的公共 SDK/Contribution/Manager 底座 → 现有 IM、GitHub、业务插件与
+具体服务集中迁移并完成 install/enable/use/disable/uninstall 狗粮 → 开发者文档闭合 →
+contract/SDK `0.1.0` 正式发布 → foreground-cat/windows/memory 等后续扩张。M1 的
+“打开文件→猫跑过来→问要不要总结”目标保留，但不再作为与底座/存量收编并行的排期承诺。
 
 ### 2.3 两仓职责划分（本阶段核心产出）
 
 **clowder-ai（内核仓）——改什么**：
-1. 按本阶段能力域收敛接口（§3.2）：messaging envelope 统一（三个 send 收敛为一）、schedule 增加 entrypoint 触发、state namespace KV、signals/events 与 UI contribution；memory/thread 是 Train C 闭环后的高敏候选域，不进入当前 v0 contract/SDK
-2. 插件控制面与 Host Broker：F202 继续做统一编排，service/connector/schedule 等由各自 resource runtime adapter 承担，不把不同运行时压成一个万能接口（§3.4/§3.5）
+1. 按本阶段能力域收敛接口（§3.2）：Host 侧真正的同义平行实现只按三个底层服务收口——
+   F139/F202/猫 MCP/SDK schedule 归一到 Scheduler，Hub/ConnectorRouter/SDK 消息写入归一到
+   MessageIngress，ConnectorDefinition 硬编码与动态 identity 归一到 IdentityRegistry。
+   `plugin.yaml` 的 `type: mcp | skill | limb | schedule` 仍是正确的能力分类，Host 按 type
+   分发到对应子系统，不合成一个万能 ToolRegistry；同一 capability type 若同时提供 YAML 静态
+   与 SDK 动态注册，两路才共享底层 store、ledger 与 lifecycle。state namespace KV、
+   signals/events 与 UI contribution 继续按域开放。memory/thread 是 Train C 闭环后的高敏候选域，
+   不进入当前 v0 contract/SDK
+2. 插件控制面与 Host Broker：F202 继续做统一编排，Core 只持有通用的时间/持久化/重试、
+   HTTP ingress、IdentityRegistry、direct-tool registry、MCP runtime、skill registry、limb control
+   plane、授权 binding 和分类型 resource adapter；
+   GitHub poll/review 解析、IM 路由/回推、具体 service 等业务实现全部在插件侧，不把
+   `ScheduleFactoryRegistry`、`ConnectorRouter` 或 provider-specific handler 当作终态 Host API
+   （§3.4/§3.5）
 3. 输出事件流：带单调 sequence/cursor 的 message 事件订阅 + `appendElements` 增补通道（覆盖 TTS 类异步增补）；hook 点位 v0 不开放，机制方向保留（F237 输入侧同构），M1 有真实同步需求再按 P5 逐个评审
 4. 控制面：Settings 插件管理 UI（**IM connector 现有独立管理面并入统一插件管理**——connector 是插件的一类，不再有第二个管理入口）、capability-gate 前端装配（启用才出现）、审计/trace 存储
 5. SDK Host Adapter（鉴权、授权、调用结算、callback/事件调度）随内核发版；插件进程 runtime/client 在插件仓
@@ -67,8 +80,11 @@ foreground-cat/windows/memory 等后续扩张。M1 的“打开文件→猫跑�
 1. **契约机器真相源**：`@clowder-ai/plugin-contract`（envelope/event/manifest JSON Schema + TS 类型 + capability 表 + conformance fixtures；hook 表 future-reserved 不进 v0 包）；文档从 schema 生成或校验，不在内核仓复制定义（P15）
 2. **SDK 与插件 runtime**：客户端库、握手/传输实现、standalone 壳 runtime；版本随 contract package
 3. **插件脚手架与模板**：create-clowder-plugin 级别的起步体验（P14 的开发者体验面）
-4. **参考插件**：GitHub（首验）、voice-suite、probe-desktop、foreground-cat——按 issue #1 的分工提议，底盘类由 `mindfn` 侧主导自治
-5. **准入管理**：proposal-first、签名/digest、CI 跑内核 contract suite（插件仓的每个插件在 CI 里对内核当前版本验证）
+4. **业务插件与参考插件**：GitHub、现有 IM providers、voice-suite、Feishu、
+   probe-desktop、foreground-cat；schedule handler、tool handler、webhook/长连接协议适配、
+   thread 选择与外部回推均随对应插件发布，不在 Core 留业务副本
+5. **开发者入口与准入管理**：manifest 规范、SDK API reference、教程/模板、机器可读
+   catalog index、proposal-first、签名/digest，以及针对当前 Host contract suite 的插件 CI
 
 **契约治理（我方建议，待对方确认）**：机器可读 contract package 在插件仓是唯一契约真相源；内核仓是 Host Adapter/控制面的实现真相源，二者不重复定义 schema。变更流程：contract PR（含 fixture）→ 双方指定 CODEOWNER 共签 → 发布 pre-1.0 版本 → 内核消费该版本并跑 conformance suite → 参考插件跑兼容矩阵。v1 冻结前允许 breaking release，不为旧内部接口留 adapter；冻结后再进入公开兼容承诺。
 
@@ -118,11 +134,23 @@ MessageOutputEvent（宿主事件流）
    订阅进入 stale 态，需走快照追平（fixture 覆盖此路径），不静默丢事件
 ```
 
-- 外部 ingress 在绑定 thread 前先带 `sourceAddress(connectorId/chatId/messageId)`；Host Adapter 完成 binding、actor/provenance 校验后才生成 canonical envelope。**Draft 的寻址只能使用宿主签发的 `ThreadHandle`/`ConnectorBindingRef`**——schema 层面即不存在"自报裸 threadId"的通道。
+- 外部 ingress 在绑定 thread 前先带 `sourceAddress(connectorId/chatId/messageId)`；插件负责
+  按自身业务规则选择一个已授权的 `ThreadHandle`/`ConnectorBindingRef`，Host 的通用 binding
+  adapter 只负责签发/解析句柄、actor/provenance 校验与 canonical admission，不知道“飞书群该进
+  哪个 thread”或“GitHub review 推给谁”。**Draft 的寻址只能使用宿主签发的
+  `ThreadHandle`/`ConnectorBindingRef`**——schema 层面即不存在“自报裸 threadId”的通道。
 - **audience 两态**：Draft 侧 `draftAudience` 仅 public/whisper（whisper 目标限于 grant 允许集）；canonical `audience` 由宿主派生，`system` 只能由宿主产生——插件无法借草稿伪装系统消息。
 - `derivedFromElementId` 指向稳定的 `elementId`；增补元素由宿主校验并原子 append，不能改写原文，也不能把 `inference` 提升为 `observation/user_intent`。
 - **幂等分层（账本键写实）**：send 幂等账本键 = `(pluginInstanceId, featureId, idempotencyKey)`；append 幂等键 = `(pluginInstanceId, featureId, messageId, operationId)`；events.publish ledger key = `(pluginInstanceId, featureId, idempotencyKey)`。其中 `featureId` 必须由 Broker 从 Host-issued feature lease 绑定，不能采信 payload 自报值；同一 feature 重试返回同一 receipt，而 sibling feature 使用相同业务键时必须进入彼此独立的 ledger entry。插件间互不干扰、重装实例也不复用旧键空间。`baseRevision` 做并发冲突检测；`sourceEventId` 仅是外部 provenance。delivery ack/重试进入同一 feature-scoped ledger，不污染内容模型。
-- outbound 收敛：`sendReply/sendRichMessage/sendMedia` → `messaging.send(draft)`，返回宿主 receipt/messageId（同 idempotencyKey 重试返回同一 receipt）；平台降级（卡片→纯文本、media fallback）由 connector adapter 负责。
+- **单一消息写入口**：Hub UI、迁移期 Connector Gateway 与 Plugin SDK 最终都调用同一个
+  Host-owned canonical admission；不同来源只通过 Host 验证后的 `source/actor` 投影区分，不能
+  各自维护一套消息落库/广播/唤醒逻辑。插件可提交外部 sender metadata，但 plugin/feature
+  identity 必须从 execution lease 与 identity registry 绑定，不能由 payload 冒充。
+- outbound 收敛：`sendReply/sendRichMessage/sendMedia` → `messaging.send(draft)`，返回宿主
+  receipt/messageId（同 idempotencyKey 重试返回同一 receipt）；平台降级（卡片→纯文本、media
+  fallback）、监听哪些已绑定 thread 以及怎样回推外部平台由 connector 插件负责。迁移完成后
+  `OutboundDeliveryHook` 不再是第二条业务通道，等价能力由授权的 message subscription callback
+  驱动。
 
 ### 3.2 能力域与收敛单位（P4）
 
@@ -130,8 +158,26 @@ MessageOutputEvent（宿主事件流）
 选中某域时必须把该域的数据结构、call/callback/事件、权限、持久化、migration 与测试
 一起收敛。当前基础平台 v0 的公开域边界是：
 
-- **messaging**：canonical envelope + ingress binding + send/appendElements + 职责回调 + 带游标的输出事件订阅
-- **schedule**：manifest 声明允许的 task entrypoint；`schedule.register` 只创建调度实例并引用该 entrypoint，禁止任意命令。宿主持有时间、持久化、重试；插件持有 task 实现
+- **messaging**：canonical envelope + ingress binding + 单一 send/appendElements admission +
+  带 filter/opaque cursor 的输出事件订阅；静态 binding 与 SDK 动态 subscription 最终都产生
+  Host-owned、lease-scoped subscription，职责 callback/ack 语义一致
+- **schedule**：manifest/YAML 可静态声明，SDK 可动态注册；两者归一到
+  `{owner lease, stable name, schedule, action:{method, params}, policy}`。`action.method` 是
+  Broker 可回调的插件 entrypoint token，不是跨进程传递的 JS closure；宿主持有时间、持久化、
+  重试与 settlement，插件持有 task 实现及触发后向哪个授权 thread 发消息的业务决策。Core 不再
+  持有 GitHub/IM 特定 schedule factory
+- **identity**：manifest 可声明稳定展示身份，SDK 可注册运行期展示 contribution；Host 从
+  package/instance/feature lease 绑定真实 owner，再投影 name/icon/color，payload 自报 identity
+  不能升级 actor authority
+- **tool/MCP/limb**：插件可声明独立 MCP server，或用 SDK 注册
+  `{name, description, inputSchema, handler}` 的直接 tool contribution；普通 tool 经 Broker callback，
+  Host 对外暴露的 canonical tool ID 默认带 package/feature namespace，未限定 alias 只能经显式
+  policy 分配；物理设备 action 仍走 limb 的 Registry/Policy/Lease/ActionLog，不因都叫 tool 而
+  绕过物理安全边界
+- **webhook/inbound endpoint**：manifest/YAML 与 SDK 都可声明受限 path/method/handler；Host
+  将相对 path 挂入 Host 分配的 plugin-instance namespace，禁止占用 Core/admin/其他插件 route；
+  通用 edge 只负责限流、body budget、route ownership 与 secret-reference 验签适配，provider
+  challenge/signature 语义和消息转换在插件 callback 内，禁止 manifest 内嵌明文 secret
 - **config/state/secrets**：宿主持久化、namespace、schema version/migration 与按声明授权的 secret 读取
 - **MCP/service/connector**：类型化 contribution + 分类型 resource adapter + grant/settlement
 - **ui-contribution**：slot 注册 + capability-gate + renderer 隔离
@@ -149,7 +195,7 @@ MessageOutputEvent（宿主事件流）
 已发布 Feishu standalone plugin 是 event ingress 的当前真实消费者；desktop event source
 继续作为闭环后输入。因此 ingress 契约必须随 v0 落地，且由现有消费者验收。**先排除后定义**：
 
-**v0 明确不造**：stream delivery（无真实消费者；未来经握手 `supportedDeliveryModes` 声明取交集、随新 contract version 进入——不用 enum 预留位，追加枚举值对旧 validator/exhaustive union 是 breaking）；通用 discover/query_manifest 动词（callable 能力披露走各 resource 面，"谁在线"归 Broker registry 内部语义）；统一 heartbeat 动词（liveness 按 runtime 类型拆）；动态 `subscribe()/unsubscribe()`（M1 不需要；动态持久订阅待真实消费者出现后随版本演进，届时再定义 owner/持久化/撤销语义）。
+**v0 明确不造**：stream delivery（无真实消费者；未来经握手 `supportedDeliveryModes` 声明取交集、随新 contract version 进入——不用 enum 预留位，追加枚举值对旧 validator/exhaustive union 是 breaking）；通用 discover/query_manifest 动词（callable 能力披露走各 resource 面，"谁在线"归 Broker registry 内部语义）；统一 heartbeat 动词（liveness 按 runtime 类型拆）；**通用 signal-ingress** 的任意动态 `subscribe()/unsubscribe()`（没有当前消费者）。该排除不适用于 messaging output subscription：IM 出站回推已经是当前真实消费者，必须按 §3.1/§3.3 的 lease、filter、callback、cursor、ack 与撤销语义进入 v0。
 
 **最小骨架四件**：
 1. **`manifest.signals.provides[]`**：`type + schemaRef + epistemicStatus + privacyClass + sourceClass`——信号是声明出来的，不是运行时冒出来的；`sourceClass` 为机器字段（安装期据此做 conformance 校验，不留在 prose）。
@@ -166,24 +212,33 @@ call（插件→内核；身份由 Host Broker 注入，动作类入 ledger）:
   plugin.config.read(own, non-secret)
   plugin.secret.read(own, declared)【敏感、审计】
   plugin.state.get/set(own ns)
-  schedule.register/unregister(declared task)
+  scheduler.register/unregister({name,schedule,action})
+  identity.register/unregister(display contribution)
+  tools.register/unregister({name,inputSchema,handler})
+  webhooks.register/unregister({path,methods,handler,verificationRef})
   messaging.send(draft)
+  messaging.subscribe/unsubscribe({address,filter,callback})
   messaging.appendElements(messageHandle, elements[], operationId)【需订阅 grant，异步增补通道】
   events.publish(declaredSignal)
 
 callback（内核→插件）:
   onLifecycle(init/enable/disable/shutdown)
-  onTask(name,payload)【职责】 · onMessage(envelope)【职责】
+  onTask(name,payload)【职责】 · onToolCall(name,input)【职责】
+  onWebhook(route,request)【职责】 · onMessage(envelope)【职责】
   onEvent(event, cursor)【通知；含 message.publish/append 订阅，凭游标续读】
 ```
 
 上表只描述 wire 形状，不定义授权主体。除 runtime bootstrap/health 与 plugin 总闸
 lifecycle 外，所有 effect-bearing call、resource callback 与 event delivery 都必须由
 §3.4 的 Host-issued feature execution lease 绑定；payload 中的 `featureId` 仅可用于一致性
-校验，不能选择或升级 authority。
+校验，不能选择或升级 authority。SDK 可以用闭包包装 developer experience，但 wire/manifest
+只冻结 callback method token 与可序列化 params；`pluginId`、`featureId` 和 identity owner 均由
+Host context 注入，不要求插件在每个注册 payload 中重复自报。
 
 Train B 的插件作者层还必须提供 roadmap §5.1 冻结的类型化 contribution facade：
-`featureCtx.mcp`、`featureCtx.services`、`featureCtx.connectors`、`featureCtx.ui`，以及
+`featureCtx.scheduler`、`featureCtx.identity`、`featureCtx.tools`、`featureCtx.mcp`、
+`featureCtx.webhooks`、`featureCtx.messaging.subscribe`、`featureCtx.services`、
+`featureCtx.connectors`、`featureCtx.ui`，以及
 lifecycle/effect 与 feature activation settlement。它们最终仍通过 Broker grant、resource
 adapter 与 ledger，不是绕开 call/callback 的内核对象引用。具体 generated type/schema
 以插件仓 contract package 为机器真相源；本段不另写一份手工 mirror。
@@ -206,12 +261,23 @@ F202 `PluginRegistry + PluginResourceActivator` 继续做统一控制面，不�
 
 ```
 PluginControlPlane
+  ├─ IdentityResourceAdapter  → Host-authenticated display/source projection
+  ├─ ToolResourceAdapter      → direct tool registry / Broker callback
+  ├─ WebhookResourceAdapter   → generic HTTP edge / route lease / callback
+  ├─ MessageResourceAdapter   → canonical admission / subscription / cursor
   ├─ ServiceResourceAdapter   → 复用 service manager / deep health
-  ├─ ConnectorResourceAdapter → inbound/outbound/binding
+  ├─ ConnectorResourceAdapter → generic binding / transport contribution
   ├─ ScheduleResourceAdapter  → TaskRunner / durable schedules
   ├─ HookResourceAdapter      → future-reserved（随 M1 hook 点位评审，非 v0 构成）
   └─ UiContributionAdapter    → slot/capability/renderer policy
 ```
+
+这些 adapter 只拥有通用 authority 与 resource lifecycle。GitHub poll/review parsing、
+PR/issue tracking tool、IM provider protocol、thread 选择、外部平台回推与具体 service 实现
+全部在插件进程；Core 中现存的业务 factory/router/hook 只是 Train C 前的兼容路径，不是可冻结
+的插件 API。同一 capability type 的静态 manifest 与动态 SDK 注册必须进入同一个 type-specific
+adapter/registry，不能形成两套 owner、冲突、dispose 或 restart 语义；不同 type 按图中的
+分类型 adapter/control plane 分发，不因共享生命周期 envelope 而合成一个 registry。
 
 **manifest 的 feature 聚合与 activation**：一个插件可含多个"能力"（feature = 基于
 mcp/skill/limb/schedule/sdk 资源组合成的一个完整用户可感知能力，如 github 插件的
@@ -458,7 +524,10 @@ surface：
 1. **Contract conformance fixture + loopback plugin（M0）**：验证握手、grants、message.publish/append、ack/ledger、崩溃隔离；且必须含 **host+SDK 共跑的对抗矩阵（fail-closed 断言，全集）**：actor 伪造、system audience 伪造、任意 whisper target 伪造（超出 grant 允许集）、裸/越权 thread 寻址、state namespace escape（跨实例访问）、provenance 升级（inference→user_intent）、denied grant 调用、重复 idempotencyKey/operationId、deadline expiry（超时调用的结算与拒绝）、职责 callback retry/dead-letter 路径、断线后 cursor 续投 + 消费幂等（含 ack 前崩溃重投）、retention 越界的 stale 订阅追平、卸载后 retained/ask 类 durable state 不丢失、**P14 断言：第一方插件与第三方走同一 SDK 入口/同一授权流**、插件崩溃不拖垮宿主；**事件输入面四项**：undeclared/forbidden-class signal 发布拒绝、producer 伪造与认识论升级（observation→user_intent）拒绝、插件自报 wake route target 拒绝、lease 过期后 offline 判定生效。它是测试夹具，不是产品插件。
 2. **Train B 真实消费者矩阵**：product-neutral fixture 之外，必须在隔离 acceptance
    环境用真实 Feishu、GitHub、MCP、voice-suite 与至少一个 IM provider slice 覆盖
-   lifecycle/feature activation/messaging/config/state/secrets/scheduler/MCP/service/connector/UI；
+   lifecycle/feature activation/messaging/config/state/secrets、identity、静态+动态 scheduler、
+   direct tool/MCP、webhook、message subscription、service/connector/UI；GitHub 必须证明
+   PR/issue tracking handler 和触发后的 thread routing 均在插件侧，IM 必须证明 webhook/长连接
+   ingress 与出站回推都通过统一 message admission/subscription，不调用 Host 业务 router；
    Manager lifecycle journey 必须包含已启用 package 的损坏注入，并证明 integrity 进入
    `damaged` 的同一 durable transition 已撤销整包 lease、停止 delivery/runtime 且 current
    fail closed，再开始同版本 repair；repair 失败/crash 不得复活旧 authority，成功只能从
@@ -482,8 +551,9 @@ GitHub 是 schedule/state 的真实验证器，但**不能单独验证 M0 的标
 最小 loopback/standalone 纵切。通用 fixture 也不能单独冻结 Train B：每个公开 surface
 必须同时有真实消费者证据。
 
-旧版“收编线/体验线并行，M1 排期不等待收编”的安排已被 2026-08-23 operator 改序
-取代。该变化只调整执行时序，不撤销 M1 产品目标，也不降低 P4/P14：foreground-cat
+旧版“收编线/体验线并行，M1 排期不等待收编”的安排已被 2026-08-23 operator 改序、
+并由 2026-08-25 的 YAML/SDK 双通道、Host 业务失明与正式版狗粮门进一步收敛。
+这些变化不撤销 M1 产品目标，也不降低 P4/P14：foreground-cat
 将来仍必须走同一公开 SDK/授权路径并完成真实纵切验收；在 Train C 闭环前只保留需求
 与设计输入，不进入实现关键路径。
 
@@ -494,6 +564,12 @@ GitHub 是 schedule/state 的真实验证器，但**不能单独验证 M0 的标
 2. 高敏能力不止闭环后的 thread/memory：当前凡读消息内容者（事件订阅、`onMessage`）也均按 scope 授权；v0 不设 hook 类接口——`input.pre` 与 `output.message.augment` 都没有不可替代消费者，TTS 类异步增补由"事件订阅 + `appendElements`"覆盖。
 3. 生命周期方向不是“service manifest 泛化成万能引擎”，而是 F202 控制面 + 分类型 resource adapter + 正交状态投影。
 4. contract schema 在插件仓单一真相，Host 实现在内核仓；双签的是 contract PR，不是两仓各写一份接口。
+5. manifest/YAML 与 SDK 在表达同一 capability type 时是静态/动态入口，共享 type-specific
+   store、owner lease、ledger 与 disposer；`mcp/skill/limb/schedule` 的协议分类继续保留。
+   当前 Host 平行实现的收敛对象只有 Scheduler、MessageIngress 与 IdentityRegistry，
+   `register_tool` 是 direct-tool SDK surface，不是把 MCP/skill/limb 合成一个 ToolRegistry 的理由。
+6. Host 只持有通用 control/authority plane：具体 GitHub/IM/service 逻辑、thread routing 与平台
+   回推在插件侧；Hub、兼容期 Gateway 与 Plugin SDK 的消息写入最终收敛到一个 canonical admission。
 
 **对 issue #1 的回应结构**：
 1. **确认接受**：四件共签框架、五条不让步项（P10 为其一的正面确认）、底盘自治分工。
