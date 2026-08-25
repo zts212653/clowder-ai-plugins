@@ -1,6 +1,9 @@
 import {
+  FeishuCatchUpRequiredError,
   FeishuGatewayError,
   type FeishuArtifactLocator,
+  type FeishuCatchUpDetector,
+  type FeishuCatchUpScanner,
   type FeishuGeneratedArtifact,
   type FeishuGeneratedArtifactPage,
   type FeishuPollingGateway,
@@ -20,12 +23,14 @@ import {
   type MeetingDetail,
 } from './lark-cli-polling-normalizer.js';
 import { createLarkCliFeishuArtifactInspector } from './lark-cli-artifact-inspector.js';
+import { abortableSleep } from './abortable-sleep.js';
 
 const CURSOR_PREFIX = 'poll-v1:';
 const DEFAULT_LOOKBACK_MS = 5 * 60_000;
 const DEFAULT_OVERLAP_MS = 30_000;
 const DEFAULT_SEARCH_CONSISTENCY_LAG_MS = 10 * 60_000;
 const DEFAULT_POLL_INTERVAL_MS = 30_000;
+const DEFAULT_MAX_AUTOMATIC_CATCH_UP_MS = 60 * 60_000;
 const SEARCH_PAGE_SIZE = 30;
 const MAX_SEARCH_PAGES = 4;
 const MAX_CANDIDATES = 64;
@@ -33,7 +38,8 @@ const VC_DETAIL_BATCH_SIZE = 50;
 
 export type { LarkCliReadCommand } from './lark-cli-read-command.js';
 
-export interface LarkCliFeishuPollingGateway extends FeishuPollingGateway {
+export interface LarkCliFeishuPollingGateway extends FeishuPollingGateway,
+  FeishuCatchUpDetector, FeishuCatchUpScanner {
   start(): Promise<void>;
   close(): Promise<void>;
 }
@@ -45,25 +51,17 @@ export interface LarkCliFeishuPollingGatewayOptions {
   readonly overlapMs?: number;
   readonly searchConsistencyLagMs?: number;
   readonly pollIntervalMs?: number;
+  readonly maxAutomaticCatchUpMs?: number;
   readonly runCommand?: LarkCliReadCommand;
   readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
-  readonly inspectArtifact?: (
-    locator: FeishuArtifactLocator,
-    signal: AbortSignal,
-  ) => Promise<unknown>;
+  readonly inspectArtifact?: (locator: FeishuArtifactLocator, signal: AbortSignal) => Promise<unknown>;
 }
 
 function unavailable(message: string): never {
   throw new FeishuGatewayError('UNAVAILABLE', message);
 }
-
-function parseCursor(
-  cursor: string | null,
-  now: number,
-  safeEnd: number,
-  lookbackMs: number,
-  overlapMs: number,
-) {
+function parseCursor(cursor: string | null, now: number, safeEnd: number, lookbackMs: number,
+  overlapMs: number) {
   if (cursor === null || !cursor.startsWith(CURSOR_PREFIX)) return Math.max(0, safeEnd - lookbackMs);
   const value = Number(cursor.slice(CURSOR_PREFIX.length));
   if (!Number.isSafeInteger(value) || value < 0 || value > now) {
@@ -75,25 +73,26 @@ function parseCursor(
 function cursor(value: number): string {
   return `${CURSOR_PREFIX}${value}`;
 }
-
-function defaultSleep(milliseconds: number, signal: AbortSignal): Promise<void> {
-  if (signal.aborted) return Promise.reject(signal.reason);
-  return new Promise<void>((resolve, reject) => {
-    const onElapsed = (): void => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    };
-    const timer = setTimeout(onElapsed, milliseconds);
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      signal.removeEventListener('abort', onAbort);
-      reject(signal.reason);
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
-    void Promise.resolve().then(() => {
-      if (signal.aborted) onAbort();
-    });
-  });
+function catchUpBoundary(
+  inputCursor: string | null,
+  lastSuccessfulObservationAt: number | null | undefined,
+  now: number,
+): { readonly cursor: string; readonly timestamp: number } | undefined {
+  if (inputCursor?.startsWith(CURSOR_PREFIX)) {
+    const timestamp = Number(inputCursor.slice(CURSOR_PREFIX.length));
+    if (!Number.isSafeInteger(timestamp) || timestamp < 0 || timestamp > now) {
+      return unavailable('Feishu polling cursor is malformed');
+    }
+    return { cursor: inputCursor, timestamp };
+  }
+  if (
+    lastSuccessfulObservationAt !== undefined && lastSuccessfulObservationAt !== null &&
+    Number.isSafeInteger(lastSuccessfulObservationAt) && lastSuccessfulObservationAt >= 0 &&
+    lastSuccessfulObservationAt <= now
+  ) {
+    return { cursor: cursor(lastSuccessfulObservationAt), timestamp: lastSuccessfulObservationAt };
+  }
+  return undefined;
 }
 
 function searchArgs(
@@ -122,6 +121,8 @@ async function collectSearch(
   source: 'minutes-owner' | 'minutes-participant' | 'vc',
   start: number,
   end: number,
+  fromCursor: string | null,
+  throughCursor: string,
   signal: AbortSignal,
 ): Promise<Record<string, unknown>[]> {
   const items: Record<string, unknown>[] = [];
@@ -132,11 +133,23 @@ async function collectSearch(
       signal,
     ));
     items.push(...response.items);
-    if (items.length > MAX_CANDIDATES) return unavailable('Feishu polling candidate bound exceeded');
+    if (items.length > MAX_CANDIDATES) {
+      throw new FeishuCatchUpRequiredError({
+        fromCursor,
+        throughCursor,
+        reason: 'CANDIDATE_BOUND',
+        candidateCountAtLeast: items.length,
+      });
+    }
     if (!response.hasMore) return items;
     pageToken = response.pageToken;
   }
-  return unavailable('Feishu polling page bound exceeded');
+  throw new FeishuCatchUpRequiredError({
+    fromCursor,
+    throughCursor,
+    reason: 'PAGE_BOUND',
+    candidateCountAtLeast: MAX_SEARCH_PAGES * SEARCH_PAGE_SIZE + 1,
+  });
 }
 
 export function createLarkCliFeishuPollingGateway(
@@ -148,11 +161,14 @@ export function createLarkCliFeishuPollingGateway(
   const searchConsistencyLagMs = options.searchConsistencyLagMs ??
     DEFAULT_SEARCH_CONSISTENCY_LAG_MS;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
+  const maxAutomaticCatchUpMs = options.maxAutomaticCatchUpMs ??
+    DEFAULT_MAX_AUTOMATIC_CATCH_UP_MS;
   for (const [label, value] of Object.entries({
     lookbackMs,
     overlapMs,
     searchConsistencyLagMs,
     pollIntervalMs,
+    maxAutomaticCatchUpMs,
   })) {
     if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`${label} must be positive`);
   }
@@ -161,7 +177,7 @@ export function createLarkCliFeishuPollingGateway(
     homeDirectory: options.homeDirectory,
     runCommand,
   });
-  const sleep = options.sleep ?? defaultSleep;
+  const sleep = options.sleep ?? abortableSleep;
   const lifecycle = new AbortController();
   let starting: Promise<void> | undefined;
   let buffered: FeishuGeneratedArtifact[] = [];
@@ -183,17 +199,18 @@ export function createLarkCliFeishuPollingGateway(
     return starting;
   };
 
-  const collect = async (
-    inputCursor: string | null,
+  const collectWindow = async (
+    fromCursor: string | null,
+    end: number,
+    currentTime: number,
     signal: AbortSignal,
   ): Promise<{ readonly artifacts: FeishuGeneratedArtifact[]; readonly nextCursor: string }> => {
-    const currentTime = now();
-    const end = Math.max(0, currentTime - searchConsistencyLagMs);
-    const begin = parseCursor(inputCursor, currentTime, end, lookbackMs, overlapMs);
+    const throughCursor = cursor(end);
+    const begin = parseCursor(fromCursor, currentTime, end, lookbackMs, overlapMs);
     const [owned, participated, meetingItems] = await Promise.all([
-      collectSearch(runCommand, 'minutes-owner', begin, end, signal),
-      collectSearch(runCommand, 'minutes-participant', begin, end, signal),
-      collectSearch(runCommand, 'vc', begin, end, signal),
+      collectSearch(runCommand, 'minutes-owner', begin, end, fromCursor, throughCursor, signal),
+      collectSearch(runCommand, 'minutes-participant', begin, end, fromCursor, throughCursor, signal),
+      collectSearch(runCommand, 'vc', begin, end, fromCursor, throughCursor, signal),
     ]);
     const minuteTokens = new Set<string>();
     for (const item of [...owned, ...participated]) {
@@ -217,7 +234,12 @@ export function createLarkCliFeishuPollingGateway(
       if (meeting.noteId !== undefined) meetingByNote.set(meeting.noteId, meeting);
     }
     if (minuteTokens.size + meetings.length > MAX_CANDIDATES) {
-      return unavailable('Feishu polling candidate bound exceeded');
+      throw new FeishuCatchUpRequiredError({
+        fromCursor,
+        throughCursor,
+        reason: 'CANDIDATE_BOUND',
+        candidateCountAtLeast: minuteTokens.size + meetings.length,
+      });
     }
     const artifacts: FeishuGeneratedArtifact[] = [];
     const meetingIdsWithMinute = new Set<string>();
@@ -239,19 +261,54 @@ export function createLarkCliFeishuPollingGateway(
       ) continue;
       artifacts.push(noteArtifact(meeting));
     }
-    return { artifacts: stableArtifacts(artifacts), nextCursor: cursor(end) };
+    return { artifacts: stableArtifacts(artifacts), nextCursor: throughCursor };
+  };
+
+  const collect = async (
+    inputCursor: string | null,
+    lastSuccessfulObservationAt: number | null | undefined,
+    signal: AbortSignal,
+  ): Promise<{ readonly artifacts: FeishuGeneratedArtifact[]; readonly nextCursor: string }> => {
+    const currentTime = now();
+    const end = Math.max(0, currentTime - searchConsistencyLagMs);
+    const boundary = catchUpBoundary(inputCursor, lastSuccessfulObservationAt, currentTime);
+    if (boundary !== undefined && end - boundary.timestamp > maxAutomaticCatchUpMs) {
+      throw new FeishuCatchUpRequiredError({
+        fromCursor: boundary.cursor,
+        throughCursor: cursor(end),
+        reason: 'CURSOR_GAP',
+      });
+    }
+    return collectWindow(inputCursor, end, currentTime, signal);
   };
 
   return {
     start,
-    async listGeneratedArtifacts({ cursor: inputCursor, limit, signal }): Promise<FeishuGeneratedArtifactPage> {
+    async detectCatchUpRequirement({ cursor: inputCursor, lastSuccessfulObservationAt }) {
+      const currentTime = now();
+      const end = Math.max(0, currentTime - searchConsistencyLagMs);
+      const boundary = catchUpBoundary(inputCursor, lastSuccessfulObservationAt, currentTime);
+      if (boundary !== undefined && end - boundary.timestamp > maxAutomaticCatchUpMs) {
+        throw new FeishuCatchUpRequiredError({
+          fromCursor: boundary.cursor,
+          throughCursor: cursor(end),
+          reason: 'CURSOR_GAP',
+        });
+      }
+    },
+    async listGeneratedArtifacts({
+      cursor: inputCursor,
+      lastSuccessfulObservationAt,
+      limit,
+      signal,
+    }): Promise<FeishuGeneratedArtifactPage> {
       if (!Number.isInteger(limit) || limit < 1 || limit > 64) {
         throw new TypeError('generated-artifact page limit must be 1..64');
       }
       await start();
       const activeSignal = AbortSignal.any([signal, lifecycle.signal]);
       if (buffered.length === 0) {
-        const result = await collect(inputCursor, activeSignal);
+        const result = await collect(inputCursor, lastSuccessfulObservationAt, activeSignal);
         buffered = result.artifacts;
         bufferedInputCursor = inputCursor;
         bufferedNextCursor = result.nextCursor;
@@ -272,6 +329,18 @@ export function createLarkCliFeishuPollingGateway(
     },
     inspectArtifact(locator, signal): Promise<unknown> {
       return inspectArtifact(locator, signal);
+    },
+    async scanGeneratedArtifacts({ fromCursor, throughCursor, signal }) {
+      await start();
+      const currentTime = now();
+      if (!throughCursor.startsWith(CURSOR_PREFIX)) {
+        return unavailable('Feishu catch-up boundary is malformed');
+      }
+      const end = Number(throughCursor.slice(CURSOR_PREFIX.length));
+      if (!Number.isSafeInteger(end) || end < 0 || end > currentTime) {
+        return unavailable('Feishu catch-up boundary is malformed');
+      }
+      return collectWindow(fromCursor, end, currentTime, AbortSignal.any([signal, lifecycle.signal]));
     },
     async close(): Promise<void> {
       lifecycle.abort(new Error('Feishu polling gateway closed'));

@@ -27,6 +27,7 @@ import type { LarkCliReadCommand } from './lark-cli-read-command.js';
 
 const MAX_BUFFERED_EVENTS = 512;
 const DEFAULT_SOURCE_READINESS_DEADLINE_MS = 30_000;
+const DEFAULT_SOURCE_OBSERVATION_INTERVAL_MS = 30_000;
 
 export interface LarkCliFeishuEventGateway extends FeishuPollingGateway {
   start(): Promise<void>;
@@ -36,6 +37,7 @@ export interface LarkCliFeishuEventGateway extends FeishuPollingGateway {
 export interface LarkCliFeishuEventGatewayOptions {
   readonly homeDirectory?: string;
   readonly sourceReadinessDeadlineMs?: number;
+  readonly sourceObservationIntervalMs?: number;
   readonly createConsumer?: (
     eventKey: typeof LARK_EVENT_KEYS[number],
     signal: AbortSignal,
@@ -78,6 +80,7 @@ interface QueueWaiter {
   readonly reject: (error: unknown) => void;
   readonly signal: AbortSignal;
   readonly onAbort: () => void;
+  readonly timer: ReturnType<typeof setTimeout>;
 }
 
 function createEventSourceGateway(
@@ -90,8 +93,13 @@ function createEventSourceGateway(
   });
   const sourceReadinessDeadlineMs = options.sourceReadinessDeadlineMs ??
     DEFAULT_SOURCE_READINESS_DEADLINE_MS;
+  const sourceObservationIntervalMs = options.sourceObservationIntervalMs ??
+    DEFAULT_SOURCE_OBSERVATION_INTERVAL_MS;
   if (!Number.isSafeInteger(sourceReadinessDeadlineMs) || sourceReadinessDeadlineMs < 1) {
     throw new TypeError('source readiness deadline must be a positive safe integer');
+  }
+  if (!Number.isSafeInteger(sourceObservationIntervalMs) || sourceObservationIntervalMs < 1) {
+    throw new TypeError('source observation interval must be a positive safe integer');
   }
   const lifecycle = new AbortController();
   const buffered: Array<{ readonly eventId: string; readonly artifact: FeishuGeneratedArtifact }> = [];
@@ -104,6 +112,7 @@ function createEventSourceGateway(
     const current = waiter;
     waiter = undefined;
     if (current === undefined) return;
+    clearTimeout(current.timer);
     current.signal.removeEventListener('abort', current.onAbort);
     if (failure !== undefined) current.reject(failure);
     else current.resolve();
@@ -174,16 +183,24 @@ function createEventSourceGateway(
     return new Promise<void>((resolve, reject) => {
       const onAbort = (): void => {
         if (waiter?.onAbort === onAbort) waiter = undefined;
+        clearTimeout(timer);
         reject(signal.reason);
       };
-      waiter = { resolve, reject, signal, onAbort };
+      const timer = setTimeout(() => {
+        if (waiter?.onAbort !== onAbort) return;
+        waiter = undefined;
+        signal.removeEventListener('abort', onAbort);
+        resolve();
+      }, sourceObservationIntervalMs);
+      timer.unref();
+      waiter = { resolve, reject, signal, onAbort, timer };
       signal.addEventListener('abort', onAbort, { once: true });
     });
   };
 
   return {
     start: ensureStarted,
-    async listGeneratedArtifacts({ limit, signal }): Promise<FeishuGeneratedArtifactPage> {
+    async listGeneratedArtifacts({ cursor, limit, signal }): Promise<FeishuGeneratedArtifactPage> {
       if (!Number.isInteger(limit) || limit < 1 || limit > 64) {
         throw new TypeError('generated-artifact page limit must be 1..64');
       }
@@ -193,7 +210,7 @@ function createEventSourceGateway(
       const page = buffered.splice(0, limit);
       return {
         artifacts: page.map(item => item.artifact),
-        nextCursor: page.at(-1)?.eventId ?? null,
+        nextCursor: page.at(-1)?.eventId ?? cursor,
       };
     },
     inspectArtifact(locator, signal): Promise<unknown> {

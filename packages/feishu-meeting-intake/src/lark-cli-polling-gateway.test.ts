@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { FeishuGatewayError } from './gateway.js';
+import { FeishuCatchUpRequiredError, FeishuGatewayError } from './gateway.js';
 import {
   createLarkCliFeishuPollingGateway,
   type LarkCliReadCommand,
@@ -346,6 +346,79 @@ test('never advances a stored cursor beyond the bounded Feishu search-consistenc
     new Date(NOW - CONSISTENCY_LAG_MS - 30_000).toISOString(),
   );
   assert.equal(flag(poll, '--end'), new Date(NOW - CONSISTENCY_LAG_MS).toISOString());
+  await gateway.close();
+});
+
+test('freezes an offline cursor gap for owner recovery instead of silently scanning or skipping it', async () => {
+  const calls: string[][] = [];
+  const fromCursor = `poll-v1:${NOW - 2 * 60 * 60_000}`;
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    maxAutomaticCatchUpMs: 60 * 60_000,
+    runCommand: async (args) => {
+      calls.push([...args]);
+      if (args[0] === 'auth') return validAuthStatus();
+      return emptySearch();
+    },
+  });
+
+  await assert.rejects(
+    gateway.listGeneratedArtifacts({ cursor: fromCursor, limit: 64, signal: SIGNAL }),
+    error => error instanceof FeishuCatchUpRequiredError &&
+      error.reason === 'CURSOR_GAP' &&
+      error.fromCursor === fromCursor &&
+      error.throughCursor === `poll-v1:${NOW - CONSISTENCY_LAG_MS}`,
+  );
+  assert.equal(calls.filter(args => flag(args, '--page-size') === '30').length, 0);
+  await gateway.close();
+});
+
+test('detects an offline cursor gap before starting the disabled source runtime', async () => {
+  const calls: string[][] = [];
+  const fromCursor = `poll-v1:${NOW - 2 * 60 * 60_000}`;
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    maxAutomaticCatchUpMs: 60 * 60_000,
+    runCommand: async (args) => {
+      calls.push([...args]);
+      return args[0] === 'auth' ? validAuthStatus() : emptySearch();
+    },
+  });
+
+  await assert.rejects(
+    gateway.detectCatchUpRequirement({
+      cursor: fromCursor,
+      lastSuccessfulObservationAt: null,
+      signal: SIGNAL,
+    }),
+    error => error instanceof FeishuCatchUpRequiredError &&
+      error.fromCursor === fromCursor &&
+      error.throughCursor === `poll-v1:${NOW - CONSISTENCY_LAG_MS}`,
+  );
+  assert.deepEqual(calls, []);
+  await gateway.close();
+});
+
+test('uses the last durable observation when an event cursor falls back to polling', async () => {
+  const gateway = createLarkCliFeishuPollingGateway({
+    homeDirectory: '/Users/example',
+    now: () => NOW,
+    maxAutomaticCatchUpMs: 60 * 60_000,
+    runCommand: async (args) => args[0] === 'auth' ? validAuthStatus() : emptySearch(),
+  });
+
+  await assert.rejects(
+    gateway.listGeneratedArtifacts({
+      cursor: 'event-v1:opaque',
+      lastSuccessfulObservationAt: NOW - 2 * 60 * 60_000,
+      limit: 64,
+      signal: SIGNAL,
+    }),
+    error => error instanceof FeishuCatchUpRequiredError &&
+      error.fromCursor === `poll-v1:${NOW - 2 * 60 * 60_000}`,
+  );
   await gateway.close();
 });
 

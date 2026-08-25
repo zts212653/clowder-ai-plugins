@@ -18,6 +18,8 @@ export interface FeishuGeneratedArtifact {
 export interface FeishuGeneratedArtifactPage {
   readonly artifacts: readonly unknown[];
   readonly nextCursor: string | null;
+  /** Wall-clock time when the source completed this bounded observation. */
+  readonly observedAt?: number;
 }
 
 export interface FeishuTranscript {
@@ -32,10 +34,27 @@ export interface FeishuTranscript {
 export interface FeishuPollingGateway {
   listGeneratedArtifacts(request: {
     readonly cursor: string | null;
+    readonly lastSuccessfulObservationAt?: number | null;
     readonly limit: number;
     readonly signal: AbortSignal;
   }): Promise<FeishuGeneratedArtifactPage>;
   inspectArtifact(locator: FeishuArtifactLocator, signal: AbortSignal): Promise<unknown>;
+}
+
+export interface FeishuCatchUpScanner {
+  scanGeneratedArtifacts(request: {
+    readonly fromCursor: string | null;
+    readonly throughCursor: string;
+    readonly signal: AbortSignal;
+  }): Promise<FeishuGeneratedArtifactPage>;
+}
+
+export interface FeishuCatchUpDetector {
+  detectCatchUpRequirement(request: {
+    readonly cursor: string | null;
+    readonly lastSuccessfulObservationAt: number | null;
+    readonly signal: AbortSignal;
+  }): Promise<void>;
 }
 
 export interface FeishuTranscriptGatewayRequest {
@@ -54,11 +73,14 @@ export interface FeishuTranscriptGateway {
 
 export type FeishuGatewayErrorCode =
   | 'AUTH_EXPIRED'
+  | 'CATCH_UP_REQUIRED'
   | 'EVENT_BUS_CONFLICT'
   | 'PERMISSION_DENIED'
   | 'NOT_FOUND'
   | 'RATE_LIMITED'
   | 'UNAVAILABLE';
+
+export type FeishuCatchUpReason = 'CURSOR_GAP' | 'PAGE_BOUND' | 'CANDIDATE_BOUND';
 
 export class FeishuGatewayError extends Error {
   readonly code: FeishuGatewayErrorCode;
@@ -67,5 +89,26 @@ export class FeishuGatewayError extends Error {
     super(message);
     this.name = 'FeishuGatewayError';
     this.code = code;
+  }
+}
+
+export class FeishuCatchUpRequiredError extends FeishuGatewayError {
+  readonly fromCursor: string | null;
+  readonly throughCursor: string;
+  readonly reason: FeishuCatchUpReason;
+  readonly candidateCountAtLeast?: number;
+
+  constructor(input: {
+    readonly fromCursor: string | null;
+    readonly throughCursor: string;
+    readonly reason: FeishuCatchUpReason;
+    readonly candidateCountAtLeast?: number;
+  }) {
+    super('CATCH_UP_REQUIRED', `Feishu catch-up requires owner action (${input.reason})`);
+    this.name = 'FeishuCatchUpRequiredError';
+    this.fromCursor = input.fromCursor;
+    this.throughCursor = input.throughCursor;
+    this.reason = input.reason;
+    this.candidateCountAtLeast = input.candidateCountAtLeast;
   }
 }

@@ -1,15 +1,26 @@
 export {
+  FeishuCatchUpRequiredError,
   FeishuGatewayError,
   type FeishuArtifactKind,
   type FeishuArtifactLocator,
   type FeishuGeneratedArtifact,
   type FeishuGeneratedArtifactPage,
+  type FeishuCatchUpReason,
+  type FeishuCatchUpDetector,
+  type FeishuCatchUpScanner,
   type FeishuTranscript,
   type FeishuPollingGateway,
   type FeishuTranscriptGateway,
   type FeishuTranscriptGatewayRequest,
   type FeishuGatewayErrorCode,
 } from './gateway.js';
+
+export {
+  createFeishuMeetingCatchUpService,
+  type FeishuMeetingCatchUpPreview,
+  type FeishuMeetingCatchUpService,
+  type FeishuMeetingCatchUpServiceOptions,
+} from './catch-up.js';
 
 export {
   FEISHU_MEETING_SIGNAL_TYPE,
@@ -27,6 +38,8 @@ export {
   createFileMeetingIntakeStateStore,
   type MeetingIntakeHealthStatus,
   type MeetingIntakeHealth,
+  type MeetingIntakeCatchUp,
+  type CatchUpResolution,
   type MeetingIntakeState,
   type MeetingIntakeStateStore,
 } from './state-store.js';
@@ -46,6 +59,13 @@ export {
   type LarkCliFeishuEventGateway,
   type LarkCliFeishuEventGatewayOptions,
 } from './lark-cli-gateway.js';
+
+export {
+  createLarkCliFeishuPollingGateway,
+  type LarkCliFeishuPollingGateway,
+  type LarkCliFeishuPollingGatewayOptions,
+  type LarkCliReadCommand,
+} from './lark-cli-polling-gateway.js';
 
 export {
   createLarkCliFeishuArtifactInspector,

@@ -7,6 +7,7 @@ import test from 'node:test';
 import type { EventsPublishInput, EventsPublishResult } from '@clowder-ai/plugin-contract';
 
 import {
+  FeishuCatchUpRequiredError,
   FeishuGatewayError,
   createFeishuMeetingIntakeRuntime,
   createFileMeetingIntakeStateStore,
@@ -61,14 +62,22 @@ test('commits the page to durable outbox before publishing and recovers after re
     gateway: gateway(),
     publisher: firstPublisher,
     store,
+    now: () => 1_000,
   });
 
   await assert.rejects(first.pollOnce(SIGNAL), /Host unavailable/);
   assert.deepEqual(await store.load(), {
-    v: 1,
+    v: 2,
     cursor: 'cursor-2',
     pending: [firstPublisher.calls[0]],
-    health: { status: 'degraded', code: 'PUBLISH_FAILED' },
+    health: {
+      status: 'degraded',
+      code: 'PUBLISH_FAILED',
+      lastCycleAt: 1_000,
+      lastSuccessfulObservationAt: 1_000,
+      lastPublishedAt: null,
+    },
+    catchUp: { status: 'idle' },
   });
 
   const restartedPublisher = new RecordingPublisher();
@@ -96,12 +105,16 @@ test('redelivers after a crash between Host acceptance and durable acknowledgeme
     commitPage: (...args) => durableStore.commitPage(...args),
     enqueue: (events) => durableStore.enqueue(events),
     setHealth: (health) => durableStore.setHealth(health),
-    acknowledge: async (idempotencyKey) => {
+    requireCatchUp: (input) => durableStore.requireCatchUp(input),
+    recordCatchUpPreview: (input) => durableStore.recordCatchUpPreview(input),
+    resolveCatchUpFutureOnly: (...args) => durableStore.resolveCatchUpFutureOnly(...args),
+    resolveCatchUpReplay: (...args) => durableStore.resolveCatchUpReplay(...args),
+    acknowledge: async (idempotencyKey, publishedAt) => {
       if (failAcknowledge) {
         failAcknowledge = false;
         throw new Error('simulated crash before outbox acknowledgement');
       }
-      await durableStore.acknowledge(idempotencyKey);
+      await durableStore.acknowledge(idempotencyKey, publishedAt);
     },
   };
   const firstPublisher = new RecordingPublisher();
@@ -229,5 +242,38 @@ test('persists typed auth health and leaves pending work untouched', async () =>
   assert.deepEqual((await store.load()).health, {
     status: 'auth-expired',
     code: 'AUTH_EXPIRED',
+    lastCycleAt: null,
+    lastSuccessfulObservationAt: null,
+    lastPublishedAt: null,
+  });
+});
+
+test('persists a typed offline gap and blocks without terminating the runtime', async () => {
+  const store = await fileStore();
+  const runtime = createFeishuMeetingIntakeRuntime({
+    gateway: gateway({
+      listGeneratedArtifacts: async () => {
+        throw new FeishuCatchUpRequiredError({
+          fromCursor: 'poll-v1:1000',
+          throughCursor: 'poll-v1:5000',
+          reason: 'CURSOR_GAP',
+        });
+      },
+    }),
+    publisher: new RecordingPublisher(),
+    store,
+    now: () => 5_100,
+  });
+
+  assert.deepEqual(await runtime.pollOnce(SIGNAL), {
+    discovered: 0,
+    published: 0,
+    blocked: 'catch-up',
+  });
+  assert.equal((await store.load()).health.code, 'CATCH_UP_REQUIRED');
+  assert.deepEqual(await runtime.pollOnce(SIGNAL), {
+    discovered: 0,
+    published: 0,
+    blocked: 'catch-up',
   });
 });

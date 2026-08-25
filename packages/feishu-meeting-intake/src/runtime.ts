@@ -2,6 +2,7 @@ import type { EventsPublisher } from '@clowder-ai/plugin-sdk';
 
 import { normalizeGeneratedArtifact } from './artifact.js';
 import {
+  FeishuCatchUpRequiredError,
   FeishuGatewayError,
   type FeishuArtifactLocator,
   type FeishuPollingGateway,
@@ -15,11 +16,13 @@ export interface FeishuMeetingIntakeRuntimeOptions {
   readonly gateway: FeishuPollingGateway;
   readonly publisher: Pick<EventsPublisher, 'publish'>;
   readonly store: MeetingIntakeStateStore;
+  readonly now?: () => number;
 }
 
 export interface FeishuMeetingIntakeCycleResult {
   readonly discovered: number;
   readonly published: number;
+  readonly blocked?: 'catch-up';
 }
 
 export interface FeishuMeetingIntakeRuntime {
@@ -65,6 +68,7 @@ function requirePage(value: FeishuGeneratedArtifactPage): FeishuGeneratedArtifac
 export function createFeishuMeetingIntakeRuntime(
   options: FeishuMeetingIntakeRuntimeOptions,
 ): FeishuMeetingIntakeRuntime {
+  const now = options.now ?? Date.now;
   let operations: Promise<void> = Promise.resolve();
 
   function serialized<T>(operation: () => Promise<T>): Promise<T> {
@@ -84,7 +88,7 @@ export function createFeishuMeetingIntakeRuntime(
         await options.store.setHealth({ status: 'degraded', code: 'PUBLISH_FAILED' });
         throw error;
       }
-      await options.store.acknowledge(event.idempotencyKey);
+      await options.store.acknowledge(event.idempotencyKey, now());
       published += 1;
     }
   }
@@ -105,14 +109,29 @@ export function createFeishuMeetingIntakeRuntime(
       return serialized(async () => {
         let published = await flush();
         const before = await options.store.load();
+        if (before.catchUp.status !== 'idle') {
+          return { discovered: 0, published, blocked: 'catch-up' };
+        }
         let page: FeishuGeneratedArtifactPage;
         try {
           page = requirePage(await options.gateway.listGeneratedArtifacts({
             cursor: before.cursor,
+            lastSuccessfulObservationAt: before.health.lastSuccessfulObservationAt,
             limit: PAGE_LIMIT,
             signal,
           }));
         } catch (error) {
+          if (error instanceof FeishuCatchUpRequiredError) {
+            await options.store.requireCatchUp({
+              fromCursor: error.fromCursor,
+              throughCursor: error.throughCursor,
+              reason: error.reason,
+              ...(error.candidateCountAtLeast === undefined
+                ? {} : { candidateCountAtLeast: error.candidateCountAtLeast }),
+              detectedAt: now(),
+            });
+            return { discovered: 0, published, blocked: 'catch-up' };
+          }
           await recordGatewayFailure(error);
           throw error;
         }
@@ -124,7 +143,7 @@ export function createFeishuMeetingIntakeRuntime(
           await options.store.setHealth({ status: 'degraded', code: 'SOURCE_INVALID' });
           throw error;
         }
-        await options.store.commitPage(before.cursor, page.nextCursor, events);
+        await options.store.commitPage(before.cursor, page.nextCursor, events, page.observedAt ?? now());
         published += await flush();
         await options.store.setHealth({ status: 'ready' });
         return { discovered: events.length, published };

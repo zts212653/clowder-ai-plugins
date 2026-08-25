@@ -5,23 +5,29 @@ import { dirname, isAbsolute } from 'node:path';
 import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
 
 import { validateFeishuMeetingPublishInput } from './artifact.js';
+import {
+  MAX_PENDING,
+  emptyState,
+  isCatchUp,
+  isCursor,
+  isHealthUpdate,
+  isState,
+  migrateLegacyState,
+  requireTimestamp,
+  type MeetingIntakeCatchUp,
+  type MeetingIntakeHealth,
+  type MeetingIntakeHealthUpdate,
+  type MeetingIntakeState,
+} from './state-model.js';
 
-const STATE_VERSION = 1;
-const MAX_PENDING = 512;
-
-export type MeetingIntakeHealthStatus = 'ready' | 'auth-expired' | 'degraded';
-
-export interface MeetingIntakeHealth {
-  readonly status: MeetingIntakeHealthStatus;
-  readonly code?: string;
-}
-
-export interface MeetingIntakeState {
-  readonly v: typeof STATE_VERSION;
-  readonly cursor: string | null;
-  readonly pending: readonly EventsPublishInput[];
-  readonly health: MeetingIntakeHealth;
-}
+export type {
+  CatchUpResolution,
+  MeetingIntakeCatchUp,
+  MeetingIntakeHealth,
+  MeetingIntakeHealthStatus,
+  MeetingIntakeHealthUpdate,
+  MeetingIntakeState,
+} from './state-model.js';
 
 export interface MeetingIntakeStateStore {
   load(): Promise<MeetingIntakeState>;
@@ -29,50 +35,29 @@ export interface MeetingIntakeStateStore {
     expectedCursor: string | null,
     nextCursor: string | null,
     events: readonly EventsPublishInput[],
+    observedAt: number,
   ): Promise<void>;
   enqueue(events: readonly EventsPublishInput[]): Promise<void>;
-  acknowledge(idempotencyKey: string): Promise<void>;
-  setHealth(health: MeetingIntakeHealth): Promise<void>;
-}
-
-function emptyState(): MeetingIntakeState {
-  return { v: STATE_VERSION, cursor: null, pending: [], health: { status: 'ready' } };
-}
-
-function isCursor(value: unknown): value is string | null {
-  return value === null || (typeof value === 'string' && value.length >= 1 && value.length <= 512);
-}
-
-function isHealth(value: unknown): value is MeetingIntakeHealth {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  const health = value as Record<string, unknown>;
-  if (Object.keys(health).some((key) => key !== 'status' && key !== 'code')) return false;
-  if (!['ready', 'auth-expired', 'degraded'].includes(String(health.status))) return false;
-  return health.code === undefined || (
-    typeof health.code === 'string' && health.code.length >= 1 && health.code.length <= 128
-  );
-}
-
-function isState(value: unknown): value is MeetingIntakeState {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  const state = value as Record<string, unknown>;
-  if (
-    Object.keys(state).length !== 4 ||
-    state.v !== STATE_VERSION ||
-    !isCursor(state.cursor) ||
-    !Array.isArray(state.pending) ||
-    state.pending.length > MAX_PENDING ||
-    !isHealth(state.health)
-  ) {
-    return false;
-  }
-  const keys = new Set<string>();
-  for (const candidate of state.pending) {
-    const validation = validateFeishuMeetingPublishInput(candidate);
-    if (!validation.valid || keys.has(validation.value.idempotencyKey)) return false;
-    keys.add(validation.value.idempotencyKey);
-  }
-  return true;
+  acknowledge(idempotencyKey: string, publishedAt: number): Promise<void>;
+  setHealth(health: MeetingIntakeHealthUpdate): Promise<void>;
+  requireCatchUp(input: {
+    readonly fromCursor: string | null;
+    readonly throughCursor: string;
+    readonly reason: 'CURSOR_GAP' | 'PAGE_BOUND' | 'CANDIDATE_BOUND';
+    readonly candidateCountAtLeast?: number;
+    readonly detectedAt: number;
+  }): Promise<void>;
+  recordCatchUpPreview(input: {
+    readonly candidateCount: number;
+    readonly fingerprint: string;
+    readonly previewedAt: number;
+  }): Promise<void>;
+  resolveCatchUpFutureOnly(fingerprint: string, resolvedAt: number): Promise<void>;
+  resolveCatchUpReplay(
+    fingerprint: string,
+    events: readonly EventsPublishInput[],
+    resolvedAt: number,
+  ): Promise<void>;
 }
 
 function validatedEvents(events: readonly EventsPublishInput[]): EventsPublishInput[] {
@@ -104,6 +89,11 @@ function mergePending(
   return merged;
 }
 
+function withoutHealthCode(health: MeetingIntakeHealth): Omit<MeetingIntakeHealth, 'code'> {
+  const { code: _code, ...rest } = health;
+  return rest;
+}
+
 export function createFileMeetingIntakeStateStore(path: string): MeetingIntakeStateStore {
   if (!isAbsolute(path)) throw new TypeError('meeting intake state path must be absolute');
   let state = emptyState();
@@ -114,8 +104,12 @@ export function createFileMeetingIntakeStateStore(path: string): MeetingIntakeSt
     if (loaded) return;
     try {
       const candidate: unknown = JSON.parse(await readFile(path, 'utf8'));
-      if (!isState(candidate)) throw new Error('Feishu meeting intake state is invalid');
-      state = structuredClone(candidate);
+      if (isState(candidate)) state = structuredClone(candidate);
+      else {
+        const migrated = migrateLegacyState(candidate);
+        if (migrated === undefined) throw new Error('Feishu meeting intake state is invalid');
+        state = migrated;
+      }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
@@ -152,15 +146,28 @@ export function createFileMeetingIntakeStateStore(path: string): MeetingIntakeSt
       });
     },
 
-    commitPage(expectedCursor, nextCursor, events): Promise<void> {
+    commitPage(expectedCursor, nextCursor, events, observedAt): Promise<void> {
       return serialized(async () => {
         await ensureLoaded();
         if (!isCursor(nextCursor)) throw new TypeError('invalid Feishu page cursor');
+        requireTimestamp(observedAt, 'observation timestamp');
+        if (
+          state.health.lastSuccessfulObservationAt !== null &&
+          observedAt < state.health.lastSuccessfulObservationAt
+        ) {
+          throw new Error('Feishu observation timestamp regressed');
+        }
         if (state.cursor !== expectedCursor) throw new Error('Feishu page cursor changed concurrently');
         await persist({
           ...state,
           cursor: nextCursor,
           pending: mergePending(state.pending, events),
+          health: {
+            ...withoutHealthCode(state.health),
+            status: 'ready',
+            lastCycleAt: observedAt,
+            lastSuccessfulObservationAt: observedAt,
+          },
         });
       });
     },
@@ -172,23 +179,154 @@ export function createFileMeetingIntakeStateStore(path: string): MeetingIntakeSt
       });
     },
 
-    acknowledge(idempotencyKey): Promise<void> {
+    acknowledge(idempotencyKey, publishedAt): Promise<void> {
       return serialized(async () => {
         await ensureLoaded();
+        requireTimestamp(publishedAt, 'publication timestamp');
+        if (state.health.lastPublishedAt !== null && publishedAt < state.health.lastPublishedAt) {
+          throw new Error('Feishu publication timestamp regressed');
+        }
         const first = state.pending[0];
         if (first === undefined) return;
         if (first.idempotencyKey !== idempotencyKey) {
           throw new Error('Feishu outbox acknowledgement is not for the head event');
         }
-        await persist({ ...state, pending: state.pending.slice(1) });
+        await persist({
+          ...state,
+          pending: state.pending.slice(1),
+          health: { ...state.health, lastCycleAt: publishedAt, lastPublishedAt: publishedAt },
+        });
       });
     },
 
     setHealth(health): Promise<void> {
       return serialized(async () => {
         await ensureLoaded();
-        if (!isHealth(health)) throw new TypeError('invalid Feishu meeting intake health');
-        await persist({ ...state, health: structuredClone(health) });
+        if (!isHealthUpdate(health)) throw new TypeError('invalid Feishu meeting intake health');
+        await persist({
+          ...state,
+          health: health.code === undefined
+            ? { ...withoutHealthCode(state.health), status: health.status }
+            : { ...state.health, ...structuredClone(health) },
+        });
+      });
+    },
+
+    requireCatchUp(input): Promise<void> {
+      return serialized(async () => {
+        await ensureLoaded();
+        if (!isCursor(input.fromCursor) || typeof input.throughCursor !== 'string' ||
+          !isCursor(input.throughCursor)) {
+          throw new TypeError('invalid Feishu catch-up window');
+        }
+        requireTimestamp(input.detectedAt, 'catch-up detection timestamp');
+        const catchUp: MeetingIntakeCatchUp = input.reason === 'CURSOR_GAP'
+          ? {
+              status: 'needs-owner',
+              fromCursor: input.fromCursor,
+              throughCursor: input.throughCursor,
+              detectedAt: input.detectedAt,
+            }
+          : {
+              status: 'backlog',
+              fromCursor: input.fromCursor,
+              throughCursor: input.throughCursor,
+              candidateCountAtLeast: input.candidateCountAtLeast ?? 1,
+              reason: input.reason,
+              detectedAt: input.detectedAt,
+            };
+        if (!isCatchUp(catchUp)) throw new TypeError('invalid Feishu catch-up state');
+        await persist({
+          ...state,
+          catchUp,
+          health: { ...state.health, status: 'degraded', code: 'CATCH_UP_REQUIRED' },
+        });
+      });
+    },
+
+    recordCatchUpPreview(input): Promise<void> {
+      return serialized(async () => {
+        await ensureLoaded();
+        if (state.catchUp.status !== 'needs-owner' && state.catchUp.status !== 'previewed') {
+          throw new Error('Feishu catch-up does not need an owner preview');
+        }
+        requireTimestamp(input.previewedAt, 'catch-up preview timestamp');
+        const next: MeetingIntakeCatchUp = {
+          status: 'previewed',
+          fromCursor: state.catchUp.fromCursor,
+          throughCursor: state.catchUp.throughCursor,
+          candidateCount: input.candidateCount,
+          fingerprint: input.fingerprint,
+          previewedAt: input.previewedAt,
+        };
+        if (!isCatchUp(next)) throw new TypeError('invalid Feishu catch-up preview');
+        await persist({ ...state, catchUp: next });
+      });
+    },
+
+    resolveCatchUpFutureOnly(fingerprint, resolvedAt): Promise<void> {
+      return serialized(async () => {
+        await ensureLoaded();
+        requireTimestamp(resolvedAt, 'catch-up resolution timestamp');
+        if (state.catchUp.status !== 'previewed' || state.catchUp.fingerprint !== fingerprint) {
+          throw new Error('Feishu catch-up preview changed');
+        }
+        const preview = state.catchUp;
+        await persist({
+          ...state,
+          cursor: preview.throughCursor,
+          catchUp: {
+            status: 'idle',
+            lastResolution: {
+              action: 'future-only',
+              fromCursor: preview.fromCursor,
+              throughCursor: preview.throughCursor,
+              candidateCount: preview.candidateCount,
+              resolvedAt,
+            },
+          },
+          health: {
+            ...withoutHealthCode(state.health),
+            status: 'ready',
+            lastCycleAt: resolvedAt,
+          },
+        });
+      });
+    },
+
+    resolveCatchUpReplay(fingerprint, events, resolvedAt): Promise<void> {
+      return serialized(async () => {
+        await ensureLoaded();
+        requireTimestamp(resolvedAt, 'catch-up resolution timestamp');
+        if (state.catchUp.status !== 'previewed' || state.catchUp.fingerprint !== fingerprint) {
+          throw new Error('Feishu catch-up preview changed');
+        }
+        const preview = state.catchUp;
+        const pending = mergePending(state.pending, events);
+        if (events.length !== preview.candidateCount) {
+          throw new Error('Feishu catch-up candidate count changed');
+        }
+        await persist({
+          ...state,
+          cursor: preview.throughCursor,
+          pending,
+          catchUp: {
+            status: 'idle',
+            lastResolution: {
+              action: 'replay',
+              fromCursor: preview.fromCursor,
+              throughCursor: preview.throughCursor,
+              candidateCount: preview.candidateCount,
+              resolvedAt,
+            },
+          },
+          health: {
+            ...withoutHealthCode(state.health),
+            status: 'ready',
+            lastCycleAt: resolvedAt,
+            lastSuccessfulObservationAt: resolvedAt,
+          },
+        });
       });
     },
   };
