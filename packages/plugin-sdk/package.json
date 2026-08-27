@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/plugin-sdk",
-  "version": "0.1.0-beta.7",
+  "version": "0.1.0-beta.8",
   "description": "Schema-neutral standalone runtime primitives for Clowder AI plugins",
   "license": "MIT",
   "type": "module",
@@ -27,7 +27,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "0.1.0-beta.11"
+    "@clowder-ai/plugin-contract": "0.1.0-beta.12"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",

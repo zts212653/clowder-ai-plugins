@@ -10,6 +10,11 @@
     {
       "id": "raw-thread-id-rejection",
       "invariant": "Plugins cannot address threads by raw threadId.",
+      "execution": {
+        "plane": "wire-admission",
+        "method": "messaging.send",
+        "verdictOracle": { "kind": "json-rpc-error", "code": -32602, "sideEffects": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.send"],
@@ -40,6 +45,11 @@
     {
       "id": "system-audience-dual-rejection",
       "invariant": "Drafts cannot express the host-only system audience.",
+      "execution": {
+        "plane": "wire-admission",
+        "method": "messaging.send",
+        "verdictOracle": { "kind": "json-rpc-error", "code": -32602, "sideEffects": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.send"],
@@ -73,6 +83,11 @@
     {
       "id": "cross-instance-handle-rejection",
       "invariant": "A message handle issued to one plugin instance cannot authorize another.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.appendElements",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.appendElements"],
@@ -103,6 +118,11 @@
     {
       "id": "origin-forgery-rejection",
       "invariant": "A thread-handle send may only declare the caller's own plugin origin.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.send",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.send"],
@@ -135,6 +155,11 @@
     {
       "id": "base-revision-conflict-zero-change",
       "invariant": "A stale baseRevision produces CONFLICT and no mutation.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.appendElements",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.appendElements"],
@@ -165,6 +190,11 @@
     {
       "id": "stale-cursor-snapshot-roundtrip",
       "invariant": "A stale cursor reports stale and snapshot catch-up supplies an exact resume point.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.read",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["message.event.subscribe"],
@@ -189,6 +219,11 @@
     {
       "id": "cross-subscription-ack-rejection",
       "invariant": "Ack tokens are subscription-local and cannot cross subscriptions.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.ack",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["message.event.subscribe"],
@@ -214,6 +249,11 @@
     {
       "id": "reply-to-cross-thread-leakage",
       "invariant": "replyTo cannot reference a message from another thread.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.send",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.send"],
@@ -247,6 +287,11 @@
     {
       "id": "epistemic-status-upgrade-rejection",
       "invariant": "Derived content cannot claim a stronger epistemic status than its source.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.appendElements",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.appendElements"],
@@ -277,6 +322,10 @@
     {
       "id": "preset-l2-rejected",
       "invariant": "First-party presets are derived from L1 and cannot silently grant L2 capabilities.",
+      "execution": {
+        "plane": "host-control",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "first-party-plugin" },
         "grants": ["messaging.send"],
@@ -298,6 +347,10 @@
     {
       "id": "preset-visible-revocable",
       "invariant": "A first-party L1 preset remains visible and independently revocable.",
+      "execution": {
+        "plane": "host-control",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "first-party-plugin" },
         "grants": ["messaging.send"],
@@ -318,6 +371,11 @@
     {
       "id": "whisper-target-beyond-default-empty-grant-rejected",
       "invariant": "The default whisper target grant is empty; messaging.send alone cannot add a target.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.send",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": ["messaging.send"],
@@ -351,6 +409,11 @@
     {
       "id": "append-without-grant-rejected",
       "invariant": "A valid message handle does not bypass the messaging.appendElements grant.",
+      "execution": {
+        "plane": "plugin-to-host-wire",
+        "method": "messaging.appendElements",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": [],
@@ -381,6 +444,11 @@
     {
       "id": "denied-on-message-rejected",
       "invariant": "The Host cannot deliver an onMessage envelope without an explicit scoped L2 grant.",
+      "execution": {
+        "plane": "host-to-plugin-delivery",
+        "method": "host.messaging.deliver",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": [],
@@ -408,6 +476,10 @@
     {
       "id": "permission-matrix-complete",
       "invariant": "The loopback policy matrix covers every signed capability and presets only L1 for first-party plugins.",
+      "execution": {
+        "plane": "host-control",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "policy-auditor" },
         "grants": [],
@@ -448,6 +520,10 @@
     {
       "id": "delete-replay-events-preserves-canonical-messages",
       "invariant": "Deleting the replay transport buffer cannot delete canonical messages or threads.",
+      "execution": {
+        "plane": "host-control",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "host-retention" },
         "grants": ["message.event.subscribe"],
@@ -474,6 +550,11 @@
     {
       "id": "snapshot-without-grant-rejected",
       "invariant": "A subscription identifier cannot bypass the message.event.subscribe grant for snapshots.",
+      "execution": {
+        "plane": "wire-admission",
+        "method": "messaging.snapshot",
+        "verdictOracle": { "kind": "json-rpc-error", "code": -32602, "sideEffects": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
         "grants": [],
@@ -498,6 +579,10 @@
     {
       "id": "foreign-replay-delete-rejected",
       "invariant": "A caller cannot delete another plugin instance's subscription replay buffer.",
+      "execution": {
+        "plane": "host-control",
+        "verdictOracle": { "kind": "behavior-expectation" }
+      },
       "given": {
         "caller": { "pluginInstanceId": "plugin-b" },
         "grants": ["message.event.subscribe"],

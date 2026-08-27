@@ -540,6 +540,31 @@ export type FixtureOperation = {
   readonly operation: 'deleteReplayEvents';
   readonly input: DeleteReplayEventsInput;
 };
+export type PluginToHostMethod = 'messaging.send' | 'messaging.appendElements' | 'messaging.subscribe' | 'messaging.read' | 'messaging.ack' | 'messaging.snapshot';
+export type BehaviorExpectationOracle = {
+  readonly kind: 'behavior-expectation';
+};
+export type JsonRpcAdmissionOracle = {
+  readonly kind: 'json-rpc-error';
+  readonly code: -32602;
+  readonly sideEffects: 'behavior-expectation';
+};
+export type BehaviorExecution = {
+  readonly plane: 'plugin-to-host-wire';
+  readonly method: PluginToHostMethod;
+  readonly verdictOracle: BehaviorExpectationOracle;
+} | {
+  readonly plane: 'wire-admission';
+  readonly method: PluginToHostMethod;
+  readonly verdictOracle: JsonRpcAdmissionOracle;
+} | {
+  readonly plane: 'host-to-plugin-delivery';
+  readonly method: 'host.messaging.deliver';
+  readonly verdictOracle: BehaviorExpectationOracle;
+} | {
+  readonly plane: 'host-control';
+  readonly verdictOracle: BehaviorExpectationOracle;
+};
 export type SendOperationInput = {
   readonly address: Readonly<Record<string, unknown>>;
   readonly idempotencyKey: string;
@@ -601,6 +626,7 @@ export type ExpectedVerdict = {
 export type BehaviorCase = {
   readonly id: string;
   readonly invariant: string;
+  readonly execution: BehaviorExecution;
   readonly given: FixtureSetup;
   readonly when: FixtureOperation;
   readonly expect: ExpectedVerdict;

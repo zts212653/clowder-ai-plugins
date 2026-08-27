@@ -46,6 +46,11 @@ function makeCase(
   return {
     id: 'executor-case',
     invariant: 'the generic executor evaluates the signed oracle',
+    execution: {
+      plane: 'plugin-to-host-wire',
+      method: 'messaging.send',
+      verdictOracle: { kind: 'behavior-expectation' },
+    },
     given: {
       caller: { pluginInstanceId: 'plugin-a' },
       grants: [],
