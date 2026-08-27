@@ -10,6 +10,12 @@ import {
   type FixtureOperation,
   type FixtureSetup,
 } from '../generated/contract.generated.js';
+import { INVALID_PARAMS_CODE } from '../wire/errors.js';
+import { WIRE_METHOD_REGISTRY } from '../wire/registry.js';
+import {
+  type MessagingRowMethod,
+  validateMessagingRowInput,
+} from '../validation/messaging-wire.js';
 import type {
   BehaviorAdapter,
   BehaviorTarget,
@@ -59,6 +65,18 @@ function caseById(id: string): Record<string, unknown> {
   return behaviorCase;
 }
 
+interface MutableExecution {
+  plane: string;
+  method?: string;
+  verdictOracle: { kind: string; code?: number; sideEffects?: string };
+}
+
+function executionOf(behaviorCase: Record<string, unknown>): MutableExecution {
+  const execution = behaviorCase['execution'] as MutableExecution | undefined;
+  assert.ok(execution, `${String(behaviorCase['id'])}: missing execution contract`);
+  return execution;
+}
+
 test('committed behavior fixture is structurally executable', () => {
   assert.equal(validate(behaviorFixture), true, JSON.stringify(validate.errors));
 });
@@ -69,6 +87,128 @@ test('M0-C exports the canonical 18 behavior-case identities in fixture order', 
     M0C_BEHAVIOR_CASE_IDS,
     behaviorFixture.cases.map(behaviorCase => behaviorCase['id']),
   );
+});
+
+test('M0-D fixture signs one machine-readable execution plane and verdict oracle per case', () => {
+  const executions = behaviorFixture.cases.map(behaviorCase => {
+    const execution = executionOf(behaviorCase) as MutableExecution & {
+      method?: MessagingRowMethod;
+    };
+    return { behaviorCase, execution };
+  });
+
+  assert.deepEqual(
+    Object.fromEntries(
+      [...new Set(executions.map(({ execution }) => execution.plane))]
+        .sort()
+        .map(plane => [
+          plane,
+          executions.filter(({ execution }) => execution.plane === plane).length,
+        ]),
+    ),
+    {
+      'host-control': 5,
+      'host-to-plugin-delivery': 1,
+      'plugin-to-host-wire': 9,
+      'wire-admission': 3,
+    },
+  );
+
+  for (const { behaviorCase, execution } of executions) {
+    const id = String(behaviorCase['id']);
+    const operation = (behaviorCase['when'] as FixtureOperation).operation;
+
+    if (execution.plane === 'host-control') {
+      assert.equal(execution.method, undefined, `${id}: Host control must not invent a wire method`);
+      assert.deepEqual(execution.verdictOracle, { kind: 'behavior-expectation' });
+      continue;
+    }
+
+    assert.ok(execution.method, `${id}: wire execution must name its exact method`);
+    const registryRow = WIRE_METHOD_REGISTRY[execution.method];
+    assert.ok(registryRow, `${id}: method must exist in the public registry`);
+
+    if (execution.plane === 'host-to-plugin-delivery') {
+      assert.equal(operation, 'deliverOnMessage');
+      assert.equal(registryRow.direction, 'host-to-plugin');
+      assert.deepEqual(execution.verdictOracle, { kind: 'behavior-expectation' });
+      continue;
+    }
+
+    assert.equal(registryRow.direction, 'plugin-to-host');
+    const validation = validateMessagingRowInput(
+      execution.method,
+      (behaviorCase['when'] as { input: unknown }).input,
+    );
+    if (execution.plane === 'wire-admission') {
+      assert.equal(validation.valid, false, `${id}: admission case must be wire-invalid`);
+      assert.deepEqual(execution.verdictOracle, {
+        kind: 'json-rpc-error',
+        code: INVALID_PARAMS_CODE,
+        sideEffects: 'behavior-expectation',
+      });
+      continue;
+    }
+
+    assert.equal(execution.plane, 'plugin-to-host-wire');
+    assert.equal(validation.valid, true, `${id}: domain case must pass wire admission`);
+    assert.deepEqual(execution.verdictOracle, { kind: 'behavior-expectation' });
+  }
+});
+
+test('behavior fixture schema requires the execution contract', () => {
+  const malformed = structuredClone(behaviorFixture);
+  delete malformed.cases[0]!['execution'];
+
+  assert.equal(validate(malformed), false);
+});
+
+test('behavior fixture schema rejects cross-plane methods and admission oracles', () => {
+  const wrongControlMethod = structuredClone(behaviorFixture);
+  const controlCase = wrongControlMethod.cases.find(
+    behaviorCase => executionOf(behaviorCase).plane === 'host-control',
+  );
+  assert.ok(controlCase);
+  executionOf(controlCase).method = 'messaging.send';
+  assert.equal(validate(wrongControlMethod), false);
+
+  const wrongAdmissionCode = structuredClone(behaviorFixture);
+  const admissionCase = wrongAdmissionCode.cases.find(
+    behaviorCase => executionOf(behaviorCase).plane === 'wire-admission',
+  );
+  assert.ok(admissionCase);
+  executionOf(admissionCase).verdictOracle.code = -32603;
+  assert.equal(validate(wrongAdmissionCode), false);
+
+  const wrongDeliveryMethod = structuredClone(behaviorFixture);
+  const deliveryCase = wrongDeliveryMethod.cases.find(
+    behaviorCase => executionOf(behaviorCase).plane === 'host-to-plugin-delivery',
+  );
+  assert.ok(deliveryCase);
+  executionOf(deliveryCase).method = 'messaging.send';
+  assert.equal(validate(wrongDeliveryMethod), false);
+
+  const wrongOperationMethod = structuredClone(behaviorFixture);
+  const sendCase = wrongOperationMethod.cases.find(
+    behaviorCase => behaviorCase['when'] !== undefined
+      && (behaviorCase['when'] as { operation?: string }).operation === 'send'
+      && executionOf(behaviorCase).plane === 'plugin-to-host-wire',
+  );
+  assert.ok(sendCase);
+  executionOf(sendCase).method = 'messaging.read';
+  assert.equal(validate(wrongOperationMethod), false);
+
+  const wrongHostControlPlane = structuredClone(behaviorFixture);
+  const presetCase = wrongHostControlPlane.cases.find(
+    behaviorCase => (behaviorCase['when'] as { operation?: string }).operation === 'applyGrantPreset',
+  );
+  assert.ok(presetCase);
+  presetCase['execution'] = {
+    plane: 'plugin-to-host-wire',
+    method: 'messaging.send',
+    verdictOracle: { kind: 'behavior-expectation' },
+  };
+  assert.equal(validate(wrongHostControlPlane), false);
 });
 
 test('behavior fixture rejects a case without an operation input', () => {

@@ -116,7 +116,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.11
+        specifier: 0.1.0-beta.12
         version: link:../plugin-contract
     devDependencies:
       '@types/node':

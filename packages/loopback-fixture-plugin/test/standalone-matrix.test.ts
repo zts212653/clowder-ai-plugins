@@ -287,7 +287,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
     version: 1,
     contract: {
       package: '@clowder-ai/plugin-contract',
-      version: '0.1.0-beta.11',
+      version: '0.1.0-beta.12',
       behaviorFixture: M0C_BEHAVIOR_FIXTURE_EXPORT,
     },
     behaviorFixtures: [

@@ -178,6 +178,78 @@
         }
       ]
     },
+    "PluginToHostMethod": {
+      "type": "string",
+      "enum": [
+        "messaging.send",
+        "messaging.appendElements",
+        "messaging.subscribe",
+        "messaging.read",
+        "messaging.ack",
+        "messaging.snapshot"
+      ]
+    },
+    "BehaviorExpectationOracle": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "behavior-expectation" }
+      },
+      "required": ["kind"],
+      "additionalProperties": false
+    },
+    "JsonRpcAdmissionOracle": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "json-rpc-error" },
+        "code": { "const": -32602 },
+        "sideEffects": { "const": "behavior-expectation" }
+      },
+      "required": ["kind", "code", "sideEffects"],
+      "additionalProperties": false
+    },
+    "BehaviorExecution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "plane": { "const": "plugin-to-host-wire" },
+            "method": { "$ref": "#/$defs/PluginToHostMethod" },
+            "verdictOracle": { "$ref": "#/$defs/BehaviorExpectationOracle" }
+          },
+          "required": ["plane", "method", "verdictOracle"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "plane": { "const": "wire-admission" },
+            "method": { "$ref": "#/$defs/PluginToHostMethod" },
+            "verdictOracle": { "$ref": "#/$defs/JsonRpcAdmissionOracle" }
+          },
+          "required": ["plane", "method", "verdictOracle"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "plane": { "const": "host-to-plugin-delivery" },
+            "method": { "const": "host.messaging.deliver" },
+            "verdictOracle": { "$ref": "#/$defs/BehaviorExpectationOracle" }
+          },
+          "required": ["plane", "method", "verdictOracle"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "plane": { "const": "host-control" },
+            "verdictOracle": { "$ref": "#/$defs/BehaviorExpectationOracle" }
+          },
+          "required": ["plane", "verdictOracle"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "SendOperationInput": {
       "type": "object",
       "properties": {
@@ -359,12 +431,200 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
         "invariant": { "type": "string", "minLength": 1 },
+        "execution": { "$ref": "#/$defs/BehaviorExecution" },
         "given": { "$ref": "#/$defs/FixtureSetup" },
         "when": { "$ref": "#/$defs/FixtureOperation" },
         "expect": { "$ref": "#/$defs/ExpectedVerdict" }
       },
-      "required": ["id", "invariant", "given", "when", "expect"],
-      "additionalProperties": false
+      "required": ["id", "invariant", "execution", "given", "when", "expect"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "send" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "enum": ["plugin-to-host-wire", "wire-admission"] },
+                  "method": { "const": "messaging.send" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "appendElements" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "enum": ["plugin-to-host-wire", "wire-admission"] },
+                  "method": { "const": "messaging.appendElements" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "subscribe" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "enum": ["plugin-to-host-wire", "wire-admission"] },
+                  "method": { "const": "messaging.subscribe" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "read" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "enum": ["plugin-to-host-wire", "wire-admission"] },
+                  "method": { "const": "messaging.read" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "ack" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "enum": ["plugin-to-host-wire", "wire-admission"] },
+                  "method": { "const": "messaging.ack" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "snapshot" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "enum": ["plugin-to-host-wire", "wire-admission"] },
+                  "method": { "const": "messaging.snapshot" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": { "operation": { "const": "deliverOnMessage" } },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": {
+                  "plane": { "const": "host-to-plugin-delivery" },
+                  "method": { "const": "host.messaging.deliver" }
+                },
+                "required": ["plane", "method"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "when": {
+                "properties": {
+                  "operation": {
+                    "enum": ["applyGrantPreset", "revokeGrant", "checkPermissionMatrix", "deleteReplayEvents"]
+                  }
+                },
+                "required": ["operation"]
+              }
+            },
+            "required": ["when"]
+          },
+          "then": {
+            "properties": {
+              "execution": {
+                "type": "object",
+                "properties": { "plane": { "const": "host-control" } },
+                "required": ["plane"]
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

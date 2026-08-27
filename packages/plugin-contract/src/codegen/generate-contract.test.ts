@@ -26,6 +26,13 @@ test('generated contract projects behavior fixture operations and assertions', a
 
   assert.match(source, /export type BehaviorFixture =/);
   assert.match(source, /export type BehaviorCase =/);
+  assert.match(source, /export type BehaviorExecution =/);
+  assert.match(
+    source,
+    /'plugin-to-host-wire'.*'wire-admission'.*'host-to-plugin-delivery'.*'host-control'/s,
+  );
+  assert.match(source, /readonly verdictOracle:/);
+  assert.match(source, /readonly code: -32602;/);
   assert.match(source, /readonly operation: 'send'/);
   assert.match(source, /readonly operation: 'deleteReplayEvents'/);
   assert.match(source, /export type SideEffectAssertion =/);
