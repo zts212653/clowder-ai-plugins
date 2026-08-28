@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/feishu-meeting-intake",
-  "version": "0.1.0-alpha.8",
+  "version": "0.1.0-alpha.9",
   "description": "Official Feishu/Lark generated-meeting-artifact intake adapter for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
