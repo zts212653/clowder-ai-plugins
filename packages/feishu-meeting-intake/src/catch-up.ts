@@ -51,6 +51,31 @@ export function createFeishuMeetingCatchUpService(
 ): FeishuMeetingCatchUpService {
   const now = options.now ?? Date.now;
 
+  async function refreshEmptyPreviewWindow(signal: AbortSignal): Promise<void> {
+    const state = await options.store.load();
+    if (state.catchUp.status !== 'previewed' || state.catchUp.candidateCount !== 0) return;
+    try {
+      await options.detector.detectCatchUpRequirement({
+        cursor: state.cursor,
+        lastSuccessfulObservationAt: state.health.lastSuccessfulObservationAt,
+        signal,
+      });
+    } catch (error) {
+      if (!(error instanceof FeishuCatchUpRequiredError)) throw error;
+      if (error.reason !== 'CURSOR_GAP') throw error;
+      if (error.fromCursor !== state.catchUp.fromCursor) {
+        throw new Error('Feishu catch-up cursor changed before preview refresh');
+      }
+      if (error.throughCursor === state.catchUp.throughCursor) return;
+      await options.store.requireCatchUp({
+        fromCursor: error.fromCursor,
+        throughCursor: error.throughCursor,
+        reason: error.reason,
+        detectedAt: now(),
+      });
+    }
+  }
+
   async function scan(signal: AbortSignal): Promise<{
     readonly state: MeetingIntakeState;
     readonly events: EventsPublishInput[];
@@ -110,6 +135,7 @@ export function createFeishuMeetingCatchUpService(
     },
 
     async preview(signal) {
+      await refreshEmptyPreviewWindow(signal);
       const scanned = await scan(signal);
       const window = decisionWindow(scanned.state);
       await options.store.recordCatchUpPreview({
