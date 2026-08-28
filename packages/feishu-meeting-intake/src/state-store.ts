@@ -6,6 +6,10 @@ import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
 
 import { validateFeishuMeetingPublishInput } from './artifact.js';
 import {
+  refreshedEmptyCatchUpPreviewState,
+  type RefreshEmptyCatchUpPreviewInput,
+} from './catch-up-preview-refresh.js';
+import {
   MAX_PENDING,
   emptyState,
   isCatchUp,
@@ -47,6 +51,7 @@ export interface MeetingIntakeStateStore {
     readonly candidateCountAtLeast?: number;
     readonly detectedAt: number;
   }): Promise<void>;
+  refreshEmptyCatchUpPreview(input: RefreshEmptyCatchUpPreviewInput): Promise<void>;
   recordCatchUpPreview(input: {
     readonly candidateCount: number;
     readonly fingerprint: string;
@@ -241,6 +246,13 @@ export function createFileMeetingIntakeStateStore(path: string): MeetingIntakeSt
           catchUp,
           health: { ...state.health, status: 'degraded', code: 'CATCH_UP_REQUIRED' },
         });
+      });
+    },
+
+    refreshEmptyCatchUpPreview(input): Promise<void> {
+      return serialized(async () => {
+        await ensureLoaded();
+        await persist(refreshedEmptyCatchUpPreviewState(state, input));
       });
     },
 

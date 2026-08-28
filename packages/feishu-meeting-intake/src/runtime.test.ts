@@ -106,6 +106,7 @@ test('redelivers after a crash between Host acceptance and durable acknowledgeme
     enqueue: (events) => durableStore.enqueue(events),
     setHealth: (health) => durableStore.setHealth(health),
     requireCatchUp: (input) => durableStore.requireCatchUp(input),
+    refreshEmptyCatchUpPreview: (input) => durableStore.refreshEmptyCatchUpPreview(input),
     recordCatchUpPreview: (input) => durableStore.recordCatchUpPreview(input),
     resolveCatchUpFutureOnly: (...args) => durableStore.resolveCatchUpFutureOnly(...args),
     resolveCatchUpReplay: (...args) => durableStore.resolveCatchUpReplay(...args),

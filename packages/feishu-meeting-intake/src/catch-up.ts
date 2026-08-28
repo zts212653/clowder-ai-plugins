@@ -67,10 +67,12 @@ export function createFeishuMeetingCatchUpService(
         throw new Error('Feishu catch-up cursor changed before preview refresh');
       }
       if (error.throughCursor === state.catchUp.throughCursor) return;
-      await options.store.requireCatchUp({
-        fromCursor: error.fromCursor,
+      await options.store.refreshEmptyCatchUpPreview({
+        expectedCursor: state.cursor,
+        expectedFromCursor: state.catchUp.fromCursor,
+        expectedThroughCursor: state.catchUp.throughCursor,
+        expectedFingerprint: state.catchUp.fingerprint,
         throughCursor: error.throughCursor,
-        reason: error.reason,
         detectedAt: now(),
       });
     }

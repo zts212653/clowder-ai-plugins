@@ -158,6 +158,113 @@ test('a repeated empty preview refreshes the consistency-lagged boundary before 
   });
 });
 
+test('an empty preview refresh cannot resurrect a concurrently settled future-only decision', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'feishu-catch-up-refresh-settled-'));
+  const store = createFileMeetingIntakeStateStore(join(directory, 'state.json'));
+  await store.commitPage(null, 'poll-v1:1000', [], 1_000);
+  await store.requireCatchUp({
+    fromCursor: 'poll-v1:1000',
+    throughCursor: 'poll-v1:5000',
+    reason: 'CURSOR_GAP',
+    detectedAt: 5_100,
+  });
+  let releaseDetector!: () => void;
+  const detectorReleased = new Promise<void>(resolve => {
+    releaseDetector = resolve;
+  });
+  let markDetectorEntered!: () => void;
+  const detectorEntered = new Promise<void>(resolve => {
+    markDetectorEntered = resolve;
+  });
+  const detector: FeishuCatchUpDetector = {
+    async detectCatchUpRequirement(request) {
+      markDetectorEntered();
+      await detectorReleased;
+      throw new FeishuCatchUpRequiredError({
+        fromCursor: request.cursor,
+        throughCursor: 'poll-v1:9000',
+        reason: 'CURSOR_GAP',
+      });
+    },
+  };
+  const scanner: FeishuCatchUpScanner = {
+    scanGeneratedArtifacts: async request => ({ artifacts: [], nextCursor: request.throughCursor }),
+  };
+  const service = createFeishuMeetingCatchUpService({ detector, scanner, store, now: () => 9_200 });
+  const first = await service.preview(SIGNAL);
+
+  const refreshing = service.preview(SIGNAL);
+  await detectorEntered;
+  await service.futureOnly(first.fingerprint);
+  releaseDetector();
+
+  await assert.rejects(refreshing, /preview changed/);
+  const state = await store.load();
+  assert.equal(state.cursor, 'poll-v1:5000');
+  assert.equal(state.catchUp.status, 'idle');
+});
+
+test('an empty preview refresh cannot overwrite a concurrently replaced non-empty preview', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'feishu-catch-up-refresh-replaced-'));
+  const store = createFileMeetingIntakeStateStore(join(directory, 'state.json'));
+  await store.commitPage(null, 'poll-v1:1000', [], 1_000);
+  await store.requireCatchUp({
+    fromCursor: 'poll-v1:1000',
+    throughCursor: 'poll-v1:5000',
+    reason: 'CURSOR_GAP',
+    detectedAt: 5_100,
+  });
+  let releaseDetector!: () => void;
+  const detectorReleased = new Promise<void>(resolve => {
+    releaseDetector = resolve;
+  });
+  let markDetectorEntered!: () => void;
+  const detectorEntered = new Promise<void>(resolve => {
+    markDetectorEntered = resolve;
+  });
+  const detector: FeishuCatchUpDetector = {
+    async detectCatchUpRequirement(request) {
+      markDetectorEntered();
+      await detectorReleased;
+      throw new FeishuCatchUpRequiredError({
+        fromCursor: request.cursor,
+        throughCursor: 'poll-v1:9000',
+        reason: 'CURSOR_GAP',
+      });
+    },
+  };
+  const scanner: FeishuCatchUpScanner = {
+    scanGeneratedArtifacts: async request => ({ artifacts: [], nextCursor: request.throughCursor }),
+  };
+  const service = createFeishuMeetingCatchUpService({ detector, scanner, store, now: () => 9_200 });
+  await service.preview(SIGNAL);
+
+  const refreshing = service.preview(SIGNAL);
+  await detectorEntered;
+  await store.requireCatchUp({
+    fromCursor: 'poll-v1:1000',
+    throughCursor: 'poll-v1:7000',
+    reason: 'CURSOR_GAP',
+    detectedAt: 7_100,
+  });
+  await store.recordCatchUpPreview({
+    candidateCount: 1,
+    fingerprint: 'a'.repeat(64),
+    previewedAt: 7_200,
+  });
+  releaseDetector();
+
+  await assert.rejects(refreshing, /preview changed/);
+  assert.deepEqual((await store.load()).catchUp, {
+    status: 'previewed',
+    fromCursor: 'poll-v1:1000',
+    throughCursor: 'poll-v1:7000',
+    candidateCount: 1,
+    fingerprint: 'a'.repeat(64),
+    previewedAt: 7_200,
+  });
+});
+
 test('replay re-reads the frozen window and refuses changed preview truth', async () => {
   let artifacts: readonly FeishuGeneratedArtifact[] = [ARTIFACT];
   const { service, store } = await fixture(async request => ({
