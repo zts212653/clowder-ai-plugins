@@ -14,5 +14,8 @@
     "lint": "pnpm -r lint",
     "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance",
     "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/video-analysis build && node scripts/catalog-check.mjs"
+  },
+  "devDependencies": {
+    "yaml": "2.9.0"
   }
 }

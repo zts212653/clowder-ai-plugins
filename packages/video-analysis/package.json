@@ -18,7 +18,8 @@
   },
   "files": [
     "dist",
-    "plugin.yaml"
+    "plugin.yaml",
+    "assets"
   ],
   "engines": {
     "node": ">=20.0.0"

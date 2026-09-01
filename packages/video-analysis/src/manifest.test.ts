@@ -16,6 +16,16 @@ test('plugin.yaml is the static access protocol and matches the package version'
 
   assert.equal(result.manifest.version, packageJson.version);
   assert.equal(result.manifest.contractVersion, '0.1.0-beta.13');
+  assert.deepEqual(result.manifest.description, {
+    default: 'Analyze remote videos through configured Gemini or Zhipu providers.',
+    translations: {
+      'zh-CN': '通过已配置的 Gemini 或智谱视觉模型分析远程视频。',
+    },
+  });
+  assert.deepEqual(result.manifest.icon, { type: 'svg', src: 'assets/icon.svg' });
+  const icon = await readFile(new URL('../assets/icon.svg', import.meta.url), 'utf8');
+  assert.match(icon, /^<svg\b/);
+  assert.doesNotMatch(icon, /<script\b|<foreignObject\b|\bon[a-z]+\s*=|(?:href|src)\s*=\s*["']https?:/i);
   assert.deepEqual(result.manifest.features[0]?.contributions, [
     { type: 'mcp', id: 'video-analysis-toolset' },
   ]);

@@ -272,6 +272,14 @@ Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Cor
 拥有 features、config、resources、capabilities/contributions 与 runtime entry。catalog 不复制或
 改写 manifest authority，Host 安装后从 verified artifact 投影本机 inventory。
 
+插件的产品 metadata 也只有一份 manifest 真相。`description` 兼容旧 string，并以
+`{default, translations:{locale: text}}` 承载多语言能力/用途说明；`icon` 兼容旧 `github`，正式
+package 使用 `{type: svg|png, src: package-relative asset}`，type 必须匹配扩展名，拒绝 URL、绝对
+路径与 `..`。catalog 为安装前 discovery 保存这两个字段的逐字 projection，但 exact-artifact gate
+必须从 tarball 解出 `plugin.yaml` 校验 projection 一致并证明声明资产真实随包交付。Agent search
+索引 default 与全部 translations；Console/Marketplace 只使用 Host 校验后重写的 asset URL，禁止
+按 catalog/local 来源猜 puzzle/folder 占位图或另存 metadata 副本。
+
 co-creator 冻结的 SDK scope 与本路线图采用的 feature-scoped canonical facade 映射如下。
 左列名称用于锁定能力范围，右列是避免插件自报授权身份后的实际 author API；`pluginId`、
 `featureId` 和展示 identity owner 由 Host-issued `FeatureContext` 注入，不作为可信 payload 字段：

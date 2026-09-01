@@ -270,6 +270,9 @@ export async function runConformance(
 
   // Load schemas
   const schemas = new Map<string, Record<string, unknown>>();
+  const pluginMetadataSchema = await loadSchema(
+    join(schemasDir, 'plugin-metadata.schema.json'),
+  );
   const manifestSchema = await loadSchema(join(schemasDir, 'manifest.schema.json'));
   const messagingSchema = await loadSchema(join(schemasDir, 'messaging.schema.json'));
   const signalSchema = await loadSchema(join(schemasDir, 'signal.schema.json'));
@@ -281,6 +284,7 @@ export async function runConformance(
   // Set up Ajv with format validation (date-time, uri, email, etc.)
   const ajv = new Ajv({ allErrors: true, strict: false });
   addFormats(ajv);
+  ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema['$id'] as string);
   ajv.addSchema(signalSchema, signalSchema['$id'] as string);
   ajv.addSchema(manifestSchema, manifestSchema['$id'] as string);
   ajv.addSchema(messagingSchema, messagingSchema['$id'] as string);

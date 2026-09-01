@@ -126,6 +126,12 @@ test('generated object fields preserve required and optional schema fields', asy
   assert.match(source, /readonly address: MessageAddress;/);
   assert.match(source, /readonly draftAudience\?: DraftAudience;/);
   assert.match(source, /readonly idempotencyKey: string;/);
+  assert.match(source, /export type LocalizedDescription = string \| LocalizedDescriptionObject;/);
+  assert.match(source, /export type PluginIcon = 'github' \| PackageIcon;/);
+  assert.match(source, /readonly description\?: LocalizedDescription;/);
+  assert.match(source, /readonly icon\?: PluginIcon;/);
+  assert.match(source, /export type CatalogPluginEntry = [\s\S]*readonly description: LocalizedDescription;/);
+  assert.match(source, /export type CatalogPluginEntry = [\s\S]*readonly icon: PluginIcon;/);
 });
 
 test('generated runtime types preserve transport-specific entrypoint requirements', async () => {

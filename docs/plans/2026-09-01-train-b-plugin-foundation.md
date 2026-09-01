@@ -44,8 +44,8 @@ implementations in one Core PR.
 
 | Truth | Owner | Consumer |
 |---|---|---|
-| Catalog entries, versions, artifact coordinates | `clowder-ai-plugins/catalog` | Host catalog provider, Agent/Console projections |
-| Static access protocol (`plugin.yaml`) | Packed plugin artifact | Contract validator, Host installer |
+| Catalog entries, versions, artifact coordinates, manifest metadata projection | `clowder-ai-plugins/catalog` | Host catalog provider, Agent/Console projections |
+| Static access protocol and product metadata (`plugin.yaml`) | Packed plugin artifact | Contract validator, Host installer, Agent/Console |
 | Manifest/catalog schemas and generated types | `@clowder-ai/plugin-contract` | SDK, Host, packages, conformance |
 | Author facade and runtime-neutral contribution semantics | `@clowder-ai/plugin-sdk` | Plugin authors and packages |
 | Installed artifact, integrity, grants, config/auth, intent, live state | Local Host inventory | Manager, Console, Agent |
@@ -60,9 +60,9 @@ implementations in one Core PR.
 2. `@clowder-ai/plugin-sdk` adds the author-side `definePlugin`/feature-context contract and typed
    registration receipts/disposers without adding private Host objects or expanding the frozen M0 wire.
 3. `catalog/catalog.json` is deterministic and validation-tested. Query helpers have stable list/search/get
-   ordering and never merge catalog state with installed state.
+   ordering, search every localized description, and never merge catalog state with installed state.
 4. `@clowder-ai/video-analysis` owns its Gemini/Zhipu protocol definitions and MCP runtime, ships
-   `plugin.yaml`, imports no Core private path, and scrubs credentials from errors.
+   `plugin.yaml` plus its declared SVG icon, imports no Core private path, and scrubs credentials from errors.
 
 ## Test-first sequence
 
@@ -75,7 +75,7 @@ implementations in one Core PR.
 6. Implement the package by moving the provider-neutral execution behavior out of Core truth into the
    plugin package; do not import Core source.
 7. Extend fresh-consumer and CI pack/publish coverage to exact contract/SDK/video artifacts and validate
-   the catalog entry against the produced tarball integrity.
+   the catalog entry against the produced tarball integrity, manifest metadata, and physical icon member.
 
 ## Acceptance evidence
 

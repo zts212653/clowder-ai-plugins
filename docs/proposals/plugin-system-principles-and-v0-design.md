@@ -97,7 +97,11 @@ contract/SDK `0.1.0` 正式发布 → foreground-cat/windows/memory 等后续扩
    catalog index、proposal-first、签名/digest，以及针对当前 Host contract suite 的插件 CI。
    catalog 是插件仓的发现/发布真相，artifact 内 `plugin.yaml` 始终是静态接入协议；Host 安装后
    的 inventory、integrity、grants、config/auth、desired/current 与 runtime health 是本机真相，
-   任何 catalog、插件进程、Console 或 Agent 都不得维护第二份 inventory
+   任何 catalog、插件进程、Console 或 Agent 都不得维护第二份 inventory。插件能力/用途描述与
+   图标同样由 manifest 持有：localized description 的 default 与全部 translations 同时服务 Agent
+   搜索和 Console 展示；package-local svg/png icon 随 exact artifact 发布，由 Host admission 校验
+   并重写为安全 asset URL。catalog 只能保存 manifest metadata 的逐字 discovery projection，不能
+   猜来源占位图、覆盖翻译或指向包外 URL
 
 **契约治理（我方建议，待对方确认）**：机器可读 contract package 在插件仓是唯一契约真相源；内核仓是 Host Adapter/控制面的实现真相源，二者不重复定义 schema。变更流程：contract PR（含 fixture）→ 双方指定 CODEOWNER 共签 → 发布 pre-1.0 版本 → 内核消费该版本并跑 conformance suite → 参考插件跑兼容矩阵。v1 冻结前允许 breaking release，不为旧内部接口留 adapter；冻结后再进入公开兼容承诺。
 

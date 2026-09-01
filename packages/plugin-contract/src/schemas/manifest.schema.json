@@ -545,7 +545,8 @@
       "description": "Must be an exact published semver version — no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). §9: numeric prerelease identifiers MUST NOT have leading zeroes."
     },
     "name": { "type": "string", "minLength": 1 },
-    "description": { "type": "string" },
+    "description": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/LocalizedDescription" },
+    "icon": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/PluginIcon" },
     "configuration": {
       "type": "array",
       "items": { "$ref": "#/$defs/ConfigurationField" }

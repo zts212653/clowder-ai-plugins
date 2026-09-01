@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
 
   packages/feishu-meeting-intake:
     dependencies:

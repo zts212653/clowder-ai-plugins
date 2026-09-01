@@ -17,6 +17,7 @@
     "./schemas/messaging": "./src/schemas/messaging.schema.json",
     "./schemas/manifest": "./src/schemas/manifest.schema.json",
     "./schemas/catalog": "./src/schemas/catalog.schema.json",
+    "./schemas/plugin-metadata": "./src/schemas/plugin-metadata.schema.json",
     "./schemas/signals": "./src/schemas/signal.schema.json",
     "./schemas/physical-limb": "./src/schemas/physical-limb.schema.json",
     "./schemas/behavior-fixture": "./src/schemas/behavior-fixture.schema.json",

@@ -10,6 +10,9 @@ const require = createRequire(import.meta.url);
 const Ajv2020: new (options: { readonly allErrors: boolean; readonly strict: boolean }) => AjvInstance =
   require('ajv/dist/2020');
 const addFormats: (ajv: AjvInstance) => void = require('ajv-formats');
+const pluginMetadataSchema = require(
+  '@clowder-ai/plugin-contract/schemas/plugin-metadata'
+) as Record<string, unknown>;
 const catalogSchema = require('@clowder-ai/plugin-contract/schemas/catalog') as Record<string, unknown>;
 
 interface AjvErrorObject {
@@ -25,6 +28,7 @@ interface AjvValidateFunction {
 }
 
 interface AjvInstance {
+  addSchema(schema: Record<string, unknown>, id?: string): void;
   compile(schema: Record<string, unknown>): AjvValidateFunction;
 }
 
@@ -41,6 +45,7 @@ export type CatalogValidationResult =
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
+ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema['$id'] as string);
 const validateSchema = ajv.compile(catalogSchema);
 
 function semanticError(
@@ -212,11 +217,14 @@ export function searchCatalogPlugins(
 ): readonly CatalogPluginEntry[] {
   const normalized = query.trim().toLocaleLowerCase('en-US');
   if (normalized === '') return catalog.plugins;
-  return catalog.plugins.filter((plugin) =>
-    [plugin.pluginId, plugin.name, plugin.description ?? '', ...(plugin.keywords ?? [])].some(
+  return catalog.plugins.filter((plugin) => {
+    const descriptions = typeof plugin.description === 'string'
+      ? [plugin.description]
+      : [plugin.description.default, ...Object.values(plugin.description.translations)];
+    return [plugin.pluginId, plugin.name, ...descriptions, ...(plugin.keywords ?? [])].some(
       (field) => field.toLocaleLowerCase('en-US').includes(normalized),
-    ),
-  );
+    );
+  });
 }
 
 export function getCatalogPlugin(

@@ -8,6 +8,9 @@ const Ajv2020: new (options: {
   readonly strict: boolean;
 }) => AjvInstance = require('ajv/dist/2020');
 const addFormats: (ajv: AjvInstance) => void = require('ajv-formats');
+const pluginMetadataSchema = require(
+  '@clowder-ai/plugin-contract/schemas/plugin-metadata'
+) as Record<string, unknown>;
 const manifestSchema = require('@clowder-ai/plugin-contract/schemas/manifest') as Record<
   string,
   unknown
@@ -54,6 +57,7 @@ export type ManifestValidationResult =
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
+ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema['$id'] as string);
 ajv.addSchema(signalSchema, signalSchema['$id'] as string);
 const validateSchema = ajv.compile(manifestSchema);
 

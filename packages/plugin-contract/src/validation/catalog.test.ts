@@ -18,6 +18,7 @@ function catalog() {
         pluginId: 'dev.clowder.alpha',
         name: 'Alpha tools',
         description: 'First catalog entry',
+        icon: 'github',
         publisher: { id: 'clowder-ai', name: 'Clowder AI' },
         keywords: ['analysis'],
         versions: [
@@ -43,7 +44,13 @@ function catalog() {
       {
         pluginId: 'dev.clowder.video-analysis',
         name: 'Video Analysis',
-        description: 'Analyze remote videos with configured providers',
+        description: {
+          default: 'Analyze remote videos with configured providers',
+          translations: {
+            'zh-CN': '使用已配置的视觉模型分析远程视频',
+          },
+        },
+        icon: { type: 'svg', src: 'assets/icon.svg' },
         publisher: { id: 'clowder-ai', name: 'Clowder AI' },
         keywords: ['gemini', 'video', 'zhipu'],
         versions: [
@@ -197,6 +204,11 @@ test('list/search/get are deterministic projections of catalog truth', () => {
   assert.deepEqual(
     searchCatalogPlugins(result.catalog, 'VIDEO').map((entry) => entry.pluginId),
     ['dev.clowder.video-analysis'],
+  );
+  assert.deepEqual(
+    searchCatalogPlugins(result.catalog, '视觉模型').map((entry) => entry.pluginId),
+    ['dev.clowder.video-analysis'],
+    'search must cover every translated description, not only the default locale',
   );
   assert.equal(getCatalogPlugin(result.catalog, 'dev.clowder.video-analysis')?.version, '0.1.0-alpha.0');
   assert.equal(getCatalogPlugin(result.catalog, 'missing'), undefined);

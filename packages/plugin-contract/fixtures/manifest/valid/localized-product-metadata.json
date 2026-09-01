@@ -1,0 +1,27 @@
+{
+  "pluginId": "com.example.localized-metadata",
+  "version": "1.0.0",
+  "contractVersion": "0.1.0-beta.13",
+  "name": "Localized metadata fixture",
+  "description": {
+    "default": "Describe this plugin for agents and people.",
+    "translations": {
+      "zh-CN": "向 Agent 和用户介绍这个插件。"
+    }
+  },
+  "icon": {
+    "type": "svg",
+    "src": "assets/icon.svg"
+  },
+  "features": [
+    {
+      "id": "main",
+      "name": "Main",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

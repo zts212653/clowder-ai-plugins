@@ -1,0 +1,22 @@
+{
+  "pluginId": "com.example.icon-escape",
+  "version": "1.0.0",
+  "contractVersion": "0.1.0-beta.13",
+  "name": "Icon escape fixture",
+  "description": "Legacy description remains accepted.",
+  "icon": {
+    "type": "svg",
+    "src": "../outside.svg"
+  },
+  "features": [
+    {
+      "id": "main",
+      "name": "Main",
+      "resources": [],
+      "capabilities": []
+    }
+  ],
+  "runtime": {
+    "transport": "builtin"
+  }
+}

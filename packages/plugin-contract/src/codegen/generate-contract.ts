@@ -22,6 +22,7 @@ export interface JsonSchema {
 }
 
 export interface ContractSchemas {
+  readonly pluginMetadata: JsonSchema;
   readonly manifest: JsonSchema;
   readonly catalog: JsonSchema;
   readonly signals: JsonSchema;
@@ -33,6 +34,8 @@ export interface ContractSchemas {
 const GENERATED_URL = new URL('../generated/contract.generated.ts', import.meta.url);
 const MANIFEST_CAPABILITY_REF =
   'https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability';
+const PLUGIN_METADATA_SCHEMA_PREFIX =
+  'https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/';
 const SIGNAL_SCHEMA_PREFIX = 'https://clowder-ai.dev/schemas/signals/v0.2#/$defs/';
 
 async function readSchema(url: URL): Promise<JsonSchema> {
@@ -41,6 +44,9 @@ async function readSchema(url: URL): Promise<JsonSchema> {
 
 export async function loadContractSchemas(): Promise<ContractSchemas> {
   return {
+    pluginMetadata: await readSchema(
+      new URL('../schemas/plugin-metadata.schema.json', import.meta.url),
+    ),
     manifest: await readSchema(new URL('../schemas/manifest.schema.json', import.meta.url)),
     catalog: await readSchema(new URL('../schemas/catalog.schema.json', import.meta.url)),
     signals: await readSchema(new URL('../schemas/signal.schema.json', import.meta.url)),
@@ -67,6 +73,9 @@ function literal(value: unknown): string {
 
 function refName(ref: string): string {
   if (ref === MANIFEST_CAPABILITY_REF) return 'Capability';
+  if (ref.startsWith(PLUGIN_METADATA_SCHEMA_PREFIX)) {
+    return decodeURIComponent(ref.slice(PLUGIN_METADATA_SCHEMA_PREFIX.length));
+  }
   if (ref.startsWith(SIGNAL_SCHEMA_PREFIX)) {
     return decodeURIComponent(ref.slice(SIGNAL_SCHEMA_PREFIX.length));
   }
@@ -446,9 +455,11 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
+    ' * Generated from plugin-metadata.schema.json, manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
+    '',
+    ...renderDefinitions(schemas.pluginMetadata),
     '',
     ...renderDefinitions(schemas.manifest),
     '',

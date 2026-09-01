@@ -33,6 +33,10 @@ const addFormats = require('ajv-formats') as (ajv: InstanceType<typeof Ajv>) => 
 const entrypointUrl = new URL('../dist/standalone-host.js', import.meta.url);
 const behaviorSchemaUrl = new URL('../../plugin-contract/src/schemas/behavior-fixture.schema.json', import.meta.url);
 const manifestSchemaUrl = new URL('../../plugin-contract/src/schemas/manifest.schema.json', import.meta.url);
+const pluginMetadataSchemaUrl = new URL(
+  '../../plugin-contract/src/schemas/plugin-metadata.schema.json',
+  import.meta.url,
+);
 const signalSchemaUrl = new URL('../../plugin-contract/src/schemas/signal.schema.json', import.meta.url);
 const hostHalfSeamManifestUrl = new URL('./host-half-seam-manifest.json', import.meta.url);
 const lifecycleDeadlineUnixMs = Date.now() + 60_000;
@@ -266,7 +270,8 @@ for (const matrixCase of LOCAL_STANDALONE_CASES) {
 }
 
 test('schema-validates and records every behavior fixture for the K-2 host half', async () => {
-  const [manifestSchema, signalSchema, behaviorSchema, seamManifest] = await Promise.all([
+  const [pluginMetadataSchema, manifestSchema, signalSchema, behaviorSchema, seamManifest] = await Promise.all([
+    readFile(pluginMetadataSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(manifestSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(signalSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(behaviorSchemaUrl, 'utf8').then(text => JSON.parse(text) as object),
@@ -279,6 +284,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
   ) as { cases: Array<{ id: string }> };
   const ajv = new Ajv({ allErrors: true, strict: false });
   addFormats(ajv);
+  ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema.$id);
   ajv.addSchema(signalSchema, signalSchema.$id);
   ajv.addSchema(manifestSchema, manifestSchema.$id);
   const validate = ajv.compile(behaviorSchema);

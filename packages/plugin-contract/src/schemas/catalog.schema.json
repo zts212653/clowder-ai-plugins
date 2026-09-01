@@ -60,7 +60,8 @@
       "properties": {
         "pluginId": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" },
+        "description": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/LocalizedDescription" },
+        "icon": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/PluginIcon" },
         "publisher": { "$ref": "#/$defs/CatalogPublisher" },
         "keywords": {
           "type": "array",
@@ -73,7 +74,7 @@
           "minItems": 1
         }
       },
-      "required": ["pluginId", "name", "publisher", "versions"],
+      "required": ["pluginId", "name", "description", "icon", "publisher", "versions"],
       "additionalProperties": false
     }
   },

@@ -72,4 +72,6 @@ test('the built public entry exports runtime manifest and catalog validators', a
 
   const catalogSchema = require('@clowder-ai/plugin-contract/schemas/catalog');
   assert.equal(catalogSchema.title, 'Clowder AI Plugin Catalog (v1)');
+  const metadataSchema = require('@clowder-ai/plugin-contract/schemas/plugin-metadata');
+  assert.equal(metadataSchema.title, 'Clowder AI Plugin Product Metadata (v1)');
 });

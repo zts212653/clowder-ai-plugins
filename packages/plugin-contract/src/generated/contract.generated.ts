@@ -1,7 +1,19 @@
 /**
- * Generated from manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
+ * Generated from plugin-metadata.schema.json, manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
+
+export type LocalizedDescriptionObject = {
+  readonly default: string;
+  readonly translations: Readonly<Record<string, string>>;
+};
+export type LocalizedDescription = string | LocalizedDescriptionObject;
+export type PackageAssetPath = string;
+export type PackageIcon = {
+  readonly type: 'svg' | 'png';
+  readonly src: PackageAssetPath;
+};
+export type PluginIcon = 'github' | PackageIcon;
 
 export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
@@ -216,7 +228,8 @@ export type PluginManifest = {
   readonly version: SemVer;
   readonly contractVersion: SemVer;
   readonly name: string;
-  readonly description?: string;
+  readonly description?: LocalizedDescription;
+  readonly icon?: PluginIcon;
   readonly configuration?: readonly ConfigurationField[];
   readonly contributions?: readonly StaticContribution[];
   readonly features: readonly PluginFeature[];
@@ -252,7 +265,8 @@ export type CatalogPluginVersion = {
 export type CatalogPluginEntry = {
   readonly pluginId: string;
   readonly name: string;
-  readonly description?: string;
+  readonly description: LocalizedDescription;
+  readonly icon: PluginIcon;
   readonly publisher: CatalogPublisher;
   readonly keywords?: readonly string[];
   readonly versions: readonly CatalogPluginVersion[];
