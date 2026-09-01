@@ -133,7 +133,7 @@ test('generated runtime types preserve transport-specific entrypoint requirement
   const source = generateContractSource(schemas);
 
   assert.match(source, /export type RuntimeDeclaration = ExternalRuntimeDeclaration \| BuiltinRuntimeDeclaration;/);
-  assert.match(source, /export type ExternalRuntimeDeclaration = [\s\S]*readonly entrypoint: string;/);
+  assert.match(source, /export type ExternalRuntimeDeclaration = [\s\S]*readonly entrypoint: PackageRelativePath;/);
   assert.match(source, /export type BuiltinRuntimeDeclaration = [\s\S]*readonly entrypoint\?: string;/);
 });
 

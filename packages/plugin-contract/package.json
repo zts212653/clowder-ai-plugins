@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/plugin-contract",
-  "version": "0.1.0-beta.12",
+  "version": "0.1.0-beta.13",
   "private": false,
   "description": "Clowder AI plugin contract — the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
   "license": "MIT",
@@ -16,6 +16,7 @@
     },
     "./schemas/messaging": "./src/schemas/messaging.schema.json",
     "./schemas/manifest": "./src/schemas/manifest.schema.json",
+    "./schemas/catalog": "./src/schemas/catalog.schema.json",
     "./schemas/signals": "./src/schemas/signal.schema.json",
     "./schemas/physical-limb": "./src/schemas/physical-limb.schema.json",
     "./schemas/behavior-fixture": "./src/schemas/behavior-fixture.schema.json",

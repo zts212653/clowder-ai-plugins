@@ -1,5 +1,5 @@
 /**
- * Generated from manifest.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
+ * Generated from manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
 
@@ -42,17 +42,168 @@ export type ResourceReference = {
   readonly type: string;
   readonly id: string;
 };
+export type ContributionReference = {
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui';
+  readonly id: string;
+};
+export type PackageRelativePath = string;
+export type ConfigurationOption = {
+  readonly value: string;
+  readonly label: string;
+  readonly hint?: string;
+  readonly docsUrl?: string;
+};
+export type ConfigurationField = {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'string' | 'secret' | 'select' | 'boolean' | 'number' | 'url';
+  readonly required: boolean;
+  readonly default?: string | number | boolean;
+  readonly options?: readonly ConfigurationOption[];
+};
+export type EnvironmentBinding = {
+  readonly source: 'config';
+  readonly key: string;
+} | {
+  readonly source: 'secret';
+  readonly key: string;
+};
+export type ContributionRuntime = {
+  readonly transport: 'stdio' | 'ipc';
+  readonly entrypoint: PackageRelativePath;
+  readonly args?: readonly string[];
+};
+export type CallbackAction = {
+  readonly method: string;
+  readonly params?: Readonly<Record<string, unknown>>;
+};
+export type IdentityContribution = {
+  readonly type: 'identity';
+  readonly id: string;
+  readonly displayName: string;
+  readonly icon?: string;
+  readonly color?: string;
+};
+export type ScheduleContribution = {
+  readonly type: 'schedule';
+  readonly id: string;
+  readonly schedule: {
+    readonly kind: 'interval';
+    readonly everyMs: number;
+  } | {
+    readonly kind: 'cron';
+    readonly expression: string;
+  };
+  readonly action: CallbackAction;
+  readonly policy: {
+    readonly overlap: 'skip';
+    readonly timeoutMs: number;
+  };
+};
+export type DirectToolContribution = {
+  readonly type: 'tool';
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly inputSchema: Readonly<Record<string, unknown>>;
+  readonly action: CallbackAction;
+};
+export type McpContribution = {
+  readonly type: 'mcp';
+  readonly id: string;
+  readonly runtime: ContributionRuntime;
+  readonly environment?: Readonly<Record<string, EnvironmentBinding>>;
+};
+export type SkillContribution = {
+  readonly type: 'skill';
+  readonly id: string;
+  readonly path: PackageRelativePath;
+};
+export type LimbContribution = {
+  readonly type: 'limb';
+  readonly id: string;
+  readonly manifestPath: PackageRelativePath;
+};
+export type WebhookContribution = {
+  readonly type: 'webhook';
+  readonly id: string;
+  readonly path: string;
+  readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'DELETE')[];
+  readonly action: CallbackAction;
+  readonly verificationSecretRef?: string;
+};
+export type MessageSubscriptionContribution = {
+  readonly type: 'message-subscription';
+  readonly id: string;
+  readonly binding: string;
+  readonly filter?: Readonly<Record<string, unknown>>;
+  readonly action: CallbackAction;
+};
+export type ServiceContribution = {
+  readonly type: 'service';
+  readonly id: string;
+  readonly runtime: ContributionRuntime;
+  readonly healthMethod: string;
+  readonly environment?: Readonly<Record<string, EnvironmentBinding>>;
+};
+export type ConnectorContribution = {
+  readonly type: 'connector';
+  readonly id: string;
+  readonly identityRef: string;
+  readonly inboundMethod: string;
+  readonly outboundMethod: string;
+};
+export type UiWhenClause = {
+  readonly featureEnabled?: boolean;
+  readonly requiresCapabilities?: readonly Capability[];
+};
+export type UiAnchor = {
+  readonly position: 'before' | 'after';
+  readonly target: string;
+};
+export type UiCommandContribution = {
+  readonly type: 'ui';
+  readonly id: string;
+  readonly kind: 'command';
+  readonly label: string;
+  readonly action: CallbackAction;
+  readonly when?: UiWhenClause;
+};
+export type UiSlotItemContribution = {
+  readonly type: 'ui';
+  readonly id: string;
+  readonly kind: 'slot-item';
+  readonly label: string;
+  readonly command: string;
+  readonly group: string;
+  readonly anchor?: UiAnchor;
+  readonly order?: number;
+  readonly when?: UiWhenClause;
+};
+export type UiMessageElementContribution = {
+  readonly type: 'ui';
+  readonly id: string;
+  readonly kind: 'message-element';
+  readonly label: string;
+  readonly elementKind: string;
+  readonly renderer: string;
+  readonly when?: UiWhenClause;
+};
+export type UiContribution = UiCommandContribution | UiSlotItemContribution | UiMessageElementContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
   readonly resources: readonly ResourceReference[];
+  readonly contributions?: readonly ContributionReference[];
   readonly capabilities: readonly Capability[];
 };
 export type RuntimeTransport = 'stdio' | 'ipc' | 'builtin';
 export type ExternalRuntimeTransport = 'stdio' | 'ipc';
 export type ExternalRuntimeDeclaration = {
   readonly transport: ExternalRuntimeTransport;
-  readonly entrypoint: string;
+  readonly entrypoint: PackageRelativePath;
 };
 export type BuiltinRuntimeDeclaration = {
   readonly transport: 'builtin';
@@ -66,10 +217,50 @@ export type PluginManifest = {
   readonly contractVersion: SemVer;
   readonly name: string;
   readonly description?: string;
+  readonly configuration?: readonly ConfigurationField[];
+  readonly contributions?: readonly StaticContribution[];
   readonly features: readonly PluginFeature[];
   readonly data?: readonly DataDeclaration[];
   readonly runtime: RuntimeDeclaration;
   readonly signals?: SignalContribution;
+};
+
+export type CatalogSemVer = string;
+export type CatalogPublisher = {
+  readonly id: string;
+  readonly name: string;
+};
+export type ArtifactProvenance = {
+  readonly repository: string;
+  readonly sourceDirectory: string;
+};
+export type NpmArtifact = {
+  readonly kind: 'npm';
+  readonly packageName: string;
+  readonly version: CatalogSemVer;
+  readonly tarballUrl: string;
+  readonly integrity: string;
+  readonly shasum: string;
+  readonly provenance: ArtifactProvenance;
+};
+export type CatalogPluginVersion = {
+  readonly version: CatalogSemVer;
+  readonly contractVersion: CatalogSemVer;
+  readonly manifestPath: 'plugin.yaml';
+  readonly artifact: NpmArtifact;
+};
+export type CatalogPluginEntry = {
+  readonly pluginId: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly publisher: CatalogPublisher;
+  readonly keywords?: readonly string[];
+  readonly versions: readonly CatalogPluginVersion[];
+};
+
+export type PluginCatalog = {
+  readonly schemaVersion: '1';
+  readonly plugins: readonly CatalogPluginEntry[];
 };
 
 export type SignalType = string;

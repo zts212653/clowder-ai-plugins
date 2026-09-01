@@ -28,6 +28,7 @@ const Ajv = require('ajv/dist/2020') as new (options: {
   addSchema(schema: object, id: string): void;
   compile(schema: object): ((data: unknown) => boolean) & { errors?: unknown[] | null };
 };
+const addFormats = require('ajv-formats') as (ajv: InstanceType<typeof Ajv>) => void;
 
 const entrypointUrl = new URL('../dist/standalone-host.js', import.meta.url);
 const behaviorSchemaUrl = new URL('../../plugin-contract/src/schemas/behavior-fixture.schema.json', import.meta.url);
@@ -277,6 +278,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
     await readFile(new URL(behaviorSeam.source, hostHalfSeamManifestUrl), 'utf8'),
   ) as { cases: Array<{ id: string }> };
   const ajv = new Ajv({ allErrors: true, strict: false });
+  addFormats(ajv);
   ajv.addSchema(signalSchema, signalSchema.$id);
   ajv.addSchema(manifestSchema, manifestSchema.$id);
   const validate = ajv.compile(behaviorSchema);

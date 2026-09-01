@@ -46,6 +46,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       '@clowder-ai/plugin-sdk',
       '@clowder-ai/feishu-meeting-intake',
       '@clowder-ai/personal-chrome-companion',
+      '@clowder-ai/video-analysis',
     ]) {
       run('pnpm', ['--filter', packageName, 'build'], repoRoot);
     }
@@ -55,6 +56,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       pack('packages/plugin-sdk', packs),
       pack('packages/feishu-meeting-intake', packs),
       pack('packages/personal-chrome-companion', packs),
+      pack('packages/video-analysis', packs),
     ];
 
     const staged = join(root, 'staged');
@@ -107,14 +109,20 @@ test('packed public packages install and import in a fresh npm consumer', async 
         'utf8',
       ),
     );
+    const videoPackage = JSON.parse(
+      await readFile(
+        join(consumer, 'node_modules/@clowder-ai/video-analysis/package.json'),
+        'utf8',
+      ),
+    );
     const feishuManifest = JSON.parse(
       await readFile(
         join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/manifest.json'),
         'utf8',
       ),
     );
-    assert.equal(sdkPackage.version, '0.1.0-beta.8');
-    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.12');
+    assert.equal(sdkPackage.version, '0.1.0-beta.9');
+    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.13');
     assert.equal(
       feishuPackage.dependencies['@clowder-ai/plugin-contract'],
       '0.1.0-beta.9',
@@ -140,6 +148,14 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.deepEqual(companionPackage.bin, {
       'clowder-personal-chrome-host': 'native-host/native-host-cli.mjs',
     });
+    assert.equal(videoPackage.version, '0.1.0-alpha.0');
+    assert.deepEqual(videoPackage.bin, {
+      'clowder-video-analysis-mcp': './dist/mcp-entrypoint.js',
+    });
+    await readFile(
+      join(consumer, 'node_modules/@clowder-ai/video-analysis/plugin.yaml'),
+      'utf8',
+    );
     await readFile(
       join(consumer, 'node_modules/@clowder-ai/personal-chrome-companion/extension/manifest.json'),
       'utf8',
@@ -158,7 +174,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       [
         '--input-type=module',
         '--eval',
-        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const request = companion.parsePersonalChromeAppendRequest({ v: 1, kind: 'append_message', requestId: 'fresh-1', conversationId: 'conversation-1', text: 'fresh consumer', idempotencyKey: 'delivery-1' }); if (typeof contract.validateManifest !== 'function' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || request.conversationId !== 'conversation-1') process.exit(1);",
+        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const request = companion.parsePersonalChromeAppendRequest({ v: 1, kind: 'append_message', requestId: 'fresh-1', conversationId: 'conversation-1', text: 'fresh consumer', idempotencyKey: 'delivery-1' }); if (typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || request.conversationId !== 'conversation-1') process.exit(1);",
       ],
       consumer,
     );

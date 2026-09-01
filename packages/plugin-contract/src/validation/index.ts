@@ -19,6 +19,14 @@ export {
   type ManifestValidationResult,
 } from './manifest.js';
 export {
+  getCatalogPlugin,
+  listCatalogPlugins,
+  searchCatalogPlugins,
+  validatePluginCatalog,
+  type CatalogValidationError,
+  type CatalogValidationResult,
+} from './catalog.js';
+export {
   SIGNAL_PAYLOAD_MAX_ENCODED_BYTES,
   validateDeclaredEventsPublishInput,
   validateEventsPublishInput,

@@ -13,7 +13,10 @@ on:
       - 'packages/plugin-contract/**'
       - 'packages/plugin-sdk/**'
       - 'packages/feishu-meeting-intake/**'
+      - 'packages/video-analysis/**'
+      - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
+      - 'scripts/catalog-check.mjs'
       - 'scripts/pack-publish-artifact.mjs'
       - 'package.json'
       - '.npmrc'
@@ -82,6 +85,21 @@ jobs:
 
       - name: Feishu intake build
         run: pnpm --filter @clowder-ai/feishu-meeting-intake build
+
+      - name: Video analysis typecheck
+        run: pnpm --filter @clowder-ai/video-analysis typecheck
+
+      - name: Video analysis tests
+        run: pnpm --filter @clowder-ai/video-analysis test
+
+      - name: Video analysis lint
+        run: pnpm --filter @clowder-ai/video-analysis lint
+
+      - name: Video analysis build
+        run: pnpm --filter @clowder-ai/video-analysis build
+
+      - name: Machine catalog
+        run: pnpm catalog:check
 
       - name: Fresh consumer install
         run: pnpm test:fresh-consumer
@@ -269,6 +287,9 @@ jobs:
       - name: Build Feishu intake package
         run: pnpm --filter @clowder-ai/feishu-meeting-intake build
 
+      - name: Build video analysis package
+        run: pnpm --filter @clowder-ai/video-analysis build
+
       - name: Publish contract prerelease
         uses: ./.github/actions/publish-prerelease
         with:
@@ -279,6 +300,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/plugin-sdk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish video analysis prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/video-analysis
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish Feishu intake prerelease

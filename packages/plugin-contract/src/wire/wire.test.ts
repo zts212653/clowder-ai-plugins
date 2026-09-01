@@ -625,7 +625,7 @@ test('validateBindingNonce boundary cases', () => {
 // §7 Grant snapshot regression locks
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('MAX_GRANT_ITEMS is frozen at 17', () => {
+test('MAX_GRANT_ITEMS is frozen at the complete v0 capability cardinality', () => {
   assert.equal(MAX_GRANT_ITEMS, 17);
 });
 

@@ -23,6 +23,7 @@ export interface JsonSchema {
 
 export interface ContractSchemas {
   readonly manifest: JsonSchema;
+  readonly catalog: JsonSchema;
   readonly signals: JsonSchema;
   readonly messaging: JsonSchema;
   readonly physicalLimb: JsonSchema;
@@ -41,6 +42,7 @@ async function readSchema(url: URL): Promise<JsonSchema> {
 export async function loadContractSchemas(): Promise<ContractSchemas> {
   return {
     manifest: await readSchema(new URL('../schemas/manifest.schema.json', import.meta.url)),
+    catalog: await readSchema(new URL('../schemas/catalog.schema.json', import.meta.url)),
     signals: await readSchema(new URL('../schemas/signal.schema.json', import.meta.url)),
     messaging: await readSchema(new URL('../schemas/messaging.schema.json', import.meta.url)),
     physicalLimb: await readSchema(
@@ -444,13 +446,17 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from manifest.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
+    ' * Generated from manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
     '',
     ...renderDefinitions(schemas.manifest),
     '',
     `export type PluginManifest = ${renderType(schemas.manifest)};`,
+    '',
+    ...renderDefinitions(schemas.catalog),
+    '',
+    `export type PluginCatalog = ${renderType(schemas.catalog)};`,
     '',
     ...renderDefinitions(schemas.signals),
     '',

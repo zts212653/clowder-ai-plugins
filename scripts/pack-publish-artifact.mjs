@@ -28,6 +28,15 @@ function run(command, args, cwd) {
   return result.stdout;
 }
 
+function runNpm(args, cwd) {
+  const npmCli = process.env.CLOWDER_ARTIFACT_NPM_CLI;
+  if (npmCli === undefined) return run('npm', args, cwd);
+  if (!isAbsolute(npmCli)) {
+    throw new Error('CLOWDER_ARTIFACT_NPM_CLI must be an absolute path');
+  }
+  return run(process.execPath, [npmCli, ...args], cwd);
+}
+
 function isContained(root, candidate) {
   const path = relative(root, candidate);
   return path === '' || (!path.startsWith(`..${sep}`) && path !== '..' && !isAbsolute(path));
@@ -106,8 +115,7 @@ async function main() {
   const bundled = packageJson.bundledDependencies;
   if (bundled === undefined || (Array.isArray(bundled) && bundled.length === 0)) {
     process.stdout.write(
-      run(
-        'npm',
+      runNpm(
         ['pack', '--json', '--ignore-scripts', '--pack-destination', destinationRoot, packageRoot],
         repoRoot,
       ),

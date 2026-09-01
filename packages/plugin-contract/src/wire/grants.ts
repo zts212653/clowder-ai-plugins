@@ -25,7 +25,7 @@ import {
 
 /**
  * Maximum number of items in effectiveGrants.
- * Derived from the 17-value Capability enum — a plugin cannot hold
+ * Derived from the signed 17-value M0 Capability enum — a plugin cannot hold
  * more capabilities than exist.
  */
 export const MAX_GRANT_ITEMS = 17 as const;
