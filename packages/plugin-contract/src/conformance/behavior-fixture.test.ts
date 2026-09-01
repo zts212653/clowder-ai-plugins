@@ -399,13 +399,16 @@ test('behavior fixture ships subscription authorization oracles', () => {
   );
 });
 
-test('conformance executes every loopback behavior case', async () => {
+test('conformance executes every discovered contract fixture and canonical loopback behavior case', async () => {
   const report = await runConformance({ write: () => undefined });
 
-  assert.equal(report.contractFixtures.passed, 32);
-  assert.equal(report.contractFixtures.total, 32);
-  assert.equal(report.behaviorCases.passed, 18);
-  assert.equal(report.behaviorCases.total, 18);
+  assert.ok(report.contractFixtures.total > 0);
+  assert.equal(
+    report.contractFixtures.passed,
+    report.contractFixtures.total,
+  );
+  assert.equal(report.behaviorCases.passed, M0C_BEHAVIOR_CASE_IDS.length);
+  assert.equal(report.behaviorCases.total, M0C_BEHAVIOR_CASE_IDS.length);
   assert.deepEqual(report.failures, []);
 });
 
