@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -24,13 +24,20 @@ function run(command, args, cwd) {
 
 function pack(packageDirectory, destination) {
   const output = run(
-    'node',
+    process.execPath,
     ['scripts/pack-publish-artifact.mjs', packageDirectory, destination],
     repoRoot,
   );
   const [artifact] = JSON.parse(output);
   assert.equal(typeof artifact?.filename, 'string');
   return join(destination, artifact.filename);
+}
+
+function runNpm(args, cwd) {
+  const npmCli = process.env.CLOWDER_ARTIFACT_NPM_CLI;
+  if (npmCli === undefined) return run('npm', args, cwd);
+  assert.equal(isAbsolute(npmCli), true);
+  return run(process.execPath, [npmCli, ...args], cwd);
 }
 
 test('packed public packages install and import in a fresh npm consumer', async () => {
@@ -66,7 +73,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const stagedRunnerUrl = pathToFileURL(join(stagedPackage, 'dist/lark-cli-runner.js')).href;
     const stagedEntrypointUrl = pathToFileURL(join(stagedPackage, 'dist/stdio-entrypoint.js')).href;
     run(
-      'node',
+      process.execPath,
       [
         '--input-type=module',
         '--eval',
@@ -86,11 +93,51 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.equal(stagedCompanionManifest.key, undefined);
     assert.deepEqual(stagedCompanionManifest.permissions, ['nativeMessaging', 'tabs']);
     await readFile(join(stagedCompanionPackage, 'native-host/native-host-cli.mjs'), 'utf8');
-    run('node', ['native-host/native-host-cli.mjs', '--help'], stagedCompanionPackage);
+    run(process.execPath, ['native-host/native-host-cli.mjs', '--help'], stagedCompanionPackage);
 
+    const stagedVideo = join(root, 'staged-video-analysis');
+    await mkdir(stagedVideo);
+    run('tar', ['-xzf', tarballs[4], '-C', stagedVideo], root);
+    const stagedVideoPackage = join(stagedVideo, 'package');
+    const stagedVideoPackageJson = JSON.parse(
+      await readFile(join(stagedVideoPackage, 'package.json'), 'utf8'),
+    );
+    assert.doesNotMatch(JSON.stringify(stagedVideoPackageJson), /"workspace:/u);
+    await readFile(join(stagedVideoPackage, 'npm-shrinkwrap.json'), 'utf8');
+    runNpm(
+      [
+        'ci',
+        '--ignore-scripts',
+        '--omit=dev',
+        '--registry=https://registry.npmjs.org/',
+        '--no-audit',
+        '--no-fund',
+      ],
+      stagedVideoPackage,
+    );
+    await readFile(
+      join(stagedVideoPackage, 'node_modules/@modelcontextprotocol/sdk/package.json'),
+      'utf8',
+    );
+    await readFile(join(stagedVideoPackage, 'node_modules/zod/package.json'), 'utf8');
     run(
-      'npm',
-      ['install', '--ignore-scripts', '--package-lock=false', ...tarballs],
+      process.execPath,
+      [
+        '--input-type=module',
+        '--eval',
+        "const video = await import('./dist/index.js'); if (typeof video.createVideoAnalysisMcpServer !== 'function') process.exit(1);",
+      ],
+      stagedVideoPackage,
+    );
+
+    runNpm(
+      [
+        'install',
+        '--ignore-scripts',
+        '--package-lock=false',
+        '--registry=https://registry.npmjs.org/',
+        ...tarballs,
+      ],
       consumer,
     );
 
@@ -167,7 +214,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       'utf8',
     );
     run(
-      'node',
+      process.execPath,
       [
         'node_modules/@clowder-ai/personal-chrome-companion/native-host/native-host-cli.mjs',
         '--help',
@@ -176,7 +223,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     );
 
     run(
-      'node',
+      process.execPath,
       [
         '--input-type=module',
         '--eval',

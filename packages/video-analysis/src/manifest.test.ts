@@ -2,31 +2,30 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { validateManifest } from '@clowder-ai/plugin-contract';
 import { parse } from 'yaml';
 
 test('plugin.yaml is the static access protocol and matches the package version', async () => {
-  const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8')) as unknown;
+  const manifest = parse(
+    await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'),
+  ) as Record<string, unknown>;
   const packageJson = JSON.parse(
     await readFile(new URL('../package.json', import.meta.url), 'utf8'),
   ) as { version: string };
-  const result = validateManifest(manifest);
-  assert.equal(result.valid, true, result.valid ? undefined : JSON.stringify(result.errors));
-  if (!result.valid) return;
 
-  assert.equal(result.manifest.version, packageJson.version);
-  assert.equal(result.manifest.contractVersion, '0.1.0-beta.13');
-  assert.deepEqual(result.manifest.description, {
+  assert.equal(manifest['version'], packageJson.version);
+  assert.equal(manifest['contractVersion'], '0.1.0-beta.13');
+  assert.deepEqual(manifest['description'], {
     default: 'Analyze remote videos through configured Gemini or Zhipu providers.',
     translations: {
       'zh-CN': '通过已配置的 Gemini 或智谱视觉模型分析远程视频。',
     },
   });
-  assert.deepEqual(result.manifest.icon, { type: 'svg', src: 'assets/icon.svg' });
+  assert.deepEqual(manifest['icon'], { type: 'svg', src: 'assets/icon.svg' });
   const icon = await readFile(new URL('../assets/icon.svg', import.meta.url), 'utf8');
   assert.match(icon, /^<svg\b/);
   assert.doesNotMatch(icon, /<script\b|<foreignObject\b|\bon[a-z]+\s*=|(?:href|src)\s*=\s*["']https?:/i);
-  assert.deepEqual(result.manifest.features[0]?.contributions, [
+  const features = manifest['features'] as Array<Record<string, unknown>>;
+  assert.deepEqual(features[0]?.['contributions'], [
     { type: 'mcp', id: 'video-analysis-toolset' },
   ]);
 });

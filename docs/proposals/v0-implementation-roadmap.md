@@ -508,7 +508,10 @@ catalog list/search/get
 2. product-neutral conformance fixture 覆盖 §5.1 全部公开 YAML/SDK contribution type 的
    schema、同义静态/动态注册、owner/conflict/dispose、restart、stale revision 与 denied-grant；
 3. `video-analysis` 是首个真实迁移 package：从 packed artifact 经 catalog 安装，只依赖公共
-   contract/SDK，真实执行 config/secret + direct tool/MCP，并通过 disable/restart/uninstall；
+   contract/SDK；artifact 自带 publisher-owned `npm-shrinkwrap.json`，其全部 package entry 只能
+   指向 canonical npm registry 并带完整 SHA-512 integrity，Host 以 script-free `npm ci --omit=dev`
+   materialize 同一运行闭包；真实执行 config/secret + direct tool/MCP，并通过
+   disable/restart/uninstall；
 4. Console 在 Train B 交付终态 VS Code 式 Marketplace/Installed/Details/Settings 骨架；
    Agent 只暴露 `plugin_list`、`plugin_search`、`plugin_get`、`plugin_install`、
    `plugin_set_enabled`、`plugin_uninstall`，两者都调用同一 Host inventory 与 lifecycle；

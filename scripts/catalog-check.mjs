@@ -80,6 +80,41 @@ try {
   assert.deepEqual(manifestValidation.manifest.description, catalogEntry.description);
   assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
 
+  assert.ok(
+    artifact.files.some((file) => file.path === 'npm-shrinkwrap.json'),
+    'packed artifact is missing npm-shrinkwrap.json',
+  );
+  const packageJson = JSON.parse(
+    await readFile(join(unpackedDirectory, 'package', 'package.json'), 'utf8'),
+  );
+  assert.doesNotMatch(JSON.stringify(packageJson), /"workspace:/u);
+  const shrinkwrap = JSON.parse(
+    await readFile(join(unpackedDirectory, 'package', 'npm-shrinkwrap.json'), 'utf8'),
+  );
+  assert.ok(shrinkwrap.lockfileVersion === 2 || shrinkwrap.lockfileVersion === 3);
+  assert.equal(shrinkwrap.name, packageJson.name);
+  assert.equal(shrinkwrap.version, packageJson.version);
+  assert.deepEqual(shrinkwrap.packages?.['']?.dependencies ?? {}, packageJson.dependencies ?? {});
+  assert.deepEqual(
+    shrinkwrap.packages?.['']?.optionalDependencies ?? {},
+    packageJson.optionalDependencies ?? {},
+  );
+  for (const [packagePath, entry] of Object.entries(shrinkwrap.packages ?? {})) {
+    if (packagePath.length === 0) continue;
+    assert.match(packagePath, /^node_modules\//u);
+    assert.notEqual(entry.link, true);
+    assert.match(
+      entry.version,
+      /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u,
+    );
+    assert.match(entry.resolved, /^https:\/\/registry\.npmjs\.org\//u);
+    assert.match(entry.integrity, /^sha512-[A-Za-z0-9+/]{86}==$/u);
+    const encoded = entry.integrity.slice('sha512-'.length);
+    const decoded = Buffer.from(encoded, 'base64');
+    assert.equal(decoded.byteLength, 64);
+    assert.equal(decoded.toString('base64'), encoded);
+  }
+
   if (typeof catalogEntry.icon !== 'string') {
     assert.ok(
       artifact.files.some((file) => file.path === catalogEntry.icon.src),

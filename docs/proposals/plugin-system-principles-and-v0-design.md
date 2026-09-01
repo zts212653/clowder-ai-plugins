@@ -548,8 +548,9 @@ surface：
 2. **Train B terminal foundation + one real slice**：product-neutral conformance 覆盖全部 v0
    machine schema、YAML/SDK contribution、feature authority、static/dynamic equivalence、dispose、
    restart 与 fail-closed；隔离 acceptance 只首迁真实 `video-analysis` package，证明 machine
-   catalog list/search/get、packed-artifact install、静态 `plugin.yaml`、config/secret、direct
-   tool/MCP 与 install→configure→enable→use→restart→disable→uninstall。Console/Agent 同时交付
+   catalog list/search/get、packed-artifact install、静态 `plugin.yaml`、publisher-owned registry-only
+   SHA-512 `npm-shrinkwrap.json`、config/secret、direct tool/MCP 与
+   install→configure→enable→use→restart→disable→uninstall。Console/Agent 同时交付
    §2.3 的终态骨架和六个固定工具。该 slice 不替换 Core 生产默认路径；internal update/repair
    状态机不构成公共工具或本列车稳定 gate。具体关闭条件见 roadmap §5。
 3. **Train C 全量存量迁移**：按 roadmap §6 的冻结 inventory 迁移 GitHub、

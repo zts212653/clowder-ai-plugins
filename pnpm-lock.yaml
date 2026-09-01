@@ -167,9 +167,6 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
     devDependencies:
-      '@clowder-ai/plugin-contract':
-        specifier: workspace:*
-        version: link:../plugin-contract
       '@types/node':
         specifier: ^20.17.0
         version: 20.19.43

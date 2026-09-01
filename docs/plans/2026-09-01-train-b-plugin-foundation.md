@@ -62,7 +62,9 @@ implementations in one Core PR.
 3. `catalog/catalog.json` is deterministic and validation-tested. Query helpers have stable list/search/get
    ordering, search every localized description, and never merge catalog state with installed state.
 4. `@clowder-ai/video-analysis` owns its Gemini/Zhipu protocol definitions and MCP runtime, ships
-   `plugin.yaml` plus its declared SVG icon, imports no Core private path, and scrubs credentials from errors.
+   `plugin.yaml` plus its declared SVG icon and a publisher-owned `npm-shrinkwrap.json`, imports no Core
+   private path, and scrubs credentials from errors. Every locked package is registry-bounded with canonical
+   SHA-512 integrity so Host activation never resolves a new transitive closure from registry-time truth.
 
 ## Test-first sequence
 
@@ -71,18 +73,22 @@ implementations in one Core PR.
 3. Add RED SDK author-facade tests for feature ownership, duplicate contribution keys, disposer
    idempotence, stale/revoked context rejection, and sibling isolation.
 4. Implement the public facade without creating a Host authority substitute.
-5. Add RED `video-analysis` protocol, credential-scrubbing, MCP tool, manifest, and packed-artifact tests.
+5. Add RED `video-analysis` protocol, credential-scrubbing, MCP tool, manifest, publisher-lock, and
+   packed-artifact tests.
 6. Implement the package by moving the provider-neutral execution behavior out of Core truth into the
    plugin package; do not import Core source.
 7. Extend fresh-consumer and CI pack/publish coverage to exact contract/SDK/video artifacts and validate
-   the catalog entry against the produced tarball integrity, manifest metadata, and physical icon member.
+   the catalog entry against the produced tarball integrity, manifest metadata, physical icon member, and
+   registry-only shrinkwrap. Materialize the packed video runtime with script-free `npm ci --omit=dev`.
 
 ## Acceptance evidence
 
 - Focused RED→GREEN tests for every contract, SDK, catalog, and video package change.
 - `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm conformance`, and
   `pnpm test:fresh-consumer` from this worktree.
-- Pack evidence records filename, version, SHA-1, SHA-512 integrity, archive members, and fresh install.
+- Pack evidence records filename, version, SHA-1, SHA-512 integrity, archive members, publisher lock, and
+  fresh install. Reproducible pack evidence uses Node 24.18.0, npm 11.16.0, and zlib
+  1.3.1-e00f703; other tuples are not accepted as release coordinates.
 - A fresh consumer imports only public package exports and runs the video MCP against an isolated local
   HTTP fixture; no production credentials or Redis are used.
 - Exact branch HEAD and artifact coordinates are handed to an independent cross-family reviewer before PR.

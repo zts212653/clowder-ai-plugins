@@ -19,7 +19,8 @@
   "files": [
     "dist",
     "plugin.yaml",
-    "assets"
+    "assets",
+    "npm-shrinkwrap.json"
   ],
   "engines": {
     "node": ">=20.0.0"
@@ -27,7 +28,7 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "clean": "rm -rf dist",
     "prepack": "pnpm build"
@@ -37,7 +38,6 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@clowder-ai/plugin-contract": "workspace:*",
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
