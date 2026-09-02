@@ -29,6 +29,13 @@ const TRANSIENT_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const RETRY_BASE_MS = 1_000;
 const MAX_RETRIES = 2;
 
+class ResponseBodyLimitError extends Error {
+  constructor() {
+    super(`provider response exceeded ${RESPONSE_BYTE_LIMIT} bytes`);
+    this.name = 'ResponseBodyLimitError';
+  }
+}
+
 function scrub(text: string, secrets: readonly string[]): string {
   let result = text;
   for (const secret of [...secrets].filter((value) => value.length > 0).sort((a, b) => b.length - a.length)) {
@@ -38,8 +45,9 @@ function scrub(text: string, secrets: readonly string[]): string {
 }
 
 function credentialArtifacts(apiKey: string): readonly string[] {
-  const encoded = encodeURIComponent(apiKey);
-  return encoded === apiKey ? [apiKey, `Bearer ${apiKey}`] : [apiKey, encoded, `Bearer ${apiKey}`];
+  const percentEncoded = encodeURIComponent(apiKey);
+  const formEncoded = new URLSearchParams([['key', apiKey]]).toString().slice('key='.length);
+  return [...new Set([apiKey, percentEncoded, formEncoded, `Bearer ${apiKey}`])];
 }
 
 function isLoopback(hostname: string): boolean {
@@ -149,7 +157,7 @@ async function boundedResponseText(response: Response): Promise<string> {
       total += value.byteLength;
       if (total > RESPONSE_BYTE_LIMIT) {
         await reader.cancel().catch(() => undefined);
-        throw new Error(`provider response exceeded ${RESPONSE_BYTE_LIMIT} bytes`);
+        throw new ResponseBodyLimitError();
       }
       chunks.push(value);
     }
@@ -172,8 +180,10 @@ function isAbortError(error: unknown): boolean {
 
 function retryDelayMs(response: Response | undefined, attempt: number): number {
   const retryAfter = response?.headers.get('retry-after');
-  if (retryAfter !== null && retryAfter !== undefined && /^[0-9]+$/.test(retryAfter)) {
-    return Number(retryAfter) * 1_000;
+  if (retryAfter !== null && retryAfter !== undefined) {
+    if (/^[0-9]+$/.test(retryAfter)) return Number(retryAfter) * 1_000;
+    const retryAt = Date.parse(retryAfter);
+    if (!Number.isNaN(retryAt)) return Math.max(0, retryAt - Date.now());
   }
   return RETRY_BASE_MS * 2 ** attempt;
 }
@@ -214,7 +224,7 @@ export async function analyzeVideo(
     const requestSignal = signal === undefined
       ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
       : AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]);
-    let response: Response;
+    let response: Response | undefined;
     try {
       response = await fetch(request.url, {
         method: 'POST',
@@ -222,15 +232,20 @@ export async function analyzeVideo(
         body: JSON.stringify(request.body),
         signal: requestSignal,
       });
+      responseText = await boundedResponseText(response);
     } catch (error) {
       if (isAbortError(error)) throw error;
+      if (error instanceof ResponseBodyLimitError) throw error;
       const message = error instanceof Error ? error.message : String(error);
-      const failure = new Error(scrub(message, secrets), { cause: error });
-      if (attempt === MAX_RETRIES) throw failure;
-      await waitForRetry(undefined, attempt, signal);
+      const failure = new Error(scrub(message, secrets));
+      const responseCanRetry = response === undefined
+        || response.ok
+        || TRANSIENT_STATUS_CODES.has(response.status);
+      if (!responseCanRetry || attempt === MAX_RETRIES) throw failure;
+      await waitForRetry(response, attempt, signal);
       continue;
     }
-    responseText = await boundedResponseText(response);
+    if (response === undefined) throw new Error('video-analysis request completed without a response');
     if (response.ok) break;
     const failure = new Error(
       `provider HTTP ${response.status}: ${scrub(responseText.slice(0, 1000), secrets)}`,

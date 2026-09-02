@@ -101,6 +101,32 @@ test('scrubs credentials from provider errors', async () => {
   }
 });
 
+test('scrubs request credentials without retaining an unsafe cause chain', async () => {
+  const originalFetch = globalThis.fetch;
+  const secret = 'top secret!~';
+  globalThis.fetch = async (input) => {
+    throw new Error(`request failed for ${String(input)}`);
+  };
+
+  try {
+    await assert.rejects(
+      analyzeVideo(
+        { provider: 'gemini', apiKey: secret, baseUrl: 'http://127.0.0.1' },
+        { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.cause, undefined);
+        assert.doesNotMatch(error.message, /top\+secret%21%7E/);
+        assert.match(error.message, /\*\*\*/);
+        return true;
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('retries the migrated transient-status set and honors provider retry-after', async () => {
   let attempts = 0;
   const fixture = await fixtureServer(() => {
@@ -121,24 +147,88 @@ test('retries the migrated transient-status set and honors provider retry-after'
   }
 });
 
+test('retries a transient response when streaming its body fails', async () => {
+  const originalFetch = globalThis.fetch;
+  let attempts = 0;
+  globalThis.fetch = async () => {
+    attempts += 1;
+    if (attempts === 1) {
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.error(new Error('stream disconnected'));
+          },
+        }),
+        { status: 503, headers: { 'retry-after': '0' } },
+      );
+    }
+    return new Response(
+      JSON.stringify({ candidates: [{ content: { parts: [{ text: 'recovered' }] } }] }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  };
+
+  try {
+    assert.equal(
+      await analyzeVideo(
+        { provider: 'gemini', apiKey: 'test-secret', baseUrl: 'http://127.0.0.1' },
+        { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+      ),
+      'recovered',
+    );
+    assert.equal(attempts, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('honors the HTTP-date form of retry-after', async () => {
+  let attempts = 0;
+  const fixture = await fixtureServer(() => {
+    attempts += 1;
+    return attempts === 1
+      ? {
+          status: 503,
+          headers: { 'retry-after': new Date(0).toUTCString() },
+          body: { error: 'transient' },
+        }
+      : { body: { candidates: [{ content: { parts: [{ text: 'recovered' }] } }] } };
+  });
+  try {
+    const result = await analyzeVideo(
+      { provider: 'gemini', apiKey: 'test-secret', baseUrl: fixture.baseUrl },
+      { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+      AbortSignal.timeout(500),
+    );
+    assert.equal(result, 'recovered');
+    assert.equal(attempts, 2);
+  } finally {
+    await fixture.close();
+  }
+});
+
 test('cancels an oversized provider body before buffering the full stream', async () => {
   const originalFetch = globalThis.fetch;
   const chunk = new Uint8Array(1024 * 1024);
+  let attempts = 0;
   let pulls = 0;
   let cancelled = false;
-  globalThis.fetch = async () => new Response(
-    new ReadableStream<Uint8Array>({
-      pull(controller) {
-        pulls += 1;
-        controller.enqueue(chunk);
-        if (pulls === 9) controller.close();
-      },
-      cancel() {
-        cancelled = true;
-      },
-    }),
-    { status: 200, headers: { 'content-type': 'application/json' } },
-  );
+  globalThis.fetch = async () => {
+    attempts += 1;
+    return new Response(
+      new ReadableStream<Uint8Array>({
+        pull(controller) {
+          pulls += 1;
+          controller.enqueue(chunk);
+          if (pulls === 9) controller.close();
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  };
 
   try {
     await assert.rejects(
@@ -148,8 +238,9 @@ test('cancels an oversized provider body before buffering the full stream', asyn
       ),
       /provider response exceeded 4194304 bytes/,
     );
+    assert.equal(attempts, 1);
     assert.equal(cancelled, true);
-    assert.ok(pulls < 9, `expected early cancellation, received ${pulls} chunks`);
+    assert.ok(pulls <= 6, `expected cancellation at the first over-limit read, received ${pulls} pulls`);
   } finally {
     globalThis.fetch = originalFetch;
   }
