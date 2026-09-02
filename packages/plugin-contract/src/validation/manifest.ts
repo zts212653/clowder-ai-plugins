@@ -200,31 +200,6 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       }
     }
 
-    for (const [index, contribution] of contributions.entries()) {
-      if (
-        contribution.type === 'connector' &&
-        !contributionByKey.has(`identity\0${contribution.identityRef}`)
-      ) {
-        return semanticError(
-          `/contributions/${index}/identityRef`,
-          '#/$defs/ConnectorContribution/declaredIdentityReference',
-          'declaredIdentityReference',
-          'connector identityRef must reference a declared identity contribution',
-        );
-      }
-      if (contribution.type === 'ui' && contribution.kind === 'slot-item') {
-        const command = contributionByKey.get(`ui\0${contribution.command}`);
-        if (command?.type !== 'ui' || command.kind !== 'command') {
-          return semanticError(
-            `/contributions/${index}/command`,
-            '#/$defs/UiSlotItemContribution/declaredCommandReference',
-            'declaredCommandReference',
-            'UI slot command must reference a declared UI command contribution',
-          );
-        }
-      }
-    }
-
     const referenceOwners = new Map<string, string>();
     for (const [featureIndex, feature] of manifest.features.entries()) {
       for (const [contributionIndex, reference] of (feature.contributions ?? []).entries()) {
@@ -259,6 +234,49 @@ export function validateManifest(value: unknown): ManifestValidationResult {
           'featureOwnerRequired',
           'every static contribution must be owned by one feature resource reference',
         );
+      }
+    }
+
+    for (const [index, contribution] of contributions.entries()) {
+      const owner = referenceOwners.get(`${contribution.type}\0${contribution.id}`);
+      if (contribution.type === 'connector') {
+        const identityKey = `identity\0${contribution.identityRef}`;
+        if (!contributionByKey.has(identityKey)) {
+          return semanticError(
+            `/contributions/${index}/identityRef`,
+            '#/$defs/ConnectorContribution/declaredIdentityReference',
+            'declaredIdentityReference',
+            'connector identityRef must reference a declared identity contribution',
+          );
+        }
+        if (referenceOwners.get(identityKey) !== owner) {
+          return semanticError(
+            `/contributions/${index}/identityRef`,
+            '#/$defs/ConnectorContribution/sameFeatureOwner',
+            'sameFeatureOwner',
+            'connector identityRef must reference an identity owned by the same feature',
+          );
+        }
+      }
+      if (contribution.type === 'ui' && contribution.kind === 'slot-item') {
+        const commandKey = `ui\0${contribution.command}`;
+        const command = contributionByKey.get(commandKey);
+        if (command?.type !== 'ui' || command.kind !== 'command') {
+          return semanticError(
+            `/contributions/${index}/command`,
+            '#/$defs/UiSlotItemContribution/declaredCommandReference',
+            'declaredCommandReference',
+            'UI slot command must reference a declared UI command contribution',
+          );
+        }
+        if (referenceOwners.get(commandKey) !== owner) {
+          return semanticError(
+            `/contributions/${index}/command`,
+            '#/$defs/UiSlotItemContribution/sameFeatureOwner',
+            'sameFeatureOwner',
+            'UI slot command must reference a command owned by the same feature',
+          );
+        }
       }
     }
     return {

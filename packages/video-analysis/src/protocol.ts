@@ -180,6 +180,31 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && (error.name === 'AbortError' || error.name === 'TimeoutError');
 }
 
+function requestAbortScope(signal: AbortSignal | undefined): {
+  readonly signal: AbortSignal;
+  dispose(): void;
+} {
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  if (signal === undefined) return { signal: timeoutSignal, dispose() {} };
+
+  const controller = new AbortController();
+  const abortFromCaller = (): void => controller.abort(signal.reason);
+  const abortFromTimeout = (): void => controller.abort(timeoutSignal.reason);
+  if (signal.aborted) abortFromCaller();
+  else if (timeoutSignal.aborted) abortFromTimeout();
+  else {
+    signal.addEventListener('abort', abortFromCaller, { once: true });
+    timeoutSignal.addEventListener('abort', abortFromTimeout, { once: true });
+  }
+  return {
+    signal: controller.signal,
+    dispose() {
+      signal.removeEventListener('abort', abortFromCaller);
+      timeoutSignal.removeEventListener('abort', abortFromTimeout);
+    },
+  };
+}
+
 function retryDelayMs(response: Response | undefined, attempt: number): number {
   const retryAfter = response?.headers.get('retry-after');
   if (retryAfter !== null && retryAfter !== undefined) {
@@ -227,16 +252,14 @@ export async function analyzeVideo(
   let responseText = '';
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     signal?.throwIfAborted();
-    const requestSignal = signal === undefined
-      ? AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-      : AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]);
+    const requestAbort = requestAbortScope(signal);
     let response: Response | undefined;
     try {
       response = await fetch(request.url, {
         method: 'POST',
         headers: request.headers,
         body: JSON.stringify(request.body),
-        signal: requestSignal,
+        signal: requestAbort.signal,
       });
       responseText = await boundedResponseText(response);
     } catch (error) {
@@ -250,6 +273,8 @@ export async function analyzeVideo(
       if (!responseCanRetry || attempt === MAX_RETRIES) throw failure;
       await waitForRetry(response, attempt, signal);
       continue;
+    } finally {
+      requestAbort.dispose();
     }
     if (response === undefined) throw new Error('video-analysis request completed without a response');
     if (response.ok) break;

@@ -206,6 +206,37 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
   );
   assert.equal(validateManifest(value).valid, true);
 
+  for (const dependency of [
+    { referringType: 'connector', referringId: 'video-connector', targetType: 'identity', targetId: 'video-bot' },
+    { referringType: 'ui', referringId: 'video.open.menu', targetType: 'ui', targetId: 'video.open' },
+  ] as const) {
+    const crossFeature = structuredClone(value);
+    const features = crossFeature.features as unknown as Array<{
+      id: string;
+      name: string;
+      resources: unknown[];
+      contributions: Array<{ type: string; id: string }>;
+      capabilities: string[];
+    }>;
+    const targetIndex = features[0]!.contributions.findIndex(
+      (reference) => reference.type === dependency.targetType && reference.id === dependency.targetId,
+    );
+    assert.notEqual(targetIndex, -1);
+    const [target] = features[0]!.contributions.splice(targetIndex, 1);
+    assert.ok(target);
+    features.push({
+      id: `${dependency.referringId}-dependency-owner`,
+      name: 'Foreign dependency owner',
+      resources: [],
+      contributions: [target],
+      capabilities: [],
+    });
+
+    const result = validateManifest(crossFeature);
+    assert.equal(result.valid, false, `${dependency.referringType} dependency must stay feature-local`);
+    if (!result.valid) assert.equal(result.errors[0]?.keyword, 'sameFeatureOwner');
+  }
+
   const forgedSecret = structuredClone(value);
   const webhook = (forgedSecret.contributions as unknown as typeof contributions).find(
     (entry) => entry.id === 'video-webhook',

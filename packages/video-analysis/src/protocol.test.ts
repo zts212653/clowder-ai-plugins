@@ -82,6 +82,33 @@ test('executes Gemini and Zhipu request shapes through the migrated package', as
   }
 });
 
+test('composes caller cancellation without requiring AbortSignal.any', async () => {
+  const originalAny = AbortSignal.any;
+  const originalFetch = globalThis.fetch;
+  Object.defineProperty(AbortSignal, 'any', { configurable: true, value: undefined });
+  globalThis.fetch = async (_input, init) => {
+    assert.ok(init?.signal instanceof AbortSignal);
+    return new Response(
+      JSON.stringify({ candidates: [{ content: { parts: [{ text: 'compatible' }] } }] }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  };
+
+  try {
+    assert.equal(
+      await analyzeVideo(
+        { provider: 'gemini', apiKey: 'test-secret', baseUrl: 'http://127.0.0.1' },
+        { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+        new AbortController().signal,
+      ),
+      'compatible',
+    );
+  } finally {
+    Object.defineProperty(AbortSignal, 'any', { configurable: true, value: originalAny });
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('scrubs credentials from provider errors', async () => {
   const secret = 'top-secret-api-key';
   const fixture = await fixtureServer(() => ({ body: { error: `rejected ${secret}` } }));
