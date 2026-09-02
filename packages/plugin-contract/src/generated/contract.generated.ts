@@ -10,8 +10,11 @@ export type LocalizedDescriptionObject = {
 export type LocalizedDescription = string | LocalizedDescriptionObject;
 export type PackageAssetPath = string;
 export type PackageIcon = {
-  readonly type: 'svg' | 'png';
-  readonly src: PackageAssetPath;
+  readonly type: 'svg';
+  readonly src: PackageAssetPath & `${string}.svg`;
+} | {
+  readonly type: 'png';
+  readonly src: PackageAssetPath & `${string}.png`;
 };
 export type PluginIcon = 'github' | PackageIcon;
 
@@ -69,10 +72,50 @@ export type ConfigurationField = {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
-  readonly kind: 'string' | 'secret' | 'select' | 'boolean' | 'number' | 'url';
+  readonly kind: 'string';
   readonly required: boolean;
-  readonly default?: string | number | boolean;
-  readonly options?: readonly ConfigurationOption[];
+  readonly default?: string;
+  readonly options?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'secret';
+  readonly required: boolean;
+  readonly default?: never;
+  readonly options?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'select';
+  readonly required: boolean;
+  readonly default?: string;
+  readonly options: readonly ConfigurationOption[];
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'boolean';
+  readonly required: boolean;
+  readonly default?: boolean;
+  readonly options?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'number';
+  readonly required: boolean;
+  readonly default?: number;
+  readonly options?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'url';
+  readonly required: boolean;
+  readonly default?: string;
+  readonly options?: never;
 };
 export type EnvironmentBinding = {
   readonly source: 'config';
@@ -820,20 +863,89 @@ export type DeleteReplayEventsInput = {
 };
 export type SideEffectAssertion = {
   readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
-  readonly assertion: 'unchanged' | 'none' | 'state_equals' | 'round_trip' | 'matches';
-  readonly value?: unknown;
+  readonly assertion: 'unchanged';
+  readonly value?: never;
+} | {
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly assertion: 'none';
+  readonly value?: never;
+} | {
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly assertion: 'state_equals';
+  readonly value: unknown;
+} | {
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly assertion: 'round_trip';
+  readonly value: unknown;
+} | {
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly assertion: 'matches';
+  readonly value: unknown;
 };
 export type ExpectedVerdict = {
-  readonly status: 'success' | 'error';
-  readonly errorCode?: MessagingErrorCode;
+  readonly status: 'success';
+  readonly errorCode?: never;
+  readonly sideEffects: readonly SideEffectAssertion[];
+} | {
+  readonly status: 'error';
+  readonly errorCode: MessagingErrorCode;
   readonly sideEffects: readonly SideEffectAssertion[];
 };
 export type BehaviorCase = {
   readonly id: string;
   readonly invariant: string;
-  readonly execution: BehaviorExecution;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'plugin-to-host-wire' }> & { readonly method: 'messaging.send' } | Extract<BehaviorExecution, { readonly plane: 'wire-admission' }> & { readonly method: 'messaging.send' };
   readonly given: FixtureSetup;
-  readonly when: FixtureOperation;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'send' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'plugin-to-host-wire' }> & { readonly method: 'messaging.appendElements' } | Extract<BehaviorExecution, { readonly plane: 'wire-admission' }> & { readonly method: 'messaging.appendElements' };
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'appendElements' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'plugin-to-host-wire' }> & { readonly method: 'messaging.subscribe' } | Extract<BehaviorExecution, { readonly plane: 'wire-admission' }> & { readonly method: 'messaging.subscribe' };
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'subscribe' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'plugin-to-host-wire' }> & { readonly method: 'messaging.read' } | Extract<BehaviorExecution, { readonly plane: 'wire-admission' }> & { readonly method: 'messaging.read' };
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'read' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'plugin-to-host-wire' }> & { readonly method: 'messaging.ack' } | Extract<BehaviorExecution, { readonly plane: 'wire-admission' }> & { readonly method: 'messaging.ack' };
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'ack' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'plugin-to-host-wire' }> & { readonly method: 'messaging.snapshot' } | Extract<BehaviorExecution, { readonly plane: 'wire-admission' }> & { readonly method: 'messaging.snapshot' };
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'snapshot' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'host-to-plugin-delivery' }> & { readonly method: 'host.messaging.deliver' };
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'deliverOnMessage' }>;
+  readonly expect: ExpectedVerdict;
+} | {
+  readonly id: string;
+  readonly invariant: string;
+  readonly execution: Extract<BehaviorExecution, { readonly plane: 'host-control' }>;
+  readonly given: FixtureSetup;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'applyGrantPreset' | 'revokeGrant' | 'checkPermissionMatrix' | 'deleteReplayEvents' }>;
   readonly expect: ExpectedVerdict;
 };
 

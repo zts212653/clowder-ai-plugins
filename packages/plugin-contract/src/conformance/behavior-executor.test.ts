@@ -41,7 +41,12 @@ class ScriptedAdapter implements BehaviorAdapter {
 
 function makeCase(
   sideEffects: readonly SideEffectAssertion[],
-  expected: { readonly status: 'success' | 'error'; readonly errorCode?: 'PERMISSION' | 'CONFLICT' },
+  expected:
+    | { readonly status: 'success' }
+    | {
+        readonly status: 'error';
+        readonly errorCode: 'PERMISSION' | 'CONFLICT';
+      },
 ): BehaviorCase {
   return {
     id: 'executor-case',
