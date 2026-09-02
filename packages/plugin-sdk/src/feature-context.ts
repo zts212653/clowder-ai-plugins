@@ -65,7 +65,7 @@ export interface ContributionRegistration {
   dispose(): Promise<void>;
 }
 
-type RegistrationInput<T extends StaticContribution> = Omit<T, 'type'>;
+type RegistrationInput<T extends StaticContribution> = T extends unknown ? Omit<T, 'type'> : never;
 
 export interface ContributionRegistrar<T extends StaticContribution> {
   register(input: RegistrationInput<T>): Promise<ContributionRegistration>;
@@ -102,6 +102,7 @@ export interface FeatureContextSession {
 interface ActiveRegistration {
   readonly digest: string;
   readonly promise: Promise<ContributionRegistration>;
+  disposePromise?: Promise<void>;
 }
 
 function canonicalJson(value: unknown): string {
@@ -149,41 +150,47 @@ export function createFeatureContextSession(
     input: RegistrationInput<T>,
   ): Promise<ContributionRegistration> => {
     assertActive();
-    const contribution = deepFreeze(structuredClone({ type, ...input })) as T;
+    const contribution = deepFreeze(structuredClone({ type, ...input })) as unknown as T;
     const key = `${type}:${contribution.id}`;
     const digest = canonicalJson(contribution);
     const existing = active.get(key);
     if (existing !== undefined) {
+      if (existing.disposePromise !== undefined) {
+        await existing.disposePromise.catch(() => undefined);
+        assertActive();
+        return register<T>(type, input);
+      }
       if (existing.digest !== digest) throw new ContributionConflictError(key);
       return existing.promise;
     }
 
+    let entry: ActiveRegistration;
     const promise = adapter.registerContribution(binding, contribution).then((receipt) => {
-      let disposePromise: Promise<void> | undefined;
       const registration: ContributionRegistration = {
         key,
         receipt,
         dispose: () => {
-          if (disposePromise !== undefined) return disposePromise;
-          disposePromise = adapter.disposeContribution(binding, receipt).then(
+          if (entry.disposePromise !== undefined) return entry.disposePromise;
+          entry.disposePromise = adapter.disposeContribution(binding, receipt).then(
             () => {
-              active.delete(key);
+              if (active.get(key) === entry) active.delete(key);
             },
             (error: unknown) => {
-              disposePromise = undefined;
+              entry.disposePromise = undefined;
               throw error;
             },
           );
-          return disposePromise;
+          return entry.disposePromise;
         },
       };
       return registration;
     });
-    active.set(key, { digest, promise });
+    entry = { digest, promise };
+    active.set(key, entry);
     try {
       return await promise;
     } catch (error) {
-      active.delete(key);
+      if (active.get(key) === entry) active.delete(key);
       throw error;
     }
   };

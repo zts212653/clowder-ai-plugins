@@ -121,6 +121,40 @@ test('retries the migrated transient-status set and honors provider retry-after'
   }
 });
 
+test('cancels an oversized provider body before buffering the full stream', async () => {
+  const originalFetch = globalThis.fetch;
+  const chunk = new Uint8Array(1024 * 1024);
+  let pulls = 0;
+  let cancelled = false;
+  globalThis.fetch = async () => new Response(
+    new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        controller.enqueue(chunk);
+        if (pulls === 9) controller.close();
+      },
+      cancel() {
+        cancelled = true;
+      },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+
+  try {
+    await assert.rejects(
+      analyzeVideo(
+        { provider: 'gemini', apiKey: 'test-secret', baseUrl: 'http://127.0.0.1' },
+        { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+      ),
+      /provider response exceeded 4194304 bytes/,
+    );
+    assert.equal(cancelled, true);
+    assert.ok(pulls < 9, `expected early cancellation, received ${pulls} chunks`);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('exposes one deterministic MCP tool over the public MCP transport', async () => {
   const fixture = await fixtureServer(() => ({
     body: { candidates: [{ content: { parts: [{ text: 'done' }] } }] },

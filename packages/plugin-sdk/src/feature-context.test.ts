@@ -89,6 +89,36 @@ class RecordingAdapter implements FeatureHostAdapter {
   }
 }
 
+class PausingDisposeAdapter extends RecordingAdapter {
+  readonly disposeStarted: Promise<void>;
+  readonly #releaseDispose: Promise<void>;
+  #markDisposeStarted!: () => void;
+  #finishDispose!: () => void;
+
+  constructor() {
+    super();
+    this.disposeStarted = new Promise((resolve) => {
+      this.#markDisposeStarted = resolve;
+    });
+    this.#releaseDispose = new Promise((resolve) => {
+      this.#finishDispose = resolve;
+    });
+  }
+
+  releaseDispose(): void {
+    this.#finishDispose();
+  }
+
+  override async disposeContribution(
+    binding: FeatureBinding,
+    receipt: HostContributionReceipt,
+  ): Promise<void> {
+    this.calls.push({ operation: 'dispose', binding, value: receipt });
+    this.#markDisposeStarted();
+    await this.#releaseDispose;
+  }
+}
+
 test('definePlugin validates the manifest and rejects undeclared activators', () => {
   const source = manifest();
   const defined = definePlugin({
@@ -158,6 +188,63 @@ test('registration snapshots nested payloads before crossing the Host boundary',
   assert.equal(Object.isFrozen(contribution.inputSchema.properties), true);
 });
 
+test('UI registrar preserves every variant-specific typed input', async () => {
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+
+  await context.ui.register({
+    id: 'open-settings',
+    kind: 'command',
+    label: 'Open settings',
+    action: { method: 'settings.open' },
+  });
+  await context.ui.register({
+    id: 'settings-menu',
+    kind: 'slot-item',
+    label: 'Settings',
+    command: 'open-settings',
+    group: 'navigation',
+  });
+  await context.ui.register({
+    id: 'analysis-card',
+    kind: 'message-element',
+    label: 'Analysis card',
+    elementKind: 'video-analysis',
+    renderer: 'video-analysis-card',
+  });
+
+  assert.deepEqual(
+    adapter.calls
+      .filter((entry) => entry.operation === 'register')
+      .map((entry) => entry.value),
+    [
+      {
+        type: 'ui',
+        id: 'open-settings',
+        kind: 'command',
+        label: 'Open settings',
+        action: { method: 'settings.open' },
+      },
+      {
+        type: 'ui',
+        id: 'settings-menu',
+        kind: 'slot-item',
+        label: 'Settings',
+        command: 'open-settings',
+        group: 'navigation',
+      },
+      {
+        type: 'ui',
+        id: 'analysis-card',
+        kind: 'message-element',
+        label: 'Analysis card',
+        elementKind: 'video-analysis',
+        renderer: 'video-analysis-card',
+      },
+    ],
+  );
+});
+
 test('same-key retries are idempotent, conflicts fail closed, and disposal runs once', async () => {
   const adapter = new RecordingAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);
@@ -174,6 +261,31 @@ test('same-key retries are idempotent, conflicts fail closed, and disposal runs 
   );
   await first.dispose();
   await first.dispose();
+  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
+});
+
+test('same-payload registration waits for overlapping disposal and creates a fresh receipt', async () => {
+  const adapter = new PausingDisposeAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+  const input = { id: 'cat', displayName: 'Fixture cat' };
+  const first = await context.identity.register(input);
+
+  const disposal = first.dispose();
+  await adapter.disposeStarted;
+  let replacementResolved = false;
+  const replacementPromise = context.identity.register(input).then((registration) => {
+    replacementResolved = true;
+    return registration;
+  });
+  await Promise.resolve();
+  assert.equal(replacementResolved, false);
+
+  adapter.releaseDispose();
+  await disposal;
+  const replacement = await replacementPromise;
+  assert.notEqual(replacement, first);
+  assert.notEqual(replacement.receipt.registrationId, first.receipt.registrationId);
+  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 2);
   assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
 });
 
