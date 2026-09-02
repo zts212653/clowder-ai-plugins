@@ -256,11 +256,8 @@ export async function analyzeVideo(
   let json: unknown;
   try {
     json = JSON.parse(responseText) as unknown;
-  } catch (error) {
-    throw new Error(
-      `provider returned invalid JSON: ${scrub(responseText.slice(0, 1000), secrets)}`,
-      { cause: error },
-    );
+  } catch {
+    throw new Error(`provider returned invalid JSON: ${scrub(responseText.slice(0, 1000), secrets)}`);
   }
   const rawResult = config.provider === 'gemini'
     ? readPath(json, ['candidates', 0, 'content', 'parts', 0, 'text'])

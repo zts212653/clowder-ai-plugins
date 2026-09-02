@@ -127,6 +127,33 @@ test('scrubs request credentials without retaining an unsafe cause chain', async
   }
 });
 
+test('scrubs invalid JSON without retaining the raw parser cause', async () => {
+  const originalFetch = globalThis.fetch;
+  const secret = 'top-secret-parser-key';
+  globalThis.fetch = async () => new Response(
+    `{"leaked":"${secret}"`,
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+
+  try {
+    await assert.rejects(
+      analyzeVideo(
+        { provider: 'gemini', apiKey: secret, baseUrl: 'http://127.0.0.1' },
+        { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.equal(error.cause, undefined);
+        assert.doesNotMatch(error.message, new RegExp(secret));
+        assert.match(error.message, /\*\*\*/);
+        return true;
+      },
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('retries the migrated transient-status set and honors provider retry-after', async () => {
   let attempts = 0;
   const fixture = await fixtureServer(() => {
@@ -173,6 +200,7 @@ test('retries a transient response when streaming its body fails', async () => {
       await analyzeVideo(
         { provider: 'gemini', apiKey: 'test-secret', baseUrl: 'http://127.0.0.1' },
         { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+        AbortSignal.timeout(500),
       ),
       'recovered',
     );

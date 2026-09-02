@@ -161,7 +161,12 @@ export function createFeatureContextSession(
         return register<T>(type, input);
       }
       if (existing.digest !== digest) throw new ContributionConflictError(key);
-      return existing.promise;
+      const registration = await existing.promise;
+      if (revoked) {
+        await registration.dispose().catch(() => undefined);
+        throw new FeatureContextRevokedError();
+      }
+      return registration;
     }
 
     let entry: ActiveRegistration;
@@ -187,10 +192,17 @@ export function createFeatureContextSession(
     });
     entry = { digest, promise };
     active.set(key, entry);
+    let registered = false;
     try {
-      return await promise;
+      const registration = await promise;
+      registered = true;
+      if (revoked) {
+        await registration.dispose().catch(() => undefined);
+        throw new FeatureContextRevokedError();
+      }
+      return registration;
     } catch (error) {
-      if (active.get(key) === entry) active.delete(key);
+      if (!registered && active.get(key) === entry) active.delete(key);
       throw error;
     }
   };
@@ -199,21 +211,24 @@ export function createFeatureContextSession(
     register: (input) => register<T>(type, input),
   });
 
-  const readConfig = async (key: string): Promise<unknown> => {
+  const runWhileActive = async <T>(operation: () => Promise<T>): Promise<T> => {
     assertActive();
-    return adapter.readConfig(binding, key);
+    const result = await operation();
+    assertActive();
+    return result;
+  };
+
+  const readConfig = async (key: string): Promise<unknown> => {
+    return runWhileActive(() => adapter.readConfig(binding, key));
   };
   const readSecret = async (key: string): Promise<string> => {
-    assertActive();
-    return adapter.readSecret(binding, key);
+    return runWhileActive(() => adapter.readSecret(binding, key));
   };
   const readState = async (key: string): Promise<unknown> => {
-    assertActive();
-    return adapter.readState(binding, key);
+    return runWhileActive(() => adapter.readState(binding, key));
   };
   const writeState = async (key: string, value: unknown): Promise<void> => {
-    assertActive();
-    return adapter.writeState(binding, key, value);
+    return runWhileActive(() => adapter.writeState(binding, key, value));
   };
 
   const subscriptions = registrar<MessageSubscriptionContribution>('message-subscription');

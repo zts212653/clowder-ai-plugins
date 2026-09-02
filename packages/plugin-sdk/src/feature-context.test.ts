@@ -9,6 +9,7 @@ import {
   createFeatureContextSession,
   definePlugin,
   type FeatureBinding,
+  type FeatureContext,
   type FeatureHostAdapter,
   type HostContributionReceipt,
 } from './feature-context.js';
@@ -116,6 +117,88 @@ class PausingDisposeAdapter extends RecordingAdapter {
     this.calls.push({ operation: 'dispose', binding, value: receipt });
     this.#markDisposeStarted();
     await this.#releaseDispose;
+  }
+}
+
+class PausingRegisterAdapter extends RecordingAdapter {
+  readonly registerStarted: Promise<void>;
+  readonly #releaseRegister: Promise<void>;
+  #markRegisterStarted!: () => void;
+  #finishRegister!: () => void;
+
+  constructor() {
+    super();
+    this.registerStarted = new Promise((resolve) => {
+      this.#markRegisterStarted = resolve;
+    });
+    this.#releaseRegister = new Promise((resolve) => {
+      this.#finishRegister = resolve;
+    });
+  }
+
+  releaseRegister(): void {
+    this.#finishRegister();
+  }
+
+  override async registerContribution(
+    binding: FeatureBinding,
+    contribution: StaticContribution,
+  ): Promise<HostContributionReceipt> {
+    this.calls.push({ operation: 'register', binding, value: contribution });
+    this.#markRegisterStarted();
+    await this.#releaseRegister;
+    return { registrationId: 'registration-paused', registryRevision: 1 };
+  }
+}
+
+type PausedHostOperation = 'config.get' | 'secrets.get' | 'state.get' | 'state.set';
+
+class PausingHostOperationAdapter extends RecordingAdapter {
+  readonly operationStarted: Promise<void>;
+  readonly #operation: PausedHostOperation;
+  readonly #releaseOperation: Promise<void>;
+  #markOperationStarted!: () => void;
+  #finishOperation!: () => void;
+
+  constructor(operation: PausedHostOperation) {
+    super();
+    this.#operation = operation;
+    this.operationStarted = new Promise((resolve) => {
+      this.#markOperationStarted = resolve;
+    });
+    this.#releaseOperation = new Promise((resolve) => {
+      this.#finishOperation = resolve;
+    });
+  }
+
+  releaseOperation(): void {
+    this.#finishOperation();
+  }
+
+  async #pause(operation: PausedHostOperation): Promise<void> {
+    if (operation !== this.#operation) return;
+    this.#markOperationStarted();
+    await this.#releaseOperation;
+  }
+
+  override async readConfig(binding: FeatureBinding, key: string): Promise<unknown> {
+    await this.#pause('config.get');
+    return super.readConfig(binding, key);
+  }
+
+  override async readSecret(binding: FeatureBinding, key: string): Promise<string> {
+    await this.#pause('secrets.get');
+    return super.readSecret(binding, key);
+  }
+
+  override async readState(binding: FeatureBinding, key: string): Promise<unknown> {
+    await this.#pause('state.get');
+    return super.readState(binding, key);
+  }
+
+  override async writeState(binding: FeatureBinding, key: string, value: unknown): Promise<void> {
+    await this.#pause('state.set');
+    return super.writeState(binding, key, value);
   }
 }
 
@@ -287,6 +370,66 @@ test('same-payload registration waits for overlapping disposal and creates a fre
   assert.notEqual(replacement.receipt.registrationId, first.receipt.registrationId);
   assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 2);
   assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
+});
+
+test('pending registrations reject after revocation and dispose the late Host receipt once', async () => {
+  const adapter = new PausingRegisterAdapter();
+  const session = createFeatureContextSession(BINDING, adapter);
+  const input = { id: 'cat', displayName: 'Fixture cat' };
+  const first = session.context.identity.register(input);
+  await adapter.registerStarted;
+  const retry = session.context.identity.register({ ...input });
+  const revocation = session.revoke();
+  const firstRejection = assert.rejects(first, FeatureContextRevokedError);
+  const retryRejection = assert.rejects(retry, FeatureContextRevokedError);
+
+  adapter.releaseRegister();
+  await Promise.all([firstRejection, retryRejection, revocation]);
+
+  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 1);
+  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
+});
+
+test('failed late-receipt disposal stays owned by the revoked session for retry', async () => {
+  const adapter = new PausingRegisterAdapter();
+  const session = createFeatureContextSession(BINDING, adapter);
+  const registration = session.context.identity.register({ id: 'cat', displayName: 'Fixture cat' });
+  await adapter.registerStarted;
+  adapter.failNextDispose = true;
+  const revocation = session.revoke();
+  const registrationRejection = assert.rejects(registration, FeatureContextRevokedError);
+  const revocationRejection = assert.rejects(revocation, /transient disposal failure/);
+
+  adapter.releaseRegister();
+  await Promise.all([registrationRejection, revocationRejection]);
+  await session.revoke();
+
+  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 2);
+});
+
+test('Host operation results never cross a revoked context boundary', async (t) => {
+  const cases: readonly {
+    readonly operation: PausedHostOperation;
+    readonly invoke: (context: FeatureContext) => Promise<unknown>;
+  }[] = [
+    { operation: 'config.get', invoke: (context) => context.config.get('mode') },
+    { operation: 'secrets.get', invoke: (context) => context.secrets.get('apiKey') },
+    { operation: 'state.get', invoke: (context) => context.state.get('cursor') },
+    { operation: 'state.set', invoke: (context) => context.state.set('cursor', { value: 1 }) },
+  ];
+
+  for (const scenario of cases) {
+    await t.test(scenario.operation, async () => {
+      const adapter = new PausingHostOperationAdapter(scenario.operation);
+      const session = createFeatureContextSession(BINDING, adapter);
+      const operation = scenario.invoke(session.context);
+      await adapter.operationStarted;
+      await session.revoke();
+      const rejection = assert.rejects(operation, FeatureContextRevokedError);
+      adapter.releaseOperation();
+      await rejection;
+    });
+  }
 });
 
 test('revocation disposes owned registrations and rejects stale context while leaving siblings live', async () => {
