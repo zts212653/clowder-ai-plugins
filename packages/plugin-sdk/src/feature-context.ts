@@ -111,6 +111,10 @@ function canonicalJson(value: unknown): string {
     return encoded === undefined ? 'null' : encoded;
   }
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  const prototype = Object.getPrototypeOf(value) as object | null;
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError('contribution payload must contain only plain JSON objects or arrays');
+  }
   const object = value as Record<string, unknown>;
   return `{${Object.keys(object)
     .sort()

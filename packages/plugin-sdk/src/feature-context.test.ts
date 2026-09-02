@@ -367,6 +367,25 @@ test('same-key retries are idempotent, conflicts fail closed, and disposal runs 
   assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
 });
 
+test('registration rejects non-plain values instead of collapsing distinct payloads', async () => {
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+
+  for (const at of [new Date('2020-01-01T00:00:00.000Z'), new Date('2030-01-01T00:00:00.000Z')]) {
+    await assert.rejects(
+      context.scheduler.register({
+        id: 'dated-schedule',
+        schedule: { kind: 'interval', everyMs: 60_000 },
+        action: { method: 'dated-schedule.run', params: { at } },
+        policy: { overlap: 'skip', timeoutMs: 30_000 },
+      }),
+      /plain JSON objects or arrays/,
+    );
+  }
+
+  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 0);
+});
+
 test('same-payload registration waits for overlapping disposal and creates a fresh receipt', async () => {
   const adapter = new PausingDisposeAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);
