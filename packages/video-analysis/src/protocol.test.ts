@@ -54,7 +54,7 @@ test('executes Gemini and Zhipu request shapes through the migrated package', as
     };
   });
   try {
-    const base = { apiKey: 'test-secret', baseUrl: fixture.baseUrl };
+    const base = { apiKey: 'test-secret', baseUrl: `${fixture.baseUrl}/provider-proxy` };
     assert.equal(
       await analyzeVideo(
         { ...base, provider: 'gemini' },
@@ -71,8 +71,10 @@ test('executes Gemini and Zhipu request shapes through the migrated package', as
     );
 
     assert.equal(observed[0]?.url.searchParams.get('key'), 'test-secret');
+    assert.match(observed[0]?.url.pathname ?? '', /^\/provider-proxy\/v1beta\/models\//);
     assert.equal(observed[0]?.authorization, undefined);
     assert.equal(observed[1]?.authorization, 'Bearer test-secret');
+    assert.equal(observed[1]?.url.pathname, '/provider-proxy/api/paas/v4/chat/completions');
     assert.match(JSON.stringify(observed[0]?.body), /fileUri/);
     assert.match(JSON.stringify(observed[1]?.body), /video_url/);
   } finally {
@@ -232,6 +234,45 @@ test('honors the HTTP-date form of retry-after', async () => {
     assert.equal(attempts, 2);
   } finally {
     await fixture.close();
+  }
+});
+
+test('caps provider-controlled retry-after delays at the request timeout', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalSetTimeout = globalThis.setTimeout;
+  const delays: number[] = [];
+  let attempts = 0;
+  globalThis.fetch = async () => {
+    attempts += 1;
+    return attempts === 1
+      ? new Response('{"error":"transient"}', {
+          status: 503,
+          headers: { 'content-type': 'application/json', 'retry-after': '86400' },
+        })
+      : new Response(
+          JSON.stringify({ candidates: [{ content: { parts: [{ text: 'recovered' }] } }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+  };
+  globalThis.setTimeout = ((callback: (...args: never[]) => void, delay?: number) => {
+    delays.push(delay ?? 0);
+    queueMicrotask(callback);
+    return 0 as unknown as ReturnType<typeof setTimeout>;
+  }) as unknown as typeof globalThis.setTimeout;
+
+  try {
+    assert.equal(
+      await analyzeVideo(
+        { provider: 'gemini', apiKey: 'test-secret', baseUrl: 'http://127.0.0.1' },
+        { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
+      ),
+      'recovered',
+    );
+    assert.equal(attempts, 2);
+    assert.deepEqual(delays, [30_000]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.setTimeout = originalSetTimeout;
   }
 });
 

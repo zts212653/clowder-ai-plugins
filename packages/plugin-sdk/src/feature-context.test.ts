@@ -244,6 +244,26 @@ test('feature context keeps authority in the Host binding and namespaces typed r
   assert.equal('featureId' in (call?.value as object), false);
 });
 
+test('registrar authority cannot be overridden by an untyped contribution input', async () => {
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+  const untypedInput = {
+    type: 'webhook',
+    id: 'cat',
+    displayName: 'Fixture cat',
+  } as unknown as Parameters<typeof context.identity.register>[0];
+
+  const registration = await context.identity.register(untypedInput);
+  const call = adapter.calls.find((entry) => entry.operation === 'register');
+
+  assert.equal(registration.key, 'identity:cat');
+  assert.deepEqual(call?.value, {
+    type: 'identity',
+    id: 'cat',
+    displayName: 'Fixture cat',
+  });
+});
+
 test('registration snapshots nested payloads before crossing the Host boundary', async () => {
   const adapter = new RecordingAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);

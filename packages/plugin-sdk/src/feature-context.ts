@@ -150,7 +150,7 @@ export function createFeatureContextSession(
     input: RegistrationInput<T>,
   ): Promise<ContributionRegistration> => {
     assertActive();
-    const contribution = deepFreeze(structuredClone({ type, ...input })) as unknown as T;
+    const contribution = deepFreeze(structuredClone({ ...input, type })) as unknown as T;
     const key = `${type}:${contribution.id}`;
     const digest = canonicalJson(contribution);
     const existing = active.get(key);

@@ -25,6 +25,7 @@ const DEFAULT_MODEL: Readonly<Record<VideoAnalysisProvider, string>> = {
 
 const RESPONSE_BYTE_LIMIT = 4 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_RETRY_DELAY_MS = REQUEST_TIMEOUT_MS;
 const TRANSIENT_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 const RETRY_BASE_MS = 1_000;
 const MAX_RETRIES = 2;
@@ -93,8 +94,9 @@ function requestShape(
   const videoUrl = requireVideoUrl(input.videoUrl);
   if (input.prompt.trim() === '') throw new TypeError('video-analysis prompt is required');
   const base = new URL(config.baseUrl);
+  if (!base.pathname.endsWith('/')) base.pathname += '/';
   if (config.provider === 'gemini') {
-    const url = new URL(`/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, base);
+    const url = new URL(`v1beta/models/${encodeURIComponent(config.model)}:generateContent`, base);
     url.searchParams.set('key', config.apiKey);
     return {
       url,
@@ -114,7 +116,7 @@ function requestShape(
     };
   }
   return {
-    url: new URL('/api/paas/v4/chat/completions', base),
+    url: new URL('api/paas/v4/chat/completions', base),
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${config.apiKey}`,
@@ -181,11 +183,15 @@ function isAbortError(error: unknown): boolean {
 function retryDelayMs(response: Response | undefined, attempt: number): number {
   const retryAfter = response?.headers.get('retry-after');
   if (retryAfter !== null && retryAfter !== undefined) {
-    if (/^[0-9]+$/.test(retryAfter)) return Number(retryAfter) * 1_000;
+    if (/^[0-9]+$/.test(retryAfter)) {
+      return Math.min(MAX_RETRY_DELAY_MS, Number(retryAfter) * 1_000);
+    }
     const retryAt = Date.parse(retryAfter);
-    if (!Number.isNaN(retryAt)) return Math.max(0, retryAt - Date.now());
+    if (!Number.isNaN(retryAt)) {
+      return Math.min(MAX_RETRY_DELAY_MS, Math.max(0, retryAt - Date.now()));
+    }
   }
-  return RETRY_BASE_MS * 2 ** attempt;
+  return Math.min(MAX_RETRY_DELAY_MS, RETRY_BASE_MS * 2 ** attempt);
 }
 
 async function waitForRetry(
