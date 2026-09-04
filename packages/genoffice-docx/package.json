@@ -1,0 +1,58 @@
+{
+  "name": "@clowder-ai/genoffice-docx",
+  "version": "0.1.0-alpha.0",
+  "description": "Host-governed GenOffice DOCX renderer provider for Clowder AI",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./manifest": "./plugin.yaml",
+    "./source-lock": "./source-lock.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "renderer",
+    "plugin.yaml",
+    "source-lock.json",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build:renderer": "pnpm build && node scripts/fetch-verify-source.mjs && node scripts/build-renderer.mjs",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts",
+    "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "clean": "rm -rf dist",
+    "prepack": "node scripts/assert-pack-ready.mjs"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "yaml": "^2.9.0"
+  },
+  "keywords": [
+    "clowder-ai",
+    "plugin",
+    "docx",
+    "genoffice"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/genoffice-docx"
+  }
+}

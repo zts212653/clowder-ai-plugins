@@ -1,0 +1,8 @@
+.ai-dock,
+.ai-entry,
+.ai-ask-pop,
+.ai-ask-trigger,
+.ai-rail,
+.ai-panel {
+  display: none !important;
+}

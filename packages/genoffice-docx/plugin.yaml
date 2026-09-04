@@ -1,0 +1,33 @@
+pluginId: dev.clowder.genoffice-docx
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0-beta.14
+name: GenOffice DOCX
+description:
+  default: Edit owner-backed DOCX content through a Host-governed GenOffice renderer.
+  translations:
+    zh-CN: 通过 Host 治理的 GenOffice renderer 编辑 owner-backed DOCX 内容。
+contributions:
+  - type: content-editor-provider
+    id: genoffice-docx
+    mediaTypes:
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    surface:
+      entrypoint: renderer/index.html
+      integrity: sha256-OrBWhcie8lF/64oSKgIYVnWM3BWCMR6ZgDl9XzxINMI=
+      sandbox: opaque-origin-iframe
+    bridgeVersion: 1.0.0
+    operations:
+      - load
+      - settle
+      - comment
+      - tracked-change
+features:
+  - id: edit-docx
+    name: Edit DOCX
+    resources: []
+    contributions:
+      - type: content-editor-provider
+        id: genoffice-docx
+    capabilities: []
+runtime:
+  transport: builtin
