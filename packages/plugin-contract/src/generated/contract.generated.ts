@@ -254,6 +254,7 @@ export type ContentEditorProviderContribution = {
     readonly entrypoint: PackageRelativePath;
     readonly integrity: string;
     readonly sandbox: 'dedicated-origin-iframe';
+    readonly navigationPolicy: 'navigation-api-deny';
   };
   readonly bridgeVersion: '1.0.0';
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];

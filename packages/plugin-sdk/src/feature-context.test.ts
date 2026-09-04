@@ -358,7 +358,8 @@ test('content editor registrar exposes only the typed provider artifact declarat
     surface: {
       entrypoint: 'renderer/index.html',
       integrity: `sha256-${'A'.repeat(43)}=`,
-      sandbox: 'opaque-origin-iframe',
+      sandbox: 'dedicated-origin-iframe',
+      navigationPolicy: 'navigation-api-deny',
     },
     bridgeVersion: '1.0.0',
     operations: ['load', 'settle', 'comment', 'tracked-change'],
@@ -374,7 +375,8 @@ test('content editor registrar exposes only the typed provider artifact declarat
       surface: {
         entrypoint: 'renderer/index.html',
         integrity: `sha256-${'A'.repeat(43)}=`,
-        sandbox: 'opaque-origin-iframe',
+        sandbox: 'dedicated-origin-iframe',
+        navigationPolicy: 'navigation-api-deny',
       },
       bridgeVersion: '1.0.0',
       operations: ['load', 'settle', 'comment', 'tracked-change'],

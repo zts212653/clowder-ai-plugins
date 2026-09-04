@@ -73,5 +73,10 @@ test('renderer build uses frozen local Vite and cannot fall back to online npm e
   assert.match(packGate, /THIRD-PARTY-NOTICES\.txt/);
   assert.match(packGate, /SBOM\.spdx\.json/);
   assert.match(packGate, /electron\|chromium/i);
+  assert.match(packGate, /'npm'/);
+  assert.match(packGate, /'pack'/);
+  assert.match(packGate, /'--dry-run'/);
+  assert.match(packGate, /'--ignore-scripts'/);
+  assert.match(packGate, /packEntries/);
   assert.doesNotMatch(script, /'npm',[\s\S]*'exec'/);
 });

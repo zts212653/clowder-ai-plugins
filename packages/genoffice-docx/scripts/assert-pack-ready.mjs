@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { lstat, readFile, readdir } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,15 +32,65 @@ for (const name of ['LICENSE', 'NOTICE']) {
 const rendererRoot = join(packageRoot, 'renderer');
 const noticePath = join(rendererRoot, 'THIRD-PARTY-NOTICES.txt');
 const sbomPath = join(rendererRoot, 'SBOM.spdx.json');
-const entries = [
-  'plugin.yaml',
-  'source-lock.json',
-  'LICENSE',
-  'NOTICE',
-  'THIRD_PARTY_NOTICES.md',
-  ...(await walk(rendererRoot)),
-].map((path) => `package/${path}`);
-assertPackEntries(entries);
+const packReport = JSON.parse(
+  execFileSync('npm', ['pack', '--dry-run', '--ignore-scripts', '--json'], {
+    cwd: packageRoot,
+    encoding: 'utf8',
+  }),
+);
+if (!Array.isArray(packReport) || packReport.length !== 1 || !Array.isArray(packReport[0]?.files)) {
+  throw new Error('npm pack did not return one machine-readable packlist');
+}
+const packEntries = packReport[0].files.map(({ path }) => `package/${path}`);
+assertPackEntries(packEntries);
+const packEntrySet = new Set(packEntries);
+for (const required of [
+  'package/package.json',
+  'package/plugin.yaml',
+  'package/source-lock.json',
+  'package/LICENSE',
+  'package/NOTICE',
+  'package/THIRD_PARTY_NOTICES.md',
+  'package/dist/index.js',
+  'package/renderer/index.html',
+]) {
+  if (!packEntrySet.has(required)) throw new Error(`npm pack omitted required entry: ${required}`);
+}
+for (const entry of packEntries) {
+  if (
+    !entry.startsWith('package/dist/') &&
+    !entry.startsWith('package/renderer/') &&
+    ![
+      'package/package.json',
+      'package/plugin.yaml',
+      'package/source-lock.json',
+      'package/LICENSE',
+      'package/NOTICE',
+      'package/THIRD_PARTY_NOTICES.md',
+    ].includes(entry)
+  ) {
+    throw new Error(`npm pack contains an undeclared distribution entry: ${entry}`);
+  }
+}
+
+const packageManifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+const runtimeDependencies = Object.keys(packageManifest.dependencies ?? {});
+if (
+  runtimeDependencies.length !== 1 ||
+  runtimeDependencies[0] !== '@clowder-ai/plugin-contract' ||
+  packageManifest.peerDependencies !== undefined ||
+  packageManifest.peerDependenciesMeta !== undefined ||
+  packageManifest.optionalDependencies !== undefined ||
+  packageManifest.bundledDependencies !== undefined ||
+  packageManifest.bundleDependencies !== undefined ||
+  packageManifest.bin !== undefined ||
+  packageManifest.gypfile !== undefined ||
+  ['preinstall', 'install', 'postinstall', 'prepare'].some(
+    (name) => packageManifest.scripts?.[name] !== undefined,
+  )
+) {
+  throw new Error('package.json expands the admitted runtime or install authority');
+}
 
 const notices = await readFile(noticePath, 'utf8');
 if (!notices.includes(`GenOffice ${lock.tag}`) || !notices.includes('Bundled fonts')) {
@@ -95,4 +146,6 @@ if (declaredIntegrity !== actualIntegrity) {
     `renderer integrity mismatch: manifest=${declaredIntegrity}, actual=${actualIntegrity}`,
   );
 }
-process.stdout.write(`${JSON.stringify({ ready: true, integrity: actualIntegrity })}\n`);
+process.stdout.write(
+  `${JSON.stringify({ ready: true, integrity: actualIntegrity, packEntries: packEntries.length })}\n`,
+);

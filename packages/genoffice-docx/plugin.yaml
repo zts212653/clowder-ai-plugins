@@ -15,6 +15,7 @@ contributions:
       entrypoint: renderer/index.html
       integrity: sha256-mfusjkRv8pE4EOPOZxGtfpc6E3b0DD2+suZ0CUgLKXc=
       sandbox: dedicated-origin-iframe
+      navigationPolicy: navigation-api-deny
     bridgeVersion: 1.0.0
     operations:
       - load

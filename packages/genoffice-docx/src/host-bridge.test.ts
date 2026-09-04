@@ -5,6 +5,7 @@ import {
   BridgeDeniedError,
   createGenOfficeDesktopBridge,
   installGenOfficeHostBridge,
+  installNavigationDeny,
   installNetworkDeny,
   type HostBridgeTransport,
 } from './host-bridge.js';
@@ -134,6 +135,23 @@ test('installs runtime network denial before upstream code can reach browser tra
   );
 });
 
+test('requires Navigation API and prevents every renderer self-navigation before the request starts', () => {
+  const listeners: Array<(event: { preventDefault(): void }) => void> = [];
+  const target = {
+    navigation: {
+      addEventListener(type: string, listener: (event: { preventDefault(): void }) => void) {
+        assert.equal(type, 'navigate');
+        listeners.push(listener);
+      },
+    },
+  };
+  installNavigationDeny(target);
+  let prevented = false;
+  listeners[0]?.({ preventDefault: () => (prevented = true) });
+  assert.equal(prevented, true);
+  assert.throws(() => installNavigationDeny({}), /Navigation API/i);
+});
+
 test('boots without storage authority and announces readiness only to the nonce-bound parent origin', () => {
   const posted: Array<{ message: unknown; targetOrigin: string }> = [];
   const parent = {
@@ -154,6 +172,7 @@ test('boots without storage authority and announces readiness only to the nonce-
     WebSocket: class {},
     EventSource: class {},
     navigator: { sendBeacon: () => true },
+    navigation: { addEventListener: () => undefined },
     addEventListener: () => undefined,
     removeEventListener: () => undefined,
     get localStorage(): never {

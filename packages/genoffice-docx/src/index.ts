@@ -2,6 +2,7 @@ export {
   BridgeDeniedError,
   createGenOfficeDesktopBridge,
   installGenOfficeHostBridge,
+  installNavigationDeny,
   installNetworkDeny,
   type BridgePresentation,
   type GenOfficeDesktopBridge,

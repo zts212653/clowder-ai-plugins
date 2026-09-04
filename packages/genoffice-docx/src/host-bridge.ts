@@ -87,6 +87,19 @@ export function installNetworkDeny(target: object): void {
   }
 }
 
+export function installNavigationDeny(target: object): void {
+  const navigation = Reflect.get(target, 'navigation');
+  if (typeof navigation !== 'object' || navigation === null) {
+    throw new BridgeDeniedError('Navigation API unavailable');
+  }
+  const addEventListener = Reflect.get(navigation, 'addEventListener');
+  if (typeof addEventListener !== 'function') {
+    throw new BridgeDeniedError('Navigation API unavailable');
+  }
+  const denyNavigation = (event: Event): void => event.preventDefault();
+  Reflect.apply(addEventListener, navigation, ['navigate', denyNavigation]);
+}
+
 export interface GenOfficeDesktopBridge extends Record<string, unknown> {
   getLanguage(): Promise<BridgePresentation['language']>;
   getTheme(): Promise<BridgePresentation['theme']>;
@@ -293,6 +306,7 @@ export function createGenOfficeDesktopBridge(
 
 export function installGenOfficeHostBridge(target: Window): void {
   const bootstrap = parseRendererBootstrap(target);
+  installNavigationDeny(target);
   installNetworkDeny(target);
   const transport = createMessagePortTransport(target, bootstrap);
   const cryptoSource = target.crypto;

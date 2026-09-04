@@ -67,6 +67,7 @@ function docxProviderManifest() {
           entrypoint: 'renderer/index.html',
           integrity: `sha256-${'A'.repeat(43)}=`,
           sandbox: 'dedicated-origin-iframe',
+          navigationPolicy: 'navigation-api-deny',
         },
         bridgeVersion: '1.0.0',
         operations: ['load', 'settle', 'comment', 'tracked-change'],
@@ -178,6 +179,17 @@ test('admits only the closed, dedicated-origin DOCX provider surface contract', 
     wrongOriginModel.contributions[0].surface.sandbox = invalidSandbox;
     assert.equal(validateManifest(wrongOriginModel).valid, false);
   }
+
+  const postNavigationRevoke = docxProviderManifest();
+  postNavigationRevoke.contributions[0].surface.navigationPolicy = 'revoke-after-load';
+  assert.equal(validateManifest(postNavigationRevoke).valid, false);
+
+  const missingNavigationPolicy = docxProviderManifest();
+  const surfaceWithoutRequiredPolicy = missingNavigationPolicy.contributions[0].surface as {
+    navigationPolicy?: string;
+  };
+  delete surfaceWithoutRequiredPolicy.navigationPolicy;
+  assert.equal(validateManifest(missingNavigationPolicy).valid, false);
 
   const wrongMedia = docxProviderManifest();
   wrongMedia.contributions[0].mediaTypes = ['text/plain'];

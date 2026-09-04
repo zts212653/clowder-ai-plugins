@@ -481,9 +481,13 @@
             "sandbox": {
               "const": "dedicated-origin-iframe",
               "description": "Host serves the renderer from an origin that has no Host cookies or Host APIs, applies sandbox=allow-scripts allow-same-origin, and sends a frame-ancestors response header restricted to the exact Host origin."
+            },
+            "navigationPolicy": {
+              "const": "navigation-api-deny",
+              "description": "The renderer must install a fail-closed Navigation API listener before upstream code and prevent every self-navigation before its request starts."
             }
           },
-          "required": ["entrypoint", "integrity", "sandbox"],
+          "required": ["entrypoint", "integrity", "sandbox", "navigationPolicy"],
           "additionalProperties": false
         },
         "bridgeVersion": { "const": "1.0.0" },
