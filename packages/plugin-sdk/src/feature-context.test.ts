@@ -348,6 +348,40 @@ test('UI registrar preserves every variant-specific typed input', async () => {
   );
 });
 
+test('content editor registrar exposes only the typed provider artifact declaration', async () => {
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+
+  const registration = await context.contentEditors.register({
+    id: 'genoffice-docx',
+    mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    surface: {
+      entrypoint: 'renderer/index.html',
+      integrity: `sha256-${'A'.repeat(43)}=`,
+      sandbox: 'opaque-origin-iframe',
+    },
+    bridgeVersion: '1.0.0',
+    operations: ['load', 'settle', 'comment', 'tracked-change'],
+  });
+
+  assert.equal(registration.key, 'content-editor-provider:genoffice-docx');
+  assert.deepEqual(
+    adapter.calls.find((entry) => entry.operation === 'register')?.value,
+    {
+      type: 'content-editor-provider',
+      id: 'genoffice-docx',
+      mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      surface: {
+        entrypoint: 'renderer/index.html',
+        integrity: `sha256-${'A'.repeat(43)}=`,
+        sandbox: 'opaque-origin-iframe',
+      },
+      bridgeVersion: '1.0.0',
+      operations: ['load', 'settle', 'comment', 'tracked-change'],
+    },
+  );
+});
+
 test('same-key retries are idempotent, conflicts fail closed, and disposal runs once', async () => {
   const adapter = new RecordingAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);

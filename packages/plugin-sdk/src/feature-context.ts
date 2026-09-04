@@ -1,6 +1,7 @@
 import {
   validateManifest,
   type Capability,
+  type ContentEditorProviderContribution,
   type ConnectorContribution,
   type DirectToolContribution,
   type IdentityContribution,
@@ -92,6 +93,7 @@ export interface FeatureContext {
   readonly services: ContributionRegistrar<ServiceContribution>;
   readonly connectors: ContributionRegistrar<ConnectorContribution>;
   readonly ui: ContributionRegistrar<UiContribution>;
+  readonly contentEditors: ContributionRegistrar<ContentEditorProviderContribution>;
 }
 
 export interface FeatureContextSession {
@@ -273,6 +275,7 @@ export function createFeatureContextSession(
     services: registrar<ServiceContribution>('service'),
     connectors: registrar<ConnectorContribution>('connector'),
     ui: registrar<UiContribution>('ui'),
+    contentEditors: registrar<ContentEditorProviderContribution>('content-editor-provider'),
   };
 
   return {

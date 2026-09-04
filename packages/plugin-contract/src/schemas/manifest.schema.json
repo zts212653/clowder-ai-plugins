@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/manifest/v0.1",
   "title": "Clowder AI Plugin Manifest (v0.1)",
-  "description": "Machine-readable truth source for the static plugin.yaml access protocol (§3.4/§3.5). beta.13 adds typed Train B configuration and contribution declarations while Host grants remain a separate runtime authority.",
+  "description": "Machine-readable truth source for the static plugin.yaml access protocol (§3.4/§3.5). beta.14 adds the Host-governed content-editor-provider contribution while Host grants and content ownership remain separate runtime authorities.",
   "x-clowder-capability-layers": {
     "L0": ["plugin.config.read", "plugin.state.get", "plugin.state.set"],
     "L1": ["messaging.send", "schedule.register", "events.publish", "messaging.appendElements"],
@@ -105,7 +105,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["identity", "schedule", "tool", "mcp", "skill", "limb", "webhook", "message-subscription", "service", "connector", "ui"]
+          "enum": ["identity", "schedule", "tool", "mcp", "skill", "limb", "webhook", "message-subscription", "service", "connector", "ui", "content-editor-provider"]
         },
         "id": { "type": "string", "minLength": 1 }
       },
@@ -456,6 +456,46 @@
       ]
     },
 
+    "ContentEditorProviderContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "content-editor-provider" },
+        "id": { "type": "string", "minLength": 1 },
+        "mediaTypes": {
+          "type": "array",
+          "items": {
+            "const": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          },
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true
+        },
+        "surface": {
+          "type": "object",
+          "properties": {
+            "entrypoint": { "$ref": "#/$defs/PackageRelativePath" },
+            "integrity": {
+              "type": "string",
+              "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+            },
+            "sandbox": { "const": "opaque-origin-iframe" }
+          },
+          "required": ["entrypoint", "integrity", "sandbox"],
+          "additionalProperties": false
+        },
+        "bridgeVersion": { "const": "1.0.0" },
+        "operations": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["load", "settle", "comment", "tracked-change"] },
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true
+        }
+      },
+      "required": ["type", "id", "mediaTypes", "surface", "bridgeVersion", "operations"],
+      "additionalProperties": false
+    },
+
     "StaticContribution": {
       "oneOf": [
         { "$ref": "#/$defs/IdentityContribution" },
@@ -468,7 +508,8 @@
         { "$ref": "#/$defs/MessageSubscriptionContribution" },
         { "$ref": "#/$defs/ServiceContribution" },
         { "$ref": "#/$defs/ConnectorContribution" },
-        { "$ref": "#/$defs/UiContribution" }
+        { "$ref": "#/$defs/UiContribution" },
+        { "$ref": "#/$defs/ContentEditorProviderContribution" }
       ]
     },
 

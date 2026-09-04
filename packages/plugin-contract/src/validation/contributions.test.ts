@@ -52,6 +52,39 @@ function videoManifest() {
   };
 }
 
+function docxProviderManifest() {
+  return {
+    pluginId: 'dev.clowder.genoffice-docx',
+    version: '0.1.0-alpha.0',
+    contractVersion: '0.1.0-beta.14',
+    name: 'GenOffice DOCX',
+    contributions: [
+      {
+        type: 'content-editor-provider',
+        id: 'genoffice-docx',
+        mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        surface: {
+          entrypoint: 'renderer/index.html',
+          integrity: `sha256-${'A'.repeat(43)}=`,
+          sandbox: 'opaque-origin-iframe',
+        },
+        bridgeVersion: '1.0.0',
+        operations: ['load', 'settle', 'comment', 'tracked-change'],
+      },
+    ],
+    features: [
+      {
+        id: 'edit-docx',
+        name: 'Edit DOCX',
+        resources: [],
+        contributions: [{ type: 'content-editor-provider', id: 'genoffice-docx' }],
+        capabilities: [],
+      },
+    ],
+    runtime: { transport: 'builtin' },
+  };
+}
+
 test('admits typed static contributions and closed config/secret references', () => {
   assert.equal(validateManifest(videoManifest()).valid, true);
 
@@ -122,10 +155,35 @@ test('generated contract exposes every Train B static contribution type', async 
     'service',
     'connector',
     'ui',
+    'content-editor-provider',
   ]) {
     assert.match(source, new RegExp(`'${type}'`));
   }
   assert.match(source, /export type PluginCatalog =/);
+});
+
+test('admits only the closed, opaque-origin DOCX provider surface contract', () => {
+  assert.equal(validateManifest(docxProviderManifest()).valid, true);
+
+  const pathEscape = docxProviderManifest();
+  pathEscape.contributions[0].surface.entrypoint = '../renderer/index.html';
+  assert.equal(validateManifest(pathEscape).valid, false);
+
+  const weakIntegrity = docxProviderManifest();
+  weakIntegrity.contributions[0].surface.integrity = 'sha256-not-an-sri-digest';
+  assert.equal(validateManifest(weakIntegrity).valid, false);
+
+  const sameOrigin = docxProviderManifest();
+  sameOrigin.contributions[0].surface.sandbox = 'same-origin-iframe';
+  assert.equal(validateManifest(sameOrigin).valid, false);
+
+  const wrongMedia = docxProviderManifest();
+  wrongMedia.contributions[0].mediaTypes = ['text/plain'];
+  assert.equal(validateManifest(wrongMedia).valid, false);
+
+  const missingSettlement = docxProviderManifest();
+  missingSettlement.contributions[0].operations = ['load', 'comment', 'tracked-change'];
+  assert.equal(validateManifest(missingSettlement).valid, false);
 });
 
 test('keeps legacy resources distinct from feature-owned contributions', () => {

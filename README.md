@@ -50,7 +50,7 @@ Host Broker ─────┐
 ```
 
 - `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures；F285 的 `physical-limb` contribution schema 在这里定义物理动作、观察、readiness 与独立设备 grant，刻意不包含 raw sensor media。
-- `@clowder-ai/plugin-sdk`：提供 schema-neutral standalone stdio runtime、beta.8 握手验证与 beta.9 `events.publish` Host-bound helper；其余 RPC 仍须等对应 contract row 从 reservation 变为 executable。
+- `@clowder-ai/plugin-sdk`：提供 schema-neutral standalone stdio runtime、握手/`events.publish` Host-bound helper 与 beta.10 Train B contribution facade；其余 RPC 仍须等对应 contract row 从 reservation 变为 executable。
 - Host Adapter/Broker：属于 `clowder-ai` 内核，不放在本仓，也不通过插件 client SDK 实现。
 
 仓库名与 npm 包名不需要一一对应；SDK 可以从本 monorepo 的独立 package 构建并单独发布，无需另开一个 `clowder-ai-sdk` 仓。
