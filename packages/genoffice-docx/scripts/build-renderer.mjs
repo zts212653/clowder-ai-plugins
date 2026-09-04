@@ -63,7 +63,7 @@ await assertExtractedSource(sourceRoot, lock);
 
 run(
   viteBinary,
-  ['build', '--config', 'vite.renderer.config.ts', '--base', './'],
+  ['build', '--config', 'vite.renderer.config.ts', '--base', './', '--sourcemap'],
   docsRoot,
   {
     npm_config_ignore_scripts: 'true',
@@ -87,8 +87,6 @@ if (/\b(?:src|href)="\//u.test(hardenedIndex)) {
 }
 await writeFile(indexPath, hardenedIndex);
 
-const rendererEntries = (await walkFiles(rendererRoot)).map((path) => `package/renderer/${path}`);
-assertPackEntries(rendererEntries);
 if (!hardenedIndex.includes("connect-src 'none'")) throw new Error('renderer CSP is not fail-closed');
 
 const integrity = sha256Sri(await readFile(indexPath));
@@ -104,6 +102,11 @@ await writeFile(
   join(rendererRoot, 'provenance', 'source-lock.json'),
   `${JSON.stringify(lock, null, 2)}\n`,
 );
+run(process.execPath, [join(packageRoot, 'scripts', 'generate-renderer-compliance.mjs')], packageRoot, {
+  CARGO_NET_OFFLINE: 'true',
+});
+const rendererEntries = (await walkFiles(rendererRoot)).map((path) => `package/renderer/${path}`);
+assertPackEntries(rendererEntries);
 
 process.stdout.write(
   `${JSON.stringify({ rendererRoot, entrypointIntegrity: integrity, fileCount: rendererEntries.length })}\n`,

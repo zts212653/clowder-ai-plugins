@@ -41,7 +41,7 @@ test('freezes the exact public GenOffice source and a valid provider manifest', 
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, JSON.stringify(result.errors));
   assert.equal(manifest.contributions[0].type, 'content-editor-provider');
-  assert.equal(manifest.contributions[0].surface.sandbox, 'opaque-origin-iframe');
+  assert.equal(manifest.contributions[0].surface.sandbox, 'dedicated-origin-iframe');
 });
 
 test('archive admission rejects traversal, links, and enterprise source before extraction', () => {

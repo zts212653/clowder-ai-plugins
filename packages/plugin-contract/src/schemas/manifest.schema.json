@@ -478,7 +478,10 @@
               "type": "string",
               "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
             },
-            "sandbox": { "const": "opaque-origin-iframe" }
+            "sandbox": {
+              "const": "dedicated-origin-iframe",
+              "description": "Host serves the renderer from an origin that has no Host cookies or Host APIs, applies sandbox=allow-scripts allow-same-origin, and sends a frame-ancestors response header restricted to the exact Host origin."
+            }
           },
           "required": ["entrypoint", "integrity", "sandbox"],
           "additionalProperties": false

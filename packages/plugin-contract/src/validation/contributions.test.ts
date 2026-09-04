@@ -66,7 +66,7 @@ function docxProviderManifest() {
         surface: {
           entrypoint: 'renderer/index.html',
           integrity: `sha256-${'A'.repeat(43)}=`,
-          sandbox: 'opaque-origin-iframe',
+          sandbox: 'dedicated-origin-iframe',
         },
         bridgeVersion: '1.0.0',
         operations: ['load', 'settle', 'comment', 'tracked-change'],
@@ -162,7 +162,7 @@ test('generated contract exposes every Train B static contribution type', async 
   assert.match(source, /export type PluginCatalog =/);
 });
 
-test('admits only the closed, opaque-origin DOCX provider surface contract', () => {
+test('admits only the closed, dedicated-origin DOCX provider surface contract', () => {
   assert.equal(validateManifest(docxProviderManifest()).valid, true);
 
   const pathEscape = docxProviderManifest();
@@ -173,9 +173,11 @@ test('admits only the closed, opaque-origin DOCX provider surface contract', () 
   weakIntegrity.contributions[0].surface.integrity = 'sha256-not-an-sri-digest';
   assert.equal(validateManifest(weakIntegrity).valid, false);
 
-  const sameOrigin = docxProviderManifest();
-  sameOrigin.contributions[0].surface.sandbox = 'same-origin-iframe';
-  assert.equal(validateManifest(sameOrigin).valid, false);
+  for (const invalidSandbox of ['opaque-origin-iframe', 'same-origin-iframe']) {
+    const wrongOriginModel = docxProviderManifest();
+    wrongOriginModel.contributions[0].surface.sandbox = invalidSandbox;
+    assert.equal(validateManifest(wrongOriginModel).valid, false);
+  }
 
   const wrongMedia = docxProviderManifest();
   wrongMedia.contributions[0].mediaTypes = ['text/plain'];

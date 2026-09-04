@@ -1,3 +1,5 @@
+import { createMessagePortTransport, parseRendererBootstrap } from './host-bridge-transport.js';
+
 export type HostBridgeOperation =
   | 'content.load'
   | 'content.settle'
@@ -289,117 +291,10 @@ export function createGenOfficeDesktopBridge(
   }) as GenOfficeDesktopBridge;
 }
 
-interface BridgeConnectMessage {
-  v: 1;
-  kind: 'cat-cafe-content-editor-connect';
-  bridgeVersion: '1.0.0';
-  sessionToken: string;
-}
-
-interface BridgeResponseMessage {
-  v: 1;
-  kind: 'cat-cafe-content-editor-response';
-  sessionToken: string;
-  requestId: string;
-  ok: boolean;
-  value?: unknown;
-  error?: { code?: string; message?: string };
-}
-
-function isConnectMessage(value: unknown): value is BridgeConnectMessage {
-  const record = requireObject(value, 'bridge connect');
-  return (
-    record.v === 1 &&
-    record.kind === 'cat-cafe-content-editor-connect' &&
-    record.bridgeVersion === '1.0.0' &&
-    typeof record.sessionToken === 'string' &&
-    record.sessionToken.length >= 32
-  );
-}
-
-class MessagePortTransport implements HostBridgeTransport {
-  readonly #connected: Promise<void>;
-  readonly #pending = new Map<
-    string,
-    { resolve(value: unknown): void; reject(reason: Error): void }
-  >();
-  #port: MessagePort | null = null;
-  #sessionToken: string | null = null;
-  #sequence = 0;
-
-  constructor(target: Window) {
-    this.#connected = new Promise((resolve) => {
-      const receiveConnect = (event: MessageEvent<unknown>): void => {
-        if (event.source !== target.parent || event.ports.length !== 1) return;
-        try {
-          if (!isConnectMessage(event.data)) return;
-        } catch {
-          return;
-        }
-        const connect = event.data;
-        target.removeEventListener('message', receiveConnect);
-        this.#port = event.ports[0] ?? null;
-        this.#sessionToken = connect.sessionToken;
-        if (this.#port === null) return;
-        this.#port.addEventListener('message', (message) => this.#receive(message));
-        this.#port.start();
-        resolve();
-      };
-      target.addEventListener('message', receiveConnect);
-    });
-  }
-
-  async request(operation: HostBridgeOperation, payload: unknown): Promise<unknown> {
-    await this.#connected;
-    if (this.#port === null || this.#sessionToken === null) throw new Error('bridge is not connected');
-    const requestId = `renderer-${++this.#sequence}`;
-    const result = new Promise<unknown>((resolve, reject) => {
-      this.#pending.set(requestId, { resolve, reject });
-    });
-    this.#port.postMessage({
-      v: 1,
-      kind: 'cat-cafe-content-editor-request',
-      sessionToken: this.#sessionToken,
-      requestId,
-      operation,
-      payload,
-    });
-    return result;
-  }
-
-  #receive(event: MessageEvent<unknown>): void {
-    let record: Record<string, unknown>;
-    try {
-      record = requireObject(event.data, 'bridge response');
-    } catch {
-      return;
-    }
-    if (
-      record.v !== 1 ||
-      record.kind !== 'cat-cafe-content-editor-response' ||
-      record.sessionToken !== this.#sessionToken ||
-      typeof record.requestId !== 'string' ||
-      typeof record.ok !== 'boolean'
-    ) {
-      return;
-    }
-    const response = record as unknown as BridgeResponseMessage;
-    const pending = this.#pending.get(response.requestId);
-    if (pending === undefined) return;
-    this.#pending.delete(response.requestId);
-    if (response.ok) pending.resolve(response.value);
-    else {
-      const error = new Error(response.error?.message ?? 'Host bridge request failed') as RemoteBridgeError;
-      if (response.error?.code !== undefined) error.code = response.error.code;
-      pending.reject(error);
-    }
-  }
-}
-
 export function installGenOfficeHostBridge(target: Window): void {
+  const bootstrap = parseRendererBootstrap(target);
   installNetworkDeny(target);
-  target.localStorage.setItem('aidocs.showAi', '0');
-  const transport = new MessagePortTransport(target);
+  const transport = createMessagePortTransport(target, bootstrap);
   const cryptoSource = target.crypto;
   const desktop = createGenOfficeDesktopBridge(transport, {
     operationId: () => cryptoSource.randomUUID(),
@@ -418,6 +313,15 @@ export function installGenOfficeHostBridge(target: Window): void {
     enumerable: false,
     writable: false,
   });
+  target.parent.postMessage(
+    {
+      v: 1,
+      kind: 'cat-cafe-content-editor-ready',
+      bridgeVersion: '1.0.0',
+      handshakeNonce: bootstrap.handshakeNonce,
+    },
+    bootstrap.parentOrigin,
+  );
 }
 
 if (typeof window !== 'undefined') installGenOfficeHostBridge(window);

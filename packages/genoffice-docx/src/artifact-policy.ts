@@ -17,7 +17,6 @@ const CONTENT_SECURITY_POLICY = [
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
-  "frame-ancestors 'none'",
 ].join('; ');
 
 export function sha256Sri(bytes: Uint8Array): string {

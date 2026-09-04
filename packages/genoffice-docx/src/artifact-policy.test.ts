@@ -20,7 +20,7 @@ test('injects CSP, AI-off bootstrap, and the Host bridge before upstream rendere
   });
   assert.match(hardened, /connect-src 'none'/);
   assert.doesNotMatch(hardened, /connect-src 'self'/);
-  assert.match(hardened, /frame-ancestors 'none'/);
+  assert.doesNotMatch(hardened, /frame-ancestors/);
   assert.equal(hardened.match(/Content-Security-Policy/g)?.length, 1);
   assert.ok(hardened.indexOf('host-policy.css') < hardened.indexOf('index-abc.js'));
   assert.ok(hardened.indexOf('host-bridge.js') < hardened.indexOf('index-abc.js'));
@@ -56,8 +56,22 @@ test('surface integrity uses standard sha256 SRI', () => {
 
 test('renderer build uses frozen local Vite and cannot fall back to online npm exec', async () => {
   const script = await readFile(join(import.meta.dirname, '..', 'scripts', 'build-renderer.mjs'), 'utf8');
+  const compliance = await readFile(
+    join(import.meta.dirname, '..', 'scripts', 'generate-renderer-compliance.mjs'),
+    'utf8',
+  );
+  const packGate = await readFile(join(import.meta.dirname, '..', 'scripts', 'assert-pack-ready.mjs'), 'utf8');
   assert.match(script, /'ci', '--ignore-scripts', '--include=dev'/);
   assert.match(script, /node_modules.*\.bin.*vite/);
   assert.match(script, /'--base', '\.\/'/);
+  assert.match(script, /'--sourcemap'/);
+  assert.match(script, /generate-renderer-compliance\.mjs/);
+  assert.match(compliance, /bundledPackagesFromSourceMaps/);
+  assert.match(compliance, /bundledFontNoticeLabels/);
+  assert.match(compliance, /packageVerificationCodeValue/);
+  assert.match(compliance, /relationshipType: 'DEPENDS_ON'/);
+  assert.match(packGate, /THIRD-PARTY-NOTICES\.txt/);
+  assert.match(packGate, /SBOM\.spdx\.json/);
+  assert.match(packGate, /electron\|chromium/i);
   assert.doesNotMatch(script, /'npm',[\s\S]*'exec'/);
 });

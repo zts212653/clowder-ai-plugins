@@ -13,8 +13,8 @@ contributions:
       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
     surface:
       entrypoint: renderer/index.html
-      integrity: sha256-OrBWhcie8lF/64oSKgIYVnWM3BWCMR6ZgDl9XzxINMI=
-      sandbox: opaque-origin-iframe
+      integrity: sha256-mfusjkRv8pE4EOPOZxGtfpc6E3b0DD2+suZ0CUgLKXc=
+      sandbox: dedicated-origin-iframe
     bridgeVersion: 1.0.0
     operations:
       - load

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   BridgeDeniedError,
   createGenOfficeDesktopBridge,
+  installGenOfficeHostBridge,
   installNetworkDeny,
   type HostBridgeTransport,
 } from './host-bridge.js';
@@ -131,4 +132,45 @@ test('installs runtime network denial before upstream code can reach browser tra
     () => (target.navigator as { sendBeacon(): boolean }).sendBeacon(),
     BridgeDeniedError,
   );
+});
+
+test('boots without storage authority and announces readiness only to the nonce-bound parent origin', () => {
+  const posted: Array<{ message: unknown; targetOrigin: string }> = [];
+  const parent = {
+    postMessage(message: unknown, targetOrigin: string) {
+      posted.push({ message, targetOrigin });
+    },
+  };
+  const target = {
+    parent,
+    location: {
+      origin: 'https://renderer.plugin.invalid',
+      hash:
+        '#cat-cafe-parent-origin=https%3A%2F%2Fcafe.invalid&cat-cafe-handshake=handshake_0123456789abcdef0123456789abcdef',
+    },
+    crypto: { randomUUID: () => 'operation-1' },
+    fetch: async () => 'escaped',
+    XMLHttpRequest: class {},
+    WebSocket: class {},
+    EventSource: class {},
+    navigator: { sendBeacon: () => true },
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    get localStorage(): never {
+      throw Object.assign(new Error('opaque storage is unavailable'), { name: 'SecurityError' });
+    },
+  };
+
+  assert.doesNotThrow(() => installGenOfficeHostBridge(target as unknown as Window));
+  assert.deepEqual(posted, [
+    {
+      message: {
+        v: 1,
+        kind: 'cat-cafe-content-editor-ready',
+        bridgeVersion: '1.0.0',
+        handshakeNonce: 'handshake_0123456789abcdef0123456789abcdef',
+      },
+      targetOrigin: 'https://cafe.invalid',
+    },
+  ]);
 });
