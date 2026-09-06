@@ -1,0 +1,66 @@
+pluginId: dev.clowder.video-analysis
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0-beta.13
+name: Video Analysis
+description:
+  default: Analyze remote videos through configured Gemini or Zhipu providers.
+  translations:
+    zh-CN: 通过已配置的 Gemini 或智谱视觉模型分析远程视频。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: provider
+    label: Video provider
+    kind: select
+    required: true
+    options:
+      - value: gemini
+        label: Gemini
+        docsUrl: https://ai.google.dev/gemini-api/docs
+      - value: zhipu
+        label: Zhipu
+        docsUrl: https://docs.bigmodel.cn/cn/guide/models/vlm
+  - key: apiKey
+    label: API key
+    kind: secret
+    required: true
+  - key: baseUrl
+    label: Base URL
+    kind: url
+    required: false
+  - key: model
+    label: Model
+    kind: string
+    required: false
+contributions:
+  - type: mcp
+    id: video-analysis-toolset
+    runtime:
+      transport: stdio
+      entrypoint: dist/mcp-entrypoint.js
+    environment:
+      VIDEO_ANALYSIS_PROVIDER:
+        source: config
+        key: provider
+      VIDEO_ANALYSIS_API_KEY:
+        source: secret
+        key: apiKey
+      VIDEO_ANALYSIS_BASE_URL:
+        source: config
+        key: baseUrl
+      VIDEO_ANALYSIS_MODEL:
+        source: config
+        key: model
+features:
+  - id: analyze-video
+    name: Analyze video
+    resources: []
+    contributions:
+      - type: mcp
+        id: video-analysis-toolset
+    capabilities:
+      - plugin.config.read
+      - secret.read
+runtime:
+  transport: builtin

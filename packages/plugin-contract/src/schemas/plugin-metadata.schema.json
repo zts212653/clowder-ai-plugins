@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/plugin-metadata/v1",
+  "title": "Clowder AI Plugin Product Metadata (v1)",
+  "description": "Manifest-owned static product metadata projected into the repository catalog for Agent, Console, and Marketplace discovery.",
+  "$defs": {
+    "LocalizedDescriptionObject": {
+      "type": "object",
+      "properties": {
+        "default": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "translations": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+          },
+          "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "minProperties": 1,
+          "maxProperties": 32
+        }
+      },
+      "required": ["default", "translations"],
+      "additionalProperties": false
+    },
+    "LocalizedDescription": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 4096 },
+        { "$ref": "#/$defs/LocalizedDescriptionObject" }
+      ]
+    },
+    "PackageAssetPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
+    },
+    "PackageIcon": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["svg", "png"] },
+        "src": { "$ref": "#/$defs/PackageAssetPath" }
+      },
+      "required": ["type", "src"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "svg" } }, "required": ["type"] },
+          "then": { "properties": { "src": { "pattern": "\\.svg$" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "png" } }, "required": ["type"] },
+          "then": { "properties": { "src": { "pattern": "\\.png$" } } }
+        }
+      ]
+    },
+    "PluginIcon": {
+      "oneOf": [
+        { "const": "github" },
+        { "$ref": "#/$defs/PackageIcon" }
+      ]
+    }
+  }
+}

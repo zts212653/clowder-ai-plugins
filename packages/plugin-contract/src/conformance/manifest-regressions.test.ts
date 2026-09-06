@@ -13,6 +13,9 @@ const Ajv = require('ajv/dist/2020') as new (options: {
 };
 const addFormats = require('ajv-formats') as (ajv: object) => void;
 
+const pluginMetadataSchema = JSON.parse(
+  readFileSync(new URL('../schemas/plugin-metadata.schema.json', import.meta.url), 'utf8'),
+) as { $id: string };
 const schema = JSON.parse(
   readFileSync(new URL('../schemas/manifest.schema.json', import.meta.url), 'utf8'),
 ) as { $id: string };
@@ -21,6 +24,7 @@ const signalSchema = JSON.parse(
 ) as { $id: string };
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
+ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema.$id);
 ajv.addSchema(signalSchema, signalSchema.$id);
 ajv.addSchema(schema, schema.$id);
 

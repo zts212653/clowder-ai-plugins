@@ -7,6 +7,10 @@ packages/plugin-contract/ @mindfn @zts212653
 # Fixtures are contract, not second-class tests.
 packages/plugin-contract/fixtures/ @mindfn @zts212653
 
+# Catalog is the repository-owned machine discovery truth.
+/catalog/ @mindfn @zts212653
+/scripts/catalog-check.mjs @mindfn @zts212653
+
 # Workflows are the validation and publishing trust boundary.
 .github/workflows/ @mindfn @zts212653
 /.github/actions/publish-prerelease/ @mindfn @zts212653

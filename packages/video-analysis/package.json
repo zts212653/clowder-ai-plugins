@@ -1,19 +1,26 @@
 {
-  "name": "@clowder-ai/plugin-sdk",
-  "version": "0.1.0-beta.9",
-  "description": "Schema-neutral standalone runtime primitives for Clowder AI plugins",
+  "name": "@clowder-ai/video-analysis",
+  "version": "0.1.0-alpha.0",
+  "description": "Official standalone video-analysis plugin for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./manifest": "./plugin.yaml"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "clowder-video-analysis-mcp": "./dist/mcp-entrypoint.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "plugin.yaml",
+    "assets",
+    "npm-shrinkwrap.json"
   ],
   "engines": {
     "node": ">=20.0.0"
@@ -21,28 +28,31 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "pnpm --filter @clowder-ai/plugin-contract build && pnpm build && node --import tsx --test src/stdio-runtime.test.ts src/wire-dispatch.test.ts src/contract-mirror.test.ts src/standalone-host.test.ts src/handshake-client.test.ts src/events-publisher.test.ts src/feature-context.test.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "prepack": "pnpm build",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "0.1.0-beta.13"
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "yaml": "^2.8.1"
   },
   "keywords": [
     "clowder-ai",
     "plugin",
-    "sdk",
-    "stdio"
+    "video",
+    "analysis",
+    "mcp"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/zts212653/clowder-ai-plugins.git",
-    "directory": "packages/plugin-sdk"
+    "directory": "packages/video-analysis"
   }
 }

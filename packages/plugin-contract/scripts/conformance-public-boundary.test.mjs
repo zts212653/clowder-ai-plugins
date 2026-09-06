@@ -62,7 +62,16 @@ test('the built conformance boundary exports the stdio harness', async () => {
   );
 });
 
-test('the built public entry exports the runtime manifest validator', async () => {
+test('the built public entry exports runtime manifest and catalog validators', async () => {
   const contract = await import('@clowder-ai/plugin-contract');
   assert.equal(typeof contract.validateManifest, 'function');
+  assert.equal(typeof contract.validatePluginCatalog, 'function');
+  assert.equal(typeof contract.listCatalogPlugins, 'function');
+  assert.equal(typeof contract.searchCatalogPlugins, 'function');
+  assert.equal(typeof contract.getCatalogPlugin, 'function');
+
+  const catalogSchema = require('@clowder-ai/plugin-contract/schemas/catalog');
+  assert.equal(catalogSchema.title, 'Clowder AI Plugin Catalog (v1)');
+  const metadataSchema = require('@clowder-ai/plugin-contract/schemas/plugin-metadata');
+  assert.equal(metadataSchema.title, 'Clowder AI Plugin Product Metadata (v1)');
 });

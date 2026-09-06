@@ -1,12 +1,12 @@
 ---
 title: Clowder AI 插件系统实施路线图
-status: 执行中 — M0 Core PR #1380 reviewed Host HEAD 已合入 upstream main，live runtime 保持 dormant；等待 canonical 18-case 与真实 Feishu 联合验收；下一阶段冻结为解耦 SDK/Contribution 底座、存量迁移与正式版狗粮门
+status: 执行中 — Train A/M0 已以 Core PR #1410 的 canonical 18/18 联合验收关闭；当前进入 Train B 终态 Manager/Marketplace/Agent/YAML/catalog 底座与 video-analysis 首迁纵切
 discussion: zts212653/clowder-ai-plugins#1
 ack_request: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5236600431
 acknowledgement: https://github.com/zts212653/clowder-ai-plugins/issues/1#issuecomment-5248175358
 progress_refresh: https://github.com/zts212653/clowder-ai-plugins/pull/25#issuecomment-5261613034
 created: 2026-07-14
-revised: 2026-08-25
+revised: 2026-09-01
 feature_ids: [clowder-ai-plugins-init, P-1, F202, F288, F292]
 topics: [roadmap, plugin-contract, plugin-sdk, host-broker, plugin-manager, contribution-plane, migration]
 doc_kind: roadmap
@@ -22,11 +22,19 @@ references:
 Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥有跨仓顺序、
 版本坐标、交付列车与基础底座完成线，避免两仓维护两套相互漂移的阶段表。
 
-本次刷新以 2026-08-25 已核验代码和 operator 的解耦终态为准。它取代旧版
+本次刷新以 2026-09-01 已核验代码和 operator 的终态分批为准。它取代旧版
 “beta.9 row closure → 逐能力 Phase 2/3 扩张”以及“业务 factory 搬目录即插件化”的顺序。
 目标不是继续增加协议行或拆出大量小 PR，而是让 Host 只保留通用 authority/control plane，
 用 YAML + SDK 同一契约完成插件侧注册和业务执行，再集中迁移现有能力、狗粮和文档，最后
 发布 `0.1.0` 正式版。
+
+2026-09-01 operator 再次收窄两批终态：Train B 一次完成统一 Manager、VS Code 式
+Marketplace/Settings 骨架、Agent 管理工具、机器 catalog、静态 `plugin.yaml` 接入协议与
+一个真实首迁插件 `video-analysis`；该 package 只在隔离 acceptance 环境运行，不切 Core
+生产默认路径。Train C 只做剩余业务插件、IM providers 与既定 managed services 的插件仓
+聚合迁移，以及 Core 的单路径 cutover、旧实现/旧 IM 管理入口删除。公共 Agent 控制面固定为
+`plugin_list / plugin_search / plugin_get / plugin_install / plugin_set_enabled / plugin_uninstall`；
+不开放 `plugin_update`、`plugin_repair` 或 `updateAvailable`。
 
 ## 1. 目标架构与硬边界
 
@@ -34,8 +42,9 @@ Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥
 
 一个独立 npm 插件必须能够：
 
-1. 从 Host 配置的 catalog provider 被发现、查询和安装；
-2. 通过统一 Plugin Manager 完成校验、配置、启用、禁用、更新、修复和卸载；
+1. 从插件仓发布的机器 catalog 被 `list/search/get` 确定性发现、查询并安装；
+2. 通过统一 Plugin Manager 完成校验、配置、启用、禁用和卸载；安装、配置、授权、用户意图与
+   runtime 健康分别投影，不能用一个 `enabled` 冒充完整状态；
 3. 只依赖公共 `@clowder-ai/plugin-sdk` 使用授权后的消息、事件、配置、状态、
    secrets、identity、scheduler、direct tool/MCP、webhook、message subscription、service、
    connector 与 Console contribution；同一能力语义的静态 manifest/YAML 与动态 SDK 注册进入
@@ -45,12 +54,14 @@ Core feature 文档继续拥有各自的 Host acceptance criteria；本文件拥
    execution lease，不能退化为共享的 plugin-level authority；
 5. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
    保留或清理数据；
-6. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径。
+6. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径；
 7. GitHub、IM、voice/service 等业务实现、thread routing 与外部回推都在插件侧；Host 中没有
    provider-specific factory/router/handler，Hub、兼容期 Gateway 与 SDK 消息写入共享一个
    canonical admission。
+8. Console 与 Agent 只投影同一份 Host inventory：catalog 真相源属于插件仓，已安装 artifact、
+   config/auth/intent/live 状态与 grants 属于本机 Host；插件或 Agent 不维护第二份 inventory。
 
-达到以上七条，才算“基础底座完成”。某个 package 发布、某组 wire row ready、
+达到以上八条，才算“基础底座完成”。某个 package 发布、某组 wire row ready、
 Host merge 或 loopback 单测通过，都不能单独替代该完成线。
 
 ### 1.2 留在 Core 的能力
@@ -113,18 +124,17 @@ in-process plugin”、把 `node:vm` 当安全边界、插件持有另一插件�
 代替持久真相。Clowder AI 保留 Host Broker、grant、digest、外部进程隔离和 durable
 ledger 这些更严格的边界。
 
-## 2. 2026-08-25 已核验现状
+## 2. 2026-09-01 已核验现状
 
 ### 2.1 精确坐标
 
 | 真相源 | 精确坐标 | 已核验事实 |
 |---|---|---|
-| `clowder-ai-plugins` | `37796035e4dd519747a63c8454d753c3ca9e2a86` | beta.10 lifecycle、beta.11 messaging、Feishu 修复 #40/#41 与 Personal Chrome candidate #39 已合入。路线图 PR #38 不占实施预算；已合入候选不是正式版狗粮门的替代证据。 |
-| `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.11` | 13 条 handshake、messaging、lifecycle、events wire row 全部 `ready:true`。 |
-| `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.7` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；尚不是完整插件作者 SDK。 |
-| `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.8` | npm `next` 已为 alpha.8；已有真实独立 npm/stdio 插件、owner auth 与事件输入，仍需在解耦 surface 上作为真实 dogfood。 |
-| Clowder AI upstream | `31105179e1da9b365709c00f0f925e4247e7f3d8` | F202 local manager、K-2 Host runtime、官方 catalog/install/update/lifecycle API 与 Settings UI 已存在；M0 Host messaging 已随 PR #1380 合入 main，但当前 live runtime 尚未加载该 merge。 |
-| M0 Host Core PR | [`zts212653/clowder-ai#1380`](https://github.com/zts212653/clowder-ai/pull/1380) · reviewed HEAD `016a7767065a58cdebe08b39a416aba3174429cb` · merge `31105179e1da9b365709c00f0f925e4247e7f3d8` | beta.11 Host messaging、durable snapshot paging 与 stdio delivery 已实现并合入。maintainer APPROVED 精确覆盖 reviewed HEAD，Lint、Windows、Build、Public Test 与 Directory Size Guard 5 项公开检查全绿；canonical 18-case 与 Feishu 联合验收尚未运行，runtime activation 未获授权。 |
+| `clowder-ai-plugins` | `d426c9168dc311183e96318bf57346eb5481b3eb` | 路线图 PR #38、M0-D execution-plane contract PR #43、Feishu 修复 #44 与既有 standalone packages 已合入。路线图 PR 不占实施预算。 |
+| `@clowder-ai/plugin-contract` | `next = 0.1.0-beta.12` | execution-plane contract 已发布；registry SLSA provenance 绑定 Plugins merge `ffc638ce958e6b3ee26a0e7032da56179cb8f9fc`。 |
+| `@clowder-ai/plugin-sdk` | `next = 0.1.0-beta.8` | 已有 stdio runtime、handshake、dispatch classifier 与 `events.publish` helper；Train B 在此基础上补完整插件作者 facade。 |
+| `@clowder-ai/feishu-meeting-intake` | `next = 0.1.0-alpha.9` | 已有真实独立 npm/stdio package、owner auth 与事件输入；保留为既有消费者证据，不再要求它代验 Train B 全部 surface。 |
+| M0 Host Core closure | [`zts212653/clowder-ai#1410`](https://github.com/zts212653/clowder-ai/pull/1410) · reviewed HEAD `413812222cb35d4e02adb7194ab3aa677d7898c7` · merge `090626a538d59e2b6ce3c3ba9b205b57d958fcdd` | canonical acceptance 以签名 `execution.method` 作为唯一 dispatch truth，真实 Host seams 达到 18/18（9 wire / 3 admission / 1 delivery / 5 Host-control）；maintainer APPROVED，公开 CI 全绿并已合入。 |
 
 `latest` dist-tag 仍落后 `next`；当前属于 prerelease 交付车道，不宣称兼容性冻结。
 
@@ -133,14 +143,13 @@ ledger 这些更严格的边界。
 | 层面 | 当前判断 | 主要缺口 |
 |---|---|---|
 | Contract / trust | 高 | stable compatibility 与完整产品验收。 |
-| Host runtime | 中高 | M0 Core PR #1380 reviewed HEAD 已合入 upstream main，5 项 CI 全绿；live runtime 保持 dormant，仍须完成生命周期/消息联合验收。 |
-| Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略。 |
+| Host runtime | 高 | M0 Core PR #1410 已完成 canonical 18/18 并合入；Train B 不再扩 M0 wire。 |
+| Core Plugin Manager / catalog | 中 | 当前本地插件、官方外部插件、IM connector 仍有平行控制面；catalog 只有窄官方策略，Agent 尚无统一 list/search/get。 |
 | Public Plugin SDK | 低中 | 缺统一的 plugin lifecycle / Host-issued `FeatureContext`，以及 identity/scheduler/tool/webhook/subscription 等 YAML+SDK 双通道 facade。 |
 | Contribution / Console | 低 | typed contribution、slot runtime 和 disposer 未闭合。 |
 | 存量迁移 | 低 | Feishu/Chrome 是外部 package 先例；GitHub、全部 IM、具体服务和现有业务插件尚未统一迁移，Core 仍有 provider-specific factory/router/hook。 |
 
-按用户可完成的端到端旅程而不是代码量估算，整体约为 **45%–50%**。
-该比例只用于解释路线，不作为关闭 feature 的指标。
+阶段真相为 **Train A 已关闭，Train B 进行中**。不再用主观百分比替代列车完成门。
 
 ## 3. 执行规则与 PR 预算
 
@@ -148,7 +157,8 @@ ledger 这些更严格的边界。
    `@clowder-ai/plugin-contract`，Core 不得恢复 wire/schema mirror。
 2. **交付按纵切列车，不按接口拆 PR。** lifecycle、messaging、MCP、scheduler、
    service 或 UI contribution 都不是各开一串 PR 的理由。
-3. **剩余基础闭环默认五个聚合 PR。** 每个 PR 内用小提交、TDD、按域测试矩阵和
+3. **基础闭环固定为五个聚合 PR。** Train A 已完成 PR 1；Train B 使用 Plugins/Core
+   两个聚合 PR，Train C 使用 Plugins/Core 两个聚合 PR。每个 PR 内用小提交、TDD、按域测试矩阵和
    review 修订保证可审查性；review finding 继续修在原 PR。
 4. **只有边界而非规模允许拆分。** 新信任边界、不可逆 registry/数据迁移，或确实
    无法在一个 review 单元内安全证明的状态机，才允许突破预算。
@@ -173,16 +183,17 @@ ledger 这些更严格的边界。
 
 | 状态门 | 进入条件 | 必须提交的证据 | 退出条件 | 不能替代完成的证据 |
 |---|---|---|---|---|
-| Train A / M0 | beta.11 contract 与 Plugins runtime 已发布 | exact Host/Plugins SHA、完整 fail-closed matrix、18-case、真实 Feishu dogfood | Host runtime 与公开 SDK 消息入口在同一授权路径闭合 | 单仓单测、单个 loopback 或 CI 绿灯 |
-| Train B / foundation | Train A 完成，§5.1 的 v0 surface 集合冻结 | product-neutral conformance fixture **加** §5.3 真实消费者矩阵；Plugins/Core exact SHA 联合验收 | 每个公开 surface 同时有通用机制证据和至少一个真实消费者证据，完整生命周期旅程通过 | 类型存在、通用 fixture 独跑、只覆盖部分 surface |
+| Train A / M0 | beta.12 contract 与 beta.8 SDK 已发布 | exact Host/Plugins SHA、完整 fail-closed matrix、canonical 18-case | Core PR #1410 在真实 Host seams 达到 18/18 并合入 | 单仓单测、单个 loopback 或 CI 绿灯 |
+| Train B / foundation | Train A 完成，§5.1 的 v0 surface 集合冻结 | product-neutral conformance fixture、`video-analysis` 真实纵切、Plugins/Core exact SHA 联合验收 | 机器 catalog、YAML/SDK contribution、终态 Manager/Marketplace/Agent 骨架和固定生命周期旅程闭合；不切生产路径 | 类型存在、通用 fixture 独跑、只覆盖部分 surface |
 | Train C / migration | Train B 完成；§6.4 inventory 在两个聚合 PR 的 merge base 上冻结 | 每个 inventory entry 的 package、数据 mapping、rollback、composition、cutover 与旧路径清理证据 | inventory 中每个 entry 均为 `migrated` 或经 maintainer 明确批准的 `excluded`，且无双跑/第二管理入口 | “至少一个”样例迁移、包已发布但 Core 仍保留业务实现 |
 | stable `0.1.0` publication | Train C 完成 | §7 正式版 dogfood、文档、版本与 dist-tag 证据 | contract/SDK `0.1.0` 发布且 Host/官方插件精确消费 | prerelease 绿、单个 demo、文档“计划补” |
 | post-closure expansion | stable `0.1.0` publication 完成 | 新能力自己的真实消费者、权限与数据形状审查 | 对应纵切独立验收 | 旧 M1 排期或未实现设计稿 |
 
 以下不变量横跨所有列车：
 
-- **INV-R1 — surface 双证据：** 任何公开 v0 surface 都不能只靠 schema/type 或
-  product-neutral fixture 冻结，必须另有真实第一方消费者在隔离 acceptance 环境通过；
+- **INV-R1 — contract 与纵切双证据：** 每个公开 v0 surface 都要有 machine schema/type 与
+  product-neutral conformance；Train B 另以 `video-analysis` 证明首个真实 package 从 catalog
+  安装到卸载的纵切。其余业务 surface 的真实 package 证据随 Train C 冻结 inventory 一次补齐；
 - **INV-R2 — migration 全量守恒：** Train C 的完成集合严格等于冻结 inventory 的
   in-scope 集合；新增、删除或排除 entry 必须在同一 PR 中显式修订 inventory 与理由；
 - **INV-R3 — 不双跑：** Train B 的 consumer slice 不成为默认生产路径，Train C cutover
@@ -213,34 +224,22 @@ ledger 这些更严格的边界。
 - **INV-R11 — 正式版门禁：** Train C、§7 狗粮和文档任一未完成时，contract/SDK 只能留在
   prerelease dist-tag，不能把 `latest` 或版本号变化当作兼容性冻结。
 
-## 4. Train A — M0 Runtime 收口（实施 PR 1/5 已合入；联合验收待执行）
+## 4. Train A — M0 Runtime 收口（实施 PR 1/5 已关闭）
 
-Plugins 侧 beta.11 与 Core Host PR 均已合入，本列车只剩 canonical 联合验收与真实
-Feishu dogfood。当前分支不再扩 SDK、marketplace 或 Console scope。
+Plugins 侧 beta.12/beta.8 exact artifacts 已由 Core 消费，Core PR #1410 已完成 canonical
+18-case 并合入。本列车关闭；当前分支不再扩 M0 wire。
 
 ### 必须完成
 
-1. ✅ M0 行为 candidate 已 rebase 到 upstream `bc9ff2d3...`，并在
-   `7bac631569f9607f248f5ff01ad3b79b00ffcd0d` 完成 finding continuity；最终 reviewed
-   Host HEAD 为 `016a7767065a58cdebe08b39a416aba3174429cb`，已以
-   `31105179e1da9b365709c00f0f925e4247e7f3d8` 合入 upstream main；
-2. ✅ 行为 HEAD 的 build、TypeScript、focused 307/307、isolated Redis 44/44、完整 public
-   tests、Web lint 与真实 upstream 基线 check 已闭合；完整门禁使用仓库支持的 Python 3.11
-   通过。最终 reviewed Host HEAD 的 Lint、Windows、Build、Public Test 与 Directory Size Guard
-   5 项公开检查也已全绿；
-3. ✅ 非作者跨家族 reviewer 已覆盖授权、durable cursor、Redis 原子性、stdio
-   correlation、deadline、crash/recovery 与默认安全 composition；4 个 P2 已修复并复审通过；
-   maintainer 的 2 个 P1 与 1 个 P2 也已在原 PR 修复并跨 rebase 保留；maintainer 已正式
-   APPROVE 最终 exact HEAD `016a7767065a58cdebe08b39a416aba3174429cb`；
-4. ✅ 单一 upstream Core PR
-   [`#1380`](https://github.com/zts212653/clowder-ai/pull/1380) 已合入，PR tracking 已按
-   `subject_terminal=merged` 终结；
-5. 已冻结 reviewed Host SHA `016a7767065a58cdebe08b39a416aba3174429cb`、merge SHA
-   `31105179e1da9b365709c00f0f925e4247e7f3d8` 与 §2.1 当前 Plugins exact SHA
-   `37796035e4dd519747a63c8454d753c3ca9e2a86`；待运行 canonical 18-case
-   Host ↔ compiled standalone plugin 联合验收；
-6. 用真实 Feishu plugin 证明 install/enable/start/publish/disable/restart 不绕过
-   Broker、inventory 与 domain settlement。
+1. ✅ Plugins merge `ffc638ce958e6b3ee26a0e7032da56179cb8f9fc` 发布 contract beta.12
+   与 SDK beta.8；registry provenance、integrity 与 Core lockfile pin 已独立核验；
+2. ✅ Core PR [`#1410`](https://github.com/zts212653/clowder-ai/pull/1410) 以 reviewed HEAD
+   `413812222cb35d4e02adb7194ab3aa677d7898c7` 通过完整 `pnpm gate`、maintainer APPROVED，
+   并以 `090626a538d59e2b6ce3c3ba9b205b57d958fcdd` 合入；
+3. ✅ canonical acceptance 18/18：9 wire、3 admission、1 delivery、5 Host-control，全部经过
+   真实 seams；private operation→method inference 已删除，签名 `execution.method` 是唯一 dispatch truth；
+4. ✅ Host/SDK fail-closed matrix 与 exact package provenance 已纳入同一闭环，不以 workspace
+   link、单个 loopback 或部分 CI 代替发布 artifact 验收。
 
 ### 完成线
 
@@ -267,6 +266,19 @@ Train B 是 M0 后唯一关键路径，由一个 Plugins 聚合 PR 和一个 Cor
 实现可以按领域提交，但不得把每个 facade、adapter 或 contribution point 拆成 PR。
 
 ### 5.1 Plugins 聚合 PR：公共 SDK 与 Contribution Contract（PR 2/5）
+
+本 PR 同时发布机器可读 catalog 和第一个真实迁移 package。catalog 拥有发现 metadata、版本、
+兼容范围、artifact URL/integrity/provenance；每个 artifact 内的 `plugin.yaml` 始终是静态接入协议，
+拥有 features、config、resources、capabilities/contributions 与 runtime entry。catalog 不复制或
+改写 manifest authority，Host 安装后从 verified artifact 投影本机 inventory。
+
+插件的产品 metadata 也只有一份 manifest 真相。`description` 兼容旧 string，并以
+`{default, translations:{locale: text}}` 承载多语言能力/用途说明；`icon` 兼容旧 `github`，正式
+package 使用 `{type: svg|png, src: package-relative asset}`，type 必须匹配扩展名，拒绝 URL、绝对
+路径与 `..`。catalog 为安装前 discovery 保存这两个字段的逐字 projection，但 exact-artifact gate
+必须从 tarball 解出 `plugin.yaml` 校验 projection 一致并证明声明资产真实随包交付。Agent search
+索引 default 与全部 translations；Console/Marketplace 只使用 Host 校验后重写的 asset URL，禁止
+按 catalog/local 来源猜 puzzle/folder 占位图或另存 metadata 副本。
 
 co-creator 冻结的 SDK scope 与本路线图采用的 feature-scoped canonical facade 映射如下。
 左列名称用于锁定能力范围，右列是避免插件自报授权身份后的实际 author API；`pluginId`、
@@ -357,7 +369,7 @@ capability type 时构成两种 desired 来源；`type: mcp/skill/limb/schedule`
   state 与 adapter health 纯投影，禁止再存第二份布尔造成 restore 复活。
 
 conformance 必须对每一适用类型执行：同义静态/动态等价、并发同键同/异 payload、prepare crash、
-publish crash、disable/re-enable、runtime reconnect、package update 删除/改名、foreign/stale
+publish crash、disable/re-enable、runtime reconnect、manifest revision 删除/改名、foreign/stale
 callback、generic list/delete 旁路误用与 disposer 重放；MCP、skill、limb 与 direct tool 还要证明
 按分类进入各自子系统、没有被万能 registry 改写安全语义。只测 happy-path register/dispose 不通过。
 
@@ -368,13 +380,6 @@ callback、generic list/delete 旁路误用与 disposer 重放；MCP、skill、l
 - Plugin Manager 统一 package、package integrity、config、activation、runtime 正交状态；
 - Manager 持久化逐 `pluginInstanceId + featureId + packageRevision` 的 desired/current
   activation，拒绝 stale completion；feature 失败只回滚本次资源，不能扰动 sibling；
-- package update 保留 plugin 总闸 desired，并只将新旧 manifest 中**存续 feature ID** 的
-  desired activation 投影到新 package revision；plugin/feature current 必须按新 grants/config
-  重算。新增 ID 默认 disabled，删除 ID 不产生新 revision state/lease，改 ID 视为删除+新增；
-  显示名变化必须保留稳定 ID。失败发生在切换边界前且旧 lease/runtime 从未撤销时，保留
-  原 v1 desired/current 与 activation revision；切换边界后只恢复完整 v1 desired 投影，
-  并由全新的 rollback activation revision 重新 reconcile current。不得恢复或复用已撤销的
-  current/revision，也不得从部分 v2 reconcile 反推用户选择；
 - Broker/Manager 签发、轮换和撤销 feature execution lease；每次 SDK call、registration、
   event/callback delivery 与 secret/state access 都从 Host ledger 解析 feature 主体并复核
   plugin/feature activation、package integrity 恰为 `verified`、Host-monotonic
@@ -384,8 +389,10 @@ callback、generic list/delete 旁路误用与 disposer 重放；MCP、skill、l
 - `.env` 只选择 catalog provider/索引位置；Host 继续验证允许的 origin、版本、
   digest、provenance、trust tier 与 quarantine，配置来源不能自动变成信任来源；
 - `clowder-ai-plugins` 发布机器可读 catalog index，支持查询、详情、版本和兼容性；
-- Console 与 Agent 使用同一组 revision-fenced、带授权和审计的管理 API；Settings 复用现有
-  plugin 页面，增加 VSCode 式按名称查询 catalog、详情、install/uninstall，不另建市场 UI；
+- Console 与 Agent 使用同一组 revision-fenced、带授权和审计的管理 API；Settings 从 Train B
+  就交付 VS Code 式终态 Marketplace/Installed/Details/Settings 骨架，不另建第二套市场或
+  inventory。Agent 固定为 `plugin_list`、`plugin_search`、`plugin_get`、`plugin_install`、
+  `plugin_set_enabled`、`plugin_uninstall`；安装授权、secret/config 与卸载数据选择仍由人完成；
 - resource adapters 复用同一 owner/lifecycle envelope，再把 identity、scheduler、direct tool、
   MCP、skill、limb、webhook、message subscription、service/connector 分发到 type-specific
   registry/control plane；Core adapter 只持有通用 clock/route/registry/binding/policy，不持有
@@ -395,8 +402,8 @@ callback、generic list/delete 旁路误用与 disposer 重放；MCP、skill、l
 - Console 提供逐 feature 启停与声明式 slot/command/settings/message-element
   contribution；挂载与销毁同时受 plugin、feature lifecycle 和 grant 约束；v0 不执行
   不受信任的任意 DOM/React 代码；
-- install/update/repair/uninstall 与 retained/ask-on-uninstall 数据策略经过 crash、并发、
-  stale revision、rollback 和 restart 对抗测试。
+- install/configure/enable/restart/disable/uninstall 与 retained/ask-on-uninstall 数据策略经过
+  crash、并发、stale revision、rollback 和 restart 对抗测试；
 - config、secrets 与 namespaced state 作为 Host 内建 store 单独持有 disposition：uninstall
   先撤销 authority 并移除 package/runtime，config/state 默认进入不可被 runtime 访问、TTL=0
   且 Settings 可见的 detached Host-owned record；secrets 必须由用户明确选择保留或清除，
@@ -434,7 +441,11 @@ callback、generic list/delete 旁路误用与 disposer 重放；MCP、skill、l
   相关 lease，journal 原子删除后用新 activation revision reconcile；detached record 也能从
   Settings 清除，插件 callback 无权触发，crash/failure 回滚且审计 ledger 保留。
 
-repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在同一
+#### 内部完整性延伸约束（非公共控制面、非 Train B 稳定门）
+
+以下 F292 package replacement/repair 规则保留为 Host 内部安全约束与未来专用诊断输入，
+不得投影为 Agent/Marketplace 的 `plugin_update`、`plugin_repair`、`updateAvailable`，也不改变
+本列车唯一稳定旅程。repair 不是“再跑一次 install”的旁路。它只由 Plugin Manager 在同一
 `pluginInstanceId` operation revision 下推进，并与 install/update/uninstall/第二个 repair
 串行化；generic restore、catalog refresh 或 plugin callback 不得直接把 integrity 标成
 `verified`，也不得复活旧 feature lease：
@@ -477,165 +488,55 @@ v2 grants/config reconcile，新增 grant 未获批时不能因旧 desired 自�
 
 ### Train B 完成线
 
-一个不含产品特判的 fixture npm 插件必须能从 catalog 安装，并只使用公共 SDK
-逐项执行 §5.1 承诺的全部 v0 surface：lifecycle/effect、feature activation、messaging/events、
-config/state/secrets、identity、静态+动态 scheduler、direct tool/MCP、webhook、message
-subscription、services/connectors 与 UI contribution。
-验收既覆盖适用的 register/dispose，也覆盖 read/write/call/delivery 语义；类型存在或
-只验证其中几类不能通过。插件经历配置、启用、重启、注入 package 损坏、修复、禁用、
-更新、卸载后，Host
-inventory、逐 feature desired/current state、注册表、UI 和 retained data 必须全部一致。
-损坏注入本身必须在 repair 请求之前触发 governing design INV-FA4/FA5：同一 durable transition
-将 integrity 置为 `damaged`、撤销整包全部 feature lease、停止新 event/callback delivery、
-使 current fail closed、quarantine active integrityEpoch 的全部未结算 settlement token，并在
-repair 开始前停止或 quarantine runtime。fixture 还必须分别在 update staging 与 verified
-explicit repair staging 期间向 **active tree** 注入损坏，证明 evidence 抢占当前 operation、
-丢弃 staging 且不能等 operation 完成；另向 **staging candidate** 单独注入 mismatch，证明只
-中止候选、不误伤仍 verified 的 active tree/epoch。保存的每个 feature
-旧 context 都要对 messaging/events、scheduler/MCP、service/connector、UI registration
-以及 config/state/secret 访问逐类失败；repair 失败、stop 失败与 crash/restart 均不得重开 authority，只有 replacement
-tree 完整验证并原子替换后才能用全新 activation revision 按 desired reconcile。
-首次写入 config/secrets/state 后的 disable、restart 与 reconnect 必须逐字节保全三个 store，
-同时证明旧 lease 已失效；fresh install 未显式恢复 detached record 时三个 store 必须为空。
-repair 必须验证同版本内容重新 stage/verify/atomic swap，config/secrets/state 与
-每个声明数据集（`lifecycle`、`retained`、`ask-on-uninstall`）不被覆盖或删除，desired state
-保留，current runtime 只用新 activation revision 恢复且注册恰好一次；旧 context 继续
-fail closed。fixture 必须分别声明并写入三种处置策略的数据集，在成功 repair、repair 中途
-crash/restart 与无可用 rollback tree 的失败态逐一断言内容守恒；随后单独执行 uninstall，
-验证只有该操作才会清除 `lifecycle`、保留 `retained`，并按用户选择处置
-`ask-on-uninstall`。还必须覆盖 repair 与 update/uninstall 并发，证明不会出现半替换 package、
-双份 runtime 或 repair 路径误触发数据处置。
-fixture 还必须执行一条 **uninstall/reinstall/explicit-clear journey**：第一次卸载选择保留
-secrets 与 `ask-on-uninstall` dataset，证明 config/state 默认进入 detached record、`retained`
-和被选择保留的数据连同 Host-issued `detachedBundleId A`、stable datasetId/dataClass/policy/
-schemaVersion/contentDigest 进入 detached dataset inventory、`lifecycle` 被删除，且这些内容
-均不能再被旧 context 或任意 runtime 读取。随后不恢复 A 地重装，写入可区分的第二代 store/
-dataset 内容并再次选择保留卸载，产生相同 plugin/publisher/origin 与 stable datasetId、但具有
-`detachedBundleId B` 的第二代 detached snapshot；Settings 必须按 generation 列出并逐项管理
-A/B。再次以相同 verified `pluginId + publisher identity + origin` 重装时，断言获得 fresh
-pluginInstanceId、旧 lease/cursor/幂等与结算账本均不复用；用户必须显式选择恰好一个
-`detachedBundleId`，Host 只能把选中 generation 的 config/secrets/state 与新 manifest 中同
-stable datasetId 的 `retained`/保留的 `ask-on-uninstall` 经 migration 作为一个 bundle 原子
-绑定，禁止把 A/B 跨代拼接或隐式选择“最新”。未选 generation 继续 top-level detached；选中
-root 中未被新 manifest 接纳的条目仍留原 recursive closure，并在至少一项 durable record
-已绑定的 positive-yield commit 原子 carry-bound 给 fresh instance，不得继续作为另一个
-top-level generation 可选。fresh context 激活后必须验证 **post-reinstall readability**
-与所选 generation 的迁移输出，旧 context 仍 fail closed；新增/`lifecycle` dataset 为空，
-已删除 ID 继续 detached 且不可被 runtime 认领。
-用不同 signer/origin、伪造 datasetId 或不兼容声明认领必须拒绝，任一 built-in store/dataset
-migration 失败必须保留全部 detached snapshot 并让新实例保持未配置、disabled，不能部分恢复。
-这条 **retained/ask-on-uninstall reattach journey** 还要分别覆盖卸载时选择清除 secrets/
-`ask-on-uninstall`，以及已安装和 detached 状态下逐项 clear config/secrets/state 与 detached
-dataset；detached clear 必须用 `detachedBundleId + store kind/datasetId` 命中指定 generation，
-并证明同 stable datasetId 的另一代不受影响。还要断言 clear 前 authority 已撤销、readiness/
-credential/namespace/inventory 投影正确、新 activation revision reconcile、crash 回滚且
-audit/transaction ledger 不被数据清除连带抹除。
+Train B 必须以同一组 exact artifacts 通过下面一条稳定旅程：
 
-fixture 还必须执行一条 **zero-yield restore journey**：先显式清除 source snapshot A 的全部
-built-in stores，使 A 只剩当版 verified manifest 不兼容或用户未选择的 datasets。提交恢复 A 时，
-restore journal 可以完成候选枚举与 staging 检查，但在 commit gate 必须得到零条 durable record
-binding，并返回 typed `no_compatible_restore_input`；不得提交 package/fresh instance、不得写
-`restoreCarryOwnerPluginInstanceId`、不得消费 entry 或改变 A 的 lineage/inventory revision，终态仍是
-`absent + top-level selectable A`。随后换用能兼容并迁移其中一项 dataset 的 verified package 重试，
-必须直接从同一个 A 成功产生 positive-yield restore，无需先卸载任何空实例。在 yield 计算、instance
-commit 与 carry commit 前后注入 crash/retry，均只能观察到完整 unchanged A，或至少绑定一项且 residual
-原子 carry-bound 的完整 fresh instance；禁止 zero-yield instance、隐藏 A、空 carry 或重复消费。
-fixture 还必须执行一条**两版本 update 旅程**：从已填充 config、secrets、state 与三类数据集
-的 v1 更新到带 config/state schema migration 的 v2。v1/v2 dataset fixture 必须同时包含一个
-同 stable ID 且 migration 成功的存续 dataset、一个 removed datasetId、一次 stable ID 变更、
-一个 dataClass/policy/schema 不兼容且不能迁移的 dataset，以及一个新增 datasetId；断言存续内容
-绑定到 v2、新增/替代内容为空，其余旧字节只进入同一完整的 update-sourced detached bundle，
-runtime cannot read detached，Settings lists the update-sourced bundle 且能按
-`detachedBundleId + datasetId` 精确 clear。还须证明没有用户显式选择就不能恢复/认领 detached
-内容，后续 uninstall 按旧 metadata 的原 policy 处置 update-detached 条目。
+```text
+catalog list/search/get
+  → install
+  → configure
+  → enable
+  → use
+  → restart and recover the same honest state
+  → disable and revoke every capability
+  → uninstall with explicit data disposition
+```
 
-成功 update 后继续执行 lineage journey：被移除的 dataset 先进入 **update-holding bundle U**，
-Settings 可列出并精确 clear，但 runtime/reinstall 均不可读或选取 U。随后卸载同一 instance，保留
-stores、`retained` 与用户选择保留的 `ask-on-uninstall`，生成唯一 **uninstall snapshot A**；断言
-A 的 `absorbedDetachedBundleIds` 含 U、U 的 `absorbedByDetachedBundleId` 指向 A，U 不再 standalone
-可选但 entry key/provenance 不变，而其他 pluginInstanceId 的历史 snapshots 不变。用相同 identity
-重装并显式选择 A recursive logical closure，必须满足
-**A restores both built-in stores and the update-detached dataset**（这是 positive-yield；后者仍须
-stable ID/声明兼容且 migration 成功），不允许额外选择 U 或 arbitrary bundle-set；同一 closure 分别注入两个同 stable ID 的
-descendant entries，以及一个同 ID 的 A direct entry 与 descendant entry。断言 Settings 用
-`(entry.detachedBundleId, datasetId)` 展示完整候选集，未显式选择时该 ID 默认不恢复；分别选择 direct
-与任意 depth descendant 时只把被选的可区分内容送入 migration staging，另一项保持原 key/lineage detached，不得隐式
-偏向“当前”或“历史”内容。再提交属于另一个 top-level snapshot 的 foreign key、已被 concurrent clear
-移除的 stale key、ineligible key 与同 ID 双选，并在选择后替换 verified package revision，断言 restore
-在消费任何 entry 前 fail closed；clear/restore 按 inventory revision 串行，crash/retry 复用 journal 中
-同一 package revision/选择且不产生第二份 selector state。分别在 policy census、link edge、
-A commit 前后注入 crash/restart：只允许“installed + 完整 standalone U、无 A”或“absent + 完整 A
-closure、无 standalone U”，重试复用同一 A 且无重复/多父/环；验收必须断言 **no split lineage**。
-再分别通过 restore 与 explicit clear 排空一个 descendant leaf，断言 leaf metadata 与双向 parent edge 在
-同一 commit 删除且其他 branch 不变；从 leaf 向 root 级联清理空节点，root direct records/children 全空后
-才删除 root/carry owner，任一 crash 不得留下 dangling edge。
+验收要求：
 
-紧接着执行一条 **partial-restore continuity journey**：令 source snapshot A 同时包含可接纳的 built-in
-stores/dataset X 与当版 manifest 不兼容的 dataset Y。恢复 A 到 fresh instance I2 时，只允许 stores/X
-原子绑定；residual A 必须在同一 commit 写 `restoreCarryOwnerPluginInstanceId=I2`，从 top-level selectable
-转成 installed-carried，Settings 仍可递归查看/精确 clear，I2 runtime 仍不可读取 Y。随后让 I2 产生可区分
-的最新 stores/X 与一个 update-holding U2，再卸载 I2：Host 必须生成唯一 top-level snapshot B，把本代保留
-内容写成 B direct，并把 U2 与 **carried source snapshot A** 原子 link 为 B children、清 A carry owner；
-A 的既有 descendants、entry exact keys 与 provenance 原样保留。即使本代没有其他保留内容，只要 A residual
-非空也必须生成 B，不能把 A 留成 sibling top-level。下一次 manifest 已能迁移 Y 时，用户只选择 B 就必须
-同时枚举 B 的最新 stores/X、U2 与 A subtree 的 Y，禁止再单独选择 A 或临时拼 bundle-set。
-在 restore 绑定 selected entries/carry owner、uninstall 创建 B/link A/clear carry owner 的各 commit 边界注入
-crash/restart，只允许“absent + 完整 top-level A”“installed I2 + 完整 carried A、无 B”或“absent + 完整
-top-level B（递归含 A）”三种终态，禁止 sibling A/B、双 carry、环、多父或 orphan entry。再重复一次
-partial restore→uninstall 形成至少三层 closure，断言 Host 以 committed inventory 为界迭代遍历、每个 bundle
-恰好访问一次，并从 leaf 向 root 级联清理空节点；测试不得通过限制 closure 为固定一层。该 journey 是
-INV-DL10 的 multi-generation proof，不得用“选最新 snapshot”或跨 top-level 组合代替。
+1. 机器 catalog 是插件仓发布物，`plugin.yaml` 是 package 内静态接入协议；catalog metadata
+   不能覆盖 manifest 的 authority/resource 声明，Host inventory 不能被 catalog 或 Agent 复制；
+2. product-neutral conformance fixture 覆盖 §5.1 全部公开 YAML/SDK contribution type 的
+   schema、同义静态/动态注册、owner/conflict/dispose、restart、stale revision 与 denied-grant；
+3. `video-analysis` 是首个真实迁移 package：从 packed artifact 经 catalog 安装，只依赖公共
+   contract/SDK；artifact 自带 publisher-owned `npm-shrinkwrap.json`，其全部 package entry 只能
+   指向 canonical npm registry 并带完整 SHA-512 integrity，Host 以 script-free `npm ci --omit=dev`
+   materialize 同一运行闭包；真实执行 config/secret + direct tool/MCP，并通过
+   disable/restart/uninstall；
+4. Console 在 Train B 交付终态 VS Code 式 Marketplace/Installed/Details/Settings 骨架；
+   Agent 只暴露 `plugin_list`、`plugin_search`、`plugin_get`、`plugin_install`、
+   `plugin_set_enabled`、`plugin_uninstall`，两者都调用同一 Host inventory 与 lifecycle；
+5. Train B acceptance 使用隔离数据与 fresh consumer，从 npm/packed tarball 安装，不以 workspace
+   link 代替；它不得切换 Core 生产默认路径，也不得删除现有 `video-analysis` 或 IM 实现；
+6. package integrity damage 仍必须 fail closed：撤销全部 active lease、停止新 delivery 并隔离
+   runtime。内部诊断可重验或重新安装，但不形成 public `plugin_repair`、`plugin_update`
+   或 `updateAvailable` surface，也不属于本列车稳定旅程。
 
-旅程同时断言 config/state migration 输出、未迁移数据守恒、旧 runtime 退出后才开放新 runtime。
-先在 migration 中途和切换边界前注入 crash/failure，证明
-未被撤销的 v1 runtime/revision 保持原样；再在旧 runtime 已退出且 lease 已 revoked、但 v2
-尚未可见时注入失败，证明 package tree、inventory、全部数据 snapshot 与 desired 选择恢复为
-v1，却由全新的 rollback activation revision reconcile，绝不复用旧 v1 或失败 v2 revision。
-保存的旧 v1 context 与失败 v2 attempt context 必须全部 fail closed，restart reconcile 后也不
-存在 old/new 双 runtime；每个 crash point 只能观察到完整 v1 binding，或完整 v2 binding 加完整
-detached inventory，绝不能出现 orphan bytes、partial or duplicate detached bundle。只检查最终
-版本号或 retained data 不能通过。
-fixture 至少包含两个 feature，并证明独立启停、denied-grant 零副作用、单 feature
-activation 失败隔离、plugin 总闸、restart 恢复与 stale revision 拒绝。撤销其中一个
-feature 后，必须使用保存的旧 context 对 messaging/service call、registration、event
-subscription/callback、state/secret access 逐类发起对抗调用并全部拒绝，同时证明健康
-sibling 的 fresh context 仍可工作；仅检查资源列表消失不能通过。
-同一 fixture 还必须让两个 enabled feature 分别以相同 `idempotencyKey` 发送消息与
-`events.publish`、对同一 `messageId` 以相同 `operationId` append，证明 Host 从 lease 绑定
-feature identity、三条路径都各自得到独立 receipt/ledger entry；两个 feature 的 subscription
-cursor/ack ledger 也必须独立，任一 ack token 不得推进 sibling cursor。随后重试各自调用，
-仍只能命中本 feature 原 receipt。撤权前已投递并开始执行的
-职责 callback 则必须区分撤权原因：disable/grant revoke/update/reconnect 等普通撤权后，绑定
-可信 `integrityEpoch` 的 Host-issued settlement token 可在 deadline 内成功落账一次，同结果
-重放只返回原 settlement 且不重复落账；active-tree damage 的 durable transition 必须先
-quarantine 该 epoch 的全部未结算 token，随后 success settlement 以 `integrity_untrusted`
-拒绝、不得抑制 retry/dead-letter。篡改结果、跨 feature/operation 使用、过期结算与夹带新
-effect 同样全部拒绝；staging candidate mismatch 不得 quarantine active-tree token。
-
-fixture 的 activation callback 还必须实际读取声明内 config、secret 与自身 checkpoint，
-并产生一笔 staged state write：同 revision 的合法 bootstrap 读取与 read-your-writes 成功，
-未声明、跨 namespace 或 sibling 读取拒绝；在 lease 进入 `active` 前，普通 effect、事件和
-callback delivery 全部拒绝。成功路径同时提交注册与 state write，失败/取消/revision 变化
-路径同时回滚，逐项证明 INV-FA1～FA5。
+安装、grant/secret 配置与卸载数据处置保留给人；Agent 不得静默扩权、猜 secret 或默认删除
+持久数据。任一步失败都必须返回可操作状态，不得把 installed、configured、enabled、live
+压成单一布尔值。
 
 ### 5.3 真实消费者 acceptance matrix
 
-通用 fixture 是必要条件但不是充分条件。Train B 还必须在隔离 acceptance 环境提交
-下列真实消费者矩阵；这些 slice 可以复用/改造将于 Train C cutover 的真实包与实现，
-但不得提前替换生产默认路径：
+通用 fixture 是必要条件但不是充分条件。Train B 只首迁一个真实纵切，剩余冻结 inventory
+统一留给 Train C，避免在底座批次提前制造五条生产迁移支线：
 
 | 真实消费者 | Train B 必须验证的公开 surface |
 |---|---|
-| 已发布的 Feishu standalone npm plugin | catalog/install、lifecycle/effect、identity、messaging/events、config/secrets 与重启恢复 |
-| Core `github` repository-local plugin 的外部化 slice | YAML + SDK schedule、state、identity、PR/issue tracking direct tool/MCP，以及 schedule callback 后由插件选择授权 thread 并 `send`；Core 不含 GitHub factory/解析/routing |
-| Core `video-analysis` 或 `video-gen` 的外部化 slice | direct tool/MCP registration/call/dispose；两者最终仍都在 Train C inventory 内迁移 |
-| 一个现有 IM provider 的外部化 slice | identity、webhook 或长连接 ingress、统一 message admission、带 filter/callback 的 subscription、binding、config/secrets 与声明式 UI contribution；不调用 ConnectorRouter/OutboundDeliveryHook 业务路径 |
-| voice-suite（至少覆盖 ASR 与 TTS）外部化 slice | service、message event/cursor、`appendElements`、Console slot/message-element；分别验证“仅 ASR”“仅 TTS”“两者启用”，以及一方 denied/activation failure 不泄漏资源、不打断另一方；撤销后的旧 feature context 对调用、注册、事件、callback 与 secret 访问全部 fail closed |
+| `@clowder-ai/video-analysis`（从 Core 现有 manifest/protocol 真相外部化） | catalog list/search/get、packed-artifact install、静态 `plugin.yaml`、config/secret、direct tool/MCP call、enable/use/restart/disable/uninstall；无 Core 私有 import |
 
-矩阵中的每一行都要跑 register/use/dispose、disable/re-enable、restart 与 denied-grant；
-多 feature 行还要逐 feature 跑 revision-fenced activate/deactivate、Host-issued lease
-轮换/撤销、旧 context 对抗调用、失败回滚与 sibling 隔离；
-§5.1 任一 surface 没有落入至少一行的真实消费者证据，Train B 不得完成。
+该 package 只在隔离 acceptance 中运行，不替换 Core 默认路径。已发布 Feishu package 可作为
+messaging/events 的补充回归，但不再是 Train B 完成的替代门；GitHub、IM、voice/services 与其
+UI contributions 全部进入 Train C 单一 Plugins 聚合 PR。
 
 ## 6. Train C — 存量能力集中迁移（剩余 PR 4–5/5）
 
@@ -662,7 +563,9 @@ callback delivery 全部拒绝。成功路径同时提交注册与 state write�
 - 删除/退役 provider-specific `ScheduleFactoryRegistry` 实现、`ConnectorRouter` 与
   `OutboundDeliveryHook` 业务路径；保留的同名通用 primitive 必须只做 §1.2 authority/control，
   不再解释 GitHub/IM 语义；
-- Console 和 Agent 均能完成同一套安装、配置、启用、禁用、更新、修复和卸载旅程。
+- Train C 只把迁移后的 contributions 接入 Train B 已交付的终态 Console/Agent 管理骨架；
+  删除旧 IM 模块与第二管理入口，不再重做 Marketplace。公共旅程仍为安装、配置、启用、使用、
+  重启、禁用和卸载，不新增 update/repair 工具。
 
 ### 6.3 统一消息入口迁移四阶段
 
@@ -710,8 +613,8 @@ Train C 完成只说明实现和迁移闭环；正式发布还必须用将要发
 release-candidate acceptance，不能拿开发 workspace 或 prerelease 的历史成功代替：
 
 1. 从机器可读 catalog 发现并安装 GitHub、至少一个 IM provider、voice-suite（ASR + TTS）
-   与 Feishu/现有 standalone plugin；每个都走 configure → enable → use → restart → disable →
-   re-enable → update/repair → uninstall，并验证授权撤销、数据处置和无旧新双跑；
+   与 Feishu/现有 standalone plugin；每个都走 install → configure → enable → use → restart →
+   disable → uninstall，并验证授权撤销、数据处置和无旧新双跑；
 2. GitHub 证明 schedule + state + direct tool/MCP + identity，IM 证明 webhook/长连接 +
    send/subscription + identity，voice-suite 证明 service/artifact + message append + UI contribution；
    合起来覆盖全部 v0 surface，不能只用同一种插件重复验收；
@@ -750,16 +653,16 @@ Train C 通过前，以下工作只保留需求输入，不进入实现关键路
 ## 9. 依赖视图
 
 ```text
-已完成：G-0 + K-1 + P-1 + contract beta.11 + K-2A/B/D
+已完成：G-0 + K-1 + P-1 + contract beta.12 + SDK beta.8 + M0 canonical 18/18
                                       │
                                       ▼
-Train A：M0 Host reviewed HEAD 016a776 已合入为 3110517 + 18-case 待执行 + Feishu alpha.8 dogfood
+Train A：Core PR #1410 reviewed HEAD 4138122 已合入为 090626a（closed）
                                       │
                                       ▼
-Train B：YAML + SDK Contribution Contract ──prerelease exact publish──► Core Manager/Adapters/Console
+Train B：machine catalog + YAML/SDK contract + video-analysis ──exact publish──► terminal Manager/Marketplace/Agent/UI
                                       │
                                       ▼
-Train C：IM + existing plugins + services ──► Core migration/cutover ──► 基础平台闭环
+Train C：Plugins 全量聚合迁移 ──► Core 单 PR cutover/删旧实现与旧 IM UI ──► 基础平台闭环
                                       │
                                       ▼
 RC dogfood + developer docs ──► contract/SDK 0.1.0 + latest

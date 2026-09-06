@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/catalog/v1",
+  "title": "Clowder AI Plugin Catalog (v1)",
+  "description": "Repository-owned immutable discovery coordinates. Installed/configured/enabled/live state is deliberately absent because it belongs to the local Host inventory.",
+  "$defs": {
+    "CatalogSemVer": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "CatalogPublisher": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      },
+      "required": ["id", "name"],
+      "additionalProperties": false
+    },
+    "ArtifactProvenance": {
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "sourceDirectory": { "type": "string", "pattern": "^packages/[a-z0-9-]+$" }
+      },
+      "required": ["repository", "sourceDirectory"],
+      "additionalProperties": false
+    },
+    "NpmArtifact": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "npm" },
+        "packageName": {
+          "type": "string",
+          "pattern": "^@[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$"
+        },
+        "version": { "$ref": "#/$defs/CatalogSemVer" },
+        "tarballUrl": { "type": "string", "format": "uri", "pattern": "^https://registry\\.npmjs\\.org/" },
+        "integrity": { "type": "string", "pattern": "^sha512-[A-Za-z0-9+/]{86}==$" },
+        "shasum": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "provenance": { "$ref": "#/$defs/ArtifactProvenance" }
+      },
+      "required": ["kind", "packageName", "version", "tarballUrl", "integrity", "shasum", "provenance"],
+      "additionalProperties": false
+    },
+    "CatalogPluginVersion": {
+      "type": "object",
+      "properties": {
+        "version": { "$ref": "#/$defs/CatalogSemVer" },
+        "contractVersion": { "$ref": "#/$defs/CatalogSemVer" },
+        "manifestPath": { "const": "plugin.yaml" },
+        "artifact": { "$ref": "#/$defs/NpmArtifact" }
+      },
+      "required": ["version", "contractVersion", "manifestPath", "artifact"],
+      "additionalProperties": false
+    },
+    "CatalogPluginEntry": {
+      "type": "object",
+      "properties": {
+        "pluginId": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/LocalizedDescription" },
+        "icon": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/PluginIcon" },
+        "publisher": { "$ref": "#/$defs/CatalogPublisher" },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "versions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CatalogPluginVersion" },
+          "minItems": 1
+        }
+      },
+      "required": ["pluginId", "name", "description", "icon", "publisher", "versions"],
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "const": "1" },
+    "plugins": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CatalogPluginEntry" }
+    }
+  },
+  "required": ["schemaVersion", "plugins"],
+  "additionalProperties": false
+}

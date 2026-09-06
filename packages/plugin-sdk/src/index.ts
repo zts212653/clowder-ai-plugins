@@ -6,8 +6,10 @@
  *   2. Wire dispatch classifier (wire-dispatch, S1)
  *
  * The beta.8 handshake, beta.9 events.publish, beta.10 lifecycle, and beta.11
- * messaging rows are executable. The dispatch classifier gates every method
- * before standalone callbacks or Host-bound transport behavior can run.
+ * messaging rows are executable. beta.9 adds the Train B author facade around
+ * Host-issued feature bindings without widening the frozen M0 wire registry.
+ * The dispatch classifier gates every method before standalone callbacks or
+ * Host-bound transport behavior can run.
  */
 export {
   NdjsonFrameError,
@@ -69,3 +71,20 @@ export {
   type EventsPublisherOptions,
   type EventsPublisher,
 } from './events-publisher.js';
+
+export {
+  ContributionConflictError,
+  FeatureContextRevokedError,
+  createFeatureContextSession,
+  definePlugin,
+  type ContributionRegistration,
+  type ContributionRegistrar,
+  type DefinedPlugin,
+  type FeatureActivator,
+  type FeatureBinding,
+  type FeatureContext,
+  type FeatureContextSession,
+  type FeatureHostAdapter,
+  type HostContributionReceipt,
+  type PluginDefinitionInput,
+} from './feature-context.js';

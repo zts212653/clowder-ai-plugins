@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/manifest/v0.1",
   "title": "Clowder AI Plugin Manifest (v0.1)",
-  "description": "Machine-readable truth source for plugin manifest (§3.4/§3.5). beta.9 adds the C-2 declared-signal contribution while schedule/state (C-3) remain future contract deltas.",
+  "description": "Machine-readable truth source for the static plugin.yaml access protocol (§3.4/§3.5). beta.13 adds typed Train B configuration and contribution declarations while Host grants remain a separate runtime authority.",
   "x-clowder-capability-layers": {
     "L0": ["plugin.config.read", "plugin.state.get", "plugin.state.set"],
     "L1": ["messaging.send", "schedule.register", "events.publish", "messaging.appendElements"],
@@ -100,6 +100,378 @@
       "additionalProperties": false
     },
 
+    "ContributionReference": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["identity", "schedule", "tool", "mcp", "skill", "limb", "webhook", "message-subscription", "service", "connector", "ui"]
+        },
+        "id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type", "id"],
+      "additionalProperties": false
+    },
+
+    "PackageRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
+    },
+
+    "ConfigurationOption": {
+      "type": "object",
+      "properties": {
+        "value": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "hint": { "type": "string" },
+        "docsUrl": { "type": "string", "format": "uri" }
+      },
+      "required": ["value", "label"],
+      "additionalProperties": false
+    },
+
+    "ConfigurationField": {
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z][A-Za-z0-9._-]*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "kind": { "type": "string", "enum": ["string", "secret", "select", "boolean", "number", "url"] },
+        "required": { "type": "boolean" },
+        "default": { "type": ["string", "number", "boolean"] },
+        "options": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ConfigurationOption" },
+          "minItems": 1
+        }
+      },
+      "required": ["key", "label", "kind", "required"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "select" } }, "required": ["kind"] },
+          "then": { "required": ["options"] },
+          "else": { "properties": { "options": false } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "secret" } }, "required": ["kind"] },
+          "then": { "properties": { "default": false } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "boolean" } }, "required": ["kind"] },
+          "then": { "properties": { "default": { "type": "boolean" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "number" } }, "required": ["kind"] },
+          "then": { "properties": { "default": { "type": "number" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["string", "select"] } }, "required": ["kind"] },
+          "then": { "properties": { "default": { "type": "string" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "url" } }, "required": ["kind"] },
+          "then": { "properties": { "default": { "type": "string", "format": "uri" } } }
+        }
+      ]
+    },
+
+    "EnvironmentBinding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "source": { "const": "config" },
+            "key": { "type": "string", "minLength": 1 }
+          },
+          "required": ["source", "key"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "source": { "const": "secret" },
+            "key": { "type": "string", "minLength": 1 }
+          },
+          "required": ["source", "key"],
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "ContributionRuntime": {
+      "type": "object",
+      "properties": {
+        "transport": { "type": "string", "enum": ["stdio", "ipc"] },
+        "entrypoint": { "$ref": "#/$defs/PackageRelativePath" },
+        "args": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["transport", "entrypoint"],
+      "additionalProperties": false
+    },
+
+    "CallbackAction": {
+      "type": "object",
+      "properties": {
+        "method": { "type": "string", "minLength": 1 },
+        "params": { "type": "object", "additionalProperties": true }
+      },
+      "required": ["method"],
+      "additionalProperties": false
+    },
+
+    "IdentityContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "identity" },
+        "id": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string", "minLength": 1 },
+        "icon": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["type", "id", "displayName"],
+      "additionalProperties": false
+    },
+
+    "ScheduleContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "schedule" },
+        "id": { "type": "string", "minLength": 1 },
+        "schedule": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": { "kind": { "const": "interval" }, "everyMs": { "type": "integer", "minimum": 1000 } },
+              "required": ["kind", "everyMs"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": { "kind": { "const": "cron" }, "expression": { "type": "string", "minLength": 1 } },
+              "required": ["kind", "expression"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "action": { "$ref": "#/$defs/CallbackAction" },
+        "policy": {
+          "type": "object",
+          "properties": {
+            "overlap": { "const": "skip" },
+            "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 86400000 }
+          },
+          "required": ["overlap", "timeoutMs"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "id", "schedule", "action", "policy"],
+      "additionalProperties": false
+    },
+
+    "DirectToolContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "tool" },
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "inputSchema": { "type": "object", "additionalProperties": true },
+        "action": { "$ref": "#/$defs/CallbackAction" }
+      },
+      "required": ["type", "id", "name", "inputSchema", "action"],
+      "additionalProperties": false
+    },
+
+    "McpContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "mcp" },
+        "id": { "type": "string", "minLength": 1 },
+        "runtime": { "$ref": "#/$defs/ContributionRuntime" },
+        "environment": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/EnvironmentBinding" }
+        }
+      },
+      "required": ["type", "id", "runtime"],
+      "additionalProperties": false
+    },
+
+    "SkillContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "skill" },
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/$defs/PackageRelativePath" }
+      },
+      "required": ["type", "id", "path"],
+      "additionalProperties": false
+    },
+
+    "LimbContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "limb" },
+        "id": { "type": "string", "minLength": 1 },
+        "manifestPath": { "$ref": "#/$defs/PackageRelativePath" }
+      },
+      "required": ["type", "id", "manifestPath"],
+      "additionalProperties": false
+    },
+
+    "WebhookContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "webhook" },
+        "id": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*(/[A-Za-z0-9][A-Za-z0-9_-]*)*$" },
+        "methods": { "type": "array", "items": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE"] }, "minItems": 1, "uniqueItems": true },
+        "action": { "$ref": "#/$defs/CallbackAction" },
+        "verificationSecretRef": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type", "id", "path", "methods", "action"],
+      "additionalProperties": false
+    },
+
+    "MessageSubscriptionContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "message-subscription" },
+        "id": { "type": "string", "minLength": 1 },
+        "binding": { "type": "string", "minLength": 1 },
+        "filter": { "type": "object", "additionalProperties": true },
+        "action": { "$ref": "#/$defs/CallbackAction" }
+      },
+      "required": ["type", "id", "binding", "action"],
+      "additionalProperties": false
+    },
+
+    "ServiceContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "service" },
+        "id": { "type": "string", "minLength": 1 },
+        "runtime": { "$ref": "#/$defs/ContributionRuntime" },
+        "healthMethod": { "type": "string", "minLength": 1 },
+        "environment": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/EnvironmentBinding" }
+        }
+      },
+      "required": ["type", "id", "runtime", "healthMethod"],
+      "additionalProperties": false
+    },
+
+    "ConnectorContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "connector" },
+        "id": { "type": "string", "minLength": 1 },
+        "identityRef": { "type": "string", "minLength": 1 },
+        "inboundMethod": { "type": "string", "minLength": 1 },
+        "outboundMethod": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type", "id", "identityRef", "inboundMethod", "outboundMethod"],
+      "additionalProperties": false
+    },
+
+    "UiWhenClause": {
+      "type": "object",
+      "properties": {
+        "featureEnabled": { "type": "boolean" },
+        "requiresCapabilities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Capability" },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "minProperties": 1,
+      "additionalProperties": false
+    },
+
+    "UiAnchor": {
+      "type": "object",
+      "properties": {
+        "position": { "type": "string", "enum": ["before", "after"] },
+        "target": { "type": "string", "minLength": 1 }
+      },
+      "required": ["position", "target"],
+      "additionalProperties": false
+    },
+
+    "UiCommandContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "ui" },
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "const": "command" },
+        "label": { "type": "string", "minLength": 1 },
+        "action": { "$ref": "#/$defs/CallbackAction" },
+        "when": { "$ref": "#/$defs/UiWhenClause" }
+      },
+      "required": ["type", "id", "kind", "label", "action"],
+      "additionalProperties": false
+    },
+
+    "UiSlotItemContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "ui" },
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "const": "slot-item" },
+        "label": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "group": { "type": "string", "minLength": 1 },
+        "anchor": { "$ref": "#/$defs/UiAnchor" },
+        "order": { "type": "integer", "minimum": -10000, "maximum": 10000 },
+        "when": { "$ref": "#/$defs/UiWhenClause" }
+      },
+      "required": ["type", "id", "kind", "label", "command", "group"],
+      "additionalProperties": false
+    },
+
+    "UiMessageElementContribution": {
+      "type": "object",
+      "properties": {
+        "type": { "const": "ui" },
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "const": "message-element" },
+        "label": { "type": "string", "minLength": 1 },
+        "elementKind": { "type": "string", "minLength": 1 },
+        "renderer": { "type": "string", "minLength": 1 },
+        "when": { "$ref": "#/$defs/UiWhenClause" }
+      },
+      "required": ["type", "id", "kind", "label", "elementKind", "renderer"],
+      "additionalProperties": false
+    },
+
+    "UiContribution": {
+      "oneOf": [
+        { "$ref": "#/$defs/UiCommandContribution" },
+        { "$ref": "#/$defs/UiSlotItemContribution" },
+        { "$ref": "#/$defs/UiMessageElementContribution" }
+      ]
+    },
+
+    "StaticContribution": {
+      "oneOf": [
+        { "$ref": "#/$defs/IdentityContribution" },
+        { "$ref": "#/$defs/ScheduleContribution" },
+        { "$ref": "#/$defs/DirectToolContribution" },
+        { "$ref": "#/$defs/McpContribution" },
+        { "$ref": "#/$defs/SkillContribution" },
+        { "$ref": "#/$defs/LimbContribution" },
+        { "$ref": "#/$defs/WebhookContribution" },
+        { "$ref": "#/$defs/MessageSubscriptionContribution" },
+        { "$ref": "#/$defs/ServiceContribution" },
+        { "$ref": "#/$defs/ConnectorContribution" },
+        { "$ref": "#/$defs/UiContribution" }
+      ]
+    },
+
     "PluginFeature": {
       "type": "object",
       "properties": {
@@ -108,6 +480,10 @@
         "resources": {
           "type": "array",
           "items": { "$ref": "#/$defs/ResourceReference" }
+        },
+        "contributions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ContributionReference" }
         },
         "capabilities": {
           "type": "array",
@@ -133,7 +509,7 @@
       "type": "object",
       "properties": {
         "transport": { "$ref": "#/$defs/ExternalRuntimeTransport" },
-        "entrypoint": { "type": "string", "minLength": 1 }
+        "entrypoint": { "$ref": "#/$defs/PackageRelativePath" }
       },
       "required": ["transport", "entrypoint"],
       "additionalProperties": false
@@ -169,7 +545,16 @@
       "description": "Must be an exact published semver version — no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). §9: numeric prerelease identifiers MUST NOT have leading zeroes."
     },
     "name": { "type": "string", "minLength": 1 },
-    "description": { "type": "string" },
+    "description": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/LocalizedDescription" },
+    "icon": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/PluginIcon" },
+    "configuration": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ConfigurationField" }
+    },
+    "contributions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/StaticContribution" }
+    },
     "features": {
       "type": "array",
       "items": { "$ref": "#/$defs/PluginFeature" },

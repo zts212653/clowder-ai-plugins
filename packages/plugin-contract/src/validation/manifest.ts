@@ -8,6 +8,9 @@ const Ajv2020: new (options: {
   readonly strict: boolean;
 }) => AjvInstance = require('ajv/dist/2020');
 const addFormats: (ajv: AjvInstance) => void = require('ajv-formats');
+const pluginMetadataSchema = require(
+  '@clowder-ai/plugin-contract/schemas/plugin-metadata'
+) as Record<string, unknown>;
 const manifestSchema = require('@clowder-ai/plugin-contract/schemas/manifest') as Record<
   string,
   unknown
@@ -54,8 +57,21 @@ export type ManifestValidationResult =
 
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 addFormats(ajv);
+ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema['$id'] as string);
 ajv.addSchema(signalSchema, signalSchema['$id'] as string);
 const validateSchema = ajv.compile(manifestSchema);
+
+function semanticError(
+  instancePath: string,
+  schemaPath: string,
+  keyword: string,
+  message: string,
+): ManifestValidationResult {
+  return {
+    valid: false,
+    errors: [{ instancePath, schemaPath, keyword, message }],
+  };
+}
 
 /**
  * Validates an untrusted plugin manifest against the contract-owned schema.
@@ -82,6 +98,186 @@ export function validateManifest(value: unknown): ManifestValidationResult {
         };
       }
       declaredTypes.add(declaration.type);
+    }
+
+    const featureIds = new Set<string>();
+    for (const [index, feature] of manifest.features.entries()) {
+      if (featureIds.has(feature.id)) {
+        return semanticError(
+          `/features/${index}/id`,
+          '#/$defs/PluginFeature/uniqueFeatureIds',
+          'uniqueFeatureIds',
+          'feature id must be declared at most once per manifest',
+        );
+      }
+      featureIds.add(feature.id);
+    }
+
+    const configuration = manifest.configuration ?? [];
+    const configByKey = new Map<string, (typeof configuration)[number]>();
+    for (const [index, field] of configuration.entries()) {
+      if (configByKey.has(field.key)) {
+        return semanticError(
+          `/configuration/${index}/key`,
+          '#/$defs/ConfigurationField/uniqueConfigurationKeys',
+          'uniqueConfigurationKeys',
+          'configuration key must be declared at most once per manifest',
+        );
+      }
+      configByKey.set(field.key, field);
+      if (field.kind === 'select') {
+        const optionValues = new Set<string>();
+        for (const [optionIndex, option] of (field.options ?? []).entries()) {
+          if (optionValues.has(option.value)) {
+            return semanticError(
+              `/configuration/${index}/options/${optionIndex}/value`,
+              '#/$defs/ConfigurationOption/uniqueOptionValues',
+              'uniqueOptionValues',
+              'select option values must be unique within one configuration field',
+            );
+          }
+          optionValues.add(option.value);
+        }
+        if (field.default !== undefined && !optionValues.has(field.default as string)) {
+          return semanticError(
+            `/configuration/${index}/default`,
+            '#/$defs/ConfigurationField/defaultDeclaredBySelect',
+            'defaultDeclaredBySelect',
+            'select default must equal one of the declared option values',
+          );
+        }
+      }
+    }
+
+    const contributions = manifest.contributions ?? [];
+    const contributionByKey = new Map<string, (typeof contributions)[number]>();
+    for (const [index, contribution] of contributions.entries()) {
+      const key = `${contribution.type}\0${contribution.id}`;
+      if (contributionByKey.has(key)) {
+        return semanticError(
+          `/contributions/${index}/id`,
+          '#/$defs/StaticContribution/uniqueContributionKeys',
+          'uniqueContributionKeys',
+          'contribution type/id must be declared at most once per manifest',
+        );
+      }
+      contributionByKey.set(key, contribution);
+
+      if ('environment' in contribution && contribution.environment !== undefined) {
+        for (const [environmentName, binding] of Object.entries(contribution.environment)) {
+          const field = configByKey.get(binding.key);
+          if (field === undefined) {
+            return semanticError(
+              `/contributions/${index}/environment/${environmentName}/key`,
+              '#/$defs/EnvironmentBinding/declaredConfigurationKey',
+              'declaredConfigurationKey',
+              'environment binding must reference a declared configuration key',
+            );
+          }
+          if (
+            (binding.source === 'secret' && field.kind !== 'secret') ||
+            (binding.source === 'config' && field.kind === 'secret')
+          ) {
+            return semanticError(
+              `/contributions/${index}/environment/${environmentName}/source`,
+              '#/$defs/EnvironmentBinding/sourceMatchesConfigurationKind',
+              'sourceMatchesConfigurationKind',
+              'secret bindings must reference secret fields and config bindings must not',
+            );
+          }
+        }
+      }
+      if (contribution.type === 'webhook' && contribution.verificationSecretRef !== undefined) {
+        const secret = configByKey.get(contribution.verificationSecretRef);
+        if (secret?.kind !== 'secret') {
+          return semanticError(
+            `/contributions/${index}/verificationSecretRef`,
+            '#/$defs/WebhookContribution/declaredSecretReference',
+            'declaredSecretReference',
+            'webhook verificationSecretRef must reference a declared secret field',
+          );
+        }
+      }
+    }
+
+    const referenceOwners = new Map<string, string>();
+    for (const [featureIndex, feature] of manifest.features.entries()) {
+      for (const [contributionIndex, reference] of (feature.contributions ?? []).entries()) {
+        const key = `${reference.type}\0${reference.id}`;
+        if (!contributionByKey.has(key)) {
+          return semanticError(
+            `/features/${featureIndex}/contributions/${contributionIndex}`,
+            '#/$defs/ContributionReference/declaredContribution',
+            'declaredContribution',
+            'feature contribution must reference a declared contribution with the same type and id',
+          );
+        }
+        const existingOwner = referenceOwners.get(key);
+        if (existingOwner !== undefined) {
+          return semanticError(
+            `/features/${featureIndex}/contributions/${contributionIndex}`,
+            '#/$defs/ContributionReference/singleFeatureOwner',
+            'singleFeatureOwner',
+            `a static contribution must have exactly one feature reference; already owned by ${existingOwner}`,
+          );
+        }
+        referenceOwners.set(key, feature.id);
+      }
+    }
+
+    for (const [key, contribution] of contributionByKey) {
+      if (!referenceOwners.has(key)) {
+        const index = contributions.indexOf(contribution);
+        return semanticError(
+          `/contributions/${index}`,
+          '#/$defs/StaticContribution/featureOwnerRequired',
+          'featureOwnerRequired',
+          'every static contribution must be owned by one feature resource reference',
+        );
+      }
+    }
+
+    for (const [index, contribution] of contributions.entries()) {
+      const owner = referenceOwners.get(`${contribution.type}\0${contribution.id}`);
+      if (contribution.type === 'connector') {
+        const identityKey = `identity\0${contribution.identityRef}`;
+        if (!contributionByKey.has(identityKey)) {
+          return semanticError(
+            `/contributions/${index}/identityRef`,
+            '#/$defs/ConnectorContribution/declaredIdentityReference',
+            'declaredIdentityReference',
+            'connector identityRef must reference a declared identity contribution',
+          );
+        }
+        if (referenceOwners.get(identityKey) !== owner) {
+          return semanticError(
+            `/contributions/${index}/identityRef`,
+            '#/$defs/ConnectorContribution/sameFeatureOwner',
+            'sameFeatureOwner',
+            'connector identityRef must reference an identity owned by the same feature',
+          );
+        }
+      }
+      if (contribution.type === 'ui' && contribution.kind === 'slot-item') {
+        const commandKey = `ui\0${contribution.command}`;
+        const command = contributionByKey.get(commandKey);
+        if (command?.type !== 'ui' || command.kind !== 'command') {
+          return semanticError(
+            `/contributions/${index}/command`,
+            '#/$defs/UiSlotItemContribution/declaredCommandReference',
+            'declaredCommandReference',
+            'UI slot command must reference a declared UI command contribution',
+          );
+        }
+        if (referenceOwners.get(commandKey) !== owner) {
+          return semanticError(
+            `/contributions/${index}/command`,
+            '#/$defs/UiSlotItemContribution/sameFeatureOwner',
+            'sameFeatureOwner',
+            'UI slot command must reference a command owned by the same feature',
+          );
+        }
+      }
     }
     return {
       valid: true,

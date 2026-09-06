@@ -168,7 +168,7 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   assert.match(workflow, /^      id-token: write$/m);
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    3,
+    4,
     'each public package action must receive the operator-authorized npm token',
   );
   assert.equal(
@@ -332,8 +332,8 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('M0-D execution-plane contract publishes beta.12 while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.12');
+test('Train B catalog/contribution contract publishes beta.13 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.13');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
@@ -387,6 +387,7 @@ test('main publishes the public dependency chain through one hardened action', (
   const orderedPackages = [
     'packages/plugin-contract',
     'packages/plugin-sdk',
+    'packages/video-analysis',
     'packages/feishu-meeting-intake',
   ];
   let previousIndex = -1;
@@ -399,7 +400,7 @@ test('main publishes the public dependency chain through one hardened action', (
   }
   assert.equal(
     releaseWorkflow.match(/uses: \.\/\.github\/actions\/publish-prerelease/g)?.length,
-    3,
+    4,
     'all public packages must use the same hardened publication action',
   );
   assert.match(
@@ -816,6 +817,24 @@ test('official Feishu intake changes execute pull-request validation', () => {
   );
 });
 
+test('official video analysis changes execute pull-request validation', () => {
+  const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+
+  assert.ok(validateJob, 'validation job must be active');
+  for (const [name, command] of [
+    ['Video analysis typecheck', 'pnpm --filter @clowder-ai/video-analysis typecheck'],
+    ['Video analysis tests', 'pnpm --filter @clowder-ai/video-analysis test'],
+    ['Video analysis lint', 'pnpm --filter @clowder-ai/video-analysis lint'],
+    ['Video analysis build', 'pnpm --filter @clowder-ai/video-analysis build'],
+    ['Machine catalog', 'pnpm catalog:check'],
+  ] as const) {
+    assert.match(
+      validateJob,
+      new RegExp(`^      - name: ${name}\\n        run: ${command.replaceAll('/', '\\/')}$$`, 'm'),
+    );
+  }
+});
+
 test('public consumer packages contain no workspace protocol and CI installs packed artifacts', () => {
   const npmrc = readFileSync(new URL('../../../../.npmrc', import.meta.url), 'utf8');
   const sdkPackage = JSON.parse(
@@ -827,7 +846,10 @@ test('public consumer packages contain no workspace protocol and CI installs pac
       'utf8',
     ),
   ) as { dependencies: Record<string, string> };
-  for (const dependencies of [sdkPackage.dependencies, feishuPackage.dependencies]) {
+  const videoPackage = JSON.parse(
+    readFileSync(new URL('../../../../packages/video-analysis/package.json', import.meta.url), 'utf8'),
+  ) as { dependencies: Record<string, string> };
+  for (const dependencies of [sdkPackage.dependencies, feishuPackage.dependencies, videoPackage.dependencies]) {
     assert.equal(
       Object.values(dependencies).some((version) => version.startsWith('workspace:')),
       false,

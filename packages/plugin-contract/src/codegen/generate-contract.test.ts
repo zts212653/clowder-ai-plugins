@@ -6,6 +6,7 @@ import {
   generateContractSource,
   loadContractSchemas,
 } from './generate-contract.js';
+import type { JsonSchema } from './generate-contract.js';
 
 test('checked-in generated contract is current', async () => {
   assert.equal(await checkGeneratedContract(), true);
@@ -35,10 +36,34 @@ test('generated contract projects behavior fixture operations and assertions', a
   assert.match(source, /readonly code: -32602;/);
   assert.match(source, /readonly operation: 'send'/);
   assert.match(source, /readonly operation: 'deleteReplayEvents'/);
-  assert.match(source, /export type SideEffectAssertion =/);
+  const sideEffectAssertion = source.slice(
+    source.indexOf('export type SideEffectAssertion ='),
+    source.indexOf('export type ExpectedVerdict ='),
+  );
+  assert.equal(sideEffectAssertion.match(/readonly assertion:/g)?.length, 5);
+  assert.match(
+    sideEffectAssertion,
+    /readonly assertion: 'unchanged';[\s\S]*readonly value\?: never;/,
+  );
+  assert.match(
+    sideEffectAssertion,
+    /readonly assertion: 'state_equals';[\s\S]*readonly value: unknown;/,
+  );
+  const expectedVerdict = source.slice(
+    source.indexOf('export type ExpectedVerdict ='),
+    source.indexOf('export type BehaviorCase ='),
+  );
+  assert.match(
+    expectedVerdict,
+    /readonly status: 'success';[\s\S]*readonly errorCode\?: never;/,
+  );
+  assert.match(
+    expectedVerdict,
+    /readonly status: 'error';[\s\S]*readonly errorCode: MessagingErrorCode;/,
+  );
   assert.match(
     source,
-    /'unchanged' \| 'none' \| 'state_equals' \| 'round_trip' \| 'matches'/,
+    /readonly execution: [^\n]*readonly method: 'messaging\.send'[^\n]*;\n[\s\S]*readonly when: Extract<FixtureOperation, \{ readonly operation: 'send' \}>;/,
   );
   assert.equal(
     source.match(/export type MessagingErrorCode =/g)?.length,
@@ -126,6 +151,86 @@ test('generated object fields preserve required and optional schema fields', asy
   assert.match(source, /readonly address: MessageAddress;/);
   assert.match(source, /readonly draftAudience\?: DraftAudience;/);
   assert.match(source, /readonly idempotencyKey: string;/);
+  assert.match(source, /export type LocalizedDescription = string \| LocalizedDescriptionObject;/);
+  assert.match(source, /export type PluginIcon = 'github' \| PackageIcon;/);
+  assert.match(source, /readonly description\?: LocalizedDescription;/);
+  assert.match(source, /readonly icon\?: PluginIcon;/);
+  assert.match(source, /export type CatalogPluginEntry = [\s\S]*readonly description: LocalizedDescription;/);
+  assert.match(source, /export type CatalogPluginEntry = [\s\S]*readonly icon: PluginIcon;/);
+});
+
+test('generated package icons preserve type-dependent filename suffixes', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+  const packageIcon = source.slice(
+    source.indexOf('export type PackageIcon ='),
+    source.indexOf('export type PluginIcon ='),
+  );
+
+  assert.equal(packageIcon.match(/readonly type:/g)?.length, 2);
+  assert.match(packageIcon, /readonly type: 'svg';[\s\S]*`\$\{string\}\.svg`/);
+  assert.match(packageIcon, /readonly type: 'png';[\s\S]*`\$\{string\}\.png`/);
+});
+
+test('generated configuration fields preserve kind-dependent schema constraints', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+  const configurationField = source.slice(
+    source.indexOf('export type ConfigurationField ='),
+    source.indexOf('export type EnvironmentBinding ='),
+  );
+
+  assert.equal(configurationField.match(/readonly kind:/g)?.length, 6);
+  assert.match(
+    configurationField,
+    /readonly kind: 'select';[\s\S]*readonly default\?: string;[\s\S]*readonly options: readonly ConfigurationOption\[\];/,
+  );
+  assert.match(
+    configurationField,
+    /readonly kind: 'secret';[\s\S]*readonly default\?: never;[\s\S]*readonly options\?: never;/,
+  );
+  assert.match(
+    configurationField,
+    /readonly kind: 'boolean';[\s\S]*readonly default\?: boolean;[\s\S]*readonly options\?: never;/,
+  );
+  assert.match(
+    configurationField,
+    /readonly kind: 'number';[\s\S]*readonly default\?: number;[\s\S]*readonly options\?: never;/,
+  );
+});
+
+test('generation fails closed for an unclassified conditional definition', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  const environmentBinding = mutated.manifest.$defs?.['EnvironmentBinding'];
+  assert.ok(environmentBinding);
+  (environmentBinding as { allOf?: JsonSchema[] }).allOf = [
+    {
+      if: { properties: { source: { const: 'env' } } },
+      then: { required: ['name'] },
+    },
+  ];
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /Unhandled conditional schema definition: EnvironmentBinding/,
+  );
+});
+
+test('generation fails closed for an unclassified conditional behavior definition', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  const fixtureMetadata = mutated.behavior.$defs?.['FixtureMetadata'];
+  assert.ok(fixtureMetadata);
+  (fixtureMetadata as { allOf?: JsonSchema[] }).allOf = [
+    {
+      if: { properties: { version: { const: 'v0' } } },
+      then: { required: ['contractVersion'] },
+    },
+  ];
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /Unhandled conditional behavior definition: FixtureMetadata/,
+  );
 });
 
 test('generated runtime types preserve transport-specific entrypoint requirements', async () => {
@@ -133,7 +238,7 @@ test('generated runtime types preserve transport-specific entrypoint requirement
   const source = generateContractSource(schemas);
 
   assert.match(source, /export type RuntimeDeclaration = ExternalRuntimeDeclaration \| BuiltinRuntimeDeclaration;/);
-  assert.match(source, /export type ExternalRuntimeDeclaration = [\s\S]*readonly entrypoint: string;/);
+  assert.match(source, /export type ExternalRuntimeDeclaration = [\s\S]*readonly entrypoint: PackageRelativePath;/);
   assert.match(source, /export type BuiltinRuntimeDeclaration = [\s\S]*readonly entrypoint\?: string;/);
 });
 

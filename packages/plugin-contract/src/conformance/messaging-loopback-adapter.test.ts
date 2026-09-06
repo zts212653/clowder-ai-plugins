@@ -55,6 +55,8 @@ test('changing every signed error code is detected by the executor', async () =>
   assert.ok(errorCases.length > 0);
 
   for (const behaviorCase of errorCases) {
+    assert.equal(behaviorCase.expect.status, 'error');
+    if (behaviorCase.expect.status !== 'error') continue;
     const mutated: BehaviorCase = {
       ...structuredClone(behaviorCase),
       expect: {

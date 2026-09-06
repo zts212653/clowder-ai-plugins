@@ -12,6 +12,10 @@
     "test:fresh-consumer": "node --test scripts/fresh-consumer-install.test.mjs",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
-    "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance"
+    "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance",
+    "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/video-analysis build && node scripts/catalog-check.mjs"
+  },
+  "devDependencies": {
+    "yaml": "2.9.0"
   }
 }
