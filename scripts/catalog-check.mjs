@@ -80,7 +80,10 @@ async function verifyCatalogEntry(catalogEntry) {
     assert.deepEqual(manifestValidation.manifest.description, catalogEntry.description);
     assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
 
-    if (manifestValidation.manifest.runtime.transport === 'stdio') {
+    const contributions = manifestValidation.manifest.contributions ?? [];
+    const staticEditors = contributions.length > 0 &&
+      contributions.every(entry => entry.type === 'content-editor-provider');
+    if (!staticEditors) {
       assert.ok(
         artifact.files.some((file) => file.path === 'npm-shrinkwrap.json'),
         'packed artifact is missing npm-shrinkwrap.json',
@@ -118,9 +121,7 @@ async function verifyCatalogEntry(catalogEntry) {
 
     } else {
       assert.equal(manifestValidation.manifest.runtime.transport, 'builtin');
-      assert.ok(manifestValidation.manifest.contributions.length > 0);
-      assert.ok(manifestValidation.manifest.contributions.every(entry => entry.type === 'content-editor-provider'));
-      for (const entry of manifestValidation.manifest.contributions) {
+      for (const entry of contributions) {
         const bytes = await readFile(join(unpackedDirectory, 'package', entry.surface.entrypoint));
         assert.equal(entry.surface.integrity, 'sha256-' + createHash('sha256').update(bytes).digest('base64'));
       }
