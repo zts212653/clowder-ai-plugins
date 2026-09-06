@@ -104,16 +104,11 @@ jobs:
           pnpm --filter @clowder-ai/genoffice-docx typecheck
           pnpm --filter @clowder-ai/genoffice-docx test
 
-      - name: Build and verify frozen GenOffice renderer
-        run: |
-          pnpm --filter @clowder-ai/genoffice-docx build:renderer
-          pnpm --filter @clowder-ai/genoffice-docx prepack
+      - name: Fresh consumer install
+        run: pnpm test:fresh-consumer
 
       - name: Machine catalog
         run: pnpm catalog:check
-
-      - name: Fresh consumer install
-        run: pnpm test:fresh-consumer
 
       - name: Loopback fixture typecheck
         run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck

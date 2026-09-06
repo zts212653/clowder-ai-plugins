@@ -56,8 +56,10 @@ test('packed public packages install and import in a fresh npm consumer', async 
       '@clowder-ai/video-analysis',
       '@clowder-ai/genoffice-docx',
     ]) {
-      run('pnpm', ['--filter', packageName, 'build'], repoRoot);
+      const build = packageName === '@clowder-ai/genoffice-docx' ? 'build:renderer' : 'build';
+      run('pnpm', ['--filter', packageName, build], repoRoot);
     }
+    run(process.execPath, ['packages/genoffice-docx/scripts/assert-pack-ready.mjs'], repoRoot);
 
     const tarballs = [
       pack('packages/plugin-contract', packs),
