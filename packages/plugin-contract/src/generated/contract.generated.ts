@@ -1,5 +1,5 @@
 /**
- * Generated from plugin-metadata.schema.json, manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.
+ * Generated from plugin-metadata.schema.json, manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, docx-materialization.schema.json, and behavior-fixture.schema.json.
  * Do not edit by hand. Run `pnpm generate` after changing a schema.
  */
 
@@ -246,6 +246,12 @@ export type UiMessageElementContribution = {
   readonly when?: UiWhenClause;
 };
 export type UiContribution = UiCommandContribution | UiSlotItemContribution | UiMessageElementContribution;
+export type SemanticMaterializerDeclaration = {
+  readonly executionClass: 'dedicated-browser-worker';
+  readonly entrypoint: PackageRelativePath & `${string}.js`;
+  readonly integrity: string;
+  readonly protocolVersion: '1.0.0';
+};
 export type ContentEditorProviderContribution = {
   readonly type: 'content-editor-provider';
   readonly id: string;
@@ -257,6 +263,7 @@ export type ContentEditorProviderContribution = {
     readonly navigationPolicy: 'navigation-api-deny';
   };
   readonly bridgeVersion: '1.0.0';
+  readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
 export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution;
@@ -741,6 +748,62 @@ export type PhysicalLimbUnavailableReadiness = {
   readonly observedAt: string;
 };
 export type PhysicalLimbReadiness = PhysicalLimbReadyReadiness | PhysicalLimbUnavailableReadiness;
+
+export type DocxMaterializationText = string;
+export type DocxMaterializationAuthor = string;
+export type DocxMaterializationBytes = string;
+export type DocxMaterializationAnchor = {
+  readonly paragraphId: string;
+  readonly textQuote: string;
+};
+export type DocxMaterializationAttribution = {
+  readonly author: DocxMaterializationAuthor;
+  readonly operationId: string;
+  readonly timestamp: string;
+};
+export type DocxMaterializationOperation = {
+  readonly kind: 'inspect';
+  readonly cursor: number;
+  readonly limit: number;
+} | {
+  readonly kind: 'tracked-change';
+  readonly target: DocxMaterializationAnchor;
+  readonly replacement: DocxMaterializationText;
+  readonly attribution: DocxMaterializationAttribution;
+} | {
+  readonly kind: 'comment';
+  readonly target: DocxMaterializationAnchor;
+  readonly body: DocxMaterializationText;
+  readonly attribution: DocxMaterializationAttribution;
+};
+export type DocxMaterializationRequest = {
+  readonly protocolVersion: '1.0.0';
+  readonly requestId: string;
+  readonly mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  readonly bytesBase64: DocxMaterializationBytes;
+  readonly operation: DocxMaterializationOperation;
+};
+export type DocxMaterializationResult = {
+  readonly kind: 'inspection';
+  readonly paragraphs: readonly ({
+    readonly target: DocxMaterializationAnchor;
+    readonly editable: boolean;
+  })[];
+  readonly nextCursor: number | null;
+} | {
+  readonly kind: 'document';
+  readonly bytesBase64: DocxMaterializationBytes;
+} | {
+  readonly kind: 'rejected';
+  readonly code: 'INVALID_DOCX' | 'TARGET_MISMATCH' | 'UNSUPPORTED_TARGET' | 'LIMIT_EXCEEDED' | 'INVALID_REQUEST';
+};
+export type DocxMaterializationResponse = {
+  readonly protocolVersion: '1.0.0';
+  readonly requestId: string;
+  readonly result: DocxMaterializationResult;
+};
+export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
+export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 
 export type FixtureMetadata = {
   readonly executor: 'loopback';

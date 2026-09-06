@@ -88,6 +88,7 @@ if (/\b(?:src|href)="\//u.test(hardenedIndex)) {
   throw new Error('renderer index contains a Host-root asset path');
 }
 await writeFile(indexPath, hardenedIndex);
+run(process.execPath, [join(packageRoot, 'scripts', 'build-semantic-worker.mjs')], packageRoot);
 
 if (!hardenedIndex.includes("connect-src 'none'")) throw new Error('renderer CSP is not fail-closed');
 
@@ -95,6 +96,12 @@ const integrity = sha256Sri(await readFile(indexPath));
 const manifestPath = join(packageRoot, 'plugin.yaml');
 const manifest = parseDocument(await readFile(manifestPath, 'utf8'));
 manifest.setIn(['contributions', 0, 'surface', 'integrity'], integrity);
+manifest.setIn(['contributions', 0, 'semanticMaterializer'], {
+  executionClass: 'dedicated-browser-worker',
+  entrypoint: 'renderer/semantic-worker.js',
+  integrity: sha256Sri(await readFile(join(rendererRoot, 'semantic-worker.js'))),
+  protocolVersion: '1.0.0',
+});
 await writeFile(manifestPath, String(manifest));
 run(process.execPath, [join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
 

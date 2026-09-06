@@ -1,5 +1,5 @@
 pluginId: dev.clowder.genoffice-docx
-version: 0.1.0-alpha.0
+version: 0.1.0-alpha.1
 contractVersion: 0.1.0
 name: GenOffice
 icon:
@@ -26,6 +26,11 @@ contributions:
       - settle
       - comment
       - tracked-change
+    semanticMaterializer:
+      executionClass: dedicated-browser-worker
+      entrypoint: renderer/semantic-worker.js
+      integrity: sha256-BKMyn3bqKZebqZRYAiYErHWOpjOO6UN74Ft+UJkhHcI=
+      protocolVersion: 1.0.0
 features:
   - id: edit-docx
     name: Edit DOCX
