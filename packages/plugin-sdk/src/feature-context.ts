@@ -115,7 +115,7 @@ function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
     throw new TypeError('contribution payload must contain only JSON string keys');
   }
   const prototype = Object.getPrototypeOf(value) as object | null;
-  if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+  if (Array.isArray(value) ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) {
     throw new TypeError('contribution payload must contain only plain JSON objects or arrays');
   }
   ancestors.add(value);
@@ -124,7 +124,13 @@ function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
       if (Object.keys(value).some((key) => !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)) {
         throw new TypeError('contribution payload must contain only JSON array elements');
       }
-      return `[${Array.from(value, (entry) => canonicalJson(entry, ancestors)).join(',')}]`;
+      const elements: string[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        if (!Object.hasOwn(value, index)) throw new TypeError('contribution payload must not contain JSON array holes');
+        elements.push(canonicalJson(value[index], ancestors));
+      }
+      return `[${elements.join(',')}]`;
     }
     const object = value as Record<string, unknown>;
     return `{${Object.keys(object)

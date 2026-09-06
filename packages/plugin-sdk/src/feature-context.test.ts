@@ -432,6 +432,30 @@ test('registration rejects sparse arrays instead of collapsing holes', async () 
   assert.equal(adapter.calls.length, 0);
 });
 
+test('registration rejects array prototype and iterator substitutions before Host dispatch', async (t) => {
+  class SparseInherited extends Array<string> {}
+  SparseInherited.prototype[0] = 'from-prototype';
+  class RedirectArray extends Array<string> {
+    override [Symbol.iterator]() { return ['shadow'][Symbol.iterator](); }
+  }
+  for (const [name, values] of [
+    ['inherited hole', new SparseInherited(1)],
+    ['redirected iterator', new RedirectArray('actual')],
+  ] as const) {
+    await t.test(name, async () => {
+      const adapter = new RecordingAdapter();
+      const { context } = createFeatureContextSession(BINDING, adapter);
+      await assert.rejects(context.scheduler.register({
+        id: 'array-schedule',
+        schedule: { kind: 'interval', everyMs: 60_000 },
+        action: { method: 'array.run', params: { values } },
+        policy: { overlap: 'skip', timeoutMs: 30_000 },
+      }), /JSON/);
+      assert.equal(adapter.calls.length, 0);
+    });
+  }
+});
+
 test('same-payload registration waits for overlapping disposal and creates a fresh receipt', async () => {
   const adapter = new PausingDisposeAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);
