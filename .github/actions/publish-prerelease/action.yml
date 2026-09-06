@@ -122,9 +122,11 @@ runs:
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         REGISTRY_JSON_PATH: ${{ runner.temp }}/prerelease-published-version.json
         DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-published-tags.json
+        REGISTRY_PROPAGATION_ATTEMPTS: '60'
+        REGISTRY_PROPAGATION_DELAY_SECONDS: '5'
       run: |
         set -euo pipefail
-        for attempt in $(seq 1 12); do
+        for attempt in $(seq 1 "$REGISTRY_PROPAGATION_ATTEMPTS"); do
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
             npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
             if node --input-type=module <<'NODE'
@@ -159,8 +161,8 @@ runs:
               exit 0
             fi
           fi
-          if [[ "$attempt" -lt 12 ]]; then
-            sleep 5
+          if [[ "$attempt" -lt "$REGISTRY_PROPAGATION_ATTEMPTS" ]]; then
+            sleep "$REGISTRY_PROPAGATION_DELAY_SECONDS"
           fi
         done
         echo "registry inspection failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2
@@ -176,9 +178,11 @@ runs:
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         REGISTRY_JSON_PATH: ${{ runner.temp }}/prerelease-final-version.json
         DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-final-tags.json
+        REGISTRY_PROPAGATION_ATTEMPTS: '60'
+        REGISTRY_PROPAGATION_DELAY_SECONDS: '5'
       run: |
         set -euo pipefail
-        for attempt in $(seq 1 12); do
+        for attempt in $(seq 1 "$REGISTRY_PROPAGATION_ATTEMPTS"); do
           if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" --json > "$REGISTRY_JSON_PATH" 2>/dev/null &&
             npm view "$PACKAGE_NAME" dist-tags --json > "$DIST_TAGS_JSON_PATH" 2>/dev/null; then
             if node --input-type=module <<'NODE'
@@ -212,8 +216,8 @@ runs:
               exit 0
             fi
           fi
-          if [[ "$attempt" -lt 12 ]]; then
-            sleep 5
+          if [[ "$attempt" -lt "$REGISTRY_PROPAGATION_ATTEMPTS" ]]; then
+            sleep "$REGISTRY_PROPAGATION_DELAY_SECONDS"
           fi
         done
         echo "registry verification failed for $PACKAGE_NAME@$PACKAGE_VERSION" >&2

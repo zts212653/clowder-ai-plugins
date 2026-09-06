@@ -444,6 +444,35 @@ test('publish verifies the exact registry version and artifact integrity', () =>
   assertRegistryVerificationFailsClosed(prereleasePublishAction);
 });
 
+test('publish waits through npm registry processing before failing closed', () => {
+  for (const stepName of [
+    'Inspect published registry state',
+    'Verify final registry state',
+  ]) {
+    const step = namedActionStep(prereleasePublishAction, stepName);
+    const attempts = Number(
+      step.match(/^        REGISTRY_PROPAGATION_ATTEMPTS: '(\d+)'$/m)?.[1],
+    );
+    const delaySeconds = Number(
+      step.match(/^        REGISTRY_PROPAGATION_DELAY_SECONDS: '(\d+)'$/m)?.[1],
+    );
+
+    assert.ok(
+      (attempts - 1) * delaySeconds >= 240,
+      `${stepName} must tolerate at least four minutes of registry propagation`,
+    );
+    assert.match(
+      step,
+      /for attempt in \$\(seq 1 "\$REGISTRY_PROPAGATION_ATTEMPTS"\); do/,
+    );
+    assert.match(
+      step,
+      /if \[\[ "\$attempt" -lt "\$REGISTRY_PROPAGATION_ATTEMPTS" \]\]; then/,
+    );
+    assert.match(step, /sleep "\$REGISTRY_PROPAGATION_DELAY_SECONDS"/);
+  }
+});
+
 test('review pack evidence uses the publication package manager', () => {
   assert.match(releasePlan, /npm pack --json --ignore-scripts/);
   assert.doesNotMatch(
