@@ -386,6 +386,52 @@ test('registration rejects non-plain values instead of collapsing distinct paylo
   assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 0);
 });
 
+test('registration rejects non-JSON leaves before reserving an idempotency key', async () => {
+  const cyclic: Record<string, unknown> = {};
+  cyclic.self = cyclic;
+  const invalidValues = [
+    NaN, Infinity, -Infinity, undefined, [undefined], { nested: NaN }, 1n,
+    Symbol('value'), () => null, cyclic, { [Symbol('hidden')]: true },
+    Object.assign([], { extra: true }),
+  ];
+  for (const value of invalidValues) {
+    const adapter = new RecordingAdapter();
+    const { context } = createFeatureContextSession(BINDING, adapter);
+    const schedule = {
+      id: 'json-schedule',
+      schedule: { kind: 'interval' as const, everyMs: 60_000 },
+      action: { method: 'json-schedule.run', params: { value } },
+      policy: { overlap: 'skip' as const, timeoutMs: 30_000 },
+    };
+    await assert.rejects(context.scheduler.register(schedule), /JSON/);
+    assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 0);
+
+    const valid = { ...schedule, action: { method: 'json-schedule.run', params: { value: null } } };
+    const first = await context.scheduler.register(valid);
+    assert.equal(await context.scheduler.register(valid), first);
+    await assert.rejects(
+      context.scheduler.register({ ...valid, action: { ...valid.action, params: {} } }),
+      ContributionConflictError,
+    );
+    assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 1);
+  }
+});
+
+test('registration rejects sparse arrays instead of collapsing holes', async () => {
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+  await assert.rejects(
+    context.scheduler.register({
+      id: 'sparse-schedule',
+      schedule: { kind: 'interval', everyMs: 60_000 },
+      action: { method: 'sparse-schedule.run', params: { values: Array(1) } },
+      policy: { overlap: 'skip', timeoutMs: 30_000 },
+    }),
+    /JSON/,
+  );
+  assert.equal(adapter.calls.length, 0);
+});
+
 test('same-payload registration waits for overlapping disposal and creates a fresh receipt', async () => {
   const adapter = new PausingDisposeAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);
