@@ -1,7 +1,7 @@
 pluginId: dev.clowder.genoffice-docx
 version: 0.1.0-alpha.0
-contractVersion: 0.1.0-beta.14
-name: GenOffice DOCX
+contractVersion: 0.1.0
+name: GenOffice
 description:
   default: Edit owner-backed DOCX content through a Host-governed GenOffice renderer.
   translations:

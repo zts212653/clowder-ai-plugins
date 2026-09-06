@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
+import assert from 'node:assert/strict';
 import { lstat, readFile, readdir } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { parse } from 'yaml';
 
@@ -30,6 +31,9 @@ for (const name of ['LICENSE', 'NOTICE']) {
 }
 
 const rendererRoot = join(packageRoot, 'renderer');
+// Import the actual distributed bridge with no browser globals. This checks its
+// complete ESM dependency closure without launching upstream renderer code.
+await import(pathToFileURL(join(rendererRoot, 'host-bridge.js')).href);
 const noticePath = join(rendererRoot, 'THIRD-PARTY-NOTICES.txt');
 const sbomPath = join(rendererRoot, 'SBOM.spdx.json');
 const packReport = JSON.parse(
@@ -47,6 +51,7 @@ const packEntrySet = new Set(packEntries);
 for (const required of [
   'package/package.json',
   'package/plugin.yaml',
+  'package/manifest.json',
   'package/source-lock.json',
   'package/LICENSE',
   'package/NOTICE',
@@ -63,6 +68,7 @@ for (const entry of packEntries) {
     ![
       'package/package.json',
       'package/plugin.yaml',
+      'package/manifest.json',
       'package/source-lock.json',
       'package/LICENSE',
       'package/NOTICE',
@@ -139,6 +145,11 @@ if (dependencyIds.size !== relatedDependencyIds.size || [...dependencyIds].some(
 }
 
 const manifest = parse(await readFile(join(packageRoot, 'plugin.yaml'), 'utf8'));
+assert.deepEqual(
+  JSON.parse(await readFile(join(packageRoot, 'manifest.json'), 'utf8')),
+  manifest,
+  'generated manifest.json is stale; rebuild from plugin.yaml',
+);
 const declaredIntegrity = manifest.contributions?.[0]?.surface?.integrity;
 const actualIntegrity = sha256Sri(await readFile(join(rendererRoot, 'index.html')));
 if (declaredIntegrity !== actualIntegrity) {

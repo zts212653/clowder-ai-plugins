@@ -74,7 +74,9 @@ run(
 
 await rm(rendererRoot, { recursive: true, force: true });
 await cp(upstreamRenderer, rendererRoot, { recursive: true, errorOnExist: false });
-await copyFile(join(packageRoot, 'dist', 'host-bridge.js'), join(rendererRoot, 'host-bridge.js'));
+for (const file of ['host-bridge.js', 'host-bridge-transport.js']) {
+  await copyFile(join(packageRoot, 'dist', file), join(rendererRoot, file));
+}
 await copyFile(join(packageRoot, 'src', 'host-policy.css'), join(rendererRoot, 'host-policy.css'));
 
 const indexPath = join(rendererRoot, 'index.html');
@@ -94,6 +96,7 @@ const manifestPath = join(packageRoot, 'plugin.yaml');
 const manifest = parseDocument(await readFile(manifestPath, 'utf8'));
 manifest.setIn(['contributions', 0, 'surface', 'integrity'], integrity);
 await writeFile(manifestPath, String(manifest));
+run(process.execPath, [join(packageRoot, 'scripts', 'generate-manifest.mjs')], packageRoot);
 
 await copyFile(join(sourceRoot, 'LICENSE'), join(packageRoot, 'LICENSE'));
 await copyFile(join(sourceRoot, 'NOTICE'), join(packageRoot, 'NOTICE'));

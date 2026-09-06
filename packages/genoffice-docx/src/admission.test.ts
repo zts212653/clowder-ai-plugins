@@ -16,6 +16,12 @@ import {
 
 const packageRoot = join(import.meta.dirname, '..');
 
+test('pins a registry-installable contract dependency for the packed consumer', async () => {
+  const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+  const contractJson = JSON.parse(await readFile(join(packageRoot, '../plugin-contract/package.json'), 'utf8'));
+  assert.equal(packageJson.dependencies['@clowder-ai/plugin-contract'], contractJson.version);
+});
+
 test('freezes the exact public GenOffice source and a valid provider manifest', async () => {
   const lock = JSON.parse(
     await readFile(join(packageRoot, 'source-lock.json'), 'utf8'),
@@ -40,6 +46,7 @@ test('freezes the exact public GenOffice source and a valid provider manifest', 
   const manifest = parseYaml(await readFile(join(packageRoot, 'plugin.yaml'), 'utf8'));
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, JSON.stringify(result.errors));
+  assert.equal(manifest.contractVersion, '0.1.0', 'manifest declares the Host compatibility line, not the npm version');
   assert.equal(manifest.contributions[0].type, 'content-editor-provider');
   assert.equal(manifest.contributions[0].surface.sandbox, 'dedicated-origin-iframe');
 });
