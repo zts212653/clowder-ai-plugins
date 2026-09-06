@@ -456,6 +456,19 @@
       ]
     },
 
+    "SemanticMaterializerDeclaration": {
+      "type": "object",
+      "description": "Optional independent DOCX computation. The Host admits one closed worker bundle under the installed package and live feature authority, in a fresh sandboxed private browser process with no ambient effects. This is not permission to execute package code in the Host or renderer.",
+      "properties": {
+        "executionClass": { "const": "dedicated-browser-worker" },
+        "entrypoint": { "$ref": "#/$defs/PackageRelativePath", "pattern": "\\.js$" },
+        "integrity": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]{43}=$" },
+        "protocolVersion": { "const": "1.0.0" }
+      },
+      "required": ["executionClass", "entrypoint", "integrity", "protocolVersion"],
+      "additionalProperties": false
+    },
+
     "ContentEditorProviderContribution": {
       "type": "object",
       "properties": {
@@ -491,6 +504,7 @@
           "additionalProperties": false
         },
         "bridgeVersion": { "const": "1.0.0" },
+        "semanticMaterializer": { "$ref": "#/$defs/SemanticMaterializerDeclaration" },
         "operations": {
           "type": "array",
           "items": { "type": "string", "enum": ["load", "settle", "comment", "tracked-change"] },

@@ -153,6 +153,13 @@ assert.deepEqual(
   'generated manifest.json is stale; rebuild from plugin.yaml',
 );
 const declaredIntegrity = manifest.contributions?.[0]?.surface?.integrity;
+const materializer = manifest.contributions?.[0]?.semanticMaterializer;
+assert.equal(materializer?.executionClass, 'dedicated-browser-worker');
+assert.equal(materializer?.entrypoint, 'renderer/semantic-worker.js');
+assert.equal(materializer?.protocolVersion, '1.0.0');
+assert.equal(materializer?.integrity, sha256Sri(await readFile(join(rendererRoot, 'semantic-worker.js'))));
+assert.ok(packEntrySet.has('package/renderer/semantic-worker.js'));
+assert.equal(typeof (await import(pathToFileURL(join(rendererRoot, 'semantic-worker.js')).href)).materializeDocx, 'function');
 const actualIntegrity = sha256Sri(await readFile(join(rendererRoot, 'index.html')));
 if (declaredIntegrity !== actualIntegrity) {
   throw new Error(

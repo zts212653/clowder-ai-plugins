@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/plugin-contract",
-  "version": "0.1.0-beta.14",
+  "version": "0.1.0-beta.15",
   "private": false,
   "description": "Clowder AI plugin contract — the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
   "license": "MIT",
@@ -14,12 +14,17 @@
       "types": "./dist/conformance/index.d.ts",
       "import": "./dist/conformance/index.js"
     },
+    "./docx-materialization": {
+      "types": "./dist/docx-materialization.d.ts",
+      "import": "./dist/docx-materialization.js"
+    },
     "./schemas/messaging": "./src/schemas/messaging.schema.json",
     "./schemas/manifest": "./src/schemas/manifest.schema.json",
     "./schemas/catalog": "./src/schemas/catalog.schema.json",
     "./schemas/plugin-metadata": "./src/schemas/plugin-metadata.schema.json",
     "./schemas/signals": "./src/schemas/signal.schema.json",
     "./schemas/physical-limb": "./src/schemas/physical-limb.schema.json",
+    "./schemas/docx-materialization": "./src/schemas/docx-materialization.schema.json",
     "./schemas/behavior-fixture": "./src/schemas/behavior-fixture.schema.json",
     "./fixtures/behavior/messaging/adversarial-invariants": "./fixtures/behavior/messaging/adversarial-invariants.json"
   },

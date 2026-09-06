@@ -36,3 +36,9 @@ export {
   type SignalValidationError,
   type SignalValidationResult,
 } from './signals.js';
+export {
+  DOCX_MATERIALIZATION_MAX_BYTES,
+  DOCX_MATERIALIZATION_MAX_WIRE_BYTES,
+  validateDocxMaterializationRequest,
+  validateDocxMaterializationResponse,
+} from './docx-materialization.js';

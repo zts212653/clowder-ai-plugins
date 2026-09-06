@@ -169,9 +169,11 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const genofficePackage = JSON.parse(
       await readFile(join(consumer, 'node_modules/@clowder-ai/genoffice-docx/package.json'), 'utf8'),
     );
-    assert.equal(genofficePackage.version, '0.1.0-alpha.0');
-    assert.equal(genofficePackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.14');
+    assert.equal(genofficePackage.version, '0.1.0-alpha.1');
+    assert.equal(genofficePackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.15');
     assert.doesNotMatch(JSON.stringify(genofficePackage), /"workspace:/u);
+    const sourceLock = JSON.parse(await readFile(join(repoRoot, 'packages/genoffice-docx/source-lock.json'), 'utf8'));
+    const docxFixture = join(repoRoot, 'packages/genoffice-docx/.tmp/source', sourceLock.rootDirectory, 'fixtures/generated/simple.docx');
     run(process.execPath, ['--input-type=module', '--eval', `
       const { createRequire } = await import('node:module');
       const { readFile } = await import('node:fs/promises');
@@ -179,7 +181,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       const { pathToFileURL } = await import('node:url');
       const { createHash } = await import('node:crypto');
       const require = createRequire(import.meta.url);
-      const { validateManifest } = await import('@clowder-ai/plugin-contract');
+      const { validateManifest, validateDocxMaterializationResponse } = await import('@clowder-ai/plugin-contract');
       await import('@clowder-ai/genoffice-docx');
       const { default: manifest } = await import('@clowder-ai/genoffice-docx/manifest', { with: { type: 'json' } });
       if (!validateManifest(manifest).valid || manifest.pluginId !== 'dev.clowder.genoffice-docx') process.exit(1);
@@ -188,7 +190,16 @@ test('packed public packages install and import in a fresh npm consumer', async 
       const bytes = await readFile(join(root, manifest.contributions[0].surface.entrypoint));
       const integrity = 'sha256-' + createHash('sha256').update(bytes).digest('base64');
       if (integrity !== manifest.contributions[0].surface.integrity) process.exit(1);
-    `], consumer);
+      const semantic = manifest.contributions[0].semanticMaterializer;
+      if (semantic?.executionClass !== 'dedicated-browser-worker') process.exit(1);
+      const workerPath = join(root, semantic.entrypoint);
+      if ('sha256-' + createHash('sha256').update(await readFile(workerPath)).digest('base64') !== semantic.integrity) process.exit(1);
+      const { materializeDocx } = await import(pathToFileURL(workerPath).href);
+      const rejected = await materializeDocx({protocolVersion: '1.0.0', requestId: 'fresh', mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytesBase64: 'bm90IGEgemlw', operation: {kind: 'inspect', cursor: 0, limit: 1}});
+      if (!validateDocxMaterializationResponse(rejected) || rejected.result.code !== 'INVALID_DOCX') process.exit(1);
+      const inspected = await materializeDocx({protocolVersion: '1.0.0', requestId: 'fresh-real', mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytesBase64: (await readFile(process.argv[1])).toString('base64'), operation: {kind: 'inspect', cursor: 0, limit: 32}});
+      if (!validateDocxMaterializationResponse(inspected) || inspected.result.kind !== 'inspection' || !inspected.result.paragraphs.length) process.exit(1);
+    `, docxFixture], consumer);
     const feishuManifest = JSON.parse(
       await readFile(
         join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/manifest.json'),

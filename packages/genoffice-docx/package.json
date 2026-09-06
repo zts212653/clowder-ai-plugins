@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/genoffice-docx",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Host-governed GenOffice DOCX renderer provider for Clowder AI",
   "license": "Apache-2.0",
   "type": "module",
@@ -38,7 +38,7 @@
     "prepack": "node scripts/assert-pack-ready.mjs"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "0.1.0-beta.14"
+    "@clowder-ai/plugin-contract": "0.1.0-beta.15"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",

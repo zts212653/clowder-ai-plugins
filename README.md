@@ -73,7 +73,7 @@ Host Broker ─────┐
 | `foreground-cat` 前台猫 | surface + skin + local-brain | 契约讨论中 |
 | `voice-suite` 语音包 | service | 契约讨论中 |
 | `feishu-meeting-intake` 飞书会议入口 | input-source | alpha 实现中 |
-| GenOffice | content-editor-provider | DOCX alpha 候选；需兼容 Host，完整共同编辑旅程仍在验收 |
+| GenOffice | content-editor-provider | DOCX alpha：静态编辑界面及独立修订/批注 worker；需兼容 Host，完整共同编辑旅程仍在验收 |
 | IM connectors（微信公众号等存量迁移） | connector | 待收编 |
 
 ## 皮肤 ≠ 身份

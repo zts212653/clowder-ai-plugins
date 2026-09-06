@@ -30,6 +30,7 @@ export interface ContractSchemas {
   readonly signals: JsonSchema;
   readonly messaging: JsonSchema;
   readonly physicalLimb: JsonSchema;
+  readonly docxMaterialization: JsonSchema;
   readonly behavior: JsonSchema;
 }
 
@@ -55,6 +56,9 @@ export async function loadContractSchemas(): Promise<ContractSchemas> {
     messaging: await readSchema(new URL('../schemas/messaging.schema.json', import.meta.url)),
     physicalLimb: await readSchema(
       new URL('../schemas/physical-limb.schema.json', import.meta.url),
+    ),
+    docxMaterialization: await readSchema(
+      new URL('../schemas/docx-materialization.schema.json', import.meta.url),
     ),
     behavior: await readSchema(
       new URL('../schemas/behavior-fixture.schema.json', import.meta.url),
@@ -625,7 +629,7 @@ export function generateContractSource(schemas: ContractSchemas): string {
   validateMessagingBounds(schemas.messaging);
   const sections = [
     '/**',
-    ' * Generated from plugin-metadata.schema.json, manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, and behavior-fixture.schema.json.',
+    ' * Generated from plugin-metadata.schema.json, manifest.schema.json, catalog.schema.json, signal.schema.json, messaging.schema.json, physical-limb.schema.json, docx-materialization.schema.json, and behavior-fixture.schema.json.',
     ' * Do not edit by hand. Run `pnpm generate` after changing a schema.',
     ' */',
     '',
@@ -644,6 +648,8 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderDefinitions(schemas.messaging),
     '',
     ...renderDefinitions(schemas.physicalLimb),
+    '',
+    ...renderDefinitions(schemas.docxMaterialization),
     '',
     ...renderBehaviorDefinitions(schemas.behavior, schemas.manifest, schemas.messaging),
     '',

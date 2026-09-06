@@ -73,7 +73,7 @@ importers:
   packages/genoffice-docx:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.14
+        specifier: 0.1.0-beta.15
         version: link:../plugin-contract
     devDependencies:
       '@types/node':
@@ -140,7 +140,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.1.0-beta.14
-        version: link:../plugin-contract
+        version: 0.1.0-beta.14
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -208,6 +208,10 @@ packages:
   '@clack/prompts@1.7.0':
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
+
+  '@clowder-ai/plugin-contract@0.1.0-beta.14':
+    resolution: {integrity: sha512-LvgAAlwlqTaQjhmbTP/b/IoDIwovGuGvROnXqbv2qoKhrQzvLWNpxIXpmsCARvj2HiB9a2Ko4L4OkmBGTtKBLw==}
+    engines: {node: '>=20.0.0'}
 
   '@clowder-ai/plugin-contract@0.1.0-beta.9':
     resolution: {integrity: sha512-YPpJguiVd0qdoOX8HdU26k36b+58zj0V9w02z/GpRnF8WBubfwuoZ5RBQPE2gf5qwSQwCl/+WVRhsMG/i65Epg==}
@@ -806,6 +810,11 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
+
+  '@clowder-ai/plugin-contract@0.1.0-beta.14':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
 
   '@clowder-ai/plugin-contract@0.1.0-beta.9':
     dependencies:
