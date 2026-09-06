@@ -105,22 +105,41 @@ interface ActiveRegistration {
   disposePromise?: Promise<void>;
 }
 
-function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    const encoded = JSON.stringify(value);
-    return encoded === undefined ? 'null' : encoded;
+function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
+  if (value === null) return 'null';
+  if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
+  if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
+  if (typeof value !== 'object') throw new TypeError('contribution payload must contain only JSON values');
+  if (ancestors.has(value)) throw new TypeError('contribution payload must not contain JSON cycles');
+  if (Object.getOwnPropertySymbols(value).length > 0) {
+    throw new TypeError('contribution payload must contain only JSON string keys');
   }
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   const prototype = Object.getPrototypeOf(value) as object | null;
-  if (prototype !== Object.prototype && prototype !== null) {
+  if (Array.isArray(value) ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) {
     throw new TypeError('contribution payload must contain only plain JSON objects or arrays');
   }
-  const object = value as Record<string, unknown>;
-  return `{${Object.keys(object)
-    .sort()
-    .filter((key) => object[key] !== undefined)
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key])}`)
-    .join(',')}}`;
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      if (Object.keys(value).some((key) => !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)) {
+        throw new TypeError('contribution payload must contain only JSON array elements');
+      }
+      const elements: string[] = [];
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        if (!Object.hasOwn(value, index)) throw new TypeError('contribution payload must not contain JSON array holes');
+        elements.push(canonicalJson(value[index], ancestors));
+      }
+      return `[${elements.join(',')}]`;
+    }
+    const object = value as Record<string, unknown>;
+    return `{${Object.keys(object)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key], ancestors)}`)
+      .join(',')}}`;
+  } finally {
+    ancestors.delete(value);
+  }
 }
 
 function deepFreeze<T>(value: T): T {
@@ -154,9 +173,11 @@ export function createFeatureContextSession(
     input: RegistrationInput<T>,
   ): Promise<ContributionRegistration> => {
     assertActive();
-    const contribution = deepFreeze(structuredClone({ ...input, type })) as unknown as T;
+    const digest = canonicalJson({ ...input, type });
+    // Dispatch exactly the JSON snapshot used for identity; cloning first can
+    // silently erase non-JSON keys, while reading twice can invoke changing getters.
+    const contribution = deepFreeze(JSON.parse(digest)) as unknown as T;
     const key = `${type}:${contribution.id}`;
-    const digest = canonicalJson(contribution);
     const existing = active.get(key);
     if (existing !== undefined) {
       if (existing.disposePromise !== undefined) {
