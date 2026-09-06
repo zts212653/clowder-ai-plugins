@@ -2,6 +2,49 @@
   "schemaVersion": "1",
   "plugins": [
     {
+      "pluginId": "dev.clowder.genoffice-docx",
+      "name": "GenOffice",
+      "description": {
+        "default": "Edit DOCX documents together in your Clowder workspace. Requires a compatible Host; other Office formats are not yet enabled.",
+        "translations": {
+          "zh-CN": "在 Clowder 工作空间里共同编辑 DOCX 文档。需要兼容的宿主；其他 Office 格式尚未开放。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "documents",
+        "docx",
+        "genoffice",
+        "office"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/genoffice-docx",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/genoffice-docx/-/genoffice-docx-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-FFE8P+2YJRjQhrXwCeJ3TXwoyxRRy9MTCnw/5JxnmlNrxCtS7Dh3tT/aqJv5T8QAST9qMvedBdKwVMu+bksohg==",
+            "shasum": "e4f6365de944d55852e8fb5e9944af87aef83663",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/genoffice-docx"
+            }
+          }
+        }
+      ]
+    },
+    {
       "pluginId": "dev.clowder.video-analysis",
       "name": "Video Analysis",
       "description": {
