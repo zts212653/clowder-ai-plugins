@@ -15,6 +15,20 @@ const base = {
 const target = { paragraphId: `p:0:${'a'.repeat(64)}`, textQuote: 'Original text' };
 const attribution = { author: 'codex-astra', operationId: 'operation-1', timestamp: '2026-09-06T00:00:00.000Z' };
 
+test('OOXML-bound text rejects illegal XML scalars and malformed UTF-16 instead of colliding after sanitization', () => {
+  const bad = ['\u0000', '\u0008', '\u000b', '\u001f', '\ud800', '\udfff', '\ud800x\udc00', '\ufffe', '\uffff'];
+  for (const text of bad) {
+    assert.equal(request({ ...base, operation: { kind: 'tracked-change', target, replacement: `bad${text}text`, attribution } }), false, `replacement ${JSON.stringify(text)}`);
+    assert.equal(request({ ...base, operation: { kind: 'comment', target, body: `bad${text}comment`, attribution } }), false);
+    assert.equal(request({ ...base, operation: { kind: 'comment', target, body: 'Comment', attribution: { ...attribution, author: `named${text}-cat` } } }), false);
+  }
+  assert.ok(request({ ...base, operation: { kind: 'comment', target, body: 'Valid 中文 🐾 \t\n', attribution: { ...attribution, author: 'named-cat' } } }));
+  for (const author of ['named\t-cat', 'named\n-cat', 'named\r-cat', 'named-cat\n', 'named-cat\r\n']) {
+    assert.equal(request({ ...base, operation: { kind: 'comment', target, body: 'Comment', attribution: { ...attribution, author } } }), false, 'XML attribute normalization must not change attribution');
+  }
+  assert.equal(request({ ...base, operation: { kind: 'tracked-change', target, replacement: 'a\rb', attribution } }), false, 'upstream emits literal CR, which XML normalizes');
+});
+
 test('public protocol closes inspection, tracked-edit and comment input shapes', () => {
   assert.ok(request(base));
   assert.ok(request({ ...base, operation: { kind: 'tracked-change', target, replacement: 'New text', attribution } }));

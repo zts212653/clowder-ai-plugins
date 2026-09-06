@@ -749,13 +749,15 @@ export type PhysicalLimbUnavailableReadiness = {
 };
 export type PhysicalLimbReadiness = PhysicalLimbReadyReadiness | PhysicalLimbUnavailableReadiness;
 
+export type DocxMaterializationText = string;
+export type DocxMaterializationAuthor = string;
 export type DocxMaterializationBytes = string;
 export type DocxMaterializationAnchor = {
   readonly paragraphId: string;
   readonly textQuote: string;
 };
 export type DocxMaterializationAttribution = {
-  readonly author: string;
+  readonly author: DocxMaterializationAuthor;
   readonly operationId: string;
   readonly timestamp: string;
 };
@@ -766,12 +768,12 @@ export type DocxMaterializationOperation = {
 } | {
   readonly kind: 'tracked-change';
   readonly target: DocxMaterializationAnchor;
-  readonly replacement: string;
+  readonly replacement: DocxMaterializationText;
   readonly attribution: DocxMaterializationAttribution;
 } | {
   readonly kind: 'comment';
   readonly target: DocxMaterializationAnchor;
-  readonly body: string;
+  readonly body: DocxMaterializationText;
   readonly attribution: DocxMaterializationAttribution;
 };
 export type DocxMaterializationRequest = {
@@ -800,6 +802,8 @@ export type DocxMaterializationResponse = {
   readonly requestId: string;
   readonly result: DocxMaterializationResult;
 };
+export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
+export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 
 export type FixtureMetadata = {
   readonly executor: 'loopback';

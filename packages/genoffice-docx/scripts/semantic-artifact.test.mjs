@@ -36,6 +36,11 @@ with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED) as target:
    data=data.replace(b'</Relationships>', b'<Relationship Id="rIdProtectionFixture" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>')
   if sys.argv[1]=='bookmark' and part=='word/document.xml':
    data=re.sub(rb'(<w:p(?:\\s[^>]*)?>)', rb'\\1<w:bookmarkStart w:id="60000" w:name="keep_me"/>', data, count=1)
+  if sys.argv[1] in ['single-quoted-revision','aliased-revision'] and part=='word/document.xml':
+   revision=b"<w:p><w:ins w:id='0' w:author='existing'><w:r><w:t>Existing revision</w:t></w:r></w:ins></w:p>"
+   if sys.argv[1]=='aliased-revision':
+    revision=b"<w:p><w:ins xmlns:rev='http://schemas.openxmlformats.org/wordprocessingml/2006/main' rev:id='&#48;0' w:author='existing'><w:r><w:t>Existing revision</w:t></w:r></w:ins></w:p>"
+   data=data.replace(b'<w:body>',b'<w:body>'+revision)
   target.writestr(part,data)
  if sys.argv[1]=='protected':
   target.writestr('word/settings.xml',b'<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:documentProtection w:edit="readOnly" w:enforcement="1"/></w:settings>')
@@ -110,4 +115,45 @@ test('stale target and malformed DOCX are typed rejections, not arbitrary replac
   assert.deepEqual(mismatch.result, { kind: 'rejected', code: 'TARGET_MISMATCH' });
   const invalid = await materializeDocx({ ...base, bytesBase64: Buffer.from('not a ZIP').toString('base64') });
   assert.deepEqual(invalid.result, { kind: 'rejected', code: 'INVALID_DOCX' });
+});
+
+test('worker rejects lossy XML text before touching the archive, including colliding author inputs', async () => {
+  const inspection = await materializeDocx(base);
+  const target = inspection.result.paragraphs.find(row => row.editable).target;
+  for (const bad of ['\u0000', '\u000b', '\ud800', '\udfff', '\ufffe', '\uffff', '\r']) {
+    for (const operation of [
+      { kind: 'tracked-change', target, replacement: `bad${bad}text`, attribution },
+      { kind: 'comment', target, body: `bad${bad}comment`, attribution },
+      { kind: 'comment', target, body: 'Comment', attribution: { ...attribution, author: `named${bad}-cat` } },
+    ]) {
+      const result = await materializeDocx({ ...base, operation });
+      assert.deepEqual(result.result, { kind: 'rejected', code: 'INVALID_REQUEST' }, JSON.stringify(operation));
+      const beforeParse = await materializeDocx({ ...base, bytesBase64: 'bm90LXppcA==', operation });
+      assert.deepEqual(beforeParse.result, result.result, 'invalid text must be rejected before archive parsing');
+    }
+  }
+  const valid = await materializeDocx({ ...base, operation: { kind: 'comment', target, body: 'Valid 中文 🐾', attribution: { ...attribution, author: 'named-cat' } } });
+  assert.equal(valid.result.kind, 'document');
+  const parts = await inspectArchive(Buffer.from(valid.result.bytesBase64, 'base64'));
+  assert.match(parts['word/comments.xml'].xml, /Valid 中文 🐾/);
+  assert.match(parts['word/comments.xml'].xml, /w:author="named-cat"/);
+});
+
+test('revision IDs account for single quotes, namespace aliases and numeric XML attribute values', async () => {
+  for (const mode of ['single-quoted-revision', 'aliased-revision']) {
+    const bytes = await decorateFixture(mode);
+    const request = { ...base, bytesBase64: bytes.toString('base64') };
+    const inspected = await materializeDocx(request);
+    const target = inspected.result.paragraphs.find(row => row.editable && row.target.textQuote !== 'Existing revision').target;
+    const changed = await materializeDocx({ ...request, operation: { kind: 'tracked-change', target, replacement: 'Distinct revision IDs', attribution } });
+    assert.equal(changed.result.kind, 'document');
+    const script = 'import sys,io,zipfile,json,xml.etree.ElementTree as E; z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); d=E.fromstring(z.read("word/document.xml")); ns="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"; print(json.dumps([int(e.attrib[ns+"id"]) for e in d.iter() if e.tag in [ns+"ins",ns+"del"]]))';
+    const ids = await new Promise((resolve, reject) => {
+      const child = execFile('python3', ['-c', script], (error, stdout) => error ? reject(error) : resolve(JSON.parse(stdout)));
+      child.stdin.end(Buffer.from(changed.result.bytesBase64, 'base64'));
+    });
+    assert.equal(ids.length, 3, mode);
+    assert.equal(new Set(ids).size, 3, mode);
+    assert.ok(ids.includes(0), 'original revision is retained');
+  }
 });

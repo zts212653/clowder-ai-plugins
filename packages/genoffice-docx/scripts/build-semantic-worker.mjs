@@ -8,8 +8,9 @@ const lock = JSON.parse(await readFile(join(root, 'source-lock.json'), 'utf8'));
 const source = join(root, '.tmp', 'source', lock.rootDirectory);
 const entry = join(root, 'worker-source', 'worker.ts');
 const engine = join(source, 'packages', 'docx-engine', 'src', 'index.ts');
+const xml = join(source, 'packages', 'docx-engine', 'src', 'xml-utils.ts');
 const jszip = join(source, 'node_modules', 'jszip');
-const aliases = { '@genoffice/docx-engine': [engine], jszip: [join(jszip, 'index.d.ts')] };
+const aliases = { '@genoffice/docx-engine': [engine], '@genoffice/docx-engine/xml-utils': [xml], jszip: [join(jszip, 'index.d.ts')] };
 await mkdir(join(root, '.tmp'), { recursive: true });
 const config = join(root, '.tmp', 'semantic-tsconfig.json');
 await writeFile(config, JSON.stringify({
@@ -25,7 +26,7 @@ if (checked.status !== 0) throw new Error('semantic worker typecheck failed');
 const { build } = await import(pathToFileURL(join(source, 'node_modules', 'vite', 'dist', 'node', 'index.js')).href);
 const result = await build({
   root, configFile: false, logLevel: 'warn',
-  resolve: { alias: { '@genoffice/docx-engine': engine, jszip: join(jszip, 'lib', 'index.js') } },
+  resolve: { alias: { '@genoffice/docx-engine/xml-utils': xml, '@genoffice/docx-engine': engine, jszip: join(jszip, 'lib', 'index.js') } },
   build: {
     write: false, minify: true, target: 'es2022', sourcemap: false,
     lib: { entry, formats: ['es'], fileName: () => 'semantic-worker.js' },

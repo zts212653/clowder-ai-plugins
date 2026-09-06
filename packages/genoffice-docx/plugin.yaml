@@ -29,7 +29,7 @@ contributions:
     semanticMaterializer:
       executionClass: dedicated-browser-worker
       entrypoint: renderer/semantic-worker.js
-      integrity: sha256-LYqvZSVWRu/fwlCxmjTZTPof/jUV4cL+eON/UW4VyT0=
+      integrity: sha256-BKMyn3bqKZebqZRYAiYErHWOpjOO6UN74Ft+UJkhHcI=
       protocolVersion: 1.0.0
 features:
   - id: edit-docx

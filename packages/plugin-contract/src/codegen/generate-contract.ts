@@ -650,6 +650,11 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderDefinitions(schemas.physicalLimb),
     '',
     ...renderDefinitions(schemas.docxMaterialization),
+    ...(['Text', 'Author'] as const).map(kind => {
+      const pattern = schemas.docxMaterialization.$defs?.[`DocxMaterialization${kind}`]?.pattern;
+      if (typeof pattern !== 'string') throw new Error(`Missing DOCX ${kind} pattern`);
+      return `export const DOCX_MATERIALIZATION_${kind.toUpperCase()}_PATTERN = ${quote(pattern)};`;
+    }),
     '',
     ...renderBehaviorDefinitions(schemas.behavior, schemas.manifest, schemas.messaging),
     '',

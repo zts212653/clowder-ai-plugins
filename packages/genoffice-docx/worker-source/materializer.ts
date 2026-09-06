@@ -1,5 +1,6 @@
 import {
   DOCX_MATERIALIZATION_MAX_BYTES,
+  hasLosslessDocxOperationText,
   type DocxMaterializationAnchor,
   type DocxMaterializationRequest,
   type DocxMaterializationResponse,
@@ -7,6 +8,7 @@ import {
 } from '@clowder-ai/plugin-contract/docx-materialization';
 import { generateParagraphXml, parseDocx, saveDocx, type Block, type GeneratedBlock, type Run, type SaveBlock } from '@genoffice/docx-engine';
 import JSZip from 'jszip';
+import { usedWordIds } from './revision-ids.js';
 
 const textBlockTypes = new Set(['paragraph', 'heading', 'listItem']);
 const supportedInline = new Set(['w:p', 'w:r', 'w:t', 'w:tab', 'w:br', 'w:cr', 'w:ins', 'w:del', 'w:delText', 'w:commentRangeStart', 'w:commentRangeEnd', 'w:commentReference']);
@@ -52,6 +54,7 @@ async function canonicalArchive(bytes: Uint8Array, timestamp: string): Promise<U
 
 async function compute(request: DocxMaterializationRequest): Promise<DocxMaterializationResult> {
   if (request.protocolVersion !== '1.0.0' || request.mediaType !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return reject('INVALID_REQUEST');
+  if (!hasLosslessDocxOperationText(request.operation)) return reject('INVALID_REQUEST');
   if (typeof request.bytesBase64 !== 'string' || request.bytesBase64.length > Math.ceil(DOCX_MATERIALIZATION_MAX_BYTES / 3) * 4) return reject('LIMIT_EXCEEDED');
   let bytes: Uint8Array;
   try { bytes = Uint8Array.from(atob(request.bytesBase64), char => char.charCodeAt(0)); } catch { return reject('INVALID_DOCX'); }
@@ -80,7 +83,7 @@ async function compute(request: DocxMaterializationRequest): Promise<DocxMateria
   let comments = parsed.comments;
   if (operation.kind === 'tracked-change') {
     if (block.runs.some(run => run.ins || run.del) || operation.replacement.length > 8192) return reject('UNSUPPORTED_TARGET');
-    const ids = new Set([...parsed.internal.documentXml.matchAll(/\bw:id="([^"]+)"/g)].map(match => match[1] ?? ''));
+    const ids = usedWordIds(parsed.internal.documentXml);
     const deletionId = nextId(ids); ids.add(deletionId);
     const revision = { author: operation.attribution.author, date: operation.attribution.timestamp };
     const original = block.runs.map(run => ({ ...run, del: { ...revision, id: deletionId } }));
