@@ -168,7 +168,7 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   assert.match(workflow, /^      id-token: write$/m);
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    4,
+    5,
     'each public package action must receive the operator-authorized npm token',
   );
   assert.equal(
@@ -332,8 +332,8 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('Train B catalog/contribution contract publishes beta.13 while the protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.13');
+test('content editor provider contract publishes beta.14 while the protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.14');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
@@ -388,6 +388,7 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/plugin-contract',
     'packages/plugin-sdk',
     'packages/video-analysis',
+    'packages/genoffice-docx',
     'packages/feishu-meeting-intake',
   ];
   let previousIndex = -1;
@@ -400,7 +401,7 @@ test('main publishes the public dependency chain through one hardened action', (
   }
   assert.equal(
     releaseWorkflow.match(/uses: \.\/\.github\/actions\/publish-prerelease/g)?.length,
-    4,
+    orderedPackages.length,
     'all public packages must use the same hardened publication action',
   );
   assert.match(

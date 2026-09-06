@@ -14,6 +14,7 @@ on:
       - 'packages/plugin-sdk/**'
       - 'packages/feishu-meeting-intake/**'
       - 'packages/video-analysis/**'
+      - 'packages/genoffice-docx/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
       - 'scripts/catalog-check.mjs'
@@ -98,11 +99,16 @@ jobs:
       - name: Video analysis build
         run: pnpm --filter @clowder-ai/video-analysis build
 
-      - name: Machine catalog
-        run: pnpm catalog:check
+      - name: GenOffice typecheck and tests
+        run: |
+          pnpm --filter @clowder-ai/genoffice-docx typecheck
+          pnpm --filter @clowder-ai/genoffice-docx test
 
       - name: Fresh consumer install
         run: pnpm test:fresh-consumer
+
+      - name: Machine catalog
+        run: pnpm catalog:check
 
       - name: Loopback fixture typecheck
         run: pnpm --filter @clowder-ai/loopback-fixture-plugin typecheck
@@ -290,6 +296,11 @@ jobs:
       - name: Build video analysis package
         run: pnpm --filter @clowder-ai/video-analysis build
 
+      - name: Build and verify frozen GenOffice renderer
+        run: |
+          pnpm --filter @clowder-ai/genoffice-docx build:renderer
+          pnpm --filter @clowder-ai/genoffice-docx prepack
+
       - name: Publish contract prerelease
         uses: ./.github/actions/publish-prerelease
         with:
@@ -306,6 +317,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/video-analysis
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish GenOffice prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/genoffice-docx
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish Feishu intake prerelease

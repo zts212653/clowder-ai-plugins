@@ -45,7 +45,7 @@ function multilineRunBlocks(workflow: string): string[] {
 test('every multiline workflow shell block parses with bash', () => {
   const workflowBlocks = multilineRunBlocks(releaseWorkflow);
   const actionBlocks = multilineRunBlocks(prereleasePublishAction);
-  assert.equal(workflowBlocks.length, 2, 'update the syntax gate when changing workflow blocks');
+  assert.equal(workflowBlocks.length, 4, 'update the syntax gate when changing workflow blocks');
   assert.equal(actionBlocks.length, 4, 'update the syntax gate when changing action blocks');
 
   for (const [index, block] of [...workflowBlocks, ...actionBlocks].entries()) {

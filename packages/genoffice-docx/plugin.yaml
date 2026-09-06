@@ -1,0 +1,38 @@
+pluginId: dev.clowder.genoffice-docx
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: GenOffice
+icon:
+  type: svg
+  src: assets/icon.svg
+description:
+  default: Edit DOCX documents together in your Clowder workspace. Requires a
+    compatible Host; other Office formats are not yet enabled.
+  translations:
+    zh-CN: 在 Clowder 工作空间里共同编辑 DOCX 文档。需要兼容的宿主；其他 Office 格式尚未开放。
+contributions:
+  - type: content-editor-provider
+    id: genoffice-docx
+    mediaTypes:
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    surface:
+      entrypoint: renderer/index.html
+      integrity: sha256-mfusjkRv8pE4EOPOZxGtfpc6E3b0DD2+suZ0CUgLKXc=
+      sandbox: dedicated-origin-iframe
+      navigationPolicy: navigation-api-deny
+    bridgeVersion: 1.0.0
+    operations:
+      - load
+      - settle
+      - comment
+      - tracked-change
+features:
+  - id: edit-docx
+    name: Edit DOCX
+    resources: []
+    contributions:
+      - type: content-editor-provider
+        id: genoffice-docx
+    capabilities: []
+runtime:
+  transport: builtin

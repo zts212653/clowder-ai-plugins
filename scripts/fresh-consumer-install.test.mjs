@@ -54,9 +54,12 @@ test('packed public packages install and import in a fresh npm consumer', async 
       '@clowder-ai/feishu-meeting-intake',
       '@clowder-ai/personal-chrome-companion',
       '@clowder-ai/video-analysis',
+      '@clowder-ai/genoffice-docx',
     ]) {
-      run('pnpm', ['--filter', packageName, 'build'], repoRoot);
+      const build = packageName === '@clowder-ai/genoffice-docx' ? 'build:renderer' : 'build';
+      run('pnpm', ['--filter', packageName, build], repoRoot);
     }
+    run(process.execPath, ['packages/genoffice-docx/scripts/assert-pack-ready.mjs'], repoRoot);
 
     const tarballs = [
       pack('packages/plugin-contract', packs),
@@ -64,6 +67,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       pack('packages/feishu-meeting-intake', packs),
       pack('packages/personal-chrome-companion', packs),
       pack('packages/video-analysis', packs),
+      pack('packages/genoffice-docx', packs),
     ];
 
     const staged = join(root, 'staged');
@@ -162,14 +166,37 @@ test('packed public packages install and import in a fresh npm consumer', async 
         'utf8',
       ),
     );
+    const genofficePackage = JSON.parse(
+      await readFile(join(consumer, 'node_modules/@clowder-ai/genoffice-docx/package.json'), 'utf8'),
+    );
+    assert.equal(genofficePackage.version, '0.1.0-alpha.0');
+    assert.equal(genofficePackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.14');
+    assert.doesNotMatch(JSON.stringify(genofficePackage), /"workspace:/u);
+    run(process.execPath, ['--input-type=module', '--eval', `
+      const { createRequire } = await import('node:module');
+      const { readFile } = await import('node:fs/promises');
+      const { dirname, join } = await import('node:path');
+      const { pathToFileURL } = await import('node:url');
+      const { createHash } = await import('node:crypto');
+      const require = createRequire(import.meta.url);
+      const { validateManifest } = await import('@clowder-ai/plugin-contract');
+      await import('@clowder-ai/genoffice-docx');
+      const { default: manifest } = await import('@clowder-ai/genoffice-docx/manifest', { with: { type: 'json' } });
+      if (!validateManifest(manifest).valid || manifest.pluginId !== 'dev.clowder.genoffice-docx') process.exit(1);
+      const root = dirname(require.resolve('@clowder-ai/genoffice-docx/manifest'));
+      await import(pathToFileURL(join(root, 'renderer/host-bridge.js')).href);
+      const bytes = await readFile(join(root, manifest.contributions[0].surface.entrypoint));
+      const integrity = 'sha256-' + createHash('sha256').update(bytes).digest('base64');
+      if (integrity !== manifest.contributions[0].surface.integrity) process.exit(1);
+    `], consumer);
     const feishuManifest = JSON.parse(
       await readFile(
         join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake/manifest.json'),
         'utf8',
       ),
     );
-    assert.equal(sdkPackage.version, '0.1.0-beta.9');
-    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.13');
+    assert.equal(sdkPackage.version, '0.1.0-beta.10');
+    assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.14');
     assert.equal(
       feishuPackage.dependencies['@clowder-ai/plugin-contract'],
       '0.1.0-beta.9',

@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/genspark-ai/genoffice.git",
+  "tag": "v0.8.1039",
+  "commit": "e833fff87f5628cc681e0fd1a063ce64fde5baa4",
+  "tree": "b6e5133dbd19a6a501db31c389cf114dac98677a",
+  "archiveUrl": "https://codeload.github.com/genspark-ai/genoffice/tar.gz/refs/tags/v0.8.1039",
+  "archiveSha256": "e57a238b99dc7a1908099957157b40929026c8d3dfac4d5e6dc1d8efee2deee9",
+  "rootDirectory": "genoffice-0.8.1039",
+  "files": {
+    "package-lock.json": "6c21803656a8251c93441310b90e6b63c434fc7ecb5006687cfb11ed95daf9a9",
+    "LICENSE": "68e32334df324ef4fc79fad3a26487e5abac36055a484bb6c8d7ecf9d8350885",
+    "NOTICE": "ff1ad79ed52b0f5c1d0e10a9370c22c0c0e6ee83074b6a9b644b25ab7b129f94"
+  }
+}

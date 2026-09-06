@@ -58,7 +58,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui' | 'content-editor-provider';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -246,7 +246,20 @@ export type UiMessageElementContribution = {
   readonly when?: UiWhenClause;
 };
 export type UiContribution = UiCommandContribution | UiSlotItemContribution | UiMessageElementContribution;
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution;
+export type ContentEditorProviderContribution = {
+  readonly type: 'content-editor-provider';
+  readonly id: string;
+  readonly mediaTypes: readonly ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  readonly surface: {
+    readonly entrypoint: PackageRelativePath;
+    readonly integrity: string;
+    readonly sandbox: 'dedicated-origin-iframe';
+    readonly navigationPolicy: 'navigation-api-deny';
+  };
+  readonly bridgeVersion: '1.0.0';
+  readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
+};
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
