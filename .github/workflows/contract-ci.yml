@@ -301,6 +301,9 @@ jobs:
       - name: Build SDK package
         run: pnpm --filter @clowder-ai/plugin-sdk build
 
+      - name: Build companion package
+        run: pnpm --filter @clowder-ai/companion build
+
       - name: Build Feishu intake package
         run: pnpm --filter @clowder-ai/feishu-meeting-intake build
 
@@ -322,6 +325,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/plugin-sdk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish companion prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/companion
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish video analysis prerelease

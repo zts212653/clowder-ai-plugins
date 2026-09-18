@@ -21,7 +21,7 @@ if (!validation.valid) process.exit(1);
 
 assert.deepEqual(
   listCatalogPlugins(validation.catalog).map((entry) => entry.pluginId),
-  ['dev.clowder.genoffice-docx', 'dev.clowder.video-analysis'],
+  ['dev.clowder.genoffice-docx', 'dev.clowder.video-analysis', 'official.companion'],
 );
 assert.deepEqual(
   searchCatalogPlugins(validation.catalog, 'zhipu').map((entry) => entry.pluginId),
@@ -81,9 +81,9 @@ async function verifyCatalogEntry(catalogEntry) {
     assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
 
     const contributions = manifestValidation.manifest.contributions ?? [];
-    const staticEditors = contributions.length > 0 &&
-      contributions.every(entry => entry.type === 'content-editor-provider');
-    if (!staticEditors) {
+    const staticSurfaces = contributions.length > 0 &&
+      contributions.every(entry => ['content-editor-provider', 'desktop-window'].includes(entry.type));
+    if (!staticSurfaces) {
       assert.ok(
         artifact.files.some((file) => file.path === 'npm-shrinkwrap.json'),
         'packed artifact is missing npm-shrinkwrap.json',

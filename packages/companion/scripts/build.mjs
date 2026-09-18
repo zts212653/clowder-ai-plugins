@@ -16,6 +16,7 @@ const pkg = JSON.parse(await readFile(new URL('package.json', root)));
 const html = await readFile(new URL('index.html', renderer));
 const manifest = {
   pluginId: 'official.companion', version: pkg.version, contractVersion: '0.1.0', name: '猫猫球',
+  icon: { type: 'png', src: 'renderer/skins/ragdoll-v1.png' },
   description: { default: 'Talk, think and find your shared history with your companion.', translations: { 'zh-CN': '和猫猫说话、查资料，回到同一段聊天继续工作。' } },
   runtime: { transport: 'builtin' },
   features: [{ id: 'companion', name: '猫猫球', resources: [], capabilities: ['windows.create'], contributions: [{ type: 'desktop-window', id: 'companion' }] }],
