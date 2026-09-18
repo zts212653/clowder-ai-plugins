@@ -4,12 +4,17 @@ import { readFile, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { validateManifest } from '@clowder-ai/plugin-contract';
+import { parse } from 'yaml';
 
 const root = new URL('../', import.meta.url);
 test('the installable package declares one companion body and contains a closed browser asset graph', async () => {
   const built = spawnSync(process.execPath, ['scripts/build.mjs'], { cwd: root, encoding: 'utf8' });
   assert.equal(built.status, 0, built.stderr);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root)));
+  const catalogManifest = parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
+  assert.deepEqual(catalogManifest, manifest, 'catalog and module consumers read the same generated manifest');
+  const pkg = JSON.parse(await readFile(new URL('package.json', root)));
+  assert.ok(pkg.files.includes('plugin.yaml'), 'the catalog manifest must reach the published archive');
   assert.equal(validateManifest(manifest).valid, true);
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
   assert.deepEqual(manifest.features[0].capabilities, ['windows.create']);

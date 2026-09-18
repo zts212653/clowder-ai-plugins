@@ -168,7 +168,7 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   assert.match(workflow, /^      id-token: write$/m);
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    5,
+    6,
     'each public package action must receive the operator-authorized npm token',
   );
   assert.equal(
@@ -387,6 +387,7 @@ test('main publishes the public dependency chain through one hardened action', (
   const orderedPackages = [
     'packages/plugin-contract',
     'packages/plugin-sdk',
+    'packages/companion',
     'packages/video-analysis',
     'packages/genoffice-docx',
     'packages/feishu-meeting-intake',

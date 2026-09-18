@@ -18,8 +18,9 @@ const packageRoot = join(import.meta.dirname, '..');
 
 test('pins a registry-installable contract dependency for the packed consumer', async () => {
   const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
-  const contractJson = JSON.parse(await readFile(join(packageRoot, '../plugin-contract/package.json'), 'utf8'));
-  assert.equal(packageJson.dependencies['@clowder-ai/plugin-contract'], contractJson.version);
+  // The published alpha.1 artifact stays on its exact dependency even when the
+  // workspace develops a newer contract. Manifest compatibility is checked below.
+  assert.equal(packageJson.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.15');
 });
 
 test('freezes the exact public GenOffice source and a valid provider manifest', async () => {

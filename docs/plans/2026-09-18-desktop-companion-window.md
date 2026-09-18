@@ -106,3 +106,60 @@ uncertain-text retention and same-id retry, history navigation and household pau
 Media and Host replies in that browser run are fixtures; no microphone or screen was
 captured. The installing Host's real packaged Electron journey and actual native
 conversation remain separate acceptance requirements. The package is not published.
+
+## Public release candidate verification
+
+The public dependency chain is ready for independent review as one change: contract
+`0.1.0-beta.16`, SDK `0.1.0-beta.11`, and companion `0.1.0-alpha.1`. The installing
+Host integration is a separate repository change in the same product delivery;
+publishing these packages alone does not complete that delivery.
+
+- The catalog and module manifest exports are generated from the same object.
+  The archive includes `plugin.yaml`, as required by the existing catalog contract.
+- The artifact was packed with the release workflow's Node 24.18.0, npm 11.16.0
+  and zlib 1.3.1-e00f703. Catalog validation extracts and validates each physical
+  archive and checks exact integrity, manifest identity and entrypoint bytes.
+- Existing GenOffice alpha.1 stays on its published beta.15 dependency and identical
+  package bytes. Its test now checks that exact pin instead of tracking the next
+  contract candidate under development.
+- Publication still uses the existing guarded action, dependency order and `next`
+  tag. The release tests include the new package and retain rejection of missing
+  publication credentials, altered registry integrity checks and floating tools.
+
+### Validation and failure repair
+
+Native workspace build and typecheck passed. All nine package test suites were
+executed. The initial recursive run stopped at the stale GenOffice assertion;
+its four admission checks then passed after repair. The resumed contract run
+found four stale publication-count/shell-block assertions; the affected two
+files passed all 28 checks after repair. The remaining suites passed without
+failures: SDK 304, companion 23, Feishu 66, Chrome companion 13, StackChan 44,
+video analysis 13, and loopback runtime 91. Existing passing files were retained;
+these results describe staged execution and repair, not one uninterrupted run.
+
+Conformance passed 34 schema fixtures and 18 executed behavior cases. Generated
+types are current. The repository-wide fresh npm consumer passed; the focused
+window consumer additionally installs the physical companion, contract and SDK
+tarballs together and validates their public imports without workspace links.
+
+### Dogfood and limits
+
+The final physical companion archive was installed by the development Host's
+verified installer, opened with a Host-managed Electron component prepared from
+its checked-in lock, and called the public SDK through the real isolated preload.
+Opening caused zero conversation preparations. Canonical disable removed the
+window presence. The exact candidate integrity is
+`sha512-p91HkADQUGoRBz283xqNx41boo/HKxDVvsB4UKIiHX0Xqshpv5IfIWcepUKCehsqaybVV+u2kULrNgbWQccd7w==`.
+Identity and native-provider replies in this integration check were fixtures;
+no microphone or screen was captured. Real Chromium interaction with the built
+page separately covered start, mute, uncertain text delivery and same-id retry,
+history navigation, and household access changes. No matching `.pen` exists in
+this repository; the package reuses the existing public companion visual assets.
+
+Risk focus: new visible controls and media lifecycle (behavior), no independent
+durable history (data), untrusted renderer input and explicit capture admission
+(security), shared closed schemas and SDK exports (contract), and immutable
+registry publication through the existing guarded action (release). Schema
+validation cannot replace the consuming Host's owner/lease/gesture checks.
+Actual household lookup, cross-provider reasoning and long-running conversations
+remain acceptance work for the combined Host product, not claims of this package.

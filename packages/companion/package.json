@@ -4,7 +4,7 @@
   "description": "The desktop voice body for your Clowder companion",
   "license": "MIT",
   "type": "module",
-  "files": ["renderer", "manifest.json", "LICENSE", "NOTICE", "source-lock.json"],
+  "files": ["renderer", "plugin.yaml", "manifest.json", "LICENSE", "NOTICE", "source-lock.json"],
   "exports": { "./manifest": "./manifest.json" },
   "engines": { "node": ">=22.12.0" },
   "scripts": {

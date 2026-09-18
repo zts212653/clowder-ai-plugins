@@ -21,7 +21,7 @@ test('packed desktop window contract and SDK work in a consumer without workspac
   await mkdir(consumer);
   try {
     const artifacts = [];
-    for (const name of ['plugin-contract', 'plugin-sdk']) {
+    for (const name of ['plugin-contract', 'plugin-sdk', 'companion']) {
       run('pnpm', ['--filter', `@clowder-ai/${name}`, 'build'], repo);
       const output = run(process.execPath, ['scripts/pack-publish-artifact.mjs', `packages/${name}`, packs], repo);
       const [artifact] = JSON.parse(output);
@@ -35,9 +35,13 @@ test('packed desktop window contract and SDK work in a consumer without workspac
     const probe = `
       import assert from 'node:assert/strict';
       import { validateManifest } from '@clowder-ai/plugin-contract';
+      import companion from '@clowder-ai/companion/manifest' with { type: 'json' };
       import { createFeatureContextSession, FeatureContextRevokedError } from '@clowder-ai/plugin-sdk';
       import { createCompanionClient } from '@clowder-ai/plugin-sdk/companion';
       import { validateCompanionCommand, validateCompanionReply } from '@clowder-ai/plugin-contract';
+      assert.equal(validateManifest(companion).valid, true);
+      assert.equal(companion.pluginId, 'official.companion');
+      assert.equal(companion.contributions[0].bridgeVersion, '1.0.0');
       const window = {
         type: 'desktop-window', id: 'pet', role: 'companion', bridgeVersion: '1.0.0',
         surface: { entrypoint: 'surface/index.html', integrity: 'sha256-' + 'A'.repeat(43) + '=' },

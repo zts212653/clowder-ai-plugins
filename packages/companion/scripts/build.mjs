@@ -26,4 +26,7 @@ const manifest = {
 };
 const validation = validateManifest(manifest);
 if (!validation.valid) throw new Error(JSON.stringify(validation.errors));
-await writeFile(new URL('manifest.json', root), `${JSON.stringify(manifest, null, 2)}\n`);
+// JSON is valid YAML; both public entry points derive from this one manifest.
+const serialized = `${JSON.stringify(manifest, null, 2)}\n`;
+await writeFile(new URL('manifest.json', root), serialized);
+await writeFile(new URL('plugin.yaml', root), serialized);

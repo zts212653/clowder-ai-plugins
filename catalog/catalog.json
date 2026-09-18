@@ -123,22 +123,22 @@
       },
       "keywords": [
         "companion",
-        "voice",
+        "conversation",
         "desktop",
-        "conversation"
+        "voice"
       ],
       "versions": [
         {
           "version": "0.1.0-alpha.1",
           "contractVersion": "0.1.0",
-          "manifestPath": "manifest.json",
+          "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/companion",
             "version": "0.1.0-alpha.1",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.1.tgz",
-            "integrity": "sha512-Wh3sa8XXlyk4YNvuP4N/WRpYCK72P58KwUvulfL41o954JCmPij2p50/Ezno59lr9uKy7vYEpBKUmLo9zbLlqw==",
-            "shasum": "155e7dee2a74018d2a23bd13c970854bdf8d4aa5",
+            "integrity": "sha512-p91HkADQUGoRBz283xqNx41boo/HKxDVvsB4UKIiHX0Xqshpv5IfIWcepUKCehsqaybVV+u2kULrNgbWQccd7w==",
+            "shasum": "93ee29206d5c0cc7fe20f09e8913c379e0633d55",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
