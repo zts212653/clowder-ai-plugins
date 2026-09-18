@@ -1,0 +1,460 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clowder-ai.dev/schemas/companion-bridge/v1",
+  "title": "Desktop companion renderer bridge",
+  "description": "Closed presentation bridge for a desktop-window role=companion. Commands carry no owner, cat, thread, call, URL or credential authority. Host binds the installation and conversation; the trusted executor independently requires user gestures for voice and screen admission. Renderer observations are untrusted. No new M0 methods.",
+  "$defs": {
+    "CompanionSelectionId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,160}$"
+    },
+    "CompanionScreenFrame": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "maxLength": 1400000,
+          "pattern": "^data:image/(jpeg|png|webp);base64,"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1600
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1600
+        },
+        "frameId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "sourceLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "observedAt": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "image",
+        "width",
+        "height",
+        "frameId",
+        "sourceLabel",
+        "observedAt"
+      ],
+      "additionalProperties": false
+    },
+    "CompanionCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "state"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "prepare"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "offer"
+            },
+            "sdp": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128000
+            }
+          },
+          "required": [
+            "kind",
+            "sdp"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "stop"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8000
+            },
+            "clientMessageId": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "kind",
+            "text",
+            "clientMessageId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "documents"
+            },
+            "allowed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "allowed"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "screen.pick"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "screen.open"
+            },
+            "selectionId": {
+              "$ref": "#/$defs/CompanionSelectionId"
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "kind",
+            "selectionId",
+            "label"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "screen.frame"
+            },
+            "selectionId": {
+              "$ref": "#/$defs/CompanionSelectionId"
+            },
+            "frame": {
+              "$ref": "#/$defs/CompanionScreenFrame"
+            }
+          },
+          "required": [
+            "kind",
+            "selectionId",
+            "frame"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "screen.close"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "conversation.open"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "view.resize"
+            },
+            "expanded": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "expanded"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionActor": {
+      "type": "object",
+      "properties": {
+        "catId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "catId",
+        "displayName"
+      ],
+      "additionalProperties": false
+    },
+    "CompanionState": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "state"
+        },
+        "phase": {
+          "enum": [
+            "idle",
+            "preparing",
+            "ready",
+            "connecting",
+            "talking",
+            "closed",
+            "failed"
+          ]
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "skin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "duty": {
+          "$ref": "#/$defs/CompanionActor"
+        },
+        "carrier": {
+          "$ref": "#/$defs/CompanionActor"
+        },
+        "documentsAllowed": {
+          "type": "boolean"
+        },
+        "toolsReady": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "phase",
+        "displayName",
+        "skin",
+        "duty",
+        "carrier",
+        "documentsAllowed",
+        "toolsReady"
+      ],
+      "additionalProperties": false
+    },
+    "CompanionErrorCode": {
+      "enum": [
+        "invalid_request",
+        "permission_required",
+        "unavailable",
+        "session_required",
+        "busy",
+        "selection_changed",
+        "carrier_unavailable",
+        "cancelled",
+        "unconfirmed"
+      ]
+    },
+    "CompanionReply": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ok"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "$ref": "#/$defs/CompanionState"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "answer"
+            },
+            "sdp": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128000
+            }
+          },
+          "required": [
+            "kind",
+            "sdp"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "delivery"
+            },
+            "delivery": {
+              "enum": [
+                "accepted",
+                "unconfirmed"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "selection"
+            },
+            "selectionId": {
+              "$ref": "#/$defs/CompanionSelectionId"
+            }
+          },
+          "required": [
+            "kind",
+            "selectionId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "navigation"
+            },
+            "delivery": {
+              "enum": [
+              "requested",
+                "unconfirmed"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "delivery"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "error"
+            },
+            "code": {
+              "$ref": "#/$defs/CompanionErrorCode"
+            }
+          },
+          "required": [
+            "kind",
+            "code"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionEvent": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "media-stopped"
+        },
+        "reason": {
+          "enum": [
+            "locked",
+            "suspended",
+            "hidden",
+            "closed",
+            "revoked"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

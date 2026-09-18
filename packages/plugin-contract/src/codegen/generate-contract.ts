@@ -31,6 +31,7 @@ export interface ContractSchemas {
   readonly messaging: JsonSchema;
   readonly physicalLimb: JsonSchema;
   readonly docxMaterialization: JsonSchema;
+  readonly companionBridge: JsonSchema;
   readonly behavior: JsonSchema;
 }
 
@@ -60,6 +61,7 @@ export async function loadContractSchemas(): Promise<ContractSchemas> {
     docxMaterialization: await readSchema(
       new URL('../schemas/docx-materialization.schema.json', import.meta.url),
     ),
+    companionBridge: await readSchema(new URL('../schemas/companion-bridge.schema.json', import.meta.url)),
     behavior: await readSchema(
       new URL('../schemas/behavior-fixture.schema.json', import.meta.url),
     ),
@@ -650,6 +652,7 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderDefinitions(schemas.physicalLimb),
     '',
     ...renderDefinitions(schemas.docxMaterialization),
+    ...renderDefinitions(schemas.companionBridge),
     ...(['Text', 'Author'] as const).map(kind => {
       const pattern = schemas.docxMaterialization.$defs?.[`DocxMaterialization${kind}`]?.pattern;
       if (typeof pattern !== 'string') throw new Error(`Missing DOCX ${kind} pattern`);

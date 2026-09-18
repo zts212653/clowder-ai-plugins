@@ -1,4 +1,9 @@
 export {
+  validateCompanionCommand,
+  validateCompanionReply,
+  validateCompanionEvent,
+} from './companion-bridge.js';
+export {
   validateMessagingSemantics,
   type SemanticValidationError,
   type SemanticValidationResult,

@@ -36,6 +36,8 @@ test('packed desktop window contract and SDK work in a consumer without workspac
       import assert from 'node:assert/strict';
       import { validateManifest } from '@clowder-ai/plugin-contract';
       import { createFeatureContextSession, FeatureContextRevokedError } from '@clowder-ai/plugin-sdk';
+      import { createCompanionClient } from '@clowder-ai/plugin-sdk/companion';
+      import { validateCompanionCommand, validateCompanionReply } from '@clowder-ai/plugin-contract';
       const window = {
         type: 'desktop-window', id: 'pet', role: 'companion', bridgeVersion: '1.0.0',
         surface: { entrypoint: 'surface/index.html', integrity: 'sha256-' + 'A'.repeat(43) + '=' },
@@ -62,6 +64,12 @@ test('packed desktop window contract and SDK work in a consumer without workspac
       await assert.rejects(session.context.windows.register(input), FeatureContextRevokedError);
       assert.equal(registered, 1);
       assert.equal(disposed, 1);
+      assert.equal(validateCompanionCommand({ kind: 'prepare', catId: 'forged' }), false);
+      assert.equal(validateCompanionReply({ kind: 'navigation', delivery: 'requested' }), true);
+      const client = createCompanionClient({ request: async command => {
+        assert.deepEqual(command, { kind: 'stop' }); return { kind: 'ok' };
+      }, subscribe: () => () => {} });
+      assert.deepEqual(await client.stop(), { kind: 'ok' });
     `;
     await writeFile(join(consumer, 'probe.mjs'), probe);
     run(process.execPath, ['probe.mjs'], consumer);

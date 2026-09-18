@@ -68,3 +68,24 @@ at their corresponding release/consumer boundaries. Local package tests are not 
 Current candidate checks: contract 373/373, SDK 301/301, typecheck and generated-type freshness pass.
 The focused packed-consumer test passes from extracted npm artifacts with no workspace links.
 The downstream Host executor and the visible companion package are still implementation work.
+
+## Companion bridge increment
+
+The renderer bridge now has a schema-owned command/reply/event surface and a browser-safe SDK
+subpath, `@clowder-ai/plugin-sdk/companion`. Commands cannot select a Host, owner, execution cat,
+conversation or call handle. Replies project the actual selected deep actor and voice carrier,
+but contain no session cookie or native credential. Provider errors map to a closed code set.
+The Host must separately recheck its feature lease, current owner session and call lifetime;
+schema validation is not authorization.
+
+Voice preparation, household access changes, screen selection and conversation navigation require
+real user activation in the trusted preload. Media capture additionally requires a ready Host call
+and the current native selection. Installing a window or loading its page grants no capture. Screen
+observations are bounded and untrusted; the executor and Host stamp their own current source/time.
+Navigation reports `requested`, not a claim that a browser has visibly arrived.
+
+Candidate verification after this increment: contract 376/376, SDK 304/304 and the expanded fresh
+packed-consumer test 1/1. The downstream development Host has exercised a real Electron renderer
+through preload and private pipes into its feature-bound callback; automatic voice preparation was
+rejected. This is a bridge/kernel fixture journey, not the final companion UI, a real conversation,
+or a publication receipt. The visible package and ordinary Host composition remain in progress.

@@ -820,6 +820,86 @@ export type DocxMaterializationResponse = {
   readonly requestId: string;
   readonly result: DocxMaterializationResult;
 };
+export type CompanionSelectionId = string;
+export type CompanionScreenFrame = {
+  readonly image: string;
+  readonly width: number;
+  readonly height: number;
+  readonly frameId: string;
+  readonly sourceLabel: string;
+  readonly observedAt: number;
+};
+export type CompanionCommand = {
+  readonly kind: 'state';
+} | {
+  readonly kind: 'prepare';
+} | {
+  readonly kind: 'offer';
+  readonly sdp: string;
+} | {
+  readonly kind: 'stop';
+} | {
+  readonly kind: 'text';
+  readonly text: string;
+  readonly clientMessageId: string;
+} | {
+  readonly kind: 'documents';
+  readonly allowed: boolean;
+} | {
+  readonly kind: 'screen.pick';
+} | {
+  readonly kind: 'screen.open';
+  readonly selectionId: CompanionSelectionId;
+  readonly label: string;
+} | {
+  readonly kind: 'screen.frame';
+  readonly selectionId: CompanionSelectionId;
+  readonly frame: CompanionScreenFrame;
+} | {
+  readonly kind: 'screen.close';
+} | {
+  readonly kind: 'conversation.open';
+} | {
+  readonly kind: 'view.resize';
+  readonly expanded: boolean;
+};
+export type CompanionActor = {
+  readonly catId: string;
+  readonly displayName: string;
+};
+export type CompanionState = {
+  readonly kind: 'state';
+  readonly phase: 'idle' | 'preparing' | 'ready' | 'connecting' | 'talking' | 'closed' | 'failed';
+  readonly displayName: string;
+  readonly skin: string;
+  readonly duty: CompanionActor;
+  readonly carrier: CompanionActor;
+  readonly documentsAllowed: boolean;
+  readonly toolsReady: boolean;
+};
+export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
+export type CompanionReply = {
+  readonly kind: 'ok';
+} | CompanionState | {
+  readonly kind: 'answer';
+  readonly sdp: string;
+} | {
+  readonly kind: 'delivery';
+  readonly delivery: 'accepted' | 'unconfirmed';
+} | {
+  readonly kind: 'selection';
+  readonly selectionId: CompanionSelectionId;
+} | {
+  readonly kind: 'navigation';
+  readonly delivery: 'requested' | 'unconfirmed';
+} | {
+  readonly kind: 'error';
+  readonly code: CompanionErrorCode;
+};
+export type CompanionEvent = {
+  readonly kind: 'media-stopped';
+  readonly reason: 'locked' | 'suspended' | 'hidden' | 'closed' | 'revoked';
+};
 export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 

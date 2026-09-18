@@ -8,6 +8,7 @@
  * The beta.8 handshake, beta.9 events.publish, beta.10 lifecycle, and beta.11
  * messaging rows are executable. SDK beta.10 adds the content editor provider
  * registrar to the Train B author facade without widening the frozen M0 wire registry.
+ * SDK beta.11 adds the desktop window registrar and the browser-safe /companion client.
  * The dispatch classifier gates every method before standalone callbacks or
  * Host-bound transport behavior can run.
  */
