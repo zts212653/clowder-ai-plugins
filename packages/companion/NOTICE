@@ -1,0 +1,4 @@
+Companion imagery and theme tokens originate in Clowder AI (MIT).
+See source-lock.json for the exact public source revision and content hashes.
+The conversation transport and controls continue the F317 companion implementation
+by the Clowder AI contributors. No private runtime data or pet metadata is included.

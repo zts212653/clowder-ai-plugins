@@ -89,3 +89,20 @@ packed-consumer test 1/1. The downstream development Host has exercised a real E
 through preload and private pipes into its feature-bound callback; automatic voice preparation was
 rejected. This is a bridge/kernel fixture journey, not the final companion UI, a real conversation,
 or a publication receipt. The visible package and ordinary Host composition remain in progress.
+
+## First visible package consumer
+
+`@clowder-ai/companion` now builds a physical, declarative desktop-window package.
+Its renderer uses the published-shape browser SDK, package-relative assets and the
+Host-projected selected identity. It provides voice controls, typed input, an explicit
+screen picker, persistent household-access preference commands and navigation to the
+canonical conversation. It contains no Host URL, synthetic transport, recording branch,
+credentials or second transcript store. Public Clowder imagery/theme provenance is
+pinned in the package source lock; private pet metadata is not copied.
+
+Package build, syntax lint and 23 behavior/asset tests pass. A real Chromium run of the
+built page verifies the selected identity, no capture on load, explicit startup, mute,
+uncertain-text retention and same-id retry, history navigation and household pause.
+Media and Host replies in that browser run are fixtures; no microphone or screen was
+captured. The installing Host's real packaged Electron journey and actual native
+conversation remain separate acceptance requirements. The package is not published.

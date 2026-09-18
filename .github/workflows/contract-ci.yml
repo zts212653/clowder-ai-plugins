@@ -12,6 +12,7 @@ on:
     paths:
       - 'packages/plugin-contract/**'
       - 'packages/plugin-sdk/**'
+      - 'packages/companion/**'
       - 'packages/feishu-meeting-intake/**'
       - 'packages/video-analysis/**'
       - 'packages/genoffice-docx/**'
@@ -78,6 +79,12 @@ jobs:
 
       - name: Desktop window packed consumer
         run: node --test scripts/desktop-window-consumer.test.mjs
+
+      - name: Companion package consumer
+        run: |
+          pnpm --filter @clowder-ai/companion build
+          pnpm --filter @clowder-ai/companion test
+          pnpm --filter @clowder-ai/companion lint
 
       - name: Feishu intake typecheck
         run: pnpm --filter @clowder-ai/feishu-meeting-intake typecheck

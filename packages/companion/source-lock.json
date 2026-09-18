@@ -1,0 +1,31 @@
+{
+  "repository": "https://github.com/zts212653/clowder-ai",
+  "commit": "bc9ff2d395a8522a4e5cc93fd317b65cdd9ea1bc",
+  "files": [
+    {
+      "source": "packages/web/src/app/theme-tokens.css",
+      "destination": "src/theme.css",
+      "sha256": "165b96ef77a04755bb84bc2278f5d52587fa40e893575e53ef5f85f2ec89e5cf"
+    },
+    {
+      "source": "packages/web/public/concierge/skins/yanyan-codex/spritesheet.webp",
+      "destination": "assets/skins/yanyan-codex.webp",
+      "sha256": "44aee212783ab15ec73f7ce44f67c894e9ab7a7f36674b71a1161d62dafc1d72"
+    },
+    {
+      "source": "packages/web/public/concierge/skins/xianxian-codex/spritesheet.webp",
+      "destination": "assets/skins/xianxian-codex.webp",
+      "sha256": "5f653974735a4104dfdaf1845128494a5cb5164cb2f45fecb2072a167c80e8a5"
+    },
+    {
+      "source": "packages/web/public/concierge/skins/ragdoll-v1/idle.png",
+      "destination": "assets/skins/ragdoll-v1.png",
+      "sha256": "001c7f3660b348e2531694d9dc455378a0c007c765e0936a48e61eedf9c30025"
+    },
+    {
+      "source": "packages/web/public/concierge/sprites/ragdoll/idle.png",
+      "destination": "assets/skins/yarn-ball.png",
+      "sha256": "001c7f3660b348e2531694d9dc455378a0c007c765e0936a48e61eedf9c30025"
+    }
+  ]
+}
