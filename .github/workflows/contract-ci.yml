@@ -17,6 +17,7 @@ on:
       - 'packages/genoffice-docx/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
+      - 'scripts/desktop-window-consumer.test.mjs'
       - 'scripts/catalog-check.mjs'
       - 'scripts/pack-publish-artifact.mjs'
       - 'package.json'
@@ -74,6 +75,9 @@ jobs:
 
       - name: SDK build
         run: pnpm --filter @clowder-ai/plugin-sdk build
+
+      - name: Desktop window packed consumer
+        run: node --test scripts/desktop-window-consumer.test.mjs
 
       - name: Feishu intake typecheck
         run: pnpm --filter @clowder-ai/feishu-meeting-intake typecheck

@@ -403,6 +403,26 @@ test('same-key retries are idempotent, conflicts fail closed, and disposal runs 
   assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
 });
 
+test('desktop window registration stays under the existing feature lease and revocation', async () => {
+  const adapter = new RecordingAdapter();
+  const binding = { ...BINDING, grantedCapabilities: ['windows.create' as const] };
+  const session = createFeatureContextSession(binding, adapter);
+  const declaration = {
+    id: 'companion', role: 'companion' as const,
+    surface: { entrypoint: 'surface/index.html' as const, integrity: `sha256-${'A'.repeat(43)}=` },
+    bridgeVersion: '1.0.0' as const,
+    presentation: { width: 320, height: 350, transparent: true as const, frame: false as const, alwaysOnTop: true, skipTaskbar: true },
+  };
+  const first = await session.context.windows.register(declaration);
+  assert.equal(await session.context.windows.register(declaration), first);
+  const registration = adapter.calls.find((call) => call.operation === 'register');
+  assert.equal(registration?.binding, binding);
+  assert.deepEqual(registration?.value, { ...declaration, type: 'desktop-window' });
+  await session.revoke();
+  assert.equal(adapter.calls.filter((call) => call.operation === 'dispose').length, 1);
+  await assert.rejects(session.context.windows.register(declaration), FeatureContextRevokedError);
+});
+
 test('registration rejects non-plain values instead of collapsing distinct payloads', async () => {
   const adapter = new RecordingAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);

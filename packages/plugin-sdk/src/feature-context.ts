@@ -4,6 +4,7 @@ import {
   type ContentEditorProviderContribution,
   type ConnectorContribution,
   type DirectToolContribution,
+  type DesktopWindowContribution,
   type IdentityContribution,
   type LimbContribution,
   type McpContribution,
@@ -94,6 +95,7 @@ export interface FeatureContext {
   readonly connectors: ContributionRegistrar<ConnectorContribution>;
   readonly ui: ContributionRegistrar<UiContribution>;
   readonly contentEditors: ContributionRegistrar<ContentEditorProviderContribution>;
+  readonly windows: ContributionRegistrar<DesktopWindowContribution>;
 }
 
 export interface FeatureContextSession {
@@ -276,6 +278,7 @@ export function createFeatureContextSession(
     connectors: registrar<ConnectorContribution>('connector'),
     ui: registrar<UiContribution>('ui'),
     contentEditors: registrar<ContentEditorProviderContribution>('content-editor-provider'),
+    windows: registrar<DesktopWindowContribution>('desktop-window'),
   };
 
   return {

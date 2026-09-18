@@ -222,6 +222,14 @@ export function validateManifest(value: unknown): ManifestValidationResult {
           );
         }
         referenceOwners.set(key, feature.id);
+        if (reference.type === 'desktop-window' && !feature.capabilities.includes('windows.create')) {
+          return semanticError(
+            `/features/${featureIndex}/capabilities`,
+            '#/$defs/DesktopWindowContribution/windowCapabilityRequired',
+            'windowCapabilityRequired',
+            'a desktop window must be owned by a feature that requests windows.create',
+          );
+        }
       }
     }
 

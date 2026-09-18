@@ -58,7 +58,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui' | 'content-editor-provider';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -252,6 +252,24 @@ export type SemanticMaterializerDeclaration = {
   readonly integrity: string;
   readonly protocolVersion: '1.0.0';
 };
+export type DesktopWindowContribution = {
+  readonly type: 'desktop-window';
+  readonly id: string;
+  readonly role: 'companion';
+  readonly surface: {
+    readonly entrypoint: PackageRelativePath & `${string}.html`;
+    readonly integrity: string;
+  };
+  readonly bridgeVersion: '1.0.0';
+  readonly presentation: {
+    readonly width: number;
+    readonly height: number;
+    readonly transparent: true;
+    readonly frame: false;
+    readonly alwaysOnTop: boolean;
+    readonly skipTaskbar: boolean;
+  };
+};
 export type ContentEditorProviderContribution = {
   readonly type: 'content-editor-provider';
   readonly id: string;
@@ -266,7 +284,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
