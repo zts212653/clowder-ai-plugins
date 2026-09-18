@@ -2,211 +2,29 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { VoicePeer } from '../src/peer.mjs';
 
-test('microphone muted during permission wait stays muted before being attached', async () => {
-  let grant;
-  let attachedEnabled;
-  const track = { enabled: true, stop() {} };
-  const originalAudio = globalThis.AudioContext;
-  const originalPeer = globalThis.RTCPeerConnection;
-  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
-  globalThis.AudioContext = class {
-    async resume() {}
-    async close() {}
+test('surface audio requests carry no SDP or media object and only consume Host events', async () => {
+  const calls = [], events = [];
+  let receive;
+  const client = {
+    subscribe: cb => { receive = cb; return () => calls.push('unsubscribe'); },
+    connectAudio: async () => calls.push('connect'), closeAudio: async () => calls.push('close'),
+    muteMicrophone: async muted => calls.push(['microphone', muted]),
+    muteSpeaker: async muted => calls.push(['speaker', muted]),
   };
-  globalThis.RTCPeerConnection = class {
-    iceGatheringState = 'complete';
-    localDescription = { sdp: 'offer' };
-    addTrack(value) {
-      attachedEnabled = value.enabled;
-    }
-    createDataChannel() {
-      return {};
-    }
-    async createOffer() {
-      return {};
-    }
-    async setLocalDescription() {}
-    close() {}
-  };
-  Object.defineProperty(globalThis, 'navigator', {
-    configurable: true,
-    value: {
-      mediaDevices: {
-        getUserMedia: () =>
-          new Promise((resolve) => {
-            grant = resolve;
-          }),
-      },
-    },
+  const peer = new VoicePeer(event => events.push(event), client);
+  peer.muteMic(true); peer.muteSpeaker(true); await peer.connect();
+  receive({ kind: 'audio', type: 'connected' });
+  receive({ kind: 'audio', type: 'transcript', role: 'assistant', text: 'A real source' });
+  await peer.close(); receive({ kind: 'audio', type: 'connected' });
+  assert.deepEqual(calls, [['microphone', true], ['speaker', true], 'connect', 'unsubscribe', 'close']);
+  assert.equal(events.length, 2); assert.equal(events[1].text, 'A real source');
+  assert.equal('pc' in peer, false); assert.equal('channel' in peer, false);
+});
+test('Host audio failure remains visible and closing prevents another attempt', async () => {
+  let attempts = 0;
+  const peer = new VoicePeer(() => {}, {
+    subscribe: () => () => {}, connectAudio: async () => { attempts++; throw new Error('denied'); }, closeAudio: async () => {},
   });
-  try {
-    const peer = new VoicePeer(() => {});
-    const pending = peer.offer();
-    await Promise.resolve();
-    peer.muteMic(true);
-    grant({ getTracks: () => [track], getAudioTracks: () => [track] });
-    await pending;
-    assert.equal(attachedEnabled, false);
-    await peer.close();
-  } finally {
-    globalThis.AudioContext = originalAudio;
-    globalThis.RTCPeerConnection = originalPeer;
-    Object.defineProperty(globalThis, 'navigator', navigatorDescriptor);
-  }
-});
-
-test('speaker muted before SDP stays muted before playback begins', async () => {
-  const originalStream = globalThis.MediaStream;
-  const originalAudio = globalThis.Audio;
-  let mutedWhenPlayed;
-  globalThis.MediaStream = class {};
-  globalThis.Audio = class {
-    muted = false;
-    async play() {
-      mutedWhenPlayed = this.muted;
-    }
-    pause() {}
-  };
-  try {
-    const peer = new VoicePeer(() => {});
-    peer.pc = { async setRemoteDescription() {}, getReceivers: () => [{ track: { kind: 'audio' } }], close() {} };
-    peer.muteSpeaker(true);
-    await peer.answer('answer');
-    assert.equal(mutedWhenPlayed, true);
-    await peer.close();
-  } finally {
-    globalThis.MediaStream = originalStream;
-    globalThis.Audio = originalAudio;
-  }
-});
-
-test('ending while the microphone picker is open stops any late-granted stream', async () => {
-  let grant;
-  let stops = 0;
-  const originalAudio = globalThis.AudioContext;
-  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
-  globalThis.AudioContext = class {
-    async resume() {}
-    async close() {}
-  };
-  Object.defineProperty(globalThis, 'navigator', {
-    configurable: true,
-    value: {
-      mediaDevices: {
-        getUserMedia: () =>
-          new Promise((resolve) => {
-            grant = resolve;
-          }),
-      },
-    },
-  });
-  try {
-    const peer = new VoicePeer(() => {});
-    const offer = peer.offer();
-    await Promise.resolve();
-    await peer.close();
-    grant({
-      getTracks: () => [
-        {
-          stop() {
-            stops++;
-          },
-        },
-      ],
-    });
-    await assert.rejects(offer, /已结束/);
-    assert.equal(stops, 1);
-  } finally {
-    globalThis.AudioContext = originalAudio;
-    Object.defineProperty(globalThis, 'navigator', navigatorDescriptor);
-  }
-});
-
-test('muting speaker preserves microphone; ending stops the track and connection', async () => {
-  let trackStops = 0;
-  let peerCloses = 0;
-  const track = {
-    enabled: true,
-    stop() {
-      trackStops++;
-    },
-  };
-  const peer = new VoicePeer(() => {});
-  peer.stream = { getTracks: () => [track], getAudioTracks: () => [track] };
-  peer.pc = {
-    close() {
-      peerCloses++;
-    },
-  };
-  peer.output = { muted: false, pause() {}, srcObject: {} };
-  peer.muteSpeaker(true);
-  assert.equal(track.enabled, true);
-  peer.muteMic(true);
-  assert.equal(track.enabled, false);
-  assert.equal(peer.output.muted, true);
-  await peer.close();
-  assert.equal(trackStops, 1);
-  assert.equal(peerCloses, 1);
-  assert.equal(peer.output.srcObject, null);
-});
-
-test('brief disconnection preserves the session and recovery cancels the deadline', (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const events = [];
-  const peer = new VoicePeer((event) => events.push(event));
-  peer.pc = { connectionState: 'disconnected' };
-  peer.connectionChanged();
-  assert.equal(
-    events.some((event) => event.type === 'error'),
-    false,
-  );
-  assert.equal(
-    events.some((event) => event.type === 'recovering'),
-    true,
-  );
-  t.mock.timers.tick(3000);
-  peer.pc.connectionState = 'connected';
-  peer.connectionChanged();
-  assert.equal(
-    events.some((event) => event.type === 'recovered'),
-    true,
-  );
-  t.mock.timers.tick(10000);
-  assert.equal(
-    events.some((event) => event.type === 'error'),
-    false,
-  );
-});
-
-test('persistent disconnect and failed transport give distinct terminal reasons', (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const events = [];
-  const peer = new VoicePeer((event) => events.push(event));
-  peer.pc = { connectionState: 'disconnected' };
-  peer.connectionChanged();
-  t.mock.timers.tick(7999);
-  assert.equal(
-    events.some((event) => event.type === 'error'),
-    false,
-  );
-  t.mock.timers.tick(1);
-  assert.equal(events.find((event) => event.type === 'error')?.reason, 'disconnect-timeout');
-  const failed = new VoicePeer((event) => events.push(event));
-  failed.pc = { connectionState: 'failed' };
-  failed.connectionChanged();
-  assert.equal(events.at(-1).reason, 'transport-failed');
-});
-
-test('ending during recovery cancels the timer and ignores late connection events', async (t) => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const events = [];
-  const peer = new VoicePeer((event) => events.push(event));
-  peer.pc = { connectionState: 'disconnected', close() {} };
-  peer.connectionChanged();
-  await peer.close();
-  events.length = 0;
-  t.mock.timers.tick(10000);
-  peer.pc.connectionState = 'connected';
-  peer.connectionChanged();
-  assert.deepEqual(events, []);
+  await assert.rejects(peer.connect()); await peer.close(); await peer.connect();
+  assert.equal(attempts, 1);
 });

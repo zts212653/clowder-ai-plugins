@@ -9,9 +9,14 @@ test('voice preparation and typed input are closed actions without selectable id
     assert.equal(validateCompanionCommand({ kind: 'prepare', [field]: 'untrusted' }), false, field);
   }
 });
+test('a package cannot negotiate its own provider media or data channel', () => {
+  assert.equal(validateCompanionCommand({ kind: 'offer', sdp: 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n' }), false);
+  assert.equal(validateCompanionReply({ kind: 'answer', sdp: 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' }), false);
+});
 
 test('wire budgets and media syntax reject malformed or oversized renderer inputs', () => {
-  assert.equal(validateCompanionCommand({ kind: 'offer', sdp: 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'audio.connect' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'audio.connect', sdp: 'v=0\r\nm=audio 9 x 1\r\n' }), false);
   for (const sdp of ['', 'v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\n', 'X'.repeat(128001)]) {
     assert.equal(validateCompanionCommand({ kind: 'offer', sdp }), false);
   }

@@ -21,7 +21,10 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
   return {
     state: () => invoke({ kind: 'state' }, 'state'),
     prepare: () => invoke({ kind: 'prepare' }, 'state'),
-    offer: async (sdp: string) => (await invoke({ kind: 'offer', sdp }, 'answer')).sdp,
+    connectAudio: () => invoke({ kind: 'audio.connect' }, 'ok'),
+    closeAudio: () => invoke({ kind: 'audio.close' }, 'ok'),
+    muteMicrophone: (muted: boolean) => invoke({ kind: 'audio.microphone', muted }, 'ok'),
+    muteSpeaker: (muted: boolean) => invoke({ kind: 'audio.speaker', muted }, 'ok'),
     stop: () => invoke({ kind: 'stop' }, 'ok'),
     text: async (text: string, clientMessageId: string) => {
       const receipt = await invoke({ kind: 'text', text, clientMessageId }, 'delivery');

@@ -84,6 +84,20 @@ and the current native selection. Installing a window or loading its page grants
 observations are bounded and untrusted; the executor and Host stamp their own current source/time.
 Navigation reports `requested`, not a claim that a browser has visibly arrived.
 
+The package-facing bridge carries no SDP. `audio.connect/close/microphone/speaker`
+control a Host-owned peer inside the isolated preload. Only that peer negotiates
+with the Host's private media pipe; its provider data channel is receive-only in
+Host code, and no channel handle or arbitrary provider-event operation is exposed.
+The package receives bounded typed audio/transcript events. Permission and call
+revocation fence late replies before a new peer can become active.
+
+`surface.integrity` covers the HTML entry file only. Hosts must verify the whole
+installed package and serve a verified snapshot of referenced scripts/styles/assets;
+the entry hash alone is insufficient. Catalog desktop packages have no runtime or
+optional dependencies and cannot carry unresolved workspace dependency specifiers.
+The SDK prerelease adds a required `windows` registrar to `FeatureContext`; consumers
+that hand-implement that interface must update their test doubles.
+
 Candidate verification after this increment: contract 376/376, SDK 304/304 and the expanded fresh
 packed-consumer test 1/1. The downstream development Host has exercised a real Electron renderer
 through preload and private pipes into its feature-bound callback; automatic voice preparation was

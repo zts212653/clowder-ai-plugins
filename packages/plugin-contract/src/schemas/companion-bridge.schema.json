@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/companion-bridge/v1",
   "title": "Desktop companion renderer bridge",
-  "description": "Closed presentation bridge for a desktop-window role=companion. Commands carry no owner, cat, thread, call, URL or credential authority. Host binds the installation and conversation; the trusted executor independently requires user gestures for voice and screen admission. Renderer observations are untrusted. No new M0 methods.",
+  "description": "Closed package presentation bridge. The Host-owned isolated preload owns WebRTC, microphone playback and its receive-only provider data channel. Packages never provide SDP, get a peer/channel handle, or send provider events. Host binds owner, installation and conversation; the trusted executor requires explicit gestures for voice and screen admission. Renderer screen observations remain untrusted. No new M0 methods.",
   "$defs": {
     "CompanionSelectionId": {
       "type": "string",
@@ -81,17 +81,55 @@
           "type": "object",
           "properties": {
             "kind": {
-              "const": "offer"
+              "const": "audio.connect"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "audio.close"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "audio.microphone"
             },
-            "sdp": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128000
+            "muted": {
+              "type": "boolean"
             }
           },
           "required": [
             "kind",
-            "sdp"
+            "muted"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "audio.speaker"
+            },
+            "muted": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "muted"
           ],
           "additionalProperties": false
         },
@@ -348,24 +386,6 @@
           "type": "object",
           "properties": {
             "kind": {
-              "const": "answer"
-            },
-            "sdp": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128000
-            }
-          },
-          "required": [
-            "kind",
-            "sdp"
-          ],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": {
               "const": "delivery"
             },
             "delivery": {
@@ -405,7 +425,7 @@
             },
             "delivery": {
               "enum": [
-              "requested",
+                "requested",
                 "unconfirmed"
               ]
             }
@@ -435,26 +455,120 @@
       ]
     },
     "CompanionEvent": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "const": "media-stopped"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "media-stopped"
+            },
+            "reason": {
+              "enum": [
+                "locked",
+                "suspended",
+                "hidden",
+                "closed",
+                "revoked"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "additionalProperties": false
         },
-        "reason": {
-          "enum": [
-            "locked",
-            "suspended",
-            "hidden",
-            "closed",
-            "revoked"
-          ]
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "audio"
+            },
+            "type": {
+              "enum": [
+                "connected",
+                "recovering",
+                "recovered",
+                "error"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "audio"
+            },
+            "type": {
+              "const": "transcript"
+            },
+            "role": {
+              "enum": [
+                "user",
+                "assistant"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 16000
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "itemId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "kind",
+            "type",
+            "role",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "audio"
+            },
+            "type": {
+              "const": "turn-done"
+            },
+            "role": {
+              "enum": [
+                "user",
+                "assistant"
+              ]
+            },
+            "transcript": {
+              "type": "string",
+              "maxLength": 16000
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "kind",
+            "type"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "kind",
-        "reason"
-      ],
-      "additionalProperties": false
+      ]
     }
   }
 }

@@ -28,19 +28,28 @@ export class ScreenShare {
       this.stream = stream;
       const track = stream.getVideoTracks()[0];
       if (!track) throw new Error('没有取得共享画面');
+      const checkTrack = () => {
+        if (track.readyState !== 'live' || track.muted) throw new Error('共享画面已结束');
+      };
+      const ended = () => void this.stop('画面已不可用 · 共享已停止').catch(() => {
+        this.onState({ sharing: false, pending: false, message: '画面已停止 · Host撤销尚未确认' });
+      });
+      track.onended = ended;
+      track.onmute = ended;
+      checkTrack();
       const label = track.label || '所选画面';
       await this.api.screenStart(selectionId, label);
       if (epoch !== this.epoch) return;
+      checkTrack();
       this.video = this.elements.createElement('video');
       this.video.muted = true;
       this.video.srcObject = stream;
       await this.video.play();
       if (epoch !== this.epoch) return;
       this.canvas = this.elements.createElement('canvas');
-      track.onended = () => void this.stop();
-      track.onmute = () => void this.stop('画面已不可用 · 共享已停止');
       const capture = async () => {
         if (epoch !== this.epoch) return;
+        checkTrack();
         const { videoWidth: width, videoHeight: height } = this.video;
         if (!width || !height) throw new Error('暂时没有可用画面');
         const scale = Math.min(1, 1280 / Math.max(width, height));

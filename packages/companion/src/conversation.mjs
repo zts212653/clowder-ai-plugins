@@ -40,10 +40,8 @@ export class CompanionConversation {
       });
       this.peer = peer;
       peer.muteMic(this.muted); peer.muteSpeaker(this.silent);
-      const offer = await peer.offer();
-      if (!this.current(generation)) { await peer.close(); return; }
-      const answer = await this.client.offer(offer);
-      if (this.current(generation)) await peer.answer(answer);
+      await peer.connect();
+      if (!this.current(generation)) await peer.close();
     } catch (error) {
       if (this.current(generation)) await this.end(explainError(error));
     }
@@ -51,6 +49,7 @@ export class CompanionConversation {
   async releaseLocal(message) {
     this.active = false;
     ++this.generation;
+    this.pendingText = undefined;
     clearTimeout(this.deadline);
     const peer = this.peer;
     this.peer = undefined;
@@ -108,9 +107,9 @@ export class CompanionConversation {
     this.sending = true;
     try {
       await this.client.text(input.text, input.id);
+      if (this.pendingText === input) this.pendingText = undefined;
       if (!this.current(generation)) return false;
       this.transcript({ type: 'transcript', role: 'user', text, typed: true });
-      if (this.pendingText === input) this.pendingText = undefined;
       this.show(this.listening());
       return true;
     } catch (error) {
@@ -118,6 +117,6 @@ export class CompanionConversation {
       return false;
     } finally { this.sending = false; }
   }
-  muteMic() { this.muted = !this.muted; this.peer?.muteMic(this.muted); this.show(this.listening()); }
+  muteMic() { this.muted = !this.muted; this.peer?.muteMic(this.muted); this.show(this.phase === 'talking' ? this.listening() : this.message); }
   muteSpeaker() { this.silent = !this.silent; this.peer?.muteSpeaker(this.silent); this.show(this.message); }
 }

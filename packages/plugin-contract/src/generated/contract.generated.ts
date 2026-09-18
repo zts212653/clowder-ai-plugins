@@ -834,8 +834,15 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'prepare';
 } | {
-  readonly kind: 'offer';
-  readonly sdp: string;
+  readonly kind: 'audio.connect';
+} | {
+  readonly kind: 'audio.close';
+} | {
+  readonly kind: 'audio.microphone';
+  readonly muted: boolean;
+} | {
+  readonly kind: 'audio.speaker';
+  readonly muted: boolean;
 } | {
   readonly kind: 'stop';
 } | {
@@ -881,9 +888,6 @@ export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'un
 export type CompanionReply = {
   readonly kind: 'ok';
 } | CompanionState | {
-  readonly kind: 'answer';
-  readonly sdp: string;
-} | {
   readonly kind: 'delivery';
   readonly delivery: 'accepted' | 'unconfirmed';
 } | {
@@ -899,6 +903,22 @@ export type CompanionReply = {
 export type CompanionEvent = {
   readonly kind: 'media-stopped';
   readonly reason: 'locked' | 'suspended' | 'hidden' | 'closed' | 'revoked';
+} | {
+  readonly kind: 'audio';
+  readonly type: 'connected' | 'recovering' | 'recovered' | 'error';
+} | {
+  readonly kind: 'audio';
+  readonly type: 'transcript';
+  readonly role: 'user' | 'assistant';
+  readonly text: string;
+  readonly turnId?: string;
+  readonly itemId?: string;
+} | {
+  readonly kind: 'audio';
+  readonly type: 'turn-done';
+  readonly role?: 'user' | 'assistant';
+  readonly transcript?: string;
+  readonly turnId?: string;
 };
 export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';

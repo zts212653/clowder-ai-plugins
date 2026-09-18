@@ -24,7 +24,7 @@ test('the installable package declares one companion body and contains a closed 
     if (!/\.(html|css|mjs)$/.test(name)) continue;
     const file = new URL(`renderer/${name}`, root);
     const source = await readFile(file, 'utf8');
-    assert.doesNotMatch(source, /F317_HOST_API_URL|F317_MEMORY_MCP|window\.live\b|MediaRecorder|localStorage|sessionStorage|node:|https?:\/\/|\/Users\//, name);
+    assert.doesNotMatch(source, /F317_HOST_API_URL|F317_MEMORY_MCP|window\.live\b|MediaRecorder|localStorage|sessionStorage|node:|https?:\/\/|\/Users\/|RTCPeerConnection|createDataChannel|getUserMedia/, name);
     const refs = name.endsWith('.html') ? [...source.matchAll(/(?:src|href)="([^"]+)"/g)]
       : name.endsWith('.css') ? [...source.matchAll(/url\("([^"]+)"\)/g)]
       : [...source.matchAll(/\bfrom ['"]([^'"]+)['"]/g)];

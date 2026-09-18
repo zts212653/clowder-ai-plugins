@@ -20,6 +20,7 @@ on:
       - 'scripts/fresh-consumer-install.test.mjs'
       - 'scripts/desktop-window-consumer.test.mjs'
       - 'scripts/catalog-check.mjs'
+      - 'scripts/catalog-static-package*'
       - 'scripts/pack-publish-artifact.mjs'
       - 'package.json'
       - '.npmrc'

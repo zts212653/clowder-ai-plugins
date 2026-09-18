@@ -13,6 +13,7 @@ import {
   validatePluginCatalog,
 } from '../packages/plugin-contract/dist/index.js';
 import { parse } from 'yaml';
+import { assertStaticPackageDependencies } from './catalog-static-package.mjs';
 
 const catalog = JSON.parse(await readFile(new URL('../catalog/catalog.json', import.meta.url), 'utf8'));
 const validation = validatePluginCatalog(catalog);
@@ -120,6 +121,8 @@ async function verifyCatalogEntry(catalogEntry) {
       }
 
     } else {
+      const packageJson = JSON.parse(await readFile(join(unpackedDirectory, 'package', 'package.json'), 'utf8'));
+      assertStaticPackageDependencies(packageJson, contributions);
       assert.equal(manifestValidation.manifest.runtime.transport, 'builtin');
       for (const entry of contributions) {
         const bytes = await readFile(join(unpackedDirectory, 'package', entry.surface.entrypoint));

@@ -471,7 +471,7 @@
 
     "DesktopWindowContribution": {
       "type": "object",
-      "description": "Host-created desktop surface under its owning feature's windows.create grant. This declares an immutable package page, not an executable, Host origin, user identity, or permission to capture media. The Host owns window execution and each media/session admission.",
+      "description": "Host-created desktop surface under its owning feature's windows.create grant. surface.integrity verifies only the entry HTML bytes. The Host must separately verify the complete installed package and serve a verified snapshot of all referenced assets. This declares no executable, Host origin, identity, or capture permission. The Host owns window execution, media/session admission and the isolated receive-only provider channel.",
       "properties": {
         "type": { "const": "desktop-window" },
         "id": { "type": "string", "minLength": 1, "maxLength": 128 },

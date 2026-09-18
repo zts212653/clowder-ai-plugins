@@ -9,6 +9,13 @@ test('companion client relays declared actions; no Host or identity arguments ar
   await client.stop(); await client.resize(true); await client.screenClose();
   assert.deepEqual(calls, [{ kind: 'stop' }, { kind: 'view.resize', expanded: true }, { kind: 'screen.close' }]);
 });
+test('audio controls expose no generic provider event or SDP operation', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => { calls.push(command); return { kind: 'ok' }; }, subscribe: () => () => {} });
+  await client.connectAudio(); await client.muteMicrophone(true); await client.muteSpeaker(false); await client.closeAudio();
+  assert.deepEqual(calls, [{ kind: 'audio.connect' }, { kind: 'audio.microphone', muted: true }, { kind: 'audio.speaker', muted: false }, { kind: 'audio.close' }]);
+  assert.equal('offer' in client, false);
+});
 
 test('unconfirmed text is retained for an explicit retry with the same caller id', async () => {
   const calls: CompanionCommand[] = [];

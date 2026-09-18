@@ -34,7 +34,7 @@ if (!window.clowderCompanion) {
     $('screen-status').dataset.state = sharing ? 'sharing' : pendingScreen ? 'pending' : 'stopped';
   });
   const conversation = new CompanionConversation({
-    client, createPeer: callback => new VoicePeer(callback), stopScreen: () => screen.stop(),
+    client, createPeer: callback => new VoicePeer(callback, client), stopScreen: () => screen.stop(),
     transcript: event => event.type === 'turn-done' ? transcript.finish(event) : transcript.append(event.role, event.text, !event.typed),
     render(value) {
       const active = value.phase !== 'idle';

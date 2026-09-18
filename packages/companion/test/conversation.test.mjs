@@ -10,7 +10,6 @@ function fixture(overrides = {}) {
   let notify;
   const client = {
     prepare() { calls.push('prepare'); return Promise.resolve(state()); },
-    offer: async () => { calls.push('offer'); return 'answer'; },
     stop: async () => { calls.push('stop'); },
     text: async (...args) => { calls.push(args); },
     state: async () => state('talking'),
@@ -18,8 +17,7 @@ function fixture(overrides = {}) {
     ...overrides,
   };
   const peer = {
-    offer: async () => { calls.push('microphone'); return 'offer'; },
-    answer: async () => { calls.push('answer'); notify({ type: 'connected' }); },
+    connect: async () => { calls.push('connect'); notify({ type: 'connected' }); },
     close: async () => { calls.push('close'); }, muteMic() {}, muteSpeaker() {},
   };
   const conversation = new CompanionConversation({ client,
@@ -33,7 +31,7 @@ test('startup admits synchronously from the click, then requests media only afte
   const f = fixture(); const starting = f.conversation.begin();
   assert.deepEqual(f.calls, ['prepare']);
   await starting;
-  assert.deepEqual(f.calls, ['prepare', 'microphone', 'offer', 'answer']);
+  assert.deepEqual(f.calls, ['prepare', 'connect']);
   assert.equal(f.events.at(-1).phase, 'talking');
   assert.equal(f.events.at(-1).identity.duty.catId, 'opus5');
   await f.conversation.end();
@@ -41,14 +39,14 @@ test('startup admits synchronously from the click, then requests media only afte
 test('a failed prepare never requests the microphone and shows only a safe message', async () => {
   const f = fixture({ prepare: async () => { throw new Error('/private/owner token=secret'); } });
   await f.conversation.begin();
-  assert.ok(!f.calls.includes('microphone'));
+  assert.ok(!f.calls.includes('connect'));
   assert.equal(f.events.at(-1).phase, 'idle');
   assert.doesNotMatch(JSON.stringify(f.events), /private|secret/);
 });
 test('ending while prepare is pending fences every late media continuation', async () => {
   const waiting = deferred(); const f = fixture({ prepare: () => waiting.promise });
   const starting = f.conversation.begin(); await f.conversation.end(); waiting.resolve(state()); await starting;
-  assert.ok(!f.calls.includes('microphone'));
+  assert.ok(!f.calls.includes('connect'));
   assert.equal(f.conversation.active, false);
 });
 test('uncertain text stays with its original id and a deliberate retry does not duplicate the visible row', async () => {
@@ -69,6 +67,25 @@ test('parallel clicks cannot start two calls or submit text twice', async () => 
   waiting.resolve(); assert.equal(await first, true);
   assert.equal(f.calls.filter(Array.isArray).length, 1); await f.conversation.end();
 });
+test('a confirmed late send retires its id before the next conversation', async () => {
+  const receipt = deferred(), ids = [];
+  const f = fixture({ text: async (_text, id) => { ids.push(id); if (ids.length === 1) await receipt.promise; } });
+  let sequence = 0;
+  f.conversation.uuid = () => `message-${++sequence}`;
+  await f.conversation.begin();
+  const first = f.conversation.send('好');
+  await f.conversation.end(); receipt.resolve(); await first;
+  await f.conversation.begin(); await f.conversation.send('好'); await f.conversation.end();
+  assert.notEqual(ids[0], ids[1]);
+});
+test('changing microphone preference while connecting never claims to be listening', async () => {
+  const ready = deferred(); const f = fixture({ prepare: () => ready.promise });
+  const begin = f.conversation.begin();
+  f.conversation.muteMic(); f.conversation.muteMic();
+  const message = f.events.at(-1).message;
+  await f.conversation.end(); ready.resolve(state()); await begin;
+  assert.doesNotMatch(message, /正在听/);
+});
 test('a closed Host session releases local media and keeps the next start available', async () => {
   const f = fixture({ state: async () => state('closed') }); await f.conversation.begin();
   await f.conversation.refresh();
@@ -82,5 +99,5 @@ test('pausing household access invokes the gesture-bound bridge before awaiting 
   assert.deepEqual(f.calls[0], ['documents', false]); await pause;
   assert.equal(f.conversation.active, false);
   assert.equal(f.events.at(-1).identity.documentsAllowed, false);
-  assert.ok(!f.calls.includes('microphone'));
+  assert.ok(!f.calls.includes('connect'));
 });

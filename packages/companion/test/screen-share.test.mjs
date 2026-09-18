@@ -17,9 +17,12 @@ function fixture() {
   const frames = [];
   const track = {
     label: 'Synthetic canvas',
+    readyState: 'live',
+    muted: false,
     stops: 0,
     stop() {
       this.stops++;
+      this.readyState = 'ended';
     },
   };
   const stream = { getTracks: () => [track], getVideoTracks: () => [track] };
@@ -152,3 +155,17 @@ test('Host frame rejection never reports a successful screen share', async () =>
   );
   assert.equal(f.states.at(-1).message, '未能开始共享 · 请重试');
 });
+for (const stage of ['host-open', 'video-play', 'already-ended']) {
+  test(`an ended capture during ${stage} never publishes a frozen frame`, async () => {
+    const f = fixture(), opened = deferred();
+    if (stage === 'host-open') f.api.screenStart = () => opened.promise;
+    if (stage === 'already-ended') f.track.readyState = 'ended';
+    f.picked.resolve(f.stream);
+    const start = f.share.start(); await flush();
+    f.track.readyState = 'ended'; f.track.onended?.();
+    opened.resolve(); f.playback.resolve(); await start;
+    const frames = f.frames.length, announced = f.states.some(s => s.sharing);
+    await f.share.stop();
+    assert.equal(frames, 0); assert.equal(announced, false);
+  });
+}
