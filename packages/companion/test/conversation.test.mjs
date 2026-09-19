@@ -7,7 +7,7 @@ const state = (phase = 'ready') => ({ kind: 'state', phase, displayName: '宪宪
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 function fixture(overrides = {}) {
   const events = [], calls = [], rows = [];
-  let notify;
+  let notify, readiness, closed = false;
   const client = {
     prepare() { calls.push('prepare'); return Promise.resolve(state()); },
     stop: async () => { calls.push('stop'); },
@@ -16,9 +16,11 @@ function fixture(overrides = {}) {
     documents: async allowed => ({ ...state('idle'), documentsAllowed: allowed }),
     ...overrides,
   };
+  const prepare = client.prepare;
+  client.prepare = (...args) => { closed = false; readiness = Promise.resolve(prepare(...args)); return readiness; };
   const peer = {
-    connect: async () => { calls.push('connect'); notify({ type: 'connected' }); },
-    close: async () => { calls.push('close'); }, muteMic() {}, muteSpeaker() {},
+    connect: async () => { calls.push('connect'); await readiness; if (!closed) notify({ type: 'connected' }); },
+    close: async () => { closed = true; calls.push('close'); }, muteMic() {}, muteSpeaker() {},
   };
   const conversation = new CompanionConversation({ client,
     createPeer: callback => { notify = callback; return peer; },
@@ -27,26 +29,28 @@ function fixture(overrides = {}) {
   });
   return { conversation, calls, events, rows, peer, notify: value => notify(value) };
 }
-test('startup admits synchronously from the click, then requests media only after Host readiness', async () => {
+test('one click synchronously submits preparation and voice intent before user activation expires', async () => {
   const f = fixture(); const starting = f.conversation.begin();
-  assert.deepEqual(f.calls, ['prepare']);
+  assert.deepEqual(f.calls, ['prepare', 'connect']);
   await starting;
   assert.deepEqual(f.calls, ['prepare', 'connect']);
   assert.equal(f.events.at(-1).phase, 'talking');
   assert.equal(f.events.at(-1).identity.duty.catId, 'opus5');
   await f.conversation.end();
 });
-test('a failed prepare never requests the microphone and shows only a safe message', async () => {
+test('a failed prepare cancels the submitted voice intent and shows only a safe message', async () => {
   const f = fixture({ prepare: async () => { throw new Error('/private/owner token=secret'); } });
   await f.conversation.begin();
-  assert.ok(!f.calls.includes('connect'));
+  assert.ok(f.calls.includes('close'));
+  assert.ok(!f.events.some(event => event.phase === 'talking'));
   assert.equal(f.events.at(-1).phase, 'idle');
   assert.doesNotMatch(JSON.stringify(f.events), /private|secret/);
 });
 test('ending while prepare is pending fences every late media continuation', async () => {
   const waiting = deferred(); const f = fixture({ prepare: () => waiting.promise });
   const starting = f.conversation.begin(); await f.conversation.end(); waiting.resolve(state()); await starting;
-  assert.ok(!f.calls.includes('connect'));
+  assert.ok(!f.events.some(event => event.phase === 'talking'));
+  assert.equal(f.calls.filter(call => call === 'connect').length, 1);
   assert.equal(f.conversation.active, false);
 });
 test('uncertain text stays with its original id and a deliberate retry does not duplicate the visible row', async () => {

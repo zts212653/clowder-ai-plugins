@@ -7,6 +7,32 @@ topics: [desktop, companion, plugin-contract, windows, feature-authority]
 
 # Host-governed desktop companion windows
 
+## 2026-09-19: one-click capture intent (companion alpha.2)
+
+Companion alpha.2 submits prepare and audio.connect synchronously in the same
+Begin click. It subscribes to audio events first and observes both promises
+together. Host preparation failure or an intervening cancellation ends that
+attempt; the page never retries capture implicitly or adds a second button.
+
+The paired Host validates the isolated preload's current user activation on the
+actual audio.connect request. Readiness alone is not microphone authority.
+An accepted connection intent waits for its exact preparation generation for at
+most 60 seconds; no media document exists before ready. Revocation, a newer
+preparation and deadline expiry cancel that intent. This supports slow native
+startup without an indefinite renderer-controlled microphone grant.
+
+Contract beta.16 and SDK beta.11 are unchanged. The immutable alpha.1 archive is
+not rewritten; alpha.2 has its own catalog digest. The tightened Host and alpha.2
+surface must ship together. An old surface that waits until its click expires
+cannot use preparation as a substitute for user activation.
+
+Verification: the surface regression first failed because connect was absent
+from the synchronous click path, then passed. Companion tests are 23/23 and lint
+passes. A physical alpha.2 archive ran in real Electron with a deliberately
+seven-second Host preparation: one click, one offer, synthetic WebRTC/transcript,
+typed text, household pause and canonical disable passed. Host/provider replies
+and audio were test fixtures, not daily household or human-media acceptance.
+
 ## Outcome and scope
 
 A companion package supplies its desktop presentation; the installing Host supplies execution,

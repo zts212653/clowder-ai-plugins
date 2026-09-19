@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/companion",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "The desktop voice body for your Clowder companion",
   "license": "MIT",
   "type": "module",

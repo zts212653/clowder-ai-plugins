@@ -26,10 +26,6 @@ export class CompanionConversation {
     this.show('正在连接…');
     this.deadline = setTimeout(() => { if (this.current(generation)) void this.end('连接超时 · 点击开始聊天重试'); }, 60_000);
     try {
-      const identity = await preparation;
-      if (!this.current(generation)) return;
-      if (identity.phase !== 'ready') throw { code: 'unavailable' };
-      this.identity = identity;
       const peer = this.createPeer(event => {
         if (!this.current(generation)) return;
         if (event.type === 'connected') { clearTimeout(this.deadline); this.phase = 'talking'; this.show(this.listening()); }
@@ -40,8 +36,13 @@ export class CompanionConversation {
       });
       this.peer = peer;
       peer.muteMic(this.muted); peer.muteSpeaker(this.silent);
-      await peer.connect();
-      if (!this.current(generation)) await peer.close();
+      // Submit capture intent while this same click is active. The Host waits
+      // for its matching preparation before creating the media document.
+      const [identity] = await Promise.all([preparation, peer.connect()]);
+      if (!this.current(generation)) { await peer.close(); return; }
+      if (identity.phase !== 'ready') throw { code: 'unavailable' };
+      this.identity = identity;
+      this.show(this.message);
     } catch (error) {
       if (this.current(generation)) await this.end(explainError(error));
     }
