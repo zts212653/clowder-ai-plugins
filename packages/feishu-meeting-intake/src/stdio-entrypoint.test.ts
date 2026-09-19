@@ -244,3 +244,58 @@ test('handshakes before source startup, publishes after ready, and rejects reser
 
   await controller.close();
 });
+
+test('keeps activated intake alive while retrying recurring transient source failures with backoff', async () => {
+  const hostToPlugin = new PassThrough();
+  const pluginToHost = new PassThrough();
+  const nextFrame = lineReader(pluginToHost);
+  const retryDelays: number[] = [];
+  let pollCalls = 0;
+  let fatal: unknown;
+  const options = {
+    input: hostToPlugin,
+    output: pluginToHost,
+    claims: readRuntimeClaims(CLAIMS),
+    sourceRetryBaseDelayMs: 5,
+    sourceRetryMaxDelayMs: 20,
+    sleep: async (milliseconds: number, signal: AbortSignal) => {
+      assert.equal(signal.aborted, false);
+      retryDelays.push(milliseconds);
+    },
+    createRuntime: () => ({
+      pollOnce: async (signal: AbortSignal) => {
+        pollCalls += 1;
+        if (pollCalls <= 2) {
+          throw new FeishuGatewayError(
+            pollCalls === 1 ? 'UNAVAILABLE' : 'RATE_LIMITED',
+            'temporary Feishu source failure',
+          );
+        }
+        await new Promise<void>(resolve => {
+          signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+        return { discovered: 0, published: 0 };
+      },
+      importArtifact: async () => ({ discovered: 0, published: 0 }),
+    }),
+    onFatal: (error: unknown) => {
+      fatal = error;
+    },
+  };
+  const controller = startFeishuMeetingIntakeStdio(options);
+
+  const hello = await nextFrame();
+  send(hostToPlugin, { jsonrpc: '2.0', id: hello.id, result: binding() });
+  const ready = await nextFrame();
+  send(hostToPlugin, { jsonrpc: '2.0', id: ready.id, result: null });
+  await controller.activated;
+
+  const deadline = Date.now() + 250;
+  while (pollCalls < 3 && Date.now() < deadline) {
+    await new Promise<void>(resolve => setImmediate(resolve));
+  }
+  assert.equal(pollCalls, 3, 'the same activated runtime must retry instead of exiting');
+  assert.deepEqual(retryDelays, [5, 10]);
+  assert.equal(fatal, undefined);
+  await controller.close();
+});

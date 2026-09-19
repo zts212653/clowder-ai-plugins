@@ -229,56 +229,114 @@ export function createLarkCliFeishuEventGateway(
   options: LarkCliFeishuEventGatewayOptions = {},
 ): LarkCliFeishuEventGateway {
   const homeDirectory = options.homeDirectory ?? homedir();
-  const eventSource = createEventSourceGateway(options);
+  let eventSource: LarkCliFeishuEventGateway | undefined;
   let pollingSource: LarkCliFeishuPollingGateway | undefined;
   let activeSource: LarkCliFeishuEventGateway | LarkCliFeishuPollingGateway | undefined;
   let starting: Promise<void> | undefined;
+  let closed = false;
 
   const start = (): Promise<void> => {
-    starting ??= (async () => {
+    if (closed) {
+      return Promise.reject(new FeishuGatewayError('UNAVAILABLE', 'Feishu event gateway is closed'));
+    }
+    if (starting !== undefined) return starting;
+    const candidate = createEventSourceGateway(options);
+    eventSource = candidate;
+    const attempt = (async () => {
       try {
-        await eventSource.start();
-        activeSource = eventSource;
+        await candidate.start();
+        if (closed) throw new FeishuGatewayError('UNAVAILABLE', 'Feishu event gateway is closed');
+        activeSource = candidate;
       } catch (error) {
         if (!(error instanceof FeishuGatewayError) || error.code !== 'EVENT_BUS_CONFLICT') {
           throw error;
         }
-        await eventSource.close();
-        pollingSource = options.createPollingGateway?.() ??
+        await candidate.close();
+        if (eventSource === candidate) eventSource = undefined;
+        const fallback = options.createPollingGateway?.() ??
           createLarkCliFeishuPollingGateway({
             homeDirectory,
             ...(options.runCommand === undefined ? {} : { runCommand: options.runCommand }),
             ...(options.inspectArtifact === undefined
               ? {} : { inspectArtifact: options.inspectArtifact }),
           });
-        await pollingSource.start();
-        activeSource = pollingSource;
+        pollingSource = fallback;
+        try {
+          await fallback.start();
+          if (closed) throw new FeishuGatewayError('UNAVAILABLE', 'Feishu event gateway is closed');
+          activeSource = fallback;
+        } catch (fallbackError) {
+          if (pollingSource === fallback) pollingSource = undefined;
+          await fallback.close();
+          throw fallbackError;
+        }
       }
     })();
+    const tracked = attempt.catch(async error => {
+      if (starting === tracked) starting = undefined;
+      if (activeSource === candidate) activeSource = undefined;
+      if (eventSource === candidate) eventSource = undefined;
+      await candidate.close();
+      throw error;
+    });
+    starting = tracked;
     return starting;
+  };
+
+  const invalidate = async (
+    source: LarkCliFeishuEventGateway | LarkCliFeishuPollingGateway,
+    error: unknown,
+  ): Promise<void> => {
+    if (
+      closed ||
+      activeSource !== source ||
+      !(error instanceof FeishuGatewayError) ||
+      !['AUTH_EXPIRED', 'PERMISSION_DENIED', 'RATE_LIMITED', 'UNAVAILABLE'].includes(error.code)
+    ) {
+      return;
+    }
+    activeSource = undefined;
+    starting = undefined;
+    if (eventSource === source) eventSource = undefined;
+    if (pollingSource === source) pollingSource = undefined;
+    await source.close();
+  };
+
+  const withActiveSource = async <Value>(
+    operation: (source: LarkCliFeishuEventGateway | LarkCliFeishuPollingGateway) => Promise<Value>,
+  ): Promise<Value> => {
+    await start();
+    const source = activeSource;
+    if (source === undefined) {
+      throw new FeishuGatewayError('UNAVAILABLE', 'Feishu source did not become ready');
+    }
+    try {
+      return await operation(source);
+    } catch (error) {
+      await invalidate(source, error);
+      throw error;
+    }
   };
 
   return {
     start,
-    async listGeneratedArtifacts(request): Promise<FeishuGeneratedArtifactPage> {
-      await start();
-      if (activeSource === undefined) {
-        throw new FeishuGatewayError('UNAVAILABLE', 'Feishu source did not become ready');
-      }
-      return activeSource.listGeneratedArtifacts(request);
+    listGeneratedArtifacts(request): Promise<FeishuGeneratedArtifactPage> {
+      return withActiveSource(source => source.listGeneratedArtifacts(request));
     },
-    async inspectArtifact(locator, signal): Promise<unknown> {
-      await start();
-      if (activeSource === undefined) {
-        throw new FeishuGatewayError('UNAVAILABLE', 'Feishu source did not become ready');
-      }
-      return activeSource.inspectArtifact(locator, signal);
+    inspectArtifact(locator, signal): Promise<unknown> {
+      return withActiveSource(source => source.inspectArtifact(locator, signal));
     },
     async close(): Promise<void> {
-      await Promise.all([
-        eventSource.close(),
-        pollingSource?.close(),
-      ]);
+      if (closed) return;
+      closed = true;
+      const sources = new Set([eventSource, pollingSource, activeSource]);
+      eventSource = undefined;
+      pollingSource = undefined;
+      activeSource = undefined;
+      const pendingStart = starting;
+      starting = undefined;
+      await Promise.all([...sources].filter(source => source !== undefined).map(source => source.close()));
+      await pendingStart?.catch(() => undefined);
     },
   };
 }

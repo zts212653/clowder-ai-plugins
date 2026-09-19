@@ -285,6 +285,49 @@ test('records a successful empty observation while the event source is quiet', a
   await gateway.close();
 });
 
+test('recreates both generated-event consumers after a transient source ends', async () => {
+  const endFirstGeneration = deferred();
+  let starts = 0;
+  let closes = 0;
+  const gateway = createLarkCliFeishuEventGateway({
+    sourceObservationIntervalMs: 5,
+    createConsumer: async () => {
+      starts += 1;
+      const source = starts <= 2
+        ? eventsUntilEnded(endFirstGeneration.promise)
+        : starts === 3
+          ? events([{
+              type: 'minutes.minute.generated_v1',
+              event_id: 'evt-recovered',
+              timestamp: '1786381200000',
+              minute_token: 'obcn_recovered',
+            }])
+          : events([]);
+      return {
+        events: source,
+        close: async () => {
+          closes += 1;
+        },
+      };
+    },
+  });
+
+  await gateway.start();
+  const interrupted = gateway.listGeneratedArtifacts({ cursor: null, limit: 64, signal: SIGNAL });
+  endFirstGeneration.resolve();
+  await assert.rejects(
+    interrupted,
+    error => error instanceof FeishuGatewayError && error.code === 'UNAVAILABLE',
+  );
+
+  const recovered = await gateway.listGeneratedArtifacts({ cursor: null, limit: 64, signal: SIGNAL });
+  assert.equal(starts, 4, 'recovery must establish two fresh source consumers');
+  assert.equal(recovered.artifacts.length, 1);
+  assert.equal(recovered.nextCursor, 'evt-recovered');
+  assert.equal(closes >= 2, true, 'the failed generation must be closed before replacement');
+  await gateway.close();
+});
+
 test('manual history inspection reuses the default user-authorized lark-cli adapter', async () => {
   const token = 'obcne9c5d9z4l3o3nk9mg777';
   const calls: string[][] = [];

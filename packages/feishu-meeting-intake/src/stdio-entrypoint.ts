@@ -37,6 +37,7 @@ import {
   createFeishuMeetingIntakeRuntime,
   type FeishuMeetingIntakeRuntime,
 } from './runtime.js';
+import { runFeishuPollingLoop } from './source-retry.js';
 import { createFileMeetingIntakeStateStore } from './state-store.js';
 
 const REQUEST_DEADLINE_MS = 30_000;
@@ -56,6 +57,9 @@ export interface FeishuMeetingIntakeStdioOptions {
   readonly createGateway?: () => LarkCliFeishuEventGateway;
   readonly onFatal?: (error: unknown) => void;
   readonly now?: () => number;
+  readonly sourceRetryBaseDelayMs?: number;
+  readonly sourceRetryMaxDelayMs?: number;
+  readonly sleep?: (milliseconds: number, signal: AbortSignal) => Promise<void>;
 }
 
 export function formatFeishuRuntimeDiagnostic(error: unknown): string {
@@ -267,18 +271,13 @@ export function startFeishuMeetingIntakeStdio(
     })();
 
     activated.resolve();
-    runtimeTask = (async () => {
-      while (active && !lifecycle.signal.aborted) {
-        const result = await runtime.pollOnce(lifecycle.signal);
-        if (result.blocked === 'catch-up') {
-          await new Promise<void>((_resolve, reject) => {
-            const rejectOnAbort = (): void => reject(lifecycle.signal.reason);
-            if (lifecycle.signal.aborted) rejectOnAbort();
-            else lifecycle.signal.addEventListener('abort', rejectOnAbort, { once: true });
-          });
-        }
-      }
-    })();
+    runtimeTask = runFeishuPollingLoop(runtime, lifecycle.signal, {
+      ...(options.sourceRetryBaseDelayMs === undefined
+        ? {} : { baseDelayMs: options.sourceRetryBaseDelayMs }),
+      ...(options.sourceRetryMaxDelayMs === undefined
+        ? {} : { maxDelayMs: options.sourceRetryMaxDelayMs }),
+      ...(options.sleep === undefined ? {} : { sleep: options.sleep }),
+    });
     await runtimeTask;
   };
   void run().catch(error => terminate(error));
