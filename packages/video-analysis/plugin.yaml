@@ -1,11 +1,11 @@
 pluginId: dev.clowder.video-analysis
-version: 0.1.0-alpha.0
-contractVersion: 0.1.0-beta.13
+version: 0.1.0-alpha.1
+contractVersion: 0.1.0
 name: Video Analysis
 description:
-  default: Analyze remote videos through configured Gemini or Zhipu providers.
+  default: Send one remote HTTPS video URL and a prompt to the configured provider for analysis.
   translations:
-    zh-CN: 通过已配置的 Gemini 或智谱视觉模型分析远程视频。
+    zh-CN: 将一个远程 HTTPS 视频 URL 和提示词交给已配置的提供商分析。
 icon:
   type: svg
   src: assets/icon.svg

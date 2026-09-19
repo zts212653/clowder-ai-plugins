@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/video-analysis",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Official standalone video-analysis plugin for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -19,6 +19,7 @@
   "files": [
     "dist",
     "plugin.yaml",
+    "README.md",
     "assets",
     "npm-shrinkwrap.json"
   ],

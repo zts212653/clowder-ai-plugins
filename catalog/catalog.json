@@ -65,9 +65,9 @@
       "pluginId": "dev.clowder.video-analysis",
       "name": "Video Analysis",
       "description": {
-        "default": "Analyze remote videos through configured Gemini or Zhipu providers.",
+        "default": "Send one remote HTTPS video URL and a prompt to the configured provider for analysis.",
         "translations": {
-          "zh-CN": "通过已配置的 Gemini 或智谱视觉模型分析远程视频。"
+          "zh-CN": "将一个远程 HTTPS 视频 URL 和提示词交给已配置的提供商分析。"
         }
       },
       "icon": {
@@ -85,6 +85,23 @@
         "zhipu"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.1",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/video-analysis",
+            "version": "0.1.0-alpha.1",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/video-analysis/-/video-analysis-0.1.0-alpha.1.tgz",
+            "integrity": "sha512-C04IvWuhRHLmZ1zWrjFLcf3eXFflbt6h/JttEzgXCnOoLBP9+DjWM5gaN5QtD0XVVbmkBNkklUt5gue+mf+BJA==",
+            "shasum": "e4e79a7426e9ad3c3e477f03af9cf2e2daabc488",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/video-analysis"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.0",
           "contractVersion": "0.1.0-beta.13",

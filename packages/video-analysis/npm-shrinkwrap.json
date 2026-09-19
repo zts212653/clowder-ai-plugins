@@ -1,12 +1,12 @@
 {
   "name": "@clowder-ai/video-analysis",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@clowder-ai/video-analysis",
-      "version": "0.1.0-alpha.0",
+      "version": "0.1.0-alpha.1",
       "license": "MIT",
       "dependencies": {
         "@modelcontextprotocol/sdk": "1.26.0",

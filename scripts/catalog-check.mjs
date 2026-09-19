@@ -33,6 +33,8 @@ assert.equal(
   '@clowder-ai/video-analysis',
 );
 
+let videoAnalysisChecks = 0;
+
 async function verifyCatalogEntry(catalogEntry) {
   const version = getCatalogPlugin(validation.catalog, catalogEntry.pluginId);
   assert.ok(version);
@@ -80,6 +82,25 @@ async function verifyCatalogEntry(catalogEntry) {
     assert.equal(manifestValidation.manifest.name, catalogEntry.name);
     assert.deepEqual(manifestValidation.manifest.description, catalogEntry.description);
     assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
+
+    if (catalogEntry.pluginId === 'dev.clowder.video-analysis') {
+      videoAnalysisChecks += 1;
+      const descriptions = typeof catalogEntry.description === 'string'
+        ? [catalogEntry.description]
+        : [catalogEntry.description.default, ...Object.values(catalogEntry.description.translations)];
+      assert.ok(
+        descriptions.every(description => [...description].length <= 100),
+        'video-analysis Agent introductions must not exceed 100 characters per locale',
+      );
+      assert.ok(
+        artifact.files.some((file) => file.path === 'README.md'),
+        'packed video-analysis artifact is missing README.md',
+      );
+      assert.match(
+        await readFile(join(unpackedDirectory, 'package', 'README.md'), 'utf8'),
+        /^# Video Analysis\n/m,
+      );
+    }
 
     const contributions = manifestValidation.manifest.contributions ?? [];
     const staticSurfaces = contributions.length > 0 &&
@@ -154,5 +175,6 @@ async function verifyCatalogEntry(catalogEntry) {
 }
 
 for (const entry of listCatalogPlugins(validation.catalog)) await verifyCatalogEntry(entry);
+assert.equal(videoAnalysisChecks, 1, 'video-analysis package-owned metadata checks must run exactly once');
 
 console.log('catalog validation, list/search/get, and exact packed artifact: ok');

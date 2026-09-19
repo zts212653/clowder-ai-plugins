@@ -45,7 +45,8 @@ implementations in one Core PR.
 | Truth | Owner | Consumer |
 |---|---|---|
 | Catalog entries, versions, artifact coordinates, manifest metadata projection | `clowder-ai-plugins/catalog` | Host catalog provider, Agent/Console projections |
-| Static access protocol and product metadata (`plugin.yaml`) | Packed plugin artifact | Contract validator, Host installer, Agent/Console |
+| Static access protocol and short Agent introduction (`plugin.yaml`, at most 100 characters per locale) | Packed plugin artifact | Contract validator, Host installer, Agent/Console |
+| Detailed human capability guide (`README.md`) | Packed plugin artifact | Manager information surface, package consumers |
 | Manifest/catalog schemas and generated types | `@clowder-ai/plugin-contract` | SDK, Host, packages, conformance |
 | Author facade and runtime-neutral contribution semantics | `@clowder-ai/plugin-sdk` | Plugin authors and packages |
 | Installed artifact, integrity, grants, config/auth, intent, live state | Local Host inventory | Manager, Console, Agent |
@@ -62,13 +63,17 @@ implementations in one Core PR.
 3. `catalog/catalog.json` is deterministic and validation-tested. Query helpers have stable list/search/get
    ordering, search every localized description, and never merge catalog state with installed state.
 4. `@clowder-ai/video-analysis` owns its Gemini/Zhipu protocol definitions and MCP runtime, ships
-   `plugin.yaml` plus its declared SVG icon and a publisher-owned `npm-shrinkwrap.json`, imports no Core
-   private path, and scrubs credentials from errors. Every locked package is registry-bounded with canonical
-   SHA-512 integrity so Host activation never resolves a new transitive closure from registry-time truth.
+   `plugin.yaml`, a package-root human capability `README.md`, its declared SVG icon, and a publisher-owned
+   `npm-shrinkwrap.json`, imports no Core private path, and scrubs credentials from errors. The manifest and
+   catalog share the same localized Agent introduction, bounded to 100 characters per locale; long-form
+   human documentation is never overloaded into that field. Every locked package is registry-bounded with
+   canonical SHA-512 integrity so Host activation never resolves a new transitive closure from registry-time
+   truth.
 
 ## Test-first sequence
 
-1. Add RED catalog/manifest fixtures and generated-type assertions.
+1. Add RED catalog/manifest fixtures, localized introduction bounds, package-documentation checks, and
+   generated-type assertions.
 2. Implement schemas, validators, deterministic list/search/get helpers, then regenerate contract types.
 3. Add RED SDK author-facade tests for feature ownership, duplicate contribution keys, disposer
    idempotence, stale/revoked context rejection, and sibling isolation.
@@ -86,8 +91,8 @@ implementations in one Core PR.
 - Focused RED→GREEN tests for every contract, SDK, catalog, and video package change.
 - `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm conformance`, and
   `pnpm test:fresh-consumer` from this worktree.
-- Pack evidence records filename, version, SHA-1, SHA-512 integrity, archive members, publisher lock, and
-  fresh install. Reproducible pack evidence uses Node 24.18.0, npm 11.16.0, and zlib
+- Pack evidence records filename, version, SHA-1, SHA-512 integrity, archive members (including the package
+  README), publisher lock, and fresh install. Reproducible pack evidence uses Node 24.18.0, npm 11.16.0, and zlib
   1.3.1-e00f703; other tuples are not accepted as release coordinates.
 - A fresh consumer imports only public package exports and runs the video MCP against an isolated local
   HTTP fixture; no production credentials or Redis are used.
