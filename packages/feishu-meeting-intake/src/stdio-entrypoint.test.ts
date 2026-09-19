@@ -299,3 +299,54 @@ test('keeps activated intake alive while retrying recurring transient source fai
   assert.equal(fatal, undefined);
   await controller.close();
 });
+
+for (const code of ['AUTH_EXPIRED', 'PERMISSION_DENIED'] as const) {
+  test(`terminalizes ${code} without sleeping or starting a second source generation`, async () => {
+    const hostToPlugin = new PassThrough();
+    const pluginToHost = new PassThrough();
+    const nextFrame = lineReader(pluginToHost);
+    let runtimeStarts = 0;
+    let pollCalls = 0;
+    let sleepCalls = 0;
+    let resolveFatal!: (error: unknown) => void;
+    const fatal = new Promise<unknown>(resolve => {
+      resolveFatal = resolve;
+    });
+    const controller = startFeishuMeetingIntakeStdio({
+      input: hostToPlugin,
+      output: pluginToHost,
+      claims: readRuntimeClaims(CLAIMS),
+      sourceRetryBaseDelayMs: 5,
+      sourceRetryMaxDelayMs: 20,
+      sleep: async () => {
+        sleepCalls += 1;
+        throw new Error('authorization failures must not sleep');
+      },
+      createRuntime: () => {
+        runtimeStarts += 1;
+        return {
+          pollOnce: async () => {
+            pollCalls += 1;
+            throw new FeishuGatewayError(code, 'authorization boundary changed');
+          },
+          importArtifact: async () => ({ discovered: 0, published: 0 }),
+        };
+      },
+      onFatal: resolveFatal,
+    });
+
+    const hello = await nextFrame();
+    send(hostToPlugin, { jsonrpc: '2.0', id: hello.id, result: binding() });
+    const ready = await nextFrame();
+    send(hostToPlugin, { jsonrpc: '2.0', id: ready.id, result: null });
+    await controller.activated;
+
+    const failure = await fatal;
+    assert.ok(failure instanceof FeishuGatewayError);
+    assert.equal(failure.code, code);
+    assert.equal(runtimeStarts, 1);
+    assert.equal(pollCalls, 1);
+    assert.equal(sleepCalls, 0);
+    await controller.close();
+  });
+}

@@ -5,8 +5,6 @@ import type { FeishuMeetingIntakeRuntime } from './runtime.js';
 const DEFAULT_BASE_DELAY_MS = 5_000;
 const DEFAULT_MAX_DELAY_MS = 5 * 60_000;
 const RETRYABLE_SOURCE_FAILURES = new Set([
-  'AUTH_EXPIRED',
-  'PERMISSION_DENIED',
   'RATE_LIMITED',
   'UNAVAILABLE',
 ]);
