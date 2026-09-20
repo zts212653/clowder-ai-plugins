@@ -18,7 +18,7 @@ and durable state. Ordinary message text, including `@`, cannot mint a binding o
 Tenant tokens and downloaded media are transient runtime data. Rollback drains the package connection before
 the preserved Core adapter starts, while Host-owned bindings and configuration remain unchanged.
 
-The standalone runtime remains package implementation work in C1 and must use the existing authenticated
+The Host-loadable builtin runtime is implemented in this package and uses only the existing authenticated
 binding and declared configuration/secret surfaces. No package-local persistence fallback is provided.
 
 ## Exposed capability

@@ -122,6 +122,20 @@ async function verifyCatalogEntry(catalogEntry) {
         artifact.files.some((file) => file.path === 'README.md'),
         `packed ${catalogEntry.pluginId} artifact is missing README.md`,
       );
+      const connectorReadme = await readFile(
+        join(unpackedDirectory, 'package', 'README.md'),
+        'utf8',
+      );
+      assert.match(
+        connectorReadme,
+        /The Host-loadable builtin runtime is implemented in this package/u,
+        `packed ${catalogEntry.pluginId} README must describe its completed builtin runtime`,
+      );
+      assert.doesNotMatch(
+        connectorReadme,
+        /standalone runtime|implementation work in C1/iu,
+        `packed ${catalogEntry.pluginId} README contains stale runtime status`,
+      );
     }
 
     if (catalogEntry.pluginId === 'dev.clowder.video-analysis') {

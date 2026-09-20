@@ -18,7 +18,7 @@ checkpoint state. Ordinary message text, including `@`, cannot mint a binding or
 The iLink polling cursor and context tokens use the existing Host-owned state surface. They must not be stored
 in package-local files or ambient Redis. Rollback drains polling before the preserved Core adapter starts.
 
-The standalone runtime remains package implementation work in C1 and must use only the existing Host-owned
+The Host-loadable builtin runtime is implemented in this package and uses only the existing Host-owned
 binding, configuration/secret, state, and messaging surfaces.
 
 ## Exposed capability

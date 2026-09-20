@@ -23,7 +23,7 @@ Disable and rollback drain the WebSocket, timers, cached frames, and active stre
 starts. Resume state and deduplication watermarks must use a Host-owned, manifest-declared checkpoint after
 accepted delivery; package-local files, ambient Redis, and inventory snapshots are not substitutes.
 
-The standalone runtime remains package implementation work in C1 and must use the existing authenticated
+The Host-loadable builtin runtime is implemented in this package and uses only the existing authenticated
 binding, declared configuration/secret, state, and messaging surfaces; C1 does not add another public wire.
 
 ## Exposed capability

@@ -25,7 +25,7 @@ Provider access tokens are short-lived process caches. Host webhook routing must
 the package and preserved Core callback handler never consume the same event concurrently. The package does
 not persist callback bodies or credentials.
 
-The standalone runtime remains package implementation work in C1 and must use the existing authenticated
+The Host-loadable builtin runtime is implemented in this package and uses only the existing authenticated
 binding and declared configuration/secret surfaces. No package-local environment or persistence fallback is
 provided.
 

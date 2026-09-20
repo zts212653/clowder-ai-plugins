@@ -25,7 +25,7 @@ The adapter opens primary and backup WebSocket channels only after Host activati
 all timers during drain, and keeps provider retry bounded. WebSocket resume and deduplication watermarks must
 be committed through a Host-owned, manifest-declared checkpoint namespace after accepted delivery.
 
-The standalone runtime remains package implementation work in C1 and must use the existing authenticated
+The Host-loadable builtin runtime is implemented in this package and uses only the existing authenticated
 binding, declared configuration/secret, state, and messaging surfaces. The package intentionally provides no
 local-file, ambient Redis, or environment fallback.
 
