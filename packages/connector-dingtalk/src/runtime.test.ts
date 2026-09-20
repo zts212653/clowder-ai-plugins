@@ -20,6 +20,10 @@ function fakeAdapter() {
   let handler: ((message: DingTalkInboundMessage) => Promise<void>) | undefined;
   let stopCalls = 0;
   const adapter: DingTalkRuntimeAdapter = {
+    connectorId: 'dingtalk',
+    async sendReply() {
+      return undefined;
+    },
     async startStream(next) {
       handler = next;
     },
@@ -109,4 +113,39 @@ test('runtime drains the provider stream exactly once', async () => {
   await runtime.stop();
   assert.equal(provider.stopCalls(), 1);
   await assert.rejects(runtime.start(), /stopped/u);
+});
+
+test('stop during an in-flight provider start waits and then closes the live stream', async () => {
+  let releaseStart!: () => void;
+  const startGate = new Promise<void>(resolve => {
+    releaseStart = resolve;
+  });
+  let stopCalls = 0;
+  const adapter: DingTalkRuntimeAdapter = {
+    connectorId: 'dingtalk',
+    async sendReply() {
+      return undefined;
+    },
+    startStream: async () => startGate,
+    async stopStream() {
+      stopCalls += 1;
+    },
+    resolveSenderName: () => undefined,
+    resolveConversationTitle: () => undefined,
+  };
+  const runtime = createDingTalkConnectorRuntime({
+    config: { appKey: 'app-key', appSecret: 'app-secret' },
+    host: { deliver: async () => undefined },
+    logger: silentLogger(),
+    createAdapter: () => adapter,
+  });
+
+  const starting = runtime.start();
+  assert.equal(runtime.start(), starting, 'repeated start must join the same lifecycle transition');
+  const stopping = runtime.stop();
+  await Promise.resolve();
+  assert.equal(stopCalls, 0, 'drain cannot claim completion before provider start settles');
+  releaseStart();
+  await Promise.all([starting, stopping]);
+  assert.equal(stopCalls, 1);
 });

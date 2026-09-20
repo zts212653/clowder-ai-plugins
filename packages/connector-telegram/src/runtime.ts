@@ -36,15 +36,24 @@ export interface TelegramRuntimeHost {
   deliver(message: TelegramHostInboundMessage): Promise<void>;
 }
 
-export interface TelegramRuntimeAdapter {
-  startPolling(handler: (message: TelegramInboundMessage) => Promise<void>): void;
+export interface TelegramOutbound {
+  readonly connectorId: string;
+  sendReply(
+    externalChatId: string,
+    content: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void>;
+}
+
+export interface TelegramRuntimeAdapter extends TelegramOutbound {
+  startPolling(handler: (message: TelegramInboundMessage) => Promise<void>): void | Promise<void>;
   stopPolling(): Promise<void>;
 }
 
 export interface TelegramConnectorRuntime<Adapter extends TelegramRuntimeAdapter = TelegramAdapter> {
   /** Provider egress implementation consumed by the Host's generic delivery adapter. */
   readonly outbound: Adapter;
-  start(): void;
+  start(): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -87,17 +96,32 @@ export function createTelegramConnectorRuntime<Adapter extends TelegramRuntimeAd
     new TelegramAdapter(value, logger) as unknown as Adapter
   ));
   const outbound = createAdapter(token, options.logger);
-  let state: 'idle' | 'running' | 'stopped' = 'idle';
+  let state: 'idle' | 'starting' | 'running' | 'stopped' = 'idle';
+  let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
 
   return {
     outbound,
     start() {
-      if (state === 'running') throw new Error('Telegram connector runtime already started');
-      if (state === 'stopped') throw new Error('Telegram connector runtime has been stopped');
-      state = 'running';
-      outbound.startPolling(async message => options.host.deliver(hostMessage(message)));
-      options.logger.info('[TelegramRuntime] Provider polling started');
+      if (state === 'stopped') return Promise.reject(new Error('Telegram connector runtime has been stopped'));
+      if (startPromise !== undefined) return startPromise;
+      state = 'starting';
+      startPromise = Promise.resolve()
+        .then(() => outbound.startPolling(async message => options.host.deliver(hostMessage(message))))
+        .then(() => {
+          if (state !== 'stopped') {
+            state = 'running';
+            options.logger.info('[TelegramRuntime] Provider polling started');
+          }
+        })
+        .catch((error: unknown) => {
+          if (state !== 'stopped') {
+            state = 'idle';
+            startPromise = undefined;
+          }
+          throw error;
+        });
+      return startPromise;
     },
     stop() {
       if (stopPromise !== undefined) return stopPromise;
@@ -106,7 +130,10 @@ export function createTelegramConnectorRuntime<Adapter extends TelegramRuntimeAd
         return Promise.resolve();
       }
       state = 'stopped';
-      stopPromise = outbound.stopPolling();
+      stopPromise = (async () => {
+        await startPromise?.catch(() => undefined);
+        await outbound.stopPolling();
+      })();
       return stopPromise;
     },
   };

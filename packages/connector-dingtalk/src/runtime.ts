@@ -34,7 +34,16 @@ export interface DingTalkRuntimeHost {
   deliver(message: DingTalkHostInboundMessage): Promise<void>;
 }
 
-export interface DingTalkRuntimeAdapter {
+export interface DingTalkOutbound {
+  readonly connectorId: string;
+  sendReply(
+    externalChatId: string,
+    content: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void>;
+}
+
+export interface DingTalkRuntimeAdapter extends DingTalkOutbound {
   startStream(handler: (message: DingTalkInboundMessage) => Promise<void>): Promise<void>;
   stopStream(): Promise<void>;
   resolveSenderName(senderId: string): string | undefined;
@@ -138,7 +147,10 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
         return Promise.resolve();
       }
       state = 'stopped';
-      stopPromise = outbound.stopStream();
+      stopPromise = (async () => {
+        await startPromise?.catch(() => undefined);
+        await outbound.stopStream();
+      })();
       return stopPromise;
     },
   };

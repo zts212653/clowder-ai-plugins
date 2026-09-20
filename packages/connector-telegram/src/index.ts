@@ -8,6 +8,7 @@ export type {
   TelegramConnectorRuntimeOptions,
   TelegramHostInboundMessage,
   TelegramInboundAttachment,
+  TelegramOutbound,
   TelegramRuntimeAdapter,
   TelegramRuntimeConfig,
   TelegramRuntimeHost,

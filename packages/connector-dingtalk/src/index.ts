@@ -10,6 +10,7 @@ export type {
   DingTalkConnectorRuntimeOptions,
   DingTalkHostInboundMessage,
   DingTalkInboundAttachment,
+  DingTalkOutbound,
   DingTalkRuntimeAdapter,
   DingTalkRuntimeConfig,
   DingTalkRuntimeHost,
