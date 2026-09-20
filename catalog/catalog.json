@@ -153,8 +153,8 @@
             "packageName": "@clowder-ai/video-generation",
             "version": "0.1.0-alpha.0",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/video-generation/-/video-generation-0.1.0-alpha.0.tgz",
-            "integrity": "sha512-jr5W7aAKHK49iIHAo7T8uh5f2wwoLWj82jRsRLXMMQlkdEG8Gu58Vu+BwMEZiTgP9YoVFHxtrs0Jd/ZEMkTyXg==",
-            "shasum": "4b7696e59e7d79414cd5309768ca18cdd5825a9c",
+            "integrity": "sha512-LSe0z9TDJGYQgHZ5kjLy8KT3fM1QHq1GJ+TaamiTcRZ6YCg/pI9YRDtEqJq+Mfykz3pBvaXoRo0PWKjBAwTSdw==",
+            "shasum": "6b511c0c6c2094c3af9489541f55f41777d9e169",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/video-generation"
