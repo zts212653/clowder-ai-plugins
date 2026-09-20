@@ -45,6 +45,9 @@ importers:
 
   packages/connector-feishu:
     dependencies:
+      '@clowder-ai/plugin-sdk':
+        specifier: 0.1.0-beta.12
+        version: link:../plugin-sdk
       '@larksuiteoapi/node-sdk':
         specifier: 1.59.0
         version: 1.59.0
@@ -92,6 +95,9 @@ importers:
 
   packages/connector-wecom-agent:
     dependencies:
+      '@clowder-ai/plugin-sdk':
+        specifier: 0.1.0-beta.12
+        version: link:../plugin-sdk
       fast-xml-parser:
         specifier: 5.5.9
         version: 5.5.9
@@ -111,6 +117,9 @@ importers:
 
   packages/connector-wecom-bot:
     dependencies:
+      '@clowder-ai/plugin-sdk':
+        specifier: 0.1.0-beta.12
+        version: link:../plugin-sdk
       '@wecom/aibot-node-sdk':
         specifier: 1.0.4
         version: 1.0.4
@@ -130,6 +139,9 @@ importers:
 
   packages/connector-weixin:
     dependencies:
+      '@clowder-ai/plugin-sdk':
+        specifier: 0.1.0-beta.12
+        version: link:../plugin-sdk
       silk-wasm:
         specifier: 3.7.1
         version: 3.7.1
@@ -149,6 +161,9 @@ importers:
 
   packages/connector-xiaoyi:
     dependencies:
+      '@clowder-ai/plugin-sdk':
+        specifier: 0.1.0-beta.12
+        version: link:../plugin-sdk
       ws:
         specifier: 8.21.3
         version: 8.21.3

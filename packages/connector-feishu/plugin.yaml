@@ -65,5 +65,5 @@ features:
         id: feishu-events
     capabilities: [messaging.send]
 runtime:
-  transport: stdio
-  entrypoint: dist/stdio-entrypoint.js
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

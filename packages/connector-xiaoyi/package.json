@@ -23,7 +23,7 @@
     "clean": "rm -rf dist",
     "prepack": "pnpm build"
   },
-  "dependencies": { "ws": "8.21.3" },
+  "dependencies": { "@clowder-ai/plugin-sdk": "0.1.0-beta.12", "ws": "8.21.3" },
   "devDependencies": {
     "@types/node": "^20.17.0",
     "@types/ws": "8.18.1",

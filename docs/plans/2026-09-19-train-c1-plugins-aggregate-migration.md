@@ -34,7 +34,9 @@ migration rows as the whole repository compatibility surface.
    feature activation, contribution action handlers, and idempotent disposal. The Host supplies grants,
    config, secrets, bindings, ingress, logging, state, scheduling, and lifecycle authority through public
    SDK adapters. Failed activation publishes no partial contribution; action failure is attributed and
-   contained; disable/uninstall always disposes the active feature exactly once.
+   contained; disable/uninstall always disposes the active feature exactly once. A `builtin` runtime with a
+   root `entrypoint` has exactly one discovery convention: the imported ESM module's `default` export must
+   satisfy `PluginModuleEntrypoint` and pass `requirePluginModuleEntrypoint`; named-export probing is forbidden.
 3. **PR #54 closes repository-wide compatibility.** Its terminal inventory classifies every package directory,
    not only the eleven migration rows. Every Manager-installable artifact must have one canonical
    `plugin.yaml`, the stable `contractVersion: 0.1.0` line, an explicit SDK compatibility disposition, an
@@ -60,7 +62,7 @@ migration rows as the whole repository compatibility surface.
    `wechat-visible-reader` and `weixin-mp`; those consumers remain part of C1 compatibility closure.
 
 This contract was cross-read against Core PR #1487 exact HEAD
-`a2759879e3f64b357c8ba90c3cf486f8b607c07f`, section **8. C1 Terminal Acceptance Contract**. The two durable
+`f20cc2dcd0c6612b89bf57d10f39a7fee802d0df`, section **8. C1 Terminal Acceptance Contract**. The two durable
 contracts are aligned with no substantive disagreement.
 
 The repository-wide package ledger in the inventory is executable acceptance data. A package may remain a

@@ -10,6 +10,7 @@ import {
   createFeatureContextSession,
   definePlugin,
   definePluginModule,
+  requirePluginModuleEntrypoint,
   type FeatureBinding,
   type FeatureContext,
   type FeatureHostAdapter,
@@ -243,8 +244,13 @@ test('definePlugin validates the manifest and rejects undeclared activators', ()
 
 test('module entrypoint accepts the Host-validated manifest without embedding a second copy', () => {
   const module = definePluginModule((candidate) => definePlugin({ manifest: candidate }));
-  const defined = module.create(manifest());
+  const defined = requirePluginModuleEntrypoint(module).create(manifest());
   assert.equal(defined.manifest.pluginId, 'dev.clowder.fixture');
+});
+
+test('module entrypoint guard rejects absent or ambiguous default exports', () => {
+  assert.throws(() => requirePluginModuleEntrypoint(undefined), /default export.*PluginModuleEntrypoint/u);
+  assert.throws(() => requirePluginModuleEntrypoint({ create: 'not-callable' }), /default export/u);
 });
 
 test('feature activation closes declared method handlers and owns idempotent disposal', async () => {

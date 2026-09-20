@@ -231,7 +231,7 @@ test('inventory provenance is pinned to the independently grounded repositories'
   assert.equal(inventory.scopeAuthority.acceptedCoreIssue, 'zts212653/clowder-ai#1478');
   assert.deepEqual(inventory.scopeAuthority.coreCounterpartRead, {
     pullRequest: 'zts212653/clowder-ai#1487',
-    head: 'a2759879e3f64b357c8ba90c3cf486f8b607c07f',
+    head: 'f20cc2dcd0c6612b89bf57d10f39a7fee802d0df',
     path: 'docs/plans/2026-09-19-f202-train-c1-migration-plan.md',
   });
 });

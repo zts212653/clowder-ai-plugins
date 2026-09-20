@@ -17,7 +17,7 @@
     "clean": "rm -rf dist",
     "prepack": "pnpm build"
   },
-  "dependencies": { "silk-wasm": "3.7.1" },
+  "dependencies": { "@clowder-ai/plugin-sdk": "0.1.0-beta.12", "silk-wasm": "3.7.1" },
   "devDependencies": { "@types/node": "^20.17.0", "tsx": "^4.19.0", "typescript": "^5.7.0", "yaml": "2.9.0" },
   "keywords": ["clowder-ai", "connector", "weixin", "wechat", "messaging"],
   "repository": { "type": "git", "url": "https://github.com/zts212653/clowder-ai-plugins.git", "directory": "packages/connector-weixin" }

@@ -388,6 +388,25 @@ export interface PluginModuleEntrypoint {
   create(manifest: unknown): DefinedPlugin;
 }
 
+export class PluginModuleEntrypointError extends TypeError {
+  constructor() {
+    super('builtin runtime entrypoint default export must satisfy PluginModuleEntrypoint');
+    this.name = 'PluginModuleEntrypointError';
+  }
+}
+
+/** Fail-closed guard for a dynamically imported package module's default export. */
+export function requirePluginModuleEntrypoint(candidate: unknown): PluginModuleEntrypoint {
+  if (
+    candidate === null
+    || (typeof candidate !== 'object' && typeof candidate !== 'function')
+    || typeof (candidate as { create?: unknown }).create !== 'function'
+  ) {
+    throw new PluginModuleEntrypointError();
+  }
+  return candidate as PluginModuleEntrypoint;
+}
+
 /** Stable package-module export consumed by a Host-selected runtime carrier. */
 export function definePluginModule(
   create: (manifest: unknown) => DefinedPlugin,

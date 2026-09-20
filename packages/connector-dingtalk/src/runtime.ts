@@ -128,8 +128,10 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
       startPromise = outbound
         .startStream(async message => options.host.deliver(hostMessage(outbound, message)))
         .then(() => {
-          if (state !== 'stopped') state = 'running';
-          options.logger.info('[DingTalkRuntime] Provider stream started');
+          if (state !== 'stopped') {
+            state = 'running';
+            options.logger.info('[DingTalkRuntime] Provider stream started');
+          }
         })
         .catch((error: unknown) => {
           if (state !== 'stopped') {

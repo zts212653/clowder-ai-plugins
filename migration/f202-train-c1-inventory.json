@@ -9,7 +9,7 @@
     "terminalAlignmentOperatorMessage": "0001789886680827-002881-10e236ef",
     "coreCounterpartRead": {
       "pullRequest": "zts212653/clowder-ai#1487",
-      "head": "a2759879e3f64b357c8ba90c3cf486f8b607c07f",
+      "head": "f20cc2dcd0c6612b89bf57d10f39a7fee802d0df",
       "path": "docs/plans/2026-09-19-f202-train-c1-migration-plan.md"
     }
   },
@@ -69,9 +69,9 @@
       "classification": "manager-installable-official-public",
       "managerInstallable": true,
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
-      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
       "catalogClosure": "required; pending deterministic catalog generation",
       "freshConsumerClosure": "required; pending aggregate install/import journey"
     },
@@ -93,9 +93,9 @@
       "classification": "manager-installable-official-public",
       "managerInstallable": true,
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
-      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
       "catalogClosure": "required; pending deterministic catalog generation",
       "freshConsumerClosure": "required; pending aggregate install/import journey"
     },
@@ -105,9 +105,9 @@
       "classification": "manager-installable-official-public",
       "managerInstallable": true,
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
-      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
       "catalogClosure": "required; pending deterministic catalog generation",
       "freshConsumerClosure": "required; pending aggregate install/import journey"
     },
@@ -117,9 +117,9 @@
       "classification": "manager-installable-official-public",
       "managerInstallable": true,
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
-      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented with Host-owned provider-session state; aggregate parity journey pending",
       "catalogClosure": "required; pending deterministic catalog generation",
       "freshConsumerClosure": "required; pending aggregate install/import journey"
     },
@@ -129,9 +129,9 @@
       "classification": "manager-installable-official-public",
       "managerInstallable": true,
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
-      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
       "catalogClosure": "required; pending deterministic catalog generation",
       "freshConsumerClosure": "required; pending aggregate install/import journey"
     },

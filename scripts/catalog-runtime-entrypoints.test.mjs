@@ -38,3 +38,17 @@ test('rejects a dangling contribution entrypoint even when root runtime is built
     /missing declared runtime entrypoint dist\/missing-mcp\.js/u,
   );
 });
+
+test('requires an explicitly declared builtin package-module entrypoint to be packed', () => {
+  assert.doesNotThrow(() => assertPackedRuntimeEntrypoints({
+    runtime: { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' },
+    contributions: [],
+  }, [{ path: 'dist/plugin-entrypoint.js' }]));
+  assert.throws(
+    () => assertPackedRuntimeEntrypoints({
+      runtime: { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' },
+      contributions: [],
+    }, [{ path: 'dist/index.js' }]),
+    /missing declared runtime entrypoint dist\/plugin-entrypoint\.js/u,
+  );
+});

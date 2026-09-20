@@ -96,10 +96,12 @@ export {
 export {
   ContributionConflictError,
   FeatureContextRevokedError,
+  PluginModuleEntrypointError,
   activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
   definePluginModule,
+  requirePluginModuleEntrypoint,
   type ActivePluginFeature,
   type ConnectorInboundAttachment,
   type ConnectorInboundMessage,

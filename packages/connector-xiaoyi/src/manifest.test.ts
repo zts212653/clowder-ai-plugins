@@ -10,6 +10,7 @@ test('manifest keeps credentials and connector authority in their intended domai
     configuration: Array<{ key: string; kind: string }>;
     contributions: Array<{ type: string; id: string }>;
     features: Array<{ capabilities: string[] }>;
+    runtime: Record<string, unknown>;
   };
   assert.equal(manifest.pluginId, 'official.connector.xiaoyi');
   assert.equal(manifest.contractVersion, '0.1.0');
@@ -20,4 +21,5 @@ test('manifest keeps credentials and connector authority in their intended domai
   ]);
   assert.ok(manifest.contributions.some(item => item.type === 'connector' && item.id === 'xiaoyi'));
   assert.deepEqual(manifest.features[0]?.capabilities, ['messaging.send']);
+  assert.deepEqual(manifest.runtime, { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' });
 });

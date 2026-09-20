@@ -10,6 +10,7 @@ test('manifest keeps WeCom credentials secret and callback authority Host-owned'
     configuration: Array<{ key: string; kind: string }>;
     contributions: Array<Record<string, unknown>>;
     features: Array<{ capabilities: string[] }>;
+    runtime: Record<string, unknown>;
   };
   assert.equal(manifest.pluginId, 'official.connector.wecom-agent');
   assert.equal(manifest.contractVersion, '0.1.0');
@@ -20,4 +21,5 @@ test('manifest keeps WeCom credentials secret and callback authority Host-owned'
   assert.ok(manifest.contributions.some(item => item.type === 'connector' && item.id === 'wecom-agent'));
   assert.ok(manifest.contributions.some(item => item.type === 'webhook' && item.id === 'wecom-agent-callback'));
   assert.deepEqual(manifest.features[0]?.capabilities, ['messaging.send']);
+  assert.deepEqual(manifest.runtime, { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' });
 });
