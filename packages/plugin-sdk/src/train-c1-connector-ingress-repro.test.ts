@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
   METHOD_NOT_FOUND_CODE,
   METHOD_NOT_FOUND_MESSAGE,
+  WIRE_METHOD_NAMES,
+  validateMessagingRowInput,
   validateSessionBinding,
 } from '@clowder-ai/plugin-contract';
 import {
@@ -36,21 +38,25 @@ function requestFrame(method: string): DecodedNdjsonFrame {
   };
 }
 
-test('C1 repro: a manifest-declared connector ingress method is not executable on the frozen stdio wire', () => {
-  const result = classifyFrame(requestFrame('telegram.inbound'), NO_IN_FLIGHT);
+test('C1 repro: manifest-declared connector methods are not executable frozen stdio rows', () => {
+  assert.ok(WIRE_METHOD_NAMES.includes('events.publish'));
+  for (const method of ['telegram.inbound', 'telegram.outbound']) {
+    assert.equal(WIRE_METHOD_NAMES.includes(method as never), false);
+    const result = classifyFrame(requestFrame(method), NO_IN_FLIGHT);
 
-  assert.deepEqual(result, {
-    outcome: 'respond',
-    disposition: 'T-F',
-    response: {
-      jsonrpc: '2.0',
-      id: 'connector-ingress-1',
-      error: {
-        code: METHOD_NOT_FOUND_CODE,
-        message: METHOD_NOT_FOUND_MESSAGE,
+    assert.deepEqual(result, {
+      outcome: 'respond',
+      disposition: 'T-F',
+      response: {
+        jsonrpc: '2.0',
+        id: 'connector-ingress-1',
+        error: {
+          code: METHOD_NOT_FOUND_CODE,
+          message: METHOD_NOT_FOUND_MESSAGE,
+        },
       },
-    },
-  });
+    });
+  }
 });
 
 test('C1 repro: the closed handshake cannot project connector-binding handles', () => {
@@ -116,4 +122,37 @@ test('C1 repro: a provider conversation id cannot substitute for a Host-issued c
   assert.deepEqual(await adapter.observe('messages'), []);
   assert.deepEqual(await adapter.observe('output_events'), []);
   assert.deepEqual(await adapter.observe('idempotency_ledger'), []);
+});
+
+test('C1 repro: Host delivery cannot carry the provider coordinate required by connector egress', () => {
+  const result = validateMessagingRowInput('host.messaging.deliver', {
+    deliveryId: 'delivery-1',
+    threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+    externalConversationId: 'provider-chat-42',
+    envelope: {
+      messageId: 'message-1',
+      revision: 1,
+      threadId: 'thread-1',
+      actor: { kind: 'cat', id: 'cat-1' },
+      audience: { kind: 'public' },
+      occurredAt: '2026-09-20T03:00:00.000Z',
+      payload: {
+        provenance: {
+          origin: { kind: 'host' },
+          epistemicStatus: 'observation',
+        },
+        elements: [{
+          elementId: 'text-1',
+          kind: 'text',
+          payload: { text: 'reply from Clowder' },
+        }],
+      },
+    },
+  });
+
+  assert.equal(result.valid, false);
+  if (result.valid) assert.fail('authority-bearing provider coordinate must be rejected');
+  assert.ok(result.errors.some(error => (
+    error.keyword === 'additionalProperties' && error.instancePath === ''
+  )));
 });
