@@ -5,6 +5,7 @@ import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('../renderer/', import.meta.url)));
+const spikeRoot = resolve(fileURLToPath(new URL('../preview/', import.meta.url)));
 const skins = ['ragdoll-v1', 'yarn-ball', 'yanyan-codex', 'xianxian-codex'];
 const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp' };
 const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>猫猫球 · 外观核对</title>
@@ -41,9 +42,13 @@ function fixture(skin, failure) {
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
-    if (url.pathname === '/') { res.writeHead(200, { 'Content-Type': mime['.html'] }); res.end(page); return; }
-    const file = resolve(root, `.${decodeURIComponent(url.pathname)}`);
-    if (!file.startsWith(root + sep) || !mime[extname(file)]) { res.writeHead(404); res.end(); return; }
+    if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
+    if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': mime['.html'] }); res.end(page); return; }
+    const isSpike = url.pathname.startsWith('/spike/');
+    const directory = isSpike ? spikeRoot : root;
+    const path = isSpike ? url.pathname.slice('/spike'.length) : url.pathname;
+    const file = resolve(directory, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
+    if (!file.startsWith(directory + sep) || !mime[extname(file)]) { res.writeHead(404); res.end(); return; }
     let content = await readFile(file);
     if (url.pathname === '/index.html') {
       const skin = url.searchParams.get('skin');
