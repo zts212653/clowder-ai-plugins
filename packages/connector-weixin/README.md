@@ -23,5 +23,5 @@ binding, configuration/secret, state, and messaging surfaces.
 
 ## Exposed capability
 
-The package contributes one WeChat identity and connector surface and requests only `messaging.send`. QR login
+The package contributes one WeChat identity and connector surface and requests `plugin.config.read`, `plugin.state.get`, `plugin.state.set`, `messaging.send`, `secret.read`. QR login
 obtains a Bot Token but leaves credential persistence and activation under Host control.

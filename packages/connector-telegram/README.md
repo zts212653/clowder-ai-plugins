@@ -25,3 +25,8 @@ rollback do not double-run the package and preserved Core poller.
 The Host-loadable builtin runtime is implemented in this package and uses only the existing Host
 config/secret, connector-binding, messaging, and state surfaces. Adapter exports remain testable with
 isolated fixtures.
+
+## Exposed capability
+
+This package requests these Host capabilities, verbatim from its manifest
+(`plugin.yaml` — kept in sync by `pnpm test:train-c1-inventory`): `messaging.send`, `secret.read`.

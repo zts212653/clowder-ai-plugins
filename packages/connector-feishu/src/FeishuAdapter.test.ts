@@ -79,11 +79,12 @@ test('non-Opus audio is delivered as a file without spawning a transcoder', asyn
 });
 
 test('FeishuAdapter holds no process-spawning capability', () => {
-  // B8: the connector vocabulary grants no process/filesystem capability, so a
-  // transcoder cannot exist. This guard fails the build if any child-process or
-  // ffmpeg reference is reintroduced — the structural half of the
-  // "without spawning a transcoder" property (the behavioral half is asserted
-  // by the media test above).
+  // B8: the connector vocabulary grants no process capability, so a
+  // transcoder cannot exist. This single-file substring guard fails the build
+  // if a child-process or ffmpeg reference is reintroduced in FeishuAdapter —
+  // it is a regression pin for this file only, not proof that no other module
+  // holds ambient authority (the behavioral half is asserted by the media
+  // tests above; cross-module coverage lives in the Host capability gate).
   const source = readFileSync(new URL('./FeishuAdapter.ts', import.meta.url), 'utf8');
   assert.ok(!source.includes('child_process'), 'FeishuAdapter must not import node:child_process');
   assert.ok(!source.includes('ffmpeg'), 'FeishuAdapter must not reference ffmpeg');
@@ -117,4 +118,35 @@ test('OPUS audio keeps msg_type audio', async () => {
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+// F1: the production outbound path always carries `url:` (never absPath), so a
+// regression here ships to users even when the absPath tests above stay green.
+test('OPUS audio fetched from an external URL keeps msg_type audio', async () => {
+  const subject = new FeishuAdapter('app-id', 'app-secret', logger);
+  subject._injectTokenManager({
+    async getTenantAccessToken() { return 'token'; },
+  } as never);
+  subject._injectUploadFetch(async (input, init) => {
+    const target = String(input);
+    if (target === 'https://cdn.example.com/media/voice.opus') {
+      return new Response('opus-bytes', {
+        status: 200,
+        headers: { 'content-type': 'audio/opus; charset=binary' },
+      });
+    }
+    const form = init?.body as FormData;
+    assert.equal(form.get('file_name'), 'voice.opus');
+    assert.equal(form.get('file_type'), 'opus');
+    return new Response(JSON.stringify({ data: { file_key: 'file-key' } }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  const sent: Array<{ chatId: string; msgType: string }> = [];
+  subject._injectSendMessage(async ({ chatId, msgType }) => { sent.push({ chatId, msgType }); });
+
+  await subject.sendMedia('chat-1', { type: 'audio', url: 'https://cdn.example.com/media/voice.opus' });
+
+  assert.deepEqual(sent, [{ chatId: 'chat-1', msgType: 'audio' }]);
 });

@@ -62,7 +62,90 @@ interface FeishuWsClient {
   close(options?: { force?: boolean }): void;
 }
 
+/** SDK internals the teardown guard needs (verified against @larksuiteoapi/node-sdk 1.59.0). */
+interface LarkWsInternals {
+  start(options: { eventDispatcher: lark.EventDispatcher }): Promise<void>;
+  close(options?: { force?: boolean }): void;
+  pingLoop(): void;
+  wsConfig: {
+    getWSInstance(): unknown;
+    setWSInstance(ws: unknown): void;
+  };
+}
+
 const WS_START_TIMEOUT_MS = 30_000;
+const WS_CONNECT_POLL_MS = 250;
+
+function terminateWsInstance(ws: unknown): void {
+  if (ws === null || ws === undefined || typeof ws !== 'object') return;
+  const socket = ws as { removeAllListeners?: () => void; terminate?: () => void };
+  socket.removeAllListeners?.();
+  socket.terminate?.();
+}
+
+/**
+ * F2/F3: the lark WSClient cannot cancel a connection that is still
+ * handshaking — `close()` only touches the socket registered after 'open',
+ * so a stop() landing pre-open would leave an authenticated socket that
+ * starts pingLoop and self-reconnects forever (an orphan nobody can kill).
+ *
+ * This facade makes teardown deterministic:
+ * - `close()` terminates the current socket AND installs a birth guard that
+ *   terminates any socket the SDK opens afterwards, plus a pingLoop no-op so
+ *   a late 'open' cannot restart the ping timer.
+ * - `start()` does not settle until the SDK has registered an open socket
+ *   (lark `WSClient.start()` resolves in the same tick it kicks off
+ *   `reConnect(true)`, so without this the runtime would report `running`
+ *   before anything is connected), or aborts on stop/timeout.
+ *
+ * `autoReconnect: false` is deliberate: SDK-owned reconnection was the F2
+ * revival mechanism. Reconnect supervision belongs to the Host lifecycle.
+ */
+export class PausableLarkWsClient implements FeishuWsClient {
+  private readonly inner: LarkWsInternals;
+  private stopped = false;
+
+  constructor(appId: string, appSecret: string, inner?: LarkWsInternals) {
+    this.inner = inner ?? new lark.WSClient({
+      appId,
+      appSecret,
+      loggerLevel: lark.LoggerLevel.info,
+      autoReconnect: false,
+    }) as unknown as LarkWsInternals;
+  }
+
+  async start(options: { eventDispatcher: lark.EventDispatcher }): Promise<void> {
+    await this.inner.start(options);
+    const deadline = Date.now() + WS_START_TIMEOUT_MS;
+    for (;;) {
+      if (this.stopped) throw new Error('Feishu WSClient stopped during connect');
+      if (this.inner.wsConfig.getWSInstance() !== null) return;
+      if (Date.now() >= deadline) {
+        throw new Error(`Feishu WSClient start timed out after ${WS_START_TIMEOUT_MS}ms`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, WS_CONNECT_POLL_MS));
+    }
+  }
+
+  close(): void {
+    if (this.stopped) return;
+    this.stopped = true;
+    const wsConfig = this.inner.wsConfig;
+    const originalSet = wsConfig.setWSInstance.bind(wsConfig);
+    wsConfig.setWSInstance = (ws: unknown): void => {
+      if (ws === null || ws === undefined) {
+        originalSet(ws);
+        return;
+      }
+      // Socket born after stop: kill before the SDK registers/uses it.
+      terminateWsInstance(ws);
+    };
+    // A late 'open' would otherwise start the ping timer again.
+    this.inner.pingLoop = () => undefined;
+    terminateWsInstance(wsConfig.getWSInstance());
+    this.inner.close({ force: true });
+  }
+}
 
 export interface FeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapter = FeishuAdapter> {
   readonly outbound: Adapter;
@@ -193,12 +276,16 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
 
   const routeEvent = async (message: FeishuInboundMessage) => {
     if (state !== 'running') return;
-    await options.host.deliver(await providerMessage(outbound, message));
+    const hostMessage = await providerMessage(outbound, message);
+    // Group chats await name-resolution round-trips above; stop() landing in
+    // that window must not still deliver (TOCTOU recheck after the await).
+    if (state !== 'running') return;
+    await options.host.deliver(hostMessage);
   };
   const routeCard = async (action: FeishuCardAction) => {
     if (state !== 'running') return false;
     const message = await cardMessage(outbound, action);
-    if (message !== null) await options.host.deliver(message);
+    if (message !== null && state === 'running') await options.host.deliver(message);
     return message !== null;
   };
 
@@ -229,36 +316,24 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
           },
         });
         const createWs = options.createWsClient ?? ((value: Readonly<{ appId: string; appSecret: string }>) => (
-          new lark.WSClient({ ...value, loggerLevel: lark.LoggerLevel.info })
+          new PausableLarkWsClient(value.appId, value.appSecret)
         ));
         const client = createWs({ appId, appSecret });
         wsClient = client;
-        let startTimer: ReturnType<typeof setTimeout> | undefined;
-        try {
-          await new Promise<void>((resolve, reject) => {
-            startTimer = setTimeout(() => {
-              reject(new Error(`Feishu WSClient start timed out after ${WS_START_TIMEOUT_MS}ms`));
-            }, WS_START_TIMEOUT_MS);
-            // Handlers are attached to client.start(), so a late settlement
-            // after the timeout rejects is never an unhandled rejection.
-            client.start({ eventDispatcher: dispatcher }).then(resolve, reject);
-          });
-        } finally {
-          if (startTimer) clearTimeout(startTimer);
-        }
-        // Only 'starting' (still in flight) or 'stopped' (stop() raced us) is
-        // reachable here; TS narrows state to 'starting' after the await chain.
-        if (state !== 'starting' && wsClient === client) {
-          client.close({ force: true });
-          wsClient = undefined;
-        }
+        // PausableLarkWsClient.start() settles only once the socket is really
+        // open (or stop/timeout aborts it), so no outer timer is needed.
+        await client.start({ eventDispatcher: dispatcher });
       })().then(() => {
         if (state !== 'stopped') {
           state = 'running';
           options.logger.info('[FeishuRuntime] Provider ingress started');
         }
       }).catch((error: unknown) => {
-        if (state !== 'stopped') { state = 'idle'; startPromise = undefined; }
+        // stop() aborts the in-flight start on purpose — that is not a start
+        // failure and must not surface as an unhandled rejection.
+        if (state === 'stopped') return;
+        state = 'idle';
+        startPromise = undefined;
         throw error;
       });
       return startPromise;
@@ -271,8 +346,7 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
       wsClient = undefined;
       stopPromise = Promise.resolve();
       return stopPromise;
-    },
-    async handleWebhook(candidate) {
+    },    async handleWebhook(candidate) {
       if (state === 'stopped') throw new Error('Feishu connector runtime has been stopped');
       if (options.config.connectionMode === 'websocket') return { kind: 'skipped', reason: 'websocket_mode' };
       const { body } = requireFeishuWebhookInput(candidate);

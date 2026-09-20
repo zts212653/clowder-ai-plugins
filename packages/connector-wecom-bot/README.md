@@ -28,5 +28,5 @@ binding, declared configuration/secret, state, and messaging surfaces; C1 does n
 
 ## Exposed capability
 
-The connector contributes WeCom messaging and requests only `messaging.send`. It does not expose C2 audio
+The connector contributes WeCom messaging and requests `plugin.config.read`, `messaging.send`, `secret.read`. It does not expose C2 audio
 services, mention parsing, public UI slots, or generic public hooks.

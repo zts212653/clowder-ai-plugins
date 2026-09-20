@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   createFeishuConnectorRuntime,
+  PausableLarkWsClient,
   type FeishuRuntimeAdapter,
 } from './runtime.js';
 import type { ConnectorLogger } from './types.js';
@@ -155,4 +156,67 @@ test('WebSocket callbacks retained by the provider cannot deliver after stop', a
   assert.ok(inbound);
   await inbound({});
   assert.equal(delivered.length, 0, 'provider callbacks after stop must not reach the Host');
+});
+
+// F2/F3: PausableLarkWsClient teardown semantics against an SDK-shaped fake
+// (lark WSClient.start() resolves in the same tick; the socket is registered
+// via wsConfig.setWSInstance only once 'open' fires).
+interface FakeSdkSocket {
+  events: string[];
+}
+
+function fakeLarkInner() {
+  let instance: unknown = null;
+  const inner = {
+    startCalls: 0,
+    closedWith: undefined as { force?: boolean } | undefined,
+    async start(_options: unknown) { this.startCalls += 1; },
+    close(options?: { force?: boolean }) { this.closedWith = options; },
+    pingLoop() { /* SDK would reschedule the ping timer here */ },
+    wsConfig: {
+      getWSInstance() { return instance; },
+      setWSInstance(ws: unknown) { instance = ws; },
+    },
+  };
+  return inner;
+}
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test('PausableLarkWsClient start settles only after the SDK registers an open socket', async () => {
+  const inner = fakeLarkInner();
+  const client = new PausableLarkWsClient('app-id', 'app-secret', inner);
+  let settled = false;
+  const started = client.start({ eventDispatcher: {} as never }).then(() => { settled = true; });
+  await tick();
+  assert.equal(settled, false, 'start must not settle before the socket is open');
+  inner.wsConfig.setWSInstance({});
+  await started;
+  assert.equal(settled, true);
+});
+
+test('PausableLarkWsClient stop before open kills the socket born afterwards', async () => {
+  const inner = fakeLarkInner();
+  const client = new PausableLarkWsClient('app-id', 'app-secret', inner);
+  const started = client.start({ eventDispatcher: {} as never });
+  client.close();
+  const lateSocket: FakeSdkSocket = { events: [] };
+  (lateSocket as unknown as { removeAllListeners(): void }).removeAllListeners = () => { lateSocket.events.push('removeAllListeners'); };
+  (lateSocket as unknown as { terminate(): void }).terminate = () => { lateSocket.events.push('terminate'); };
+  // Late 'open': the SDK tries to register the post-stop socket.
+  inner.wsConfig.setWSInstance(lateSocket);
+  assert.deepEqual(lateSocket.events, ['removeAllListeners', 'terminate']);
+  assert.equal(inner.wsConfig.getWSInstance(), null, 'post-stop socket must never be registered');
+  await assert.rejects(started, /stopped during connect/);
+  assert.deepEqual(inner.closedWith, { force: true });
+  // pingLoop is inert after stop (a late open must not restart the timer).
+  inner.pingLoop();
+});
+
+test('PausableLarkWsClient close is idempotent', async () => {
+  const inner = fakeLarkInner();
+  const client = new PausableLarkWsClient('app-id', 'app-secret', inner);
+  client.close();
+  client.close();
+  assert.deepEqual(inner.closedWith, { force: true });
 });

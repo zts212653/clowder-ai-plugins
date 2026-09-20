@@ -31,5 +31,4 @@ provided.
 
 ## Exposed capability
 
-The connector contributes one authenticated webhook and one WeCom messaging surface and requests only
-`messaging.send`. It does not expose C2 audio/AI services, mention parsing, UI slots, or generic public hooks.
+The connector contributes one authenticated webhook and one WeCom messaging surface and requests `plugin.config.read`, `messaging.send`, `secret.read`. It does not expose C2 audio/AI services, mention parsing, UI slots, or generic public hooks.

@@ -535,6 +535,30 @@ export class DingTalkAdapter {
           // after the timeout rejects is never an unhandled rejection.
           client.connect().then(resolve, reject);
         });
+        // DWClient.connect() never rejects on connection failure — the SDK
+        // catches, schedules a backoff reconnect, and returns. Wait until the
+        // socket is actually open so a resolved startStream means a live
+        // stream instead of reporting 'running' over a dead connection.
+        const deadline = Date.now() + STREAM_CONNECT_TIMEOUT_MS;
+        while (client.connected !== true) {
+          if (generation !== this.streamGeneration) {
+            try {
+              client.disconnect();
+            } catch {
+              // ignore disconnect errors
+            }
+            return;
+          }
+          if (Date.now() >= deadline) {
+            try {
+              client.disconnect();
+            } catch {
+              // ignore disconnect errors
+            }
+            throw new Error(`DingTalk stream connect timed out after ${STREAM_CONNECT_TIMEOUT_MS}ms`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
       } catch (err) {
         // stop() racing this connect() disconnects the client first, so the
         // connect rejection is expected — swallow it instead of rethrowing into

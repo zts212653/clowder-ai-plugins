@@ -62,3 +62,8 @@ file, schedule, or wake authority.
 
 This package is an alpha release. Verify provider compatibility and data policy in an isolated environment
 before relying on it for sensitive workloads.
+
+## Exposed capability
+
+This package requests these Host capabilities, verbatim from its manifest
+(`plugin.yaml` — kept in sync by `pnpm test:train-c1-inventory`): `plugin.config.read`, `secret.read`.

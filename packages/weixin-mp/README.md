@@ -39,3 +39,8 @@ cap the response at 10 MiB.
 
 This package is an alpha release. Use a non-production Official Account and temporary content during
 acceptance before enabling it for real publication.
+
+## Exposed capability
+
+This package requests these Host capabilities, verbatim from its manifest
+(`plugin.yaml` — kept in sync by `pnpm test:train-c1-inventory`): `plugin.config.read`, `secret.read`.

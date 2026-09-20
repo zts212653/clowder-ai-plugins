@@ -20,6 +20,5 @@ Host must drain package schedules before restoring preserved Core factories so b
 
 ## Exposed capability
 
-The package contributes seven bounded schedules and requests `schedule.register` plus `events.publish`.
-Completing their operation bodies and preservation journeys is remaining Plugins C1 implementation work;
-Core consumes them through the existing schedule, state, and event surfaces during cutover.
+This package requests these Host capabilities, verbatim from its manifest
+(`plugin.yaml` — kept in sync by `pnpm test:train-c1-inventory`): `schedule.register`, `events.publish`.

@@ -379,17 +379,18 @@ export class FeishuAdapter {
       );
     }
     if (!payload.absPath && payload.url?.startsWith('https://') && this.tokenManager) {
-      const tempPath = await this.downloadToTempFile(payload.url);
-      if (tempPath) {
+      const downloaded = await this.downloadToTempFile(payload.url, payload.type);
+      if (downloaded) {
         try {
-          const deliveryType = this.deliveryTypeFor(tempPath, payload.type);
-          const uploaded = await this.uploadToFeishu(tempPath, deliveryType, payload.fileName);
+          const deliveryType = this.deliveryTypeFor(downloaded.path, payload.type);
+          const displayName = payload.fileName ?? downloaded.suggestedFileName;
+          const uploaded = await this.uploadToFeishu(downloaded.path, deliveryType, displayName);
           if (uploaded) {
             await this.sendWithPlatformKey(externalChatId, { ...payload, type: deliveryType, ...uploaded });
             return;
           }
         } finally {
-          await unlink(tempPath).catch(() => {});
+          await unlink(downloaded.path).catch(() => {});
         }
       }
     }
@@ -414,7 +415,7 @@ export class FeishuAdapter {
 
   /**
    * Feishu accepts only OPUS for `msg_type: audio`. The connector vocabulary
-   * grants no process/filesystem capability, so there is no transcoder to
+   * grants no process capability, so there is no transcoder/subprocess to
    * call: non-opus audio is delivered as the original file (`msg_type: file`,
    * original name) rather than being converted or silently dropped.
    */
@@ -442,16 +443,6 @@ export class FeishuAdapter {
       return null;
     }
 
-    const originalFileName = displayFileName ?? absPath.split('/').pop() ?? 'file';
-    return await this.uploadToFeishuInner(absPath, type, token, originalFileName);
-  }
-
-  private async uploadToFeishuInner(
-    absPath: string,
-    type: 'image' | 'file' | 'audio',
-    token: string,
-    originalFileName?: string,
-  ): Promise<{ imageKey?: string; fileKey?: string } | null> {
     const fileStream = createReadStream(absPath);
     const form = new FormData();
 
@@ -473,11 +464,12 @@ export class FeishuAdapter {
       return imageKey ? { imageKey } : null;
     }
 
-    const fileName = originalFileName ?? absPath.split('/').pop() ?? 'file';
+    // Audio delivery is only reached for true OPUS input (see deliveryTypeFor),
+    // so the file keeps its original name and `file_type: opus`.
+    const fileName = displayFileName ?? absPath.split('/').pop() ?? 'file';
     const fileType = type === 'audio' ? 'opus' : inferFeishuFileType(fileName);
-    const uploadFileName = type === 'audio' ? fileName.replace(/\.\w+$/, '.opus') : fileName;
     form.append('file_type', fileType);
-    form.append('file_name', uploadFileName);
+    form.append('file_name', fileName);
     form.append('file', new Blob([Uint8Array.from(await streamToBuffer(fileStream))]));
     const res = await this.uploadFetchFn('https://open.feishu.cn/open-apis/im/v1/files', {
       method: 'POST',
@@ -520,7 +512,17 @@ export class FeishuAdapter {
     return true;
   }
 
-  private async downloadToTempFile(url: string): Promise<string | null> {
+  /**
+   * Download an external URL to a temp file and derive a sane extension +
+   * display name. Extension comes from the response Content-Type (the URL
+   * path extension is only a fallback) because Feishu audio delivery is
+   * decided by extension (see deliveryTypeFor): an `audio/opus` response must
+   * keep `.opus` or it would degrade into a file card.
+   */
+  private async downloadToTempFile(
+    url: string,
+    type: 'image' | 'file' | 'audio',
+  ): Promise<{ path: string; suggestedFileName: string } | null> {
     if (!FeishuAdapter.isSafeExternalUrl(url)) {
       this.log.warn({ url }, '[FeishuAdapter] downloadToTempFile: rejected unsafe URL');
       return null;
@@ -531,18 +533,41 @@ export class FeishuAdapter {
         this.log.warn({ url, status: res.status }, '[FeishuAdapter] downloadToTempFile: fetch failed');
         return null;
       }
-      const contentType = res.headers.get('content-type') ?? '';
-      const ext = contentType.includes('png') ? 'png' : contentType.includes('gif') ? 'gif' : 'jpg';
+      const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
+      const ext = FeishuAdapter.extensionFor(contentType, url, type);
       const buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.length === 0) return null;
       const filePath = join(tmpdir(), `cat-cafe-feishu-dl-${Date.now()}.${ext}`);
       await writeFile(filePath, buffer);
       this.log.info({ url, filePath, bytes: buffer.length }, '[FeishuAdapter] downloadToTempFile: success');
-      return filePath;
+      return { path: filePath, suggestedFileName: FeishuAdapter.displayNameFor(url, ext) };
     } catch (err) {
       this.log.warn({ err, url }, '[FeishuAdapter] downloadToTempFile: failed');
       return null;
     }
+  }
+
+  private static extensionFor(contentType: string, url: string, type: 'image' | 'file' | 'audio'): string {
+    const fromMime = FEISHU_MIME_EXT[contentType];
+    if (fromMime) return fromMime;
+    try {
+      const lastSegment = decodeURIComponent(new URL(url).pathname).split('/').pop() ?? '';
+      const fromUrl = lastSegment.includes('.') ? (lastSegment.split('.').pop() ?? '').toLowerCase() : '';
+      if (fromUrl && /^[a-z0-9]{1,8}$/.test(fromUrl)) return fromUrl;
+    } catch {
+      // URL already passed isSafeExternalUrl, so this is defensive only.
+    }
+    return type === 'image' ? 'jpg' : 'bin';
+  }
+
+  private static displayNameFor(url: string, ext: string): string {
+    try {
+      const lastSegment = decodeURIComponent(new URL(url).pathname).split('/').pop() ?? '';
+      if (lastSegment && !lastSegment.includes('/') && lastSegment.includes('.')) return lastSegment;
+    } catch {
+      // fall through to generated name
+    }
+    return `media.${ext}`;
   }
 
   setBotOpenId(openId: string): void {
@@ -988,6 +1013,23 @@ const FEISHU_EXT_TO_FILE_TYPE: Record<string, string> = {
   ppt: 'ppt',
   pptx: 'ppt',
   mp4: 'mp4',
+};
+
+/** Content-Type → temp-file extension for external URL downloads (see downloadToTempFile). */
+const FEISHU_MIME_EXT: Record<string, string> = {
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'audio/opus': 'opus',
+  'audio/ogg': 'ogg',
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'm4a',
+  'audio/aac': 'm4a',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
+  'video/mp4': 'mp4',
+  'application/pdf': 'pdf',
 };
 
 export function inferFeishuFileType(fileName: string): string {

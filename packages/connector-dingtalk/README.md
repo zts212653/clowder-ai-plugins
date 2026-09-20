@@ -30,3 +30,8 @@ the preserved Core adapter can be restored, preventing double consumption.
 The Host-loadable builtin runtime is implemented in this package and consumes only the existing Host-owned
 config/secret, binding, state, and messaging surfaces. Adapter exports are usable for isolated provider
 conformance tests without claiming that synthetic handles constitute production activation.
+
+## Exposed capability
+
+This package requests these Host capabilities, verbatim from its manifest
+(`plugin.yaml` — kept in sync by `pnpm test:train-c1-inventory`): `plugin.config.read`, `messaging.send`, `secret.read`.
