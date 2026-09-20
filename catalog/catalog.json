@@ -196,8 +196,8 @@
             "packageName": "@clowder-ai/companion",
             "version": "0.1.0-alpha.2",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.2.tgz",
-            "integrity": "sha512-VqSKxLC95uq9myWx6rndytu15WvkdE07h8G8FFpoRylNbvQrxyVtQrBUpKFBrziINMb/voWyV7gPfdA5T2SybQ==",
-            "shasum": "1e38ae14be7201b7d24258d51d89b460ca799ac4",
+            "integrity": "sha512-URnh2A9lAWCxQAlUXQpG2Vctc1vh4rQRmxhx/lJts6tW8JtEFpBLsaFDWY0RDdODuSgmray44Sn2HGPth3gCOA==",
+            "shasum": "c0f8a2a289043cb4de132a4e3017611d0fe91946",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
@@ -238,8 +238,8 @@
             "packageName": "@clowder-ai/connector-dingtalk",
             "version": "0.1.0-alpha.0",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-dingtalk/-/connector-dingtalk-0.1.0-alpha.0.tgz",
-            "integrity": "sha512-eh/AslTjgc5Yr5kBXj69A3zDL+QoP3P8729npldQrJ44XQk2c5gK67HgcfUg510U6G31uNBlcjXg109Zrtx2fA==",
-            "shasum": "b7cd43333450178854aa9563d1b5d5dc777af575",
+            "integrity": "sha512-QiDHOFJAE8eI3GLJIEkHdFfuuEtgo/aS+CjdtKfpMqXm6CyEz0RjFTisAYlGQZicoXnyFvCFWvRGLY3EqTNI3g==",
+            "shasum": "ed994a1d8e7850690ee583ab5536425a2c86904e",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/connector-dingtalk"
@@ -281,8 +281,8 @@
             "packageName": "@clowder-ai/connector-feishu",
             "version": "0.1.0-alpha.0",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-feishu/-/connector-feishu-0.1.0-alpha.0.tgz",
-            "integrity": "sha512-ucGXCnCpFA7MYLhNHMjBAR+0P7E+ABrZ/uotTCZWcvlvGLlnZT/p1+uf15NgZcB1kcnyWHapzigMjgxJL1nXiA==",
-            "shasum": "704e62a3e9f2c448569e89447f5509b7126bad29",
+            "integrity": "sha512-ncVFor8mgzRaIfkzyDQ8FutI/jcSYZt9VSxkEhYm7pEp+uePY8EhbSgVPP61rs7UqToegevcXOS7q0ju7X5Dfg==",
+            "shasum": "75d00e3ee2d083ff1f0b32c92a12bb151175cd33",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/connector-feishu"

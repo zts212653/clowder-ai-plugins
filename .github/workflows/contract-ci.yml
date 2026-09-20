@@ -26,6 +26,7 @@ on:
       - 'packages/wechat-visible-reader/**'
       - 'packages/weixin-mp/**'
       - 'packages/genoffice-docx/**'
+      - 'packages/github-operations/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
       - 'scripts/train-c1-inventory*'

@@ -170,6 +170,7 @@ function fakeLarkInner() {
   const inner = {
     startCalls: 0,
     closedWith: undefined as { force?: boolean } | undefined,
+    isConnecting: undefined as boolean | undefined,
     async start(_options: unknown) { this.startCalls += 1; },
     close(options?: { force?: boolean }) { this.closedWith = options; },
     pingLoop() { /* SDK would reschedule the ping timer here */ },
@@ -219,4 +220,111 @@ test('PausableLarkWsClient close is idempotent', async () => {
   client.close();
   client.close();
   assert.deepEqual(inner.closedWith, { force: true });
+});
+
+// G1: an unexpected socket close must drive the runtime out of 'running' and
+// into a supervised reconnect, and stop() must converge the cycle.
+test('WebSocket runtime reconnects after an unexpected close and stop converges', async () => {
+  const created: Array<{ onClose?: () => void }> = [];
+  let closes = 0;
+  const starts: string[] = [];
+  const errors: string[] = [];
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'websocket' },
+    host: { deliver: async () => undefined },
+    logger: {
+      info(msg: string) { starts.push(String(msg)); },
+      warn() {}, debug() {},
+      error(msg: unknown) { errors.push(String(msg)); },
+    },
+    fetchFn,
+    reconnectDelayMs: 20,
+    createAdapter: () => adapter(),
+    createWsClient: config => {
+      created.push(config);
+      return {
+        async start() {},
+        close() { closes += 1; },
+      };
+    },
+  });
+  await runtime.start();
+  assert.equal(created.length, 1);
+  created[0]?.onClose?.(); // the open socket dies underneath us
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.equal(created.length, 2, 'the runtime must create a fresh ws client after an unexpected close');
+  assert.ok(errors.some(entry => entry.includes('closed unexpectedly')), 'the drop must be logged as an error');
+  assert.equal(starts.filter(entry => entry.includes('Provider ingress started')).length, 2);
+  await runtime.stop();
+  assert.equal(closes, 2);
+  const callsAfterStop = created.length;
+  created[1]?.onClose?.(); // late close from the drained client must be ignored
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(created.length, callsAfterStop, 'stop() must prevent any further reconnect scheduling');
+});
+
+// G3/TOCTOU: stop() landing inside the name-resolution window must make the
+// webhook result honestly report 'skipped', not 'processed', and never deliver.
+test('webhook reports skipped not_processed when stop kills the route mid-flight', async () => {
+  const delivered: unknown[] = [];
+  const subject = adapter();
+  let releaseResolution!: (value: string) => void;
+  subject.resolveSenderName = () => new Promise<string>(resolve => { releaseResolution = resolve; });
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'webhook' },
+    host: { deliver: async message => { delivered.push(message); } },
+    logger,
+    fetchFn,
+    createAdapter: () => subject,
+  });
+  await runtime.start();
+  const result = runtime.handleWebhook({ body: { event: true } });
+  await Promise.resolve();
+  await runtime.stop(); // lands inside the resolveSenderName window
+  releaseResolution('User');
+  assert.deepEqual(await result, { kind: 'skipped', reason: 'not_running' });
+  assert.equal(delivered.length, 0, 'a guard-killed route must never reach the Host');
+});
+
+// G3: a card route killed by the state guard must report 'not_running', not
+// the route-completed 'chat_type_unknown' reason.
+test('webhook card killed by the guard is not misreported as chat_type_unknown', async () => {
+  const delivered: unknown[] = [];
+  const subject = adapter();
+  subject.parseCardAction = () => ({
+    chatId: 'chat-9',
+    senderId: 'user-1',
+    actionValue: { cmd: '/status' },
+  });
+  let releaseResolution!: (value: 'group') => void;
+  subject.resolveChatType = () => new Promise<'group'>(resolve => { releaseResolution = resolve; });
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'webhook' },
+    host: { deliver: async message => { delivered.push(message); } },
+    logger,
+    fetchFn,
+    createAdapter: () => subject,
+  });
+  await runtime.start();
+  const result = runtime.handleWebhook({ body: { card: true } });
+  await Promise.resolve();
+  await runtime.stop();
+  releaseResolution('group');
+  assert.deepEqual(await result, { kind: 'skipped', reason: 'not_running' });
+  assert.equal(delivered.length, 0);
+});
+
+// N4: the SDK gives up on a failed handshake in about a second (isConnecting
+// cleared, no socket registered); start must fail fast instead of spinning
+// the full 30s deadline.
+test('PausableLarkWsClient start fails fast when the SDK has already given up', async () => {
+  const inner = fakeLarkInner();
+  inner.isConnecting = false; // SDK aborted before any socket opened
+  const client = new PausableLarkWsClient('app-id', 'app-secret', inner);
+  const startedAt = Date.now();
+  await assert.rejects(
+    client.start({ eventDispatcher: {} as never }),
+    /aborted the connection attempt/,
+  );
+  assert.ok(Date.now() - startedAt < 5_000, 'start must not spin the 30s timeout after the SDK gave up');
 });

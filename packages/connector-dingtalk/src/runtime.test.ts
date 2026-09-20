@@ -30,6 +30,9 @@ function fakeAdapter() {
     async stopStream() {
       stopCalls += 1;
     },
+    isStreamLive() {
+      return true;
+    },
     resolveSenderName(senderId) {
       return senderId === 'user-1' ? 'Resolved user' : undefined;
     },
@@ -140,6 +143,9 @@ test('stop during an in-flight provider start cancels without waiting for start 
     async stopStream() {
       stopCalls += 1;
     },
+    isStreamLive() {
+      return true;
+    },
     resolveSenderName: () => undefined,
     resolveConversationTitle: () => undefined,
   };
@@ -159,4 +165,69 @@ test('stop during an in-flight provider start cancels without waiting for start 
   releaseStart();
   await starting;
   assert.equal(stopCalls, 1);
+});
+
+// G1/N1: the SDK retries a dead stream silently, so the runtime watchdog must
+// notice isStreamLive() === false, drain, and reconnect until stop() converges.
+test('watchdog reconnects a dead provider stream and stop converges the cycle', async () => {
+  let handler: ((message: DingTalkInboundMessage) => Promise<void>) | undefined;
+  let live = true;
+  let startCalls = 0;
+  let stopCalls = 0;
+  const errors: string[] = [];
+  const adapter: DingTalkRuntimeAdapter = {
+    connectorId: 'dingtalk',
+    async sendReply() { return undefined; },
+    async startStream(next) {
+      startCalls += 1;
+      handler = next;
+    },
+    async stopStream() {
+      stopCalls += 1;
+    },
+    isStreamLive() {
+      return live;
+    },
+    resolveSenderName: () => undefined,
+    resolveConversationTitle: () => undefined,
+  };
+  const delivered: unknown[] = [];
+  const runtime = createDingTalkConnectorRuntime({
+    config: { appKey: 'app-key', appSecret: 'app-secret' },
+    host: { deliver: async message => { delivered.push(message); } },
+    logger: {
+      info() {},
+      warn() {},
+      error(msg: unknown) { errors.push(String(msg)); },
+    },
+    streamWatchdogIntervalMs: 20,
+    reconnectDelayMs: 20,
+    createAdapter: () => adapter,
+  });
+  await runtime.start();
+  assert.equal(startCalls, 1);
+  live = false; // e.g. credentials revoked: SDK retries silently, stream dead
+  await new Promise(resolve => setTimeout(resolve, 150));
+  assert.ok(startCalls >= 2, 'the watchdog must restart a dead stream');
+  assert.ok(stopCalls >= 1, 'the dead stream must be drained before reconnect');
+  assert.ok(errors.some(entry => entry.includes('not live')), 'the dead stream must be logged as an error');
+  live = true;
+  // The dead-stream cycle spins every watchdog+backoff tick; give the in-flight
+  // cycle a beat to settle into a live 'running' stream before driving ingress
+  // through it, or the handler can land in an 'idle' reconnect window.
+  await new Promise(resolve => setTimeout(resolve, 100));
+  await handler?.({
+    chatId: 'group-1',
+    conversationId: 'conversation-1',
+    text: 'after reconnect',
+    messageId: 'message-reconnected',
+    senderId: 'user-1',
+    chatType: 'group',
+  });
+  assert.equal(delivered.length, 1, 'ingress must flow again once the reconnect settles running');
+  const callsAtStop = startCalls;
+  await runtime.stop();
+  live = false;
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(startCalls, callsAtStop, 'stop() must clear the watchdog and prevent further reconnects');
 });

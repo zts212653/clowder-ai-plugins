@@ -1,5 +1,9 @@
 # Contributing
 
+## Catalog artifact toolchain（重生成 catalog hash 前必读）
+
+`catalog/catalog.json` 里每个 artifact 的 `shasum`/`integrity` 元组是**打包字节的哈希**，只在精确工具链下可复现：**Node 24.18.0 + npm 11.16.0**（CI 通过 `ARTIFACT_NODE_VERSION`/`ARTIFACT_NPM_VERSION` 钉死；仓库根 `.nvmrc` 已固定 `24.18.0`）。homebrew 等其他 Node 版本打出的 tarball 字节不同，hash 必然对不上。凡改动任何包的 `src`/`README`/`plugin.yaml`（改变 tarball 字节），重生成该包 `versions[0].artifact.*` 元组前必须先切到该工具链（例如 `export PATH=/tmp/node-24.18.0/bin:$PATH` 并设置 `CLOWDER_ARTIFACT_NPM_CLI`），用 `node scripts/pack-publish-artifact.mjs packages/<name> <dest>` 取新元组，然后 `pnpm catalog:check` 必须 ok。不要改各包 `engines` 字段去强制这一点——那会影响消费者。
+
 当前阶段：**插件契约 v0 讨论**（Issue #1）。
 
 - 现在：欢迎在 issue 中参与契约与分工讨论

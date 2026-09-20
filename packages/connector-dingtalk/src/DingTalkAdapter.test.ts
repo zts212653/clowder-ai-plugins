@@ -135,3 +135,101 @@ test('start and stop use the injected DingTalk stream SDK only through explicit 
   await subject.stopStream();
   assert.equal(subject.connectorId, 'dingtalk');
 });
+
+// N5: startStream must not report success over a dead connection. The fake
+// module replaces the dynamic `dingtalk-stream` import; the short timeout is
+// injected through DingTalkAdapterOptions instead of fake timers.
+function fakeStreamModule(options: {
+  connect?: (client: { connected: boolean; registered: boolean }) => void;
+}): {
+  module: ConstructorParameters<typeof DingTalkAdapter.prototype._injectStreamModule>[0];
+  configs: Array<Record<string, unknown>>;
+  instances: Array<{ connected: boolean; registered: boolean }>;
+} {
+  const configs: Array<Record<string, unknown>> = [];
+  const instances: Array<{ connected: boolean; registered: boolean }> = [];
+  class FakeDWClient {
+    connected = false;
+    registered = false;
+    constructor(config: Record<string, unknown>) {
+      configs.push(config);
+      instances.push(this);
+    }
+    registerCallbackListener() { /* noop */ }
+    async connect() {
+      options.connect?.(this);
+    }
+    disconnect() {
+      this.connected = false;
+      this.registered = false;
+    }
+    socketCallBackResponse() { /* noop */ }
+  }
+  return {
+    module: {
+      DWClient: FakeDWClient as never,
+      EventAck: { SUCCESS: 'SUCCESS' },
+      TOPIC_ROBOT: 'TOPIC_ROBOT',
+    },
+    configs,
+    instances,
+  };
+}
+
+test('startStream rejects when the socket never becomes connected and registered', async () => {
+  const subject = new DingTalkAdapter(logger, {
+    appKey: 'app-key',
+    appSecret: 'app-secret',
+    streamConnectTimeoutMs: 120,
+  });
+  const fake = fakeStreamModule({});
+  subject._injectStreamModule(fake.module);
+  await assert.rejects(
+    subject.startStream(async () => undefined),
+    /timed out/u,
+  );
+  assert.equal(subject.isStreamLive(), false);
+  assert.equal(fake.instances[0]?.connected, false);
+});
+
+test('startStream rejects when connected but the robot never registers', async () => {
+  const subject = new DingTalkAdapter(logger, {
+    appKey: 'app-key',
+    appSecret: 'app-secret',
+    streamConnectTimeoutMs: 120,
+  });
+  const fake = fakeStreamModule({
+    connect(client) {
+      client.connected = true; // socket open, REGISTERED frame never arrives
+    },
+  });
+  subject._injectStreamModule(fake.module);
+  await assert.rejects(
+    subject.startStream(async () => undefined),
+    /timed out/u,
+  );
+  assert.equal(subject.isStreamLive(), false);
+});
+
+test('startStream resolves and reports live once connected and registered', async () => {
+  const subject = new DingTalkAdapter(logger, {
+    appKey: 'app-key',
+    appSecret: 'app-secret',
+    streamConnectTimeoutMs: 5_000,
+  });
+  const fake = fakeStreamModule({
+    connect(client) {
+      client.connected = true;
+      client.registered = true;
+    },
+  });
+  subject._injectStreamModule(fake.module);
+  await subject.startStream(async () => undefined);
+  assert.equal(subject.isStreamLive(), true);
+  // keepAlive:true is required: with the SDK default (false) its ping/pong
+  // watchdog is never installed, and the connector could not trust a
+  // half-dead socket to be terminated.
+  assert.equal(fake.configs[0]?.keepAlive, true);
+  await subject.stopStream();
+  assert.equal(subject.isStreamLive(), false);
+});

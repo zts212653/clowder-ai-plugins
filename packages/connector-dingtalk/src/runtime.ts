@@ -46,6 +46,7 @@ export interface DingTalkOutbound {
 export interface DingTalkRuntimeAdapter extends DingTalkOutbound {
   startStream(handler: (message: DingTalkInboundMessage) => Promise<void>): Promise<void>;
   stopStream(): Promise<void>;
+  isStreamLive(): boolean;
   resolveSenderName(senderId: string): string | undefined;
   resolveConversationTitle(chatId: string): string | undefined;
 }
@@ -61,6 +62,10 @@ export interface DingTalkConnectorRuntimeOptions<Adapter extends DingTalkRuntime
   readonly host: DingTalkRuntimeHost;
   readonly logger: ConnectorLogger;
   readonly createAdapter?: (config: DingTalkAdapterOptions, logger: ConnectorLogger) => Adapter;
+  /** Watchdog poll interval for provider stream liveness (default 15s). */
+  readonly streamWatchdogIntervalMs?: number;
+  /** Backoff before reconnecting a stream the watchdog found dead (default 5s). */
+  readonly reconnectDelayMs?: number;
 }
 
 function required(value: string, key: 'appKey' | 'appSecret'): string {
@@ -118,9 +123,62 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
   let state: 'idle' | 'starting' | 'running' | 'stopped' = 'idle';
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
+  let watchdogTimer: ReturnType<typeof setInterval> | undefined;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  const watchdogIntervalMs = options.streamWatchdogIntervalMs ?? 15_000;
+  const reconnectDelayMs = options.reconnectDelayMs ?? 5_000;
   const deliverIfRunning = async (message: DingTalkInboundMessage) => {
     if (state !== 'running') return;
     await options.host.deliver(hostMessage(outbound, message));
+  };
+
+  // G1: the SDK retries a dropped or revoked-credential stream silently, so
+  // the runtime polls the client truth (connected && registered) and owns
+  // reconnect supervision: dead stream → state exits 'running' → error log →
+  // backoff → drain + fresh startStream, until stop().
+  const scheduleReconnect = (reason: string): void => {
+    if (state === 'stopped' || reconnectTimer !== undefined) return;
+    options.logger.error(`[DingTalkRuntime] ${reason}; reconnecting in ${reconnectDelayMs}ms`);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = undefined;
+      if (state !== 'idle') return; // stop() or a fresh start() superseded it
+      state = 'starting';
+      startPromise = outbound.stopStream()
+        .catch(() => undefined)
+        .then(() => outbound.startStream(deliverIfRunning))
+        .then(() => {
+          if (state !== 'stopped') {
+            armWatchdog();
+            state = 'running';
+            options.logger.info('[DingTalkRuntime] Provider stream started');
+          }
+        })
+        .catch((error: unknown) => {
+          // Timer-context rejection: never rethrow (unhandled rejection);
+          // log and reschedule the backoff instead.
+          if (state === 'stopped') return;
+          state = 'idle';
+          startPromise = undefined;
+          options.logger.error({ error }, '[DingTalkRuntime] Reconnect attempt failed');
+          scheduleReconnect('reconnect attempt failed');
+        });
+    }, reconnectDelayMs);
+  };
+
+  const armWatchdog = (): void => {
+    // Armed only on transitions into 'running': arming at the top of start()
+    // leaks the interval for the process lifetime when startStream rejects
+    // (the interval keeps the event loop alive even though the runtime
+    // never left 'idle').
+    if (watchdogTimer !== undefined) return;
+    watchdogTimer = setInterval(onWatchdog, watchdogIntervalMs);
+  };
+
+  const onWatchdog = (): void => {
+    if (state !== 'running' || outbound.isStreamLive()) return;
+    state = 'idle'; // no live inbound during reconnect
+    startPromise = undefined;
+    scheduleReconnect('provider stream is not live (connected/registered dropped)');
   };
 
   return {
@@ -133,6 +191,7 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
         .startStream(deliverIfRunning)
         .then(() => {
           if (state !== 'stopped') {
+            armWatchdog();
             state = 'running';
             options.logger.info('[DingTalkRuntime] Provider stream started');
           }
@@ -148,6 +207,14 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
     },
     stop() {
       if (stopPromise !== undefined) return stopPromise;
+      if (watchdogTimer !== undefined) {
+        clearInterval(watchdogTimer);
+        watchdogTimer = undefined;
+      }
+      if (reconnectTimer !== undefined) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = undefined;
+      }
       if (state === 'idle') {
         state = 'stopped';
         return Promise.resolve();

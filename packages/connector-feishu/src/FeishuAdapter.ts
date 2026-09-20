@@ -10,7 +10,7 @@
  */
 
 import { createReadStream } from 'node:fs';
-import { unlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -390,7 +390,7 @@ export class FeishuAdapter {
             return;
           }
         } finally {
-          await unlink(downloaded.path).catch(() => {});
+          await rm(downloaded.dir, { recursive: true, force: true }).catch(() => {});
         }
       }
     }
@@ -464,9 +464,13 @@ export class FeishuAdapter {
       return imageKey ? { imageKey } : null;
     }
 
-    // Audio delivery is only reached for true OPUS input (see deliveryTypeFor),
-    // so the file keeps its original name and `file_type: opus`.
-    const fileName = displayFileName ?? absPath.split('/').pop() ?? 'file';
+    // Audio delivery means deliveryTypeFor verified an .opus source path, but
+    // the Host may supply a display name without an extension — Feishu rejects
+    // a file_type/file_name mismatch, so the name must also end in .opus.
+    let fileName = displayFileName ?? absPath.split('/').pop() ?? 'file';
+    if (type === 'audio' && !fileName.toLowerCase().endsWith('.opus')) {
+      fileName = `${fileName}.opus`;
+    }
     const fileType = type === 'audio' ? 'opus' : inferFeishuFileType(fileName);
     form.append('file_type', fileType);
     form.append('file_name', fileName);
@@ -517,16 +521,24 @@ export class FeishuAdapter {
    * display name. Extension comes from the response Content-Type (the URL
    * path extension is only a fallback) because Feishu audio delivery is
    * decided by extension (see deliveryTypeFor): an `audio/opus` response must
-   * keep `.opus` or it would degrade into a file card.
+   * keep `.opus` or it would degrade into a file card. Static servers
+   * commonly serve OPUS voice data as `audio/ogg` (the ogg container; mime-db
+   * itself lists oga/ogg/spx/opus for it), so that maps to `.opus` too.
+   *
+   * Each download gets a private mkdtemp directory: the previous
+   * `tmpdir()/…-${Date.now()}` name could collide across concurrent sendMedia
+   * calls in the same millisecond, and both uploads would then read the
+   * second download's bytes.
    */
   private async downloadToTempFile(
     url: string,
     type: 'image' | 'file' | 'audio',
-  ): Promise<{ path: string; suggestedFileName: string } | null> {
+  ): Promise<{ path: string; dir: string; suggestedFileName: string } | null> {
     if (!FeishuAdapter.isSafeExternalUrl(url)) {
       this.log.warn({ url }, '[FeishuAdapter] downloadToTempFile: rejected unsafe URL');
       return null;
     }
+    let directory: string | undefined;
     try {
       const res = await (this.uploadFetchFn ?? globalThis.fetch)(url, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) {
@@ -537,18 +549,23 @@ export class FeishuAdapter {
       const ext = FeishuAdapter.extensionFor(contentType, url, type);
       const buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.length === 0) return null;
-      const filePath = join(tmpdir(), `cat-cafe-feishu-dl-${Date.now()}.${ext}`);
+      directory = await mkdtemp(join(tmpdir(), 'cat-cafe-feishu-dl-'));
+      const filePath = join(directory, `download.${ext}`);
       await writeFile(filePath, buffer);
       this.log.info({ url, filePath, bytes: buffer.length }, '[FeishuAdapter] downloadToTempFile: success');
-      return { path: filePath, suggestedFileName: FeishuAdapter.displayNameFor(url, ext) };
+      return { path: filePath, dir: directory, suggestedFileName: FeishuAdapter.displayNameFor(url, ext) };
     } catch (err) {
       this.log.warn({ err, url }, '[FeishuAdapter] downloadToTempFile: failed');
+      if (directory !== undefined) await rm(directory, { recursive: true, force: true }).catch(() => {});
       return null;
     }
   }
 
   private static extensionFor(contentType: string, url: string, type: 'image' | 'file' | 'audio'): string {
-    const fromMime = FEISHU_MIME_EXT[contentType];
+    // Object.hasOwn, not a bare subscript: a bare lookup walks the prototype
+    // chain, so `Content-Type: constructor` would resolve to the Object
+    // constructor instead of falling through to the URL extension.
+    const fromMime = Object.hasOwn(FEISHU_MIME_EXT, contentType) ? FEISHU_MIME_EXT[contentType] : undefined;
     if (fromMime) return fromMime;
     try {
       const lastSegment = decodeURIComponent(new URL(url).pathname).split('/').pop() ?? '';
@@ -1022,7 +1039,9 @@ const FEISHU_MIME_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
   'audio/opus': 'opus',
-  'audio/ogg': 'ogg',
+  // Static servers serve OPUS voice data as audio/ogg (the ogg container);
+  // Feishu audio delivery is extension-decided, so keep it on the opus path.
+  'audio/ogg': 'opus',
   'audio/mpeg': 'mp3',
   'audio/mp4': 'm4a',
   'audio/aac': 'm4a',

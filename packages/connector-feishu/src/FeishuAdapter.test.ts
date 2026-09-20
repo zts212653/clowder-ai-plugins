@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { access } from 'node:fs/promises';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -149,4 +150,190 @@ test('OPUS audio fetched from an external URL keeps msg_type audio', async () =>
   await subject.sendMedia('chat-1', { type: 'audio', url: 'https://cdn.example.com/media/voice.opus' });
 
   assert.deepEqual(sent, [{ chatId: 'chat-1', msgType: 'audio' }]);
+});
+
+// G2: extensionFor resolves Content-Type first, then the URL pathname, then a
+// type-based default — and never consults the prototype chain for either.
+const ladderCases: Array<{
+  name: string;
+  contentType: string;
+  url: string;
+  type: 'image' | 'file' | 'audio';
+  expectedMsgType: string;
+  expectedFileName?: string;
+  expectedFileType?: string;
+}> = [
+  {
+    name: 'audio/ogg (the ogg container static servers use for OPUS) keeps opus delivery',
+    contentType: 'audio/ogg',
+    url: 'https://cdn.example.com/media/voice',
+    type: 'audio',
+    expectedMsgType: 'audio',
+    expectedFileName: 'media.opus',
+    expectedFileType: 'opus',
+  },
+  {
+    name: 'audio/opus keeps opus delivery',
+    contentType: 'audio/opus',
+    url: 'https://cdn.example.com/media/voice',
+    type: 'audio',
+    expectedMsgType: 'audio',
+    expectedFileName: 'media.opus',
+    expectedFileType: 'opus',
+  },
+  {
+    name: 'unknown Content-Type falls back to the URL pathname extension',
+    contentType: 'application/octet-stream',
+    url: 'https://cdn.example.com/media/voice.opus',
+    type: 'audio',
+    expectedMsgType: 'audio',
+    expectedFileName: 'voice.opus',
+    expectedFileType: 'opus',
+  },
+  {
+    name: 'unknown Content-Type without URL extension degrades to a bin file card',
+    contentType: 'application/octet-stream',
+    url: 'https://cdn.example.com/media/voice',
+    type: 'audio',
+    expectedMsgType: 'file',
+    expectedFileName: 'media.bin',
+    expectedFileType: 'stream',
+  },
+  {
+    name: 'a prototype-chain Content-Type does not resolve to Object members',
+    contentType: 'constructor',
+    url: 'https://cdn.example.com/media/voice.opus',
+    type: 'audio',
+    expectedMsgType: 'audio',
+    expectedFileName: 'voice.opus',
+    expectedFileType: 'opus',
+  },
+  {
+    name: 'image without any extension hint defaults to jpg',
+    contentType: 'unknown/xyz',
+    url: 'https://cdn.example.com/pic',
+    type: 'image',
+    expectedMsgType: 'image',
+  },
+];
+
+for (const ladder of ladderCases) {
+  test(`extension ladder: ${ladder.name}`, async () => {
+    const subject = new FeishuAdapter('app-id', 'app-secret', logger);
+    subject._injectTokenManager({
+      async getTenantAccessToken() { return 'token'; },
+    } as never);
+    subject._injectUploadFetch(async (input, init) => {
+      const target = String(input);
+      if (target === ladder.url) {
+        return new Response('bytes', { status: 200, headers: { 'content-type': ladder.contentType } });
+      }
+      const form = init?.body as FormData;
+      if (ladder.expectedMsgType === 'image') {
+        assert.ok(form.get('image_type'), 'image upload must carry image_type');
+      } else {
+        assert.equal(form.get('file_name'), ladder.expectedFileName);
+        assert.equal(form.get('file_type'), ladder.expectedFileType);
+      }
+      return new Response(JSON.stringify({ data: { file_key: 'file-key', image_key: 'image-key' } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    const sent: Array<{ chatId: string; msgType: string }> = [];
+    subject._injectSendMessage(async ({ chatId, msgType }) => { sent.push({ chatId, msgType }); });
+
+    await subject.sendMedia('chat-1', { type: ladder.type, url: ladder.url });
+
+    assert.deepEqual(sent, [{ chatId: 'chat-1', msgType: ladder.expectedMsgType }]);
+  });
+}
+
+// N7: type 'audio' guarantees an opus source path (deliveryTypeFor), but the
+// Host display name may lack the extension; Feishu rejects a file_type /
+// file_name mismatch, so the upload name must be forced to .opus.
+test('audio upload forces a .opus file name when the display name lacks it', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'clowder-feishu-media-'));
+  const filePath = join(directory, 'voice.opus');
+  await writeFile(filePath, 'opus-bytes');
+  try {
+    const subject = new FeishuAdapter('app-id', 'app-secret', logger);
+    subject._injectTokenManager({
+      async getTenantAccessToken() { return 'token'; },
+    } as never);
+    let observed: FormData | undefined;
+    subject._injectUploadFetch(async (_input, init) => {
+      observed = init?.body as FormData;
+      return new Response(JSON.stringify({ data: { file_key: 'file-key' } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    const sent: Array<{ chatId: string; msgType: string }> = [];
+    subject._injectSendMessage(async ({ chatId, msgType }) => { sent.push({ chatId, msgType }); });
+
+    await subject.sendMedia('chat-1', { type: 'audio', absPath: filePath, fileName: 'morning-voice' });
+
+    assert.equal(observed?.get('file_name'), 'morning-voice.opus');
+    assert.equal(observed?.get('file_type'), 'opus');
+    assert.deepEqual(sent, [{ chatId: 'chat-1', msgType: 'audio' }]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+// G5: two concurrent downloads of the same URL used to share one
+// tmpdir()/…-${Date.now()} path; both uploads would then carry the second
+// download's bytes. Each download now gets a private mkdtemp directory.
+test('concurrent sendMedia downloads of the same URL use isolated temp paths', async () => {
+  const loggedPaths: string[] = [];
+  const subject = new FeishuAdapter('app-id', 'app-secret', {
+    info(entry: unknown) {
+      const record = entry as { filePath?: string };
+      if (typeof record.filePath === 'string') loggedPaths.push(record.filePath);
+    },
+    warn: noop, error: noop, debug: noop,
+  });
+  subject._injectTokenManager({
+    async getTenantAccessToken() { return 'token'; },
+  } as never);
+  let downloadCount = 0;
+  let bothDownloadsDone!: () => void;
+  const gate = new Promise<void>(resolve => { bothDownloadsDone = resolve; });
+  const uploads: Array<{ name: unknown; bytes: string }> = [];
+  subject._injectUploadFetch(async (input, init) => {
+    const target = String(input);
+    if (target === 'https://cdn.example.com/media/voice.opus') {
+      downloadCount += 1;
+      const bytes = `opus-bytes-${downloadCount}`;
+      if (downloadCount === 2) bothDownloadsDone();
+      return new Response(bytes, { status: 200, headers: { 'content-type': 'audio/ogg' } });
+    }
+    await gate; // hold both uploads until both downloads completed
+    const form = init?.body as FormData;
+    uploads.push({
+      name: form.get('file_name'),
+      bytes: await (form.get('file') as Blob).text(),
+    });
+    return new Response(JSON.stringify({ data: { file_key: `file-key-${uploads.length}` } }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  });
+  const sent: string[] = [];
+  subject._injectSendMessage(async ({ msgType }) => { sent.push(msgType); });
+
+  await Promise.all([
+    subject.sendMedia('chat-1', { type: 'audio', url: 'https://cdn.example.com/media/voice.opus' }),
+    subject.sendMedia('chat-1', { type: 'audio', url: 'https://cdn.example.com/media/voice.opus' }),
+  ]);
+
+  assert.equal(loggedPaths.length, 2);
+  assert.notEqual(loggedPaths[0], loggedPaths[1], 'concurrent downloads must not share a temp path');
+  assert.deepEqual(uploads.map(entry => entry.bytes).sort(), ['opus-bytes-1', 'opus-bytes-2'],
+    'each upload must carry its own download, not the clobbered last write');
+  assert.deepEqual(sent, ['audio', 'audio']);
+  for (const filePath of loggedPaths) {
+    await assert.rejects(access(filePath), 'the temp directory must be removed after sendMedia');
+  }
 });

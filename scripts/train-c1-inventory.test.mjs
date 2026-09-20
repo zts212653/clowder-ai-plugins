@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { access, readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
+import { parse } from 'yaml';
 
 const inventory = JSON.parse(
   await readFile(new URL('../migration/f202-train-c1-inventory.json', import.meta.url), 'utf8'),
@@ -249,43 +250,44 @@ test('inventory provenance is pinned to the independently grounded repositories'
 });
 
 async function declaredCapabilities(packageName) {
-  const yamlText = await readFile(new URL(`../packages/${packageName}/plugin.yaml`, import.meta.url), 'utf8');
-  const lines = yamlText.split('\n');
-  const start = lines.findIndex(line => /^\s*capabilities:/u.test(line));
-  assert.notEqual(start, -1, `${packageName} plugin.yaml must declare capabilities (empty array allowed)`);
-  const indent = lines[start].match(/^\s*/u)[0].length;
+  // Fail-closed: a missing/unparseable plugin.yaml, a missing features array,
+  // or a feature without an explicit capabilities array all fail the gate.
+  const manifest = parse(await readFile(new URL(`../packages/${packageName}/plugin.yaml`, import.meta.url), 'utf8'));
+  assert.ok(manifest !== null && typeof manifest === 'object' && !Array.isArray(manifest),
+    `${packageName} plugin.yaml must parse to an object`);
+  assert.ok(Array.isArray(manifest.features), `${packageName} plugin.yaml must declare a features array`);
   const declared = new Set();
-  const inline = lines[start].replace(/^\s*capabilities:\s*/u, '').trim();
-  if (inline.startsWith('[')) {
-    const closing = inline.includes(']') ? inline.indexOf(']') : inline.length;
-    for (const token of inline.slice(1, closing).split(',')) {
-      const capability = token.trim();
-      if (capability) declared.add(capability);
+  for (const feature of manifest.features) {
+    assert.ok(feature !== null && typeof feature === 'object' && !Array.isArray(feature),
+      `${packageName} feature entries must be objects`);
+    assert.ok(Array.isArray(feature.capabilities),
+      `${packageName} feature ${String(feature.id)} must declare capabilities (empty array allowed)`);
+    for (const capability of feature.capabilities) {
+      assert.equal(typeof capability, 'string', `${packageName} capabilities must be strings`);
+      declared.add(capability);
     }
-  }
-  for (let index = start + 1; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (line.trim() === '') continue;
-    if (line.match(/^\s*/u)[0].length <= indent) break;
-    const capability = line.trim().replace(/^-\s*/u, '');
-    if (capability) declared.add(capability);
   }
   return [...declared];
 }
 
-test('packaged README discloses every capability the manifest declares (install consent surface)', async () => {
-  // F4: the README ships inside the install tarball — it is the consent page a
-  // user actually reads. It must not under-report what plugin.yaml declares.
-  const migrationEntries = inventory.entries.filter(entry => entry.disposition === 'migrate');
-  for (const entry of migrationEntries) {
-    const packageName = entry.targetPackage.split('/').at(-1);
-    const capabilities = await declaredCapabilities(packageName);
+test('installable package README discloses every capability declared across all features (install consent surface)', async () => {
+  // The gate reads the source README.md at the package root — the same file
+  // npm packs into the install tarball by default (a root README never needs
+  // to be listed in package.json files[]) — so it is the consent page a user
+  // actually reads at install time. Every Manager-installable package is
+  // covered (not only the migration set), and capabilities are unioned
+  // across ALL features: a host.filesystem.write added to a second feature
+  // must not slip past the disclosure check.
+  const installable = inventory.repositoryPackages.filter(entry => entry.managerInstallable);
+  assert.ok(installable.length > 0, 'inventory must classify Manager-installable packages');
+  for (const entry of installable) {
+    const capabilities = await declaredCapabilities(entry.directory);
     if (capabilities.length === 0) continue;
-    const readme = await readFile(new URL(`../packages/${packageName}/README.md`, import.meta.url), 'utf8');
+    const readme = await readFile(new URL(`../packages/${entry.directory}/README.md`, import.meta.url), 'utf8');
     for (const capability of capabilities) {
       assert.ok(
         readme.includes(`\`${capability}\``),
-        `${packageName} README must disclose declared capability \`${capability}\``,
+        `${entry.directory} README must disclose declared capability \`${capability}\``,
       );
     }
   }

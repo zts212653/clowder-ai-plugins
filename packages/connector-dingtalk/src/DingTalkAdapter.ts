@@ -43,6 +43,28 @@ export interface DingTalkAdapterOptions {
   appSecret: string;
   /** Robot code (used for sending messages), defaults to appKey */
   robotCode?: string;
+  /**
+   * Total budget for one startStream connection attempt (connect() race plus
+   * the connected/registered liveness poll share this one deadline; default
+   * 30s). Tests inject a short value instead of fake timers.
+   */
+  streamConnectTimeoutMs?: number;
+}
+
+/** Minimal surface of the dingtalk-stream client the adapter relies on. */
+export interface DingTalkStreamClient {
+  connected: boolean;
+  registered: boolean;
+  registerCallbackListener(topic: string, handler: (res: unknown) => Promise<void>): void;
+  connect(): Promise<unknown>;
+  disconnect(): void;
+  socketCallBackResponse(messageId: string, ack: unknown): void;
+}
+
+export interface DingTalkStreamModule {
+  DWClient: new (config: Record<string, unknown>) => DingTalkStreamClient;
+  EventAck: { SUCCESS: string };
+  TOPIC_ROBOT: string;
 }
 
 /** AI Card streaming state machine */
@@ -87,6 +109,7 @@ export class DingTalkAdapter {
   private readonly conversationTitleCache = new Map<string, string>();
 
   // DI injection points (for testing + runtime override)
+  private streamModuleOverride: DingTalkStreamModule | null = null;
   private sendMessageFn:
     | ((params: { chatId: string; content: string; msgType: string; chatType?: 'p2p' | 'group' }) => Promise<unknown>)
     | null = null;
@@ -99,12 +122,33 @@ export class DingTalkAdapter {
   private accessTokenFn: (() => Promise<string>) | null = null;
   private downloadMediaFn: ((downloadCode: string) => Promise<string>) | null = null;
   private uploadMediaFn: ((params: { filePath: string; type: string }) => Promise<string>) | null = null;
+  private readonly streamConnectTimeoutMs: number;
 
   constructor(log: ConnectorLogger, options: DingTalkAdapterOptions) {
     this.log = log;
     this.appKey = options.appKey;
     this.appSecret = options.appSecret;
     this.robotCode = options.robotCode ?? options.appKey;
+    this.streamConnectTimeoutMs = options.streamConnectTimeoutMs ?? STREAM_CONNECT_TIMEOUT_MS;
+  }
+
+  /**
+   * G1/N1: the SDK retries a revoked-credential or dropped stream silently,
+   * so 'startStream resolved once' is not proof of a live stream. This asks
+   * the client itself and requires BOTH flags: `connected` is the WebSocket
+   * session, `registered` is the robot registration frame — the SDK sets it
+   * only on the REGISTERED system topic and clears both on close
+   * (dist/client.mjs). A connect-only socket that never registered is dead
+   * for ingress purposes.
+   */
+  isStreamLive(): boolean {
+    const client = this.streamClient as DingTalkStreamClient | null;
+    return client !== null && client.connected === true && client.registered === true;
+  }
+
+  private async loadStreamModule(): Promise<DingTalkStreamModule> {
+    if (this.streamModuleOverride !== null) return this.streamModuleOverride;
+    return await import('dingtalk-stream') as unknown as DingTalkStreamModule;
   }
 
   // ── Inbound: Parse Stream Event ──
@@ -489,13 +533,17 @@ export class DingTalkAdapter {
   async startStream(onMessage: (msg: DingTalkInboundMessage) => Promise<void>): Promise<void> {
     const generation = ++this.streamGeneration;
     try {
-      const { DWClient, EventAck, TOPIC_ROBOT } = await import('dingtalk-stream');
+      const { DWClient, EventAck, TOPIC_ROBOT } = await this.loadStreamModule();
       if (generation !== this.streamGeneration) return;
 
-      const client = new DWClient({
+      const client: DingTalkStreamClient = new DWClient({
         clientId: this.appKey,
         clientSecret: this.appSecret,
         debug: false,
+        // The SDK default is keepAlive:false (dist/client.mjs defaultConfig),
+        // which means its ping/pong watchdog is never installed and a
+        // half-dead socket is never terminated from the client side.
+        keepAlive: true,
       });
 
       client.registerCallbackListener(TOPIC_ROBOT, async (res: unknown) => {
@@ -525,22 +573,25 @@ export class DingTalkAdapter {
           // ignore disconnect errors
         }
       };
+      // One connection budget shared by the connect() race and the liveness
+      // poll — previously the timer and the poll each had their own 30s, so a
+      // slow failure could spin for a full minute.
+      const deadline = Date.now() + this.streamConnectTimeoutMs;
       let connectTimer: ReturnType<typeof setTimeout> | undefined;
       try {
         await new Promise<void>((resolve, reject) => {
           connectTimer = setTimeout(() => {
-            reject(new Error(`DingTalk stream connect timed out after ${STREAM_CONNECT_TIMEOUT_MS}ms`));
-          }, STREAM_CONNECT_TIMEOUT_MS);
+            reject(new Error(`DingTalk stream connect timed out after ${this.streamConnectTimeoutMs}ms`));
+          }, Math.max(deadline - Date.now(), 0));
           // Handlers are attached to client.connect(), so a late settlement
           // after the timeout rejects is never an unhandled rejection.
-          client.connect().then(resolve, reject);
+          client.connect().then(() => resolve(), reject);
         });
         // DWClient.connect() never rejects on connection failure — the SDK
         // catches, schedules a backoff reconnect, and returns. Wait until the
-        // socket is actually open so a resolved startStream means a live
+        // socket is open AND registered so a resolved startStream means a live
         // stream instead of reporting 'running' over a dead connection.
-        const deadline = Date.now() + STREAM_CONNECT_TIMEOUT_MS;
-        while (client.connected !== true) {
+        while (!(client.connected === true && client.registered === true)) {
           if (generation !== this.streamGeneration) {
             try {
               client.disconnect();
@@ -555,7 +606,7 @@ export class DingTalkAdapter {
             } catch {
               // ignore disconnect errors
             }
-            throw new Error(`DingTalk stream connect timed out after ${STREAM_CONNECT_TIMEOUT_MS}ms`);
+            throw new Error(`DingTalk stream connect timed out after ${this.streamConnectTimeoutMs}ms`);
           }
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
@@ -968,5 +1019,10 @@ export class DingTalkAdapter {
   /** @internal */
   _injectUploadMedia(fn: (params: { filePath: string; type: string }) => Promise<string>): void {
     this.uploadMediaFn = fn;
+  }
+
+  /** @internal Test seam: replace the dynamic `dingtalk-stream` import. */
+  _injectStreamModule(module_: DingTalkStreamModule): void {
+    this.streamModuleOverride = module_;
   }
 }
