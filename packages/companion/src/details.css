@@ -1,0 +1,91 @@
+#details {
+  align-self: stretch;
+  min-height: 0;
+  flex: 1;
+  margin-bottom: 5px;
+  background: var(--cafe-surface-elevated);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 3px 16px #0002;
+}
+#details header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--cafe-border-subtle);
+}
+#details header span {
+  color: var(--cafe-text-muted);
+  font-size: 11px;
+  flex: 1;
+}
+#collapse {
+  background: transparent;
+  font-size: 12px;
+  padding: 4px;
+  color: var(--cafe-text-secondary);
+}
+#transcript {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  line-height: 1.65;
+}
+#transcript p {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#transcript .user {
+  color: var(--cafe-text-secondary);
+}
+#transcript .user::before,
+#transcript .assistant::before {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  color: var(--cafe-text-muted);
+}
+#transcript .user::before {
+  content: "你";
+}
+#transcript .assistant::before {
+  content: var(--speaker-label, "猫猫");
+}
+#transcript .tool {
+  font-size: 11px;
+  color: var(--cafe-text-secondary);
+}
+.empty {
+  color: var(--cafe-text-muted);
+}
+#compose {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--cafe-border-subtle);
+  padding: 9px;
+}
+#message {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 5px 3px;
+  background: transparent;
+  color: inherit;
+}
+#compose button {
+  border-radius: 50%;
+  background: var(--accent-100);
+  min-width: 30px;
+  height: 30px;
+}
+#access { display: flex; align-items: center; justify-content: center; gap: 12px; border-top: 1px solid var(--cafe-border-subtle); padding: 4px 9px; }
+#access button { background: transparent; color: var(--cafe-text-secondary); padding: 6px 4px; font-size: 11px; border-radius: 6px; }
+#access button:hover { background: var(--cafe-surface); }
+#connection-scope { margin: 0; padding: 0 10px 9px; text-align: center; font-size: 10px; line-height: 1.4; color: var(--cafe-text-muted); }

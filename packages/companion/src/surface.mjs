@@ -46,10 +46,10 @@ if (!window.clowderCompanion) {
       status(value.message);
       const identity = value.identity;
       if (identity) {
-        $('identity').textContent = identity.displayName;
         $('chat-name').textContent = identity.displayName;
         $('pet').setAttribute('aria-label', `${identity.displayName}，拖动可以移动`);
         $('pet').dataset.skin = identity.skin;
+        $('begin').title = `和${identity.displayName}聊聊`;
         $('dock').setAttribute('aria-label', `和${identity.displayName}交流`);
         $('message').setAttribute('aria-label', `给${identity.displayName}写一句`);
         document.documentElement.style.setProperty('--speaker-label', JSON.stringify(identity.carrier.displayName));
@@ -75,6 +75,9 @@ if (!window.clowderCompanion) {
     $('write').setAttribute('aria-expanded', String(value));
     void client.resize(value).catch(error => status(explainError(error)));
   }
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && expanded) { details(false); $('write').focus(); }
+  });
   $('begin').onclick = () => { transcript.reset(); void conversation.begin(); };
   $('end').onclick = () => void conversation.end();
   $('mic').onclick = () => conversation.muteMic();

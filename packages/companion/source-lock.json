@@ -20,12 +20,26 @@
     {
       "source": "packages/web/public/concierge/skins/ragdoll-v1/idle.png",
       "destination": "assets/skins/ragdoll-v1.png",
-      "sha256": "001c7f3660b348e2531694d9dc455378a0c007c765e0936a48e61eedf9c30025"
+      "sha256": "24e5c4dea8d6ee35bf69a5612417088ff15f08c40404cbb18bfb99caad25564e",
+      "derivation": {
+        "method": "native-imagegen",
+        "date": "2026-09-20",
+        "referenceSha256": "001c7f3660b348e2531694d9dc455378a0c007c765e0936a48e61eedf9c30025",
+        "purpose": "Restore the complete original grey-point cat silhouette on transparent alpha; remove the cropped room background.",
+        "author": "codex-astra"
+      }
     },
     {
       "source": "packages/web/public/concierge/sprites/ragdoll/idle.png",
       "destination": "assets/skins/yarn-ball.png",
-      "sha256": "001c7f3660b348e2531694d9dc455378a0c007c765e0936a48e61eedf9c30025"
+      "sha256": "24e5c4dea8d6ee35bf69a5612417088ff15f08c40404cbb18bfb99caad25564e",
+      "derivation": {
+        "method": "native-imagegen",
+        "date": "2026-09-20",
+        "referenceSha256": "001c7f3660b348e2531694d9dc455378a0c007c765e0936a48e61eedf9c30025",
+        "purpose": "Restore the complete original grey-point cat silhouette on transparent alpha; remove the cropped room background.",
+        "author": "codex-astra"
+      }
     }
   ]
 }
