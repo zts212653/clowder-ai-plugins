@@ -25,9 +25,8 @@ The adapter opens primary and backup WebSocket channels only after Host activati
 all timers during drain, and keeps provider retry bounded. WebSocket resume and deduplication watermarks must
 be committed through a Host-owned, manifest-declared checkpoint namespace after accepted delivery.
 
-Standalone activation remains gated on Core's authenticated binding bootstrap, declared configuration and
-secret projection, and approved durable checkpoint wire. The package intentionally provides no local-file,
-ambient Redis, or environment fallback while that public prerequisite is unresolved.
+Standalone activation uses the existing authenticated binding, declared configuration/secret, state, and
+messaging surfaces. The package intentionally provides no local-file, ambient Redis, or environment fallback.
 
 ## Exposed capability
 

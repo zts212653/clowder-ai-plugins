@@ -27,6 +27,6 @@ Provider HTTP errors fail closed. Media upload and download responses are bounde
 error text must not include credentials. Disabling or draining the plugin closes the Stream connection before
 the preserved Core adapter can be restored, preventing double consumption.
 
-The standalone stdio activation remains gated on the C1 Host prerequisite for declared config/secret
-projection and connector-binding bootstrap/recovery. Adapter exports are usable for isolated provider
+The standalone runtime is package implementation work in C1 and must consume only the existing Host-owned
+config/secret, binding, state, and messaging surfaces. Adapter exports are usable for isolated provider
 conformance tests without claiming that synthetic handles constitute production activation.

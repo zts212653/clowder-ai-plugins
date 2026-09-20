@@ -56,32 +56,16 @@ Host-owned install/grants/config/secrets/lifecycle/bindings/delivery
 existing Core Agent, Console, messaging, schedule and webhook consumers
 ```
 
-The public 13-row wire already contains `messaging.send` and `host.messaging.deliver`, but that is not yet a
-complete connector lifecycle. `ConnectorBindingAddress` can carry an already-issued opaque handle; an
-external package currently has no public Host route to resolve or create that handle from
-`(connectorId, externalChatId)`, nor can it recover the corresponding external-chat coordinate for outbound
-delivery after restart. Core C1 therefore owns one business-blind activation prerequisite: Host-issued
-connector-binding bootstrap/lookup and restart-safe outbound coordinates. The current external-runtime
-supervisor also projects only four `CLOWDER_*` protocol metadata variables; the connector contribution has
-no environment binding and the frozen wire has no config/secret read row. Core C1 must therefore project
-only manifest-declared configuration and secrets into the verified package process (or provide an
-equivalently typed Host-owned read path). These are parts of activating the existing connector contribution,
-not a C2 mention parser, UI slot, or package-owned authority seam.
+The public contract and SDK surface are already closed for C1. The frozen manifest contributions, Host-issued
+`ConnectorBindingAddress`, `messaging.send`, `host.messaging.deliver`, and Host-owned `FeatureContext`
+config/secret/state adapters are the implementation coordinates; C1 does not reopen them or add a D/E wire.
 
-Restart-safe provider cursors are a third verified prerequisite. Although `plugin.state.get` and
-`plugin.state.set` are reserved capability names, they are absent from the frozen wire registry and Core has
-no handler, durable store, or external-runtime composition path for them. Packages must not substitute local
-files, ambient Redis, messaging subscription cursors, seven-day settlement receipts, or inventory snapshots.
-The stable design assumptions are Host-derived own-instance namespaces, manifest-declared keys, TTL=0,
-compare-and-swap plus operation-id idempotency, and settlement-coupled checkpoint commits so crash replay
-converges without skipping or duplicating a delivered message. Concrete SDK signatures remain blocked until
-the public contract delta is approved.
-
-The SDK does not yet expose a connector-facing session that combines handshake, Host requests, and
-plugin-originating messaging requests. C1 adds the part that can be implemented against the frozen rows and
-keeps provider runtime wiring blocked on the exact Host prerequisite above. Existing `connector`, `webhook`,
-and `schedule` contribution declarations remain the static activation contract; packages must not invent an
-ambient `.env` fallback, configured handle, or synthesized binding state to conceal the missing Host path.
+Work proceeds in two implementation lanes. Plugins completes provider adapters, runtime entrypoints,
+schedule operations, preservation journeys, and exact artifacts. Core maps its existing Host-owned
+configuration, secrets, bindings, state, schedules, webhooks, and delivery authority into those frozen
+surfaces, proves no double-run, switches defaults, and deletes provider-specific implementations. A missing
+composition path is implementation work in the owning lane, not authority to invent a package-local fallback
+or a new public contract.
 
 Connector ingress always sends to a Host-authenticated `connector_binding` handle. Packages neither mint nor
 resolve that handle and never infer wake authority from message text. In particular, `@` inside a plain
@@ -93,14 +77,11 @@ the ordinary-text negative path.
 
 1. Freeze this inventory and make `scripts/train-c1-inventory.test.mjs` RED because the eleven target
    packages and catalog entries do not exist.
-2. Add SDK RED tests for a standalone connector session: ready handshake, outbound `messaging.send`, inbound
-   `host.messaging.deliver`, grants change, ping, drain, and deterministic rejection after drain. Reuse the
-   frozen wire rows. Synthetic binding handles are valid only for protocol-unit tests; they are not evidence
-   that a provider runtime can bootstrap a real binding.
-3. Hold provider runtime wiring at the Host boundary until Core supplies business-blind binding
-   bootstrap/lookup, declared config/secret projection, and durable checkpoint paths. The checkpoint path is
-   an unapproved public wire/schema delta, so restart/resume stays RED and no concrete SDK signature is
-   frozen until approval; never hide any gap in package config or package-local persistence.
+2. Reuse the existing SDK tests for ready handshake, outbound `messaging.send`, inbound
+   `host.messaging.deliver`, grants change, ping, drain, and deterministic rejection after drain. Synthetic
+   binding handles remain protocol-unit fixtures rather than production binding evidence.
+3. Complete every package runtime against the frozen manifest/SDK surface. Core performs the generic
+   Host-side mapping and cutover in parallel; neither lane waits for or invents a new C1 public ABI.
 4. Migrate provider-neutral connector fixtures first, then each provider adapter. Every package gets
    `plugin.yaml`, README, icon, locked production dependencies, provider protocol tests, restart/drain tests,
    and an isolated fake-provider journey.
@@ -119,8 +100,9 @@ visible reader, Weixin MP, the frozen SDK rows, and a generic pack-time assertio
 entrypoint is an archive member. A second bounded slice adds Feishu and Weixin provider adapters plus the
 GitHub Operations schedule/Host-port declaration, completing all eleven package directories without crossing
 the Host authority boundary. GitHub Operations is explicitly `port-declared,
-implementation-blocked-on-core-d-e`: unlike the Feishu and Weixin adapters, its tracking, cursor, lease,
-binding, and event-publication implementation cannot close before the Core D/E authority surface exists.
+implementation-pending-in-plugins`: unlike the Feishu and Weixin adapters, its tracking, cursor, lease,
+binding, and event-publication implementation has not yet been migrated from Core. That is remaining package
+work, not a contract blocker.
 
 Feishu retains verified webhook parsing, token refresh, cards, media transfer, and QR credential acquisition.
 Weixin retains iLink polling, QR login, media transfer, and explicit cursor/context-token injection; its old
@@ -130,8 +112,9 @@ registrations, cursors, leases, deduplication, repository bindings, and event pu
 
 This checkpoint intentionally does not add connector or GitHub packages to the catalog. Their declared stdio
 entrypoints remain absent and therefore fail the generic packed-entrypoint assertion. Catalog closure, fresh
-consumer activation, and publication stay RED until Core supplies the approved binding/config/checkpoint and
-external schedule callback composition. The package directories and preservation tests may be reviewed now;
+consumer activation, and publication stay RED until the package runtimes and journeys are complete and the
+parallel Core cutover can consume the reviewed artifacts. The package directories and preservation tests may
+be reviewed now;
 their provisional local pack coordinates are evidence of deterministic membership only, not release coordinates.
 The guard is wired into `scripts/catalog-check.mjs` and covered by
 `scripts/catalog-runtime-entrypoints.test.mjs`; it evaluates packed archive members rather than source paths,

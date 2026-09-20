@@ -18,8 +18,8 @@ and durable state. Ordinary message text, including `@`, cannot mint a binding o
 Tenant tokens and downloaded media are transient runtime data. Rollback drains the package connection before
 the preserved Core adapter starts, while Host-owned bindings and configuration remain unchanged.
 
-Standalone activation remains gated on Core's authenticated binding bootstrap and declared configuration and
-secret projection. No package-local persistence fallback is provided.
+Standalone activation uses the existing authenticated binding and declared configuration/secret surfaces.
+No package-local persistence fallback is provided.
 
 ## Exposed capability
 

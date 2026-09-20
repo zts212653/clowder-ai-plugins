@@ -15,8 +15,8 @@ checkpoint state. Ordinary message text, including `@`, cannot mint a binding or
 
 ## Lifecycle and recovery
 
-The iLink polling cursor and context tokens require the pending Host checkpoint contract. They must not be
-stored in package-local files or ambient Redis. Rollback drains polling before the preserved Core adapter starts.
+The iLink polling cursor and context tokens use the existing Host-owned state surface. They must not be stored
+in package-local files or ambient Redis. Rollback drains polling before the preserved Core adapter starts.
 
 ## Exposed capability
 

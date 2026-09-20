@@ -22,5 +22,5 @@ Only private, non-bot messages enter the connector. Long polling has bounded con
 Bot API session on drain. A Host-owned cursor is committed only after accepted delivery so restart and
 rollback do not double-run the package and preserved Core poller.
 
-The standalone stdio activation remains gated on C1 Host config/secret projection, connector-binding
-bootstrap/recovery, and durable checkpoint support. Adapter exports remain testable with isolated fixtures.
+The standalone runtime is package implementation work in C1 and uses the existing Host config/secret,
+connector-binding, messaging, and state surfaces. Adapter exports remain testable with isolated fixtures.

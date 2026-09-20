@@ -25,8 +25,8 @@ Provider access tokens are short-lived process caches. Host webhook routing must
 the package and preserved Core callback handler never consume the same event concurrently. The package does
 not persist callback bodies or credentials.
 
-Standalone activation remains gated on Core's authenticated binding bootstrap and declared configuration
-and secret projection. No package-local environment or persistence fallback is provided.
+Standalone activation uses the existing authenticated binding and declared configuration/secret surfaces.
+No package-local environment or persistence fallback is provided.
 
 ## Exposed capability
 

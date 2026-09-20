@@ -23,8 +23,8 @@ Disable and rollback drain the WebSocket, timers, cached frames, and active stre
 starts. Resume state and deduplication watermarks must use a Host-owned, manifest-declared checkpoint after
 accepted delivery; package-local files, ambient Redis, and inventory snapshots are not substitutes.
 
-Standalone activation remains gated on Core's authenticated binding bootstrap, declared configuration and
-secret projection, and approved durable checkpoint wire.
+Standalone activation uses the existing authenticated binding, declared configuration/secret, state, and
+messaging surfaces; C1 does not add another public wire.
 
 ## Exposed capability
 

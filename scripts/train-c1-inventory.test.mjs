@@ -61,39 +61,32 @@ test('connector ingress keeps binding and wake authority in the Host', () => {
     connectorIngressTarget: 'connector_binding',
     bindingAuthority: 'Host',
     wakeAuthority: 'Host',
-    connectorBindingBootstrap: {
-      owner: 'Core Host',
-      status: 'required-prerequisite',
-      missingAtCoreSourceCommit:
-        'No production caller issues or restores connector_binding handles for an external package runtime',
-      requiredBehavior: [
-        'resolve or create an opaque binding handle for an authenticated plugin instance and connector/external-chat coordinate',
-        'provide restart-safe outbound external-chat coordinates without exposing Host wake policy to the package',
+    contractDisposition: {
+      status: 'closed-for-c1',
+      machineTruth: '@clowder-ai/plugin-contract 0.1.0 and the published @clowder-ai/plugin-sdk surfaces',
+      reusedSurfaces: [
+        'manifest connector, webhook, schedule, config, secret, and capability declarations',
+        'Host-issued connector_binding and the frozen messaging.send / host.messaging.deliver rows',
+        'Host-owned FeatureContext config, secret, state, and contribution adapters',
       ],
     },
-    runtimeConfigurationProjection: {
-      owner: 'Core Host',
-      status: 'required-prerequisite',
-      missingAtCoreSourceCommit:
-        'External stdio supervisor injects only four CLOWDER protocol metadata values and exposes no connector config/secret read path',
+    pluginsImplementationLane: {
+      owner: 'Plugins',
+      status: 'implementation-active',
       requiredBehavior: [
-        'project only manifest-declared configuration and secrets into the verified package runtime',
-        'preserve secret redaction and deny ambient Host environment access',
+        'complete every package-owned provider adapter, runtime entrypoint, schedule operation, and preservation journey',
+        'use only the frozen contract and SDK surfaces without adding a C1 public ABI',
+        'produce exact pack, catalog, conformance, and fresh-consumer evidence before publication',
       ],
     },
-    durableCheckpointAuthority: {
+    coreImplementationLane: {
       owner: 'Core Host',
-      status: 'required-prerequisite',
-      missingAtCoreSourceCommit:
-        'plugin.state.get/set are reserved capability names but are absent from the frozen wire registry and have no Core handler, store, or external-runtime composition path',
-      stableAssumptions: [
-        'namespace derives from authenticated plugin instance, contribution, and a manifest-declared key',
-        'checkpoint values persist with TTL=0 and survive restart or rollback of the same installed instance',
-        'writes use compare-and-swap plus operation-id idempotency',
-        'delivery checkpoints advance only after the corresponding messaging.send settlement so replay converges without skipped or duplicate messages',
-        'checkpoint values contain operational cursors, sequences, resume tokens, or deduplication watermarks only and never messages or credentials',
+      status: 'implementation-active',
+      requiredBehavior: [
+        'map existing Host-owned configuration, secrets, bindings, state, schedules, webhooks, and delivery authority into the frozen plugin surfaces',
+        'prove no double-run, switch the production defaults, and delete provider-specific Core implementations',
+        'preserve secret redaction, durable state, rollback, and wake authority without business-specific Host branches',
       ],
-      signatureStatus: 'unapproved-public-contract-delta',
     },
     ordinaryPluginText: 'opaque non-waking content, including text containing @',
     forbiddenPackageBehavior: [
@@ -130,12 +123,12 @@ test('every migration entry carries preservation and rollback truth', () => {
   }
 });
 
-test('GitHub Operations remains an explicit Host-blocked port declaration', () => {
+test('GitHub Operations remains an explicit package implementation checkpoint', () => {
   const github = inventory.entries.find(entry => entry.id === 'github');
   assert.ok(github, 'GitHub Operations must remain in the frozen inventory');
   assert.equal(
     github.implementationStatus,
-    'port-declared, implementation-blocked-on-core-d-e',
+    'port-declared, implementation-pending-in-plugins',
   );
 });
 
