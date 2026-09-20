@@ -4,4 +4,14 @@ export type {
   DingTalkAttachment,
   DingTalkInboundMessage,
 } from './DingTalkAdapter.js';
+export { createDingTalkConnectorRuntime } from './runtime.js';
+export type {
+  DingTalkConnectorRuntime,
+  DingTalkConnectorRuntimeOptions,
+  DingTalkHostInboundMessage,
+  DingTalkInboundAttachment,
+  DingTalkRuntimeAdapter,
+  DingTalkRuntimeConfig,
+  DingTalkRuntimeHost,
+} from './runtime.js';
 export type { ConnectorLogger, MessageEnvelope, RichBlock } from './types.js';
