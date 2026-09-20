@@ -277,6 +277,82 @@
             "expanded"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "view.layout"
+            },
+            "panel": {
+              "enum": [
+                "none",
+                "actions",
+                "menu",
+                "chat"
+              ]
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 120,
+              "maximum": 420
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 32,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "kind",
+            "panel",
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "view.drag"
+            },
+            "phase": {
+              "enum": [
+                "start",
+                "end"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "phase"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "view.hide"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "conversation.read"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -451,6 +527,127 @@
             "code"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "layout"
+            },
+            "pet": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ],
+              "additionalProperties": false
+            },
+            "panel": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "width",
+                "height"
+              ],
+              "additionalProperties": false
+            },
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "kind",
+            "pet",
+            "panel",
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "conversation"
+            },
+            "messages": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "role": {
+                    "enum": [
+                      "user",
+                      "assistant"
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 16000
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "id",
+                  "role",
+                  "text",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "hasMore": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "messages",
+            "hasMore"
+          ],
+          "additionalProperties": false
         }
       ]
     },
@@ -565,6 +762,18 @@
           "required": [
             "kind",
             "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "view-dismiss"
+            }
+          },
+          "required": [
+            "kind"
           ],
           "additionalProperties": false
         }

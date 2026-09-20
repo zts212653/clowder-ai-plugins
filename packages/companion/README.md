@@ -1,42 +1,37 @@
 # Companion surface
 
-The installed Host owns identity, history, permissions and capture. This package
-renders the selected cat and sends explicit user actions through the existing bridge.
+At rest the desktop shows only your selected cat. Click the cat for voice or text;
+right-click for history, screen sharing, household access, sound and hiding.
+Dragging moves the cat and folds its controls. Escape folds a panel without
+ending the conversation or clearing its draft.
 
-## Compact surface candidate
+Voice requires an explicit **语音聊** click. An active microphone badge remains
+visible and ends the call in one click. Screen sharing has its own explicit
+picker and termination badge. There is no microphone action on a double-click,
+page load, body tap or drag.
 
-Opening the body leaves voice off. The default surface is a transparent cat with
-a small **聊聊** button. That button retains the synchronous, single-click prepare
-and audio intent. During a conversation the compact strip exposes microphone,
-speaker and stop controls; screen sharing remains an explicit separate choice.
+Typing works with voice off. The Host uses the existing owner conversation,
+configured duty cat, ordinary message routing and idempotency. The small history
+view reads a bounded recent subset; **完整聊天** opens the canonical conversation.
+No second transcript database, credentials or selectable Host identity live here.
 
-**文字与更多** expands the existing local transcript, text input, canonical chat
-navigation and household access preference. Closing this panel does not end a
-conversation. Ending voice returns to the small start control; failures remain
-visible. No user preference, identity or durable history is migrated by this UI.
+## Host integration
 
-The old ragdoll/yarn PNG was itself a cropped scene with opaque edges. Its
-replacement preserves the reference character on a complete transparent still.
-The animated skins retain their existing asset bytes and mappings. The source
-lock distinguishes original public references from generated derivatives.
+This surface requires the additive desktop bridge **1.1.0**. The Host computes
+placement within the display work area, keeps the cat as its stable anchor, and
+owns bounded drag gestures and transparent-area hit testing. Older 1.0-only
+Hosts reject this manifest before installation. Media admission and capture
+remain in the trusted Host; this package receives neither streams nor provider
+SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the cat.
 
-## Local visual inspection
+The original animated skin bytes remain unchanged. Public static skin derivatives
+and the shared color tokens retain their exact provenance in `source-lock.json`.
 
-From the repository root:
+## Verification
 
-```sh
-pnpm --filter @clowder-ai/plugin-contract build
-pnpm --filter @clowder-ai/plugin-sdk build
-pnpm --filter @clowder-ai/companion test
-node packages/companion/scripts/preview.mjs
-```
-
-Open `http://127.0.0.1:3891/`. The page loads the actual built renderer with an
-explicitly labelled local fixture bridge. Check all four skins, light/dark
-backgrounds, idle/connecting/talking, panel expansion and connection failure.
-The preview cannot connect to a Host or capture audio/screen media. It is not
-proof of installed Electron integration or a successful real conversation.
-
-The candidate has not changed a published version or catalog integrity. Design
-confirmation, independent review, release evidence and the consuming Host's
-installed-window check remain required before presenting it as delivered.
+Run the repository's contract and SDK builds, then `pnpm --filter
+@clowder-ai/companion test` and `pnpm --filter @clowder-ai/companion lint`.
+`node packages/companion/scripts/preview.mjs` serves the accepted interaction
+spike at `/spike/` and the actual built renderer with an explicitly simulated
+bridge at `/previous`. The latter covers visual states and text controls; it
+does not prove native movement, real capture or model delivery.

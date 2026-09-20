@@ -260,7 +260,7 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0';
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -869,6 +869,18 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'view.resize';
   readonly expanded: boolean;
+} | {
+  readonly kind: 'view.layout';
+  readonly panel: 'none' | 'actions' | 'menu' | 'chat';
+  readonly width: number;
+  readonly height: number;
+} | {
+  readonly kind: 'view.drag';
+  readonly phase: 'start' | 'end';
+} | {
+  readonly kind: 'view.hide';
+} | {
+  readonly kind: 'conversation.read';
 };
 export type CompanionActor = {
   readonly catId: string;
@@ -899,6 +911,29 @@ export type CompanionReply = {
 } | {
   readonly kind: 'error';
   readonly code: CompanionErrorCode;
+} | {
+  readonly kind: 'layout';
+  readonly pet: {
+    readonly x: number;
+    readonly y: number;
+  };
+  readonly panel: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly width: number;
+  readonly height: number;
+} | {
+  readonly kind: 'conversation';
+  readonly messages: readonly ({
+    readonly id: string;
+    readonly role: 'user' | 'assistant';
+    readonly text: string;
+    readonly name: string;
+  })[];
+  readonly hasMore: boolean;
 };
 export type CompanionEvent = {
   readonly kind: 'media-stopped';
@@ -919,6 +954,8 @@ export type CompanionEvent = {
   readonly role?: 'user' | 'assistant';
   readonly transcript?: string;
   readonly turnId?: string;
+} | {
+  readonly kind: 'view-dismiss';
 };
 export const DOCX_MATERIALIZATION_TEXT_PATTERN = '^[\\u0009\\u000A\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';
 export const DOCX_MATERIALIZATION_AUTHOR_PATTERN = '^[\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*(?![\\s\\S])';

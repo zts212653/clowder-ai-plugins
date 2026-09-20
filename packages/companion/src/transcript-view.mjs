@@ -37,4 +37,15 @@ export class TranscriptView {
     this.activeRows.clear();
     this.completed.clear();
   }
+  load(messages) {
+    const pinned = this.nearBottom();
+    this.reset();
+    this.container.replaceChildren(...messages.map(message => {
+      const row = this.container.ownerDocument.createElement('p');
+      row.className = message.role; row.dataset.messageId = message.id;
+      row.textContent = message.text; row.title = message.name;
+      return row;
+    }));
+    if (pinned) this.container.scrollTop = this.container.scrollHeight;
+  }
 }

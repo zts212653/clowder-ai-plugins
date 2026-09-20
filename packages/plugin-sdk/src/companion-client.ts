@@ -39,6 +39,11 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
     screenClose: () => invoke({ kind: 'screen.close' }, 'ok'),
     openConversation: () => invoke({ kind: 'conversation.open' }, 'navigation'),
     resize: (expanded: boolean) => invoke({ kind: 'view.resize', expanded }, 'ok'),
+    layout: (panel: 'none' | 'actions' | 'menu' | 'chat', width: number, height: number) =>
+      invoke({ kind: 'view.layout', panel, width, height }, 'layout'),
+    drag: (phase: 'start' | 'end') => invoke({ kind: 'view.drag', phase }, 'ok'),
+    hide: () => invoke({ kind: 'view.hide' }, 'ok'),
+    readConversation: () => invoke({ kind: 'conversation.read' }, 'conversation'),
     subscribe: (listener: (event: CompanionEvent) => void) => bridge.subscribe(listener),
   };
 }

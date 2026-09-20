@@ -41,7 +41,9 @@ test('packed desktop window contract and SDK work in a consumer without workspac
       import { validateCompanionCommand, validateCompanionReply } from '@clowder-ai/plugin-contract';
       assert.equal(validateManifest(companion).valid, true);
       assert.equal(companion.pluginId, 'official.companion');
-      assert.equal(companion.contributions[0].bridgeVersion, '1.0.0');
+      assert.equal(companion.contributions[0].bridgeVersion, '1.1.0');
+      assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'menu', width: 204, height: 250 }), true);
+      assert.equal(validateCompanionCommand({ kind: 'conversation.read', threadId: 'forged' }), false);
       const window = {
         type: 'desktop-window', id: 'pet', role: 'companion', bridgeVersion: '1.0.0',
         surface: { entrypoint: 'surface/index.html', integrity: 'sha256-' + 'A'.repeat(43) + '=' },

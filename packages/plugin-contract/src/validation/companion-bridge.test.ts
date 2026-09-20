@@ -2,6 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { validateCompanionCommand, validateCompanionReply, validateCompanionEvent } from './companion-bridge.js';
 
+test('cat-first controls stay bounded to this window and its existing conversation', () => {
+  for (const command of [{ kind: 'view.layout', panel: 'menu', width: 204, height: 250 },
+    { kind: 'view.drag', phase: 'start' }, { kind: 'view.hide' }, { kind: 'conversation.read' }]) {
+    assert.equal(validateCompanionCommand(command), true);
+    for (const field of ['windowId', 'threadId', 'userId', 'x', 'url']) {
+      assert.equal(validateCompanionCommand({ ...command, [field]: 'other' }), false);
+    }
+  }
+  for (const width of [0, -1, 100000, 200.5]) assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'menu', width, height: 250 }), false);
+  assert.equal(validateCompanionCommand({ kind: 'view.drag', phase: 'unlimited' }), false);
+  assert.equal(validateCompanionReply({ kind: 'conversation', messages: [{ id: 'real-message', role: 'user', text: '你好', name: '你' }], hasMore: false }), true);
+  assert.equal(validateCompanionEvent({ kind: 'view-dismiss' }), true);
+});
+
 test('voice preparation and typed input are closed actions without selectable identity or Host', () => {
   assert.equal(validateCompanionCommand({ kind: 'prepare' }), true);
   assert.equal(validateCompanionCommand({ kind: 'text', text: 'An unfamiliar user sentence', clientMessageId: '863adf11-9fa3-4156-93af-94f7d6022d85' }), true);

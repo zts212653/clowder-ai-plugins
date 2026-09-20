@@ -28,7 +28,7 @@ test('the installable package declares one companion body and contains a closed 
     const refs = name.endsWith('.html') ? [...source.matchAll(/(?:src|href)="([^"]+)"/g)]
       : name.endsWith('.css') ? [...source.matchAll(/url\("([^"]+)"\)/g)]
       : [...source.matchAll(/\bfrom ['"]([^'"]+)['"]/g)];
-    for (const [, ref] of refs) { assert.ok(ref.startsWith('./'), `${name}: ${ref}`); await readFile(new URL(ref, file)); }
+    for (const [, ref] of refs) { if (ref.startsWith('#')) continue; assert.ok(ref.startsWith('./'), `${name}: ${ref}`); await readFile(new URL(ref, file)); }
   }
 });
 test('public imagery provenance pins only distributable assets, without private pet metadata', async () => {

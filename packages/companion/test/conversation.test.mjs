@@ -29,6 +29,14 @@ function fixture(overrides = {}) {
   });
   return { conversation, calls, events, rows, peer, notify: value => notify(value) };
 }
+test('typing while idle sends to the Host without a microphone or voice preparation', async () => {
+  const f = fixture();
+  await f.conversation.refresh();
+  assert.equal(await f.conversation.send('只写下来'), true);
+  assert.deepEqual(f.calls, [['只写下来', '0a9a8b00-334a-4ee1-9cff-bf77b0f7489']]);
+  assert.equal(f.conversation.phase, 'idle');
+  assert.equal(f.rows[0].text, '只写下来');
+});
 test('one click synchronously submits preparation and voice intent before user activation expires', async () => {
   const f = fixture(); const starting = f.conversation.begin();
   assert.deepEqual(f.calls, ['prepare', 'connect']);
@@ -44,6 +52,7 @@ test('a failed prepare cancels the submitted voice intent and shows only a safe 
   assert.ok(f.calls.includes('close'));
   assert.ok(!f.events.some(event => event.phase === 'talking'));
   assert.equal(f.events.at(-1).phase, 'idle');
+  assert.equal(f.events.at(-1).failed, true);
   assert.doesNotMatch(JSON.stringify(f.events), /private|secret/);
 });
 test('ending while prepare is pending fences every late media continuation', async () => {
