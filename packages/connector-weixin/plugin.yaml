@@ -1,0 +1,67 @@
+pluginId: official.connector.weixin
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeChat Personal Connector
+description:
+  default: Receive and send WeChat Personal iLink messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送微信个人号 iLink 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: botToken
+    label: Bot Token
+    kind: secret
+    required: true
+  - key: voiceItemMode
+    label: Voice Item Mode
+    kind: select
+    required: false
+    options:
+      - value: minimal
+        label: Minimal
+      - value: playtime
+        label: Playtime
+      - value: playtime-sec
+        label: Playtime seconds
+      - value: playtime-encode
+        label: Playtime encoded (unsafe)
+      - value: metadata
+        label: Metadata (unsafe)
+  - key: enableUnsafeVoiceModes
+    label: Enable Unsafe Voice Modes
+    kind: boolean
+    required: false
+    default: false
+  - key: captureInboundVoiceMedia
+    label: Capture Inbound Voice Media
+    kind: boolean
+    required: false
+    default: false
+  - key: apiBaseUrl
+    label: Host API Base URL
+    kind: string
+    required: false
+contributions:
+  - type: identity
+    id: weixin-bot
+    displayName: WeChat bot
+  - type: connector
+    id: weixin
+    identityRef: weixin-bot
+    inboundMethod: weixin.inbound
+    outboundMethod: weixin.outbound
+features:
+  - id: weixin-messaging
+    name: WeChat Personal messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: weixin-bot
+      - type: connector
+        id: weixin
+    capabilities: [messaging.send]
+runtime:
+  transport: stdio
+  entrypoint: dist/stdio-entrypoint.js

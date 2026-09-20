@@ -356,6 +356,9 @@ jobs:
       - name: Build Weixin MP package
         run: pnpm --filter @clowder-ai/weixin-mp build
 
+      - name: Build WeChat visible reader package
+        run: pnpm --filter @clowder-ai/wechat-visible-reader build
+
       - name: Build and verify frozen GenOffice renderer
         run: |
           pnpm --filter @clowder-ai/genoffice-docx build:renderer
@@ -395,6 +398,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/weixin-mp
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish WeChat visible reader prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/wechat-visible-reader
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish GenOffice prerelease

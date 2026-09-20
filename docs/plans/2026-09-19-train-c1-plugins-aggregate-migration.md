@@ -112,6 +112,25 @@ the ordinary-text negative path.
 7. Run the aggregate quality gate and obtain independent cross-individual review on the exact HEAD. Leave
    the PR unmerged and unpublished until maintainer authority acts.
 
+## Implementation checkpoint
+
+The first clean checkpoint (`60bc85a`) contains five provider adapter slices plus video generation, WeChat
+visible reader, Weixin MP, the frozen SDK rows, and a generic pack-time assertion that every declared runtime
+entrypoint is an archive member. A second bounded slice adds Feishu, Weixin, and GitHub Operations, completing
+all eleven package directories without crossing the Host authority boundary.
+
+Feishu retains verified webhook parsing, token refresh, cards, media transfer, and QR credential acquisition.
+Weixin retains iLink polling, QR login, media transfer, and explicit cursor/context-token injection; its old
+ambient voice-mode and Host API URL discovery has been replaced by manifest-declared inputs. GitHub Operations
+freezes the seven schedule identities, polling periods, timeouts, and action methods while leaving tracking
+registrations, cursors, leases, deduplication, repository bindings, and event publication behind one Host port.
+
+This checkpoint intentionally does not add connector or GitHub packages to the catalog. Their declared stdio
+entrypoints remain absent and therefore fail the generic packed-entrypoint assertion. Catalog closure, fresh
+consumer activation, and publication stay RED until Core supplies the approved binding/config/checkpoint and
+external schedule callback composition. The package directories and preservation tests may be reviewed now;
+their provisional local pack coordinates are evidence of deterministic membership only, not release coordinates.
+
 ## Preservation matrix and acceptance
 
 Every migrated entry must prove:

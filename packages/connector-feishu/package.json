@@ -1,0 +1,33 @@
+{
+  "name": "@clowder-ai/connector-feishu",
+  "version": "0.1.0-alpha.0",
+  "description": "Feishu and Lark enterprise messaging connector for Clowder AI hosts",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./manifest": "./plugin.yaml"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "plugin.yaml", "README.md", "assets", "npm-shrinkwrap.json"],
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "clean": "rm -rf dist",
+    "prepack": "pnpm build"
+  },
+  "dependencies": { "@larksuiteoapi/node-sdk": "1.59.0", "qrcode": "1.5.4" },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "yaml": "2.9.0"
+  },
+  "keywords": ["clowder-ai", "connector", "feishu", "lark", "messaging"],
+  "repository": { "type": "git", "url": "https://github.com/zts212653/clowder-ai-plugins.git", "directory": "packages/connector-feishu" }
+}

@@ -1,0 +1,69 @@
+pluginId: official.connector.feishu
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Feishu / Lark Connector
+description:
+  default: Receive and send Feishu or Lark messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送飞书或 Lark 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: appId
+    label: App ID
+    kind: string
+    required: true
+  - key: appSecret
+    label: App Secret
+    kind: secret
+    required: true
+  - key: connectionMode
+    label: Connection Mode
+    kind: select
+    required: false
+    default: webhook
+    options:
+      - value: webhook
+        label: Webhook
+      - value: websocket
+        label: WebSocket
+  - key: verificationToken
+    label: Verification Token
+    kind: secret
+    required: false
+  - key: groupBotMentionsJson
+    label: Group Bot Mentions JSON
+    kind: string
+    required: false
+contributions:
+  - type: identity
+    id: feishu-bot
+    displayName: Feishu bot
+  - type: connector
+    id: feishu
+    identityRef: feishu-bot
+    inboundMethod: feishu.inbound
+    outboundMethod: feishu.outbound
+  - type: webhook
+    id: feishu-events
+    path: feishu/events
+    methods: [POST]
+    action:
+      method: feishu.webhook
+    verificationSecretRef: verificationToken
+features:
+  - id: feishu-messaging
+    name: Feishu messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: feishu-bot
+      - type: connector
+        id: feishu
+      - type: webhook
+        id: feishu-events
+    capabilities: [messaging.send]
+runtime:
+  transport: stdio
+  entrypoint: dist/stdio-entrypoint.js
