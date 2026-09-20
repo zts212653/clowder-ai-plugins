@@ -1,0 +1,390 @@
+{
+  "schemaVersion": 1,
+  "subject": "subject:f202:train-c1-plugins-aggregate-migration",
+  "scopeAuthority": {
+    "operatorMessage": "0001789821850712-001832-35062316",
+    "acceptedCoreIssue": "zts212653/clowder-ai#1478",
+    "pluginsBaseCommit": "123112c",
+    "coreSourceCommit": "9ab0eaf287381efcb209781463f38cc5f23870ea"
+  },
+  "hostKernelRetained": [
+    "artifact verification and local inventory",
+    "grants, config, and secret authority",
+    "connector/thread binding store",
+    "message delivery, retry, and dead-letter policy",
+    "lifecycle supervision and no-double-run cutover",
+    "generic webhook and schedule activation",
+    "Console and Agent projections"
+  ],
+  "trustBoundary": {
+    "connectorIngressTarget": "connector_binding",
+    "bindingAuthority": "Host",
+    "wakeAuthority": "Host",
+    "connectorBindingBootstrap": {
+      "owner": "Core Host",
+      "status": "required-prerequisite",
+      "missingAtCoreSourceCommit": "No production caller issues or restores connector_binding handles for an external package runtime",
+      "requiredBehavior": [
+        "resolve or create an opaque binding handle for an authenticated plugin instance and connector/external-chat coordinate",
+        "provide restart-safe outbound external-chat coordinates without exposing Host wake policy to the package"
+      ]
+    },
+    "runtimeConfigurationProjection": {
+      "owner": "Core Host",
+      "status": "required-prerequisite",
+      "missingAtCoreSourceCommit": "External stdio supervisor injects only four CLOWDER protocol metadata values and exposes no connector config/secret read path",
+      "requiredBehavior": [
+        "project only manifest-declared configuration and secrets into the verified package runtime",
+        "preserve secret redaction and deny ambient Host environment access"
+      ]
+    },
+    "durableCheckpointAuthority": {
+      "owner": "Core Host",
+      "status": "required-prerequisite",
+      "missingAtCoreSourceCommit": "plugin.state.get/set are reserved capability names but are absent from the frozen wire registry and have no Core handler, store, or external-runtime composition path",
+      "stableAssumptions": [
+        "namespace derives from authenticated plugin instance, contribution, and a manifest-declared key",
+        "checkpoint values persist with TTL=0 and survive restart or rollback of the same installed instance",
+        "writes use compare-and-swap plus operation-id idempotency",
+        "delivery checkpoints advance only after the corresponding messaging.send settlement so replay converges without skipped or duplicate messages",
+        "checkpoint values contain operational cursors, sequences, resume tokens, or deduplication watermarks only and never messages or credentials"
+      ],
+      "signatureStatus": "unapproved-public-contract-delta"
+    },
+    "ordinaryPluginText": "opaque non-waking content, including text containing @",
+    "forbiddenPackageBehavior": [
+      "minting or resolving connector binding handles",
+      "parsing mentions to derive wake authority",
+      "supplying a raw thread identity as authenticated connector ingress",
+      "using package config or environment values as a substitute for Host-issued connector binding state",
+      "reading repository or ambient Host environment as a substitute for manifest-declared runtime configuration",
+      "persisting cursors, sequences, resume tokens, or deduplication watermarks in package-local files or ambient stores",
+      "reusing messaging subscription cursors, settlement receipts, or inventory snapshots as connector checkpoint state"
+    ]
+  },
+  "entries": [
+    {
+      "id": "dingtalk",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/dingtalk"
+      ],
+      "configKeys": ["DINGTALK_APP_KEY"],
+      "secretKeys": ["DINGTALK_APP_SECRET"],
+      "bindingData": ["Host-owned connector/thread binding keyed by connector instance"],
+      "data": ["Provider access token cache is runtime-ephemeral and must not become package inventory truth"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/connector-gateway-bootstrap.ts",
+        "packages/api/src/infrastructure/connectors/ConnectorCommandLayer.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": ["packages/api/test/dingtalk-adapter.test.js"],
+      "targetPackage": "@clowder-ai/connector-dingtalk",
+      "catalogPluginId": "official.connector.dingtalk",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver"],
+      "rollback": "Disable the installed package and re-enable the preserved Core adapter before deleting old code."
+    },
+    {
+      "id": "feishu",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/feishu"
+      ],
+      "configKeys": ["FEISHU_APP_ID", "FEISHU_CONNECTION_MODE", "FEISHU_GROUP_BOT_MENTIONS_JSON"],
+      "secretKeys": ["FEISHU_APP_SECRET", "FEISHU_VERIFICATION_TOKEN"],
+      "bindingData": ["Host-owned connector/thread binding", "QR operation state and connection mode"],
+      "data": ["Tenant token cache is runtime-ephemeral", "Group-bot mention aliases remain configuration"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/connector-gateway-bootstrap.ts",
+        "packages/api/src/infrastructure/connectors/FeishuQrBindClient.ts",
+        "packages/api/src/routes/connector-hub.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/feishu-adapter.test.js",
+        "packages/api/test/feishu-adapter-upload.test.js",
+        "packages/api/test/feishu-action-handler.test.js",
+        "packages/api/test/connector-phase-b4-integration.test.js"
+      ],
+      "targetPackage": "@clowder-ai/connector-feishu",
+      "catalogPluginId": "official.connector.feishu",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "existing webhook contribution activation", "QR setup operation"],
+      "rollback": "Keep binding/config records Host-owned; switch the connector instance back to the preserved Core adapter without rewriting thread identities."
+    },
+    {
+      "id": "telegram",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/telegram"
+      ],
+      "configKeys": [],
+      "secretKeys": ["TELEGRAM_BOT_TOKEN"],
+      "bindingData": ["Host-owned connector/thread binding keyed by Telegram chat identity"],
+      "data": ["Polling cursor is runtime checkpoint data and must resume without duplicate delivery"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/connector-gateway-bootstrap.ts",
+        "packages/api/src/routes/connector-hub.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/telegram-adapter.test.js",
+        "packages/api/test/telegram-html-formatter.test.js"
+      ],
+      "targetPackage": "@clowder-ai/connector-telegram",
+      "catalogPluginId": "official.connector.telegram",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "restart-safe polling cursor"],
+      "rollback": "Stop the package before starting the Core poller; reuse the Host-owned binding and last committed cursor."
+    },
+    {
+      "id": "wecom-agent",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/wecom-agent"
+      ],
+      "configKeys": ["WECOM_CORP_ID", "WECOM_AGENT_ID"],
+      "secretKeys": ["WECOM_AGENT_SECRET", "WECOM_TOKEN", "WECOM_ENCODING_AES_KEY"],
+      "bindingData": ["Host-owned connector/thread binding keyed by WeCom user or room identity"],
+      "data": ["Access token cache is runtime-ephemeral", "Webhook replay/dedup facts remain Host-owned"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/im-connector-loader.ts",
+        "packages/api/src/infrastructure/connectors/ConnectorCommandLayer.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": ["packages/api/test/wecom-agent-adapter.test.js"],
+      "targetPackage": "@clowder-ai/connector-wecom-agent",
+      "catalogPluginId": "official.connector.wecom-agent",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "existing webhook contribution activation"],
+      "rollback": "Route the callback to the preserved Core adapter only after the package runtime drains; never run both webhook consumers."
+    },
+    {
+      "id": "wecom-bot",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/wecom-bot"
+      ],
+      "configKeys": ["WECOM_BOT_ID"],
+      "secretKeys": ["WECOM_BOT_SECRET"],
+      "bindingData": ["Host-owned connector/thread binding", "Validate/connect operation state"],
+      "data": ["WebSocket resume state is runtime checkpoint data"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/connector-gateway-bootstrap.ts",
+        "packages/api/src/routes/connector-hub.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": ["packages/api/test/wecom-bot-adapter.test.js"],
+      "targetPackage": "@clowder-ai/connector-wecom-bot",
+      "catalogPluginId": "official.connector.wecom-bot",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "restart-safe WebSocket resume"],
+      "rollback": "Disconnect and drain the package WebSocket before reconnecting the preserved Core adapter."
+    },
+    {
+      "id": "weixin",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/weixin"
+      ],
+      "configKeys": [],
+      "secretKeys": ["WEIXIN_BOT_TOKEN"],
+      "bindingData": ["Host-owned connector/thread binding", "QR login operation state"],
+      "data": ["CDN media is fetched transiently and must not be retained by package inventory"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/connector-gateway-bootstrap.ts",
+        "packages/api/src/routes/connector-hub.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/weixin-adapter.test.js",
+        "packages/api/test/weixin-cdn.test.js",
+        "packages/api/test/connector-action-endpoint.test.js"
+      ],
+      "targetPackage": "@clowder-ai/connector-weixin",
+      "catalogPluginId": "official.connector.weixin",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "QR setup operation"],
+      "rollback": "Drain the package connection and restore the Core adapter against the same Host-owned credential and bindings."
+    },
+    {
+      "id": "xiaoyi",
+      "category": "im-connector",
+      "disposition": "migrate",
+      "sourceRoots": [
+        "packages/api/src/infrastructure/connectors/im-connectors/xiaoyi"
+      ],
+      "configKeys": ["XIAOYI_AK", "XIAOYI_AGENT_ID"],
+      "secretKeys": ["XIAOYI_SK"],
+      "bindingData": ["Host-owned connector/thread binding keyed by XiaoYi conversation identity"],
+      "data": ["WebSocket sequence/resume state is runtime checkpoint data"],
+      "currentConsumers": [
+        "packages/api/src/infrastructure/connectors/connector-gateway-bootstrap.ts",
+        "packages/api/src/infrastructure/connectors/im-connector-loader.ts",
+        "packages/web/src/components/HubListModal.tsx"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/xiaoyi-adapter.test.js",
+        "packages/api/test/xiaoyi-protocol.test.js"
+      ],
+      "targetPackage": "@clowder-ai/connector-xiaoyi",
+      "catalogPluginId": "official.connector.xiaoyi",
+      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "restart-safe WebSocket resume"],
+      "rollback": "Drain the package session before reconnecting the preserved Core WebSocket adapter with the last Host checkpoint."
+    },
+    {
+      "id": "github",
+      "category": "business-plugin",
+      "disposition": "migrate",
+      "sourceRoots": ["packages/api/src/plugins/github"],
+      "configKeys": ["GITHUB_SETUP_NOISE_BOT_LOGINS"],
+      "secretKeys": ["GITHUB_TOKEN", "GITHUB_MCP_PAT"],
+      "bindingData": ["Repository tracking registrations and authenticated GitHub identity stay Host-owned"],
+      "data": ["Schedule cursors, deduplication keys, and delivery leases stay Host-owned"],
+      "currentConsumers": [
+        "packages/api/src/domains/plugin/PluginRegistry.ts",
+        "packages/api/src/domains/plugin/ScheduleFactoryRegistry.ts",
+        "packages/api/src/domains/plugin/github-schedule-factories.ts",
+        "packages/api/src/infrastructure/scheduler/index.ts"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/repo-scan-admission-gate-self-heal.test.js",
+        "packages/api/test/github-schedule-factories.test.js",
+        "packages/api/test/pr-review-event-wait-coverage.test.js",
+        "packages/api/test/gate-keeping-guard-register-issue-tracking.test.js"
+      ],
+      "targetPackage": "@clowder-ai/github-operations",
+      "catalogPluginId": "official.github-operations",
+      "runtimeRequirements": ["schedule contributions", "events.publish", "Host-owned tracking state"],
+      "rollback": "Disable package schedules before restoring Core factories against unchanged Host schedule state."
+    },
+    {
+      "id": "video-gen",
+      "category": "business-plugin",
+      "disposition": "migrate",
+      "sourceRoots": ["packages/api/src/plugins/video-gen"],
+      "configKeys": ["VIDEO_GEN_PROVIDER", "VIDEO_GEN_AUTH_TYPE", "VIDEO_GEN_BASE_URL", "VIDEO_GEN_MODEL"],
+      "secretKeys": ["VIDEO_GEN_API_KEY", "VIDEO_GEN_ACCESS_KEY", "VIDEO_GEN_SECRET_KEY"],
+      "bindingData": ["No provider-specific Host binding; installed plugin identity is Host-owned"],
+      "data": ["Generated media references are returned to the caller; no package-owned durable inventory data"],
+      "currentConsumers": [
+        "packages/api/src/domains/plugin/PluginRegistry.ts",
+        "packages/mcp-server/src/protocol-server.ts"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/mcp-config-adapters.test.js",
+        "packages/mcp-server/test/protocol-engine.test.js"
+      ],
+      "targetPackage": "@clowder-ai/video-generation",
+      "catalogPluginId": "dev.clowder.video-generation",
+      "runtimeRequirements": ["MCP contribution", "provider protocol validation", "credential scrubbing"],
+      "rollback": "Disable the installed MCP contribution and restore the Core protocol-server registration without changing configuration keys."
+    },
+    {
+      "id": "wechat-visible-reader",
+      "category": "business-plugin",
+      "disposition": "migrate",
+      "sourceRoots": ["packages/api/src/plugins/wechat-visible-reader"],
+      "configKeys": [],
+      "secretKeys": [],
+      "bindingData": ["Ten-minute local authorization lease and selected thread stay Host-owned"],
+      "data": ["Screenshots are process-memory-only and must never be persisted", "Metrics contain no captured message text"],
+      "currentConsumers": [
+        "packages/api/src/index.ts",
+        "packages/api/src/plugins/wechat-visible-reader/routes.ts",
+        "packages/web/src/components/settings/WeChatVisibleReaderArmControl.tsx"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/wechat-visible-reader-arm-routes.test.js",
+        "packages/api/test/wechat-visible-reader-native-runner.test.js",
+        "packages/api/test/wechat-conversation-recent-live-contract.test.js"
+      ],
+      "targetPackage": "@clowder-ai/wechat-visible-reader",
+      "catalogPluginId": "official.wechat-visible-reader",
+      "runtimeRequirements": ["limb contribution", "bounded local authorization", "macOS native executable"],
+      "rollback": "Revoke the package lease, stop its native helper, and restore the Core limb without carrying screenshots or transient OCR data."
+    },
+    {
+      "id": "weixin-mp",
+      "category": "business-plugin",
+      "disposition": "migrate",
+      "sourceRoots": ["packages/api/src/plugins/weixin-mp"],
+      "configKeys": ["WEIXIN_MP_APP_ID"],
+      "secretKeys": ["WEIXIN_MP_APP_SECRET"],
+      "bindingData": ["No conversation binding; installed plugin identity and grants stay Host-owned"],
+      "data": ["Draft/article/media identifiers are provider-owned results and are not copied into plugin inventory"],
+      "currentConsumers": [
+        "packages/api/src/index.ts",
+        "packages/api/src/plugins/weixin-mp/handlers.ts"
+      ],
+      "dedicatedJourneys": [
+        "packages/api/test/weixin-mp-limb-node.test.js",
+        "packages/api/test/weixin-mp-path-security.test.js",
+        "packages/api/test/weixin-mp-security.test.js"
+      ],
+      "targetPackage": "@clowder-ai/weixin-mp",
+      "catalogPluginId": "official.weixin-mp",
+      "runtimeRequirements": ["limb contribution", "skill contribution", "health check"],
+      "rollback": "Disable the package limb and restore the Core limb against unchanged configuration and secret authority."
+    },
+    {
+      "id": "video-analysis",
+      "category": "business-plugin",
+      "disposition": "already-migrated",
+      "sourceRoots": ["packages/api/src/plugins/video-analysis"],
+      "targetPackage": "@clowder-ai/video-analysis",
+      "catalogPluginId": "dev.clowder.video-analysis",
+      "acceptedVersion": "0.1.0-alpha.1",
+      "acceptedShasum": "e4e79a7426e9ad3c3e477f03af9cf2e2daabc488"
+    },
+    {
+      "id": "cloud-cat-personal-host",
+      "category": "business-plugin",
+      "disposition": "already-externalized",
+      "sourceRoots": ["packages/api/src/plugins/cloud-cat-personal-host"],
+      "targetPackage": "@clowder-ai/personal-chrome-companion",
+      "catalogPluginId": null,
+      "note": "C1 must census Core consumers and deletion safety; do not duplicate the existing package implementation."
+    },
+    {
+      "id": "feishu-meeting-intake",
+      "category": "business-plugin",
+      "disposition": "already-externalized",
+      "sourceRoots": [
+        "packages/api/src/domains/plugin/official-plugin-meeting-intake.ts",
+        "packages/api/src/domains/signal-intake"
+      ],
+      "targetPackage": "@clowder-ai/feishu-meeting-intake",
+      "catalogPluginId": null,
+      "note": "Existing standalone package remains a dependency/cutover census item; C1 must not fork its implementation."
+    }
+  ],
+  "c2Exclusions": [
+    {
+      "id": "audio-capture",
+      "sourceRoots": ["scripts/services/audio-capture-*"],
+      "reason": "Managed service and public audio seam belong to Train C2."
+    },
+    {
+      "id": "asr",
+      "sourceRoots": ["scripts/services/whisper-*", "scripts/services/qwen_asr_backend.py"],
+      "reason": "TTS/ASR are explicitly deferred to Train C2."
+    },
+    {
+      "id": "tts",
+      "sourceRoots": ["scripts/services/tts-*"],
+      "reason": "TTS/ASR are explicitly deferred to Train C2."
+    },
+    {
+      "id": "embedding-model",
+      "sourceRoots": ["scripts/services/embed-*", "scripts/services/dedicated_model_worker.py"],
+      "reason": "Managed model service lifecycle belongs to Train C2."
+    },
+    {
+      "id": "llm-postprocess",
+      "sourceRoots": ["scripts/services/llm-postprocess-*"],
+      "reason": "Managed model service lifecycle belongs to Train C2."
+    }
+  ]
+}

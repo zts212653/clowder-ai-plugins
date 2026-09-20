@@ -1,0 +1,25 @@
+pluginId: official.wechat-visible-reader
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeChat Visible Reader
+description:
+  default: Read visible Mac WeChat messages under explicit, short-lived local authorization.
+  translations:
+    zh-CN: 在明确、短时的本机授权下读取 Mac 微信可见消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+contributions:
+  - type: limb
+    id: wechat-visible-reader-limb
+    manifestPath: limbs/wechat-visible-reader.yml
+features:
+  - id: read-visible-wechat
+    name: Read visible WeChat messages
+    resources: []
+    contributions:
+      - type: limb
+        id: wechat-visible-reader-limb
+    capabilities: []
+runtime:
+  transport: builtin

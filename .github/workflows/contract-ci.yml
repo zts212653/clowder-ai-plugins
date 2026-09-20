@@ -15,6 +15,9 @@ on:
       - 'packages/companion/**'
       - 'packages/feishu-meeting-intake/**'
       - 'packages/video-analysis/**'
+      - 'packages/video-generation/**'
+      - 'packages/wechat-visible-reader/**'
+      - 'packages/weixin-mp/**'
       - 'packages/genoffice-docx/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
@@ -110,6 +113,42 @@ jobs:
 
       - name: Video analysis build
         run: pnpm --filter @clowder-ai/video-analysis build
+
+      - name: Video generation typecheck
+        run: pnpm --filter @clowder-ai/video-generation typecheck
+
+      - name: Video generation tests
+        run: pnpm --filter @clowder-ai/video-generation test
+
+      - name: Video generation lint
+        run: pnpm --filter @clowder-ai/video-generation lint
+
+      - name: Video generation build
+        run: pnpm --filter @clowder-ai/video-generation build
+
+      - name: Weixin MP typecheck
+        run: pnpm --filter @clowder-ai/weixin-mp typecheck
+
+      - name: Weixin MP tests
+        run: pnpm --filter @clowder-ai/weixin-mp test
+
+      - name: Weixin MP lint
+        run: pnpm --filter @clowder-ai/weixin-mp lint
+
+      - name: Weixin MP build
+        run: pnpm --filter @clowder-ai/weixin-mp build
+
+      - name: WeChat visible reader typecheck
+        run: pnpm --filter @clowder-ai/wechat-visible-reader typecheck
+
+      - name: WeChat visible reader tests
+        run: pnpm --filter @clowder-ai/wechat-visible-reader test
+
+      - name: WeChat visible reader lint
+        run: pnpm --filter @clowder-ai/wechat-visible-reader lint
+
+      - name: WeChat visible reader build
+        run: pnpm --filter @clowder-ai/wechat-visible-reader build
 
       - name: GenOffice typecheck and tests
         run: |
@@ -311,6 +350,12 @@ jobs:
       - name: Build video analysis package
         run: pnpm --filter @clowder-ai/video-analysis build
 
+      - name: Build video generation package
+        run: pnpm --filter @clowder-ai/video-generation build
+
+      - name: Build Weixin MP package
+        run: pnpm --filter @clowder-ai/weixin-mp build
+
       - name: Build and verify frozen GenOffice renderer
         run: |
           pnpm --filter @clowder-ai/genoffice-docx build:renderer
@@ -338,6 +383,18 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/video-analysis
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish video generation prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/video-generation
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Weixin MP prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/weixin-mp
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish GenOffice prerelease

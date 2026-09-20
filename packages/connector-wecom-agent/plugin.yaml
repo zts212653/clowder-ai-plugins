@@ -1,0 +1,64 @@
+pluginId: official.connector.wecom-agent
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeCom Agent Connector
+description:
+  default: Receive encrypted WeCom callbacks and send replies through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收企微加密回调并发送回复。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: corpId
+    label: Corp ID
+    kind: string
+    required: true
+  - key: agentId
+    label: Agent ID
+    kind: string
+    required: true
+  - key: agentSecret
+    label: Agent Secret
+    kind: secret
+    required: true
+  - key: callbackToken
+    label: Callback token
+    kind: secret
+    required: true
+  - key: encodingAesKey
+    label: Encoding AES key
+    kind: secret
+    required: true
+contributions:
+  - type: identity
+    id: wecom-agent
+    displayName: WeCom custom application
+  - type: connector
+    id: wecom-agent
+    identityRef: wecom-agent
+    inboundMethod: wecom-agent.inbound
+    outboundMethod: wecom-agent.outbound
+  - type: webhook
+    id: wecom-agent-callback
+    path: connectors/wecom-agent
+    methods: [GET, POST]
+    action:
+      method: wecom-agent.webhook
+    verificationSecretRef: callbackToken
+features:
+  - id: wecom-agent-messaging
+    name: WeCom agent messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: wecom-agent
+      - type: connector
+        id: wecom-agent
+      - type: webhook
+        id: wecom-agent-callback
+    capabilities:
+      - messaging.send
+runtime:
+  transport: stdio
+  entrypoint: dist/stdio-entrypoint.js

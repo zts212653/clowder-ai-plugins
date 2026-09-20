@@ -1,0 +1,39 @@
+pluginId: official.connector.telegram
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Telegram Connector
+description:
+  default: Receive and send Telegram Bot messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送 Telegram Bot 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: botToken
+    label: Bot Token
+    kind: secret
+    required: true
+contributions:
+  - type: identity
+    id: telegram-bot
+    displayName: Telegram bot
+  - type: connector
+    id: telegram
+    identityRef: telegram-bot
+    inboundMethod: telegram.inbound
+    outboundMethod: telegram.outbound
+features:
+  - id: telegram-messaging
+    name: Telegram messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: telegram-bot
+      - type: connector
+        id: telegram
+    capabilities:
+      - messaging.send
+runtime:
+  transport: stdio
+  entrypoint: dist/stdio-entrypoint.js

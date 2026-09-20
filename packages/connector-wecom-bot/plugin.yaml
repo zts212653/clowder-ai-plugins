@@ -1,0 +1,43 @@
+pluginId: official.connector.wecom-bot
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeCom Bot Connector
+description:
+  default: Receive and send WeCom intelligent-bot messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送企微智能机器人消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: botId
+    label: Bot ID
+    kind: string
+    required: true
+  - key: botSecret
+    label: Bot Secret
+    kind: secret
+    required: true
+contributions:
+  - type: identity
+    id: wecom-bot
+    displayName: WeCom intelligent bot
+  - type: connector
+    id: wecom-bot
+    identityRef: wecom-bot
+    inboundMethod: wecom-bot.inbound
+    outboundMethod: wecom-bot.outbound
+features:
+  - id: wecom-bot-messaging
+    name: WeCom bot messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: wecom-bot
+      - type: connector
+        id: wecom-bot
+    capabilities:
+      - messaging.send
+runtime:
+  transport: stdio
+  entrypoint: dist/stdio-entrypoint.js

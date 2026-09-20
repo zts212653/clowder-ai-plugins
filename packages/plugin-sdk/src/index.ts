@@ -74,6 +74,26 @@ export {
 } from './events-publisher.js';
 
 export {
+  MessagingClientError,
+  createMessagingClient,
+  type MessagingClient,
+  type MessagingClientErrorCode,
+  type MessagingClientOptions,
+  type MessagingHostTransport,
+  type OutboundMessagingMethod,
+} from './messaging-client.js';
+
+export {
+  HostBoundSessionError,
+  createHostBoundSession,
+  type HostBoundMessageDisposition,
+  type HostBoundMessageHandler,
+  type HostBoundEventPublishingOptions,
+  type HostBoundSession,
+  type HostBoundSessionOptions,
+} from './host-bound-session.js';
+
+export {
   ContributionConflictError,
   FeatureContextRevokedError,
   createFeatureContextSession,

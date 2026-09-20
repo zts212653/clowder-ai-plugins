@@ -1,0 +1,41 @@
+pluginId: official.weixin-mp
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeChat Official Account
+description:
+  default: Prepare, upload, publish, and inspect WeChat Official Account content.
+  translations:
+    zh-CN: 准备、上传、发布并查看微信公众号内容。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: appId
+    label: App ID
+    kind: string
+    required: true
+  - key: appSecret
+    label: App Secret
+    kind: secret
+    required: true
+contributions:
+  - type: limb
+    id: weixin-mp-limb
+    manifestPath: limbs/weixin-mp.yml
+  - type: skill
+    id: weixin-mp-skill
+    path: skills/weixin-mp
+features:
+  - id: publish-official-account-content
+    name: Publish WeChat Official Account content
+    resources: []
+    contributions:
+      - type: limb
+        id: weixin-mp-limb
+      - type: skill
+        id: weixin-mp-skill
+    capabilities:
+      - plugin.config.read
+      - secret.read
+runtime:
+  transport: builtin

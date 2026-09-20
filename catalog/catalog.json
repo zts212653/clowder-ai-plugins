@@ -122,6 +122,48 @@
       ]
     },
     {
+      "pluginId": "dev.clowder.video-generation",
+      "name": "Video Generation",
+      "description": {
+        "default": "Submit and track image or video generation jobs through a configured provider.",
+        "translations": {
+          "zh-CN": "通过已配置的提供商提交并跟踪图片或视频生成任务。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "generation",
+        "image",
+        "video"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/video-generation",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/video-generation/-/video-generation-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-jr5W7aAKHK49iIHAo7T8uh5f2wwoLWj82jRsRLXMMQlkdEG8Gu58Vu+BwMEZiTgP9YoVFHxtrs0Jd/ZEMkTyXg==",
+            "shasum": "4b7696e59e7d79414cd5309768ca18cdd5825a9c",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/video-generation"
+            }
+          }
+        }
+      ]
+    },
+    {
       "pluginId": "official.companion",
       "name": "猫猫球",
       "description": {
@@ -159,6 +201,90 @@
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.wechat-visible-reader",
+      "name": "WeChat Visible Reader",
+      "description": {
+        "default": "Read visible Mac WeChat messages under explicit, short-lived local authorization.",
+        "translations": {
+          "zh-CN": "在明确、短时的本机授权下读取 Mac 微信可见消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "macos",
+        "reader",
+        "wechat"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/wechat-visible-reader",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/wechat-visible-reader/-/wechat-visible-reader-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-rBpA0hYtiBYjchQUO7PoDw3nYOmRf/X+X9r3jwvaSLXoB7f8arAA4PUOW9zp6PZVH/3Ms1pV3jqu8oHg11sXpA==",
+            "shasum": "3423c791e30597def78ea9565a2a17c364760ac0",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/wechat-visible-reader"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.weixin-mp",
+      "name": "WeChat Official Account",
+      "description": {
+        "default": "Prepare, upload, publish, and inspect WeChat Official Account content.",
+        "translations": {
+          "zh-CN": "准备、上传、发布并查看微信公众号内容。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "publishing",
+        "wechat",
+        "weixin"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/weixin-mp",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/weixin-mp/-/weixin-mp-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-JZCty6kFXgJuowblan9nJQ4KVkENPZ0QVz/kg7NzaT283mvG7WiXnAbHTgqYYm2sTBhtWM5vDn8sMy5gNgXYjQ==",
+            "shasum": "c80999d55337418361be8786323aebb990d7b949",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/weixin-mp"
             }
           }
         }

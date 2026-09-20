@@ -14,6 +14,7 @@ import {
 } from '../packages/plugin-contract/dist/index.js';
 import { parse } from 'yaml';
 import { assertStaticPackageDependencies } from './catalog-static-package.mjs';
+import { assertPackedRuntimeEntrypoints } from './catalog-runtime-entrypoints.mjs';
 
 const catalog = JSON.parse(await readFile(new URL('../catalog/catalog.json', import.meta.url), 'utf8'));
 const validation = validatePluginCatalog(catalog);
@@ -22,7 +23,14 @@ if (!validation.valid) process.exit(1);
 
 assert.deepEqual(
   listCatalogPlugins(validation.catalog).map((entry) => entry.pluginId),
-  ['dev.clowder.genoffice-docx', 'dev.clowder.video-analysis', 'official.companion'],
+  [
+    'dev.clowder.genoffice-docx',
+    'dev.clowder.video-analysis',
+    'dev.clowder.video-generation',
+    'official.companion',
+    'official.wechat-visible-reader',
+    'official.weixin-mp',
+  ],
 );
 assert.deepEqual(
   searchCatalogPlugins(validation.catalog, 'zhipu').map((entry) => entry.pluginId),
@@ -34,6 +42,9 @@ assert.equal(
 );
 
 let videoAnalysisChecks = 0;
+let videoGenerationChecks = 0;
+let wechatVisibleReaderChecks = 0;
+let weixinMpChecks = 0;
 
 async function verifyCatalogEntry(catalogEntry) {
   const version = getCatalogPlugin(validation.catalog, catalogEntry.pluginId);
@@ -83,6 +94,8 @@ async function verifyCatalogEntry(catalogEntry) {
     assert.deepEqual(manifestValidation.manifest.description, catalogEntry.description);
     assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
 
+    assertPackedRuntimeEntrypoints(manifestValidation.manifest, artifact.files);
+
     if (catalogEntry.pluginId === 'dev.clowder.video-analysis') {
       videoAnalysisChecks += 1;
       const descriptions = typeof catalogEntry.description === 'string'
@@ -99,6 +112,75 @@ async function verifyCatalogEntry(catalogEntry) {
       assert.match(
         await readFile(join(unpackedDirectory, 'package', 'README.md'), 'utf8'),
         /^# Video Analysis\n/m,
+      );
+    }
+
+    if (catalogEntry.pluginId === 'dev.clowder.video-generation') {
+      videoGenerationChecks += 1;
+      const descriptions = typeof catalogEntry.description === 'string'
+        ? [catalogEntry.description]
+        : [catalogEntry.description.default, ...Object.values(catalogEntry.description.translations)];
+      assert.ok(
+        descriptions.every(description => [...description].length <= 100),
+        'video-generation Agent introductions must not exceed 100 characters per locale',
+      );
+      for (const member of ['README.md', 'protocols/jimeng.yaml', 'protocols/kling.yaml', 'protocols/zhipu.yaml']) {
+        assert.ok(
+          artifact.files.some((file) => file.path === member),
+          `packed video-generation artifact is missing ${member}`,
+        );
+      }
+      assert.match(
+        await readFile(join(unpackedDirectory, 'package', 'README.md'), 'utf8'),
+        /^# Video Generation\n/m,
+      );
+    }
+
+    if (catalogEntry.pluginId === 'official.weixin-mp') {
+      weixinMpChecks += 1;
+      const descriptions = typeof catalogEntry.description === 'string'
+        ? [catalogEntry.description]
+        : [catalogEntry.description.default, ...Object.values(catalogEntry.description.translations)];
+      assert.ok(
+        descriptions.every(description => [...description].length <= 100),
+        'weixin-mp Agent introductions must not exceed 100 characters per locale',
+      );
+      for (const member of ['README.md', 'limbs/weixin-mp.yml', 'skills/weixin-mp/SKILL.md']) {
+        assert.ok(
+          artifact.files.some((file) => file.path === member),
+          `packed weixin-mp artifact is missing ${member}`,
+        );
+      }
+      assert.match(
+        await readFile(join(unpackedDirectory, 'package', 'README.md'), 'utf8'),
+        /^# WeChat Official Account\n/m,
+      );
+    }
+
+    if (catalogEntry.pluginId === 'official.wechat-visible-reader') {
+      wechatVisibleReaderChecks += 1;
+      const descriptions = typeof catalogEntry.description === 'string'
+        ? [catalogEntry.description]
+        : [catalogEntry.description.default, ...Object.values(catalogEntry.description.translations)];
+      assert.ok(
+        descriptions.every(description => [...description].length <= 100),
+        'wechat-visible-reader Agent introductions must not exceed 100 characters per locale',
+      );
+      for (const member of [
+        'README.md',
+        'limbs/wechat-visible-reader.yml',
+        'native/WeChatReaderModels.swift',
+        'native/WeChatReaderCore.swift',
+        'native/WeChatVisibleReader.swift',
+      ]) {
+        assert.ok(
+          artifact.files.some((file) => file.path === member),
+          `packed wechat-visible-reader artifact is missing ${member}`,
+        );
+      }
+      assert.match(
+        await readFile(join(unpackedDirectory, 'package', 'README.md'), 'utf8'),
+        /^# WeChat Visible Reader\n/m,
       );
     }
 
@@ -176,5 +258,12 @@ async function verifyCatalogEntry(catalogEntry) {
 
 for (const entry of listCatalogPlugins(validation.catalog)) await verifyCatalogEntry(entry);
 assert.equal(videoAnalysisChecks, 1, 'video-analysis package-owned metadata checks must run exactly once');
+assert.equal(videoGenerationChecks, 1, 'video-generation package-owned metadata checks must run exactly once');
+assert.equal(
+  wechatVisibleReaderChecks,
+  1,
+  'wechat-visible-reader package-owned metadata checks must run exactly once',
+);
+assert.equal(weixinMpChecks, 1, 'weixin-mp package-owned metadata checks must run exactly once');
 
 console.log('catalog validation, list/search/get, and exact packed artifact: ok');
