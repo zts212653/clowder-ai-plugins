@@ -13,6 +13,13 @@ on:
       - 'packages/plugin-contract/**'
       - 'packages/plugin-sdk/**'
       - 'packages/companion/**'
+      - 'packages/connector-dingtalk/**'
+      - 'packages/connector-feishu/**'
+      - 'packages/connector-telegram/**'
+      - 'packages/connector-wecom-agent/**'
+      - 'packages/connector-wecom-bot/**'
+      - 'packages/connector-weixin/**'
+      - 'packages/connector-xiaoyi/**'
       - 'packages/feishu-meeting-intake/**'
       - 'packages/video-analysis/**'
       - 'packages/video-generation/**'
@@ -80,6 +87,23 @@ jobs:
 
       - name: SDK build
         run: pnpm --filter @clowder-ai/plugin-sdk build
+
+      - name: Connector package gates
+        run: |
+          set -euo pipefail
+          for package in \
+            @clowder-ai/connector-telegram \
+            @clowder-ai/connector-dingtalk \
+            @clowder-ai/connector-feishu \
+            @clowder-ai/connector-wecom-agent \
+            @clowder-ai/connector-wecom-bot \
+            @clowder-ai/connector-weixin \
+            @clowder-ai/connector-xiaoyi
+          do
+            pnpm --filter "$package" typecheck
+            pnpm --filter "$package" test
+            pnpm --filter "$package" build
+          done
 
       - name: Desktop window packed consumer
         run: node --test scripts/desktop-window-consumer.test.mjs
@@ -341,6 +365,21 @@ jobs:
       - name: Build SDK package
         run: pnpm --filter @clowder-ai/plugin-sdk build
 
+      - name: Build connector packages
+        run: |
+          set -euo pipefail
+          for package in \
+            @clowder-ai/connector-telegram \
+            @clowder-ai/connector-dingtalk \
+            @clowder-ai/connector-feishu \
+            @clowder-ai/connector-wecom-agent \
+            @clowder-ai/connector-wecom-bot \
+            @clowder-ai/connector-weixin \
+            @clowder-ai/connector-xiaoyi
+          do
+            pnpm --filter "$package" build
+          done
+
       - name: Build companion package
         run: pnpm --filter @clowder-ai/companion build
 
@@ -374,6 +413,48 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/plugin-sdk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Telegram connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-telegram
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish DingTalk connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-dingtalk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Feishu connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-feishu
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish WeCom agent connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-wecom-agent
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish WeCom bot connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-wecom-bot
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish WeChat Personal connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-weixin
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish XiaoYi connector prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/connector-xiaoyi
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish companion prerelease

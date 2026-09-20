@@ -162,15 +162,18 @@ ambient voice-mode and Host API URL discovery has been replaced by manifest-decl
 freezes the seven schedule identities, polling periods, timeouts, and action methods while leaving tracking
 registrations, cursors, leases, deduplication, repository bindings, and event publication behind one Host port.
 
-This checkpoint intentionally does not add connector or GitHub packages to the catalog. Their provisional
-runtime entrypoints remain absent and therefore fail the generic packed-entrypoint assertion. Catalog closure,
-fresh-consumer activation, and publication stay RED until the carrier-neutral package modules and journeys are
-complete and the parallel Core cutover can consume the reviewed artifacts. The package directories and
-preservation tests may be reviewed now;
-their provisional local pack coordinates are evidence of deterministic membership only, not release coordinates.
-The guard is wired into `scripts/catalog-check.mjs` and covered by
-`scripts/catalog-runtime-entrypoints.test.mjs`; it evaluates packed archive members rather than source paths,
-so none of these draft manifests can enter the catalog with a dangling runtime declaration.
+The seven connector packages now expose real `builtin` package modules, are present in the catalog, and pass
+the repository fresh-consumer journey. That journey installs their packed tarballs, validates each canonical
+manifest, imports its declared root entrypoint, applies `requirePluginModuleEntrypoint` to the ESM default
+export, and creates the declared feature definition. Their catalog coordinates were produced under the pinned
+Node 24.18.0 / npm 11.16.0 / zlib 1.3.1-e00f703 toolchain. GitHub Operations remains the one honest RED: its
+generic schedule/event implementation, catalog entry, and fresh-consumer proof are not complete yet.
+
+The packed-member guard remains wired into `scripts/catalog-check.mjs` and covered by
+`scripts/catalog-runtime-entrypoints.test.mjs`; it evaluates archive members rather than source paths, so no
+draft manifest can enter the catalog with a dangling runtime declaration. The fresh-consumer default-export
+guard closes the separate case where the entrypoint file exists but does not expose the Host-loadable module
+shape.
 
 ## Preservation matrix and acceptance
 

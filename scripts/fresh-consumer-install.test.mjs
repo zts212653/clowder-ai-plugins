@@ -10,6 +10,16 @@ import { parse as parseYaml } from 'yaml';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
+const connectorPackages = [
+  { name: '@clowder-ai/connector-telegram', directory: 'packages/connector-telegram' },
+  { name: '@clowder-ai/connector-dingtalk', directory: 'packages/connector-dingtalk' },
+  { name: '@clowder-ai/connector-feishu', directory: 'packages/connector-feishu' },
+  { name: '@clowder-ai/connector-wecom-agent', directory: 'packages/connector-wecom-agent' },
+  { name: '@clowder-ai/connector-wecom-bot', directory: 'packages/connector-wecom-bot' },
+  { name: '@clowder-ai/connector-weixin', directory: 'packages/connector-weixin' },
+  { name: '@clowder-ai/connector-xiaoyi', directory: 'packages/connector-xiaoyi' },
+];
+
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
@@ -60,6 +70,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       '@clowder-ai/weixin-mp',
       '@clowder-ai/wechat-visible-reader',
       '@clowder-ai/genoffice-docx',
+      ...connectorPackages.map(({ name }) => name),
     ]) {
       const build = packageName === '@clowder-ai/genoffice-docx' ? 'build:renderer' : 'build';
       run('pnpm', ['--filter', packageName, build], repoRoot);
@@ -76,6 +87,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       pack('packages/weixin-mp', packs),
       pack('packages/wechat-visible-reader', packs),
       pack('packages/genoffice-docx', packs),
+      ...connectorPackages.map(({ directory }) => pack(directory, packs)),
     ];
 
     const staged = join(root, 'staged');
@@ -351,6 +363,37 @@ test('packed public packages install and import in a fresh npm consumer', async 
         join(consumer, 'node_modules/@clowder-ai/plugin-contract/dist/index.js'),
       ).href
     );
+    const installedSdk = await import(
+      pathToFileURL(
+        join(consumer, 'node_modules/@clowder-ai/plugin-sdk/dist/index.js'),
+      ).href
+    );
+    for (const { name } of connectorPackages) {
+      const installedRoot = join(consumer, 'node_modules', name);
+      const packageJson = JSON.parse(await readFile(join(installedRoot, 'package.json'), 'utf8'));
+      const manifestText = await readFile(join(installedRoot, 'plugin.yaml'), 'utf8');
+      const manifest = parseYaml(manifestText);
+      const manifestValidation = installedContract.validateManifest(manifest);
+      assert.equal(
+        manifestValidation.valid,
+        true,
+        manifestValidation.valid ? undefined : JSON.stringify(manifestValidation.errors),
+      );
+      assert.equal(manifest.version, packageJson.version);
+      assert.equal(manifest.contractVersion, installedContract.CONTRACT_VERSION);
+      assert.equal(manifest.runtime.transport, 'builtin');
+      assert.equal(typeof manifest.runtime.entrypoint, 'string');
+      const namespace = await import(
+        pathToFileURL(join(installedRoot, manifest.runtime.entrypoint)).href
+      );
+      const entrypoint = installedSdk.requirePluginModuleEntrypoint(namespace.default);
+      const definition = entrypoint.create(manifest);
+      assert.equal(definition.manifest.pluginId, manifest.pluginId);
+      assert.deepEqual(
+        Object.keys(definition.activate).sort(),
+        manifest.features.map((feature) => feature.id).sort(),
+      );
+    }
     const videoManifestText = await readFile(
       join(consumer, 'node_modules/@clowder-ai/video-analysis/plugin.yaml'),
       'utf8',

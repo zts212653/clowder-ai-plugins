@@ -204,7 +204,7 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   assert.match(workflow, /^      id-token: write$/m);
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    9,
+    publishedPackageDirectories(workflow).length,
     'each public package action must receive the operator-authorized npm token',
   );
   assert.equal(
@@ -423,6 +423,13 @@ test('main publishes the public dependency chain through one hardened action', (
   const orderedPackages = [
     'packages/plugin-contract',
     'packages/plugin-sdk',
+    'packages/connector-telegram',
+    'packages/connector-dingtalk',
+    'packages/connector-feishu',
+    'packages/connector-wecom-agent',
+    'packages/connector-wecom-bot',
+    'packages/connector-weixin',
+    'packages/connector-xiaoyi',
     'packages/companion',
     'packages/video-analysis',
     'packages/video-generation',
@@ -819,6 +826,29 @@ test('SDK changes execute pull-request validation', () => {
     validateJob.indexOf('- name: Build\n        run: pnpm --filter @clowder-ai/plugin-contract build') <
       validateJob.indexOf('- name: SDK typecheck\n        run: pnpm --filter @clowder-ai/plugin-sdk typecheck'),
     'SDK checks must run after the contract build that provides their conformance import',
+  );
+});
+
+test('connector changes execute the aggregate package gate', () => {
+  const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+  const connectorDirectories = [
+    'connector-dingtalk',
+    'connector-feishu',
+    'connector-telegram',
+    'connector-wecom-agent',
+    'connector-wecom-bot',
+    'connector-weixin',
+    'connector-xiaoyi',
+  ];
+
+  assert.ok(validateJob, 'validation job must be active');
+  for (const directory of connectorDirectories) {
+    assert.match(releaseWorkflow, new RegExp(`^      - 'packages/${directory}/\\*\\*'$`, 'm'));
+    assert.match(validateJob, new RegExp(`^            @clowder-ai/${directory}(?: \\\\)?$`, 'm'));
+  }
+  assert.match(
+    validateJob,
+    /^      - name: Connector package gates\n        run: \|\n[\s\S]*?pnpm --filter "\$package" typecheck\n[\s\S]*?pnpm --filter "\$package" test\n[\s\S]*?pnpm --filter "\$package" build$/m,
   );
 });
 

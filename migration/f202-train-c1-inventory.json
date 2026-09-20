@@ -49,7 +49,7 @@
       "yamlClosure": "packages/companion/plugin.yaml is canonical; manifest.json must remain mechanically identical",
       "runtimeClosure": "builtin desktop-window surface is packed and integrity-bound",
       "catalogClosure": "listed as official.companion",
-      "freshConsumerClosure": "required; pending addition to repository-wide fresh-consumer journey"
+      "freshConsumerClosure": "covered by repository fresh-consumer install/import journey"
     },
     {
       "directory": "connector-dingtalk",
@@ -59,9 +59,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 carrier-neutral module",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.dingtalk with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "connector-feishu",
@@ -71,9 +71,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.feishu with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "connector-telegram",
@@ -83,9 +83,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 carrier-neutral module",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.telegram with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "connector-wecom-agent",
@@ -95,9 +95,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.wecom-agent with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "connector-wecom-bot",
@@ -107,9 +107,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.wecom-bot with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "connector-weixin",
@@ -119,9 +119,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented with Host-owned provider-session state; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented with Host-owned provider-session state; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.weixin with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "connector-xiaoyi",
@@ -131,9 +131,9 @@
       "contractClosure": "plugin.yaml contractVersion 0.1.0",
       "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 module with guarded default export",
       "yamlClosure": "plugin.yaml is the sole manifest truth",
-      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
-      "catalogClosure": "required; pending deterministic catalog generation",
-      "freshConsumerClosure": "required; pending aggregate install/import journey"
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; package lifecycle and provider mapping tests pass",
+      "catalogClosure": "listed as official.connector.xiaoyi with exact-toolchain pack coordinates",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/default-export journey"
     },
     {
       "directory": "genoffice-docx",

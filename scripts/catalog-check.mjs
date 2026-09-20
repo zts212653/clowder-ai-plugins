@@ -28,6 +28,13 @@ assert.deepEqual(
     'dev.clowder.video-analysis',
     'dev.clowder.video-generation',
     'official.companion',
+    'official.connector.dingtalk',
+    'official.connector.feishu',
+    'official.connector.telegram',
+    'official.connector.wecom-agent',
+    'official.connector.wecom-bot',
+    'official.connector.weixin',
+    'official.connector.xiaoyi',
     'official.wechat-visible-reader',
     'official.weixin-mp',
   ],
@@ -45,6 +52,7 @@ let videoAnalysisChecks = 0;
 let videoGenerationChecks = 0;
 let wechatVisibleReaderChecks = 0;
 let weixinMpChecks = 0;
+let connectorChecks = 0;
 
 async function verifyCatalogEntry(catalogEntry) {
   const version = getCatalogPlugin(validation.catalog, catalogEntry.pluginId);
@@ -95,6 +103,26 @@ async function verifyCatalogEntry(catalogEntry) {
     assert.deepEqual(manifestValidation.manifest.icon, catalogEntry.icon);
 
     assertPackedRuntimeEntrypoints(manifestValidation.manifest, artifact.files);
+
+    if (catalogEntry.pluginId.startsWith('official.connector.')) {
+      connectorChecks += 1;
+      const descriptions = typeof catalogEntry.description === 'string'
+        ? [catalogEntry.description]
+        : [catalogEntry.description.default, ...Object.values(catalogEntry.description.translations)];
+      assert.ok(
+        descriptions.every(description => [...description].length <= 100),
+        `${catalogEntry.pluginId} Agent introductions must not exceed 100 characters per locale`,
+      );
+      assert.equal(manifestValidation.manifest.runtime.transport, 'builtin');
+      assert.equal(
+        manifestValidation.manifest.runtime.entrypoint,
+        'dist/plugin-entrypoint.js',
+      );
+      assert.ok(
+        artifact.files.some((file) => file.path === 'README.md'),
+        `packed ${catalogEntry.pluginId} artifact is missing README.md`,
+      );
+    }
 
     if (catalogEntry.pluginId === 'dev.clowder.video-analysis') {
       videoAnalysisChecks += 1;
@@ -265,5 +293,6 @@ assert.equal(
   'wechat-visible-reader package-owned metadata checks must run exactly once',
 );
 assert.equal(weixinMpChecks, 1, 'weixin-mp package-owned metadata checks must run exactly once');
+assert.equal(connectorChecks, 7, 'connector package-owned metadata checks must run exactly once');
 
 console.log('catalog validation, list/search/get, and exact packed artifact: ok');

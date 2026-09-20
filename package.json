@@ -14,7 +14,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance",
-    "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/video-generation build && pnpm --filter @clowder-ai/wechat-visible-reader build && pnpm --filter @clowder-ai/weixin-mp build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter @clowder-ai/companion build && node --test scripts/catalog-static-package.test.mjs && node scripts/catalog-check.mjs"
+    "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter './packages/connector-*' build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/video-generation build && pnpm --filter @clowder-ai/wechat-visible-reader build && pnpm --filter @clowder-ai/weixin-mp build && pnpm --filter @clowder-ai/companion build && node --test scripts/catalog-static-package.test.mjs && node scripts/catalog-check.mjs"
   },
   "devDependencies": {
     "yaml": "2.9.0"
