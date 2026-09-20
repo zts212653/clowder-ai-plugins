@@ -9,7 +9,7 @@
     "terminalAlignmentOperatorMessage": "0001789886680827-002881-10e236ef",
     "coreCounterpartRead": {
       "pullRequest": "zts212653/clowder-ai#1487",
-      "head": "91d9ad96a96d9b2ce701d95d592f5914fe1e417e",
+      "head": "a2759879e3f64b357c8ba90c3cf486f8b607c07f",
       "path": "docs/plans/2026-09-19-f202-train-c1-migration-plan.md"
     }
   },
@@ -31,7 +31,11 @@
       "restart restores Host-owned durable state without double-run",
       "Core contains no package-id or provider-specific runtime branch"
     ],
-    "nextPhase": "C2 front-end contribution surfaces",
+    "nextPhase": "C2 front-end contribution surfaces, including retained StackChan physical-hardware limb work",
+    "c1AgentContributionConsumers": [
+      "wechat-visible-reader limb/skill contribution consumption",
+      "weixin-mp limb/skill contribution consumption"
+    ],
     "followupPolicy": "no C1 cleanup follow-up PR"
   },
   "repositoryPackages": [

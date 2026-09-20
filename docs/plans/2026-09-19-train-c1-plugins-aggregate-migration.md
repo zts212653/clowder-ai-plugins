@@ -54,8 +54,14 @@ migration rows as the whole repository compatibility surface.
    resumes without double-run. Package-local ambient authority, package-local durable checkpoints, and
    synthetic Host identities are forbidden substitutes.
 7. **C1 has no cleanup follow-up PR.** The aggregate Plugins and Core PRs close C1 together. The next phase is
-   C2's front-end contribution work (including the deferred audio/managed-service and physical-limb surfaces),
-   not a third C1 PR for SDK/YAML/runtime/catalog debt left behind here.
+   C2's front-end contribution work (including the deferred audio/managed-service surfaces and the retained
+   StackChan physical-hardware limb product), not a third C1 PR for SDK/YAML/runtime/catalog debt left behind
+   here. `physical-limb` does not include the agent-side `limb`/`skill` contribution consumption used by
+   `wechat-visible-reader` and `weixin-mp`; those consumers remain part of C1 compatibility closure.
+
+This contract was cross-read against Core PR #1487 exact HEAD
+`a2759879e3f64b357c8ba90c3cf486f8b607c07f`, section **8. C1 Terminal Acceptance Contract**. The two durable
+contracts are aligned with no substantive disagreement.
 
 The repository-wide package ledger in the inventory is executable acceptance data. A package may remain a
 retained external baseline, library, fixture, or C2-deferred product, but that classification must be explicit;

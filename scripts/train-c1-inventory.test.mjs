@@ -70,7 +70,11 @@ test('C1 terminal contract freezes the two-PR carrier-neutral finish line', () =
       'restart restores Host-owned durable state without double-run',
       'Core contains no package-id or provider-specific runtime branch',
     ],
-    nextPhase: 'C2 front-end contribution surfaces',
+    nextPhase: 'C2 front-end contribution surfaces, including retained StackChan physical-hardware limb work',
+    c1AgentContributionConsumers: [
+      'wechat-visible-reader limb/skill contribution consumption',
+      'weixin-mp limb/skill contribution consumption',
+    ],
     followupPolicy: 'no C1 cleanup follow-up PR',
   });
 });
@@ -225,4 +229,9 @@ test('inventory provenance is pinned to the independently grounded repositories'
     '9ab0eaf287381efcb209781463f38cc5f23870ea',
   );
   assert.equal(inventory.scopeAuthority.acceptedCoreIssue, 'zts212653/clowder-ai#1478');
+  assert.deepEqual(inventory.scopeAuthority.coreCounterpartRead, {
+    pullRequest: 'zts212653/clowder-ai#1487',
+    head: 'a2759879e3f64b357c8ba90c3cf486f8b607c07f',
+    path: 'docs/plans/2026-09-19-f202-train-c1-migration-plan.md',
+  });
 });
