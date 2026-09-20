@@ -7,7 +7,7 @@
  * F151 | ADR-014
  */
 
-import WebSocket from 'ws';
+import WebSocket, { type ClientOptions } from 'ws';
 import type { ConnectorLogger } from './types.js';
 import {
   APP_HEARTBEAT_MS,
@@ -23,6 +23,23 @@ import {
   type WsChannel,
   type XiaoyiAdapterOptions,
 } from './xiaoyi-protocol.js';
+
+export function xiaoyiWebSocketOptions(
+  url: string,
+  headers: Readonly<Record<string, string>>,
+): ClientOptions {
+  if (url === WS_BACKUP) {
+    const serviceHostname = new URL(WS_PRIMARY).hostname;
+    return {
+      headers: { ...headers, Host: serviceHostname },
+      rejectUnauthorized: true,
+      // @types/ws 8.18.1 omits tls.ConnectionOptions.servername from
+      // ClientOptions, but ws forwards these options to tls.connect at runtime.
+      ...({ servername: serviceHostname } as Record<string, string>),
+    };
+  }
+  return { headers, rejectUnauthorized: true };
+}
 
 export class XiaoyiWsManager {
   private channels: WsChannel[] = [];
@@ -75,9 +92,8 @@ export class XiaoyiWsManager {
     const ts = Date.now().toString();
     const sig = generateXiaoyiSignature(this.opts.sk, ts);
     const headers = { 'x-access-key': this.opts.ak, 'x-sign': sig, 'x-ts': ts, 'x-agent-id': this.opts.agentId };
-    const isIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(new URL(ch.url).hostname);
     this.log.info({ label: ch.label, url: ch.url }, '[XiaoYi] Connecting');
-    const ws = new WebSocket(ch.url, { headers, rejectUnauthorized: !isIp });
+    const ws = new WebSocket(ch.url, xiaoyiWebSocketOptions(ch.url, headers));
     ws.on('open', () => {
       ch.reconnects = 0;
       ch.lastPong = Date.now();

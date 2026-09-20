@@ -28,6 +28,7 @@ on:
       - 'packages/genoffice-docx/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
+      - 'scripts/train-c1-inventory*'
       - 'scripts/desktop-window-consumer.test.mjs'
       - 'scripts/catalog-check.mjs'
       - 'scripts/catalog-static-package*'
@@ -181,6 +182,9 @@ jobs:
 
       - name: Fresh consumer install
         run: pnpm test:fresh-consumer
+
+      - name: Train C1 inventory closure
+        run: pnpm test:train-c1-inventory
 
       - name: Machine catalog
         run: pnpm catalog:check

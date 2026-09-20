@@ -41,7 +41,9 @@ features:
       - type: connector
         id: xiaoyi
     capabilities:
+      - plugin.config.read
       - messaging.send
+      - secret.read
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

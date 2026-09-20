@@ -68,6 +68,11 @@ test('runtime restores Host-owned state before ingress and forwards provider fac
     text: 'hello',
     attachments: [{ type: 'image', platformKey: '{"fullUrl":"https://media"}' }],
   }]);
+  await runtime.stop();
+  await fake.inbound({
+    chatId: 'chat-1', senderId: 'user-1', messageId: 'message-after-stop', text: 'must not deliver', contextToken: 'opaque',
+  });
+  assert.equal(delivered.length, 1, 'provider callbacks after stop must not reach the Host');
 });
 
 test('stop during state restoration cannot claim drain before polling is stopped', async () => {

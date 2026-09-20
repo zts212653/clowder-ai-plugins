@@ -114,3 +114,20 @@ test('drain clears stale state even when provider disconnect rejects', async () 
   assert.equal(internal.stopFn, null);
   assert.equal(internal.wsClient, null);
 });
+
+test('provider disconnect during drain cannot re-arm the reconnect timer', async () => {
+  const subject = adapter();
+  const internal = subject as unknown as {
+    stopFn: (() => Promise<void>) | null;
+    reconnectTimer: ReturnType<typeof setTimeout> | null;
+    scheduleReconnect(client: { connect(): void }): void;
+  };
+  const client = { connect() {} };
+  internal.stopFn = async () => {
+    internal.scheduleReconnect(client);
+  };
+
+  await subject.stopStream();
+
+  assert.equal(internal.reconnectTimer, null);
+});

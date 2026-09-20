@@ -65,7 +65,48 @@ test('webhook runtime verifies provider input and delivers resolved provider fac
   }]);
 });
 
-test('stop during WebSocket start waits and then closes the exact client once', async () => {
+test('webhook events received before start are reported as skipped, not processed', async () => {
+  const delivered: unknown[] = [];
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'webhook' },
+    host: { deliver: async message => { delivered.push(message); } },
+    logger,
+    fetchFn,
+    createAdapter: () => adapter(),
+  });
+  // State is 'idle' — start() was never called.
+  assert.deepEqual(await runtime.handleWebhook({ body: { event: true } }), {
+    kind: 'skipped', reason: 'not_running',
+  });
+  assert.equal(delivered.length, 0, 'events arriving before start must not be delivered or reported as processed');
+  // URL verification challenge stays stateless — still answered before start.
+  assert.deepEqual(await runtime.handleWebhook({ body: { challenge: 'c' } }), {
+    kind: 'challenge', response: { challenge: 'c' },
+  });
+});
+
+test('card action with unresolvable chat type is reported as chat_type_unknown while running', async () => {
+  const subject = adapter();
+  subject.parseCardAction = () => ({
+    chatId: 'chat-9',
+    senderId: 'user-1',
+    actionValue: { cmd: '/status' },
+  });
+  subject.resolveChatType = async () => undefined;
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'webhook' },
+    host: { deliver: async () => undefined },
+    logger,
+    fetchFn,
+    createAdapter: () => subject,
+  });
+  await runtime.start();
+  assert.deepEqual(await runtime.handleWebhook({ body: { card: true } }), {
+    kind: 'skipped', reason: 'chat_type_unknown',
+  });
+});
+
+test('stop during WebSocket start closes the exact client without waiting for start settlement', async () => {
   let releaseStart: (() => void) | undefined;
   const startGate = new Promise<void>(resolve => { releaseStart = resolve; });
   let closes = 0;
@@ -83,9 +124,35 @@ test('stop during WebSocket start waits and then closes the exact client once', 
   const starting = runtime.start();
   const stopping = runtime.stop();
   await Promise.resolve();
-  assert.equal(closes, 0);
+  await stopping;
+  assert.equal(closes, 1);
   releaseStart?.();
-  await Promise.all([starting, stopping]);
+  await starting;
   await runtime.stop();
   assert.equal(closes, 1);
+});
+
+test('WebSocket callbacks retained by the provider cannot deliver after stop', async () => {
+  let dispatcher: { handles: Map<string, (data: Record<string, unknown>) => Promise<void>> } | undefined;
+  const delivered: unknown[] = [];
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'websocket' },
+    host: { deliver: async message => { delivered.push(message); } },
+    logger,
+    fetchFn,
+    createAdapter: () => adapter(),
+    createWsClient: () => ({
+      async start({ eventDispatcher }) {
+        dispatcher = eventDispatcher as unknown as typeof dispatcher;
+      },
+      close() {},
+    }),
+  });
+
+  await runtime.start();
+  await runtime.stop();
+  const inbound = dispatcher?.handles.get('im.message.receive_v1');
+  assert.ok(inbound);
+  await inbound({});
+  assert.equal(delivered.length, 0, 'provider callbacks after stop must not reach the Host');
 });

@@ -301,15 +301,6 @@ export class WeixinAdapter {
     this.botToken = '';
     this.clearSessionState();
     await this.clearPersistedSessionState('[WeixinAdapter] Failed to clear persisted session state on disconnect');
-    // Reject all pending sendReply promises before clearing (P1: no dangling promises)
-    const disconnectError = new Error('Disconnected by user');
-    for (const [, bucket] of this.pendingReplies) {
-      clearTimeout(bucket.timer);
-      for (const { reject } of bucket.resolvers) {
-        reject(disconnectError);
-      }
-    }
-    this.pendingReplies.clear();
     this.typingTickets.clear();
     this.log.info('[WeixinAdapter] Disconnected — bot_token and session state cleared');
   }
@@ -645,6 +636,12 @@ export class WeixinAdapter {
     this.polling = false;
     this.pollAbortController?.abort();
     this.pollAbortController = null;
+    const stoppedError = new Error('Provider polling stopped');
+    for (const [, bucket] of this.pendingReplies) {
+      clearTimeout(bucket.timer);
+      for (const { reject } of bucket.resolvers) reject(stoppedError);
+    }
+    this.pendingReplies.clear();
     // Clean up all typing timers
     for (const chatId of this.typingTimers.keys()) {
       this.stopTyping(chatId);

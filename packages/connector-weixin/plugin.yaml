@@ -61,7 +61,7 @@ features:
         id: weixin-bot
       - type: connector
         id: weixin
-    capabilities: [messaging.send]
+    capabilities: [plugin.config.read, plugin.state.get, plugin.state.set, messaging.send, secret.read]
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

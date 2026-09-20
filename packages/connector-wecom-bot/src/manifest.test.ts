@@ -19,6 +19,10 @@ test('manifest keeps Bot Secret private and wake authority out of the package', 
     { key: 'botSecret', label: 'Bot Secret', kind: 'secret', required: true },
   ]);
   assert.ok(manifest.contributions.some(item => item.type === 'connector' && item.id === 'wecom-bot'));
-  assert.deepEqual(manifest.features[0]?.capabilities, ['messaging.send']);
+  assert.deepEqual(manifest.features[0]?.capabilities, [
+    'plugin.config.read',
+    'messaging.send',
+    'secret.read',
+  ]);
   assert.deepEqual(manifest.runtime, { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' });
 });

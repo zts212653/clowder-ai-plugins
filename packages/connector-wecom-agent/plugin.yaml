@@ -58,7 +58,9 @@ features:
       - type: webhook
         id: wecom-agent-callback
     capabilities:
+      - plugin.config.read
       - messaging.send
+      - secret.read
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

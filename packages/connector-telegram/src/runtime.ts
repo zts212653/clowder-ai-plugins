@@ -99,6 +99,10 @@ export function createTelegramConnectorRuntime<Adapter extends TelegramRuntimeAd
   let state: 'idle' | 'starting' | 'running' | 'stopped' = 'idle';
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
+  const deliverIfRunning = async (message: TelegramInboundMessage) => {
+    if (state !== 'running') return;
+    await options.host.deliver(hostMessage(message));
+  };
 
   return {
     outbound,
@@ -107,7 +111,7 @@ export function createTelegramConnectorRuntime<Adapter extends TelegramRuntimeAd
       if (startPromise !== undefined) return startPromise;
       state = 'starting';
       startPromise = Promise.resolve()
-        .then(() => outbound.startPolling(async message => options.host.deliver(hostMessage(message))))
+        .then(() => outbound.startPolling(deliverIfRunning))
         .then(() => {
           if (state !== 'stopped') {
             state = 'running';

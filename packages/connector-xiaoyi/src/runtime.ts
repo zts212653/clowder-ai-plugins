@@ -70,6 +70,10 @@ export function createXiaoyiConnectorRuntime<Adapter extends XiaoyiRuntimeAdapte
   let state: 'idle' | 'starting' | 'running' | 'stopped' = 'idle';
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
+  const deliverIfRunning = async (message: XiaoyiInboundMessage) => {
+    if (state !== 'running') return;
+    await options.host.deliver(hostMessage(message));
+  };
 
   return {
     outbound,
@@ -77,7 +81,7 @@ export function createXiaoyiConnectorRuntime<Adapter extends XiaoyiRuntimeAdapte
       if (state === 'stopped') return Promise.reject(new Error('XiaoYi connector runtime has been stopped'));
       if (startPromise !== undefined) return startPromise;
       state = 'starting';
-      startPromise = outbound.startStream(async message => options.host.deliver(hostMessage(message)))
+      startPromise = outbound.startStream(deliverIfRunning)
         .then(() => {
           if (state !== 'stopped') {
             state = 'running';

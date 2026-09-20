@@ -118,6 +118,10 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
   let state: 'idle' | 'starting' | 'running' | 'stopped' = 'idle';
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
+  const deliverIfRunning = async (message: DingTalkInboundMessage) => {
+    if (state !== 'running') return;
+    await options.host.deliver(hostMessage(outbound, message));
+  };
 
   return {
     outbound,
@@ -126,7 +130,7 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
       if (startPromise !== undefined) return startPromise;
       state = 'starting';
       startPromise = outbound
-        .startStream(async message => options.host.deliver(hostMessage(outbound, message)))
+        .startStream(deliverIfRunning)
         .then(() => {
           if (state !== 'stopped') {
             state = 'running';
@@ -149,10 +153,7 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
         return Promise.resolve();
       }
       state = 'stopped';
-      stopPromise = (async () => {
-        await startPromise?.catch(() => undefined);
-        await outbound.stopStream();
-      })();
+      stopPromise = outbound.stopStream();
       return stopPromise;
     },
   };

@@ -20,6 +20,10 @@ test('manifest keeps credentials secret and binding authority Host-owned', async
   ]);
   assert.ok(manifest.contributions.some(item => item.type === 'connector' && item.id === 'feishu'));
   assert.ok(manifest.contributions.some(item => item.type === 'webhook' && item.id === 'feishu-events'));
-  assert.deepEqual(manifest.features[0]?.capabilities, ['messaging.send']);
+  assert.deepEqual(manifest.features[0]?.capabilities, [
+    'plugin.config.read',
+    'messaging.send',
+    'secret.read',
+  ]);
   assert.deepEqual(manifest.runtime, { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' });
 });

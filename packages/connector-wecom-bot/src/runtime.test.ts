@@ -69,6 +69,11 @@ test('runtime maps provider facts and preserves the opaque encrypted media key',
     conversation: { type: 'group' },
   }]);
   assert.equal(Object.hasOwn(delivered[0] as object, 'threadId'), false);
+  await runtime.stop();
+  await fake.inbound({
+    chatId: 'group-1', messageId: 'message-after-stop', senderId: 'user-1', text: 'must not deliver', chatType: 'group',
+  });
+  assert.equal(delivered.length, 1, 'provider callbacks after stop must not reach the Host');
 });
 
 test('stop during start waits for provider setup and drains exactly once', async () => {

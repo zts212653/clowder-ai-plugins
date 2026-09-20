@@ -97,6 +97,14 @@ test('runtime maps provider ingress to Host-owned delivery without inventing a t
   }]);
   assert.equal(Object.hasOwn(delivered[0] as object, 'address'), false);
   assert.equal(Object.hasOwn(delivered[0] as object, 'threadId'), false);
+  await runtime.stop();
+  await provider.inbound({
+    chatId: 'chat-1',
+    senderId: 'user-1',
+    messageId: 'message-after-stop',
+    text: 'must not deliver',
+  });
+  assert.equal(delivered.length, 1, 'provider callbacks after stop must not reach the Host');
 });
 
 test('runtime owns one async polling lifecycle and drains exactly once', async () => {

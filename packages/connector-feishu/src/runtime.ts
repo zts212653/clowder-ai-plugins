@@ -62,6 +62,8 @@ interface FeishuWsClient {
   close(options?: { force?: boolean }): void;
 }
 
+const WS_START_TIMEOUT_MS = 30_000;
+
 export interface FeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapter = FeishuAdapter> {
   readonly outbound: Adapter;
   start(): Promise<void>;
@@ -189,8 +191,12 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
   let stopPromise: Promise<void> | undefined;
   let wsClient: FeishuWsClient | undefined;
 
-  const routeEvent = async (message: FeishuInboundMessage) => options.host.deliver(await providerMessage(outbound, message));
+  const routeEvent = async (message: FeishuInboundMessage) => {
+    if (state !== 'running') return;
+    await options.host.deliver(await providerMessage(outbound, message));
+  };
   const routeCard = async (action: FeishuCardAction) => {
+    if (state !== 'running') return false;
     const message = await cardMessage(outbound, action);
     if (message !== null) await options.host.deliver(message);
     return message !== null;
@@ -225,8 +231,27 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
         const createWs = options.createWsClient ?? ((value: Readonly<{ appId: string; appSecret: string }>) => (
           new lark.WSClient({ ...value, loggerLevel: lark.LoggerLevel.info })
         ));
-        wsClient = createWs({ appId, appSecret });
-        await wsClient.start({ eventDispatcher: dispatcher });
+        const client = createWs({ appId, appSecret });
+        wsClient = client;
+        let startTimer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await new Promise<void>((resolve, reject) => {
+            startTimer = setTimeout(() => {
+              reject(new Error(`Feishu WSClient start timed out after ${WS_START_TIMEOUT_MS}ms`));
+            }, WS_START_TIMEOUT_MS);
+            // Handlers are attached to client.start(), so a late settlement
+            // after the timeout rejects is never an unhandled rejection.
+            client.start({ eventDispatcher: dispatcher }).then(resolve, reject);
+          });
+        } finally {
+          if (startTimer) clearTimeout(startTimer);
+        }
+        // Only 'starting' (still in flight) or 'stopped' (stop() raced us) is
+        // reachable here; TS narrows state to 'starting' after the await chain.
+        if (state !== 'starting' && wsClient === client) {
+          client.close({ force: true });
+          wsClient = undefined;
+        }
       })().then(() => {
         if (state !== 'stopped') {
           state = 'running';
@@ -242,11 +267,9 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
       if (stopPromise !== undefined) return stopPromise;
       if (state === 'idle') { state = 'stopped'; return Promise.resolve(); }
       state = 'stopped';
-      stopPromise = (async () => {
-        await startPromise?.catch(() => undefined);
-        wsClient?.close({ force: true });
-        wsClient = undefined;
-      })();
+      wsClient?.close({ force: true });
+      wsClient = undefined;
+      stopPromise = Promise.resolve();
       return stopPromise;
     },
     async handleWebhook(candidate) {
@@ -256,6 +279,10 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
       const challenge = outbound.isVerificationChallenge(body);
       if (challenge !== null) return { kind: 'challenge', response: challenge };
       if (!outbound.verifyEventToken(body)) return { kind: 'error', status: 403, message: 'Invalid verification token' };
+      // Events arriving before start() completed (state idle/starting) are not
+      // delivered; report them honestly instead of dropping silently and
+      // claiming they were processed.
+      if (state !== 'running') return { kind: 'skipped', reason: 'not_running' };
       const action = outbound.parseCardAction(body);
       if (action !== null) {
         return await routeCard(action)

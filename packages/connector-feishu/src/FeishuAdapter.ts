@@ -9,13 +9,10 @@
  * F088 Multi-Platform Chat Gateway
  */
 
-import { execFile } from 'node:child_process';
 import { createReadStream } from 'node:fs';
 import { unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
-const execFileAsync = promisify(execFile);
 
 import * as lark from '@larksuiteoapi/node-sdk';
 import { DEFAULT_QUICK_ACTIONS, type ConnectorLogger, type MessageEnvelope, type RichBlock } from './types.js';
@@ -364,9 +361,16 @@ export class FeishuAdapter {
       return;
     }
     if (payload.absPath && this.tokenManager) {
-      const uploaded = await this.uploadToFeishu(payload.absPath, payload.type, payload.fileName);
+      const deliveryType = this.deliveryTypeFor(payload.absPath, payload.type);
+      if (deliveryType !== payload.type) {
+        this.log.info(
+          { absPath: payload.absPath, declaredType: payload.type, deliveryType },
+          '[FeishuAdapter] sendMedia: no transcode capability, delivering audio as original-name file',
+        );
+      }
+      const uploaded = await this.uploadToFeishu(payload.absPath, deliveryType, payload.fileName);
       if (uploaded) {
-        await this.sendWithPlatformKey(externalChatId, { ...payload, ...uploaded });
+        await this.sendWithPlatformKey(externalChatId, { ...payload, type: deliveryType, ...uploaded });
         return;
       }
       this.log.warn(
@@ -378,9 +382,10 @@ export class FeishuAdapter {
       const tempPath = await this.downloadToTempFile(payload.url);
       if (tempPath) {
         try {
-          const uploaded = await this.uploadToFeishu(tempPath, payload.type, payload.fileName);
+          const deliveryType = this.deliveryTypeFor(tempPath, payload.type);
+          const uploaded = await this.uploadToFeishu(tempPath, deliveryType, payload.fileName);
           if (uploaded) {
-            await this.sendWithPlatformKey(externalChatId, { ...payload, ...uploaded });
+            await this.sendWithPlatformKey(externalChatId, { ...payload, type: deliveryType, ...uploaded });
             return;
           }
         } finally {
@@ -408,11 +413,23 @@ export class FeishuAdapter {
   }
 
   /**
+   * Feishu accepts only OPUS for `msg_type: audio`. The connector vocabulary
+   * grants no process/filesystem capability, so there is no transcoder to
+   * call: non-opus audio is delivered as the original file (`msg_type: file`,
+   * original name) rather than being converted or silently dropped.
+   */
+  private deliveryTypeFor(absPath: string, type: 'image' | 'file' | 'audio'): 'image' | 'file' | 'audio' {
+    if (type !== 'audio') return type;
+    const ext = absPath.split('.').pop()?.toLowerCase();
+    return ext === 'opus' ? 'audio' : 'file';
+  }
+
+  /**
    * Upload a local file to Feishu and return the platform key.
    * Images → /im/v1/images, files/audio → /im/v1/files.
    *
-   * Audio files: Feishu requires OPUS format for `msg_type: audio`.
-   * Non-opus audio (wav/mp3) is automatically converted via ffmpeg before upload.
+   * Audio: only true OPUS input keeps `file_type: opus` / `msg_type: audio`;
+   * non-opus audio is uploaded as a plain file (see deliveryTypeFor).
    */
   private async uploadToFeishu(
     absPath: string,
@@ -425,35 +442,8 @@ export class FeishuAdapter {
       return null;
     }
 
-    // For audio: convert to OPUS if needed (Feishu only accepts opus for audio messages)
-    let uploadPath = absPath;
-    let tempOpusPath: string | null = null;
-    if (type === 'audio') {
-      const ext = absPath.split('.').pop()?.toLowerCase();
-      if (ext && ext !== 'opus') {
-        const converted = await this.convertToOpus(absPath);
-        if (converted) {
-          tempOpusPath = converted;
-          uploadPath = converted;
-        } else {
-          this.log.warn(
-            { absPath, ext },
-            '[FeishuAdapter] uploadToFeishu: opus conversion failed, aborting audio upload',
-          );
-          return null;
-        }
-      }
-    }
-
     const originalFileName = displayFileName ?? absPath.split('/').pop() ?? 'file';
-
-    try {
-      return await this.uploadToFeishuInner(uploadPath, type, token, originalFileName);
-    } finally {
-      if (tempOpusPath) {
-        await unlink(tempOpusPath).catch(() => {});
-      }
-    }
+    return await this.uploadToFeishuInner(absPath, type, token, originalFileName);
   }
 
   private async uploadToFeishuInner(
@@ -505,30 +495,6 @@ export class FeishuAdapter {
     const data = (await res.json()) as { data?: { file_key?: string } };
     const fileKey = data.data?.file_key;
     return fileKey ? { fileKey } : null;
-  }
-
-  /**
-   * Convert an audio file to Opus format (mono, 16kHz) using ffmpeg.
-   * Returns the path to the temporary .opus file, or null if conversion fails.
-   * Feishu requires opus for msg_type: audio — wav/mp3/ogg are rejected.
-   */
-  private async convertToOpus(absPath: string): Promise<string | null> {
-    const baseName =
-      absPath
-        .split('/')
-        .pop()
-        ?.replace(/\.\w+$/, '') ?? 'audio';
-    const opusPath = join(tmpdir(), `cat-cafe-feishu-${baseName}-${Date.now()}.opus`);
-    try {
-      await execFileAsync('ffmpeg', ['-i', absPath, '-acodec', 'libopus', '-ac', '1', '-ar', '16000', '-y', opusPath], {
-        timeout: 30_000,
-      });
-      this.log.info({ absPath, opusPath }, '[FeishuAdapter] convertToOpus: success');
-      return opusPath;
-    } catch (err) {
-      this.log.warn({ err, absPath }, '[FeishuAdapter] convertToOpus: ffmpeg failed');
-      return null;
-    }
   }
 
   /**

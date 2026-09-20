@@ -59,6 +59,7 @@ interface ActiveCard {
 
 const AI_CARD_THROTTLE_MS = 300;
 const AI_CARD_TEMPLATE_ID = 'StandardCard';
+const STREAM_CONNECT_TIMEOUT_MS = 30_000;
 
 // ── Adapter ──
 
@@ -72,6 +73,7 @@ export class DingTalkAdapter {
   // Stream client (dingtalk-stream SDK)
   private streamClient: unknown = null;
   private stopFn: (() => Promise<void>) | null = null;
+  private streamGeneration = 0;
 
   // Active AI Card sessions (keyed by outTrackId)
   private readonly activeCards = new Map<string, ActiveCard>();
@@ -485,8 +487,10 @@ export class DingTalkAdapter {
    * AC-A7: Stream connection + reconnect + dedup
    */
   async startStream(onMessage: (msg: DingTalkInboundMessage) => Promise<void>): Promise<void> {
+    const generation = ++this.streamGeneration;
     try {
       const { DWClient, EventAck, TOPIC_ROBOT } = await import('dingtalk-stream');
+      if (generation !== this.streamGeneration) return;
 
       const client = new DWClient({
         clientId: this.appKey,
@@ -513,7 +517,6 @@ export class DingTalkAdapter {
         }
       });
 
-      await client.connect();
       this.streamClient = client;
       this.stopFn = async () => {
         try {
@@ -522,6 +525,38 @@ export class DingTalkAdapter {
           // ignore disconnect errors
         }
       };
+      let connectTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          connectTimer = setTimeout(() => {
+            reject(new Error(`DingTalk stream connect timed out after ${STREAM_CONNECT_TIMEOUT_MS}ms`));
+          }, STREAM_CONNECT_TIMEOUT_MS);
+          // Handlers are attached to client.connect(), so a late settlement
+          // after the timeout rejects is never an unhandled rejection.
+          client.connect().then(resolve, reject);
+        });
+      } catch (err) {
+        // stop() racing this connect() disconnects the client first, so the
+        // connect rejection is expected — swallow it instead of rethrowing into
+        // a startPromise that stop() no longer awaits (unhandled rejection).
+        if (generation !== this.streamGeneration) return;
+        try {
+          client.disconnect();
+        } catch {
+          // ignore disconnect errors
+        }
+        throw err;
+      } finally {
+        if (connectTimer) clearTimeout(connectTimer);
+      }
+      if (generation !== this.streamGeneration) {
+        try {
+          client.disconnect();
+        } catch {
+          // ignore disconnect errors
+        }
+        return;
+      }
 
       this.log.info('[DingTalkAdapter] Stream connection established');
     } catch (err) {
@@ -534,10 +569,12 @@ export class DingTalkAdapter {
    * Stop the Stream connection.
    */
   async stopStream(): Promise<void> {
-    if (this.stopFn) {
-      await this.stopFn();
-      this.stopFn = null;
-      this.streamClient = null;
+    this.streamGeneration += 1;
+    const stop = this.stopFn;
+    this.stopFn = null;
+    this.streamClient = null;
+    if (stop) {
+      await stop();
       this.log.info('[DingTalkAdapter] Stream connection stopped');
     }
   }

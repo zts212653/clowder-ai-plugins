@@ -210,7 +210,18 @@ test('GitHub Operations remains an explicit package implementation checkpoint', 
 test('every migration target is a package-owned, cataloged artifact', async () => {
   const catalogIds = new Set(catalog.plugins.map(entry => entry.pluginId));
 
-  for (const entry of inventory.entries.filter(candidate => candidate.disposition === 'migrate')) {
+  const migrationEntries = inventory.entries.filter(candidate => candidate.disposition === 'migrate');
+  // The frozen C1 plan pins GitHub Operations as the single implementation-pending
+  // checkpoint: its catalog entry lands together with its schedule/event
+  // implementation. Every other migration target must already be cataloged, and
+  // the moment github's implementationStatus flips this gate requires its
+  // catalog row — the exemption is pinned to exactly one entry, not open-ended.
+  const pendingCheckpointIds = migrationEntries
+    .filter(candidate => candidate.implementationStatus === 'port-declared, implementation-pending-in-plugins')
+    .map(candidate => candidate.id);
+  assert.deepEqual(pendingCheckpointIds, ['github']);
+
+  for (const entry of migrationEntries) {
     const packageDirectory = new URL(`../packages/${entry.targetPackage.split('/').at(-1)}/`, import.meta.url);
     await Promise.all([
       access(new URL('package.json', packageDirectory)),
@@ -218,6 +229,7 @@ test('every migration target is a package-owned, cataloged artifact', async () =
       access(new URL('README.md', packageDirectory)),
       access(new URL('assets/icon.svg', packageDirectory)),
     ]);
+    if (pendingCheckpointIds.includes(entry.id)) continue;
     assert.ok(catalogIds.has(entry.catalogPluginId), `${entry.catalogPluginId} is missing from catalog`);
   }
 });

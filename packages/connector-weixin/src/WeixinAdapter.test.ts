@@ -50,3 +50,13 @@ test('adapter source contains no ambient environment fallback', async () => {
   assert.doesNotMatch(source, /process\.env|CLOWDER_|CAT_CAFE_API_URL|API_SERVER_PORT/);
   assert.match(source, /requires an explicit Host-projected apiBaseUrl/);
 });
+
+test('stopping polling rejects queued replies before they can flush after disposal', async () => {
+  const subject = new WeixinAdapter('test-token', logger);
+  subject._injectContextToken('chat', 'context-token');
+  const pendingReply = subject.sendReply('chat', 'must not send after stop');
+
+  await subject.stopPolling();
+
+  await assert.rejects(pendingReply, /polling stopped/u);
+});

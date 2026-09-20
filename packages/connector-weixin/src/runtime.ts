@@ -85,6 +85,10 @@ export function createWeixinConnectorRuntime<Adapter extends WeixinRuntimeAdapte
   let state: 'idle' | 'starting' | 'running' | 'stopped' = 'idle';
   let startPromise: Promise<void> | undefined;
   let stopPromise: Promise<void> | undefined;
+  const deliverIfRunning = async (message: WeixinInboundMessage) => {
+    if (state !== 'running') return;
+    await options.host.deliver(hostMessage(message));
+  };
 
   return {
     outbound,
@@ -94,7 +98,7 @@ export function createWeixinConnectorRuntime<Adapter extends WeixinRuntimeAdapte
       state = 'starting';
       startPromise = Promise.resolve()
         .then(() => outbound.restoreSessionState())
-        .then(() => outbound.startPolling(async message => options.host.deliver(hostMessage(message))))
+        .then(() => outbound.startPolling(deliverIfRunning))
         .then(() => {
           if (state !== 'stopped') {
             state = 'running';

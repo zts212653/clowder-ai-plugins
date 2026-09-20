@@ -59,6 +59,11 @@ test('runtime maps explicit config and delivers no Host authority fields', async
     text: 'hello',
   }]);
   assert.equal(Object.hasOwn(delivered[0] as object, 'address'), false);
+  await runtime.stop();
+  await fake.inbound({
+    chatId: 'agent:session', senderId: 'owner:agent', messageId: 'message-after-stop', taskId: 'task-2', text: 'must not deliver',
+  });
+  assert.equal(delivered.length, 1, 'provider callbacks after stop must not reach the Host');
 });
 
 test('stop during start drains the dual WebSocket runtime once', async () => {

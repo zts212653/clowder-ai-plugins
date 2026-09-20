@@ -69,6 +69,7 @@ export class WeComBotAdapter {
 
   // Delayed reconnect timer for disconnected_event recovery
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private acceptReconnects = false;
   private static readonly RECONNECT_DELAY_MS = 10_000;
 
   // Active streaming sessions (keyed by streamId = platformMessageId)
@@ -539,6 +540,7 @@ export class WeComBotAdapter {
    * AC-B7: WebSocket connection + reconnect + event dispatch
    */
   async startStream(onMessage: (msg: WeComBotInboundMessage) => Promise<void>): Promise<void> {
+    this.acceptReconnects = true;
     try {
       const { default: AiBot, generateReqId } = await import('@wecom/aibot-node-sdk');
 
@@ -651,10 +653,15 @@ export class WeComBotAdapter {
         } catch {
           // ignore disconnect errors
         }
+        // Detach every listener registered above — without this the SDK retains
+        // the handler closures and a late frame after disconnect can still
+        // reach adapter state (orphan delivery after stop).
+        client.removeAllListeners();
       };
 
       this.log.info('[WeComBotAdapter] WebSocket connection initiated');
     } catch (err) {
+      this.acceptReconnects = false;
       this.log.error({ err }, '[WeComBotAdapter] Failed to start WebSocket connection');
       throw err;
     }
@@ -666,6 +673,7 @@ export class WeComBotAdapter {
    * We call client.connect() directly to bypass the isManualClose flag.
    */
   private scheduleReconnect(client: { connect(): void }): void {
+    if (!this.acceptReconnects) return;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
 
     this.connectionState = 'reconnecting';
@@ -676,6 +684,7 @@ export class WeComBotAdapter {
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
+      if (!this.acceptReconnects) return;
       this.log.info('[WeComBotAdapter] Attempting delayed reconnect');
       try {
         client.connect();
@@ -689,6 +698,7 @@ export class WeComBotAdapter {
    * Stop the WebSocket connection.
    */
   async stopStream(): Promise<void> {
+    this.acceptReconnects = false;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

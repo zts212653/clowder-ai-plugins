@@ -97,6 +97,16 @@ test('runtime emits provider facts and leaves binding resolution to the Host', a
   }]);
   assert.equal(Object.hasOwn(delivered[0] as object, 'address'), false);
   assert.equal(Object.hasOwn(delivered[0] as object, 'threadId'), false);
+  await runtime.stop();
+  await provider.inbound({
+    chatId: 'group-1',
+    conversationId: 'conversation-1',
+    text: 'must not deliver',
+    messageId: 'message-after-stop',
+    senderId: 'user-1',
+    chatType: 'group',
+  });
+  assert.equal(delivered.length, 1, 'provider callbacks after stop must not reach the Host');
 });
 
 test('runtime drains the provider stream exactly once', async () => {
@@ -115,7 +125,7 @@ test('runtime drains the provider stream exactly once', async () => {
   await assert.rejects(runtime.start(), /stopped/u);
 });
 
-test('stop during an in-flight provider start waits and then closes the live stream', async () => {
+test('stop during an in-flight provider start cancels without waiting for start settlement', async () => {
   let releaseStart!: () => void;
   const startGate = new Promise<void>(resolve => {
     releaseStart = resolve;
@@ -144,8 +154,9 @@ test('stop during an in-flight provider start waits and then closes the live str
   assert.equal(runtime.start(), starting, 'repeated start must join the same lifecycle transition');
   const stopping = runtime.stop();
   await Promise.resolve();
-  assert.equal(stopCalls, 0, 'drain cannot claim completion before provider start settles');
+  await stopping;
+  assert.equal(stopCalls, 1, 'drain must cancel the in-flight provider start immediately');
   releaseStart();
-  await Promise.all([starting, stopping]);
+  await starting;
   assert.equal(stopCalls, 1);
 });
