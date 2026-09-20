@@ -18,6 +18,19 @@ interface BehaviorSuite {
   };
 }
 
+interface PluginCatalog {
+  plugins: Array<{
+    pluginId: string;
+    versions: Array<{
+      artifact: {
+        provenance: {
+          sourceDirectory: string;
+        };
+      };
+    }>;
+  }>;
+}
+
 const contractPackage = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 ) as ContractPackage;
@@ -26,6 +39,29 @@ const releaseWorkflow = readFileSync(
   new URL('../../../../.github/workflows/contract-ci.yml', import.meta.url),
   'utf8',
 );
+
+const pluginCatalog = JSON.parse(
+  readFileSync(new URL('../../../../catalog/catalog.json', import.meta.url), 'utf8'),
+) as PluginCatalog;
+
+function publishedPackageDirectories(workflow: string): string[] {
+  return [...workflow.matchAll(/^\s+package-directory:\s+(packages\/[a-z0-9-]+)$/gmu)]
+    .map((match) => match[1]);
+}
+
+function catalogPackageDirectories(catalog: PluginCatalog): string[] {
+  return [...new Set(catalog.plugins.map((plugin) => {
+    const sourceDirectories = new Set(
+      plugin.versions.map((version) => version.artifact.provenance.sourceDirectory),
+    );
+    assert.equal(
+      sourceDirectories.size,
+      1,
+      `${plugin.pluginId} catalog generations must keep one package source directory`,
+    );
+    return [...sourceDirectories][0];
+  }))];
+}
 
 const prereleasePublishActionUrl = new URL(
   '../../../../.github/actions/publish-prerelease/action.yml',
@@ -395,6 +431,8 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/genoffice-docx',
     'packages/feishu-meeting-intake',
   ];
+  const publishedPackages = publishedPackageDirectories(releaseWorkflow);
+  const catalogPackages = catalogPackageDirectories(pluginCatalog);
   let previousIndex = -1;
 
   for (const packageDirectory of orderedPackages) {
@@ -405,9 +443,20 @@ test('main publishes the public dependency chain through one hardened action', (
   }
   assert.equal(
     releaseWorkflow.match(/uses: \.\/\.github\/actions\/publish-prerelease/g)?.length,
-    orderedPackages.length,
+    publishedPackages.length,
     'all public packages must use the same hardened publication action',
   );
+  assert.deepEqual(
+    publishedPackages,
+    orderedPackages,
+    'the dependency-order declaration must cover the exact publication list',
+  );
+  for (const packageDirectory of catalogPackages) {
+    assert.ok(
+      publishedPackages.includes(packageDirectory),
+      `catalog artifact ${packageDirectory} is missing from the publication workflow`,
+    );
+  }
   assert.match(
     releaseWorkflow,
     /^      - '\.github\/actions\/publish-prerelease\/\*\*'$/m,

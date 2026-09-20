@@ -130,6 +130,15 @@ test('every migration entry carries preservation and rollback truth', () => {
   }
 });
 
+test('GitHub Operations remains an explicit Host-blocked port declaration', () => {
+  const github = inventory.entries.find(entry => entry.id === 'github');
+  assert.ok(github, 'GitHub Operations must remain in the frozen inventory');
+  assert.equal(
+    github.implementationStatus,
+    'port-declared, implementation-blocked-on-core-d-e',
+  );
+});
+
 test('every migration target is a package-owned, cataloged artifact', async () => {
   const catalogIds = new Set(catalog.plugins.map(entry => entry.pluginId));
 

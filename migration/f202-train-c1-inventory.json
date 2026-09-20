@@ -257,6 +257,7 @@
       "targetPackage": "@clowder-ai/github-operations",
       "catalogPluginId": "official.github-operations",
       "runtimeRequirements": ["schedule contributions", "events.publish", "Host-owned tracking state"],
+      "implementationStatus": "port-declared, implementation-blocked-on-core-d-e",
       "rollback": "Disable package schedules before restoring Core factories against unchanged Host schedule state."
     },
     {

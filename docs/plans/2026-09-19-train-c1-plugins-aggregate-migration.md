@@ -116,8 +116,11 @@ the ordinary-text negative path.
 
 The first clean checkpoint (`60bc85a`) contains five provider adapter slices plus video generation, WeChat
 visible reader, Weixin MP, the frozen SDK rows, and a generic pack-time assertion that every declared runtime
-entrypoint is an archive member. A second bounded slice adds Feishu, Weixin, and GitHub Operations, completing
-all eleven package directories without crossing the Host authority boundary.
+entrypoint is an archive member. A second bounded slice adds Feishu and Weixin provider adapters plus the
+GitHub Operations schedule/Host-port declaration, completing all eleven package directories without crossing
+the Host authority boundary. GitHub Operations is explicitly `port-declared,
+implementation-blocked-on-core-d-e`: unlike the Feishu and Weixin adapters, its tracking, cursor, lease,
+binding, and event-publication implementation cannot close before the Core D/E authority surface exists.
 
 Feishu retains verified webhook parsing, token refresh, cards, media transfer, and QR credential acquisition.
 Weixin retains iLink polling, QR login, media transfer, and explicit cursor/context-token injection; its old
@@ -130,6 +133,9 @@ entrypoints remain absent and therefore fail the generic packed-entrypoint asser
 consumer activation, and publication stay RED until Core supplies the approved binding/config/checkpoint and
 external schedule callback composition. The package directories and preservation tests may be reviewed now;
 their provisional local pack coordinates are evidence of deterministic membership only, not release coordinates.
+The guard is wired into `scripts/catalog-check.mjs` and covered by
+`scripts/catalog-runtime-entrypoints.test.mjs`; it evaluates packed archive members rather than source paths,
+so none of these draft manifests can enter the catalog with a dangling runtime declaration.
 
 ## Preservation matrix and acceptance
 
