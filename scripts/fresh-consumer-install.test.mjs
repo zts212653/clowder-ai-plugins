@@ -308,7 +308,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       ),
     );
     assert.equal(contractPackage.version, '0.1.0-beta.16');
-    assert.equal(sdkPackage.version, '0.1.0-beta.11');
+    assert.equal(sdkPackage.version, '0.1.0-beta.12');
     assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], '0.1.0-beta.16');
     assert.equal(
       feishuPackage.dependencies['@clowder-ai/plugin-contract'],

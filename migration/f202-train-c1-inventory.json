@@ -5,8 +5,273 @@
     "operatorMessage": "0001789821850712-001832-35062316",
     "acceptedCoreIssue": "zts212653/clowder-ai#1478",
     "pluginsBaseCommit": "123112c",
-    "coreSourceCommit": "9ab0eaf287381efcb209781463f38cc5f23870ea"
+    "coreSourceCommit": "9ab0eaf287381efcb209781463f38cc5f23870ea",
+    "terminalAlignmentOperatorMessage": "0001789886680827-002881-10e236ef",
+    "coreCounterpartRead": {
+      "pullRequest": "zts212653/clowder-ai#1487",
+      "head": "91d9ad96a96d9b2ce701d95d592f5914fe1e417e",
+      "path": "docs/plans/2026-09-19-f202-train-c1-migration-plan.md"
+    }
   },
+  "terminalAcceptanceContract": {
+    "distributionUnit": "package",
+    "runtimeCarrier": "manifest-selected implementation detail",
+    "hostBoundary": "one carrier-neutral lifecycle/action boundary",
+    "pluginsClosure": "PR #54 closes repository-wide contract, SDK, YAML, package, runtime, catalog, pack, and fresh-consumer compatibility",
+    "coreClosure": "PR #1487 consumes exact artifacts, converges Host lifecycle, cuts over without double-run, and atomically deletes legacy execution paths",
+    "dependencyOrder": [
+      "Plugins exact Linux-packed artifact",
+      "Core exact-artifact integration journey",
+      "Plugins merge and registry publication",
+      "Core registry pin, final journey, and merge"
+    ],
+    "recovery": [
+      "disable and uninstall revoke actions and restore the preserved Host baseline",
+      "failed start exposes zero partial actions",
+      "restart restores Host-owned durable state without double-run",
+      "Core contains no package-id or provider-specific runtime branch"
+    ],
+    "nextPhase": "C2 front-end contribution surfaces",
+    "followupPolicy": "no C1 cleanup follow-up PR"
+  },
+  "repositoryPackages": [
+    {
+      "directory": "companion",
+      "packageName": "@clowder-ai/companion",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "existing @clowder-ai/plugin-sdk 0.1.0-beta.11 desktop compatibility; no beta.12 module surface required",
+      "yamlClosure": "packages/companion/plugin.yaml is canonical; manifest.json must remain mechanically identical",
+      "runtimeClosure": "builtin desktop-window surface is packed and integrity-bound",
+      "catalogClosure": "listed as official.companion",
+      "freshConsumerClosure": "required; pending addition to repository-wide fresh-consumer journey"
+    },
+    {
+      "directory": "connector-dingtalk",
+      "packageName": "@clowder-ai/connector-dingtalk",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 carrier-neutral module",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "connector-feishu",
+      "packageName": "@clowder-ai/connector-feishu",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "connector-telegram",
+      "packageName": "@clowder-ai/connector-telegram",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "@clowder-ai/plugin-sdk 0.1.0-beta.12 carrier-neutral module",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "builtin dist/plugin-entrypoint.js implemented; aggregate parity journey pending",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "connector-wecom-agent",
+      "packageName": "@clowder-ai/connector-wecom-agent",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "connector-wecom-bot",
+      "packageName": "@clowder-ai/connector-wecom-bot",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "connector-weixin",
+      "packageName": "@clowder-ai/connector-weixin",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "connector-xiaoyi",
+      "packageName": "@clowder-ai/connector-xiaoyi",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "beta.12 module dependency and activation seam required before terminal",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "carrier-neutral package module/entrypoint pending C1 implementation",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "genoffice-docx",
+      "packageName": "@clowder-ai/genoffice-docx",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0 and package contract beta.15",
+      "sdkClosure": "no direct SDK dependency required by static content-editor runtime",
+      "yamlClosure": "plugin.yaml is canonical; manifest.json is a generated package export",
+      "runtimeClosure": "builtin renderer/materializer members are packed and integrity-bound",
+      "catalogClosure": "listed as dev.clowder.genoffice-docx",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/materialization journey"
+    },
+    {
+      "directory": "github-operations",
+      "packageName": "@clowder-ai/github-operations",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "beta.12 module dependency and seven schedule action handlers required before terminal",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "carrier-neutral module and operation bodies pending C1 implementation",
+      "catalogClosure": "required; pending deterministic catalog generation",
+      "freshConsumerClosure": "required; pending aggregate install/import journey"
+    },
+    {
+      "directory": "video-analysis",
+      "packageName": "@clowder-ai/video-analysis",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "no direct SDK dependency required by builtin MCP runtime",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "builtin MCP package is published and accepted",
+      "catalogClosure": "listed as dev.clowder.video-analysis",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/import journey"
+    },
+    {
+      "directory": "video-generation",
+      "packageName": "@clowder-ai/video-generation",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "no direct SDK dependency required by builtin MCP runtime",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "builtin MCP runtime and protocol members are packed",
+      "catalogClosure": "listed as dev.clowder.video-generation",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/import journey"
+    },
+    {
+      "directory": "wechat-visible-reader",
+      "packageName": "@clowder-ai/wechat-visible-reader",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "no direct SDK dependency required by current builtin limb runtime",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "builtin limb/native members are packed; Core carrier-neutral action mapping remains C1",
+      "catalogClosure": "listed as official.wechat-visible-reader",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/import journey"
+    },
+    {
+      "directory": "weixin-mp",
+      "packageName": "@clowder-ai/weixin-mp",
+      "classification": "manager-installable-official-public",
+      "managerInstallable": true,
+      "contractClosure": "plugin.yaml contractVersion 0.1.0",
+      "sdkClosure": "no direct SDK dependency required by current builtin limb/skill runtime",
+      "yamlClosure": "plugin.yaml is the sole manifest truth",
+      "runtimeClosure": "builtin limb/skill members are packed; Core carrier-neutral action mapping remains C1",
+      "catalogClosure": "listed as official.weixin-mp",
+      "freshConsumerClosure": "covered by repository fresh-consumer install/import journey"
+    },
+    {
+      "directory": "feishu-meeting-intake",
+      "packageName": "@clowder-ai/feishu-meeting-intake",
+      "classification": "retained-external-baseline-specialized-host-wiring",
+      "managerInstallable": false,
+      "boundary": "published standalone intake package with legacy manifest.json; retained Host intake wiring, not a Manager plugin.yaml source"
+    },
+    {
+      "directory": "personal-chrome-companion",
+      "packageName": "@clowder-ai/personal-chrome-companion",
+      "classification": "retained-external-baseline-specialized-host-wiring",
+      "managerInstallable": false,
+      "boundary": "review-only Chrome/native-messaging payload; Host retains installer, pairing, Settings, and receipt authority"
+    },
+    {
+      "directory": "stackchan",
+      "packageName": "@clowder-ai/stackchan",
+      "classification": "retained-external-baseline-specialized-host-wiring",
+      "managerInstallable": false,
+      "boundary": "physical-limb package deferred to C2 front-end contribution surfaces; no canonical plugin.yaml in C1"
+    },
+    {
+      "directory": "plugin-contract",
+      "packageName": "@clowder-ai/plugin-contract",
+      "classification": "non-installable-library-or-fixture",
+      "managerInstallable": false,
+      "boundary": "public protocol/schema library, not a plugin artifact"
+    },
+    {
+      "directory": "plugin-sdk",
+      "packageName": "@clowder-ai/plugin-sdk",
+      "classification": "non-installable-library-or-fixture",
+      "managerInstallable": false,
+      "boundary": "public author/runtime SDK, not a plugin artifact"
+    },
+    {
+      "directory": "loopback-fixture-plugin",
+      "packageName": "@clowder-ai/loopback-fixture-plugin",
+      "classification": "non-installable-library-or-fixture",
+      "managerInstallable": false,
+      "boundary": "private loopback SDK fixture; manifest.json is test input only"
+    }
+  ],
+  "legacyArtifacts": [
+    {
+      "path": "packages/companion/manifest.json",
+      "classification": "deprecated-or-generated-manifest-form",
+      "canonicalSource": "packages/companion/plugin.yaml",
+      "terminalRule": "must remain mechanically byte-equivalent in data model"
+    },
+    {
+      "path": "packages/genoffice-docx/manifest.json",
+      "classification": "deprecated-or-generated-manifest-form",
+      "canonicalSource": "packages/genoffice-docx/plugin.yaml",
+      "terminalRule": "generated package export; must not drift from canonical YAML"
+    },
+    {
+      "path": "packages/feishu-meeting-intake/manifest.json",
+      "classification": "retained-specialized-manifest",
+      "canonicalSource": null,
+      "terminalRule": "not admitted as a Manager plugin until a future migration supplies canonical plugin.yaml"
+    },
+    {
+      "path": "packages/loopback-fixture-plugin/manifest.json",
+      "classification": "private-fixture-manifest",
+      "canonicalSource": null,
+      "terminalRule": "never cataloged or published"
+    }
+  ],
   "hostKernelRetained": [
     "artifact verification and local inventory",
     "grants, config, and secret authority",
@@ -21,12 +286,13 @@
     "bindingAuthority": "Host",
     "wakeAuthority": "Host",
     "contractDisposition": {
-      "status": "closed-for-c1",
-      "machineTruth": "@clowder-ai/plugin-contract 0.1.0 and the published @clowder-ai/plugin-sdk surfaces",
+      "status": "carrier-neutral-lifecycle-completion-in-c1",
+      "machineTruth": "@clowder-ai/plugin-contract protocol line 0.1.0, frozen 13-row wire, and @clowder-ai/plugin-sdk 0.1.0-beta.12 module/lifecycle/action boundary",
       "reusedSurfaces": [
         "manifest connector, webhook, schedule, config, secret, and capability declarations",
         "Host-issued connector_binding and the frozen messaging.send / host.messaging.deliver rows",
-        "Host-owned FeatureContext config, secret, state, and contribution adapters"
+        "Host-owned FeatureContext config, secret, state, connector ingress, logging, and contribution adapters",
+        "manifest-selected builtin or external carrier behind one feature activation/action/disposal contract"
       ]
     },
     "pluginsImplementationLane": {
@@ -34,7 +300,7 @@
       "status": "implementation-active",
       "requiredBehavior": [
         "complete every package-owned provider adapter, runtime entrypoint, schedule operation, and preservation journey",
-        "use only the frozen contract and SDK surfaces without adding a C1 public ABI",
+        "complete the carrier-neutral SDK module/action boundary without adding provider-specific wire methods",
         "produce exact pack, catalog, conformance, and fresh-consumer evidence before publication"
       ]
     },
@@ -78,7 +344,7 @@
       "dedicatedJourneys": ["packages/api/test/dingtalk-adapter.test.js"],
       "targetPackage": "@clowder-ai/connector-dingtalk",
       "catalogPluginId": "official.connector.dingtalk",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver"],
       "rollback": "Disable the installed package and re-enable the preserved Core adapter before deleting old code."
     },
     {
@@ -106,7 +372,7 @@
       ],
       "targetPackage": "@clowder-ai/connector-feishu",
       "catalogPluginId": "official.connector.feishu",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "existing webhook contribution activation", "QR setup operation"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver", "existing webhook contribution activation", "QR setup operation"],
       "rollback": "Keep binding/config records Host-owned; switch the connector instance back to the preserved Core adapter without rewriting thread identities."
     },
     {
@@ -131,7 +397,7 @@
       ],
       "targetPackage": "@clowder-ai/connector-telegram",
       "catalogPluginId": "official.connector.telegram",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "restart-safe polling cursor"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver", "restart-safe polling cursor"],
       "rollback": "Stop the package before starting the Core poller; reuse the Host-owned binding and last committed cursor."
     },
     {
@@ -153,7 +419,7 @@
       "dedicatedJourneys": ["packages/api/test/wecom-agent-adapter.test.js"],
       "targetPackage": "@clowder-ai/connector-wecom-agent",
       "catalogPluginId": "official.connector.wecom-agent",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "existing webhook contribution activation"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver", "existing webhook contribution activation"],
       "rollback": "Route the callback to the preserved Core adapter only after the package runtime drains; never run both webhook consumers."
     },
     {
@@ -175,7 +441,7 @@
       "dedicatedJourneys": ["packages/api/test/wecom-bot-adapter.test.js"],
       "targetPackage": "@clowder-ai/connector-wecom-bot",
       "catalogPluginId": "official.connector.wecom-bot",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "restart-safe WebSocket resume"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver", "restart-safe WebSocket resume"],
       "rollback": "Disconnect and drain the package WebSocket before reconnecting the preserved Core adapter."
     },
     {
@@ -201,7 +467,7 @@
       ],
       "targetPackage": "@clowder-ai/connector-weixin",
       "catalogPluginId": "official.connector.weixin",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "QR setup operation"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver", "QR setup operation"],
       "rollback": "Drain the package connection and restore the Core adapter against the same Host-owned credential and bindings."
     },
     {
@@ -226,7 +492,7 @@
       ],
       "targetPackage": "@clowder-ai/connector-xiaoyi",
       "catalogPluginId": "official.connector.xiaoyi",
-      "runtimeRequirements": ["standalone stdio", "messaging.send", "host.messaging.deliver", "restart-safe WebSocket resume"],
+      "runtimeRequirements": ["manifest-selected carrier with carrier-neutral lifecycle/actions", "messaging.send", "host.messaging.deliver", "restart-safe WebSocket resume"],
       "rollback": "Drain the package session before reconnecting the preserved Core WebSocket adapter with the last Host checkpoint."
     },
     {

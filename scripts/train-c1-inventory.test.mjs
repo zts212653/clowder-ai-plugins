@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
 const inventory = JSON.parse(
@@ -42,6 +42,76 @@ const requiredPreservationFields = [
   'runtimeRequirements',
 ];
 
+const requiredInstallableClosureFields = [
+  'contractClosure',
+  'sdkClosure',
+  'yamlClosure',
+  'runtimeClosure',
+  'catalogClosure',
+  'freshConsumerClosure',
+];
+
+test('C1 terminal contract freezes the two-PR carrier-neutral finish line', () => {
+  assert.deepEqual(inventory.terminalAcceptanceContract, {
+    distributionUnit: 'package',
+    runtimeCarrier: 'manifest-selected implementation detail',
+    hostBoundary: 'one carrier-neutral lifecycle/action boundary',
+    pluginsClosure: 'PR #54 closes repository-wide contract, SDK, YAML, package, runtime, catalog, pack, and fresh-consumer compatibility',
+    coreClosure: 'PR #1487 consumes exact artifacts, converges Host lifecycle, cuts over without double-run, and atomically deletes legacy execution paths',
+    dependencyOrder: [
+      'Plugins exact Linux-packed artifact',
+      'Core exact-artifact integration journey',
+      'Plugins merge and registry publication',
+      'Core registry pin, final journey, and merge',
+    ],
+    recovery: [
+      'disable and uninstall revoke actions and restore the preserved Host baseline',
+      'failed start exposes zero partial actions',
+      'restart restores Host-owned durable state without double-run',
+      'Core contains no package-id or provider-specific runtime branch',
+    ],
+    nextPhase: 'C2 front-end contribution surfaces',
+    followupPolicy: 'no C1 cleanup follow-up PR',
+  });
+});
+
+test('every repository package is classified and Manager artifacts carry explicit closure', async () => {
+  const packageDirectories = (await readdir(new URL('../packages/', import.meta.url), {
+    withFileTypes: true,
+  }))
+    .filter(entry => entry.isDirectory())
+    .map(entry => entry.name)
+    .sort();
+  const classifiedDirectories = inventory.repositoryPackages.map(entry => entry.directory).sort();
+  assert.deepEqual(classifiedDirectories, packageDirectories);
+
+  const allowedClassifications = new Set([
+    'manager-installable-official-public',
+    'retained-external-baseline-specialized-host-wiring',
+    'non-installable-library-or-fixture',
+    'deprecated-or-migrated-artifact',
+  ]);
+  for (const entry of inventory.repositoryPackages) {
+    assert.equal(
+      allowedClassifications.has(entry.classification),
+      true,
+      `${entry.directory} has unknown classification ${entry.classification}`,
+    );
+    assert.match(entry.packageName, /^@clowder-ai\/[a-z0-9-]+$/u);
+    if (entry.managerInstallable) {
+      assert.equal(entry.classification, 'manager-installable-official-public');
+      for (const field of requiredInstallableClosureFields) {
+        assert.equal(typeof entry[field], 'string', `${entry.directory}.${field} must be explicit`);
+        assert.ok(entry[field].length > 0, `${entry.directory}.${field} must not be empty`);
+      }
+      await access(new URL(`../packages/${entry.directory}/plugin.yaml`, import.meta.url));
+    } else {
+      assert.equal(typeof entry.boundary, 'string', `${entry.directory}.boundary must be explicit`);
+      assert.ok(entry.boundary.length > 0, `${entry.directory}.boundary must not be empty`);
+    }
+  }
+});
+
 test('Train C1 inventory freezes the exact migration and C2 exclusion sets', () => {
   const migrationIds = inventory.entries
     .filter(entry => entry.disposition === 'migrate')
@@ -62,12 +132,13 @@ test('connector ingress keeps binding and wake authority in the Host', () => {
     bindingAuthority: 'Host',
     wakeAuthority: 'Host',
     contractDisposition: {
-      status: 'closed-for-c1',
-      machineTruth: '@clowder-ai/plugin-contract 0.1.0 and the published @clowder-ai/plugin-sdk surfaces',
+      status: 'carrier-neutral-lifecycle-completion-in-c1',
+      machineTruth: '@clowder-ai/plugin-contract protocol line 0.1.0, frozen 13-row wire, and @clowder-ai/plugin-sdk 0.1.0-beta.12 module/lifecycle/action boundary',
       reusedSurfaces: [
         'manifest connector, webhook, schedule, config, secret, and capability declarations',
         'Host-issued connector_binding and the frozen messaging.send / host.messaging.deliver rows',
-        'Host-owned FeatureContext config, secret, state, and contribution adapters',
+        'Host-owned FeatureContext config, secret, state, connector ingress, logging, and contribution adapters',
+        'manifest-selected builtin or external carrier behind one feature activation/action/disposal contract',
       ],
     },
     pluginsImplementationLane: {
@@ -75,7 +146,7 @@ test('connector ingress keeps binding and wake authority in the Host', () => {
       status: 'implementation-active',
       requiredBehavior: [
         'complete every package-owned provider adapter, runtime entrypoint, schedule operation, and preservation journey',
-        'use only the frozen contract and SDK surfaces without adding a C1 public ABI',
+        'complete the carrier-neutral SDK module/action boundary without adding provider-specific wire methods',
         'produce exact pack, catalog, conformance, and fresh-consumer evidence before publication',
       ],
     },

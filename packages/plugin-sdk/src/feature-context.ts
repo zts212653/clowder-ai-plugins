@@ -35,6 +35,29 @@ export interface HostContributionReceipt {
   readonly registryRevision: number;
 }
 
+export type PluginLogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+export interface ConnectorInboundAttachment {
+  readonly type: 'image' | 'file' | 'audio' | 'video';
+  readonly platformKey: string;
+  readonly fileName?: string;
+  readonly duration?: number;
+}
+
+/** Provider facts only. The Host resolves binding, admission, thread, and wake authority. */
+export interface ConnectorInboundMessage {
+  readonly externalConversationId: string;
+  readonly providerMessageId: string;
+  readonly text: string;
+  readonly attachments?: readonly ConnectorInboundAttachment[];
+  readonly sender?: Readonly<{ id: string; name?: string }>;
+  readonly conversation?: Readonly<{
+    type: 'direct' | 'group';
+    providerId?: string;
+    title?: string;
+  }>;
+}
+
 export interface FeatureHostAdapter {
   readConfig(binding: FeatureBinding, key: string): Promise<unknown>;
   readSecret(binding: FeatureBinding, key: string): Promise<string>;
@@ -45,6 +68,16 @@ export interface FeatureHostAdapter {
     contribution: StaticContribution,
   ): Promise<HostContributionReceipt>;
   disposeContribution(binding: FeatureBinding, receipt: HostContributionReceipt): Promise<void>;
+  deliverConnectorMessage(
+    binding: FeatureBinding,
+    contributionId: string,
+    message: ConnectorInboundMessage,
+  ): Promise<void>;
+  log(
+    binding: FeatureBinding,
+    level: PluginLogLevel,
+    args: readonly unknown[],
+  ): void;
 }
 
 export class FeatureContextRevokedError extends Error {
@@ -92,7 +125,10 @@ export interface FeatureContext {
     readonly subscribe: ContributionRegistrar<MessageSubscriptionContribution>['register'];
   };
   readonly services: ContributionRegistrar<ServiceContribution>;
-  readonly connectors: ContributionRegistrar<ConnectorContribution>;
+  readonly connectors: ContributionRegistrar<ConnectorContribution> & {
+    deliver(contributionId: string, message: ConnectorInboundMessage): Promise<void>;
+  };
+  readonly logger: Readonly<Record<PluginLogLevel, (...args: readonly unknown[]) => void>>;
   readonly ui: ContributionRegistrar<UiContribution>;
   readonly contentEditors: ContributionRegistrar<ContentEditorProviderContribution>;
   readonly windows: ContributionRegistrar<DesktopWindowContribution>;
@@ -260,6 +296,22 @@ export function createFeatureContextSession(
     return runWhileActive(() => adapter.writeState(binding, key, value));
   };
 
+  const connectorRegistrar = registrar<ConnectorContribution>('connector');
+  const deliverConnectorMessage = async (
+    contributionId: string,
+    message: ConnectorInboundMessage,
+  ): Promise<void> => {
+    return runWhileActive(() => adapter.deliverConnectorMessage(binding, contributionId, message));
+  };
+
+  const log = (
+    level: PluginLogLevel,
+    args: readonly unknown[],
+  ): void => {
+    assertActive();
+    adapter.log(binding, level, args);
+  };
+
   const subscriptions = registrar<MessageSubscriptionContribution>('message-subscription');
   const context: FeatureContext = {
     featureId: binding.featureId,
@@ -275,7 +327,13 @@ export function createFeatureContextSession(
     webhooks: registrar<WebhookContribution>('webhook'),
     messaging: { subscribe: subscriptions.register },
     services: registrar<ServiceContribution>('service'),
-    connectors: registrar<ConnectorContribution>('connector'),
+    connectors: { ...connectorRegistrar, deliver: deliverConnectorMessage },
+    logger: {
+      debug: (...args) => log('debug', args),
+      info: (...args) => log('info', args),
+      warn: (...args) => log('warn', args),
+      error: (...args) => log('error', args),
+    },
     ui: registrar<UiContribution>('ui'),
     contentEditors: registrar<ContentEditorProviderContribution>('content-editor-provider'),
     windows: registrar<DesktopWindowContribution>('desktop-window'),
@@ -300,7 +358,16 @@ export function createFeatureContextSession(
   };
 }
 
-export type FeatureActivator = (context: FeatureContext) => void | Promise<void>;
+export type PluginActionHandler = (input: unknown) => unknown | Promise<unknown>;
+
+export interface FeatureActivation {
+  readonly actions?: Readonly<Record<string, PluginActionHandler>>;
+  dispose(): void | Promise<void>;
+}
+
+export type FeatureActivator = (
+  context: FeatureContext,
+) => void | FeatureActivation | Promise<void | FeatureActivation>;
 
 export interface PluginDefinitionInput {
   readonly manifest: unknown;
@@ -310,6 +377,88 @@ export interface PluginDefinitionInput {
 export interface DefinedPlugin {
   readonly manifest: PluginManifest;
   readonly activate: Readonly<Record<string, FeatureActivator>>;
+}
+
+export interface ActivePluginFeature {
+  readonly actions: Readonly<Record<string, PluginActionHandler>>;
+  dispose(): Promise<void>;
+}
+
+export interface PluginModuleEntrypoint {
+  create(manifest: unknown): DefinedPlugin;
+}
+
+/** Stable package-module export consumed by a Host-selected runtime carrier. */
+export function definePluginModule(
+  create: (manifest: unknown) => DefinedPlugin,
+): PluginModuleEntrypoint {
+  return Object.freeze({ create });
+}
+
+function actionMethods(contribution: StaticContribution): readonly string[] {
+  switch (contribution.type) {
+    case 'connector':
+      return [contribution.outboundMethod];
+    case 'schedule':
+    case 'tool':
+    case 'webhook':
+    case 'message-subscription':
+      return [contribution.action.method];
+    case 'service':
+      return [contribution.healthMethod];
+    case 'ui':
+      return contribution.kind === 'command' ? [contribution.action.method] : [];
+    default:
+      return [];
+  }
+}
+
+function featureActionMethods(manifest: PluginManifest, featureId: string): ReadonlySet<string> {
+  const feature = manifest.features.find((candidate) => candidate.id === featureId);
+  if (feature === undefined) throw new TypeError(`feature ${featureId} is not declared by the plugin manifest`);
+  const keys = new Set((feature.contributions ?? []).map((item) => `${item.type}:${item.id}`));
+  return new Set(
+    (manifest.contributions ?? [])
+      .filter((contribution) => keys.has(`${contribution.type}:${contribution.id}`))
+      .flatMap(actionMethods),
+  );
+}
+
+/** Activate one Host-authorized feature and close its method/disposal surface. */
+export async function activateDefinedFeature(
+  plugin: DefinedPlugin,
+  featureId: string,
+  context: FeatureContext,
+): Promise<ActivePluginFeature> {
+  if (context.featureId !== featureId) {
+    throw new TypeError(`feature context ${context.featureId} cannot activate ${featureId}`);
+  }
+  const activate = plugin.activate[featureId];
+  if (activate === undefined) {
+    throw new TypeError(`feature ${featureId} has no package activator`);
+  }
+  const result = await activate(context);
+  const activation = result ?? { dispose: () => undefined };
+  const actions = Object.freeze({ ...(activation.actions ?? {}) });
+  const allowedMethods = featureActionMethods(plugin.manifest, featureId);
+  const undeclared = Object.keys(actions).find((method) => !allowedMethods.has(method));
+  if (undeclared !== undefined) {
+    await Promise.resolve(activation.dispose()).catch(() => undefined);
+    throw new TypeError(`action handler ${undeclared} is not declared by feature ${featureId}`);
+  }
+  const missing = [...allowedMethods].find((method) => actions[method] === undefined);
+  if (missing !== undefined) {
+    await Promise.resolve(activation.dispose()).catch(() => undefined);
+    throw new TypeError(`declared action ${missing} has no handler for feature ${featureId}`);
+  }
+  let disposePromise: Promise<void> | undefined;
+  return Object.freeze({
+    actions,
+    dispose: () => {
+      disposePromise ??= Promise.resolve().then(() => activation.dispose());
+      return disposePromise;
+    },
+  });
 }
 
 /** Validate one manifest truth and bind only activators for declared feature IDs. */

@@ -6,8 +6,10 @@ import type { StaticContribution } from '@clowder-ai/plugin-contract';
 import {
   ContributionConflictError,
   FeatureContextRevokedError,
+  activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
+  definePluginModule,
   type FeatureBinding,
   type FeatureContext,
   type FeatureHostAdapter,
@@ -87,6 +89,22 @@ class RecordingAdapter implements FeatureHostAdapter {
       this.failNextDispose = false;
       throw new Error('transient disposal failure');
     }
+  }
+
+  async deliverConnectorMessage(
+    binding: FeatureBinding,
+    contributionId: string,
+    message: Parameters<FeatureHostAdapter['deliverConnectorMessage']>[2],
+  ): Promise<void> {
+    this.calls.push({ operation: 'connectors.deliver', binding, value: { contributionId, message } });
+  }
+
+  log(
+    binding: FeatureBinding,
+    level: Parameters<FeatureHostAdapter['log']>[1],
+    args: readonly unknown[],
+  ): void {
+    this.calls.push({ operation: `log.${level}`, binding, value: args });
   }
 }
 
@@ -221,6 +239,115 @@ test('definePlugin validates the manifest and rejects undeclared activators', ()
     () => definePlugin({ manifest: manifest(), activate: { missing: async () => undefined } }),
     /activator.*missing.*not declared/i,
   );
+});
+
+test('module entrypoint accepts the Host-validated manifest without embedding a second copy', () => {
+  const module = definePluginModule((candidate) => definePlugin({ manifest: candidate }));
+  const defined = module.create(manifest());
+  assert.equal(defined.manifest.pluginId, 'dev.clowder.fixture');
+});
+
+test('feature activation closes declared method handlers and owns idempotent disposal', async () => {
+  const candidate = manifest();
+  candidate.contributions.push({
+    type: 'connector',
+    id: 'fixture-connector',
+    identityRef: 'cat',
+    inboundMethod: 'fixture.inbound',
+    outboundMethod: 'fixture.outbound',
+  } as never);
+  candidate.features[0]!.contributions.push({ type: 'connector', id: 'fixture-connector' } as never);
+  let disposeCalls = 0;
+  const defined = definePlugin({
+    manifest: candidate,
+    activate: {
+      'feature-1': () => ({
+        actions: { 'fixture.outbound': async (input) => ({ input }) },
+        dispose: () => { disposeCalls += 1; },
+      }),
+    },
+  });
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+  const active = await activateDefinedFeature(defined, 'feature-1', context);
+
+  assert.deepEqual(await active.actions['fixture.outbound']?.('hello'), { input: 'hello' });
+  await active.dispose();
+  await active.dispose();
+  assert.equal(disposeCalls, 1);
+});
+
+test('feature activation rolls back missing or undeclared package handlers', async (t) => {
+  const candidate = manifest();
+  candidate.contributions.push({
+    type: 'connector', id: 'fixture-connector', identityRef: 'cat',
+    inboundMethod: 'fixture.inbound', outboundMethod: 'fixture.outbound',
+  } as never);
+  candidate.features[0]!.contributions.push({ type: 'connector', id: 'fixture-connector' } as never);
+  const cases: ReadonlyArray<readonly [
+    string,
+    Readonly<Record<string, (input: unknown) => unknown>>,
+    RegExp,
+  ]> = [
+    ['missing', {}, /fixture\.outbound.*no handler/i],
+    ['undeclared', { 'fixture.outbound': () => undefined, 'foreign.method': () => undefined }, /foreign\.method.*not declared/i],
+  ];
+  for (const [name, actions, pattern] of cases) {
+    await t.test(name, async () => {
+      let disposeCalls = 0;
+      const defined = definePlugin({
+        manifest: candidate,
+        activate: {
+          'feature-1': () => ({ actions, dispose: () => { disposeCalls += 1; } }),
+        },
+      });
+      const { context } = createFeatureContextSession(BINDING, new RecordingAdapter());
+      await assert.rejects(activateDefinedFeature(defined, 'feature-1', context), pattern);
+      assert.equal(disposeCalls, 1);
+    });
+  }
+});
+
+test('connector ingress and logs retain Host-issued feature authority', async () => {
+  const adapter = new RecordingAdapter();
+  const session = createFeatureContextSession(BINDING, adapter);
+  await session.context.connectors.deliver('fixture-connector', {
+    externalConversationId: 'provider-chat-1',
+    providerMessageId: 'provider-message-1',
+    text: 'hello',
+    sender: { id: 'provider-user-1', name: 'Maine Coon' },
+  });
+  session.context.logger.info('provider connected', { connectorId: 'fixture-connector' });
+
+  assert.deepEqual(adapter.calls.slice(-2), [
+    {
+      operation: 'connectors.deliver',
+      binding: BINDING,
+      value: {
+        contributionId: 'fixture-connector',
+        message: {
+          externalConversationId: 'provider-chat-1',
+          providerMessageId: 'provider-message-1',
+          text: 'hello',
+          sender: { id: 'provider-user-1', name: 'Maine Coon' },
+        },
+      },
+    },
+    {
+      operation: 'log.info',
+      binding: BINDING,
+      value: ['provider connected', { connectorId: 'fixture-connector' }],
+    },
+  ]);
+
+  await session.revoke();
+  await assert.rejects(
+    session.context.connectors.deliver('fixture-connector', {
+      externalConversationId: 'provider-chat-1', providerMessageId: 'provider-message-2', text: 'late',
+    }),
+    FeatureContextRevokedError,
+  );
+  assert.throws(() => session.context.logger.warn('late'), FeatureContextRevokedError);
 });
 
 test('feature context keeps authority in the Host binding and namespaces typed registrations', async () => {
