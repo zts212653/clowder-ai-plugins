@@ -546,9 +546,16 @@ export class FeishuAdapter {
         return null;
       }
       const contentType = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-      const ext = FeishuAdapter.extensionFor(contentType, url, type);
+      let ext = FeishuAdapter.extensionFor(contentType, url, type);
       const buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.length === 0) return null;
+      if (type === 'audio' && ext === 'opus' && !FeishuAdapter.bufferIsOpus(buffer)) {
+        // H2: MIME headers and URL extensions guess; the bytes are the truth.
+        // A Vorbis/Speex ogg served as audio/ogg (or an .opus URL lying about
+        // its codec) must degrade to an honest ogg file card — declaring it
+        // OPUS makes Feishu reject the upload or render dead air.
+        ext = 'ogg';
+      }
       directory = await mkdtemp(join(tmpdir(), 'cat-cafe-feishu-dl-'));
       const filePath = join(directory, `download.${ext}`);
       await writeFile(filePath, buffer);
@@ -561,8 +568,16 @@ export class FeishuAdapter {
     }
   }
 
-  private static extensionFor(contentType: string, url: string, type: 'image' | 'file' | 'audio'): string {
-    // Object.hasOwn, not a bare subscript: a bare lookup walks the prototype
+  // H2: the codec truth of an ogg container. Opus identifies with 'OpusHead'
+  // at offset 28 of the first page; Vorbis uses '\x01vorbis' and Speex
+  // 'Speex   ' — both must NOT be declared OPUS to Feishu.
+  private static bufferIsOpus(buffer: Buffer): boolean {
+    return buffer.length > 36
+      && buffer.subarray(0, 4).toString('latin1') === 'OggS'
+      && buffer.subarray(28, 36).toString('latin1') === 'OpusHead';
+  }
+
+  private static extensionFor(contentType: string, url: string, type: 'image' | 'file' | 'audio'): string {    // Object.hasOwn, not a bare subscript: a bare lookup walks the prototype
     // chain, so `Content-Type: constructor` would resolve to the Object
     // constructor instead of falling through to the URL extension.
     const fromMime = Object.hasOwn(FEISHU_MIME_EXT, contentType) ? FEISHU_MIME_EXT[contentType] : undefined;
@@ -1053,7 +1068,11 @@ const FEISHU_MIME_EXT: Record<string, string> = {
 
 export function inferFeishuFileType(fileName: string): string {
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
-  return FEISHU_EXT_TO_FILE_TYPE[ext] ?? 'stream';
+  // Object.hasOwn, not a bare subscript: `??` only guards undefined, while a
+  // bare lookup walks the prototype chain — ext 'constructor' or '__proto__'
+  // (both reachable from a CDN-controlled URL path segment) would resolve to
+  // Object members and be sent to Feishu as a garbage file_type.
+  return Object.hasOwn(FEISHU_EXT_TO_FILE_TYPE, ext) ? FEISHU_EXT_TO_FILE_TYPE[ext] : 'stream';
 }
 
 /** Read a Node.js ReadStream into a Buffer. */

@@ -6,11 +6,28 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { FeishuAdapter } from './FeishuAdapter.js';
+import { FeishuAdapter, inferFeishuFileType } from './FeishuAdapter.js';
 import type { ConnectorLogger } from './types.js';
 
 const noop = () => undefined;
 const logger: ConnectorLogger = { info: noop, warn: noop, error: noop, debug: noop };
+
+// H2: ogg first-page fixtures. Opus identifies with 'OpusHead' at offset 28;
+// Vorbis/Speex share the OggS container and must not be declared OPUS to Feishu.
+function oggPageWith(codecId: string): Buffer {
+  const head = Buffer.alloc(28);
+  head.write('OggS', 0, 'latin1');
+  return Buffer.concat([head, Buffer.from(`${codecId}payload-payload-payload`, 'latin1')]);
+}
+const opusOggBytes = (): Buffer => oggPageWith('OpusHead');
+const vorbisOggBytes = (): Buffer => oggPageWith('\x01vorbis\x00');
+
+// H3: extension→file_type mapping must never consult the prototype chain.
+test('inferFeishuFileType treats prototype-member extensions as unknown', () => {
+  assert.equal(inferFeishuFileType('report.constructor'), 'stream');
+  assert.equal(inferFeishuFileType('report.__proto__'), 'stream');
+  assert.equal(inferFeishuFileType('notes.pdf'), 'pdf');
+});
 
 test('parses authenticated direct text without deriving Host wake authority', () => {
   const subject = new FeishuAdapter('app-id', 'app-secret', logger, { verificationToken: 'verify-me' });
@@ -131,7 +148,7 @@ test('OPUS audio fetched from an external URL keeps msg_type audio', async () =>
   subject._injectUploadFetch(async (input, init) => {
     const target = String(input);
     if (target === 'https://cdn.example.com/media/voice.opus') {
-      return new Response('opus-bytes', {
+      return new Response(opusOggBytes(), {
         status: 200,
         headers: { 'content-type': 'audio/opus; charset=binary' },
       });
@@ -159,6 +176,7 @@ const ladderCases: Array<{
   contentType: string;
   url: string;
   type: 'image' | 'file' | 'audio';
+  body?: Buffer;
   expectedMsgType: string;
   expectedFileName?: string;
   expectedFileType?: string;
@@ -168,15 +186,27 @@ const ladderCases: Array<{
     contentType: 'audio/ogg',
     url: 'https://cdn.example.com/media/voice',
     type: 'audio',
+    body: opusOggBytes(),
     expectedMsgType: 'audio',
     expectedFileName: 'media.opus',
     expectedFileType: 'opus',
+  },
+  {
+    name: 'H2: a Vorbis ogg served as audio/ogg degrades to an honest file card, never declared OPUS',
+    contentType: 'audio/ogg',
+    url: 'https://cdn.example.com/media/music.ogg',
+    type: 'audio',
+    body: vorbisOggBytes(),
+    expectedMsgType: 'file',
+    expectedFileName: 'music.ogg',
+    expectedFileType: 'stream',
   },
   {
     name: 'audio/opus keeps opus delivery',
     contentType: 'audio/opus',
     url: 'https://cdn.example.com/media/voice',
     type: 'audio',
+    body: opusOggBytes(),
     expectedMsgType: 'audio',
     expectedFileName: 'media.opus',
     expectedFileType: 'opus',
@@ -186,6 +216,7 @@ const ladderCases: Array<{
     contentType: 'application/octet-stream',
     url: 'https://cdn.example.com/media/voice.opus',
     type: 'audio',
+    body: opusOggBytes(),
     expectedMsgType: 'audio',
     expectedFileName: 'voice.opus',
     expectedFileType: 'opus',
@@ -204,6 +235,7 @@ const ladderCases: Array<{
     contentType: 'constructor',
     url: 'https://cdn.example.com/media/voice.opus',
     type: 'audio',
+    body: opusOggBytes(),
     expectedMsgType: 'audio',
     expectedFileName: 'voice.opus',
     expectedFileType: 'opus',
@@ -226,7 +258,7 @@ for (const ladder of ladderCases) {
     subject._injectUploadFetch(async (input, init) => {
       const target = String(input);
       if (target === ladder.url) {
-        return new Response('bytes', { status: 200, headers: { 'content-type': ladder.contentType } });
+        return new Response(ladder.body ?? Buffer.from('bytes'), { status: 200, headers: { 'content-type': ladder.contentType } });
       }
       const form = init?.body as FormData;
       if (ladder.expectedMsgType === 'image') {
@@ -305,7 +337,9 @@ test('concurrent sendMedia downloads of the same URL use isolated temp paths', a
     const target = String(input);
     if (target === 'https://cdn.example.com/media/voice.opus') {
       downloadCount += 1;
-      const bytes = `opus-bytes-${downloadCount}`;
+      // Valid OpusHead prefix (keeps msg_type audio under byte-sniffing) with
+      // a download-unique tail so the cross-write assertion still has signal.
+      const bytes = Buffer.concat([opusOggBytes(), Buffer.from(`-download-${downloadCount}`)]);
       if (downloadCount === 2) bothDownloadsDone();
       return new Response(bytes, { status: 200, headers: { 'content-type': 'audio/ogg' } });
     }
@@ -330,7 +364,8 @@ test('concurrent sendMedia downloads of the same URL use isolated temp paths', a
 
   assert.equal(loggedPaths.length, 2);
   assert.notEqual(loggedPaths[0], loggedPaths[1], 'concurrent downloads must not share a temp path');
-  assert.deepEqual(uploads.map(entry => entry.bytes).sort(), ['opus-bytes-1', 'opus-bytes-2'],
+  const expectedBytes = [1, 2].map(count => Buffer.concat([opusOggBytes(), Buffer.from(`-download-${count}`)]).toString('latin1'));
+  assert.deepEqual(uploads.map(entry => entry.bytes).sort(), expectedBytes.sort(),
     'each upload must carry its own download, not the clobbered last write');
   assert.deepEqual(sent, ['audio', 'audio']);
   for (const filePath of loggedPaths) {

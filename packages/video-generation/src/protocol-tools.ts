@@ -96,7 +96,7 @@ export function isImageOutputCapability(capability?: string): boolean {
 export function deriveMimeType(url: string, capability?: string): string {
   try {
     const ext = extname(new URL(url).pathname).toLowerCase();
-    if (ext in MEDIA_MIME) return MEDIA_MIME[ext]!;
+    if (Object.hasOwn(MEDIA_MIME, ext)) return MEDIA_MIME[ext]!;
   } catch {
     /* not a valid URL */
   }

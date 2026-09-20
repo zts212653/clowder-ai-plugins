@@ -865,6 +865,7 @@ export class WeixinAdapter {
     // Native WeChat voice messages require SILK codec. Keep that path opt-in; default audio is a file attachment.
     const nativeVoiceRequested = payload.type === 'audio' && isNativeVoiceItemRequested(this.runtimeOptions);
     let voiceMeta: { durationMs: number; sampleRate: number } | undefined;
+    let silkDirToClean: string | undefined;
     if (nativeVoiceRequested && actualFilePath.endsWith('.wav')) {
       const converted = await this.convertWavToSilk(actualFilePath);
       if (converted) {
@@ -875,6 +876,7 @@ export class WeixinAdapter {
         }
         actualFilePath = converted.silkPath;
         tempFilePath = converted.silkPath;
+        silkDirToClean = converted.silkDir;
         voiceMeta = { durationMs: converted.durationMs, sampleRate: converted.sampleRate };
       }
     }
@@ -979,8 +981,13 @@ export class WeixinAdapter {
       );
     } finally {
       if (tempFilePath) {
-        const { unlink } = await import('node:fs/promises');
-        await unlink(tempFilePath).catch(() => {});
+        const { rm } = await import('node:fs/promises');
+        await rm(tempFilePath, { force: true }).catch(() => {});
+      }
+      if (silkDirToClean) {
+        // Remove the private mkdtemp directory the converted voice.silk lived in.
+        const { rm } = await import('node:fs/promises');
+        await rm(silkDirToClean, { recursive: true, force: true }).catch(() => {});
       }
     }
   }
@@ -1029,11 +1036,12 @@ export class WeixinAdapter {
    */
   private async convertWavToSilk(
     wavPath: string,
-  ): Promise<{ silkPath: string; durationMs: number; sampleRate: number } | null> {
+  ): Promise<{ silkPath: string; silkDir: string; durationMs: number; sampleRate: number } | null> {
     try {
       const { readFile, writeFile } = await import('node:fs/promises');
       const { tmpdir } = await import('node:os');
       const { join } = await import('node:path');
+      const { mkdtemp } = await import('node:fs/promises');
       const { encode } = await import('silk-wasm');
 
       const wavData = await readFile(wavPath);
@@ -1046,13 +1054,16 @@ export class WeixinAdapter {
       // Write raw SILK output — do NOT append 0xFFFF EOS marker.
       // Evidence: inbound WeChat SILK has no EOS marker and ends exactly at last frame.
       // The 0xFFFF bytes are read as int16LE frame-size = -1, which crashes WeChat's decoder.
-      const silkPath = join(tmpdir(), `cat-cafe-weixin-${Date.now()}.silk`);
+      // Private temp directory (mkdtemp): a shared tmpdir() + Date.now() name
+      // collides across concurrent conversions, cross-writing SILK bytes (G5).
+      const silkDir = await mkdtemp(join(tmpdir(), 'cat-cafe-weixin-silk-'));
+      const silkPath = join(silkDir, 'voice.silk');
       await writeFile(silkPath, Buffer.from(result.data));
       this.log.info(
         { wavPath, silkPath, duration: result.duration, sampleRate: parsed.sampleRate },
         '[WeixinAdapter] convertWavToSilk: success',
       );
-      return { silkPath, durationMs: result.duration, sampleRate: parsed.sampleRate };
+      return { silkPath, silkDir, durationMs: result.duration, sampleRate: parsed.sampleRate };
     } catch (err) {
       this.log.warn({ err, wavPath }, '[WeixinAdapter] convertWavToSilk: failed, uploading WAV as fallback');
       return null;

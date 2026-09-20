@@ -195,7 +195,7 @@ async function resolveImageSource(
   // Use image-specific reader (10 MB limit) instead of text reader (2 MB limit)
   const buffer = await deps.readLocalImageFile(uri);
   const ext = extname(uri).slice(1).toLowerCase();
-  const mimeType = EXTENSION_MIME_MAP[ext];
+  const mimeType = Object.hasOwn(EXTENSION_MIME_MAP, ext) ? EXTENSION_MIME_MAP[ext] : undefined;
   if (!mimeType) throw new Error(`Unsupported image extension: .${ext}`);
   return {
     blob: new Blob([Uint8Array.from(buffer)], { type: mimeType }),

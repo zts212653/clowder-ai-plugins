@@ -83,6 +83,8 @@ interface LarkWsInternals {
 
 const WS_START_TIMEOUT_MS = 30_000;
 const WS_CONNECT_POLL_MS = 250;
+/** WebSocket.OPEN — the lark SDK's own liveness truth (es/index.js isOpen). */
+const WS_READY_STATE_OPEN = 1;
 
 function terminateWsInstance(ws: unknown): void {
   if (ws === null || ws === undefined || typeof ws !== 'object') return;
@@ -151,8 +153,19 @@ export class PausableLarkWsClient implements FeishuWsClient {
       if (this.stopped) throw new Error('Feishu WSClient stopped during connect');
       const socket = this.inner.wsConfig.getWSInstance();
       if (socket !== null) {
-        this.watchSocketClose(socket);
-        return;
+        // H1: registration is not liveness. The lark SDK's own isOpen checks
+        // use readyState === OPEN (es/index.js ~85475); with autoReconnect off
+        // a closed socket stays registered (the close handler returns before
+        // setWSInstance(null)), so a bare `!== null` accepts a corpse and
+        // reports 'running' over a dead socket with no recovery. Refusing here
+        // routes the failure into the runtime's supervised reconnect instead.
+        if ((socket as { readyState?: number }).readyState === WS_READY_STATE_OPEN) {
+          this.watchSocketClose(socket);
+          return;
+        }
+        throw new Error(
+          `Feishu WSClient registered a socket that is not OPEN (readyState=${String((socket as { readyState?: number }).readyState)}); refusing to treat a dead socket as connected`,
+        );
       }
       // Fail fast when the SDK has already given up: with autoReconnect off a
       // failed handshake logs 'connect failed' and returns in about a second,
@@ -169,13 +182,11 @@ export class PausableLarkWsClient implements FeishuWsClient {
   }
 
   private watchSocketClose(socket: unknown): void {
-    const readyState = (socket as { readyState?: number }).readyState;
-    if (readyState === 2 || readyState === 3) {
-      // CLOSING/CLOSED before the listener was attached: surface it now so a
-      // flash-close cannot slip through the attach window unnoticed.
-      if (!this.stopped) this.hooks.onClose?.();
-      return;
-    }
+    // The socket was readyState === OPEN when accepted in start()'s poll loop
+    // (same tick, no I/O in between), so only the asynchronous 'close' path
+    // matters here; a synchronous CLOSING/CLOSED check at attach time can no
+    // longer trigger and would fire while the runtime is still 'starting',
+    // where the hook's signal gets dropped (H1).
     const emitter = socket as { on?: (event: string, listener: () => void) => void };
     if (typeof emitter !== 'object' || emitter === null || typeof emitter.on !== 'function') return;
     emitter.on('close', () => {
@@ -228,8 +239,10 @@ export interface FeishuConnectorRuntimeOptions<Adapter extends FeishuRuntimeAdap
     /** Unexpected-close notification; see PausableLarkWsClientHooks. */
     onClose?: () => void;
   }>) => FeishuWsClient;
-  /** Reconnect backoff for an unexpectedly dropped ingress socket (default 5s). */
+  /** Base delay of the reconnect backoff (default 5s); doubles per attempt. */
   readonly reconnectDelayMs?: number;
+  /** Cap of the reconnect backoff (default 60s). */
+  readonly reconnectMaxDelayMs?: number;
 }
 
 function required(value: string, key: 'appId' | 'appSecret'): string {
@@ -338,7 +351,20 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
   let stopPromise: Promise<void> | undefined;
   let wsClient: FeishuWsClient | undefined;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-  const reconnectDelayMs = options.reconnectDelayMs ?? 5_000;
+  const reconnectBaseDelayMs = options.reconnectDelayMs ?? 5_000;
+  const reconnectMaxDelayMs = options.reconnectMaxDelayMs ?? 60_000;
+  // Backoff, not a fixed interval: each consecutive failed supervise attempt
+  // doubles the delay (capped), so a persistently dead endpoint is retried
+  // ~70x/hour instead of ~700x, and each retry no longer hammers a fresh
+  // tenant_access_token at a constant cadence. Reset on every transition into
+  // 'running'.
+  let reconnectAttempts = 0;
+  const nextBackoffMs = (): number => {
+    const exponential = Math.min(reconnectBaseDelayMs * 2 ** reconnectAttempts, reconnectMaxDelayMs);
+    reconnectAttempts += 1;
+    // ±20% jitter keeps simultaneous connectors from lock-stepping the Host.
+    return Math.round(exponential * (0.8 + Math.random() * 0.4));
+  };
 
   // Both return the real delivery outcome so callers can derive their
   // reported state from it instead of asserting success independently (G3):
@@ -408,7 +434,8 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
 
   const scheduleReconnect = (reason: string): void => {
     if (state === 'stopped' || reconnectTimer !== undefined) return;
-    options.logger.error(`[FeishuRuntime] ${reason}; reconnecting in ${reconnectDelayMs}ms`);
+    const delayMs = nextBackoffMs();
+    options.logger.error(`[FeishuRuntime] ${reason}; reconnecting in ${delayMs}ms`);
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined;
       if (state !== 'idle') return; // stop() or a fresh start() superseded it
@@ -416,6 +443,7 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
       startPromise = startIngress()
         .then(() => {
           if (state !== 'stopped') {
+            reconnectAttempts = 0;
             state = 'running';
             options.logger.info('[FeishuRuntime] Provider ingress started');
           }
@@ -429,7 +457,7 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
           options.logger.error({ error }, '[FeishuRuntime] Reconnect attempt failed');
           scheduleReconnect('reconnect attempt failed');
         });
-    }, reconnectDelayMs);
+    }, delayMs);
   };
 
   return {
@@ -441,6 +469,7 @@ export function createFeishuConnectorRuntime<Adapter extends FeishuRuntimeAdapte
       startPromise = startIngress()
         .then(() => {
           if (state !== 'stopped') {
+            reconnectAttempts = 0;
             state = 'running';
             options.logger.info('[FeishuRuntime] Provider ingress started');
           }

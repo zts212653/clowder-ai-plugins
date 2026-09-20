@@ -281,6 +281,12 @@ test('installable package README discloses every capability declared across all 
   const installable = inventory.repositoryPackages.filter(entry => entry.managerInstallable);
   assert.ok(installable.length > 0, 'inventory must classify Manager-installable packages');
   for (const entry of installable) {
+    // H4: README existence is an install consent-surface property of the
+    // package itself, independent of what capabilities it declares — a
+    // zero-capability package must still ship its (empty) disclosure page, or
+    // the day a capability is added the gate would still not see any page.
+    await access(new URL(`../packages/${entry.directory}/README.md`, import.meta.url))
+      .catch(() => { throw new Error(`${entry.directory} must ship README.md (install consent surface)`); });
     const capabilities = await declaredCapabilities(entry.directory);
     if (capabilities.length === 0) continue;
     const readme = await readFile(new URL(`../packages/${entry.directory}/README.md`, import.meta.url), 'utf8');

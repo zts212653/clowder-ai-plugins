@@ -64,8 +64,11 @@ export interface DingTalkConnectorRuntimeOptions<Adapter extends DingTalkRuntime
   readonly createAdapter?: (config: DingTalkAdapterOptions, logger: ConnectorLogger) => Adapter;
   /** Watchdog poll interval for provider stream liveness (default 15s). */
   readonly streamWatchdogIntervalMs?: number;
-  /** Backoff before reconnecting a stream the watchdog found dead (default 5s). */
+  /** Backoff base delay before reconnecting a stream the watchdog found dead (default 5s). */
   readonly reconnectDelayMs?: number;
+  /** Backoff delay ceiling (default 60s). Exponential backoff doubles from the
+   * base delay with ±20% jitter until this cap. */
+  readonly reconnectMaxDelayMs?: number;
 }
 
 function required(value: string, key: 'appKey' | 'appSecret'): string {
@@ -126,7 +129,14 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
   let watchdogTimer: ReturnType<typeof setInterval> | undefined;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   const watchdogIntervalMs = options.streamWatchdogIntervalMs ?? 15_000;
-  const reconnectDelayMs = options.reconnectDelayMs ?? 5_000;
+  const reconnectBaseDelayMs = options.reconnectDelayMs ?? 5_000;
+  const reconnectMaxDelayMs = options.reconnectMaxDelayMs ?? 60_000;
+  let reconnectAttempts = 0;
+  const nextBackoffMs = (): number => {
+    const exponential = Math.min(reconnectBaseDelayMs * 2 ** reconnectAttempts, reconnectMaxDelayMs);
+    reconnectAttempts += 1;
+    return Math.round(exponential * (0.8 + Math.random() * 0.4));
+  };
   const deliverIfRunning = async (message: DingTalkInboundMessage) => {
     if (state !== 'running') return;
     await options.host.deliver(hostMessage(outbound, message));
@@ -138,7 +148,8 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
   // backoff → drain + fresh startStream, until stop().
   const scheduleReconnect = (reason: string): void => {
     if (state === 'stopped' || reconnectTimer !== undefined) return;
-    options.logger.error(`[DingTalkRuntime] ${reason}; reconnecting in ${reconnectDelayMs}ms`);
+    const delayMs = nextBackoffMs();
+    options.logger.error(`[DingTalkRuntime] ${reason}; reconnecting in ${delayMs}ms`);
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined;
       if (state !== 'idle') return; // stop() or a fresh start() superseded it
@@ -148,6 +159,7 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
         .then(() => outbound.startStream(deliverIfRunning))
         .then(() => {
           if (state !== 'stopped') {
+            reconnectAttempts = 0;
             armWatchdog();
             state = 'running';
             options.logger.info('[DingTalkRuntime] Provider stream started');
@@ -162,7 +174,7 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
           options.logger.error({ error }, '[DingTalkRuntime] Reconnect attempt failed');
           scheduleReconnect('reconnect attempt failed');
         });
-    }, reconnectDelayMs);
+    }, delayMs);
   };
 
   const armWatchdog = (): void => {
@@ -191,6 +203,7 @@ export function createDingTalkConnectorRuntime<Adapter extends DingTalkRuntimeAd
         .startStream(deliverIfRunning)
         .then(() => {
           if (state !== 'stopped') {
+            reconnectAttempts = 0;
             armWatchdog();
             state = 'running';
             options.logger.info('[DingTalkRuntime] Provider stream started');

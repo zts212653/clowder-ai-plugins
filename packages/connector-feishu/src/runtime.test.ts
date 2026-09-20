@@ -184,6 +184,21 @@ function fakeLarkInner() {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+// Mirrors the real SDK-registered ws.WebSocket shape: readyState plus an
+// event-emitter surface (terminate/removeAllListeners are added where a test
+// needs them). H1: start() accepts a registered socket only when
+// readyState === OPEN, so fakes must carry it like the real socket does.
+function fakeOpenSocket() {
+  const listeners = new Map<string, () => void>();
+  return {
+    readyState: 1,
+    on(event: string, listener: () => void) { listeners.set(event, listener); },
+    emitClose() { listeners.get('close')?.(); },
+    removeAllListeners() { listeners.clear(); },
+    terminate() { /* terminate is a no-op on the fake */ },
+  };
+}
+
 test('PausableLarkWsClient start settles only after the SDK registers an open socket', async () => {
   const inner = fakeLarkInner();
   const client = new PausableLarkWsClient('app-id', 'app-secret', inner);
@@ -191,9 +206,60 @@ test('PausableLarkWsClient start settles only after the SDK registers an open so
   const started = client.start({ eventDispatcher: {} as never }).then(() => { settled = true; });
   await tick();
   assert.equal(settled, false, 'start must not settle before the socket is open');
-  inner.wsConfig.setWSInstance({});
+  inner.wsConfig.setWSInstance(fakeOpenSocket());
   await started;
   assert.equal(settled, true);
+});
+
+// H1: with autoReconnect off the lark SDK leaves a CLOSED socket registered
+// (its close handler returns before setWSInstance(null)); a bare `!== null`
+// poll accepts the corpse and reports 'running' over a dead socket. start()
+// must refuse it instead, so the failure routes into supervised reconnect.
+test('PausableLarkWsClient start refuses a registered socket that is not OPEN', async () => {
+  for (const readyState of [2, 3]) { // CLOSING, CLOSED
+    const inner = fakeLarkInner();
+    const client = new PausableLarkWsClient('app-id', 'app-secret', inner);
+    const poll = client.start({ eventDispatcher: {} as never });
+    await tick();
+    inner.wsConfig.setWSInstance({ readyState });
+    await assert.rejects(poll, /registered a socket that is not OPEN/);
+  }
+});
+
+// H1: an unexpected close drives a reconnect; if the fresh attempt lands on an
+// already-dead socket (start rejects), the supervision must keep retrying —
+// the previous behavior accepted the corpse and went permanently silent.
+test('runtime keeps retrying when the reconnect attempt lands on a dead socket', async () => {
+  const created: Array<{ onClose?: () => void }> = [];
+  let failures = 0;
+  const runtime = createFeishuConnectorRuntime({
+    config: { appId: 'app', appSecret: 'secret', connectionMode: 'websocket' },
+    host: { deliver: async () => undefined },
+    logger,
+    fetchFn,
+    reconnectDelayMs: 20,
+    createAdapter: () => adapter(),
+    createWsClient: config => {
+      created.push(config);
+      const index = created.length;
+      return {
+        async start() {
+          if (index >= 2) {
+            failures += 1;
+            throw new Error('Feishu WSClient registered a socket that is not OPEN (readyState=3)');
+          }
+        },
+        close() { /* drained */ },
+      };
+    },
+  });
+  await runtime.start();
+  assert.equal(created.length, 1);
+  created[0]?.onClose?.(); // first socket dies
+  await new Promise(resolve => setTimeout(resolve, 200));
+  assert.ok(failures >= 2, `reconnect must keep retrying dead-socket starts, saw ${failures}`);
+  assert.ok(created.length >= 3, 'each retry must build a fresh ws client');
+  await runtime.stop();
 });
 
 test('PausableLarkWsClient stop before open kills the socket born afterwards', async () => {
