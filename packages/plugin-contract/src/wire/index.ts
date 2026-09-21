@@ -77,6 +77,11 @@ export {
   APPLICATION_ERROR_CODES,
   STANDARD_ERROR_CODES,
   ALL_ERROR_CODES,
+  // Closed error body key sets (mirrors of the error variant types below)
+  ERROR_BODY_STANDARD_KEYS,
+  ERROR_BODY_APPLICATION_KEYS,
+  REASON_DATA_KEYS,
+  CODE_DATA_KEYS,
 } from './errors.js';
 
 export type {
@@ -155,6 +160,10 @@ export {
   BINDING_NONCE_MIN_LENGTH,
   BINDING_NONCE_MAX_LENGTH,
   BINDING_NONCE_MAX_ENCODED_BYTES,
+  // Closed handshake object key sets (mirrors of the handshake types below)
+  CANDIDATE_HELLO_KEYS,
+  SESSION_BINDING_KEYS,
+  BROKER_READY_PARAMS_KEYS,
   validatePackageDigest,
   validatePluginId,
   validateContractVersion,
@@ -299,6 +308,16 @@ export type {
   WireResponse,
 } from './envelope.js';
 
+// Closed envelope key sets (mirrors of the envelope family in envelope.ts)
+export {
+  REQUEST_ALLOWED_KEYS,
+  NOTIFICATION_ALLOWED_KEYS,
+  RESPONSE_SUCCESS_KEYS,
+  RESPONSE_ERROR_KEYS,
+  PARAMS_ALLOWED_KEYS,
+  META_ALLOWED_KEYS,
+} from './envelope.js';
+
 // 13-row method registry (frozen original 12 + C-2 publish)
 export {
   WIRE_METHOD_NAMES,
@@ -325,6 +344,17 @@ export type {
   WireMethodRegistry,
   WireMethodName,
 } from './registry.js';
+
+// Pre-dispatch frame classifier (moved in from @clowder-ai/plugin-sdk, F202
+// C1 — the classifier gates wire frames before any transport behavior runs).
+// RequestSnapshot is already exported from disposition-fixtures above; the
+// classifier re-exports it at module level for parity with its former SDK
+// module surface.
+export { classifyFrame } from './dispatch.js';
+export type {
+  DispatchResult,
+  InFlightEntry,
+} from './dispatch.js';
 
 // Per-row input/result shapes
 export type {
@@ -408,4 +438,9 @@ export {
   PING_NONCE_MIN_LENGTH,
   PING_NONCE_MAX_LENGTH,
   PING_NONCE_MAX_ENCODED_BYTES,
+  // Closed row input/result key sets (mirrors of the row shape types above)
+  PING_INPUT_KEYS,
+  PING_RESULT_KEYS,
+  DRAIN_INPUT_KEYS,
+  GRANTS_CHANGED_INPUT_KEYS,
 } from './row-shapes.js';

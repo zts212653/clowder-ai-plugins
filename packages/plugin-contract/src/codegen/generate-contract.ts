@@ -490,6 +490,61 @@ function renderMessagingReplayWindowDefault(schema: JsonSchema): string[] {
   ];
 }
 
+/**
+ * Deterministic def-name → SCREAMING_SNAKE conversion.
+ * Inserts `_` only at lowercase → uppercase word boundaries, so
+ * `M0CSubscribeInput` → `M0C_SUBSCRIBE_INPUT` (the `M0C` prefix stays
+ * attached; digit→uppercase boundaries are not word starts). All messaging
+ * def names are PascalCase words with an optional `M0C` digit-caps prefix,
+ * which this rule tokenizes exactly.
+ */
+function screamingSnake(name: string): string {
+  return name.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
+}
+
+/**
+ * Runtime key sets and enum value arrays projected from the messaging
+ * schema's closed definitions:
+ *
+ *   - every `additionalProperties: false` object def exports
+ *     `<SCREAMING_SNAKE(defName)>_KEYS` with the def's property keys in
+ *     schema declaration order (mirrors the same-named generated type);
+ *   - every string-enum def exports `<SCREAMING_SNAKE(defName)>_VALUES`
+ *     with the enum members in schema order.
+ *
+ * The `*_VALUES` suffix (not `*_CODES`) avoids shadowing module-local
+ * constants in wire/messaging-byte-bounds.ts.
+ */
+function renderClosedKeySets(schema: JsonSchema): string[] {
+  const lines: string[] = [];
+  for (const [name, definition] of Object.entries(schema.$defs ?? {})) {
+    if (definition.type === 'object' && definition.additionalProperties === false) {
+      lines.push(
+        renderConstArray(`${screamingSnake(name)}_KEYS`, Object.keys(definition.properties ?? {})),
+      );
+    } else if (
+      definition.type === 'string' &&
+      definition.enum !== undefined &&
+      definition.enum.length > 0 &&
+      definition.enum.every((value) => typeof value === 'string')
+    ) {
+      lines.push(renderConstArray(`${screamingSnake(name)}_VALUES`, definition.enum));
+    }
+  }
+  return lines;
+}
+
+/** Fail closed if the generated source would export two consts with one name. */
+function assertUniqueConstExports(source: string): void {
+  const seen = new Set<string>();
+  for (const match of source.matchAll(/export const ([A-Za-z0-9_$]+)/g)) {
+    if (seen.has(match[1]!)) {
+      throw new Error(`Duplicate generated const export: ${match[1]}`);
+    }
+    seen.add(match[1]!);
+  }
+}
+
 function schemaProperty(
   schema: JsonSchema,
   definitionName: string,
@@ -649,6 +704,8 @@ export function generateContractSource(schemas: ContractSchemas): string {
     '',
     ...renderDefinitions(schemas.messaging),
     '',
+    ...renderClosedKeySets(schemas.messaging),
+    '',
     ...renderDefinitions(schemas.physicalLimb),
     '',
     ...renderDefinitions(schemas.docxMaterialization),
@@ -672,7 +729,9 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderMessagingReplayWindowDefault(schemas.messaging),
     '',
   ];
-  return `${sections.join('\n').trimEnd()}\n`;
+  const source = `${sections.join('\n').trimEnd()}\n`;
+  assertUniqueConstExports(source);
+  return source;
 }
 
 export async function writeGeneratedContract(): Promise<void> {

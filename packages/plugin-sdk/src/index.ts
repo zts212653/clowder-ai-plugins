@@ -3,7 +3,8 @@
  *
  * This package exposes:
  *   1. Schema-neutral NDJSON transport (stdio-runtime, S0/#12)
- *   2. Wire dispatch classifier (wire-dispatch, S1)
+ *   2. Wire dispatch classifier (classifyFrame, re-exported from
+ *      @clowder-ai/plugin-contract where the classifier now lives, F202 C1)
  *
  * The beta.8 handshake, beta.9 events.publish, beta.10 lifecycle, and beta.11
  * messaging rows are executable. SDK beta.10 adds the content editor provider
@@ -56,12 +57,12 @@ export {
   type RejectedHandshakeState,
 } from './handshake-client.js';
 
-export {
-  classifyFrame,
-  type DispatchResult,
-  type InFlightEntry,
-  type RequestSnapshot,
-} from './wire-dispatch.js';
+export { classifyFrame } from '@clowder-ai/plugin-contract';
+export type {
+  DispatchResult,
+  InFlightEntry,
+  RequestSnapshot,
+} from '@clowder-ai/plugin-contract';
 
 export {
   EventsPublishError,

@@ -26,7 +26,7 @@ import {
   type StdioFrameErrorHandler,
   type StdioRuntimeFatalError,
 } from './stdio-runtime.js';
-import { classifyFrame, type InFlightEntry } from './wire-dispatch.js';
+import { classifyFrame, type InFlightEntry } from '@clowder-ai/plugin-contract';
 
 export class ManifestStartupError extends Error {
   readonly errors: readonly ManifestValidationError[];

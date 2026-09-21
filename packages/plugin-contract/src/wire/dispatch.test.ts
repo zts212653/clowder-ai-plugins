@@ -6,37 +6,34 @@
  * T-C through T-L. T-A (transport) and T-B (JSON parse) are handled
  * by the NDJSON decoder layer, not the dispatch classifier.
  *
- * All fixture vectors consumed from @clowder-ai/plugin-contract — no
+ * All fixture vectors consumed from this package's wire module — no
  * fixture data is redefined here (Fable's S1 boundary).
  */
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-// Test-only relative import: disposition fixtures are not part of the
-// published beta.4 public surface. SDK tests consume them directly from
-// contract source (tsx resolves .ts at runtime; test files are excluded
-// from the SDK dist artifact). See Fable ruling on F1/beta.4 immutability.
+// Disposition fixtures are co-located in this package's wire module.
 import {
   DISPOSITION_FIXTURE_VECTORS,
   type DispositionFixtureVector,
-} from '../../plugin-contract/src/wire/disposition-fixtures.js';
+} from './disposition-fixtures.js';
 
 import type {
   DecodedNdjsonFrame,
   JsonObject,
-} from '@clowder-ai/plugin-contract/conformance';
+} from '../conformance/index.js';
 
 import {
   HANDSHAKE_REJECTED_CODE,
   HANDSHAKE_REJECTED_MESSAGE,
-} from '@clowder-ai/plugin-contract';
+} from './index.js';
 
 import {
   classifyFrame,
   type DispatchResult,
   type InFlightEntry,
-} from './wire-dispatch.js';
+} from './dispatch.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -11,62 +11,91 @@
  * outcome='accept', indicating a valid request that should be dispatched
  * to a method handler.
  *
- * This module defines nothing new — every classification rule traces to
- * the frozen disposition table in @clowder-ai/plugin-contract.
+ * This module lives in @clowder-ai/plugin-contract (F202 C1: the wire
+ * frame classifier was moved here from @clowder-ai/plugin-sdk so the
+ * dependency arrow is 插件 → SDK → contract ← Host). It defines nothing
+ * new — every classification rule traces to the frozen disposition table
+ * in this package, and every key set it uses is co-located with or
+ * generated from the contract types it mirrors.
  */
 
-import type { DecodedNdjsonFrame, JsonObject } from '@clowder-ai/plugin-contract/conformance';
+import type { DecodedNdjsonFrame, JsonObject } from '../conformance/index.js';
 
+import type { DispositionClass } from './disposition.js';
+import type { RequestSnapshot } from './disposition-fixtures.js';
+import type {
+  AppendResult,
+  DeliverResult,
+  ReadResult,
+  SnapshotResult,
+} from './row-shapes.js';
 import {
-  type DispositionClass,
-  type AppendResult,
-  type DeliverResult,
-  type MessagingRowMethod,
-  type ReadResult,
-  type RequestSnapshot,
-  type SnapshotResult,
-  type WireMethodName,
-  validateRequestId,
-  hasHandshakeAuthorityInjection,
-  validateCandidateHello,
-  validateBrokerReadyParams,
-  validateSessionBinding,
-  validateEffectiveGrants,
-  validateEventsPublishInput,
-  validateEventsPublishResult,
-  validateMessagingRowInput,
-  validateMessagingRowResult,
-  isWireMethod,
-  isWireUInt53,
-  isCanonicalUInt53Token,
-  NOTIFICATION_METHODS,
-  MESSAGING_ROW_METHODS,
-  WIRE_METHOD_REGISTRY,
-  INVALID_REQUEST_CODE,
-  INVALID_REQUEST_MESSAGE,
-  METHOD_NOT_FOUND_CODE,
-  METHOD_NOT_FOUND_MESSAGE,
-  INVALID_PARAMS_CODE,
-  INVALID_PARAMS_MESSAGE,
   PING_NONCE_MIN_LENGTH,
   PING_NONCE_MAX_LENGTH,
-  ALL_ERROR_CODES,
-  APPLICATION_ERROR_CODES,
-  ERROR_CODE_TO_MESSAGE,
-  // Per-arm application error codes (for data schema dispatch)
+  PING_INPUT_KEYS,
+  PING_RESULT_KEYS,
+  DRAIN_INPUT_KEYS,
+  GRANTS_CHANGED_INPUT_KEYS,
+} from './row-shapes.js';
+import {
+  ERROR_BODY_APPLICATION_KEYS,
+  ERROR_BODY_STANDARD_KEYS,
+  REASON_DATA_KEYS,
+  CODE_DATA_KEYS,
   HANDSHAKE_REJECTED_CODE,
   HANDSHAKE_REJECTED_MESSAGE,
   DELIVERY_REJECTED_CODE,
   DOMAIN_ERROR_CODE,
   DEADLINE_EXPIRED_CODE,
   SNAPSHOT_UNAVAILABLE_CODE,
-  // Standard error code (ParseError null-id arm validation)
   PARSE_ERROR_CODE,
-  // Reject-reason closed enums (application error data validation)
+  INVALID_REQUEST_CODE,
+  INVALID_REQUEST_MESSAGE,
+  METHOD_NOT_FOUND_CODE,
+  METHOD_NOT_FOUND_MESSAGE,
+  INVALID_PARAMS_CODE,
+  INVALID_PARAMS_MESSAGE,
+  ALL_ERROR_CODES,
+  APPLICATION_ERROR_CODES,
+  ERROR_CODE_TO_MESSAGE,
   HANDSHAKE_REJECT_REASONS,
   DELIVERY_REJECT_REASONS,
   SNAPSHOT_UNAVAILABLE_REASONS,
-} from '@clowder-ai/plugin-contract';
+} from './errors.js';
+import {
+  REQUEST_ALLOWED_KEYS,
+  NOTIFICATION_ALLOWED_KEYS,
+  RESPONSE_SUCCESS_KEYS,
+  RESPONSE_ERROR_KEYS,
+  PARAMS_ALLOWED_KEYS,
+  META_ALLOWED_KEYS,
+} from './envelope.js';
+import {
+  hasHandshakeAuthorityInjection,
+  validateCandidateHello,
+  validateBrokerReadyParams,
+  validateSessionBinding,
+} from './handshake.js';
+import { validateEffectiveGrants } from './grants.js';
+import { validateRequestId } from './request-id.js';
+import { isWireUInt53, isCanonicalUInt53Token } from './wire-uint53.js';
+import {
+  WIRE_METHOD_REGISTRY,
+  NOTIFICATION_METHODS,
+  isWireMethod,
+  type WireMethodName,
+} from './registry.js';
+import {
+  MESSAGING_ROW_METHODS,
+  validateMessagingRowInput,
+  validateMessagingRowResult,
+  type MessagingRowMethod,
+} from '../validation/messaging-wire.js';
+import {
+  validateEventsPublishInput,
+  validateEventsPublishResult,
+} from '../validation/signals.js';
+import { MESSAGING_ERROR_CODE_VALUES } from '../generated/contract.generated.js';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -74,7 +103,7 @@ import {
 
 // Re-export the contract-owned snapshot so an in-flight response classifier
 // cannot drift from the published conformance vectors.
-export type { RequestSnapshot } from '@clowder-ai/plugin-contract';
+export type { RequestSnapshot } from './disposition-fixtures.js';
 
 export interface InFlightEntry {
   readonly method: WireMethodName;
@@ -370,30 +399,15 @@ function hasNonCanonicalUInt53Token(
 }
 
 // ---------------------------------------------------------------------------
-// Contract-mirror imports (key sets from contract-mirror.ts)
+// Closed-set constants derived from contract runtime exports
 //
-// These mirror contract type-level constraints (additionalProperties: false)
-// that lack runtime exports. Each is drift-tested in contract-mirror.test.ts.
-// See contract-mirror.ts for deletion schedule and anchoring.
+// Every key set below is co-located with or generated from the contract
+// type it mirrors (F202 C1: former contract-mirror.ts moved into the
+// contract). MESSAGING_ERROR_CODE_SET is a performance wrapper over the
+// generated MESSAGING_ERROR_CODE_VALUES array.
 // ---------------------------------------------------------------------------
 
-import {
-  MESSAGING_ERROR_CODE_SET,
-  RESPONSE_SUCCESS_KEYS,
-  RESPONSE_ERROR_KEYS,
-  NOTIFICATION_ALLOWED_KEYS,
-  REQUEST_ALLOWED_KEYS,
-  PARAMS_ALLOWED_KEYS,
-  META_ALLOWED_KEYS,
-  PING_INPUT_KEYS,
-  DRAIN_INPUT_KEYS,
-  GRANTS_CHANGED_INPUT_KEYS,
-  PING_RESULT_KEYS,
-  ERROR_BODY_STANDARD_KEYS,
-  ERROR_BODY_APPLICATION_KEYS,
-  REASON_DATA_KEYS,
-  CODE_DATA_KEYS,
-} from './contract-mirror.js';
+const MESSAGING_ERROR_CODE_SET = new Set<string>(MESSAGING_ERROR_CODE_VALUES);
 
 // ---------------------------------------------------------------------------
 // Derived constants (built from contract runtime imports, NOT mirrors)
@@ -576,11 +590,10 @@ function classifyResponseCandidate(
  * 5 arms: HandshakeRejected, DeliveryRejected, DomainError,
  * DeadlineExpired, SnapshotUnavailable.
  *
- * Contract seam: DomainError.data.code (MessagingErrorCode) has no
- * runtime enum in the contract public surface — only the TypeScript
- * type union exists. We validate structure (key + string type) but
- * skip enum validation to avoid a second truth source (P15).
- * See Sol R3 F1 → Fable escalation.
+ * Contract seam: DomainError.data.code (MessagingErrorCode) is validated
+ * against MESSAGING_ERROR_CODE_SET, which wraps the generated
+ * MESSAGING_ERROR_CODE_VALUES projected from messaging.schema.json —
+ * a single truth source (P15), no hand-maintained mirror.
  */
 function validateApplicationErrorData(
   code: number,
@@ -609,8 +622,8 @@ function validateApplicationErrorData(
 
     case DOMAIN_ERROR_CODE: {
       // data: { code: MessagingErrorCode } — closed keys + enum
-      // MESSAGING_ERROR_CODE_SET from contract-mirror.ts (drift-tested
-      // against messaging.schema.json enum, Fable ruling on R3 seam).
+      // MESSAGING_ERROR_CODE_SET wraps the generated MESSAGING_ERROR_CODE_VALUES
+      // (projected from messaging.schema.json, F202 C1).
       for (const key of Object.keys(data)) {
         if (!CODE_DATA_KEYS.has(key)) return close('T-H');
       }

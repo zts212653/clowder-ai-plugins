@@ -221,15 +221,18 @@ export function validateBindingNonce(value: unknown): value is string {
 
 type UnknownRecord = Record<string, unknown>;
 
-const CANDIDATE_HELLO_KEYS = new Set([
+/** Runtime key set mirror of the {@link CandidateHello} interface. */
+export const CANDIDATE_HELLO_KEYS = new Set([
   'pluginId', 'packageDigest', 'contractVersion', 'wireVersion',
 ]);
-const SESSION_BINDING_KEYS = new Set([
+/** Runtime key set mirror of the {@link SessionBinding} interface. */
+export const SESSION_BINDING_KEYS = new Set([
   'pluginId', 'packageDigest', 'contractVersion', 'wireVersion',
   'pluginInstanceId', 'brokerSessionId', 'grantRevision', 'effectiveGrants',
   'bindingNonce',
 ]);
-const BROKER_READY_PARAMS_KEYS = new Set(['bindingNonce']);
+/** Runtime key set mirror of the {@link BrokerReadyParams} interface. */
+export const BROKER_READY_PARAMS_KEYS = new Set(['bindingNonce']);
 const HANDSHAKE_AUTHORITY_KEYS = new Set([
   'pluginInstanceId',
   'brokerSessionId',

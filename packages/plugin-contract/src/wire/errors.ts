@@ -298,6 +298,35 @@ export type StandardWireError =
   | InvalidParamsError
   | InternalError;
 
+/**
+ * Runtime key set mirror of the standard error body ({@link StandardWireError}):
+ * { code, message } — no data field.
+ */
+export const ERROR_BODY_STANDARD_KEYS: ReadonlySet<string> = new Set(['code', 'message']);
+
+/**
+ * Runtime key set mirror of the application error body
+ * ({@link ApplicationWireError}): { code, message, data } — data required.
+ */
+export const ERROR_BODY_APPLICATION_KEYS: ReadonlySet<string> = new Set([
+  'code',
+  'message',
+  'data',
+]);
+
+/**
+ * Runtime key set mirror of the per-arm application error data shapes carrying
+ * a reject reason (HandshakeRejectedError / DeliveryRejectedError /
+ * SnapshotUnavailableError `.data`): { reason } — additionalProperties: false.
+ */
+export const REASON_DATA_KEYS: ReadonlySet<string> = new Set(['reason']);
+
+/**
+ * Runtime key set mirror of DomainError.data: { code: MessagingErrorCode } —
+ * additionalProperties: false.
+ */
+export const CODE_DATA_KEYS: ReadonlySet<string> = new Set(['code']);
+
 // ---------------------------------------------------------------------------
 // Exhaustive closed union (11 variants total)
 // ---------------------------------------------------------------------------

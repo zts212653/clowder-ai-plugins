@@ -3,10 +3,39 @@ import type {
   ConfigurationField,
   DataDeclaration,
   ExpectedVerdict,
+  M0CAckInput,
+  M0CSubscribeInput,
+  MessagingErrorCode,
   PackageIcon,
   RuntimeDeclaration,
   SideEffectAssertion,
 } from './contract.generated.js';
+import {
+  M0CACK_INPUT_KEYS,
+  M0CSUBSCRIBE_INPUT_KEYS,
+  MESSAGING_ERROR_CODE_VALUES,
+} from './contract.generated.js';
+
+// Generated runtime key sets must name exactly the fields of the generated
+// type they mirror (compile-time guard against generator regressions).
+type ExactKeys<T, K extends string> =
+  [keyof T & string] extends [K] ? [K] extends [keyof T & string] ? true : false : false;
+
+const _subscribeInputKeys: ExactKeys<
+  M0CSubscribeInput,
+  (typeof M0CSUBSCRIBE_INPUT_KEYS)[number]
+> = true;
+const _ackInputKeys: ExactKeys<M0CAckInput, (typeof M0CACK_INPUT_KEYS)[number]> = true;
+
+// Generated enum values must be identical to the MessagingErrorCode union.
+type ExactStringUnion<A, B> =
+  [A] extends [B] ? [B] extends [A] ? true : false : false;
+const _messagingErrorCodeValues: ExactStringUnion<
+  MessagingErrorCode,
+  (typeof MESSAGING_ERROR_CODE_VALUES)[number]
+> = true;
+
+void [_subscribeInputKeys, _ackInputKeys, _messagingErrorCodeValues];
 
 const lifecycleCache: DataDeclaration = {
   name: 'compiled-cache',

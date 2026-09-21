@@ -1,73 +1,63 @@
 /**
- * Drift-prevention tests for contract-mirror.ts.
+ * Drift-prevention tests for the co-located closed-shape key sets.
  *
- * Every constant in contract-mirror.ts mirrors a contract type-level
- * constraint that lacks a runtime export. These tests anchor each
- * mirror to its contract source and fail if they drift apart.
+ * Every key set in envelope.ts / row-shapes.ts / errors.ts / handshake.ts
+ * is a runtime companion of the contract interface it mirrors. These tests
+ * anchor each key set to its type source and fail if they drift apart.
  *
- * TWO-LAYER DRIFT DETECTION:
+ * TWO-LAYER DRIFT DETECTION (ported from the SDK's contract-mirror.test.ts,
+ * F202 C1 — the mirror layer moved into the contract):
  *
  * 1. **Compile-time**: ExactKeys<ContractType, LiteralUnion> type assertions
- *    fail at `tsc -p tsconfig.test.json` time when the contract interface
- *    adds or removes a field. No runtime cost.
+ *    fail at `tsc --noEmit` time when the contract interface adds or removes
+ *    a field. No runtime cost.
  *
- * 2. **Runtime**: each test verifies the mirror Set has the expected
- *    cardinality and members. Catches mirror literal drift.
+ * 2. **Runtime**: each test verifies the key set has the expected
+ *    cardinality and members. Catches literal drift.
  *
- * Together they triangulate: any single-party change (contract OR mirror)
- * is caught. Only coordinated updates to both pass green — which is the
- * intended outcome (mirror updated to match the contract).
- *
- * Automated drift tests use test-only relative imports to read contract
- * source data (schema JSON, TypeScript types). These imports are excluded
- * from the SDK dist artifact (test files not in tsconfig.build).
- *
- * Fable ruling (S1 R3 contract seam): systematic drift prevention for
- * all contract mirrors. Pattern precedent: #10 MAX_FRAME_BYTES.
+ * Schema-generated key sets (M0C_*_KEYS from contract.generated.ts) are
+ * generated from the same schema that types them, so no drift test is
+ * needed — but a sanity test guards against generator regressions.
  */
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
-  MESSAGING_ERROR_CODES,
-  MESSAGING_ERROR_CODE_SET,
+  REQUEST_ALLOWED_KEYS,
+  NOTIFICATION_ALLOWED_KEYS,
   RESPONSE_SUCCESS_KEYS,
   RESPONSE_ERROR_KEYS,
-  NOTIFICATION_ALLOWED_KEYS,
-  REQUEST_ALLOWED_KEYS,
   PARAMS_ALLOWED_KEYS,
   META_ALLOWED_KEYS,
+} from './envelope.js';
+import {
   PING_INPUT_KEYS,
-  DRAIN_INPUT_KEYS,
-  SUBSCRIBE_INPUT_KEYS,
-  ACK_INPUT_KEYS,
-  GRANTS_CHANGED_INPUT_KEYS,
-  CANDIDATE_HELLO_KEYS,
-  SESSION_BINDING_KEYS,
-  BROKER_READY_PARAMS_KEYS,
   PING_RESULT_KEYS,
-  SUBSCRIBE_RESULT_KEYS,
+  DRAIN_INPUT_KEYS,
+  GRANTS_CHANGED_INPUT_KEYS,
+} from './row-shapes.js';
+import {
   ERROR_BODY_STANDARD_KEYS,
   ERROR_BODY_APPLICATION_KEYS,
   REASON_DATA_KEYS,
   CODE_DATA_KEYS,
-} from './contract-mirror.js';
+} from './errors.js';
+import {
+  CANDIDATE_HELLO_KEYS,
+  SESSION_BINDING_KEYS,
+  BROKER_READY_PARAMS_KEYS,
+} from './handshake.js';
 
 // ---------------------------------------------------------------------------
-// Contract type imports — compile-time drift anchors
+// Contract type imports — compile-time drift anchors (co-located modules)
 // ---------------------------------------------------------------------------
 
-// Public barrel: types available in published @clowder-ai/plugin-contract.
-// Every contract type that a shared mirror constant serves is imported
-// here — not just one representative per group (Sol R5 matrix closure).
 import type {
-  CallMeta,
+  WireRequest,
+  WireNotification,
   WireSuccessResponse,
-  // Concrete error envelopes — all 11 variants for RESPONSE_ERROR_KEYS
+  CallMeta,
   ParseErrorEnvelope,
   HandshakeRejectedEnvelope,
   DeliveryRejectedEnvelope,
@@ -79,38 +69,30 @@ import type {
   MethodNotFoundEnvelope,
   InvalidParamsEnvelope,
   InternalErrorEnvelope,
-  // Per-method CLOSED-row input/result shapes
+} from './envelope.js';
+import type {
   PingInput,
   PingResult,
   DrainInput,
-  SubscribeInput,
-  SubscribeResult,
-  MessagingAckRequest,
   GrantsChangedInput,
-  CandidateHello,
-  SessionBinding,
-  BrokerReadyParams,
-  // Standard error body types — all 5 for ERROR_BODY_STANDARD_KEYS
+} from './row-shapes.js';
+import type {
   ParseError,
   InvalidRequestError,
   MethodNotFoundError,
   InvalidParamsError,
   InternalError,
-  // Application error body types — all 5 for ERROR_BODY_APPLICATION_KEYS
   HandshakeRejectedError,
   DeliveryRejectedError,
   DomainError,
   DeadlineExpiredError,
   SnapshotUnavailableError,
-} from '@clowder-ai/plugin-contract';
-
-// Test-only relative import: generic envelopes NOT in public barrel (Q1 ruling).
-// These types are the sole source for REQUEST_ALLOWED_KEYS, NOTIFICATION_ALLOWED_KEYS,
-// and PARAMS_ALLOWED_KEYS. Safe: test files excluded from SDK dist artifact.
+} from './errors.js';
 import type {
-  WireRequest,
-  WireNotification,
-} from '../../plugin-contract/src/wire/envelope.js';
+  CandidateHello,
+  SessionBinding,
+  BrokerReadyParams,
+} from './handshake.js';
 
 // ---------------------------------------------------------------------------
 // Compile-time drift detection: ExactKeys type utility
@@ -120,8 +102,8 @@ import type {
  * Evaluates to `true` iff `keyof T` is exactly the string literal union K.
  * Bidirectional: catches both additions and removals.
  *
- * If the contract interface changes, the const assignment `const _: ExactKeys<...> = true`
- * fails at tsc time with "Type 'false' is not assignable to type 'true'".
+ * If the contract interface changes, the const assignment fails at tsc time
+ * with "Type 'false' is not assignable to type 'true'".
  *
  * Tuple wrapping [A] extends [B] prevents union distribution.
  */
@@ -158,18 +140,15 @@ const _d17: ExactKeys<CallMeta, 'deadlineUnixMs'> = true;
 // ── Per-method CLOSED-row input shapes (1:1, no shared mirrors) ──
 const _d18: ExactKeys<PingInput, 'nonce'> = true;
 const _d19: ExactKeys<DrainInput, 'deadlineUnixMs'> = true;
-const _d20: ExactKeys<SubscribeInput, 'handle'> = true;
-const _d21: ExactKeys<MessagingAckRequest, 'subscriptionId' | 'ackToken'> = true;
 const _d22: ExactKeys<GrantsChangedInput, 'grantRevision' | 'effectiveGrants'> = true;
 
-// ── Handshake structural shapes (all runtime checks live in S3) ──
+// ── Handshake structural shapes ──
 const _d22a: ExactKeys<CandidateHello, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion'> = true;
 const _d22b: ExactKeys<SessionBinding, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion' | 'pluginInstanceId' | 'brokerSessionId' | 'grantRevision' | 'effectiveGrants' | 'bindingNonce'> = true;
 const _d22c: ExactKeys<BrokerReadyParams, 'bindingNonce'> = true;
 
 // ── Per-method CLOSED-row result shapes (1:1, no shared mirrors) ──
 const _d23: ExactKeys<PingResult, 'nonce'> = true;
-const _d24: ExactKeys<SubscribeResult, 'subscriptionId'> = true;
 
 // ── ERROR_BODY_STANDARD_KEYS ── (all 5 standard error arms)
 const _d25: ExactKeys<ParseError, 'code' | 'message'> = true;
@@ -197,77 +176,30 @@ const _d38: ExactKeys<DomainError['data'], 'code'> = true;
 void _d01; void _d02; void _d03; void _d04; void _d05; void _d06;
 void _d07; void _d08; void _d09; void _d10; void _d11; void _d12;
 void _d13; void _d14; void _d15; void _d16; void _d17; void _d18;
-void _d19; void _d20; void _d21; void _d22; void _d23; void _d24;
+void _d19; void _d22; void _d23;
 void _d22a; void _d22b; void _d22c;
 void _d25; void _d26; void _d27; void _d28; void _d29; void _d30;
 void _d31; void _d32; void _d33; void _d34; void _d35; void _d36;
 void _d37; void _d38;
 
 // ---------------------------------------------------------------------------
-// Schema JSON source path (test-only)
-// ---------------------------------------------------------------------------
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const MESSAGING_SCHEMA_PATH = resolve(
-  __dirname,
-  '../../plugin-contract/src/schemas/messaging.schema.json',
-);
-
-// ---------------------------------------------------------------------------
-// Automated drift test: MessagingErrorCode enum
-// ---------------------------------------------------------------------------
-
-test('MESSAGING_ERROR_CODES matches messaging.schema.json enum exactly', () => {
-  const schemaRaw = readFileSync(MESSAGING_SCHEMA_PATH, 'utf8');
-  const schema = JSON.parse(schemaRaw) as {
-    $defs: {
-      MessagingErrorCode: { type: string; enum: string[] };
-    };
-  };
-
-  const schemaEnum = schema.$defs.MessagingErrorCode.enum;
-
-  assert.ok(
-    Array.isArray(schemaEnum),
-    'schema must define MessagingErrorCode.enum as array',
-  );
-
-  // Exact member match (same values, same order)
-  assert.deepEqual(
-    [...MESSAGING_ERROR_CODES],
-    schemaEnum,
-    'MESSAGING_ERROR_CODES must match schema enum exactly (values + order). ' +
-      'If this fails, update contract-mirror.ts to match the schema.',
-  );
-});
-
-test('MESSAGING_ERROR_CODE_SET has same cardinality as array', () => {
-  assert.equal(
-    MESSAGING_ERROR_CODE_SET.size,
-    MESSAGING_ERROR_CODES.length,
-    'Set and array must have same size (no duplicates in array)',
-  );
-});
-
-// ---------------------------------------------------------------------------
 // Runtime drift tests: envelope key sets
 //
-// These verify the mirror Set has the expected cardinality and members.
+// These verify the co-located Set has the expected cardinality and members.
 // Compile-time ExactKeys assertions (above) anchor each key set to the
 // contract interface — if the contract adds/removes a field, tsc fails
-// before these runtime tests even run. These runtime tests catch mirror
-// literal drift (someone changes the Set without updating ExactKeys).
+// before these runtime tests even run. These runtime tests catch literal
+// drift (someone changes the Set without updating the interface).
 // ---------------------------------------------------------------------------
 
 test('RESPONSE_SUCCESS_KEYS matches WireSuccessResponse interface', () => {
-  // WireSuccessResponse: { jsonrpc, id, result }
   assert.equal(RESPONSE_SUCCESS_KEYS.size, 3);
   assert.ok(RESPONSE_SUCCESS_KEYS.has('jsonrpc'));
   assert.ok(RESPONSE_SUCCESS_KEYS.has('id'));
   assert.ok(RESPONSE_SUCCESS_KEYS.has('result'));
 });
 
-test('RESPONSE_ERROR_KEYS matches WireErrorResponse interface', () => {
+test('RESPONSE_ERROR_KEYS matches the error envelope variants', () => {
   // WireApplicationErrorResponse / WireStandardErrorResponse: { jsonrpc, id, error }
   assert.equal(RESPONSE_ERROR_KEYS.size, 3);
   assert.ok(RESPONSE_ERROR_KEYS.has('jsonrpc'));
@@ -276,7 +208,6 @@ test('RESPONSE_ERROR_KEYS matches WireErrorResponse interface', () => {
 });
 
 test('NOTIFICATION_ALLOWED_KEYS matches WireNotification interface', () => {
-  // WireNotification: { jsonrpc, method, params }
   assert.equal(NOTIFICATION_ALLOWED_KEYS.size, 3);
   assert.ok(NOTIFICATION_ALLOWED_KEYS.has('jsonrpc'));
   assert.ok(NOTIFICATION_ALLOWED_KEYS.has('method'));
@@ -284,7 +215,6 @@ test('NOTIFICATION_ALLOWED_KEYS matches WireNotification interface', () => {
 });
 
 test('REQUEST_ALLOWED_KEYS matches WireRequest interface', () => {
-  // WireRequest: { jsonrpc, id, method, params }
   assert.equal(REQUEST_ALLOWED_KEYS.size, 4);
   assert.ok(REQUEST_ALLOWED_KEYS.has('jsonrpc'));
   assert.ok(REQUEST_ALLOWED_KEYS.has('id'));
@@ -293,14 +223,12 @@ test('REQUEST_ALLOWED_KEYS matches WireRequest interface', () => {
 });
 
 test('PARAMS_ALLOWED_KEYS matches WireRequest.params / WireNotification.params', () => {
-  // params: { meta, input }
   assert.equal(PARAMS_ALLOWED_KEYS.size, 2);
   assert.ok(PARAMS_ALLOWED_KEYS.has('meta'));
   assert.ok(PARAMS_ALLOWED_KEYS.has('input'));
 });
 
 test('META_ALLOWED_KEYS matches CallMeta interface', () => {
-  // CallMeta: { deadlineUnixMs }
   assert.equal(META_ALLOWED_KEYS.size, 1);
   assert.ok(META_ALLOWED_KEYS.has('deadlineUnixMs'));
 });
@@ -317,17 +245,6 @@ test('PING_INPUT_KEYS matches PingInput interface', () => {
 test('DRAIN_INPUT_KEYS matches DrainInput interface', () => {
   assert.equal(DRAIN_INPUT_KEYS.size, 1);
   assert.ok(DRAIN_INPUT_KEYS.has('deadlineUnixMs'));
-});
-
-test('SUBSCRIBE_INPUT_KEYS matches SubscribeInput interface', () => {
-  assert.equal(SUBSCRIBE_INPUT_KEYS.size, 1);
-  assert.ok(SUBSCRIBE_INPUT_KEYS.has('handle'));
-});
-
-test('ACK_INPUT_KEYS matches MessagingAckRequest interface', () => {
-  assert.equal(ACK_INPUT_KEYS.size, 2);
-  assert.ok(ACK_INPUT_KEYS.has('subscriptionId'));
-  assert.ok(ACK_INPUT_KEYS.has('ackToken'));
 });
 
 test('GRANTS_CHANGED_INPUT_KEYS matches GrantSnapshot interface', () => {
@@ -366,11 +283,6 @@ test('PING_RESULT_KEYS matches PingResult interface', () => {
   assert.ok(PING_RESULT_KEYS.has('nonce'));
 });
 
-test('SUBSCRIBE_RESULT_KEYS matches SubscribeResult interface', () => {
-  assert.equal(SUBSCRIBE_RESULT_KEYS.size, 1);
-  assert.ok(SUBSCRIBE_RESULT_KEYS.has('subscriptionId'));
-});
-
 // ---------------------------------------------------------------------------
 // Structural drift tests: error body key sets
 // ---------------------------------------------------------------------------
@@ -398,4 +310,52 @@ test('REASON_DATA_KEYS matches per-arm data: {reason}', () => {
 test('CODE_DATA_KEYS matches DomainError data: {code}', () => {
   assert.equal(CODE_DATA_KEYS.size, 1);
   assert.ok(CODE_DATA_KEYS.has('code'));
+});
+
+// ---------------------------------------------------------------------------
+// Generated key sets sanity (no drift test needed — same schema truth source)
+// ---------------------------------------------------------------------------
+
+import {
+  M0CSUBSCRIBE_INPUT_KEYS,
+  M0CSUBSCRIBE_RESULT_KEYS,
+  M0CACK_INPUT_KEYS,
+  M0CDELIVER_INPUT_KEYS,
+  M0CDELIVER_RESULT_KEYS,
+  M0CREAD_INPUT_KEYS,
+  MESSAGING_ERROR_CODE_VALUES,
+} from '../generated/contract.generated.js';
+import type {
+  M0CAckInput,
+  M0CDeliverResult,
+  M0CSubscribeInput,
+  MessagingErrorCode,
+} from '../generated/contract.generated.js';
+
+// Compile-time: generated key sets name exactly the generated type's fields.
+const _g01: ExactKeys<M0CSubscribeInput, (typeof M0CSUBSCRIBE_INPUT_KEYS)[number]> = true;
+const _g02: ExactKeys<M0CAckInput, (typeof M0CACK_INPUT_KEYS)[number]> = true;
+const _g03: ExactKeys<M0CDeliverResult, (typeof M0CDELIVER_RESULT_KEYS)[number]> = true;
+void _g01; void _g02; void _g03;
+
+test('generated M0C key sets match their schema-declared members and order', () => {
+  assert.deepEqual([...M0CSUBSCRIBE_INPUT_KEYS], ['handle']);
+  assert.deepEqual([...M0CSUBSCRIBE_RESULT_KEYS], ['subscriptionId']);
+  assert.deepEqual([...M0CACK_INPUT_KEYS], ['subscriptionId', 'ackToken']);
+  assert.deepEqual([...M0CREAD_INPUT_KEYS], ['subscriptionId', 'limit']);
+  assert.deepEqual([...M0CDELIVER_RESULT_KEYS], ['deliveryId']);
+  assert.deepEqual([...M0CDELIVER_INPUT_KEYS], ['deliveryId', 'threadHandle', 'envelope']);
+});
+
+test('generated MESSAGING_ERROR_CODE_VALUES matches the MessagingErrorCode union', () => {
+  assert.deepEqual([...MESSAGING_ERROR_CODE_VALUES], [
+    'VALIDATION',
+    'PERMISSION',
+    'NOT_FOUND',
+    'CONFLICT',
+    'RETRYABLE_INFLIGHT',
+    'STALE_CURSOR',
+  ]);
+  const asType: readonly MessagingErrorCode[] = MESSAGING_ERROR_CODE_VALUES;
+  assert.equal(asType.length, 6);
 });

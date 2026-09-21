@@ -142,6 +142,15 @@ export const ACK_TOKEN_MAX_ENCODED_BYTES = 3074 as const;
  */
 export type GrantsChangedInput = GrantSnapshot;
 
+/**
+ * Runtime key set mirror of {@link GrantsChangedInput} (= GrantSnapshot).
+ * additionalProperties: false — { grantRevision, effectiveGrants }.
+ */
+export const GRANTS_CHANGED_INPUT_KEYS: ReadonlySet<string> = new Set([
+  'grantRevision',
+  'effectiveGrants',
+]);
+
 // Re-export GrantSnapshot for downstream convenience — consumers of
 // row shapes should not need to import grants.ts separately.
 export type { GrantSnapshot } from './grants.js';
@@ -162,6 +171,12 @@ export interface PingInput {
 }
 
 /**
+ * Runtime key set mirror of the {@link PingInput} interface.
+ * additionalProperties: false — { nonce }.
+ */
+export const PING_INPUT_KEYS: ReadonlySet<string> = new Set(['nonce']);
+
+/**
  * Row 11 result: echo of the input nonce.
  * Wire shape: `{ nonce: string }` — additionalProperties: false.
  *
@@ -171,6 +186,12 @@ export interface PingResult {
   /** Byte-equal echo of the input nonce. */
   readonly nonce: string;
 }
+
+/**
+ * Runtime key set mirror of the {@link PingResult} interface.
+ * additionalProperties: false — { nonce }.
+ */
+export const PING_RESULT_KEYS: ReadonlySet<string> = new Set(['nonce']);
 
 /** Minimum code-point length for ping nonce. */
 export const PING_NONCE_MIN_LENGTH = 1 as const;
@@ -206,6 +227,12 @@ export interface DrainInput {
    */
   readonly deadlineUnixMs: number;
 }
+
+/**
+ * Runtime key set mirror of the {@link DrainInput} interface.
+ * additionalProperties: false — { deadlineUnixMs }.
+ */
+export const DRAIN_INPUT_KEYS: ReadonlySet<string> = new Set(['deadlineUnixMs']);
 
 /**
  * Row 12 result: null.

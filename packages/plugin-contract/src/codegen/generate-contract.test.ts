@@ -292,3 +292,50 @@ test('generation fails when data strategy metadata drifts from schema constraint
     /data-class strategy metadata.*schema constraints/,
   );
 });
+
+test('generated closed-shape key sets and enum values mirror messaging $defs', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(source, /export const M0CSUBSCRIBE_INPUT_KEYS = \['handle'\] as const;/);
+  assert.match(
+    source,
+    /export const M0CACK_INPUT_KEYS = \['subscriptionId', 'ackToken'\] as const;/,
+  );
+  assert.match(source, /export const M0CDELIVER_RESULT_KEYS = \['deliveryId'\] as const;/);
+  assert.match(
+    source,
+    /export const MESSAGING_ERROR_CODE_VALUES = \['VALIDATION', 'PERMISSION', 'NOT_FOUND', 'CONFLICT', 'RETRYABLE_INFLIGHT', 'STALE_CURSOR'\] as const;/,
+  );
+
+  // Every additionalProperties:false object def gets a _KEYS const, and every
+  // string-enum def gets a _VALUES const — in schema declaration order.
+  const screamingSnake = (value: string): string =>
+    value.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
+  for (const [name, definition] of Object.entries(schemas.messaging.$defs ?? {})) {
+    if (definition.type === 'object' && definition.additionalProperties === false) {
+      const keys = Object.keys(definition.properties ?? {}).map((key) => `'${key}'`).join(', ');
+      assert.ok(
+        source.includes(`export const ${screamingSnake(name)}_KEYS = [${keys}] as const;`),
+        `${name} keys must be generated in schema declaration order`,
+      );
+    } else if (definition.type === 'string' && definition.enum !== undefined) {
+      assert.ok(
+        source.includes(`export const ${screamingSnake(name)}_VALUES = [${definition.enum.map((value) => `'${value}'`).join(', ')}] as const;`),
+        `${name} enum values must be generated`,
+      );
+    }
+  }
+});
+
+test('generation fails closed on a duplicate generated const name', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  // 'Actor_Kind' tokenizes to the same SCREAMING_SNAKE name as 'ActorKind',
+  // producing a duplicate ACTOR_KIND_VALUES export.
+  mutated.messaging.$defs!['Actor_Kind'] = structuredClone(mutated.messaging.$defs!.ActorKind);
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /Duplicate generated const export: ACTOR_KIND_VALUES/,
+  );
+});
