@@ -48,9 +48,14 @@ if (!window.clowderCompanion) {
   }
   const conversation = new CompanionConversation({
     client, createPeer: callback => new VoicePeer(callback, client), stopScreen: () => screen.stop(),
-    transcript: event => event.type === 'turn-done' ? transcript.finish(event) : transcript.append(event.role, event.text, !event.typed),
+    transcript: event => {
+      if (event.type === 'turn-done') { transcript.finish(event); void readHistory(); }
+      else if (event.typed) void readHistory();
+      else transcript.append(event.role, event.text, true);
+    },
     render(value) {
       const showFailure = value.failed && previousPhase !== 'idle' && value.phase === 'idle';
+      if (previousPhase !== 'idle' && value.phase === 'idle') { transcript.reset(); void readHistory(); }
       previousPhase = value.phase;
       const active = value.phase !== 'idle';
       $('begin').hidden = active; $('begin').disabled = !value.identity;
@@ -80,15 +85,14 @@ if (!window.clowderCompanion) {
     },
   });
   async function readHistory() {
-    if (loading || conversation.active || controls.panel !== 'chat') return;
+    if (loading || controls.panel !== 'chat') return;
     loading = true;
     try {
       const history = await client.readConversation();
-      if (conversation.active) return;
       $('history').textContent = history.hasMore ? '更早聊天 ↗' : '完整聊天 ↗';
       const serialized = JSON.stringify(history.messages);
       if (serialized !== latestHistory) { latestHistory = serialized; transcript.load(history.messages); }
-    } catch (error) { status(explainError(error)); }
+    } catch { $('chat-status').textContent = '聊天记录暂未更新 · 正在说的话仍会显示'; }
     finally { loading = false; }
   }
   $('call-badge').onclick = () => void conversation.end();
@@ -104,7 +108,7 @@ if (!window.clowderCompanion) {
     }
   };
   const unsubscribe = client.subscribe(event => {
-    if (event.kind === 'media-stopped') void conversation.releaseLocal('语音已停止');
+    if (event.kind === 'media-stopped') void conversation.hostStopped(event.reason);
     if (event.kind === 'view-dismiss') controls.dismiss();
   });
   const monitor = setInterval(() => { void conversation.refresh(); void readHistory(); }, 3000);

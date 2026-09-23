@@ -70,6 +70,17 @@ export class CompanionConversation {
     catch { this.show('麦克风已关闭 · 连接收尾尚未确认'); }
     finally { if (this.stopping === operation) this.stopping = undefined; }
   }
+  async hostStopped(reason) {
+    // Stop echoes must not erase a more useful local failure or manual ending.
+    if (!this.active) return;
+    const messages = {
+      locked: '屏幕已锁定 · 语音已停止，解锁后可点击语音聊继续',
+      suspended: '电脑已休眠 · 语音已停止，可点击语音聊继续',
+      hidden: '猫猫已收起 · 语音已停止',
+    };
+    this.failed = !Object.hasOwn(messages, reason);
+    await this.releaseLocal(messages[reason] ?? '语音连接已中断 · 麦克风已关闭，点击语音聊重试');
+  }
   async refresh() {
     if (this.refreshing) return;
     this.refreshing = true;
@@ -79,7 +90,7 @@ export class CompanionConversation {
       if (generation !== this.generation) return;
       this.identity = identity;
       if (this.active && ['closed', 'failed', 'idle'].includes(identity.phase)) {
-        await this.end('连接已结束 · 点击开始聊天继续');
+        await this.end('语音连接已中断 · 点击语音聊重试', true);
       } else this.show(this.message ?? '点开始聊天，直接对我说话');
     } catch (error) {
       if (generation === this.generation) {

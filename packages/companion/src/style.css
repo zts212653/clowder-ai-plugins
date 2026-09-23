@@ -58,4 +58,6 @@ button:disabled { opacity: .45; cursor: default; }
 #pet[data-skin="yarn-ball"] { background-image: url("./skins/yarn-ball.png"); animation: none; background-size: contain; background-repeat: no-repeat; background-position: center; }
 #transcript { height: 230px; font-size: 13px; }
 #transcript .assistant { background: transparent; }
+#transcript p[data-author]::before { content: attr(data-author); display: block; color: var(--cafe-text-muted); font-size: 10px; margin-bottom: 2px; }
+#transcript p[data-live="true"] { border-left: 2px solid var(--cafe-accent); }
 #history { padding: 0; font-size: 10px; color: var(--cafe-text-secondary); }

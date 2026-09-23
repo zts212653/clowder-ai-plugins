@@ -15,7 +15,14 @@
     {
       "source": "packages/web/public/concierge/skins/xianxian-codex/spritesheet.webp",
       "destination": "assets/skins/xianxian-codex.webp",
-      "sha256": "5f653974735a4104dfdaf1845128494a5cb5164cb2f45fecb2072a167c80e8a5"
+      "sha256": "28e6a4211acac553c982627b402865cf7c079038fc4ad7954522ce37b1db90cb",
+      "derivation": {
+        "method": "reviewed-atlas-refresh",
+        "date": "2026-09-23",
+        "referenceSha256": "5f653974735a4104dfdaf1845128494a5cb5164cb2f45fecb2072a167c80e8a5",
+        "purpose": "Synchronize the family-owned repaired atlas: preserve opaque white fur and use a fixed crop and scale for the six idle frames.",
+        "author": "codex-astra"
+      }
     },
     {
       "source": "packages/web/public/concierge/skins/ragdoll-v1/idle.png",
