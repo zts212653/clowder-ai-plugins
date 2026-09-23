@@ -91,6 +91,16 @@ test('a confirmed late send retires its id before the next conversation', async 
   await f.conversation.begin(); await f.conversation.send('好'); await f.conversation.end();
   assert.notEqual(ids[0], ids[1]);
 });
+test('an accepted text reply after voice stops still clears the sent draft without reviving voice', async () => {
+  const receipt = deferred(); const f = fixture({ text: () => receipt.promise });
+  await f.conversation.begin();
+  const sending = f.conversation.send('已收到的一句');
+  await f.conversation.end('通话已经停止'); receipt.resolve();
+  assert.equal(await sending, true, 'the composer must consume the successful receipt');
+  assert.equal(f.conversation.phase, 'idle');
+  assert.equal(f.events.at(-1).message, '通话已经停止');
+  assert.equal(f.calls.filter(call => call === 'connect').length, 1);
+});
 test('changing microphone preference while connecting never claims to be listening', async () => {
   const ready = deferred(); const f = fixture({ prepare: () => ready.promise });
   const begin = f.conversation.begin();

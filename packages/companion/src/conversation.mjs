@@ -123,7 +123,9 @@ export class CompanionConversation {
     try {
       await this.client.text(input.text, input.id);
       if (this.pendingText === input) this.pendingText = undefined;
-      if (generation !== this.generation) return false;
+      // Voice may have ended; an accepted message still retires this draft.
+      // Keep the newer voice status rather than announcing that we are listening.
+      if (generation !== this.generation) return true;
       this.transcript({ type: 'transcript', role: 'user', text, typed: true });
       this.show(this.active ? this.listening() : '已发送 · 回答会留在同一段聊天中');
       return true;
