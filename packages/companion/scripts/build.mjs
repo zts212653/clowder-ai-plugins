@@ -20,7 +20,7 @@ const manifest = {
   description: { default: 'Talk, think and find your shared history with your companion.', translations: { 'zh-CN': '和猫猫说话、查资料，回到同一段聊天继续工作。' } },
   runtime: { transport: 'builtin' },
   features: [{ id: 'companion', name: '猫猫球', resources: [], capabilities: ['windows.create'], contributions: [{ type: 'desktop-window', id: 'companion' }] }],
-  contributions: [{ type: 'desktop-window', id: 'companion', role: 'companion', bridgeVersion: '1.2.0',
+  contributions: [{ type: 'desktop-window', id: 'companion', role: 'companion', bridgeVersion: '1.3.0',
     surface: { entrypoint: 'renderer/index.html', integrity: `sha256-${createHash('sha256').update(html).digest('base64')}` },
     presentation: { width: 300, height: 270, frame: false, transparent: true, alwaysOnTop: true, skipTaskbar: true } }],
 };

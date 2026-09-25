@@ -12,7 +12,7 @@ function fixture() {
     addEventListener(name, callback) { this.handlers[name] = callback; }, focus() {},
     querySelector: () => ({ focus() {} }),
   });
-  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'message']) nodes.set(id, node(id));
+  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'decisions', 'decision-reload', 'message']) nodes.set(id, node(id));
   const previous = { document: globalThis.document, window: globalThis.window, ResizeObserver: globalThis.ResizeObserver };
   globalThis.document = { getElementById: id => nodes.get(id), addEventListener() {}, querySelectorAll: () => [] };
   globalThis.window = { addEventListener() {} };

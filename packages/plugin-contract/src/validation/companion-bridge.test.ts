@@ -56,3 +56,19 @@ test('surface state preserves real actors but never leaks internal handles or ra
   assert.equal(validateCompanionEvent({ kind: 'media-stopped', reason: 'locked' }), true);
   assert.equal(validateCompanionEvent({ kind: 'media-stopped', reason: 'resume-capture' }), false);
 });
+
+test('passive decision reading has bounded pages and no renderer approval command', () => {
+  assert.equal(validateCompanionCommand({ kind: 'decisions.read', offset: 0, limit: 20 }), true);
+  assert.equal(validateCompanionCommand({ kind: 'decisions.read', offset: 0, limit: 21 }), false);
+  assert.equal(validateCompanionCommand({ kind: 'decisions.read', offset: 0, limit: 20, proposalId: 'other' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'decision.approve', proposalId: 'taste-1' }), false);
+  const reply = { kind: 'decisions', status: 'available', approvalCount: 1, needsMeCount: 2,
+    otherNeedsMeCount: 1, approvals: [{ proposalId: 'taste-1', sourceFeatureId: 'F221',
+      summary: '品味提案', resolution: 'open', materializationState: 'not_started', linkedNeedsMe: true }],
+    otherNeedsMe: [{ subjectRef: 'task:one', summary: '看看任务' }],
+    page: { offset: 0, limit: 20, hasMoreApprovals: false, hasMoreNeedsMe: false } };
+  assert.equal(validateCompanionReply(reply), true);
+  assert.equal(validateCompanionReply({ ...reply, approvalCount: 0, approvals: reply.approvals, token: 'secret' }), false);
+  assert.equal(validateCompanionReply({ ...reply, status: 'unavailable', approvalCount: null,
+    needsMeCount: null, otherNeedsMeCount: null, approvals: [], otherNeedsMe: [] }), true);
+});

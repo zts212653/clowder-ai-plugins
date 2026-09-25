@@ -7,6 +7,7 @@ import { TranscriptView } from './transcript-view.mjs';
 import { RecentBubble } from './recent-bubble.mjs';
 import { PetMotion } from './pet-motion.mjs';
 import { bindPetControls } from './pet-controls.mjs';
+import { decisionBadge, decisionRows } from './decision-view.mjs';
 
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
@@ -15,6 +16,7 @@ const transcript = new TranscriptView($('transcript'));
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
 const motion = new PetMotion($('pet'));
 let sharing = false, pendingScreen = false, loading = false, latestHistory, previousPhase = 'idle';
+let decisionLoading = false, decisionOffset = 0;
 let threadTitle;
 
 if (!window.clowderCompanion) {
@@ -26,7 +28,7 @@ if (!window.clowderCompanion) {
   const controls = bindPetControls(client, {
     error: error => status(explainError(error)),
     moved: (dx, dy) => dx === 'stop' ? motion.stopMove() : motion.move(dx, dy),
-    changed: panel => { if (panel === 'chat') void readHistory(); },
+    changed: panel => { if (panel === 'chat') void readHistory(); if (panel === 'decisions') void readDecisions(); },
     action(kind) {
       if (kind === 'begin') { transcript.reset(); bubble.reset(); void conversation.begin(); void controls.show('none'); }
       if (kind === 'stop') void conversation.end();
@@ -115,8 +117,47 @@ if (!window.clowderCompanion) {
     } catch { $('chat-status').textContent = '聊天记录暂未更新 · 正在说的话仍会显示'; }
     finally { loading = false; }
   }
+  function showDecisionBadge(page) {
+    const badge = decisionBadge(page);
+    $('pending-badge').hidden = !badge.visible;
+    $('pending-count').textContent = badge.label;
+    $('pending-badge').title = badge.title;
+    $('pending-badge').setAttribute('aria-label', badge.title);
+    $('menu-pending').textContent = badge.label;
+  }
+  async function readDecisions(more = false) {
+    if (decisionLoading) return;
+    decisionLoading = true;
+    if (!more && controls.panel === 'decisions') $('decision-status').textContent = '正在读取待决事项…';
+    try {
+      const page = await client.readDecisions(more ? decisionOffset : 0, 10);
+      if (page.status !== 'available') throw new Error('Decision source unavailable');
+      showDecisionBadge(page);
+      if (controls.panel !== 'decisions') return;
+      const list = $('decision-list');
+      if (!more) list.replaceChildren();
+      for (const row of decisionRows(page)) {
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        const meta = document.createElement('span');
+        title.textContent = row.title; meta.textContent = row.meta;
+        item.append(title, meta); list.append(item);
+      }
+      decisionOffset = page.page.offset + page.page.limit;
+      $('decision-status').textContent = page.approvalCount + page.otherNeedsMeCount === 0
+        ? '现在没有待你处理的事项'
+        : `${page.approvalCount} 项审批事项，另有 ${page.otherNeedsMeCount} 项待处理`;
+      $('decision-more').hidden = !page.page.hasMoreApprovals && !page.page.hasMoreNeedsMe;
+    } catch {
+      showDecisionBadge(undefined);
+      if (controls.panel === 'decisions') $('decision-status').textContent = '待决事项暂不可读 · 请稍后刷新';
+    } finally { decisionLoading = false; }
+  }
   $('call-badge').onclick = () => void conversation.end();
   $('share-badge').onclick = toggleScreen;
+  $('pending-badge').onclick = () => void controls.show('decisions');
+  $('decision-reload').onclick = () => void readDecisions();
+  $('decision-more').onclick = () => void readDecisions(true);
   $('history').onclick = () => void client.openConversation().then(result => {
     if (result.delivery === 'unconfirmed') status('打开聊天尚未确认 · 请从 Clowder 查看');
   }).catch(error => status(explainError(error)));
@@ -134,9 +175,10 @@ if (!window.clowderCompanion) {
   });
   const statusMonitor = setInterval(() => void conversation.refresh(), 1000);
   const historyMonitor = setInterval(() => void readHistory(), 3000);
-  void conversation.refresh(); void controls.show('none');
+  const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void readDecisions(); }, 15000);
+  void conversation.refresh(); void readDecisions(); void controls.show('none');
   window.addEventListener('beforeunload', () => {
-    clearInterval(statusMonitor); clearInterval(historyMonitor);
+    clearInterval(statusMonitor); clearInterval(historyMonitor); clearInterval(decisionMonitor);
     unsubscribe(); motion.close(); void conversation.end();
   });
 }

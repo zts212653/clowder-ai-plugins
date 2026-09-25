@@ -260,7 +260,7 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0';
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -867,11 +867,15 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'conversation.open';
 } | {
+  readonly kind: 'decisions.read';
+  readonly offset: number;
+  readonly limit: number;
+} | {
   readonly kind: 'view.resize';
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions';
   readonly width: number;
   readonly height: number;
 } | {
@@ -897,10 +901,35 @@ export type CompanionState = {
   readonly toolsReady: boolean;
   readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
 };
+export type CompanionDecisions = {
+  readonly kind: 'decisions';
+  readonly status: 'available' | 'unavailable';
+  readonly approvalCount: number | null;
+  readonly needsMeCount: number | null;
+  readonly otherNeedsMeCount: number | null;
+  readonly approvals: readonly ({
+    readonly proposalId: string;
+    readonly sourceFeatureId: string;
+    readonly summary: string;
+    readonly resolution: 'open' | 'accepted' | 'rejected' | 'closed_without_decision';
+    readonly materializationState: 'not_started' | 'outcome_unknown' | 'in_progress' | 'succeeded' | 'failed';
+    readonly linkedNeedsMe: boolean;
+  })[];
+  readonly otherNeedsMe: readonly ({
+    readonly subjectRef: string;
+    readonly summary: string;
+  })[];
+  readonly page: {
+    readonly offset: number;
+    readonly limit: number;
+    readonly hasMoreApprovals: boolean;
+    readonly hasMoreNeedsMe: boolean;
+  };
+};
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | {
+} | CompanionState | CompanionDecisions | {
   readonly kind: 'delivery';
   readonly delivery: 'accepted' | 'unconfirmed';
 } | {

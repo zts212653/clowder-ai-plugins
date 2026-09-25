@@ -17,6 +17,7 @@
       <div id="indicators">
         <button id="call-badge" hidden aria-label="结束语音" title="结束语音"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
         <button id="share-badge" hidden aria-label="停止共享" title="停止共享"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+        <button id="pending-badge" hidden aria-label="查看待决事项" title="查看待决事项"><span id="pending-count">?</span></button>
       </div>
     </div>
     <section id="bubble" class="floating" aria-label="最近的两句话" hidden>
@@ -37,6 +38,7 @@
     <section id="menu" class="floating" aria-label="猫猫的菜单" hidden>
       <strong id="menu-name" class="menu-title">猫猫</strong>
       <button data-action="history"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg><span>聊天记录</span></button>
+      <button data-action="decisions"><span aria-hidden="true">◇</span><span>待你看</span><span id="menu-pending" class="menu-status">—</span></button>
       <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>打字</span></button>
       <div class="menu-divider" role="separator"></div>
       <button id="speaker" data-action="speaker" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">关闭播音</span></button>
@@ -53,6 +55,13 @@
       <small><span id="connection-scope">交流保存在同一段聊天中</span> <button id="history">完整聊天 ↗</button></small>
     </section>
     <p id="announcement" class="sr-only" role="status"></p>
+    <section id="decisions" class="floating" aria-label="待你看" hidden>
+      <header><strong>待你看</strong><button id="decision-reload" type="button">刷新</button></header>
+      <p id="decision-status" role="status">正在读取待决事项…</p>
+      <ul id="decision-list"></ul>
+      <button id="decision-more" type="button" hidden>查看更多</button>
+      <small>这里只查看原处事项。要决定时请打开对应卡片。</small>
+    </section>
   </main>
   <script type="module" src="./surface.mjs"></script>
 </body></html>

@@ -485,7 +485,7 @@
           "required": ["entrypoint", "integrity"],
           "additionalProperties": false
         },
-        "bridgeVersion": { "enum": ["1.0.0", "1.1.0", "1.2.0"] },
+        "bridgeVersion": { "enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0"] },
         "presentation": {
           "type": "object",
           "properties": {
