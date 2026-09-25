@@ -135,7 +135,7 @@ if (!window.clowderCompanion) {
       showDecisionBadge(page);
       if (controls.panel !== 'decisions') return;
       const list = $('decision-list');
-      if (!more) list.replaceChildren();
+      if (!more) { list.replaceChildren(); list.scrollTop = 0; }
       for (const row of decisionRows(page)) {
         const item = document.createElement('li');
         const title = document.createElement('strong');
@@ -154,7 +154,6 @@ if (!window.clowderCompanion) {
                   : result.status === 'dismissed' ? '已取消演练；提案没有变化'
                     : '确认演练暂不可用；请在原处处理';
             } catch { $('decision-status').textContent = '确认演练暂不可用；请在原处处理'; }
-            $('decisions').scrollTop = 0;
           };
           item.append(button);
         }
