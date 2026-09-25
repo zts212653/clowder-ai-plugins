@@ -17,6 +17,16 @@ test('audio controls expose no generic provider event or SDP operation', async (
   assert.equal('offer' in client, false);
 });
 
+test('passive bubble layout stays a bounded presentation request', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return { kind: 'layout', pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, width: 240, height: 80 }, width: 360, height: 130 };
+  }, subscribe: () => () => {} });
+  await client.layout('bubble', 240, 80);
+  assert.deepEqual(calls, [{ kind: 'view.layout', panel: 'bubble', width: 240, height: 80 }]);
+});
+
 test('unconfirmed text is retained for an explicit retry with the same caller id', async () => {
   const calls: CompanionCommand[] = [];
   let response: CompanionReply = { kind: 'delivery', delivery: 'unconfirmed' };

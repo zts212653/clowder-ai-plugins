@@ -15,10 +15,10 @@ importers:
   packages/companion:
     devDependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.17
+        specifier: 0.1.0-beta.18
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.1.0-beta.13
+        specifier: 0.1.0-beta.14
         version: link:../plugin-sdk
 
   packages/feishu-meeting-intake:
@@ -148,7 +148,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.17
+        specifier: 0.1.0-beta.18
         version: link:../plugin-contract
     devDependencies:
       '@types/node':

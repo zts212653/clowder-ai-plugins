@@ -287,6 +287,7 @@
             "panel": {
               "enum": [
                 "none",
+                "bubble",
                 "actions",
                 "menu",
                 "chat"
@@ -414,6 +415,9 @@
         },
         "toolsReady": {
           "type": "boolean"
+        },
+        "nativeActivity": {
+          "enum": ["none", "reasoning", "tool_running"]
         }
       },
       "required": [
@@ -424,7 +428,8 @@
         "duty",
         "carrier",
         "documentsAllowed",
-        "toolsReady"
+        "toolsReady",
+        "nativeActivity"
       ],
       "additionalProperties": false
     },
@@ -604,6 +609,11 @@
             "kind": {
               "const": "conversation"
             },
+            "threadTitle": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
             "messages": {
               "type": "array",
               "maxItems": 32,
@@ -644,6 +654,7 @@
           },
           "required": [
             "kind",
+            "threadTitle",
             "messages",
             "hasMore"
           ],

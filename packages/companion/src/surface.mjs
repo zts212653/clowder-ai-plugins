@@ -4,13 +4,18 @@ import { explainError } from './errors.mjs';
 import { VoicePeer } from './peer.mjs';
 import { ScreenShare } from './screen-share.mjs';
 import { TranscriptView } from './transcript-view.mjs';
+import { RecentBubble } from './recent-bubble.mjs';
+import { PetMotion } from './pet-motion.mjs';
 import { bindPetControls } from './pet-controls.mjs';
 
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => { $('status').textContent = text; $('chat-status').textContent = text; $('announcement').textContent = text; };
 const transcript = new TranscriptView($('transcript'));
+const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
+const motion = new PetMotion($('pet'));
 let sharing = false, pendingScreen = false, loading = false, latestHistory, previousPhase = 'idle';
+let threadTitle;
 
 if (!window.clowderCompanion) {
   $('actions').hidden = false; $('status').hidden = false;
@@ -20,9 +25,10 @@ if (!window.clowderCompanion) {
   const client = createCompanionClient(window.clowderCompanion);
   const controls = bindPetControls(client, {
     error: error => status(explainError(error)),
+    moved: (dx, dy) => dx === 'stop' ? motion.stopMove() : motion.move(dx, dy),
     changed: panel => { if (panel === 'chat') void readHistory(); },
     action(kind) {
-      if (kind === 'begin') { transcript.reset(); void conversation.begin(); void controls.show('none'); }
+      if (kind === 'begin') { transcript.reset(); bubble.reset(); void conversation.begin(); void controls.show('none'); }
       if (kind === 'stop') void conversation.end();
       if (kind === 'mute') conversation.muteMic();
       if (kind === 'speaker') conversation.muteSpeaker();
@@ -44,25 +50,33 @@ if (!window.clowderCompanion) {
     $('share-badge').title = sharing ? `正在共享：${value.label}，点此停止` : '正在选屏，点此取消';
   });
   function toggleScreen() {
+    if (conversation.phase !== 'talking') {
+      status('先点语音聊，连上后可选择窗口或屏幕');
+      $('status').hidden = false;
+      void controls.show('actions');
+      return;
+    }
     void (sharing || pendingScreen ? screen.stop('屏幕共享已停止') : screen.start()).catch(error => status(explainError(error)));
   }
   const conversation = new CompanionConversation({
     client, createPeer: callback => new VoicePeer(callback, client), stopScreen: () => screen.stop(),
     transcript: event => {
-      if (event.type === 'turn-done') { transcript.finish(event); void readHistory(); }
+      if (event.type === 'turn-done') { transcript.finish(event); bubble.finish(event.role); if (event.role === 'assistant') motion.signal('answered'); void readHistory(); }
       else if (event.typed) void readHistory();
-      else transcript.append(event.role, event.text, true);
+      else { transcript.append(event.role, event.text, true); bubble.append(event.role, event.text); void controls.setAmbient(true); }
     },
     render(value) {
       const showFailure = value.failed && previousPhase !== 'idle' && value.phase === 'idle';
-      if (previousPhase !== 'idle' && value.phase === 'idle') { transcript.reset(); void readHistory(); }
+      const justConnected = previousPhase !== 'talking' && value.phase === 'talking';
+      if (previousPhase !== 'idle' && value.phase === 'idle') { transcript.reset(); bubble.reset(); void readHistory(); }
       previousPhase = value.phase;
       const active = value.phase !== 'idle';
+      void controls.setAmbient(active && bubble.hasContent());
       $('begin').hidden = active; $('begin').disabled = !value.identity;
       label('begin', value.failed ? '重试语音' : '语音聊');
       $('mic').hidden = value.phase !== 'talking'; $('speaker').hidden = !active;
       $('active-actions').hidden = !active;
-      for (const id of ['share', 'menu-share']) $(id).disabled = value.phase !== 'talking';
+      $('share').disabled = value.phase !== 'talking';
       $('compose').querySelector('button').disabled = !value.identity || value.phase === 'connecting';
       status(value.message ?? '');
       $('status').hidden = !value.message || /^(点|正在听|语音已结束|已发送)/.test(value.message);
@@ -73,10 +87,12 @@ if (!window.clowderCompanion) {
       label('mic', value.muted ? '取消静音' : '静音'); $('mic').setAttribute('aria-pressed', String(value.muted));
       label('speaker', value.silent ? '开启播音' : '关闭播音');
       const identity = value.identity;
+      motion.setContext({ skin: identity?.skin, phase: value.phase, nativeActivity: identity?.nativeActivity ?? 'none', muted: value.muted });
+      if (justConnected) motion.signal('connected');
+      if (showFailure) motion.signal('failed');
       if (identity) {
-        $('chat-name').textContent = identity.displayName; $('menu-name').textContent = identity.displayName;
+        $('chat-name').textContent = threadTitle ?? identity.displayName; $('menu-name').textContent = identity.displayName;
         $('pet').setAttribute('aria-label', `${identity.displayName}：点击交流，右键更多，拖动移动`);
-        $('pet').dataset.skin = identity.skin;
         $('documents').querySelector('.menu-status').textContent = identity.documentsAllowed ? '开启' : '暂停';
         $('documents').setAttribute('aria-pressed', String(identity.documentsAllowed));
         $('connection-scope').textContent = identity.duty.catId === identity.carrier.catId ? '交流保存在同一段聊天中' : `${identity.duty.displayName} · 实时语音由${identity.carrier.displayName}承载`;
@@ -85,11 +101,15 @@ if (!window.clowderCompanion) {
     },
   });
   async function readHistory() {
-    if (loading || controls.panel !== 'chat') return;
+    if (loading || (controls.panel !== 'chat' && conversation.phase === 'idle')) return;
     loading = true;
     try {
       const history = await client.readConversation();
       $('history').textContent = history.hasMore ? '更早聊天 ↗' : '完整聊天 ↗';
+      threadTitle = history.threadTitle;
+      $('chat-name').textContent = threadTitle;
+      bubble.load(history.messages);
+      void controls.setAmbient(conversation.phase !== 'idle' && bubble.hasContent());
       const serialized = JSON.stringify(history.messages);
       if (serialized !== latestHistory) { latestHistory = serialized; transcript.load(history.messages); }
     } catch { $('chat-status').textContent = '聊天记录暂未更新 · 正在说的话仍会显示'; }
@@ -103,6 +123,7 @@ if (!window.clowderCompanion) {
   $('compose').onsubmit = async event => {
     event.preventDefault(); const text = $('message').value;
     if (await conversation.send(text)) {
+      motion.signal('received');
       if ($('message').value === text) $('message').value = '';
       latestHistory = undefined; void readHistory();
     }
@@ -111,7 +132,11 @@ if (!window.clowderCompanion) {
     if (event.kind === 'media-stopped') void conversation.hostStopped(event.reason);
     if (event.kind === 'view-dismiss') controls.dismiss();
   });
-  const monitor = setInterval(() => { void conversation.refresh(); void readHistory(); }, 3000);
+  const statusMonitor = setInterval(() => void conversation.refresh(), 1000);
+  const historyMonitor = setInterval(() => void readHistory(), 3000);
   void conversation.refresh(); void controls.show('none');
-  window.addEventListener('beforeunload', () => { clearInterval(monitor); unsubscribe(); void conversation.end(); });
+  window.addEventListener('beforeunload', () => {
+    clearInterval(statusMonitor); clearInterval(historyMonitor);
+    unsubscribe(); motion.close(); void conversation.end();
+  });
 }

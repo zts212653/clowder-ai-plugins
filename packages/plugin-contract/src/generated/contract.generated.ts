@@ -260,7 +260,7 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0' | '1.1.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0';
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -871,7 +871,7 @@ export type CompanionCommand = {
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'actions' | 'menu' | 'chat';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat';
   readonly width: number;
   readonly height: number;
 } | {
@@ -895,6 +895,7 @@ export type CompanionState = {
   readonly carrier: CompanionActor;
   readonly documentsAllowed: boolean;
   readonly toolsReady: boolean;
+  readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
 };
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
@@ -927,6 +928,7 @@ export type CompanionReply = {
   readonly height: number;
 } | {
   readonly kind: 'conversation';
+  readonly threadTitle: string;
   readonly messages: readonly ({
     readonly id: string;
     readonly role: 'user' | 'assistant';

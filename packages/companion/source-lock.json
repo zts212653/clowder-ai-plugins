@@ -47,6 +47,24 @@
         "purpose": "Restore the complete original grey-point cat silhouette on transparent alpha; remove the cropped room background.",
         "author": "codex-astra"
       }
+    },
+    {
+      "source": "packages/web/public/visible-cafe/skins/xianxian/sleeping-row.png",
+      "sourceCommit": "569196d723bcfaa3e4c162312a2081e479ed5579",
+      "destination": "assets/skins/xianxian-sleeping-row.png",
+      "sha256": "1f15086d9836b6a1174349bc7814c3d4871a6019cd4aa896456fb2776fe6aa05"
+    },
+    {
+      "source": "packages/web/public/visible-cafe/skins/xianxian/working-row.png",
+      "sourceCommit": "569196d723bcfaa3e4c162312a2081e479ed5579",
+      "destination": "assets/skins/xianxian-working-row.png",
+      "sha256": "28862148bb7c0c42391f0c28399ac1314ecc6f4f61cab802933ed3c81ee593d6"
+    },
+    {
+      "source": "packages/web/public/visible-cafe/skins/xianxian/staged-thought-row.png",
+      "sourceCommit": "569196d723bcfaa3e4c162312a2081e479ed5579",
+      "destination": "assets/skins/xianxian-staged-thought-row.png",
+      "sha256": "e9286ce2c234911d9b45835849e1a2a853598d0d0260ecf7d24430a95847725f"
     }
   ]
 }

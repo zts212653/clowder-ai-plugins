@@ -10,9 +10,8 @@ button:disabled { opacity: .45; cursor: default; }
 .icon { width: 17px; height: 17px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 #desktop { position: relative; width: 100vw; height: 100vh; }
 #anchor { position: absolute; left: 8px; top: 8px; width: 120px; height: 130px; }
-#pet { width: 120px; height: 130px; display: block; border: 0; padding: 0; background: url("./skins/xianxian-codex.webp") 0 0 / 960px 1170px; animation: breathe 4.8s steps(6) infinite; filter: drop-shadow(0 6px 4px #0002); touch-action: none; cursor: grab; }
+#pet { width: 120px; height: 130px; display: block; border: 0; padding: 0; background: url("./skins/xianxian-codex.webp") 0 0 / 960px 1170px; filter: drop-shadow(0 6px 4px #0002); touch-action: none; cursor: grab; }
 #pet.dragging { cursor: grabbing; }
-@keyframes breathe { to { background-position-x: -720px; } }
 #indicators { position: absolute; bottom: 0; right: 0; display: flex; gap: 4px; }
 #indicators button { width: 32px; height: 32px; border: 1px solid #fff9; border-radius: 50%; display: grid; place-items: center; background: #236b59; color: white; box-shadow: 0 2px 5px #0003; }
 #indicators button:hover { background: #ab4842; }
@@ -23,6 +22,10 @@ button:disabled { opacity: .45; cursor: default; }
 @keyframes pulse { 50% { opacity: .65; } }
 .floating { position: absolute; z-index: 3; border-radius: 13px; border: 1px solid color-mix(in srgb, var(--cafe-border-subtle), transparent 30%); background: color-mix(in srgb, var(--cafe-surface-elevated) 96%, transparent); box-shadow: 0 10px 26px -10px #24272c2e, 0 2px 5px #24272c0a; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .floating { max-height: 500px; overflow: auto; }
+#bubble { width: 240px; max-height: 80px; overflow: hidden; padding: 8px 11px; pointer-events: none; }
+#bubble p { margin: 0; font-size: 11px; line-height: 1.45; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#bubble p + p { margin-top: 4px; }
+#bubble [data-role="user"] { color: var(--cafe-text-secondary); }
 .floating button { border: 0; background: transparent; border-radius: 7px; padding: 8px 11px; font-weight: 400; }
 .floating button:hover:not(:disabled) { background: var(--cafe-surface); }
 .floating .primary { background: var(--accent-100); color: var(--accent-900); }

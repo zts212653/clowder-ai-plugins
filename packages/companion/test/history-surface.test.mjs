@@ -4,11 +4,12 @@ import { runInNewContext } from 'node:vm';
 import { test } from 'node:test';
 import { CompanionConversation } from '../src/conversation.mjs';
 import { TranscriptView } from '../src/transcript-view.mjs';
+import { RecentBubble } from '../src/recent-bubble.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function fixture() {
-  const nodes = new Map(), calls = [];
+  const nodes = new Map(), calls = [], motionCalls = [];
   const document = { getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
     createElement: () => node(), addEventListener() {} };
   function node(id) {
@@ -21,19 +22,21 @@ function fixture() {
   }
   const identity = { phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex',
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat' } };
-  let onControls, onVoice, receive, monitor, history = async () => ({ messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
-  const controls = { panel: 'none', async show(panel) { this.panel = panel; onControls.changed(panel); }, dismiss() { this.panel = 'none'; } };
+  let onControls, onVoice, receive, monitor, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
+  const controls = { panel: 'none', ambient: false, async show(panel) { this.panel = panel === 'none' && this.ambient ? 'bubble' : panel; onControls.changed(this.panel); },
+    async setAmbient(value) { this.ambient = value; if (['none', 'bubble'].includes(this.panel)) await this.show('none'); }, dismiss() { this.panel = 'none'; } };
   const client = { state: async () => identity, prepare: async () => ({ ...identity, phase: 'ready' }),
     stop: async () => calls.push('stop'), subscribe: callback => { receive = callback; return () => {}; },
     readConversation: () => { calls.push('read'); return history(); } };
   class VoicePeer { constructor(callback) { onVoice = callback; } async connect() { onVoice({ type: 'connected' }); } muteMic() {} muteSpeaker() {} async close() { calls.push('close'); } }
-  class ScreenShare { async stop() {} }
+  class ScreenShare { async stop() {} async start() { calls.push('screen-pick'); } }
+  class PetMotion { setContext(value) { motionCalls.push(value); } signal(value) { motionCalls.push(value); } move() {} stopMove() {} close() {} }
   node('message');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
-    CompanionConversation, TranscriptView, VoicePeer, ScreenShare, explainError: () => '未更新',
+    CompanionConversation, TranscriptView, RecentBubble, PetMotion, VoicePeer, ScreenShare, explainError: () => '未更新',
     setInterval: callback => { monitor = callback; }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
-  return { calls, nodes, controls, start: () => onControls.action('begin'), voice: event => onVoice(event),
+  return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitor(), receive: event => receive(event), history: callback => { history = callback; } };
 }
 
@@ -46,6 +49,25 @@ test('opening history during voice and refreshing it preserves speech without cl
   f.tick(); await flush();
   assert.equal(f.nodes.get('transcript').children.at(-1).textContent, '正在说');
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
+});
+
+test('voice keeps the latest two Host messages beside the cat while history stays closed', async () => {
+  const f = fixture(); await flush(); f.start(); await flush(); f.tick(); await flush();
+  assert.equal(f.controls.panel, 'bubble');
+  assert.match(f.nodes.get('bubble-first').textContent, /之前的对话/);
+  f.voice({ type: 'transcript', role: 'assistant', text: '正在查' });
+  assert.match(f.nodes.get('bubble-second').textContent, /正在查/);
+  assert.ok(!f.calls.includes('stop'));
+});
+
+test('screen entry explains its scope before voice and opens the picker only after connection', async () => {
+  const f = fixture(); await flush();
+  f.action('share'); await flush();
+  assert.match(f.nodes.get('status').textContent, /先点语音聊/);
+  assert.ok(!f.calls.includes('screen-pick'));
+  f.start(); await flush();
+  f.action('share'); await flush();
+  assert.ok(f.calls.includes('screen-pick'));
 });
 
 test('history requested before a call is still displayed when it arrives during voice', async () => {
