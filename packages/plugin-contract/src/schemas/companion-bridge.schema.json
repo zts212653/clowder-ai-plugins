@@ -275,6 +275,15 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "f221.inspect" },
+            "proposalId": { "type": "string", "format": "uuid" }
+          },
+          "required": ["kind", "proposalId"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "const": "view.resize"
             },
@@ -497,6 +506,15 @@
       "required": ["kind", "status", "approvalCount", "needsMeCount", "otherNeedsMeCount", "approvals", "otherNeedsMe", "page"],
       "additionalProperties": false
     },
+    "CompanionDecisionTrial": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "decision-trial" },
+        "status": { "enum": ["dismissed", "trial_confirmed", "stale", "unavailable"] }
+      },
+      "required": ["kind", "status"],
+      "additionalProperties": false
+    },
     "CompanionErrorCode": {
       "enum": [
         "invalid_request",
@@ -529,6 +547,9 @@
         },
         {
           "$ref": "#/$defs/CompanionDecisions"
+        },
+        {
+          "$ref": "#/$defs/CompanionDecisionTrial"
         },
         {
           "type": "object",

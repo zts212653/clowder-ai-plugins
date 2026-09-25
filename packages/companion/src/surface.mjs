@@ -142,6 +142,21 @@ if (!window.clowderCompanion) {
         const meta = document.createElement('span');
         title.textContent = row.title; meta.textContent = row.meta;
         item.append(title, meta); list.append(item);
+        if (row.previewable) {
+          const button = document.createElement('button');
+          button.type = 'button'; button.textContent = '查看确认演练';
+          button.onclick = async () => {
+            try {
+              const result = await client.inspectF221(row.proposalId);
+              $('decision-status').textContent = result.status === 'trial_confirmed'
+                ? '确认演练已完成；没有写回提案'
+                : result.status === 'stale' ? '提案已变化，请重新查看原处卡片'
+                  : result.status === 'dismissed' ? '已取消演练；提案没有变化'
+                    : '确认演练暂不可用；请在原处处理';
+            } catch { $('decision-status').textContent = '确认演练暂不可用；请在原处处理'; }
+          };
+          item.append(button);
+        }
       }
       decisionOffset = page.page.offset + page.page.limit;
       $('decision-status').textContent = page.approvalCount + page.otherNeedsMeCount === 0

@@ -871,6 +871,9 @@ export type CompanionCommand = {
   readonly offset: number;
   readonly limit: number;
 } | {
+  readonly kind: 'f221.inspect';
+  readonly proposalId: string;
+} | {
   readonly kind: 'view.resize';
   readonly expanded: boolean;
 } | {
@@ -926,10 +929,14 @@ export type CompanionDecisions = {
     readonly hasMoreNeedsMe: boolean;
   };
 };
+export type CompanionDecisionTrial = {
+  readonly kind: 'decision-trial';
+  readonly status: 'dismissed' | 'trial_confirmed' | 'stale' | 'unavailable';
+};
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionDecisions | {
+} | CompanionState | CompanionDecisions | CompanionDecisionTrial | {
   readonly kind: 'delivery';
   readonly delivery: 'accepted' | 'unconfirmed';
 } | {

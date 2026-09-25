@@ -34,10 +34,11 @@ function fixture(skin, failure) {
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};
       case 'conversation.read':return {kind:'conversation',messages,hasMore:false};
       case 'decisions.read':return {kind:'decisions',status:'available',approvalCount:2,needsMeCount:2,otherNeedsMeCount:1,
-        approvals:[{proposalId:'taste-preview',sourceFeatureId:'F221',summary:'保留一点呼吸感',resolution:'open',materializationState:'not_started',linkedNeedsMe:true},
+        approvals:[{proposalId:'11111111-1111-4111-8111-111111111111',sourceFeatureId:'F221',summary:'保留一点呼吸感',resolution:'open',materializationState:'not_started',linkedNeedsMe:true},
           {proposalId:'thread-preview',sourceFeatureId:'F128',summary:'新线程需要完整表单确认',resolution:'open',materializationState:'not_started',linkedNeedsMe:false}],
         otherNeedsMe:[{subjectRef:'task:preview',summary:'看看工作进展'}],
         page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}};
+      case 'f221.inspect':note('外观预览没有受信 Host 确认窗口，也不会提交决定。');return {kind:'decision-trial',status:'unavailable'};
       case 'view.resize':parent.postMessage({kind:'resize',expanded:command.expanded},location.origin);return {kind:'ok'};
       case 'documents':allowed=command.allowed;phase='idle';return identity();
       case 'text': messages.push({id:command.clientMessageId,role:'user',text:command.text,name:'预览输入'});return {kind:'delivery',delivery:'accepted'};

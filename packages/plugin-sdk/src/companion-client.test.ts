@@ -39,6 +39,15 @@ test('decision reading requests a page without a writer or owner selector', asyn
   assert.deepEqual(calls, [{ kind: 'decisions.read', offset: 0, limit: 10 }]);
 });
 
+test('F221 inspection requests a Host dialog trial without an approval payload', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command); return { kind: 'decision-trial', status: 'dismissed' };
+  }, subscribe: () => () => {} });
+  await client.inspectF221('11111111-1111-4111-8111-111111111111');
+  assert.deepEqual(calls, [{ kind: 'f221.inspect', proposalId: '11111111-1111-4111-8111-111111111111' }]);
+});
+
 test('unconfirmed text is retained for an explicit retry with the same caller id', async () => {
   const calls: CompanionCommand[] = [];
   let response: CompanionReply = { kind: 'delivery', delivery: 'unconfirmed' };

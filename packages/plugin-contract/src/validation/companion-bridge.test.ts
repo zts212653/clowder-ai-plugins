@@ -62,6 +62,10 @@ test('passive decision reading has bounded pages and no renderer approval comman
   assert.equal(validateCompanionCommand({ kind: 'decisions.read', offset: 0, limit: 21 }), false);
   assert.equal(validateCompanionCommand({ kind: 'decisions.read', offset: 0, limit: 20, proposalId: 'other' }), false);
   assert.equal(validateCompanionCommand({ kind: 'decision.approve', proposalId: 'taste-1' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'f221.inspect', proposalId: '11111111-1111-4111-8111-111111111111' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'f221.inspect', proposalId: '11111111-1111-4111-8111-111111111111', digest: 'forged' }), false);
+  assert.equal(validateCompanionReply({ kind: 'decision-trial', status: 'trial_confirmed' }), true);
+  assert.equal(validateCompanionReply({ kind: 'decision-trial', status: 'approved' }), false);
   const reply = { kind: 'decisions', status: 'available', approvalCount: 1, needsMeCount: 2,
     otherNeedsMeCount: 1, approvals: [{ proposalId: 'taste-1', sourceFeatureId: 'F221',
       summary: '品味提案', resolution: 'open', materializationState: 'not_started', linkedNeedsMe: true }],

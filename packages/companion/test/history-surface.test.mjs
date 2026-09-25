@@ -32,6 +32,7 @@ function fixture() {
     async setAmbient(value) { this.ambient = value; if (['none', 'bubble'].includes(this.panel)) await this.show('none'); }, dismiss() { this.panel = 'none'; } };
   const client = { state: async () => identity, prepare: async () => ({ ...identity, phase: 'ready' }),
     stop: async () => calls.push('stop'), subscribe: callback => { receive = callback; return () => {}; },
+    inspectF221: async proposalId => { calls.push(`inspect:${proposalId}`); return { kind: 'decision-trial', status: 'trial_confirmed' }; },
     readDecisions: (offset, limit) => decisions(offset, limit),
     readConversation: () => { calls.push('read'); return history(); } };
   class VoicePeer { constructor(callback) { onVoice = callback; } async connect() { onVoice({ type: 'connected' }); } muteMic() {} muteSpeaker() {} async close() { calls.push('close'); } }
@@ -108,7 +109,7 @@ test('passive decision badge and panel keep the live call while preserving unkno
   const f = fixture(); await flush(); f.start(); await flush();
   f.decisions(async (offset, limit) => ({ kind: 'decisions', status: 'available', approvalCount: 2,
     needsMeCount: 2, otherNeedsMeCount: 1,
-    approvals: [{ proposalId: 'taste-1', sourceFeatureId: 'F221', summary: '品味提案',
+    approvals: [{ proposalId: '11111111-1111-4111-8111-111111111111', sourceFeatureId: 'F221', summary: '品味提案',
       resolution: 'open', materializationState: 'not_started', linkedNeedsMe: true }],
     otherNeedsMe: [{ subjectRef: 'task:one', summary: '看看任务' }],
     page: { offset, limit, hasMoreApprovals: false, hasMoreNeedsMe: false } }));
@@ -116,6 +117,9 @@ test('passive decision badge and panel keep the live call while preserving unkno
   assert.equal(f.nodes.get('pending-count').textContent, '3');
   await f.controls.show('decisions'); await flush();
   assert.equal(f.nodes.get('decision-list').children.length, 2);
+  await f.nodes.get('decision-list').children[0].children[2].onclick();
+  assert.ok(f.calls.includes('inspect:11111111-1111-4111-8111-111111111111'));
+  assert.match(f.nodes.get('decision-status').textContent, /没有写回/);
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
   f.decisions(async () => { throw new Error('source unavailable'); });
   f.nodes.get('decision-reload').onclick(); await flush();
