@@ -1,7 +1,12 @@
-Companion imagery and theme tokens originate in Clowder AI (MIT).
-See source-lock.json for the exact public source revision and content hashes.
+The original companion atlases and theme tokens originate in Clowder AI (MIT).
+See source-lock.json for their exact public source revision and content hashes.
 The legacy ragdoll-v1 and yarn-ball stills are AI-assisted derivatives of the
 listed public reference, restoring the complete cat silhouette and transparent
 background. Their reference and resulting hashes are recorded separately.
+The living Xianxian layers and clips are F317 assets: CVO-generated source video,
+keyframes by codex-astra, and deterministic extraction/alignment by opus55.
+source-lock.json pins the 20 bundled distributable files, their geometry file,
+and the source package manifest digest. Source video and private workspace paths
+are not bundled.
 The conversation transport and controls continue the F317 companion implementation
 by the Clowder AI contributors. No private runtime data or pet metadata is included.
