@@ -39,6 +39,7 @@ function fixture() {
   class ScreenShare { async stop() {} async start() { calls.push('screen-pick'); } }
   class PetMotion { setContext(value) { motionCalls.push(value); } signal(value) { motionCalls.push(value); } move() {} stopMove() {} close() {} }
   node('message');
+  node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, RecentBubble, PetMotion, VoicePeer, ScreenShare,
@@ -117,9 +118,11 @@ test('passive decision badge and panel keep the live call while preserving unkno
   assert.equal(f.nodes.get('pending-count').textContent, '3');
   await f.controls.show('decisions'); await flush();
   assert.equal(f.nodes.get('decision-list').children.length, 2);
+  f.nodes.get('decisions').scrollTop = 100;
   await f.nodes.get('decision-list').children[0].children[2].onclick();
   assert.ok(f.calls.includes('inspect:11111111-1111-4111-8111-111111111111'));
   assert.match(f.nodes.get('decision-status').textContent, /没有写回/);
+  assert.equal(f.nodes.get('decisions').scrollTop, 0);
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
   f.decisions(async () => { throw new Error('source unavailable'); });
   f.nodes.get('decision-reload').onclick(); await flush();
