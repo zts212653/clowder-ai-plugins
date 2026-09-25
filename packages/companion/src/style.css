@@ -12,6 +12,22 @@ button:disabled { opacity: .45; cursor: default; }
 #anchor { position: absolute; left: 8px; top: 8px; width: 120px; height: 130px; }
 #pet { width: 120px; height: 130px; display: block; border: 0; padding: 0; background: url("./skins/xianxian-codex.webp") 0 0 / 960px 1170px; filter: drop-shadow(0 6px 4px #0002); touch-action: none; cursor: grab; }
 #pet.dragging { cursor: grabbing; }
+#pet[data-skin="xianxian-codex"] { position: relative; background-image: none; overflow: visible; }
+#living-sit { position: absolute; left: 0; bottom: 10px; width: 120px; height: 120px; overflow: visible; pointer-events: none; }
+#living-video { position: absolute; object-fit: fill; pointer-events: none; }
+#pet[data-direction="left"] #living-video { transform: scaleX(-1); }
+#living-sit [data-layer="tail"] { transform-box: view-box; transform-origin: 168px 456px; animation: living-tail 3.4s ease-in-out infinite; }
+#living-sit [data-layer="head"] { transform-box: view-box; transform-origin: 300px 280px; animation: living-head 5.5s ease-in-out infinite; }
+#living-sit [data-layer="ear-left"], #living-sit [data-layer="ear-right"] { transform-box: view-box; transform-origin: 219px 101px; }
+#pet[data-pose="listening"] #living-sit [data-layer="ear-left"] { transform: rotate(-8deg); }
+#pet[data-pose="listening"] #living-sit [data-layer="ear-right"] { transform: rotate(8deg); }
+#living-sit [data-layer="closed"] { opacity: 0; animation: living-blink 5.8s linear infinite; }
+#living-sit [data-layer="mouth"], #living-sit [data-layer="scared"] { opacity: 0; }
+#pet[data-pose="scared"] #living-sit [data-layer="scared"] { opacity: 1; }
+#pet[data-pose="sleeping"] #living-sit [data-layer="closed"] { opacity: 1; animation: none; }
+@keyframes living-tail { 50% { transform: rotate(5deg); } }
+@keyframes living-head { 50% { transform: rotate(2deg); } }
+@keyframes living-blink { 0%, 96%, 100% { opacity: 0; } 97%, 98% { opacity: 1; } }
 #indicators { position: absolute; bottom: 0; right: 0; display: flex; gap: 4px; }
 #indicators button { width: 32px; height: 32px; border: 1px solid #fff9; border-radius: 50%; display: grid; place-items: center; background: #236b59; color: white; box-shadow: 0 2px 5px #0003; }
 #indicators button:hover { background: #ab4842; }
@@ -50,18 +66,22 @@ button:disabled { opacity: .45; cursor: default; }
 #chat header button { font-size: 12px; color: var(--cafe-text-secondary); }
 #transcript { height: 145px; overflow: auto; padding: 14px; line-height: 1.7; }
 #transcript p { margin: 0 0 10px; overflow-wrap: anywhere; white-space: pre-wrap; }
-#transcript p:not(.empty) { background: var(--accent-50); padding: 7px 10px; border-radius: 9px; }
+#transcript p:not(.empty) { width: fit-content; max-width: 92%; padding: 7px 10px; border-radius: 9px; }
+#transcript p.user { margin-left: auto; background: var(--accent-50); }
+#transcript p.assistant { margin-right: auto; background: var(--cafe-surface); border: 1px solid var(--cafe-border-subtle); }
 .empty { color: var(--cafe-text-muted); font-size: 13px; }
 #compose { display: flex; align-items: flex-end; padding: 10px; gap: 8px; border-top: 1px solid var(--cafe-border-subtle); }
 #message { resize: none; border: 0; min-width: 0; flex: 1; background: transparent; padding: 5px; color: inherit; line-height: 1.5; }
 #chat small { color: var(--cafe-text-muted); font-size: 10px; padding: 0 14px 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
-@media (prefers-reduced-motion: reduce) { #pet, #indicators button { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  #pet, #indicators button, #living-sit [data-layer] { animation: none; }
+  #living-sit [data-layer="closed"] { opacity: 0; }
+}
 #pet[data-skin="yanyan-codex"] { background-image: url("./skins/yanyan-codex.webp"); }
 #pet[data-skin="ragdoll-v1"] { background-image: url("./skins/ragdoll-v1.png"); animation: none; background-size: contain; background-repeat: no-repeat; background-position: center; }
 #pet[data-skin="yarn-ball"] { background-image: url("./skins/yarn-ball.png"); animation: none; background-size: contain; background-repeat: no-repeat; background-position: center; }
 #transcript { height: 230px; font-size: 13px; }
-#transcript .assistant { background: transparent; }
 #transcript p[data-author]::before { content: attr(data-author); display: block; color: var(--cafe-text-muted); font-size: 10px; margin-bottom: 2px; }
 #transcript p[data-live="true"] { border-left: 2px solid var(--cafe-accent); }
 #history { padding: 0; font-size: 10px; color: var(--cafe-text-secondary); }

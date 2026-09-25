@@ -6,6 +6,8 @@ import { ScreenShare } from './screen-share.mjs';
 import { TranscriptView } from './transcript-view.mjs';
 import { RecentBubble } from './recent-bubble.mjs';
 import { PetMotion } from './pet-motion.mjs';
+import { LivingBody } from './living-body.mjs';
+import { detectDockedEdge } from './living-edge.mjs';
 import { bindPetControls } from './pet-controls.mjs';
 import { decisionBadge, decisionRows } from './decision-view.mjs';
 
@@ -14,10 +16,14 @@ const label = (id, text) => { $(id).querySelector('.label').textContent = text; 
 const status = text => { $('status').textContent = text; $('chat-status').textContent = text; $('announcement').textContent = text; };
 const transcript = new TranscriptView($('transcript'));
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
-const motion = new PetMotion($('pet'));
+const motion = new PetMotion($('pet'), { livingBody: new LivingBody({ root: $('pet'), sit: $('living-sit'), video: $('living-video') }) });
 let sharing = false, pendingScreen = false, loading = false, latestHistory, previousPhase = 'idle';
+let observedHistory = false, lastAssistantId;
+let resultPreviewUntil = 0;
+let didMove = false;
 let decisionLoading = false, decisionOffset = 0;
 let threadTitle;
+const showAmbient = active => (active || Date.now() < resultPreviewUntil) && bubble.hasContent();
 
 if (!window.clowderCompanion) {
   $('actions').hidden = false; $('status').hidden = false;
@@ -27,7 +33,13 @@ if (!window.clowderCompanion) {
   const client = createCompanionClient(window.clowderCompanion);
   const controls = bindPetControls(client, {
     error: error => status(explainError(error)),
-    moved: (dx, dy) => dx === 'stop' ? motion.stopMove() : motion.move(dx, dy),
+    moved: (dx, dy) => {
+      if (dx !== 'stop') { didMove = true; motion.move(dx, dy); return; }
+      motion.stopMove();
+      if (!didMove) return;
+      didMove = false;
+      setTimeout(() => motion.setDockedEdge(detectDockedEdge(window, $('pet').getBoundingClientRect())), 100);
+    },
     changed: panel => { if (panel === 'chat') void readHistory(); if (panel === 'decisions') void readDecisions(); },
     action(kind) {
       if (kind === 'begin') { transcript.reset(); bubble.reset(); void conversation.begin(); void controls.show('none'); }
@@ -37,6 +49,10 @@ if (!window.clowderCompanion) {
       if (kind === 'share') toggleScreen();
       if (kind === 'documents') void conversation.documents(conversation.identity?.documentsAllowed === false);
       if (kind === 'hide') void client.hide().catch(error => status(explainError(error)));
+      if (kind === 'play' && conversation.identity?.skin === 'xianxian-codex') {
+        void controls.show('none');
+        motion.signal('play');
+      }
     },
   });
   const screen = new ScreenShare({
@@ -73,7 +89,7 @@ if (!window.clowderCompanion) {
       if (previousPhase !== 'idle' && value.phase === 'idle') { transcript.reset(); bubble.reset(); void readHistory(); }
       previousPhase = value.phase;
       const active = value.phase !== 'idle';
-      void controls.setAmbient(active && bubble.hasContent());
+      void controls.setAmbient(showAmbient(active));
       $('begin').hidden = active; $('begin').disabled = !value.identity;
       label('begin', value.failed ? '重试语音' : '语音聊');
       $('mic').hidden = value.phase !== 'talking'; $('speaker').hidden = !active;
@@ -93,6 +109,7 @@ if (!window.clowderCompanion) {
       if (justConnected) motion.signal('connected');
       if (showFailure) motion.signal('failed');
       if (identity) {
+        $('menu-play').hidden = identity.skin !== 'xianxian-codex';
         $('chat-name').textContent = threadTitle ?? identity.displayName; $('menu-name').textContent = identity.displayName;
         $('pet').setAttribute('aria-label', `${identity.displayName}：点击交流，右键更多，拖动移动`);
         $('documents').querySelector('.menu-status').textContent = identity.documentsAllowed ? '开启' : '暂停';
@@ -103,15 +120,22 @@ if (!window.clowderCompanion) {
     },
   });
   async function readHistory() {
-    if (loading || (controls.panel !== 'chat' && conversation.phase === 'idle')) return;
+    if (loading) return;
     loading = true;
     try {
       const history = await client.readConversation();
+      const assistantId = history.messages.findLast(message => message.role === 'assistant')?.id;
+      if (observedHistory && assistantId && assistantId !== lastAssistantId) {
+        motion.signal('answered');
+        resultPreviewUntil = Date.now() + 12_000;
+      }
+      observedHistory = true;
+      lastAssistantId = assistantId;
       $('history').textContent = history.hasMore ? '更早聊天 ↗' : '完整聊天 ↗';
       threadTitle = history.threadTitle;
       $('chat-name').textContent = threadTitle;
       bubble.load(history.messages);
-      void controls.setAmbient(conversation.phase !== 'idle' && bubble.hasContent());
+      void controls.setAmbient(showAmbient(conversation.phase !== 'idle'));
       const serialized = JSON.stringify(history.messages);
       if (serialized !== latestHistory) { latestHistory = serialized; transcript.load(history.messages); }
     } catch { $('chat-status').textContent = '聊天记录暂未更新 · 正在说的话仍会显示'; }
@@ -133,6 +157,7 @@ if (!window.clowderCompanion) {
       const page = await client.readDecisions(more ? decisionOffset : 0, 10);
       if (page.status !== 'available') throw new Error('Decision source unavailable');
       showDecisionBadge(page);
+      motion.setPendingDecision(page.approvalCount + page.otherNeedsMeCount > 0);
       if (controls.panel !== 'decisions') return;
       const list = $('decision-list');
       if (!more) { list.replaceChildren(); list.scrollTop = 0; }
@@ -165,6 +190,7 @@ if (!window.clowderCompanion) {
       $('decision-more').hidden = !page.page.hasMoreApprovals && !page.page.hasMoreNeedsMe;
     } catch {
       showDecisionBadge(undefined);
+      motion.setPendingDecision(null);
       if (controls.panel === 'decisions') $('decision-status').textContent = '待决事项暂不可读 · 请稍后刷新';
     } finally { decisionLoading = false; }
   }
@@ -191,7 +217,7 @@ if (!window.clowderCompanion) {
   const statusMonitor = setInterval(() => void conversation.refresh(), 1000);
   const historyMonitor = setInterval(() => void readHistory(), 3000);
   const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void readDecisions(); }, 15000);
-  void conversation.refresh(); void readDecisions(); void controls.show('none');
+  void conversation.refresh(); void readHistory(); void readDecisions(); void controls.show('none');
   window.addEventListener('beforeunload', () => {
     clearInterval(statusMonitor); clearInterval(historyMonitor); clearInterval(decisionMonitor);
     unsubscribe(); motion.close(); void conversation.end();

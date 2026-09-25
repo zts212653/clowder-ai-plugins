@@ -37,12 +37,13 @@ function fixture() {
     readConversation: () => { calls.push('read'); return history(); } };
   class VoicePeer { constructor(callback) { onVoice = callback; } async connect() { onVoice({ type: 'connected' }); } muteMic() {} muteSpeaker() {} async close() { calls.push('close'); } }
   class ScreenShare { async stop() {} async start() { calls.push('screen-pick'); } }
-  class PetMotion { setContext(value) { motionCalls.push(value); } signal(value) { motionCalls.push(value); } move() {} stopMove() {} close() {} }
+  class PetMotion { setContext(value) { motionCalls.push(value); } setPendingDecision(value) { motionCalls.push({ pendingDecision: value }); } signal(value) { motionCalls.push(value); } move() {} stopMove() {} close() {} }
+  class LivingBody {}
   node('message');
   node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
-    CompanionConversation, TranscriptView, RecentBubble, PetMotion, VoicePeer, ScreenShare,
+    CompanionConversation, TranscriptView, RecentBubble, PetMotion, LivingBody, VoicePeer, ScreenShare,
     decisionBadge, decisionRows, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
@@ -126,4 +127,18 @@ test('passive decision badge and panel keep the live call while preserving unkno
   f.nodes.get('decision-reload').onclick(); await flush();
   assert.equal(f.nodes.get('pending-count').textContent, '?');
   assert.match(f.nodes.get('decision-status').textContent, /暂不可读/);
+});
+
+test('a newly committed assistant result starts the delivery gesture once, while old history does not', async () => {
+  const f = fixture(); await flush();
+  assert.ok(!f.motionCalls.includes('answered'));
+  f.history(async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [
+    { id: 'old', role: 'user', text: '之前的对话', name: '你' },
+    { id: 'new-answer', role: 'assistant', text: '查询完成', name: '宪宪' },
+  ], hasMore: false }));
+  f.tick(); await flush();
+  assert.equal(f.motionCalls.filter(value => value === 'answered').length, 1);
+  assert.equal(f.controls.panel, 'bubble', 'the durable result stays readable beside the cat while idle');
+  f.tick(); await flush();
+  assert.equal(f.motionCalls.filter(value => value === 'answered').length, 1);
 });

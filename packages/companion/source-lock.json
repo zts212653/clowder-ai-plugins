@@ -66,5 +66,96 @@
       "destination": "assets/skins/xianxian-staged-thought-row.png",
       "sha256": "e9286ce2c234911d9b45835849e1a2a853598d0d0260ecf7d24430a95847725f"
     }
-  ]
+  ],
+  "livingSkin": {
+    "package": "xianxian-living package-v2",
+    "manifestSha256": "08491ed557a82bc1860bbaeecd094f4a7e637479e78af8b411786f19a5164da0",
+    "creator": "opus55; keyframes by codex-astra; source videos by CVO",
+    "files": [
+      {
+        "destination": "assets/skins/xianxian-living/layers/body.webp",
+        "sha256": "39f8fae11b49d6fc8c7d0993a2ed867b6d863f1da580a711ff11d91aa8c6c233"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/head.webp",
+        "sha256": "18a7d34716448ceb70afd7b0e633ef6ab71c6717a96b73b8e39e7ee027d550cb"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/tail.webp",
+        "sha256": "d23c5c964e9084c6f44d4a6b8b42cbaff6678348bec87a8434a18967816cf4ff"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/earL.webp",
+        "sha256": "0d40004c7bbc592b76a4452c42740b6059697a1b313c9f9919bd16ef5a64b1d1"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/earR.webp",
+        "sha256": "1c2141ac3aa4d93ab4f4dfb14c5ec8c566db2e53444a730b008e00f65765b700"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/irisL.webp",
+        "sha256": "006b247e4fa8924b8f20198fc34d38a231dda0577ee45581a3d6d1fa74886533"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/irisR.webp",
+        "sha256": "929bd6c888860ac5ebe80f230a5793bc8c93b36eabdc9d18b3ef1fd7cb1ff095"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/whiteL.webp",
+        "sha256": "b4b2a539950376575ed9d61052b1a43f06812af6158244c86351d29ab935fde7"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/whiteR.webp",
+        "sha256": "9203fc92f5430d72deb56b1587a8cc79e9d7952fc6e5027adfc8507ed661a441"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/closed.webp",
+        "sha256": "adb354110fb952a3bb6d5f5fc11968b74c1cc2cf8d2e6dafc4b2b4ad7ca1d92b"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/mouth.webp",
+        "sha256": "f968f9afba93e6bf64a51e7c26f0ddfc2ed10fd18d65c38cf636b4e73eeb9b53"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/scared.webp",
+        "sha256": "1cb165fa0a116aea063b78aef64ac3d512d2ec71f0b3f169f57914aaa5a9f48a"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/trot.webm",
+        "sha256": "02660b4a57dfaca0e4b3d4a4d1e791715af8d01a831c56bd3ff9e30e4fc56900"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/pounce.webm",
+        "sha256": "65a380d993f53debb6ff761e586e9fdacce4cb2156c6bb461b4f3875926d5a00"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/sleep.webm",
+        "sha256": "e39554e7aca7b1c51b388b73f7dbc08e3fa7ddafef395cb28c1099d41a9b41d8"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/wake.webm",
+        "sha256": "73b455088e53edf2849e888e0ecb99953f7e5dba373592fb6232f9736b6da3a0"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/peek.webm",
+        "sha256": "adebecf89b724eec9852d097364e10bc328d006ce3bb3bd3f4b257c095d57a92"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/carry.webm",
+        "sha256": "4fa582ab6a18b538cfe815ab19e73da30c0da061ec661bb12e4060f8b3d2e600"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/wait.webm",
+        "sha256": "5e2a41e967eed178b8e540231e0b1733bbc388f955204a7b0b76b2aa7cfc4e45"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/think.webm",
+        "sha256": "4ba9fa0f38076a4abd0d664dc75287b76def7b340dc763b6aab4ea15bbe8abc1"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/layers/meta.json",
+        "sha256": "92fe5571b2f4b78c1138e199aaa29bb523b6f6ad7ab346fbd6407c8b557e220f"
+      }
+    ]
+  }
 }

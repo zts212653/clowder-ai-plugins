@@ -13,7 +13,27 @@
   </svg>
   <main id="desktop" aria-label="猫猫球">
     <div id="anchor">
-      <button id="pet" aria-label="猫猫：点击交流，右键更多，拖动移动" aria-expanded="false" aria-controls="actions menu chat"></button>
+      <button id="pet" aria-label="猫猫：点击交流，右键更多，拖动移动" aria-expanded="false" aria-controls="actions menu chat">
+        <svg id="living-sit" viewBox="0 0 600 600" aria-hidden="true" hidden>
+          <defs>
+            <mask id="living-eye-left" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600"><image href="./skins/xianxian-living/layers/whiteL.webp" width="600" height="600"/></mask>
+            <mask id="living-eye-right" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600"><image href="./skins/xianxian-living/layers/whiteR.webp" width="600" height="600"/></mask>
+          </defs>
+          <g data-layer="tail"><image href="./skins/xianxian-living/layers/tail.webp" width="600" height="600"/></g>
+          <image href="./skins/xianxian-living/layers/body.webp" width="600" height="600"/>
+          <g data-layer="head">
+            <g data-layer="ear-left"><image href="./skins/xianxian-living/layers/earL.webp" width="600" height="600"/></g>
+            <g data-layer="ear-right"><image href="./skins/xianxian-living/layers/earR.webp" width="600" height="600"/></g>
+            <image href="./skins/xianxian-living/layers/head.webp" width="600" height="600"/>
+            <g mask="url(#living-eye-left)"><image data-layer="iris-left" href="./skins/xianxian-living/layers/irisL.webp" width="600" height="600"/></g>
+            <g mask="url(#living-eye-right)"><image data-layer="iris-right" href="./skins/xianxian-living/layers/irisR.webp" width="600" height="600"/></g>
+            <image data-layer="closed" href="./skins/xianxian-living/layers/closed.webp" width="600" height="600"/>
+            <image data-layer="mouth" href="./skins/xianxian-living/layers/mouth.webp" width="600" height="600"/>
+            <image data-layer="scared" href="./skins/xianxian-living/layers/scared.webp" width="600" height="600"/>
+          </g>
+        </svg>
+        <video id="living-video" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
+      </button>
       <div id="indicators">
         <button id="call-badge" hidden aria-label="结束语音" title="结束语音"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
         <button id="share-badge" hidden aria-label="停止共享" title="停止共享"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
@@ -40,6 +60,7 @@
       <button data-action="history"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg><span>聊天记录</span></button>
       <button data-action="decisions"><span aria-hidden="true">◇</span><span>待你看</span><span id="menu-pending" class="menu-status">—</span></button>
       <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>打字</span></button>
+      <button id="menu-play" data-action="play" hidden><span aria-hidden="true">✦</span><span>逗宪宪</span></button>
       <div class="menu-divider" role="separator"></div>
       <button id="speaker" data-action="speaker" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">关闭播音</span></button>
       <button id="menu-share" data-action="share" title="语音连接后可共享画面"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>

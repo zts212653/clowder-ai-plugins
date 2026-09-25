@@ -90,3 +90,52 @@ test('animation timers use the browser global receiver', () => {
   motion.close();
   assert.equal(timers.size, 0);
 });
+
+test('living Xianxian consumes real activity, pending decisions, movement and a completed answer', () => {
+  const shown = [];
+  const body = { show(action, options) { shown.push({ action, options }); }, hide() {}, close() {} };
+  const motion = new PetMotion({ dataset: {}, style: {} }, {
+    livingBody: body, reducedMotion: false,
+    setTimer() { return 1; }, clearTimer() {},
+  });
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'reasoning', muted: false });
+  assert.equal(shown.at(-1).action, 'staged_thought');
+  motion.setPendingDecision(true);
+  assert.equal(shown.at(-1).action, 'pending_decision');
+  motion.move(20, 0);
+  assert.equal(shown.at(-1).action, 'running-right');
+  motion.stopMove();
+  assert.equal(shown.at(-1).action, 'pending_decision');
+  motion.signal('answered');
+  assert.equal(shown.at(-1).action, 'review');
+  shown.at(-1).options.onEnded();
+  assert.equal(shown.at(-1).action, 'pending_decision');
+  motion.setPendingDecision(false);
+  motion.signal('answered');
+  assert.equal(shown.at(-1).action, 'review');
+  motion.setPendingDecision(true);
+  assert.equal(shown.at(-1).action, 'pending_decision', 'a new decision preempts result delivery');
+  motion.signal('play');
+  assert.equal(shown.at(-1).action, 'pending_decision', 'play cannot hide a pending decision');
+  motion.close();
+});
+
+test('waking and edge peeking yield to listening and real work', () => {
+  const shown = [];
+  const body = { show(action, options) { shown.push({ action, options }); }, hide() {}, close() {} };
+  const motion = new PetMotion({ dataset: {}, style: {} }, { livingBody: body, reducedMotion: false,
+    setTimer() { return 1; }, clearTimer() {} });
+  motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  motion.setDockedEdge('right');
+  assert.equal(shown.at(-1).action, 'peek');
+  const beforeSwitch = shown.length;
+  motion.setDockedEdge('left');
+  assert.equal(shown.length, beforeSwitch + 1, 'changing the dock side repaints the same peek clip');
+  motion.setDockedEdge(null);
+  motion.play('sleeping');
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'none', muted: false });
+  assert.equal(shown.at(-1).action, 'waking');
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'reasoning', muted: false });
+  assert.equal(shown.at(-1).action, 'staged_thought');
+  motion.close();
+});

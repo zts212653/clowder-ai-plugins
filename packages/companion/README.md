@@ -17,15 +17,22 @@ No second transcript database, credentials or selectable Host identity live here
 
 ## Host integration
 
-This surface requires the additive desktop bridge **1.1.0**. The Host computes
+This surface requires the additive desktop bridge **1.3.0**. The Host computes
 placement within the display work area, keeps the cat as its stable anchor, and
 owns bounded drag gestures and transparent-area hit testing. Older 1.0-only
 Hosts reject this manifest before installation. Media admission and capture
 remain in the trusted Host; this package receives neither streams nor provider
 SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the cat.
 
-The original animated skin bytes remain unchanged. Public static skin derivatives
-and the shared color tokens retain their exact provenance in `source-lock.json`.
+Xianxian uses one layered sitting body or one VP9 clip at a time. Actual Host
+activity, durable answers and owner-scoped pending decisions select thought,
+delivery and waiting actions. Dragging selects the running clip; an explicit
+play gesture selects pounce. Reduced motion keeps the body static. Other cats
+retain their own skins. The v2 living assets and their hashes are pinned in
+`source-lock.json`; the installable renderer carries all 20 assets itself.
+
+The Host keeps a small transparent margin left of the pet hit target so the
+pounce's tail is visible without turning empty space into a click target.
 
 ## Verification
 

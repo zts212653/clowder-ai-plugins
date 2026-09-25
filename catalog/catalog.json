@@ -146,16 +146,16 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.6",
+          "version": "0.1.0-alpha.7",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/companion",
-            "version": "0.1.0-alpha.6",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.6.tgz",
-            "integrity": "sha512-3UtBLp80NRnyLJz5w2mZIsamR9dRQSYuWZIKkca9MM0ZVWf0rlecAZ/BtdbQaO4Rv6X20QHAPgPWi7kuyRtUxA==",
-            "shasum": "2ff84663646851441ecc7afb4a9d0c4c56a9bad9",
+            "version": "0.1.0-alpha.7",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.7.tgz",
+            "integrity": "sha512-Fr30RHDULRyJxgGUaPBZ9QE6qp6KbNsKCaqno7X6ilDr68Pfs//XA2ixT2Q1RNS0YFuUOev5ojW7pZPXBo7dvA==",
+            "shasum": "524fce24feee3240c188701fbc379ab9e5b37bde",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
