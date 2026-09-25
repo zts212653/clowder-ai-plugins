@@ -116,6 +116,9 @@ jobs:
           pnpm --filter @clowder-ai/genoffice-docx typecheck
           pnpm --filter @clowder-ai/genoffice-docx test
 
+      - name: Git guards
+        run: pnpm test:guards
+
       - name: Fresh consumer install
         run: pnpm test:fresh-consumer
 

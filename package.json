@@ -9,10 +9,12 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r --workspace-concurrency=1 test",
+    "test:guards": "node --test scripts/git-guard-commit.test.mjs scripts/git-guard-push.test.mjs scripts/git-guard-install.test.mjs",
     "test:fresh-consumer": "node --test scripts/fresh-consumer-install.test.mjs",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance",
+    "guards:install": "bash scripts/install-git-guards.sh",
     "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter @clowder-ai/companion build && node --test scripts/catalog-static-package.test.mjs && node scripts/catalog-check.mjs"
   },
   "devDependencies": {

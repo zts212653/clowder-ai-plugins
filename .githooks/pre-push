@@ -1,0 +1,45 @@
+#!/bin/bash
+# .githooks/pre-push — push-destination guard (clowder-ai-plugins).
+#
+# A contributor clone keeps the upstream as `origin` and pushes feature
+# branches to the contributor's own fork. This hook refuses any push whose
+# destination is not the one repository configured for this clone:
+#
+#   git config clowder.guard.pushRepo host/owner/repo   (set by pnpm guards:install)
+#
+# The destination is compared as an exact host/owner/repo identity, so
+# lookalike names and hosts do not pass. An unset or unreadable setting refuses
+# every push (fail closed), as do missing hook arguments.
+# `git push --no-verify` bypasses it: this guards against muscle memory, not
+# malice.
+
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=guard-lib.sh
+if ! . "$HOOK_DIR/guard-lib.sh" 2>/dev/null; then
+  echo "pre-push: guard-lib.sh is missing next to this hook; re-run pnpm guards:install." >&2
+  exit 1
+fi
+
+REMOTE="${1:-}"
+URL="${2:-}"
+if [ -z "$REMOTE" ] || [ -z "$URL" ]; then
+  echo "pre-push: missing remote name or url; refusing to guess." >&2
+  exit 1
+fi
+
+CONFIGURED=$(git config --get clowder.guard.pushRepo 2>/dev/null || true)
+if [ -z "$CONFIGURED" ] || ! ALLOWED=$(guard_normalize_identity "$CONFIGURED"); then
+  echo "pre-push: this clone has no readable push destination (git config clowder.guard.pushRepo='${CONFIGURED}'); refusing." >&2
+  echo "  Set it with: pnpm guards:install <your fork URL or host/owner/repo>" >&2
+  exit 1
+fi
+
+TARGET=$(guard_repo_identity "$URL" || true)
+if [ -n "$TARGET" ] && [ "$TARGET" = "$ALLOWED" ]; then
+  exit 0
+fi
+
+echo "pre-push: refusing to push to '${REMOTE}' (${URL})." >&2
+echo "  This clone only pushes to ${ALLOWED} (git config clowder.guard.pushRepo)." >&2
+echo "  If you really mean it: git push --no-verify" >&2
+exit 1
