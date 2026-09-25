@@ -46,3 +46,14 @@ test('refresh reuses unchanged history rows and preserves repeated text with dis
   assert.equal(container.children[0], original);
   assert.equal(container.children.length, 2);
 });
+
+test('history refresh restores an older reading position when DOM replacement resets scroll', () => {
+  const { view, container } = fixture();
+  const replaceChildren = container.replaceChildren.bind(container);
+  container.replaceChildren = (...rows) => { replaceChildren(...rows); container.scrollTop = 0; };
+  container.scrollHeight = 1000;
+  container.clientHeight = 100;
+  container.scrollTop = 240;
+  view.load([message('old'), message('new')]);
+  assert.equal(container.scrollTop, 240);
+});

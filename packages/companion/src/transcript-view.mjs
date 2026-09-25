@@ -39,6 +39,7 @@ export class TranscriptView {
   }
   load(messages) {
     const pinned = this.nearBottom();
+    const readingPosition = this.container.scrollTop;
     const previous = this.historyRows;
     this.historyRows = new Map();
     const rows = messages.map(message => {
@@ -50,6 +51,6 @@ export class TranscriptView {
       return row;
     });
     this.container.replaceChildren(...rows, ...this.activeRows.values());
-    if (pinned) this.container.scrollTop = this.container.scrollHeight;
+    this.container.scrollTop = pinned ? this.container.scrollHeight : readingPosition;
   }
 }
