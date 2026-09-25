@@ -16,10 +16,10 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 <main><iframe title="实际猫猫球界面" src="/index.html?skin=ragdoll-v1"></iframe></main>
 <script>const frame=document.querySelector('iframe');document.querySelector('#disconnect').onclick=()=>frame.contentWindow.postMessage('preview-disconnect',location.origin);function refresh(){frame.style.width='300px';frame.style.height='270px';frame.src='/index.html?skin='+document.querySelector('#skin').value+'&scenario='+document.querySelector('#scenario').value;}document.querySelectorAll('select').forEach(e=>e.onchange=refresh);document.querySelector('#background').onclick=()=>document.querySelector('main').classList.toggle('dark');window.addEventListener('message',e=>{if(e.source!==frame.contentWindow||e.origin!==location.origin)return;if(e.data.kind==='geometry'){frame.style.width=e.data.width+'px';frame.style.height=e.data.height+'px';}if(e.data.kind==='resize'){frame.style.width=e.data.expanded?'380px':'300px';frame.style.height=e.data.expanded?'590px':'270px';}if(e.data.kind==='note')document.querySelector('#note').textContent=e.data.text;});</script></html>`;
 
-function fixture(skin, failure) {
+export function fixture(skin, failure) {
   return `<script>
   const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'宪宪'}]; let phase = 'idle', allowed = true;
-  const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});
+  const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',nativeActivity:'none',duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});
   const emit = event => listeners.forEach(fn=>fn(event));
   window.addEventListener('message',event=>{if(event.source===parent&&event.origin===location.origin&&event.data==='preview-disconnect'){phase='closed';emit({kind:'media-stopped',reason:'closed'});}});
   const note = text => parent.postMessage({kind:'note',text},location.origin);
@@ -32,7 +32,7 @@ function fixture(skin, failure) {
       case 'view.layout': { const width=Math.max(136,command.width+16),height=command.panel==='none'?146:command.height+158; parent.postMessage({kind:'geometry',width,height},location.origin); return {kind:'layout',width,height,pet:{x:(width-120)/2,y:height-138},panel:{x:8,y:8,width:command.width,height:command.height}}; }
       case 'view.drag':return {kind:'ok'};
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};
-      case 'conversation.read':return {kind:'conversation',messages,hasMore:false};
+      case 'conversation.read':return {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages,hasMore:false};
       case 'decisions.read':return {kind:'decisions',status:'available',approvalCount:2,needsMeCount:2,otherNeedsMeCount:1,
         approvals:[{proposalId:'11111111-1111-4111-8111-111111111111',sourceFeatureId:'F221',summary:'保留一点呼吸感',resolution:'open',materializationState:'not_started',linkedNeedsMe:true},
           {proposalId:'thread-preview',sourceFeatureId:'F128',summary:'新线程需要完整表单确认',resolution:'open',materializationState:'not_started',linkedNeedsMe:false}],
@@ -50,7 +50,7 @@ function fixture(skin, failure) {
   </script>`;
 }
 
-createServer(async (req, res) => {
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
