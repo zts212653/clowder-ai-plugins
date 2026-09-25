@@ -22,8 +22,10 @@ const staticSkins = { 'ragdoll-v1': 'ragdoll-v1.png', 'yarn-ball': 'yarn-ball.pn
 export class PetMotion {
   constructor(element, options = {}) {
     this.element = element;
-    this.setTimer = options.setTimer ?? setTimeout;
-    this.clearTimer = options.clearTimer ?? clearTimeout;
+    const setTimer = options.setTimer ?? globalThis.setTimeout;
+    const clearTimer = options.clearTimer ?? globalThis.clearTimeout;
+    this.setTimer = (callback, delay) => setTimer.call(globalThis, callback, delay);
+    this.clearTimer = id => clearTimer.call(globalThis, id);
     this.reducedMotion = options.reducedMotion ?? globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     this.skin = 'xianxian-codex';
     this.phase = 'idle';

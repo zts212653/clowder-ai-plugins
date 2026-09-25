@@ -68,3 +68,25 @@ test('other skins use their own atlas or static art, and reduced motion freezes 
   assert.equal(f.element.dataset.action, 'idle');
   assert.match(f.element.style.backgroundImage, /ragdoll-v1.png/);
 });
+
+test('animation timers use the browser global receiver', () => {
+  const timers = new Map();
+  let nextId = 0;
+  const motion = new PetMotion({ dataset: {}, style: {} }, {
+    reducedMotion: false,
+    setTimer(callback, delay) {
+      assert.equal(this, globalThis, 'browser timers reject another receiver');
+      const id = ++nextId;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    clearTimer(id) {
+      assert.equal(this, globalThis, 'browser timers reject another receiver');
+      timers.delete(id);
+    },
+  });
+  motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  assert.equal(timers.size, 2);
+  motion.close();
+  assert.equal(timers.size, 0);
+});
