@@ -5,6 +5,10 @@ import type {
   AppendResult,
   DeliverInput,
   DeliverResult,
+  LifecycleInput,
+  LifecycleResult,
+  MediaReadInput,
+  MediaReadResult,
   ReadInput,
   ReadResult,
   SendInput,
@@ -64,7 +68,9 @@ export const MESSAGING_ROW_METHODS = [
   'messaging.read',
   'messaging.ack',
   'messaging.snapshot',
+  'media.read',
   'host.messaging.deliver',
+  'host.messaging.lifecycle',
 ] as const;
 
 export type MessagingRowMethod = (typeof MESSAGING_ROW_METHODS)[number];
@@ -76,7 +82,9 @@ export interface MessagingRowInputByMethod {
   readonly 'messaging.read': ReadInput;
   readonly 'messaging.ack': MessagingAckRequest;
   readonly 'messaging.snapshot': SnapshotInput;
+  readonly 'media.read': MediaReadInput;
   readonly 'host.messaging.deliver': DeliverInput;
+  readonly 'host.messaging.lifecycle': LifecycleInput;
 }
 
 export interface MessagingRowResultByMethod {
@@ -86,7 +94,9 @@ export interface MessagingRowResultByMethod {
   readonly 'messaging.read': ReadResult;
   readonly 'messaging.ack': MessagingAckResult;
   readonly 'messaging.snapshot': SnapshotResult;
+  readonly 'media.read': MediaReadResult;
   readonly 'host.messaging.deliver': DeliverResult;
+  readonly 'host.messaging.lifecycle': LifecycleResult;
 }
 
 interface ValidatorEntry {
@@ -113,7 +123,9 @@ const INPUT_VALIDATORS: Readonly<Record<MessagingRowMethod, ValidatorEntry>> = {
   'messaging.read': validator('M0CReadInput'),
   'messaging.ack': validator('M0CAckInput'),
   'messaging.snapshot': validator('M0CSnapshotInput'),
+  'media.read': validator('MediaReadInput'),
   'host.messaging.deliver': validator('M0CDeliverInput'),
+  'host.messaging.lifecycle': validator('HostMessagingLifecycleInput'),
 };
 
 const RESULT_VALIDATORS: Readonly<Record<MessagingRowMethod, ValidatorEntry>> = {
@@ -123,7 +135,9 @@ const RESULT_VALIDATORS: Readonly<Record<MessagingRowMethod, ValidatorEntry>> = 
   'messaging.read': validator('M0CReadResult'),
   'messaging.ack': validator('M0CAckResult'),
   'messaging.snapshot': validator('M0CSnapshotResult'),
+  'media.read': validator('MediaReadResult'),
   'host.messaging.deliver': validator('M0CDeliverResult'),
+  'host.messaging.lifecycle': validator('HostMessagingLifecycleResult'),
 };
 
 function hasOnlyUnicodeScalars(value: string): boolean {

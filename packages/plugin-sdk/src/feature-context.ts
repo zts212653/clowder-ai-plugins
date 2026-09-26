@@ -1,14 +1,17 @@
 import {
   validateManifest,
   type Capability,
+  type CloudConversationHostContribution,
   type ContentEditorProviderContribution,
-  type ConnectorContribution,
   type DirectToolContribution,
   type DesktopWindowContribution,
   type IdentityContribution,
   type LimbContribution,
   type McpContribution,
   type MessageSubscriptionContribution,
+  type MediaReadInput,
+  type MediaReadResult,
+  type MediaSourceContribution,
   type PluginManifest,
   type ScheduleContribution,
   type ServiceContribution,
@@ -17,6 +20,16 @@ import {
   type UiContribution,
   type WebhookContribution,
 } from '@clowder-ai/plugin-contract';
+import type {
+  ModulePluginLogLevel,
+  PluginMessagingDraft,
+  PluginMessagingHost,
+  PluginMessagingSubscribeOptions,
+  PluginStorageHost,
+  PluginTaskHost,
+  PluginThreadHost,
+} from './module-host.js';
+import { createMediaReader, type PluginMediaReader } from './p1-runtime.js';
 
 export interface FeatureBinding {
   readonly pluginInstanceId: string;
@@ -26,6 +39,12 @@ export interface FeatureBinding {
   readonly activationRevision: number;
   readonly grantRevision: number;
   readonly grantedCapabilities: readonly Capability[];
+  /**
+   * Absolute path of the Host-provisioned data directory. Present only when the
+   * owning feature is granted the data.directory capability and the manifest
+   * declares runtime.dataDirectory.
+   */
+  readonly dataDirectory?: string;
   /** Opaque Host-issued authority. SDK code transports it but never interprets it. */
   readonly executionLease: string;
 }
@@ -35,16 +54,42 @@ export interface HostContributionReceipt {
   readonly registryRevision: number;
 }
 
+export type PluginLogLevel = ModulePluginLogLevel;
+
 export interface FeatureHostAdapter {
   readConfig(binding: FeatureBinding, key: string): Promise<unknown>;
-  readSecret(binding: FeatureBinding, key: string): Promise<string>;
-  readState(binding: FeatureBinding, key: string): Promise<unknown>;
-  writeState(binding: FeatureBinding, key: string, value: unknown): Promise<void>;
+  readSecret(binding: FeatureBinding, key: string): Promise<string | undefined>;
+  readonly storage: PluginStorageHost;
+  readonly tasks: PluginTaskHost;
+  readonly threads: PluginThreadHost;
   registerContribution(
     binding: FeatureBinding,
     contribution: StaticContribution,
   ): Promise<HostContributionReceipt>;
   disposeContribution(binding: FeatureBinding, receipt: HostContributionReceipt): Promise<void>;
+  sendMessage(
+    binding: FeatureBinding,
+    threadId: string,
+    input: PluginMessagingDraft,
+  ): ReturnType<PluginMessagingHost['send']>;
+  subscribeMessage(
+    binding: FeatureBinding,
+    input: Parameters<PluginMessagingHost['subscribe']>[0],
+  ): ReturnType<PluginMessagingHost['subscribe']>;
+  unsubscribeMessage(
+    binding: FeatureBinding,
+    input: Parameters<PluginMessagingHost['unsubscribe']>[0],
+  ): ReturnType<PluginMessagingHost['unsubscribe']>;
+  readMedia(
+    binding: FeatureBinding,
+    input: MediaReadInput,
+  ): Promise<MediaReadResult>;
+  log(
+    binding: FeatureBinding,
+    level: PluginLogLevel,
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ): void;
 }
 
 export class FeatureContextRevokedError extends Error {
@@ -58,6 +103,15 @@ export class ContributionConflictError extends Error {
   constructor(key: string) {
     super(`contribution ${key} is already registered with a different payload`);
     this.name = 'ContributionConflictError';
+  }
+}
+
+export class FeaturePermissionError extends Error {
+  readonly code = 'PERMISSION' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'FeaturePermissionError';
   }
 }
 
@@ -76,11 +130,12 @@ export interface ContributionRegistrar<T extends StaticContribution> {
 export interface FeatureContext {
   readonly featureId: string;
   readonly config: { get(key: string): Promise<unknown> };
-  readonly secrets: { get(key: string): Promise<string> };
-  readonly state: {
-    get(key: string): Promise<unknown>;
-    set(key: string, value: unknown): Promise<void>;
-  };
+  readonly secrets: { get(key: string): Promise<string | undefined> };
+  readonly storage: PluginStorageHost;
+  /** @deprecated Use storage. Retained for one SDK beta as the same object. */
+  readonly state: PluginStorageHost;
+  readonly tasks: PluginTaskHost;
+  readonly threads: PluginThreadHost;
   readonly identity: ContributionRegistrar<IdentityContribution>;
   readonly scheduler: ContributionRegistrar<ScheduleContribution>;
   readonly tools: ContributionRegistrar<DirectToolContribution>;
@@ -89,10 +144,32 @@ export interface FeatureContext {
   readonly limbs: ContributionRegistrar<LimbContribution>;
   readonly webhooks: ContributionRegistrar<WebhookContribution>;
   readonly messaging: {
-    readonly subscribe: ContributionRegistrar<MessageSubscriptionContribution>['register'];
+    readonly subscribe: (
+      threadId: string,
+      options?: PluginMessagingSubscribeOptions,
+    ) => Promise<void>;
+    readonly unsubscribe: (threadId: string) => Promise<void>;
+    readonly send: (
+      threadId: string,
+      input: PluginMessagingDraft,
+    ) => ReturnType<PluginMessagingHost['send']>;
   };
+  readonly media: PluginMediaReader;
+  readonly mediaSources: ContributionRegistrar<MediaSourceContribution>;
   readonly services: ContributionRegistrar<ServiceContribution>;
-  readonly connectors: ContributionRegistrar<ConnectorContribution>;
+  readonly conversationHosts: ContributionRegistrar<CloudConversationHostContribution>;
+  /**
+   * Host-provisioned data directory. Reading it without the data.directory
+   * capability throws FeaturePermissionError with code 'PERMISSION'.
+   */
+  readonly dataDirectory: string;
+  readonly log: (
+    level: PluginLogLevel,
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ) => void;
+  /** @deprecated Use log. */
+  readonly logger: Readonly<Record<PluginLogLevel, (...args: readonly unknown[]) => void>>;
   readonly ui: ContributionRegistrar<UiContribution>;
   readonly contentEditors: ContributionRegistrar<ContentEditorProviderContribution>;
   readonly windows: ContributionRegistrar<DesktopWindowContribution>;
@@ -103,13 +180,18 @@ export interface FeatureContextSession {
   revoke(): Promise<void>;
 }
 
+export interface FeatureContextSessionOptions {
+  readonly messageSubscriptions?: readonly MessageSubscriptionContribution[];
+}
+
 interface ActiveRegistration {
   readonly digest: string;
   readonly promise: Promise<ContributionRegistration>;
   disposePromise?: Promise<void>;
 }
 
-function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
+/** @internal Stable JSON identity shared by contribution validation and module startup. */
+export function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
   if (value === null) return 'null';
   if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
@@ -163,6 +245,7 @@ function deepFreeze<T>(value: T): T {
 export function createFeatureContextSession(
   binding: FeatureBinding,
   adapter: FeatureHostAdapter,
+  options: FeatureContextSessionOptions = {},
 ): FeatureContextSession {
   let revoked = false;
   let revokePromise: Promise<void> | undefined;
@@ -250,22 +333,88 @@ export function createFeatureContextSession(
   const readConfig = async (key: string): Promise<unknown> => {
     return runWhileActive(() => adapter.readConfig(binding, key));
   };
-  const readSecret = async (key: string): Promise<string> => {
+  const readSecret = async (key: string): Promise<string | undefined> => {
     return runWhileActive(() => adapter.readSecret(binding, key));
   };
-  const readState = async (key: string): Promise<unknown> => {
-    return runWhileActive(() => adapter.readState(binding, key));
+
+  const storage: PluginStorageHost = {
+    get: (key) => runWhileActive(() => adapter.storage.get(key)),
+    list: () => runWhileActive(() => adapter.storage.list()),
+    set: (key, value) => runWhileActive(() => adapter.storage.set(key, value)),
+    compareAndSet: (key, expectedRevision, value) =>
+      runWhileActive(() => adapter.storage.compareAndSet(key, expectedRevision, value)),
+    delete: (key, expectedRevision) =>
+      runWhileActive(() => adapter.storage.delete(key, expectedRevision)),
   };
-  const writeState = async (key: string, value: unknown): Promise<void> => {
-    return runWhileActive(() => adapter.writeState(binding, key, value));
+  const tasks: PluginTaskHost = {
+    get: (taskId) => runWhileActive(() => adapter.tasks.get(taskId)),
+    listByThread: (threadId) => runWhileActive(() => adapter.tasks.listByThread(threadId)),
+    listByKind: (kind) => runWhileActive(() => adapter.tasks.listByKind(kind)),
+    getBySubject: (subjectKey) => runWhileActive(() => adapter.tasks.getBySubject(subjectKey)),
+    create: (input) => runWhileActive(() => adapter.tasks.create(input)),
+    upsertBySubject: (input) => runWhileActive(() => adapter.tasks.upsertBySubject(input)),
+    update: (taskId, input) => runWhileActive(() => adapter.tasks.update(taskId, input)),
+    updateIfThreadId: (taskId, expectedThreadId, input) =>
+      runWhileActive(() => adapter.tasks.updateIfThreadId(taskId, expectedThreadId, input)),
+  };
+  const threads: PluginThreadHost = {
+    get: (threadId) => runWhileActive(() => adapter.threads.get(threadId)),
+    create: (input) => runWhileActive(() => adapter.threads.create(input)),
+    update: (threadId, patch) => runWhileActive(() => adapter.threads.update(threadId, patch)),
+    findByKey: (key) => runWhileActive(() => adapter.threads.findByKey(key)),
+    ensureByKey: (key, input) => runWhileActive(() => adapter.threads.ensureByKey(key, input)),
+    bind: (key, threadId) => runWhileActive(() => adapter.threads.bind(key, threadId)),
+    unbind: (key) => runWhileActive(() => adapter.threads.unbind(key)),
+    listBindings: () => runWhileActive(() => adapter.threads.listBindings()),
+    ensureSystemThread: () => runWhileActive(() => adapter.threads.ensureSystemThread()),
+  };
+  const sendMessage = (threadId: string, input: PluginMessagingDraft) =>
+    runWhileActive(() => adapter.sendMessage(binding, threadId, input));
+  const subscribeMessage = (
+    threadId: string,
+    subscriptionOptions: PluginMessagingSubscribeOptions = {},
+  ): Promise<void> => {
+    const candidates = options.messageSubscriptions ?? [];
+    const contribution = subscriptionOptions.contributionId === undefined
+      ? candidates.length === 1 ? candidates[0] : undefined
+      : candidates.find((candidate) => candidate.id === subscriptionOptions.contributionId);
+    if (contribution === undefined) {
+      const reason = candidates.length === 0
+        ? 'feature declares no message-subscription contribution'
+        : subscriptionOptions.contributionId === undefined
+          ? 'feature declares multiple message-subscription contributions; contributionId is required'
+          : `message-subscription ${subscriptionOptions.contributionId} is not declared by this feature`;
+      return Promise.reject(new TypeError(reason));
+    }
+    return runWhileActive(() => adapter.subscribeMessage(binding, {
+      threadId,
+      method: contribution.action.method,
+      ...(subscriptionOptions.includeOwnMessages === undefined
+        ? {}
+        : { includeOwnMessages: subscriptionOptions.includeOwnMessages }),
+    }));
+  };
+  const unsubscribeMessage = (threadId: string): Promise<void> =>
+    runWhileActive(() => adapter.unsubscribeMessage(binding, { threadId }));
+  const media = createMediaReader(input => runWhileActive(() => adapter.readMedia(binding, input)));
+
+  const log = (
+    level: PluginLogLevel,
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ): void => {
+    assertActive();
+    adapter.log(binding, level, message, fields);
   };
 
-  const subscriptions = registrar<MessageSubscriptionContribution>('message-subscription');
   const context: FeatureContext = {
     featureId: binding.featureId,
     config: { get: readConfig },
     secrets: { get: readSecret },
-    state: { get: readState, set: writeState },
+    storage,
+    state: storage,
+    tasks,
+    threads,
     identity: registrar<IdentityContribution>('identity'),
     scheduler: registrar<ScheduleContribution>('schedule'),
     tools: registrar<DirectToolContribution>('tool'),
@@ -273,9 +422,27 @@ export function createFeatureContextSession(
     skills: registrar<SkillContribution>('skill'),
     limbs: registrar<LimbContribution>('limb'),
     webhooks: registrar<WebhookContribution>('webhook'),
-    messaging: { subscribe: subscriptions.register },
+    messaging: { subscribe: subscribeMessage, unsubscribe: unsubscribeMessage, send: sendMessage },
+    media,
+    mediaSources: registrar<MediaSourceContribution>('media-source'),
     services: registrar<ServiceContribution>('service'),
-    connectors: registrar<ConnectorContribution>('connector'),
+    conversationHosts: registrar<CloudConversationHostContribution>('cloud-conversation-host'),
+    get dataDirectory(): string {
+      assertActive();
+      if (binding.dataDirectory === undefined) {
+        throw new FeaturePermissionError(
+          'feature has no data directory: grant the data.directory capability and declare runtime.dataDirectory',
+        );
+      }
+      return binding.dataDirectory;
+    },
+    log,
+    logger: {
+      debug: (...args) => log('debug', String(args[0]), args[1] as Readonly<Record<string, unknown>> | undefined),
+      info: (...args) => log('info', String(args[0]), args[1] as Readonly<Record<string, unknown>> | undefined),
+      warn: (...args) => log('warn', String(args[0]), args[1] as Readonly<Record<string, unknown>> | undefined),
+      error: (...args) => log('error', String(args[0]), args[1] as Readonly<Record<string, unknown>> | undefined),
+    },
     ui: registrar<UiContribution>('ui'),
     contentEditors: registrar<ContentEditorProviderContribution>('content-editor-provider'),
     windows: registrar<DesktopWindowContribution>('desktop-window'),
@@ -300,7 +467,16 @@ export function createFeatureContextSession(
   };
 }
 
-export type FeatureActivator = (context: FeatureContext) => void | Promise<void>;
+export type PluginActionHandler = (input: unknown) => unknown | Promise<unknown>;
+
+export interface FeatureActivation {
+  readonly actions?: Readonly<Record<string, PluginActionHandler>>;
+  dispose?(): void | Promise<void>;
+}
+
+export type FeatureActivator = (
+  context: FeatureContext,
+) => void | FeatureActivation | Promise<void | FeatureActivation>;
 
 export interface PluginDefinitionInput {
   readonly manifest: unknown;
@@ -310,6 +486,100 @@ export interface PluginDefinitionInput {
 export interface DefinedPlugin {
   readonly manifest: PluginManifest;
   readonly activate: Readonly<Record<string, FeatureActivator>>;
+}
+
+export interface ActivePluginFeature {
+  readonly actions: Readonly<Record<string, PluginActionHandler>>;
+  dispose(): Promise<void>;
+}
+
+export interface ActivePluginFeatureOptions {
+  /** CallbackAction methods declared outside a feature contribution (operation/test). */
+  readonly additionalMethods?: ReadonlySet<string>;
+  /** Limb handler names live in limb YAML, so the SDK passes extra handlers through. */
+  readonly allowLimbHandlers?: boolean;
+}
+
+function actionMethods(contribution: StaticContribution): readonly string[] {
+  switch (contribution.type) {
+    case 'schedule':
+    case 'tool':
+    case 'webhook':
+      return [contribution.action.method];
+    case 'message-subscription':
+      return [
+        contribution.action.method,
+        ...(contribution.lifecycleAction === undefined ? [] : [contribution.lifecycleAction.method]),
+      ];
+    case 'media-source':
+      return [contribution.readAction.method, contribution.settleAction.method];
+    case 'service':
+      return [contribution.healthMethod];
+    case 'cloud-conversation-host':
+      return [
+        contribution.appendMessage.method,
+        contribution.assistantReturns.list.method,
+        contribution.assistantReturns.ack.method,
+      ];
+    case 'ui':
+      return contribution.kind === 'command' ? [contribution.action.method] : [];
+    default:
+      return [];
+  }
+}
+
+export function featureActionMethods(manifest: PluginManifest, featureId: string): ReadonlySet<string> {
+  const feature = manifest.features.find((candidate) => candidate.id === featureId);
+  if (feature === undefined) throw new TypeError(`feature ${featureId} is not declared by the plugin manifest`);
+  const keys = new Set((feature.contributions ?? []).map((item) => `${item.type}:${item.id}`));
+  return new Set(
+    (manifest.contributions ?? [])
+      .filter((contribution) => keys.has(`${contribution.type}:${contribution.id}`))
+      .flatMap(actionMethods),
+  );
+}
+
+/** Activate one Host-authorized feature and close its method/disposal surface. */
+export async function activateDefinedFeature(
+  plugin: DefinedPlugin,
+  featureId: string,
+  context: FeatureContext,
+  options: ActivePluginFeatureOptions = {},
+): Promise<ActivePluginFeature> {
+  if (context.featureId !== featureId) {
+    throw new TypeError(`feature context ${context.featureId} cannot activate ${featureId}`);
+  }
+  const activate = plugin.activate[featureId];
+  if (activate === undefined) {
+    throw new TypeError(`feature ${featureId} has no package activator`);
+  }
+  const result = await activate(context);
+  const activation = result ?? {};
+  const disposeActivation = activation.dispose ?? (() => undefined);
+  const actions = Object.freeze({ ...(activation.actions ?? {}) });
+  const requiredMethods = featureActionMethods(plugin.manifest, featureId);
+  const allowedMethods = new Set(requiredMethods);
+  for (const method of options.additionalMethods ?? []) allowedMethods.add(method);
+  const undeclared = options.allowLimbHandlers === true
+    ? undefined
+    : Object.keys(actions).find((method) => !allowedMethods.has(method));
+  if (undeclared !== undefined) {
+    await Promise.resolve(disposeActivation()).catch(() => undefined);
+    throw new TypeError(`action handler ${undeclared} is not declared by feature ${featureId}`);
+  }
+  const missing = [...requiredMethods].find((method) => actions[method] === undefined);
+  if (missing !== undefined) {
+    await Promise.resolve(disposeActivation()).catch(() => undefined);
+    throw new TypeError(`declared action ${missing} has no handler for feature ${featureId}`);
+  }
+  let disposePromise: Promise<void> | undefined;
+  return Object.freeze({
+    actions,
+    dispose: () => {
+      disposePromise ??= Promise.resolve().then(() => disposeActivation());
+      return disposePromise;
+    },
+  });
 }
 
 /** Validate one manifest truth and bind only activators for declared feature IDs. */

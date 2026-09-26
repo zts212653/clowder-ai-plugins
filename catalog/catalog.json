@@ -26,6 +26,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.2",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/genoffice-docx",
+            "version": "0.1.0-alpha.2",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/genoffice-docx/-/genoffice-docx-0.1.0-alpha.2.tgz",
+            "integrity": "sha512-xpQ59yNAcZ0ibeV7OTgF0dEg25mXYWV4L22OMNW7ICxEu5TIrPdiI0XBJboh+XSiV0kUCDL5UFGCpCizek2z+A==",
+            "shasum": "4ba156553f5c1fa3f823491a8ae1a047eedae7d2",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/genoffice-docx"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.1",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
@@ -86,6 +103,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.2",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/video-analysis",
+            "version": "0.1.0-alpha.2",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/video-analysis/-/video-analysis-0.1.0-alpha.2.tgz",
+            "integrity": "sha512-XL+817B9kgCZHXjDJGSZzlWM1K5ciuUbDQNsMqMS7OlooSGTYjphdNRtY1ML4JyELoBYDRJ+LgMNqTs06dRMog==",
+            "shasum": "abf410cf6c44d4d9329c44f9d8878751d0ee4c16",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/video-analysis"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.1",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
@@ -122,6 +156,48 @@
       ]
     },
     {
+      "pluginId": "dev.clowder.video-generation",
+      "name": "Video Generation",
+      "description": {
+        "default": "Submit and track image or video generation jobs through a configured provider.",
+        "translations": {
+          "zh-CN": "通过已配置的提供商提交并跟踪图片或视频生成任务。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "generation",
+        "image",
+        "video"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/video-generation",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/video-generation/-/video-generation-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-MJumX5FS8/KhD4cStknDrXHf3AAqa4An8kiHUocJZqOPYsVj0J3W2QDYWHHIzDbvXXgYZWENmy72HflMTjvi4g==",
+            "shasum": "2f87ac316f5f6b09ab3efb6bde329cb39b6a53b4",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/video-generation"
+            }
+          }
+        }
+      ]
+    },
+    {
       "pluginId": "official.companion",
       "name": "猫猫球",
       "description": {
@@ -146,19 +222,443 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.8",
+          "version": "0.1.0-alpha.9",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/companion",
-            "version": "0.1.0-alpha.8",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.8.tgz",
-            "integrity": "sha512-rEA0VdJFu24ES7wF8j/Et2oVl2dgoec6RPiPFXqhrAm5kWiiAgG+pXbjJFO/8kSqeEH/gw9gfypLHyXkaam8zQ==",
-            "shasum": "1c667db1d7b3f1fe6c01dcf1f49b47247b6698a1",
+            "version": "0.1.0-alpha.9",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.9.tgz",
+            "integrity": "sha512-HJ/qHf/si988bPFPsub4ePPa/LX4puZQOG0s7XWZx3WFLw8XHcRtdxLhE3cWbHMo+/2lDuEFpbNrFzKftO75sA==",
+            "shasum": "bb7c4d15d6767b89112d51e0af72619a212526fa",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.dingtalk",
+      "name": "DingTalk Connector",
+      "description": {
+        "default": "Receive and send DingTalk enterprise messages through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收和发送钉钉企业消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "connector",
+        "dingtalk",
+        "messaging"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-dingtalk",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-dingtalk/-/connector-dingtalk-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-EqdB/DxRROn4dq/FTLJEdMjAYchgkPPdX28wthVBX1P0XSAKy19Ee5BEnpApA+nDXBuBLkBlJxXMR/e7DUSJZA==",
+            "shasum": "df31c733bad7a2e85a5289b9ca64506c83dd20ea",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-dingtalk"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.feishu",
+      "name": "Feishu / Lark Connector",
+      "description": {
+        "default": "Receive and send Feishu or Lark messages through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收和发送飞书或 Lark 消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "connector",
+        "feishu",
+        "lark",
+        "messaging"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-feishu",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-feishu/-/connector-feishu-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-Hf8jFjLOTJb3CH3SRvho2tJRnH5Yv804vy/CtPRb+mPP1QWaAvO9iVH+ho8w4ppazbWe7JNYVP585/TIcoviIA==",
+            "shasum": "770d1d49be11465f4854a241c6285dde028a34ff",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-feishu"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.telegram",
+      "name": "Telegram Connector",
+      "description": {
+        "default": "Receive and send Telegram Bot messages through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收和发送 Telegram Bot 消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "connector",
+        "messaging",
+        "telegram"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-telegram",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-telegram/-/connector-telegram-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-VrVpirKj03JLVMqWiYSsKUDNJ/M342Nh+kTzhDpZkC4rWTOykxPa4BD5feOhsKsgu4AC+8bR0XYyJL1lqyEAlA==",
+            "shasum": "97b979b207c54cdfa9e3dbaa0c82e24a877b00b2",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-telegram"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.wecom-agent",
+      "name": "WeCom Agent Connector",
+      "description": {
+        "default": "Receive encrypted WeCom callbacks and send replies through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收企微加密回调并发送回复。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "connector",
+        "messaging",
+        "wecom"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-wecom-agent",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-wecom-agent/-/connector-wecom-agent-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-WDE8lKNefrzPuQutP1FZhVux+1wMiYZkhPM96MERxOVEoTglCcq9RoQHejUKht6mcXQHKGa28WgFr8Yp1tA2DA==",
+            "shasum": "eb8a37faecbe30a94c58683f383fd56bc4451fc6",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-wecom-agent"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.wecom-bot",
+      "name": "WeCom Bot Connector",
+      "description": {
+        "default": "Receive and send WeCom intelligent-bot messages through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收和发送企微智能机器人消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "bot",
+        "connector",
+        "messaging",
+        "wecom"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-wecom-bot",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-wecom-bot/-/connector-wecom-bot-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-e2zwwFT86qRqufpF9SZsiDTtYCvX/oBk328VEhW4M3t8wVr6H7dgg1UYLQ9GV6nO+qVg10d9w8dyzZ3oRhmNBA==",
+            "shasum": "12c90a223a6f6b96d5b36d8f4cdc0b2e4f23f8fe",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-wecom-bot"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.weixin",
+      "name": "WeChat Personal Connector",
+      "description": {
+        "default": "Receive and send WeChat Personal iLink messages through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收和发送微信个人号 iLink 消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "connector",
+        "messaging",
+        "wechat",
+        "weixin"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-weixin",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-weixin/-/connector-weixin-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-i99xRWLXTvx5OABaH03WQHqGgriUiclol0LoZLfsVFYipN288XGjcCkjHDrgzovw827NgvPf7sv/aWnv+mHcUQ==",
+            "shasum": "31b8ae46872adebdf7785ed59cc7bc58f4243ac9",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-weixin"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.connector.xiaoyi",
+      "name": "XiaoYi Connector",
+      "description": {
+        "default": "Receive and send XiaoYi OpenClaw messages through a Host-owned connector binding.",
+        "translations": {
+          "zh-CN": "通过宿主所有的连接器绑定接收和发送小艺 OpenClaw 消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "connector",
+        "messaging",
+        "xiaoyi"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-xiaoyi",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-xiaoyi/-/connector-xiaoyi-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-PZUGhyCTZbsbZPNMYTEO7FZRwWsJBm4XBqVNXlIecu5VVv1bqXfNWVPjOO4CnNhYPpf8xPZ6qikSFpN0mzE+Yg==",
+            "shasum": "d32f5eefef80feb1bfc0a80b3ba86abafb7ea183",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-xiaoyi"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.enterprise-workflow",
+      "name": "Enterprise Workflow",
+      "description": {
+        "default": "Create governed WeCom and Lark documents, tasks, tables, meetings, and workflows.",
+        "translations": {
+          "zh-CN": "通过受治理的企微与飞书工具创建文档、任务、表格、会议和工作流。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "enterprise",
+        "lark",
+        "wecom",
+        "workflow"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.0",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/enterprise-workflow",
+            "version": "0.1.0-alpha.0",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/enterprise-workflow/-/enterprise-workflow-0.1.0-alpha.0.tgz",
+            "integrity": "sha512-9Gx3i7FI8aEMi+TMKGj8gTA/9go/Oq35PX2z0Cy5iYEqa70XsU2tKJ+99xk3AbyQNQuDETBxckfddqk9PR+UTQ==",
+            "shasum": "12b37e563abfd7a3be495fc05a4fff4c9d0553d9",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/enterprise-workflow"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.wechat-visible-reader",
+      "name": "WeChat Visible Reader",
+      "description": {
+        "default": "Read visible Mac WeChat messages under explicit, short-lived local authorization.",
+        "translations": {
+          "zh-CN": "在明确、短时的本机授权下读取 Mac 微信可见消息。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "macos",
+        "reader",
+        "wechat"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.1",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/wechat-visible-reader",
+            "version": "0.1.0-alpha.1",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/wechat-visible-reader/-/wechat-visible-reader-0.1.0-alpha.1.tgz",
+            "integrity": "sha512-zgLySNkmruSW0X+Mo5C20du5YaGMTE9kOGWVJ99YO7/bLJipSsNepE4Shf6mXbRNwvqj3O1hvvJkeBacttkxOA==",
+            "shasum": "e410e1a8f4493186479d1e56adb7e823bf49d2d8",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/wechat-visible-reader"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "pluginId": "official.weixin-mp",
+      "name": "WeChat Official Account",
+      "description": {
+        "default": "Prepare, upload, publish, and inspect WeChat Official Account content.",
+        "translations": {
+          "zh-CN": "准备、上传、发布并查看微信公众号内容。"
+        }
+      },
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "publishing",
+        "wechat",
+        "weixin"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.1",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/weixin-mp",
+            "version": "0.1.0-alpha.1",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/weixin-mp/-/weixin-mp-0.1.0-alpha.1.tgz",
+            "integrity": "sha512-RwDSxgqkmNdLbSvIxP6KDKTfl3UHMt5S+FPq5rxqQ7WetdSyxO9QGtXWPq4tUrgL7aSmMvE0JzJghSHguJ6Q7A==",
+            "shasum": "401fd53411297f072cdec05c868d46c6d7e9ba0b",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/weixin-mp"
             }
           }
         }

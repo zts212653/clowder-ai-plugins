@@ -51,6 +51,12 @@ export interface CallMeta {
   readonly deadlineUnixMs: number;
 }
 
+/**
+ * Runtime key set mirror of the {@link CallMeta} interface.
+ * Closed surface — exactly the fields above, additionalProperties: false.
+ */
+export const META_ALLOWED_KEYS: ReadonlySet<string> = new Set(['deadlineUnixMs']);
+
 // ---------------------------------------------------------------------------
 // WireRequest (generic, parameterized by method + input)
 // ---------------------------------------------------------------------------
@@ -74,6 +80,23 @@ export interface WireRequest<M extends string = string, I = unknown> {
   };
 }
 
+/**
+ * Runtime key set mirror of the {@link WireRequest} interface.
+ * additionalProperties: false — no members beyond jsonrpc, id, method, params.
+ */
+export const REQUEST_ALLOWED_KEYS: ReadonlySet<string> = new Set([
+  'jsonrpc',
+  'id',
+  'method',
+  'params',
+]);
+
+/**
+ * Runtime key set mirror of `WireRequest.params` / `WireNotification.params`.
+ * Closed nested object — no members beyond meta, input.
+ */
+export const PARAMS_ALLOWED_KEYS: ReadonlySet<string> = new Set(['meta', 'input']);
+
 // ---------------------------------------------------------------------------
 // WireNotification (generic, no id)
 // ---------------------------------------------------------------------------
@@ -95,6 +118,16 @@ export interface WireNotification<M extends string = string, I = unknown> {
   };
 }
 
+/**
+ * Runtime key set mirror of the {@link WireNotification} interface.
+ * additionalProperties: false — no members beyond jsonrpc, method, params.
+ */
+export const NOTIFICATION_ALLOWED_KEYS: ReadonlySet<string> = new Set([
+  'jsonrpc',
+  'method',
+  'params',
+]);
+
 // ---------------------------------------------------------------------------
 // WireSuccessResponse (generic, parameterized by result)
 // ---------------------------------------------------------------------------
@@ -111,6 +144,16 @@ export interface WireSuccessResponse<R = unknown> {
   readonly id: RequestId;
   readonly result: R;
 }
+
+/**
+ * Runtime key set mirror of the {@link WireSuccessResponse} interface.
+ * additionalProperties: false — no members beyond jsonrpc, id, result.
+ */
+export const RESPONSE_SUCCESS_KEYS: ReadonlySet<string> = new Set([
+  'jsonrpc',
+  'id',
+  'result',
+]);
 
 // ---------------------------------------------------------------------------
 // WireApplicationErrorResponse (generic, with data)
@@ -164,6 +207,17 @@ export interface WireStandardErrorResponse {
     readonly message: string;
   };
 }
+
+/**
+ * Runtime key set mirror of the top level of both error response variants
+ * ({@link WireApplicationErrorResponse} / {@link WireStandardErrorResponse}).
+ * additionalProperties: false — no members beyond jsonrpc, id, error.
+ */
+export const RESPONSE_ERROR_KEYS: ReadonlySet<string> = new Set([
+  'jsonrpc',
+  'id',
+  'error',
+]);
 
 // ---------------------------------------------------------------------------
 // Concrete application error envelopes (5 variants, all id: RequestId)

@@ -156,6 +156,21 @@ export const DELIVERY_REJECT_REASONS = [
 export type DeliveryRejectReason = (typeof DELIVERY_REJECT_REASONS)[number];
 
 /**
+ * Closed set of reasons a lifecycle delivery may be rejected.
+ * Lifecycle callbacks retain the ordinary delivery failures and add two
+ * sequencing failures that let the Host distinguish its ordering mistakes
+ * from a plugin-internal failure.
+ */
+export const LIFECYCLE_REJECT_REASONS = [
+  ...DELIVERY_REJECT_REASONS,
+  'LIFECYCLE_OUT_OF_ORDER',
+  'LIFECYCLE_DELIVERY_CONFLICT',
+] as const;
+
+/** Union of all lifecycle-delivery rejection reasons. */
+export type LifecycleRejectReason = (typeof LIFECYCLE_REJECT_REASONS)[number];
+
+/**
  * Closed set of reasons a snapshot may be unavailable.
  * Mechanized from #1165 R2.
  */
@@ -192,7 +207,7 @@ export type HandshakeRejectedError = {
 export type DeliveryRejectedError = {
   readonly code: typeof DELIVERY_REJECTED_CODE;
   readonly message: typeof DELIVERY_REJECTED_MESSAGE;
-  readonly data: { readonly reason: DeliveryRejectReason };
+  readonly data: { readonly reason: LifecycleRejectReason };
 };
 
 /**
@@ -297,6 +312,35 @@ export type StandardWireError =
   | MethodNotFoundError
   | InvalidParamsError
   | InternalError;
+
+/**
+ * Runtime key set mirror of the standard error body ({@link StandardWireError}):
+ * { code, message } — no data field.
+ */
+export const ERROR_BODY_STANDARD_KEYS: ReadonlySet<string> = new Set(['code', 'message']);
+
+/**
+ * Runtime key set mirror of the application error body
+ * ({@link ApplicationWireError}): { code, message, data } — data required.
+ */
+export const ERROR_BODY_APPLICATION_KEYS: ReadonlySet<string> = new Set([
+  'code',
+  'message',
+  'data',
+]);
+
+/**
+ * Runtime key set mirror of the per-arm application error data shapes carrying
+ * a reject reason (HandshakeRejectedError / DeliveryRejectedError /
+ * SnapshotUnavailableError `.data`): { reason } — additionalProperties: false.
+ */
+export const REASON_DATA_KEYS: ReadonlySet<string> = new Set(['reason']);
+
+/**
+ * Runtime key set mirror of DomainError.data: { code: MessagingErrorCode } —
+ * additionalProperties: false.
+ */
+export const CODE_DATA_KEYS: ReadonlySet<string> = new Set(['code']);
 
 // ---------------------------------------------------------------------------
 // Exhaustive closed union (11 variants total)

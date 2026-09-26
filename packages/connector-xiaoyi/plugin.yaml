@@ -1,0 +1,57 @@
+pluginId: official.connector.xiaoyi
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: XiaoYi Connector
+description:
+  default: Receive and send XiaoYi OpenClaw messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送小艺 OpenClaw 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: accessKey
+    label: Access Key
+    kind: string
+    required: true
+  - key: secretKey
+    label: Secret Key
+    kind: secret
+    required: true
+  - key: agentId
+    label: Agent ID
+    kind: string
+    required: true
+contributions:
+  - type: identity
+    id: xiaoyi-agent
+    displayName: XiaoYi agent
+  - type: message-subscription
+    id: xiaoyi
+    binding: xiaoyi-agent
+    action:
+      method: xiaoyi.outbound
+    lifecycleAction:
+      method: host.messaging.lifecycle
+    presentation: v1
+features:
+  - id: xiaoyi-messaging
+    name: XiaoYi messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: xiaoyi-agent
+      - type: message-subscription
+        id: xiaoyi
+    capabilities:
+      - plugin.config.read
+      - plugin.state.get
+      - plugin.state.set
+      - message.event.subscribe
+      - messaging.send
+      - secret.read
+      - thread.listMetadata
+      - thread.write
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

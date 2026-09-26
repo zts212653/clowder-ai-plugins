@@ -1,5 +1,6 @@
-import { lstat, readFile } from 'node:fs/promises';
-import { isAbsolute } from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
+import { chmod, lstat, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
+import { dirname, isAbsolute, resolve } from 'node:path';
 
 const RECORD_FIELDS = new Set([
   'schemaVersion',
@@ -38,7 +39,23 @@ function requireIsoTimestamp(value, field) {
   return value;
 }
 
-/** Validates a record issued by the Host; this package never creates or rotates one. */
+export function resolvePersonalChromeHostPaths(projectRoot, { platform = process.platform } = {}) {
+  requireExactString(projectRoot, 'projectRoot');
+  const rootDirectory = resolve(projectRoot, '.cat-cafe', 'plugin-host', 'personal-chrome-host');
+  const socketId = createHash('sha256').update(rootDirectory).digest('hex').slice(0, 24);
+  const socketPath =
+    platform === 'win32' ? `\\\\.\\pipe\\cat-cafe-f247-${socketId}` : `/tmp/cat-cafe-f247-${socketId}.sock`;
+  return {
+    rootDirectory,
+    artifactsDirectory: resolve(rootDirectory, 'artifacts'),
+    pairingRecordPath: resolve(rootDirectory, 'pairing.json'),
+    conversationBindingPath: resolve(rootDirectory, 'conversation-binding.json'),
+    launcherPath: resolve(rootDirectory, 'native-host-launcher.mjs'),
+    socketPath,
+    ledgerPath: resolve(rootDirectory, 'delivery-ledger.json'),
+  };
+}
+
 export function validatePersonalChromePairingRecord(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('pairing record must be an object');
@@ -73,11 +90,27 @@ export function validatePersonalChromePairingRecord(value) {
   };
 }
 
+export function redactPersonalChromePairingRecord(value) {
+  const record = validatePersonalChromePairingRecord(value);
+  return {
+    schemaVersion: record.schemaVersion,
+    extensionId: record.extensionId,
+    socketPath: record.socketPath,
+    ledgerPath: record.ledgerPath,
+    artifactDigest: record.artifactDigest,
+    installedAt: record.installedAt,
+    updatedAt: record.updatedAt,
+    hasPairingSecret: true,
+  };
+}
+
 export async function readPersonalChromePairingRecord(path) {
   requireAbsolutePath(path, 'pairingRecordPath');
   const metadata = await lstat(path);
   if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error('pairing record must be a regular file');
-  if ((metadata.mode & 0o777) !== 0o600) throw new Error('pairing record must have mode 0600');
+  if (process.platform !== 'win32' && (metadata.mode & 0o777) !== 0o600) {
+    throw new Error('pairing record must have mode 0600');
+  }
   if (metadata.size > MAX_RECORD_BYTES) throw new Error('pairing record exceeds size limit');
   let parsed;
   try {
@@ -86,4 +119,29 @@ export async function readPersonalChromePairingRecord(path) {
     throw new Error(`pairing record is unreadable: ${error instanceof Error ? error.message : 'unknown'}`);
   }
   return validatePersonalChromePairingRecord(parsed);
+}
+
+export async function writePersonalChromePairingRecordAtomic(path, value) {
+  requireAbsolutePath(path, 'pairingRecordPath');
+  const record = validatePersonalChromePairingRecord(value);
+  const parent = dirname(path);
+  await mkdir(parent, { recursive: true, mode: 0o700 });
+  if (process.platform !== 'win32') await chmod(parent, 0o700);
+  const temporaryPath = resolve(parent, `.${randomUUID()}.pairing.tmp`);
+  let handle;
+  try {
+    handle = await open(temporaryPath, 'wx', 0o600);
+    await handle.writeFile(`${JSON.stringify(record, null, 2)}\n`, 'utf8');
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    if (process.platform !== 'win32') await chmod(temporaryPath, 0o600);
+    await rename(temporaryPath, path);
+    if (process.platform !== 'win32') await chmod(path, 0o600);
+  } catch (error) {
+    await handle?.close().catch(() => undefined);
+    await unlink(temporaryPath).catch(() => undefined);
+    throw error;
+  }
+  return redactPersonalChromePairingRecord(record);
 }

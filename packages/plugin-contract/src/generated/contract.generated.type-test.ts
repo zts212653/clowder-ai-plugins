@@ -3,10 +3,42 @@ import type {
   ConfigurationField,
   DataDeclaration,
   ExpectedVerdict,
+  M0CAckInput,
+  M0CSubscribeInput,
+  MessagingErrorCode,
+  OperationActionResult,
   PackageIcon,
+  PluginManifest,
+  PluginTestResult,
   RuntimeDeclaration,
   SideEffectAssertion,
 } from './contract.generated.js';
+import {
+  M0CACK_INPUT_KEYS,
+  M0CSUBSCRIBE_INPUT_KEYS,
+  MESSAGING_ERROR_CODE_VALUES,
+} from './contract.generated.js';
+
+// Generated runtime key sets must name exactly the fields of the generated
+// type they mirror (compile-time guard against generator regressions).
+type ExactKeys<T, K extends string> =
+  [keyof T & string] extends [K] ? [K] extends [keyof T & string] ? true : false : false;
+
+const _subscribeInputKeys: ExactKeys<
+  M0CSubscribeInput,
+  (typeof M0CSUBSCRIBE_INPUT_KEYS)[number]
+> = true;
+const _ackInputKeys: ExactKeys<M0CAckInput, (typeof M0CACK_INPUT_KEYS)[number]> = true;
+
+// Generated enum values must be identical to the MessagingErrorCode union.
+type ExactStringUnion<A, B> =
+  [A] extends [B] ? [B] extends [A] ? true : false : false;
+const _messagingErrorCodeValues: ExactStringUnion<
+  MessagingErrorCode,
+  (typeof MESSAGING_ERROR_CODE_VALUES)[number]
+> = true;
+
+void [_subscribeInputKeys, _ackInputKeys, _messagingErrorCodeValues];
 
 const lifecycleCache: DataDeclaration = {
   name: 'compiled-cache',
@@ -58,6 +90,51 @@ const booleanField: ConfigurationField = {
   default: true,
 };
 
+const operationField: ConfigurationField = {
+  key: 'login',
+  label: 'Log in',
+  kind: 'operation',
+  required: true,
+  target: ['account'],
+  actions: [{
+    id: 'begin',
+    label: 'Begin',
+    render: 'button',
+    action: { method: 'login.begin' },
+  }],
+};
+
+const hiddenConditionalField: ConfigurationField = {
+  key: 'verificationToken',
+  label: 'Verification token',
+  kind: 'secret',
+  required: true,
+  hidden: true,
+  requiredWhen: { key: 'mode', value: ['webhook', 'callback'] },
+};
+
+const operationResult: OperationActionResult = {
+  render: 'status',
+  data: { connected: true },
+  targetValues: { account: 'owner' },
+  advance: true,
+  activate: true,
+};
+
+const pluginTestResult: PluginTestResult = {
+  ok: true,
+  message: 'Connected',
+  details: { latencyMs: 12 },
+};
+
+const staticOnlyManifest: PluginManifest = {
+  pluginId: 'dev.clowder.static',
+  version: '1.0.0',
+  contractVersion: '0.1.0-beta.18',
+  name: 'Static package',
+  features: [{ id: 'static', name: 'Static', resources: [], capabilities: [] }],
+};
+
 const svgIcon: PackageIcon = {
   type: 'svg',
   src: 'assets/icon.svg',
@@ -77,6 +154,18 @@ const invalidSecretDefault: ConfigurationField = { key: 'api-key', label: 'API k
 
 // @ts-expect-error boolean configuration fields require boolean defaults.
 const invalidBooleanDefault: ConfigurationField = { key: 'enabled', label: 'Enabled', kind: 'boolean', required: false, default: 'yes' };
+
+// @ts-expect-error operation configuration fields require actions.
+const invalidOperationWithoutActions: ConfigurationField = { key: 'login', label: 'Log in', kind: 'operation', required: true };
+
+// @ts-expect-error operation configuration fields forbid defaults.
+const invalidOperationDefault: ConfigurationField = { key: 'login', label: 'Log in', kind: 'operation', required: true, actions: [{ id: 'begin', label: 'Begin', render: 'button', action: { method: 'login.begin' } }], default: false };
+
+// @ts-expect-error operation configuration fields are actions, not hidden values.
+const invalidHiddenOperation: ConfigurationField = { key: 'login', label: 'Log in', kind: 'operation', required: true, hidden: true, actions: [{ id: 'begin', label: 'Begin', render: 'button', action: { method: 'login.begin' } }] };
+
+// @ts-expect-error operation configuration fields cannot be conditionally required values.
+const invalidConditionalOperation: ConfigurationField = { key: 'login', label: 'Log in', kind: 'operation', required: true, requiredWhen: { key: 'mode', value: 'webhook' }, actions: [{ id: 'begin', label: 'Begin', render: 'button', action: { method: 'login.begin' } }] };
 
 const valueBearingAssertion: SideEffectAssertion = {
   target: 'messages',
@@ -131,6 +220,10 @@ const sendBehaviorCase: BehaviorCase = {
 const invalidSendBehaviorCase: BehaviorCase = { ...behaviorCaseBase, when: { operation: 'send', input: { address: {}, idempotencyKey: 'send-1', payload: {} } }, execution: { plane: 'plugin-to-host-wire', method: 'messaging.read', verdictOracle: { kind: 'behavior-expectation' } } };
 
 void [
+  operationField,
+  operationResult,
+  pluginTestResult,
+  staticOnlyManifest,
   lifecycleCache,
   retainedUserData,
   invalidLifecycleUserData,
@@ -145,6 +238,8 @@ void [
   invalidStringWithOptions,
   invalidSecretDefault,
   invalidBooleanDefault,
+  invalidOperationWithoutActions,
+  invalidOperationDefault,
   valueBearingAssertion,
   valuelessAssertion,
   invalidValueBearingAssertion,

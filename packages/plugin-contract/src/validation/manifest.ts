@@ -73,6 +73,24 @@ function semanticError(
   };
 }
 
+function requiredWhenScalarType(
+  field: NonNullable<PluginManifest['configuration']>[number],
+): 'string' | 'number' | 'boolean' | undefined {
+  switch (field.kind) {
+    case 'string':
+    case 'secret':
+    case 'select':
+    case 'url':
+      return 'string';
+    case 'number':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    case 'operation':
+      return undefined;
+  }
+}
+
 /**
  * Validates an untrusted plugin manifest against the contract-owned schema.
  *
@@ -149,6 +167,85 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       }
     }
 
+    for (const [index, field] of configuration.entries()) {
+      if (field.requiredWhen === undefined) continue;
+
+      const conditionField = configByKey.get(field.requiredWhen.key);
+      if (conditionField === undefined) {
+        return semanticError(
+          `/configuration/${index}/requiredWhen/key`,
+          '#/$defs/ConfigurationField/requiredWhenDeclaredKey',
+          'requiredWhenDeclaredKey',
+          'requiredWhen key must reference a declared configuration field',
+        );
+      }
+
+      const scalarType = requiredWhenScalarType(conditionField);
+      if (scalarType === undefined) {
+        return semanticError(
+          `/configuration/${index}/requiredWhen/key`,
+          '#/$defs/ConfigurationField/requiredWhenScalarKey',
+          'requiredWhenScalarKey',
+          'requiredWhen key must reference a non-operation scalar configuration field',
+        );
+      }
+
+      const conditionValues = Array.isArray(field.requiredWhen.value)
+        ? field.requiredWhen.value
+        : [field.requiredWhen.value];
+      if (!conditionValues.every((value) => typeof value === scalarType)) {
+        return semanticError(
+          `/configuration/${index}/requiredWhen/value`,
+          '#/$defs/ConfigurationField/requiredWhenCompatibleValue',
+          'requiredWhenCompatibleValue',
+          `requiredWhen value must match the referenced ${scalarType} configuration field`,
+        );
+      }
+    }
+
+    for (const [index, field] of configuration.entries()) {
+      if (field.kind !== 'operation') continue;
+
+      const actionIds = new Set<string>();
+      for (const [actionIndex, action] of field.actions.entries()) {
+        if (actionIds.has(action.id)) {
+          return semanticError(
+            `/configuration/${index}/actions/${actionIndex}/id`,
+            '#/$defs/ActionDef/uniqueActionIds',
+            'uniqueActionIds',
+            'operation action id must be unique within the same operation',
+          );
+        }
+        actionIds.add(action.id);
+      }
+
+      for (const [actionIndex, action] of field.actions.entries()) {
+        for (const reference of ['next', 'rollback'] as const) {
+          const target = action[reference];
+          if (target !== undefined && !actionIds.has(target)) {
+            return semanticError(
+              `/configuration/${index}/actions/${actionIndex}/${reference}`,
+              `#/$defs/ActionDef/${reference}DeclaredByOperation`,
+              `${reference}DeclaredByOperation`,
+              `operation action ${reference} must reference an action in the same operation`,
+            );
+          }
+        }
+      }
+
+      for (const [targetIndex, target] of (field.target ?? []).entries()) {
+        const targetField = configByKey.get(target);
+        if (targetField === undefined || targetField.kind === 'operation') {
+          return semanticError(
+            `/configuration/${index}/target/${targetIndex}`,
+            '#/$defs/ConfigurationField/declaredValueTarget',
+            'declaredValueTarget',
+            'operation target must reference a declared non-operation configuration key',
+          );
+        }
+      }
+    }
+
     const contributions = manifest.contributions ?? [];
     const contributionByKey = new Map<string, (typeof contributions)[number]>();
     for (const [index, contribution] of contributions.entries()) {
@@ -197,6 +294,46 @@ export function validateManifest(value: unknown): ManifestValidationResult {
             'webhook verificationSecretRef must reference a declared secret field',
           );
         }
+      }
+    }
+
+    if (manifest.runtime === undefined) {
+      const runtimeConfigurationIndex = configuration.findIndex(
+        (field) => field.kind === 'operation',
+      );
+      if (runtimeConfigurationIndex !== -1) {
+        const field = configuration[runtimeConfigurationIndex];
+        return semanticError(
+          `/configuration/${runtimeConfigurationIndex}`,
+          '#/$defs/ConfigurationField/runtimeRequired',
+          'runtimeRequired',
+          `runtime is required by configuration ${field.key}`,
+        );
+      }
+      if (manifest.test !== undefined) {
+        return semanticError(
+          '/test',
+          '#/$defs/PluginTestDeclaration/runtimeRequired',
+          'runtimeRequired',
+          `runtime is required by test ${manifest.pluginId}`,
+        );
+      }
+      const runtimeContributionIndex = contributions.findIndex(
+        (contribution) =>
+          'action' in contribution ||
+          contribution.type === 'media-source' ||
+          contribution.type === 'limb' ||
+          contribution.type === 'connector' ||
+          contribution.type === 'cloud-conversation-host',
+      );
+      if (runtimeContributionIndex !== -1) {
+        const contribution = contributions[runtimeContributionIndex];
+        return semanticError(
+          `/contributions/${runtimeContributionIndex}`,
+          '#/$defs/StaticContribution/runtimeRequired',
+          'runtimeRequired',
+          `runtime is required by contribution ${contribution.id}`,
+        );
       }
     }
 
@@ -263,6 +400,49 @@ export function validateManifest(value: unknown): ManifestValidationResult {
             '#/$defs/ConnectorContribution/sameFeatureOwner',
             'sameFeatureOwner',
             'connector identityRef must reference an identity owned by the same feature',
+          );
+        }
+      }
+      if (contribution.type === 'media-source') {
+        const identityKey = `identity\0${contribution.binding}`;
+        if (!contributionByKey.has(identityKey)) {
+          return semanticError(
+            `/contributions/${index}/binding`,
+            '#/$defs/MediaSourceContribution/declaredIdentityBinding',
+            'declaredIdentityBinding',
+            'media-source binding must reference a declared identity contribution',
+          );
+        }
+        if (referenceOwners.get(identityKey) !== owner) {
+          return semanticError(
+            `/contributions/${index}/binding`,
+            '#/$defs/MediaSourceContribution/sameFeatureOwner',
+            'sameFeatureOwner',
+            'media-source binding must reference an identity owned by the same feature',
+          );
+        }
+        const feature = manifest.features.find((candidate) => candidate.id === owner);
+        if (
+          feature === undefined ||
+          !feature.capabilities.includes('plugin.state.get') ||
+          !feature.capabilities.includes('plugin.state.set')
+        ) {
+          return semanticError(
+            `/features/${manifest.features.indexOf(feature!)}/capabilities`,
+            '#/$defs/MediaSourceContribution/stateCapabilitiesRequired',
+            'stateCapabilitiesRequired',
+            'media-source requires plugin.state.get and plugin.state.set for durable PMR retention',
+          );
+        }
+      }
+      if (contribution.type === 'cloud-conversation-host') {
+        const feature = manifest.features.find((candidate) => candidate.id === owner);
+        if (feature === undefined || !feature.capabilities.includes('cloud.conversation.host')) {
+          return semanticError(
+            `/features/${manifest.features.indexOf(feature!)}/capabilities`,
+            '#/$defs/CloudConversationHostContribution/capabilityRequired',
+            'capabilityRequired',
+            'a cloud conversation host must be owned by a feature that requests cloud.conversation.host',
           );
         }
       }

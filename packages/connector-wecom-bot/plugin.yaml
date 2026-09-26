@@ -1,0 +1,88 @@
+pluginId: official.connector.wecom-bot
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeCom Bot Connector
+description:
+  default: Receive and send WeCom intelligent-bot messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送企微智能机器人消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: botId
+    label: Bot ID
+    kind: string
+    required: false
+  - key: botSecret
+    label: Bot Secret
+    kind: secret
+    required: false
+  - key: wecom_validate
+    label: 验证并连接
+    kind: operation
+    required: false
+    target: [botId, botSecret]
+    actions:
+      - id: validate
+        label: 测试并连接
+        render: button
+        action:
+          method: wecom-bot.validate
+        next: disconnect
+      - id: disconnect
+        label: 断开连接
+        render: button
+        action:
+          method: wecom-bot.disconnect
+        next: validate
+test:
+  action:
+    method: wecom-bot.test
+steps:
+  - text: 进入企微管理端创建智能机器人 → 选「API 模式」→ 连接方式选「使用长连接」
+  - text: 填写名称和可见范围，保存后获取 Bot ID 和 Secret
+  - text: 在「测试并连接」面板里填写 Bot ID 和 Secret，点击后直接验证并生效（凭据随验证成功保存）
+contributions:
+  - type: identity
+    id: wecom-bot
+    displayName: WeCom intelligent bot
+  - type: message-subscription
+    id: wecom-bot
+    binding: wecom-bot
+    action:
+      method: wecom-bot.outbound
+    lifecycleAction:
+      method: host.messaging.lifecycle
+    presentation: v1
+  - type: media-source
+    id: wecom-bot-media
+    binding: wecom-bot
+    readAction:
+      method: wecom-bot.media-source.read
+    settleAction:
+      method: wecom-bot.media-source.settle
+features:
+  - id: wecom-bot-messaging
+    name: WeCom bot messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: wecom-bot
+      - type: message-subscription
+        id: wecom-bot
+      - type: media-source
+        id: wecom-bot-media
+    capabilities:
+      - plugin.config.read
+      - plugin.state.get
+      - plugin.state.set
+      - media.read
+      - message.event.subscribe
+      - messaging.send
+      - secret.read
+      - thread.listMetadata
+      - thread.write
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

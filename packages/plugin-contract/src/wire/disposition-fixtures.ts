@@ -1809,7 +1809,11 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
       payload: {
         provenance: { epistemicStatus: 'inference' },
         elements: [
-          { elementId: 'element-1', kind: 'rich_block', payload: { data: 1e+21 } },
+          {
+            elementId: 'element-1',
+            kind: 'rich_block',
+            payload: { id: 'proof-1', kind: 'proof', v: 1, data: 1e+21 },
+          },
         ],
       },
     }),

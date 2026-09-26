@@ -56,11 +56,14 @@ async function removeDeadLease(lockPath, label) {
   return true;
 }
 
-export async function acquireSocketLease(socketPath) {
-  const lockPath = `${socketPath}.owner`;
+export async function acquireProcessLease(resourcePath, { label = 'resource' } = {}) {
+  const lockPath = `${resourcePath}.owner`;
   const token = randomUUID();
   const candidatePath = `${lockPath}.${process.pid}.${token}`;
-  await writeFile(candidatePath, `${JSON.stringify({ pid: process.pid, token })}\n`, { flag: 'wx', mode: 0o600 });
+  await writeFile(candidatePath, `${JSON.stringify({ pid: process.pid, token })}\n`, {
+    flag: 'wx',
+    mode: 0o600,
+  });
   try {
     for (;;) {
       try {
@@ -68,7 +71,7 @@ export async function acquireSocketLease(socketPath) {
         break;
       } catch (error) {
         if (error?.code !== 'EEXIST') throw error;
-        await removeDeadLease(lockPath, 'socket');
+        await removeDeadLease(lockPath, label);
       }
     }
   } finally {
@@ -76,6 +79,7 @@ export async function acquireSocketLease(socketPath) {
       if (error?.code !== 'ENOENT') throw error;
     });
   }
+
   return {
     async release() {
       let lease;
@@ -85,9 +89,14 @@ export async function acquireSocketLease(socketPath) {
         if (error?.code === 'ENOENT') return;
         throw error;
       }
-      if (lease.owner.token === token) await unlink(lockPath);
+      if (lease.owner.token !== token) return;
+      await unlink(lockPath);
     },
   };
+}
+
+export function acquireSocketLease(socketPath) {
+  return acquireProcessLease(socketPath, { label: 'socket' });
 }
 
 async function socketIdentity(socketPath) {
@@ -112,7 +121,9 @@ function socketHasLiveOwner(socketPath) {
       if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOENT') finish(undefined, false);
       else finish(error);
     });
-    socket.setTimeout(SOCKET_PROBE_TIMEOUT_MS, () => finish(new Error(`timed out probing native host socket: ${socketPath}`)));
+    socket.setTimeout(SOCKET_PROBE_TIMEOUT_MS, () => {
+      finish(new Error(`timed out probing native host socket: ${socketPath}`));
+    });
   });
 }
 
@@ -124,7 +135,11 @@ export async function prepareSocketPath(socketPath) {
     if (error?.code === 'ENOENT') return;
     throw error;
   }
-  if (await socketHasLiveOwner(socketPath)) throw new Error(`socket already has a live owner: ${socketPath}`);
+
+  if (await socketHasLiveOwner(socketPath)) {
+    throw new Error(`socket already has a live owner: ${socketPath}`);
+  }
+
   let currentIdentity;
   try {
     currentIdentity = await socketIdentity(socketPath);

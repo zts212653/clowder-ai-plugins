@@ -8,6 +8,7 @@ import {
   ackResponseTemplate,
   deadlineExpiredErrorTemplate,
   deliveryRejectedErrorTemplate,
+  lifecycleRejectedErrorTemplate,
   domainErrorTemplate,
   snapshotUnavailableErrorTemplate,
   standardErrorWithIdTemplate,
@@ -178,6 +179,7 @@ test('every messaging error bound covers exactly its admitted error arms', () =>
   const deadline = calculateByteProof(deadlineExpiredErrorTemplate()).maxEncodedBytes;
   const snapshot = calculateByteProof(snapshotUnavailableErrorTemplate()).maxEncodedBytes;
   const delivery = calculateByteProof(deliveryRejectedErrorTemplate()).maxEncodedBytes;
+  const lifecycle = calculateByteProof(lifecycleRejectedErrorTemplate()).maxEncodedBytes;
 
   for (const method of MESSAGING_ROW_METHODS) {
     const expected = Math.max(
@@ -185,7 +187,10 @@ test('every messaging error bound covers exactly its admitted error arms', () =>
       domain,
       deadline,
       ...(method === 'messaging.snapshot' ? [snapshot] : []),
-      ...(method === 'host.messaging.deliver' ? [delivery] : []),
+      ...(
+        method === 'host.messaging.deliver' ? [delivery] : []
+      ),
+      ...(method === 'host.messaging.lifecycle' ? [lifecycle] : []),
     );
     assert.equal(MESSAGING_ERROR_BYTE_PROOFS[method].maxEncodedBytes, expected);
     assert.equal(

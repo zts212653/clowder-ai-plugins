@@ -66,8 +66,13 @@ function requireBaseUrl(value: string): URL {
   return url;
 }
 
-function requireVideoUrl(value: string): string {
-  const url = new URL(value);
+export function requireHttpsVideoUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new TypeError('video URL must be an HTTPS URL without embedded credentials');
+  }
   if (url.protocol !== 'https:' || url.username !== '' || url.password !== '') {
     throw new TypeError('video URL must be an HTTPS URL without embedded credentials');
   }
@@ -91,7 +96,7 @@ function requestShape(
   config: Required<VideoAnalysisProviderConfig>,
   input: VideoAnalysisInput,
 ): { readonly url: URL; readonly headers: Readonly<Record<string, string>>; readonly body: unknown } {
-  const videoUrl = requireVideoUrl(input.videoUrl);
+  const videoUrl = requireHttpsVideoUrl(input.videoUrl);
   if (input.prompt.trim() === '') throw new TypeError('video-analysis prompt is required');
   const base = new URL(config.baseUrl);
   if (!base.pathname.endsWith('/')) base.pathname += '/';

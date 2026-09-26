@@ -7,6 +7,7 @@ import {
   DELIVERY_REJECTED_CODE,
   DELIVERY_REJECTED_MESSAGE,
   DELIVERY_REJECT_REASONS,
+  LIFECYCLE_REJECT_REASONS,
   METHOD_NOT_FOUND_CODE,
   METHOD_NOT_FOUND_MESSAGE,
   PARSE_ERROR_CODE,
@@ -14,7 +15,9 @@ import {
   validateManifest,
   type DeliverInput,
   type DeliveryRejectReason,
+  type LifecycleRejectReason,
   type ManifestValidationError,
+  type HostMessagingLifecycleInput,
   type PluginManifest,
 } from '@clowder-ai/plugin-contract';
 
@@ -26,7 +29,7 @@ import {
   type StdioFrameErrorHandler,
   type StdioRuntimeFatalError,
 } from './stdio-runtime.js';
-import { classifyFrame, type InFlightEntry } from './wire-dispatch.js';
+import { classifyFrame, type InFlightEntry } from '@clowder-ai/plugin-contract';
 
 export class ManifestStartupError extends Error {
   readonly errors: readonly ManifestValidationError[];
@@ -55,6 +58,7 @@ export interface StandaloneHostOptions {
    * plugin-observed delivery fact. Retry and dead-letter policy remain Host-owned.
    */
   readonly onMessage?: StandaloneMessageHandler;
+  readonly onLifecycle?: StandaloneLifecycleHandler;
   readonly onFatal?: (error: StdioRuntimeFatalError) => void;
 }
 
@@ -62,9 +66,17 @@ export type StandaloneMessageDisposition =
   | { readonly accepted: true }
   | { readonly accepted: false; readonly reason: DeliveryRejectReason };
 
+export type StandaloneLifecycleDisposition =
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly reason: LifecycleRejectReason };
+
 export type StandaloneMessageHandler = (
   input: DeliverInput,
 ) => StandaloneMessageDisposition | Promise<StandaloneMessageDisposition>;
+
+export type StandaloneLifecycleHandler = (
+  input: HostMessagingLifecycleInput,
+) => StandaloneLifecycleDisposition | Promise<StandaloneLifecycleDisposition>;
 
 export interface StandaloneHost extends StdioChannel {
   readonly manifest: PluginManifest;
@@ -87,7 +99,7 @@ function requireValidManifest(value: unknown): PluginManifest {
 
 function requireStdioManifest(value: unknown): PluginManifest {
   const manifest = requireValidManifest(value);
-  if (manifest.runtime.transport !== 'stdio') {
+  if (manifest.runtime?.transport !== 'stdio') {
     throw new TypeError('standalone stdio host requires a manifest with runtime.transport "stdio"');
   }
   return manifest;
@@ -139,7 +151,7 @@ function methodNotFoundResponse(id: string): JsonObject {
   };
 }
 
-function deliveryRejectedResponse(id: string, reason: DeliveryRejectReason): JsonObject {
+function deliveryRejectedResponse(id: string, reason: LifecycleRejectReason): JsonObject {
   return {
     jsonrpc: '2.0',
     id,
@@ -152,6 +164,7 @@ function deliveryRejectedResponse(id: string, reason: DeliveryRejectReason): Jso
 }
 
 const DELIVERY_REJECT_REASON_SET = new Set<string>(DELIVERY_REJECT_REASONS);
+const LIFECYCLE_REJECT_REASON_SET = new Set<string>(LIFECYCLE_REJECT_REASONS);
 const HOST_BOUND_REQUEST_METHODS = new Set([
   'broker.hello',
   'broker.ready',
@@ -162,9 +175,13 @@ const HOST_BOUND_REQUEST_METHODS = new Set([
   'messaging.read',
   'messaging.ack',
   'messaging.snapshot',
+  'media.read',
 ]);
 
-function isStandaloneMessageDisposition(value: unknown): value is StandaloneMessageDisposition {
+function isStandaloneDisposition(
+  value: unknown,
+  reasons: ReadonlySet<string>,
+): value is StandaloneLifecycleDisposition {
   if (!isObject(value) || typeof value.accepted !== 'boolean') {
     return false;
   }
@@ -173,7 +190,7 @@ function isStandaloneMessageDisposition(value: unknown): value is StandaloneMess
   }
   return Object.keys(value).length === 2
     && typeof value.reason === 'string'
-    && DELIVERY_REJECT_REASON_SET.has(value.reason);
+    && reasons.has(value.reason);
 }
 
 async function dispatchMessage(
@@ -192,12 +209,31 @@ async function dispatchMessage(
     return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
   }
 
-  if (!isStandaloneMessageDisposition(disposition)) {
+  if (!isStandaloneDisposition(disposition, DELIVERY_REJECT_REASON_SET)) {
     return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
   }
   if (!disposition.accepted) {
     return deliveryRejectedResponse(id, disposition.reason);
   }
+  return { jsonrpc: '2.0', id, result: { deliveryId: input.deliveryId } };
+}
+
+async function dispatchLifecycle(
+  id: string,
+  input: JsonObject,
+  onLifecycle: StandaloneHostOptions['onLifecycle'],
+): Promise<JsonObject> {
+  if (onLifecycle === undefined) return deliveryRejectedResponse(id, 'NO_HANDLER');
+  let disposition: unknown;
+  try {
+    disposition = await onLifecycle(structuredClone(input) as HostMessagingLifecycleInput);
+  } catch {
+    return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
+  }
+  if (!isStandaloneDisposition(disposition, LIFECYCLE_REJECT_REASON_SET)) {
+    return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
+  }
+  if (!disposition.accepted) return deliveryRejectedResponse(id, disposition.reason);
   return { jsonrpc: '2.0', id, result: { deliveryId: input.deliveryId } };
 }
 
@@ -273,6 +309,9 @@ function createFrameHandler(options: StandaloneHostOptions) {
     }
     if (request.method === 'host.messaging.deliver') {
       return dispatchMessage(request.id, request.input, options.onMessage);
+    }
+    if (request.method === 'host.messaging.lifecycle') {
+      return dispatchLifecycle(request.id, request.input, options.onLifecycle);
     }
     if (request.method === 'host.lifecycle.drain') {
       const deadlineUnixMs = request.input.deadlineUnixMs;

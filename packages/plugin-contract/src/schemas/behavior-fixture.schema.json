@@ -354,8 +354,8 @@
         "entries": {
           "type": "array",
           "items": { "$ref": "#/$defs/PermissionMatrixEntry" },
-          "minItems": 17,
-          "maxItems": 17
+          "minItems": 23,
+          "maxItems": 23
         }
       },
       "required": ["entries"],
@@ -372,7 +372,7 @@
     },
     "MessagingErrorCode": {
       "type": "string",
-      "enum": ["VALIDATION", "PERMISSION", "NOT_FOUND", "CONFLICT", "RETRYABLE_INFLIGHT", "STALE_CURSOR"]
+      "enum": ["VALIDATION", "PERMISSION", "NOT_FOUND", "CONFLICT", "RETRYABLE_INFLIGHT", "STALE_CURSOR", "MEDIA_ACCESS_DENIED", "MESSAGE_NOT_PUBLISHED"]
     },
     "SideEffectAssertion": {
       "type": "object",

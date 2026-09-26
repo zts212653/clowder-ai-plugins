@@ -6,6 +6,7 @@ import type { StaticContribution } from '@clowder-ai/plugin-contract';
 import {
   ContributionConflictError,
   FeatureContextRevokedError,
+  activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
   type FeatureBinding,
@@ -13,6 +14,7 @@ import {
   type FeatureHostAdapter,
   type HostContributionReceipt,
 } from './feature-context.js';
+import { definePluginModule, requirePluginModuleEntrypoint } from './module-plugin.js';
 
 const BINDING: FeatureBinding = {
   pluginInstanceId: 'instance-1',
@@ -69,6 +71,49 @@ class RecordingAdapter implements FeatureHostAdapter {
     this.calls.push({ operation: 'state.set', binding, value: { key, value } });
   }
 
+  readonly storage: FeatureHostAdapter['storage'] = {
+    get: async (key) => {
+      await this.readState(BINDING, key);
+      return undefined;
+    },
+    list: async () => ({}),
+    set: async (key, value) => {
+      await this.writeState(BINDING, key, value);
+      return { revision: 1 };
+    },
+    compareAndSet: async (key, expectedRevision, value) => {
+      this.calls.push({ operation: 'state.compareAndSet', binding: BINDING, value: { key, expectedRevision, value } });
+      return { applied: true, revision: 1 };
+    },
+    delete: async (key, expectedRevision) => {
+      this.calls.push({ operation: 'state.delete', binding: BINDING, value: { key, expectedRevision } });
+      return { deleted: true, revision: 1 };
+    },
+  };
+
+  readonly tasks = {
+    get: async () => null,
+    listByThread: async () => [],
+    listByKind: async () => [],
+    getBySubject: async () => null,
+    create: async () => { throw new Error('not implemented by fixture'); },
+    upsertBySubject: async () => { throw new Error('not implemented by fixture'); },
+    update: async () => null,
+    updateIfThreadId: async () => null,
+  } satisfies FeatureHostAdapter['tasks'];
+
+  readonly threads = {
+    get: async () => null,
+    create: async () => { throw new Error('not implemented by fixture'); },
+    update: async () => { throw new Error('not implemented by fixture'); },
+    findByKey: async () => null,
+    ensureByKey: async () => { throw new Error('not implemented by fixture'); },
+    bind: async () => { throw new Error('not implemented by fixture'); },
+    unbind: async () => false,
+    listBindings: async () => [],
+    ensureSystemThread: async () => { throw new Error('not implemented by fixture'); },
+  } satisfies FeatureHostAdapter['threads'];
+
   async registerContribution(
     binding: FeatureBinding,
     contribution: StaticContribution,
@@ -87,6 +132,49 @@ class RecordingAdapter implements FeatureHostAdapter {
       this.failNextDispose = false;
       throw new Error('transient disposal failure');
     }
+  }
+
+  async sendMessage(
+    binding: FeatureBinding,
+    threadId: string,
+    input: Parameters<FeatureHostAdapter['sendMessage']>[2],
+  ): Promise<Awaited<ReturnType<FeatureHostAdapter['sendMessage']>>> {
+    this.calls.push({ operation: 'messaging.send', binding, value: { threadId, ...input } });
+    return {
+      messageId: 'message-1',
+      threadId: 'thread-1',
+    };
+  }
+
+  async subscribeMessage(
+    binding: FeatureBinding,
+    input: Parameters<FeatureHostAdapter['subscribeMessage']>[1],
+  ): Promise<void> {
+    this.calls.push({ operation: 'messaging.subscribe', binding, value: input });
+  }
+
+  async unsubscribeMessage(
+    binding: FeatureBinding,
+    input: Parameters<FeatureHostAdapter['unsubscribeMessage']>[1],
+  ): Promise<void> {
+    this.calls.push({ operation: 'messaging.unsubscribe', binding, value: input });
+  }
+
+  async readMedia(
+    binding: FeatureBinding,
+    input: Parameters<FeatureHostAdapter['readMedia']>[1],
+  ): Promise<Awaited<ReturnType<FeatureHostAdapter['readMedia']>>> {
+    this.calls.push({ operation: 'media.read', binding, value: input });
+    return { offset: input.offset, dataBase64: '', done: true };
+  }
+
+  log(
+    binding: FeatureBinding,
+    level: Parameters<FeatureHostAdapter['log']>[1],
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ): void {
+    this.calls.push({ operation: `log.${level}`, binding, value: { message, fields } });
   }
 }
 
@@ -221,6 +309,127 @@ test('definePlugin validates the manifest and rejects undeclared activators', ()
     () => definePlugin({ manifest: manifest(), activate: { missing: async () => undefined } }),
     /activator.*missing.*not declared/i,
   );
+});
+
+test('module entrypoint accepts the Host-validated manifest without embedding a second copy', () => {
+  const module = definePluginModule((candidate) => definePlugin({ manifest: candidate }));
+  const candidate = manifest();
+  candidate.runtime = { transport: 'builtin', entrypoint: 'dist/plugin.js' };
+  const defined = requirePluginModuleEntrypoint(module).create(candidate);
+  assert.equal(typeof defined.start, 'function');
+});
+
+test('module entrypoint guard rejects absent or ambiguous default exports', () => {
+  assert.throws(() => requirePluginModuleEntrypoint(undefined), /default export.*PluginModuleEntrypoint/u);
+  assert.throws(() => requirePluginModuleEntrypoint({ create: 'not-callable' }), /default export/u);
+});
+
+test('feature activation closes declared method handlers and owns idempotent disposal', async () => {
+  const candidate = manifest();
+  candidate.contributions.push({
+    type: 'message-subscription',
+    id: 'fixture-connector',
+    binding: 'fixture-binding',
+    action: { method: 'fixture.outbound' },
+  } as never);
+  candidate.features[0]!.contributions.push({ type: 'message-subscription', id: 'fixture-connector' } as never);
+  let disposeCalls = 0;
+  const defined = definePlugin({
+    manifest: candidate,
+    activate: {
+      'feature-1': () => ({
+        actions: { 'fixture.outbound': async (input) => ({ input }) },
+        dispose: () => { disposeCalls += 1; },
+      }),
+    },
+  });
+  const adapter = new RecordingAdapter();
+  const { context } = createFeatureContextSession(BINDING, adapter);
+  const active = await activateDefinedFeature(defined, 'feature-1', context);
+
+  assert.deepEqual(await active.actions['fixture.outbound']?.('hello'), { input: 'hello' });
+  await active.dispose();
+  await active.dispose();
+  assert.equal(disposeCalls, 1);
+});
+
+test('feature activation rolls back missing or undeclared package handlers', async (t) => {
+  const candidate = manifest();
+  candidate.contributions.push({
+    type: 'message-subscription', id: 'fixture-connector', binding: 'fixture-binding',
+    action: { method: 'fixture.outbound' },
+  } as never);
+  candidate.features[0]!.contributions.push({ type: 'message-subscription', id: 'fixture-connector' } as never);
+  const cases: ReadonlyArray<readonly [
+    string,
+    Readonly<Record<string, (input: unknown) => unknown>>,
+    RegExp,
+  ]> = [
+    ['missing', {}, /fixture\.outbound.*no handler/i],
+    ['undeclared', { 'fixture.outbound': () => undefined, 'foreign.method': () => undefined }, /foreign\.method.*not declared/i],
+  ];
+  for (const [name, actions, pattern] of cases) {
+    await t.test(name, async () => {
+      let disposeCalls = 0;
+      const defined = definePlugin({
+        manifest: candidate,
+        activate: {
+          'feature-1': () => ({ actions, dispose: () => { disposeCalls += 1; } }),
+        },
+      });
+      const { context } = createFeatureContextSession(BINDING, new RecordingAdapter());
+      await assert.rejects(activateDefinedFeature(defined, 'feature-1', context), pattern);
+      assert.equal(disposeCalls, 1);
+    });
+  }
+});
+
+test('messaging send ingress and logs retain Host-issued feature authority', async () => {
+  const adapter = new RecordingAdapter();
+  const session = createFeatureContextSession(BINDING, adapter);
+  const draft = {
+    idempotencyKey: 'provider-message-1',
+    payload: {
+      provenance: {
+        origin: {
+          kind: 'external',
+          connectorId: 'fixture-connector',
+          sourceAddress: {
+            connectorId: 'fixture-connector',
+            chatId: 'provider-chat-1',
+            messageId: 'provider-message-1',
+          },
+        },
+        epistemicStatus: 'observation',
+      },
+      elements: [{ elementId: 'text-1', kind: 'text', payload: { text: 'hello' } }],
+    },
+  } as const;
+  await session.context.messaging.send('thread-1', draft);
+  session.context.logger.info('provider connected', { connectorId: 'fixture-connector' });
+
+  assert.deepEqual(adapter.calls.slice(-2), [
+    {
+      operation: 'messaging.send',
+      binding: BINDING,
+      value: { threadId: 'thread-1', ...draft },
+    },
+    {
+      operation: 'log.info',
+      binding: BINDING,
+      value: { message: 'provider connected', fields: { connectorId: 'fixture-connector' } },
+    },
+  ]);
+
+  await session.revoke();
+  await assert.rejects(
+    session.context.messaging.send('thread-1', {
+      ...draft,
+      idempotencyKey: 'provider-message-2',
+    }),
+    FeatureContextRevokedError,
+  );
+  assert.throws(() => session.context.logger.warn('late'), FeatureContextRevokedError);
 });
 
 test('feature context keeps authority in the Host binding and namespaces typed registrations', async () => {

@@ -1,0 +1,111 @@
+pluginId: official.connector.weixin
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: WeChat Personal Connector
+description:
+  default: Receive and send WeChat Personal iLink messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送微信个人号 iLink 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: botToken
+    label: Bot Token
+    kind: secret
+    required: false
+    hidden: true
+  - key: voiceItemMode
+    label: Voice Item Mode
+    kind: select
+    required: false
+    hidden: true
+    options:
+      - value: minimal
+        label: Minimal
+      - value: playtime
+        label: Playtime
+      - value: playtime-sec
+        label: Playtime seconds
+      - value: playtime-encode
+        label: Playtime encoded (unsafe)
+      - value: metadata
+        label: Metadata (unsafe)
+  - key: enableUnsafeVoiceModes
+    label: Enable Unsafe Voice Modes
+    kind: boolean
+    required: false
+    hidden: true
+    default: false
+  - key: captureInboundVoiceMedia
+    label: Capture Inbound Voice Media
+    kind: boolean
+    required: false
+    hidden: true
+    default: false
+  - key: weixin_qr_login
+    label: 微信扫码登录
+    kind: operation
+    required: true
+    target: [botToken]
+    actions:
+      - id: qr-generate
+        label: 生成二维码
+        render: button
+        resultRender: img
+        action:
+          method: weixin.qr-generate
+        next: qr-status
+      - id: qr-status
+        label: 等待扫码
+        render: polling
+        action:
+          method: weixin.qr-status
+        timeout: 60
+        rollback: qr-generate
+        next: disconnect
+      - id: disconnect
+        label: 断开连接
+        render: button
+        action:
+          method: weixin.disconnect
+        next: qr-generate
+test:
+  action:
+    method: weixin.test
+steps:
+  - text: 点击「生成二维码」按钮
+  - text: 使用微信扫描二维码并确认授权
+  - text: 授权成功后自动连接，无需重启服务
+contributions:
+  - type: identity
+    id: weixin-bot
+    displayName: WeChat bot
+  - type: message-subscription
+    id: weixin
+    binding: weixin-bot
+    action:
+      method: weixin.outbound
+    presentation: v1
+  - type: media-source
+    id: weixin-media
+    binding: weixin-bot
+    readAction:
+      method: weixin.media-source.read
+    settleAction:
+      method: weixin.media-source.settle
+features:
+  - id: weixin-messaging
+    name: WeChat Personal messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: weixin-bot
+      - type: message-subscription
+        id: weixin
+      - type: media-source
+        id: weixin-media
+    capabilities: [plugin.config.read, plugin.state.get, plugin.state.set, media.read, message.event.subscribe, messaging.send, secret.read, thread.listMetadata, thread.write]
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

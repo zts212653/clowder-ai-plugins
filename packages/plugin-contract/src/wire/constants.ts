@@ -19,7 +19,8 @@ export const JSONRPC_VERSION = '2.0' as const;
 /**
  * Maximum payload bytes per element payload (frozen x-clowder-bounds).
  * Open-membered payloads (MediaRefElementPayload, RichBlockElementPayload)
- * are bounded by this ceiling alone — no structural narrowing.
+ * use their contract schemas for structural narrowing. Unknown extension payloads remain
+ * open and are bounded by this ceiling.
  */
 export const MAX_ELEMENT_PAYLOAD_BYTES = 65_536 as const;
 

@@ -16,6 +16,11 @@
  */
 
 import type { ByteProofInput, ClosedStringLeafProfile, JsonValue } from './encoded-byte-proof.js';
+import {
+  L0_CAPABILITIES,
+  L1_CAPABILITIES,
+  L2_CAPABILITIES,
+} from '../generated/contract.generated.js';
 import { WIRE_UINT53_MAX } from '../wire/wire-uint53.js';
 import { MAX_FRAME_BYTES } from '../wire/constants.js';
 import {
@@ -49,6 +54,7 @@ import {
   DELIVERY_REJECTED_CODE,
   DELIVERY_REJECTED_MESSAGE,
   DELIVERY_REJECT_REASONS,
+  LIFECYCLE_REJECT_REASONS,
   DOMAIN_ERROR_CODE,
   DOMAIN_ERROR_MESSAGE,
   DEADLINE_EXPIRED_CODE,
@@ -89,6 +95,8 @@ const ALL_MESSAGING_ERROR_CODES = [
   'CONFLICT',
   'RETRYABLE_INFLIGHT',
   'STALE_CURSOR',
+  'MEDIA_ACCESS_DENIED',
+  'MESSAGE_NOT_PUBLISHED',
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -313,28 +321,13 @@ export function ackResponseTemplate(): ByteProofInput {
 // ---------------------------------------------------------------------------
 
 /**
- * All 17 capability enum values from the generated contract.
- * Listed in alphabetical order for deterministic worst-case computation.
- * Must stay in sync with the Capability type in contract.generated.ts.
+ * Every capability enum value from the generated contract. Schema order is
+ * deterministic, and importing the generated arrays avoids a second mirror.
  */
 const ALL_CAPABILITY_VALUES = [
-  'events.publish',
-  'memory.append',
-  'memory.query',
-  'memory.retrieve',
-  'message.event.subscribe',
-  'messaging.appendElements',
-  'messaging.send',
-  'onMessage',
-  'plugin.config.read',
-  'plugin.state.get',
-  'plugin.state.set',
-  'schedule.register',
-  'secret.read',
-  'thread.listMetadata',
-  'thread.readContent',
-  'whisper.extend',
-  'windows.create',
+  ...L0_CAPABILITIES,
+  ...L1_CAPABILITIES,
+  ...L2_CAPABILITIES,
 ] as const;
 
 /**
@@ -363,9 +356,9 @@ export function grantsChangedMaxBytes(): number {
 /**
  * N+1 cardinality proof for host.grants.changed.
  *
- * Computes the byte count with MAX_GRANT_ITEMS + 1 (18) capabilities.
- * This exceeds the structural validity bound (MAX_GRANT_ITEMS = 17),
- * demonstrating the cardinality limit. The 18th element uses the longest
+ * Computes the byte count with MAX_GRANT_ITEMS + 1 (24) capabilities.
+ * This exceeds the structural validity bound (MAX_GRANT_ITEMS = 23),
+ * demonstrating the cardinality limit. The 21st element uses the longest
  * capability value for worst-case measurement.
  */
 export function grantsChangedNPlusOneBytes(): number {
@@ -572,6 +565,25 @@ export function deliveryRejectedErrorTemplate(): ByteProofInput {
       code: DELIVERY_REJECTED_CODE,
       message: DELIVERY_REJECTED_MESSAGE,
       data: { reason: longestValue(DELIVERY_REJECT_REASONS) },
+    },
+  };
+
+  return {
+    template,
+    leaves: [REQUEST_ID_LEAF],
+    frameLimitBytes: MAX_FRAME_BYTES,
+  };
+}
+
+/** Lifecycle-row DELIVERY_REJECTED template with its extended reason set. */
+export function lifecycleRejectedErrorTemplate(): ByteProofInput {
+  const template: JsonValue = {
+    jsonrpc: '2.0',
+    id: '',
+    error: {
+      code: DELIVERY_REJECTED_CODE,
+      message: DELIVERY_REJECTED_MESSAGE,
+      data: { reason: longestValue(LIFECYCLE_REJECT_REASONS) },
     },
   };
 

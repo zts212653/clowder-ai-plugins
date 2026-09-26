@@ -2,17 +2,19 @@
 
 `@clowder-ai/video-analysis` gives a Clowder AI Agent one read-only MCP tool for
 sending one remote HTTPS video URL and a prompt to the configured provider for
-analysis. The package owns the provider protocol and runs as a Host-supervised
-stdio process; installation, configuration, secret storage, grants, enablement,
-and lifecycle remain Host decisions.
+analysis. The package owns the provider templates and protocol engine and runs
+as a Host-supervised stdio process; installation, configuration, secret storage,
+grants, enablement, and lifecycle remain Host decisions.
 
 ## What it does
 
-The `video_analysis` tool accepts:
+The `video_analysis_execute` tool preserves the pre-migration Host contract. It
+accepts `capability` plus a string-valued `vars` object. The provider selects the
+capability and required variables:
 
-- `videoUrl`: one HTTPS video URL without embedded credentials.
-- `prompt`: the question or analysis instruction sent with the video.
-- `mimeType`: an optional media type; it defaults to `video/mp4` for Gemini.
+- Gemini: capability `analyze_url`; vars `videoUrl`, `prompt`, and optional
+  `mimeType` (defaults to `video/mp4`).
+- Zhipu: capability `analyze`; vars `videoUrl` and `prompt`.
 
 The plugin asks the selected provider to analyze that remote URL and returns the
 provider's textual result. It does not download, transcode, index, or retain the
@@ -61,7 +63,7 @@ Host owns process supervision and any user-visible records around the tool call.
 
 - Each provider request has a 30-second timeout.
 - Network failures and HTTP 429/500/502/503/504 responses are retried twice, for
-  at most three attempts. A bounded `Retry-After` value is honored.
+  at most three attempts.
 - Provider response bodies are limited to 4 MiB and must be valid UTF-8 JSON.
 - Other HTTP failures, malformed provider responses, invalid configuration, and
   invalid URLs fail closed and are returned as MCP tool errors.

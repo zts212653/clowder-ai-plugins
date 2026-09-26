@@ -1,0 +1,115 @@
+pluginId: official.connector.feishu
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Feishu / Lark Connector
+description:
+  default: Receive and send Feishu or Lark messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送飞书或 Lark 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: appId
+    label: App ID
+    kind: string
+    required: false
+  - key: appSecret
+    label: App Secret
+    kind: secret
+    required: false
+  - key: connectionMode
+    label: Connection Mode
+    kind: select
+    required: false
+    default: webhook
+    options:
+      - value: webhook
+        label: Webhook
+      - value: websocket
+        label: WebSocket
+  - key: verificationToken
+    label: Verification Token
+    kind: secret
+    required: false
+    requiredWhen:
+      key: connectionMode
+      value: webhook
+  - key: groupBotMentionsJson
+    label: Group Bot Mentions JSON
+    kind: string
+    required: false
+    hidden: true
+  - key: feishu_qr_login
+    label: 飞书扫码授权
+    kind: operation
+    required: false
+    target: [appId, appSecret, connectionMode]
+    actions:
+      - id: qr-generate
+        label: 生成二维码
+        render: button
+        resultRender: img
+        action:
+          method: feishu.qr-generate
+        next: qr-status
+      - id: qr-status
+        label: 等待扫码
+        render: polling
+        action:
+          method: feishu.qr-status
+        timeout: 600
+        rollback: qr-generate
+        next: disconnect
+      - id: disconnect
+        label: 断开连接
+        render: button
+        action:
+          method: feishu.disconnect
+        next: qr-generate
+test:
+  action:
+    method: feishu.test
+contributions:
+  - type: identity
+    id: feishu-bot
+    displayName: Feishu bot
+  - type: message-subscription
+    id: feishu
+    binding: feishu-bot
+    action:
+      method: feishu.outbound
+    lifecycleAction:
+      method: host.messaging.lifecycle
+    presentation: v2
+  - type: media-source
+    id: feishu-media
+    binding: feishu-bot
+    readAction:
+      method: feishu.media-source.read
+    settleAction:
+      method: feishu.media-source.settle
+  - type: webhook
+    id: feishu-events
+    path: feishu/events
+    methods: [POST]
+    action:
+      method: feishu.webhook
+    verificationSecretRef: verificationToken
+features:
+  - id: feishu-messaging
+    name: Feishu messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: feishu-bot
+      - type: message-subscription
+        id: feishu
+      - type: media-source
+        id: feishu-media
+      - type: webhook
+        id: feishu-events
+    capabilities: [plugin.config.read, plugin.state.get, plugin.state.set, media.read, message.event.subscribe, messaging.send, secret.read, thread.listMetadata, thread.write]
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

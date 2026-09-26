@@ -1,0 +1,220 @@
+pluginId: official.enterprise-workflow
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Enterprise Workflow
+description:
+  default: Create governed WeCom and Lark documents, tasks, tables, meetings, and workflows.
+  translations:
+    zh-CN: 通过受治理的企微与飞书工具创建文档、任务、表格、会议和工作流。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: wecomCliPath
+    label: wecom-cli path
+    description: Executable name or absolute path for the locally installed wecom-cli.
+    kind: string
+    required: true
+    default: wecom-cli
+  - key: larkCliPath
+    label: lark-cli path
+    description: Executable name or absolute path for the locally installed lark-cli.
+    kind: string
+    required: true
+    default: lark-cli
+contributions:
+  - type: tool
+    id: wecom-actions
+    name: wecom_action
+    description: Create a governed WeCom document, smart table, todo, meeting, or complete workflow.
+    inputSchema:
+      type: object
+      oneOf:
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_doc }
+            docName: { type: string, minLength: 1, maxLength: 200 }
+            content: { type: string, maxLength: 500000 }
+          required: [action, docName]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_smart_table }
+            tableName: { type: string, minLength: 1, maxLength: 200 }
+            fields:
+              type: array
+              maxItems: 50
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  fieldTitle: { type: string }
+                  fieldType: { type: string }
+                required: [fieldTitle, fieldType]
+            records:
+              type: array
+              maxItems: 200
+              items: { type: object }
+          required: [action, tableName, fields, records]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_todo }
+            content: { type: string, minLength: 1, maxLength: 2000 }
+            followerUserIds:
+              type: array
+              minItems: 1
+              maxItems: 50
+              items: { type: string }
+            remindTime: { type: string }
+          required: [action, content, followerUserIds]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_meeting }
+            title: { type: string, minLength: 1, maxLength: 200 }
+            startDatetime: { type: string, minLength: 1 }
+            durationSeconds: { type: integer, minimum: 300, maximum: 86400 }
+            inviteeUserIds:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items: { type: string }
+          required: [action, title, startDatetime, durationSeconds, inviteeUserIds]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: golden_chain }
+            docName: { type: string, minLength: 1, maxLength: 200 }
+            docContent: { type: string, minLength: 1, maxLength: 500000 }
+            tableName: { type: string, minLength: 1, maxLength: 200 }
+            tasks:
+              type: array
+              minItems: 1
+              maxItems: 50
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  content: { type: string, minLength: 1 }
+                  assigneeUserId: { type: string, minLength: 1 }
+                  remindTime: { type: string }
+                required: [content, assigneeUserId]
+            meetingTitle: { type: string, minLength: 1, maxLength: 200 }
+            meetingStart: { type: string, minLength: 1 }
+            meetingDurationSeconds: { type: integer, minimum: 300, maximum: 86400 }
+            meetingInviteeUserIds:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items: { type: string }
+          required: [action, docName, docContent, tableName, tasks, meetingTitle, meetingStart, meetingDurationSeconds, meetingInviteeUserIds]
+    action:
+      method: wecom.action
+  - type: tool
+    id: lark-actions
+    name: lark_action
+    description: Create a governed Lark document, Base, task, calendar event, slides deck, or complete workflow.
+    inputSchema:
+      type: object
+      oneOf:
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_doc }
+            title: { type: string, minLength: 1, maxLength: 200 }
+            markdown: { type: string, maxLength: 500000 }
+            folderToken: { type: string }
+          required: [action, title]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_base }
+            name: { type: string, minLength: 1, maxLength: 200 }
+            folderToken: { type: string }
+            timeZone: { type: string }
+          required: [action, name]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_task }
+            summary: { type: string, minLength: 1, maxLength: 500 }
+            description: { type: string, maxLength: 10000 }
+            assigneeOpenId: { type: string }
+            due: { type: string }
+            idempotencyKey: { type: string }
+          required: [action, summary]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_calendar_event }
+            summary: { type: string, minLength: 1, maxLength: 200 }
+            description: { type: string, maxLength: 10000 }
+            start: { type: string, minLength: 1 }
+            end: { type: string, minLength: 1 }
+            attendeeOpenIds:
+              type: array
+              maxItems: 100
+              items: { type: string }
+            calendarId: { type: string }
+            rrule: { type: string }
+          required: [action, summary, start, end]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: create_slides }
+            title: { type: string, minLength: 1, maxLength: 200 }
+            folderToken: { type: string }
+          required: [action, title]
+        - type: object
+          additionalProperties: false
+          properties:
+            action: { const: golden_chain }
+            docTitle: { type: string, minLength: 1, maxLength: 200 }
+            docMarkdown: { type: string, minLength: 1, maxLength: 500000 }
+            baseName: { type: string, minLength: 1, maxLength: 200 }
+            tasks:
+              type: array
+              minItems: 1
+              maxItems: 50
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  summary: { type: string, minLength: 1 }
+                  assigneeOpenId: { type: string, minLength: 1 }
+                  due: { type: string }
+                  description: { type: string }
+                required: [summary, assigneeOpenId]
+            calendarSummary: { type: string, minLength: 1, maxLength: 200 }
+            calendarStart: { type: string, minLength: 1 }
+            calendarEnd: { type: string, minLength: 1 }
+            calendarAttendeeOpenIds:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items: { type: string }
+            includeSlides: { type: boolean }
+          required: [action, docTitle, docMarkdown, baseName, tasks, calendarSummary, calendarStart, calendarEnd, calendarAttendeeOpenIds]
+    action:
+      method: lark.action
+  - type: skill
+    id: enterprise-workflow-skill
+    path: skills/enterprise-workflow
+features:
+  - id: enterprise-actions
+    name: Enterprise workflow actions
+    resources: []
+    contributions:
+      - type: tool
+        id: wecom-actions
+      - type: tool
+        id: lark-actions
+      - type: skill
+        id: enterprise-workflow-skill
+    capabilities:
+      - plugin.config.read
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

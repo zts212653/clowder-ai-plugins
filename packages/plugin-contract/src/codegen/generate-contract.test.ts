@@ -180,7 +180,7 @@ test('generated configuration fields preserve kind-dependent schema constraints'
     source.indexOf('export type EnvironmentBinding ='),
   );
 
-  assert.equal(configurationField.match(/readonly kind:/g)?.length, 6);
+  assert.equal(configurationField.match(/readonly kind:/g)?.length, 7);
   assert.match(
     configurationField,
     /readonly kind: 'select';[\s\S]*readonly default\?: string;[\s\S]*readonly options: readonly ConfigurationOption\[\];/,
@@ -196,6 +196,10 @@ test('generated configuration fields preserve kind-dependent schema constraints'
   assert.match(
     configurationField,
     /readonly kind: 'number';[\s\S]*readonly default\?: number;[\s\S]*readonly options\?: never;/,
+  );
+  assert.match(
+    configurationField,
+    /readonly kind: 'operation';[\s\S]*readonly default\?: never;[\s\S]*readonly options\?: never;[\s\S]*readonly target\?: readonly string\[\];[\s\S]*readonly actions: readonly ActionDef\[\];/,
   );
 });
 
@@ -290,5 +294,52 @@ test('generation fails when data strategy metadata drifts from schema constraint
   assert.throws(
     () => generateContractSource(mutated),
     /data-class strategy metadata.*schema constraints/,
+  );
+});
+
+test('generated closed-shape key sets and enum values mirror messaging $defs', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+
+  assert.match(source, /export const M0CSUBSCRIBE_INPUT_KEYS = \['handle'\] as const;/);
+  assert.match(
+    source,
+    /export const M0CACK_INPUT_KEYS = \['subscriptionId', 'ackToken'\] as const;/,
+  );
+  assert.match(source, /export const M0CDELIVER_RESULT_KEYS = \['deliveryId'\] as const;/);
+  assert.match(
+    source,
+    /export const MESSAGING_ERROR_CODE_VALUES = \['VALIDATION', 'PERMISSION', 'NOT_FOUND', 'CONFLICT', 'RETRYABLE_INFLIGHT', 'STALE_CURSOR', 'MEDIA_ACCESS_DENIED', 'MESSAGE_NOT_PUBLISHED'\] as const;/,
+  );
+
+  // Every additionalProperties:false object def gets a _KEYS const, and every
+  // string-enum def gets a _VALUES const — in schema declaration order.
+  const screamingSnake = (value: string): string =>
+    value.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
+  for (const [name, definition] of Object.entries(schemas.messaging.$defs ?? {})) {
+    if (definition.type === 'object' && definition.additionalProperties === false) {
+      const keys = Object.keys(definition.properties ?? {}).map((key) => `'${key}'`).join(', ');
+      assert.ok(
+        source.includes(`export const ${screamingSnake(name)}_KEYS = [${keys}] as const;`),
+        `${name} keys must be generated in schema declaration order`,
+      );
+    } else if (definition.type === 'string' && definition.enum !== undefined) {
+      assert.ok(
+        source.includes(`export const ${screamingSnake(name)}_VALUES = [${definition.enum.map((value) => `'${value}'`).join(', ')}] as const;`),
+        `${name} enum values must be generated`,
+      );
+    }
+  }
+});
+
+test('generation fails closed on a duplicate generated const name', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  // 'Actor_Kind' tokenizes to the same SCREAMING_SNAKE name as 'ActorKind',
+  // producing a duplicate ACTOR_KIND_VALUES export.
+  mutated.messaging.$defs!['Actor_Kind'] = structuredClone(mutated.messaging.$defs!.ActorKind);
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /Duplicate generated const export: ACTOR_KIND_VALUES/,
   );
 });

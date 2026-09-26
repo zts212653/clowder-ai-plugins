@@ -3,34 +3,101 @@
 import { timingSafeEqual } from 'node:crypto';
 import { chmod, mkdir } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { dirname, isAbsolute, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-
+import { createAssistantReturnInbox } from './assistant-return-inbox.mjs';
 import {
-  parsePersonalChromeAppendProgress,
-  parsePersonalChromeAppendRequest,
-  parsePersonalChromeAppendResult,
-  parsePersonalChromeBindingQuery,
-  parsePersonalChromeBindingRequest,
-} from '../dist/protocol.js';
-import {
-  PersonalChromeConversationBindingError,
-  readPersonalChromeConversationBinding,
-  writePersonalChromeConversationBindingAtomic,
+  authorizePersonalChromeConversation,
+  conversationIdFromExactChatGptUrl,
+  PersonalChromeConversationAuthorizationError,
+  readPersonalChromeConversationAuthorizations,
 } from './conversation-binding.mjs';
+import { createConversationTitleExchange } from './conversation-title-exchange.mjs';
 import { encodeNativeMessage, NativeMessageDecoder } from './native-framing.mjs';
 import { hasCapacityForEntry, ledgerKey, loadLedger, textDigest, writeAtomicLedger } from './native-ledger.mjs';
-import { applyTerminalResult, failureFor, safeErrorCode, safeToken, terminalResult } from './native-results.mjs';
+import {
+  applyTerminalResult,
+  failureFor,
+  safeErrorCode,
+  safeRevisions,
+  safeToken,
+  terminalResult,
+} from './native-results.mjs';
 import { acquireSocketLease, prepareSocketPath } from './native-socket-lease.mjs';
 import { readPersonalChromePairingRecord } from './pairing-record.mjs';
 
 const LOCAL_FRAME_LIMIT = 256 * 1024;
+const APPEND_PROTOCOL_VERSION = 2;
 const PROGRESS_ORDER = new Map([
   ['accepted', 0],
   ['extension_received', 1],
   ['inserted', 2],
   ['submitted', 3],
 ]);
+
+function parseAppendRequest(value) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('INVALID_REQUEST');
+  if (value.v !== APPEND_PROTOCOL_VERSION || value.kind !== 'append_message') throw new Error('INVALID_REQUEST');
+  if (!safeToken(value.requestId, 200)) throw new Error('INVALID_REQUEST');
+  if (!safeToken(value.conversationId, 200)) throw new Error('INVALID_REQUEST');
+  if (!safeToken(value.idempotencyKey, 512)) throw new Error('INVALID_REQUEST');
+  if (typeof value.text !== 'string' || value.text.trim().length === 0 || Buffer.byteLength(value.text) > 128 * 1024) {
+    throw new Error('INVALID_REQUEST');
+  }
+  const expectedRevisions = safeRevisions(value.expectedRevisions);
+  if (!expectedRevisions) throw new Error('INVALID_REQUEST');
+  return {
+    v: APPEND_PROTOCOL_VERSION,
+    kind: 'append_message',
+    requestId: value.requestId,
+    conversationId: value.conversationId,
+    text: value.text,
+    idempotencyKey: value.idempotencyKey,
+    expectedRevisions,
+  };
+}
+
+function parseBindingRequest(value) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('INVALID_REQUEST');
+  if (value.v !== 1 || value.kind !== 'bind_conversation') throw new Error('INVALID_REQUEST');
+  if (!safeToken(value.requestId, 200)) throw new Error('INVALID_REQUEST');
+  if (!safeToken(value.conversationId, 200)) throw new Error('INVALID_REQUEST');
+  if (conversationIdFromExactChatGptUrl(value.chatUrl) !== value.conversationId) {
+    throw new Error('INVALID_REQUEST');
+  }
+  return {
+    v: 1,
+    kind: 'bind_conversation',
+    requestId: value.requestId,
+    conversationId: value.conversationId,
+    chatUrl: `https://chatgpt.com/c/${value.conversationId}`,
+  };
+}
+
+function parseBindingQuery(value) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('INVALID_REQUEST');
+  if (value.v !== 1 || value.kind !== 'query_binding') throw new Error('INVALID_REQUEST');
+  if (!safeToken(value.requestId, 200)) throw new Error('INVALID_REQUEST');
+  if (Object.keys(value).some((key) => !['v', 'kind', 'requestId'].includes(key))) throw new Error('INVALID_REQUEST');
+  return { v: 1, kind: 'query_binding', requestId: value.requestId };
+}
+
+function parseHealthRequest(value) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('INVALID_REQUEST');
+  if (value.v !== APPEND_PROTOCOL_VERSION || value.kind !== 'health_check' || !safeToken(value.requestId, 200)) {
+    throw new Error('INVALID_REQUEST');
+  }
+  const expectedRevisions = safeRevisions(value.expectedRevisions);
+  if (!expectedRevisions) throw new Error('INVALID_REQUEST');
+  if (value.conversationId !== undefined && !safeToken(value.conversationId, 200)) throw new Error('INVALID_REQUEST');
+  return {
+    v: APPEND_PROTOCOL_VERSION,
+    kind: 'health_check',
+    requestId: value.requestId,
+    expectedRevisions,
+    ...(value.conversationId === undefined ? {} : { conversationId: value.conversationId }),
+  };
+}
 
 function secretsMatch(expected, received) {
   if (typeof received !== 'string') return false;
@@ -39,13 +106,32 @@ function secretsMatch(expected, received) {
   return expectedBuffer.length === receivedBuffer.length && timingSafeEqual(expectedBuffer, receivedBuffer);
 }
 
+function revisionsMatch(expected, observed) {
+  return (
+    observed &&
+    observed.helper === expected.helper &&
+    observed.extension === expected.extension &&
+    observed.pageAdapter === expected.pageAdapter
+  );
+}
+
+function projectedHealthStatus(message, exact) {
+  if (exact && message.status === 'ready') return 'ready';
+  return message.status === 'dormant' ? 'dormant' : 'stale_adapter';
+}
+
+function projectedHealthError(message, exact) {
+  if (exact) return undefined;
+  return safeErrorCode(message.errorCode) ? message.errorCode : 'STALE_ADAPTER';
+}
+
 function parsePairedAppendEnvelope(expectedPairingSecret, rawEnvelope) {
   const rawRequest = rawEnvelope?.request;
   if (!secretsMatch(expectedPairingSecret, rawEnvelope?.pairingSecret)) {
     return { failure: failureFor(rawRequest, 'PAIRING_REJECTED') };
   }
   try {
-    return { request: parsePersonalChromeAppendRequest(rawRequest) };
+    return { request: parseAppendRequest(rawRequest) };
   } catch {
     return { failure: failureFor(rawRequest, 'INVALID_REQUEST') };
   }
@@ -61,11 +147,11 @@ function respondFromExistingAdmission({ socket, request, digest, existing, pendi
     return true;
   }
   if (pending) {
-    pending.responders.push({ socket, requestId: request.requestId });
+    pending.responders.push({ socket, requestId: request.requestId, idempotentReplay: true });
     return true;
   }
   if (existing?.state === 'host_observed' || existing?.state === 'failed') {
-    sendSocketResult(socket, terminalResult(existing, request.requestId));
+    sendSocketResult(socket, terminalResult(existing, request.requestId, true));
     return true;
   }
   return false;
@@ -75,59 +161,77 @@ function validateBridgeOptions(options) {
   if (!options?.socketPath || !options?.ledgerPath || !options?.conversationBindingPath) {
     throw new Error('socketPath, ledgerPath, and conversationBindingPath are required');
   }
-  if (typeof options.pairingSecret !== 'string' || !/^[A-Za-z0-9_-]{43,512}$/.test(options.pairingSecret)) {
-    throw new Error('pairingSecret must be a Host-issued base64url token');
+  if (typeof options.pairingSecret !== 'string' || options.pairingSecret.length < 32) {
+    throw new Error('pairingSecret must contain at least 32 characters');
+  }
+  if (!/^sha512:[a-f0-9]{128}$/.test(options.helperArtifactRevision)) {
+    throw new Error('helperArtifactRevision must be a lowercase sha512 digest');
   }
   if (typeof options.sendNative !== 'function') throw new Error('sendNative is required');
   if (options.writeLedger !== undefined && typeof options.writeLedger !== 'function') {
     throw new Error('writeLedger must be a function');
   }
-  if (options.writeConversationBinding !== undefined && typeof options.writeConversationBinding !== 'function') {
-    throw new Error('writeConversationBinding must be a function');
+  if (options.authorizeConversation !== undefined && typeof options.authorizeConversation !== 'function') {
+    throw new Error('authorizeConversation must be a function');
   }
 }
 
 async function bindingFailureForAppend(path, request) {
   try {
-    const binding = await readPersonalChromeConversationBinding(path);
-    return binding.conversationId === request.conversationId ? null : 'BOUND_CONVERSATION_MISMATCH';
+    // Read-only authorization check — skip legacy migration to avoid acquiring
+    // the mutation lease on a hot path. Concurrent append checks must not consume
+    // the finite cross-process mutation retry budget or project a valid record
+    // as BINDING_RECORD_INVALID under I/O pressure.
+    const collection = await readPersonalChromeConversationAuthorizations(path, { migrateLegacy: false });
+    return collection.conversations.some((entry) => entry.conversationId === request.conversationId)
+      ? null
+      : 'BOUND_CONVERSATION_MISMATCH';
   } catch (error) {
-    return error instanceof PersonalChromeConversationBindingError && error.code === 'NEEDS_BINDING'
+    return error instanceof PersonalChromeConversationAuthorizationError && error.code === 'NEEDS_AUTHORIZATION'
       ? 'NEEDS_BINDING'
       : 'BINDING_RECORD_INVALID';
   }
 }
 
-async function bindingRecordForRequest(path, request, timestamp, writeBinding) {
-  let previous;
-  try {
-    previous = await readPersonalChromeConversationBinding(path);
-  } catch {
-    // An explicit extension action may recover a missing or malformed record.
-  }
-  return writeBinding(path, {
-    schemaVersion: 1,
-    provider: 'chatgpt',
+function bindingRecordForRequest(path, request, timestamp, authorizeConversation) {
+  return authorizeConversation(path, {
     conversationId: request.conversationId,
     chatUrl: request.chatUrl,
-    boundAt: previous?.conversationId === request.conversationId ? previous.boundAt : timestamp,
+    authorizedAt: timestamp,
     updatedAt: timestamp,
   });
 }
 
+function bindingWriteFailureCode(error) {
+  return error instanceof PersonalChromeConversationAuthorizationError && error.code === 'AUTHORIZATION_BUSY'
+    ? 'AUTHORIZATION_BUSY'
+    : 'BINDING_WRITE_FAILED';
+}
+
 async function bindingStatusForQuery(path, requestId) {
   try {
-    const record = await readPersonalChromeConversationBinding(path);
+    const collection = await readPersonalChromeConversationAuthorizations(path);
+    const record = collection.conversations.at(-1);
+    if (!record) {
+      return {
+        v: 1,
+        kind: 'binding_status',
+        requestId,
+        status: 'unbound',
+        errorCode: 'NEEDS_BINDING',
+      };
+    }
     return {
       v: 1,
       kind: 'binding_status',
       requestId,
       status: 'bound',
       conversationId: record.conversationId,
-      boundAt: record.boundAt,
+      boundAt: record.authorizedAt,
     };
   } catch (error) {
-    const needsBinding = error instanceof PersonalChromeConversationBindingError && error.code === 'NEEDS_BINDING';
+    const needsBinding =
+      error instanceof PersonalChromeConversationAuthorizationError && error.code === 'NEEDS_AUTHORIZATION';
     return {
       v: 1,
       kind: 'binding_status',
@@ -138,15 +242,16 @@ async function bindingStatusForQuery(path, requestId) {
   }
 }
 
-/**
- * Runs the local companion bridge. Paths, secret, and lifecycle are supplied by
- * the installing Host; this module does not install a manifest or launcher.
- */
 export async function createNativeHostBridge(options) {
   validateBridgeOptions(options);
   const writeLedger = options.writeLedger ?? writeAtomicLedger;
-  const writeConversationBinding = options.writeConversationBinding ?? writePersonalChromeConversationBindingAtomic;
+  const authorizeConversation = options.authorizeConversation ?? authorizePersonalChromeConversation;
   const now = options.now ?? (() => new Date());
+  const acceptConversationTitles = createConversationTitleExchange({
+    authorizationPath: options.conversationBindingPath,
+    sendNative: options.sendNative,
+    now,
+  });
 
   const ledger = await loadLedger(options.ledgerPath);
   let ledgerDirty = false;
@@ -157,9 +262,9 @@ export async function createNativeHostBridge(options) {
       ledgerDirty = true;
     }
   }
-  if (ledgerDirty) await writeLedger(options.ledgerPath, ledger);
+  if (ledgerDirty) await writeAtomicLedger(options.ledgerPath, ledger);
 
-  await mkdir(dirname(options.socketPath), { recursive: true, mode: 0o700 });
+  await mkdir(dirname(options.socketPath), { recursive: true });
   const socketLease = await acquireSocketLease(options.socketPath);
   try {
     await prepareSocketPath(options.socketPath);
@@ -167,15 +272,14 @@ export async function createNativeHostBridge(options) {
     await socketLease.release();
     throw error;
   }
-
   const pendingByKey = new Map();
+  const pendingHealthByRequestId = new Map();
   const keyByRequestId = new Map();
   const openSockets = new Set();
   const dispatchWaiters = [];
   let dispatchCount = 0;
   let stopped = false;
   let persistenceQueue = Promise.resolve();
-  let nativeInputQueue = Promise.resolve();
 
   const persist = () => {
     const snapshot = new Map([...ledger].map(([key, value]) => [key, { ...value }]));
@@ -183,11 +287,14 @@ export async function createNativeHostBridge(options) {
     persistenceQueue = write.catch(() => undefined);
     return write;
   };
+  const assistantReturnInbox = createAssistantReturnInbox({ ledger, persist, now });
 
   function announceDispatch() {
     dispatchCount += 1;
     for (let index = dispatchWaiters.length - 1; index >= 0; index -= 1) {
-      if (dispatchCount >= dispatchWaiters[index].count) dispatchWaiters.splice(index, 1)[0].resolve();
+      if (dispatchCount >= dispatchWaiters[index].count) {
+        dispatchWaiters.splice(index, 1)[0].resolve();
+      }
     }
   }
 
@@ -199,18 +306,104 @@ export async function createNativeHostBridge(options) {
     applyTerminalResult(entry, result);
     await persist();
     pendingByKey.delete(key);
+    keyByRequestId.delete(pending.canonicalRequestId);
     for (const responder of pending.responders) {
-      sendSocketResult(responder.socket, terminalResult(entry, responder.requestId));
+      sendSocketResult(responder.socket, terminalResult(entry, responder.requestId, responder.idempotentReplay));
     }
   }
 
-  async function handleEnvelope(socket, rawEnvelope) {
+  function healthResult(requestId, status, errorCode, observedRevisions) {
+    return {
+      v: APPEND_PROTOCOL_VERSION,
+      kind: 'health_result',
+      requestId,
+      status,
+      ...(errorCode ? { errorCode } : {}),
+      ...(observedRevisions ? { observedRevisions } : {}),
+    };
+  }
+
+  async function handleHealthEnvelope(socket, rawEnvelope) {
+    if (rawEnvelope?.request?.kind !== 'health_check') return false;
+    if (!secretsMatch(options.pairingSecret, rawEnvelope?.pairingSecret)) {
+      sendSocketResult(socket, healthResult('invalid-request', 'failed', 'PAIRING_REJECTED'));
+      return true;
+    }
+    let request;
+    try {
+      request = parseHealthRequest(rawEnvelope.request);
+    } catch {
+      sendSocketResult(socket, healthResult('invalid-request', 'failed', 'INVALID_REQUEST'));
+      return true;
+    }
+    if (request.expectedRevisions.helper !== options.helperArtifactRevision) {
+      sendSocketResult(
+        socket,
+        healthResult(request.requestId, 'stale_adapter', 'STALE_HELPER', {
+          helper: options.helperArtifactRevision,
+          extension: '0.0.0',
+          pageAdapter: 'unobserved',
+        }),
+      );
+      return true;
+    }
+    const timeout = setTimeout(() => {
+      if (!pendingHealthByRequestId.has(request.requestId)) return;
+      pendingHealthByRequestId.delete(request.requestId);
+      sendSocketResult(socket, healthResult(request.requestId, 'failed', 'HEALTH_TIMEOUT'));
+    }, 1_000);
+    timeout.unref?.();
+    pendingHealthByRequestId.set(request.requestId, {
+      socket,
+      timeout,
+      expectedRevisions: request.expectedRevisions,
+    });
+    try {
+      await options.sendNative(request);
+    } catch {
+      clearTimeout(timeout);
+      pendingHealthByRequestId.delete(request.requestId);
+      sendSocketResult(socket, healthResult(request.requestId, 'failed', 'NATIVE_DISPATCH_FAILED'));
+    }
+    return true;
+  }
+
+  async function handleAssistantReturnEnvelope(socket, rawEnvelope) {
+    const kind = rawEnvelope?.request?.kind;
+    if (kind !== 'list_assistant_returns' && kind !== 'ack_assistant_return') return false;
+    if (!secretsMatch(options.pairingSecret, rawEnvelope?.pairingSecret)) {
+      sendSocketResult(socket, {
+        v: APPEND_PROTOCOL_VERSION,
+        kind: 'assistant_return_error',
+        requestId: safeToken(rawEnvelope?.request?.requestId, 200) ? rawEnvelope.request.requestId : 'invalid-request',
+        errorCode: 'PAIRING_REJECTED',
+      });
+      return true;
+    }
+    sendSocketResult(socket, await assistantReturnInbox.handleLocalRequest(rawEnvelope.request));
+    return true;
+  }
+
+  async function handleAppendEnvelope(socket, rawEnvelope) {
     const parsed = parsePairedAppendEnvelope(options.pairingSecret, rawEnvelope);
     if (parsed.failure) {
       sendSocketResult(socket, parsed.failure);
       return;
     }
     const request = parsed.request;
+    if (request.expectedRevisions.helper !== options.helperArtifactRevision) {
+      sendSocketResult(
+        socket,
+        failureFor(request, 'STALE_HELPER', {
+          observedRevisions: {
+            helper: options.helperArtifactRevision,
+            extension: '0.0.0',
+            pageAdapter: 'unobserved',
+          },
+        }),
+      );
+      return;
+    }
     const bindingFailure = await bindingFailureForAppend(options.conversationBindingPath, request);
     if (bindingFailure) {
       sendSocketResult(socket, failureFor(request, bindingFailure));
@@ -218,11 +411,6 @@ export async function createNativeHostBridge(options) {
     }
     const key = ledgerKey(request.conversationId, request.idempotencyKey);
     const digest = textDigest(request.text);
-    const requestIdKey = keyByRequestId.get(request.requestId);
-    if (requestIdKey && requestIdKey !== key) {
-      sendSocketResult(socket, failureFor(request, 'REQUEST_ID_CONFLICT'));
-      return;
-    }
     const existing = ledger.get(key);
     const pending = pendingByKey.get(key);
     if (respondFromExistingAdmission({ socket, request, digest, existing, pending })) return;
@@ -231,14 +419,18 @@ export async function createNativeHostBridge(options) {
       idempotencyKey: request.idempotencyKey,
       textDigest: digest,
       state: 'accepted',
+      expectedRevisions: request.expectedRevisions,
     };
     if (!existing && !hasCapacityForEntry(ledger, acceptedEntry)) {
       sendSocketResult(socket, failureFor(request, 'LEDGER_CAPACITY_EXCEEDED'));
       return;
     }
+
     ledger.set(key, acceptedEntry);
     pendingByKey.set(key, {
-      responders: [{ socket, requestId: request.requestId }],
+      canonicalRequestId: request.requestId,
+      expectedRevisions: request.expectedRevisions,
+      responders: [{ socket, requestId: request.requestId, idempotentReplay: false }],
     });
     keyByRequestId.set(request.requestId, key);
     try {
@@ -248,6 +440,25 @@ export async function createNativeHostBridge(options) {
     } catch {
       await settle(key, failureFor(request, 'NATIVE_DISPATCH_FAILED'));
     }
+  }
+
+  async function handleEnvelope(socket, rawEnvelope) {
+    if (rawEnvelope?.request?.kind === 'refresh_conversation_titles') {
+      const result = secretsMatch(options.pairingSecret, rawEnvelope?.pairingSecret)
+        ? await acceptConversationTitles.refreshRequest(rawEnvelope.request, options.helperArtifactRevision)
+        : {
+            v: 1,
+            kind: 'conversation_titles_refreshed',
+            requestId: 'invalid-request',
+            status: 'unavailable',
+            errorCode: 'PAIRING_REJECTED',
+          };
+      sendSocketResult(socket, result);
+      return;
+    }
+    if (await handleHealthEnvelope(socket, rawEnvelope)) return;
+    if (await handleAssistantReturnEnvelope(socket, rawEnvelope)) return;
+    await handleAppendEnvelope(socket, rawEnvelope);
   }
 
   const server = createServer((socket) => {
@@ -280,15 +491,15 @@ export async function createNativeHostBridge(options) {
     });
   });
   try {
-    await new Promise((resolveListen, rejectListen) => {
-      server.once('error', rejectListen);
-      server.listen(options.socketPath, resolveListen);
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(options.socketPath, resolve);
     });
     await chmod(options.socketPath, 0o600);
   } catch (error) {
     if (server.listening) {
-      await new Promise((resolveClose, rejectClose) =>
-        server.close((closeError) => (closeError ? rejectClose(closeError) : resolveClose())),
+      await new Promise((resolve, reject) =>
+        server.close((closeError) => (closeError ? reject(closeError) : resolve())),
       );
     }
     await socketLease.release();
@@ -297,56 +508,100 @@ export async function createNativeHostBridge(options) {
 
   async function acceptProgress(message) {
     if (message?.kind !== 'append_progress') return false;
-    let progress;
-    try {
-      progress = parsePersonalChromeAppendProgress(message);
-    } catch {
-      return true;
-    }
-    const key = keyByRequestId.get(progress.requestId);
+    const key = keyByRequestId.get(message.requestId);
     const entry = key ? ledger.get(key) : undefined;
     const currentOrder = entry ? PROGRESS_ORDER.get(entry.state) : undefined;
-    const nextOrder = PROGRESS_ORDER.get(progress.status);
+    const nextOrder = PROGRESS_ORDER.get(message.status);
     if (
       entry &&
-      progress.idempotencyKey === entry.idempotencyKey &&
+      message.idempotencyKey === entry.idempotencyKey &&
       nextOrder !== undefined &&
       currentOrder !== undefined &&
       nextOrder >= currentOrder
     ) {
-      entry.state = progress.status;
+      entry.state = message.status;
+      if (message.status === 'submitted') {
+        entry.submitted = true;
+        entry.submittedAt = now().toISOString();
+      }
       await persist();
     }
     return true;
   }
 
   async function acceptTerminalResult(message) {
-    if (message?.kind !== 'append_result') return;
-    let result;
-    try {
-      result = parsePersonalChromeAppendResult(message);
-    } catch {
-      return;
-    }
-    const key = keyByRequestId.get(result.requestId);
+    if (message?.v !== APPEND_PROTOCOL_VERSION || message?.kind !== 'append_result') return;
+    const key = keyByRequestId.get(message.requestId);
     if (!key) return;
     const entry = ledger.get(key);
-    if (!entry || result.idempotencyKey !== entry.idempotencyKey) {
-      await settle(key, failureFor(result, 'INVALID_HOST_RECEIPT'));
+    const pending = pendingByKey.get(key);
+    if (!entry || !pending || message.idempotencyKey !== entry.idempotencyKey) {
+      await settle(key, failureFor(message, 'INVALID_HOST_RECEIPT'));
       return;
     }
-    if (result.status === 'host_observed') {
-      await settle(key, result);
+    const observedRevisions = safeRevisions(message.observedRevisions);
+    if (!revisionsMatch(pending.expectedRevisions, observedRevisions)) {
+      await settle(
+        key,
+        failureFor(message, 'STALE_ADAPTER', {
+          observedRevisions: observedRevisions ?? {
+            helper: options.helperArtifactRevision,
+            extension: '0.0.0',
+            pageAdapter: 'unobserved',
+          },
+        }),
+      );
       return;
     }
-    await settle(key, failureFor(result, safeErrorCode(result.errorCode) ? result.errorCode : 'NATIVE_DELIVERY_FAILED'));
+    if (message.status === 'host_observed') {
+      await settle(key, message);
+      return;
+    }
+    const errorCode = safeErrorCode(message.errorCode) ? message.errorCode : 'NATIVE_DELIVERY_FAILED';
+    await settle(
+      key,
+      failureFor(message, errorCode, {
+        observedRevisions,
+        diagnostic: message.diagnostic,
+      }),
+    );
+  }
+
+  function acceptHealthResult(message) {
+    const pending = pendingHealthByRequestId.get(message?.requestId);
+    if (!pending) return message?.kind === 'health_result';
+    clearTimeout(pending.timeout);
+    pendingHealthByRequestId.delete(message.requestId);
+    if (message?.v !== APPEND_PROTOCOL_VERSION || message?.kind !== 'health_result') {
+      sendSocketResult(
+        pending.socket,
+        healthResult(message.requestId, 'stale_adapter', 'STALE_EXTENSION_PROTOCOL', {
+          helper: pending.expectedRevisions.helper,
+          extension: '0.0.0',
+          pageAdapter: 'unobserved',
+        }),
+      );
+      return true;
+    }
+    const observedRevisions = safeRevisions(message.observedRevisions);
+    const exact = revisionsMatch(pending.expectedRevisions, observedRevisions);
+    const errorCode = projectedHealthError(message, exact);
+    sendSocketResult(pending.socket, {
+      v: APPEND_PROTOCOL_VERSION,
+      kind: 'health_result',
+      requestId: message.requestId,
+      status: projectedHealthStatus(message, exact),
+      ...(errorCode ? { errorCode } : {}),
+      ...(observedRevisions ? { observedRevisions } : {}),
+    });
+    return true;
   }
 
   async function acceptBindingRequest(message) {
     if (message?.kind !== 'bind_conversation') return false;
     let request;
     try {
-      request = parsePersonalChromeBindingRequest(message);
+      request = parseBindingRequest(message);
     } catch {
       await options.sendNative({
         v: 1,
@@ -360,14 +615,19 @@ export async function createNativeHostBridge(options) {
     const timestamp = now().toISOString();
     let record;
     try {
-      record = await bindingRecordForRequest(options.conversationBindingPath, request, timestamp, writeConversationBinding);
-    } catch {
+      record = await bindingRecordForRequest(
+        options.conversationBindingPath,
+        request,
+        timestamp,
+        authorizeConversation,
+      );
+    } catch (error) {
       await options.sendNative({
         v: 1,
         kind: 'binding_result',
         requestId: request.requestId,
         status: 'failed',
-        errorCode: 'BINDING_WRITE_FAILED',
+        errorCode: bindingWriteFailureCode(error),
       });
       return true;
     }
@@ -376,8 +636,8 @@ export async function createNativeHostBridge(options) {
       kind: 'binding_result',
       requestId: request.requestId,
       status: 'bound',
-      conversationId: record.conversationId,
-      boundAt: record.boundAt,
+      conversationId: record.authorization.conversationId,
+      boundAt: record.authorization.authorizedAt,
     });
     return true;
   }
@@ -386,7 +646,7 @@ export async function createNativeHostBridge(options) {
     if (message?.kind !== 'query_binding') return false;
     let request;
     try {
-      request = parsePersonalChromeBindingQuery(message);
+      request = parseBindingQuery(message);
     } catch {
       await options.sendNative({
         v: 1,
@@ -401,38 +661,61 @@ export async function createNativeHostBridge(options) {
     return true;
   }
 
+  async function acceptAssistantReturn(message) {
+    if (!['assistant_final_observed', 'assistant_observation_failed'].includes(message?.kind)) return false;
+    let status;
+    try {
+      status =
+        message.kind === 'assistant_final_observed'
+          ? await assistantReturnInbox.acceptObserved(message)
+          : await assistantReturnInbox.acceptObservationFailure(message);
+    } catch {
+      status = 'retryable';
+    }
+    await options.sendNative({
+      v: APPEND_PROTOCOL_VERSION,
+      kind:
+        message.kind === 'assistant_final_observed' ? 'assistant_final_result' : 'assistant_observation_failure_result',
+      requestId: safeToken(message?.requestId, 200) ? message.requestId : 'invalid-request',
+      status,
+    });
+    return true;
+  }
+
   return {
     socketPath: options.socketPath,
     ledgerPath: options.ledgerPath,
-    acceptNativeMessage(message) {
-      const input = nativeInputQueue.then(async () => {
-        if (await acceptBindingRequest(message)) return;
-        if (await acceptBindingQuery(message)) return;
-        if (await acceptProgress(message)) return;
-        await acceptTerminalResult(message);
-      });
-      nativeInputQueue = input.catch(() => undefined);
-      return input;
+    async acceptNativeMessage(message) {
+      if (await acceptConversationTitles(message)) return;
+      if (acceptHealthResult(message)) return;
+      if (await acceptBindingRequest(message)) return;
+      if (await acceptBindingQuery(message)) return;
+      if (await acceptAssistantReturn(message)) return;
+      if (await acceptProgress(message)) return;
+      await acceptTerminalResult(message);
     },
     waitForDispatchCount(count) {
       if (dispatchCount >= count) return Promise.resolve();
-      return new Promise((resolveWaiter) => dispatchWaiters.push({ count, resolve: resolveWaiter }));
+      return new Promise((resolve) => dispatchWaiters.push({ count, resolve }));
     },
     async stop() {
       if (stopped) return;
       stopped = true;
+      acceptConversationTitles.stop();
       try {
         for (const [key, pending] of pendingByKey) {
           const entry = ledger.get(key);
           for (const responder of pending.responders) {
-            sendSocketResult(
-              responder.socket,
-              failureFor({ requestId: responder.requestId, idempotencyKey: entry?.idempotencyKey }, 'HOST_STOPPED'),
-            );
+            sendSocketResult(responder.socket, {
+              ...failureFor({ requestId: responder.requestId, idempotencyKey: entry?.idempotencyKey }, 'HOST_STOPPED'),
+              idempotentReplay: responder.idempotentReplay,
+            });
           }
         }
         for (const socket of openSockets) socket.destroy();
-        await new Promise((resolveClose, rejectClose) => server.close((error) => (error ? rejectClose(error) : resolveClose())));
+        for (const pending of pendingHealthByRequestId.values()) clearTimeout(pending.timeout);
+        pendingHealthByRequestId.clear();
+        await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
         await persistenceQueue;
       } finally {
         await socketLease.release();
@@ -446,27 +729,11 @@ function pairingRecordArgument(argv) {
   return index === -1 ? undefined : argv[index + 1];
 }
 
-function requireAbsoluteHostPath(value, label) {
-  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || !isAbsolute(value)) {
-    throw new Error(`${label} must be absolute`);
-  }
-  return value;
-}
-
-export function assertSupportedPlatform(platform = process.platform) {
-  if (platform === 'win32') throw new Error('Windows is unsupported for the Personal Chrome Native Messaging helper');
-  if (platform !== 'darwin' && platform !== 'linux') {
-    throw new Error(`unsupported platform for the Personal Chrome Native Messaging helper: ${platform}`);
-  }
-}
-
 export async function resolveNativeHostConfiguration({
   pairingRecordPath,
   env = process.env,
   argv = process.argv.slice(2),
-  platform = process.platform,
 } = {}) {
-  assertSupportedPlatform(platform);
   const explicitRecordPath = pairingRecordPath ?? pairingRecordArgument(argv);
   if (explicitRecordPath) {
     const record = await readPersonalChromePairingRecord(explicitRecordPath);
@@ -475,33 +742,38 @@ export async function resolveNativeHostConfiguration({
       ledgerPath: record.ledgerPath,
       conversationBindingPath: resolve(dirname(record.ledgerPath), 'conversation-binding.json'),
       pairingSecret: record.pairingSecret,
+      helperArtifactRevision: record.artifactDigest,
     };
   }
   const socketPath = env.CAT_CAFE_PERSONAL_CHROME_SOCKET;
   const ledgerPath = env.CAT_CAFE_PERSONAL_CHROME_LEDGER;
   const pairingSecret = env.CAT_CAFE_PERSONAL_CHROME_PAIRING_SECRET;
-  if (!socketPath || !ledgerPath || !pairingSecret) {
+  const helperArtifactRevision = env.CAT_CAFE_PERSONAL_CHROME_HELPER_ARTIFACT_REVISION;
+  if (!socketPath || !ledgerPath || !pairingSecret || !helperArtifactRevision) {
     throw new Error('required personal Chrome host configuration is missing');
   }
-  const canonicalSocketPath = requireAbsoluteHostPath(socketPath, 'socketPath');
-  const canonicalLedgerPath = requireAbsoluteHostPath(ledgerPath, 'ledgerPath');
   return {
-    socketPath: canonicalSocketPath,
-    ledgerPath: canonicalLedgerPath,
-    conversationBindingPath: resolve(dirname(canonicalLedgerPath), 'conversation-binding.json'),
+    socketPath,
+    ledgerPath,
+    conversationBindingPath: resolve(dirname(ledgerPath), 'conversation-binding.json'),
     pairingSecret,
+    helperArtifactRevision,
   };
 }
 
 export async function runNativeHost(options = {}) {
-  const { socketPath, ledgerPath, conversationBindingPath, pairingSecret } = await resolveNativeHostConfiguration(options);
+  const { socketPath, ledgerPath, conversationBindingPath, pairingSecret, helperArtifactRevision } =
+    await resolveNativeHostConfiguration(options);
   const decoder = new NativeMessageDecoder();
   const bridge = await createNativeHostBridge({
     socketPath,
     ledgerPath,
     conversationBindingPath,
     pairingSecret,
-    sendNative: (message) => process.stdout.write(encodeNativeMessage(message)),
+    helperArtifactRevision,
+    sendNative: (message) => {
+      process.stdout.write(encodeNativeMessage(message));
+    },
   });
   let bridgeStop;
   const stopBridge = () => {

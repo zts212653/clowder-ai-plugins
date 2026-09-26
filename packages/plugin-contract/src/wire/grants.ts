@@ -25,10 +25,10 @@ import {
 
 /**
  * Maximum number of items in effectiveGrants.
- * Derived from the signed 17-value M0 Capability enum — a plugin cannot hold
+ * Derived from the signed Capability enum — a plugin cannot hold
  * more capabilities than exist.
  */
-export const MAX_GRANT_ITEMS = 17 as const;
+export const MAX_GRANT_ITEMS = 23 as const;
 
 // ---------------------------------------------------------------------------
 // GrantSnapshot
@@ -48,7 +48,7 @@ export interface GrantSnapshot {
    */
   readonly grantRevision: number;
   /**
-   * Unique Capability[], 0..17 items.
+   * Unique Capability[], 0..20 items.
    * Duplicates are a protocol violation (Host guarantees uniqueness).
    * Empty array is valid (plugin has no capabilities).
    */
@@ -71,7 +71,7 @@ export const VALID_CAPABILITIES: ReadonlySet<string> = new Set<string>([
 
 /**
  * Validate that effectiveGrants:
- *   1. Does not exceed MAX_GRANT_ITEMS (17).
+ *   1. Does not exceed MAX_GRANT_ITEMS (23).
  *   2. Contains no duplicates.
  *   3. Contains only valid Capability enum members (closed-enum check).
  *

@@ -21,7 +21,7 @@ export type PluginIcon = 'github' | PackageIcon;
 export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
 export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
-export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend';
+export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'media.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend' | 'data.directory' | 'cloud.conversation.host';
 export type DataDeclaration = {
   readonly name: string;
   readonly dataClass: 'cache';
@@ -58,7 +58,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -68,54 +68,94 @@ export type ConfigurationOption = {
   readonly hint?: string;
   readonly docsUrl?: string;
 };
+export type RequiredWhen = {
+  readonly key: string;
+  readonly value: string | number | boolean | readonly (string | number | boolean)[];
+};
 export type ConfigurationField = {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'string';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: string;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'secret';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: never;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'select';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: string;
   readonly options: readonly ConfigurationOption[];
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'boolean';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: boolean;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'number';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: number;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'url';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: string;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'operation';
+  readonly required: boolean;
+  readonly hidden?: never;
+  readonly requiredWhen?: never;
+  readonly default?: never;
+  readonly options?: never;
+  readonly target?: readonly string[];
+  readonly actions: readonly ActionDef[];
 };
 export type EnvironmentBinding = {
   readonly source: 'config';
@@ -132,6 +172,52 @@ export type ContributionRuntime = {
 export type CallbackAction = {
   readonly method: string;
   readonly params?: Readonly<Record<string, unknown>>;
+};
+export type ActionDef = {
+  readonly id: string;
+  readonly label: string;
+  readonly render: 'button' | 'polling' | 'status' | 'row';
+  readonly confirm?: string;
+  readonly action: CallbackAction;
+  readonly resultRender?: string;
+  readonly next?: string;
+  readonly rollback?: string;
+  readonly timeout?: number;
+};
+export type OperationRows = {
+  readonly rows: readonly OperationRow[];
+  readonly empty?: string;
+};
+export type OperationRow = {
+  readonly key: string;
+  readonly label: string;
+  readonly detail?: string;
+  readonly actions?: readonly OperationRowAction[];
+};
+export type OperationRowAction = {
+  readonly action: string;
+  readonly label?: string;
+  readonly input: Readonly<Record<string, string | number | boolean>>;
+  readonly confirm?: string;
+};
+export type OperationActionResult = {
+  readonly render: string;
+  readonly data: unknown;
+  readonly label?: string;
+  readonly targetValues?: Readonly<Record<string, string>>;
+  readonly advance?: boolean;
+  readonly activate?: boolean;
+};
+export type PluginTestDeclaration = {
+  readonly action: CallbackAction;
+};
+export type PluginTestResult = {
+  readonly ok: boolean;
+  readonly message?: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+};
+export type SetupStep = {
+  readonly text: string;
 };
 export type IdentityContribution = {
   readonly type: 'identity';
@@ -194,6 +280,40 @@ export type MessageSubscriptionContribution = {
   readonly binding: string;
   readonly filter?: Readonly<Record<string, unknown>>;
   readonly action: CallbackAction;
+  readonly lifecycleAction?: CallbackAction;
+  readonly presentation?: 'v1' | 'v2';
+};
+export type MediaSourceContribution = {
+  readonly type: 'media-source';
+  readonly id: string;
+  readonly binding: string;
+  readonly readAction: CallbackAction;
+  readonly settleAction: CallbackAction;
+};
+export type MediaSourceReadInput = {
+  readonly requestId: string;
+  readonly reference: string;
+  readonly offset: number;
+  readonly limit: number;
+};
+export type MediaSourceReadChunkResult = {
+  readonly kind: 'chunk';
+  readonly requestId: string;
+  readonly offset: number;
+  readonly dataBase64: string;
+  readonly nextOffset?: number;
+  readonly done: boolean;
+};
+export type MediaSourceReadRejectedResult = {
+  readonly kind: 'rejected';
+  readonly requestId: string;
+  readonly code: 'MEDIA_SOURCE_UNAVAILABLE';
+};
+export type MediaSourceReadResult = MediaSourceReadChunkResult | MediaSourceReadRejectedResult;
+export type MediaSourceSettleInput = {
+  readonly requestId: string;
+  readonly reference: string;
+  readonly outcome: 'imported' | 'unavailable';
 };
 export type ServiceContribution = {
   readonly type: 'service';
@@ -209,6 +329,67 @@ export type ConnectorContribution = {
   readonly inboundMethod: string;
   readonly outboundMethod: string;
 };
+export type CloudConversationHostMethod = {
+  readonly method: string;
+};
+export type CloudConversationHostContribution = {
+  readonly type: 'cloud-conversation-host';
+  readonly id: string;
+  readonly provider: 'chatgpt';
+  readonly appendMessage: CloudConversationHostMethod;
+  readonly assistantReturns: {
+    readonly list: CloudConversationHostMethod;
+    readonly ack: CloudConversationHostMethod;
+  };
+};
+export type CloudConversationAppendMessageInput = {
+  readonly conversationId: string;
+  readonly text: string;
+  readonly idempotencyKey: string;
+};
+export type CloudConversationAppendMessageAppendedResult = {
+  readonly status: 'appended';
+  readonly providerMessageId: string;
+  readonly idempotentReplay?: boolean;
+};
+export type CloudConversationAppendMessageFailedResult = {
+  readonly status: 'failed';
+  readonly errorCode: string;
+  readonly diagnostic?: unknown;
+  readonly idempotentReplay?: boolean;
+};
+export type CloudConversationAppendMessageResult = CloudConversationAppendMessageAppendedResult | CloudConversationAppendMessageFailedResult;
+export type CloudConversationReturnCursor = {
+  readonly conversationId: string;
+  readonly sourceMessageId: string;
+  readonly assistantMessageId: string;
+};
+export type CloudConversationAssistantReturn = {
+  readonly conversationId: string;
+  readonly sourceMessageId: string;
+  readonly assistantMessageId: string;
+  readonly content: string;
+};
+export type CloudConversationListInput = {
+  readonly after?: CloudConversationReturnCursor;
+};
+export type CloudConversationListResult = {
+  readonly returns: readonly CloudConversationAssistantReturn[];
+};
+export type CloudConversationAckInput = {
+  readonly conversationId: string;
+  readonly sourceMessageId: string;
+  readonly assistantMessageId: string;
+};
+export type CloudConversationAcknowledgedResult = {
+  readonly status: 'acknowledged';
+};
+export type CloudConversationAckFailedResult = {
+  readonly status: 'failed';
+  readonly errorCode: string;
+  readonly diagnostic?: unknown;
+};
+export type CloudConversationAckResult = CloudConversationAcknowledgedResult | CloudConversationAckFailedResult;
 export type UiWhenClause = {
   readonly featureEnabled?: boolean;
   readonly requiresCapabilities?: readonly Capability[];
@@ -284,7 +465,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
@@ -301,6 +482,7 @@ export type ExternalRuntimeDeclaration = {
 export type BuiltinRuntimeDeclaration = {
   readonly transport: 'builtin';
   readonly entrypoint?: string;
+  readonly dataDirectory?: string;
 };
 export type RuntimeDeclaration = ExternalRuntimeDeclaration | BuiltinRuntimeDeclaration;
 
@@ -315,7 +497,9 @@ export type PluginManifest = {
   readonly contributions?: readonly StaticContribution[];
   readonly features: readonly PluginFeature[];
   readonly data?: readonly DataDeclaration[];
-  readonly runtime: RuntimeDeclaration;
+  readonly runtime?: RuntimeDeclaration;
+  readonly test?: PluginTestDeclaration;
+  readonly steps?: readonly SetupStep[];
   readonly signals?: SignalContribution;
 };
 
@@ -429,12 +613,34 @@ export type DraftProvenance = {
   readonly origin?: DraftOrigin;
   readonly epistemicStatus: EpistemicStatus;
 };
-export type ElementKind = 'text' | 'media_ref' | 'rich_block';
+export type MediaType = 'image' | 'file' | 'audio' | 'video';
+export type ElementKind = 'text' | 'media_ref' | 'rich_block' | 'media_unavailable' | 'media_warning';
 export type TextElementPayload = {
   readonly text: string;
 };
-export type MediaRefElementPayload = Readonly<Record<string, unknown>>;
-export type RichBlockElementPayload = Readonly<Record<string, unknown>>;
+export type MediaRefElementPayload = {
+  readonly type: MediaType;
+  readonly reference: string;
+  readonly sourceId?: string;
+  readonly fileName?: string;
+  readonly [key: string]: unknown;
+};
+export type RichBlockElementPayload = {
+  readonly id: string;
+  readonly kind: string;
+  readonly v: 1;
+  readonly [key: string]: unknown;
+};
+export type MediaUnavailableElementPayload = {
+  readonly type: MediaType;
+  readonly fileName?: string;
+  readonly reason: 'source_expired' | 'timeout' | 'unavailable';
+};
+export type MediaWarningElementPayload = {
+  readonly mediaElementId: string;
+  readonly stage: 'transcription' | 'preview';
+  readonly reason: 'timeout' | 'processing_failed';
+};
 export type TextMessageElement = {
   readonly elementId: string;
   readonly kind: 'text';
@@ -449,6 +655,12 @@ export type MediaRefMessageElement = {
   readonly derivedFromElementId?: string;
   readonly epistemicStatus?: EpistemicStatus;
 };
+export type PmrMediaRefElementMatch = {
+  readonly kind: 'media_ref';
+  readonly payload: {
+    readonly reference: string;
+  };
+};
 export type RichBlockMessageElement = {
   readonly elementId: string;
   readonly kind: 'rich_block';
@@ -456,7 +668,21 @@ export type RichBlockMessageElement = {
   readonly derivedFromElementId?: string;
   readonly epistemicStatus?: EpistemicStatus;
 };
-export type MessageElement = TextMessageElement | MediaRefMessageElement | RichBlockMessageElement;
+export type MediaUnavailableMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'media_unavailable';
+  readonly payload: MediaUnavailableElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type MediaWarningMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'media_warning';
+  readonly payload: MediaWarningElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type MessageElement = TextMessageElement | MediaRefMessageElement | RichBlockMessageElement | MediaUnavailableMessageElement | MediaWarningMessageElement;
 export type MessagePayload = {
   readonly provenance: MessageProvenance;
   readonly elements: readonly MessageElement[];
@@ -490,20 +716,22 @@ export type SystemAudience = {
 };
 export type DraftAudience = PublicAudience | WhisperAudience;
 export type CanonicalAudience = PublicAudience | WhisperAudience | SystemAudience;
+export type MessageId = string;
 export type MessageDraft = {
   readonly address: MessageAddress;
   readonly draftAudience?: DraftAudience;
   readonly idempotencyKey: string;
   readonly sourceEventId?: string;
-  readonly replyTo?: string;
+  readonly replyTo?: MessageId;
   readonly payload: DraftPayload;
 };
 export type OccurredAt = string | string;
+export type ThreadId = string;
 export type MessageEnvelope = {
-  readonly messageId: string;
+  readonly messageId: MessageId;
   readonly revision: number;
-  readonly threadId: string;
-  readonly replyTo?: string;
+  readonly threadId: ThreadId;
+  readonly replyTo?: MessageId;
   readonly actor: ActorRef;
   readonly audience: CanonicalAudience;
   readonly occurredAt: OccurredAt;
@@ -519,8 +747,8 @@ export type MessageElementsAppendEvent = {
   readonly eventId: string;
   readonly sequence: number;
   readonly type: 'message.elements.append';
-  readonly messageId: string;
-  readonly threadId: string;
+  readonly messageId: MessageId;
+  readonly threadId: ThreadId;
   readonly operationId: string;
   readonly baseRevision?: number;
   readonly revision: number;
@@ -528,19 +756,20 @@ export type MessageElementsAppendEvent = {
 };
 export type MessageOutputEvent = MessagePublishEvent | MessageElementsAppendEvent;
 export type SendReceipt = {
-  readonly messageId: string;
-  readonly threadId: string;
+  readonly messageId: MessageId;
+  readonly threadId: ThreadId;
   readonly revision: number;
   readonly messageHandle: MessageHandle;
   readonly publishSequence?: number;
+  readonly pendingPublication?: true;
 };
 export type AppendReceipt = {
-  readonly messageId: string;
+  readonly messageId: MessageId;
   readonly revision: number;
   readonly appendSequence?: number;
   readonly appliedElementIds: readonly string[];
 };
-export type MessagingErrorCode = 'VALIDATION' | 'PERMISSION' | 'NOT_FOUND' | 'CONFLICT' | 'RETRYABLE_INFLIGHT' | 'STALE_CURSOR';
+export type MessagingErrorCode = 'VALIDATION' | 'PERMISSION' | 'NOT_FOUND' | 'CONFLICT' | 'RETRYABLE_INFLIGHT' | 'STALE_CURSOR' | 'MEDIA_ACCESS_DENIED' | 'MESSAGE_NOT_PUBLISHED';
 export type MessageHandle = {
   readonly kind: 'message';
   readonly token: string;
@@ -571,6 +800,67 @@ export type SubscriptionReadResponse = SubscriptionNormalResponse | Subscription
 export type SnapshotResponse = {
   readonly envelopes: readonly MessageEnvelope[];
   readonly resumeSequence: number;
+};
+export type FrontendDisplayUrl = string;
+export type DeliveryPresentationActor = {
+  readonly displayName: string;
+  readonly emoji: string;
+};
+export type DeliveryPresentationThread = {
+  readonly shortId: string;
+  readonly title?: string;
+  readonly featId?: string;
+};
+export type DeliveryPresentationContext = {
+  readonly actor: DeliveryPresentationActor;
+  readonly thread: DeliveryPresentationThread;
+  readonly deepLinkUrl?: FrontendDisplayUrl;
+};
+export type MediaReadInput = {
+  readonly reference: string;
+  readonly offset: number;
+  readonly limit: number;
+};
+export type MediaReadResult = {
+  readonly offset: number;
+  readonly dataBase64: string;
+  readonly nextOffset?: number;
+  readonly done: boolean;
+};
+export type LifecycleStartedEvent = {
+  readonly lifecycleId: string;
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'started';
+  readonly presentation: DeliveryPresentationContext;
+  readonly placeholderLine?: string;
+  readonly replyTo?: MessageId;
+};
+export type LifecycleCatchingUpEvent = {
+  readonly lifecycleId: string;
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'catching_up';
+};
+export type LifecycleBlockedEvent = {
+  readonly lifecycleId: string;
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'blocked';
+  readonly reason: string;
+  readonly recoveryUrl?: FrontendDisplayUrl;
+};
+export type LifecycleSettledEvent = {
+  readonly lifecycleId: string;
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'settled';
+  readonly chainDone: boolean;
+  readonly outcome: 'completed' | 'failed' | 'cancelled';
+};
+export type HostMessagingLifecycleInput = LifecycleStartedEvent | LifecycleCatchingUpEvent | LifecycleBlockedEvent | LifecycleSettledEvent;
+export type HostMessagingLifecycleResult = {
+  readonly deliveryId: string;
 };
 export type M0CSubscribeInput = {
   readonly handle: string;
@@ -621,12 +911,76 @@ export type M0CSnapshotFinalResult = {
 export type M0CSnapshotResult = M0CSnapshotIntermediateResult | M0CSnapshotFinalResult;
 export type M0CDeliverInput = {
   readonly deliveryId: string;
+  readonly lifecycleId?: string;
   readonly threadHandle: ThreadHandleAddress;
   readonly envelope: MessageEnvelope;
+  readonly presentation?: DeliveryPresentationContext;
 };
 export type M0CDeliverResult = {
   readonly deliveryId: string;
 };
+
+export const ACTOR_KIND_VALUES = ['user', 'cat', 'plugin', 'device', 'system'] as const;
+export const ACTOR_REF_KEYS = ['kind', 'id'] as const;
+export const EPISTEMIC_STATUS_VALUES = ['observation', 'user_intent', 'inference'] as const;
+export const EXTERNAL_SOURCE_ADDRESS_KEYS = ['connectorId', 'chatId', 'messageId'] as const;
+export const PLUGIN_ORIGIN_KEYS = ['kind', 'instanceId'] as const;
+export const EXTERNAL_ORIGIN_KEYS = ['kind', 'connectorId', 'sourceAddress'] as const;
+export const HOST_ORIGIN_KEYS = ['kind'] as const;
+export const MESSAGE_PROVENANCE_KEYS = ['origin', 'epistemicStatus'] as const;
+export const DRAFT_PROVENANCE_KEYS = ['origin', 'epistemicStatus'] as const;
+export const MEDIA_TYPE_VALUES = ['image', 'file', 'audio', 'video'] as const;
+export const ELEMENT_KIND_VALUES = ['text', 'media_ref', 'rich_block', 'media_unavailable', 'media_warning'] as const;
+export const TEXT_ELEMENT_PAYLOAD_KEYS = ['text'] as const;
+export const MEDIA_UNAVAILABLE_ELEMENT_PAYLOAD_KEYS = ['type', 'fileName', 'reason'] as const;
+export const MEDIA_WARNING_ELEMENT_PAYLOAD_KEYS = ['mediaElementId', 'stage', 'reason'] as const;
+export const TEXT_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MEDIA_REF_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const RICH_BLOCK_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MEDIA_UNAVAILABLE_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MEDIA_WARNING_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MESSAGE_PAYLOAD_KEYS = ['provenance', 'elements', 'correlationId', 'causationId'] as const;
+export const DRAFT_PAYLOAD_KEYS = ['provenance', 'elements', 'correlationId', 'causationId'] as const;
+export const THREAD_HANDLE_ADDRESS_KEYS = ['kind', 'handle'] as const;
+export const CONNECTOR_BINDING_ADDRESS_KEYS = ['kind', 'handle'] as const;
+export const PUBLIC_AUDIENCE_KEYS = ['kind'] as const;
+export const WHISPER_AUDIENCE_KEYS = ['kind', 'targets'] as const;
+export const SYSTEM_AUDIENCE_KEYS = ['kind'] as const;
+export const MESSAGE_DRAFT_KEYS = ['address', 'draftAudience', 'idempotencyKey', 'sourceEventId', 'replyTo', 'payload'] as const;
+export const MESSAGE_ENVELOPE_KEYS = ['messageId', 'revision', 'threadId', 'replyTo', 'actor', 'audience', 'occurredAt', 'payload'] as const;
+export const MESSAGE_PUBLISH_EVENT_KEYS = ['eventId', 'sequence', 'type', 'envelope'] as const;
+export const MESSAGE_ELEMENTS_APPEND_EVENT_KEYS = ['eventId', 'sequence', 'type', 'messageId', 'threadId', 'operationId', 'baseRevision', 'revision', 'elements'] as const;
+export const SEND_RECEIPT_KEYS = ['messageId', 'threadId', 'revision', 'messageHandle', 'publishSequence', 'pendingPublication'] as const;
+export const APPEND_RECEIPT_KEYS = ['messageId', 'revision', 'appendSequence', 'appliedElementIds'] as const;
+export const MESSAGING_ERROR_CODE_VALUES = ['VALIDATION', 'PERMISSION', 'NOT_FOUND', 'CONFLICT', 'RETRYABLE_INFLIGHT', 'STALE_CURSOR', 'MEDIA_ACCESS_DENIED', 'MESSAGE_NOT_PUBLISHED'] as const;
+export const MESSAGE_HANDLE_KEYS = ['kind', 'token'] as const;
+export const APPEND_ELEMENTS_REQUEST_KEYS = ['handle', 'operationId', 'baseRevision', 'elements'] as const;
+export const SUBSCRIPTION_NORMAL_RESPONSE_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const SUBSCRIPTION_EMPTY_RESPONSE_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const SUBSCRIPTION_STALE_RESPONSE_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const SNAPSHOT_RESPONSE_KEYS = ['envelopes', 'resumeSequence'] as const;
+export const DELIVERY_PRESENTATION_ACTOR_KEYS = ['displayName', 'emoji'] as const;
+export const DELIVERY_PRESENTATION_THREAD_KEYS = ['shortId', 'title', 'featId'] as const;
+export const DELIVERY_PRESENTATION_CONTEXT_KEYS = ['actor', 'thread', 'deepLinkUrl'] as const;
+export const MEDIA_READ_INPUT_KEYS = ['reference', 'offset', 'limit'] as const;
+export const MEDIA_READ_RESULT_KEYS = ['offset', 'dataBase64', 'nextOffset', 'done'] as const;
+export const LIFECYCLE_STARTED_EVENT_KEYS = ['lifecycleId', 'deliveryId', 'threadId', 'state', 'presentation', 'placeholderLine', 'replyTo'] as const;
+export const LIFECYCLE_CATCHING_UP_EVENT_KEYS = ['lifecycleId', 'deliveryId', 'threadId', 'state'] as const;
+export const LIFECYCLE_BLOCKED_EVENT_KEYS = ['lifecycleId', 'deliveryId', 'threadId', 'state', 'reason', 'recoveryUrl'] as const;
+export const LIFECYCLE_SETTLED_EVENT_KEYS = ['lifecycleId', 'deliveryId', 'threadId', 'state', 'chainDone', 'outcome'] as const;
+export const HOST_MESSAGING_LIFECYCLE_RESULT_KEYS = ['deliveryId'] as const;
+export const M0CSUBSCRIBE_INPUT_KEYS = ['handle'] as const;
+export const M0CSUBSCRIBE_RESULT_KEYS = ['subscriptionId'] as const;
+export const M0CREAD_INPUT_KEYS = ['subscriptionId', 'limit'] as const;
+export const M0CREAD_NORMAL_RESULT_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const M0CREAD_EMPTY_RESULT_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const M0CREAD_STALE_RESULT_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const M0CACK_INPUT_KEYS = ['subscriptionId', 'ackToken'] as const;
+export const M0CSNAPSHOT_INPUT_KEYS = ['subscriptionId', 'maxItems', 'pageToken'] as const;
+export const M0CSNAPSHOT_INTERMEDIATE_RESULT_KEYS = ['items', 'nextPageToken', 'snapshotAckToken'] as const;
+export const M0CSNAPSHOT_FINAL_RESULT_KEYS = ['items', 'nextPageToken', 'snapshotAckToken'] as const;
+export const M0CDELIVER_INPUT_KEYS = ['deliveryId', 'lifecycleId', 'threadHandle', 'envelope', 'presentation'] as const;
+export const M0CDELIVER_RESULT_KEYS = ['deliveryId'] as const;
 
 export type PhysicalLimbIdentifier = string;
 export type PhysicalLimbGrant = 'limb.action.motion' | 'limb.action.display' | 'limb.action.light' | 'limb.action.speaker' | 'limb.observe.touch' | 'limb.sensor.microphone' | 'limb.sensor.camera';
@@ -1124,7 +1478,7 @@ export type PermissionMatrixEntry = {
   readonly firstPartyPreset: boolean;
 };
 export type PermissionMatrixInput = {
-  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
+  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;
@@ -1225,9 +1579,9 @@ export type BehaviorFixture = {
 
 export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugin.state.set'] as const;
 export type L0Capability = (typeof L0_CAPABILITIES)[number];
-export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'events.publish', 'messaging.appendElements'] as const;
+export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'events.publish', 'messaging.appendElements', 'media.read'] as const;
 export type L1Capability = (typeof L1_CAPABILITIES)[number];
-export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend'] as const;
+export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend', 'data.directory', 'cloud.conversation.host'] as const;
 export type L2Capability = (typeof L2_CAPABILITIES)[number];
 export const CAPABILITY_TABLE = {
   L0: L0_CAPABILITIES,

@@ -1,0 +1,63 @@
+pluginId: official.connector.dingtalk
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: DingTalk Connector
+description:
+  default: Receive and send DingTalk enterprise messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送钉钉企业消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: appKey
+    label: App Key
+    kind: string
+    required: true
+  - key: appSecret
+    label: App Secret
+    kind: secret
+    required: true
+contributions:
+  - type: identity
+    id: dingtalk-bot
+    displayName: DingTalk bot
+  - type: message-subscription
+    id: dingtalk
+    binding: dingtalk-bot
+    action:
+      method: dingtalk.outbound
+    lifecycleAction:
+      method: host.messaging.lifecycle
+    presentation: v1
+  - type: media-source
+    id: dingtalk-media
+    binding: dingtalk-bot
+    readAction:
+      method: dingtalk.media-source.read
+    settleAction:
+      method: dingtalk.media-source.settle
+features:
+  - id: dingtalk-messaging
+    name: DingTalk messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: dingtalk-bot
+      - type: message-subscription
+        id: dingtalk
+      - type: media-source
+        id: dingtalk-media
+    capabilities:
+      - plugin.config.read
+      - plugin.state.get
+      - plugin.state.set
+      - media.read
+      - message.event.subscribe
+      - messaging.send
+      - secret.read
+      - thread.listMetadata
+      - thread.write
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

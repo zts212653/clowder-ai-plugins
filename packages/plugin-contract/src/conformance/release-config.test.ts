@@ -18,6 +18,19 @@ interface BehaviorSuite {
   };
 }
 
+interface PluginCatalog {
+  plugins: Array<{
+    pluginId: string;
+    versions: Array<{
+      artifact: {
+        provenance: {
+          sourceDirectory: string;
+        };
+      };
+    }>;
+  }>;
+}
+
 const contractPackage = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 ) as ContractPackage;
@@ -26,6 +39,31 @@ const releaseWorkflow = readFileSync(
   new URL('../../../../.github/workflows/contract-ci.yml', import.meta.url),
   'utf8',
 );
+
+const localGate = readFileSync(new URL('../../../../scripts/ci-gate.mjs', import.meta.url), 'utf8');
+
+const pluginCatalog = JSON.parse(
+  readFileSync(new URL('../../../../catalog/catalog.json', import.meta.url), 'utf8'),
+) as PluginCatalog;
+
+function publishedPackageDirectories(workflow: string): string[] {
+  return [...workflow.matchAll(/^\s+package-directory:\s+(packages\/[a-z0-9-]+)$/gmu)]
+    .map((match) => match[1]);
+}
+
+function catalogPackageDirectories(catalog: PluginCatalog): string[] {
+  return [...new Set(catalog.plugins.map((plugin) => {
+    const sourceDirectories = new Set(
+      plugin.versions.map((version) => version.artifact.provenance.sourceDirectory),
+    );
+    assert.equal(
+      sourceDirectories.size,
+      1,
+      `${plugin.pluginId} catalog generations must keep one package source directory`,
+    );
+    return [...sourceDirectories][0];
+  }))];
+}
 
 const prereleasePublishActionUrl = new URL(
   '../../../../.github/actions/publish-prerelease/action.yml',
@@ -42,6 +80,11 @@ const publishArtifactPackerUrl = new URL(
 const publishArtifactPacker = existsSync(publishArtifactPackerUrl)
   ? readFileSync(publishArtifactPackerUrl, 'utf8')
   : '';
+
+const exactHeadPackEvidence = readFileSync(
+  new URL('../../../../scripts/capture-exact-head-pack-evidence.mjs', import.meta.url),
+  'utf8',
+);
 
 const artifactToolchainVerifierUrl = new URL(
   '../../scripts/verify-artifact-toolchain.mjs',
@@ -142,8 +185,12 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
     workflow.match(
       /^        run: node packages\/plugin-contract\/scripts\/verify-artifact-toolchain\.mjs$/gm,
     )?.length,
-    2,
-    'both jobs must verify Node, npm, and zlib before producing package bytes',
+    1,
+    'publication must verify Node, npm, and zlib before producing package bytes',
+  );
+  assert.ok(
+    localGate.indexOf('node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs') >= 0,
+    'the local gate must verify Node, npm, and zlib before producing package bytes',
   );
   assert.equal(
     existsSync(artifactToolchainVerifierUrl),
@@ -156,9 +203,9 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   assert.match(verifier, /zlib: process\.versions\.zlib/);
   assert.match(verifier, /actual\[name\] !== expected\[name\]/);
   assert.ok(
-    validateJob.indexOf('Verify artifact toolchain') <
-      validateJob.indexOf('- name: Build'),
-    'validation must verify the toolchain before building package bytes',
+    validateJob.indexOf('- name: Local gate (toolchain to pack:gate)') <
+      validateJob.indexOf('- name: Capture exact-head pack evidence'),
+    'validation must run the local gate before capturing pack evidence',
   );
   assert.ok(
     publishJob.indexOf('Verify artifact toolchain') <
@@ -168,7 +215,7 @@ function assertAuthorizedTokenPublicationBaseline(workflow: string): void {
   assert.match(workflow, /^      id-token: write$/m);
   assert.equal(
     workflow.match(/npm-token: \$\{\{ secrets\.NPM_TOKEN \}\}/g)?.length,
-    6,
+    publishedPackageDirectories(workflow).length,
     'each public package action must receive the operator-authorized npm token',
   );
   assert.equal(
@@ -332,8 +379,8 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('cat-first desktop bridge publishes beta.18 while the broker protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.18');
+test('conditional configuration declarations publish beta.24 while the broker protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.24');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
@@ -387,11 +434,24 @@ test('main publishes the public dependency chain through one hardened action', (
   const orderedPackages = [
     'packages/plugin-contract',
     'packages/plugin-sdk',
+    'packages/enterprise-workflow',
+    'packages/connector-telegram',
+    'packages/connector-dingtalk',
+    'packages/connector-feishu',
+    'packages/connector-wecom-agent',
+    'packages/connector-wecom-bot',
+    'packages/connector-weixin',
+    'packages/connector-xiaoyi',
     'packages/companion',
     'packages/video-analysis',
+    'packages/video-generation',
+    'packages/weixin-mp',
+    'packages/wechat-visible-reader',
     'packages/genoffice-docx',
     'packages/feishu-meeting-intake',
   ];
+  const publishedPackages = publishedPackageDirectories(releaseWorkflow);
+  const catalogPackages = catalogPackageDirectories(pluginCatalog);
   let previousIndex = -1;
 
   for (const packageDirectory of orderedPackages) {
@@ -402,9 +462,20 @@ test('main publishes the public dependency chain through one hardened action', (
   }
   assert.equal(
     releaseWorkflow.match(/uses: \.\/\.github\/actions\/publish-prerelease/g)?.length,
-    orderedPackages.length,
+    publishedPackages.length,
     'all public packages must use the same hardened publication action',
   );
+  assert.deepEqual(
+    publishedPackages,
+    orderedPackages,
+    'the dependency-order declaration must cover the exact publication list',
+  );
+  for (const packageDirectory of catalogPackages) {
+    assert.ok(
+      publishedPackages.includes(packageDirectory),
+      `catalog artifact ${packageDirectory} is missing from the publication workflow`,
+    );
+  }
   assert.match(
     releaseWorkflow,
     /^      - '\.github\/actions\/publish-prerelease\/\*\*'$/m,
@@ -467,6 +538,14 @@ test('required CI binds pack evidence to the exact checked-out head', () => {
     releaseWorkflow,
     'Upload exact-head pack evidence',
   );
+  const sdkCaptureStep = namedWorkflowStep(
+    releaseWorkflow,
+    'Capture exact-head SDK pack evidence',
+  );
+  const sdkUploadStep = namedWorkflowStep(
+    releaseWorkflow,
+    'Upload exact-head SDK pack evidence',
+  );
 
   assert.ok(validateJob, 'validate job must be active');
   assert.match(
@@ -477,17 +556,18 @@ test('required CI binds pack evidence to the exact checked-out head', () => {
     captureStep,
     /^          EXPECTED_HEAD_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
   );
-  assert.match(captureStep, /ACTUAL_HEAD_SHA=\$\(git rev-parse HEAD\)/);
-  assert.match(captureStep, /"\$ACTUAL_HEAD_SHA" != "\$EXPECTED_HEAD_SHA"/);
-  assert.match(captureStep, /git status --porcelain --untracked-files=no/);
+  assert.match(captureStep, /scripts\/capture-exact-head-pack-evidence\.mjs packages\/plugin-contract/);
+  assert.match(sdkCaptureStep, /scripts\/capture-exact-head-pack-evidence\.mjs packages\/plugin-sdk/);
   assert.match(
-    captureStep,
-    /npm pack --json --ignore-scripts --pack-destination "\$RUNNER_TEMP"/,
+    exactHeadPackEvidence,
+    /\['status', '--porcelain', '--untracked-files=no'\]/,
   );
-  assert.match(captureStep, /headSha: process\.env\.ACTUAL_HEAD_SHA/);
-  assert.match(captureStep, /node: process\.version/);
-  assert.match(captureStep, /execFileSync\('npm', \['--version'\]/);
-  assert.match(captureStep, /zlib: process\.versions\.zlib/);
+  assert.match(exactHeadPackEvidence, /actualHeadSha !== expectedHeadSha/);
+  assert.match(exactHeadPackEvidence, /'pack',[\s\S]*'--json',[\s\S]*'--ignore-scripts'/);
+  assert.match(exactHeadPackEvidence, /headSha: actualHeadSha/);
+  assert.match(exactHeadPackEvidence, /node: process\.version/);
+  assert.match(exactHeadPackEvidence, /execFileSync\('npm', \['--version'\]/);
+  assert.match(exactHeadPackEvidence, /zlib: process\.versions\.zlib/);
   assert.match(
     uploadStep,
     /^          name: plugin-contract-pack-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
@@ -495,6 +575,14 @@ test('required CI binds pack evidence to the exact checked-out head', () => {
   assert.match(
     uploadStep,
     /^          path: \$\{\{ runner\.temp \}\}\/plugin-contract-pack-evidence\.json$/m,
+  );
+  assert.match(
+    sdkUploadStep,
+    /^          name: plugin-sdk-pack-evidence-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}$/m,
+  );
+  assert.match(
+    sdkUploadStep,
+    /^          path: \$\{\{ runner\.temp \}\}\/plugin-sdk-pack-evidence\.json$/m,
   );
 });
 
@@ -753,21 +841,52 @@ test('SDK changes execute pull-request validation', () => {
   assert.match(releaseWorkflow, /^  pull_request: \{\}$/m);
   assert.match(
     validateJob,
-    /^      - name: SDK typecheck\n        run: pnpm --filter @clowder-ai\/plugin-sdk typecheck$/m,
+    /^      - name: Local gate \(toolchain to pack:gate\)\n        run: pnpm gate:ci$/m,
   );
-  assert.match(
-    validateJob,
-    /^      - name: SDK unit tests\n        run: pnpm --filter @clowder-ai\/plugin-sdk test$/m,
-  );
-  assert.match(
-    validateJob,
-    /^      - name: SDK build\n        run: pnpm --filter @clowder-ai\/plugin-sdk build$/m,
-  );
+  for (const command of [
+    'pnpm --filter @clowder-ai/plugin-sdk typecheck',
+    'pnpm --filter @clowder-ai/plugin-sdk test',
+    'pnpm --filter @clowder-ai/plugin-sdk build',
+  ]) {
+    assert.ok(
+      localGate.includes(`'${command}'`),
+      `local gate must run ${command}`,
+    );
+  }
   assert.ok(
-    validateJob.indexOf('- name: Build\n        run: pnpm --filter @clowder-ai/plugin-contract build') <
-      validateJob.indexOf('- name: SDK typecheck\n        run: pnpm --filter @clowder-ai/plugin-sdk typecheck'),
+    localGate.indexOf('pnpm --filter @clowder-ai/plugin-contract build') <
+      localGate.indexOf('pnpm --filter @clowder-ai/plugin-sdk typecheck'),
     'SDK checks must run after the contract build that provides their conformance import',
   );
+});
+
+test('connector changes execute the aggregate package gate', () => {
+  const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
+  const connectorDirectories = [
+    'connector-dingtalk',
+    'connector-feishu',
+    'connector-telegram',
+    'connector-wecom-agent',
+    'connector-wecom-bot',
+    'connector-weixin',
+    'connector-xiaoyi',
+  ];
+
+  assert.ok(validateJob, 'validation job must be active');
+  for (const directory of connectorDirectories) {
+    assert.match(releaseWorkflow, new RegExp(`^      - 'packages/${directory}/\\*\\*'$`, 'm'));
+    assert.ok(
+      localGate.includes(`'@clowder-ai/${directory}'`),
+      `local gate must gate @clowder-ai/${directory}`,
+    );
+  }
+  assert.match(localGate, /name: 'Connector package gates'/);
+  for (const script of ['typecheck', 'test', 'build']) {
+    assert.ok(
+      localGate.includes(`pnpm --filter "$package" ${script}`),
+      `connector package gates must run ${script}`,
+    );
+  }
 });
 
 test('loopback fixture changes execute pull-request validation', () => {
@@ -801,20 +920,15 @@ test('official Feishu intake changes execute pull-request validation', () => {
   const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
 
   assert.ok(validateJob, 'validation job must be active');
-  for (const [name, command] of [
-    ['Feishu intake typecheck', 'pnpm --filter @clowder-ai/feishu-meeting-intake typecheck'],
-    ['Feishu intake tests', 'pnpm --filter @clowder-ai/feishu-meeting-intake test'],
-    ['Feishu intake lint', 'pnpm --filter @clowder-ai/feishu-meeting-intake lint'],
-    ['Feishu intake build', 'pnpm --filter @clowder-ai/feishu-meeting-intake build'],
-  ] as const) {
-    assert.match(
-      validateJob,
-      new RegExp(`^      - name: ${name}\\n        run: ${command.replaceAll('/', '\\/')}$$`, 'm'),
-    );
-  }
+  assert.match(validateJob, /^      - name: Local gate \(toolchain to pack:gate\)\n        run: pnpm gate:ci$/m);
+  assert.match(
+    localGate,
+    /chain\('@clowder-ai\/feishu-meeting-intake', \['typecheck', 'test', 'lint', 'build'\]\)/,
+    'local gate must run Feishu intake typecheck, tests, lint, and build',
+  );
   assert.ok(
-    validateJob.indexOf('- name: SDK build\n        run: pnpm --filter @clowder-ai/plugin-sdk build') <
-      validateJob.indexOf('- name: Feishu intake typecheck\n        run: pnpm --filter @clowder-ai/feishu-meeting-intake typecheck'),
+    localGate.indexOf('pnpm --filter @clowder-ai/plugin-sdk build') <
+      localGate.indexOf("chain('@clowder-ai/feishu-meeting-intake'"),
     'Feishu intake validation must run after its SDK dependency is built',
   );
 });
@@ -823,18 +937,16 @@ test('official video analysis changes execute pull-request validation', () => {
   const validateJob = releaseWorkflow.match(/^  validate:\n[\s\S]*?(?=^  publish:)/m)?.[0];
 
   assert.ok(validateJob, 'validation job must be active');
-  for (const [name, command] of [
-    ['Video analysis typecheck', 'pnpm --filter @clowder-ai/video-analysis typecheck'],
-    ['Video analysis tests', 'pnpm --filter @clowder-ai/video-analysis test'],
-    ['Video analysis lint', 'pnpm --filter @clowder-ai/video-analysis lint'],
-    ['Video analysis build', 'pnpm --filter @clowder-ai/video-analysis build'],
-    ['Machine catalog', 'pnpm catalog:check'],
-  ] as const) {
-    assert.match(
-      validateJob,
-      new RegExp(`^      - name: ${name}\\n        run: ${command.replaceAll('/', '\\/')}$$`, 'm'),
-    );
-  }
+  assert.match(validateJob, /^      - name: Local gate \(toolchain to pack:gate\)\n        run: pnpm gate:ci$/m);
+  assert.match(
+    localGate,
+    /chain\('@clowder-ai\/video-analysis', \['typecheck', 'test', 'lint', 'build'\]\)/,
+    'local gate must run video analysis typecheck, tests, lint, and build',
+  );
+  assert.ok(
+    localGate.includes("'pnpm catalog:check'"),
+    'local gate must run pnpm catalog:check',
+  );
 });
 
 test('public consumer packages contain no workspace protocol and CI installs packed artifacts', () => {
@@ -858,5 +970,5 @@ test('public consumer packages contain no workspace protocol and CI installs pac
     );
   }
   assert.match(npmrc, /^link-workspace-packages=true$/m);
-  assert.match(releaseWorkflow, /pnpm test:fresh-consumer/);
+  assert.match(localGate, /pnpm test:fresh-consumer/);
 });

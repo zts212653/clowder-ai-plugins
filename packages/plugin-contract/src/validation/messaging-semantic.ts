@@ -11,8 +11,18 @@ export interface SemanticValidationResult {
 }
 
 interface MessageElementLike {
+  readonly elementId?: unknown;
+  readonly kind?: unknown;
   readonly payload?: unknown;
 }
+
+const FORBIDDEN_DISPLAY_URL_QUERY_KEYS = new Set([
+  'bearer',
+  'access_token',
+  'token',
+  'secret',
+  'api_key',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -159,6 +169,12 @@ export function validateMessagingSemantics(
 
   for (const [groupIndex, elements] of elementGroups(schemaRef, value).entries()) {
     let totalBytes = 0;
+    const mediaElementIds = new Set(
+      elements.flatMap((element) =>
+        isRecord(element) && element['kind'] === 'media_ref' && typeof element['elementId'] === 'string'
+          ? [element['elementId']]
+          : []),
+    );
 
     for (const [elementIndex, rawElement] of elements.entries()) {
       const path = `/elementGroups/${groupIndex}/${elementIndex}/payload`;
@@ -179,6 +195,19 @@ export function validateMessagingSemantics(
           message: `element payload exceeds ${MESSAGING_BOUNDS.maxElementPayloadBytes} bytes`,
         });
       }
+
+      if (
+        isRecord(rawElement) &&
+        rawElement['kind'] === 'media_warning' &&
+        isRecord(payload) &&
+        typeof payload['mediaElementId'] === 'string' &&
+        !mediaElementIds.has(payload['mediaElementId'])
+      ) {
+        errors.push({
+          path: `${path}/mediaElementId`,
+          message: 'media_warning must reference a media_ref element in the same message',
+        });
+      }
     }
 
     if (totalBytes > MESSAGING_BOUNDS.maxTotalPayloadBytes) {
@@ -186,6 +215,32 @@ export function validateMessagingSemantics(
         path: `/elementGroups/${groupIndex}`,
         message: `total element payload exceeds ${MESSAGING_BOUNDS.maxTotalPayloadBytes} bytes`,
       });
+    }
+  }
+
+  if (schemaRef === 'M0CDeliverInput' || schemaRef === 'HostMessagingLifecycleInput') {
+    const candidates: Array<{ path: string; value: unknown }> = [];
+    if (isRecord(value)) {
+      if (isRecord(value['presentation'])) {
+        candidates.push({ path: '/presentation/deepLinkUrl', value: value['presentation']['deepLinkUrl'] });
+      }
+      candidates.push({ path: '/recoveryUrl', value: value['recoveryUrl'] });
+    }
+    for (const candidate of candidates) {
+      if (candidate.value === undefined) continue;
+      try {
+        const url = new URL(String(candidate.value));
+        const forbidden = [...url.searchParams.keys()].find((key) =>
+          FORBIDDEN_DISPLAY_URL_QUERY_KEYS.has(key.toLowerCase()));
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('protocol');
+        if (url.username !== '' || url.password !== '') throw new Error('userinfo');
+        if (forbidden !== undefined) throw new Error(`credential query key ${forbidden}`);
+      } catch {
+        errors.push({
+          path: candidate.path,
+          message: 'display URL must be absolute http(s) without userinfo or credential query keys',
+        });
+      }
     }
   }
 
