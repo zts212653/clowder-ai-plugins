@@ -510,7 +510,9 @@
             { "capability": "memory.append", "layer": "L2", "firstPartyPreset": false },
             { "capability": "memory.retrieve", "layer": "L2", "firstPartyPreset": false },
             { "capability": "windows.create", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "whisper.extend", "layer": "L2", "firstPartyPreset": false }
+            { "capability": "whisper.extend", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "data.directory", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "cloud.conversation.host", "layer": "L2", "firstPartyPreset": false }
           ]
         }
       },

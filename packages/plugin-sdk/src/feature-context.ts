@@ -1,6 +1,7 @@
 import {
   validateManifest,
   type Capability,
+  type CloudConversationHostContribution,
   type ContentEditorProviderContribution,
   type DirectToolContribution,
   type DesktopWindowContribution,
@@ -38,6 +39,12 @@ export interface FeatureBinding {
   readonly activationRevision: number;
   readonly grantRevision: number;
   readonly grantedCapabilities: readonly Capability[];
+  /**
+   * Absolute path of the Host-provisioned data directory. Present only when the
+   * owning feature is granted the data.directory capability and the manifest
+   * declares runtime.dataDirectory.
+   */
+  readonly dataDirectory?: string;
   /** Opaque Host-issued authority. SDK code transports it but never interprets it. */
   readonly executionLease: string;
 }
@@ -99,6 +106,15 @@ export class ContributionConflictError extends Error {
   }
 }
 
+export class FeaturePermissionError extends Error {
+  readonly code = 'PERMISSION' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'FeaturePermissionError';
+  }
+}
+
 export interface ContributionRegistration {
   readonly key: string;
   readonly receipt: HostContributionReceipt;
@@ -141,6 +157,12 @@ export interface FeatureContext {
   readonly media: PluginMediaReader;
   readonly mediaSources: ContributionRegistrar<MediaSourceContribution>;
   readonly services: ContributionRegistrar<ServiceContribution>;
+  readonly conversationHosts: ContributionRegistrar<CloudConversationHostContribution>;
+  /**
+   * Host-provisioned data directory. Reading it without the data.directory
+   * capability throws FeaturePermissionError with code 'PERMISSION'.
+   */
+  readonly dataDirectory: string;
   readonly log: (
     level: PluginLogLevel,
     message: string,
@@ -404,6 +426,16 @@ export function createFeatureContextSession(
     media,
     mediaSources: registrar<MediaSourceContribution>('media-source'),
     services: registrar<ServiceContribution>('service'),
+    conversationHosts: registrar<CloudConversationHostContribution>('cloud-conversation-host'),
+    get dataDirectory(): string {
+      assertActive();
+      if (binding.dataDirectory === undefined) {
+        throw new FeaturePermissionError(
+          'feature has no data directory: grant the data.directory capability and declare runtime.dataDirectory',
+        );
+      }
+      return binding.dataDirectory;
+    },
     log,
     logger: {
       debug: (...args) => log('debug', String(args[0]), args[1] as Readonly<Record<string, unknown>> | undefined),
@@ -483,6 +515,12 @@ function actionMethods(contribution: StaticContribution): readonly string[] {
       return [contribution.readAction.method, contribution.settleAction.method];
     case 'service':
       return [contribution.healthMethod];
+    case 'cloud-conversation-host':
+      return [
+        contribution.appendMessage.method,
+        contribution.assistantReturns.list.method,
+        contribution.assistantReturns.ack.method,
+      ];
     case 'ui':
       return contribution.kind === 'command' ? [contribution.action.method] : [];
     default:

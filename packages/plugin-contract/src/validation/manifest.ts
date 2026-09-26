@@ -323,7 +323,8 @@ export function validateManifest(value: unknown): ManifestValidationResult {
           'action' in contribution ||
           contribution.type === 'media-source' ||
           contribution.type === 'limb' ||
-          contribution.type === 'connector',
+          contribution.type === 'connector' ||
+          contribution.type === 'cloud-conversation-host',
       );
       if (runtimeContributionIndex !== -1) {
         const contribution = contributions[runtimeContributionIndex];
@@ -431,6 +432,17 @@ export function validateManifest(value: unknown): ManifestValidationResult {
             '#/$defs/MediaSourceContribution/stateCapabilitiesRequired',
             'stateCapabilitiesRequired',
             'media-source requires plugin.state.get and plugin.state.set for durable PMR retention',
+          );
+        }
+      }
+      if (contribution.type === 'cloud-conversation-host') {
+        const feature = manifest.features.find((candidate) => candidate.id === owner);
+        if (feature === undefined || !feature.capabilities.includes('cloud.conversation.host')) {
+          return semanticError(
+            `/features/${manifest.features.indexOf(feature!)}/capabilities`,
+            '#/$defs/CloudConversationHostContribution/capabilityRequired',
+            'capabilityRequired',
+            'a cloud conversation host must be owned by a feature that requests cloud.conversation.host',
           );
         }
       }

@@ -134,6 +134,7 @@ export {
 export {
   ContributionConflictError,
   FeatureContextRevokedError,
+  FeaturePermissionError,
   activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
@@ -154,6 +155,13 @@ export {
   type PluginDefinitionInput,
   type PluginLogLevel,
 } from './feature-context.js';
+
+export {
+  operationRowAction,
+  rowsResult,
+  type OperationRowActionOptions,
+  type RowsResultOptions,
+} from './operation-results.js';
 
 export {
   PluginModuleEntrypointError,

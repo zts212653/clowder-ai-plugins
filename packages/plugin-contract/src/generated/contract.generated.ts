@@ -21,7 +21,7 @@ export type PluginIcon = 'github' | PackageIcon;
 export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
 export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
-export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'media.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend';
+export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'media.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend' | 'data.directory' | 'cloud.conversation.host';
 export type DataDeclaration = {
   readonly name: string;
   readonly dataClass: 'cache';
@@ -58,7 +58,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -176,12 +176,29 @@ export type CallbackAction = {
 export type ActionDef = {
   readonly id: string;
   readonly label: string;
-  readonly render: 'button' | 'polling' | 'status';
+  readonly render: 'button' | 'polling' | 'status' | 'row';
+  readonly confirm?: string;
   readonly action: CallbackAction;
   readonly resultRender?: string;
   readonly next?: string;
   readonly rollback?: string;
   readonly timeout?: number;
+};
+export type OperationRows = {
+  readonly rows: readonly OperationRow[];
+  readonly empty?: string;
+};
+export type OperationRow = {
+  readonly key: string;
+  readonly label: string;
+  readonly detail?: string;
+  readonly actions?: readonly OperationRowAction[];
+};
+export type OperationRowAction = {
+  readonly action: string;
+  readonly label?: string;
+  readonly input: Readonly<Record<string, string | number | boolean>>;
+  readonly confirm?: string;
 };
 export type OperationActionResult = {
   readonly render: string;
@@ -312,6 +329,67 @@ export type ConnectorContribution = {
   readonly inboundMethod: string;
   readonly outboundMethod: string;
 };
+export type CloudConversationHostMethod = {
+  readonly method: string;
+};
+export type CloudConversationHostContribution = {
+  readonly type: 'cloud-conversation-host';
+  readonly id: string;
+  readonly provider: 'chatgpt';
+  readonly appendMessage: CloudConversationHostMethod;
+  readonly assistantReturns: {
+    readonly list: CloudConversationHostMethod;
+    readonly ack: CloudConversationHostMethod;
+  };
+};
+export type CloudConversationAppendMessageInput = {
+  readonly conversationId: string;
+  readonly text: string;
+  readonly idempotencyKey: string;
+};
+export type CloudConversationAppendMessageAppendedResult = {
+  readonly status: 'appended';
+  readonly providerMessageId: string;
+  readonly idempotentReplay?: boolean;
+};
+export type CloudConversationAppendMessageFailedResult = {
+  readonly status: 'failed';
+  readonly errorCode: string;
+  readonly diagnostic?: unknown;
+  readonly idempotentReplay?: boolean;
+};
+export type CloudConversationAppendMessageResult = CloudConversationAppendMessageAppendedResult | CloudConversationAppendMessageFailedResult;
+export type CloudConversationReturnCursor = {
+  readonly conversationId: string;
+  readonly sourceMessageId: string;
+  readonly assistantMessageId: string;
+};
+export type CloudConversationAssistantReturn = {
+  readonly conversationId: string;
+  readonly sourceMessageId: string;
+  readonly assistantMessageId: string;
+  readonly content: string;
+};
+export type CloudConversationListInput = {
+  readonly after?: CloudConversationReturnCursor;
+};
+export type CloudConversationListResult = {
+  readonly returns: readonly CloudConversationAssistantReturn[];
+};
+export type CloudConversationAckInput = {
+  readonly conversationId: string;
+  readonly sourceMessageId: string;
+  readonly assistantMessageId: string;
+};
+export type CloudConversationAcknowledgedResult = {
+  readonly status: 'acknowledged';
+};
+export type CloudConversationAckFailedResult = {
+  readonly status: 'failed';
+  readonly errorCode: string;
+  readonly diagnostic?: unknown;
+};
+export type CloudConversationAckResult = CloudConversationAcknowledgedResult | CloudConversationAckFailedResult;
 export type UiWhenClause = {
   readonly featureEnabled?: boolean;
   readonly requiresCapabilities?: readonly Capability[];
@@ -387,7 +465,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
@@ -404,6 +482,7 @@ export type ExternalRuntimeDeclaration = {
 export type BuiltinRuntimeDeclaration = {
   readonly transport: 'builtin';
   readonly entrypoint?: string;
+  readonly dataDirectory?: string;
 };
 export type RuntimeDeclaration = ExternalRuntimeDeclaration | BuiltinRuntimeDeclaration;
 
@@ -1399,7 +1478,7 @@ export type PermissionMatrixEntry = {
   readonly firstPartyPreset: boolean;
 };
 export type PermissionMatrixInput = {
-  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
+  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;
@@ -1502,7 +1581,7 @@ export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugi
 export type L0Capability = (typeof L0_CAPABILITIES)[number];
 export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'events.publish', 'messaging.appendElements', 'media.read'] as const;
 export type L1Capability = (typeof L1_CAPABILITIES)[number];
-export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend'] as const;
+export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend', 'data.directory', 'cloud.conversation.host'] as const;
 export type L2Capability = (typeof L2_CAPABILITIES)[number];
 export const CAPABILITY_TABLE = {
   L0: L0_CAPABILITIES,

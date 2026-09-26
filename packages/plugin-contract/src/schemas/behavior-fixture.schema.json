@@ -354,8 +354,8 @@
         "entries": {
           "type": "array",
           "items": { "$ref": "#/$defs/PermissionMatrixEntry" },
-          "minItems": 21,
-          "maxItems": 21
+          "minItems": 23,
+          "maxItems": 23
         }
       },
       "required": ["entries"],

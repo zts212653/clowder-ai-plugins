@@ -356,8 +356,8 @@ export function grantsChangedMaxBytes(): number {
 /**
  * N+1 cardinality proof for host.grants.changed.
  *
- * Computes the byte count with MAX_GRANT_ITEMS + 1 (21) capabilities.
- * This exceeds the structural validity bound (MAX_GRANT_ITEMS = 20),
+ * Computes the byte count with MAX_GRANT_ITEMS + 1 (24) capabilities.
+ * This exceeds the structural validity bound (MAX_GRANT_ITEMS = 23),
  * demonstrating the cardinality limit. The 21st element uses the longest
  * capability value for worst-case measurement.
  */

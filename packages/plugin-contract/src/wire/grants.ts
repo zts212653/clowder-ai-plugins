@@ -25,10 +25,10 @@ import {
 
 /**
  * Maximum number of items in effectiveGrants.
- * Derived from the signed 20-value M0 Capability enum — a plugin cannot hold
+ * Derived from the signed Capability enum — a plugin cannot hold
  * more capabilities than exist.
  */
-export const MAX_GRANT_ITEMS = 21 as const;
+export const MAX_GRANT_ITEMS = 23 as const;
 
 // ---------------------------------------------------------------------------
 // GrantSnapshot
@@ -71,7 +71,7 @@ export const VALID_CAPABILITIES: ReadonlySet<string> = new Set<string>([
 
 /**
  * Validate that effectiveGrants:
- *   1. Does not exceed MAX_GRANT_ITEMS (21).
+ *   1. Does not exceed MAX_GRANT_ITEMS (23).
  *   2. Contains no duplicates.
  *   3. Contains only valid Capability enum members (closed-enum check).
  *

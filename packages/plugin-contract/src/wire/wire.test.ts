@@ -631,7 +631,7 @@ test('validateBindingNonce boundary cases', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('MAX_GRANT_ITEMS is frozen at the complete v0 capability cardinality', () => {
-  assert.equal(MAX_GRANT_ITEMS, 21);
+  assert.equal(MAX_GRANT_ITEMS, 23);
 });
 
 test('validateEffectiveGrants accepts valid arrays', () => {
@@ -646,8 +646,8 @@ test('validateEffectiveGrants rejects invalid arrays', () => {
     false,
     'duplicates',
   );
-  // 21 items exceeds MAX_GRANT_ITEMS
-  const tooMany = Array.from({ length: 21 }, (_, i) => `cap-${i}`);
+  // 24 items exceeds MAX_GRANT_ITEMS
+  const tooMany = Array.from({ length: 24 }, (_, i) => `cap-${i}`);
   assert.equal(validateEffectiveGrants(tooMany), false, 'too many');
 });
 
