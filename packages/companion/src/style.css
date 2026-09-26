@@ -18,16 +18,28 @@ button:disabled { opacity: .45; cursor: default; }
 #pet[data-direction="left"] #living-video { transform: scaleX(-1); }
 #living-sit [data-layer="tail"] { transform-box: view-box; transform-origin: 168px 456px; animation: living-tail 3.4s ease-in-out infinite; }
 #living-sit [data-layer="head"] { transform-box: view-box; transform-origin: 300px 280px; animation: living-head 5.5s ease-in-out infinite; }
-#living-sit [data-layer="ear-left"], #living-sit [data-layer="ear-right"] { transform-box: view-box; transform-origin: 219px 101px; }
+#living-sit [data-layer="ear-left"], #living-sit [data-layer="ear-right"] { transform-box: view-box; }
+#living-sit [data-layer="ear-left"] { transform-origin: 219px 101px; }
+#living-sit [data-layer="ear-right"] { transform-origin: 391px 100px; }
 #pet[data-pose="listening"] #living-sit [data-layer="ear-left"] { transform: rotate(-8deg); }
 #pet[data-pose="listening"] #living-sit [data-layer="ear-right"] { transform: rotate(8deg); }
 #living-sit [data-layer="closed"] { opacity: 0; animation: living-blink 5.8s linear infinite; }
+#pet[data-action="idle"] #living-sit [data-layer="tail"] { animation: living-idle-tail 4.8s ease-in-out infinite; }
+#pet[data-action="idle"] #living-sit [data-layer="head"] { animation: living-idle-head 6.8s ease-in-out infinite; }
+#pet[data-action="idle"] #living-sit [data-layer="ear-left"] { animation: living-idle-ear-left 8.1s ease-in-out infinite; }
+#pet[data-action="idle"] #living-sit [data-layer="ear-right"] { animation: living-idle-ear-right 7.3s ease-in-out infinite; }
+#pet[data-action="idle"] #living-sit [data-layer="closed"] { animation: living-idle-blink 5.8s steps(1, end) infinite; }
 #living-sit [data-layer="mouth"], #living-sit [data-layer="scared"] { opacity: 0; }
 #pet[data-pose="scared"] #living-sit [data-layer="scared"] { opacity: 1; }
 #pet[data-pose="sleeping"] #living-sit [data-layer="closed"] { opacity: 1; animation: none; }
 @keyframes living-tail { 50% { transform: rotate(5deg); } }
 @keyframes living-head { 50% { transform: rotate(2deg); } }
 @keyframes living-blink { 0%, 96%, 100% { opacity: 0; } 97%, 98% { opacity: 1; } }
+@keyframes living-idle-tail { 0%, 12%, 100% { transform: rotate(0); } 34% { transform: rotate(10deg); } 62% { transform: rotate(-8deg); } 80% { transform: rotate(3deg); } }
+@keyframes living-idle-head { 0%, 12%, 100% { transform: rotate(0); } 35% { transform: rotate(5deg); } 69% { transform: rotate(-3deg); } }
+@keyframes living-idle-ear-left { 0%, 68%, 76%, 100% { transform: rotate(0); } 71% { transform: rotate(-9deg); } 73% { transform: rotate(3deg); } }
+@keyframes living-idle-ear-right { 0%, 30%, 39%, 100% { transform: rotate(0); } 33% { transform: rotate(8deg); } 36% { transform: rotate(-3deg); } }
+@keyframes living-idle-blink { 0%, 24%, 30%, 74%, 80%, 100% { opacity: 0; } 25%, 29%, 75%, 79% { opacity: 1; } }
 #indicators { position: absolute; bottom: 0; right: 0; display: flex; gap: 4px; }
 #indicators button { width: 32px; height: 32px; border: 1px solid #fff9; border-radius: 50%; display: grid; place-items: center; background: #236b59; color: white; box-shadow: 0 2px 5px #0003; }
 #indicators button:hover { background: #ab4842; }
@@ -75,7 +87,7 @@ button:disabled { opacity: .45; cursor: default; }
 #chat small { color: var(--cafe-text-muted); font-size: 10px; padding: 0 14px 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  #pet, #indicators button, #living-sit [data-layer] { animation: none; }
+  #pet, #indicators button, #living-sit [data-layer], #pet[data-action="idle"] #living-sit [data-layer] { animation: none; }
   #living-sit [data-layer="closed"] { opacity: 0; }
 }
 #pet[data-skin="yanyan-codex"] { background-image: url("./skins/yanyan-codex.webp"); }
