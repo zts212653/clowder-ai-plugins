@@ -15,16 +15,16 @@ importers:
   packages/companion:
     devDependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.23
+        specifier: 0.1.0-beta.24
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
 
   packages/connector-dingtalk:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       dingtalk-stream:
         specifier: 2.1.6-beta.1
@@ -46,7 +46,7 @@ importers:
   packages/connector-feishu:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       '@larksuiteoapi/node-sdk':
         specifier: 1.59.0
@@ -74,7 +74,7 @@ importers:
   packages/connector-telegram:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       grammy:
         specifier: 1.41.1
@@ -96,7 +96,7 @@ importers:
   packages/connector-wecom-agent:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       fast-xml-parser:
         specifier: 5.5.9
@@ -118,7 +118,7 @@ importers:
   packages/connector-wecom-bot:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       '@wecom/aibot-node-sdk':
         specifier: 1.0.4
@@ -140,7 +140,7 @@ importers:
   packages/connector-weixin:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       qrcode:
         specifier: 1.5.4
@@ -168,7 +168,7 @@ importers:
   packages/connector-xiaoyi:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       ws:
         specifier: 8.21.3
@@ -193,14 +193,14 @@ importers:
   packages/enterprise-workflow:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       ajv:
         specifier: 8.20.0
         version: 8.20.0
     devDependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.23
+        specifier: 0.1.0-beta.24
         version: link:../plugin-contract
       '@types/node':
         specifier: ^20.17.0
@@ -360,7 +360,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.23
+        specifier: 0.1.0-beta.24
         version: link:../plugin-contract
     devDependencies:
       '@types/node':
@@ -445,7 +445,7 @@ importers:
   packages/wechat-visible-reader:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
       zod:
         specifier: 3.25.76
@@ -467,7 +467,7 @@ importers:
   packages/weixin-mp:
     dependencies:
       '@clowder-ai/plugin-sdk':
-        specifier: 0.2.0-beta.6
+        specifier: 0.2.0-beta.7
         version: link:../plugin-sdk
     devDependencies:
       '@types/node':

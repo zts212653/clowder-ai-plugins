@@ -147,7 +147,7 @@ the ordinary-text negative path.
 
 ## Implementation checkpoint
 
-> **Current as of 2026-09-25. If you are picking this up without having followed the thread, read this
+> **Current as of 2026-09-26. If you are picking this up without having followed the thread, read this
 > section first.** Earlier checkpoint texts (2026-09-20, 2026-09-23) are recoverable from git history. The
 > Host ledger remains the truth source for per-slice specs, review verdicts and artifact sha256 (see "Where the
 > truth lives").
@@ -157,7 +157,7 @@ the ordinary-text negative path.
 PR #54 is a **draft** served from the fork (`mindfn/clowder-ai-plugins`, branch
 `feat/f202-train-c1-plugins-migration`). **Do not merge or publish it yet**: it leaves draft only when it and the
 Host PR zts212653/clowder-ai#1487 can merge together (owner decision, 2026-09-23). The contract is at
-`0.1.0-beta.23` and the SDK at `0.2.0-beta.6`; neither is published to npm, and neither needs to be for the dev
+`0.1.0-beta.24` and the SDK at `0.2.0-beta.7`; neither is published to npm, and neither needs to be for the dev
 wave, because the Host installs owner-supplied self-contained artifacts (Host S10).
 
 | Wave | Scope | State |
@@ -178,6 +178,7 @@ Each version's shape was frozen in the Host ledger before it was implemented her
 | contract `0.1.0-beta.21` / SDK `0.2.0-beta.4` | shared `ThreadId`; the four lifecycle events carry a required `threadId` |
 | contract `0.1.0-beta.22` / SDK `0.2.0-beta.5` | shared `MessageId` (Host message id); `LifecycleStartedEvent.placeholderLine?` and `replyTo?`; subscription `presentation: 'v1' \| 'v2'` — the Host sends the two new fields only to v2 subscriptions, and only Feishu declares v2 |
 | contract `0.1.0-beta.23` / SDK `0.2.0-beta.6` | merged main's #59 companion-bridge changes — `decisions.read {offset, limit}`, `f221.inspect {proposalId}`, `nativeActivity`, `CompanionDecisions`, `bridgeVersion` 1.2.0/1.3.0; SDK `companion-client` gains `readDecisions` / `inspectF221` and `layout` panel types from `CompanionCommand`. C1 shape unchanged |
+| contract `0.1.0-beta.24` / SDK `0.2.0-beta.7` | W2-3 shapes — `ActionDef.render 'row'` with `confirm` (1..200), `OperationRows` v1 bounds; `runtime.dataDirectory` single-segment name with the `data.directory` capability (SDK `context.dataDirectory` throws PERMISSION when ungranted); cloud-conversation-host contribution (provider chatgpt) with `cloud.conversation.host` capability, appendMessage/list/ack shapes and `CloudBridgeFailureDiagnosticV1`; `MAX_GRANT_ITEMS` 21→23 |
 
 ### W2 on the package side
 
@@ -276,7 +277,7 @@ as it lands on `main` (#58 put companion `0.1.0-alpha.4` on `main` at 08:31Z on 
 as `0.1.0-alpha.9`.
 
 Every version this PR claims is provisional: companion `0.1.0-alpha.9`, genoffice-docx `0.1.0-alpha.2`,
-video-analysis `0.1.0-alpha.2`, plugin-contract `0.1.0-beta.23`, plugin-sdk `0.2.0-beta.6`, and the first version
+video-analysis `0.1.0-alpha.2`, plugin-contract `0.1.0-beta.24`, plugin-sdk `0.2.0-beta.7`, and the first version
 of each package this PR adds. Right before merging, a version is free only if it is absent from
 `https://registry.npmjs.org` **and** not claimed by `main`'s `package.json` or catalog; if either check fails,
 re-bump to the next free version and re-pack with the fixed toolchain. Query `registry.npmjs.org` directly:
@@ -288,7 +289,7 @@ lags. On 2026-09-23
 One npm-naming note, fixed here so nobody re-derives it later (Host request, frozen in the ledger
 2026-09-25): the contract `0.1.0-beta.18` on npm is #59's companion release. The A1 line also had a beta.18
 (Host `fdee6a4bb1` consumed it) with different bytes. This repo's beta.19–22 exist only as canonical tarballs —
-they were never published to npm — so once #54 merges, npm goes from beta.18 straight to beta.23. The Host no
+they were never published to npm — so once #54 merges, npm goes from beta.18 straight to beta.24. The Host no
 longer accepts beta.18, so nothing on the Host side is affected.
 
 What CI covers: `scripts/registry-publish-compatibility.mjs` fails when a catalog pin or a public package's

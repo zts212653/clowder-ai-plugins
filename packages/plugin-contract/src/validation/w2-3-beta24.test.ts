@@ -7,7 +7,7 @@ function baseManifest(overrides: Record<string, unknown> = {}): Record<string, u
   return {
     pluginId: 'dev.clowder.example',
     version: '0.1.0',
-    contractVersion: '0.1.0-beta.23',
+    contractVersion: '0.1.0-beta.24',
     name: 'Example',
     features: [
       {

@@ -20,7 +20,7 @@
     "clean": "rm -rf dist",
     "prepack": "pnpm build"
   },
-  "dependencies": { "@clowder-ai/plugin-sdk": "0.2.0-beta.6", "@wecom/aibot-node-sdk": "1.0.4" },
+  "dependencies": { "@clowder-ai/plugin-sdk": "0.2.0-beta.7", "@wecom/aibot-node-sdk": "1.0.4" },
   "devDependencies": {
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",

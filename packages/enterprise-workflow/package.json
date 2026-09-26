@@ -33,11 +33,11 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.6",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.7",
     "ajv": "8.20.0"
   },
   "devDependencies": {
-    "@clowder-ai/plugin-contract": "0.1.0-beta.23",
+    "@clowder-ai/plugin-contract": "0.1.0-beta.24",
     "@types/node": "^20.17.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
