@@ -14,7 +14,7 @@ function fixture(t) {
 }
 
 function action(root) {
-  return { actionId: 'confirmed-001', bindingGeneration: 'binding-alpha', ...confirmedMoveProjection(readGame(root, 'game'), 'b2e2') };
+  return { actionId: 'confirmed-001', bindingGeneration: 'binding-alpha', ...confirmedMoveProjection(root, readGame(root, 'game'), 'b2e2') };
 }
 
 test('committed move survives crash before notification and retries one stable action', async (t) => {
@@ -75,4 +75,14 @@ test('undo and changed binding preserve history but cannot replay old confirmati
   });
   assert.equal(notified, false);
   assert.equal(readGame(root, 'game').events.length, 2);
+});
+
+test('a confirmation for the same position in another retained root cannot move this game', (t) => {
+  const first = fixture(t);
+  const second = fixture(t);
+  assert.equal(readGame(first, 'game').fen, readGame(second, 'game').fen);
+  assert.throws(() => playGame(second, 'game', 'b2e2', {
+    actor: 'human', expectedRevision: 0, origin: 'board', confirmedAction: action(first),
+  }), /摘要/);
+  assert.equal(readGame(second, 'game').revision, 0);
 });

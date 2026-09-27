@@ -51,7 +51,7 @@ function fixture(t, identity, destination, humanName, companionName) {
     confirmNext(move, revision) {
       const game = readGame(dataRoot, gameId);
       assert.equal(game.revision, revision);
-      trustedConfirmation = confirmedMoveProjection(game, move);
+      trustedConfirmation = confirmedMoveProjection(dataRoot, game, move);
     },
     revokeHuman() { humanAllowed = false; },
   };

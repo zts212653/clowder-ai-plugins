@@ -137,7 +137,7 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
       if (path === '/api/move') {
         if (parseFen(g.fen).turn !== g.humanSide) throw fail(409, '现在等棋搭子应招');
         if (typeof body.move !== 'string' || body.move.length > 30) throw fail(400, '无效棋步');
-        const confirmedAction = await host.authorizeHumanAction(session, 'move', confirmedMoveProjection(g, body.move));
+        const confirmedAction = await host.authorizeHumanAction(session, 'move', confirmedMoveProjection(root, g, body.move));
         if (!confirmedAction || confirmedAction.bindingGeneration !== bindingGeneration)
           throw fail(403, '缺少可信 Host 确认');
         const saved = playGame(root, gameId, body.move, {

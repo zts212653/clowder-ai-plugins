@@ -41,9 +41,9 @@ function validateConfirmedAction(value) {
 function digest(value) {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
-export function confirmedMoveProjection(game, text) {
+export function confirmedMoveProjection(root, game, text) {
   const move = parseMove(parseFen(game.fen), text);
-  const expectedStateToken = digest({ gameId: game.id, revision: game.revision, fen: game.fen });
+  const expectedStateToken = digest({ dataRoot: realpathSync(root), gameId: game.id, revision: game.revision, fen: game.fen });
   return {
     objectRef: game.id,
     expectedStateToken,
@@ -222,7 +222,7 @@ export function playGame(root, id, text, { actor, expectedRevision, origin = 'ch
       move = parseMove(p, text);
     if ((p.turn === g.humanSide) !== (actor === 'human')) throw new Error('执棋方与 actor 不一致');
     if (confirmation) {
-      const projection = confirmedMoveProjection(g, text);
+      const projection = confirmedMoveProjection(root, g, text);
       if (confirmation.expectedStateToken !== projection.expectedStateToken || confirmation.operationDigest !== projection.operationDigest)
         throw new Error('Host 确认摘要与当前棋步不一致');
     }

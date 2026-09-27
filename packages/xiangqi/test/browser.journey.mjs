@@ -69,7 +69,7 @@ for (const width of [1120, 480])
     assert.equal(await page.locator('#confirm-move').isDisabled(), true);
     await page.locator('[data-index="64"]').click();
     await page.locator('[data-index="67"]').click();
-    trustedConfirmation = confirmedMoveProjection(readGame(root, 'browser-game'), 'b2e2');
+    trustedConfirmation = confirmedMoveProjection(root, readGame(root, 'browser-game'), 'b2e2');
     await page.getByRole('button', { name: '确认落子并发送', exact: true }).click();
     await page.getByText('等Partner Cedar应招', { exact: true }).waitFor();
     assert.equal(readGame(root, 'browser-game').moves[0].notation, '炮八平五');
@@ -90,7 +90,7 @@ for (const width of [1120, 480])
     assert.equal(readGame(root, 'browser-game').revision, 3);
     await page.locator('[data-index="64"]').click();
     await page.locator('[data-index="67"]').click();
-    trustedConfirmation = confirmedMoveProjection(readGame(root, 'browser-game'), 'b2e2');
+    trustedConfirmation = confirmedMoveProjection(root, readGame(root, 'browser-game'), 'b2e2');
     await page.getByRole('button', { name: '确认落子并发送', exact: true }).click();
     await page.getByRole('button', { name: '重新开局', exact: true }).click();
     assert.equal(readGame(root, 'browser-game').revision, 4);
