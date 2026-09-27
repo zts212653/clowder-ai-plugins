@@ -19,3 +19,16 @@ test('unavailable sources never become a zero badge', () => {
   assert.deepEqual(decisionRows({ status: 'unavailable' }), []);
   assert.equal(decisionBadge({ status: 'available', approvalCount: 0, otherNeedsMeCount: 0 }).visible, false);
 });
+
+test('a real F221 proposal id remains inspectable while unsafe ids cannot be previewed', () => {
+  const page = {
+    status: 'available',
+    approvals: [
+      { proposalId: 'proposal_mgf2abc12345678', sourceFeatureId: 'F221', summary: '品味提案', resolution: 'open', materializationState: 'not_started' },
+      { proposalId: '../other-owner', sourceFeatureId: 'F221', summary: '不可信提案', resolution: 'open', materializationState: 'not_started' },
+    ],
+    otherNeedsMe: [],
+  };
+  assert.equal(decisionRows(page)[0].previewable, true);
+  assert.equal(decisionRows(page)[1].previewable, false);
+});

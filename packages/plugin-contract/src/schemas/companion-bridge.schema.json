@@ -276,7 +276,7 @@
           "type": "object",
           "properties": {
             "kind": { "const": "f221.inspect" },
-            "proposalId": { "type": "string", "format": "uuid" }
+            "proposalId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,200}$" }
           },
           "required": ["kind", "proposalId"],
           "additionalProperties": false

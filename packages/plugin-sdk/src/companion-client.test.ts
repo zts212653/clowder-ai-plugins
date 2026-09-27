@@ -44,8 +44,8 @@ test('F221 inspection requests a Host dialog trial without an approval payload',
   const client = createCompanionClient({ request: async command => {
     calls.push(command); return { kind: 'decision-trial', status: 'dismissed' };
   }, subscribe: () => () => {} });
-  await client.inspectF221('11111111-1111-4111-8111-111111111111');
-  assert.deepEqual(calls, [{ kind: 'f221.inspect', proposalId: '11111111-1111-4111-8111-111111111111' }]);
+  await client.inspectF221('proposal_mgf2abc12345678');
+  assert.deepEqual(calls, [{ kind: 'f221.inspect', proposalId: 'proposal_mgf2abc12345678' }]);
 });
 
 test('unconfirmed text is retained for an explicit retry with the same caller id', async () => {
