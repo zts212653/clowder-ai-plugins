@@ -8,7 +8,7 @@ status: implementation
 
 ## User journey and ownership
 
-Before: the operator starts a repository-local server, types a data directory and port, relays a move into a chosen conversation, then asks the companion to run a separate search command and submit its choice. After: the Host installs and enables a verified package, binds a companion and conversation, opens a retained game, routes a confirmed move, and exposes candidates for that companion to inspect before it commits. The person still confirms each board move and chooses whether to restart or resign. The companion, never the search worker, chooses its own move.
+Before: the operator starts a repository-local server, types a data directory and port, relays a move into a chosen conversation, then asks the companion to run a separate search command and submit its choice. After the missing Host binding is implemented: the Host installs and enables a verified package, binds a companion and conversation, opens a retained game, routes a confirmed move, and exposes candidates for that companion to inspect before it commits. The person still confirms each board move. Resignation policy and replay remain unimplemented; this migration makes no automatic resignation decision. The companion, never the search worker, chooses its own move.
 
 The plugin owns Xiangqi rules, search, stored game events, and the board assets. The Host owns package/grant authority, selected identity and destination, durable location, surface admission, notification, and runtime state. A plugin has no direct private messaging HTTP access and cannot choose a Host identity through an environment variable.
 
