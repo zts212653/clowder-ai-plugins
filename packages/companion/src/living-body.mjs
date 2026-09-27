@@ -74,7 +74,7 @@ export class LivingBody {
   }
 
   showClip(video, clip, revision, onEnded) {
-    setHidden(this.standby, true);
+    this.retireVideo(this.standby);
     this.configure(video, clip, revision, onEnded);
     video.style.opacity = '1';
     setHidden(this.sit, true);
@@ -101,8 +101,7 @@ export class LivingBody {
     this.fadeTimer = this.setTimer(() => {
       this.fadeTimer = undefined;
       if (revision !== this.revision) return;
-      outgoing.pause();
-      setHidden(outgoing, true);
+      this.retireVideo(outgoing);
     }, clip.crossfadeMs);
   }
 
@@ -143,11 +142,15 @@ export class LivingBody {
 
   hideVideos() {
     for (const video of [this.video, this.standby]) {
-      if (!video) continue;
-      video.onended = null;
-      video.pause();
-      setHidden(video, true);
+      this.retireVideo(video);
     }
+  }
+
+  retireVideo(video) {
+    if (!video) return;
+    video.onended = null;
+    video.pause();
+    setHidden(video, true);
   }
 
   cancelFade() {

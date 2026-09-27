@@ -94,6 +94,20 @@ test('v3 sleep and wake use their own anchors and crossfade for 250ms', () => {
   assert.equal([f.video, f.transitionVideo].filter(video => !video.hidden).length, 1);
 });
 
+test('interrupting the sleep-to-wake crossfade retires the hidden sleep video', () => {
+  const f = fixture();
+  f.body.show('sleeping');
+  f.body.show('waking');
+  const sleeping = [f.video, f.transitionVideo].find(video => /sleep\.webm$/u.test(video.src));
+
+  f.body.show('working');
+
+  assert.equal(sleeping.hidden, true);
+  assert.equal(sleeping.paused, true, 'a hidden crossfade layer must not keep decoding and playing');
+  assert.equal([f.video, f.transitionVideo].filter(video => !video.hidden).length, 1);
+  assert.match([f.video, f.transitionVideo].find(video => !video.hidden).src, /think\.webm$/u);
+});
+
 test('mid-edge docking uses the faded peek while a bottom corner preserves the original clip', () => {
   const f = fixture();
   f.root.dataset.dockZone = 'mid';
