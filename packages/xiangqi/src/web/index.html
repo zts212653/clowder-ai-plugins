@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>中国象棋 · 棋桌</title><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./panels.css"></head>
+<body>
+<header class="masthead"><div><span class="eyebrow">中国象棋 · 对弈</span><h1><span id="heading-human">玩家</span> <span>×</span> <span id="heading-companion">棋搭子</span></h1></div><div class="seal" aria-hidden="true">弈</div></header>
+<main class="layout">
+  <section class="table" aria-label="象棋桌">
+    <div class="player north"><span class="stone black"></span><strong id="north-name">棋搭子</strong><span class="player-detail" id="north-detail">执黑 · 亲自应招</span></div>
+    <div id="black-files" class="files" aria-hidden="true"></div>
+    <div id="board" class="board" aria-label="中国象棋棋盘" role="group"><svg id="lines" viewBox="0 0 540 600" aria-hidden="true"></svg><div id="squares" class="squares"></div></div>
+    <div id="red-files" class="files red-files" aria-hidden="true"></div>
+    <div class="player south"><span class="stone red"></span><strong id="south-name">玩家</strong><span class="player-detail" id="south-detail">执红 · 先行</span></div>
+    <section class="move-confirm" aria-label="落子确认"><p id="draft-label" role="status">选好落点后，再确认发送。</p><div class="confirm-actions"><button type="button" id="confirm-move" class="primary" disabled>确认落子并发送</button><button type="button" id="cancel-move" class="secondary" disabled>取消预选</button></div></section>
+  </section>
+  <aside class="sidebar">
+    <section class="turn-panel"><span class="eyebrow">这一手</span><h2 id="turn" aria-live="polite">正在摆棋…</h2><p id="hint" role="status">稍等，正在读取棋局。</p><p id="delivery" class="delivery"></p><button type="button" id="retry" class="primary" hidden>重试通知</button></section>
+    <div class="tools"><button type="button" id="flip">左右翻转</button><button type="button" id="undo" disabled>悔一回合</button><button type="button" id="restart" disabled>重新开局</button></div>
+    <section id="restart-panel" class="restart-panel" hidden aria-label="确认重新开局"><p>回到开局重新下？本盘的旧棋谱仍会保留。</p><div class="confirm-actions"><button type="button" id="confirm-restart" class="primary">确认重开</button><button type="button" id="cancel-restart" class="secondary">继续这盘</button></div></section>
+    <section class="score-sheet" aria-label="本局棋谱"><div class="score-title"><h2>落子有声</h2><span id="round">尚未落子</span></div><div class="score-labels"><span>回合</span><span id="red-label">玩家 · 红</span><span id="black-label">棋搭子 · 黑</span></div><ol id="history"></ol><p id="empty-history">楚河汉界已摆好，<br>请先落第一子。</p></section>
+    <p class="footnote">选自己的棋子 → 点落点 → 确认落子并发送。<br>棋搭子应招后，棋盘会自动更新。<br>刷新页面也能接着下。</p>
+  </aside>
+</main>
+<footer>一盘棋，慢慢下。<span id="connection">连接棋桌中</span></footer>
+<script type="module" src="./client.mjs"></script>
+</body></html>

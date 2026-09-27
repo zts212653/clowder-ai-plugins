@@ -57,6 +57,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       '@clowder-ai/personal-chrome-companion',
       '@clowder-ai/video-analysis',
       '@clowder-ai/genoffice-docx',
+      '@clowder-ai/xiangqi',
     ]) {
       const build = packageName === '@clowder-ai/genoffice-docx' ? 'build:renderer' : 'build';
       run('pnpm', ['--filter', packageName, build], repoRoot);
@@ -70,6 +71,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       pack('packages/personal-chrome-companion', packs),
       pack('packages/video-analysis', packs),
       pack('packages/genoffice-docx', packs),
+      pack('packages/xiangqi', packs),
     ];
 
     const staged = join(root, 'staged');
@@ -121,6 +123,22 @@ test('packed public packages install and import in a fresh npm consumer', async 
       ],
       stagedVideoPackage,
     );
+
+    const stagedXiangqi = join(root, 'staged-xiangqi');
+    await mkdir(stagedXiangqi);
+    run('tar', ['-xzf', tarballs[6], '-C', stagedXiangqi], root);
+    const stagedXiangqiPackage = join(stagedXiangqi, 'package');
+    const xiangqiPackageJson = JSON.parse(await readFile(join(stagedXiangqiPackage, 'package.json'), 'utf8'));
+    assert.doesNotMatch(JSON.stringify(xiangqiPackageJson), /"workspace:/u);
+    await readFile(join(stagedXiangqiPackage, 'npm-shrinkwrap.json'), 'utf8');
+    await readFile(join(stagedXiangqiPackage, 'dist/web/index.html'), 'utf8');
+    runNpm(
+      ['ci', '--ignore-scripts', '--omit=dev', '--registry=https://registry.npmjs.org/', '--no-audit', '--no-fund'],
+      stagedXiangqiPackage,
+    );
+    run(process.execPath, ['--input-type=module', '--eval',
+      "const mod = await import('./dist/index.mjs'); if (typeof mod.createHostedBoard !== 'function' || typeof mod.createHostedGame !== 'function' || typeof mod.analyze !== 'function') process.exit(1);",
+    ], stagedXiangqiPackage);
     await readFile(
       join(stagedVideoPackage, 'node_modules/@modelcontextprotocol/sdk/package.json'),
       'utf8',
@@ -170,6 +188,9 @@ test('packed public packages install and import in a fresh npm consumer', async 
         join(consumer, 'node_modules/@clowder-ai/video-analysis/package.json'),
         'utf8',
       ),
+    );
+    const xiangqiPackage = JSON.parse(
+      await readFile(join(consumer, 'node_modules/@clowder-ai/xiangqi/package.json'), 'utf8'),
     );
     const genofficePackage = JSON.parse(
       await readFile(join(consumer, 'node_modules/@clowder-ai/genoffice-docx/package.json'), 'utf8'),
@@ -240,6 +261,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       'clowder-personal-chrome-host': 'native-host/native-host-cli.mjs',
     });
     assert.equal(videoPackage.version, '0.1.0-alpha.1');
+    assert.equal(xiangqiPackage.version, '0.1.0-alpha.0');
     assert.deepEqual(videoPackage.bin, {
       'clowder-video-analysis-mcp': './dist/mcp-entrypoint.js',
     });
@@ -293,7 +315,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       [
         '--input-type=module',
         '--eval',
-        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const metadata = require('@clowder-ai/plugin-contract/schemas/plugin-metadata'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const request = companion.parsePersonalChromeAppendRequest({ v: 1, kind: 'append_message', requestId: 'fresh-1', conversationId: 'conversation-1', text: 'fresh consumer', idempotencyKey: 'delivery-1' }); if (typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || metadata.title !== 'Clowder AI Plugin Product Metadata (v1)' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || request.conversationId !== 'conversation-1') process.exit(1);",
+        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const metadata = require('@clowder-ai/plugin-contract/schemas/plugin-metadata'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const xiangqi = await import('@clowder-ai/xiangqi'); const request = companion.parsePersonalChromeAppendRequest({ v: 1, kind: 'append_message', requestId: 'fresh-1', conversationId: 'conversation-1', text: 'fresh consumer', idempotencyKey: 'delivery-1' }); if (typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || metadata.title !== 'Clowder AI Plugin Product Metadata (v1)' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || typeof xiangqi.createHostedBoard !== 'function' || request.conversationId !== 'conversation-1') process.exit(1);",
       ],
       consumer,
     );

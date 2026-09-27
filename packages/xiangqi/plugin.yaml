@@ -1,0 +1,34 @@
+pluginId: dev.clowder.xiangqi
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Xiangqi
+description:
+  default: Analyze Chinese chess positions; a companion board requires a compatible Host binding.
+  translations:
+    zh-CN: 分析中国象棋局面；棋搭子棋盘需兼容的宿主会话绑定。
+icon:
+  type: svg
+  src: assets/icon.svg
+contributions:
+  - type: mcp
+    id: xiangqi-analysis
+    runtime:
+      transport: stdio
+      entrypoint: dist/mcp-entrypoint.mjs
+features:
+  - id: analyze-position
+    name: Analyze a Xiangqi position
+    resources: []
+    contributions:
+      - type: mcp
+        id: xiangqi-analysis
+    capabilities: []
+data:
+  - name: games
+    dataClass: user-authored
+    strategy: retained
+  - name: analyses
+    dataClass: derived-user-visible
+    strategy: retained
+runtime:
+  transport: builtin

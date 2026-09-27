@@ -15,6 +15,7 @@ on:
       - 'packages/companion/**'
       - 'packages/feishu-meeting-intake/**'
       - 'packages/video-analysis/**'
+      - 'packages/xiangqi/**'
       - 'packages/genoffice-docx/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
@@ -110,6 +111,17 @@ jobs:
 
       - name: Video analysis build
         run: pnpm --filter @clowder-ai/video-analysis build
+
+      - name: Xiangqi package tests and build
+        run: |
+          pnpm --filter @clowder-ai/xiangqi test
+          pnpm --filter @clowder-ai/xiangqi lint
+          pnpm --filter @clowder-ai/xiangqi build
+
+      - name: Xiangqi browser journey
+        run: |
+          pnpm --filter @clowder-ai/xiangqi exec playwright install --with-deps chromium
+          pnpm --filter @clowder-ai/xiangqi test:browser
 
       - name: GenOffice typecheck and tests
         run: |
