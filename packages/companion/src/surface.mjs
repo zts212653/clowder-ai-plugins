@@ -10,13 +10,15 @@ import { LivingBody } from './living-body.mjs';
 import { detectDockedEdge } from './living-edge.mjs';
 import { bindPetControls } from './pet-controls.mjs';
 import { decisionBadge, decisionRows } from './decision-view.mjs';
+import { normalizeNativeWork } from './native-work-motion.mjs';
 
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => { $('status').textContent = text; $('chat-status').textContent = text; $('announcement').textContent = text; };
 const transcript = new TranscriptView($('transcript'));
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
-const motion = new PetMotion($('pet'), { livingBody: new LivingBody({ root: $('pet'), sit: $('living-sit'), video: $('living-video') }) });
+const motion = new PetMotion($('pet'), { livingBody: new LivingBody({ root: $('pet'), sit: $('living-sit'),
+  video: $('living-video'), transitionVideo: $('living-video-transition') }) });
 let sharing = false, pendingScreen = false, loading = false, latestHistory, previousPhase = 'idle';
 let observedHistory = false, lastAssistantId;
 let resultPreviewUntil = 0;
@@ -38,6 +40,7 @@ if (!window.clowderCompanion) {
       motion.stopMove();
       if (!didMove) return;
       didMove = false;
+      void conversation.refresh();
       setTimeout(() => motion.setDockedEdge(detectDockedEdge(window, $('pet').getBoundingClientRect())), 100);
     },
     changed: panel => { if (panel === 'chat') void readHistory(); if (panel === 'decisions') void readDecisions(); },
@@ -79,7 +82,7 @@ if (!window.clowderCompanion) {
   const conversation = new CompanionConversation({
     client, createPeer: callback => new VoicePeer(callback, client), stopScreen: () => screen.stop(),
     transcript: event => {
-      if (event.type === 'turn-done') { transcript.finish(event); bubble.finish(event.role); if (event.role === 'assistant') motion.signal('answered'); void readHistory(); }
+      if (event.type === 'turn-done') { transcript.finish(event); bubble.finish(event.role); void readHistory(); }
       else if (event.typed) void readHistory();
       else { transcript.append(event.role, event.text, true); bubble.append(event.role, event.text); void controls.setAmbient(true); }
     },
@@ -106,6 +109,7 @@ if (!window.clowderCompanion) {
       label('speaker', value.silent ? '开启播音' : '关闭播音');
       const identity = value.identity;
       motion.setContext({ skin: identity?.skin, phase: value.phase, nativeActivity: identity?.nativeActivity ?? 'none', muted: value.muted });
+      motion.syncSnapshot(normalizeNativeWork(identity?.nativeWork));
       if (justConnected) motion.signal('connected');
       if (showFailure) motion.signal('failed');
       if (identity) {
@@ -114,7 +118,11 @@ if (!window.clowderCompanion) {
         $('pet').setAttribute('aria-label', `${identity.displayName}：点击交流，右键更多，拖动移动`);
         $('documents').querySelector('.menu-status').textContent = identity.documentsAllowed ? '开启' : '暂停';
         $('documents').setAttribute('aria-pressed', String(identity.documentsAllowed));
-        $('connection-scope').textContent = identity.duty.catId === identity.carrier.catId ? '交流保存在同一段聊天中' : `${identity.duty.displayName} · 实时语音由${identity.carrier.displayName}承载`;
+        const live = identity.liveTransport?.kind === 'gpt_live_v3'
+          ? 'GPT Live · 实时型号未证实' : '实时载体未确认';
+        $('connection-scope').textContent = identity.duty.catId === identity.carrier.catId
+          ? `${identity.duty.displayName} · ${live}`
+          : `${identity.duty.displayName} · ${live} · 绑定载体 ${identity.carrier.displayName}`;
       }
       if (showFailure) void controls.show('actions');
     },
@@ -126,7 +134,6 @@ if (!window.clowderCompanion) {
       const history = await client.readConversation();
       const assistantId = history.messages.findLast(message => message.role === 'assistant')?.id;
       if (observedHistory && assistantId && assistantId !== lastAssistantId) {
-        motion.signal('answered');
         resultPreviewUntil = Date.now() + 12_000;
       }
       observedHistory = true;

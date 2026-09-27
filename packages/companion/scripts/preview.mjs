@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../renderer/', import.meta.url)));
 const spikeRoot = resolve(fileURLToPath(new URL('../preview/', import.meta.url)));
 const skins = ['ragdoll-v1', 'yarn-ball', 'yanyan-codex', 'xianxian-codex'];
-const mime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp' };
+export const previewMime = { '.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.webm': 'video/webm' };
 const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>猫猫球 · 外观核对</title>
 <style>body{margin:0;color:#34343a;background:#f4f1ed;font:14px system-ui}header{padding:24px 32px}h1{font-size:24px;margin:0 0 8px}p{line-height:1.6}label{margin-right:16px}select,button{font:inherit;padding:6px;border-radius:8px;border:1px solid #c9c4c0}main{margin:0 32px 32px;border:1px solid #d5d0ca;border-radius:20px;min-height:620px;display:grid;place-items:end center;background:linear-gradient(125deg,#e4e1dc,#fffaf3);padding:24px}main.dark{background:linear-gradient(125deg,#252b35,#171a22)}iframe{border:0;width:300px;height:270px;max-width:100%;transition:height .15s}small{color:#69636c}</style>
 <header><h1>猫猫球 · 外观核对</h1><p>同一份正式 renderer 构建：平时只有猫身，点猫展开、右键菜单、文字按需展开。<br><small>这里仅模拟连接状态，不连接家里、不采集麦克风或屏幕；尚未替换已安装版本。</small></p>
@@ -16,10 +17,12 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 <main><iframe title="实际猫猫球界面" src="/index.html?skin=ragdoll-v1"></iframe></main>
 <script>const frame=document.querySelector('iframe');document.querySelector('#disconnect').onclick=()=>frame.contentWindow.postMessage('preview-disconnect',location.origin);function refresh(){frame.style.width='300px';frame.style.height='270px';frame.src='/index.html?skin='+document.querySelector('#skin').value+'&scenario='+document.querySelector('#scenario').value;}document.querySelectorAll('select').forEach(e=>e.onchange=refresh);document.querySelector('#background').onclick=()=>document.querySelector('main').classList.toggle('dark');window.addEventListener('message',e=>{if(e.source!==frame.contentWindow||e.origin!==location.origin)return;if(e.data.kind==='geometry'){frame.style.width=e.data.width+'px';frame.style.height=e.data.height+'px';}if(e.data.kind==='resize'){frame.style.width=e.data.expanded?'380px':'300px';frame.style.height=e.data.expanded?'590px':'270px';}if(e.data.kind==='note')document.querySelector('#note').textContent=e.data.text;});</script></html>`;
 
-export function fixture(skin, failure) {
+export function fixture(skin, failure, pending = true) {
   return `<script>
   const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'宪宪'}]; let phase = 'idle', allowed = true;
-  const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',nativeActivity:'none',duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});
+  const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',nativeActivity:'none',
+    liveTransport:{kind:'gpt_live_v3',verifiedModel:null},nativeWork:{scopeId:phase==='idle'?null:'0123456789abcdef',revision:0,active:[],recent:[]},
+    duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});
   const emit = event => listeners.forEach(fn=>fn(event));
   window.addEventListener('message',event=>{if(event.source===parent&&event.origin===location.origin&&event.data==='preview-disconnect'){phase='closed';emit({kind:'media-stopped',reason:'closed'});}});
   const note = text => parent.postMessage({kind:'note',text},location.origin);
@@ -33,11 +36,13 @@ export function fixture(skin, failure) {
       case 'view.drag':return {kind:'ok'};
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};
       case 'conversation.read':return {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages,hasMore:false};
-      case 'decisions.read':return {kind:'decisions',status:'available',approvalCount:2,needsMeCount:2,otherNeedsMeCount:1,
+      case 'decisions.read':return ${pending}?{kind:'decisions',status:'available',approvalCount:2,needsMeCount:2,otherNeedsMeCount:1,
         approvals:[{proposalId:'11111111-1111-4111-8111-111111111111',sourceFeatureId:'F221',summary:'保留一点呼吸感',resolution:'open',materializationState:'not_started',linkedNeedsMe:true},
           {proposalId:'thread-preview',sourceFeatureId:'F128',summary:'新线程需要完整表单确认',resolution:'open',materializationState:'not_started',linkedNeedsMe:false}],
         otherNeedsMe:[{subjectRef:'task:preview',summary:'看看工作进展'}],
-        page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}};
+        page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}}:
+        {kind:'decisions',status:'available',approvalCount:0,needsMeCount:0,otherNeedsMeCount:0,approvals:[],otherNeedsMe:[],
+          page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}};
       case 'f221.inspect':note('外观预览没有受信 Host 确认窗口，也不会提交决定。');return {kind:'decision-trial',status:'unavailable'};
       case 'view.resize':parent.postMessage({kind:'resize',expanded:command.expanded},location.origin);return {kind:'ok'};
       case 'documents':allowed=command.allowed;phase='idle';return identity();
@@ -54,18 +59,18 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
-    if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': mime['.html'] }); res.end(page); return; }
+    if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': previewMime['.html'] }); res.end(page); return; }
     const isSpike = url.pathname.startsWith('/spike/');
     const directory = isSpike ? spikeRoot : root;
     const path = isSpike ? url.pathname.slice('/spike'.length) : url.pathname;
     const file = resolve(directory, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
-    if (!file.startsWith(directory + sep) || !mime[extname(file)]) { res.writeHead(404); res.end(); return; }
+    if (!file.startsWith(directory + sep) || !previewMime[extname(file)]) { res.writeHead(404); res.end(); return; }
     let content = await readFile(file);
     if (url.pathname === '/index.html') {
       const skin = url.searchParams.get('skin');
       if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
-      content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure')}<script type="module"`);
+      content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0')}<script type="module"`);
     }
-    res.writeHead(200, { 'Content-Type': mime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
+    res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
   } catch { res.writeHead(404); res.end(); }
 }).listen(Number(process.env.PORT ?? 3891), '127.0.0.1', () => console.log('Companion visual preview ready (no Host or media)'));

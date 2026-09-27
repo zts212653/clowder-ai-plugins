@@ -14,8 +14,9 @@ button:disabled { opacity: .45; cursor: default; }
 #pet.dragging { cursor: grabbing; }
 #pet[data-skin="xianxian-codex"] { position: relative; background-image: none; overflow: visible; }
 #living-sit { position: absolute; left: 0; bottom: 10px; width: 120px; height: 120px; overflow: visible; pointer-events: none; }
-#living-video { position: absolute; object-fit: fill; pointer-events: none; }
-#pet[data-direction="left"] #living-video { transform: scaleX(-1); }
+#living-video, #living-video-transition { position: absolute; object-fit: fill; pointer-events: none; }
+#pet[data-direction="left"] #living-video, #pet[data-direction="left"] #living-video-transition { transform: scaleX(-1); }
+#pet[data-action="held"] #living-sit { transform: translateY(-4px) scale(.98); transform-origin: 50% 80%; }
 #living-sit [data-layer="tail"] { transform-box: view-box; transform-origin: 168px 456px; animation: living-tail 3.4s ease-in-out infinite; }
 #living-sit [data-layer="head"] { transform-box: view-box; transform-origin: 300px 280px; animation: living-head 5.5s ease-in-out infinite; }
 #living-sit [data-layer="ear-left"], #living-sit [data-layer="ear-right"] { transform-box: view-box; }
@@ -40,6 +41,10 @@ button:disabled { opacity: .45; cursor: default; }
 @keyframes living-idle-ear-left { 0%, 68%, 76%, 100% { transform: rotate(0); } 71% { transform: rotate(-9deg); } 73% { transform: rotate(3deg); } }
 @keyframes living-idle-ear-right { 0%, 30%, 39%, 100% { transform: rotate(0); } 33% { transform: rotate(8deg); } 36% { transform: rotate(-3deg); } }
 @keyframes living-idle-blink { 0%, 24%, 30%, 74%, 80%, 100% { opacity: 0; } 25%, 29%, 75%, 79% { opacity: 1; } }
+@keyframes living-wake-anchor {
+  from { left: var(--living-left-start); top: var(--living-top-start); }
+  to { left: var(--living-left-end); top: var(--living-top-end); }
+}
 #indicators { position: absolute; bottom: 0; right: 0; display: flex; gap: 4px; }
 #indicators button { width: 32px; height: 32px; border: 1px solid #fff9; border-radius: 50%; display: grid; place-items: center; background: #236b59; color: white; box-shadow: 0 2px 5px #0003; }
 #indicators button:hover { background: #ab4842; }

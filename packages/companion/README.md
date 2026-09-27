@@ -24,12 +24,16 @@ Hosts reject this manifest before installation. Media admission and capture
 remain in the trusted Host; this package receives neither streams nor provider
 SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the cat.
 
-Xianxian uses one layered sitting body or one VP9 clip at a time. Actual Host
-activity, durable answers and owner-scoped pending decisions select thought,
-delivery and waiting actions. Dragging selects the running clip; an explicit
-play gesture selects pounce. Reduced motion keeps the body static. Other cats
-retain their own skins. The v2 living assets and their hashes are pinned in
-`source-lock.json`; the installable renderer carries all 20 assets itself.
+Xianxian uses one layered sitting body or one VP9 clip at a time. Expiring Host
+facts with task, result and event identities select tool work, workspace fetch,
+screen reading, applied-result delivery and autonomous target movement.
+Dragging instead freezes a visibly held candidate and cancels the old target;
+it never renames the running clip. Pounce requires an explicit play gesture by
+default; optional automatic play is bounded by idle and cooldown timers.
+Reduced motion keeps semantic poses static and suppresses roaming and pounce.
+Other cats retain their own skins. The v3 living assets and their hashes are
+pinned in `source-lock.json`; the installable renderer carries all 21 assets
+itself, including the mid-edge `peek_fade` variant.
 
 The Host keeps a small transparent margin left of the pet hit target so the
 pounce's tail is visible without turning empty space into a click target.

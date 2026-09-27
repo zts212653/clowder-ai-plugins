@@ -8,13 +8,28 @@ function fixture() {
   const sit = { hidden: false,
     toggleAttribute(name, present) { if (present) attributes.add(name); else attributes.delete(name); },
     hasAttribute(name) { return attributes.has(name); } };
-  const video = {
+  const makeVideo = () => ({
     hidden: true, src: '', loop: false, playbackRate: 1, currentTime: 0, paused: true, style: {},
     plays: 0, pauses: 0,
     play() { this.paused = false; this.plays++; return Promise.resolve(); },
     pause() { this.paused = true; this.pauses++; },
+  });
+  const video = makeVideo(), transitionVideo = makeVideo();
+  let now = 0, nextId = 0;
+  const timers = new Map();
+  const body = new LivingBody({ root, sit, video, transitionVideo,
+    setTimer(callback, delay) { const id = ++nextId; timers.set(id, { at: now + delay, callback }); return id; },
+    clearTimer(id) { timers.delete(id); } });
+  const tick = ms => {
+    const until = now + ms;
+    for (;;) {
+      const due = [...timers].sort((a, b) => a[1].at - b[1].at).find(([, timer]) => timer.at <= until);
+      if (!due) break;
+      now = due[1].at; timers.delete(due[0]); due[1].callback();
+    }
+    now = until;
   };
-  return { root, sit, video, body: new LivingBody({ root, sit, video }) };
+  return { root, sit, video, transitionVideo, body, tick };
 }
 
 test('one living body switches from layered sit to real movement and back', () => {
@@ -62,4 +77,44 @@ test('pounce is a one-shot play action, interruption closes it, reduced motion s
   assert.equal(f.video.hidden, true);
   assert.equal(f.sit.hidden, false);
   assert.equal(f.video.paused, true);
+});
+
+test('v3 sleep and wake use their own anchors and crossfade for 250ms', () => {
+  const f = fixture();
+  f.body.show('sleeping');
+  assert.match(f.video.src, /sleep\.webm$/u);
+  assert.equal(f.video.style.width, `${271.2 * (120 / 290)}px`);
+  f.body.show('waking');
+  const visible = [f.video, f.transitionVideo].filter(video => !video.hidden);
+  assert.equal(visible.length, 2, 'sleep remains under wake during the hand-off');
+  assert.ok(visible.some(video => /wake\.webm$/u.test(video.src)));
+  f.tick(249);
+  assert.equal([f.video, f.transitionVideo].filter(video => !video.hidden).length, 2);
+  f.tick(1);
+  assert.equal([f.video, f.transitionVideo].filter(video => !video.hidden).length, 1);
+});
+
+test('mid-edge docking uses the faded peek while a bottom corner preserves the original clip', () => {
+  const f = fixture();
+  f.root.dataset.dockZone = 'mid';
+  f.body.show('peek');
+  assert.match(f.video.src, /peek_fade\.webm$/u);
+  f.root.dataset.dockZone = 'corner';
+  f.body.show('peek');
+  assert.match([f.video.src, f.transitionVideo.src].join(' '), /peek\.webm/u);
+  assert.doesNotMatch([f.video.src, f.transitionVideo.src].join(' '), /peek_fade\.webm .*peek_fade\.webm/u);
+});
+
+test('held is an explicit static candidate and semantic work states stay truthful under reduced motion', () => {
+  const f = fixture();
+  f.body.show('held');
+  assert.equal(f.video.hidden, true);
+  assert.equal(f.sit.hidden, false);
+  assert.equal(f.root.dataset.pose, 'held');
+  for (const action of ['working', 'fetching', 'studying']) {
+    f.body.show(action, { reducedMotion: true });
+    assert.equal(f.root.dataset.pose, action);
+    assert.equal(f.video.hidden, true);
+    assert.equal(f.sit.hidden, false);
+  }
 });

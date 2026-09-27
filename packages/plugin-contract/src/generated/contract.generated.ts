@@ -893,6 +893,33 @@ export type CompanionActor = {
   readonly catId: string;
   readonly displayName: string;
 };
+export type CompanionLiveTransport = {
+  readonly kind: 'gpt_live_v3';
+  readonly verifiedModel: null;
+};
+export type CompanionNativeWorkEntry = {
+  readonly taskId: string;
+  readonly nativeTurnId: string;
+  readonly kind: 'reasoning' | 'tool' | 'workspace_fetch' | 'workspace_dispatch' | 'screen_read';
+  readonly startedAt: number;
+  readonly expiresAt: number;
+};
+export type CompanionNativeWorkEvent = {
+  readonly eventId: string;
+  readonly taskId: string;
+  readonly kind: 'reasoning' | 'tool' | 'workspace_fetch' | 'workspace_dispatch' | 'screen_read' | 'result';
+  readonly phase: 'started' | 'completed' | 'failed' | 'cancelled' | 'expired' | 'result_handed_to_voice';
+  readonly occurredAt: number;
+  readonly expiresAt: number;
+  readonly resultId?: string;
+  readonly nativeCarrierCatId?: string;
+};
+export type CompanionNativeWork = {
+  readonly scopeId: string | null;
+  readonly revision: number;
+  readonly active: readonly CompanionNativeWorkEntry[];
+  readonly recent: readonly CompanionNativeWorkEvent[];
+};
 export type CompanionState = {
   readonly kind: 'state';
   readonly phase: 'idle' | 'preparing' | 'ready' | 'connecting' | 'talking' | 'closed' | 'failed';
@@ -903,6 +930,8 @@ export type CompanionState = {
   readonly documentsAllowed: boolean;
   readonly toolsReady: boolean;
   readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
+  readonly liveTransport: CompanionLiveTransport;
+  readonly nativeWork: CompanionNativeWork;
 };
 export type CompanionDecisions = {
   readonly kind: 'decisions';

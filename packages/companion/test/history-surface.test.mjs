@@ -6,6 +6,7 @@ import { CompanionConversation } from '../src/conversation.mjs';
 import { TranscriptView } from '../src/transcript-view.mjs';
 import { RecentBubble } from '../src/recent-bubble.mjs';
 import { decisionBadge, decisionRows } from '../src/decision-view.mjs';
+import { normalizeNativeWork } from '../src/native-work-motion.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -21,8 +22,10 @@ function fixture() {
       remove() { const parent = nodes.get('transcript'); parent.children = parent.children.filter(row => row !== this); } };
     if (id) nodes.set(id, value); return value;
   }
-  const identity = { phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex',
-    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat' } };
+  let identity = { phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex',
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' } };
   let onControls, onVoice, receive, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
   let decisions = async (offset, limit) => ({ kind: 'decisions', status: 'available', approvalCount: 0,
     needsMeCount: 0, otherNeedsMeCount: 0, approvals: [], otherNeedsMe: [],
@@ -37,18 +40,21 @@ function fixture() {
     readConversation: () => { calls.push('read'); return history(); } };
   class VoicePeer { constructor(callback) { onVoice = callback; } async connect() { onVoice({ type: 'connected' }); } muteMic() {} muteSpeaker() {} async close() { calls.push('close'); } }
   class ScreenShare { async stop() {} async start() { calls.push('screen-pick'); } }
-  class PetMotion { setContext(value) { motionCalls.push(value); } setPendingDecision(value) { motionCalls.push({ pendingDecision: value }); } signal(value) { motionCalls.push(value); } move() {} stopMove() {} close() {} }
+  class PetMotion { setContext(value) { motionCalls.push(value); } syncSnapshot(value) { motionCalls.push({ snapshot: value }); }
+    setPendingDecision(value) { motionCalls.push({ pendingDecision: value }); } signal(value) { motionCalls.push(value); }
+    move() {} stopMove() {} close() {} }
   class LivingBody {}
   node('message');
   node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, RecentBubble, PetMotion, LivingBody, VoicePeer, ScreenShare,
-    decisionBadge, decisionRows, explainError: () => '未更新',
+    decisionBadge, decisionRows, normalizeNativeWork, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event),
-    history: callback => { history = callback; }, decisions: callback => { decisions = callback; } };
+    history: callback => { history = callback; }, decisions: callback => { decisions = callback; },
+    identity: value => { identity = value; } };
 }
 
 test('opening history during voice and refreshing it preserves speech without closing audio', async () => {
@@ -129,7 +135,7 @@ test('passive decision badge and panel keep the live call while preserving unkno
   assert.match(f.nodes.get('decision-status').textContent, /暂不可读/);
 });
 
-test('a newly committed assistant result starts the delivery gesture once, while old history does not', async () => {
+test('ordinary assistant history never impersonates a deliverable; only the Host result projection can carry', async () => {
   const f = fixture(); await flush();
   assert.ok(!f.motionCalls.includes('answered'));
   f.history(async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [
@@ -137,8 +143,21 @@ test('a newly committed assistant result starts the delivery gesture once, while
     { id: 'new-answer', role: 'assistant', text: '查询完成', name: '宪宪' },
   ], hasMore: false }));
   f.tick(); await flush();
-  assert.equal(f.motionCalls.filter(value => value === 'answered').length, 1);
+  assert.equal(f.motionCalls.filter(value => value === 'answered').length, 0);
   assert.equal(f.controls.panel, 'bubble', 'the durable result stays readable beside the cat while idle');
+  f.identity({ phase: 'idle', displayName: '宪宪', skin: 'xianxian-codex',
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 1, active: [], recent: [{
+      eventId: 'scope:1', taskId: 'scope/turn', kind: 'result', phase: 'result_handed_to_voice',
+      occurredAt: Date.now(), expiresAt: Date.now() + 10_000, resultId: 'result-1', nativeCarrierCatId: 'cat',
+    }] } });
   f.tick(); await flush();
-  assert.equal(f.motionCalls.filter(value => value === 'answered').length, 1);
+  assert.ok(f.motionCalls.some(value => value.snapshot?.delivery?.resultId === 'result-1'));
+});
+
+test('identity display separates the duty cat from GPT Live and never fills an unverified model', async () => {
+  const f = fixture(); await flush(); f.tick(); await flush();
+  assert.match(f.nodes.get('connection-scope').textContent, /宪宪 · GPT Live · 实时型号未证实/u);
+  assert.doesNotMatch(f.nodes.get('connection-scope').textContent, /5\.6|配置型号/u);
 });

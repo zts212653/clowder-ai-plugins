@@ -40,7 +40,7 @@ test('public imagery provenance pins only distributable assets, without private 
     assert.doesNotMatch(file.destination, /pet\.json/);
   }
   assert.match(lock.livingSkin.manifestSha256, /^[a-f0-9]{64}$/u);
-  assert.equal(lock.livingSkin.files.length, 21, '12 layers, eight clips and layer geometry travel together');
+  assert.equal(lock.livingSkin.files.length, 22, '12 layers, nine clips and layer geometry travel together');
   assert.doesNotMatch(JSON.stringify(lock.livingSkin), /\/Users\/|\/api\/workspace\/file\/raw/u);
   for (const file of lock.livingSkin.files) {
     const content = await readFile(new URL(file.destination, root));

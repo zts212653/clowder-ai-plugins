@@ -26,6 +26,20 @@ export function validateCompanionCommand(value: unknown): value is CompanionComm
   return true;
 }
 export function validateCompanionReply(value: unknown): value is CompanionReply {
-  return bounded(value) && reply(value);
+  if (!bounded(value) || !reply(value)) return false;
+  const parsed = value as CompanionReply;
+  if (parsed.kind !== 'state') return true;
+  const work = parsed.nativeWork;
+  if (work.scopeId === null && (work.active.length > 0 || work.recent.length > 0)) return false;
+  if (new Set(work.active.map((entry) => entry.taskId)).size !== work.active.length) return false;
+  if (new Set(work.recent.map((event) => event.eventId)).size !== work.recent.length) return false;
+  if (work.active.some((entry) => entry.expiresAt <= entry.startedAt)) return false;
+  return work.recent.every((event) => {
+    if (event.expiresAt <= event.occurredAt) return false;
+    const handed = event.phase === 'result_handed_to_voice';
+    const result = event.kind === 'result';
+    const attributed = event.resultId !== undefined && event.nativeCarrierCatId !== undefined;
+    return handed === result && result === attributed;
+  });
 }
 export function validateCompanionEvent(value: unknown): value is CompanionEvent { return bounded(value) && event(value); }

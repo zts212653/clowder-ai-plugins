@@ -68,8 +68,8 @@
     }
   ],
   "livingSkin": {
-    "package": "xianxian-living package-v2",
-    "manifestSha256": "08491ed557a82bc1860bbaeecd094f4a7e637479e78af8b411786f19a5164da0",
+    "package": "xianxian-living package-v3",
+    "manifestSha256": "a7434caa0cd559bfb8747a9d9391fb5219d4c4a68639b5b669008dd7c7b67aaf",
     "creator": "opus55; keyframes by codex-astra; source videos by CVO",
     "files": [
       {
@@ -130,15 +130,19 @@
       },
       {
         "destination": "assets/skins/xianxian-living/clips/sleep.webm",
-        "sha256": "e39554e7aca7b1c51b388b73f7dbc08e3fa7ddafef395cb28c1099d41a9b41d8"
+        "sha256": "f53ae41cc7722128e68f4b5cf3df980be216a79f8cc4b8dff36fa0dc029dbca9"
       },
       {
         "destination": "assets/skins/xianxian-living/clips/wake.webm",
-        "sha256": "73b455088e53edf2849e888e0ecb99953f7e5dba373592fb6232f9736b6da3a0"
+        "sha256": "8821cb764d7ca085f4b30dec2f893f2515d383cc1f2053215e91b18b86753cd7"
       },
       {
         "destination": "assets/skins/xianxian-living/clips/peek.webm",
         "sha256": "adebecf89b724eec9852d097364e10bc328d006ce3bb3bd3f4b257c095d57a92"
+      },
+      {
+        "destination": "assets/skins/xianxian-living/clips/peek_fade.webm",
+        "sha256": "7880e695fa8afe783c4f1fcb4fc1c31c12d64d36f3d124dc4ef929ad09f7ffef"
       },
       {
         "destination": "assets/skins/xianxian-living/clips/carry.webm",

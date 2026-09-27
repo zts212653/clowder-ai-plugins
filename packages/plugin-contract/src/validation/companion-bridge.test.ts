@@ -43,13 +43,29 @@ test('wire budgets and media syntax reject malformed or oversized renderer input
 });
 
 test('surface state preserves real actors but never leaks internal handles or raw errors', () => {
+  const nativeWork = {
+    scopeId: '0123456789abcdef', revision: 7,
+    active: [{ taskId: 'tool-item-1', nativeTurnId: 'turn-1', kind: 'tool', startedAt: 100, expiresAt: 300100 }],
+    recent: [{ eventId: 'event-1', taskId: 'tool-item-1', kind: 'result', phase: 'result_handed_to_voice',
+      occurredAt: 200, expiresAt: 120200, resultId: 'result-1', nativeCarrierCatId: 'codex-sol' }],
+  };
   const state = { kind: 'state', phase: 'idle', displayName: 'Companion', skin: 'cat', duty: { catId: 'deep', displayName: 'Deep' },
-    carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, toolsReady: false, nativeActivity: 'none' };
+    carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, toolsReady: false, nativeActivity: 'none',
+    liveTransport: { kind: 'gpt_live_v3', verifiedModel: null }, nativeWork };
   assert.equal(validateCompanionReply(state), true);
+  assert.equal(validateCompanionReply({ ...state,
+    liveTransport: { kind: 'gpt_live_v3', verifiedModel: 'configured-model-is-not-observed' } }), false);
   assert.equal(validateCompanionReply({ ...state, nativeActivity: 'tool_running' }), true);
   assert.equal(validateCompanionReply({ ...state, nativeActivity: 'busy_because_it_feels_like_it' }), false);
   const { nativeActivity: _activity, ...withoutActivity } = state;
   assert.equal(validateCompanionReply(withoutActivity), false);
+  const { nativeWork: _work, ...withoutWork } = state;
+  assert.equal(validateCompanionReply(withoutWork), false);
+  assert.equal(validateCompanionReply({ ...state, nativeWork: { ...nativeWork, scopeId: 'raw-call-id-that-is-not-a-digest' } }), false);
+  assert.equal(validateCompanionReply({ ...state, nativeWork: { ...nativeWork,
+    recent: [{ ...nativeWork.recent[0], phase: 'voice_was_definitely_heard' }] } }), false);
+  assert.equal(validateCompanionReply({ ...state, nativeWork: { scopeId: null, revision: 0,
+    active: nativeWork.active, recent: [] } }), false, 'idle scope cannot carry work from another call');
   assert.equal(validateCompanionReply({ ...state, callId: 'private-handle' }), false);
   assert.equal(validateCompanionReply({ kind: 'error', code: 'unavailable' }), true);
   assert.equal(validateCompanionReply({ kind: 'error', code: 'unavailable', message: '/private/secret' }), false);

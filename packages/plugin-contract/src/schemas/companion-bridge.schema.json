@@ -397,6 +397,53 @@
       ],
       "additionalProperties": false
     },
+    "CompanionLiveTransport": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "gpt_live_v3" },
+        "verifiedModel": { "type": "null" }
+      },
+      "required": ["kind", "verifiedModel"],
+      "additionalProperties": false
+    },
+    "CompanionNativeWorkEntry": {
+      "type": "object",
+      "properties": {
+        "taskId": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "nativeTurnId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,160}$" },
+        "kind": { "enum": ["reasoning", "tool", "workspace_fetch", "workspace_dispatch", "screen_read"] },
+        "startedAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "expiresAt": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+      },
+      "required": ["taskId", "nativeTurnId", "kind", "startedAt", "expiresAt"],
+      "additionalProperties": false
+    },
+    "CompanionNativeWorkEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "taskId": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "kind": { "enum": ["reasoning", "tool", "workspace_fetch", "workspace_dispatch", "screen_read", "result"] },
+        "phase": { "enum": ["started", "completed", "failed", "cancelled", "expired", "result_handed_to_voice"] },
+        "occurredAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "expiresAt": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "resultId": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "nativeCarrierCatId": { "type": "string", "minLength": 1, "maxLength": 160 }
+      },
+      "required": ["eventId", "taskId", "kind", "phase", "occurredAt", "expiresAt"],
+      "additionalProperties": false
+    },
+    "CompanionNativeWork": {
+      "type": "object",
+      "properties": {
+        "scopeId": { "type": ["string", "null"], "pattern": "^[0-9a-f]{16}$" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "active": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/CompanionNativeWorkEntry" } },
+        "recent": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/CompanionNativeWorkEvent" } }
+      },
+      "required": ["scopeId", "revision", "active", "recent"],
+      "additionalProperties": false
+    },
     "CompanionState": {
       "type": "object",
       "properties": {
@@ -438,6 +485,12 @@
         },
         "nativeActivity": {
           "enum": ["none", "reasoning", "tool_running"]
+        },
+        "liveTransport": {
+          "$ref": "#/$defs/CompanionLiveTransport"
+        },
+        "nativeWork": {
+          "$ref": "#/$defs/CompanionNativeWork"
         }
       },
       "required": [
@@ -449,7 +502,9 @@
         "carrier",
         "documentsAllowed",
         "toolsReady",
-        "nativeActivity"
+        "nativeActivity",
+        "liveTransport",
+        "nativeWork"
       ],
       "additionalProperties": false
     },

@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 import { validateCompanionReply } from '@clowder-ai/plugin-contract';
-import { fixture } from '../scripts/preview.mjs';
+import { fixture, previewMime } from '../scripts/preview.mjs';
 
 test('the actual renderer preview emits current Host state and conversation replies', async () => {
+  assert.equal(previewMime['.webm'], 'video/webm', 'living clips must not turn into preview-only 404 fallbacks');
   const window = { addEventListener() {} };
   const script = fixture('xianxian-codex', false).replace(/^<script>/u, '').replace(/<\/script>$/u, '');
   runInNewContext(script, {
@@ -25,4 +26,13 @@ test('the actual renderer preview emits current Host state and conversation repl
     const reply = await window.clowderCompanion.request(command);
     assert.equal(validateCompanionReply(reply), true, `${command.kind} preview reply must satisfy the installed bridge`);
   }
+});
+
+test('the visual fixture can expose idle motion without inventing a pending decision', async () => {
+  const window = { addEventListener() {} };
+  const script = fixture('xianxian-codex', false, false).replace(/^<script>/u, '').replace(/<\/script>$/u, '');
+  runInNewContext(script, { window, parent: { postMessage() {} }, location: { origin: 'http://127.0.0.1:3891' }, setTimeout() {} });
+  const decisions = await window.clowderCompanion.request({ kind: 'decisions.read', offset: 0, limit: 10 });
+  assert.equal(validateCompanionReply(decisions), true);
+  assert.equal(decisions.approvalCount + decisions.otherNeedsMeCount, 0);
 });

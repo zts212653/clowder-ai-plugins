@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { CompanionConversation } from '../src/conversation.mjs';
 
 const state = (phase = 'ready') => ({ kind: 'state', phase, displayName: '宪宪', skin: 'xianxian-codex', documentsAllowed: true, toolsReady: true,
+  nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+  nativeWork: { scopeId: phase === 'idle' ? null : '0123456789abcdef', revision: 0, active: [], recent: [] },
   duty: { catId: 'opus5', displayName: '宪宪' }, carrier: { catId: 'codex-astra', displayName: '砚砚' } });
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 function fixture(overrides = {}) {
