@@ -14,7 +14,7 @@ test('analysis cannot cross storage roots or survive a version, safety, or revis
   });
   for (const root of [first, second]) {
     createGame(root, 'same-game');
-    playGame(root, 'same-game', 'b2e2', { actor: 'human', expectedRevision: 0, origin: 'board' });
+    playGame(root, 'same-game', 'b2e2', { actor: 'human', expectedRevision: 0 });
   }
   const firstReport = analyzeGame(first, 'same-game', { timeMs: 30, maxDepth: 2 });
   const secondReports = join(second, 'same-game-analysis');

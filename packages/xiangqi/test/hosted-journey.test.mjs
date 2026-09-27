@@ -5,23 +5,30 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { createHostedBoard } from '../src/board-server.mjs';
 import { createHostedGame } from '../src/hosted-game.mjs';
-import { createGame, readCurrentAnalysis, readGame, undoGame } from '../src/store.mjs';
+import { confirmedMoveProjection, createGame, readCurrentAnalysis, readGame, undoGame } from '../src/store.mjs';
 
 function fixture(t, identity, destination, humanName, companionName) {
   const dataRoot = mkdtempSync(join(tmpdir(), 'xiangqi-host-'));
   t.after(() => rmSync(dataRoot, { recursive: true, force: true }));
   const gameId = 'fixture-game';
   createGame(dataRoot, gameId);
-  const session = Object.freeze({ dataRoot, gameId, humanName, companionName });
+  const session = Object.freeze({ dataRoot, gameId, humanName, companionName, bindingGeneration: `binding-${identity}` });
   let caller = identity;
   let humanAllowed = true;
+  let trustedConfirmation = null;
   const deliveries = [];
   let status = { status: 'idle' };
   const host = {
     openSession: () => session,
     deliveryStatus: () => status,
-    async authorizeHumanAction() {
+    async authorizeHumanAction(_session, operation, input) {
       if (!humanAllowed) throw new Error('human grant revoked');
+      if (operation === 'move') {
+        if (!trustedConfirmation || trustedConfirmation.operationDigest !== input.operationDigest || trustedConfirmation.expectedStateToken !== input.expectedStateToken)
+          throw new Error('Host did not confirm this move');
+        trustedConfirmation = null;
+        return { actionId: `${identity}-${readGame(dataRoot, gameId).revision}`, bindingGeneration: session.bindingGeneration, ...input };
+      }
     },
     async authorizeCandidateRead() {
       if (caller !== identity) throw new Error('wrong companion');
@@ -32,6 +39,7 @@ function fixture(t, identity, destination, humanName, companionName) {
     async notifyConfirmedMove(_session, event) {
       deliveries.push({ ...event, destination, companion: identity });
       status = { status: 'accepted' };
+      return { actionId: event.actionId, operationDigest: event.operationDigest, receiptId: `receipt-${identity}-${event.revision}` };
     },
     async retryPending() {
       status = { status: 'accepted' };
@@ -40,6 +48,11 @@ function fixture(t, identity, destination, humanName, companionName) {
   return {
     dataRoot, gameId, identity, destination, host, deliveries,
     callAs(principal) { caller = principal; },
+    confirmNext(move, revision) {
+      const game = readGame(dataRoot, gameId);
+      assert.equal(game.revision, revision);
+      trustedConfirmation = confirmedMoveProjection(game, move);
+    },
     revokeHuman() { humanAllowed = false; },
   };
 }
@@ -73,10 +86,14 @@ test('two Host-bound games keep identity, destination, root and revision separat
   assert.equal(b.state.players.companion, 'Partner B');
   assert.equal((await a.post('move', { move: 'b2e2', revision: 0 })).status, 400);
   assert.equal(first.deliveries.length, 0);
+  assert.equal((await a.post('move', { move: 'b2e2', revision: 0, confirmed: true })).status, 400);
+  first.confirmNext('b2e2', 0);
+  second.confirmNext('b2e2', 0);
   const postedA = await a.post('move', { move: 'b2e2', revision: 0, confirmed: true });
   assert.equal(postedA.status, 200, await postedA.text());
   const postedB = await b.post('move', { move: 'b2e2', revision: 0, confirmed: true });
   assert.equal(postedB.status, 200, await postedB.text());
+  await new Promise((resolve) => setTimeout(resolve, 20));
   assert.deepEqual(first.deliveries.map((item) => [item.destination, item.companion]), [
     ['conversation-alpha', 'cat-alpha'],
   ]);
@@ -112,7 +129,9 @@ test('two Host-bound games keep identity, destination, root and revision separat
 test('reopening a board preserves the journal and does not replay a confirmed move', async (t) => {
   const binding = fixture(t, 'cat-gamma', 'conversation-gamma', 'Player C', 'Partner C');
   const first = await launch(binding, t);
+  binding.confirmNext('b2e2', 0);
   assert.equal((await first.post('move', { move: 'b2e2', revision: 0, confirmed: true })).status, 200);
+  await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(binding.deliveries.length, 1);
   const original = readFileSync(join(binding.dataRoot, 'fixture-game.json'));
   const reopened = await launch(binding, t);

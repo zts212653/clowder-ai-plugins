@@ -4,9 +4,10 @@ import { createServer } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { formatMove, ucci } from './notation.mjs';
+import { dispatchConfirmedActions } from './notification-recovery.mjs';
 import { startPreparedAnalysis } from './prepare.mjs';
 import { isCheck, legalMoves, parseFen } from './rules.mjs';
-import { playGame, readGame, undoGame } from './store.mjs';
+import { confirmedMoveProjection, playGame, readGame, undoGame } from './store.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const staticFiles = {
@@ -38,12 +39,13 @@ async function jsonBody(req) {
  */
 export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
   const session = host.openSession();
-  const { dataRoot: root, gameId, humanName, companionName } = session;
+  const { dataRoot: root, gameId, humanName, companionName, bindingGeneration } = session;
   if (
     !root ||
     !gameId ||
     !humanName ||
     !companionName ||
+    !bindingGeneration ||
     typeof host.notifyConfirmedMove !== 'function' ||
     typeof host.deliveryStatus !== 'function' ||
     typeof host.retryPending !== 'function' ||
@@ -52,6 +54,13 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
   readGame(root, gameId);
   const token = randomBytes(24).toString('hex');
   let preparation = null;
+  let notificationRun = Promise.resolve();
+  const flushNotifications = () => {
+    notificationRun = notificationRun.catch(() => {}).then(() =>
+      dispatchConfirmedActions(root, gameId, bindingGeneration, session, host));
+    return notificationRun;
+  };
+  void flushNotifications().catch((error) => console.error('待通知恢复失败:', error.message));
   const cancelPreparation = () => {
     preparation?.cancel();
     preparation = null;
@@ -125,17 +134,20 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
       if (needsConfirmation && body.confirmed !== true) throw fail(400, '请刷新页面，点击确认按钮后再提交');
       const g = readGame(root, gameId);
       if (!Number.isInteger(body.revision) || body.revision !== g.revision) throw fail(409, '棋盘已变化，请刷新后再走');
-      await host.authorizeHumanAction(session, path.slice('/api/'.length));
       if (path === '/api/move') {
         if (parseFen(g.fen).turn !== g.humanSide) throw fail(409, '现在等棋搭子应招');
         if (typeof body.move !== 'string' || body.move.length > 30) throw fail(400, '无效棋步');
+        const confirmedAction = await host.authorizeHumanAction(session, 'move', confirmedMoveProjection(g, body.move));
+        if (!confirmedAction || confirmedAction.bindingGeneration !== bindingGeneration)
+          throw fail(403, '缺少可信 Host 确认');
         const saved = playGame(root, gameId, body.move, {
           actor: 'human',
           expectedRevision: g.revision,
           origin: 'board',
+          confirmedAction,
         });
         cancelPreparation();
-        if (saved.result.status === 'playing') {
+        if (!saved.duplicateAction && saved.result.status === 'playing') {
           try {
             preparation = prepare(root, gameId, saved.revision);
             void preparation.done?.then((result) => {
@@ -145,21 +157,22 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
             console.error('预分析未启动:', error.message);
           }
         }
-        void host.notifyConfirmedMove(session, {
-          gameId,
-          revision: saved.revision,
-          notation: saved.moves.at(-1).notation,
-          ucci: saved.moves.at(-1).ucci,
-        }).catch((e) => console.error('通知异常:', e.message));
+        void flushNotifications().catch((e) => console.error('通知异常:', e.message));
       } else if (path === '/api/restart') {
+        await host.authorizeHumanAction(session, 'restart');
         cancelPreparation();
         if (g.moves.length) undoGame(root, gameId, g.moves.length, g.revision);
       } else if (path === '/api/undo') {
+        await host.authorizeHumanAction(session, 'undo');
         if (!g.moves.length) throw fail(409, '尚未落子');
         cancelPreparation();
         const plies = g.moves.at(-1).actor === 'companion' && g.moves.length >= 2 ? 2 : 1;
         undoGame(root, gameId, plies, g.revision);
-      } else await host.retryPending(session);
+      } else {
+        await host.authorizeHumanAction(session, 'retry');
+        await flushNotifications();
+        await host.retryPending(session);
+      }
       send(200, view());
     } catch (error) {
       send(error.status ?? 400, { error: error.message });
