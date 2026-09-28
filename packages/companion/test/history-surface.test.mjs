@@ -27,7 +27,7 @@ function fixture() {
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' } };
-  let onControls, onVoice, receive, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
+  let onControls, onVoice, receive, travelObserver, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
   let decisions = async (offset, limit) => ({ kind: 'decisions', status: 'available', approvalCount: 0,
     needsMeCount: 0, otherNeedsMeCount: 0, approvals: [], otherNeedsMe: [],
     page: { offset, limit, hasMoreApprovals: false, hasMoreNeedsMe: false } });
@@ -42,21 +42,31 @@ function fixture() {
   class VoicePeer { constructor(callback) { onVoice = callback; } async connect() { onVoice({ type: 'connected' }); } muteMic() {} muteSpeaker() {} async close() { calls.push('close'); } }
   class ScreenShare { async stop() {} async start() { calls.push('screen-pick'); } }
   class PetMotion { setContext(value) { motionCalls.push(value); } syncSnapshot(value) { motionCalls.push({ snapshot: value }); }
+    syncNativeSnapshot(value) { motionCalls.push({ snapshot: value }); }
+    syncTravel(value) { motionCalls.push({ travel: value }); }
     setPendingDecision(value) { motionCalls.push({ pendingDecision: value }); } signal(value) { motionCalls.push(value); }
     move() {} stopMove() {} close() {} }
+  class NativeWindowTravel { constructor(options) { travelObserver = options; } start() {} setManual() {} close() {} }
   class LivingBody {}
   node('message');
   node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
-    CompanionConversation, TranscriptView, RecentBubble, PetMotion, LivingBody, VoicePeer, ScreenShare,
+    CompanionConversation, TranscriptView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     decisionBadge, decisionRows, normalizeNativeWork, currentCompanionIdentity, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
-    tick: () => monitors.forEach(callback => callback()), receive: event => receive(event),
+    tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), travel: value => travelObserver.changed(value),
     history: callback => { history = callback; }, decisions: callback => { decisions = callback; },
     identity: value => { identity = value; } };
 }
+
+test('actual native travel is delivered separately from the Host work snapshot', async () => {
+  const f = fixture();
+  await flush();
+  f.travel({ eventId: 'native-1', status: 'active', dx: -12, dy: 0, expiresAt: Date.now() + 500 });
+  assert.ok(f.motionCalls.some(value => value.travel?.eventId === 'native-1'));
+});
 
 test('opening history during voice and refreshing it preserves speech without closing audio', async () => {
   const f = fixture(); await flush(); f.start(); await flush();

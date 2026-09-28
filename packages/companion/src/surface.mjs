@@ -11,6 +11,7 @@ import { detectDockedEdge } from './living-edge.mjs';
 import { bindPetControls } from './pet-controls.mjs';
 import { decisionBadge, decisionRows } from './decision-view.mjs';
 import { normalizeNativeWork } from './native-work-motion.mjs';
+import { NativeWindowTravel } from './native-window-travel.mjs';
 import { currentCompanionIdentity } from './companion-identity.mjs';
 
 const $ = id => document.getElementById(id);
@@ -20,6 +21,10 @@ const transcript = new TranscriptView($('transcript'));
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
 const motion = new PetMotion($('pet'), { livingBody: new LivingBody({ root: $('pet'), sit: $('living-sit'),
   video: $('living-video'), transitionVideo: $('living-video-transition') }) });
+const nativeTravel = new NativeWindowTravel({
+  readPosition: () => ({ x: window.screenX, y: window.screenY }),
+  changed: value => motion.syncTravel(value),
+});
 let sharing = false, pendingScreen = false, loading = false, latestHistory, previousPhase = 'idle';
 let observedHistory = false, lastAssistantId;
 let resultPreviewUntil = 0;
@@ -33,11 +38,13 @@ if (!window.clowderCompanion) {
   status('请从 Clowder 的聊聊入口打开猫猫球');
   document.querySelectorAll('button').forEach(button => { button.disabled = true; });
 } else {
+  nativeTravel.start();
   const client = createCompanionClient(window.clowderCompanion);
   const controls = bindPetControls(client, {
     error: error => status(explainError(error)),
     moved: (dx, dy) => {
-      if (dx !== 'stop') { didMove = true; motion.move(dx, dy); return; }
+      if (dx !== 'stop') { didMove = true; nativeTravel.setManual(true); motion.move(dx, dy); return; }
+      nativeTravel.setManual(false);
       motion.stopMove();
       if (!didMove) return;
       didMove = false;
@@ -111,7 +118,7 @@ if (!window.clowderCompanion) {
       const identity = value.identity;
       const companionIdentity = currentCompanionIdentity(identity);
       motion.setContext({ skin: identity?.skin, phase: value.phase, nativeActivity: identity?.nativeActivity ?? 'none', muted: value.muted });
-      motion.syncSnapshot(normalizeNativeWork(identity?.nativeWork));
+      motion.syncNativeSnapshot(normalizeNativeWork(identity?.nativeWork));
       if (justConnected) motion.signal('connected');
       if (showFailure) motion.signal('failed');
       if (identity) {
@@ -235,6 +242,6 @@ if (!window.clowderCompanion) {
   void conversation.refresh(); void readHistory(); void readDecisions(); void controls.show('none');
   window.addEventListener('beforeunload', () => {
     clearInterval(statusMonitor); clearInterval(historyMonitor); clearInterval(decisionMonitor);
-    unsubscribe(); motion.close(); void conversation.end();
+    unsubscribe(); nativeTravel.close(); motion.close(); void conversation.end();
   });
 }

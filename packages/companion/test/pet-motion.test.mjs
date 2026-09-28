@@ -74,6 +74,24 @@ test('dragging uses a truthful held candidate, cancels travel, and rereads curre
   assert.equal(f.element.dataset.action, 'working', 'the next Host snapshot restores only current truth');
 });
 
+test('observed native travel drives running without replacing Host work truth', () => {
+  const f = fixture();
+  f.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  f.motion.syncSnapshot({ work: null, delivery: null, travel: null });
+  f.motion.syncTravel({ eventId: 'native-1', status: 'active', dx: 12, dy: 0, expiresAt: 1_000 });
+  assert.equal(f.element.dataset.action, 'running-right');
+  f.motion.syncNativeSnapshot({ work: null, delivery: null, travel: null });
+  assert.equal(f.element.dataset.action, 'running-right', 'native work polling cannot erase measured window travel');
+  f.motion.syncNativeSnapshot({
+    work: { taskId: 'task-1', kind: 'tool', status: 'active', expiresAt: 1_000 },
+    delivery: null,
+    travel: { eventId: 'native-1', status: 'active', dx: 12, dy: 0, expiresAt: 1_000 },
+  });
+  assert.equal(f.element.dataset.action, 'working', 'real work remains higher priority than locomotion');
+  f.motion.syncTravel(null);
+  assert.equal(f.element.dataset.action, 'working');
+});
+
 test('structured Host work distinguishes tool, workspace and screen reading and expires without polling tricks', () => {
   const f = fixture();
   f.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });

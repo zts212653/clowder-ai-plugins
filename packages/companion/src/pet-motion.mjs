@@ -1,28 +1,6 @@
 import { isLivingClip } from './living-body.mjs';
 import { MotionFacts } from './motion-facts.mjs';
-
-// F229 pet.json frame durations, plus the three F258 rows pinned in source-lock.json.
-const atlas = {
-  idle: { row: 0, frames: [1200, 400, 400, 500, 500, 800] },
-  'running-right': { row: 1, frames: [120, 120, 120, 120, 120, 120, 120, 220] },
-  'running-left': { row: 2, frames: [120, 120, 120, 120, 120, 120, 120, 220] },
-  waving: { row: 3, frames: [140, 140, 140, 280] },
-  jumping: { row: 4, frames: [140, 140, 140, 140, 280] },
-  failed: { row: 5, frames: [140, 140, 140, 140, 140, 140, 140, 240] },
-  waiting: { row: 6, frames: [150, 150, 150, 150, 150, 260] },
-  running: { row: 7, frames: [120, 120, 120, 120, 120, 220] },
-  review: { row: 8, frames: [150, 150, 150, 150, 150, 280] },
-};
-const additional = {
-  sleeping: { file: 'xianxian-sleeping-row.png', frames: [700, 700, 700, 700, 700, 700] },
-  working: { file: 'xianxian-working-row.png', frames: [520, 560, 520, 640, 520, 560, 520, 640] },
-  staged_thought: { file: 'xianxian-staged-thought-row.png', frames: [1200, 500, 700, 900, 1200, 500] },
-};
-const visualAlias = { fetching: 'working', studying: 'staged_thought', delivering: 'review', held: 'idle' };
-const workAction = { reasoning: 'staged_thought', tool: 'working', workspace: 'fetching', screen_reading: 'studying' };
-const signals = { connected: 'waving', received: 'jumping', failed: 'failed' };
-const staticSkins = { 'ragdoll-v1': 'ragdoll-v1.png', 'yarn-ball': 'yarn-ball.png' };
-const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 256;
+import { additional, atlas, signals, staticSkins, validId, visualAlias, workAction } from './pet-motion-assets.mjs';
 
 /** Select one truthful body from Host facts and local, user-controlled gestures. */
 export class PetMotion {
@@ -75,15 +53,34 @@ export class PetMotion {
   }
 
   syncSnapshot(value) {
+    this.syncFacts(value, false);
+  }
+
+  syncNativeSnapshot(value) {
+    this.syncFacts(value, true);
+  }
+
+  syncFacts(value, nativeOnly) {
     const now = this.now();
     this.hasNativeWork = value !== null && value !== undefined;
     for (const [id, expiresAt] of this.seenEvents) if (expiresAt <= now) this.seenEvents.delete(id);
-    this.facts.sync(value, this.dragging);
+    if (nativeOnly) this.facts.syncNative(value);
+    else this.facts.sync(value, this.dragging);
     if (this.snapshot.work) {
       this.resting = false;
       this.cancelIdleTimers();
       if (this.transient?.action !== 'failed') this.transient = null;
     } else if (this.resting && (this.snapshot.delivery || this.snapshot.travel)) {
+      this.resting = false;
+      this.cancelRest();
+      this.transient = { action: 'waking' };
+    }
+    this.refresh();
+  }
+
+  syncTravel(value) {
+    this.facts.syncTravel(value, this.dragging);
+    if (this.resting && this.snapshot.travel) {
       this.resting = false;
       this.cancelRest();
       this.transient = { action: 'waking' };
