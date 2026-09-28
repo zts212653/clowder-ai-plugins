@@ -50,6 +50,7 @@ button:disabled { opacity: .45; cursor: default; }
 #indicators button:hover { background: #ab4842; }
 #indicators button[data-state="connecting"] { background: #a77b36; animation: pulse 1.8s infinite; }
 #indicators button[data-state="muted"] { background: #5f6670; }
+#indicators button[data-state="receive-only"] { background: #476dac; }
 #indicators svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 #share-badge { background: #476dac !important; }
 #pending-badge { background: #9b6841 !important; font-size: 11px; font-weight: 700; }

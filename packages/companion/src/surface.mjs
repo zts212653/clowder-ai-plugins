@@ -54,6 +54,7 @@ if (!window.clowderCompanion) {
     changed: panel => { if (panel === 'chat') void readHistory(); if (panel === 'decisions') void readDecisions(); },
     action(kind) {
       if (kind === 'begin') { transcript.reset(); bubble.reset(); void conversation.begin(); void controls.show('none'); }
+      if (kind === 'listen') { transcript.reset(); bubble.reset(); void conversation.begin('receive_only'); void controls.show('none'); }
       if (kind === 'stop') void conversation.end();
       if (kind === 'mute') conversation.muteMic();
       if (kind === 'speaker') conversation.muteSpeaker();
@@ -100,24 +101,31 @@ if (!window.clowderCompanion) {
       if (previousPhase !== 'idle' && value.phase === 'idle') { transcript.reset(); bubble.reset(); void readHistory(); }
       previousPhase = value.phase;
       const active = value.phase !== 'idle';
+      const receiveOnly = value.audioMode === 'receive_only';
+      const canReceiveOnly = value.identity?.audio?.supportedModes?.includes('receive_only') === true;
       void controls.setAmbient(showAmbient(active));
       $('begin').hidden = active; $('begin').disabled = !value.identity;
+      $('listen').hidden = active || !canReceiveOnly; $('listen').disabled = !value.identity;
       label('begin', value.failed ? '重试语音' : '语音聊');
-      $('mic').hidden = value.phase !== 'talking'; $('speaker').hidden = !active;
+      $('mic').hidden = value.phase !== 'talking' || receiveOnly; $('speaker').hidden = !active;
       $('active-actions').hidden = !active;
       $('share').disabled = value.phase !== 'talking';
       $('compose').querySelector('button').disabled = !value.identity || value.phase === 'connecting';
       status(value.message ?? '');
-      $('status').hidden = !value.message || /^(点|正在听|语音已结束|已发送)/.test(value.message);
+      $('status').hidden = !value.message || /^(点|正在听|只听|语音已结束|已发送)/.test(value.message);
       $('call-badge').hidden = !active;
-      $('call-badge').dataset.state = value.muted ? 'muted' : value.phase;
-      const callLabel = value.phase === 'connecting' ? '正在连接，点此取消' : value.muted ? '麦克风已静音，点此结束' : '语音进行中，点此结束';
+      $('call-badge').dataset.state = receiveOnly ? 'receive-only' : value.muted ? 'muted' : value.phase;
+      $('call-badge-icon').setAttribute('href', receiveOnly ? '#i-listen' : '#i-mic');
+      const callLabel = value.phase === 'connecting' ? (receiveOnly ? '正在连接只听，麦克风未启用，点此取消' : '正在连接，点此取消')
+        : receiveOnly ? '只听进行中，麦克风未启用，点此结束'
+          : value.muted ? '麦克风已静音，点此结束' : '语音进行中，点此结束';
       $('call-badge').title = callLabel; $('call-badge').setAttribute('aria-label', callLabel);
       label('mic', value.muted ? '取消静音' : '静音'); $('mic').setAttribute('aria-pressed', String(value.muted));
       label('speaker', value.silent ? '开启播音' : '关闭播音');
       const identity = value.identity;
       const companionIdentity = currentCompanionIdentity(identity);
-      motion.setContext({ skin: identity?.skin, phase: value.phase, nativeActivity: identity?.nativeActivity ?? 'none', muted: value.muted });
+      motion.setContext({ skin: identity?.skin, phase: value.phase,
+        nativeActivity: identity?.nativeActivity ?? 'none', muted: value.muted || receiveOnly });
       motion.syncNativeSnapshot(normalizeNativeWork(identity?.nativeWork));
       if (justConnected) motion.signal('connected');
       if (showFailure) motion.signal('failed');

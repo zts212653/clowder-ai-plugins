@@ -8,7 +8,7 @@ const state = (phase = 'ready') => ({ kind: 'state', phase, displayName: '宪宪
   duty: { catId: 'opus5', displayName: '宪宪' }, carrier: { catId: 'codex-astra', displayName: '砚砚' } });
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 function fixture(overrides = {}) {
-  const events = [], calls = [], rows = [];
+  const events = [], calls = [], rows = [], peerOperations = [];
   let notify, readiness, closed = false;
   const client = {
     prepare() { calls.push('prepare'); return Promise.resolve(state()); },
@@ -21,15 +21,17 @@ function fixture(overrides = {}) {
   const prepare = client.prepare;
   client.prepare = (...args) => { closed = false; readiness = Promise.resolve(prepare(...args)); return readiness; };
   const peer = {
-    connect: async () => { calls.push('connect'); await readiness; if (!closed) notify({ type: 'connected' }); },
-    close: async () => { closed = true; calls.push('close'); }, muteMic() {}, muteSpeaker() {},
+    connect: async mode => { calls.push('connect'); peerOperations.push(['connect', mode]); await readiness; if (!closed) notify({ type: 'connected' }); },
+    close: async () => { closed = true; calls.push('close'); },
+    muteMic(value) { peerOperations.push(['microphone', value]); },
+    muteSpeaker(value) { peerOperations.push(['speaker', value]); },
   };
   const conversation = new CompanionConversation({ client,
     createPeer: callback => { notify = callback; return peer; },
     render: value => events.push(value), transcript: value => rows.push(value),
     stopScreen: async () => {}, uuid: () => '0a9a8b00-334a-4ee1-9cff-bf77b0f7489',
   });
-  return { conversation, calls, events, rows, peer, notify: value => notify(value) };
+  return { conversation, calls, events, rows, peer, peerOperations, notify: value => notify(value) };
 }
 test('typing while idle sends to the Host without a microphone or voice preparation', async () => {
   const f = fixture();
@@ -47,6 +49,52 @@ test('one click synchronously submits preparation and voice intent before user a
   assert.equal(f.events.at(-1).phase, 'talking');
   assert.equal(f.events.at(-1).identity.duty.catId, 'opus5');
   await f.conversation.end();
+});
+test('receive-only starts playback without ever issuing a microphone command', async () => {
+  const audio = { supportedModes: ['duplex', 'receive_only'], activeMode: null };
+  const f = fixture({
+    state: async () => ({ ...state('idle'), audio }),
+    prepare: async () => ({ ...state(), audio }),
+  });
+  await f.conversation.refresh();
+  await f.conversation.begin('receive_only');
+  assert.deepEqual(f.peerOperations, [['speaker', false], ['connect', 'receive_only']]);
+  assert.equal(f.events.at(-1).audioMode, 'receive_only');
+  assert.match(f.events.at(-1).message, /只听模式 · 麦克风未启用/u);
+  f.conversation.muteMic();
+  assert.equal(f.peerOperations.some(([kind]) => kind === 'microphone'), false);
+  await f.conversation.end();
+});
+test('receive-only failures never claim that a microphone was opened or route back to voice', async () => {
+  const audio = { supportedModes: ['duplex', 'receive_only'], activeMode: null };
+  let poll = 0;
+  const f = fixture({
+    state: async () => ({ ...state(poll++ === 0 ? 'idle' : 'closed'), audio }),
+    prepare: async () => ({ ...state(), audio }),
+  });
+  await f.conversation.refresh();
+  await f.conversation.begin('receive_only');
+  await f.conversation.refresh();
+  assert.match(f.events.at(-1).message, /麦克风未启用.*点击只听重试/u);
+  assert.doesNotMatch(f.events.at(-1).message, /点击语音聊|麦克风已关闭/u);
+
+  const stopFailure = fixture({
+    state: async () => ({ ...state('idle'), audio }),
+    prepare: async () => ({ ...state(), audio }),
+    stop: async () => { throw new Error('stop receipt unavailable'); },
+  });
+  await stopFailure.conversation.refresh();
+  await stopFailure.conversation.begin('receive_only');
+  await stopFailure.conversation.end();
+  assert.match(stopFailure.events.at(-1).message, /麦克风未启用.*收尾尚未确认/u);
+  assert.doesNotMatch(stopFailure.events.at(-1).message, /麦克风已关闭/u);
+});
+test('an old Host without the capability cannot receive a hidden receive-only request', async () => {
+  const f = fixture();
+  await f.conversation.refresh();
+  await f.conversation.begin('receive_only');
+  assert.deepEqual(f.calls, []);
+  assert.equal(f.conversation.active, false);
 });
 test('a failed prepare cancels the submitted voice intent and shows only a safe message', async () => {
   const f = fixture({ prepare: async () => { throw new Error('/private/owner token=secret'); } });

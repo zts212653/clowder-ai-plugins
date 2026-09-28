@@ -835,6 +835,7 @@ export type CompanionCommand = {
   readonly kind: 'prepare';
 } | {
   readonly kind: 'audio.connect';
+  readonly mode?: 'receive_only';
 } | {
   readonly kind: 'audio.close';
 } | {
@@ -917,6 +918,10 @@ export type CompanionLiveTransport = {
   readonly kind: 'gpt_live_v3';
   readonly verifiedModel: null;
 };
+export type CompanionAudioState = {
+  readonly supportedModes: readonly ('duplex' | 'receive_only')[];
+  readonly activeMode: 'duplex' | 'receive_only' | null;
+};
 export type CompanionNativeWorkEntry = {
   readonly taskId: string;
   readonly nativeTurnId: string;
@@ -951,6 +956,7 @@ export type CompanionState = {
   readonly toolsReady: boolean;
   readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
   readonly liveTransport: CompanionLiveTransport;
+  readonly audio?: CompanionAudioState;
   readonly nativeWork: CompanionNativeWork;
 };
 export type CompanionDecisions = {

@@ -7,26 +7,39 @@ export class CompanionConversation {
     this.active = false;
     this.generation = 0;
     this.phase = 'idle';
+    this.audioMode = null;
     this.muted = false;
     this.silent = false;
     this.failed = false;
   }
   show(message) {
     this.message = message;
-    this.render({ phase: this.phase, identity: this.identity, muted: this.muted, silent: this.silent, failed: this.failed, message });
+    this.render({ phase: this.phase, identity: this.identity, audioMode: this.audioMode,
+      muted: this.muted, silent: this.silent, failed: this.failed, message });
   }
   current(generation) { return this.active && generation === this.generation; }
-  listening() { return this.muted ? '麦克风已静音' : '正在听，直接说话就好'; }
-  async begin() {
+  listening() {
+    if (this.audioMode === 'receive_only') return '只听模式 · 麦克风未启用';
+    return this.muted ? '麦克风已静音' : '正在听，直接说话就好';
+  }
+  retrying(prefix) {
+    return this.audioMode === 'receive_only'
+      ? `${prefix} · 麦克风未启用，点击只听重试`
+      : `${prefix} · 点击语音聊重试`;
+  }
+  async begin(mode = 'duplex') {
     if (this.active || this.stopping || this.changingDocuments) return;
+    if (mode === 'receive_only' && !this.identity?.audio?.supportedModes?.includes(mode)) return;
+    if (!['duplex', 'receive_only'].includes(mode)) return;
     this.active = true;
+    this.audioMode = mode;
     this.failed = false;
     this.phase = 'connecting';
     const generation = ++this.generation;
     // Must reach the isolated preload while the click still has user activation.
     const preparation = this.client.prepare();
     this.show('正在连接…');
-    this.deadline = setTimeout(() => { if (this.current(generation)) void this.end('连接超时 · 点击语音聊重试', true); }, 60_000);
+    this.deadline = setTimeout(() => { if (this.current(generation)) void this.end(this.retrying('连接超时'), true); }, 60_000);
     try {
       const peer = this.createPeer(event => {
         if (!this.current(generation)) return;
@@ -37,12 +50,14 @@ export class CompanionConversation {
         if (event.type === 'error') void this.end(explainError(event), true);
       });
       this.peer = peer;
-      peer.muteMic(this.muted); peer.muteSpeaker(this.silent);
+      if (mode === 'duplex') peer.muteMic(this.muted);
+      peer.muteSpeaker(this.silent);
       // Submit capture intent while this same click is active. The Host waits
       // for its matching preparation before creating the media document.
-      const [identity] = await Promise.all([preparation, peer.connect()]);
+      const [identity] = await Promise.all([preparation, peer.connect(mode === 'receive_only' ? mode : undefined)]);
       if (!this.current(generation)) { await peer.close(); return; }
       if (identity.phase !== 'ready') throw { code: 'unavailable' };
+      if (mode === 'receive_only' && !identity.audio?.supportedModes?.includes(mode)) throw { code: 'unavailable' };
       this.identity = identity;
       this.show(this.message);
     } catch (error) {
@@ -56,30 +71,40 @@ export class CompanionConversation {
     clearTimeout(this.deadline);
     const peer = this.peer;
     this.peer = undefined;
+    this.audioMode = null;
     this.phase = 'idle';
     this.show(message);
     await Promise.allSettled([peer?.close(), this.stopScreen()]);
   }
-  async end(message = '语音已结束 · 麦克风已关闭', failed = false) {
+  async end(message, failed = false) {
     if (this.stopping) return this.stopping;
+    const receiveOnly = this.audioMode === 'receive_only';
+    message ??= this.audioMode === 'receive_only' ? '只听已结束 · 麦克风未启用' : '语音已结束 · 麦克风已关闭';
     this.failed = failed;
     const local = this.releaseLocal(message);
     const operation = Promise.all([local, this.client.stop()]);
     this.stopping = operation;
     try { await operation; }
-    catch { this.show('麦克风已关闭 · 连接收尾尚未确认'); }
+    catch { this.show(receiveOnly ? '麦克风未启用 · 连接收尾尚未确认' : '麦克风已关闭 · 连接收尾尚未确认'); }
     finally { if (this.stopping === operation) this.stopping = undefined; }
   }
   async hostStopped(reason) {
     // Stop echoes must not erase a more useful local failure or manual ending.
     if (!this.active) return;
-    const messages = {
+    const receiveOnly = this.audioMode === 'receive_only';
+    const messages = receiveOnly ? {
+      locked: '屏幕已锁定 · 只听已停止，解锁后可点击只听继续',
+      suspended: '电脑已休眠 · 只听已停止，可点击只听继续',
+      hidden: '猫猫已收起 · 只听已停止',
+    } : {
       locked: '屏幕已锁定 · 语音已停止，解锁后可点击语音聊继续',
       suspended: '电脑已休眠 · 语音已停止，可点击语音聊继续',
       hidden: '猫猫已收起 · 语音已停止',
     };
     this.failed = !Object.hasOwn(messages, reason);
-    await this.releaseLocal(messages[reason] ?? '语音连接已中断 · 麦克风已关闭，点击语音聊重试');
+    await this.releaseLocal(messages[reason] ?? (receiveOnly
+      ? '只听连接已中断 · 麦克风未启用，点击只听重试'
+      : '语音连接已中断 · 麦克风已关闭，点击语音聊重试'));
   }
   async refresh() {
     if (this.refreshing) return;
@@ -89,8 +114,9 @@ export class CompanionConversation {
       const identity = await this.client.state();
       if (generation !== this.generation) return;
       this.identity = identity;
+      if (this.active && identity.audio?.activeMode) this.audioMode = identity.audio.activeMode;
       if (this.active && ['closed', 'failed', 'idle'].includes(identity.phase)) {
-        await this.end('语音连接已中断 · 点击语音聊重试', true);
+        await this.end(this.retrying('语音连接已中断'), true);
       } else this.show(this.message ?? '点开始聊天，直接对我说话');
     } catch (error) {
       if (generation === this.generation) {
@@ -134,6 +160,10 @@ export class CompanionConversation {
       return false;
     } finally { this.sending = false; }
   }
-  muteMic() { this.muted = !this.muted; this.peer?.muteMic(this.muted); this.show(this.phase === 'talking' ? this.listening() : this.message); }
+  muteMic() {
+    if (this.audioMode === 'receive_only') return;
+    this.muted = !this.muted; this.peer?.muteMic(this.muted);
+    this.show(this.phase === 'talking' ? this.listening() : this.message);
+  }
   muteSpeaker() { this.silent = !this.silent; this.peer?.muteSpeaker(this.silent); this.show(this.message); }
 }

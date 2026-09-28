@@ -28,3 +28,13 @@ test('Host audio failure remains visible and closing prevents another attempt', 
   await assert.rejects(peer.connect()); await peer.close(); await peer.connect();
   assert.equal(attempts, 1);
 });
+test('receive-only reaches the Host as an explicit transport mode without media objects', async () => {
+  const calls = [];
+  const peer = new VoicePeer(() => {}, {
+    subscribe: () => () => {},
+    connectAudio: async mode => calls.push(['connect', mode]),
+    closeAudio: async () => calls.push(['close']),
+  });
+  await peer.connect('receive_only'); await peer.close();
+  assert.deepEqual(calls, [['connect', 'receive_only'], ['close']]);
+});

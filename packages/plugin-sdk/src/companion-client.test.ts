@@ -12,8 +12,10 @@ test('companion client relays declared actions; no Host or identity arguments ar
 test('audio controls expose no generic provider event or SDP operation', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => { calls.push(command); return { kind: 'ok' }; }, subscribe: () => () => {} });
-  await client.connectAudio(); await client.muteMicrophone(true); await client.muteSpeaker(false); await client.closeAudio();
-  assert.deepEqual(calls, [{ kind: 'audio.connect' }, { kind: 'audio.microphone', muted: true }, { kind: 'audio.speaker', muted: false }, { kind: 'audio.close' }]);
+  await client.connectAudio(); await client.connectAudio('receive_only');
+  await client.muteMicrophone(true); await client.muteSpeaker(false); await client.closeAudio();
+  assert.deepEqual(calls, [{ kind: 'audio.connect' }, { kind: 'audio.connect', mode: 'receive_only' },
+    { kind: 'audio.microphone', muted: true }, { kind: 'audio.speaker', muted: false }, { kind: 'audio.close' }]);
   assert.equal('offer' in client, false);
 });
 

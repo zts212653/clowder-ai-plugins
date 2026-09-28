@@ -10,6 +10,11 @@ visible and ends the call in one click. Screen sharing has its own explicit
 picker and termination badge. There is no microphone action on a double-click,
 page load, body tap or drag.
 
+When a compatible Host advertises receive-only audio, **只听** opens the same
+conversation with playback but never requests or toggles a microphone. Older
+Hosts omit that capability, so the control stays hidden and ordinary voice keeps
+the exact legacy connect request. Text remains available independently.
+
 Typing works with voice off. The Host uses the existing owner conversation,
 configured duty cat, ordinary message routing and idempotency. The small history
 view reads a bounded recent subset; **完整聊天** opens the canonical conversation.

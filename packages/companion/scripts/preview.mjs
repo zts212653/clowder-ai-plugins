@@ -24,17 +24,18 @@ export function fixture(skin, failure, pending = true) {
     live:{catId:'codex-sol',displayName:'砚砚',transport:'gpt_live_v3',verifiedModel:null},
     deep:{catId:'fable-5',displayName:'宪宪',verifiedModel:'claude-fable-5-1'}}}]; let phase = 'idle', allowed = true;
   const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',nativeActivity:'none',
+    audio:{supportedModes:['duplex','receive_only'],activeMode:phase==='talking'?(activeMode??'duplex'):null},
     liveTransport:{kind:'gpt_live_v3',verifiedModel:null},nativeWork:{scopeId:phase==='idle'?null:'0123456789abcdef',revision:0,active:[],recent:[]},
     duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});
-  const emit = event => listeners.forEach(fn=>fn(event));
+  let activeMode = null; const emit = event => listeners.forEach(fn=>fn(event));
   window.addEventListener('message',event=>{if(event.source===parent&&event.origin===location.origin&&event.data==='preview-disconnect'){phase='closed';emit({kind:'media-stopped',reason:'closed'});}});
   const note = text => parent.postMessage({kind:'note',text},location.origin);
   window.clowderCompanion = {subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},async request(command){
     switch(command.kind){
       case 'state': return identity();
       case 'prepare': phase='ready';return identity();
-      case 'audio.connect': setTimeout(()=>{if(${failure}){emit({kind:'audio',type:'error',code:'carrier_unavailable'});}else{phase='talking';emit({kind:'audio',type:'connected'});emit({kind:'audio',type:'transcript',role:'assistant',text:'这是正在说的话，查看记录不会停止语音。'});}},450);return {kind:'ok'};
-      case 'stop': phase='idle';return {kind:'ok'};
+      case 'audio.connect': activeMode=command.mode??'duplex';setTimeout(()=>{if(${failure}){emit({kind:'audio',type:'error',code:'carrier_unavailable'});}else{phase='talking';emit({kind:'audio',type:'connected'});emit({kind:'audio',type:'transcript',role:'assistant',text:'这是正在说的话，查看记录不会停止语音。'});}},450);return {kind:'ok'};
+      case 'stop': phase='idle';activeMode=null;return {kind:'ok'};
       case 'view.layout': { const width=Math.max(136,command.width+16),height=command.panel==='none'?146:command.height+158; parent.postMessage({kind:'geometry',width,height},location.origin); return {kind:'layout',width,height,pet:{x:(width-120)/2,y:height-138},panel:{x:8,y:8,width:command.width,height:command.height}}; }
       case 'view.drag':return {kind:'ok'};
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};

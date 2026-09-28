@@ -4,6 +4,7 @@
 <body>
   <svg class="icon-definitions" aria-hidden="true">
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></symbol>
+    <symbol id="i-listen" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v7H6a2 2 0 0 1-2-2v-5ZM20 13h-3v7h1a2 2 0 0 0 2-2v-5Z"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></symbol>
     <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 4v7h7M12 7v5l3 2"/></symbol>
     <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M8 21h8M12 17v4"/></symbol>
@@ -36,7 +37,7 @@
         <video id="living-video-transition" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
       </button>
       <div id="indicators">
-        <button id="call-badge" hidden aria-label="结束语音" title="结束语音"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
+        <button id="call-badge" hidden aria-label="结束语音" title="结束语音"><svg viewBox="0 0 24 24" aria-hidden="true"><use id="call-badge-icon" href="#i-mic"/></svg></button>
         <button id="share-badge" hidden aria-label="停止共享" title="停止共享"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
         <button id="pending-badge" hidden aria-label="查看待决事项" title="查看待决事项"><span id="pending-count">?</span></button>
       </div>
@@ -48,6 +49,7 @@
       <p id="status" role="status" hidden></p>
       <div class="action-row">
         <button id="begin" class="primary" data-action="begin"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">语音聊</span></button>
+        <button id="listen" data-action="listen" hidden><svg class="icon" aria-hidden="true"><use href="#i-listen"/></svg><span>只听</span></button>
         <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>打字</span></button>
         <button id="mic" data-action="mute" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">静音</span></button>
       </div>

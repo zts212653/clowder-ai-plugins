@@ -21,7 +21,8 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
   return {
     state: () => invoke({ kind: 'state' }, 'state'),
     prepare: () => invoke({ kind: 'prepare' }, 'state'),
-    connectAudio: () => invoke({ kind: 'audio.connect' }, 'ok'),
+    connectAudio: (mode?: Extract<CompanionCommand, { kind: 'audio.connect' }>['mode']) =>
+      invoke(mode === undefined ? { kind: 'audio.connect' } : { kind: 'audio.connect', mode }, 'ok'),
     closeAudio: () => invoke({ kind: 'audio.close' }, 'ok'),
     muteMicrophone: (muted: boolean) => invoke({ kind: 'audio.microphone', muted }, 'ok'),
     muteSpeaker: (muted: boolean) => invoke({ kind: 'audio.speaker', muted }, 'ok'),

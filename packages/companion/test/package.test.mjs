@@ -19,6 +19,10 @@ test('the installable package declares one companion body and contains a closed 
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
   assert.deepEqual(manifest.features[0].capabilities, ['windows.create']);
   const html = await readFile(new URL('renderer/index.html', root));
+  assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,
+    'the package must carry a distinct capability-gated receive-only control');
+  assert.match(html.toString(), /id="call-badge-icon"[^>]*href="#i-mic"/u,
+    'the active-call badge must expose a mode-specific icon target');
   assert.equal(manifest.contributions[0].surface.integrity, `sha256-${createHash('sha256').update(html).digest('base64')}`);
   for (const name of await readdir(new URL('renderer/', root))) {
     if (!/\.(html|css|mjs)$/.test(name)) continue;

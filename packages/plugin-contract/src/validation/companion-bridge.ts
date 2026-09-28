@@ -33,6 +33,11 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     return identity === undefined || identity.partner.catId === identity.deep.catId;
   });
   if (parsed.kind !== 'state') return true;
+  if (parsed.audio) {
+    if (!parsed.audio.supportedModes.includes('duplex')) return false;
+    if (parsed.audio.activeMode !== null && !parsed.audio.supportedModes.includes(parsed.audio.activeMode)) return false;
+    if ((parsed.phase === 'talking') !== (parsed.audio.activeMode !== null)) return false;
+  }
   const work = parsed.nativeWork;
   if (work.scopeId === null && (work.active.length > 0 || work.recent.length > 0)) return false;
   if (new Set(work.active.map((entry) => entry.taskId)).size !== work.active.length) return false;

@@ -61,6 +61,10 @@ test('conversation history accepts only an immutable D0 companion identity snaps
 
 test('voice preparation and typed input are closed actions without selectable identity or Host', () => {
   assert.equal(validateCompanionCommand({ kind: 'prepare' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'audio.connect' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'audio.connect', mode: 'receive_only' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'audio.connect', mode: 'duplex' }), false,
+    'legacy duplex remains the byte-identical command with no mode field');
   assert.equal(validateCompanionCommand({ kind: 'text', text: 'An unfamiliar user sentence', clientMessageId: '863adf11-9fa3-4156-93af-94f7d6022d85' }), true);
   for (const field of ['userId', 'catId', 'threadId', 'callId', 'url', 'token', 'cookie']) {
     assert.equal(validateCompanionCommand({ kind: 'prepare', [field]: 'untrusted' }), false, field);
@@ -94,6 +98,23 @@ test('surface state preserves real actors but never leaks internal handles or ra
     carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, toolsReady: false, nativeActivity: 'none',
     liveTransport: { kind: 'gpt_live_v3', verifiedModel: null }, nativeWork };
   assert.equal(validateCompanionReply(state), true);
+  const receiveOnly = { supportedModes: ['duplex', 'receive_only'], activeMode: 'receive_only' };
+  assert.equal(validateCompanionReply({ ...state, phase: 'talking', audio: receiveOnly }), true);
+  assert.equal(validateCompanionReply({ ...state, audio: { ...receiveOnly, activeMode: null } }), true);
+  assert.equal(validateCompanionReply({ ...state, phase: 'talking', audio: {
+    ...receiveOnly, activeMode: null,
+  } }), false, 'talking cannot claim an unestablished native mode');
+  assert.equal(validateCompanionReply({ ...state, audio: receiveOnly }), false,
+    'an idle snapshot cannot retain an active native mode');
+  assert.equal(validateCompanionReply({ ...state, audio: {
+    supportedModes: ['receive_only'], activeMode: 'receive_only',
+  } }), false, 'the additive capability cannot remove legacy duplex');
+  assert.equal(validateCompanionReply({ ...state, audio: {
+    supportedModes: ['duplex'], activeMode: 'receive_only',
+  } }), false, 'active mode must be one the Host advertised');
+  assert.equal(validateCompanionReply({ ...state, audio: {
+    supportedModes: ['duplex', 'duplex'], activeMode: null,
+  } }), false, 'capabilities are a set, not an ambiguous preference list');
   assert.equal(validateCompanionReply({ ...state,
     liveTransport: { kind: 'gpt_live_v3', verifiedModel: 'configured-model-is-not-observed' } }), false);
   assert.equal(validateCompanionReply({ ...state, nativeActivity: 'tool_running' }), true);
