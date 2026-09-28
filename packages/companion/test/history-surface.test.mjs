@@ -79,6 +79,25 @@ test('opening history during voice and refreshing it preserves speech without cl
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
 });
 
+test('native history renders the saved companion separately from the real message author', async () => {
+  const f = fixture();
+  f.history(async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{
+    id: 'identity-history', role: 'assistant', text: '查到了', name: '砚砚',
+    companionIdentity: {
+      v: 1, name: '猫猫球',
+      partner: { catId: 'fable-5', displayName: '宪宪', skin: 'xianxian-codex' },
+      live: { catId: 'codex-sol', displayName: '砚砚', transport: 'gpt_live_v3', verifiedModel: null },
+      deep: { catId: 'fable-5', displayName: '宪宪', verifiedModel: null },
+    },
+  }], hasMore: false }));
+  await flush(); f.tick(); await flush();
+  const row = f.nodes.get('transcript').children[0];
+  assert.equal(row.dataset.author, '砚砚');
+  assert.equal(row.dataset.companion, '当时由宪宪陪伴');
+  assert.match(row.dataset.companionLive, /Live 快端：砚砚/u);
+  assert.match(row.dataset.companionDeep, /深思端：宪宪/u);
+});
+
 test('voice keeps the latest two Host messages beside the cat while history stays closed', async () => {
   const f = fixture(); await flush(); f.start(); await flush(); f.tick(); await flush();
   assert.equal(f.controls.panel, 'bubble');

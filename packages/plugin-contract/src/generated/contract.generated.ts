@@ -893,6 +893,26 @@ export type CompanionActor = {
   readonly catId: string;
   readonly displayName: string;
 };
+export type CompanionIdentitySnapshotV1 = {
+  readonly v: 1;
+  readonly name: '猫猫球';
+  readonly partner: {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly skin: string;
+  };
+  readonly live: {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly transport: 'gpt_live_v3';
+    readonly verifiedModel: string | null;
+  };
+  readonly deep: {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly verifiedModel: string | null;
+  };
+};
 export type CompanionLiveTransport = {
   readonly kind: 'gpt_live_v3';
   readonly verifiedModel: null;
@@ -999,6 +1019,7 @@ export type CompanionReply = {
     readonly role: 'user' | 'assistant';
     readonly text: string;
     readonly name: string;
+    readonly companionIdentity?: CompanionIdentitySnapshotV1;
   })[];
   readonly hasMore: boolean;
 };

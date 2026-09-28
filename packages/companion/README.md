@@ -14,6 +14,10 @@ Typing works with voice off. The Host uses the existing owner conversation,
 configured duty cat, ordinary message routing and idempotency. The small history
 view reads a bounded recent subset; **完整聊天** opens the canonical conversation.
 No second transcript database, credentials or selectable Host identity live here.
+When the Host supplies a valid per-message identity snapshot, each history row
+keeps its real author while separately showing the partner, Live carrier and
+deep cat saved with that message. Legacy rows omit this context instead of
+borrowing today's selected companion.
 
 ## Host integration
 

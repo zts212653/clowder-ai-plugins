@@ -28,6 +28,10 @@ export function validateCompanionCommand(value: unknown): value is CompanionComm
 export function validateCompanionReply(value: unknown): value is CompanionReply {
   if (!bounded(value) || !reply(value)) return false;
   const parsed = value as CompanionReply;
+  if (parsed.kind === 'conversation') return parsed.messages.every((message) => {
+    const identity = message.companionIdentity;
+    return identity === undefined || identity.partner.catId === identity.deep.catId;
+  });
   if (parsed.kind !== 'state') return true;
   const work = parsed.nativeWork;
   if (work.scopeId === null && (work.active.length > 0 || work.recent.length > 0)) return false;

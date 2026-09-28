@@ -1,3 +1,5 @@
+import { historicalCompanionIdentity } from './companion-identity.mjs';
+
 export class TranscriptView {
   constructor(container) {
     this.container = container;
@@ -57,7 +59,23 @@ export class TranscriptView {
       const row = previous.get(message.id) ?? this.container.ownerDocument.createElement('p');
       row.className = message.role; row.dataset.messageId = message.id;
       if (row.textContent !== message.text) row.textContent = message.text;
-      row.title = message.name; row.dataset.author = message.name;
+      const identity = historicalCompanionIdentity(message.companionIdentity, message.name);
+      row.dataset.author = identity.authorLabel;
+      if (identity.companionKnown) {
+        row.dataset.companion = identity.partnerLabel;
+        row.dataset.companionLive = identity.liveLabel;
+        row.dataset.companionDeep = identity.deepLabel;
+        row.dataset.companionAvatar = identity.avatarCatId;
+        row.dataset.companionSkin = identity.skin;
+        row.title = [identity.authorLabel, identity.partnerLabel, identity.liveLabel, identity.deepLabel].join('\n');
+        row.setAttribute('aria-label', [identity.authorLabel, message.text,
+          identity.partnerLabel, identity.liveLabel, identity.deepLabel].join('。'));
+      } else {
+        for (const key of ['companion', 'companionLive', 'companionDeep', 'companionAvatar', 'companionSkin'])
+          delete row.dataset[key];
+        row.title = identity.authorLabel;
+        row.removeAttribute?.('aria-label');
+      }
       this.historyRows.set(message.id, row);
       return row;
     });

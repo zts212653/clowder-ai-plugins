@@ -19,7 +19,10 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 
 export function fixture(skin, failure, pending = true) {
   return `<script>
-  const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'宪宪'}]; let phase = 'idle', allowed = true;
+  const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'砚砚',companionIdentity:{
+    v:1,name:'猫猫球',partner:{catId:'fable-5',displayName:'宪宪',skin:'xianxian-codex'},
+    live:{catId:'codex-sol',displayName:'砚砚',transport:'gpt_live_v3',verifiedModel:null},
+    deep:{catId:'fable-5',displayName:'宪宪',verifiedModel:'claude-fable-5-1'}}}]; let phase = 'idle', allowed = true;
   const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',nativeActivity:'none',
     liveTransport:{kind:'gpt_live_v3',verifiedModel:null},nativeWork:{scopeId:phase==='idle'?null:'0123456789abcdef',revision:0,active:[],recent:[]},
     duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});

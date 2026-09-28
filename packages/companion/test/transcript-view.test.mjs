@@ -9,6 +9,38 @@ function fixture() {
   return { container, view: new TranscriptView(container) };
 }
 const message = (id, text = id) => ({ id, role: 'user', name: '你', text });
+const companionIdentity = {
+  v: 1,
+  name: '猫猫球',
+  partner: { catId: 'fable-5', displayName: '宪宪', skin: 'xianxian-codex' },
+  live: { catId: 'codex-sol', displayName: '砚砚', transport: 'gpt_live_v3', verifiedModel: null },
+  deep: { catId: 'fable-5', displayName: '宪宪', verifiedModel: 'claude-fable-5-1' },
+};
+
+test('history keeps the real author visible beside the saved companion identity', () => {
+  const { view, container } = fixture();
+  view.load([{ ...message('m1', '查到了'), role: 'assistant', name: '砚砚', companionIdentity }]);
+  const row = container.children[0];
+  assert.equal(row.dataset.author, '砚砚');
+  assert.equal(row.dataset.companion, '当时由宪宪陪伴');
+  assert.match(row.dataset.companionLive, /Live 快端：砚砚 · 型号未核实/u);
+  assert.match(row.dataset.companionDeep, /深思端：宪宪 · claude-fable-5-1/u);
+  assert.match(row.title, /^砚砚/u);
+  assert.match(row.title, /当时由宪宪陪伴/u);
+});
+
+test('a reused legacy row clears saved identity instead of borrowing another message face', () => {
+  const { view, container } = fixture();
+  view.load([{ ...message('m1'), companionIdentity }]);
+  const original = container.children[0];
+  view.load([message('m1')]);
+  assert.equal(container.children[0], original);
+  assert.equal(original.dataset.author, '你');
+  assert.equal(original.dataset.companion, undefined);
+  assert.equal(original.dataset.companionLive, undefined);
+  assert.equal(original.dataset.companionDeep, undefined);
+  assert.equal(original.title, '你');
+});
 
 test('history refresh preserves the unfinished voice caption and its following chunks', () => {
   const { view, container } = fixture();

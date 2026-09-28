@@ -18,6 +18,47 @@ test('cat-first controls stay bounded to this window and its existing conversati
   assert.equal(validateCompanionEvent({ kind: 'view-dismiss' }), true);
 });
 
+test('conversation history accepts only an immutable D0 companion identity snapshot', () => {
+  const companionIdentity = {
+    v: 1,
+    name: '猫猫球',
+    partner: { catId: 'fable-5', displayName: '宪宪', skin: 'xianxian-codex' },
+    live: {
+      catId: 'codex-sol', displayName: '砚砚', transport: 'gpt_live_v3', verifiedModel: null,
+    },
+    deep: { catId: 'fable-5', displayName: '宪宪', verifiedModel: 'claude-fable-5-1' },
+  };
+  const reply = {
+    kind: 'conversation',
+    threadTitle: '猫猫球 · 伴随对话',
+    messages: [{
+      id: 'real-message', role: 'assistant', text: '查到了', name: '砚砚', companionIdentity,
+    }],
+    hasMore: false,
+  };
+
+  assert.equal(validateCompanionReply(reply), true);
+  const { companionIdentity: _identity, ...legacyMessage } = reply.messages[0];
+  assert.equal(validateCompanionReply({
+    ...reply,
+    messages: [legacyMessage],
+  }), true, 'legacy history remains valid by omitting the optional snapshot');
+  assert.equal(validateCompanionReply({
+    ...reply,
+    messages: [{ ...reply.messages[0], companionIdentity: {
+      ...companionIdentity,
+      deep: { ...companionIdentity.deep, catId: 'another-cat' },
+    } }],
+  }), false, 'the saved partner cannot be relabelled as another deep cat');
+  assert.equal(validateCompanionReply({
+    ...reply,
+    messages: [{ ...reply.messages[0], companionIdentity: {
+      ...companionIdentity,
+      currentDuty: { catId: 'another-cat' },
+    } }],
+  }), false, 'history snapshots are closed and cannot carry current selection');
+});
+
 test('voice preparation and typed input are closed actions without selectable identity or Host', () => {
   assert.equal(validateCompanionCommand({ kind: 'prepare' }), true);
   assert.equal(validateCompanionCommand({ kind: 'text', text: 'An unfamiliar user sentence', clientMessageId: '863adf11-9fa3-4156-93af-94f7d6022d85' }), true);

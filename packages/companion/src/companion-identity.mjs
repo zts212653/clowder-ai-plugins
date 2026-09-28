@@ -1,12 +1,13 @@
 const named = value => typeof value === 'string' && value.trim().length > 0;
 const actor = value => value && named(value.catId) && named(value.displayName);
 const model = value => value === null || (named(value) && value.length <= 160);
+const snapshotActor = value => actor(value) && value.catId.length <= 160 && value.displayName.length <= 160;
 
 function validSnapshot(value) {
   return value?.v === 1 && value.name === '猫猫球'
-    && actor(value.partner) && named(value.partner.skin)
-    && actor(value.live) && value.live.transport === 'gpt_live_v3' && model(value.live.verifiedModel)
-    && actor(value.deep) && value.deep.catId === value.partner.catId && model(value.deep.verifiedModel);
+    && snapshotActor(value.partner) && named(value.partner.skin) && value.partner.skin.length <= 160
+    && snapshotActor(value.live) && value.live.transport === 'gpt_live_v3' && model(value.live.verifiedModel)
+    && snapshotActor(value.deep) && value.deep.catId === value.partner.catId && model(value.deep.verifiedModel);
 }
 
 function display(snapshot, partnerLabel) {
