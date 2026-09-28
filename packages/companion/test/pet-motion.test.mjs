@@ -230,3 +230,22 @@ test('waking and edge peeking yield to listening and real work', () => {
   assert.equal(shown.at(-1).action, 'staged_thought');
   motion.close();
 });
+
+test('edge posture remains visible while listening stays an orthogonal signal', () => {
+  const shown = [];
+  const body = { show(action, options) { shown.push({ action, options }); }, hide() {}, close() {} };
+  const motion = new PetMotion({ dataset: {}, style: {} }, { livingBody: body, reducedMotion: false,
+    setTimer() { return 1; }, clearTimer() {} });
+
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'none', muted: false });
+  assert.equal(motion.element.dataset.listening, 'true');
+  assert.equal(shown.at(-1).action, 'waiting');
+
+  motion.setDockedEdge({ edge: 'right', zone: 'mid' });
+  assert.equal(shown.at(-1).action, 'peek', 'docking remains a body posture during an active call');
+  assert.equal(motion.element.dataset.listening, 'true', 'voice state remains independently visible');
+
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'reasoning', muted: false });
+  assert.equal(shown.at(-1).action, 'staged_thought', 'truthful work still preempts the edge posture');
+  motion.close();
+});

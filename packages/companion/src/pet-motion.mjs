@@ -179,6 +179,7 @@ export class PetMotion {
   }
 
   refresh(force = false) {
+    this.element.dataset.listening = String(this.listening());
     const selection = this.select();
     this.base = this.baseAction();
     const action = this.resolve(selection.action);
@@ -208,10 +209,9 @@ export class PetMotion {
       const { dx, dy } = this.snapshot.travel;
       return { action: Math.abs(dx) >= Math.abs(dy) ? dx < 0 ? 'running-left' : 'running-right' : 'running', oneShot: false };
     }
-    if (['talking', 'connecting'].includes(this.phase) && !this.context?.muted)
-      return { action: 'waiting', oneShot: false };
     if (this.transient?.action === 'play') return { action: 'play', oneShot: true };
     if (this.dockedEdge) return { action: 'peek', oneShot: false };
+    if (this.listening()) return { action: 'waiting', oneShot: false };
     if (this.resting) return { action: 'sleeping', oneShot: false };
     return { action: 'idle', oneShot: false };
   }
@@ -220,10 +220,12 @@ export class PetMotion {
     if (this.pendingDecision) return 'pending_decision';
     const work = this.activeWorkAction();
     if (work) return work;
-    if (['talking', 'connecting'].includes(this.phase) && !this.context?.muted) return 'waiting';
     if (this.dockedEdge) return 'peek';
+    if (this.listening()) return 'waiting';
     return 'idle';
   }
+
+  listening() { return ['talking', 'connecting'].includes(this.phase) && !this.context?.muted; }
 
   activeWorkAction() {
     if (this.snapshot.work) return workAction[this.snapshot.work.kind];
