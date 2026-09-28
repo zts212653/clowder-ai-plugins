@@ -7,6 +7,7 @@ import { TranscriptView } from '../src/transcript-view.mjs';
 import { RecentBubble } from '../src/recent-bubble.mjs';
 import { decisionBadge, decisionRows } from '../src/decision-view.mjs';
 import { normalizeNativeWork } from '../src/native-work-motion.mjs';
+import { currentCompanionIdentity } from '../src/companion-identity.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -49,7 +50,7 @@ function fixture() {
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, RecentBubble, PetMotion, LivingBody, VoicePeer, ScreenShare,
-    decisionBadge, decisionRows, normalizeNativeWork, explainError: () => '未更新',
+    decisionBadge, decisionRows, normalizeNativeWork, currentCompanionIdentity, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event),
@@ -156,8 +157,16 @@ test('ordinary assistant history never impersonates a deliverable; only the Host
   assert.ok(f.motionCalls.some(value => value.snapshot?.delivery?.resultId === 'result-1'));
 });
 
-test('identity display separates the duty cat from GPT Live and never fills an unverified model', async () => {
-  const f = fixture(); await flush(); f.tick(); await flush();
-  assert.match(f.nodes.get('connection-scope').textContent, /宪宪 · GPT Live · 实时型号未证实/u);
+test('native identity display keeps the selected companion separate from its live carrier', async () => {
+  const f = fixture(); await flush();
+  f.identity({ phase: 'talking', displayName: '旧配置名字', skin: 'xianxian-codex', nativeActivity: 'none',
+    liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
+    duty: { catId: 'fable-5', displayName: '宪宪' }, carrier: { catId: 'codex-sol', displayName: '砚砚' } });
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('menu-name').textContent, '猫猫球 · 宪宪陪伴中');
+  assert.match(f.nodes.get('connection-scope').textContent, /宪宪陪伴中/u);
+  assert.match(f.nodes.get('connection-scope').textContent, /Live 快端：砚砚 · 型号未核实/u);
+  assert.match(f.nodes.get('connection-scope').textContent, /深思端：宪宪 · 型号未核实/u);
   assert.doesNotMatch(f.nodes.get('connection-scope').textContent, /5\.6|配置型号/u);
 });

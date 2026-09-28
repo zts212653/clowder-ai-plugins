@@ -11,6 +11,7 @@ import { detectDockedEdge } from './living-edge.mjs';
 import { bindPetControls } from './pet-controls.mjs';
 import { decisionBadge, decisionRows } from './decision-view.mjs';
 import { normalizeNativeWork } from './native-work-motion.mjs';
+import { currentCompanionIdentity } from './companion-identity.mjs';
 
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
@@ -108,21 +109,28 @@ if (!window.clowderCompanion) {
       label('mic', value.muted ? '取消静音' : '静音'); $('mic').setAttribute('aria-pressed', String(value.muted));
       label('speaker', value.silent ? '开启播音' : '关闭播音');
       const identity = value.identity;
+      const companionIdentity = currentCompanionIdentity(identity);
       motion.setContext({ skin: identity?.skin, phase: value.phase, nativeActivity: identity?.nativeActivity ?? 'none', muted: value.muted });
       motion.syncSnapshot(normalizeNativeWork(identity?.nativeWork));
       if (justConnected) motion.signal('connected');
       if (showFailure) motion.signal('failed');
       if (identity) {
         $('menu-play').hidden = identity.skin !== 'xianxian-codex';
-        $('chat-name').textContent = threadTitle ?? identity.displayName; $('menu-name').textContent = identity.displayName;
-        $('pet').setAttribute('aria-label', `${identity.displayName}：点击交流，右键更多，拖动移动`);
+        const companionLabel = companionIdentity
+          ? `${companionIdentity.title} · ${companionIdentity.partnerLabel}` : identity.displayName;
+        $('chat-name').textContent = threadTitle ?? companionLabel; $('menu-name').textContent = companionLabel;
+        $('pet').setAttribute('aria-label', `${companionLabel}：点击交流，右键更多，拖动移动`);
         $('documents').querySelector('.menu-status').textContent = identity.documentsAllowed ? '开启' : '暂停';
         $('documents').setAttribute('aria-pressed', String(identity.documentsAllowed));
-        const live = identity.liveTransport?.kind === 'gpt_live_v3'
-          ? 'GPT Live · 实时型号未证实' : '实时载体未确认';
-        $('connection-scope').textContent = identity.duty.catId === identity.carrier.catId
-          ? `${identity.duty.displayName} · ${live}`
-          : `${identity.duty.displayName} · ${live} · 绑定载体 ${identity.carrier.displayName}`;
+        if (companionIdentity) {
+          $('connection-scope').textContent = `${companionIdentity.partnerLabel} · ${companionIdentity.liveLabel} · ${companionIdentity.deepLabel}`;
+        } else {
+          const live = identity.liveTransport?.kind === 'gpt_live_v3'
+            ? 'GPT Live · 实时型号未证实' : '实时载体未确认';
+          $('connection-scope').textContent = identity.duty.catId === identity.carrier.catId
+            ? `${identity.duty.displayName} · ${live}`
+            : `${identity.duty.displayName} · ${live} · 绑定载体 ${identity.carrier.displayName}`;
+        }
       }
       if (showFailure) void controls.show('actions');
     },
