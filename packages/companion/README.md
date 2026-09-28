@@ -26,11 +26,13 @@ SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the c
 
 Xianxian uses one layered sitting body or one VP9 clip at a time. Expiring Host
 facts with task, result and event identities select tool work, workspace fetch,
-screen reading, applied-result delivery and autonomous target movement.
-Dragging instead freezes a visibly held candidate and cancels the old target;
-it never renames the running clip. Pounce requires an explicit play gesture by
-default; optional automatic play is bounded by idle and cooldown timers.
-Reduced motion keeps semantic poses static and suppresses roaming and pounce.
+screen reading and applied-result delivery. Native travel is independent: the
+renderer observes the actual desktop window coordinates, so a running clip can
+appear only after the Host window really moves. Dragging suppresses that
+observer and freezes a visibly held candidate instead of renaming the running
+clip. Pounce requires an explicit play gesture by default; optional automatic
+play is bounded by idle and cooldown timers. Reduced motion keeps semantic
+poses static; a compatible Host also revokes its native movement lease.
 Other cats retain their own skins. The v3 living assets and their hashes are
 pinned in `source-lock.json`; the installable renderer carries all 21 assets
 itself, including the mid-edge `peek_fade` variant.
