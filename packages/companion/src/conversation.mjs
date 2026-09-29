@@ -8,13 +8,14 @@ export class CompanionConversation {
     this.generation = 0;
     this.phase = 'idle';
     this.audioMode = null;
+    this.retryMode = null;
     this.muted = false;
     this.silent = false;
     this.failed = false;
   }
   show(message) {
     this.message = message;
-    this.render({ phase: this.phase, identity: this.identity, audioMode: this.audioMode,
+    this.render({ phase: this.phase, identity: this.identity, audioMode: this.audioMode, retryMode: this.retryMode,
       muted: this.muted, silent: this.silent, failed: this.failed, message });
   }
   current(generation) { return this.active && generation === this.generation; }
@@ -33,6 +34,7 @@ export class CompanionConversation {
     if (!['duplex', 'receive_only'].includes(mode)) return;
     this.active = true;
     this.audioMode = mode;
+    this.retryMode = null;
     this.failed = false;
     this.phase = 'connecting';
     const generation = ++this.generation;
@@ -71,7 +73,9 @@ export class CompanionConversation {
     clearTimeout(this.deadline);
     const peer = this.peer;
     this.peer = undefined;
+    const releasedMode = this.audioMode;
     this.audioMode = null;
+    this.retryMode = this.failed ? releasedMode : null;
     this.phase = 'idle';
     this.show(message);
     await Promise.allSettled([peer?.close(), this.stopScreen()]);

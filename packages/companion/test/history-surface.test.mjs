@@ -138,6 +138,26 @@ test('receive-only is capability-gated and keeps microphone controls out of the 
   assert.match(f.nodes.get('status').textContent, /麦克风未启用/u);
 });
 
+test('an interrupted receive-only episode keeps no-mic retry visible and primary', async () => {
+  const f = fixture();
+  f.identity({ phase: 'idle', displayName: '宪宪', skin: 'xianxian-codex',
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    nativeWork: { scopeId: null, revision: 0, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+    audio: { supportedModes: ['duplex', 'receive_only'], activeMode: null } });
+  await flush(); f.tick(); await flush();
+  f.action('listen'); await flush();
+  f.receive({ kind: 'media-stopped', reason: 'closed' }); await flush();
+
+  assert.equal(f.nodes.get('status').hidden, false);
+  assert.match(f.nodes.get('status').textContent, /麦克风未启用.*点击只听重试/u);
+  assert.equal(f.nodes.get('listen.label').textContent, '重试只听');
+  assert.equal(f.nodes.get('listen').className, 'primary');
+  assert.equal(f.nodes.get('begin.label').textContent, '语音聊');
+  assert.equal(f.nodes.get('begin').className, '');
+  assert.equal(f.controls.panel, 'actions');
+});
+
 test('history requested before a call is still displayed when it arrives during voice', async () => {
   const f = fixture(); await flush(); let resolve;
   f.history(() => new Promise(done => { resolve = done; }));
