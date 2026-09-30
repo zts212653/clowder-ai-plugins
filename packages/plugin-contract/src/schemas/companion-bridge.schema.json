@@ -780,7 +780,7 @@
         "ballSize": { "type": "integer", "minimum": 48, "maximum": 192 },
         "behaviorEnabled": { "type": "boolean" },
         "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
-        "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^(?=.*\\S)[^\\r\\n\\u2028\\u2029]+$" },
+        "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
         "householdReadsAllowed": { "type": "boolean" }
       },
       "required": [

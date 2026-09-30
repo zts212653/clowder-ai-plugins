@@ -78,9 +78,13 @@ export class SettingsController {
       const canonical = await this.readCanonical(operation);
       if (operation !== this.operation) return;
       if (canonical) this.applySettings(canonical);
+      const saved = canonical && sameValue(canonical.values[field], value);
       this.publish({ phase: canonical ? 'ready' : this.state.values ? 'ready' : 'unavailable', saving: false,
         page: 'main', confirmation: null,
-        retry: null, notice: { kind: 'unconfirmed', field, callStopped: false } });
+        retry: canonical && !saved ? { field, value } : null,
+        notice: canonical
+          ? { kind: saved ? 'reconciled_saved' : 'reconciled_not_saved', field, callStopped: false }
+          : { kind: 'unconfirmed', field, callStopped: false } });
       return;
     }
     if (operation !== this.operation) return;
@@ -102,7 +106,7 @@ export class SettingsController {
         callStopped,
       };
     }
-    const retry = receipt.outcome === 'rejected'
+    const retry = (receipt.outcome === 'rejected' && ['save_failed', 'call_stop_failed'].includes(receipt.reason))
       || (receipt.outcome === 'unconfirmed' && canonical && !sameValue(canonical.values[field], value))
       ? { field, value } : null;
     this.publish({ phase: canonical ? 'ready' : this.state.values ? 'ready' : 'unavailable', saving: false,

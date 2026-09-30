@@ -138,7 +138,8 @@ test('companion settings are Host-bound single-field updates with explicit settl
   'a stale saved selection remains visible instead of silently becoming the first roster entry');
   assert.equal(validateCompanionReply({ kind: 'settings', status: 'unavailable', reason: 'host_upgrade_required' }), true);
   assert.equal(validateCompanionReply({ ...settings, values: { ...settings.values, ballSize: 12 } }), false);
-  assert.equal(validateCompanionReply({ ...settings, values: { ...settings.values, personaTone: '   ' } }), false);
+  assert.equal(validateCompanionReply({ ...settings, values: { ...settings.values, personaTone: '   ' } }), true,
+    'reads preserve legacy saved values even though new updates reject blank input');
 
   assert.equal(validateCompanionReply({
     kind: 'settings-update', field: 'personaTone', outcome: 'saved', callStatus: 'unchanged', applies: 'next_call',

@@ -183,7 +183,7 @@ button:disabled { opacity: .45; cursor: default; }
 .settings-choice[data-selected="true"]::after { content: "✓"; grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 .settings-field { display: block; padding: 10px 16px; color: var(--desktop-muted); font-size: 11px; }
 .settings-field textarea { width: 100%; margin-top: 6px; resize: none; border: 1px solid var(--desktop-line-strong); border-radius: 8px; background: var(--desktop-paper); color: var(--desktop-ink); padding: 8px 10px; line-height: 1.45; }
-.settings-field > small { display: block; margin-top: 5px; }
+.settings-field > small { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; }
 .settings-eyebrow { margin: 0; padding: 10px 16px 0; color: var(--desktop-muted); font-size: 11px; }
 .settings-eyebrow + .settings-copy { padding-top: 3px; }
 .settings-skins { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--desktop-line); }

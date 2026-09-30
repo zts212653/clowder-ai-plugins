@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { bindPetControls } from '../src/pet-controls.mjs';
 
-function fixture() {
+function fixture({ layout } = {}) {
   const nodes = new Map();
   const calls = [], moves = [];
   const node = id => ({
@@ -18,12 +18,13 @@ function fixture() {
   globalThis.document = { getElementById: id => nodes.get(id), addEventListener() {}, querySelectorAll: () => [] };
   globalThis.window = { addEventListener() {} };
   globalThis.ResizeObserver = class { observe() {} disconnect() {} };
-  const client = { drag: async () => ({ kind: 'ok' }), layout: async (panel, width, height) => {
+  const client = { drag: async () => ({ kind: 'ok' }), layout: layout ?? (async (panel, width, height) => {
     calls.push({ panel, width, height });
     return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height }, width: 360 };
-  } };
-  const controls = bindPetControls(client, { action() {}, error: cause => { throw cause; }, changed() {}, moved: (...args) => moves.push(args) });
-  return { controls, calls, moves, nodes, restore() {
+  }) };
+  const errors = [];
+  const controls = bindPetControls(client, { action() {}, error: (...args) => errors.push(args), changed() {}, moved: (...args) => moves.push(args) });
+  return { controls, calls, errors, moves, nodes, restore() {
     for (const [key, value] of Object.entries(previous)) globalThis[key] = value;
   } };
 }
@@ -68,5 +69,21 @@ test('accepted drag direction reaches the pet motion and stops on release', asyn
     assert.deepEqual(f.moves[0], [-12, 0]);
     pet.handlers.pointerup();
     assert.deepEqual(f.moves.at(-1), ['stop']);
+  } finally { f.restore(); }
+});
+
+test('a Host that rejects a new panel restores the previous usable surface', async () => {
+  const f = fixture({ layout: async panel => {
+    if (panel === 'settings') throw { code: 'invalid_request' };
+    return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height: 130 }, width: 360 };
+  } });
+  try {
+    await f.controls.show('menu');
+    await f.controls.show('settings');
+    assert.equal(f.controls.panel, 'menu');
+    assert.equal(f.nodes.get('menu').hidden, false);
+    assert.equal(f.nodes.get('settings').hidden, true);
+    assert.equal(f.errors.length, 1);
+    assert.deepEqual(f.errors[0][1], { panel: 'settings' });
   } finally { f.restore(); }
 });

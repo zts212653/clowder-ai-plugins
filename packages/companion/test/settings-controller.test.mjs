@@ -84,7 +84,20 @@ test('a call-sensitive change waits for confirmation and never restarts after st
   assert.deepEqual(f.controller.state.notice, {
     kind: 'rejected', field: 'householdReadsAllowed', callStopped: true, reason: 'save_failed',
   });
+  assert.deepEqual(f.controller.state.retry, { field: 'householdReadsAllowed', value: false });
   assert.equal(f.calls.some(([kind]) => ['prepare', 'connect'].includes(kind)), false);
+});
+
+test('an unavailable selection asks for a new choice instead of retrying the same stale id', async () => {
+  const f = fixture({ updateSetting: async (field, value) => {
+    f.calls.push(['update', field, value]);
+    return { kind: 'settings-update', field, outcome: 'rejected', callStatus: 'unchanged',
+      reason: 'selection_unavailable' };
+  } });
+  await f.controller.load();
+  await f.controller.requestUpdate('dutyCatProfileId', 'codex-sol');
+  assert.equal(f.controller.state.notice.reason, 'selection_unavailable');
+  assert.equal(f.controller.state.retry, null);
 });
 
 test('unknown settlement is resolved by readback and never automatically replays the update', async () => {
@@ -106,7 +119,7 @@ test('unknown settlement is resolved by readback and never automatically replays
   });
 });
 
-test('unknown settlement that reads back the old value stays not-saved without retry', async () => {
+test('unknown settlement that reads back the old value offers only an explicit retry', async () => {
   const f = fixture({
     updateSetting: async (field, value) => {
       f.calls.push(['update', field, value]);
@@ -121,6 +134,41 @@ test('unknown settlement that reads back the old value stays not-saved without r
   assert.deepEqual(f.controller.state.notice, {
     kind: 'reconciled_not_saved', field: 'dutyCatProfileId', callStopped: true,
   });
+  assert.deepEqual(f.controller.state.retry, { field: 'dutyCatProfileId', value: 'codex-sol' });
+});
+
+test('a lost update reply uses canonical readback instead of staying falsely unconfirmed', async () => {
+  let current = settings();
+  const f = fixture({
+    updateSetting: async (field, value) => {
+      f.calls.push(['update', field, value]);
+      current = { ...current, values: { ...current.values, [field]: value } };
+      throw new Error('reply lost');
+    },
+    readSettings: async () => { f.calls.push(['read']); return current; },
+  });
+  await f.controller.load();
+  await f.controller.requestUpdate('skin', 'yanyan-codex');
+  assert.equal(f.controller.state.values.skin, 'yanyan-codex');
+  assert.deepEqual(f.controller.state.notice, {
+    kind: 'reconciled_saved', field: 'skin', callStopped: false,
+  });
+  assert.equal(f.controller.state.retry, null);
+});
+
+test('a lost update reply that reads the old value offers only an explicit retry', async () => {
+  const f = fixture({ updateSetting: async (field, value) => {
+    f.calls.push(['update', field, value]);
+    throw new Error('reply lost');
+  } });
+  await f.controller.load();
+  await f.controller.requestUpdate('behaviorEnabled', false);
+  assert.equal(f.controller.state.values.behaviorEnabled, true);
+  assert.deepEqual(f.controller.state.notice, {
+    kind: 'reconciled_not_saved', field: 'behaviorEnabled', callStopped: false,
+  });
+  assert.deepEqual(f.controller.state.retry, { field: 'behaviorEnabled', value: false });
+  assert.equal(f.calls.filter(([kind]) => kind === 'update').length, 1, 'readback never auto-replays the write');
 });
 
 test('a late settings read cannot overwrite a newer read', async () => {

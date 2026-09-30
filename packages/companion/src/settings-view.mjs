@@ -49,6 +49,9 @@ export class SettingsView {
       if (!value) { event.target.value = this.controller.state.values?.personaTone ?? ''; return; }
       void this.controller.requestUpdate('personaTone', value);
     };
+    this.$('settings-tone').oninput = event => {
+      this.$('settings-tone-count').textContent = `${Array.from(event.target.value).length} / 200`;
+    };
     this.$('settings-size').onchange = event => void this.controller.requestUpdate('ballSize', Number(event.target.value));
     for (const id of Object.keys(skinLabels)) {
       this.$(`settings-skin-${id}`).onclick = () => void this.controller.requestUpdate('skin', id);
@@ -100,13 +103,14 @@ export class SettingsView {
     const selected = state.companions?.find(item => item.catProfileId === values.dutyCatProfileId);
     this.$('settings-partner-value').textContent = selected
       ? `${selected.displayName}${selected.available ? '' : ' · 暂不可用'}`
-      : `${values.dutyCatProfileId} · 暂不可用 · 请重新选择`;
+      : '已保存的陪伴者 · 暂不可用 · 请重新选择';
     this.$('settings-look-value').textContent = skinLabels[values.skin] ?? values.skin;
     this.setToggle('settings-behavior', values.behaviorEnabled);
     this.setToggle('settings-proactive', values.proactivePolicy === 'quiet-badge');
     this.setToggle('settings-documents', values.householdReadsAllowed);
     this.$('settings-size').value = String(values.ballSize);
     this.$('settings-tone').value = values.personaTone;
+    this.$('settings-tone-count').textContent = `${Array.from(values.personaTone).length} / 200`;
     for (const id of Object.keys(skinLabels)) {
       this.$(`settings-skin-${id}`).dataset.selected = String(values.skin === id);
     }
@@ -118,7 +122,7 @@ export class SettingsView {
     const value = state.values?.[field];
     if (field === 'skin') return skinLabels[value] ?? value;
     if (field === 'dutyCatProfileId')
-      return state.companions?.find(item => item.catProfileId === value)?.displayName ?? value;
+      return state.companions?.find(item => item.catProfileId === value)?.displayName ?? '已保存的陪伴者';
     if (field === 'behaviorEnabled' || field === 'householdReadsAllowed') return value ? '开启' : '关闭';
     if (field === 'proactivePolicy') return value === 'quiet-badge' ? '开启' : '关闭';
     if (field === 'ballSize') return `${value}`;

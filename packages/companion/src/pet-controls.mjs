@@ -24,7 +24,13 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
       if (next === 'decisions') $('decision-reload').focus({ preventScroll: true });
       if (next === 'menu') $('menu').querySelector('button').focus({ preventScroll: true });
       if (previousPanel !== next) changed(next);
-    } catch (cause) { error(cause); }
+    } catch (cause) {
+      if (revision !== layoutRevision) return;
+      panel = previousPanel;
+      for (const id of panelIds) $(id).hidden = id !== panel;
+      body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(panel)));
+      error(cause, { panel: next });
+    }
   }
   body.onclick = event => {
     if (suppressClick) { suppressClick = false; return; }

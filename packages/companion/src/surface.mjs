@@ -39,8 +39,7 @@ const nativeTravel = new NativeWindowTravel({
   changed: value => motion.syncTravel(value),
 });
 let sharing = false, pendingScreen = false, loading = false, transcriptLoading = false, latestHistory, previousPhase = 'idle';
-let didMove = false, decisionLoading = false, decisionOffset = 0, threadTitle;
-let settingsView, settingsValues, latestDecisionPage;
+let didMove = false, decisionLoading = false, decisionOffset = 0, threadTitle, settingsView, settingsValues, latestDecisionPage;
 // F229 stays quiet: a history ID change has no provenance for proactive text.
 const ambientPanel = active => active ? 'actions' : 'none';
 const setTexts = (ids, text) => { for (const id of ids) $(id).textContent = text; };
@@ -53,7 +52,7 @@ if (!window.clowderCompanion) {
   nativeTravel.start();
   const client = createCompanionClient(window.clowderCompanion);
   const controls = bindPetControls(client, {
-    error: error => status(explainError(error)),
+    error: (error, context) => status(context?.panel === 'settings' && error?.code === 'invalid_request' ? '这个 Host 版本还不支持猫旁设置。原来的设置入口会继续保留。' : explainError(error)),
     moved: (dx, dy) => {
       if (dx !== 'stop') { didMove = true; nativeTravel.setManual(true); motion.move(dx, dy); return; }
       nativeTravel.setManual(false);
@@ -106,6 +105,7 @@ if (!window.clowderCompanion) {
     }
     $('share-badge').hidden = !sharing && !pendingScreen;
     $('share-badge').title = sharing ? `正在共享：${value.label}，点此停止` : '正在选屏，点此取消';
+    $('share-badge').setAttribute('aria-label', sharing ? `停止共享：${value.label}` : '取消选屏');
     if (value.message && value.message !== '未共享屏幕' && (wasActive || pendingScreen)) status(value.message);
   });
   function toggleScreen() {

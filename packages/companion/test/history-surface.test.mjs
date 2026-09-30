@@ -258,6 +258,7 @@ test('cat-side settings read Host truth, save one field, and confirm call-sensit
   assert.equal(f.controls.panel, 'settings');
   assert.equal(f.nodes.get('settings-partner-value').textContent, '宪宪');
   assert.equal(f.nodes.get('settings-behavior').attributes['aria-checked'], 'true');
+  assert.equal(f.nodes.get('settings-tone-count').textContent, '9 / 200');
 
   await f.nodes.get('settings-behavior').onclick(); await flush();
   assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
