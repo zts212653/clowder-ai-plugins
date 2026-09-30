@@ -47,6 +47,7 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
     drag: (phase: 'start' | 'end') => invoke({ kind: 'view.drag', phase }, 'ok'),
     hide: () => invoke({ kind: 'view.hide' }, 'ok'),
     readConversation: () => invoke({ kind: 'conversation.read' }, 'conversation'),
+    readTranscript: () => invoke({ kind: 'transcript.read' }, 'transcript'),
     subscribe: (listener: (event: CompanionEvent) => void) => bridge.subscribe(listener),
   };
 }

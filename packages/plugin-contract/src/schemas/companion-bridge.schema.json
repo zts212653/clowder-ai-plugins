@@ -2,11 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/companion-bridge/v1",
   "title": "Desktop companion renderer bridge",
-  "description": "Closed package presentation bridge. The Host-owned isolated preload owns WebRTC, microphone playback and its receive-only provider data channel. Packages never provide SDP, get a peer/channel handle, or send provider events. Host binds owner, installation and conversation; the trusted executor requires explicit gestures for voice and screen admission. Renderer screen observations remain untrusted. No new M0 methods.",
+  "description": "Closed package presentation bridge. The Host-owned isolated preload owns WebRTC, microphone playback and its receive-only provider data channel. Packages never provide SDP, get a peer/channel handle, or send provider events. Host binds owner, installation, conversation and the current transcript scope; the renderer can read only that bound call. The trusted executor requires explicit gestures for voice and screen admission. Renderer screen observations remain untrusted. No new M0 methods.",
   "$defs": {
     "CompanionSelectionId": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9_-]{1,160}$"
+    },
+    "CompanionCallId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "CompanionClientMessageId": {
+      "type": "string",
+      "format": "uuid"
     },
     "CompanionScreenFrame": {
       "type": "object",
@@ -313,7 +321,8 @@
                 "actions",
                 "menu",
                 "chat",
-                "decisions"
+                "decisions",
+                "transcript"
               ]
             },
             "width": {
@@ -371,6 +380,18 @@
           "properties": {
             "kind": {
               "const": "conversation.read"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "transcript.read"
             }
           },
           "required": [
@@ -641,6 +662,101 @@
       "required": ["kind", "status"],
       "additionalProperties": false
     },
+    "CompanionTranscriptScope": {
+      "type": "object",
+      "properties": {
+        "callId": { "$ref": "#/$defs/CompanionCallId" },
+        "realtimeSessionId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" }
+      },
+      "required": ["callId", "realtimeSessionId"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptVoiceSource": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "voice" },
+        "nativeThreadId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "realtimeSessionId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "nativeItemId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "nativeTurnId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" }
+      },
+      "required": ["kind", "nativeThreadId", "realtimeSessionId", "nativeItemId"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptTypedSource": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "typed" },
+        "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+        "callId": { "$ref": "#/$defs/CompanionCallId" }
+      },
+      "required": ["kind", "clientMessageId", "callId"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptRow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "messageId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+            "role": { "enum": ["user", "assistant"] },
+            "text": { "type": "string", "minLength": 1, "maxLength": 16000 },
+            "source": { "$ref": "#/$defs/CompanionTranscriptVoiceSource" }
+          },
+          "required": ["messageId", "role", "text", "source"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "messageId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+            "role": { "const": "user" },
+            "text": { "type": "string", "minLength": 1, "maxLength": 16000 },
+            "source": { "$ref": "#/$defs/CompanionTranscriptTypedSource" }
+          },
+          "required": ["messageId", "role", "text", "source"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionDeliveryReceipt": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "delivery" },
+            "delivery": { "const": "accepted" },
+            "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+            "messageId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+            "callId": {
+              "oneOf": [
+                { "$ref": "#/$defs/CompanionCallId" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "delivery", "clientMessageId", "messageId", "callId"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "delivery" },
+            "delivery": { "const": "unconfirmed" },
+            "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+            "messageId": { "type": "null" },
+            "callId": {
+              "oneOf": [
+                { "$ref": "#/$defs/CompanionCallId" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "delivery", "clientMessageId", "messageId", "callId"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "CompanionErrorCode": {
       "enum": [
         "invalid_request",
@@ -678,23 +794,7 @@
           "$ref": "#/$defs/CompanionDecisionTrial"
         },
         {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "const": "delivery"
-            },
-            "delivery": {
-              "enum": [
-                "accepted",
-                "unconfirmed"
-              ]
-            }
-          },
-          "required": [
-            "kind",
-            "delivery"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/CompanionDeliveryReceipt"
         },
         {
           "type": "object",
@@ -876,6 +976,21 @@
             "hasMore"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "transcript" },
+            "scope": { "$ref": "#/$defs/CompanionTranscriptScope" },
+            "rows": {
+              "type": "array",
+              "maxItems": 32,
+              "items": { "$ref": "#/$defs/CompanionTranscriptRow" }
+            },
+            "hasMore": { "type": "boolean" }
+          },
+          "required": ["kind", "scope", "rows", "hasMore"],
+          "additionalProperties": false
         }
       ]
     },
@@ -916,11 +1031,15 @@
                 "recovered",
                 "error"
               ]
+            },
+            "callId": {
+              "$ref": "#/$defs/CompanionCallId"
             }
           },
           "required": [
             "kind",
-            "type"
+            "type",
+            "callId"
           ],
           "additionalProperties": false
         },
@@ -943,6 +1062,9 @@
               "type": "string",
               "maxLength": 16000
             },
+            "callId": {
+              "$ref": "#/$defs/CompanionCallId"
+            },
             "turnId": {
               "type": "string",
               "minLength": 1,
@@ -957,6 +1079,7 @@
           "required": [
             "kind",
             "type",
+            "callId",
             "role",
             "text"
           ],
@@ -981,6 +1104,9 @@
               "type": "string",
               "maxLength": 16000
             },
+            "callId": {
+              "$ref": "#/$defs/CompanionCallId"
+            },
             "turnId": {
               "type": "string",
               "minLength": 1,
@@ -989,7 +1115,8 @@
           },
           "required": [
             "kind",
-            "type"
+            "type",
+            "callId"
           ],
           "additionalProperties": false
         },

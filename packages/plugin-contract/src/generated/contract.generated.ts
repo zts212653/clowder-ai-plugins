@@ -821,6 +821,8 @@ export type DocxMaterializationResponse = {
   readonly result: DocxMaterializationResult;
 };
 export type CompanionSelectionId = string;
+export type CompanionCallId = string;
+export type CompanionClientMessageId = string;
 export type CompanionScreenFrame = {
   readonly image: string;
   readonly width: number;
@@ -879,7 +881,7 @@ export type CompanionCommand = {
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript';
   readonly width: number;
   readonly height: number;
 } | {
@@ -889,6 +891,8 @@ export type CompanionCommand = {
   readonly kind: 'view.hide';
 } | {
   readonly kind: 'conversation.read';
+} | {
+  readonly kind: 'transcript.read';
 };
 export type CompanionActor = {
   readonly catId: string;
@@ -988,13 +992,50 @@ export type CompanionDecisionTrial = {
   readonly kind: 'decision-trial';
   readonly status: 'dismissed' | 'trial_confirmed' | 'stale' | 'unavailable';
 };
+export type CompanionTranscriptScope = {
+  readonly callId: CompanionCallId;
+  readonly realtimeSessionId: string;
+};
+export type CompanionTranscriptVoiceSource = {
+  readonly kind: 'voice';
+  readonly nativeThreadId: string;
+  readonly realtimeSessionId: string;
+  readonly nativeItemId: string;
+  readonly nativeTurnId?: string;
+};
+export type CompanionTranscriptTypedSource = {
+  readonly kind: 'typed';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly callId: CompanionCallId;
+};
+export type CompanionTranscriptRow = {
+  readonly messageId: string;
+  readonly role: 'user' | 'assistant';
+  readonly text: string;
+  readonly source: CompanionTranscriptVoiceSource;
+} | {
+  readonly messageId: string;
+  readonly role: 'user';
+  readonly text: string;
+  readonly source: CompanionTranscriptTypedSource;
+};
+export type CompanionDeliveryReceipt = {
+  readonly kind: 'delivery';
+  readonly delivery: 'accepted';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly messageId: string;
+  readonly callId: CompanionCallId | null;
+} | {
+  readonly kind: 'delivery';
+  readonly delivery: 'unconfirmed';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly messageId: null;
+  readonly callId: CompanionCallId | null;
+};
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionDecisions | CompanionDecisionTrial | {
-  readonly kind: 'delivery';
-  readonly delivery: 'accepted' | 'unconfirmed';
-} | {
+} | CompanionState | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | {
@@ -1028,6 +1069,11 @@ export type CompanionReply = {
     readonly companionIdentity?: CompanionIdentitySnapshotV1;
   })[];
   readonly hasMore: boolean;
+} | {
+  readonly kind: 'transcript';
+  readonly scope: CompanionTranscriptScope;
+  readonly rows: readonly CompanionTranscriptRow[];
+  readonly hasMore: boolean;
 };
 export type CompanionEvent = {
   readonly kind: 'media-stopped';
@@ -1035,11 +1081,13 @@ export type CompanionEvent = {
 } | {
   readonly kind: 'audio';
   readonly type: 'connected' | 'recovering' | 'recovered' | 'error';
+  readonly callId: CompanionCallId;
 } | {
   readonly kind: 'audio';
   readonly type: 'transcript';
   readonly role: 'user' | 'assistant';
   readonly text: string;
+  readonly callId: CompanionCallId;
   readonly turnId?: string;
   readonly itemId?: string;
 } | {
@@ -1047,6 +1095,7 @@ export type CompanionEvent = {
   readonly type: 'turn-done';
   readonly role?: 'user' | 'assistant';
   readonly transcript?: string;
+  readonly callId: CompanionCallId;
   readonly turnId?: string;
 } | {
   readonly kind: 'view-dismiss';

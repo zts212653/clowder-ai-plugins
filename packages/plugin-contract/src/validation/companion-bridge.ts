@@ -32,6 +32,13 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     const identity = message.companionIdentity;
     return identity === undefined || identity.partner.catId === identity.deep.catId;
   });
+  if (parsed.kind === 'transcript') {
+    if (new Set(parsed.rows.map((row) => row.messageId)).size !== parsed.rows.length) return false;
+    if (parsed.rows.reduce((total, row) => total + row.text.length, 0) > 24000) return false;
+    return parsed.rows.every((row) => row.source.kind === 'voice'
+      ? row.source.realtimeSessionId === parsed.scope.realtimeSessionId
+      : row.source.callId === parsed.scope.callId);
+  }
   if (parsed.kind !== 'state') return true;
   if (parsed.audio) {
     if (!parsed.audio.supportedModes.includes('duplex')) return false;

@@ -41,6 +41,18 @@ test('decision reading requests a page without a writer or owner selector', asyn
   assert.deepEqual(calls, [{ kind: 'decisions.read', offset: 0, limit: 10 }]);
 });
 
+test('transcript reading is bound by the Host and exposes no call selector', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return { kind: 'transcript', scope: {
+      callId: '863adf11-9fa3-4156-93af-94f7d6022d85', realtimeSessionId: 'rtc-session-1',
+    }, rows: [], hasMore: false };
+  }, subscribe: () => () => {} });
+  await client.readTranscript();
+  assert.deepEqual(calls, [{ kind: 'transcript.read' }]);
+});
+
 test('F221 inspection requests a Host dialog trial without an approval payload', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => {
@@ -52,12 +64,16 @@ test('F221 inspection requests a Host dialog trial without an approval payload',
 
 test('unconfirmed text is retained for an explicit retry with the same caller id', async () => {
   const calls: CompanionCommand[] = [];
-  let response: CompanionReply = { kind: 'delivery', delivery: 'unconfirmed' };
+  const callId = 'c377802e-452e-4936-8d33-6bbf379764c2';
+  let response: CompanionReply = {
+    kind: 'delivery', delivery: 'unconfirmed', clientMessageId: '863adf11-9fa3-4156-93af-94f7d6022d85',
+    messageId: null, callId,
+  };
   const client = createCompanionClient({ request: async (command) => { calls.push(command); return response; }, subscribe: () => () => {} });
   const id = '863adf11-9fa3-4156-93af-94f7d6022d85';
   await assert.rejects(client.text('new thought', id), (error) => error instanceof CompanionRequestError && error.code === 'unconfirmed');
-  response = { kind: 'delivery', delivery: 'accepted' };
-  await client.text('new thought', id);
+  response = { kind: 'delivery', delivery: 'accepted', clientMessageId: id, messageId: 'message-1', callId };
+  assert.deepEqual(await client.text('new thought', id), response);
   assert.equal(calls.length, 2); assert.deepEqual(calls[0], calls[1]);
 });
 
