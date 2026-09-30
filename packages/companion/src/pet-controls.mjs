@@ -6,13 +6,18 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
   const desiredSizes = new WeakMap();
   let panel = 'none', ambientPanel = 'none', layoutRevision = 0, layoutScheduled = false, drag, suppressClick = false;
   const measure = node => {
-    const page = node?.id === 'settings' ? node.querySelector(':scope > .settings-page:not([hidden])') : null;
-    const nestedOverflow = page ? Math.max(0, page.scrollHeight - page.clientHeight) : 0;
-    return {
-      width: Math.min(420, Math.max(120, Math.ceil(Math.max(node?.offsetWidth ?? 120, node?.scrollWidth ?? 0)))),
-      height: Math.min(500, Math.max(32,
-        Math.ceil(Math.max(node?.offsetHeight ?? 130, node?.scrollHeight ?? 0) + nestedOverflow))),
+    if (!node) return { width: 120, height: 130 };
+    // Host placement is an applied cap, not the panel's desired geometry.
+    // Release it synchronously while measuring so CSS height and nested flex
+    // overflow can expose their natural demand, then restore it before paint.
+    const appliedMaxHeight = node.style.maxHeight;
+    node.style.maxHeight = '';
+    const desired = {
+      width: Math.min(420, Math.max(120, Math.ceil(Math.max(node.offsetWidth, node.scrollWidth)))),
+      height: Math.min(500, Math.max(32, Math.ceil(Math.max(node.offsetHeight, node.scrollHeight)))),
     };
+    node.style.maxHeight = appliedMaxHeight;
+    return desired;
   };
   async function show(next) {
     if (next === 'none' && ambientPanel !== 'none') next = ambientPanel;

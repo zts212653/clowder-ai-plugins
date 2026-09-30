@@ -20,6 +20,9 @@ importers:
       '@clowder-ai/plugin-sdk':
         specifier: 0.1.0-beta.19
         version: link:../plugin-sdk
+      playwright:
+        specifier: 1.61.1
+        version: 1.61.1
 
   packages/feishu-meeting-intake:
     dependencies:

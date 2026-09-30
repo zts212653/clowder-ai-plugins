@@ -72,22 +72,29 @@ export function fixture(skin, failure, pending = true) {
   </script>`;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) createServer(async (req, res) => {
-  try {
-    const url = new URL(req.url, 'http://localhost');
-    if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
-    if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': previewMime['.html'] }); res.end(page); return; }
-    const isSpike = url.pathname.startsWith('/spike/');
-    const directory = isSpike ? spikeRoot : root;
-    const path = isSpike ? url.pathname.slice('/spike'.length) : url.pathname;
-    const file = resolve(directory, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
-    if (!file.startsWith(directory + sep) || !previewMime[extname(file)]) { res.writeHead(404); res.end(); return; }
-    let content = await readFile(file);
-    if (url.pathname === '/index.html') {
-      const skin = url.searchParams.get('skin');
-      if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
-      content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0')}<script type="module"`);
-    }
-    res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
-  } catch { res.writeHead(404); res.end(); }
-}).listen(Number(process.env.PORT ?? 3891), '127.0.0.1', () => console.log('Companion visual preview ready (no Host or media)'));
+export function createPreviewServer() {
+  return createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
+      if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': previewMime['.html'] }); res.end(page); return; }
+      const isSpike = url.pathname.startsWith('/spike/');
+      const directory = isSpike ? spikeRoot : root;
+      const path = isSpike ? url.pathname.slice('/spike'.length) : url.pathname;
+      const file = resolve(directory, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
+      if (!file.startsWith(directory + sep) || !previewMime[extname(file)]) { res.writeHead(404); res.end(); return; }
+      let content = await readFile(file);
+      if (url.pathname === '/index.html') {
+        const skin = url.searchParams.get('skin');
+        if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
+        content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0')}<script type="module"`);
+      }
+      res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
+    } catch { res.writeHead(404); res.end(); }
+  });
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  createPreviewServer().listen(Number(process.env.PORT ?? 3891), '127.0.0.1',
+    () => console.log('Companion visual preview ready (no Host or media)'));
+}

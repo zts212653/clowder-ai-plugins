@@ -8,6 +8,7 @@ function fixture({ layout } = {}) {
   const node = id => ({
     id, hidden: false, style: {}, offsetWidth: id === 'bubble' ? 240 : 120,
     naturalHeight: id === 'bubble' ? 80 : 130,
+    get scrollWidth() { return this.offsetWidth; },
     get scrollHeight() { return this.naturalHeight; },
     get offsetHeight() {
       const maximum = Number.parseFloat(this.style.maxHeight);
@@ -128,13 +129,21 @@ test('content growth requests its natural height once while a Host cap remains s
   } finally { f.restore(); }
 });
 
-test('settings layout includes overflow hidden inside the visible page', async () => {
-  const f = fixture();
+test('natural measurement releases an applied Host cap only for the synchronous read', async () => {
+  let capDuringRequest;
+  let f;
+  f = fixture({ layout: async (panel, width, height) => {
+    capDuringRequest = f.nodes.get(panel).style.maxHeight;
+    f.calls.push({ panel, width, height });
+    return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height: Math.min(height, 200) }, width: 360 };
+  } });
   try {
     const settings = f.nodes.get('settings');
-    settings.naturalHeight = 200;
-    settings.visiblePage = { clientHeight: 100, scrollHeight: 260 };
+    settings.naturalHeight = 360;
+    settings.style.maxHeight = '200px';
     await f.controls.show('settings');
     assert.equal(f.calls.at(-1).height, 360);
+    assert.equal(capDuringRequest, '200px');
+    assert.equal(settings.style.maxHeight, '200px');
   } finally { f.restore(); }
 });

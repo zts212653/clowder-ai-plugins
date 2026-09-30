@@ -88,6 +88,9 @@ jobs:
           pnpm --filter @clowder-ai/companion test
           pnpm --filter @clowder-ai/companion lint
 
+      - name: Companion browser layout contract
+        run: pnpm --filter @clowder-ai/companion exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/companion test:browser
+
       - name: Feishu intake typecheck
         run: pnpm --filter @clowder-ai/feishu-meeting-intake typecheck
 
@@ -116,7 +119,7 @@ jobs:
         run: pnpm --filter @clowder-ai/xiangqi test && pnpm --filter @clowder-ai/xiangqi lint && pnpm --filter @clowder-ai/xiangqi build
 
       - name: Xiangqi browser journey
-        run: pnpm --filter @clowder-ai/xiangqi exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/xiangqi test:browser
+        run: pnpm --filter @clowder-ai/xiangqi test:browser
 
       - name: GenOffice typecheck and tests
         run: |
