@@ -30,6 +30,32 @@ export class CompanionConversation {
       ? `${prefix} · 麦克风未启用，点击只听重试`
       : `${prefix} · 点击语音通话重试`;
   }
+  stoppedMessage() {
+    return this.audioMode === 'receive_only'
+      ? '只听已结束 · 麦克风未启用'
+      : '语音通话已结束 · 麦克风已关闭';
+  }
+  expectHostStop() {
+    if (!this.active) return false;
+    this.expectedHostStop = { generation: this.generation, pending: true };
+    return true;
+  }
+  async settleExpectedHostStop(callStopped) {
+    const expected = this.expectedHostStop;
+    if (!expected || expected.generation !== this.generation) return;
+    if (callStopped === false) {
+      this.expectedHostStop = undefined;
+      return;
+    }
+    if (callStopped === null) {
+      expected.pending = false;
+      return;
+    }
+    this.expectedHostStop = undefined;
+    if (!this.active) return;
+    this.failed = false;
+    await this.releaseLocal(this.stoppedMessage());
+  }
   async begin(mode = 'duplex') {
     if (this.active || this.stopping || this.changingDocuments) return;
     if (mode === 'receive_only' && !this.identity?.audio?.supportedModes?.includes(mode)) return;
@@ -41,6 +67,7 @@ export class CompanionConversation {
     this.recovering = false;
     this.phase = 'connecting';
     this.callId = null;
+    this.expectedHostStop = undefined;
     const generation = ++this.generation;
     // Must reach the isolated preload while the click still has user activation.
     const preparation = this.client.prepare();
@@ -55,6 +82,10 @@ export class CompanionConversation {
           this.recovering = false;
           clearTimeout(this.deadline); this.phase = 'talking'; this.show(this.listening());
         }
+        if (event.type === 'error' && (!event.callId || !this.callId || event.callId === this.callId)) {
+          void this.end(explainError(event), true);
+          return;
+        }
         if (!this.callId || event.callId !== this.callId) return;
         if (event.type === 'recovering') {
           this.recovering = true;
@@ -65,7 +96,6 @@ export class CompanionConversation {
           this.show(this.listening());
         }
         if (event.type === 'transcript' || event.type === 'turn-done') this.transcript(event);
-        if (event.type === 'error') void this.end(explainError(event), true);
       });
       this.peer = peer;
       if (mode === 'duplex') peer.muteMic(this.muted);
@@ -84,6 +114,7 @@ export class CompanionConversation {
   }
   async releaseLocal(message) {
     this.active = false;
+    this.expectedHostStop = undefined;
     ++this.generation;
     this.pendingText = undefined;
     clearTimeout(this.deadline);
@@ -101,7 +132,7 @@ export class CompanionConversation {
   async end(message, failed = false) {
     if (this.stopping) return this.stopping;
     const receiveOnly = this.audioMode === 'receive_only';
-    message ??= this.audioMode === 'receive_only' ? '只听已结束 · 麦克风未启用' : '语音通话已结束 · 麦克风已关闭';
+    message ??= this.stoppedMessage();
     this.failed = failed;
     const local = this.releaseLocal(message);
     const operation = Promise.all([local, this.client.stop()]);
@@ -113,6 +144,12 @@ export class CompanionConversation {
   async hostStopped(reason) {
     // Stop echoes must not erase a more useful local failure or manual ending.
     if (!this.active) return;
+    if (reason === 'revoked' && this.expectedHostStop?.generation === this.generation) {
+      this.expectedHostStop = undefined;
+      this.failed = false;
+      await this.releaseLocal(this.stoppedMessage());
+      return;
+    }
     const receiveOnly = this.audioMode === 'receive_only';
     const messages = receiveOnly ? {
       locked: '屏幕已锁定 · 只听已停止，解锁后可点击只听继续',
@@ -138,8 +175,16 @@ export class CompanionConversation {
       this.identity = identity;
       if (this.active && identity.audio?.activeMode) this.audioMode = identity.audio.activeMode;
       if (this.active && ['closed', 'failed', 'idle'].includes(identity.phase)) {
-        await this.end(this.retrying('语音连接已中断'), true);
-      } else this.show(this.message ?? '点击语音通话，直接对我说话');
+        if (this.expectedHostStop?.generation === this.generation) {
+          this.expectedHostStop = undefined;
+          this.failed = false;
+          await this.releaseLocal(this.stoppedMessage());
+        } else await this.end(this.retrying('语音连接已中断'), true);
+      } else {
+        if (this.expectedHostStop?.generation === this.generation && !this.expectedHostStop.pending)
+          this.expectedHostStop = undefined;
+        this.show(this.message ?? '点击语音通话，直接对我说话');
+      }
     } catch (error) {
       if (generation === this.generation) {
         if (this.active) await this.end(explainError(error), true);

@@ -4,6 +4,7 @@
 <body>
   <svg class="icon-definitions" aria-hidden="true">
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></symbol>
+    <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 4.8 2.4M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.7 3M12 18v3M8 21h8M3 3l18 18"/></symbol>
     <symbol id="i-listen" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v7H6a2 2 0 0 1-2-2v-5ZM20 13h-3v7h1a2 2 0 0 0 2-2v-5Z"/></symbol>
     <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></symbol>
     <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2.6 7.4M3 4v7h7M12 7v5l3 2"/></symbol>
@@ -16,7 +17,7 @@
   </svg>
   <main id="desktop" aria-label="猫猫球">
     <div id="anchor">
-      <button id="pet" aria-label="猫猫：点击打开名片，拖动移动" aria-expanded="false" aria-controls="actions menu chat transcript settings decisions">
+      <button id="pet" aria-label="猫猫：点击或右键打开名片，拖动移动" aria-expanded="false" aria-controls="actions menu chat transcript settings decisions">
         <svg id="living-sit" viewBox="0 0 600 600" aria-hidden="true" hidden>
           <defs>
             <mask id="living-eye-left" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600"><image href="./skins/xianxian-living/layers/whiteL.webp" width="600" height="600"/></mask>
@@ -55,7 +56,7 @@
         <p id="call-bubble-first" hidden></p><p id="call-bubble-second" hidden></p>
       </div>
       <div id="active-actions" class="action-row call-actions">
-        <button id="mic" data-action="mute"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">静音</span></button>
+        <button id="mic" data-action="mute"><svg class="icon" aria-hidden="true"><use id="mic-icon" href="#i-mic"/></svg><span class="label">静音</span></button>
         <button data-action="share" id="share"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
         <button data-action="transcript"><svg class="icon" aria-hidden="true"><use href="#i-subtitles"/></svg><span>字幕</span></button>
         <button id="end" class="destructive" data-action="stop"><span>挂断</span></button>
@@ -105,7 +106,7 @@
         <span class="status-dot" aria-hidden="true"></span><strong id="transcript-call-state"></strong><span id="transcript-call-mic-state"></span><span class="view-tag">字幕</span>
         <small id="transcript-call-work" hidden></small>
         <div class="call-context-actions">
-          <button id="transcript-mic" data-action="mute" aria-label="静音"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg></button>
+          <button id="transcript-mic" data-action="mute" aria-label="静音"><svg class="icon" aria-hidden="true"><use id="transcript-mic-icon" href="#i-mic"/></svg></button>
           <button id="transcript-expand" data-action="transcript-expand"><svg class="icon" aria-hidden="true"><use href="#i-expand"/></svg><span id="transcript-expand-label">展开</span></button>
           <button data-action="stop" class="destructive compact">挂断</button>
         </div>
@@ -127,19 +128,17 @@
       <header class="settings-head"><button id="settings-back" type="button" aria-label="返回名片">‹</button><strong id="settings-title">设置</strong></header>
       <p id="settings-loading" class="settings-loading" hidden>正在读取设置…</p>
       <div id="settings-page-main" class="settings-page">
-        <button id="settings-partner-open" class="settings-row" type="button" data-setting-control><span>陪伴者</span><span id="settings-partner-value" class="settings-value">— ›</span></button>
-        <button id="settings-look-open" class="settings-row" type="button" data-setting-control><span>外观</span><span id="settings-look-value" class="settings-value">— ›</span></button>
+        <button id="settings-partner-open" class="settings-row" type="button" data-setting-control data-drilldown><span>陪伴者</span><span id="settings-partner-value" class="settings-value">—</span></button>
+        <button id="settings-look-open" class="settings-row" type="button" data-setting-control data-drilldown><span>外观</span><span id="settings-look-value" class="settings-value">—</span></button>
         <button id="settings-behavior" class="settings-row setting-switch" type="button" role="switch" aria-checked="false" data-setting-control><span><strong>自主活动</strong><small>空闲时自行走动</small></span><i aria-hidden="true"></i></button>
         <button id="settings-proactive" class="settings-row setting-switch" type="button" role="switch" aria-checked="false" data-setting-control><span><strong>主动提示</strong><small>有待办时在猫旁显示数量</small></span><i aria-hidden="true"></i></button>
         <button id="settings-documents" class="settings-row setting-switch" type="button" role="switch" aria-checked="false" data-setting-control><span><strong>资料查询</strong><small>允许陪伴者在通话中查询家里的资料</small></span><i aria-hidden="true"></i></button>
-        <p id="settings-notice" class="settings-notice" role="status" hidden></p>
-        <div class="settings-notice-actions"><button id="settings-retry" type="button" hidden>重试</button><button id="settings-reread" type="button" hidden>重新读取</button></div>
         <footer class="settings-footer"><button id="settings-reset" type="button" data-setting-control>重置位置</button><button id="settings-disable-open" type="button" data-setting-control>停用桌面猫猫球…</button></footer>
       </div>
       <div id="settings-page-partner" class="settings-page" hidden>
         <p class="settings-copy">在桌面陪伴和回复你的猫。更换陪伴者将结束当前语音通话。</p>
         <div id="settings-roster" class="settings-roster"></div>
-        <label class="settings-field"><span>人设基调</span><textarea id="settings-tone" rows="2" maxlength="200" data-setting-control></textarea><small><span>适用于所有陪伴者 · 下次语音通话生效</span><span id="settings-tone-count">0 / 200</span></small></label>
+        <label id="settings-tone-field" class="settings-field"><span>人设基调</span><textarea id="settings-tone" rows="2" maxlength="200" data-setting-control></textarea><small><span>适用于所有陪伴者 · 下次语音通话生效</span><span id="settings-tone-count">0 / 200</span></small></label>
       </div>
       <div id="settings-page-look" class="settings-page" hidden>
         <p class="settings-eyebrow">皮肤</p><p class="settings-copy">仅改变外观，不更换陪伴者。</p>
@@ -149,7 +148,7 @@
           <button id="settings-skin-ragdoll-v1" type="button" data-setting-control>布偶猫</button>
           <button id="settings-skin-yarn-ball" type="button" data-setting-control>猫猫球</button>
         </div>
-        <label class="settings-field settings-size"><span>大小</span><div><small>小</small><input id="settings-size" type="range" min="48" max="192" step="1" data-setting-control><small>大</small></div></label>
+        <label id="settings-size-field" class="settings-field settings-size"><span>大小</span><div><small>小</small><input id="settings-size" type="range" min="48" max="192" step="1" data-setting-control><small>大</small></div></label>
       </div>
       <div id="settings-page-confirm" class="settings-page settings-confirm" hidden>
         <strong id="settings-confirm-title"></strong><p id="settings-confirm-copy"></p>
@@ -157,11 +156,13 @@
       </div>
       <div id="settings-page-unavailable" class="settings-page settings-empty" hidden><p id="settings-unavailable-copy"></p><button id="settings-unavailable-retry" type="button">重试</button></div>
       <div id="settings-page-disabled" class="settings-page settings-empty" hidden><p>桌面猫猫球已停用。可在 Cat Café 的“设置 › 插件”中重新启用。</p></div>
+      <p id="settings-notice" class="settings-notice" role="status" hidden></p>
+      <div class="settings-notice-actions"><button id="settings-retry" type="button" hidden>重试</button><button id="settings-reread" type="button" hidden>重新读取</button></div>
     </section>
     <p id="announcement" class="sr-only" role="status"></p>
-    <section id="decisions" class="floating" aria-label="待你看" hidden>
-      <header><strong>待你看</strong><button id="decision-reload" type="button">刷新</button></header>
-      <p id="decision-status" role="status">正在读取待决事项…</p>
+    <section id="decisions" class="floating" aria-label="待办" hidden>
+      <header><strong>待办</strong><button id="decision-reload" type="button">刷新</button></header>
+      <p id="decision-status" role="status">正在读取待办…</p>
       <ul id="decision-list"></ul>
       <button id="decision-more" type="button" hidden>查看更多</button>
       <small>这里只查看原处事项。要决定时请打开对应卡片。</small>

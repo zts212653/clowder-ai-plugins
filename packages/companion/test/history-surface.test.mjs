@@ -251,6 +251,18 @@ test('opening and dismissing another panel during voice returns to the persisten
   assert.equal(f.controls.panel, 'actions');
 });
 
+test('microphone icons follow mute truth and hangup closes the call-only transcript panel', async () => {
+  const f = fixture(); await flush(); f.start(); await flush();
+  assert.equal(f.nodes.get('mic-icon').attributes.href, '#i-mic');
+  assert.equal(f.nodes.get('transcript-mic-icon').attributes.href, '#i-mic');
+  f.action('mute');
+  assert.equal(f.nodes.get('mic-icon').attributes.href, '#i-mic-off');
+  assert.equal(f.nodes.get('transcript-mic-icon').attributes.href, '#i-mic-off');
+  await f.controls.show('transcript'); await flush();
+  f.action('stop'); await flush();
+  assert.equal(f.controls.panel, 'menu');
+});
+
 test('cat-side settings read Host truth, save one field, and confirm call-sensitive changes', async () => {
   const f = fixture(); await flush();
   assert.ok(f.calls.includes('settings-read'));
@@ -286,6 +298,12 @@ test('settings distinguish stop-then-save failure from an unknown settlement', a
   await stopped.nodes.get('settings-confirm-apply').onclick(); await flush();
   assert.equal(stopped.nodes.get('settings-notice').textContent, '通话已结束，资料查询未更改');
   assert.equal(stopped.nodes.get('settings-retry').hidden, false);
+  assert.equal(stopped.controls.panel, 'settings');
+  assert.equal(stopped.nodes.get('begin.label').textContent, '语音通话');
+  assert.equal(stopped.motionCalls.includes('failed'), false);
+  stopped.receive({ kind: 'media-stopped', reason: 'revoked' }); await flush();
+  assert.equal(stopped.controls.panel, 'settings');
+  assert.equal(stopped.motionCalls.includes('failed'), false);
 
   const uncertain = fixture(); await flush();
   await uncertain.controls.show('settings'); await flush();
@@ -295,6 +313,30 @@ test('settings distinguish stop-then-save failure from an unknown settlement', a
   assert.equal(uncertain.nodes.get('settings-notice').textContent, '自主活动的保存结果未确认');
   assert.equal(uncertain.nodes.get('settings-behavior').dataset.settlement, 'unconfirmed');
   assert.equal(uncertain.nodes.get('settings-reread').hidden, false);
+});
+
+test('settings keep one-line tone input and mark uncertain subpage values in place', async () => {
+  const f = fixture(); await flush(); await f.controls.show('settings'); await flush();
+  f.nodes.get('settings-partner-open').onclick();
+  const tone = f.nodes.get('settings-tone');
+  tone.value = '温暖\n直接';
+  tone.oninput({ target: tone });
+  assert.equal(tone.value, '温暖 直接');
+  let prevented = false;
+  tone.onkeydown({ key: 'Enter', preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  tone.onchange({ target: tone }); await flush();
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
+    && call[1] === 'personaTone' && call[2] === '温暖 直接'));
+
+  f.settingsUpdate(async () => { throw new Error('reply lost'); });
+  f.settingsRead(async () => { throw new Error('readback unavailable'); });
+  f.nodes.get('settings-look-open').onclick();
+  const size = f.nodes.get('settings-size');
+  size.value = '120';
+  size.onchange({ target: size }); await flush();
+  assert.equal(f.nodes.get('settings-size-field').dataset.settlement, 'unconfirmed');
+  assert.equal(f.nodes.get('settings-notice').hidden, false);
 });
 
 test('screen entry explains its scope before voice and opens the picker only after connection', async () => {
@@ -380,11 +422,11 @@ test('passive decision badge and panel keep the live call while preserving unkno
     otherNeedsMe: [{ subjectRef: 'task:one', summary: '看看任务' }],
     page: { offset, limit, hasMoreApprovals: false, hasMoreNeedsMe: false } }));
   f.tick(); await flush();
-  assert.equal(f.nodes.get('pending-count').textContent, '?');
+  assert.equal(f.nodes.get('pending-count').textContent, '有待办');
   await f.controls.show('decisions'); await flush();
   assert.equal(f.nodes.get('decision-list').children.length, 2);
-  assert.equal(f.nodes.get('decision-status').textContent, '仅部分读取 · 其余待办未能读取');
-  assert.equal(f.nodes.get('decision-reload').textContent, '重试');
+  assert.equal(f.nodes.get('decision-status').textContent, '已显示读取到的待办 · 暂无总数');
+  assert.equal(f.nodes.get('decision-reload').textContent, '刷新');
   await f.nodes.get('decision-list').children[0].children[2].onclick();
   assert.ok(f.calls.includes('inspect:proposal_mgf2abc12345678'));
   assert.match(f.nodes.get('decision-status').textContent, /没有写回/);

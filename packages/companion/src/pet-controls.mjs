@@ -7,23 +7,27 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
   async function show(next) {
     if (next === 'none' && ambientPanel !== 'none') next = ambientPanel;
     const previousPanel = panel;
-    if (panel !== next && $(next)) $(next).style.maxHeight = '500px';
+    const node = $(next);
+    // Host placement caps the current rendered height. Release that cap before
+    // every explicit remeasure so a taller state of the same panel can grow.
+    if (node) node.style.maxHeight = '500px';
     panel = next;
     for (const id of panelIds) $(id).hidden = id !== next;
     body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(next)));
-    const node = $(next);
     const revision = ++layoutRevision;
     try {
       const placed = await client.layout(next, Math.max(120, Math.ceil(node?.offsetWidth ?? 120)), Math.max(32, Math.ceil(node?.offsetHeight ?? 130)));
       if (revision !== layoutRevision) return;
       $('anchor').style.left = `${placed.pet.x}px`; $('anchor').style.top = `${placed.pet.y}px`;
       if (node) { node.style.left = `${placed.panel.x}px`; node.style.top = `${placed.panel.y}px`; node.style.maxHeight = `${placed.panel.height}px`; }
-      if (next === 'chat') $('message').focus({ preventScroll: true });
-      if (next === 'transcript') $('call-message').focus({ preventScroll: true });
-      if (next === 'settings') $('settings-back').focus({ preventScroll: true });
-      if (next === 'decisions') $('decision-reload').focus({ preventScroll: true });
-      if (next === 'menu') $('menu').querySelector('button').focus({ preventScroll: true });
-      if (previousPanel !== next) changed(next);
+      if (previousPanel !== next) {
+        if (next === 'chat') $('message').focus({ preventScroll: true });
+        if (next === 'transcript') $('call-message').focus({ preventScroll: true });
+        if (next === 'settings') $('settings-back').focus({ preventScroll: true });
+        if (next === 'decisions') $('decision-reload').focus({ preventScroll: true });
+        if (next === 'menu') $('menu').querySelector('button').focus({ preventScroll: true });
+        changed(next);
+      }
     } catch (cause) {
       if (revision !== layoutRevision) return;
       panel = previousPanel;

@@ -7,7 +7,11 @@ function fixture({ layout } = {}) {
   const calls = [], moves = [];
   const node = id => ({
     id, hidden: false, style: {}, offsetWidth: id === 'bubble' ? 240 : 120,
-    offsetHeight: id === 'bubble' ? 80 : 130,
+    naturalHeight: id === 'bubble' ? 80 : 130,
+    get offsetHeight() {
+      const maximum = Number.parseFloat(this.style.maxHeight);
+      return Number.isFinite(maximum) ? Math.min(this.naturalHeight, maximum) : this.naturalHeight;
+    },
     dataset: {}, handlers: {}, setAttribute() {}, setPointerCapture() {},
     addEventListener(name, callback) { this.handlers[name] = callback; }, focus() {},
     querySelector: () => ({ focus() {} }),
@@ -85,5 +89,20 @@ test('a Host that rejects a new panel restores the previous usable surface', asy
     assert.equal(f.nodes.get('settings').hidden, true);
     assert.equal(f.errors.length, 1);
     assert.deepEqual(f.errors[0][1], { panel: 'settings' });
+  } finally { f.restore(); }
+});
+
+test('remeasuring the same panel releases a stale height cap before asking the Host', async () => {
+  const f = fixture();
+  try {
+    const settings = f.nodes.get('settings');
+    settings.naturalHeight = 170;
+    await f.controls.show('settings');
+    assert.equal(f.calls.at(-1).height, 170);
+    assert.equal(settings.style.maxHeight, '170px');
+
+    settings.naturalHeight = 360;
+    await f.controls.show('settings');
+    assert.equal(f.calls.at(-1).height, 360);
   } finally { f.restore(); }
 });

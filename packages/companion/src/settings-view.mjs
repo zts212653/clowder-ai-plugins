@@ -17,12 +17,16 @@ const fieldLabels = {
 };
 
 export class SettingsView {
-  constructor({ document, client, close, callActive, onValues }) {
+  constructor({ document, client, close, callActive, onValues,
+    expectHostStop = () => false, settleExpectedHostStop = async () => {}, layoutChanged = () => {} }) {
     this.document = document;
     this.$ = id => document.getElementById(id);
     this.close = close;
     this.callActive = callActive;
     this.onValues = onValues;
+    this.expectHostStop = expectHostStop;
+    this.settleExpectedHostStop = settleExpectedHostStop;
+    this.layoutChanged = layoutChanged;
     this.controller = new SettingsController({ client, changed: state => this.render(state) });
     this.bind();
   }
@@ -45,12 +49,17 @@ export class SettingsView {
       void this.controller.requestUpdate('householdReadsAllowed', value, { confirm: this.callActive() });
     };
     this.$('settings-tone').onchange = event => {
-      const value = event.target.value.trim();
+      const value = event.target.value.replace(/[\r\n]+/gu, ' ').trim();
+      event.target.value = value;
       if (!value) { event.target.value = this.controller.state.values?.personaTone ?? ''; return; }
       void this.controller.requestUpdate('personaTone', value);
     };
     this.$('settings-tone').oninput = event => {
+      event.target.value = event.target.value.replace(/[\r\n]+/gu, ' ');
       this.$('settings-tone-count').textContent = `${Array.from(event.target.value).length} / 200`;
+    };
+    this.$('settings-tone').onkeydown = event => {
+      if (event.key === 'Enter') event.preventDefault();
     };
     this.$('settings-size').onchange = event => void this.controller.requestUpdate('ballSize', Number(event.target.value));
     for (const id of Object.keys(skinLabels)) {
@@ -58,8 +67,15 @@ export class SettingsView {
     }
     this.$('settings-reset').onclick = () => void this.controller.resetPosition();
     this.$('settings-disable-open').onclick = () => this.controller.requestDisable();
-    this.$('settings-confirm-cancel').onclick = () => this.controller.navigate('main');
-    this.$('settings-confirm-apply').onclick = () => void this.controller.confirm();
+    this.$('settings-confirm-cancel').onclick = () => this.controller.navigate(
+      this.controller.state.confirmation?.returnPage ?? 'main',
+    );
+    this.$('settings-confirm-apply').onclick = async () => {
+      const expectsStop = this.callActive() && Boolean(this.controller.state.confirmation);
+      if (expectsStop) this.expectHostStop();
+      const settlement = await this.controller.confirm();
+      if (expectsStop) await this.settleExpectedHostStop(settlement?.callStopped ?? null);
+    };
     this.$('settings-retry').onclick = () => void this.controller.retry();
     this.$('settings-reread').onclick = () => void this.controller.load();
     this.$('settings-unavailable-retry').onclick = () => void this.controller.load();
@@ -67,7 +83,7 @@ export class SettingsView {
 
   open() {
     this.controller.navigate('main');
-    return this.controller.load();
+    return this.controller.load({ preserveSettlement: true });
   }
 
   setToggle(id, checked) {
@@ -153,12 +169,14 @@ export class SettingsView {
 
   renderSettlement(state) {
     for (const id of ['settings-partner-open', 'settings-look-open', 'settings-behavior',
-      'settings-proactive', 'settings-documents']) delete this.$(id).dataset.settlement;
+      'settings-proactive', 'settings-documents', 'settings-tone-field', 'settings-size-field'])
+      delete this.$(id).dataset.settlement;
     if (state.notice?.kind !== 'unconfirmed') return;
     const ids = {
       dutyCatProfileId: 'settings-partner-open', skin: 'settings-look-open',
       behaviorEnabled: 'settings-behavior', proactivePolicy: 'settings-proactive',
-      householdReadsAllowed: 'settings-documents',
+      householdReadsAllowed: 'settings-documents', personaTone: 'settings-tone-field',
+      ballSize: 'settings-size-field',
     };
     const id = ids[state.notice.field];
     if (id) this.$(id).dataset.settlement = 'unconfirmed';
@@ -211,5 +229,6 @@ export class SettingsView {
     this.$('settings-notice').dataset.kind = state.notice?.kind ?? '';
     this.$('settings-retry').hidden = !state.retry;
     this.$('settings-reread').hidden = state.notice?.kind !== 'unconfirmed';
+    this.layoutChanged();
   }
 }

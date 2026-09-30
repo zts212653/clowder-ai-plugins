@@ -94,7 +94,7 @@ test('live captions reconcile by native item id while repeated text remains dist
   assert.equal(container.children[1].dataset.live, 'true');
 });
 
-test('unkeyed live captions stay distinct instead of merging by role or text', () => {
+test('unkeyed live captions stay distinct and remain visible through turn completion', () => {
   const { view, container } = fixture();
   view.setCall(CALL_A);
   view.appendLive({ type: 'transcript', callId: CALL_A, role: 'assistant', text: 'same' });
@@ -104,7 +104,8 @@ test('unkeyed live captions stay distinct instead of merging by role or text', (
   assert.equal(container.children.every(row => row.dataset.live === 'true'), true);
 
   view.finish({ type: 'turn-done', callId: CALL_A, role: 'assistant' });
-  assert.equal(container.children.length, 0);
+  assert.deepEqual(container.children.map(row => row.textContent), ['same', 'same']);
+  assert.equal(container.children.every(row => row.dataset.complete === 'true'), true);
 });
 
 test('an accepted typed receipt renders once and reuses its durable message id', () => {
@@ -188,11 +189,34 @@ test('refresh keeps the reading anchor and reports new rows instead of jumping',
   assert.equal(unread.at(-1), 0);
 });
 
-test('turn completion removes only the matching ephemeral caption', () => {
+test('turn completion retains the matching caption until its durable source reconciles', () => {
   const { view, container } = fixture();
   view.setCall(CALL_A);
   view.appendLive({ type: 'transcript', callId: CALL_A, role: 'assistant', text: 'first', itemId: 'a', turnId: 'turn-a' });
   view.appendLive({ type: 'transcript', callId: CALL_A, role: 'assistant', text: 'second', itemId: 'b', turnId: 'turn-b' });
   view.finish({ type: 'turn-done', callId: CALL_A, role: 'assistant', turnId: 'turn-a' });
-  assert.deepEqual(container.children.map(row => row.textContent), ['second']);
+  assert.deepEqual(container.children.map(row => row.textContent), ['first', 'second']);
+  assert.equal(container.children[0].dataset.complete, 'true');
+  assert.equal(container.children[1].dataset.complete, undefined);
+  view.load({ kind: 'transcript', scope: scope(CALL_A), hasMore: false, rows: [
+    voice('m1', 'assistant', 'first', 'a', 'turn-a'),
+  ] });
+  assert.deepEqual(container.children.map(row => row.textContent), ['first', 'second']);
+  assert.equal(container.children[0].dataset.messageId, 'm1');
+});
+
+test('a live row becoming durable does not count the same semantic row as unread twice', () => {
+  const { view, container, unread } = fixture();
+  container.scrollHeight = 200;
+  container.clientHeight = 80;
+  view.setCall(CALL_A);
+  view.load({ kind: 'transcript', scope: scope(CALL_A), hasMore: false, rows: [] });
+  container.scrollTop = 0;
+  view.appendLive({ type: 'transcript', callId: CALL_A, role: 'assistant', text: 'same',
+    itemId: 'output-1', turnId: 'turn-1' });
+  assert.equal(unread.at(-1), 1);
+  view.load({ kind: 'transcript', scope: scope(CALL_A), hasMore: false, rows: [
+    voice('m1', 'assistant', 'same', 'output-1', 'turn-1'),
+  ] });
+  assert.equal(unread.at(-1), 1);
 });

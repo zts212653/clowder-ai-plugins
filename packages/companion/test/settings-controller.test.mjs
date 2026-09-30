@@ -199,3 +199,53 @@ test('reset is direct but disabling the installed companion requires confirmatio
   assert.deepEqual(f.calls, [['read'], ['reset'], ['disable']]);
   assert.equal(f.controller.state.phase, 'disabled');
 });
+
+test('reopening during an in-flight save cannot invalidate its settlement or strand saving', async () => {
+  const update = deferred();
+  const f = fixture({ updateSetting: async (field, value) => {
+    f.calls.push(['update', field, value]);
+    return update.promise;
+  } });
+  await f.controller.load();
+  const saving = f.controller.requestUpdate('behaviorEnabled', false);
+  await f.controller.load({ preserveSettlement: true });
+  update.resolve({ kind: 'settings-update', field: 'behaviorEnabled', outcome: 'rejected',
+    callStatus: 'unchanged', reason: 'save_failed' });
+  await saving;
+  assert.equal(f.controller.state.saving, false);
+  assert.equal(f.controller.state.notice.kind, 'rejected');
+  assert.deepEqual(f.controller.state.retry, { field: 'behaviorEnabled', value: false });
+  await f.controller.requestUpdate('proactivePolicy', 'ambient');
+  assert.equal(f.calls.filter(([kind]) => kind === 'update').length, 2);
+});
+
+test('settlement stays on its originating settings page and reports trusted call-stop truth', async () => {
+  const f = fixture({ updateSetting: async (field, value) => {
+    f.calls.push(['update', field, value]);
+    return { kind: 'settings-update', field, outcome: 'saved', callStatus: 'stopped', applies: 'now' };
+  } });
+  await f.controller.load();
+  f.controller.navigate('look');
+  await f.controller.requestUpdate('skin', 'yanyan-codex');
+  assert.equal(f.controller.state.page, 'look');
+  await f.controller.requestUpdate('householdReadsAllowed', false, { confirm: true });
+  const settlement = await f.controller.confirm();
+  assert.deepEqual(settlement, { callStopped: true });
+});
+
+test('a failed disable returns to a visible retryable settings page', async () => {
+  const f = fixture({ disableCompanion: async () => {
+    f.calls.push(['disable']);
+    throw new Error('lifecycle failed');
+  } });
+  await f.controller.load();
+  f.controller.requestDisable();
+  const settlement = await f.controller.confirm();
+  assert.deepEqual(settlement, { callStopped: null });
+  assert.equal(f.controller.state.page, 'main');
+  assert.equal(f.controller.state.saving, false);
+  assert.equal(f.controller.state.notice.kind, 'disable_failed');
+  f.controller.requestDisable();
+  assert.equal(f.controller.state.page, 'disable');
+  assert.equal(f.calls.filter(([kind]) => kind === 'disable').length, 1);
+});

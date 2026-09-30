@@ -94,13 +94,16 @@ export class CallTranscriptView {
   }
 
   removeReconciledLive(source) {
-    if (source.kind !== 'voice') return;
+    if (source.kind !== 'voice') return false;
+    let removed = false;
     for (const [key, row] of this.liveRows) {
       if ((row.dataset.itemId && row.dataset.itemId === source.nativeItemId)
         || (source.nativeTurnId && row.dataset.turnId === source.nativeTurnId)) {
         this.liveRows.delete(key);
+        removed = true;
       }
     }
+    return removed;
   }
 
   render() {
@@ -118,12 +121,12 @@ export class CallTranscriptView {
     let added = 0;
 
     for (const value of reply.rows) {
-      this.removeReconciledLive(value.source);
+      const reconciledLive = this.removeReconciledLive(value.source);
       const row = previous.get(value.messageId) ?? this.createRow();
       this.updateDurable(row, value);
       this.optimisticIds.delete(value.messageId);
       next.set(value.messageId, row);
-      if (this.initialized && !previousIds.has(value.messageId)) added += 1;
+      if (this.initialized && !previousIds.has(value.messageId) && !reconciledLive) added += 1;
     }
     // An accepted delivery already has a durable Host messageId. A transcript
     // read can race the MessageStore projection, so keep that exact row until
@@ -223,11 +226,11 @@ export class CallTranscriptView {
 
   finish(event) {
     if (!this.callId || event?.type !== 'turn-done' || event.callId !== this.callId) return false;
-    for (const [key, row] of this.liveRows) {
+    for (const row of this.liveRows.values()) {
       const matchesTurn = event.turnId && row.dataset.turnId === event.turnId;
       const matchesUnkeyedRole = !event.turnId && event.role && !row.dataset.itemId
         && !row.dataset.turnId && row.dataset.role === event.role;
-      if (matchesTurn || matchesUnkeyedRole) this.liveRows.delete(key);
+      if (matchesTurn || matchesUnkeyedRole) row.dataset.complete = 'true';
     }
     this.render();
     return true;

@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { decisionBadge, decisionRows } from '../src/decision-view.mjs';
 
-test('legacy mixed-source reads never synthesize a precise badge total', () => {
+test('successful legacy reads show pending truth without inventing a precise badge total or a failure', () => {
   const page = { status: 'available', approvalCount: 2, needsMeCount: 3, otherNeedsMeCount: 1,
     approvals: [
       { sourceFeatureId: 'F221', summary: '品味提案', resolution: 'open', materializationState: 'not_started', linkedNeedsMe: true },
       { sourceFeatureId: 'F128', summary: '新线程', resolution: 'accepted', materializationState: 'outcome_unknown', linkedNeedsMe: false },
     ], otherNeedsMe: [{ subjectRef: 'task:one', summary: '看看任务' }] };
-  assert.deepEqual(decisionBadge(page), { visible: true, label: '?', title: '仅部分读取', state: 'partial' });
+  assert.deepEqual(decisionBadge(page), { visible: true, label: '有待办', title: '有待办', state: 'available' });
   assert.equal(decisionRows(page).length, 3);
   assert.match(decisionRows(page)[1].meta, /结果未知/);
   assert.doesNotMatch(decisionRows(page)[0].meta, /F221/u);

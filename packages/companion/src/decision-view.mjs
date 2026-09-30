@@ -4,7 +4,7 @@ export function decisionBadge(page) {
     return { visible: true, label: '?', title: '待办暂不可读', state: 'unavailable' };
   const hasKnownRows = (page.approvals?.length ?? 0) > 0 || (page.otherNeedsMe?.length ?? 0) > 0
     || page.approvalCount > 0 || page.needsMeCount > 0 || page.otherNeedsMeCount > 0;
-  if (hasKnownRows) return { visible: true, label: '?', title: '仅部分读取', state: 'partial' };
+  if (hasKnownRows) return { visible: true, label: '有待办', title: '有待办', state: 'available' };
   return { visible: false, label: '0', title: '现在没有待办', state: 'empty' };
 }
 

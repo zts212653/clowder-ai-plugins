@@ -246,6 +246,45 @@ test('the trusted connected call fences transcript events from old and foreign c
   await f.conversation.end();
 });
 
+test('local failures and pre-connect Host failures stop the current attempt while foreign failures stay fenced', async () => {
+  const connected = fixture();
+  await connected.conversation.begin();
+  connected.notify({ type: 'error', callId: CALL_B, code: 'unavailable' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(connected.conversation.phase, 'talking');
+  connected.notify({ type: 'error', code: 'unavailable' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(connected.conversation.phase, 'idle');
+  assert.equal(connected.events.at(-1).failed, true);
+
+  const ready = deferred();
+  const connecting = fixture({ prepare: () => ready.promise });
+  const starting = connecting.conversation.begin();
+  connecting.notify({ type: 'error', callId: CALL_A, code: 'unavailable' });
+  await new Promise(resolve => setImmediate(resolve));
+  ready.resolve(state());
+  await starting;
+  assert.equal(connecting.conversation.phase, 'idle');
+  assert.equal(connecting.events.at(-1).failed, true);
+});
+
+test('a user-authorized Host stop settles locally without becoming a call failure', async () => {
+  const eventStop = fixture();
+  await eventStop.conversation.begin();
+  eventStop.conversation.expectHostStop();
+  await eventStop.conversation.hostStopped('revoked');
+  assert.equal(eventStop.conversation.phase, 'idle');
+  assert.equal(eventStop.events.at(-1).failed, false);
+  assert.match(eventStop.events.at(-1).message, /已结束/u);
+
+  const pollStop = fixture({ state: async () => state('idle') });
+  await pollStop.conversation.begin();
+  pollStop.conversation.expectHostStop();
+  await pollStop.conversation.refresh();
+  assert.equal(pollStop.conversation.phase, 'idle');
+  assert.equal(pollStop.events.at(-1).failed, false);
+});
+
 test('busy is presented as temporary session occupancy without guessing the writer or network', async () => {
   const f = fixture({ prepare: async () => { throw { code: 'busy' }; } });
   await f.conversation.begin();

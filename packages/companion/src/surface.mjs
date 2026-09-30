@@ -139,6 +139,7 @@ if (!window.clowderCompanion) {
       const justConnected = previousPhase !== 'talking' && value.phase === 'talking';
       if (previousPhase !== 'idle' && value.phase === 'idle') {
         transcript.reset(); callTranscript.reset(); bubble.reset(); callBubble.clear(); void readHistory();
+        if (controls.panel === 'transcript') void controls.show('menu');
       }
       previousPhase = value.phase;
       const active = value.phase !== 'idle';
@@ -174,10 +175,12 @@ if (!window.clowderCompanion) {
       setTexts(['call-mic-state', 'chat-call-mic-state', 'transcript-call-mic-state', 'menu-call-mic-state', 'settings-call-mic-state'], microphoneState);
       setHidden(['chat-call-context', 'transcript-call-context', 'menu-call-context', 'settings-call-context'], !active);
       label('mic', value.muted ? '取消静音' : '静音'); $('mic').setAttribute('aria-pressed', String(value.muted));
+      $('mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
       $('chat-mic').textContent = value.muted ? '取消静音' : '静音';
       $('settings-mic').textContent = value.muted ? '取消静音' : '静音';
       $('transcript-mic').setAttribute('aria-label', value.muted ? '取消静音' : '静音');
       $('transcript-mic').setAttribute('aria-pressed', String(value.muted));
+      $('transcript-mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
       label('speaker', value.silent ? '开启播音' : '关闭播音');
       const identity = value.identity;
       const companionIdentity = currentCompanionIdentity(identity);
@@ -198,7 +201,7 @@ if (!window.clowderCompanion) {
           ? `${companionIdentity.title} · ${companionIdentity.partnerLabel}` : identity.displayName;
         $('chat-name').textContent = threadTitle ?? companionLabel; $('menu-name').textContent = companionLabel;
         $('call-message').placeholder = `发消息给${identity.displayName}…`;
-        $('pet').setAttribute('aria-label', `${companionLabel}：点击交流，右键更多，拖动移动`);
+        $('pet').setAttribute('aria-label', `${companionLabel}：点击或右键打开名片，拖动移动`);
         $('documents').querySelector('.menu-status').textContent = identity.documentsAllowed ? '开启' : '暂停';
         $('documents').setAttribute('aria-pressed', String(identity.documentsAllowed));
         if (companionIdentity) {
@@ -219,6 +222,9 @@ if (!window.clowderCompanion) {
     client,
     close: () => void controls.show('menu'),
     callActive: () => conversation.active,
+    expectHostStop: () => conversation.expectHostStop(),
+    settleExpectedHostStop: callStopped => conversation.settleExpectedHostStop(callStopped),
+    layoutChanged: () => { if (controls.panel === 'settings') void controls.show('settings'); },
     onValues(values) {
       settingsValues = values;
       document.documentElement?.style?.setProperty?.('--pet-scale', String(values.ballSize / 72));
@@ -226,7 +232,6 @@ if (!window.clowderCompanion) {
       motion.setBehaviorEnabled(values.behaviorEnabled);
       $('documents').hidden = true;
       if (latestDecisionPage) showDecisionBadge(latestDecisionPage);
-      void controls.show(controls.panel);
     },
   });
   async function readHistory() {
@@ -271,7 +276,7 @@ if (!window.clowderCompanion) {
   async function readDecisions(more = false) {
     if (decisionLoading) return;
     decisionLoading = true;
-    if (!more && controls.panel === 'decisions') $('decision-status').textContent = '正在读取待决事项…';
+    if (!more && controls.panel === 'decisions') $('decision-status').textContent = '正在读取待办…';
     try {
       const page = await client.readDecisions(more ? decisionOffset : 0, 10);
       if (page.status !== 'available') throw new Error('Decision source unavailable');
@@ -304,15 +309,15 @@ if (!window.clowderCompanion) {
       }
       decisionOffset = page.page.offset + page.page.limit;
       const badge = decisionBadge(page);
-      $('decision-reload').textContent = badge.state === 'empty' ? '刷新' : '重试';
+      $('decision-reload').textContent = '刷新';
       $('decision-status').textContent = badge.state === 'empty'
         ? '现在没有待你处理的事项'
-        : '仅部分读取 · 其余待办未能读取';
+        : '已显示读取到的待办 · 暂无总数';
       $('decision-more').hidden = !page.page.hasMoreApprovals && !page.page.hasMoreNeedsMe;
     } catch {
       showDecisionBadge(undefined);
       motion.setPendingDecision(null);
-      if (controls.panel === 'decisions') $('decision-status').textContent = '待决事项暂不可读 · 请稍后刷新';
+      if (controls.panel === 'decisions') $('decision-status').textContent = '待办暂不可读 · 请稍后刷新';
     } finally { decisionLoading = false; }
   }
   $('share-badge').onclick = toggleScreen;
