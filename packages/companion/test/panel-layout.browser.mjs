@@ -60,6 +60,8 @@ test('dynamic call content and expanded transcript keep every action visible', a
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    await page.waitForFunction(() => document.getElementById('actions').style.maxHeight !== '');
+    await page.waitForTimeout(300);
     await page.evaluate(() => {
       const work = document.getElementById('call-work');
       work.textContent = '宪宪正在思考';
