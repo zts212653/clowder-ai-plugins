@@ -166,9 +166,13 @@ test('surface state preserves real actors but never leaks internal handles or ra
       occurredAt: 200, expiresAt: 120200, resultId: 'result-1', nativeCarrierCatId: 'codex-sol' }],
   };
   const state = { kind: 'state', phase: 'idle', displayName: 'Companion', skin: 'cat', duty: { catId: 'deep', displayName: 'Deep' },
-    carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, toolsReady: false, nativeActivity: 'none',
+    carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, behaviorEnabled: true,
+    toolsReady: false, nativeActivity: 'none',
     liveTransport: { kind: 'gpt_live_v3', verifiedModel: null }, nativeWork };
   assert.equal(validateCompanionReply(state), true);
+  const { behaviorEnabled: _behavior, ...withoutBehavior } = state;
+  assert.equal(validateCompanionReply(withoutBehavior), false,
+    'native movement and plugin settings cannot guess the persisted autonomous-behavior preference');
   const receiveOnly = { supportedModes: ['duplex', 'receive_only'], activeMode: 'receive_only' };
   assert.equal(validateCompanionReply({ ...state, phase: 'talking', audio: receiveOnly }), true);
   assert.equal(validateCompanionReply({ ...state, audio: { ...receiveOnly, activeMode: null } }), true);

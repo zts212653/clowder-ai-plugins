@@ -957,6 +957,7 @@ export type CompanionState = {
   readonly duty: CompanionActor;
   readonly carrier: CompanionActor;
   readonly documentsAllowed: boolean;
+  readonly behaviorEnabled: boolean;
   readonly toolsReady: boolean;
   readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
   readonly liveTransport: CompanionLiveTransport;

@@ -569,6 +569,9 @@
         "documentsAllowed": {
           "type": "boolean"
         },
+        "behaviorEnabled": {
+          "type": "boolean"
+        },
         "toolsReady": {
           "type": "boolean"
         },
@@ -593,6 +596,7 @@
         "duty",
         "carrier",
         "documentsAllowed",
+        "behaviorEnabled",
         "toolsReady",
         "nativeActivity",
         "liveTransport",
