@@ -89,6 +89,86 @@ test('real-time audio events are scoped to the current call', () => {
   assert.equal(validateCompanionEvent({ kind: 'audio', type: 'connected' }), false);
 });
 
+test('companion settings are Host-bound single-field updates with explicit settlement truth', () => {
+  assert.equal(validateCompanionCommand({ kind: 'settings.read' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'settings.read', ownerId: 'renderer-choice' }), false);
+
+  const updates = [
+    { kind: 'settings.update', field: 'dutyCatProfileId', value: 'fable-5' },
+    { kind: 'settings.update', field: 'skin', value: 'xianxian-codex' },
+    { kind: 'settings.update', field: 'ballSize', value: 96 },
+    { kind: 'settings.update', field: 'behaviorEnabled', value: false },
+    { kind: 'settings.update', field: 'proactivePolicy', value: 'ambient' },
+    { kind: 'settings.update', field: 'personaTone', value: '温暖、简短、不啰嗦' },
+    { kind: 'settings.update', field: 'householdReadsAllowed', value: false },
+  ];
+  for (const update of updates) {
+    assert.equal(validateCompanionCommand(update), true, update.field);
+    for (const selector of ['ownerId', 'instanceId', 'url', 'callId']) {
+      assert.equal(validateCompanionCommand({ ...update, [selector]: 'renderer-choice' }), false, selector);
+    }
+  }
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 47 }), false);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 193 }), false);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'personaTone', value: 'warm\ninjected' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'enabled', value: false }), false,
+    'legacy web visibility is not plugin lifecycle');
+  assert.equal(validateCompanionCommand({ ...updates[1], behaviorEnabled: true }), false,
+    'one command cannot smuggle a second setting');
+
+  const settings = {
+    kind: 'settings', status: 'available',
+    values: {
+      dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72,
+      behaviorEnabled: true, proactivePolicy: 'quiet-badge',
+      personaTone: '温暖、简短、不啰嗦', householdReadsAllowed: true,
+    },
+    companions: [
+      { catProfileId: 'fable-5', displayName: '宪宪', available: true },
+      { catProfileId: 'codex-sol', displayName: '砚砚', available: false },
+    ],
+    selectedCompanionStatus: 'available',
+  };
+  assert.equal(validateCompanionReply(settings), true);
+  assert.equal(validateCompanionReply({ ...settings, selectedCompanionStatus: 'unavailable',
+    values: { ...settings.values, dutyCatProfileId: 'retired-cat' } }), true,
+  'a stale saved selection remains visible instead of silently becoming the first roster entry');
+  assert.equal(validateCompanionReply({ kind: 'settings', status: 'unavailable', reason: 'host_upgrade_required' }), true);
+  assert.equal(validateCompanionReply({ ...settings, values: { ...settings.values, ballSize: 12 } }), false);
+
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'personaTone', outcome: 'saved', callStatus: 'unchanged', applies: 'next_call',
+  }), true);
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'behaviorEnabled', outcome: 'saved', callStatus: 'unchanged', applies: 'now',
+  }), true);
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'householdReadsAllowed', outcome: 'rejected', callStatus: 'stopped', reason: 'save_failed',
+  }), true, 'a stopped call and rejected save are separate facts');
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'dutyCatProfileId', outcome: 'rejected', callStatus: 'stop_failed', reason: 'call_stop_failed',
+  }), true);
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'householdReadsAllowed', outcome: 'unconfirmed', callStatus: 'stopped', reconcile: 'settings.read',
+  }), true);
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'personaTone', outcome: 'saved', callStatus: 'unchanged', applies: 'now',
+  }), false, 'tone starts with the next call');
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'skin', outcome: 'rejected', callStatus: 'stop_failed', reason: 'save_failed',
+  }), false, 'pure visual preferences cannot claim they tried to stop media');
+});
+
+test('reset and disable stay bound to this native window and installed companion', () => {
+  assert.equal(validateCompanionCommand({ kind: 'view.reset' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'companion.disable' }), true);
+  for (const selector of ['ownerId', 'instanceId', 'pluginId', 'windowId', 'url']) {
+    assert.equal(validateCompanionCommand({ kind: 'view.reset', [selector]: 'renderer-choice' }), false);
+    assert.equal(validateCompanionCommand({ kind: 'companion.disable', [selector]: 'renderer-choice' }), false);
+  }
+  assert.equal(validateCompanionReply({ kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' }), true);
+});
+
 test('conversation history accepts only an immutable D0 companion identity snapshot', () => {
   const companionIdentity = {
     v: 1,

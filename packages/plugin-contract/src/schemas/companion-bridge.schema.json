@@ -378,6 +378,100 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "view.reset" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.read" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "dutyCatProfileId" },
+            "value": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "skin" },
+            "value": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "ballSize" },
+            "value": { "type": "integer", "minimum": 48, "maximum": 192 }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "behaviorEnabled" },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "proactivePolicy" },
+            "value": { "enum": ["ambient", "quiet-badge"] }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "personaTone" },
+            "value": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "householdReadsAllowed" },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "companion.disable" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "const": "conversation.read"
             }
@@ -666,6 +760,138 @@
       "required": ["kind", "status"],
       "additionalProperties": false
     },
+    "CompanionSettingField": {
+      "enum": [
+        "dutyCatProfileId",
+        "skin",
+        "ballSize",
+        "behaviorEnabled",
+        "proactivePolicy",
+        "personaTone",
+        "householdReadsAllowed"
+      ]
+    },
+    "CompanionSettingsValues": {
+      "type": "object",
+      "properties": {
+        "dutyCatProfileId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+        "skin": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] },
+        "ballSize": { "type": "integer", "minimum": 48, "maximum": 192 },
+        "behaviorEnabled": { "type": "boolean" },
+        "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
+        "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
+        "householdReadsAllowed": { "type": "boolean" }
+      },
+      "required": [
+        "dutyCatProfileId",
+        "skin",
+        "ballSize",
+        "behaviorEnabled",
+        "proactivePolicy",
+        "personaTone",
+        "householdReadsAllowed"
+      ],
+      "additionalProperties": false
+    },
+    "CompanionSettingsRosterEntry": {
+      "type": "object",
+      "properties": {
+        "catProfileId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+        "available": { "type": "boolean" }
+      },
+      "required": ["catProfileId", "displayName", "available"],
+      "additionalProperties": false
+    },
+    "CompanionSettings": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings" },
+            "status": { "const": "available" },
+            "values": { "$ref": "#/$defs/CompanionSettingsValues" },
+            "companions": {
+              "type": "array",
+              "maxItems": 64,
+              "items": { "$ref": "#/$defs/CompanionSettingsRosterEntry" }
+            },
+            "selectedCompanionStatus": { "enum": ["available", "unavailable"] }
+          },
+          "required": ["kind", "status", "values", "companions", "selectedCompanionStatus"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings" },
+            "status": { "const": "unavailable" },
+            "reason": { "enum": ["host_upgrade_required", "temporarily_unavailable"] }
+          },
+          "required": ["kind", "status", "reason"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionSettingsUpdateReceipt": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings-update" },
+            "field": { "$ref": "#/$defs/CompanionSettingField" },
+            "outcome": { "const": "saved" },
+            "callStatus": { "enum": ["unchanged", "stopped"] },
+            "applies": { "enum": ["now", "next_call"] }
+          },
+          "required": ["kind", "field", "outcome", "callStatus", "applies"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings-update" },
+            "field": { "$ref": "#/$defs/CompanionSettingField" },
+            "outcome": { "const": "rejected" },
+            "callStatus": { "enum": ["unchanged", "stopped", "stop_failed"] },
+            "reason": {
+              "enum": [
+                "invalid_value",
+                "selection_unavailable",
+                "permission_denied",
+                "call_stop_failed",
+                "save_failed",
+                "unsupported"
+              ]
+            }
+          },
+          "required": ["kind", "field", "outcome", "callStatus", "reason"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings-update" },
+            "field": { "$ref": "#/$defs/CompanionSettingField" },
+            "outcome": { "const": "unconfirmed" },
+            "callStatus": { "enum": ["unchanged", "stopped"] },
+            "reconcile": { "const": "settings.read" }
+          },
+          "required": ["kind", "field", "outcome", "callStatus", "reconcile"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionLifecycleReceipt": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "companion-lifecycle" },
+        "action": { "const": "disable" },
+        "outcome": { "const": "disabled" }
+      },
+      "required": ["kind", "action", "outcome"],
+      "additionalProperties": false
+    },
     "CompanionTranscriptScope": {
       "type": "object",
       "properties": {
@@ -799,6 +1025,15 @@
         },
         {
           "$ref": "#/$defs/CompanionDeliveryReceipt"
+        },
+        {
+          "$ref": "#/$defs/CompanionSettings"
+        },
+        {
+          "$ref": "#/$defs/CompanionSettingsUpdateReceipt"
+        },
+        {
+          "$ref": "#/$defs/CompanionLifecycleReceipt"
         },
         {
           "type": "object",

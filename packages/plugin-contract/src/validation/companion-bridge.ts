@@ -39,6 +39,23 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
       ? row.source.realtimeSessionId === parsed.scope.realtimeSessionId
       : row.source.callId === parsed.scope.callId);
   }
+  if (parsed.kind === 'settings') {
+    if (parsed.status === 'unavailable') return true;
+    if (new Set(parsed.companions.map((entry) => entry.catProfileId)).size !== parsed.companions.length) return false;
+    const selected = parsed.companions.find((entry) => entry.catProfileId === parsed.values.dutyCatProfileId);
+    return (selected?.available === true) === (parsed.selectedCompanionStatus === 'available');
+  }
+  if (parsed.kind === 'settings-update') {
+    const stopsCall = parsed.field === 'dutyCatProfileId' || parsed.field === 'householdReadsAllowed';
+    if (!stopsCall && parsed.callStatus !== 'unchanged') return false;
+    if (parsed.outcome === 'saved') {
+      return parsed.field === 'personaTone' ? parsed.applies === 'next_call' : parsed.applies === 'now';
+    }
+    if (parsed.outcome === 'rejected') {
+      return (parsed.callStatus === 'stop_failed') === (parsed.reason === 'call_stop_failed');
+    }
+    return true;
+  }
   if (parsed.kind !== 'state') return true;
   if (parsed.audio) {
     if (!parsed.audio.supportedModes.includes('duplex')) return false;

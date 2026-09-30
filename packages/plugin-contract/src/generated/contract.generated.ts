@@ -890,6 +890,40 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'view.hide';
 } | {
+  readonly kind: 'view.reset';
+} | {
+  readonly kind: 'settings.read';
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'dutyCatProfileId';
+  readonly value: string;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'skin';
+  readonly value: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'ballSize';
+  readonly value: number;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'behaviorEnabled';
+  readonly value: boolean;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'proactivePolicy';
+  readonly value: 'ambient' | 'quiet-badge';
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'personaTone';
+  readonly value: string;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'householdReadsAllowed';
+  readonly value: boolean;
+} | {
+  readonly kind: 'companion.disable';
+} | {
   readonly kind: 'conversation.read';
 } | {
   readonly kind: 'transcript.read';
@@ -993,6 +1027,56 @@ export type CompanionDecisionTrial = {
   readonly kind: 'decision-trial';
   readonly status: 'dismissed' | 'trial_confirmed' | 'stale' | 'unavailable';
 };
+export type CompanionSettingField = 'dutyCatProfileId' | 'skin' | 'ballSize' | 'behaviorEnabled' | 'proactivePolicy' | 'personaTone' | 'householdReadsAllowed';
+export type CompanionSettingsValues = {
+  readonly dutyCatProfileId: string;
+  readonly skin: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
+  readonly ballSize: number;
+  readonly behaviorEnabled: boolean;
+  readonly proactivePolicy: 'ambient' | 'quiet-badge';
+  readonly personaTone: string;
+  readonly householdReadsAllowed: boolean;
+};
+export type CompanionSettingsRosterEntry = {
+  readonly catProfileId: string;
+  readonly displayName: string;
+  readonly available: boolean;
+};
+export type CompanionSettings = {
+  readonly kind: 'settings';
+  readonly status: 'available';
+  readonly values: CompanionSettingsValues;
+  readonly companions: readonly CompanionSettingsRosterEntry[];
+  readonly selectedCompanionStatus: 'available' | 'unavailable';
+} | {
+  readonly kind: 'settings';
+  readonly status: 'unavailable';
+  readonly reason: 'host_upgrade_required' | 'temporarily_unavailable';
+};
+export type CompanionSettingsUpdateReceipt = {
+  readonly kind: 'settings-update';
+  readonly field: CompanionSettingField;
+  readonly outcome: 'saved';
+  readonly callStatus: 'unchanged' | 'stopped';
+  readonly applies: 'now' | 'next_call';
+} | {
+  readonly kind: 'settings-update';
+  readonly field: CompanionSettingField;
+  readonly outcome: 'rejected';
+  readonly callStatus: 'unchanged' | 'stopped' | 'stop_failed';
+  readonly reason: 'invalid_value' | 'selection_unavailable' | 'permission_denied' | 'call_stop_failed' | 'save_failed' | 'unsupported';
+} | {
+  readonly kind: 'settings-update';
+  readonly field: CompanionSettingField;
+  readonly outcome: 'unconfirmed';
+  readonly callStatus: 'unchanged' | 'stopped';
+  readonly reconcile: 'settings.read';
+};
+export type CompanionLifecycleReceipt = {
+  readonly kind: 'companion-lifecycle';
+  readonly action: 'disable';
+  readonly outcome: 'disabled';
+};
 export type CompanionTranscriptScope = {
   readonly callId: CompanionCallId;
   readonly realtimeSessionId: string;
@@ -1036,7 +1120,7 @@ export type CompanionDeliveryReceipt = {
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | {
+} | CompanionState | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | {

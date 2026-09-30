@@ -53,6 +53,33 @@ test('transcript reading is bound by the Host and exposes no call selector', asy
   assert.deepEqual(calls, [{ kind: 'transcript.read' }]);
 });
 
+test('settings, native reset, and disable expose no owner or installation selectors', async () => {
+  const calls: CompanionCommand[] = [];
+  let response = {
+    kind: 'settings', status: 'available',
+    values: { dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72,
+      behaviorEnabled: true, proactivePolicy: 'quiet-badge', personaTone: '温暖', householdReadsAllowed: true },
+    companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }],
+    selectedCompanionStatus: 'available',
+  } as unknown as CompanionReply;
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; }, subscribe: () => () => {} });
+
+  await client.readSettings();
+  response = { kind: 'settings-update', field: 'behaviorEnabled', outcome: 'saved', callStatus: 'unchanged', applies: 'now' } as unknown as CompanionReply;
+  await client.updateSetting('behaviorEnabled', false);
+  response = { kind: 'ok' };
+  await client.resetPosition();
+  response = { kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' } as unknown as CompanionReply;
+  await client.disableCompanion();
+
+  assert.deepEqual(calls, [
+    { kind: 'settings.read' },
+    { kind: 'settings.update', field: 'behaviorEnabled', value: false },
+    { kind: 'view.reset' },
+    { kind: 'companion.disable' },
+  ]);
+});
+
 test('F221 inspection requests a Host dialog trial without an approval payload', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => {

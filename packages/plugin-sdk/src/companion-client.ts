@@ -1,4 +1,11 @@
-import type { CompanionCommand, CompanionErrorCode, CompanionEvent, CompanionReply } from '@clowder-ai/plugin-contract';
+import type {
+  CompanionCommand,
+  CompanionErrorCode,
+  CompanionEvent,
+  CompanionReply,
+  CompanionSettingField,
+  CompanionSettingsValues,
+} from '@clowder-ai/plugin-contract';
 
 /** Installed by the trusted desktop preload. It carries no host URL or identity selectors. */
 export interface CompanionSurfaceBridge {
@@ -46,6 +53,11 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
       invoke({ kind: 'view.layout', panel, width, height }, 'layout'),
     drag: (phase: 'start' | 'end') => invoke({ kind: 'view.drag', phase }, 'ok'),
     hide: () => invoke({ kind: 'view.hide' }, 'ok'),
+    resetPosition: () => invoke({ kind: 'view.reset' }, 'ok'),
+    readSettings: () => invoke({ kind: 'settings.read' }, 'settings'),
+    updateSetting: <K extends CompanionSettingField>(field: K, value: CompanionSettingsValues[K]) =>
+      invoke({ kind: 'settings.update', field, value } as CompanionCommand, 'settings-update'),
+    disableCompanion: () => invoke({ kind: 'companion.disable' }, 'companion-lifecycle'),
     readConversation: () => invoke({ kind: 'conversation.read' }, 'conversation'),
     readTranscript: () => invoke({ kind: 'transcript.read' }, 'transcript'),
     subscribe: (listener: (event: CompanionEvent) => void) => bridge.subscribe(listener),
