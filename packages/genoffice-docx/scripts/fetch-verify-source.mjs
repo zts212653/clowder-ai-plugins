@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSourceArchive } from './source-archive.mjs';
 
 import {
   assertArchiveEntries,
@@ -33,12 +34,7 @@ function tarType(mode) {
 }
 
 await mkdir(stagingRoot, { recursive: true });
-const response = await fetch(lock.archiveUrl, {
-  redirect: 'follow',
-  headers: { 'user-agent': 'clowder-ai-genoffice-source-admission/0.1' },
-});
-if (!response.ok) throw new Error(`source download failed: HTTP ${response.status}`);
-const archive = Buffer.from(await response.arrayBuffer());
+const archive = await readSourceArchive(archivePath, lock);
 const archiveDigest = sha256Hex(archive);
 if (archiveDigest !== lock.archiveSha256) {
   throw new Error(

@@ -35,7 +35,7 @@ const envelope = {
   },
 } as const;
 
-test('all seven M0-C request shapes have one executable contract validator', () => {
+test('all nine messaging request shapes have one executable contract validator', () => {
   for (const [method, input] of [
     ['messaging.send', draft],
     [
@@ -53,12 +53,24 @@ test('all seven M0-C request shapes have one executable contract validator', () 
     ['messaging.read', { subscriptionId: 'subscription-1', limit: 32 }],
     ['messaging.ack', { subscriptionId: 'subscription-1', ackToken: 'ack-1' }],
     ['messaging.snapshot', { subscriptionId: 'subscription-1', maxItems: 64 }],
+    ['media.read', { reference: 'hmr_1', offset: 0, limit: 524_288 }],
     [
       'host.messaging.deliver',
       {
         deliveryId: 'delivery-1',
         threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
         envelope,
+      },
+    ],
+    [
+      'host.messaging.lifecycle',
+      {
+        lifecycleId: 'life-1',
+        deliveryId: 'delivery-2',
+        threadId: 'thread-1',
+        state: 'settled',
+        chainDone: true,
+        outcome: 'completed',
       },
     ],
   ] as const) {
@@ -70,7 +82,7 @@ test('all seven M0-C request shapes have one executable contract validator', () 
   }
 });
 
-test('all seven M0-C success shapes have one executable contract validator', () => {
+test('all nine messaging success shapes have one executable contract validator', () => {
   for (const [method, result] of [
     [
       'messaging.send',
@@ -88,11 +100,13 @@ test('all seven M0-C success shapes have one executable contract validator', () 
     ['messaging.subscribe', { subscriptionId: 'subscription-1' }],
     ['messaging.read', { events: [], ackToken: null, stale: false }],
     ['messaging.ack', null],
+    ['media.read', { offset: 0, dataBase64: 'AQID', done: true }],
     [
       'messaging.snapshot',
       { items: [envelope], nextPageToken: 'page-2', snapshotAckToken: null },
     ],
     ['host.messaging.deliver', { deliveryId: 'delivery-1' }],
+    ['host.messaging.lifecycle', { deliveryId: 'delivery-2' }],
   ] as const) {
     assert.equal(
       validateMessagingRowResult(method, result).valid,

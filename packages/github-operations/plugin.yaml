@@ -1,0 +1,76 @@
+pluginId: official.github-operations
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: GitHub Operations
+description:
+  default: Track GitHub reviews, checks, conflicts, issues, comments, and repository reconciliation.
+  translations:
+    zh-CN: 跟踪 GitHub 审查、检查、冲突、Issue、评论与仓库一致性。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: token
+    label: Personal Access Token
+    kind: secret
+    required: false
+  - key: mcpToken
+    label: MCP Token
+    kind: secret
+    required: false
+  - key: setupNoiseBotLogins
+    label: Setup Noise Bot Logins
+    kind: string
+    required: false
+contributions:
+  - type: schedule
+    id: cicd-check
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.cicd-check }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: conflict-check
+    schedule: { kind: interval, everyMs: 300000 }
+    action: { method: github.conflict-check }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: review-feedback
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.review-feedback }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: repo-scan
+    schedule: { kind: interval, everyMs: 300000 }
+    action: { method: github.repo-scan }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: issue-tracking
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.issue-tracking }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: repo-comment-poll
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.repo-comment-poll }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: community-reconciler
+    schedule: { kind: interval, everyMs: 600000 }
+    action: { method: github.community-reconciler }
+    policy: { overlap: skip, timeoutMs: 120000 }
+features:
+  - id: github-collaboration
+    name: GitHub collaboration operations
+    resources: []
+    contributions:
+      - { type: schedule, id: cicd-check }
+      - { type: schedule, id: conflict-check }
+      - { type: schedule, id: review-feedback }
+      - { type: schedule, id: repo-scan }
+      - { type: schedule, id: issue-tracking }
+      - { type: schedule, id: repo-comment-poll }
+      - { type: schedule, id: community-reconciler }
+    capabilities: [schedule.register, events.publish]
+runtime:
+  transport: stdio
+  entrypoint: dist/stdio-entrypoint.js

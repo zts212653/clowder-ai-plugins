@@ -24,6 +24,29 @@ export {
   type ManifestValidationResult,
 } from './manifest.js';
 export {
+  isMediaSourceReadInput,
+  isMediaSourceReadResult,
+  isMediaSourceSettleInput,
+} from './media-source.js';
+export {
+  CLOUD_CONVERSATION_MAX_TEXT_BYTES,
+  isCloudBridgeFailureDiagnosticV1,
+  isCloudConversationAckInput,
+  isCloudConversationAckResult,
+  isCloudConversationAppendMessageInput,
+  isCloudConversationAppendMessageResult,
+  isCloudConversationListInput,
+  isCloudConversationListResult,
+  isCloudConversationTextBudget,
+  type CloudBridgeDomFingerprintV1,
+  type CloudBridgeFailureDiagnosticV1,
+} from './cloud-conversation-host.js';
+export {
+  validateOperationRowsResult,
+  type OperationRowsValidationError,
+  type OperationRowsValidationResult,
+} from './operation-rows.js';
+export {
   getCatalogPlugin,
   listCatalogPlugins,
   searchCatalogPlugins,

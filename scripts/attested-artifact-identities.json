@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "artifacts": [
+    {
+      "package": "@clowder-ai/plugin-contract",
+      "packageDirectory": "packages/plugin-contract",
+      "version": "0.1.0-beta.24",
+      "sha256": "d0dda313a6689efdf81dede6983cf2430ff5ae97d5ec529e1fbfcf9a34aaaeff",
+      "size": 220820,
+      "source": "Host #1487 ledger and F202 archive beta24-beta7-file-diff.md"
+    },
+    {
+      "package": "@clowder-ai/plugin-contract",
+      "packageDirectory": "packages/plugin-contract",
+      "version": "0.1.0-beta.25",
+      "sha256": "80816b015dbf035b322a60e218e298be48d889499b3a12018118bf4648e71dde",
+      "size": 222009,
+      "source": "Host #1487 vendored beta.25 and F202 archive beta25-beta8-file-diff.md"
+    },
+    {
+      "package": "@clowder-ai/plugin-contract",
+      "packageDirectory": "packages/plugin-contract",
+      "version": "0.1.0-beta.26",
+      "sha256": "c190d21756023d3552cc6b3427d2441fee7b30099c3e5763bdbff9b64efe7927",
+      "size": 222014,
+      "source": "Host #1487 ledger and astra canonical verification at a17b998"
+    },
+    {
+      "package": "@clowder-ai/plugin-sdk",
+      "packageDirectory": "packages/plugin-sdk",
+      "version": "0.2.0-beta.7",
+      "sha256": "d4d9a568f72cb523b6e08054e59f5c83144f300794d0a293f53a5d10bfbfbb84",
+      "size": 54762,
+      "source": "Host #1487 ledger and F202 archive beta24-beta7-file-diff.md"
+    },
+    {
+      "package": "@clowder-ai/plugin-sdk",
+      "packageDirectory": "packages/plugin-sdk",
+      "version": "0.2.0-beta.8",
+      "sha256": "886bb594f53989dd318acadd875d6e36a679babfe011b890df39c5a267876f26",
+      "size": 54761,
+      "source": "Host #1487 ledger and F202 archive beta25-beta8-file-diff.md"
+    },
+    {
+      "package": "@clowder-ai/plugin-sdk",
+      "packageDirectory": "packages/plugin-sdk",
+      "version": "0.2.0-beta.9",
+      "sha256": "8579f442d0a68c37d12a0e887685012d7d386939b621c0a3a7bad42e082a98b7",
+      "size": 54926,
+      "source": "Host #1487 ledger d67ca5b16b and F202 archive sdk-beta8-beta9-file-diff.md"
+    },
+    {
+      "package": "@clowder-ai/plugin-sdk",
+      "packageDirectory": "packages/plugin-sdk",
+      "version": "0.2.0-beta.10",
+      "sha256": "0c7c6e0a46d76d95f3c10502235be462749b84533d85095fc0653493e1d7e28e",
+      "size": 54928,
+      "source": "Host #1487 ledger and astra canonical verification at a17b998"
+    }
+  ]
+}

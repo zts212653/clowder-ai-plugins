@@ -1,0 +1,153 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  createTelegramConnectorRuntime,
+  type TelegramRuntimeAdapter,
+} from './runtime.js';
+import type { TelegramInboundMessage } from './TelegramAdapter.js';
+import type { ConnectorLogger } from './types.js';
+
+function silentLogger(): ConnectorLogger {
+  return {
+    info: () => undefined,
+    warn: () => undefined,
+    error: () => undefined,
+  };
+}
+
+function fakeAdapter() {
+  let handler: ((message: TelegramInboundMessage) => Promise<void>) | undefined;
+  let stopCalls = 0;
+  const adapter: TelegramRuntimeAdapter = {
+    connectorId: 'telegram',
+    async sendReply() {
+      return undefined;
+    },
+    startPolling(next) {
+      handler = next;
+    },
+    async stopPolling() {
+      stopCalls += 1;
+    },
+  };
+  return {
+    adapter,
+    inbound: async (message: TelegramInboundMessage) => {
+      assert.ok(handler, 'runtime must register the provider ingress handler before delivery');
+      await handler(message);
+    },
+    stopCalls: () => stopCalls,
+  };
+}
+
+test('runtime rejects an invalid explicit bot token before constructing provider state', () => {
+  let constructed = false;
+  assert.throws(
+    () => createTelegramConnectorRuntime({
+      config: { botToken: 'not-a-token' },
+      host: { deliver: async () => undefined },
+      logger: silentLogger(),
+      createAdapter: () => {
+        constructed = true;
+        return fakeAdapter().adapter;
+      },
+    }),
+    /botToken/u,
+  );
+  assert.equal(constructed, false);
+});
+
+test('runtime maps provider ingress to Host-owned delivery without inventing a target', async () => {
+  const provider = fakeAdapter();
+  const delivered: unknown[] = [];
+  const runtime = createTelegramConnectorRuntime({
+    config: { botToken: ' 123456:abcdefghij_ABC-123 ' },
+    host: { deliver: async message => { delivered.push(message); } },
+    logger: silentLogger(),
+    createAdapter: token => {
+      assert.equal(token, '123456:abcdefghij_ABC-123');
+      return provider.adapter;
+    },
+  });
+
+  await runtime.start();
+  await provider.inbound({
+    chatId: 'chat-1',
+    senderId: 'user-1',
+    messageId: 'message-1',
+    text: '@cat remains ordinary provider text',
+    attachments: [{
+      type: 'file',
+      telegramFileId: 'file-1',
+      fileName: 'proof.txt',
+    }],
+  });
+
+  assert.deepEqual(delivered, [{
+    externalConversationId: 'chat-1',
+    externalSenderId: 'user-1',
+    providerMessageId: 'message-1',
+    text: '@cat remains ordinary provider text',
+    attachments: [{
+      type: 'file',
+      platformKey: 'file-1',
+      fileName: 'proof.txt',
+    }],
+  }]);
+  assert.equal(Object.hasOwn(delivered[0] as object, 'address'), false);
+  assert.equal(Object.hasOwn(delivered[0] as object, 'threadId'), false);
+  await runtime.stop();
+  await provider.inbound({
+    chatId: 'chat-1',
+    senderId: 'user-1',
+    messageId: 'message-after-stop',
+    text: 'must not deliver',
+  });
+  assert.equal(delivered.length, 1, 'provider callbacks after stop must not reach the Host');
+});
+
+test('runtime owns one async polling lifecycle and drains exactly once', async () => {
+  const provider = fakeAdapter();
+  const runtime = createTelegramConnectorRuntime({
+    config: { botToken: '123456:abcdefghij_ABC-123' },
+    host: { deliver: async () => undefined },
+    logger: silentLogger(),
+    createAdapter: () => provider.adapter,
+  });
+
+  const starting = runtime.start();
+  assert.equal(runtime.start(), starting, 'repeated start must join the same lifecycle transition');
+  await starting;
+  await runtime.stop();
+  await runtime.stop();
+  assert.equal(provider.stopCalls(), 1);
+  await assert.rejects(runtime.start(), /stopped/u);
+});
+
+test('runtime resets to idle when provider start throws so Host retry can recover', async () => {
+  let starts = 0;
+  const adapter: TelegramRuntimeAdapter = {
+    connectorId: 'telegram',
+    async sendReply() {
+      return undefined;
+    },
+    startPolling() {
+      starts += 1;
+      if (starts === 1) throw new Error('provider start failed');
+    },
+    async stopPolling() {
+      return undefined;
+    },
+  };
+  const runtime = createTelegramConnectorRuntime({
+    config: { botToken: '123456:abcdefghij_ABC-123' },
+    host: { deliver: async () => undefined },
+    logger: silentLogger(),
+    createAdapter: () => adapter,
+  });
+
+  await assert.rejects(runtime.start(), /provider start failed/u);
+  await runtime.start();
+  assert.equal(starts, 2);
+});

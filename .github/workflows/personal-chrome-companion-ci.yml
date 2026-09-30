@@ -46,6 +46,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Companion typecheck resolves @clowder-ai/plugin-contract / plugin-sdk
+      # through workspace links whose exports point at dist/*.d.ts; a fresh
+      # checkout has no dist until the dependencies are built. Mirrors the
+      # build-deps-first pattern in packages/feishu-meeting-intake.
+      - name: Build contract and SDK dependencies
+        run: pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/plugin-sdk build
+
       - name: Companion typecheck
         run: pnpm --filter @clowder-ai/personal-chrome-companion typecheck
 

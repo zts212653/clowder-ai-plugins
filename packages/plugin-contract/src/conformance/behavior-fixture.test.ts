@@ -44,6 +44,9 @@ const manifestSchema = JSON.parse(
 const signalSchema = JSON.parse(
   readFileSync(new URL('../schemas/signal.schema.json', import.meta.url), 'utf8'),
 ) as object & { $id: string };
+const messagingSchema = JSON.parse(
+  readFileSync(new URL('../schemas/messaging.schema.json', import.meta.url), 'utf8'),
+) as object & { $id: string };
 const behaviorSchema = JSON.parse(
   readFileSync(new URL('../schemas/behavior-fixture.schema.json', import.meta.url), 'utf8'),
 ) as {
@@ -60,6 +63,7 @@ const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
 ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema.$id);
 ajv.addSchema(signalSchema, signalSchema.$id);
+ajv.addSchema(messagingSchema, messagingSchema.$id);
 ajv.addSchema(manifestSchema, manifestSchema.$id);
 const validate = ajv.compile(behaviorSchema);
 
