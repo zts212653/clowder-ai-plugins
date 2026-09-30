@@ -16,8 +16,12 @@ test('the actual renderer preview emits current Host state and conversation repl
   });
   const state = await window.clowderCompanion.request({ kind: 'state' });
   const conversation = await window.clowderCompanion.request({ kind: 'conversation.read' });
+  const settings = await window.clowderCompanion.request({ kind: 'settings.read' });
+  const transcript = await window.clowderCompanion.request({ kind: 'transcript.read' });
   assert.equal(validateCompanionReply(state), true, 'preview state must satisfy the installed bridge');
   assert.equal(validateCompanionReply(conversation), true, 'preview history must satisfy the installed bridge');
+  assert.equal(validateCompanionReply(settings), true, 'preview settings must satisfy the installed bridge');
+  assert.equal(validateCompanionReply(transcript), true, 'preview transcript must satisfy the installed bridge');
   for (const command of [
     { kind: 'prepare' },
     { kind: 'decisions.read', offset: 0, limit: 10 },

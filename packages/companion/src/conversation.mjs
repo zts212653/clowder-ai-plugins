@@ -12,11 +12,13 @@ export class CompanionConversation {
     this.muted = false;
     this.silent = false;
     this.failed = false;
+    this.recovering = false;
   }
   show(message) {
     this.message = message;
     this.render({ phase: this.phase, identity: this.identity, audioMode: this.audioMode, retryMode: this.retryMode,
-      muted: this.muted, silent: this.silent, failed: this.failed, message });
+      muted: this.muted, silent: this.silent, failed: this.failed, recovering: this.recovering,
+      callId: this.callId, message });
   }
   current(generation) { return this.active && generation === this.generation; }
   listening() {
@@ -26,7 +28,7 @@ export class CompanionConversation {
   retrying(prefix) {
     return this.audioMode === 'receive_only'
       ? `${prefix} · 麦克风未启用，点击只听重试`
-      : `${prefix} · 点击语音聊重试`;
+      : `${prefix} · 点击语音通话重试`;
   }
   async begin(mode = 'duplex') {
     if (this.active || this.stopping || this.changingDocuments) return;
@@ -36,7 +38,9 @@ export class CompanionConversation {
     this.audioMode = mode;
     this.retryMode = null;
     this.failed = false;
+    this.recovering = false;
     this.phase = 'connecting';
+    this.callId = null;
     const generation = ++this.generation;
     // Must reach the isolated preload while the click still has user activation.
     const preparation = this.client.prepare();
@@ -45,9 +49,21 @@ export class CompanionConversation {
     try {
       const peer = this.createPeer(event => {
         if (!this.current(generation)) return;
-        if (event.type === 'connected') { clearTimeout(this.deadline); this.phase = 'talking'; this.show(this.listening()); }
-        if (event.type === 'recovering') this.show('连接暂时中断 · 正在等待恢复');
-        if (event.type === 'recovered') this.show(this.listening());
+        if (event.type === 'connected') {
+          if (this.callId && this.callId !== event.callId) return;
+          this.callId = event.callId;
+          this.recovering = false;
+          clearTimeout(this.deadline); this.phase = 'talking'; this.show(this.listening());
+        }
+        if (!this.callId || event.callId !== this.callId) return;
+        if (event.type === 'recovering') {
+          this.recovering = true;
+          this.show('恢复后通话继续，无需重新连接');
+        }
+        if (event.type === 'recovered') {
+          this.recovering = false;
+          this.show(this.listening());
+        }
         if (event.type === 'transcript' || event.type === 'turn-done') this.transcript(event);
         if (event.type === 'error') void this.end(explainError(event), true);
       });
@@ -77,13 +93,15 @@ export class CompanionConversation {
     this.audioMode = null;
     this.retryMode = this.failed ? releasedMode : null;
     this.phase = 'idle';
+    this.recovering = false;
+    this.callId = null;
     this.show(message);
     await Promise.allSettled([peer?.close(), this.stopScreen()]);
   }
   async end(message, failed = false) {
     if (this.stopping) return this.stopping;
     const receiveOnly = this.audioMode === 'receive_only';
-    message ??= this.audioMode === 'receive_only' ? '只听已结束 · 麦克风未启用' : '语音已结束 · 麦克风已关闭';
+    message ??= this.audioMode === 'receive_only' ? '只听已结束 · 麦克风未启用' : '语音通话已结束 · 麦克风已关闭';
     this.failed = failed;
     const local = this.releaseLocal(message);
     const operation = Promise.all([local, this.client.stop()]);
@@ -101,14 +119,14 @@ export class CompanionConversation {
       suspended: '电脑已休眠 · 只听已停止，可点击只听继续',
       hidden: '猫猫已收起 · 只听已停止',
     } : {
-      locked: '屏幕已锁定 · 语音已停止，解锁后可点击语音聊继续',
-      suspended: '电脑已休眠 · 语音已停止，可点击语音聊继续',
-      hidden: '猫猫已收起 · 语音已停止',
+      locked: '屏幕已锁定 · 语音通话已停止，解锁后可点击语音通话继续',
+      suspended: '电脑已休眠 · 语音通话已停止，可点击语音通话继续',
+      hidden: '猫猫已收起 · 语音通话已停止',
     };
     this.failed = !Object.hasOwn(messages, reason);
     await this.releaseLocal(messages[reason] ?? (receiveOnly
       ? '只听连接已中断 · 麦克风未启用，点击只听重试'
-      : '语音连接已中断 · 麦克风已关闭，点击语音聊重试'));
+      : '语音通话已中断 · 麦克风已关闭，点击语音通话重试'));
   }
   async refresh() {
     if (this.refreshing) return;
@@ -121,7 +139,7 @@ export class CompanionConversation {
       if (this.active && identity.audio?.activeMode) this.audioMode = identity.audio.activeMode;
       if (this.active && ['closed', 'failed', 'idle'].includes(identity.phase)) {
         await this.end(this.retrying('语音连接已中断'), true);
-      } else this.show(this.message ?? '点开始聊天，直接对我说话');
+      } else this.show(this.message ?? '点击语音通话，直接对我说话');
     } catch (error) {
       if (generation === this.generation) {
         if (this.active) await this.end(explainError(error), true);
@@ -139,7 +157,7 @@ export class CompanionConversation {
       const identity = await changing;
       await local;
       this.identity = identity;
-      this.show(allowed ? '资料查询已开启 · 点击开始聊天继续' : '资料查询已暂停 · 点击开始聊天继续');
+      this.show(allowed ? '资料查询已开启 · 点击语音通话继续' : '资料查询已暂停 · 点击语音通话继续');
     } catch (error) { this.show(explainError(error)); }
     finally { this.changingDocuments = false; }
   }
@@ -151,12 +169,16 @@ export class CompanionConversation {
     const generation = this.generation;
     this.sending = true;
     try {
-      await this.client.text(input.text, input.id);
+      const receipt = await this.client.text(input.text, input.id);
+      if (receipt?.delivery !== 'accepted') {
+        if (generation === this.generation) this.show(explainError({ code: 'unconfirmed' }));
+        return false;
+      }
       if (this.pendingText === input) this.pendingText = undefined;
       // Voice may have ended; an accepted message still retires this draft.
       // Keep the newer voice status rather than announcing that we are listening.
       if (generation !== this.generation) return true;
-      this.transcript({ type: 'transcript', role: 'user', text, typed: true });
+      this.transcript({ type: 'typed', role: 'user', text, receipt });
       this.show(this.active ? this.listening() : '已发送 · 回答会留在同一段聊天中');
       return true;
     } catch (error) {

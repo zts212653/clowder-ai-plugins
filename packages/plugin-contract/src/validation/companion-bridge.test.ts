@@ -92,6 +92,7 @@ test('real-time audio events are scoped to the current call', () => {
 test('companion settings are Host-bound single-field updates with explicit settlement truth', () => {
   assert.equal(validateCompanionCommand({ kind: 'settings.read' }), true);
   assert.equal(validateCompanionCommand({ kind: 'settings.read', ownerId: 'renderer-choice' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'settings', width: 360, height: 478 }), true);
 
   const updates = [
     { kind: 'settings.update', field: 'dutyCatProfileId', value: 'fable-5' },
@@ -111,6 +112,8 @@ test('companion settings are Host-bound single-field updates with explicit settl
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 47 }), false);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 193 }), false);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'personaTone', value: 'warm\ninjected' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'personaTone', value: '   ' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'personaTone', value: 'warm\u2028injected' }), false);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'enabled', value: false }), false,
     'legacy web visibility is not plugin lifecycle');
   assert.equal(validateCompanionCommand({ ...updates[1], behaviorEnabled: true }), false,
@@ -135,6 +138,7 @@ test('companion settings are Host-bound single-field updates with explicit settl
   'a stale saved selection remains visible instead of silently becoming the first roster entry');
   assert.equal(validateCompanionReply({ kind: 'settings', status: 'unavailable', reason: 'host_upgrade_required' }), true);
   assert.equal(validateCompanionReply({ ...settings, values: { ...settings.values, ballSize: 12 } }), false);
+  assert.equal(validateCompanionReply({ ...settings, values: { ...settings.values, personaTone: '   ' } }), false);
 
   assert.equal(validateCompanionReply({
     kind: 'settings-update', field: 'personaTone', outcome: 'saved', callStatus: 'unchanged', applies: 'next_call',

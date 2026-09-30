@@ -174,6 +174,23 @@ test('automatic pounce is opt-in, waits 90 seconds, respects a three-minute cool
   assert.notEqual(reduced.element.dataset.action, 'play');
 });
 
+test('persisted autonomous preference can enable later and disabling cancels automatic play immediately', () => {
+  const before = fixture(false);
+  before.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  before.motion.setBehaviorEnabled(true);
+  before.motion.setBehaviorEnabled(false);
+  before.tick(600_000);
+  assert.notEqual(before.element.dataset.action, 'play');
+
+  const active = fixture(false);
+  active.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  active.motion.setBehaviorEnabled(true);
+  active.tick(90_000);
+  assert.equal(active.element.dataset.action, 'play');
+  active.motion.setBehaviorEnabled(false);
+  assert.notEqual(active.element.dataset.action, 'play');
+});
+
 test('animation timers use the browser global receiver', () => {
   const timers = new Map();
   let nextId = 0;

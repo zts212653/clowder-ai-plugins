@@ -881,7 +881,7 @@ export type CompanionCommand = {
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript' | 'settings';
   readonly width: number;
   readonly height: number;
 } | {

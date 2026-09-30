@@ -12,7 +12,8 @@ function fixture() {
     addEventListener(name, callback) { this.handlers[name] = callback; }, focus() {},
     querySelector: () => ({ focus() {} }),
   });
-  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'decisions', 'decision-reload', 'message']) nodes.set(id, node(id));
+  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'decisions', 'transcript', 'settings',
+    'decision-reload', 'message', 'call-message', 'settings-back']) nodes.set(id, node(id));
   const previous = { document: globalThis.document, window: globalThis.window, ResizeObserver: globalThis.ResizeObserver };
   globalThis.document = { getElementById: id => nodes.get(id), addEventListener() {}, querySelectorAll: () => [] };
   globalThis.window = { addEventListener() {} };
@@ -27,18 +28,33 @@ function fixture() {
   } };
 }
 
-test('recent speech keeps a small passive panel after menus dismiss, then releases it when voice ends', async () => {
+test('an active call bar persists after other panels dismiss, then releases when the call ends', async () => {
   const f = fixture();
   try {
-    await f.controls.setAmbient(true);
-    assert.equal(f.controls.panel, 'bubble');
-    assert.deepEqual(f.calls.at(-1), { panel: 'bubble', width: 240, height: 80 });
+    await f.controls.setAmbient('actions');
+    assert.equal(f.controls.panel, 'actions');
+    assert.deepEqual(f.calls.at(-1), { panel: 'actions', width: 120, height: 130 });
     await f.controls.show('chat');
-    assert.equal(f.nodes.get('bubble').hidden, true);
+    assert.equal(f.nodes.get('actions').hidden, true);
     await f.controls.show('none');
-    assert.equal(f.controls.panel, 'bubble');
-    await f.controls.setAmbient(false);
+    assert.equal(f.controls.panel, 'actions');
+    await f.controls.setAmbient('none');
     assert.equal(f.controls.panel, 'none');
+  } finally { f.restore(); }
+});
+
+test('left click, context click, and keyboard all open the same name card', async () => {
+  const f = fixture();
+  try {
+    const pet = f.nodes.get('pet');
+    pet.onclick({ detail: 1 }); await Promise.resolve();
+    assert.equal(f.controls.panel, 'menu');
+    await f.controls.show('none');
+    pet.oncontextmenu({ preventDefault() {} }); await Promise.resolve();
+    assert.equal(f.controls.panel, 'menu');
+    await f.controls.show('none');
+    pet.onkeydown({ key: 'ContextMenu', shiftKey: false, preventDefault() {} }); await Promise.resolve();
+    assert.equal(f.controls.panel, 'menu');
   } finally { f.restore(); }
 });
 

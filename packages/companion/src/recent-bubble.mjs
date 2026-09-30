@@ -9,9 +9,17 @@ export class RecentBubble {
     this.history = messages.slice(-2);
     this.render();
   }
-  append(role, text) {
+  loadTranscript(rows, companionName = '猫猫') {
+    this.load(rows.map(row => ({
+      role: row.role,
+      text: row.text,
+      name: row.source?.kind === 'typed' ? '你' : row.role === 'assistant' ? companionName : '语音',
+    })));
+  }
+  append(role, text, name = role === 'user' ? '你' : '猫猫') {
     if (!['user', 'assistant'].includes(role) || typeof text !== 'string') return;
-    this.live.set(role, `${this.live.get(role) ?? ''}${text}`.slice(-240));
+    const previous = this.live.get(role);
+    this.live.set(role, { name, text: `${previous?.text ?? ''}${text}`.slice(-240) });
     this.render();
   }
   finish(role) {
@@ -22,11 +30,16 @@ export class RecentBubble {
     this.live.clear();
     this.render();
   }
+  clear() {
+    this.history = [];
+    this.live.clear();
+    this.render();
+  }
   hasContent() {
     return this.history.length > 0 || this.live.size > 0;
   }
   render() {
-    const live = [...this.live].map(([role, text]) => ({ role, name: role === 'user' ? '你' : '猫猫', text }));
+    const live = [...this.live].map(([role, value]) => ({ role, ...value }));
     const entries = [...this.history.slice(-Math.max(0, 2 - live.length)), ...live].slice(-2);
     for (const [index, row] of this.rows.entries()) {
       const entry = entries[index];

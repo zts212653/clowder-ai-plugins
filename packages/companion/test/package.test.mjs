@@ -21,8 +21,20 @@ test('the installable package declares one companion body and contains a closed 
   const html = await readFile(new URL('renderer/index.html', root));
   assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,
     'the package must carry a distinct capability-gated receive-only control');
-  assert.match(html.toString(), /id="call-badge-icon"[^>]*href="#i-mic"/u,
-    'the active-call badge must expose a mode-specific icon target');
+  assert.match(html.toString(), /id="actions"[^>]*class="[^"]*call-bar[^"]*"/u,
+    'the package must carry the persistent active-call bar');
+  assert.match(html.toString(), /id="call-state"[^>]*>通话中</u,
+    'connection state must remain visible as text instead of a mode-only badge');
+  assert.match(html.toString(), /id="begin"[^>]*>[\s\S]*?<span class="label">语音通话<\/span>/u,
+    'the primary action must use the approved Voice call product name');
+  assert.match(html.toString(), /class="call-recent-label">最新消息<\/small>/u,
+    'the call bar must use the approved Latest message label');
+  assert.match(html.toString(), /id="call-share-context"/u,
+    'the persistent call bar must retain the exact shared target while sharing');
+  assert.match(html.toString(), /data-action="stop"[^>]*><span>挂断</u,
+    'the persistent call bar must keep an explicit destructive hang-up action');
+  assert.match(html.toString(), /id="call-transcript-log"[^>]*role="log"/u,
+    'the installable renderer must contain the Host-bound transcript surface');
   assert.equal(manifest.contributions[0].surface.integrity, `sha256-${createHash('sha256').update(html).digest('base64')}`);
   for (const name of await readdir(new URL('renderer/', root))) {
     if (!/\.(html|css|mjs)$/.test(name)) continue;

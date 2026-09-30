@@ -11,10 +11,12 @@
     <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1v14"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></symbol>
     <symbol id="i-end" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/></symbol>
+    <symbol id="i-subtitles" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="M6 10h5M6 14h7M15 10h3M15 14h3"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></symbol>
   </svg>
   <main id="desktop" aria-label="猫猫球">
     <div id="anchor">
-      <button id="pet" aria-label="猫猫：点击交流，右键更多，拖动移动" aria-expanded="false" aria-controls="actions menu chat">
+      <button id="pet" aria-label="猫猫：点击打开名片，拖动移动" aria-expanded="false" aria-controls="actions menu chat transcript settings decisions">
         <svg id="living-sit" viewBox="0 0 600 600" aria-hidden="true" hidden>
           <defs>
             <mask id="living-eye-left" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600"><image href="./skins/xianxian-living/layers/whiteL.webp" width="600" height="600"/></mask>
@@ -37,46 +39,124 @@
         <video id="living-video-transition" muted playsinline preload="metadata" aria-hidden="true" hidden></video>
       </button>
       <div id="indicators">
-        <button id="call-badge" hidden aria-label="结束语音" title="结束语音"><svg viewBox="0 0 24 24" aria-hidden="true"><use id="call-badge-icon" href="#i-mic"/></svg></button>
         <button id="share-badge" hidden aria-label="停止共享" title="停止共享"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
         <button id="pending-badge" hidden aria-label="查看待决事项" title="查看待决事项"><span id="pending-count">?</span></button>
       </div>
     </div>
-    <section id="bubble" class="floating" aria-label="最近的两句话" hidden>
+    <section id="bubble" class="floating" aria-label="最新消息" hidden>
       <p id="bubble-first" hidden></p><p id="bubble-second" hidden></p>
     </section>
-    <section id="actions" class="floating" aria-label="找猫猫" hidden>
-      <p id="status" role="status" hidden></p>
-      <div class="action-row">
-        <button id="begin" class="primary" data-action="begin"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">语音聊</span></button>
-        <button id="listen" data-action="listen" hidden><svg class="icon" aria-hidden="true"><use href="#i-listen"/></svg><span class="label">只听</span></button>
-        <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>打字</span></button>
-        <button id="mic" data-action="mute" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">静音</span></button>
+    <section id="actions" class="floating call-bar" aria-label="当前通话" hidden>
+      <div class="call-status-line"><span class="status-dot" aria-hidden="true"></span><strong id="call-state">通话中</strong><span id="call-mic-state">麦克风已开启</span></div>
+      <p id="call-work" class="call-work" hidden></p>
+      <div id="call-share-context" class="call-share-context" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="call-share-target"></strong><small>仅共享此窗口</small></span></div>
+      <div class="call-recent" aria-label="最新消息">
+        <small class="call-recent-label">最新消息</small>
+        <p id="call-bubble-first" hidden></p><p id="call-bubble-second" hidden></p>
       </div>
-      <div id="active-actions" class="action-row" hidden>
+      <div id="active-actions" class="action-row call-actions">
+        <button id="mic" data-action="mute"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">静音</span></button>
         <button data-action="share" id="share"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
-        <button id="end" data-action="stop"><svg class="icon" aria-hidden="true"><use href="#i-end"/></svg><span>结束通话</span></button>
+        <button data-action="transcript"><svg class="icon" aria-hidden="true"><use href="#i-subtitles"/></svg><span>字幕</span></button>
+        <button id="end" class="destructive" data-action="stop"><span>挂断</span></button>
       </div>
+      <p id="status" role="status" hidden></p>
     </section>
-    <section id="menu" class="floating" aria-label="猫猫的菜单" hidden>
+    <section id="menu" class="floating name-card" aria-label="猫猫名片" hidden>
+      <div id="menu-call-context" class="call-context" hidden>
+        <span class="status-dot" aria-hidden="true"></span><strong id="menu-call-state"></strong><span id="menu-call-mic-state"></span>
+        <small id="menu-call-work" hidden></small>
+        <button data-action="stop" class="destructive compact">挂断</button>
+        <div id="menu-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="menu-share-target"></strong><small>仅共享此窗口</small></span></div>
+      </div>
       <strong id="menu-name" class="menu-title">猫猫</strong>
-      <button data-action="history"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg><span>聊天记录</span></button>
-      <button data-action="decisions"><span aria-hidden="true">◇</span><span>待你看</span><span id="menu-pending" class="menu-status">—</span></button>
-      <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>打字</span></button>
+      <div class="name-card-actions">
+        <button id="begin" class="primary" data-action="begin"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">语音通话</span></button>
+        <button id="listen" data-action="listen" hidden><svg class="icon" aria-hidden="true"><use href="#i-listen"/></svg><span class="label">只听</span></button>
+        <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>聊天</span></button>
+      </div>
+      <p id="menu-status" role="status" hidden></p>
+      <button data-action="decisions"><span aria-hidden="true">◇</span><span>待办</span><span id="menu-pending" class="menu-status">—</span></button>
+      <button data-action="history"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg><span>打开聊天</span></button>
       <button id="menu-play" data-action="play" hidden><span aria-hidden="true">✦</span><span>逗宪宪</span></button>
       <div class="menu-divider" role="separator"></div>
       <button id="speaker" data-action="speaker" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">关闭播音</span></button>
-      <button id="menu-share" data-action="share" title="语音连接后可共享画面"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
+      <button id="menu-settings" data-action="settings"><span aria-hidden="true">⚙</span><span>设置</span><span class="menu-status">›</span></button>
+      <button id="menu-share" data-action="share" title="语音通话连接后可共享画面"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
       <button id="documents" data-action="documents" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span>资料查询</span><span class="menu-status">开启</span></button>
       <div class="menu-divider" role="separator"></div>
       <button data-action="hide" class="quiet-action" title="可从 Clowder 的聊聊入口叫回来"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg><span>收起猫猫</span></button>
     </section>
     <section id="chat" class="floating" aria-label="和猫猫写几句" hidden>
+      <div id="chat-call-context" class="call-context" hidden>
+        <span class="status-dot" aria-hidden="true"></span><strong id="chat-call-state"></strong><span id="chat-call-mic-state"></span>
+        <small id="chat-call-work" hidden></small>
+        <div class="call-context-actions"><button id="chat-mic" data-action="mute">静音</button><button id="chat-share" data-action="share"><span class="label">共享画面</span></button><button data-action="stop" class="destructive compact">挂断</button></div>
+        <div id="chat-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="chat-share-target"></strong><small>仅共享此窗口</small></span></div>
+      </div>
       <header><strong id="chat-name">和猫猫写几句</strong><button data-action="dismiss" aria-label="收起文字">收起</button></header>
-      <div id="transcript" role="log" aria-live="polite"><p class="empty">想说什么，就写在这里。</p></div>
-      <form id="compose"><textarea id="message" aria-label="给猫猫写一句" placeholder="写一句…" rows="2" maxlength="8000"></textarea><button type="submit" class="primary">发送</button></form>
+      <div id="chat-transcript" role="log" aria-live="polite"><p class="empty">想说什么，就写在这里。</p></div>
+      <form id="compose"><textarea id="message" aria-label="给猫猫输入消息" placeholder="输入消息…" rows="2" maxlength="8000"></textarea><button type="submit" class="primary">发送</button></form>
       <small id="chat-status" role="status"></small>
-      <small><span id="connection-scope">交流保存在同一段聊天中</span> <button id="history">完整聊天 ↗</button></small>
+      <small><span id="connection-scope">语音与文字共用同一段聊天</span> <button id="history">在 Cat Café 中查看完整聊天 ↗</button></small>
+    </section>
+    <section id="transcript" class="floating call-transcript" data-expanded="false" aria-label="这次通话的字幕" hidden>
+      <div id="transcript-call-context" class="call-context transcript-call-context">
+        <span class="status-dot" aria-hidden="true"></span><strong id="transcript-call-state"></strong><span id="transcript-call-mic-state"></span><span class="view-tag">字幕</span>
+        <small id="transcript-call-work" hidden></small>
+        <div class="call-context-actions">
+          <button id="transcript-mic" data-action="mute" aria-label="静音"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg></button>
+          <button id="transcript-expand" data-action="transcript-expand"><svg class="icon" aria-hidden="true"><use href="#i-expand"/></svg><span id="transcript-expand-label">展开</span></button>
+          <button data-action="stop" class="destructive compact">挂断</button>
+        </div>
+        <div id="transcript-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="transcript-share-target"></strong><small>仅共享此窗口</small></span></div>
+      </div>
+      <div id="call-transcript-log" role="log" aria-live="polite"></div>
+      <button id="call-unread" class="new-content" type="button" hidden></button>
+      <form id="call-compose"><input id="call-message" aria-label="通话中给猫猫发消息" placeholder="发消息给猫猫…" maxlength="8000"><button type="submit" class="primary">发送</button></form>
+      <small id="call-transcript-status" role="status"></small>
+      <small class="call-transcript-foot">完整记录会留在 Cat Café 聊天中</small>
+    </section>
+    <section id="settings" class="floating settings-panel" aria-label="猫猫球设置" hidden>
+      <div id="settings-call-context" class="call-context" hidden>
+        <span class="status-dot" aria-hidden="true"></span><strong id="settings-call-state"></strong><span id="settings-call-mic-state"></span>
+        <small id="settings-call-work" hidden></small>
+        <div class="call-context-actions"><button id="settings-mic" data-action="mute">静音</button><button id="settings-share" data-action="share"><span class="label">共享画面</span></button><button data-action="stop" class="destructive compact">挂断</button></div>
+        <div id="settings-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="settings-share-target"></strong><small>仅共享此窗口</small></span></div>
+      </div>
+      <header class="settings-head"><button id="settings-back" type="button" aria-label="返回名片">‹</button><strong id="settings-title">设置</strong></header>
+      <p id="settings-loading" class="settings-loading" hidden>正在读取设置…</p>
+      <div id="settings-page-main" class="settings-page">
+        <button id="settings-partner-open" class="settings-row" type="button" data-setting-control><span>陪伴者</span><span id="settings-partner-value" class="settings-value">— ›</span></button>
+        <button id="settings-look-open" class="settings-row" type="button" data-setting-control><span>外观</span><span id="settings-look-value" class="settings-value">— ›</span></button>
+        <button id="settings-behavior" class="settings-row setting-switch" type="button" role="switch" aria-checked="false" data-setting-control><span><strong>自主活动</strong><small>空闲时自行走动</small></span><i aria-hidden="true"></i></button>
+        <button id="settings-proactive" class="settings-row setting-switch" type="button" role="switch" aria-checked="false" data-setting-control><span><strong>主动提示</strong><small>有待办时在猫旁显示数量</small></span><i aria-hidden="true"></i></button>
+        <button id="settings-documents" class="settings-row setting-switch" type="button" role="switch" aria-checked="false" data-setting-control><span><strong>资料查询</strong><small>允许陪伴者在通话中查询家里的资料</small></span><i aria-hidden="true"></i></button>
+        <p id="settings-notice" class="settings-notice" role="status" hidden></p>
+        <div class="settings-notice-actions"><button id="settings-retry" type="button" hidden>重试</button><button id="settings-reread" type="button" hidden>重新读取</button></div>
+        <footer class="settings-footer"><button id="settings-reset" type="button" data-setting-control>重置位置</button><button id="settings-disable-open" type="button" data-setting-control>停用桌面猫猫球…</button></footer>
+      </div>
+      <div id="settings-page-partner" class="settings-page" hidden>
+        <p class="settings-copy">在桌面陪伴和回复你的猫。更换陪伴者将结束当前语音通话。</p>
+        <div id="settings-roster" class="settings-roster"></div>
+        <label class="settings-field"><span>人设基调</span><textarea id="settings-tone" rows="2" maxlength="200" data-setting-control></textarea><small>适用于所有陪伴者 · 下次语音通话生效</small></label>
+      </div>
+      <div id="settings-page-look" class="settings-page" hidden>
+        <p class="settings-eyebrow">皮肤</p><p class="settings-copy">仅改变外观，不更换陪伴者。</p>
+        <div class="settings-skins">
+          <button id="settings-skin-xianxian-codex" type="button" data-setting-control>宪宪 v1</button>
+          <button id="settings-skin-yanyan-codex" type="button" data-setting-control>砚砚 v1</button>
+          <button id="settings-skin-ragdoll-v1" type="button" data-setting-control>布偶猫</button>
+          <button id="settings-skin-yarn-ball" type="button" data-setting-control>猫猫球</button>
+        </div>
+        <label class="settings-field settings-size"><span>大小</span><div><small>小</small><input id="settings-size" type="range" min="48" max="192" step="1" data-setting-control><small>大</small></div></label>
+      </div>
+      <div id="settings-page-confirm" class="settings-page settings-confirm" hidden>
+        <strong id="settings-confirm-title"></strong><p id="settings-confirm-copy"></p>
+        <div><button id="settings-confirm-cancel" type="button">取消</button><button id="settings-confirm-apply" type="button" data-setting-control>确认更改</button></div>
+      </div>
+      <div id="settings-page-unavailable" class="settings-page settings-empty" hidden><p id="settings-unavailable-copy"></p><button id="settings-unavailable-retry" type="button">重试</button></div>
+      <div id="settings-page-disabled" class="settings-page settings-empty" hidden><p>桌面猫猫球已停用。可在 Cat Café 的“设置 › 插件”中重新启用。</p></div>
     </section>
     <p id="announcement" class="sr-only" role="status"></p>
     <section id="decisions" class="floating" aria-label="待你看" hidden>

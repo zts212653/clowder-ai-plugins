@@ -10,8 +10,8 @@ test('a voice caption updates the two-line glance without turning a caption into
     { id: 'new', role: 'assistant', name: '宪宪', text: '我记得那段' },
   ]);
   assert.deepEqual(rows.map(row => row.textContent), ['你：昨天的讨论', '宪宪：我记得那段']);
-  bubble.append('user', '我想'); bubble.append('user', '补充');
-  assert.deepEqual(rows.map(row => row.textContent), ['宪宪：我记得那段', '你：我想补充']);
+  bubble.append('user', '我想', '语音'); bubble.append('user', '补充', '语音');
+  assert.deepEqual(rows.map(row => row.textContent), ['宪宪：我记得那段', '语音：我想补充']);
   bubble.finish('user');
   assert.deepEqual(rows.map(row => row.textContent), ['你：昨天的讨论', '宪宪：我记得那段']);
   assert.equal(bubble.hasContent(), true);

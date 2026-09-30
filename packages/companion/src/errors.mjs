@@ -1,8 +1,8 @@
 const messages = {
-  permission_required: '请点击开始聊天，或在系统提示中允许本次使用',
-  session_required: '连接已结束 · 点击开始聊天继续',
-  busy: '上一段交流正在收尾 · 稍后再开始',
-  selection_changed: '猫猫球的选择已更新 · 点击开始聊天继续',
+  permission_required: '请点击语音通话，或在系统提示中允许本次使用',
+  session_required: '连接已结束 · 点击语音通话继续',
+  busy: '会话暂时被占用，请稍后重试',
+  selection_changed: '猫猫球的选择已更新 · 点击语音通话继续',
   carrier_unavailable: '实时语音暂不可用 · 可以打开聊天继续交流',
   cancelled: '操作已取消',
   unconfirmed: '发送尚未确认 · 文字已保留，可检查聊天记录后重试',

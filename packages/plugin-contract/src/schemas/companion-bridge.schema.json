@@ -322,7 +322,8 @@
                 "menu",
                 "chat",
                 "decisions",
-                "transcript"
+                "transcript",
+                "settings"
               ]
             },
             "width": {
@@ -446,7 +447,7 @@
           "properties": {
             "kind": { "const": "settings.update" },
             "field": { "const": "personaTone" },
-            "value": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" }
+            "value": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^(?=.*\\S)[^\\r\\n\\u2028\\u2029]+$" }
           },
           "required": ["kind", "field", "value"],
           "additionalProperties": false
@@ -779,7 +780,7 @@
         "ballSize": { "type": "integer", "minimum": 48, "maximum": 192 },
         "behaviorEnabled": { "type": "boolean" },
         "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
-        "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
+        "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^(?=.*\\S)[^\\r\\n\\u2028\\u2029]+$" },
         "householdReadsAllowed": { "type": "boolean" }
       },
       "required": [
