@@ -315,6 +315,28 @@ test('settings distinguish stop-then-save failure from an unknown settlement', a
   assert.equal(uncertain.nodes.get('settings-reread').hidden, false);
 });
 
+test('a call-sensitive retry uses confirmation and the authorised stop handshake', async () => {
+  const f = fixture(); await flush(); f.start(); await flush();
+  await f.controls.show('settings'); await flush();
+  f.settingsUpdate(async field => ({ kind: 'settings-update', field, outcome: 'rejected',
+    callStatus: 'stop_failed', reason: 'call_stop_failed' }));
+  f.nodes.get('settings-documents').onclick(); await flush();
+  await f.nodes.get('settings-confirm-apply').onclick(); await flush();
+  const before = f.calls.filter(call => Array.isArray(call) && call[0] === 'settings-update').length;
+
+  f.nodes.get('settings-retry').onclick(); await flush();
+  assert.equal(f.nodes.get('settings-page-confirm').hidden, false);
+  assert.equal(f.calls.filter(call => Array.isArray(call) && call[0] === 'settings-update').length, before);
+  f.settingsUpdate(async field => ({ kind: 'settings-update', field, outcome: 'saved',
+    callStatus: 'stopped', applies: 'now' }));
+  const confirming = f.nodes.get('settings-confirm-apply').onclick(); await flush();
+  f.receive({ kind: 'media-stopped', reason: 'revoked' }); await flush();
+  await confirming; await flush();
+  assert.equal(f.controls.panel, 'settings');
+  assert.equal(f.motionCalls.includes('failed'), false);
+  assert.match(f.nodes.get('settings-notice').textContent, /通话已结束，资料查询已保存/u);
+});
+
 test('settings keep one-line tone input and mark uncertain subpage values in place', async () => {
   const f = fixture(); await flush(); await f.controls.show('settings'); await flush();
   f.nodes.get('settings-partner-open').onclick();

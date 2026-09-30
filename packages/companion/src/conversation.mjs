@@ -13,6 +13,7 @@ export class CompanionConversation {
     this.silent = false;
     this.failed = false;
     this.recovering = false;
+    this.retiredCallId = null;
   }
   show(message) {
     this.message = message;
@@ -76,6 +77,7 @@ export class CompanionConversation {
     try {
       const peer = this.createPeer(event => {
         if (!this.current(generation)) return;
+        if (event.type === 'error' && !this.callId && event.callId === this.retiredCallId) return;
         if (event.type === 'connected') {
           if (this.callId && this.callId !== event.callId) return;
           this.callId = event.callId;
@@ -115,6 +117,7 @@ export class CompanionConversation {
   async releaseLocal(message) {
     this.active = false;
     this.expectedHostStop = undefined;
+    if (this.callId) this.retiredCallId = this.callId;
     ++this.generation;
     this.pendingText = undefined;
     clearTimeout(this.deadline);

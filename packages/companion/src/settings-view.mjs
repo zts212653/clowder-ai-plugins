@@ -76,7 +76,7 @@ export class SettingsView {
       const settlement = await this.controller.confirm();
       if (expectsStop) await this.settleExpectedHostStop(settlement?.callStopped ?? null);
     };
-    this.$('settings-retry').onclick = () => void this.controller.retry();
+    this.$('settings-retry').onclick = () => void this.controller.retry({ confirm: this.callActive() });
     this.$('settings-reread').onclick = () => void this.controller.load();
     this.$('settings-unavailable-retry').onclick = () => void this.controller.load();
   }
@@ -227,7 +227,7 @@ export class SettingsView {
     this.$('settings-notice').hidden = !text;
     this.$('settings-notice').textContent = text;
     this.$('settings-notice').dataset.kind = state.notice?.kind ?? '';
-    this.$('settings-retry').hidden = !state.retry;
+    this.$('settings-retry').hidden = !state.retry || page === 'confirm';
     this.$('settings-reread').hidden = state.notice?.kind !== 'unconfirmed';
     this.layoutChanged();
   }

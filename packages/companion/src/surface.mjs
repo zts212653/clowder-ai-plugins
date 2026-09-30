@@ -224,7 +224,7 @@ if (!window.clowderCompanion) {
     callActive: () => conversation.active,
     expectHostStop: () => conversation.expectHostStop(),
     settleExpectedHostStop: callStopped => conversation.settleExpectedHostStop(callStopped),
-    layoutChanged: () => { if (controls.panel === 'settings') void controls.show('settings'); },
+    layoutChanged: () => { if (controls.panel === 'settings') controls.remeasure?.(); },
     onValues(values) {
       settingsValues = values;
       document.documentElement?.style?.setProperty?.('--pet-scale', String(values.ballSize / 72));

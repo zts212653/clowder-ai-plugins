@@ -3,20 +3,29 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
   const $ = id => document.getElementById(id);
   const body = $('pet');
   const panelIds = ['actions', 'menu', 'chat', 'bubble', 'decisions', 'transcript', 'settings'];
-  let panel = 'none', ambientPanel = 'none', layoutRevision = 0, drag, suppressClick = false;
+  const desiredSizes = new WeakMap();
+  let panel = 'none', ambientPanel = 'none', layoutRevision = 0, layoutScheduled = false, drag, suppressClick = false;
+  const measure = node => {
+    const page = node?.id === 'settings' ? node.querySelector(':scope > .settings-page:not([hidden])') : null;
+    const nestedOverflow = page ? Math.max(0, page.scrollHeight - page.clientHeight) : 0;
+    return {
+      width: Math.min(420, Math.max(120, Math.ceil(Math.max(node?.offsetWidth ?? 120, node?.scrollWidth ?? 0)))),
+      height: Math.min(500, Math.max(32,
+        Math.ceil(Math.max(node?.offsetHeight ?? 130, node?.scrollHeight ?? 0) + nestedOverflow))),
+    };
+  };
   async function show(next) {
     if (next === 'none' && ambientPanel !== 'none') next = ambientPanel;
     const previousPanel = panel;
     const node = $(next);
-    // Host placement caps the current rendered height. Release that cap before
-    // every explicit remeasure so a taller state of the same panel can grow.
-    if (node) node.style.maxHeight = '500px';
     panel = next;
     for (const id of panelIds) $(id).hidden = id !== next;
     body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(next)));
+    const desired = measure(node);
+    if (node) desiredSizes.set(node, `${desired.width}:${desired.height}`);
     const revision = ++layoutRevision;
     try {
-      const placed = await client.layout(next, Math.max(120, Math.ceil(node?.offsetWidth ?? 120)), Math.max(32, Math.ceil(node?.offsetHeight ?? 130)));
+      const placed = await client.layout(next, desired.width, desired.height);
       if (revision !== layoutRevision) return;
       $('anchor').style.left = `${placed.pet.x}px`; $('anchor').style.top = `${placed.pet.y}px`;
       if (node) { node.style.left = `${placed.panel.x}px`; node.style.top = `${placed.panel.y}px`; node.style.maxHeight = `${placed.panel.height}px`; }
@@ -35,6 +44,19 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
       body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(panel)));
       error(cause, { panel: next });
     }
+  }
+  function remeasure() {
+    if (layoutScheduled) return;
+    layoutScheduled = true;
+    queueMicrotask(() => {
+      layoutScheduled = false;
+      const node = $(panel);
+      if (!node || node.hidden) return;
+      const desired = measure(node);
+      const key = `${desired.width}:${desired.height}`;
+      if (desiredSizes.get(node) === key) return;
+      void show(panel);
+    });
   }
   body.onclick = event => {
     if (suppressClick) { suppressClick = false; return; }
@@ -78,18 +100,19 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
     if (kind === 'dismiss') { void show('none'); return; }
     action(kind);
   });
-  const sizes = new WeakMap();
-  const observer = new ResizeObserver(entries => {
-    for (const entry of entries) {
-      const size = `${entry.contentRect.width}:${entry.contentRect.height}`;
-      const previous = sizes.get(entry.target); sizes.set(entry.target, size);
-      if (previous && previous !== size && entry.target.id === panel && !entry.target.hidden) void show(panel);
-    }
+  const observer = new MutationObserver(records => {
+    const current = $(panel);
+    if (!current || current.hidden) return;
+    // Root visibility is already handled by show(). Descendant visibility and
+    // text/row mutations are content demand and may require a larger surface.
+    if (records.some(record => record.type !== 'attributes' || !panelIds.includes(record.target.id))) remeasure();
   });
-  for (const id of panelIds) observer.observe($(id));
+  for (const id of panelIds) observer.observe($(id), {
+    subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden'],
+  });
   window.addEventListener('beforeunload', () => observer.disconnect());
   return {
-    get panel() { return panel; }, show,
+    get panel() { return panel; }, show, remeasure,
     setAmbient(value) {
       const next = value === true ? 'bubble' : value === false ? 'none' : value;
       if (!['none', 'bubble', 'actions'].includes(next)) return Promise.resolve();

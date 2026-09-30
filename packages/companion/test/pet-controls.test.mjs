@@ -8,27 +8,40 @@ function fixture({ layout } = {}) {
   const node = id => ({
     id, hidden: false, style: {}, offsetWidth: id === 'bubble' ? 240 : 120,
     naturalHeight: id === 'bubble' ? 80 : 130,
+    get scrollHeight() { return this.naturalHeight; },
     get offsetHeight() {
       const maximum = Number.parseFloat(this.style.maxHeight);
       return Number.isFinite(maximum) ? Math.min(this.naturalHeight, maximum) : this.naturalHeight;
     },
     dataset: {}, handlers: {}, setAttribute() {}, setPointerCapture() {},
     addEventListener(name, callback) { this.handlers[name] = callback; }, focus() {},
-    querySelector: () => ({ focus() {} }),
+    querySelector(selector) {
+      if (selector === ':scope > .settings-page:not([hidden])') return this.visiblePage ?? null;
+      return { focus() {} };
+    },
   });
   for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'decisions', 'transcript', 'settings',
     'decision-reload', 'message', 'call-message', 'settings-back']) nodes.set(id, node(id));
-  const previous = { document: globalThis.document, window: globalThis.window, ResizeObserver: globalThis.ResizeObserver };
+  const mutationObservers = [];
+  const previous = { document: globalThis.document, window: globalThis.window,
+    ResizeObserver: globalThis.ResizeObserver, MutationObserver: globalThis.MutationObserver };
   globalThis.document = { getElementById: id => nodes.get(id), addEventListener() {}, querySelectorAll: () => [] };
   globalThis.window = { addEventListener() {} };
   globalThis.ResizeObserver = class { observe() {} disconnect() {} };
+  globalThis.MutationObserver = class {
+    constructor(callback) { this.callback = callback; mutationObservers.push(this); }
+    observe() {}
+    disconnect() {}
+  };
   const client = { drag: async () => ({ kind: 'ok' }), layout: layout ?? (async (panel, width, height) => {
     calls.push({ panel, width, height });
     return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height }, width: 360 };
   }) };
   const errors = [];
   const controls = bindPetControls(client, { action() {}, error: (...args) => errors.push(args), changed() {}, moved: (...args) => moves.push(args) });
-  return { controls, calls, errors, moves, nodes, restore() {
+  return { controls, calls, errors, moves, nodes,
+    mutate(target) { for (const observer of mutationObservers) observer.callback([{ type: 'childList', target }]); },
+    restore() {
     for (const [key, value] of Object.entries(previous)) globalThis[key] = value;
   } };
 }
@@ -92,8 +105,11 @@ test('a Host that rejects a new panel restores the previous usable surface', asy
   } finally { f.restore(); }
 });
 
-test('remeasuring the same panel releases a stale height cap before asking the Host', async () => {
-  const f = fixture();
+test('content growth requests its natural height once while a Host cap remains stable', async () => {
+  const f = fixture({ layout: async (panel, width, height) => {
+    f.calls.push({ panel, width, height });
+    return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height: Math.min(height, 200) }, width: 360 };
+  } });
   try {
     const settings = f.nodes.get('settings');
     settings.naturalHeight = 170;
@@ -102,6 +118,22 @@ test('remeasuring the same panel releases a stale height cap before asking the H
     assert.equal(settings.style.maxHeight, '170px');
 
     settings.naturalHeight = 360;
+    f.mutate(settings);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.calls.at(-1).height, 360);
+    assert.equal(settings.style.maxHeight, '200px');
+    const settled = f.calls.length;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.calls.length, settled, 'Host-applied clipping must not schedule another layout');
+  } finally { f.restore(); }
+});
+
+test('settings layout includes overflow hidden inside the visible page', async () => {
+  const f = fixture();
+  try {
+    const settings = f.nodes.get('settings');
+    settings.naturalHeight = 200;
+    settings.visiblePage = { clientHeight: 100, scrollHeight: 260 };
     await f.controls.show('settings');
     assert.equal(f.calls.at(-1).height, 360);
   } finally { f.restore(); }

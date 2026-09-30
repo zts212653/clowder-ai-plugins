@@ -40,7 +40,8 @@ export class SettingsController {
     try {
       const reply = await this.client.readSettings();
       if (operation !== this.readOperation) return false;
-      if (this.applySettings(reply)) return true;
+      const clearsUnknown = preserveSettlement && this.state.notice?.kind === 'unconfirmed';
+      if (this.applySettings(reply, clearsUnknown ? { notice: null, retry: null } : {})) return true;
       this.publish({ phase: 'unavailable', reason: reply.reason, saving: false });
     } catch (error) {
       if (operation !== this.readOperation) return false;
@@ -149,9 +150,14 @@ export class SettingsController {
     this.publish({ page: 'disable', confirmation: { kind: 'disable', returnPage: this.state.page }, notice: null });
   }
 
-  async retry() {
+  async retry({ confirm = false } = {}) {
     const retry = this.state.retry;
     if (!retry || this.state.saving) return;
+    if (confirm && canStopCall(retry.field)) {
+      this.publish({ page: 'confirm',
+        confirmation: { kind: 'setting', field: retry.field, value: retry.value, returnPage: this.state.page } });
+      return;
+    }
     await this.commitUpdate(retry.field, retry.value, this.state.page);
   }
 

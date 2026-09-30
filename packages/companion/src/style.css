@@ -109,6 +109,7 @@ button:disabled { opacity: .45; cursor: default; }
 #menu .menu-title { display: block; padding: 7px 11px 6px; color: var(--cafe-text-muted); font-size: 10px; font-weight: 500; letter-spacing: .04em; }
 #menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 33px; text-align: left; font-size: 12px; line-height: 1.4; }
 #menu button .icon { color: var(--cafe-text-secondary); width: 16px; height: 16px; }
+#menu .primary .icon { color: inherit; }
 #menu button:disabled { opacity: .36; }
 #menu .menu-status { margin-left: auto; color: var(--cafe-text-muted); font-size: 10px; }
 #menu [aria-pressed="true"] .menu-status { color: var(--accent-700); }
@@ -122,7 +123,7 @@ button:disabled { opacity: .45; cursor: default; }
 .call-context > small { grid-column: 2 / 4; }
 .call-share-line { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; padding-top: 6px; border-top: 1px solid var(--desktop-line); min-width: 0; }
 .call-context-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
-.call-context-actions button { padding: 6px 9px; white-space: nowrap; }
+.call-context-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 9px; white-space: nowrap; }
 #menu .call-context { margin: -8px -8px 5px; }
 #chat { width: 400px; max-height: 500px; display: flex; flex-direction: column; overflow: hidden; }
 #chat header { padding: 7px 9px 7px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--cafe-border-subtle); }

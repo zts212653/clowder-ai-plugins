@@ -249,3 +249,43 @@ test('a failed disable returns to a visible retryable settings page', async () =
   assert.equal(f.controller.state.page, 'disable');
   assert.equal(f.calls.filter(([kind]) => kind === 'disable').length, 1);
 });
+
+test('retrying a call-sensitive write can return through the same confirmation gate', async () => {
+  let attempts = 0;
+  const f = fixture({ updateSetting: async (field, value) => {
+    f.calls.push(['update', field, value]);
+    attempts += 1;
+    return attempts === 1
+      ? { kind: 'settings-update', field, outcome: 'rejected', callStatus: 'stop_failed', reason: 'call_stop_failed' }
+      : { kind: 'settings-update', field, outcome: 'saved', callStatus: 'stopped', applies: 'now' };
+  } });
+  await f.controller.load();
+  await f.controller.requestUpdate('householdReadsAllowed', false, { confirm: true });
+  await f.controller.confirm();
+  assert.deepEqual(f.controller.state.retry, { field: 'householdReadsAllowed', value: false });
+
+  await f.controller.retry({ confirm: true });
+  assert.equal(f.calls.filter(([kind]) => kind === 'update').length, 1);
+  assert.equal(f.controller.state.page, 'confirm');
+  assert.equal(f.controller.state.confirmation.field, 'householdReadsAllowed');
+  assert.equal(f.controller.state.confirmation.value, false);
+  assert.deepEqual(await f.controller.confirm(), { callStopped: true });
+  assert.equal(f.calls.filter(([kind]) => kind === 'update').length, 2);
+});
+
+test('a successful reopen read clears a stale unconfirmed projection', async () => {
+  let reads = 0;
+  const f = fixture({
+    updateSetting: async (field, value) => { f.calls.push(['update', field, value]); throw new Error('reply lost'); },
+    readSettings: async () => {
+      f.calls.push(['read']); reads += 1;
+      if (reads === 2) throw new Error('readback unavailable');
+      return settings();
+    },
+  });
+  await f.controller.load();
+  await f.controller.requestUpdate('ballSize', 96);
+  assert.equal(f.controller.state.notice.kind, 'unconfirmed');
+  await f.controller.load({ preserveSettlement: true });
+  assert.equal(f.controller.state.notice, null);
+});

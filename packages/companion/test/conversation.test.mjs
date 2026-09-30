@@ -12,8 +12,9 @@ const state = (phase = 'ready') => ({ kind: 'state', phase, displayName: '宪宪
   duty: { catId: 'opus5', displayName: '宪宪' }, carrier: { catId: 'codex-astra', displayName: '砚砚' } });
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 function fixture(overrides = {}) {
+  const { callIds = [CALL_A], ...clientOverrides } = overrides;
   const events = [], calls = [], rows = [], peerOperations = [];
-  let notify, readiness, closed = false;
+  let notify, readiness, closed = false, connection = 0;
   const client = {
     prepare() { calls.push('prepare'); return Promise.resolve(state()); },
     stop: async () => { calls.push('stop'); },
@@ -23,12 +24,15 @@ function fixture(overrides = {}) {
     },
     state: async () => state('talking'),
     documents: async allowed => ({ ...state('idle'), documentsAllowed: allowed }),
-    ...overrides,
+    ...clientOverrides,
   };
   const prepare = client.prepare;
   client.prepare = (...args) => { closed = false; readiness = Promise.resolve(prepare(...args)); return readiness; };
   const peer = {
-    connect: async mode => { calls.push('connect'); peerOperations.push(['connect', mode]); await readiness; if (!closed) notify({ type: 'connected', callId: CALL_A }); },
+    connect: async mode => {
+      calls.push('connect'); peerOperations.push(['connect', mode]); await readiness;
+      if (!closed) notify({ type: 'connected', callId: callIds[connection++] ?? callIds.at(-1) });
+    },
     close: async () => { closed = true; calls.push('close'); },
     muteMic(value) { peerOperations.push(['microphone', value]); },
     muteSpeaker(value) { peerOperations.push(['speaker', value]); },
@@ -266,6 +270,26 @@ test('local failures and pre-connect Host failures stop the current attempt whil
   await starting;
   assert.equal(connecting.conversation.phase, 'idle');
   assert.equal(connecting.events.at(-1).failed, true);
+});
+
+test('a retired call error cannot cancel the next connection attempt', async () => {
+  const secondReady = deferred();
+  let preparations = 0;
+  const f = fixture({
+    callIds: [CALL_A, CALL_B],
+    prepare: () => ++preparations === 1 ? Promise.resolve(state()) : secondReady.promise,
+  });
+  await f.conversation.begin();
+  await f.conversation.end();
+  const reconnecting = f.conversation.begin();
+  f.notify({ type: 'error', callId: CALL_A, code: 'unavailable' });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.conversation.phase, 'connecting');
+  secondReady.resolve(state());
+  await reconnecting;
+  assert.equal(f.conversation.phase, 'talking');
+  assert.equal(f.conversation.callId, CALL_B);
+  await f.conversation.end();
 });
 
 test('a user-authorized Host stop settles locally without becoming a call failure', async () => {
