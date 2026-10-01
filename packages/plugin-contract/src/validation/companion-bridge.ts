@@ -63,8 +63,10 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     if (parsed.items.some((item) => new Set(item.navigation.targets).size !== item.navigation.targets.length)) {
       return false;
     }
+    if (parsed.items.length > parsed.page.limit) return false;
+    if (parsed.page.hasMore && parsed.items.length !== parsed.page.limit) return false;
     const sources = Object.values(parsed.sources);
-    if (sources.some((source) => source.status !== 'available' && source.coverage === 'complete')) return false;
+    if (sources.some((source) => source.status !== 'available' && source.coverage !== 'unknown')) return false;
     const complete = sources.every((source) => source.status === 'available' && source.coverage === 'complete');
     const anyAvailable = sources.some((source) => source.status === 'available');
     if (parsed.status === 'available' && !complete) return false;
@@ -72,6 +74,8 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     if (parsed.status === 'unavailable' && (anyAvailable || parsed.items.length > 0 || parsed.page.hasMore)) return false;
     if (parsed.totalCount !== undefined) {
       if (parsed.status !== 'available' || !complete || parsed.totalCount < parsed.items.length) return false;
+      const expectedRows = Math.min(parsed.page.limit, Math.max(0, parsed.totalCount - parsed.page.offset));
+      if (parsed.items.length !== expectedRows) return false;
       const knownEnd = parsed.page.offset + parsed.items.length;
       if (parsed.page.hasMore !== (knownEnd < parsed.totalCount)) return false;
     }

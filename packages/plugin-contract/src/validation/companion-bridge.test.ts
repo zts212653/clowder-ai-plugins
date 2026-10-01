@@ -343,6 +343,13 @@ test('unified decision reads preserve partial truth, concrete variants, and Host
     'every retained source variant stays visible under its opaque concrete ref');
   assert.equal(validateCompanionReply({ ...reply, totalCount: 2 }), false,
     'a partial read cannot claim an exact total');
+  assert.equal(validateCompanionReply({ ...reply, page: { ...reply.page, limit: 1 } }), false,
+    'known_rows cannot exceed the requested public page size');
+  assert.equal(validateCompanionReply({ ...reply, items: [], page: { ...reply.page, hasMore: true } }), false,
+    'known_rows hasMore cannot skip an otherwise nonempty bounded page');
+  assert.equal(validateCompanionReply({ ...reply,
+    sources: { ...reply.sources, needsMe: { status: 'unavailable', coverage: 'partial' } } }), false,
+  'an unread source cannot claim partial enumeration coverage');
   assert.equal(validateCompanionReply({ ...reply,
     items: [reply.items[0], { ...reply.items[1], variantRef: 'variant-a' }] }), false,
   'renderer keys must distinguish every concrete source variant');
@@ -373,6 +380,8 @@ test('unified decision reads preserve partial truth, concrete variants, and Host
   assert.equal(validateCompanionReply(complete), true);
   assert.equal(validateCompanionReply({ ...complete, totalCount: 3 }), false,
     'an exact total also makes known_rows hasMore mechanically checkable');
+  assert.equal(validateCompanionReply({ ...complete, items: [], page: { ...complete.page, hasMore: true } }), false,
+    'an exact total cannot advertise a nonempty page while withholding its known rows');
   assert.equal(validateCompanionReply({ ...complete,
     sources: { ...complete.sources, needsMe: source('available', 'unknown') } }), false,
   'an exact total requires complete public source coverage');

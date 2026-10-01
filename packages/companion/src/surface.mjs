@@ -285,8 +285,13 @@ if (!window.clowderCompanion) {
       if (controls.panel !== 'decisions') return;
       const list = $('decision-list');
       if (!more) { list.replaceChildren(); list.scrollTop = 0; }
+      const retainedRows = more && !presentation.renderRows && list.children.length > 0;
+      const knownVariantRefs = new Set(Array.from(list.children)
+        .map(item => item.dataset.variantRef).filter(Boolean));
       for (const row of presentation.renderRows ? decisionRows(page) : []) {
+        if (row.variantRef && knownVariantRefs.has(row.variantRef)) continue;
         const item = document.createElement('li');
+        if (row.variantRef) { item.dataset.variantRef = row.variantRef; knownVariantRefs.add(row.variantRef); }
         const title = document.createElement('strong');
         const meta = document.createElement('span');
         title.textContent = row.title; meta.textContent = row.meta;
@@ -320,12 +325,21 @@ if (!window.clowderCompanion) {
       }
       decisionOffset = page.page.offset + page.page.limit;
       $('decision-reload').textContent = presentation.reloadLabel;
-      $('decision-status').textContent = presentation.message;
+      $('decision-status').textContent = retainedRows
+        ? `${presentation.badge.state === 'authentication' ? '待办需要登录' : '待办暂不可读'} · 以下为上次读到的内容`
+        : presentation.message;
       $('decision-more').hidden = !presentation.hasMore;
     } catch {
       showDecisionBadge(undefined);
       motion.setPendingDecision(null);
-      if (controls.panel === 'decisions') $('decision-status').textContent = '待办暂不可读 · 请稍后刷新';
+      if (controls.panel === 'decisions') {
+        const retained = $('decision-list').children.length > 0;
+        $('decision-status').textContent = retained
+          ? '待办暂不可读 · 以下为上次读到的内容'
+          : '待办暂不可读 · 请稍后刷新';
+        $('decision-reload').textContent = '重试';
+        $('decision-more').hidden = true;
+      }
     } finally { decisionLoading = false; }
   }
   $('share-badge').onclick = toggleScreen;

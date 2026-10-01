@@ -460,6 +460,10 @@ test('passive decision badge and panel keep the live call while preserving unkno
   f.nodes.get('decision-reload').onclick(); await flush();
   assert.equal(f.nodes.get('pending-count').textContent, '?');
   assert.match(f.nodes.get('decision-status').textContent, /暂不可读/);
+  assert.match(f.nodes.get('decision-status').textContent, /上次读到/,
+    'retained rows must be labelled stale instead of looking like the current read');
+  assert.equal(f.nodes.get('decision-list').children.length, 2);
+  assert.equal(f.nodes.get('decision-reload').textContent, '重试');
 });
 
 test('a partial unified inbox keeps known variants, missing-source truth, and safe navigation', async () => {
@@ -487,6 +491,53 @@ test('a partial unified inbox keeps known variants, missing-source truth, and sa
   await f.nodes.get('decision-list').children[0].children[2].onclick();
   assert.ok(f.calls.includes('open:variant-a:action'));
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
+});
+
+test('known-row pagination deduplicates the same concrete variant without collapsing distinct variants', async () => {
+  const f = fixture(); await flush();
+  const item = variantRef => ({ variantRef, kind: 'repair', summary: variantRef, navigation: { targets: [] } });
+  f.decisions(async (offset, limit) => ({
+    kind: 'decisions', version: 1, status: 'partial', observedAt: 42 + offset,
+    sources: {
+      approvals: { status: 'available', coverage: 'complete' },
+      needsMe: { status: 'unavailable', coverage: 'unknown' },
+    },
+    items: offset === 0
+      ? Array.from({ length: limit }, (_, index) => item(`variant-${index}`))
+      : [item('variant-0'), item('variant-new')],
+    page: { offset, limit, scope: 'known_rows', hasMore: offset === 0 },
+  }));
+  await f.controls.show('decisions'); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 10);
+  assert.equal(f.nodes.get('decision-more').hidden, false);
+  f.nodes.get('decision-more').onclick(); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 11);
+});
+
+test('an unavailable follow-up page keeps earlier rows only as explicitly stale evidence', async () => {
+  const f = fixture(); await flush();
+  const item = variantRef => ({ variantRef, kind: 'repair', summary: variantRef, navigation: { targets: [] } });
+  f.decisions(async (offset, limit) => offset === 0 ? ({
+    kind: 'decisions', version: 1, status: 'partial', observedAt: 42,
+    sources: {
+      approvals: { status: 'available', coverage: 'complete' },
+      needsMe: { status: 'unavailable', coverage: 'unknown' },
+    },
+    items: Array.from({ length: limit }, (_, index) => item(`variant-${index}`)),
+    page: { offset, limit, scope: 'known_rows', hasMore: true },
+  }) : ({
+    kind: 'decisions', version: 1, status: 'unavailable', observedAt: 43,
+    sources: {
+      approvals: { status: 'unavailable', coverage: 'unknown' },
+      needsMe: { status: 'unavailable', coverage: 'unknown' },
+    },
+    items: [], page: { offset, limit, scope: 'known_rows', hasMore: false },
+  }));
+  await f.controls.show('decisions'); await flush();
+  f.nodes.get('decision-more').onclick(); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 10);
+  assert.match(f.nodes.get('decision-status').textContent, /上次读到/);
+  assert.equal(f.nodes.get('decision-more').hidden, true);
 });
 
 test('unknown assistant history stays readable without becoming an unsolicited idle preview or deliverable', async () => {
