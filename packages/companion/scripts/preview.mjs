@@ -53,13 +53,16 @@ export function fixture(skin, failure, pending = true) {
       case 'companion.disable':note('正式 Host 会结束媒体并停用当前安装实例；预览保持打开。');return {kind:'companion-lifecycle',action:'disable',outcome:'disabled'};
       case 'conversation.read':return {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages,hasMore:false};
       case 'transcript.read':return {kind:'transcript',scope:{callId,realtimeSessionId},rows:transcriptRows,hasMore:false};
-      case 'decisions.read':return ${pending}?{kind:'decisions',status:'available',approvalCount:2,needsMeCount:2,otherNeedsMeCount:1,
-        approvals:[{proposalId:'11111111-1111-4111-8111-111111111111',sourceFeatureId:'F221',summary:'保留一点呼吸感',resolution:'open',materializationState:'not_started',linkedNeedsMe:true},
-          {proposalId:'thread-preview',sourceFeatureId:'F128',summary:'新线程需要完整表单确认',resolution:'open',materializationState:'not_started',linkedNeedsMe:false}],
-        otherNeedsMe:[{subjectRef:'task:preview',summary:'看看工作进展'}],
-        page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}}:
+      case 'decisions.read':return ${pending}?{kind:'decisions',version:1,status:'partial',observedAt:Date.now(),
+        sources:{approvals:{status:'available',coverage:'complete'},needsMe:{status:'unavailable',coverage:'unknown'}},
+        items:[
+          {variantRef:'preview_taste_v1',kind:'approval',summary:'保留一点呼吸感',navigation:{targets:['approval_card','origin']},approval:{resolution:'open',materializationState:'not_started',linkedNeedsMe:true}},
+          {variantRef:'preview_thread_v1',kind:'approval',summary:'新线程需要完整表单确认',navigation:{targets:['approval_card']},approval:{resolution:'open',materializationState:'not_started',linkedNeedsMe:false}},
+          {variantRef:'preview_repair_v1',kind:'repair',summary:'看看工作进展',navigation:{targets:['action','origin']}}
+        ],page:{offset:command.offset,limit:command.limit,scope:'known_rows',hasMore:false}}:
         {kind:'decisions',status:'available',approvalCount:0,needsMeCount:0,otherNeedsMeCount:0,approvals:[],otherNeedsMe:[],
           page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}};
+      case 'decision.open':note('正式 Host 会按当前事项重新核对并打开原处；预览不持有私有地址。');return {kind:'navigation',delivery:'requested'};
       case 'f221.inspect':note('外观预览没有受信 Host 确认窗口，也不会提交决定。');return {kind:'decision-trial',status:'unavailable'};
       case 'view.resize':parent.postMessage({kind:'resize',expanded:command.expanded},location.origin);return {kind:'ok'};
       case 'documents':allowed=command.allowed;phase='idle';return identity();

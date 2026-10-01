@@ -7,7 +7,7 @@ import { TranscriptView } from '../src/transcript-view.mjs';
 import { CallTranscriptView } from '../src/call-transcript-view.mjs';
 import { SettingsView } from '../src/settings-view.mjs';
 import { RecentBubble } from '../src/recent-bubble.mjs';
-import { decisionBadge, decisionRows } from '../src/decision-view.mjs';
+import { decisionBadge, decisionPresentation, decisionRows } from '../src/decision-view.mjs';
 import { nativeWorkLabel, normalizeNativeWork } from '../src/native-work-motion.mjs';
 import { currentCompanionIdentity } from '../src/companion-identity.mjs';
 
@@ -69,6 +69,9 @@ function fixture() {
       return { kind: 'delivery', delivery: 'accepted', clientMessageId, messageId: `message-${clientMessageId}`, callId: CALL_A };
     },
     inspectF221: async proposalId => { calls.push(`inspect:${proposalId}`); return { kind: 'decision-trial', status: 'trial_confirmed' }; },
+    openDecision: async (variantRef, target) => {
+      calls.push(`open:${variantRef}:${target}`); return { kind: 'navigation', delivery: 'requested' };
+    },
     readDecisions: (offset, limit) => decisions(offset, limit),
     readConversation: () => { calls.push('read'); return history(); },
     readTranscript: () => { calls.push('transcript-read'); return callTranscript(); },
@@ -98,7 +101,7 @@ function fixture() {
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
-    decisionBadge, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity, explainError: () => '未更新',
+    decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
@@ -457,6 +460,33 @@ test('passive decision badge and panel keep the live call while preserving unkno
   f.nodes.get('decision-reload').onclick(); await flush();
   assert.equal(f.nodes.get('pending-count').textContent, '?');
   assert.match(f.nodes.get('decision-status').textContent, /暂不可读/);
+});
+
+test('a partial unified inbox keeps known variants, missing-source truth, and safe navigation', async () => {
+  const f = fixture(); await flush(); f.start(); await flush();
+  f.decisions(async (offset, limit) => ({
+    kind: 'decisions', version: 1, status: 'partial', observedAt: 42,
+    sources: {
+      approvals: { status: 'available', coverage: 'complete' },
+      needsMe: { status: 'unavailable', coverage: 'unknown' },
+    },
+    items: [
+      { variantRef: 'variant-a', kind: 'repair', summary: '修复第一处',
+        navigation: { targets: ['action', 'origin'] } },
+      { variantRef: 'variant-b', kind: 'repair', summary: '修复冲突版本',
+        navigation: { targets: ['origin'] } },
+    ],
+    page: { offset, limit, scope: 'known_rows', hasMore: false },
+  }));
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('pending-count').textContent, '•');
+  await f.controls.show('decisions'); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 2);
+  assert.equal(f.nodes.get('decision-status').textContent, '仅部分读取 · 其余待办未能读取');
+  assert.equal(f.nodes.get('decision-reload').textContent, '重试');
+  await f.nodes.get('decision-list').children[0].children[2].onclick();
+  assert.ok(f.calls.includes('open:variant-a:action'));
+  assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
 });
 
 test('unknown assistant history stays readable without becoming an unsolicited idle preview or deliverable', async () => {

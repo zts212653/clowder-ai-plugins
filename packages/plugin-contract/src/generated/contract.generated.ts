@@ -874,6 +874,10 @@ export type CompanionCommand = {
   readonly offset: number;
   readonly limit: number;
 } | {
+  readonly kind: 'decision.open';
+  readonly variantRef: string;
+  readonly target: CompanionDecisionNavigationTarget;
+} | {
   readonly kind: 'f221.inspect';
   readonly proposalId: string;
 } | {
@@ -998,7 +1002,36 @@ export type CompanionState = {
   readonly audio?: CompanionAudioState;
   readonly nativeWork: CompanionNativeWork;
 };
-export type CompanionDecisions = {
+export type CompanionDecisionNavigationTarget = 'origin' | 'approval_card' | 'action';
+export type CompanionDecisionNavigation = {
+  readonly targets: readonly CompanionDecisionNavigationTarget[];
+};
+export type CompanionDecisionSourceRead = {
+  readonly status: 'available' | 'unavailable' | 'unauthenticated' | 'forbidden' | 'invalid';
+  readonly coverage: 'complete' | 'partial' | 'unknown';
+};
+export type CompanionDecisionSources = {
+  readonly approvals: CompanionDecisionSourceRead;
+  readonly needsMe: CompanionDecisionSourceRead;
+};
+export type CompanionDecisionApproval = {
+  readonly resolution: 'open' | 'accepted' | 'rejected' | 'closed_without_decision';
+  readonly materializationState: 'not_started' | 'outcome_unknown' | 'in_progress' | 'succeeded' | 'failed';
+  readonly linkedNeedsMe: boolean;
+};
+export type CompanionDecisionItem = {
+  readonly variantRef: string;
+  readonly kind: 'approval';
+  readonly summary: string;
+  readonly navigation: CompanionDecisionNavigation;
+  readonly approval: CompanionDecisionApproval;
+} | {
+  readonly variantRef: string;
+  readonly kind: 'judgment' | 'repair';
+  readonly summary: string;
+  readonly navigation: CompanionDecisionNavigation;
+};
+export type CompanionLegacyDecisions = {
   readonly kind: 'decisions';
   readonly status: 'available' | 'unavailable';
   readonly approvalCount: number | null;
@@ -1023,6 +1056,22 @@ export type CompanionDecisions = {
     readonly hasMoreNeedsMe: boolean;
   };
 };
+export type CompanionUnifiedDecisions = {
+  readonly kind: 'decisions';
+  readonly version: 1;
+  readonly status: 'available' | 'partial' | 'unavailable';
+  readonly observedAt: number;
+  readonly sources: CompanionDecisionSources;
+  readonly items: readonly CompanionDecisionItem[];
+  readonly totalCount?: number;
+  readonly page: {
+    readonly offset: number;
+    readonly limit: number;
+    readonly scope: 'known_rows';
+    readonly hasMore: boolean;
+  };
+};
+export type CompanionDecisions = CompanionLegacyDecisions | CompanionUnifiedDecisions;
 export type CompanionDecisionTrial = {
   readonly kind: 'decision-trial';
   readonly status: 'dismissed' | 'trial_confirmed' | 'stale' | 'unavailable';

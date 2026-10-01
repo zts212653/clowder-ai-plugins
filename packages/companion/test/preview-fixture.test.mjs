@@ -29,6 +29,11 @@ test('the actual renderer preview emits current Host state and conversation repl
   ]) {
     const reply = await window.clowderCompanion.request(command);
     assert.equal(validateCompanionReply(reply), true, `${command.kind} preview reply must satisfy the installed bridge`);
+    if (command.kind === 'decisions.read') {
+      assert.equal(reply.status, 'partial');
+      assert.equal('totalCount' in reply, false, 'partial preview must not invent an exact total');
+      assert.equal(reply.page.scope, 'known_rows');
+    }
   }
 });
 

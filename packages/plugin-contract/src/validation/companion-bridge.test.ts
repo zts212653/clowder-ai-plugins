@@ -317,3 +317,68 @@ test('passive decision reading has bounded pages and no renderer approval comman
   assert.equal(validateCompanionReply({ ...reply, status: 'unavailable', approvalCount: null,
     needsMeCount: null, otherNeedsMeCount: null, approvals: [], otherNeedsMe: [] }), true);
 });
+
+test('unified decision reads preserve partial truth, concrete variants, and Host-bound navigation', () => {
+  const source = (status: 'available' | 'unavailable', coverage: 'complete' | 'unknown') => ({ status, coverage });
+  const reply = {
+    kind: 'decisions', version: 1, status: 'partial', observedAt: 42,
+    sources: {
+      approvals: source('available', 'complete'),
+      needsMe: source('unavailable', 'unknown'),
+    },
+    items: [
+      {
+        variantRef: 'variant-a', kind: 'repair', summary: '修复第一处',
+        navigation: { targets: ['action', 'origin'] },
+      },
+      {
+        variantRef: 'variant-b', kind: 'repair', summary: '修复冲突版本',
+        navigation: { targets: ['origin'] },
+      },
+    ],
+    page: { offset: 0, limit: 20, scope: 'known_rows', hasMore: false },
+  } as const;
+
+  assert.equal(validateCompanionReply(reply), true,
+    'every retained source variant stays visible under its opaque concrete ref');
+  assert.equal(validateCompanionReply({ ...reply, totalCount: 2 }), false,
+    'a partial read cannot claim an exact total');
+  assert.equal(validateCompanionReply({ ...reply,
+    items: [reply.items[0], { ...reply.items[1], variantRef: 'variant-a' }] }), false,
+  'renderer keys must distinguish every concrete source variant');
+  assert.equal(validateCompanionReply({ ...reply,
+    items: [{ ...reply.items[0], navigation: { targets: ['action'], threadId: 'private-thread' } }] }), false,
+  'the renderer receives only Host-bound navigation choices, never raw private coordinates');
+  const approvalItem = {
+    variantRef: 'approval-a', kind: 'approval', summary: '审批事项',
+    navigation: { targets: ['approval_card', 'origin'] },
+    approval: { resolution: 'open', materializationState: 'not_started', linkedNeedsMe: true },
+  } as const;
+  assert.equal(validateCompanionReply({ ...reply, items: [approvalItem] }), true);
+  assert.equal(validateCompanionReply({ ...reply, items: [{ ...approvalItem,
+    approval: { ...approvalItem.approval, proposalId: 'private-proposal', sourceFeatureId: 'F221' } }] }), false,
+  'the unified renderer receives lifecycle and safe navigation, not private producer coordinates');
+  assert.equal(validateCompanionReply({ ...reply, items: [{ ...approvalItem, decisionRef: 'approval:F221:private' }] }), false,
+    'the concrete opaque ref replaces the internal logical producer coordinate at this boundary');
+
+  const complete = {
+    ...reply,
+    status: 'available',
+    sources: {
+      approvals: source('available', 'complete'),
+      needsMe: source('available', 'complete'),
+    },
+    totalCount: 2,
+  } as const;
+  assert.equal(validateCompanionReply(complete), true);
+  assert.equal(validateCompanionReply({ ...complete, totalCount: 3 }), false,
+    'an exact total also makes known_rows hasMore mechanically checkable');
+  assert.equal(validateCompanionReply({ ...complete,
+    sources: { ...complete.sources, needsMe: source('available', 'unknown') } }), false,
+  'an exact total requires complete public source coverage');
+
+  assert.equal(validateCompanionCommand({ kind: 'decision.open', variantRef: 'variant-a', target: 'action' }), true);
+  assert.equal(validateCompanionCommand({ kind: 'decision.open', variantRef: 'variant-a', target: 'origin', threadId: 'forged' }), false);
+  assert.equal(validateCompanionCommand({ kind: 'decision.open', variantRef: '../foreign-variant', target: 'origin' }), false,
+    'the Host-issued opaque ref uses a closed grammar and cannot become a path-like selector');
+});

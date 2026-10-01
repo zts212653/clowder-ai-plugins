@@ -56,6 +56,27 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     }
     return true;
   }
+  if (parsed.kind === 'decisions') {
+    if (!('version' in parsed)) return true;
+    const variantRefs = parsed.items.map((item) => item.variantRef);
+    if (new Set(variantRefs).size !== variantRefs.length) return false;
+    if (parsed.items.some((item) => new Set(item.navigation.targets).size !== item.navigation.targets.length)) {
+      return false;
+    }
+    const sources = Object.values(parsed.sources);
+    if (sources.some((source) => source.status !== 'available' && source.coverage === 'complete')) return false;
+    const complete = sources.every((source) => source.status === 'available' && source.coverage === 'complete');
+    const anyAvailable = sources.some((source) => source.status === 'available');
+    if (parsed.status === 'available' && !complete) return false;
+    if (parsed.status === 'partial' && (!anyAvailable || complete)) return false;
+    if (parsed.status === 'unavailable' && (anyAvailable || parsed.items.length > 0 || parsed.page.hasMore)) return false;
+    if (parsed.totalCount !== undefined) {
+      if (parsed.status !== 'available' || !complete || parsed.totalCount < parsed.items.length) return false;
+      const knownEnd = parsed.page.offset + parsed.items.length;
+      if (parsed.page.hasMore !== (knownEnd < parsed.totalCount)) return false;
+    }
+    return true;
+  }
   if (parsed.kind !== 'state') return true;
   if (parsed.audio) {
     if (!parsed.audio.supportedModes.includes('duplex')) return false;

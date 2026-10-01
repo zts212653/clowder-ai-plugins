@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/companion",
-  "version": "0.1.0-alpha.14",
+  "version": "0.1.0-alpha.15",
   "description": "The desktop voice body for your Clowder companion",
   "license": "MIT",
   "type": "module",
@@ -27,8 +27,8 @@
     "prepack": "pnpm build"
   },
   "devDependencies": {
-    "@clowder-ai/plugin-contract": "0.1.0-beta.23",
-    "@clowder-ai/plugin-sdk": "0.1.0-beta.19",
+    "@clowder-ai/plugin-contract": "0.1.0-beta.24",
+    "@clowder-ai/plugin-sdk": "0.1.0-beta.20",
     "playwright": "1.61.1"
   },
   "repository": {

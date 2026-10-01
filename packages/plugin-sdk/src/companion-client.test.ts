@@ -41,6 +41,15 @@ test('decision reading requests a page without a writer or owner selector', asyn
   assert.deepEqual(calls, [{ kind: 'decisions.read', offset: 0, limit: 10 }]);
 });
 
+test('decision navigation sends only the Host-issued concrete variant and closed target', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command); return { kind: 'navigation', delivery: 'requested' };
+  }, subscribe: () => () => {} });
+  await client.openDecision('variant-a', 'approval_card');
+  assert.deepEqual(calls, [{ kind: 'decision.open', variantRef: 'variant-a', target: 'approval_card' }]);
+});
+
 test('transcript reading is bound by the Host and exposes no call selector', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => {
