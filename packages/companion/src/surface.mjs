@@ -44,6 +44,10 @@ let didMove = false, decisionLoading = false, decisionOffset = 0, threadTitle, s
 const ambientPanel = active => active ? 'actions' : 'none';
 const setTexts = (ids, text) => { for (const id of ids) $(id).textContent = text; };
 const setHidden = (ids, hidden) => { for (const id of ids) $(id).hidden = hidden; };
+const decisionReadBasis = page => page?.version === 1
+  ? [page.status, page.totalCount ?? 'unknown', ...['approvals', 'needsMe']
+    .flatMap(key => [page.sources?.[key]?.status, page.sources?.[key]?.coverage])].join('|')
+  : page ? 'legacy' : null;
 if (!window.clowderCompanion) {
   $('actions').hidden = false; $('status').hidden = false;
   status('请从 Clowder 的聊聊入口打开猫猫球');
@@ -278,17 +282,20 @@ if (!window.clowderCompanion) {
     decisionLoading = true;
     if (!more && controls.panel === 'decisions') $('decision-status').textContent = '正在读取待办…';
     try {
+      const previousReadBasis = decisionReadBasis(latestDecisionPage);
       const page = await client.readDecisions(more ? decisionOffset : 0, 10);
       const presentation = decisionPresentation(page);
+      const changedRead = more && presentation.renderRows && previousReadBasis !== null
+        && decisionReadBasis(page) !== previousReadBasis;
       showDecisionBadge(page);
       motion.setPendingDecision(presentation.pending);
       if (controls.panel !== 'decisions') return;
       const list = $('decision-list');
-      if (!more) { list.replaceChildren(); list.scrollTop = 0; }
+      if (!more || changedRead) { list.replaceChildren(); list.scrollTop = 0; }
       const retainedRows = more && !presentation.renderRows && list.children.length > 0;
       const knownVariantRefs = new Set(Array.from(list.children)
         .map(item => item.dataset.variantRef).filter(Boolean));
-      for (const row of presentation.renderRows ? decisionRows(page) : []) {
+      for (const row of presentation.renderRows && !changedRead ? decisionRows(page) : []) {
         if (row.variantRef && knownVariantRefs.has(row.variantRef)) continue;
         const item = document.createElement('li');
         if (row.variantRef) { item.dataset.variantRef = row.variantRef; knownVariantRefs.add(row.variantRef); }
@@ -323,12 +330,14 @@ if (!window.clowderCompanion) {
           item.append(button);
         }
       }
-      decisionOffset = page.page.offset + page.page.limit;
-      $('decision-reload').textContent = presentation.reloadLabel;
-      $('decision-status').textContent = retainedRows
+      decisionOffset = changedRead ? 0 : page.page.offset + page.page.limit;
+      $('decision-reload').textContent = changedRead ? '刷新' : presentation.reloadLabel;
+      $('decision-status').textContent = changedRead && page.totalCount !== 0
+        ? '待办已变化 · 请刷新查看最新列表'
+        : retainedRows
         ? `${presentation.badge.state === 'authentication' ? '待办需要登录' : '待办暂不可读'} · 以下为上次读到的内容`
         : presentation.message;
-      $('decision-more').hidden = !presentation.hasMore;
+      $('decision-more').hidden = changedRead || !presentation.hasMore;
     } catch {
       showDecisionBadge(undefined);
       motion.setPendingDecision(null);

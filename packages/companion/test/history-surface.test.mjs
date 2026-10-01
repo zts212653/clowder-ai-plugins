@@ -540,6 +540,73 @@ test('an unavailable follow-up page keeps earlier rows only as explicitly stale 
   assert.equal(f.nodes.get('decision-more').hidden, true);
 });
 
+test('a fresh exact zero clears rows retained from an earlier independent page read', async () => {
+  const f = fixture(); await flush();
+  const sources = {
+    approvals: { status: 'available', coverage: 'complete' },
+    needsMe: { status: 'available', coverage: 'complete' },
+  };
+  f.decisions(async (offset, limit) => ({
+    kind: 'decisions', version: 1, status: 'available', observedAt: 42 + offset, sources,
+    totalCount: offset === 0 ? 11 : 0,
+    items: offset === 0
+      ? Array.from({ length: limit }, (_, index) => ({
+        variantRef: `variant-${index}`, kind: 'repair', summary: `old ${index}`, navigation: { targets: ['origin'] },
+      })) : [],
+    page: { offset, limit, scope: 'known_rows', hasMore: offset === 0 },
+  }));
+  await f.controls.show('decisions'); await flush();
+  f.nodes.get('decision-more').onclick(); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 0);
+  assert.equal(f.nodes.get('decision-status').textContent, '暂无待办');
+  assert.equal(f.nodes.get('pending-count').textContent, '0');
+  assert.equal(f.nodes.get('decision-more').hidden, true);
+});
+
+test('an exact total change invalidates the mixed pagination view until a fresh first page', async () => {
+  const f = fixture(); await flush();
+  const sources = {
+    approvals: { status: 'available', coverage: 'complete' },
+    needsMe: { status: 'available', coverage: 'complete' },
+  };
+  f.decisions(async (offset, limit) => ({
+    kind: 'decisions', version: 1, status: 'available', observedAt: 42 + offset, sources,
+    totalCount: offset === 0 ? 11 : 10,
+    items: offset === 0
+      ? Array.from({ length: limit }, (_, index) => ({
+        variantRef: `variant-${index}`, kind: 'repair', summary: `old ${index}`, navigation: { targets: [] },
+      })) : [],
+    page: { offset, limit, scope: 'known_rows', hasMore: offset === 0 },
+  }));
+  await f.controls.show('decisions'); await flush();
+  f.nodes.get('decision-more').onclick(); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 0);
+  assert.equal(f.nodes.get('decision-status').textContent, '待办已变化 · 请刷新查看最新列表');
+  assert.equal(f.nodes.get('decision-reload').textContent, '刷新');
+  assert.equal(f.nodes.get('decision-more').hidden, true);
+});
+
+test('a source coverage change also invalidates rows from the prior independent read', async () => {
+  const f = fixture(); await flush();
+  f.decisions(async (offset, limit) => ({
+    kind: 'decisions', version: 1, status: 'partial', observedAt: 42 + offset,
+    sources: {
+      approvals: { status: 'available', coverage: offset === 0 ? 'complete' : 'partial' },
+      needsMe: { status: 'unavailable', coverage: 'unknown' },
+    },
+    items: offset === 0
+      ? Array.from({ length: limit }, (_, index) => ({
+        variantRef: `variant-${index}`, kind: 'repair', summary: `old ${index}`, navigation: { targets: [] },
+      })) : [],
+    page: { offset, limit, scope: 'known_rows', hasMore: offset === 0 },
+  }));
+  await f.controls.show('decisions'); await flush();
+  f.nodes.get('decision-more').onclick(); await flush();
+  assert.equal(f.nodes.get('decision-list').children.length, 0);
+  assert.equal(f.nodes.get('decision-status').textContent, '待办已变化 · 请刷新查看最新列表');
+  assert.equal(f.nodes.get('decision-more').hidden, true);
+});
+
 test('unknown assistant history stays readable without becoming an unsolicited idle preview or deliverable', async () => {
   const f = fixture(); await flush();
   assert.ok(!f.motionCalls.includes('answered'));
