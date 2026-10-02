@@ -35,6 +35,8 @@ test('the installable package declares one companion body and contains a closed 
     'the persistent call bar must keep an explicit destructive hang-up action');
   assert.match(html.toString(), /id="call-transcript-log"[^>]*role="log"/u,
     'the installable renderer must contain the Host-bound transcript surface');
+  assert.match(html.toString(), /<button id="transcript-return"[^>]*data-action="transcript-return"[^>]*>[\s\S]*?返回通话[\s\S]*?<\/button>/u,
+    'compact and expanded subtitles must expose a visible return to the persistent call bar');
   assert.equal(manifest.contributions[0].surface.integrity, `sha256-${createHash('sha256').update(html).digest('base64')}`);
   for (const name of await readdir(new URL('renderer/', root))) {
     if (!/\.(html|css|mjs)$/.test(name)) continue;

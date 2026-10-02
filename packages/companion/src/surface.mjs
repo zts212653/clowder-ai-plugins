@@ -81,6 +81,7 @@ if (!window.clowderCompanion) {
       if (kind === 'share') toggleScreen();
       if (kind === 'documents') void conversation.documents(conversation.identity?.documentsAllowed === false);
       if (kind === 'hide') void client.hide().catch(error => status(explainError(error)));
+      if (kind === 'transcript-return') void controls.show('actions');
       if (kind === 'transcript-expand') {
         const expanded = $('transcript').dataset.expanded !== 'true';
         $('transcript').dataset.expanded = String(expanded);

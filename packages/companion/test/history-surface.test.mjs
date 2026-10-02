@@ -97,6 +97,7 @@ function fixture() {
   class LivingBody {}
   node('message');
   node('call-message');
+  node('transcript');
   node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
@@ -252,6 +253,29 @@ test('opening and dismissing another panel during voice returns to the persisten
   assert.equal(f.controls.panel, 'chat');
   f.controls.dismiss(); await flush();
   assert.equal(f.controls.panel, 'actions');
+});
+
+test('visible transcript return restores the same call bar from compact and expanded subtitles', async () => {
+  const f = fixture(); await flush(); f.start(); await flush();
+  f.share({ sharing: true, pending: false, label: 'Blender' });
+  f.nodes.get('call-message').value = '不要丢掉这段草稿';
+
+  for (const expanded of [false, true]) {
+    await f.controls.show('transcript'); await flush();
+    f.nodes.get('transcript').dataset.expanded = String(expanded);
+    const mediaBefore = f.calls.filter(call => call === 'stop' || call === 'close'
+      || (Array.isArray(call) && call[0] === 'microphone'));
+
+    f.action('transcript-return'); await flush();
+
+    assert.equal(f.controls.panel, 'actions', `expanded=${expanded}`);
+    assert.equal(f.nodes.get('call-state').textContent, '通话中');
+    assert.equal(f.nodes.get('call-mic-state').textContent, '麦克风已开启');
+    assert.equal(f.nodes.get('call-share-target').textContent, '共享中：Blender');
+    assert.equal(f.nodes.get('call-message').value, '不要丢掉这段草稿');
+    assert.deepEqual(f.calls.filter(call => call === 'stop' || call === 'close'
+      || (Array.isArray(call) && call[0] === 'microphone')), mediaBefore);
+  }
 });
 
 test('microphone icons follow mute truth and hangup closes the call-only transcript panel', async () => {

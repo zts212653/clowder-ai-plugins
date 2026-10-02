@@ -24,8 +24,8 @@ after(async () => {
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 });
 
-async function openPreview() {
-  const page = await browser.newPage({ viewport: { width: 600, height: 800 } });
+async function openPreview(viewport = { width: 600, height: 800 }) {
+  const page = await browser.newPage({ viewport });
   await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1`);
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => {
@@ -82,6 +82,39 @@ test('dynamic call content and expanded transcript keep every action visible', a
     assert.equal(transcript.height, 500);
     assert.deepEqual(transcript.clippedButtons, []);
     assert.equal(await page.locator('#transcript').getAttribute('data-expanded'), 'true');
+  } finally {
+    await page.close();
+  }
+});
+
+test('subtitle return is visible and restores the same shared call at compact and expanded heights', async () => {
+  const page = await openPreview({ width: 460, height: 620 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    await page.evaluate(() => {
+      for (const prefix of ['call', 'transcript']) {
+        document.getElementById(`${prefix}-share-context`).hidden = false;
+        document.getElementById(`${prefix}-share-target`).textContent = '共享中：Blender · 窄屏验收窗口';
+      }
+    });
+
+    for (const expanded of [false, true]) {
+      await page.click('[data-action="transcript"]');
+      if (expanded) await page.click('#transcript-expand');
+      await page.fill('#call-message', '未发送的草稿');
+      const transcript = await visibleClipping(page, 'transcript');
+      assert(transcript.height <= 500);
+      assert.deepEqual(transcript.clippedButtons, []);
+      assert.equal(await page.locator('#transcript-return').isVisible(), true);
+
+      await page.click('#transcript-return');
+      await page.waitForFunction(() => !document.getElementById('actions').hidden);
+      assert.equal(await page.locator('#call-state').textContent(), '通话中');
+      assert.equal(await page.locator('#call-share-target').textContent(), '共享中：Blender · 窄屏验收窗口');
+      assert.equal(await page.inputValue('#call-message'), '未发送的草稿');
+    }
   } finally {
     await page.close();
   }
