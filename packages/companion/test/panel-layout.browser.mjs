@@ -90,16 +90,32 @@ async function textRangeVisibility(page, rowSelector, needle) {
       range.setEnd(node, index + needle.length);
       const bounds = row.getBoundingClientRect();
       const text = range.getBoundingClientRect();
+      const hit = document.elementFromPoint((text.left + text.right) / 2, (text.top + text.bottom) / 2);
       return {
         rowText: row.textContent,
         visible: text.left >= bounds.left - 0.5 && text.right <= bounds.right + 0.5
-          && text.top >= bounds.top - 0.5 && text.bottom <= bounds.bottom + 0.5,
+          && text.top >= bounds.top - 0.5 && text.bottom <= bounds.bottom + 0.5
+          && hit !== null && row.contains(hit),
         bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom },
         text: { left: text.left, right: text.right, top: text.top, bottom: text.bottom },
       };
     }
     return { rowText: row.textContent, visible: false, missing: true };
   }, { rowSelector, needle });
+}
+
+async function recentRowPresentation(page, rowSelector) {
+  return page.evaluate(rowSelector => {
+    const row = document.querySelector(rowSelector);
+    const speaker = row.querySelector('.recent-speaker').getBoundingClientRect();
+    const message = row.querySelector('.recent-message');
+    const text = row.querySelector('.recent-message-text').getBoundingClientRect();
+    return {
+      gap: text.left - speaker.right,
+      textOverflow: getComputedStyle(message).textOverflow,
+      textDirection: message.dataset.direction,
+    };
+  }, rowSelector);
 }
 
 test('dynamic call content and expanded transcript keep every action visible', async () => {
@@ -177,23 +193,64 @@ test('the narrow call bar keeps both speaker labels and the newest streamed tail
     await page.evaluate(() => {
       const callId = '11111111-1111-4111-8111-111111111111';
       window.__emitAudio({ kind: 'audio', type: 'transcript', callId, role: 'user', itemId: 'long-user',
-        text: `${'这是一段很长的用户实时输入'.repeat(18)}【用户最新尾部】` });
+        text: `${'这是一段很长的用户实时输入'.repeat(18)}用户最新尾部。` });
       window.__emitAudio({ kind: 'audio', type: 'transcript', callId, role: 'assistant', itemId: 'long-assistant',
-        text: `${'这是猫猫正在持续回答的长句'.repeat(18)}【猫猫最新尾部】` });
+        text: `${'这是猫猫正在持续回答的长句'.repeat(18)}assistant tail!` });
     });
 
     const userLabel = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '语音：');
-    const userTail = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '【用户最新尾部】');
+    const userTail = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '用户最新尾部。');
     const assistantLabel = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', '宪宪：');
-    const assistantTail = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', '【猫猫最新尾部】');
+    const assistantTail = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', 'assistant tail!');
     assert.equal(userLabel.visible, true, JSON.stringify(userLabel));
     assert.equal(userTail.visible, true, JSON.stringify(userTail));
     assert.equal(assistantLabel.visible, true, JSON.stringify(assistantLabel));
     assert.equal(assistantTail.visible, true, JSON.stringify(assistantTail));
 
+    await page.evaluate(async () => {
+      const { RecentBubble } = await import('/recent-bubble.mjs');
+      const bubble = new RecentBubble([
+        document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
+      ]);
+      bubble.append('user', 'hi', '语音');
+      bubble.append('assistant', '好的。', '宪宪');
+    });
+    for (const role of ['user', 'assistant']) {
+      const presentation = await recentRowPresentation(page, `.call-recent p[data-role="${role}"]`);
+      assert(Math.abs(presentation.gap) <= 0.5, JSON.stringify(presentation));
+      assert.equal(presentation.textOverflow, 'ellipsis');
+      assert.equal(presentation.textDirection, 'ltr');
+    }
+
     const callbar = await visibleClipping(page, 'actions');
     assert(callbar.height <= 500);
     assert.deepEqual(callbar.clippedButtons, []);
+  } finally {
+    await page.close();
+  }
+});
+
+test('the narrow call bar keeps the logical tail visible for right-to-left messages', async () => {
+  const page = await openPreview({ width: 390, height: 620 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await page.evaluate(async () => {
+      const { RecentBubble } = await import('/recent-bubble.mjs');
+      const bubble = new RecentBubble([
+        document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
+      ]);
+      bubble.append('user', `${'مرحبا '.repeat(40)}نهاية الجملة`, '语音');
+      bubble.append('assistant', `${'שלום '.repeat(40)}סוף המשפט`, '宪宪');
+    });
+
+    const arabic = await textRangeVisibility(page, '.call-recent p[data-role="user"]', 'نهاية الجملة');
+    const hebrew = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', 'סוף המשפט');
+    assert.equal(arabic.visible, true, JSON.stringify(arabic));
+    assert.equal(hebrew.visible, true, JSON.stringify(hebrew));
+    assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="user"]')).textDirection, 'rtl');
+    assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="assistant"]')).textDirection, 'rtl');
   } finally {
     await page.close();
   }

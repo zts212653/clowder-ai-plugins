@@ -54,10 +54,13 @@ export class RecentBubble {
         speakerNode.className = 'recent-speaker';
         messageNode.className = 'recent-message';
         messageText.className = 'recent-message-text';
+        messageText.dir = 'auto';
         speakerNode.textContent = speaker;
         messageText.textContent = message;
         messageNode.append(messageText);
         row.replaceChildren(speakerNode, messageNode);
+        const direction = row.ownerDocument.defaultView?.getComputedStyle(messageText).direction;
+        messageNode.dataset.direction = direction === 'rtl' ? 'rtl' : 'ltr';
       }
       row.dataset ??= {};
       row.dataset.role = entry?.role ?? '';

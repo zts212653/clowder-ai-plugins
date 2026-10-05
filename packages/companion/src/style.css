@@ -104,7 +104,8 @@ button:disabled { opacity: .45; cursor: default; }
 .call-recent p { margin: 4px 0 0; display: flex; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 12px; line-height: 1.45; }
 .recent-speaker { flex: none; }
 .recent-message { min-width: 0; flex: 1 1 auto; overflow: hidden; direction: rtl; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
-.recent-message-text { direction: ltr; unicode-bidi: isolate; }
+.recent-message[data-direction="rtl"] { direction: ltr; }
+.recent-message-text { unicode-bidi: isolate; }
 .call-recent p[data-role="user"] { color: var(--desktop-muted); }
 .call-actions { justify-content: flex-end; }
 .call-actions #end { min-width: 88px; margin-left: auto; }
