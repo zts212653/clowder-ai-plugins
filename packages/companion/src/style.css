@@ -73,7 +73,7 @@ button:disabled { opacity: .45; cursor: default; }
 .floating { position: absolute; z-index: 3; border-radius: 12px; border: 1px solid var(--desktop-line-strong); background: var(--desktop-paper); box-shadow: 0 14px 28px #18171526, 0 2px 5px #1817150f; }
 .floating { max-height: 500px; overflow: auto; }
 #bubble { width: 240px; max-height: 80px; overflow: hidden; padding: 8px 11px; pointer-events: none; }
-#bubble p { margin: 0; font-size: 11px; line-height: 1.45; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#bubble p { margin: 0; display: flex; min-width: 0; font-size: 11px; line-height: 1.45; overflow: hidden; white-space: nowrap; }
 #bubble p + p { margin-top: 4px; }
 #bubble [data-role="user"] { color: var(--cafe-text-secondary); }
 .floating button { border: 0; background: transparent; border-radius: 7px; padding: 8px 11px; font-weight: 400; }
@@ -101,7 +101,10 @@ button:disabled { opacity: .45; cursor: default; }
 .call-share-context small, .call-share-line small { color: var(--desktop-muted); font-size: 11px; }
 .call-recent { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--desktop-line); }
 .call-recent-label { color: var(--desktop-muted); font-size: 11px; letter-spacing: .05em; }
-.call-recent p { margin: 4px 0 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; line-height: 1.45; }
+.call-recent p { margin: 4px 0 0; display: flex; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 12px; line-height: 1.45; }
+.recent-speaker { flex: none; }
+.recent-message { min-width: 0; flex: 1 1 auto; overflow: hidden; direction: rtl; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.recent-message-text { direction: ltr; unicode-bidi: isolate; }
 .call-recent p[data-role="user"] { color: var(--desktop-muted); }
 .call-actions { justify-content: flex-end; }
 .call-actions #end { min-width: 88px; margin-left: auto; }

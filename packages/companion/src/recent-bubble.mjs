@@ -44,7 +44,21 @@ export class RecentBubble {
     for (const [index, row] of this.rows.entries()) {
       const entry = entries[index];
       row.hidden = !entry;
-      row.textContent = entry ? `${String(entry.name).slice(0, 28)}：${String(entry.text).slice(-120)}` : '';
+      const speaker = entry ? `${String(entry.name).slice(0, 28)}：` : '';
+      const message = entry ? String(entry.text).slice(-120) : '';
+      row.textContent = `${speaker}${message}`;
+      if (entry && row.ownerDocument?.createElement && typeof row.replaceChildren === 'function') {
+        const speakerNode = row.ownerDocument.createElement('span');
+        const messageNode = row.ownerDocument.createElement('span');
+        const messageText = row.ownerDocument.createElement('bdi');
+        speakerNode.className = 'recent-speaker';
+        messageNode.className = 'recent-message';
+        messageText.className = 'recent-message-text';
+        speakerNode.textContent = speaker;
+        messageText.textContent = message;
+        messageNode.append(messageText);
+        row.replaceChildren(speakerNode, messageNode);
+      }
       row.dataset ??= {};
       row.dataset.role = entry?.role ?? '';
     }

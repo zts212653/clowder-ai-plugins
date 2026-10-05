@@ -77,6 +77,31 @@ async function visibleClipping(page, panelId) {
   }, panelId);
 }
 
+async function textRangeVisibility(page, rowSelector, needle) {
+  return page.evaluate(({ rowSelector, needle }) => {
+    const row = document.querySelector(rowSelector);
+    const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const index = node.data.indexOf(needle);
+      if (index === -1) continue;
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + needle.length);
+      const bounds = row.getBoundingClientRect();
+      const text = range.getBoundingClientRect();
+      return {
+        rowText: row.textContent,
+        visible: text.left >= bounds.left - 0.5 && text.right <= bounds.right + 0.5
+          && text.top >= bounds.top - 0.5 && text.bottom <= bounds.bottom + 0.5,
+        bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom },
+        text: { left: text.left, right: text.right, top: text.top, bottom: text.bottom },
+      };
+    }
+    return { rowText: row.textContent, visible: false, missing: true };
+  }, { rowSelector, needle });
+}
+
 test('dynamic call content and expanded transcript keep every action visible', async () => {
   const page = await openPreview();
   try {
@@ -138,6 +163,37 @@ test('subtitle return is visible and restores the same shared call at compact an
       assert.equal(await page.locator('#call-share-target').textContent(), '共享中：Blender · 窄屏验收窗口');
       assert.equal(await page.inputValue('#call-message'), '未发送的草稿');
     }
+  } finally {
+    await page.close();
+  }
+});
+
+test('the narrow call bar keeps both speaker labels and the newest streamed tail visibly on screen', async () => {
+  const page = await openPreview({ width: 390, height: 620 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await page.evaluate(() => {
+      const callId = '11111111-1111-4111-8111-111111111111';
+      window.__emitAudio({ kind: 'audio', type: 'transcript', callId, role: 'user', itemId: 'long-user',
+        text: `${'这是一段很长的用户实时输入'.repeat(18)}【用户最新尾部】` });
+      window.__emitAudio({ kind: 'audio', type: 'transcript', callId, role: 'assistant', itemId: 'long-assistant',
+        text: `${'这是猫猫正在持续回答的长句'.repeat(18)}【猫猫最新尾部】` });
+    });
+
+    const userLabel = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '语音：');
+    const userTail = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '【用户最新尾部】');
+    const assistantLabel = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', '宪宪：');
+    const assistantTail = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', '【猫猫最新尾部】');
+    assert.equal(userLabel.visible, true, JSON.stringify(userLabel));
+    assert.equal(userTail.visible, true, JSON.stringify(userTail));
+    assert.equal(assistantLabel.visible, true, JSON.stringify(assistantLabel));
+    assert.equal(assistantTail.visible, true, JSON.stringify(assistantTail));
+
+    const callbar = await visibleClipping(page, 'actions');
+    assert(callbar.height <= 500);
+    assert.deepEqual(callbar.clippedButtons, []);
   } finally {
     await page.close();
   }
