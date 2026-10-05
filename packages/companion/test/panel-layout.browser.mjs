@@ -267,6 +267,20 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
     assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="user"]')).textDirection, 'rtl');
     assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="assistant"]')).textDirection, 'ltr');
 
+    const adlamTail = String.fromCodePoint(0x1e922, 0x1e923, 0x1e924, 0x1e925, 0x1e926);
+    await page.evaluate(async ({ adlamPrefix, adlamTail }) => {
+      const { RecentBubble } = await import('/recent-bubble.mjs');
+      const row = document.getElementById('call-bubble-first');
+      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')]);
+      bubble.append('user', `${`${adlamPrefix} `.repeat(30)}${adlamTail}`, '语音');
+    }, {
+      adlamPrefix: String.fromCodePoint(0x1e927, 0x1e928, 0x1e929, 0x1e92a, 0x1e92b),
+      adlamTail,
+    });
+    const adlam = await textRangeVisibility(page, '.call-recent p[data-role="user"]', adlamTail);
+    assert.equal(adlam.visible, true, JSON.stringify(adlam));
+    assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="user"]')).textDirection, 'rtl');
+
     const streaming = await page.evaluate(async () => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const row = document.getElementById('call-bubble-first');
