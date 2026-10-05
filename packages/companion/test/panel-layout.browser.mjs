@@ -251,6 +251,45 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
     assert.equal(hebrew.visible, true, JSON.stringify(hebrew));
     assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="user"]')).textDirection, 'rtl');
     assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="assistant"]')).textDirection, 'rtl');
+
+    await page.evaluate(async () => {
+      const { RecentBubble } = await import('/recent-bubble.mjs');
+      const bubble = new RecentBubble([
+        document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
+      ]);
+      bubble.append('user', `${'ك'.repeat(50)}iPad  ${'مرحبا '.repeat(17)}نهاية الجملة`, '语音');
+      bubble.append('assistant', `${'word '.repeat(60)}مرحبا  ${'word '.repeat(20)}final words!`, '宪宪');
+    });
+    const mixedRtl = await textRangeVisibility(page, '.call-recent p[data-role="user"]', 'نهاية الجملة');
+    const mixedLtr = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', 'final words!');
+    assert.equal(mixedRtl.visible, true, JSON.stringify(mixedRtl));
+    assert.equal(mixedLtr.visible, true, JSON.stringify(mixedLtr));
+    assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="user"]')).textDirection, 'rtl');
+    assert.equal((await recentRowPresentation(page, '.call-recent p[data-role="assistant"]')).textDirection, 'ltr');
+
+    const streaming = await page.evaluate(async () => {
+      const { RecentBubble } = await import('/recent-bubble.mjs');
+      const row = document.getElementById('call-bubble-first');
+      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')]);
+      bubble.append('assistant', 'hello world ', '宪宪');
+      const bad = [];
+      for (let index = 0; index < 60; index += 1) {
+        const delta = `كلمة${index} `;
+        bubble.append('assistant', delta, '宪宪');
+        const message = row.querySelector('.recent-message');
+        const text = row.querySelector('.recent-message-text').firstChild;
+        const offset = text.data.lastIndexOf(delta);
+        const range = document.createRange();
+        range.setStart(text, offset);
+        range.setEnd(text, offset + delta.length);
+        const tail = range.getBoundingClientRect();
+        const bounds = message.getBoundingClientRect();
+        const hit = document.elementFromPoint((tail.left + tail.right) / 2, (tail.top + tail.bottom) / 2);
+        if (tail.left < bounds.left - 0.5 || tail.right > bounds.right + 0.5 || !message.contains(hit)) bad.push(index);
+      }
+      return bad;
+    });
+    assert.deepEqual(streaming, []);
   } finally {
     await page.close();
   }

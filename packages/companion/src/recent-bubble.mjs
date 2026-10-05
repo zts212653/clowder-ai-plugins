@@ -56,10 +56,15 @@ export class RecentBubble {
         messageText.className = 'recent-message-text';
         messageText.dir = 'auto';
         speakerNode.textContent = speaker;
-        messageText.textContent = message;
+        // dir=auto resolves the first strong character. Reversing code points for
+        // this hidden-in-the-same-tick probe therefore resolves the latest strong
+        // character, which is the edge this compact tail projection must retain.
+        messageText.textContent = Array.from(message).reverse().join('');
         messageNode.append(messageText);
         row.replaceChildren(speakerNode, messageNode);
         const direction = row.ownerDocument.defaultView?.getComputedStyle(messageText).direction;
+        messageText.dir = direction === 'rtl' ? 'rtl' : 'ltr';
+        messageText.textContent = message;
         messageNode.dataset.direction = direction === 'rtl' ? 'rtl' : 'ltr';
       }
       row.dataset ??= {};
