@@ -286,8 +286,8 @@ export async function runConformance(
   addFormats(ajv);
   ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema['$id'] as string);
   ajv.addSchema(signalSchema, signalSchema['$id'] as string);
-  ajv.addSchema(manifestSchema, manifestSchema['$id'] as string);
   ajv.addSchema(messagingSchema, messagingSchema['$id'] as string);
+  ajv.addSchema(manifestSchema, manifestSchema['$id'] as string);
   ajv.addSchema(behaviorSchema, behaviorSchema['$id'] as string);
 
   // Discover and validate fixtures

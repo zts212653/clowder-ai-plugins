@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/xiangqi",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Xiangqi analysis and board assets for a Host-bound companion game",
   "license": "MIT",
   "type": "module",
@@ -24,7 +24,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "node scripts/build.mjs && node ../../scripts/package-bins.mjs",
     "test": "node --test test/*.test.mjs",
     "test:browser": "node --test test/browser.journey.mjs",
     "lint": "node --test test/manifest.test.mjs test/privacy.test.mjs",
@@ -39,7 +39,12 @@
     "playwright": "1.61.1",
     "yaml": "^2.8.1"
   },
-  "keywords": ["clowder-ai", "plugin", "xiangqi", "chinese-chess"],
+  "keywords": [
+    "clowder-ai",
+    "plugin",
+    "xiangqi",
+    "chinese-chess"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/zts212653/clowder-ai-plugins.git",

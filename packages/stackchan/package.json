@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/stackchan",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Official StackChan physical-limb adapter for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -22,10 +22,10 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json && node ../../scripts/package-bins.mjs",
     "start": "node dist/cli.js",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --import tsx --test src/**/*.test.ts && node --test test/*.test.mjs",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "clean": "rm -rf dist",
     "prepack": "pnpm build"

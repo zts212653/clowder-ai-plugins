@@ -22,10 +22,14 @@ const schema = JSON.parse(
 const signalSchema = JSON.parse(
   readFileSync(new URL('../schemas/signal.schema.json', import.meta.url), 'utf8'),
 ) as { $id: string };
+const messagingSchema = JSON.parse(
+  readFileSync(new URL('../schemas/messaging.schema.json', import.meta.url), 'utf8'),
+) as { $id: string };
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
 ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema.$id);
 ajv.addSchema(signalSchema, signalSchema.$id);
+ajv.addSchema(messagingSchema, messagingSchema.$id);
 ajv.addSchema(schema, schema.$id);
 
 function validate(definition: string, value: unknown): boolean {
@@ -64,4 +68,20 @@ test('protocol-intrinsic lifecycle fixture needs no lifecycle capability id', ()
 
   assert.equal(ajv.getSchema(schema.$id)?.(fixture), true);
   assert.deepEqual(fixture.features.flatMap((feature) => feature.capabilities), []);
+});
+
+test("render 'rows' binds OperationActionResult.data to OperationRows", () => {
+  assert.equal(validate('OperationActionResult', { render: 'rows', data: { rows: [] } }), true);
+  assert.equal(validate('OperationActionResult', { render: 'rows', data: 42 }), false);
+  assert.equal(validate('OperationActionResult', { render: 'status', data: 42 }), true);
+});
+
+test('cloud conversation source ids reference the shared MessageId definition', () => {
+  const defs = (schema as unknown as { $defs: Record<string, { properties?: Record<string, { $ref?: string }> }> }).$defs;
+  const messageIdRef = 'https://clowder-ai.dev/schemas/messaging/v0.1#/$defs/MessageId';
+
+  assert.equal(defs.CloudConversationAppendMessageInput.properties?.idempotencyKey?.$ref, messageIdRef);
+  assert.equal(defs.CloudConversationReturnCursor.properties?.sourceMessageId?.$ref, messageIdRef);
+  assert.equal(defs.CloudConversationAssistantReturn.properties?.sourceMessageId?.$ref, messageIdRef);
+  assert.equal(defs.CloudConversationAckInput.properties?.sourceMessageId?.$ref, messageIdRef);
 });

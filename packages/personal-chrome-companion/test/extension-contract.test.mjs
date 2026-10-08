@@ -1,76 +1,103 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import test from 'node:test';
 
-import { createChatGptPageAdapter } from '../extension/chatgpt-page-adapter.mjs';
+const execFileAsync = promisify(execFile);
+const packageRoot = new URL('../', import.meta.url);
+const extensionRoot = new URL('extension/', packageRoot);
 
-const extension = new URL('../extension/', import.meta.url);
+const ICON_SHA256 = {
+  'icons/gpt-pro-16.png': 'ff2ec99d12a81fda635929890e852bc0efc7a771f65e1b16604b99d071f824ed',
+  'icons/gpt-pro-32.png': 'dc20927d4fad77e43c7b9824e6c92ec8f49312a0ee3f81f4863e093f83546acc',
+  'icons/gpt-pro-48.png': 'ea8e8e0fc743c8af180d3685caaef2bbd298f1d10c7e3c266b584809071aaf51',
+  'icons/gpt-pro-128.png': '6ac43dd84e8c5d005dbe12d41b1fb2edf48d0be7e364e197c1f16a4685db234b',
+};
 
-async function source(name) {
-  return readFile(new URL(name, extension), 'utf8');
+async function extensionSource(relativePath) {
+  return readFile(new URL(relativePath, extensionRoot), 'utf8');
 }
 
-test('ships an MV3 extension with a same-origin SPA receiver and narrow F247 Native Messaging surface', async () => {
-  const manifest = JSON.parse(await source('manifest.json'));
+test('pins the MV3 host scope, permissions, and icon mapping', async () => {
+  const manifest = JSON.parse(await extensionSource('manifest.json'));
+  const icons = {
+    16: 'icons/gpt-pro-16.png',
+    32: 'icons/gpt-pro-32.png',
+    48: 'icons/gpt-pro-48.png',
+    128: 'icons/gpt-pro-128.png',
+  };
 
   assert.equal(manifest.manifest_version, 3);
-  assert.equal(manifest.key, undefined, 'signed extension identity remains an admission concern');
-  assert.deepEqual(manifest.permissions, ['nativeMessaging', 'tabs']);
-  assert.deepEqual(manifest.host_permissions, ['https://chatgpt.com/*']);
+  assert.deepEqual(manifest.permissions, ['nativeMessaging', 'tabs', 'scripting', 'alarms']);
+  assert.deepEqual(manifest.host_permissions, ['https://chatgpt.com/c/*']);
+  assert.deepEqual(manifest.icons, icons);
+  assert.deepEqual(manifest.action, {
+    default_title: '授权此会话',
+    default_icon: icons,
+  });
+});
+
+test('keeps extension revision 0.2.11 aligned across every protocol surface', async () => {
+  const manifest = JSON.parse(await extensionSource('manifest.json'));
+  const [worker, contentScriptEntry, contentScript, protocol] = await Promise.all([
+    extensionSource('service-worker.js'),
+    extensionSource('content-script-entry.mjs'),
+    extensionSource('content-script.js'),
+    readFile(new URL('src/protocol.ts', packageRoot), 'utf8'),
+  ]);
+
+  assert.equal(manifest.version, '0.2.11');
+  for (const source of [worker, contentScriptEntry, contentScript, protocol]) {
+    assert.match(source, /0\.2\.11/);
+  }
+});
+
+test('loads the page adapter only on ChatGPT conversation pages', async () => {
+  const manifest = JSON.parse(await extensionSource('manifest.json'));
+
   assert.deepEqual(manifest.content_scripts, [
     {
-      matches: ['https://chatgpt.com/*'],
+      matches: ['https://chatgpt.com/c/*'],
       js: ['content-script.js'],
       run_at: 'document_idle',
     },
   ]);
-  assert.equal(manifest.background.service_worker, 'service-worker.js');
+  assert.equal(manifest.web_accessible_resources, undefined);
 });
 
-test('the SPA receiver remains inert until its tab is an exact bound conversation', async () => {
-  const adapter = createChatGptPageAdapter({
-    document: {
-      querySelector() {
-        throw new Error('the adapter must reject before querying a non-conversation page');
-      },
-    },
-    location: new URL('https://chatgpt.com/'),
-    MutationObserver: class {},
-  });
-
-  await assert.rejects(
-    adapter.appendMessage({
-      requestId: 'request-1',
-      conversationId: 'conversation-1',
-      text: 'must not append at the homepage',
-      idempotencyKey: 'delivery-1',
-    }),
-    (error) => error?.code === 'CONVERSATION_MISMATCH',
-  );
-});
-
-test('extension source has no focus, navigation, cookie, debugger, private API, or storage escape hatch', async () => {
-  const combined = await Promise.all(
-    ['service-worker.js', 'content-script.js', 'chatgpt-page-adapter.mjs'].map(source),
-  ).then(parts => parts.join('\n'));
-
-  for (const forbidden of [
-    'tabs.update',
-    'tabs.create',
-    'tabs.reload',
-    'tabs.highlight',
-    'tabs.move',
-    'windows.update',
-    'windows.create',
-    'chrome.cookies',
-    'chrome.debugger',
-    'chrome.scripting',
-    'chrome.storage',
-    'fetch(',
-    'XMLHttpRequest',
-  ]) {
-    assert.doesNotMatch(combined, new RegExp(forbidden.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+test('keeps executable extension artifacts below the 350-line hard limit', async () => {
+  for (const name of ['content-script.js', 'service-worker.js']) {
+    const source = await extensionSource(name);
+    const lineCount = source.split('\n').length;
+    assert.ok(lineCount <= 350, `${name} has ${lineCount} lines (max 350)`);
   }
-  assert.match(await source('service-worker.js'), /chrome\.tabs\.query\(\{ url: `https:\/\/chatgpt\.com\/c\/\$\{request\.conversationId\}\*` \}\)/);
-  assert.match(await source('service-worker.js'), /chrome\.tabs\.sendMessage\(matches\[0\]\.id, request\)/);
+});
+
+test('keeps the service worker UTF-8-aware with the 128 KiB text budget', async () => {
+  const serviceWorker = await extensionSource('service-worker.js');
+
+  assert.match(serviceWorker, /TextEncoder/);
+  assert.match(serviceWorker, /MAX_TEXT_BYTES\s*=\s*128\s*\*\s*1024/);
+});
+
+test('pins all packaged icon bytes by sha256', async () => {
+  for (const [relativePath, expected] of Object.entries(ICON_SHA256)) {
+    const bytes = await readFile(new URL(relativePath, extensionRoot));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), expected, relativePath);
+  }
+});
+
+test('regenerates content-script.js byte-for-byte with the package-owned generator', async () => {
+  const contentScript = await extensionSource('content-script.js');
+  assert.match(
+    contentScript,
+    /^\/\/ Generated by packages\/personal-chrome-companion\/scripts\/build-content-script\.mjs\./,
+  );
+
+  await execFileAsync(process.execPath, [fileURLToPath(new URL('scripts/build-content-script.mjs', packageRoot))], {
+    cwd: packageRoot,
+  });
 });

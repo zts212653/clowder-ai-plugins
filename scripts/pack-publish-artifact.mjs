@@ -7,10 +7,15 @@ import {
   readFile,
   readdir,
   rm,
+  writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, isAbsolute, join, posix, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { assertProductionDependencyClosure } from './catalog-package-shrinkwrap.mjs';
+import { normalizeBundledPublishGzip } from './canonical-publish-gzip.mjs';
+import { assertArchiveBins } from './package-bins.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
@@ -114,12 +119,21 @@ async function main() {
   const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
   const bundled = packageJson.bundledDependencies;
   if (bundled === undefined || (Array.isArray(bundled) && bundled.length === 0)) {
-    process.stdout.write(
-      runNpm(
+    try {
+      const shrinkwrap = JSON.parse(
+        await readFile(join(packageRoot, 'npm-shrinkwrap.json'), 'utf8'),
+      );
+      assertProductionDependencyClosure(packageJson, shrinkwrap);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+    const output = runNpm(
         ['pack', '--json', '--ignore-scripts', '--pack-destination', destinationRoot, packageRoot],
         repoRoot,
-      ),
     );
+    const [artifact] = JSON.parse(output);
+    assertArchiveBins(packageJson, join(destinationRoot, artifact.filename));
+    process.stdout.write(output);
     return;
   }
   if (!Array.isArray(bundled) || !bundled.every(name => typeof name === 'string')) {
@@ -157,7 +171,10 @@ async function main() {
 
     const stagedPackageRoot = join(sourceRoot, 'package');
     await assertPhysicalTree(stagedPackageRoot);
-    const bytes = await readFile(archivePath);
+    const packedBytes = await readFile(archivePath);
+    assertArchiveBins(packageJson, archivePath);
+    const bytes = normalizeBundledPublishGzip(packedBytes);
+    if (!bytes.equals(packedBytes)) await writeFile(archivePath, bytes);
     process.stdout.write(`${JSON.stringify([{
       ...materialized,
       filename: basename(archivePath),

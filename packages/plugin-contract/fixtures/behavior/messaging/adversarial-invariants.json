@@ -497,16 +497,22 @@
             { "capability": "schedule.register", "layer": "L1", "firstPartyPreset": true },
             { "capability": "events.publish", "layer": "L1", "firstPartyPreset": true },
             { "capability": "messaging.appendElements", "layer": "L1", "firstPartyPreset": true },
+            { "capability": "media.read", "layer": "L1", "firstPartyPreset": true },
             { "capability": "onMessage", "layer": "L2", "firstPartyPreset": false },
             { "capability": "message.event.subscribe", "layer": "L2", "firstPartyPreset": false },
             { "capability": "secret.read", "layer": "L2", "firstPartyPreset": false },
             { "capability": "thread.listMetadata", "layer": "L2", "firstPartyPreset": false },
             { "capability": "thread.readContent", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "thread.write", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "task.read", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "task.write", "layer": "L2", "firstPartyPreset": false },
             { "capability": "memory.query", "layer": "L2", "firstPartyPreset": false },
             { "capability": "memory.append", "layer": "L2", "firstPartyPreset": false },
             { "capability": "memory.retrieve", "layer": "L2", "firstPartyPreset": false },
             { "capability": "windows.create", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "whisper.extend", "layer": "L2", "firstPartyPreset": false }
+            { "capability": "whisper.extend", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "data.directory", "layer": "L2", "firstPartyPreset": false },
+            { "capability": "cloud.conversation.host", "layer": "L2", "firstPartyPreset": false }
           ]
         }
       },

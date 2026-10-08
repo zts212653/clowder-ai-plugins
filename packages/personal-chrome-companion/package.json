@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/personal-chrome-companion",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.3",
   "description": "F247 Chrome MV3 and Native Messaging companion for an already-authorized personal ChatGPT conversation",
   "license": "MIT",
   "type": "module",
@@ -9,10 +9,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./protocol": {
-      "types": "./dist/protocol.d.ts",
-      "import": "./dist/protocol.js"
-    }
+    "./manifest": "./plugin.yaml",
+    "./native-host/install-host": "./native-host/install-host.mjs"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -23,13 +21,18 @@
     "dist",
     "extension",
     "native-host",
-    "README.md"
+    "plugin.yaml",
+    "npm-shrinkwrap.json",
+    "README.md",
+    "assets"
   ],
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build": "pnpm build:extension && pnpm clean && tsc -p tsconfig.build.json",
+    "build:extension": "node scripts/build-content-script.mjs",
+    "build:extension:write": "node scripts/build-content-script.mjs --write",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "test": "pnpm build && node --import tsx --test test/**/*.test.ts test/**/*.test.mjs",
     "lint": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
@@ -37,9 +40,16 @@
     "prepack": "pnpm build"
   },
   "devDependencies": {
+    "@clowder-ai/plugin-contract": "0.1.0-beta.29",
     "@types/node": "^20.17.0",
+    "esbuild": "0.28.1",
+    "jsdom": "^28.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "yaml": "2.9.0"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.12"
   },
   "keywords": [
     "clowder-ai",

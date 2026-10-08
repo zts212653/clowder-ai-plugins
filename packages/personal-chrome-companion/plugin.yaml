@@ -1,0 +1,70 @@
+pluginId: official.companion.personal-chrome
+version: 0.1.0-alpha.3
+contractVersion: 0.1.0
+name: Personal Chrome Companion
+icon:
+  type: svg
+  src: assets/icon.svg
+description:
+  default: Host authorized ChatGPT conversations through the F247 personal Chrome extension and native messaging helper.
+  translations:
+    zh-CN: 通过 F247 个人 Chrome 扩展与原生消息助手托管已授权的 ChatGPT 会话。
+configuration:
+  - key: personalChromeAuthorizations
+    label: ChatGPT conversation authorizations
+    description: Authorizations binding exact https://chatgpt.com/c/<id> conversations to the cloud cat.
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: Authorized conversations
+        render: status
+        resultRender: rows
+        action:
+          method: personal-chrome-host.authorizations.list
+      - id: revoke
+        label: Revoke authorization
+        render: row
+        confirm: Revoke this ChatGPT conversation authorization? The cloud cat will no longer be able to send messages to it.
+        action:
+          method: personal-chrome-host.authorizations.revoke
+        next: list
+      - id: refresh-titles
+        label: Refresh titles
+        render: button
+        action:
+          method: personal-chrome-host.authorizations.refresh-titles
+        next: list
+      - id: status
+        label: Authorization status
+        render: status
+        action:
+          method: personal-chrome-host.authorizations.status
+test:
+  action:
+    method: personal-chrome-host.test
+contributions:
+  - type: cloud-conversation-host
+    id: personal-chrome-chatgpt-host
+    provider: chatgpt
+    appendMessage:
+      method: personal-chrome-host.append-message
+    assistantReturns:
+      list:
+        method: personal-chrome-host.assistant-returns.list
+      ack:
+        method: personal-chrome-host.assistant-returns.ack
+features:
+  - id: personal-chrome-host
+    name: Personal Chrome conversation host
+    resources: []
+    contributions:
+      - type: cloud-conversation-host
+        id: personal-chrome-chatgpt-host
+    capabilities:
+      - data.directory
+      - cloud.conversation.host
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js
+  dataDirectory: personal-chrome-host

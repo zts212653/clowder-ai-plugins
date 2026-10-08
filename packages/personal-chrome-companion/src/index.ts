@@ -1,30 +1,14 @@
 export {
-  PERSONAL_CHROME_MAX_LOCAL_FRAME_BYTES,
-  PERSONAL_CHROME_MAX_TEXT_BYTES,
-  PERSONAL_CHROME_PROTOCOL_VERSION,
-  conversationIdFromExactChatGptUrl,
-  parsePersonalChromeAppendProgress,
-  parsePersonalChromeAppendRequest,
-  parsePersonalChromeAppendResult,
-  parsePersonalChromeBindingQuery,
-  parsePersonalChromeBindingRequest,
-  parsePersonalChromeBindingResult,
-  parsePersonalChromeBindingStatus,
-  parsePersonalChromeLocalEnvelope,
-  sameAppendCorrelation,
-} from './protocol.js';
-
-export type {
-  PersonalChromeAppendFailure,
-  PersonalChromeAppendProgress,
-  PersonalChromeAppendRequest,
-  PersonalChromeAppendResult,
-  PersonalChromeAppendSuccess,
-  PersonalChromeBindingFailure,
-  PersonalChromeBindingQuery,
-  PersonalChromeBindingRequest,
-  PersonalChromeBindingResult,
-  PersonalChromeBindingStatus,
-  PersonalChromeLocalEnvelope,
-  PersonalChromeNativeMessage,
-} from './protocol.js';
+  createPersonalChromePluginModule,
+  PERSONAL_CHROME_APPEND_MESSAGE_METHOD,
+  PERSONAL_CHROME_ASSISTANT_ACK_METHOD,
+  PERSONAL_CHROME_ASSISTANT_LIST_METHOD,
+  PERSONAL_CHROME_FEATURE_ID,
+  PERSONAL_CHROME_HOST_CONTRIBUTION_ID,
+  PERSONAL_CHROME_LIST_METHOD,
+  PERSONAL_CHROME_REVOKE_METHOD,
+  PERSONAL_CHROME_REFRESH_TITLES_METHOD,
+  PERSONAL_CHROME_STATUS_METHOD,
+  PERSONAL_CHROME_TEST_METHOD,
+} from './plugin-entrypoint.js';
+export { default } from './plugin-entrypoint.js';
