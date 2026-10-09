@@ -21,7 +21,7 @@ export function workOverviewPresentation(reply) {
     meta: deliveryMeta(entry.artifact),
   })) : [];
   return {
-    visible: active.length > 0 || deliveries.length > 0,
+    visible: active.length > 0 || deliveries.length > 0 || ['partial', 'unavailable'].includes(reply?.status),
     scopeLabel: availableRows && reply?.scope?.label ? `仅当前项目 · ${reply.scope.label}` : '',
     notice: reply?.status === 'partial' ? '仅部分读取' : reply?.status === 'unavailable' ? '暂不可用' : '',
     active,

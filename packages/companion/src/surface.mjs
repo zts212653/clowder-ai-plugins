@@ -16,7 +16,7 @@ import { nativeWorkLabel, normalizeNativeWork } from './native-work-motion.mjs';
 import { NativeWindowTravel } from './native-window-travel.mjs';
 import { currentCompanionIdentity } from './companion-identity.mjs';
 import { FoldedChatUnread } from './chat-unread.mjs';
-import { compactSizeAction } from './compact-size.mjs';
+import { COMPACT_BALL_SIZE, compactSizeAction } from './compact-size.mjs';
 import { WorkOverviewView } from './work-overview.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
@@ -200,6 +200,7 @@ if (!window.clowderCompanion) {
       $('mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
       $('chat-mic').textContent = value.muted ? '取消静音' : '静音';
       $('menu-mic').setAttribute('aria-label', value.muted ? '取消静音' : '静音');
+      $('menu-mic').title = value.muted ? '取消静音' : '静音';
       $('menu-mic').setAttribute('aria-pressed', String(value.muted));
       $('menu-mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
       $('settings-mic').textContent = value.muted ? '取消静音' : '静音';
@@ -259,7 +260,7 @@ if (!window.clowderCompanion) {
       settingsValues = values;
       document.documentElement?.style?.setProperty?.('--pet-scale', String(values.ballSize / 72));
       $('anchor').dataset.ballSize = String(values.ballSize);
-      $('anchor').dataset.compact = String(values.ballSize <= 43);
+      $('anchor').dataset.compact = String(values.ballSize <= COMPACT_BALL_SIZE);
       label('menu-size-toggle', compactSizeAction(values.ballSize).label);
       motion.setBehaviorEnabled(values.behaviorEnabled);
       $('documents').hidden = true;
@@ -302,7 +303,7 @@ if (!window.clowderCompanion) {
       const reply = await client.readTranscript();
       if (!conversation.active || conversation.callId !== callId) return;
       callTranscript.load(reply);
-      foldedChatUnread.receiveMany(reply.rows.map(row => row.messageId));
+      foldedChatUnread.receiveMany(reply.rows);
       callBubble.loadTranscript(reply.rows, conversation.identity?.displayName);
       $('call-transcript-status').textContent = reply.hasMore ? '这里只显示这次通话最近的内容' : '';
     } catch {

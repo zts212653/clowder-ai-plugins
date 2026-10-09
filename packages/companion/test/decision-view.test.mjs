@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { decisionBadge, decisionPresentation, decisionRows } from '../src/decision-view.mjs';
+import { decisionNavigationText } from '../src/decision-panel.mjs';
+
+test('navigation receipts distinguish a confirmed effect from a queued request', () => {
+  assert.equal(decisionNavigationText('applied'), '已打开对应事项');
+  assert.equal(decisionNavigationText('queued'), '已请求打开对应事项');
+  assert.match(decisionNavigationText('blocked'), /无法打开/u);
+  assert.match(decisionNavigationText('unconfirmed'), /尚未确认/u);
+});
 
 test('successful legacy reads show pending truth without inventing a precise badge total or a failure', () => {
   const page = { status: 'available', approvalCount: 2, needsMeCount: 3, otherNeedsMeCount: 1,

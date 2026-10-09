@@ -39,6 +39,14 @@ test('work projection cannot fake totals or collapse artifact version into displ
     { source: 'tasks', status: 'available' },
     { source: 'tasks', status: 'partial' },
   ] }), false, 'one canonical source cannot claim two coverage states');
+  assert.equal(validateCompanionReply({ ...work, coverage: [
+    { source: 'tasks', status: 'unavailable' },
+    { source: 'messages', status: 'available' },
+    { source: 'artifacts', status: 'available' },
+  ] }), false, 'an unavailable task source cannot emit active task rows');
+  assert.equal(validateCompanionReply({ ...work, recentDeliveries: [{
+    ...work.recentDeliveries[0], artifact: { artifactId: 'artifact-1', version: null, versionState: 'current' },
+  }] }), false, 'current cannot be claimed without a known artifact version');
 });
 
 test('compact size is admitted consistently by the public settings contract', () => {

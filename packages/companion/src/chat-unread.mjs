@@ -1,4 +1,4 @@
-/** Counts stable call-message identities only after the owner folds an opened chat. */
+/** Counts new assistant call-message identities only after the owner folds an opened chat. */
 export class FoldedChatUnread {
   constructor(changed = () => {}) {
     this.changed = changed;
@@ -24,14 +24,15 @@ export class FoldedChatUnread {
     if (this.armed) this.folded = true;
   }
 
-  receive(messageId) {
+  receive(message) {
+    const { messageId, role } = message ?? {};
     if (!messageId || this.seen.has(messageId)) return;
     this.seen.add(messageId);
-    if (this.armed && this.folded) this.publish(this.count + 1);
+    if (role === 'assistant' && this.armed && this.folded) this.publish(this.count + 1);
   }
 
-  receiveMany(messageIds) {
-    for (const messageId of messageIds) this.receive(messageId);
+  receiveMany(messages) {
+    for (const message of messages) this.receive(message);
   }
 
   reset() {

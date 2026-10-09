@@ -33,8 +33,14 @@ test('unknown task owner stays anonymous instead of inventing a cat', () => {
   assert.equal(workOverviewPresentation(anonymous).active[0].meta, '正在工作');
 });
 
-test('unavailable work truth hides empty sections instead of showing a fake zero', () => {
+test('unavailable work truth keeps its honest notice instead of looking like a known empty result', () => {
   assert.deepEqual(workOverviewPresentation({ ...reply, status: 'unavailable', active: [], recentDeliveries: [] }), {
-    visible: false, scopeLabel: '', notice: '暂不可用', active: [], deliveries: [],
+    visible: true, scopeLabel: '', notice: '暂不可用', active: [], deliveries: [],
+  });
+});
+
+test('partial zero rows still exposes incomplete coverage truth', () => {
+  assert.deepEqual(workOverviewPresentation({ ...reply, active: [], recentDeliveries: [] }), {
+    visible: true, scopeLabel: '仅当前项目 · Cat Café', notice: '仅部分读取', active: [], deliveries: [],
   });
 });

@@ -602,6 +602,19 @@
                 "versionState": { "enum": ["current", "superseded", "unknown"] }
               },
               "required": ["artifactId", "version", "versionState"],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "versionState": { "enum": ["current", "superseded"] } },
+                    "required": ["versionState"]
+                  },
+                  "then": {
+                    "properties": {
+                      "version": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" }
+                    }
+                  }
+                }
+              ],
               "additionalProperties": false
             }
           ]
@@ -1312,6 +1325,7 @@
               "const": "navigation"
             },
             "delivery": {
+              "description": "Host navigation truth: requested/queued mean accepted but not visibly applied; applied means the destination owner confirmed the effect; blocked means the Host refused it; unconfirmed means settlement is unknown.",
               "enum": [
                 "requested",
                 "applied",

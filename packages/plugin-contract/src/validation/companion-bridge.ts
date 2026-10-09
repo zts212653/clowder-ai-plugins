@@ -67,6 +67,12 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     if (parsed.status === 'unavailable' && (anyAvailable || parsed.active.length > 0 || parsed.recentDeliveries.length > 0)) {
       return false;
     }
+    if (coverage.get('tasks') === 'unavailable' && parsed.active.length > 0) return false;
+    if (coverage.get('messages') === 'unavailable' && parsed.recentDeliveries.length > 0) return false;
+    if (coverage.get('artifacts') === 'unavailable'
+      && parsed.recentDeliveries.some((entry) => entry.artifact !== null)) return false;
+    if (parsed.recentDeliveries.some((entry) => entry.artifact !== null
+      && entry.artifact.version === null && entry.artifact.versionState !== 'unknown')) return false;
     const entryRefs = [...parsed.active, ...parsed.recentDeliveries].map((entry) => entry.entryRef);
     return new Set(entryRefs).size === entryRefs.length;
   }

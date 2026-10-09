@@ -12,7 +12,7 @@ import { DecisionPanel } from '../src/decision-panel.mjs';
 import { nativeWorkLabel, normalizeNativeWork } from '../src/native-work-motion.mjs';
 import { currentCompanionIdentity } from '../src/companion-identity.mjs';
 import { FoldedChatUnread } from '../src/chat-unread.mjs';
-import { compactSizeAction } from '../src/compact-size.mjs';
+import { COMPACT_BALL_SIZE, compactSizeAction } from '../src/compact-size.mjs';
 import { WorkOverviewView } from '../src/work-overview.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
@@ -114,7 +114,7 @@ function fixture() {
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
-    FoldedChatUnread, compactSizeAction, WorkOverviewView, explainError: () => '未更新',
+    FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
@@ -279,11 +279,14 @@ test('folding call chat keeps media live and counts only later stable transcript
   f.transcript(async () => ({
     kind: 'transcript', scope: { callId: CALL_A, realtimeSessionId: 'rtc-a' }, hasMore: false,
     rows: [
-      { messageId: 'voice-1', role: 'user', text: '旧消息', source: {
-        kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a', nativeItemId: 'input-1',
+      { messageId: 'voice-3', role: 'user', text: '收起后自己说的话', source: {
+        kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a', nativeItemId: 'input-3',
       } },
-      { messageId: 'voice-2', role: 'assistant', text: '新消息', source: {
-        kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a', nativeItemId: 'output-2',
+      { messageId: 'typed-4', role: 'user', text: '收起后自己打的字', source: {
+        kind: 'typed', clientMessageId: 'typed-client-4', callId: CALL_A,
+      } },
+      { messageId: 'voice-5', role: 'assistant', text: '猫的新消息', source: {
+        kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a', nativeItemId: 'output-5',
       } },
     ],
   }));
@@ -292,7 +295,16 @@ test('folding call chat keeps media live and counts only later stable transcript
   assert.equal(f.nodes.get('call-chat-unread').hidden, false);
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
   await f.controls.show('chat'); await flush();
-  assert.equal(f.nodes.get('call-chat-unread').hidden, true);
+  assert.equal(f.nodes.get('call-chat-unread')?.hidden ?? true, true);
+});
+
+test('chat opened outside a call cannot arm unread for the next call', async () => {
+  const f = fixture(); await flush();
+  await f.controls.show('chat'); await flush();
+  f.controls.dismiss(); await flush();
+  f.start(); await flush();
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('call-chat-unread')?.hidden ?? true, true);
 });
 
 test('the card preserves call controls and distinguishes hangup from hide', async () => {

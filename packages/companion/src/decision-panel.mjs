@@ -5,6 +5,11 @@ const readBasis = page => page?.version === 1
     .flatMap(key => [page.sources?.[key]?.status, page.sources?.[key]?.coverage])].join('|')
   : page ? 'legacy' : null;
 
+export const decisionNavigationText = delivery => delivery === 'applied' ? '已打开对应事项'
+  : delivery === 'queued' || delivery === 'requested' ? '已请求打开对应事项'
+    : delivery === 'blocked' ? '暂时无法打开对应事项 · 请稍后重试'
+      : '打开对应事项尚未确认 · 请从 Cat Café 查看';
+
 export class DecisionPanel {
   constructor({ document, client, controls, motion, proactivePolicy = () => undefined }) {
     this.document = document;
@@ -54,9 +59,7 @@ export class DecisionPanel {
     button.onclick = async () => {
       try {
         const result = await this.client.openDecision(navigation.variantRef, navigation.target);
-        this.$('decision-status').textContent = ['requested', 'queued', 'applied'].includes(result.delivery)
-          ? '已请求打开对应事项' : result.delivery === 'blocked'
-            ? '暂时无法打开对应事项 · 请稍后重试' : '打开对应事项尚未确认 · 请从 Cat Café 查看';
+        this.$('decision-status').textContent = decisionNavigationText(result.delivery);
       } catch { this.$('decision-status').textContent = '暂时无法打开对应事项 · 请稍后重试'; }
     };
     item.append(button);

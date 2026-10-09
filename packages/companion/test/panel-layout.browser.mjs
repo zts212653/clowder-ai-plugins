@@ -176,12 +176,16 @@ test('compact call journey keeps badge, chat, unread, card controls and work tru
         badgeContentFits: document.getElementById('pending-badge').scrollWidth
           <= document.getElementById('pending-badge').clientWidth,
         badgeHit: hit?.id === 'pending-badge' || hit?.closest?.('#pending-badge')?.id === 'pending-badge',
+        badgeRightInset: anchor.right - badge.right,
+        badgeTopInset: badge.top - anchor.top,
       };
     });
     assert.deepEqual(compact.pet, { width: 72, height: 78 });
     assert.equal(compact.badgeInside, true);
     assert.equal(compact.badgeContentFits, true);
     assert.equal(compact.badgeHit, true);
+    assert.ok(Math.abs(compact.badgeRightInset) < .5, 'compact badge stays on the top-right corner by default');
+    assert.ok(Math.abs(compact.badgeTopInset) < .5, 'compact badge stays on the top edge');
     const dockedBadgeOffset = await page.evaluate(() => {
       document.getElementById('pet').dataset.dockEdge = 'right';
       const anchor = document.getElementById('anchor').getBoundingClientRect();
