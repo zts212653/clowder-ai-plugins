@@ -33,6 +33,18 @@ test('the installable package declares one companion body and contains a closed 
     'the persistent call bar must retain the exact shared target while sharing');
   assert.match(html.toString(), /data-action="stop"[^>]*><span>挂断</u,
     'the persistent call bar must keep an explicit destructive hang-up action');
+  assert.match(html.toString(), /id="call-chat"[^>]*data-action="write"/u,
+    'the persistent call bar must expose chat without routing through the card');
+  assert.match(html.toString(), /id="call-chat-unread"[^>]*hidden/u,
+    'folded call chat must carry its own bounded unread indicator');
+  assert.match(html.toString(), /id="menu-call-actions"[\s\S]*?id="menu-mic"[\s\S]*?id="menu-call-share"[\s\S]*?id="menu-call-chat"[\s\S]*?data-action="stop"/u,
+    'the in-call card must preserve mute, stop-share, chat and independent hang-up controls');
+  assert.match(html.toString(), /id="menu-hide-label">隐藏<\/span>/u,
+    'ordinary card hiding must not be labelled as folding chat');
+  assert.match(html.toString(), /id="menu-size-toggle"[^>]*data-action="size-toggle"/u,
+    'the card must expose one-click compact sizing through the persisted setting');
+  assert.match(html.toString(), /id="work-overview"/u,
+    'the card must have a bounded current-project work and delivery surface');
   assert.match(html.toString(), /id="call-transcript-log"[^>]*role="log"/u,
     'the installable renderer must contain the Host-bound transcript surface');
   assert.match(html.toString(), /<button id="transcript-return"[^>]*data-action="transcript-return"[^>]*>[\s\S]*?返回通话[\s\S]*?<\/button>/u,

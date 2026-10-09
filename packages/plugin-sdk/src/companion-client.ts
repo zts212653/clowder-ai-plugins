@@ -46,6 +46,8 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
       invoke({ kind: 'screen.frame', selectionId, frame }, 'ok'),
     screenClose: () => invoke({ kind: 'screen.close' }, 'ok'),
     openConversation: () => invoke({ kind: 'conversation.open' }, 'navigation'),
+    readWork: () => invoke({ kind: 'work.read' }, 'work'),
+    openWork: (entryRef: string) => invoke({ kind: 'work.open', entryRef }, 'navigation'),
     readDecisions: (offset = 0, limit = 20) => invoke({ kind: 'decisions.read', offset, limit }, 'decisions'),
     openDecision: (
       variantRef: string,

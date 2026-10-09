@@ -870,6 +870,11 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'conversation.open';
 } | {
+  readonly kind: 'work.read';
+} | {
+  readonly kind: 'work.open';
+  readonly entryRef: string;
+} | {
   readonly kind: 'decisions.read';
   readonly offset: number;
   readonly limit: number;
@@ -935,6 +940,46 @@ export type CompanionCommand = {
 export type CompanionActor = {
   readonly catId: string;
   readonly displayName: string;
+};
+export type CompanionWorkCoverage = {
+  readonly source: 'tasks' | 'messages' | 'artifacts';
+  readonly status: 'available' | 'partial' | 'unavailable';
+};
+export type CompanionWorkActive = {
+  readonly entryRef: string;
+  readonly title: string;
+  readonly actor: CompanionActor | null;
+  readonly activity: 'working' | 'waiting';
+  readonly taskId: string | null;
+  readonly homeThreadId: string | null;
+  readonly sourceRef: string;
+  readonly updatedAt: number;
+};
+export type CompanionWorkDelivery = {
+  readonly entryRef: string;
+  readonly title: string;
+  readonly taskId: string | null;
+  readonly homeThreadId: string | null;
+  readonly sourceRef: string;
+  readonly deliveredAt: number;
+  readonly artifact: null | {
+    readonly artifactId: string;
+    readonly version: string | null;
+    readonly versionState: 'current' | 'superseded' | 'unknown';
+  };
+};
+export type CompanionWorkOverview = {
+  readonly kind: 'work';
+  readonly v: 1;
+  readonly status: 'available' | 'partial' | 'unavailable';
+  readonly observedAt: number;
+  readonly scope: {
+    readonly kind: 'current-project';
+    readonly label: string;
+  };
+  readonly coverage: readonly [CompanionWorkCoverage, CompanionWorkCoverage, CompanionWorkCoverage];
+  readonly active: readonly CompanionWorkActive[];
+  readonly recentDeliveries: readonly CompanionWorkDelivery[];
 };
 export type CompanionIdentitySnapshotV1 = {
   readonly v: 1;
@@ -1169,12 +1214,12 @@ export type CompanionDeliveryReceipt = {
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | {
+} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | {
   readonly kind: 'navigation';
-  readonly delivery: 'requested' | 'unconfirmed';
+  readonly delivery: 'requested' | 'applied' | 'queued' | 'blocked' | 'unconfirmed';
 } | {
   readonly kind: 'error';
   readonly code: CompanionErrorCode;

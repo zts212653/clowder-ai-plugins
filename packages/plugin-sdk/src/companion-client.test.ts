@@ -50,6 +50,20 @@ test('decision navigation sends only the Host-issued concrete variant and closed
   assert.deepEqual(calls, [{ kind: 'decision.open', variantRef: 'variant-a', target: 'approval_card' }]);
 });
 
+test('work overview reads and opens only Host-issued opaque entries', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = { kind: 'work', v: 1, status: 'unavailable', observedAt: 1,
+    scope: { kind: 'current-project', label: 'Cat Café' }, coverage: [
+      { source: 'tasks', status: 'unavailable' }, { source: 'messages', status: 'unavailable' },
+      { source: 'artifacts', status: 'unavailable' },
+    ], active: [], recentDeliveries: [] } as CompanionReply;
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; }, subscribe: () => () => {} });
+  await client.readWork();
+  response = { kind: 'navigation', delivery: 'requested' };
+  await client.openWork('work-one');
+  assert.deepEqual(calls, [{ kind: 'work.read' }, { kind: 'work.open', entryRef: 'work-one' }]);
+});
+
 test('transcript reading is bound by the Host and exposes no call selector', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => {
