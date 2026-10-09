@@ -303,6 +303,13 @@ test('chat opened outside a call cannot arm unread for the next call', async () 
   await f.controls.show('chat'); await flush();
   f.controls.dismiss(); await flush();
   f.start(); await flush();
+  f.transcript(async () => ({
+    kind: 'transcript', scope: { callId: CALL_A, realtimeSessionId: 'rtc-a' }, hasMore: false,
+    rows: [{ messageId: 'voice-next-call', role: 'assistant', text: 'next call', source: {
+      kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a',
+      nativeItemId: 'output-next-call',
+    } }],
+  }));
   f.tick(); await flush();
   assert.equal(f.nodes.get('call-chat-unread')?.hidden ?? true, true);
 });

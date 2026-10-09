@@ -44,6 +44,16 @@ test('work projection cannot fake totals or collapse artifact version into displ
     { source: 'messages', status: 'available' },
     { source: 'artifacts', status: 'available' },
   ] }), false, 'an unavailable task source cannot emit active task rows');
+  assert.equal(validateCompanionReply({ ...work, coverage: [
+    { source: 'tasks', status: 'available' },
+    { source: 'messages', status: 'unavailable' },
+    { source: 'artifacts', status: 'available' },
+  ] }), false, 'an unavailable message source cannot emit delivery rows');
+  assert.equal(validateCompanionReply({ ...work, coverage: [
+    { source: 'tasks', status: 'available' },
+    { source: 'messages', status: 'available' },
+    { source: 'artifacts', status: 'unavailable' },
+  ] }), false, 'an unavailable artifact source cannot emit artifact-backed deliveries');
   assert.equal(validateCompanionReply({ ...work, recentDeliveries: [{
     ...work.recentDeliveries[0], artifact: { artifactId: 'artifact-1', version: null, versionState: 'current' },
   }] }), false, 'current cannot be claimed without a known artifact version');
