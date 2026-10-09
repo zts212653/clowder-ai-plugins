@@ -275,6 +275,8 @@ test('surface state preserves real actors but never leaks internal handles or ra
     { kind: 'needs_source', sharing: false, paused: false, sourceLabel: 'Zoom' },
     { kind: 'running', sharing: false, paused: false, sourceLabel: '   ' },
     { kind: 'running', sharing: false, paused: false, sourceLabel: 'Zoom\nprivate' },
+    { kind: 'running', sharing: false, paused: false, sourceLabel: 'Zoom\u2028spoofed line' },
+    { kind: 'running', sharing: false, paused: false, sourceLabel: 'Zoom\u202Etxt.exe' },
     { kind: 'running', sharing: false, paused: false, sourceLabel: 'Z'.repeat(161) },
     { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', meetingId: 'private-meeting' },
     { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', captureThreadId: 'private-thread' },

@@ -97,7 +97,7 @@ button:disabled { opacity: .45; cursor: default; }
 .status-dot { width: 8px; height: 8px; flex: none; border-radius: 999px; background: var(--desktop-success); }
 [data-connection-state="recovering"] .status-dot { background: var(--desktop-warning); }
 .call-meeting { min-width: 0; margin: 3px 0 0 15px; display: flex; align-items: center; gap: 5px; color: var(--desktop-muted); font-size: 12px; line-height: 1.35; }
-.call-context > .call-meeting { grid-column: 2 / 4; margin: 0; }
+.call-context > .call-meeting { grid-column: 1 / -1; margin: 0; }
 .meeting-status-dot { width: 7px; height: 7px; flex: none; border-radius: 999px; background: var(--desktop-success); }
 .call-meeting[data-tone="quiet"] .meeting-status-dot { background: var(--desktop-muted); }
 .call-meeting[data-tone="warning"] .meeting-status-dot { background: var(--desktop-warning); }

@@ -183,6 +183,23 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     assert.equal(await page.locator('#transcript').evaluate(element => element.getBoundingClientRect().height), 210,
       'the meeting row takes space from captions, not from the collapsed card height');
     assert.deepEqual((await visibleClipping(page, 'transcript')).clippedButtons, []);
+
+    await page.click('#transcript-return');
+    await page.evaluate(() => window.__setMeeting({
+      kind: 'running', sharing: false, paused: false, sourceLabel: 'Google Meet',
+    }));
+    await page.waitForFunction(() => document.getElementById('call-meeting-source')?.textContent.includes('Google Meet'));
+    await page.click('#call-chat');
+    const chat = await metrics('chat-call');
+    assert.equal(chat.source.scrollWidth, chat.source.clientWidth,
+      `a common source label must remain readable in chat: ${JSON.stringify(chat)}`);
+
+    await page.click('#chat header [data-action="dismiss"]');
+    await page.click('#pet');
+    await page.click('#menu-settings');
+    const settings = await metrics('settings-call');
+    assert.equal(settings.source.scrollWidth, settings.source.clientWidth,
+      `a common source label must remain readable in settings: ${JSON.stringify(settings)}`);
   } finally {
     await page.close();
   }

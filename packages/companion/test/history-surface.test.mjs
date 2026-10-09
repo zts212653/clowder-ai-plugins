@@ -233,7 +233,12 @@ test('meeting truth is read-only and visible in every active call context while 
     nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
   });
-  await flush(); f.start(); await flush();
+  await flush(); f.tick(); await flush();
+  for (const prefix of ['call', 'menu-call', 'chat-call', 'transcript-call', 'settings-call']) {
+    assert.equal(f.nodes.get(`${prefix}-meeting`).hidden, true,
+      `${prefix} cannot become a global recording indicator outside a companion call`);
+  }
+  f.start(); await flush();
 
   for (const prefix of ['call', 'menu-call', 'chat-call', 'transcript-call', 'settings-call']) {
     assert.equal(f.nodes.get(`${prefix}-meeting`).hidden, false, prefix);
