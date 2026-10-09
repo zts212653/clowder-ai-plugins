@@ -28,6 +28,7 @@ export function fixture(skin, failure, pending = true) {
     {messageId:'preview-voice-input',role:'user',text:'It is like an AI assistant that is always there, supporting you.',source:{kind:'voice',nativeThreadId:'preview-thread',realtimeSessionId,nativeItemId:'preview-input-1',nativeTurnId:'preview-turn-1'}},
     {messageId:'preview-voice-output',role:'assistant',text:'它就像一个始终在你身边支持你的 AI 助手。',source:{kind:'voice',nativeThreadId:'preview-thread',realtimeSessionId,nativeItemId:'preview-output-1',nativeTurnId:'preview-turn-2'}},
   ];
+  window.__pushTranscript = row => transcriptRows.push(row);
   let phase = 'idle', allowed = true;
   let companionSettings = {dutyCatProfileId:'fable-5',skin:${JSON.stringify(skin)},ballSize:72,behaviorEnabled:true,proactivePolicy:'quiet-badge',personaTone:'温暖、简短、不啰嗦',householdReadsAllowed:true};
   const identity = () => ({kind:'state',phase,displayName:'宪宪',skin:companionSettings.skin,documentsAllowed:allowed,toolsReady:phase==='talking',behaviorEnabled:companionSettings.behaviorEnabled,nativeActivity:'none',
@@ -43,7 +44,7 @@ export function fixture(skin, failure, pending = true) {
       case 'prepare': phase='ready';return identity();
       case 'audio.connect': activeMode=command.mode??'duplex';setTimeout(()=>{if(${failure}){emit({kind:'audio',type:'error',callId,code:'carrier_unavailable'});}else{phase='talking';emit({kind:'audio',type:'connected',callId});emit({kind:'audio',type:'transcript',callId,role:'assistant',text:'这是正在说的话，查看记录不会停止语音。',itemId:'preview-live-output',turnId:'preview-live-turn'});}},450);return {kind:'ok'};
       case 'stop': phase='idle';activeMode=null;return {kind:'ok'};
-      case 'view.layout': { const width=Math.max(136,command.width+16),height=command.panel==='none'?146:command.height+158; parent.postMessage({kind:'geometry',width,height},location.origin); return {kind:'layout',width,height,pet:{x:(width-120)/2,y:height-138},panel:{x:8,y:8,width:command.width,height:command.height}}; }
+      case 'view.layout': { const petWidth=Math.round(120*companionSettings.ballSize/72),petHeight=Math.round(130*companionSettings.ballSize/72);const width=Math.max(petWidth+16,command.width+16),height=command.panel==='none'?petHeight+16:command.height+petHeight+28; parent.postMessage({kind:'geometry',width,height},location.origin); return {kind:'layout',width,height,pet:{x:(width-petWidth)/2,y:height-petHeight-8},panel:{x:8,y:8,width:command.width,height:command.height}}; }
       case 'view.drag':return {kind:'ok'};
       case 'view.reset':note('正式窗口会回到 Host 计算的默认桌面位置。');return {kind:'ok'};
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};
@@ -62,6 +63,11 @@ export function fixture(skin, failure, pending = true) {
         ],page:{offset:command.offset,limit:command.limit,scope:'known_rows',hasMore:false}}:
         {kind:'decisions',status:'available',approvalCount:0,needsMeCount:0,otherNeedsMeCount:0,approvals:[],otherNeedsMe:[],
           page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}};
+      case 'work.read':return {kind:'work',v:1,status:'partial',observedAt:Date.now(),scope:{kind:'current-project',label:'Cat Café'},coverage:[
+        {source:'tasks',status:'available'},{source:'messages',status:'available'},{source:'artifacts',status:'partial'}],
+        active:[{entryRef:'preview_work_one',title:'F322 主页外壳 1.6 接线核对',actor:{catId:'codex-sol',displayName:'小太阳'},activity:'working',taskId:'task-preview',homeThreadId:'thread-preview',sourceRef:'task:task-preview',updatedAt:Date.now()}],
+        recentDeliveries:[{entryRef:'preview_delivery_one',title:'主页北极星稿 1.6',taskId:null,homeThreadId:'thread-preview',sourceRef:'thread:thread-preview#message-preview',deliveredAt:Date.now(),artifact:{artifactId:'artifact-preview',version:'1.6',versionState:'current'}}]};
+      case 'work.open':note('正式 Host 会按 opaque entryRef 打开原处；预览不持有私有地址。');return {kind:'navigation',delivery:'applied'};
       case 'decision.open':note('正式 Host 会按当前事项重新核对并打开原处；预览不持有私有地址。');return {kind:'navigation',delivery:'requested'};
       case 'f221.inspect':note('外观预览没有受信 Host 确认窗口，也不会提交决定。');return {kind:'decision-trial',status:'unavailable'};
       case 'view.resize':parent.postMessage({kind:'resize',expanded:command.expanded},location.origin);return {kind:'ok'};

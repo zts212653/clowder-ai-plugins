@@ -58,7 +58,8 @@
       <div id="active-actions" class="action-row call-actions">
         <button id="mic" data-action="mute"><svg class="icon" aria-hidden="true"><use id="mic-icon" href="#i-mic"/></svg><span class="label">静音</span></button>
         <button data-action="share" id="share"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
-        <button data-action="transcript"><svg class="icon" aria-hidden="true"><use href="#i-subtitles"/></svg><span>字幕</span></button>
+        <button data-action="transcript" aria-label="字幕" title="字幕"><svg class="icon" aria-hidden="true"><use href="#i-subtitles"/></svg><span>字幕</span></button>
+        <button id="call-chat" data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>聊天</span><span id="call-chat-unread" class="action-unread" hidden></span></button>
         <button id="end" class="destructive" data-action="stop"><span>挂断</span></button>
       </div>
       <p id="status" role="status" hidden></p>
@@ -67,26 +68,45 @@
       <div id="menu-call-context" class="call-context" hidden>
         <span class="status-dot" aria-hidden="true"></span><strong id="menu-call-state"></strong><span id="menu-call-mic-state"></span>
         <small id="menu-call-work" hidden></small>
-        <button data-action="stop" class="destructive compact">挂断</button>
+        <div id="menu-call-actions" class="call-context-actions menu-call-actions">
+          <button id="menu-mic" data-action="mute" aria-label="静音"><svg class="icon" aria-hidden="true"><use id="menu-mic-icon" href="#i-mic"/></svg></button>
+          <button id="menu-call-share" data-action="share"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
+          <button id="menu-call-chat" data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>聊天</span></button>
+          <button data-action="stop" class="destructive compact">挂断</button>
+        </div>
         <div id="menu-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="menu-share-target"></strong><small>仅共享此窗口</small></span></div>
       </div>
-      <strong id="menu-name" class="menu-title">猫猫</strong>
-      <div class="name-card-actions">
-        <button id="begin" class="primary" data-action="begin"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">语音通话</span></button>
-        <button id="listen" data-action="listen" hidden><svg class="icon" aria-hidden="true"><use href="#i-listen"/></svg><span class="label">只听</span></button>
-        <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>聊天</span></button>
+      <div id="menu-scroll" class="menu-scroll">
+        <strong id="menu-name" class="menu-title">猫猫</strong>
+        <div id="name-card-actions" class="name-card-actions">
+          <button id="begin" class="primary" data-action="begin"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">语音通话</span></button>
+          <button id="listen" data-action="listen" hidden><svg class="icon" aria-hidden="true"><use href="#i-listen"/></svg><span class="label">只听</span></button>
+          <button data-action="write"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span>聊天</span></button>
+        </div>
+        <p id="menu-status" role="status" hidden></p>
+        <button data-action="decisions"><span aria-hidden="true">◇</span><span>待办</span><span id="menu-pending" class="menu-status">—</span></button>
+        <div id="work-overview" class="work-overview" hidden>
+          <section id="work-active-section" class="work-overview-section" hidden>
+            <header><span>进行中的工作</span><small id="work-scope"></small></header>
+            <div id="work-active-list" class="work-overview-list"></div>
+          </section>
+          <section id="work-delivery-section" class="work-overview-section" hidden>
+            <header><span>最近交付</span></header>
+            <div id="work-delivery-list" class="work-overview-list"></div>
+          </section>
+          <p id="work-notice" role="status"></p>
+        </div>
+        <button data-action="history"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg><span>打开聊天</span></button>
+        <button id="menu-play" data-action="play" hidden><span aria-hidden="true">✦</span><span>逗宪宪</span></button>
+        <button id="menu-share" data-action="share" title="语音通话连接后可共享画面" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
+        <button id="documents" data-action="documents" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span>资料查询</span><span class="menu-status">开启</span></button>
       </div>
-      <p id="menu-status" role="status" hidden></p>
-      <button data-action="decisions"><span aria-hidden="true">◇</span><span>待办</span><span id="menu-pending" class="menu-status">—</span></button>
-      <button data-action="history"><svg class="icon" aria-hidden="true"><use href="#i-history"/></svg><span>打开聊天</span></button>
-      <button id="menu-play" data-action="play" hidden><span aria-hidden="true">✦</span><span>逗宪宪</span></button>
-      <div class="menu-divider" role="separator"></div>
-      <button id="speaker" data-action="speaker" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">关闭播音</span></button>
-      <button id="menu-settings" data-action="settings"><span aria-hidden="true">⚙</span><span>设置</span><span class="menu-status">›</span></button>
-      <button id="menu-share" data-action="share" title="语音通话连接后可共享画面"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span class="label">共享画面</span></button>
-      <button id="documents" data-action="documents" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span>资料查询</span><span class="menu-status">开启</span></button>
-      <div class="menu-divider" role="separator"></div>
-      <button data-action="hide" class="quiet-action" title="可从 Clowder 的聊聊入口叫回来"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg><span>收起猫猫</span></button>
+      <footer class="menu-footer">
+        <button id="speaker" data-action="speaker" hidden><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><span class="label">播音</span></button>
+        <button id="menu-settings" data-action="settings"><span aria-hidden="true">⚙</span><span>设置</span></button>
+        <button id="menu-size-toggle" data-action="size-toggle"><svg class="icon" aria-hidden="true"><use href="#i-expand"/></svg><span class="label">缩小</span></button>
+        <button id="menu-hide" data-action="hide" class="quiet-action" title="可从 Clowder 的聊聊入口叫回来"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg><span id="menu-hide-label">隐藏</span></button>
+      </footer>
     </section>
     <section id="chat" class="floating" aria-label="和猫猫写几句" hidden>
       <div id="chat-call-context" class="call-context" hidden>
@@ -149,7 +169,7 @@
           <button id="settings-skin-ragdoll-v1" type="button" data-setting-control>布偶猫</button>
           <button id="settings-skin-yarn-ball" type="button" data-setting-control>猫猫球</button>
         </div>
-        <label id="settings-size-field" class="settings-field settings-size"><span>大小</span><div><small>小</small><input id="settings-size" type="range" min="48" max="192" step="1" data-setting-control><small>大</small></div></label>
+        <label id="settings-size-field" class="settings-field settings-size"><span>大小</span><div><small>小</small><input id="settings-size" type="range" min="43" max="192" step="1" data-setting-control><small>大</small></div></label>
       </div>
       <div id="settings-page-confirm" class="settings-page settings-confirm" hidden>
         <strong id="settings-confirm-title"></strong><p id="settings-confirm-copy"></p>

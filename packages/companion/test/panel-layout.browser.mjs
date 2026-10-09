@@ -151,6 +151,85 @@ test('dynamic call content and expanded transcript keep every action visible', a
   }
 });
 
+test('compact call journey keeps badge, chat, unread, card controls and work truth usable', async () => {
+  const page = await openPreview({ width: 460, height: 720 });
+  try {
+    await page.click('#pet');
+    await page.waitForFunction(() => !document.getElementById('work-overview').hidden);
+    assert.equal(await page.locator('#work-active-list .work-overview-row').count(), 1);
+    assert.equal(await page.locator('#work-delivery-list .work-overview-row').count(), 1);
+
+    await page.click('#menu-size-toggle');
+    await page.waitForFunction(() => document.getElementById('anchor').dataset.ballSize === '43');
+    assert.equal(await page.locator('#menu-size-toggle .label').textContent(), '放大');
+    const compact = await page.evaluate(() => {
+      document.getElementById('pending-count').textContent = '5';
+      document.getElementById('pending-badge').hidden = false;
+      const pet = document.getElementById('pet').getBoundingClientRect();
+      const anchor = document.getElementById('anchor').getBoundingClientRect();
+      const badge = document.getElementById('pending-badge').getBoundingClientRect();
+      const hit = document.elementFromPoint((badge.left + badge.right) / 2, (badge.top + badge.bottom) / 2);
+      return {
+        pet: { width: Math.round(pet.width), height: Math.round(pet.height) },
+        badgeInside: badge.left >= anchor.left - .5 && badge.right <= anchor.right + .5
+          && badge.top >= anchor.top - .5 && badge.bottom <= anchor.bottom + .5,
+        badgeContentFits: document.getElementById('pending-badge').scrollWidth
+          <= document.getElementById('pending-badge').clientWidth,
+        badgeHit: hit?.id === 'pending-badge' || hit?.closest?.('#pending-badge')?.id === 'pending-badge',
+        badgeRightInset: anchor.right - badge.right,
+        badgeTopInset: badge.top - anchor.top,
+      };
+    });
+    assert.deepEqual(compact.pet, { width: 72, height: 78 });
+    assert.equal(compact.badgeInside, true);
+    assert.equal(compact.badgeContentFits, true);
+    assert.equal(compact.badgeHit, true);
+    assert.ok(Math.abs(compact.badgeRightInset) < .5, 'compact badge stays on the top-right corner by default');
+    assert.ok(Math.abs(compact.badgeTopInset) < .5, 'compact badge stays on the top edge');
+    const dockedBadgeOffset = await page.evaluate(() => {
+      document.getElementById('pet').dataset.dockEdge = 'right';
+      const anchor = document.getElementById('anchor').getBoundingClientRect();
+      const badge = document.getElementById('pending-badge').getBoundingClientRect();
+      return Math.abs(badge.left - anchor.left);
+    });
+    assert.ok(dockedBadgeOffset < .5, 'right-edge docking flips the complete badge to the left corner');
+
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    assert.deepEqual((await visibleClipping(page, 'actions')).clippedButtons, []);
+    await page.click('#call-chat');
+    await page.waitForFunction(() => !document.getElementById('chat').hidden);
+    await page.waitForFunction(() => document.getElementById('call-transcript-log').children.length >= 2);
+    await page.click('#chat header [data-action="dismiss"]');
+    await page.waitForFunction(() => !document.getElementById('actions').hidden);
+    await page.evaluate(() => window.__pushTranscript({
+      messageId: 'preview-voice-new', role: 'assistant', text: '收起以后来的消息',
+      source: { kind: 'voice', nativeThreadId: 'preview-thread', realtimeSessionId: 'preview-realtime-session', nativeItemId: 'preview-output-new' },
+    }));
+    await page.waitForFunction(() => document.getElementById('call-chat-unread').textContent === '1');
+    assert.equal(await page.locator('#call-state').textContent(), '通话中');
+
+    await page.click('#pet');
+    await page.waitForFunction(() => !document.getElementById('menu').hidden);
+    assert.equal(await page.locator('#menu-call-context').isVisible(), true);
+    assert.equal(await page.locator('#menu-mic').isVisible(), true);
+    assert.equal(await page.locator('#menu-call-share').isVisible(), true);
+    assert.equal(await page.locator('#menu-call-chat').isVisible(), true);
+    assert.equal(await page.locator('#menu-hide-label').textContent(), '结束通话并隐藏');
+    const fixedCardEdges = await page.evaluate(() => {
+      const menu = document.getElementById('menu').getBoundingClientRect();
+      const call = document.getElementById('menu-call-context').getBoundingClientRect();
+      const footer = document.querySelector('.menu-footer').getBoundingClientRect();
+      return { callTop: call.top - menu.top, footerBottom: menu.bottom - footer.bottom, height: menu.height };
+    });
+    assert.ok(fixedCardEdges.callTop >= -.5);
+    assert.ok(fixedCardEdges.footerBottom >= -.5);
+    assert.ok(fixedCardEdges.height <= 500);
+  } finally {
+    await page.close();
+  }
+});
+
 test('subtitle return is visible and restores the same shared call at compact and expanded heights', async () => {
   const page = await openPreview({ width: 460, height: 620 });
   try {

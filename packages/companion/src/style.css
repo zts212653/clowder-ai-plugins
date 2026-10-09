@@ -60,15 +60,17 @@ button:disabled { opacity: .45; cursor: default; }
   from { left: var(--living-left-start); top: var(--living-top-start); }
   to { left: var(--living-left-end); top: var(--living-top-end); }
 }
-#indicators { position: absolute; bottom: 0; right: 0; display: flex; gap: 4px; }
-#indicators button { width: 32px; height: 32px; border: 1px solid #fff9; border-radius: 50%; display: grid; place-items: center; background: #236b59; color: white; box-shadow: 0 2px 5px #0003; }
+#indicators { position: absolute; inset: 0; pointer-events: none; }
+#indicators button { position: absolute; width: 32px; height: 32px; pointer-events: auto; border: 1px solid #fff9; border-radius: 50%; display: grid; place-items: center; background: #236b59; color: white; box-shadow: 0 2px 5px #0003; }
 #indicators button:hover { background: #ab4842; }
 #indicators button[data-state="connecting"] { background: #a77b36; animation: pulse 1.8s infinite; }
 #indicators button[data-state="muted"] { background: #5f6670; }
 #indicators button[data-state="receive-only"] { background: #476dac; }
 #indicators svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
-#share-badge { background: #476dac !important; }
-#pending-badge { width: auto !important; min-width: 32px; padding: 0 9px; border-radius: 999px !important; background: #9b6841 !important; font-size: 11px; font-weight: 700; white-space: nowrap; }
+#share-badge { right: 0; bottom: 0; background: #476dac !important; }
+#pending-badge { top: 0; right: 0; width: auto !important; min-width: 24px; height: 24px !important; padding: 0 7px; border: 2px solid white !important; border-radius: 999px !important; background: #f2dcc8 !important; color: #7a3f2e !important; font-size: 11px; font-weight: 700; white-space: nowrap; }
+#pet[data-dock-edge="right"] + #indicators #pending-badge,
+#pet[data-dock-edge="right"] + #indicators #share-badge { right: auto; left: 0; }
 @keyframes pulse { 50% { opacity: .65; } }
 .floating { position: absolute; z-index: 3; border-radius: 12px; border: 1px solid var(--desktop-line-strong); background: var(--desktop-paper); box-shadow: 0 14px 28px #18171526, 0 2px 5px #1817150f; }
 .floating { max-height: 500px; overflow: auto; }
@@ -83,7 +85,7 @@ button:disabled { opacity: .45; cursor: default; }
 .floating .destructive { background: var(--desktop-danger); color: white; font-weight: 500; }
 .floating .destructive:hover:not(:disabled) { background: #942c24; }
 .floating .destructive.compact { min-width: 72px; padding: 6px 12px; }
-#actions { padding: 12px; width: 364px; overflow: hidden; }
+#actions { padding: 12px; width: 412px; overflow: hidden; }
 .action-row { display: flex; align-items: center; gap: 4px; }
 .action-row button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 35px; font-size: 12px; white-space: nowrap; }
 .action-row button .icon { width: 16px; height: 16px; }
@@ -108,8 +110,11 @@ button:disabled { opacity: .45; cursor: default; }
 .recent-message-text { unicode-bidi: isolate; }
 .call-recent p[data-role="user"] { color: var(--desktop-muted); }
 .call-actions { justify-content: flex-end; }
+.call-actions #mic .label, .call-actions [data-action="transcript"] > span { display: none; }
 .call-actions #end { min-width: 88px; margin-left: auto; }
-#menu { width: 340px; padding: 8px; }
+.action-unread { min-width: 17px; height: 17px; display: inline-grid; place-items: center; border-radius: 999px; padding: 0 5px; background: #f2dcc8; color: #7a3f2e; font-size: 10px; font-weight: 700; line-height: 1; }
+#menu { width: 340px; max-height: 500px; display: flex; flex-direction: column; overflow: hidden; padding: 8px; }
+.menu-scroll { min-height: 0; flex: 1 1 auto; overflow-x: hidden; overflow-y: auto; }
 #menu .menu-title { display: block; padding: 7px 11px 6px; color: var(--cafe-text-muted); font-size: 10px; font-weight: 500; letter-spacing: .04em; }
 #menu button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 33px; text-align: left; font-size: 12px; line-height: 1.4; }
 #menu button .icon { color: var(--cafe-text-secondary); width: 16px; height: 16px; }
@@ -129,6 +134,21 @@ button:disabled { opacity: .45; cursor: default; }
 .call-context-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
 .call-context-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 9px; white-space: nowrap; }
 #menu .call-context { margin: -8px -8px 5px; }
+.menu-footer { flex: none; display: flex; align-items: center; gap: 2px; margin: 4px -8px -8px; border-top: 1px solid var(--desktop-line); padding: 4px; }
+#menu .menu-footer button { width: auto; min-width: 38px; min-height: 33px; padding: 7px 8px; }
+#menu .menu-footer #menu-hide { margin-left: auto; }
+.menu-call-actions { grid-column: 1 / -1; width: 100%; }
+.menu-call-actions button { width: auto !important; min-width: 34px !important; }
+.menu-call-actions button:last-child { margin-left: auto; }
+.work-overview { margin: 3px -8px; border-top: 1px solid var(--desktop-line); border-bottom: 1px solid var(--desktop-line); }
+.work-overview-section + .work-overview-section { border-top: 1px solid var(--desktop-line); }
+.work-overview-section header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 11px 3px; color: var(--desktop-muted); font-size: 11px; }
+.work-overview-section header small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+#menu .work-overview-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; min-height: 43px; border-radius: 0; padding: 6px 11px; }
+.work-overview-row strong, .work-overview-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.work-overview-row strong { color: var(--desktop-ink); font-size: 12px; font-weight: 500; }
+.work-overview-row span { color: var(--desktop-muted); font-size: 10px; }
+#work-notice { margin: 0; padding: 3px 11px 7px; color: var(--desktop-muted); font-size: 10px; }
 #chat { width: 400px; max-height: 500px; display: flex; flex-direction: column; overflow: hidden; }
 #chat header { padding: 7px 9px 7px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--cafe-border-subtle); }
 #chat header button { font-size: 12px; color: var(--cafe-text-secondary); }

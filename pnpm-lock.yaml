@@ -15,10 +15,10 @@ importers:
   packages/companion:
     devDependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.24
+        specifier: 0.1.0-beta.25
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.1.0-beta.20
+        specifier: 0.1.0-beta.21
         version: link:../plugin-sdk
       playwright:
         specifier: 1.61.1
@@ -151,7 +151,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.1.0-beta.24
+        specifier: 0.1.0-beta.25
         version: link:../plugin-contract
     devDependencies:
       '@types/node':

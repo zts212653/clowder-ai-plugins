@@ -276,6 +276,27 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "work.read" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "work.open" },
+            "entryRef": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,256}$",
+              "description": "Opaque Host-issued navigation identity; never a renderer-selected task, thread or route."
+            }
+          },
+          "required": ["kind", "entryRef"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": { "const": "decisions.read" },
             "offset": { "type": "integer", "minimum": 0 },
             "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
@@ -433,7 +454,7 @@
           "properties": {
             "kind": { "const": "settings.update" },
             "field": { "const": "ballSize" },
-            "value": { "type": "integer", "minimum": 48, "maximum": 192 }
+            "value": { "type": "integer", "minimum": 43, "maximum": 192 }
           },
           "required": ["kind", "field", "value"],
           "additionalProperties": false
@@ -530,6 +551,109 @@
         "catId",
         "displayName"
       ],
+      "additionalProperties": false
+    },
+    "CompanionWorkCoverage": {
+      "type": "object",
+      "properties": {
+        "source": { "enum": ["tasks", "messages", "artifacts"] },
+        "status": { "enum": ["available", "partial", "unavailable"] }
+      },
+      "required": ["source", "status"],
+      "additionalProperties": false
+    },
+    "CompanionWorkActive": {
+      "type": "object",
+      "properties": {
+        "entryRef": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,256}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 280, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "actor": {
+          "oneOf": [
+            { "$ref": "#/$defs/CompanionActor" },
+            { "type": "null" }
+          ]
+        },
+        "activity": { "enum": ["working", "waiting"] },
+        "taskId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "homeThreadId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "updatedAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      },
+      "required": ["entryRef", "title", "actor", "activity", "taskId", "homeThreadId", "sourceRef", "updatedAt"],
+      "additionalProperties": false
+    },
+    "CompanionWorkDelivery": {
+      "type": "object",
+      "properties": {
+        "entryRef": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,256}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 280, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "taskId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "homeThreadId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "deliveredAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "artifact": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "artifactId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+                "version": { "type": ["string", "null"], "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+                "versionState": { "enum": ["current", "superseded", "unknown"] }
+              },
+              "required": ["artifactId", "version", "versionState"],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "versionState": { "enum": ["current", "superseded"] } },
+                    "required": ["versionState"]
+                  },
+                  "then": {
+                    "properties": {
+                      "version": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" }
+                    }
+                  }
+                }
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["entryRef", "title", "taskId", "homeThreadId", "sourceRef", "deliveredAt", "artifact"],
+      "additionalProperties": false
+    },
+    "CompanionWorkOverview": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "work" },
+        "v": { "const": 1 },
+        "status": { "enum": ["available", "partial", "unavailable"] },
+        "observedAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "current-project" },
+            "label": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?=.*\\S)[^\\r\\n]+$" }
+          },
+          "required": ["kind", "label"],
+          "additionalProperties": false
+        },
+        "coverage": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/CompanionWorkCoverage" },
+          "allOf": [
+            { "contains": { "type": "object", "properties": { "source": { "const": "tasks" } }, "required": ["source"] } },
+            { "contains": { "type": "object", "properties": { "source": { "const": "messages" } }, "required": ["source"] } },
+            { "contains": { "type": "object", "properties": { "source": { "const": "artifacts" } }, "required": ["source"] } }
+          ]
+        },
+        "active": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/CompanionWorkActive" } },
+        "recentDeliveries": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/CompanionWorkDelivery" } }
+      },
+      "required": ["kind", "v", "status", "observedAt", "scope", "coverage", "active", "recentDeliveries"],
       "additionalProperties": false
     },
     "CompanionIdentitySnapshotV1": {
@@ -916,7 +1040,7 @@
       "properties": {
         "dutyCatProfileId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
         "skin": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] },
-        "ballSize": { "type": "integer", "minimum": 48, "maximum": 192 },
+        "ballSize": { "type": "integer", "minimum": 43, "maximum": 192 },
         "behaviorEnabled": { "type": "boolean" },
         "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
         "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
@@ -1158,6 +1282,9 @@
           "$ref": "#/$defs/CompanionState"
         },
         {
+          "$ref": "#/$defs/CompanionWorkOverview"
+        },
+        {
           "$ref": "#/$defs/CompanionDecisions"
         },
         {
@@ -1198,8 +1325,12 @@
               "const": "navigation"
             },
             "delivery": {
+              "description": "Host navigation truth: requested/queued mean accepted but not visibly applied; applied means the destination owner confirmed the effect; blocked means the Host refused it; unconfirmed means settlement is unknown.",
               "enum": [
                 "requested",
+                "applied",
+                "queued",
+                "blocked",
                 "unconfirmed"
               ]
             }

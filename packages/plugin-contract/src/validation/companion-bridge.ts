@@ -56,6 +56,26 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     }
     return true;
   }
+  if (parsed.kind === 'work') {
+    const coverage = new Map(parsed.coverage.map((entry) => [entry.source, entry.status]));
+    if (coverage.size !== 3) return false;
+    const statuses = [...coverage.values()];
+    const allAvailable = statuses.every((source) => source === 'available');
+    const anyAvailable = statuses.some((source) => source !== 'unavailable');
+    if (parsed.status === 'available' && !allAvailable) return false;
+    if (parsed.status === 'partial' && (!anyAvailable || allAvailable)) return false;
+    if (parsed.status === 'unavailable' && (anyAvailable || parsed.active.length > 0 || parsed.recentDeliveries.length > 0)) {
+      return false;
+    }
+    if (coverage.get('tasks') === 'unavailable' && parsed.active.length > 0) return false;
+    if (coverage.get('messages') === 'unavailable' && parsed.recentDeliveries.length > 0) return false;
+    if (coverage.get('artifacts') === 'unavailable'
+      && parsed.recentDeliveries.some((entry) => entry.artifact !== null)) return false;
+    if (parsed.recentDeliveries.some((entry) => entry.artifact !== null
+      && entry.artifact.version === null && entry.artifact.versionState !== 'unknown')) return false;
+    const entryRefs = [...parsed.active, ...parsed.recentDeliveries].map((entry) => entry.entryRef);
+    return new Set(entryRefs).size === entryRefs.length;
+  }
   if (parsed.kind === 'decisions') {
     if (!('version' in parsed)) return true;
     const variantRefs = parsed.items.map((item) => item.variantRef);

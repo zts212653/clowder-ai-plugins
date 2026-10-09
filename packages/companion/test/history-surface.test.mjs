@@ -8,8 +8,12 @@ import { CallTranscriptView } from '../src/call-transcript-view.mjs';
 import { SettingsView } from '../src/settings-view.mjs';
 import { RecentBubble } from '../src/recent-bubble.mjs';
 import { decisionBadge, decisionPresentation, decisionRows } from '../src/decision-view.mjs';
+import { DecisionPanel } from '../src/decision-panel.mjs';
 import { nativeWorkLabel, normalizeNativeWork } from '../src/native-work-motion.mjs';
 import { currentCompanionIdentity } from '../src/companion-identity.mjs';
+import { FoldedChatUnread } from '../src/chat-unread.mjs';
+import { COMPACT_BALL_SIZE, compactSizeAction } from '../src/compact-size.mjs';
+import { WorkOverviewView } from '../src/work-overview.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -44,6 +48,11 @@ function fixture() {
   let decisions = async (offset, limit) => ({ kind: 'decisions', status: 'available', approvalCount: 0,
     needsMeCount: 0, otherNeedsMeCount: 0, approvals: [], otherNeedsMe: [],
     page: { offset, limit, hasMoreApprovals: false, hasMoreNeedsMe: false } });
+  let work = async () => ({ kind: 'work', v: 1, status: 'unavailable', observedAt: 1,
+    scope: { kind: 'current-project', label: 'Cat Café' }, coverage: [
+      { source: 'tasks', status: 'unavailable' }, { source: 'messages', status: 'unavailable' },
+      { source: 'artifacts', status: 'unavailable' },
+    ], active: [], recentDeliveries: [] });
   let settings = { kind: 'settings', status: 'available', values: {
     dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72, behaviorEnabled: true,
     proactivePolicy: 'quiet-badge', personaTone: '温暖、简短、不啰嗦', householdReadsAllowed: true,
@@ -72,6 +81,8 @@ function fixture() {
     openDecision: async (variantRef, target) => {
       calls.push(`open:${variantRef}:${target}`); return { kind: 'navigation', delivery: 'requested' };
     },
+    readWork: () => { calls.push('work-read'); return work(); },
+    openWork: async entryRef => { calls.push(`work-open:${entryRef}`); return { kind: 'navigation', delivery: 'applied' }; },
     readDecisions: (offset, limit) => decisions(offset, limit),
     readConversation: () => { calls.push('read'); return history(); },
     readTranscript: () => { calls.push('transcript-read'); return callTranscript(); },
@@ -102,12 +113,14 @@ function fixture() {
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
-    decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity, explainError: () => '未更新',
+    DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
+    FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
     travel: value => travelObserver.changed(value),
     history: callback => { history = callback; }, transcript: callback => { callTranscript = callback; }, decisions: callback => { decisions = callback; },
+    work: callback => { work = callback; },
     settingsRead: callback => { settingsReader = callback; }, settingsUpdate: callback => { settingUpdate = callback; },
     identity: value => { identity = value; } };
 }
@@ -214,6 +227,9 @@ test('sharing keeps the exact target visible in the call bar and settings header
 
   assert.equal(f.nodes.get('call-share-context').hidden, false);
   assert.equal(f.nodes.get('call-share-target').textContent, '共享中：Blender');
+  assert.equal(f.nodes.get('menu-call-share.label').textContent, '停止共享');
+  assert.equal(f.nodes.get('menu-share-context').hidden, false);
+  assert.equal(f.nodes.get('menu-share-target').textContent, '共享中：Blender');
   assert.equal(f.nodes.get('settings-share-context').hidden, false);
   assert.equal(f.nodes.get('settings-share-target').textContent, '共享中：Blender');
   assert.equal(f.nodes.get('settings-share.label').textContent, '停止共享');
@@ -253,6 +269,99 @@ test('opening and dismissing another panel during voice returns to the persisten
   assert.equal(f.controls.panel, 'chat');
   f.controls.dismiss(); await flush();
   assert.equal(f.controls.panel, 'actions');
+});
+
+test('folding call chat keeps media live and counts only later stable transcript rows', async () => {
+  const f = fixture(); await flush(); f.start(); await flush();
+  await f.controls.show('chat'); f.tick(); await flush();
+  f.controls.dismiss(); await flush();
+  assert.equal(f.controls.panel, 'actions');
+  f.transcript(async () => ({
+    kind: 'transcript', scope: { callId: CALL_A, realtimeSessionId: 'rtc-a' }, hasMore: false,
+    rows: [
+      { messageId: 'voice-3', role: 'user', text: '收起后自己说的话', source: {
+        kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a', nativeItemId: 'input-3',
+      } },
+      { messageId: 'typed-4', role: 'user', text: '收起后自己打的字', source: {
+        kind: 'typed', clientMessageId: 'typed-client-4', callId: CALL_A,
+      } },
+      { messageId: 'voice-5', role: 'assistant', text: '猫的新消息', source: {
+        kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a', nativeItemId: 'output-5',
+      } },
+    ],
+  }));
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('call-chat-unread').textContent, '1');
+  assert.equal(f.nodes.get('call-chat-unread').hidden, false);
+  assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
+  await f.controls.show('chat'); await flush();
+  assert.equal(f.nodes.get('call-chat-unread')?.hidden ?? true, true);
+});
+
+test('chat opened outside a call cannot arm unread for the next call', async () => {
+  const f = fixture(); await flush();
+  await f.controls.show('chat'); await flush();
+  f.controls.dismiss(); await flush();
+  f.start(); await flush();
+  f.transcript(async () => ({
+    kind: 'transcript', scope: { callId: CALL_A, realtimeSessionId: 'rtc-a' }, hasMore: false,
+    rows: [{ messageId: 'voice-next-call', role: 'assistant', text: 'next call', source: {
+      kind: 'voice', nativeThreadId: 'thread-native', realtimeSessionId: 'rtc-a',
+      nativeItemId: 'output-next-call',
+    } }],
+  }));
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('call-chat-unread')?.hidden ?? true, true);
+});
+
+test('the card preserves call controls and distinguishes hangup from hide', async () => {
+  const f = fixture(); await flush(); f.start(); await flush();
+  await f.controls.show('menu'); await flush();
+  assert.equal(f.nodes.get('name-card-actions').hidden, true);
+  assert.equal(f.nodes.get('menu-call-context').hidden, false);
+  assert.equal(f.nodes.get('menu-hide-label').textContent, '结束通话并隐藏');
+  assert.ok(!f.calls.includes('stop'));
+  f.action('stop'); await flush();
+  assert.ok(f.calls.includes('stop'));
+});
+
+test('one-click compact size writes the canonical Host setting and offers restore', async () => {
+  const f = fixture(); await flush();
+  assert.equal(f.nodes.get('menu-size-toggle.label').textContent, '缩小');
+  f.action('size-toggle'); await flush();
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
+    && call[1] === 'ballSize' && call[2] === 43));
+  assert.equal(f.nodes.get('menu-size-toggle.label').textContent, '放大');
+  assert.equal(f.nodes.get('anchor').dataset.ballSize, '43');
+  f.action('size-toggle'); await flush();
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
+    && call[1] === 'ballSize' && call[2] === 72));
+  assert.equal(f.nodes.get('menu-size-toggle.label').textContent, '缩小');
+});
+
+test('the card renders bounded partial work truth and opens only its opaque entry', async () => {
+  const f = fixture(); await flush();
+  f.work(async () => ({
+    kind: 'work', v: 1, status: 'partial', observedAt: 1,
+    scope: { kind: 'current-project', label: 'Cat Café' },
+    coverage: [
+      { source: 'tasks', status: 'available' }, { source: 'messages', status: 'available' },
+      { source: 'artifacts', status: 'partial' },
+    ],
+    active: [{ entryRef: 'work-one', title: '桌面猫中断后的恢复', actor: null, activity: 'working',
+      taskId: 'task-1', homeThreadId: 'thread-1', sourceRef: 'task:task-1', updatedAt: 1 }],
+    recentDeliveries: [{ entryRef: 'delivery-one', title: '主页北极星稿 1.6', taskId: null,
+      homeThreadId: 'thread-1', sourceRef: 'thread:thread-1#message-1', deliveredAt: 1,
+      artifact: { artifactId: 'artifact-1', version: '1.6', versionState: 'current' } }],
+  }));
+  await f.controls.show('menu'); await flush();
+  assert.equal(f.nodes.get('work-overview').hidden, false);
+  assert.equal(f.nodes.get('work-active-list').children[0].children[0].textContent, '桌面猫中断后的恢复');
+  assert.equal(f.nodes.get('work-active-list').children[0].children[1].textContent, '正在工作');
+  assert.equal(f.nodes.get('work-notice').textContent, '仅部分读取');
+  await f.nodes.get('work-active-list').children[0].onclick();
+  assert.ok(f.calls.includes('work-open:work-one'));
+  assert.equal(f.nodes.get('work-notice').textContent, '已打开原处');
 });
 
 test('visible transcript return restores the same call bar from compact and expanded subtitles', async () => {

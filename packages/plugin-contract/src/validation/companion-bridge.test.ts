@@ -109,7 +109,7 @@ test('companion settings are Host-bound single-field updates with explicit settl
       assert.equal(validateCompanionCommand({ ...update, [selector]: 'renderer-choice' }), false, selector);
     }
   }
-  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 47 }), false);
+  assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 42 }), false);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'ballSize', value: 193 }), false);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'personaTone', value: 'warm\ninjected' }), false);
   assert.equal(validateCompanionCommand({ kind: 'settings.update', field: 'personaTone', value: '   ' }), false);

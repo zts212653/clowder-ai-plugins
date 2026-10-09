@@ -11,10 +11,13 @@ import { PetMotion } from './pet-motion.mjs';
 import { LivingBody } from './living-body.mjs';
 import { detectDockedEdge } from './living-edge.mjs';
 import { bindPetControls } from './pet-controls.mjs';
-import { decisionBadge, decisionPresentation, decisionRows } from './decision-view.mjs';
+import { DecisionPanel } from './decision-panel.mjs';
 import { nativeWorkLabel, normalizeNativeWork } from './native-work-motion.mjs';
 import { NativeWindowTravel } from './native-window-travel.mjs';
 import { currentCompanionIdentity } from './companion-identity.mjs';
+import { FoldedChatUnread } from './chat-unread.mjs';
+import { COMPACT_BALL_SIZE, compactSizeAction } from './compact-size.mjs';
+import { WorkOverviewView } from './work-overview.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -32,6 +35,11 @@ const callTranscript = new CallTranscriptView($('call-transcript-log'), {
 });
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
 const callBubble = new RecentBubble([$('call-bubble-first'), $('call-bubble-second')]);
+const foldedChatUnread = new FoldedChatUnread(count => {
+  $('call-chat-unread').hidden = count === 0;
+  $('call-chat-unread').textContent = count ? String(count) : '';
+  $('call-chat').setAttribute('aria-label', count ? `聊天，${count} 条未读` : '聊天');
+});
 const motion = new PetMotion($('pet'), { livingBody: new LivingBody({ root: $('pet'), sit: $('living-sit'),
   video: $('living-video'), transitionVideo: $('living-video-transition') }) });
 const nativeTravel = new NativeWindowTravel({
@@ -39,15 +47,12 @@ const nativeTravel = new NativeWindowTravel({
   changed: value => motion.syncTravel(value),
 });
 let sharing = false, pendingScreen = false, loading = false, transcriptLoading = false, latestHistory, previousPhase = 'idle';
-let didMove = false, decisionLoading = false, decisionOffset = 0, threadTitle, settingsView, settingsValues, latestDecisionPage;
+let didMove = false, threadTitle, settingsView, settingsValues, decisionPanel, workView;
+let previousControlPanel = 'none';
 // F229 stays quiet: a history ID change has no provenance for proactive text.
 const ambientPanel = active => active ? 'actions' : 'none';
 const setTexts = (ids, text) => { for (const id of ids) $(id).textContent = text; };
 const setHidden = (ids, hidden) => { for (const id of ids) $(id).hidden = hidden; };
-const decisionReadBasis = page => page?.version === 1
-  ? [page.status, page.totalCount ?? 'unknown', ...['approvals', 'needsMe']
-    .flatMap(key => [page.sources?.[key]?.status, page.sources?.[key]?.coverage])].join('|')
-  : page ? 'legacy' : null;
 if (!window.clowderCompanion) {
   $('actions').hidden = false; $('status').hidden = false;
   status('请从 Clowder 的聊聊入口打开猫猫球');
@@ -67,10 +72,14 @@ if (!window.clowderCompanion) {
       setTimeout(() => motion.setDockedEdge(detectDockedEdge(window, $('pet').getBoundingClientRect())), 100);
     },
     changed: panel => {
+      if (panel === 'chat') foldedChatUnread.open();
+      else if (previousControlPanel === 'chat' && conversation?.active) foldedChatUnread.fold();
+      previousControlPanel = panel;
       if (panel === 'chat') void readHistory();
       if (panel === 'transcript') void readCallTranscript();
-      if (panel === 'decisions') void readDecisions();
+      if (panel === 'decisions') void decisionPanel?.read();
       if (panel === 'settings') void settingsView?.open();
+      if (panel === 'menu') void workView?.load();
     },
     action(kind) {
       if (kind === 'begin') { transcript.reset(); callTranscript.reset(); bubble.reset(); callBubble.clear(); void conversation.begin(); void controls.show('none'); }
@@ -81,6 +90,10 @@ if (!window.clowderCompanion) {
       if (kind === 'share') toggleScreen();
       if (kind === 'documents') void conversation.documents(conversation.identity?.documentsAllowed === false);
       if (kind === 'hide') void client.hide().catch(error => status(explainError(error)));
+      if (kind === 'size-toggle') {
+        if (!settingsValues) { status('大小设置仍在读取'); return; }
+        void settingsView.controller.requestUpdate('ballSize', compactSizeAction(settingsValues.ballSize).value);
+      }
       if (kind === 'transcript-return') void controls.show('actions');
       if (kind === 'transcript-expand') {
         const expanded = $('transcript').dataset.expanded !== 'true';
@@ -103,7 +116,7 @@ if (!window.clowderCompanion) {
   }, value => {
     const wasActive = sharing || pendingScreen;
     sharing = value.sharing; pendingScreen = value.pending === true;
-    for (const id of ['share', 'menu-share', 'chat-share', 'settings-share']) label(id, sharing ? '停止共享' : pendingScreen ? '取消选屏' : '共享画面');
+    for (const id of ['share', 'menu-share', 'menu-call-share', 'chat-share', 'settings-share']) label(id, sharing ? '停止共享' : pendingScreen ? '取消选屏' : '共享画面');
     for (const prefix of ['call', 'menu', 'chat', 'transcript', 'settings']) {
       $(`${prefix}-share-context`).hidden = !sharing;
       $(`${prefix}-share-target`).textContent = sharing ? `共享中：${value.label}` : '';
@@ -144,6 +157,7 @@ if (!window.clowderCompanion) {
       const justConnected = previousPhase !== 'talking' && value.phase === 'talking';
       if (previousPhase !== 'idle' && value.phase === 'idle') {
         transcript.reset(); callTranscript.reset(); bubble.reset(); callBubble.clear(); void readHistory();
+        foldedChatUnread.reset();
         if (controls.panel === 'transcript') void controls.show('menu');
       }
       previousPhase = value.phase;
@@ -161,10 +175,12 @@ if (!window.clowderCompanion) {
       $('listen').className = retryReceiveOnly ? 'primary' : '';
       $('mic').hidden = value.phase !== 'talking' || receiveOnly; $('speaker').hidden = !active;
       $('chat-mic').hidden = value.phase !== 'talking' || receiveOnly;
+      $('menu-mic').hidden = value.phase !== 'talking' || receiveOnly;
       $('transcript-mic').hidden = value.phase !== 'talking' || receiveOnly;
       $('settings-mic').hidden = value.phase !== 'talking' || receiveOnly;
       $('active-actions').hidden = !active;
       $('share').disabled = value.phase !== 'talking';
+      $('menu-call-share').disabled = value.phase !== 'talking';
       $('compose').querySelector('button').disabled = !value.identity || value.phase === 'connecting';
       status(value.message ?? '');
       $('status').hidden = !value.message || /^(点击|正在听|只听模式|只听已结束|语音通话已结束|已发送)/.test(value.message);
@@ -180,13 +196,22 @@ if (!window.clowderCompanion) {
       setTexts(['call-mic-state', 'chat-call-mic-state', 'transcript-call-mic-state', 'menu-call-mic-state', 'settings-call-mic-state'], microphoneState);
       setHidden(['chat-call-context', 'transcript-call-context', 'menu-call-context', 'settings-call-context'], !active);
       label('mic', value.muted ? '取消静音' : '静音'); $('mic').setAttribute('aria-pressed', String(value.muted));
+      $('mic').setAttribute('aria-label', value.muted ? '取消静音' : '静音');
       $('mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
       $('chat-mic').textContent = value.muted ? '取消静音' : '静音';
+      $('menu-mic').setAttribute('aria-label', value.muted ? '取消静音' : '静音');
+      $('menu-mic').title = value.muted ? '取消静音' : '静音';
+      $('menu-mic').setAttribute('aria-pressed', String(value.muted));
+      $('menu-mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
       $('settings-mic').textContent = value.muted ? '取消静音' : '静音';
       $('transcript-mic').setAttribute('aria-label', value.muted ? '取消静音' : '静音');
       $('transcript-mic').setAttribute('aria-pressed', String(value.muted));
       $('transcript-mic-icon').setAttribute('href', value.muted ? '#i-mic-off' : '#i-mic');
-      label('speaker', value.silent ? '开启播音' : '关闭播音');
+      label('speaker', '播音');
+      $('speaker').setAttribute('aria-pressed', String(!value.silent));
+      $('speaker').title = value.silent ? '开启播音' : '关闭播音';
+      $('name-card-actions').hidden = active;
+      $('menu-hide-label').textContent = active ? '结束通话并隐藏' : '隐藏';
       const identity = value.identity;
       const companionIdentity = currentCompanionIdentity(identity);
       const nativeSnapshot = normalizeNativeWork(identity?.nativeWork);
@@ -231,13 +256,29 @@ if (!window.clowderCompanion) {
     settleExpectedHostStop: callStopped => conversation.settleExpectedHostStop(callStopped),
     layoutChanged: () => { if (controls.panel === 'settings') controls.remeasure?.(); },
     onValues(values) {
+      const sizeChanged = settingsValues !== undefined && settingsValues.ballSize !== values.ballSize;
       settingsValues = values;
       document.documentElement?.style?.setProperty?.('--pet-scale', String(values.ballSize / 72));
       $('anchor').dataset.ballSize = String(values.ballSize);
+      $('anchor').dataset.compact = String(values.ballSize <= COMPACT_BALL_SIZE);
+      label('menu-size-toggle', compactSizeAction(values.ballSize).label);
       motion.setBehaviorEnabled(values.behaviorEnabled);
       $('documents').hidden = true;
-      if (latestDecisionPage) showDecisionBadge(latestDecisionPage);
+      decisionPanel?.refreshBadge();
+      if (sizeChanged) void controls.show(controls.panel);
     },
+  });
+  workView = new WorkOverviewView({
+    document,
+    client,
+    changed: () => { if (controls.panel === 'menu') controls.remeasure?.(); },
+  });
+  decisionPanel = new DecisionPanel({
+    document,
+    client,
+    controls,
+    motion,
+    proactivePolicy: () => settingsValues?.proactivePolicy,
   });
   async function readHistory() {
     if (loading) return;
@@ -262,100 +303,14 @@ if (!window.clowderCompanion) {
       const reply = await client.readTranscript();
       if (!conversation.active || conversation.callId !== callId) return;
       callTranscript.load(reply);
+      foldedChatUnread.receiveMany(reply.rows);
       callBubble.loadTranscript(reply.rows, conversation.identity?.displayName);
       $('call-transcript-status').textContent = reply.hasMore ? '这里只显示这次通话最近的内容' : '';
     } catch {
       if (conversation.active && conversation.callId === callId) $('call-transcript-status').textContent = '字幕暂未更新 · 实时内容仍会继续显示';
     } finally { transcriptLoading = false; }
   }
-  function showDecisionBadge(page) {
-    latestDecisionPage = page;
-    const badge = decisionBadge(page);
-    $('pending-badge').hidden = !badge.visible || settingsValues?.proactivePolicy !== 'quiet-badge';
-    $('pending-count').textContent = badge.label;
-    $('pending-badge').title = badge.title;
-    $('pending-badge').setAttribute('aria-label', badge.title);
-    $('menu-pending').textContent = badge.label;
-    $('menu-pending').dataset.state = badge.state;
-  }
-  async function readDecisions(more = false) {
-    if (decisionLoading) return;
-    decisionLoading = true;
-    if (!more && controls.panel === 'decisions') $('decision-status').textContent = '正在读取待办…';
-    try {
-      const previousReadBasis = decisionReadBasis(latestDecisionPage);
-      const page = await client.readDecisions(more ? decisionOffset : 0, 10);
-      const presentation = decisionPresentation(page);
-      const changedRead = more && presentation.renderRows && previousReadBasis !== null
-        && decisionReadBasis(page) !== previousReadBasis;
-      showDecisionBadge(page);
-      motion.setPendingDecision(presentation.pending);
-      if (controls.panel !== 'decisions') return;
-      const list = $('decision-list');
-      if (!more || changedRead) { list.replaceChildren(); list.scrollTop = 0; }
-      const retainedRows = more && !presentation.renderRows && list.children.length > 0;
-      const knownVariantRefs = new Set(Array.from(list.children)
-        .map(item => item.dataset.variantRef).filter(Boolean));
-      for (const row of presentation.renderRows && !changedRead ? decisionRows(page) : []) {
-        if (row.variantRef && knownVariantRefs.has(row.variantRef)) continue;
-        const item = document.createElement('li');
-        if (row.variantRef) { item.dataset.variantRef = row.variantRef; knownVariantRefs.add(row.variantRef); }
-        const title = document.createElement('strong');
-        const meta = document.createElement('span');
-        title.textContent = row.title; meta.textContent = row.meta;
-        item.append(title, meta); list.append(item);
-        if (row.navigation) {
-          const button = document.createElement('button');
-          button.type = 'button'; button.textContent = row.navigation.label;
-          button.onclick = async () => {
-            try {
-              const result = await client.openDecision(row.navigation.variantRef, row.navigation.target);
-              $('decision-status').textContent = result.delivery === 'requested'
-                ? '已请求打开对应事项' : '打开对应事项尚未确认 · 请从 Cat Café 查看';
-            } catch { $('decision-status').textContent = '暂时无法打开对应事项 · 请稍后重试'; }
-          };
-          item.append(button);
-        } else if (row.previewable) {
-          const button = document.createElement('button');
-          button.type = 'button'; button.textContent = '查看确认演练';
-          button.onclick = async () => {
-            try {
-              const result = await client.inspectF221(row.proposalId);
-              $('decision-status').textContent = result.status === 'trial_confirmed'
-                ? '确认演练已完成；没有写回提案'
-                : result.status === 'stale' ? '提案已变化，请重新查看原处卡片'
-                  : result.status === 'dismissed' ? '已取消演练；提案没有变化'
-                    : '确认演练暂不可用；请在原处处理';
-            } catch { $('decision-status').textContent = '确认演练暂不可用；请在原处处理'; }
-          };
-          item.append(button);
-        }
-      }
-      decisionOffset = changedRead ? 0 : page.page.offset + page.page.limit;
-      $('decision-reload').textContent = changedRead ? '刷新' : presentation.reloadLabel;
-      $('decision-status').textContent = changedRead && page.totalCount !== 0
-        ? '待办已变化 · 请刷新查看最新列表'
-        : retainedRows
-        ? `${presentation.badge.state === 'authentication' ? '待办需要登录' : '待办暂不可读'} · 以下为上次读到的内容`
-        : presentation.message;
-      $('decision-more').hidden = changedRead || !presentation.hasMore;
-    } catch {
-      showDecisionBadge(undefined);
-      motion.setPendingDecision(null);
-      if (controls.panel === 'decisions') {
-        const retained = $('decision-list').children.length > 0;
-        $('decision-status').textContent = retained
-          ? '待办暂不可读 · 以下为上次读到的内容'
-          : '待办暂不可读 · 请稍后刷新';
-        $('decision-reload').textContent = '重试';
-        $('decision-more').hidden = true;
-      }
-    } finally { decisionLoading = false; }
-  }
   $('share-badge').onclick = toggleScreen;
-  $('pending-badge').onclick = () => void controls.show('decisions');
-  $('decision-reload').onclick = () => void readDecisions();
-  $('decision-more').onclick = () => void readDecisions(true);
   $('history').onclick = () => void client.openConversation().then(result => {
     if (result.delivery === 'unconfirmed') status('打开聊天尚未确认 · 请从 Clowder 查看');
   }).catch(error => status(explainError(error)));
@@ -377,10 +332,11 @@ if (!window.clowderCompanion) {
   const statusMonitor = setInterval(() => void conversation.refresh(), 1000);
   const historyMonitor = setInterval(() => void readHistory(), 3000);
   const transcriptMonitor = setInterval(() => void readCallTranscript(), 1000);
-  const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void readDecisions(); }, 15000);
-  void conversation.refresh(); void readHistory(); void readDecisions(); void settingsView.controller.load(); void controls.show('none');
+  const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void decisionPanel.read(); }, 15000);
+  const workMonitor = setInterval(() => { if (controls.panel === 'menu') void workView.load(); }, 15000);
+  void conversation.refresh(); void readHistory(); void decisionPanel.read(); void settingsView.controller.load(); void controls.show('none');
   window.addEventListener('beforeunload', () => {
-    clearInterval(statusMonitor); clearInterval(historyMonitor); clearInterval(transcriptMonitor); clearInterval(decisionMonitor);
+    clearInterval(statusMonitor); clearInterval(historyMonitor); clearInterval(transcriptMonitor); clearInterval(decisionMonitor); clearInterval(workMonitor);
     unsubscribe(); nativeTravel.close(); motion.close(); void conversation.end();
   });
 }
