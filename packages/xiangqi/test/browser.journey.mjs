@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 import { createHostedBoard } from '../src/board-server.mjs';
 import { createHostedGame } from '../src/hosted-game.mjs';
 import { INITIAL_FEN } from '../src/rules.mjs';
-import { createGame, playGame, readGame, undoGame } from '../src/store.mjs';
+import { confirmedMoveProjection, createGame, playGame, readGame, undoGame } from '../src/store.mjs';
 
 for (const width of [1120, 480])
   test(`board confirmation, selected reply and recovery at ${width}px`, { timeout: 30000 }, async (t) => {
@@ -18,15 +18,26 @@ for (const width of [1120, 480])
       gameId: 'browser-game',
       humanName: 'Player Maple',
       companionName: 'Partner Cedar',
+      bindingGeneration: 'binding-browser',
     });
     let notified = 0;
+    let trustedConfirmation = null;
     const host = {
       openSession: () => session,
-      async authorizeHumanAction() {},
+      async authorizeHumanAction(_session, operation, input) {
+        if (operation !== 'move') return;
+        if (!trustedConfirmation || trustedConfirmation.operationDigest !== input.operationDigest || trustedConfirmation.expectedStateToken !== input.expectedStateToken)
+          throw new Error('Host confirmation missing');
+        trustedConfirmation = null;
+        return { actionId: `browser-${readGame(root, 'browser-game').revision}`, bindingGeneration: session.bindingGeneration, ...input };
+      },
       async authorizeCandidateRead() {},
       async authorizeCompanionMove() {},
       deliveryStatus: () => ({ status: notified ? 'accepted' : 'idle' }),
-      async notifyConfirmedMove() { notified++; },
+      async notifyConfirmedMove(_session, action) {
+        notified++;
+        return { actionId: action.actionId, operationDigest: action.operationDigest, receiptId: `browser-receipt-${action.revision}` };
+      },
       async retryPending() {},
     };
     const app = createHostedBoard({
@@ -58,6 +69,7 @@ for (const width of [1120, 480])
     assert.equal(await page.locator('#confirm-move').isDisabled(), true);
     await page.locator('[data-index="64"]').click();
     await page.locator('[data-index="67"]').click();
+    trustedConfirmation = confirmedMoveProjection(root, readGame(root, 'browser-game'), 'b2e2');
     await page.getByRole('button', { name: '确认落子并发送', exact: true }).click();
     await page.getByText('等Partner Cedar应招', { exact: true }).waitFor();
     assert.equal(readGame(root, 'browser-game').moves[0].notation, '炮八平五');
@@ -78,6 +90,7 @@ for (const width of [1120, 480])
     assert.equal(readGame(root, 'browser-game').revision, 3);
     await page.locator('[data-index="64"]').click();
     await page.locator('[data-index="67"]').click();
+    trustedConfirmation = confirmedMoveProjection(root, readGame(root, 'browser-game'), 'b2e2');
     await page.getByRole('button', { name: '确认落子并发送', exact: true }).click();
     await page.getByRole('button', { name: '重新开局', exact: true }).click();
     assert.equal(readGame(root, 'browser-game').revision, 4);
@@ -107,7 +120,7 @@ test('Host-selected human black side puts each name on the matching pieces', asy
     fen: INITIAL_FEN.replace(' w - - ', ' b - - '),
     humanSide: 'black',
   });
-  const session = Object.freeze({ dataRoot: root, gameId: 'black-side', humanName: 'Player Birch', companionName: 'Partner Elm' });
+  const session = Object.freeze({ dataRoot: root, gameId: 'black-side', humanName: 'Player Birch', companionName: 'Partner Elm', bindingGeneration: 'binding-black' });
   const host = {
     openSession: () => session,
     async authorizeHumanAction() {},
