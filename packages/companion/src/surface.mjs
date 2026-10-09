@@ -18,6 +18,7 @@ import { currentCompanionIdentity } from './companion-identity.mjs';
 import { FoldedChatUnread } from './chat-unread.mjs';
 import { COMPACT_BALL_SIZE, compactSizeAction } from './compact-size.mjs';
 import { WorkOverviewView } from './work-overview.mjs';
+import { MeetingStatus, renderMeetingStatus } from './meeting-state.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -35,6 +36,7 @@ const callTranscript = new CallTranscriptView($('call-transcript-log'), {
 });
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
 const callBubble = new RecentBubble([$('call-bubble-first'), $('call-bubble-second')]);
+const meetingStatus = new MeetingStatus();
 const foldedChatUnread = new FoldedChatUnread(count => {
   $('call-chat-unread').hidden = count === 0;
   $('call-chat-unread').textContent = count ? String(count) : '';
@@ -214,6 +216,7 @@ if (!window.clowderCompanion) {
       $('menu-hide-label').textContent = active ? '结束通话并隐藏' : '隐藏';
       const identity = value.identity;
       const companionIdentity = currentCompanionIdentity(identity);
+      renderMeetingStatus(document, meetingStatus.update(active ? identity?.meeting : null));
       const nativeSnapshot = normalizeNativeWork(identity?.nativeWork);
       const workLabel = nativeWorkLabel(nativeSnapshot, identity?.nativeActivity);
       const workState = workLabel ? `${identity.displayName}${workLabel}` : '';

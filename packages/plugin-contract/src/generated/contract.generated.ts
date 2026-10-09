@@ -1032,6 +1032,17 @@ export type CompanionNativeWork = {
   readonly active: readonly CompanionNativeWorkEntry[];
   readonly recent: readonly CompanionNativeWorkEvent[];
 };
+export type CompanionMeetingState = {
+  readonly kind: 'running';
+  readonly sharing: boolean;
+  readonly paused: boolean;
+  readonly sourceLabel: string | null;
+} | {
+  readonly kind: 'idle' | 'stopped' | 'unconfirmed' | 'needs_source';
+  readonly sharing: false;
+  readonly paused: false;
+  readonly sourceLabel: null;
+};
 export type CompanionState = {
   readonly kind: 'state';
   readonly phase: 'idle' | 'preparing' | 'ready' | 'connecting' | 'talking' | 'closed' | 'failed';
@@ -1045,6 +1056,7 @@ export type CompanionState = {
   readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
   readonly liveTransport: CompanionLiveTransport;
   readonly audio?: CompanionAudioState;
+  readonly meeting: CompanionMeetingState;
   readonly nativeWork: CompanionNativeWork;
 };
 export type CompanionDecisionNavigationTarget = 'origin' | 'approval_card' | 'action';

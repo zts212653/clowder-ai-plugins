@@ -31,6 +31,8 @@ test('the installable package declares one companion body and contains a closed 
     'the call bar must use the approved Latest message label');
   assert.match(html.toString(), /id="call-share-context"/u,
     'the persistent call bar must retain the exact shared target while sharing');
+  assert.match(html.toString(), /id="call-meeting"[^>]*class="call-meeting"[^>]*hidden/u,
+    'meeting status must stay a read-only, call-scoped line that idle can hide');
   assert.match(html.toString(), /data-action="stop"[^>]*><span>挂断</u,
     'the persistent call bar must keep an explicit destructive hang-up action');
   assert.match(html.toString(), /id="call-chat"[^>]*data-action="write"/u,

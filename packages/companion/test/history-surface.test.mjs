@@ -14,6 +14,7 @@ import { currentCompanionIdentity } from '../src/companion-identity.mjs';
 import { FoldedChatUnread } from '../src/chat-unread.mjs';
 import { COMPACT_BALL_SIZE, compactSizeAction } from '../src/compact-size.mjs';
 import { WorkOverviewView } from '../src/work-overview.mjs';
+import { MeetingStatus, meetingPresentation, renderMeetingStatus } from '../src/meeting-state.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -37,6 +38,7 @@ function fixture() {
   }
   let identity = { phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' } };
   let onControls, onVoice, receive, shareState, travelObserver, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
@@ -114,7 +116,8 @@ function fixture() {
     createCompanionClient: () => client, bindPetControls: (_client, callbacks) => { onControls = callbacks; return controls; },
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
-    FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, explainError: () => '未更新',
+    FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
+    explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
@@ -219,6 +222,54 @@ test('an authoritative empty native-work snapshot suppresses the legacy activity
   f.tick(); await flush();
   assert.equal(f.nodes.get('call-work').hidden, true);
   assert.equal(f.nodes.get('call-work').textContent, '');
+});
+
+test('meeting truth is read-only and visible in every active call context while idle stays hidden', async () => {
+  const f = fixture();
+  f.identity({
+    phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'running', sharing: false, paused: false, sourceLabel: 'A very long verified meeting application name' },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+  });
+  await flush(); f.tick(); await flush();
+  for (const prefix of ['call', 'menu-call', 'chat-call', 'transcript-call', 'settings-call']) {
+    assert.equal(f.nodes.get(`${prefix}-meeting`).hidden, true,
+      `${prefix} cannot become a global recording indicator outside a companion call`);
+  }
+  f.start(); await flush();
+
+  for (const prefix of ['call', 'menu-call', 'chat-call', 'transcript-call', 'settings-call']) {
+    assert.equal(f.nodes.get(`${prefix}-meeting`).hidden, false, prefix);
+    assert.equal(f.nodes.get(`${prefix}-meeting-label`).textContent, '会议记录中 · 未接入通话', prefix);
+    assert.equal(f.nodes.get(`${prefix}-meeting-source`).textContent, ' · A very long verified meeting application name', prefix);
+    assert.equal(f.nodes.get(`${prefix}-meeting`).dataset.tone, 'active', prefix);
+  }
+
+  f.identity({
+    phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'unconfirmed', sharing: false, paused: false, sourceLabel: null },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 1, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+  });
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('call-meeting-label').textContent, '会议记录状态未确认');
+  assert.equal(f.nodes.get('call-meeting').dataset.tone, 'warning');
+  assert.equal(f.nodes.get('call-meeting').hidden, false);
+
+  f.identity({
+    phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 2, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+  });
+  f.tick(); await flush();
+  for (const prefix of ['call', 'menu-call', 'chat-call', 'transcript-call', 'settings-call']) {
+    assert.equal(f.nodes.get(`${prefix}-meeting`).hidden, true, prefix);
+  }
 });
 
 test('sharing keeps the exact target visible in the call bar and settings header', async () => {

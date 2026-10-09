@@ -768,6 +768,39 @@
       "required": ["scopeId", "revision", "active", "recent"],
       "additionalProperties": false
     },
+    "CompanionMeetingState": {
+      "description": "Bounded, read-only projection of Host meeting-capture truth for the current companion call. It carries no meeting selector, raw identifier, transcript metric, lease, participant, or control authority.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "running" },
+            "sharing": { "type": "boolean", "description": "Whether this capture is connected to the current companion call. This is not proof that speech was heard or transcribed." },
+            "paused": { "type": "boolean", "description": "Whether capture is paused. Pause and call sharing are independent Host observations." },
+            "sourceLabel": {
+              "description": "Optional verified display label for the meeting application; never a raw source identifier.",
+              "oneOf": [
+                { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "sharing", "paused", "sourceLabel"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["idle", "stopped", "unconfirmed", "needs_source"] },
+            "sharing": { "const": false },
+            "paused": { "const": false },
+            "sourceLabel": { "const": null }
+          },
+          "required": ["kind", "sharing", "paused", "sourceLabel"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "CompanionState": {
       "type": "object",
       "properties": {
@@ -819,6 +852,9 @@
         "audio": {
           "$ref": "#/$defs/CompanionAudioState"
         },
+        "meeting": {
+          "$ref": "#/$defs/CompanionMeetingState"
+        },
         "nativeWork": {
           "$ref": "#/$defs/CompanionNativeWork"
         }
@@ -835,6 +871,7 @@
         "toolsReady",
         "nativeActivity",
         "liveTransport",
+        "meeting",
         "nativeWork"
       ],
       "additionalProperties": false

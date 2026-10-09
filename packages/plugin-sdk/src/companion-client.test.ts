@@ -9,6 +9,26 @@ test('companion client relays declared actions; no Host or identity arguments ar
   await client.stop(); await client.resize(true); await client.screenClose();
   assert.deepEqual(calls, [{ kind: 'stop' }, { kind: 'view.resize', expanded: true }, { kind: 'screen.close' }]);
 });
+test('state carries only the Host-bound meeting presentation without a meeting selector or command', async () => {
+  const calls: CompanionCommand[] = [];
+  const response: CompanionReply = {
+    kind: 'state', phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex',
+    duty: { catId: 'fable-5', displayName: '宪宪' },
+    carrier: { catId: 'codex-sol', displayName: '砚砚' },
+    documentsAllowed: true, behaviorEnabled: true, toolsReady: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom' },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 1, active: [], recent: [] },
+  };
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+
+  assert.deepEqual((await client.state()).meeting, response.meeting);
+  assert.deepEqual(calls, [{ kind: 'state' }]);
+  assert.equal('meeting' in client, false);
+});
 test('audio controls expose no generic provider event or SDP operation', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => { calls.push(command); return { kind: 'ok' }; }, subscribe: () => () => {} });

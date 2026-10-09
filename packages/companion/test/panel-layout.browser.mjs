@@ -151,6 +151,76 @@ test('dynamic call content and expanded transcript keep every action visible', a
   }
 });
 
+test('meeting status keeps the longest state phrase whole and truncates only its source', async () => {
+  const page = await openPreview({ width: 460, height: 620 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-meeting-label')?.textContent
+      === '会议记录中 · 未接入通话');
+
+    const metrics = async prefix => page.evaluate(prefix => {
+      const label = document.getElementById(`${prefix}-meeting-label`);
+      const source = document.getElementById(`${prefix}-meeting-source`);
+      return {
+        label: { clientWidth: label.clientWidth, scrollWidth: label.scrollWidth, text: label.textContent },
+        source: { clientWidth: source.clientWidth, scrollWidth: source.scrollWidth,
+          overflow: getComputedStyle(source).overflow, textOverflow: getComputedStyle(source).textOverflow },
+      };
+    }, prefix);
+    const headerGeometry = async prefix => page.evaluate(prefix => {
+      const context = document.getElementById(`${prefix}-call-context`);
+      const dot = context.querySelector(':scope > .status-dot').getBoundingClientRect();
+      const state = document.getElementById(`${prefix}-call-state`).getBoundingClientRect();
+      const actions = context.querySelector(':scope > .call-context-actions').getBoundingClientRect();
+      return {
+        dotToState: state.left - dot.right,
+        actionStateCenterDelta: Math.abs((actions.top + actions.height / 2) - (state.top + state.height / 2)),
+      };
+    }, prefix);
+
+    const call = await metrics('call');
+    assert.equal(call.label.text, '会议记录中 · 未接入通话');
+    assert.equal(call.label.clientWidth, call.label.scrollWidth);
+    assert(call.source.scrollWidth > call.source.clientWidth, JSON.stringify(call));
+    assert.deepEqual({ overflow: call.source.overflow, textOverflow: call.source.textOverflow },
+      { overflow: 'hidden', textOverflow: 'ellipsis' });
+
+    await page.click('[data-action="transcript"]');
+    const transcript = await metrics('transcript-call');
+    assert.equal(transcript.label.clientWidth, transcript.label.scrollWidth);
+    assert(transcript.source.scrollWidth > transcript.source.clientWidth, JSON.stringify(transcript));
+    assert.equal(await page.locator('#transcript').evaluate(element => element.getBoundingClientRect().height), 210,
+      'the meeting row takes space from captions, not from the collapsed card height');
+    assert.deepEqual((await visibleClipping(page, 'transcript')).clippedButtons, []);
+
+    await page.click('#transcript-return');
+    await page.evaluate(() => window.__setMeeting({
+      kind: 'running', sharing: false, paused: false, sourceLabel: 'Google Meet',
+    }));
+    await page.waitForFunction(() => document.getElementById('call-meeting-source')?.textContent.includes('Google Meet'));
+    await page.click('#call-chat');
+    const chat = await metrics('chat-call');
+    assert.equal(chat.source.scrollWidth, chat.source.clientWidth,
+      `a common source label must remain readable in chat: ${JSON.stringify(chat)}`);
+    const chatHeader = await headerGeometry('chat');
+    assert(chatHeader.dotToState >= 0 && chatHeader.dotToState < 20, JSON.stringify(chatHeader));
+    assert(chatHeader.actionStateCenterDelta < 12, JSON.stringify(chatHeader));
+
+    await page.click('#chat header [data-action="dismiss"]');
+    await page.click('#pet');
+    await page.click('#menu-settings');
+    const settings = await metrics('settings-call');
+    assert.equal(settings.source.scrollWidth, settings.source.clientWidth,
+      `a common source label must remain readable in settings: ${JSON.stringify(settings)}`);
+    const settingsHeader = await headerGeometry('settings');
+    assert(settingsHeader.dotToState >= 0 && settingsHeader.dotToState < 20, JSON.stringify(settingsHeader));
+    assert(settingsHeader.actionStateCenterDelta < 12, JSON.stringify(settingsHeader));
+  } finally {
+    await page.close();
+  }
+});
+
 test('compact call journey keeps badge, chat, unread, card controls and work truth usable', async () => {
   const page = await openPreview({ width: 460, height: 720 });
   try {

@@ -332,8 +332,8 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('companion work truth and compact geometry publish beta.25 while the broker protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.25');
+test('companion meeting presentation truth publishes beta.26 while the broker protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.26');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });
