@@ -253,8 +253,35 @@ test('surface state preserves real actors but never leaks internal handles or ra
   const state = { kind: 'state', phase: 'idle', displayName: 'Companion', skin: 'cat', duty: { catId: 'deep', displayName: 'Deep' },
     carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, behaviorEnabled: true,
     toolsReady: false, nativeActivity: 'none',
-    liveTransport: { kind: 'gpt_live_v3', verifiedModel: null }, nativeWork };
+    liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null }, nativeWork };
   assert.equal(validateCompanionReply(state), true);
+  const { meeting: _meeting, ...withoutMeeting } = state;
+  assert.equal(validateCompanionReply(withoutMeeting), false,
+    'an exact-version state cannot silently erase meeting capture truth');
+  for (const meeting of [
+    { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom' },
+    { kind: 'running', sharing: false, paused: false, sourceLabel: 'Google Meet' },
+    { kind: 'running', sharing: true, paused: true, sourceLabel: null },
+    { kind: 'running', sharing: false, paused: true, sourceLabel: 'Teams' },
+    { kind: 'stopped', sharing: false, paused: false, sourceLabel: null },
+    { kind: 'unconfirmed', sharing: false, paused: false, sourceLabel: null },
+    { kind: 'needs_source', sharing: false, paused: false, sourceLabel: null },
+  ]) assert.equal(validateCompanionReply({ ...state, meeting }), true, JSON.stringify(meeting));
+  for (const meeting of [
+    { kind: 'idle', sharing: true, paused: false, sourceLabel: null },
+    { kind: 'stopped', sharing: false, paused: true, sourceLabel: null },
+    { kind: 'unconfirmed', sharing: false, paused: false, sourceLabel: 'Zoom' },
+    { kind: 'needs_source', sharing: false, paused: false, sourceLabel: 'Zoom' },
+    { kind: 'running', sharing: false, paused: false, sourceLabel: '   ' },
+    { kind: 'running', sharing: false, paused: false, sourceLabel: 'Zoom\nprivate' },
+    { kind: 'running', sharing: false, paused: false, sourceLabel: 'Z'.repeat(161) },
+    { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', meetingId: 'private-meeting' },
+    { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', captureThreadId: 'private-thread' },
+    { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', chunks: 14 },
+    { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', asrState: 'ready' },
+    { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom', healthNote: 'healthy' },
+  ]) assert.equal(validateCompanionReply({ ...state, meeting }), false, JSON.stringify(meeting));
   const { behaviorEnabled: _behavior, ...withoutBehavior } = state;
   assert.equal(validateCompanionReply(withoutBehavior), false,
     'native movement and plugin settings cannot guess the persisted autonomous-behavior preference');

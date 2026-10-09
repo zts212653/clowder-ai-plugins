@@ -49,6 +49,7 @@
     </section>
     <section id="actions" class="floating call-bar" aria-label="当前通话" hidden>
       <div class="call-status-line"><span class="status-dot" aria-hidden="true"></span><strong id="call-state">通话中</strong><span id="call-mic-state">麦克风已开启</span></div>
+      <p id="call-meeting" class="call-meeting" hidden><span class="meeting-status-dot" aria-hidden="true"></span><span id="call-meeting-label" class="meeting-label"></span><span id="call-meeting-source" class="meeting-source" hidden></span></p>
       <p id="call-work" class="call-work" hidden></p>
       <div id="call-share-context" class="call-share-context" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="call-share-target"></strong><small>仅共享此窗口</small></span></div>
       <div class="call-recent" aria-label="最新消息">
@@ -67,6 +68,7 @@
     <section id="menu" class="floating name-card" aria-label="猫猫名片" hidden>
       <div id="menu-call-context" class="call-context" hidden>
         <span class="status-dot" aria-hidden="true"></span><strong id="menu-call-state"></strong><span id="menu-call-mic-state"></span>
+        <small id="menu-call-meeting" class="call-meeting" hidden><span class="meeting-status-dot" aria-hidden="true"></span><span id="menu-call-meeting-label" class="meeting-label"></span><span id="menu-call-meeting-source" class="meeting-source" hidden></span></small>
         <small id="menu-call-work" hidden></small>
         <div id="menu-call-actions" class="call-context-actions menu-call-actions">
           <button id="menu-mic" data-action="mute" aria-label="静音"><svg class="icon" aria-hidden="true"><use id="menu-mic-icon" href="#i-mic"/></svg></button>
@@ -111,6 +113,7 @@
     <section id="chat" class="floating" aria-label="和猫猫写几句" hidden>
       <div id="chat-call-context" class="call-context" hidden>
         <span class="status-dot" aria-hidden="true"></span><strong id="chat-call-state"></strong><span id="chat-call-mic-state"></span>
+        <small id="chat-call-meeting" class="call-meeting" hidden><span class="meeting-status-dot" aria-hidden="true"></span><span id="chat-call-meeting-label" class="meeting-label"></span><span id="chat-call-meeting-source" class="meeting-source" hidden></span></small>
         <small id="chat-call-work" hidden></small>
         <div class="call-context-actions"><button id="chat-mic" data-action="mute">静音</button><button id="chat-share" data-action="share"><span class="label">共享画面</span></button><button data-action="stop" class="destructive compact">挂断</button></div>
         <div id="chat-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="chat-share-target"></strong><small>仅共享此窗口</small></span></div>
@@ -124,6 +127,7 @@
     <section id="transcript" class="floating call-transcript" data-expanded="false" aria-label="这次通话的字幕" hidden>
       <div id="transcript-call-context" class="call-context transcript-call-context">
         <span class="status-dot" aria-hidden="true"></span><strong id="transcript-call-state"></strong><span id="transcript-call-mic-state"></span>
+        <small id="transcript-call-meeting" class="call-meeting" hidden><span class="meeting-status-dot" aria-hidden="true"></span><span id="transcript-call-meeting-label" class="meeting-label"></span><span id="transcript-call-meeting-source" class="meeting-source" hidden></span></small>
         <small id="transcript-call-work" hidden></small>
         <div class="call-context-actions">
           <button id="transcript-return" class="transcript-return" type="button" data-action="transcript-return"><span aria-hidden="true">‹</span><span>返回通话</span></button>
@@ -142,6 +146,7 @@
     <section id="settings" class="floating settings-panel" aria-label="猫猫球设置" hidden>
       <div id="settings-call-context" class="call-context" hidden>
         <span class="status-dot" aria-hidden="true"></span><strong id="settings-call-state"></strong><span id="settings-call-mic-state"></span>
+        <small id="settings-call-meeting" class="call-meeting" hidden><span class="meeting-status-dot" aria-hidden="true"></span><span id="settings-call-meeting-label" class="meeting-label"></span><span id="settings-call-meeting-source" class="meeting-source" hidden></span></small>
         <small id="settings-call-work" hidden></small>
         <div class="call-context-actions"><button id="settings-mic" data-action="mute">静音</button><button id="settings-share" data-action="share"><span class="label">共享画面</span></button><button data-action="stop" class="destructive compact">挂断</button></div>
         <div id="settings-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="settings-share-target"></strong><small>仅共享此窗口</small></span></div>

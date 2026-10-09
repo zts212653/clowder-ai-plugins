@@ -33,6 +33,7 @@ export function fixture(skin, failure, pending = true) {
   let companionSettings = {dutyCatProfileId:'fable-5',skin:${JSON.stringify(skin)},ballSize:72,behaviorEnabled:true,proactivePolicy:'quiet-badge',personaTone:'温暖、简短、不啰嗦',householdReadsAllowed:true};
   const identity = () => ({kind:'state',phase,displayName:'宪宪',skin:companionSettings.skin,documentsAllowed:allowed,toolsReady:phase==='talking',behaviorEnabled:companionSettings.behaviorEnabled,nativeActivity:'none',
     audio:{supportedModes:['duplex','receive_only'],activeMode:phase==='talking'?(activeMode??'duplex'):null},
+    meeting:{kind:'running',sharing:false,paused:false,sourceLabel:'Zoom · Cat Café 产品周会（核心桌面协作与会议转写状态验证）'},
     liveTransport:{kind:'gpt_live_v3',verifiedModel:null},nativeWork:{scopeId:phase==='idle'?null:'0123456789abcdef',revision:0,active:[],recent:[]},
     duty:{catId:'preview-cat',displayName:'宪宪'},carrier:{catId:'preview-cat',displayName:'宪宪'}});
   let activeMode = null; const emit = event => listeners.forEach(fn=>fn(event));

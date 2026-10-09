@@ -8,6 +8,7 @@ const CALL_B = '22222222-2222-4222-8222-222222222222';
 const state = (phase = 'ready') => ({ kind: 'state', phase, displayName: '宪宪', skin: 'xianxian-codex', documentsAllowed: true, toolsReady: true,
   behaviorEnabled: true,
   nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+  meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
   nativeWork: { scopeId: phase === 'idle' ? null : '0123456789abcdef', revision: 0, active: [], recent: [] },
   duty: { catId: 'opus5', displayName: '宪宪' }, carrier: { catId: 'codex-astra', displayName: '砚砚' } });
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };

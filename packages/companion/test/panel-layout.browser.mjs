@@ -151,6 +151,43 @@ test('dynamic call content and expanded transcript keep every action visible', a
   }
 });
 
+test('meeting status keeps the longest state phrase whole and truncates only its source', async () => {
+  const page = await openPreview({ width: 460, height: 620 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-meeting-label')?.textContent
+      === '会议记录中 · 未接入通话');
+
+    const metrics = async prefix => page.evaluate(prefix => {
+      const label = document.getElementById(`${prefix}-meeting-label`);
+      const source = document.getElementById(`${prefix}-meeting-source`);
+      return {
+        label: { clientWidth: label.clientWidth, scrollWidth: label.scrollWidth, text: label.textContent },
+        source: { clientWidth: source.clientWidth, scrollWidth: source.scrollWidth,
+          overflow: getComputedStyle(source).overflow, textOverflow: getComputedStyle(source).textOverflow },
+      };
+    }, prefix);
+
+    const call = await metrics('call');
+    assert.equal(call.label.text, '会议记录中 · 未接入通话');
+    assert.equal(call.label.clientWidth, call.label.scrollWidth);
+    assert(call.source.scrollWidth > call.source.clientWidth, JSON.stringify(call));
+    assert.deepEqual({ overflow: call.source.overflow, textOverflow: call.source.textOverflow },
+      { overflow: 'hidden', textOverflow: 'ellipsis' });
+
+    await page.click('[data-action="transcript"]');
+    const transcript = await metrics('transcript-call');
+    assert.equal(transcript.label.clientWidth, transcript.label.scrollWidth);
+    assert(transcript.source.scrollWidth > transcript.source.clientWidth, JSON.stringify(transcript));
+    assert.equal(await page.locator('#transcript').evaluate(element => element.getBoundingClientRect().height), 210,
+      'the meeting row takes space from captions, not from the collapsed card height');
+    assert.deepEqual((await visibleClipping(page, 'transcript')).clippedButtons, []);
+  } finally {
+    await page.close();
+  }
+});
+
 test('compact call journey keeps badge, chat, unread, card controls and work truth usable', async () => {
   const page = await openPreview({ width: 460, height: 720 });
   try {
