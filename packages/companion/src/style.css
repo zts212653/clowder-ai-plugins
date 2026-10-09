@@ -139,6 +139,7 @@ button:disabled { opacity: .45; cursor: default; }
 .call-context > small { grid-column: 2 / 4; }
 .call-share-line { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; padding-top: 6px; border-top: 1px solid var(--desktop-line); min-width: 0; }
 .call-context-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.call-context-inline-actions { grid-column: 4; grid-row: 1; }
 .call-context-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 6px 9px; white-space: nowrap; }
 #menu .call-context { margin: -8px -8px 5px; }
 .menu-footer { flex: none; display: flex; align-items: center; gap: 2px; margin: 4px -8px -8px; border-top: 1px solid var(--desktop-line); padding: 4px; }

@@ -168,6 +168,16 @@ test('meeting status keeps the longest state phrase whole and truncates only its
           overflow: getComputedStyle(source).overflow, textOverflow: getComputedStyle(source).textOverflow },
       };
     }, prefix);
+    const headerGeometry = async prefix => page.evaluate(prefix => {
+      const context = document.getElementById(`${prefix}-call-context`);
+      const dot = context.querySelector(':scope > .status-dot').getBoundingClientRect();
+      const state = document.getElementById(`${prefix}-call-state`).getBoundingClientRect();
+      const actions = context.querySelector(':scope > .call-context-actions').getBoundingClientRect();
+      return {
+        dotToState: state.left - dot.right,
+        actionStateCenterDelta: Math.abs((actions.top + actions.height / 2) - (state.top + state.height / 2)),
+      };
+    }, prefix);
 
     const call = await metrics('call');
     assert.equal(call.label.text, '会议记录中 · 未接入通话');
@@ -193,6 +203,9 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     const chat = await metrics('chat-call');
     assert.equal(chat.source.scrollWidth, chat.source.clientWidth,
       `a common source label must remain readable in chat: ${JSON.stringify(chat)}`);
+    const chatHeader = await headerGeometry('chat');
+    assert(chatHeader.dotToState >= 0 && chatHeader.dotToState < 20, JSON.stringify(chatHeader));
+    assert(chatHeader.actionStateCenterDelta < 12, JSON.stringify(chatHeader));
 
     await page.click('#chat header [data-action="dismiss"]');
     await page.click('#pet');
@@ -200,6 +213,9 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     const settings = await metrics('settings-call');
     assert.equal(settings.source.scrollWidth, settings.source.clientWidth,
       `a common source label must remain readable in settings: ${JSON.stringify(settings)}`);
+    const settingsHeader = await headerGeometry('settings');
+    assert(settingsHeader.dotToState >= 0 && settingsHeader.dotToState < 20, JSON.stringify(settingsHeader));
+    assert(settingsHeader.actionStateCenterDelta < 12, JSON.stringify(settingsHeader));
   } finally {
     await page.close();
   }
