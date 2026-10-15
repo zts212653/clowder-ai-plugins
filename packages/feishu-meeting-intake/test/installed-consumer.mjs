@@ -20,6 +20,10 @@ for(const [name,entry]of [['@clowder-ai/plugin-sdk','@clowder-ai/plugin-sdk'],['
 }
 const manifest=JSON.parse(await readFile(join(packageRoot,'manifest.json'),'utf8'));
 assert.equal(validateManifest(manifest).valid,true);
+assert.deepEqual(manifest.icon,{type:'png',src:'assets/icon.png'});
+const icon=await readFile(join(packageRoot,manifest.icon.src));
+assert.equal(icon.subarray(0,8).toString('hex'),'89504e470d0a1a0a','installed icon must be a packaged PNG');
+assert.ok(icon.byteLength>0&&icon.byteLength<=64*1024,'installed icon must stay bounded');
 assert.equal(manifest.runtime.transport,'builtin');
 assert.equal(manifest.signals,undefined);
 assert.equal(typeof module.create,'function');

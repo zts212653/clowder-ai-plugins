@@ -4,6 +4,10 @@
   "contractVersion": "0.1.0",
   "name": "Feishu Meeting Intake",
   "description": "Owned meeting records, ordinary notifications and authenticated native reads.",
+  "icon": {
+    "type": "png",
+    "src": "assets/icon.png"
+  },
   "configuration": [
     {
       "key": "appId",
