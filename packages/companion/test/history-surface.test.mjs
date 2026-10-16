@@ -257,6 +257,42 @@ test('idle writing uses the compact composer and an unconfirmed retry keeps the 
   assert.equal(f.nodes.get('reply-sent-status').textContent, '已发送');
 });
 
+test('dismissing history does not make the explicit write action reopen history', async () => {
+  const f = fixture(); await flush();
+  f.action('history'); await f.controls.show('chat'); await flush();
+  assert.equal(f.nodes.get('chat').dataset.replyMode, 'history');
+  f.controls.dismiss(); await flush();
+
+  f.action('write'); await f.controls.show('chat'); await flush();
+  assert.equal(f.nodes.get('chat').dataset.replyMode, 'compose');
+  assert.equal(f.nodes.get('compose').hidden, false);
+  assert.equal(f.nodes.get('chat-transcript').hidden, true);
+});
+
+test('explicit writing can leave a terminal sent envelope without losing accepted truth', async () => {
+  const f = fixture(); await flush();
+  f.action('write'); await f.controls.show('chat');
+  f.nodes.get('message').value = '第一封';
+  await f.nodes.get('compose').onsubmit({ preventDefault() {} });
+  await flush();
+  const submission = f.calls.find(call => Array.isArray(call) && call[0] === 'text');
+  const inputMessageId = `message-${submission[2]}`;
+  f.history(async () => ({
+    kind: 'conversation', v: 2, status: 'available', threadTitle: '猫猫球 · 伴随对话',
+    messages: [{ id: 'failed-reply', role: 'assistant', name: '宪宪', text: '',
+      inputMessageIds: [inputMessageId], responsePhase: 'failed',
+      body: { revision: 'failed-reply:1', complete: true, continuation: null } }],
+    hasMoreOlder: false, olderCursor: null,
+  }));
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('reply-sent-status').textContent, '回复失败 · 已发送的消息仍在聊天中');
+
+  f.controls.dismiss(); await flush();
+  f.action('write'); await f.controls.show('chat'); await flush();
+  assert.equal(f.nodes.get('chat').dataset.replyMode, 'compose');
+  assert.equal(f.nodes.get('compose').hidden, false);
+});
+
 test('the real surface waits for completed provenance and full body before starting reply presentation', async () => {
   const f = fixture(); await flush();
   f.action('write'); await f.controls.show('chat');

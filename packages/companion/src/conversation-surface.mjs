@@ -97,9 +97,11 @@ export class ConversationSurface {
 
   openWrite(callActive) {
     if (callActive) this.controller.openHistory();
-    else if (this.controller.mode === 'idle' || this.controller.mode === 'compose') {
-      this.controller.openCompose();
-    }
+    else this.controller.openCompose();
+  }
+
+  closeHistory() {
+    if (this.controller.mode === 'history') this.controller.close();
   }
 
   openHistory() { this.controller.openHistory(); }

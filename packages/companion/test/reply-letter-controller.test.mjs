@@ -290,3 +290,55 @@ test('new replies do not pull a reader away from older history', () => {
   assert.equal(f.current().selectedMessageId, 'reply-b');
   assert.equal(f.current().hasNewer, false);
 });
+
+test('settled replies cannot steal an explicit compose or a newer sent letter', () => {
+  const f = fixture();
+  f.controller.recordDelivery(receipt('client-a', 'input-a'), '第一封');
+  const firstRows = [assistant('reply-a', '第一封回复', ['input-a'])];
+  f.controller.loadHistory(firstRows);
+  assert.equal(f.current().mode, 'reply');
+
+  f.controller.openHistory();
+  f.controller.openCompose();
+  f.controller.loadHistory(firstRows);
+  assert.equal(f.current().mode, 'compose', 'an old settled pair must not close a new composer');
+
+  f.controller.recordDelivery(receipt('client-b', 'input-b'), '第二封');
+  assert.equal(f.current().mode, 'sent');
+  f.controller.loadHistory(firstRows);
+  assert.equal(f.current().mode, 'sent', 'an old settled pair must not replace a newer in-flight letter');
+  assert.equal(f.current().letter.inputMessageId, 'input-b');
+
+  f.controller.loadHistory([
+    ...firstRows,
+    assistant('reply-b', '第二封回复', ['input-b']),
+  ]);
+  assert.equal(f.current().mode, 'reply');
+  assert.equal(f.current().reply.id, 'reply-b');
+});
+
+test('a reply settling while the user composes stays available in anchored history', () => {
+  const f = fixture();
+  f.controller.recordDelivery(receipt('client-a', 'input-a'), '第一封');
+  f.controller.openCompose();
+  f.controller.loadHistory([assistant('reply-a', '第一封回复', ['input-a'])]);
+  assert.equal(f.current().mode, 'compose');
+  assert.deepEqual(f.current().pendingInputMessageIds, []);
+  assert.deepEqual(f.current().settled, [{ inputMessageId: 'input-a', replyId: 'reply-a' }]);
+
+  f.controller.openHistory();
+  assert.equal(f.current().selectedMessageId, 'reply-a');
+  assert.equal(f.current().hasNewer, false);
+});
+
+test('history opened without an explicit message anchors the newest known reply', () => {
+  const f = fixture();
+  f.controller.recordDelivery(receipt('client-a', 'input-a'), '第一封');
+  const rows = [assistant('reply-a', '第一封回复', ['input-a'])];
+  f.controller.loadHistory(rows);
+  f.controller.close();
+  f.controller.openHistory();
+  assert.equal(f.current().selectedMessageId, 'reply-a');
+  f.controller.loadHistory(rows);
+  assert.equal(f.current().hasNewer, false, 'the reply present when history opens is not newer than itself');
+});

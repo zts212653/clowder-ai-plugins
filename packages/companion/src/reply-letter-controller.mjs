@@ -1,15 +1,6 @@
-const MIN_VISIBLE_MS = 6_000;
-const MAX_VISIBLE_MS = 30_000;
+import { newestHistoryAnchor, projectReplyBody, selectReplyPresentation } from './reply-letter-state.mjs';
 
-export function replyVisibleDuration(text) {
-  return Math.min(MAX_VISIBLE_MS, MIN_VISIBLE_MS + Math.ceil([...text].length / 8) * 1_000);
-}
-
-const rowBody = row => ({
-  revision: row.body?.revision ?? '',
-  complete: row.body?.complete === true,
-  continuation: row.body?.continuation ?? null,
-});
+const replyVisibleDuration = text => Math.min(30_000, 6_000 + Math.ceil([...text].length / 8) * 1_000);
 
 /**
  * Transient presentation state for a Host-owned conversation.
@@ -97,10 +88,15 @@ export class ReplyLetterController {
   }
 
   openCompose() {
+    if (this.reply) this.dismissedReplies.add(this.reply.id);
     this.stopTimer();
+    this.reply = null;
+    this.letter = null;
     this.mode = 'compose';
     this.retained = false;
     this.hasNewer = false;
+    this.selectedMessageId = null;
+    this.pauseReasons.clear();
     this.emit();
   }
 
@@ -109,7 +105,7 @@ export class ReplyLetterController {
       id: row.id,
       role: row.role,
       text: row.text,
-      body: rowBody(row),
+      body: projectReplyBody(row),
       inputMessageIds: [...(row.inputMessageIds ?? [])],
       responsePhase: row.responsePhase ?? 'unknown',
       deliveryReceipt: row.deliveryReceipt ? { ...row.deliveryReceipt } : undefined,
@@ -127,6 +123,7 @@ export class ReplyLetterController {
       this.pending.set(row.id, restoredLetter);
     }
     let newestPair = null;
+    const settledNow = [];
     for (const row of this.history) {
       if (row.role !== 'assistant') continue;
       if (row.responsePhase === 'completed') this.requestMissingBody(row);
@@ -147,29 +144,33 @@ export class ReplyLetterController {
         if (!existing) {
           this.pending.delete(inputMessageId);
           this.settled.push({ inputMessageId, replyId: row.id });
+          settledNow.push(pair);
         }
         this.pairs.set(inputMessageId, pair);
         newestPair = pair;
       }
     }
 
+    const presentationPair = selectReplyPresentation({ mode: this.mode, letter: this.letter,
+      reply: this.reply, settledPairs: settledNow, pairs: this.pairs,
+      dismissedReplies: this.dismissedReplies });
     if (newestPair && this.mode === 'history') {
       if (newestPair.replyId !== this.selectedMessageId) this.hasNewer = true;
-    } else if (newestPair && !this.dismissedReplies.has(newestPair.replyId)) {
-      const changedReply = this.reply?.id !== newestPair.replyId;
-      const becameComplete = this.reply?.id === newestPair.replyId
-        && this.reply.complete === false && newestPair.reply.complete === true;
-      this.letter = newestPair.letter;
-      this.reply = newestPair.reply;
-      this.selectedMessageId = newestPair.replyId;
+    } else if (presentationPair) {
+      const changedReply = this.reply?.id !== presentationPair.replyId;
+      const becameComplete = this.reply?.id === presentationPair.replyId
+        && this.reply.complete === false && presentationPair.reply.complete === true;
+      this.letter = presentationPair.letter;
+      this.reply = presentationPair.reply;
+      this.selectedMessageId = presentationPair.replyId;
       this.mode = 'reply';
       if (changedReply) {
         this.retained = false;
         this.pauseReasons.clear();
         this.stopTimer();
       }
-      if ((changedReply || becameComplete) && newestPair.reply.complete) {
-        this.timerRemainingMs = replyVisibleDuration(newestPair.reply.text);
+      if ((changedReply || becameComplete) && presentationPair.reply.complete) {
+        this.timerRemainingMs = replyVisibleDuration(presentationPair.reply.text);
         this.startTimer();
       }
     } else if (this.mode === 'sent') {
@@ -282,7 +283,7 @@ export class ReplyLetterController {
     this.emit();
   }
 
-  openHistory(messageId = this.selectedMessageId) {
+  openHistory(messageId = newestHistoryAnchor(this.selectedMessageId, this.settled, this.history)) {
     this.stopTimer();
     this.mode = 'history';
     this.retained = true;

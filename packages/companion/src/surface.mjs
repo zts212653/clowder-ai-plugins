@@ -82,6 +82,7 @@ if (!window.clowderCompanion) {
     },
     changed: panel => {
       visibleText.retry();
+      if (previousControlPanel === 'chat' && panel !== 'chat') conversationSurface.closeHistory();
       if (panel === 'chat' && conversationSurface.controller.mode === 'idle') conversationSurface.openHistory();
       if (panel === 'chat') foldedChatUnread.open();
       else if (previousControlPanel === 'chat' && conversation?.active) foldedChatUnread.fold();
