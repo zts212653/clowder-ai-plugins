@@ -17,7 +17,7 @@ const outputDirectoryInput = z
   .max(4096)
   .optional()
   .describe(
-    'User-selected absolute output directory, e.g. /Users/me/projects/cat-planet/refs/review. Defaults to Downloads/Tripo.',
+    'User-selected absolute output directory, e.g. /absolute/project/review. Defaults to Downloads/Tripo.',
   );
 const server = new McpServer({ name: 'tripo-studio-mcp-server', version: VERSION });
 server.registerTool(
