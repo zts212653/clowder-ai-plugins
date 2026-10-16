@@ -626,8 +626,73 @@ test('durable letter journey retries one identity, waits for a complete reply, t
     assert.deepEqual((await visibleClipping(page, 'chat')).clippedButtons, []);
     await page.click('#reply-retain');
     assert.equal(await page.locator('#reply-close').isVisible(), true);
+    await page.evaluate(({ userRow, inputMessageId }) => {
+      const olderRows = Array.from({ length: 18 }, (_, index) => ({
+        id: `history-${String(index + 1).padStart(2, '0')}`,
+        role: index % 2 ? 'assistant' : 'user',
+        name: index % 2 ? '宪宪' : '你',
+        text: `更早的第 ${index + 1} 条聊天，用足够长的正文让真实 transcript 产生可滚动高度。`,
+        inputMessageIds: [], responsePhase: null,
+        body: { revision: `history-${index + 1}`, complete: true, continuation: null },
+      }));
+      window.__setConversationPage({
+        messages: [...olderRows, userRow,
+          { id: 'reply-a', role: 'assistant', name: '宪宪', text: '第一段先从起点讲。第二段把细节补全。',
+            inputMessageIds: [inputMessageId], responsePhase: 'completed',
+            body: { revision: 'reply-a-final', complete: true, continuation: null } }],
+        hasMoreOlder: true,
+        olderCursor: 'history.before-01',
+      });
+      window.__setOlderConversationPage('history.before-01', {
+        messages: [
+          { id: 'history-00a', role: 'user', name: '你', text: '最早一页 A', inputMessageIds: [], responsePhase: null,
+            body: { revision: 'history-00a', complete: true, continuation: null } },
+          { id: 'history-00b', role: 'assistant', name: '宪宪', text: '最早一页 B', inputMessageIds: [], responsePhase: null,
+            body: { revision: 'history-00b', complete: true, continuation: null } },
+        ],
+        hasMoreOlder: false,
+        olderCursor: null,
+      });
+    }, { userRow, inputMessageId });
+    await page.waitForFunction(() => document.querySelectorAll('#chat-transcript > p[data-message-id]').length >= 20);
+    assert.equal(await page.locator('#chat-transcript').isHidden(), true,
+      'the long page must first be projected while transcript geometry is hidden');
     await page.click('#reply-history-open');
     await page.waitForFunction(() => !document.getElementById('chat-transcript').hidden);
+    const selectedVisibility = await page.evaluate(() => {
+      const transcript = document.getElementById('chat-transcript');
+      const viewport = transcript.getBoundingClientRect();
+      const selected = transcript.querySelector('[data-message-id="reply-a"]').getBoundingClientRect();
+      return { visible: selected.bottom > viewport.top && selected.top < viewport.bottom,
+        selected: { top: selected.top, bottom: selected.bottom },
+        viewport: { top: viewport.top, bottom: viewport.bottom } };
+    });
+    assert.equal(selectedVisibility.visible, true, JSON.stringify(selectedVisibility));
+
+    const topAnchor = await page.evaluate(() => {
+      const transcript = document.getElementById('chat-transcript');
+      transcript.scrollTop = 0;
+      const viewport = transcript.getBoundingClientRect();
+      const row = transcript.querySelector('p[data-message-id]');
+      const rect = row.getBoundingClientRect();
+      return { id: row.dataset.messageId, offset: rect.top - viewport.top };
+    });
+    await page.locator('#chat-transcript').hover();
+    await page.mouse.wheel(0, -200_000);
+    await page.waitForFunction(() => window.__getConversationReads()
+      .filter(read => read.before === 'history.before-01').length === 1);
+    await page.waitForFunction(() => document.querySelector('[data-message-id="history-00a"]'));
+    const preservedAnchor = await page.evaluate(anchor => {
+      const transcript = document.getElementById('chat-transcript');
+      const viewport = transcript.getBoundingClientRect();
+      const row = transcript.querySelector(`[data-message-id="${anchor.id}"]`);
+      return { id: row.dataset.messageId, offset: row.getBoundingClientRect().top - viewport.top,
+        olderReads: window.__getConversationReads().filter(read => read.before !== null).length };
+    }, topAnchor);
+    assert.equal(preservedAnchor.id, topAnchor.id);
+    assert(Math.abs(preservedAnchor.offset - topAnchor.offset) < 1,
+      JSON.stringify({ topAnchor, preservedAnchor }));
+    assert.equal(preservedAnchor.olderReads, 1);
 
     await page.fill('#message', '第二封信');
     await page.click('#compose button[type="submit"]');

@@ -255,6 +255,26 @@ test('a scroll for older history waits for an active latest read and uses its cu
   assert.deepEqual(transcript.children.map(row => row.dataset.messageId), ['m1', 'm2', 'm3']);
 });
 
+test('an upward wheel at the exact top reads one older page when the transcript cannot scroll further', async () => {
+  const f = fixture(); await flush();
+  f.history(options => options.before === undefined
+    ? Promise.resolve(historyPage([historyRow('m2')], {
+      hasMoreOlder: true, olderCursor: 'history.before-m2',
+    }))
+    : Promise.resolve(historyPage([historyRow('m1')])));
+  f.action('history'); await f.controls.show('chat'); await flush();
+
+  const transcript = f.nodes.get('chat-transcript');
+  transcript.scrollHeight = transcript.clientHeight;
+  transcript.scrollTop = 0;
+  const readStart = f.historyReads.length;
+  transcript.listeners.wheel({ deltaY: -200_000 });
+  await flush();
+
+  assert.deepEqual(f.historyReads.slice(readStart), [{ before: 'history.before-m2' }]);
+  assert.deepEqual(transcript.children.map(row => row.dataset.messageId), ['m1', 'm2']);
+});
+
 test('a queued older read cannot reuse a cursor after latest history becomes stale or loses permission', async t => {
   for (const scenario of ['stale', 'permission_required']) await t.test(scenario, async () => {
     const f = fixture(); await flush();

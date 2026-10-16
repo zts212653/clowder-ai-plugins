@@ -91,6 +91,73 @@ test('history refresh restores an older reading position when DOM replacement re
   assert.equal(container.scrollTop, 240);
 });
 
+test('loading history while the transcript is hidden does not replace its saved reading position with zero geometry', () => {
+  const { view, container } = fixture();
+  container.hidden = true;
+  container.scrollTop = 240;
+  container.scrollHeight = 0;
+  container.clientHeight = 0;
+  view.load([message('old'), message('new')]);
+  assert.equal(container.scrollTop, 240);
+});
+
+test('showing history reveals the selected reply after its rows were loaded while hidden', () => {
+  const { view, container } = fixture();
+  container.hidden = true;
+  container.scrollHeight = 0;
+  container.clientHeight = 0;
+  container.getBoundingClientRect = () => ({ top: 0, bottom: container.clientHeight });
+  container.ownerDocument.createElement = () => ({
+    dataset: {}, textContent: '',
+    getBoundingClientRect() {
+      const top = container.children.indexOf(this) * 40 - container.scrollTop;
+      return { top, bottom: top + 40 };
+    },
+  });
+  const ids = Array.from({ length: 20 }, (_, index) => `m${index + 1}`);
+  view.load(ids.map(id => message(id)));
+
+  container.hidden = false;
+  container.clientHeight = 100;
+  container.scrollHeight = ids.length * 40;
+  view.enterHistory('m16');
+
+  const selected = container.children.find(row => row.dataset.messageId === 'm16').getBoundingClientRect();
+  assert(selected.bottom > 0 && selected.top < container.clientHeight,
+    `selected reply must be visible, got ${JSON.stringify(selected)}`);
+});
+
+test('reopening the same history selection restores its first visible row after a hidden refresh', () => {
+  const { view, container } = fixture();
+  container.clientHeight = 100;
+  container.scrollHeight = 800;
+  container.getBoundingClientRect = () => ({ top: 0, bottom: container.clientHeight });
+  container.ownerDocument.createElement = () => ({
+    dataset: {}, textContent: '',
+    getBoundingClientRect() {
+      const top = container.children.indexOf(this) * 40 - container.scrollTop;
+      return { top, bottom: top + 40 };
+    },
+  });
+  const ids = Array.from({ length: 20 }, (_, index) => `m${index + 1}`);
+  view.load(ids.map(id => message(id)));
+  container.scrollTop = 365;
+  const anchor = view.visibleHistoryAnchor();
+  view.leaveHistory('m16');
+
+  container.hidden = true;
+  container.scrollHeight = 0;
+  container.clientHeight = 0;
+  view.load([message('m0'), ...ids.map(id => message(id))]);
+  container.hidden = false;
+  container.scrollHeight = 840;
+  container.clientHeight = 100;
+  view.enterHistory('m16');
+
+  const restored = view.historyRows.get(anchor.id).getBoundingClientRect();
+  assert.equal(restored.top, anchor.offset);
+});
+
 test('a full 32-message window keeps the same visible message when its oldest row rotates out', () => {
   const { view, container } = fixture();
   container.clientHeight = 100;

@@ -24,9 +24,14 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
     live:{catId:'codex-sol',displayName:'砚砚',transport:'gpt_live_v3',verifiedModel:null},
     deep:{catId:'fable-5',displayName:'宪宪',verifiedModel:'claude-fable-5-1'}}}];
   const bodyReplies = new Map();
+  let latestConversation = {hasMoreOlder:false,olderCursor:null};
+  const olderConversationPages = new Map(); const conversationReads = [];
   window.__pushConversation = row => messages.push(row);
-  window.__setConversation = rows => messages.splice(0,messages.length,...rows);
+  window.__setConversation = rows => {messages.splice(0,messages.length,...rows);latestConversation={hasMoreOlder:false,olderCursor:null};};
   window.__getConversation = () => messages;
+  window.__setConversationPage = page => {messages.splice(0,messages.length,...page.messages);latestConversation={hasMoreOlder:page.hasMoreOlder,olderCursor:page.olderCursor};};
+  window.__setOlderConversationPage = (cursor,page) => olderConversationPages.set(cursor,page);
+  window.__getConversationReads = () => conversationReads;
   window.__setBodyReply = (continuation,reply) => bodyReplies.set(continuation,reply);
   window.__previewUnconfirmNextText = false;
   const draftScopeRef = 'preview-scope_A-1';
@@ -68,7 +73,7 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
       case 'settings.update':{const stops=phase==='talking'&&(command.field==='dutyCatProfileId'||command.field==='householdReadsAllowed');if(stops){phase='idle';activeMode=null;}companionSettings={...companionSettings,[command.field]:command.value};allowed=companionSettings.householdReadsAllowed;return {kind:'settings-update',field:command.field,outcome:'saved',callStatus:stops?'stopped':'unchanged',applies:command.field==='personaTone'?'next_call':'now'};}
       case 'companion.disable':note('正式 Host 会结束媒体并停用当前安装实例；预览保持打开。');return {kind:'companion-lifecycle',action:'disable',outcome:'disabled'};
       case 'conversation.read':return command.v===2
-        ? {kind:'conversation',v:2,status:'available',threadTitle:'猫猫球 · 伴随对话',messages,hasMoreOlder:false,olderCursor:null}
+        ? (()=>{conversationReads.push({before:command.before??null});const page=command.before===undefined?{messages,...latestConversation}:olderConversationPages.get(command.before);return page?{kind:'conversation',v:2,status:'available',threadTitle:'猫猫球 · 伴随对话',messages:page.messages,hasMoreOlder:page.hasMoreOlder,olderCursor:page.olderCursor}:{kind:'conversation',v:2,status:'stale'};})()
         : {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages:messages.map(({inputMessageIds,responsePhase,body,...row})=>row),hasMore:false};
       case 'conversation.body.read':return bodyReplies.get(command.continuation)??{kind:'conversation-body',v:2,status:'stale'};
       case 'conversation.draft.read':return composerDraft;
