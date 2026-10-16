@@ -1,0 +1,1 @@
+The Native Messaging framing, pairing-record and socket-lease modules originate from the MIT-licensed Cat Café personal Chrome adapter. They are included as package-owned runtime dependencies; this plugin does not require the Core source checkout.

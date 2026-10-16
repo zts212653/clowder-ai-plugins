@@ -1,0 +1,33 @@
+pluginId: official.tripo-studio
+version: 0.1.7
+contractVersion: 0.1.0
+name: Tripo Studio
+description: 分享链接后台审模、候选多角度比较与已选模型回流。分享页无需登录；连接已登录 Chrome 时单独明确授权。不生成、不贴图、不消耗生成积分。
+icon:
+  type: svg
+  src: assets/tripo-studio.svg
+features:
+  - id: model-review
+    name: 后台审模与资产回流
+    resources: []
+    contributions:
+      - type: mcp
+        id: tripo-studio
+    capabilities: []
+contributions:
+  - type: mcp
+    id: tripo-studio
+    runtime:
+      transport: stdio
+      entrypoint: plugins/tripo-studio/runtime/mcp.mjs
+data:
+  - name: model-provenance
+    dataClass: derived-user-visible
+    strategy: retained
+    schemaVersion: "1"
+  - name: chrome-authorization
+    dataClass: relationship
+    strategy: retained
+    schemaVersion: "1"
+runtime:
+  transport: builtin
