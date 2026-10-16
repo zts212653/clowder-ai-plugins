@@ -26,8 +26,16 @@ const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const CALL_A = '11111111-1111-4111-8111-111111111111';
 const CALL_B = '22222222-2222-4222-8222-222222222222';
+const historyRow = (id, text = id) => ({
+  id, role: 'user', name: '你', text, inputMessageIds: [], responsePhase: null,
+  body: { revision: `fixture:${id}`, complete: true, continuation: null },
+});
+const historyPage = (messages = [], { status = 'available', hasMoreOlder = false, olderCursor = null } = {}) =>
+  status === 'available'
+    ? { kind: 'conversation', v: 2, status, threadTitle: '猫猫球 · 伴随对话', messages, hasMoreOlder, olderCursor }
+    : { kind: 'conversation', v: 2, status };
 function fixture() {
-  const nodes = new Map(), calls = [], motionCalls = [];
+  const nodes = new Map(), calls = [], motionCalls = [], historyReads = [];
   const document = { getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
     createElement: () => node(), addEventListener() {} };
   function node(id) {
@@ -131,9 +139,10 @@ function fixture() {
     readWork: () => { calls.push('work-read'); return work(); },
     openWork: async entryRef => { calls.push(`work-open:${entryRef}`); return { kind: 'navigation', delivery: 'applied' }; },
     readDecisions: (offset, limit) => decisions(offset, limit),
-    readConversationPage: async () => {
+    readConversationPage: async (options = {}) => {
+      historyReads.push({ ...options });
       calls.push('read');
-      const value = await history();
+      const value = await history(options);
       if (value.v === 2) return value;
       return {
         kind: 'conversation', v: 2, status: 'available',
@@ -182,7 +191,7 @@ function fixture() {
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
-  return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
+  return { calls, historyReads, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
     travel: value => travelObserver.changed(value),
     history: callback => { history = callback; }, transcript: callback => { callTranscript = callback; }, decisions: callback => { decisions = callback; },
@@ -209,6 +218,73 @@ test('opening history during voice and refreshing it preserves speech without cl
   f.tick(); await flush();
   assert.equal(f.nodes.get('chat-transcript').children.at(-1).textContent, '正在说');
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
+});
+
+test('a scroll for older history waits for an active latest read and uses its current cursor once', async () => {
+  const f = fixture(); await flush();
+  f.history(async () => historyPage([historyRow('m2')], {
+    hasMoreOlder: true, olderCursor: 'history.before-old',
+  }));
+  f.tick(); await flush();
+  f.action('history'); await f.controls.show('chat'); await flush();
+
+  let resolveLatest;
+  const latest = new Promise(resolve => { resolveLatest = resolve; });
+  f.history(options => options.before === undefined
+    ? latest
+    : Promise.resolve(historyPage([historyRow('m1')])));
+  const readStart = f.historyReads.length;
+  f.tick(); await Promise.resolve();
+
+  const transcript = f.nodes.get('chat-transcript');
+  transcript.scrollHeight = 400;
+  transcript.clientHeight = 100;
+  transcript.scrollTop = 0;
+  transcript.listeners.scroll();
+  transcript.listeners.scroll();
+  transcript.listeners.scroll();
+  assert.deepEqual(f.historyReads.slice(readStart), [{}], 'older reads stay serialized behind the latest page');
+
+  resolveLatest(historyPage([historyRow('m2'), historyRow('m3')], {
+    hasMoreOlder: true, olderCursor: 'history.before-current',
+  }));
+  await flush(); await flush();
+
+  assert.deepEqual(f.historyReads.slice(readStart), [{}, { before: 'history.before-current' }],
+    'repeated scroll events preserve one intent and re-read the cursor after latest settles');
+  assert.deepEqual(transcript.children.map(row => row.dataset.messageId), ['m1', 'm2', 'm3']);
+});
+
+test('a queued older read cannot reuse a cursor after latest history becomes stale or loses permission', async t => {
+  for (const scenario of ['stale', 'permission_required']) await t.test(scenario, async () => {
+    const f = fixture(); await flush();
+    f.history(async () => historyPage([historyRow('m2')], {
+      hasMoreOlder: true, olderCursor: 'history.before-old',
+    }));
+    f.tick(); await flush();
+    f.action('history'); await f.controls.show('chat'); await flush();
+
+    let settleLatest;
+    f.history(options => {
+      if (options.before !== undefined) throw new Error(`reused stale cursor: ${options.before}`);
+      return new Promise((resolve, reject) => { settleLatest = scenario === 'stale'
+        ? () => resolve(historyPage([], { status: 'stale' }))
+        : () => reject(Object.assign(new Error('permission revoked'), { code: 'permission_required' })); });
+    });
+    const readStart = f.historyReads.length;
+    f.tick(); await Promise.resolve();
+    const transcript = f.nodes.get('chat-transcript');
+    transcript.scrollHeight = 400;
+    transcript.clientHeight = 100;
+    transcript.scrollTop = 0;
+    transcript.listeners.scroll();
+    settleLatest();
+    await flush(); await flush();
+    transcript.listeners.scroll();
+    await flush();
+
+    assert.equal(f.historyReads.slice(readStart).filter(options => options.before !== undefined).length, 0);
+  });
 });
 
 test('native history renders the saved companion separately from the real message author', async () => {

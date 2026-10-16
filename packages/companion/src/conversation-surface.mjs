@@ -14,7 +14,8 @@ export class ConversationSurface {
       onAccepted, retryLegacy, status });
     this.scheduleInterval = (...args) => Reflect.apply(scheduleInterval, globalThis, args);
     this.cancelInterval = (...args) => Reflect.apply(cancelInterval, globalThis, args);
-    this.loading = false;
+    this.activePageRead = null;
+    this.pendingOlderRead = false;
     this.bodyReads = new Set();
     this.replyMode = 'idle';
     this.controller = new ReplyLetterController({
@@ -116,8 +117,12 @@ export class ConversationSurface {
   }
 
   async readHistory({ before, older = false } = {}) {
-    if (this.loading) return;
-    this.loading = true;
+    const readKind = older ? 'older' : 'latest';
+    if (this.activePageRead) {
+      if (readKind === 'older' && this.activePageRead === 'latest') this.pendingOlderRead = true;
+      return;
+    }
+    this.activePageRead = readKind;
     try {
       const page = await this.client.readConversationPage(before === undefined ? {} : { before });
       this.history.loadPage(page, { older });
@@ -130,12 +135,17 @@ export class ConversationSurface {
         this.controller.clearProtected('permission_required');
         this.$('chat-connection-status').textContent = '聊天权限已撤销';
       } else this.$('chat-connection-status').textContent = '聊天记录暂未更新 · 正在说的话仍会显示';
-    } finally { this.loading = false; }
+    } finally {
+      const readPendingOlder = readKind === 'latest' && this.pendingOlderRead;
+      if (readKind === 'latest') this.pendingOlderRead = false;
+      this.activePageRead = null;
+      if (readPendingOlder) void this.readOlderHistory();
+    }
   }
 
   async readOlderHistory() {
-    const { hasMoreOlder, olderCursor } = this.history.snapshot();
-    if (!hasMoreOlder || !olderCursor) return;
+    const { hasMoreOlder, olderCursor, pageStatus } = this.history.snapshot();
+    if (this.controller.mode !== 'history' || pageStatus !== 'available' || !hasMoreOlder || !olderCursor) return;
     await this.readHistory({ before: olderCursor, older: true });
   }
 
