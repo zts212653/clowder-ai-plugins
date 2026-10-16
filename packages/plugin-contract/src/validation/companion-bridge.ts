@@ -28,10 +28,37 @@ export function validateCompanionCommand(value: unknown): value is CompanionComm
 export function validateCompanionReply(value: unknown): value is CompanionReply {
   if (!bounded(value) || !reply(value)) return false;
   const parsed = value as CompanionReply;
-  if (parsed.kind === 'conversation') return parsed.messages.every((message) => {
-    const identity = message.companionIdentity;
-    return identity === undefined || identity.partner.catId === identity.deep.catId;
-  });
+  if (parsed.kind === 'conversation') {
+    if ('status' in parsed) {
+      if (parsed.status === 'stale') return true;
+      if (new Set(parsed.messages.map((message) => message.id)).size !== parsed.messages.length) return false;
+      if (parsed.messages.reduce((total, message) => total + message.text.length, 0) > 24000) return false;
+      return parsed.messages.every((message) => {
+        const identity = message.companionIdentity;
+        if (identity !== undefined && identity.partner.catId !== identity.deep.catId) return false;
+        if (message.role === 'user') {
+          return message.inputMessageIds.length === 0 && message.responsePhase === null
+            && (message.deliveryReceipt === undefined || message.deliveryReceipt.messageId === message.id);
+        }
+        return message.deliveryReceipt === undefined
+          && (message.inputMessageIds.length === 0) === (message.responsePhase === null);
+      });
+    }
+    if (new Set(parsed.messages.map((message) => message.id)).size !== parsed.messages.length) return false;
+    return parsed.messages.every((message) => {
+      const identity = message.companionIdentity;
+      return identity === undefined || identity.partner.catId === identity.deep.catId;
+    });
+  }
+  if (parsed.kind === 'conversation-draft') {
+    if (parsed.status !== 'available') return true;
+    if (parsed.text.length > 8000 && parsed.writable) return false;
+    const ids = parsed.submissions.map((submission) => submission.clientMessageId);
+    if (new Set(ids).size !== ids.length) return false;
+    if (parsed.submissions.filter((submission) => submission.receipt.delivery === 'accepted').length > 1) return false;
+    return parsed.submissions.every((submission) =>
+      submission.receipt.clientMessageId === submission.clientMessageId);
+  }
   if (parsed.kind === 'transcript') {
     if (new Set(parsed.rows.map((row) => row.messageId)).size !== parsed.rows.length) return false;
     if (parsed.rows.reduce((total, row) => total + row.text.length, 0) > 24000) return false;

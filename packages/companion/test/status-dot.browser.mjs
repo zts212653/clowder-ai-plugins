@@ -174,6 +174,13 @@ test('reduced motion keeps every call status point static without changing its s
       assert.equal(dot.color, connected.colors.success, dot.id);
       assert.equal(dot.haloAnimation, 'none', dot.id);
     }
+    const replyCountdown = await page.evaluate(() => {
+      const button = document.getElementById('reply-retain');
+      button.dataset.running = 'true';
+      button.style.setProperty('--reply-visible-ms', '6000ms');
+      return getComputedStyle(button.querySelector('.reply-ring-progress')).animationName;
+    });
+    assert.equal(replyCountdown, 'none', 'the reply countdown ring also respects reduced motion');
   } finally {
     await page.close();
   }

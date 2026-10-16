@@ -26,9 +26,9 @@ borrowing today's selected companion.
 
 ## Host integration
 
-This surface requires the additive desktop bridge **1.4.0**. The Host computes
+This surface requires the additive desktop bridge **1.5.0**. The Host computes
 placement within the display work area, keeps the cat as its stable anchor, and
-owns bounded drag gestures and transparent-area hit testing. Hosts below 1.4
+owns bounded drag gestures and transparent-area hit testing. Hosts below 1.5
 reject this manifest before installation. Media admission and capture
 remain in the trusted Host; this package receives neither streams nor provider
 SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the cat.
@@ -41,6 +41,19 @@ contract as the transcript surfaces that supply them. A Host
 another current reference may be observed without retrying the rejected one.
 Other failures retry after 1 and 2 seconds, then leave the call's
 first-visible result unknown; later text never backfills a manufactured success.
+Bridge 1.5 adds Host-bound conversation pages and versioned body continuations.
+The renderer can only return opaque cursors issued by the Host; it cannot select
+an owner, thread, message, call or byte offset. History progress, response phase
+and body completeness remain separate, so a processing draft or truncated body
+cannot masquerade as a completed reply.
+
+It also binds the one-line composer to the Host-owned durable draft. Versioned
+text submission carries the Host-issued conversation `scopeRef`, draft revision
+and caller message identity. An unknown settlement is read back but never
+automatically resent; an explicit retry keeps the original text, identity,
+revision and route. If the canonical thread changes, the old unconfirmed input
+stays visible as invalidated local text and is never replayed into the new scope.
+The legacy text and conversation methods remain unchanged for older pairs.
 
 Xianxian uses one layered sitting body or one VP9 clip at a time. Expiring Host
 facts with task, result and event identities select tool work, workspace fetch,

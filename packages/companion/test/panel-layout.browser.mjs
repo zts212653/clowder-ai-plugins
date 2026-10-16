@@ -539,6 +539,129 @@ test('recovering shared subtitles keep every header action inside compact and ex
   }
 });
 
+test('durable letter journey retries one identity, waits for a complete reply, then keeps history anchored', async () => {
+  const page = await openPreview({ width: 460, height: 720 });
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  try {
+    await page.evaluate(() => {
+      window.__textV2 = [];
+      window.__bridgeCommands = [];
+      const bridge = window.clowderCompanion;
+      const original = bridge.request.bind(bridge);
+      bridge.request = command => {
+        window.__bridgeCommands.push({ ...command });
+        if (command.kind === 'text' && command.v === 2) window.__textV2.push({ ...command });
+        return original(command);
+      };
+    });
+    await page.click('#pet');
+    await page.click('#name-card-actions [data-action="write"]');
+    await page.fill('#message', '把刚才那一步再讲慢一点');
+    await page.evaluate(() => { window.__previewUnconfirmNextText = true; });
+    await page.click('#compose button[type="submit"]');
+    try {
+      await page.waitForFunction(() => document.getElementById('chat-status')?.textContent === '发送结果未确认',
+        null, { timeout: 5_000 });
+    } catch (error) {
+      const diagnostic = await page.evaluate(() => ({
+        chatStatus: document.getElementById('chat-status')?.textContent,
+        connectionStatus: document.getElementById('chat-connection-status')?.textContent,
+        input: document.getElementById('message')?.value,
+        retryHidden: document.getElementById('reply-retry')?.hidden,
+        mode: document.getElementById('chat')?.dataset.replyMode,
+        sends: window.__textV2,
+        draft: window.__getDraft?.(),
+        commands: window.__bridgeCommands,
+        submitHandler: typeof document.getElementById('compose')?.onsubmit,
+        submitDisabled: document.querySelector('#compose button')?.disabled,
+        composeHidden: document.getElementById('compose')?.hidden,
+      }));
+      throw new Error(`unconfirmed letter was not rendered: ${JSON.stringify({ ...diagnostic, pageErrors })}`, { cause: error });
+    }
+    assert.equal(await page.inputValue('#message'), '把刚才那一步再讲慢一点');
+
+    await page.click('#reply-retry');
+    await page.waitForFunction(() => !document.getElementById('reply-sent').hidden);
+    const sends = await page.evaluate(() => window.__textV2);
+    assert.equal(sends.length, 2);
+    assert.deepEqual(sends[1], sends[0], 'explicit retry must preserve scope, text, id and revision');
+    assert.equal(await page.inputValue('#message'), '');
+
+    const source = sends[0];
+    const inputMessageId = `preview-text-${source.clientMessageId}`;
+    const userRow = {
+      id: inputMessageId, role: 'user', name: '预览输入', text: source.text,
+      inputMessageIds: [], responsePhase: null,
+      body: { revision: `preview-${inputMessageId}`, complete: true, continuation: null },
+      deliveryReceipt: {
+        kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId: source.clientMessageId,
+        messageId: inputMessageId, callId: null,
+      },
+    };
+    await page.evaluate(({ userRow, inputMessageId }) => window.__setConversation([
+      userRow,
+      { id: 'reply-a', role: 'assistant', name: '宪宪', text: '正在整理第一段',
+        inputMessageIds: [inputMessageId], responsePhase: 'processing',
+        body: { revision: 'reply-a-draft', complete: true, continuation: null } },
+    ]), { userRow, inputMessageId });
+    await page.waitForFunction(() => document.getElementById('reply-sent-status')?.textContent === '正在回复');
+    assert.equal(await page.locator('#reply-card').isHidden(), true);
+
+    await page.evaluate(({ userRow, inputMessageId }) => {
+      window.__setBodyReply('body.reply-a.1', {
+        kind: 'conversation-body', v: 2, status: 'available', messageId: 'reply-a',
+        text: '第二段把细节补全。',
+        body: { revision: 'reply-a-final', complete: true, continuation: null },
+      });
+      window.__setConversation([
+        userRow,
+        { id: 'reply-a', role: 'assistant', name: '宪宪', text: '第一段先从起点讲。',
+          inputMessageIds: [inputMessageId], responsePhase: 'completed',
+          body: { revision: 'reply-a-final', complete: false, continuation: 'body.reply-a.1' } },
+      ]);
+    }, { userRow, inputMessageId });
+    await page.waitForFunction(() => document.getElementById('reply-body')?.textContent.includes('第二段把细节补全。'));
+    assert.equal(await page.locator('#reply-retain').isVisible(), true);
+    assert.deepEqual((await visibleClipping(page, 'chat')).clippedButtons, []);
+    await page.click('#reply-retain');
+    assert.equal(await page.locator('#reply-close').isVisible(), true);
+    await page.click('#reply-history-open');
+    await page.waitForFunction(() => !document.getElementById('chat-transcript').hidden);
+
+    await page.fill('#message', '第二封信');
+    await page.click('#compose button[type="submit"]');
+    await page.waitForFunction(() => window.__textV2.length === 3);
+    const second = await page.evaluate(() => window.__textV2.at(-1));
+    const secondMessageId = `preview-text-${second.clientMessageId}`;
+    const secondUser = {
+      id: secondMessageId, role: 'user', name: '预览输入', text: second.text,
+      inputMessageIds: [], responsePhase: null,
+      body: { revision: `preview-${secondMessageId}`, complete: true, continuation: null },
+      deliveryReceipt: {
+        kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId: second.clientMessageId,
+        messageId: secondMessageId, callId: null,
+      },
+    };
+    await page.evaluate(({ userRow, inputMessageId, secondUser, secondMessageId }) => window.__setConversation([
+      userRow,
+      { id: 'reply-a', role: 'assistant', name: '宪宪', text: '第一段先从起点讲。第二段把细节补全。',
+        inputMessageIds: [inputMessageId], responsePhase: 'completed',
+        body: { revision: 'reply-a-final', complete: true, continuation: null } },
+      secondUser,
+      { id: 'reply-b', role: 'assistant', name: '宪宪', text: '第二封也回来了。',
+        inputMessageIds: [secondMessageId], responsePhase: 'completed',
+        body: { revision: 'reply-b-final', complete: true, continuation: null } },
+    ]), { userRow, inputMessageId, secondUser, secondMessageId });
+    await page.waitForFunction(() => !document.getElementById('reply-return-latest').hidden);
+    await page.click('#reply-return-latest');
+    assert.equal(await page.locator('#reply-return-latest').isHidden(), true);
+    assert.equal(await page.locator('#chat-transcript').isVisible(), true);
+  } finally {
+    await page.close();
+  }
+});
+
 test('decisions loaded after opening expand the panel until every bounded row is visible', async () => {
   const page = await openPreview();
   try {

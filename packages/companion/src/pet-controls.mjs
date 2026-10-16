@@ -35,7 +35,13 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
       $('anchor').style.left = `${placed.pet.x}px`; $('anchor').style.top = `${placed.pet.y}px`;
       if (node) { node.style.left = `${placed.panel.x}px`; node.style.top = `${placed.panel.y}px`; node.style.maxHeight = `${placed.panel.height}px`; }
       if (previousPanel !== next) {
-        if (next === 'chat') $('message').focus({ preventScroll: true });
+        if (next === 'chat') {
+          const mode = $('chat').dataset.replyMode;
+          const target = mode === 'reply'
+            ? ($('reply-close')?.hidden === false ? $('reply-close') : $('reply-retain'))
+            : mode === 'sent' ? $('reply-sent') : $('message');
+          target?.focus?.({ preventScroll: true });
+        }
         if (next === 'transcript') $('call-message').focus({ preventScroll: true });
         if (next === 'settings') $('settings-back').focus({ preventScroll: true });
         if (next === 'decisions') $('decision-reload').focus({ preventScroll: true });
@@ -98,7 +104,7 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
   });
   document.querySelectorAll('[data-action]').forEach(button => button.onclick = () => {
     const kind = button.dataset.action;
-    if (kind === 'write' || kind === 'history') { void show('chat'); return; }
+    if (kind === 'write' || kind === 'history') { action(kind); void show('chat'); return; }
     if (kind === 'transcript') { void show('transcript'); return; }
     if (kind === 'settings') { void show('settings'); return; }
     if (kind === 'decisions') { void show('decisions'); return; }

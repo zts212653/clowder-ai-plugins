@@ -118,11 +118,28 @@
         <div class="call-context-actions call-context-inline-actions"><button id="chat-mic" data-action="mute">静音</button><button id="chat-share" data-action="share"><span class="label">共享画面</span></button><button data-action="stop" class="destructive compact">挂断</button></div>
         <div id="chat-share-context" class="call-share-line" hidden><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span><strong id="chat-share-target"></strong><small>仅共享此窗口</small></span></div>
       </div>
-      <header><strong id="chat-name">和猫猫写几句</strong><button data-action="dismiss" aria-label="收起文字">收起</button></header>
+      <header id="chat-history-header"><strong id="chat-name">和猫猫写几句</strong><button data-action="dismiss" aria-label="收起文字">收起</button></header>
       <div id="chat-transcript" role="log" aria-live="polite"><p class="empty">想说什么，就写在这里。</p></div>
-      <form id="compose"><textarea id="message" aria-label="给猫猫输入消息" placeholder="输入消息…" rows="2" maxlength="8000"></textarea><button type="submit" class="primary">发送</button></form>
-      <small id="chat-status" role="status"></small>
-      <small><span id="connection-scope">语音与文字共用同一段聊天</span> <button id="history">在 Cat Café 中查看完整聊天 ↗</button></small>
+      <button id="reply-return-latest" class="reply-return-latest" type="button" hidden>回到最新 ↓</button>
+      <div id="reply-sent" class="reply-sent" tabindex="-1" hidden>
+        <svg viewBox="0 0 36 27" aria-hidden="true"><rect x="1" y="1" width="34" height="25" rx="4"/><path d="M2.5 3.5 18 15 33.5 3.5"/></svg>
+        <span><strong id="reply-sent-status">已发送</strong><small id="reply-letter-text"></small></span>
+      </div>
+      <article id="reply-card" class="reply-card" hidden tabindex="-1">
+        <div class="reply-head"><span id="reply-input-text" class="reply-input-text"></span>
+          <button id="reply-retain" class="reply-ring" type="button" aria-label="留住回复" title="留住回复">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle class="reply-ring-track" cx="8" cy="8" r="6.5"/><circle class="reply-ring-progress" cx="8" cy="8" r="6.5"/></svg>
+          </button>
+          <button id="reply-close" class="reply-close" type="button" aria-label="关闭回复" title="关闭回复" hidden>×</button>
+        </div>
+        <div id="reply-body" class="reply-body"></div>
+        <small id="reply-body-status" class="reply-body-status" role="status"></small>
+        <button id="reply-history-open" class="reply-history-open" type="button">往上翻聊天记录</button>
+      </article>
+      <form id="compose"><textarea id="message" aria-label="给猫猫输入消息" placeholder="输入消息…" rows="1" maxlength="8000"></textarea><button type="submit" class="primary">发送</button></form>
+      <div class="chat-feedback"><small id="chat-status" role="status"></small><button id="reply-retry" type="button" hidden>↻ 重试</button></div>
+      <small id="chat-connection-status" role="status"></small>
+      <small id="chat-scope"><span id="connection-scope">语音与文字共用同一段聊天</span> <button id="history">在 Cat Café 中查看完整聊天 ↗</button></small>
     </section>
     <section id="transcript" class="floating call-transcript" data-expanded="false" aria-label="这次通话的字幕" hidden>
       <div id="transcript-call-context" class="call-context transcript-call-context">

@@ -19,10 +19,20 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 
 export function fixture(skin, failure, pending = true, autoTranscript = true) {
   return `<script>
-  const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'砚砚',companionIdentity:{
+  const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'砚砚',inputMessageIds:[],responsePhase:null,body:{revision:'preview-history-v1',complete:true,continuation:null},companionIdentity:{
     v:1,name:'猫猫球',partner:{catId:'fable-5',displayName:'宪宪',skin:'xianxian-codex'},
     live:{catId:'codex-sol',displayName:'砚砚',transport:'gpt_live_v3',verifiedModel:null},
     deep:{catId:'fable-5',displayName:'宪宪',verifiedModel:'claude-fable-5-1'}}}];
+  const bodyReplies = new Map();
+  window.__pushConversation = row => messages.push(row);
+  window.__setConversation = rows => messages.splice(0,messages.length,...rows);
+  window.__getConversation = () => messages;
+  window.__setBodyReply = (continuation,reply) => bodyReplies.set(continuation,reply);
+  window.__previewUnconfirmNextText = false;
+  const draftScopeRef = 'preview-scope_A-1';
+  let composerDraft = {kind:'conversation-draft',v:1,status:'available',scopeRef:draftScopeRef,revision:0,text:'',writable:true,submissions:[]};
+  window.__setDraft = value => { composerDraft = value; };
+  window.__getDraft = () => composerDraft;
   const callId = '11111111-1111-4111-8111-111111111111'; const realtimeSessionId = 'preview-realtime-session';
   const transcriptRows = [
     {messageId:'preview-voice-input',role:'user',text:'It is like an AI assistant that is always there, supporting you.',source:{kind:'voice',nativeThreadId:'preview-thread',realtimeSessionId,nativeItemId:'preview-input-1',nativeTurnId:'preview-turn-1'}},
@@ -57,7 +67,22 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
         {catProfileId:'fable-5',displayName:'宪宪',available:true},{catProfileId:'codex-sol',displayName:'砚砚',available:true},{catProfileId:'gemini38',displayName:'烁烁',available:false}],selectedCompanionStatus:'available'};
       case 'settings.update':{const stops=phase==='talking'&&(command.field==='dutyCatProfileId'||command.field==='householdReadsAllowed');if(stops){phase='idle';activeMode=null;}companionSettings={...companionSettings,[command.field]:command.value};allowed=companionSettings.householdReadsAllowed;return {kind:'settings-update',field:command.field,outcome:'saved',callStatus:stops?'stopped':'unchanged',applies:command.field==='personaTone'?'next_call':'now'};}
       case 'companion.disable':note('正式 Host 会结束媒体并停用当前安装实例；预览保持打开。');return {kind:'companion-lifecycle',action:'disable',outcome:'disabled'};
-      case 'conversation.read':return {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages,hasMore:false};
+      case 'conversation.read':return command.v===2
+        ? {kind:'conversation',v:2,status:'available',threadTitle:'猫猫球 · 伴随对话',messages,hasMoreOlder:false,olderCursor:null}
+        : {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages:messages.map(({inputMessageIds,responsePhase,body,...row})=>row),hasMore:false};
+      case 'conversation.body.read':return bodyReplies.get(command.continuation)??{kind:'conversation-body',v:2,status:'stale'};
+      case 'conversation.draft.read':return composerDraft;
+      case 'conversation.draft.save':{
+        if(command.scopeRef!==composerDraft.scopeRef)return {kind:'error',code:'invalid_request'};
+        if(!composerDraft.writable)return {kind:'conversation-draft',v:1,status:'readonly',revision:composerDraft.revision};
+        if(command.expectedRevision!==composerDraft.revision)return {kind:'conversation-draft',v:1,status:'conflict',revision:composerDraft.revision};
+        composerDraft={...composerDraft,revision:composerDraft.revision+1,text:command.text};return composerDraft;
+      }
+      case 'conversation.delivery.read':{
+        if(command.scopeRef!==composerDraft.scopeRef)return {kind:'error',code:'invalid_request'};
+        return composerDraft.submissions.find(value=>value.clientMessageId===command.clientMessageId)?.receipt
+          ??{kind:'delivery',v:2,delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:null};
+      }
       case 'transcript.read':return {kind:'transcript',scope:{callId,realtimeSessionId},rows:transcriptRows,hasMore:false};
       case 'presentation.observe':return {kind:'ok'};
       case 'decisions.read':return ${pending}?{kind:'decisions',version:1,status:'partial',observedAt:Date.now(),
@@ -78,7 +103,29 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
       case 'f221.inspect':note('外观预览没有受信 Host 确认窗口，也不会提交决定。');return {kind:'decision-trial',status:'unavailable'};
       case 'view.resize':parent.postMessage({kind:'resize',expanded:command.expanded},location.origin);return {kind:'ok'};
       case 'documents':allowed=command.allowed;phase='idle';return identity();
-      case 'text': { const messageId='preview-text-'+command.clientMessageId; const textCallId=phase==='talking'?callId:null; messages.push({id:messageId,role:'user',text:command.text,name:'预览输入'}); if(textCallId)transcriptRows.push({messageId,role:'user',text:command.text,source:{kind:'typed',clientMessageId:command.clientMessageId,callId:textCallId}}); return {kind:'delivery',delivery:'accepted',clientMessageId:command.clientMessageId,messageId,callId:textCallId}; }
+      case 'text': {
+        const messageId='preview-text-'+command.clientMessageId;const textCallId=phase==='talking'?callId:null;
+        if(command.v===2){
+          if(command.scopeRef!==composerDraft.scopeRef)return {kind:'error',code:'invalid_request'};
+          const existing=composerDraft.submissions.find(value=>value.clientMessageId===command.clientMessageId);
+          if(existing&&(existing.text!==command.text||existing.submissionRevision!==command.submissionRevision))return {kind:'error',code:'invalid_request'};
+          if(existing?.receipt.delivery==='accepted')return existing.receipt;
+          if(!existing){
+            if(command.submissionRevision!==composerDraft.revision)return {kind:'delivery',v:2,delivery:'rejected',clientMessageId:command.clientMessageId,reason:'draft_changed',draftRevision:composerDraft.revision};
+            if(!composerDraft.writable||composerDraft.text!==command.text)return {kind:'delivery',v:2,delivery:'rejected',clientMessageId:command.clientMessageId,reason:'unsupported_draft',draftRevision:composerDraft.revision};
+            if(composerDraft.submissions.filter(value=>value.receipt.delivery==='unconfirmed').length>=32)return {kind:'delivery',v:2,delivery:'rejected',clientMessageId:command.clientMessageId,reason:'pending_limit',draftRevision:composerDraft.revision};
+            composerDraft={...composerDraft,revision:composerDraft.revision+1};
+          }
+          const boundCallId=existing?.receipt.callId??textCallId;
+          if(window.__previewUnconfirmNextText){window.__previewUnconfirmNextText=false;const receipt={kind:'delivery',v:2,delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:boundCallId};composerDraft={...composerDraft,submissions:[...composerDraft.submissions.filter(value=>value.clientMessageId!==command.clientMessageId),{clientMessageId:command.clientMessageId,text:command.text,submissionRevision:command.submissionRevision,receipt}]};return receipt;}
+          const receipt={kind:'delivery',v:2,delivery:'accepted',clientMessageId:command.clientMessageId,messageId,callId:boundCallId};
+          if(!messages.some(value=>value.id===messageId))messages.push({id:messageId,role:'user',text:command.text,name:'预览输入',inputMessageIds:[],responsePhase:null,body:{revision:'preview-'+messageId,complete:true,continuation:null},deliveryReceipt:receipt});
+          const canClear=composerDraft.revision===command.submissionRevision+1&&composerDraft.text===command.text;
+          composerDraft={...composerDraft,revision:canClear?composerDraft.revision+1:composerDraft.revision,text:canClear?'':composerDraft.text,submissions:[...composerDraft.submissions.filter(value=>value.clientMessageId!==command.clientMessageId&&value.receipt.delivery!=='accepted'),{clientMessageId:command.clientMessageId,text:command.text,submissionRevision:command.submissionRevision,receipt}]};
+          window.__lastPreviewMessageId=messageId;return receipt;
+        }
+        if(window.__previewUnconfirmNextText){window.__previewUnconfirmNextText=false;return {kind:'delivery',delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:textCallId};}
+        messages.push({id:messageId,role:'user',text:command.text,name:'预览输入',inputMessageIds:[],responsePhase:null,body:{revision:'preview-'+messageId,complete:true,continuation:null}});window.__lastPreviewMessageId=messageId;if(textCallId)transcriptRows.push({messageId,role:'user',text:command.text,source:{kind:'typed',clientMessageId:command.clientMessageId,callId:textCallId}});return {kind:'delivery',delivery:'accepted',clientMessageId:command.clientMessageId,messageId,callId:textCallId}; }
       case 'conversation.open':note('正式窗口会在这里打开原来的聊天；当前是外观预览。');return {kind:'navigation',delivery:'requested'};
       case 'screen.pick':note('预览不采集屏幕；正式窗口需要你明确选择画面。');return {kind:'error',code:'cancelled'};
       default:return {kind:'ok'};

@@ -134,6 +134,91 @@ test('transcript reading is bound by the Host and exposes no call selector', asy
   assert.deepEqual(calls, [{ kind: 'transcript.read' }]);
 });
 
+test('conversation v2 reads only Host-issued history and body continuations', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = {
+    kind: 'conversation', v: 2, status: 'available', threadTitle: '猫猫球 · 伴随对话',
+    messages: [], hasMoreOlder: true, olderCursor: 'history.before_A-1',
+  };
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+
+  assert.deepEqual(await client.readConversationPage(), response);
+  assert.deepEqual(await client.readConversationPage({
+    before: 'history.before_A-1', limit: 12,
+    threadId: 'renderer-choice',
+  } as unknown as { before: string; limit: number }), response);
+
+  response = {
+    kind: 'conversation-body', v: 2, status: 'available', messageId: 'assistant-a', text: '第二段',
+    body: { revision: 'sha256:body-a', complete: true, continuation: null },
+  };
+  assert.deepEqual(await client.readConversationBody('body.next_A-1'), response);
+  assert.deepEqual(calls, [
+    { kind: 'conversation.read', v: 2 },
+    { kind: 'conversation.read', v: 2, before: 'history.before_A-1', limit: 12 },
+    { kind: 'conversation.body.read', v: 2, continuation: 'body.next_A-1' },
+  ]);
+});
+
+test('draft and v2 delivery methods construct only the revision-bound public fields', async () => {
+  const calls: CompanionCommand[] = [];
+  const clientMessageId = '6d01d254-1e3b-4588-a352-756449e95025';
+  const scopeRef = 'companion-scope_A-1';
+  let response: CompanionReply = {
+    kind: 'conversation-draft', v: 1, status: 'available', scopeRef, revision: 4,
+    text: '原草稿', writable: true, submissions: [],
+  } as CompanionReply;
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+
+  assert.deepEqual(await client.readConversationDraft(), response);
+  assert.deepEqual(await client.saveConversationDraft(4, '修改后', scopeRef), response);
+  response = {
+    kind: 'delivery', v: 2, delivery: 'unconfirmed', clientMessageId,
+    messageId: null, callId: null,
+  } as CompanionReply;
+  assert.deepEqual(await client.submitConversationText('请继续', clientMessageId, 5, scopeRef), response);
+  assert.deepEqual(await client.readConversationDelivery(clientMessageId, scopeRef), response);
+  assert.deepEqual(calls, [
+    { kind: 'conversation.draft.read', v: 1 },
+    { kind: 'conversation.draft.save', v: 1, scopeRef, expectedRevision: 4, text: '修改后' },
+    { kind: 'text', v: 2, scopeRef, text: '请继续', clientMessageId, submissionRevision: 5 },
+    { kind: 'conversation.delivery.read', v: 1, scopeRef, clientMessageId },
+  ]);
+});
+
+test('draft save does not spread renderer-selected owner or route fields', async () => {
+  const calls: CompanionCommand[] = [];
+  const response = {
+    kind: 'conversation-draft', v: 1, status: 'available', scopeRef: 'companion-scope_A-1', revision: 5,
+    text: '修改后', writable: true, submissions: [],
+  } as CompanionReply;
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+  await client.saveConversationDraft(...([4, '修改后', 'companion-scope_A-1', {
+    ownerId: 'renderer', threadId: 'other',
+  }] as unknown as [number, string, string]));
+  assert.deepEqual(calls, [
+    { kind: 'conversation.draft.save', v: 1, scopeRef: 'companion-scope_A-1', expectedRevision: 4, text: '修改后' },
+  ]);
+});
+
+test('legacy conversation reading cannot accept a v2 page as v1 history', async () => {
+  const client = createCompanionClient({
+    request: async () => ({ kind: 'conversation', v: 2, status: 'stale' }),
+    subscribe: () => () => {},
+  });
+  await assert.rejects(client.readConversation(),
+    (error) => error instanceof CompanionRequestError && error.code === 'unavailable');
+});
+
 test('settings, native reset, and disable expose no owner or installation selectors', async () => {
   const calls: CompanionCommand[] = [];
   let response = {

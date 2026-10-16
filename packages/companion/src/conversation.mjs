@@ -2,8 +2,9 @@ import { explainError } from './errors.mjs';
 
 /** Local controls only. Durable messages, identity and preferences belong to the Host. */
 export class CompanionConversation {
-  constructor({ client, createPeer, render, transcript, stopScreen, uuid = () => crypto.randomUUID() }) {
-    Object.assign(this, { client, createPeer, render, transcript, stopScreen, uuid });
+  constructor({ client, createPeer, render, transcript, delivery = () => {}, stopScreen,
+    uuid = () => crypto.randomUUID() }) {
+    Object.assign(this, { client, createPeer, render, transcript, delivery, stopScreen, uuid });
     this.active = false;
     this.generation = 0;
     this.phase = 'idle';
@@ -219,10 +220,15 @@ export class CompanionConversation {
     try {
       const receipt = await this.client.text(input.text, input.id);
       if (receipt?.delivery !== 'accepted') {
+        this.reportDelivery(input, receipt ?? {
+          kind: 'delivery', delivery: 'unconfirmed', clientMessageId: input.id,
+          messageId: null, callId: null,
+        });
         if (generation === this.generation) this.show(explainError({ code: 'unconfirmed' }));
         return false;
       }
       if (this.pendingText === input) this.pendingText = undefined;
+      this.reportDelivery(input, receipt);
       // Voice may have ended; an accepted message still retires this draft.
       // Keep the newer voice status rather than announcing that we are listening.
       if (generation !== this.generation) return true;
@@ -230,9 +236,17 @@ export class CompanionConversation {
       this.show(this.active ? this.listening() : '已发送 · 回答会留在同一段聊天中');
       return true;
     } catch (error) {
+      if (error?.code === 'unconfirmed') this.reportDelivery(input, {
+        kind: 'delivery', delivery: 'unconfirmed', clientMessageId: input.id,
+        messageId: null, callId: null,
+      });
       if (generation === this.generation) this.show(explainError(error));
       return false;
     } finally { this.sending = false; }
+  }
+  reportDelivery(input, receipt) {
+    try { this.delivery({ text: input.text, receipt }); }
+    catch { /* Presentation failures cannot change Host delivery truth. */ }
   }
   muteMic() {
     if (this.audioMode === 'receive_only') return;

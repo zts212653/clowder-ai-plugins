@@ -16,6 +16,11 @@ import { COMPACT_BALL_SIZE, compactSizeAction } from '../src/compact-size.mjs';
 import { WorkOverviewView } from '../src/work-overview.mjs';
 import { MeetingStatus, meetingPresentation, renderMeetingStatus } from '../src/meeting-state.mjs';
 import { VisibleTextPresentation } from '../src/visible-text-receipt.mjs';
+import { ConversationHistory } from '../src/conversation-history.mjs';
+import { ReplyLetterController } from '../src/reply-letter-controller.mjs';
+import { ReplyLetterView } from '../src/reply-letter-view.mjs';
+import { HostConversationDraft } from '../src/conversation-draft.mjs';
+import { ConversationSurface } from '../src/conversation-surface.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -26,7 +31,9 @@ function fixture() {
   const document = { getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
     createElement: () => node(), addEventListener() {} };
   function node(id) {
-    const value = { dataset: {}, attributes: {}, textContent: '', hidden: false, children: [], style: {}, value: '', listeners: {},
+    const value = { dataset: {}, attributes: {}, textContent: '', hidden: false, children: [], style: {
+      setProperty(name, propertyValue) { this[name] = propertyValue; },
+    }, value: '', listeners: {},
       ownerDocument: document, scrollTop: 0, scrollHeight: 100, clientHeight: 100,
       setAttribute(name, attributeValue) { this.attributes[name] = String(attributeValue); },
       removeAttribute(name) { delete this.attributes[name]; },
@@ -61,6 +68,15 @@ function fixture() {
     proactivePolicy: 'quiet-badge', personaTone: '温暖、简短、不啰嗦', householdReadsAllowed: true,
   }, companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }], selectedCompanionStatus: 'available' };
   let settingsReader = async () => settings;
+  let textSender = async (text, clientMessageId) => ({
+    kind: 'delivery', delivery: 'accepted', clientMessageId,
+    messageId: `message-${clientMessageId}`, callId: CALL_A,
+  });
+  let draftState = {
+    kind: 'conversation-draft', v: 1, status: 'available', scopeRef: 'fixture-scope',
+    revision: 0, text: '', writable: true, submissions: [],
+  };
+  let bodyReader = async () => ({ kind: 'conversation-body', v: 2, status: 'stale' });
   let settingUpdate = async (field, value) => {
     settings = { ...settings, values: { ...settings.values, [field]: value } };
     return { kind: 'settings-update', field, outcome: 'saved', callStatus: 'unchanged',
@@ -78,7 +94,35 @@ function fixture() {
     stop: async () => calls.push('stop'), subscribe: callback => { receive = callback; return () => {}; },
     text: async (text, clientMessageId) => {
       calls.push(['text', text, clientMessageId]);
-      return { kind: 'delivery', delivery: 'accepted', clientMessageId, messageId: `message-${clientMessageId}`, callId: CALL_A };
+      return textSender(text, clientMessageId);
+    },
+    readConversationDraft: async () => { calls.push('draft-read'); return draftState; },
+    saveConversationDraft: async (expectedRevision, text, scopeRef) => {
+      calls.push(['draft-save', expectedRevision, text, scopeRef]);
+      if (scopeRef !== draftState.scopeRef || expectedRevision !== draftState.revision) {
+        return { kind: 'conversation-draft', v: 1, status: 'conflict', revision: draftState.revision };
+      }
+      draftState = { ...draftState, revision: draftState.revision + 1, text };
+      return draftState;
+    },
+    submitConversationText: async (text, clientMessageId, submissionRevision, scopeRef) => {
+      calls.push(['text', text, clientMessageId, submissionRevision, scopeRef]);
+      let receipt = await textSender(text, clientMessageId);
+      if (!('v' in receipt)) receipt = { ...receipt, v: 2 };
+      if (receipt.delivery !== 'rejected') {
+        const submission = { clientMessageId, text, submissionRevision, receipt };
+        draftState = {
+          ...draftState,
+          text: receipt.delivery === 'accepted' && draftState.revision === submissionRevision ? '' : draftState.text,
+          submissions: [...draftState.submissions.filter(value => value.clientMessageId !== clientMessageId), submission],
+        };
+      }
+      return receipt;
+    },
+    readConversationDelivery: async (clientMessageId, scopeRef) => {
+      calls.push(['delivery-read', clientMessageId, scopeRef]);
+      return draftState.submissions.find(value => value.clientMessageId === clientMessageId)?.receipt
+        ?? { kind: 'delivery', v: 2, delivery: 'unconfirmed', clientMessageId, messageId: null, callId: null };
     },
     inspectF221: async proposalId => { calls.push(`inspect:${proposalId}`); return { kind: 'decision-trial', status: 'trial_confirmed' }; },
     openDecision: async (variantRef, target) => {
@@ -87,7 +131,22 @@ function fixture() {
     readWork: () => { calls.push('work-read'); return work(); },
     openWork: async entryRef => { calls.push(`work-open:${entryRef}`); return { kind: 'navigation', delivery: 'applied' }; },
     readDecisions: (offset, limit) => decisions(offset, limit),
-    readConversation: () => { calls.push('read'); return history(); },
+    readConversationPage: async () => {
+      calls.push('read');
+      const value = await history();
+      if (value.v === 2) return value;
+      return {
+        kind: 'conversation', v: 2, status: 'available',
+        threadTitle: value.threadTitle ?? '猫猫球 · 伴随对话',
+        messages: value.messages.map(message => ({
+          ...message, inputMessageIds: [], responsePhase: null,
+          body: { revision: `fixture:${message.id}`, complete: true, continuation: null },
+        })),
+        hasMoreOlder: value.hasMore === true,
+        olderCursor: value.hasMore === true ? 'fixture:older' : null,
+      };
+    },
+    readConversationBody: async continuation => { calls.push(['body-read', continuation]); return bodyReader(continuation); },
     readTranscript: () => { calls.push('transcript-read'); return callTranscript(); },
     readSettings: async () => { calls.push('settings-read'); return settingsReader(); },
     updateSetting: async (field, value) => {
@@ -120,6 +179,7 @@ function fixture() {
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
     VisibleTextPresentation,
+    ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
   return { calls, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
@@ -127,6 +187,8 @@ function fixture() {
     travel: value => travelObserver.changed(value),
     history: callback => { history = callback; }, transcript: callback => { callTranscript = callback; }, decisions: callback => { decisions = callback; },
     work: callback => { work = callback; },
+    text: callback => { textSender = callback; }, body: callback => { bodyReader = callback; },
+    draft: value => { draftState = value; },
     settingsRead: callback => { settingsReader = callback; }, settingsUpdate: callback => { settingUpdate = callback; },
     identity: value => { identity = value; } };
 }
@@ -166,6 +228,77 @@ test('native history renders the saved companion separately from the real messag
   assert.equal(row.dataset.companion, '当时由宪宪陪伴');
   assert.match(row.dataset.companionLive, /Live 快端：砚砚/u);
   assert.match(row.dataset.companionDeep, /深思端：宪宪/u);
+});
+
+test('idle writing uses the compact composer and an unconfirmed retry keeps the same client identity', async () => {
+  const f = fixture(); await flush();
+  let attempts = 0;
+  f.text(async (_text, clientMessageId) => {
+    if (++attempts === 1) return { kind: 'delivery', v: 2, delivery: 'unconfirmed', clientMessageId,
+      messageId: null, callId: null };
+    return { kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId,
+      messageId: 'message-fixture', callId: null };
+  });
+  f.action('write'); await f.controls.show('chat'); await flush();
+  assert.equal(f.nodes.get('chat').dataset.replyMode, 'compose');
+  assert.equal(f.nodes.get('compose').hidden, false);
+  assert.equal(f.nodes.get('chat-transcript').hidden, true);
+
+  f.nodes.get('message').value = '把刚才那一步再讲慢一点';
+  await f.nodes.get('compose').onsubmit({ preventDefault() {} });
+  assert.equal(f.nodes.get('chat-status').textContent, '发送结果未确认');
+  assert.equal(f.nodes.get('message').value, '把刚才那一步再讲慢一点');
+  f.nodes.get('reply-retry').onclick(); await flush();
+
+  const submissions = f.calls.filter(call => Array.isArray(call) && call[0] === 'text');
+  assert.equal(submissions.length, 2);
+  assert.equal(submissions[0][2], submissions[1][2]);
+  assert.equal(f.nodes.get('reply-sent').hidden, false);
+  assert.equal(f.nodes.get('reply-sent-status').textContent, '已发送');
+});
+
+test('the real surface waits for completed provenance and full body before starting reply presentation', async () => {
+  const f = fixture(); await flush();
+  f.action('write'); await f.controls.show('chat');
+  f.nodes.get('message').value = '请完整解释';
+  await f.nodes.get('compose').onsubmit({ preventDefault() {} });
+  await flush();
+  const submission = f.calls.find(call => Array.isArray(call) && call[0] === 'text');
+  const inputMessageId = `message-${submission[2]}`;
+
+  f.history(async () => ({
+    kind: 'conversation', v: 2, status: 'available', threadTitle: '猫猫球 · 伴随对话',
+    messages: [{ id: 'reply-a', role: 'assistant', name: '宪宪', text: '仍在生成的草稿',
+      inputMessageIds: [inputMessageId], responsePhase: 'processing',
+      body: { revision: 'draft-a', complete: true, continuation: null } }],
+    hasMoreOlder: false, olderCursor: null,
+  }));
+  f.tick(); await flush();
+  assert.equal(f.nodes.get('chat-transcript').children[0]?.dataset.messageId, 'reply-a');
+  assert.equal(f.nodes.get('reply-sent').hidden, false);
+  assert.equal(f.nodes.get('reply-sent-status').textContent, '正在回复');
+  assert.equal(f.nodes.get('reply-card').hidden, true);
+
+  f.body(async continuation => ({
+    kind: 'conversation-body', v: 2, status: 'available', messageId: 'reply-a', text: '第二段。',
+    body: { revision: 'final-a', complete: true, continuation: null },
+  }));
+  f.history(async () => ({
+    kind: 'conversation', v: 2, status: 'available', threadTitle: '猫猫球 · 伴随对话',
+    messages: [{ id: 'reply-a', role: 'assistant', name: '宪宪', text: '完整回答第一段。',
+      inputMessageIds: [inputMessageId], responsePhase: 'completed',
+      body: { revision: 'final-a', complete: false, continuation: 'body.final-a.1' } }],
+    hasMoreOlder: false, olderCursor: null,
+  }));
+  f.tick(); await flush(); await flush();
+
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'body-read' && call[1] === 'body.final-a.1'));
+  assert.equal(f.nodes.get('reply-card').hidden, false);
+  assert.equal(f.nodes.get('reply-body').textContent, '完整回答第一段。第二段。');
+  assert.equal(f.nodes.get('reply-body-status').textContent, '');
+  assert.equal(f.nodes.get('reply-retain').hidden, false);
+  f.nodes.get('reply-retain').onclick();
+  assert.equal(f.nodes.get('reply-close').hidden, false);
 });
 
 test('voice keeps a persistent call bar and only call-scoped messages while history stays closed', async () => {
@@ -612,7 +745,7 @@ test('a failed history refresh preserves existing history and live audio', async
   const f = fixture(); await flush(); f.start(); await flush(); await f.controls.show('chat'); await flush();
   f.history(async () => { throw new Error('unavailable'); }); f.tick(); await flush();
   assert.equal(f.nodes.get('chat-transcript').children[0]?.textContent, '之前的对话');
-  assert.match(f.nodes.get('chat-status').textContent, /暂未更新/);
+  assert.match(f.nodes.get('chat-connection-status').textContent, /暂未更新/);
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
 });
 test('unexpected media revocation exposes a persistent retry without clearing the draft', async () => {
