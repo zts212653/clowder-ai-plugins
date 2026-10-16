@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cat Café · Tripo</title><link rel="stylesheet" href="popup.css">
+<main><header><strong>Cat Café · Tripo</strong><span id="connection">读取状态中</span></header>
+<p class="label">当前页面</p><p id="page">读取中…</p>
+<p>授权当前打开的 Tripo 模型页（最多 8 页）。猫只读取已有模型与预览；生成、贴图和选用哪个模型仍由你决定。</p>
+<p id="status" role="status"></p><p id="error" role="alert"></p>
+<button type="button" id="grant">授权读取 Tripo Studio</button><button type="button" id="revoke" hidden>撤销授权</button>
+<div id="confirm" hidden><p>撤销后，猫无法再读取 Tripo Studio。已存到本机的模型文件会保留。</p><button type="button" id="revoke-confirm">撤销授权</button><button type="button" id="cancel">取消</button></div>
+<footer><button type="button" id="refresh">刷新状态</button></footer></main><script type="module" src="popup.mjs"></script></html>
