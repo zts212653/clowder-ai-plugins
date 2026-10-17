@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   closeSync,
   existsSync,
@@ -21,6 +21,34 @@ function gamePath(root, id) {
   if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(id))
     throw new Error('棋局 ID 只能含小写字母、数字、下划线或短横线');
   return join(resolve(root), `${id}.json`);
+}
+function confirmedActionPath(root, id, actionId) {
+  gamePath(root, id);
+  if (typeof actionId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(actionId))
+    throw new Error('无效 actionId');
+  return join(resolve(root), `${id}-delivery`, `${actionId}.json`);
+}
+function validateConfirmedAction(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('缺少 Host 确认动作');
+  const { actionId, bindingGeneration, expectedStateToken, operationDigest } = value;
+  confirmedActionPath('.', 'validation', actionId);
+  if (typeof bindingGeneration !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(bindingGeneration))
+    throw new Error('无效绑定世代');
+  if (![expectedStateToken, operationDigest].every((item) => typeof item === 'string' && /^[a-f0-9]{64}$/.test(item)))
+    throw new Error('无效确认摘要');
+  return { actionId, bindingGeneration, expectedStateToken, operationDigest };
+}
+function digest(value) {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+export function confirmedMoveProjection(root, game, text) {
+  const move = parseMove(parseFen(game.fen), text);
+  const expectedStateToken = digest({ dataRoot: realpathSync(root), gameId: game.id, revision: game.revision, fen: game.fen });
+  return {
+    objectRef: game.id,
+    expectedStateToken,
+    operationDigest: digest({ kind: 'human-move', objectRef: game.id, expectedStateToken, move: ucci(move) }),
+  };
 }
 export function durableWrite(path, value, exclusive = false) {
   const temporary = `${path}.${randomUUID()}.tmp`;
@@ -171,16 +199,33 @@ export function readCurrentAnalysis(root, id, expectedRevision) {
   requireRevision(g, expectedRevision);
   return matchingAnalysis(root, g);
 }
-export function playGame(root, id, text, { actor, expectedRevision, origin = 'chat' } = {}) {
+export function playGame(root, id, text, { actor, expectedRevision, origin = 'chat', confirmedAction } = {}) {
   if (!['human', 'companion'].includes(actor)) throw new Error('必须标明 human 或 companion');
   if (!['chat', 'board'].includes(origin)) throw new Error('未知落子来源');
+  const confirmation = confirmedAction === undefined ? null : validateConfirmedAction(confirmedAction);
+  if (confirmation && (actor !== 'human' || origin !== 'board')) throw new Error('仅人类棋盘落子可带确认动作');
+  if (actor === 'human' && origin === 'board' && !confirmation) throw new Error('棋盘落子缺少 Host 确认动作');
   return locked(root, id, (path) => {
     const g = readGame(root, id);
+    if (confirmation) {
+      const prior = g.events.find((event) => event.type === 'move' && event.record.confirmedAction?.actionId === confirmation.actionId);
+      if (prior) {
+        const stored = prior.record.confirmedAction;
+        if (stored.bindingGeneration !== confirmation.bindingGeneration || stored.expectedRevision !== expectedRevision || stored.requestMove !== text || stored.expectedStateToken !== confirmation.expectedStateToken || stored.operationDigest !== confirmation.operationDigest)
+          throw new Error('actionId 与原确认内容不一致');
+        return { ...g, duplicateAction: true };
+      }
+    }
     requireRevision(g, expectedRevision);
     if (g.result.status !== 'playing') throw new Error('本局已结束');
     const p = parseFen(g.fen),
       move = parseMove(p, text);
     if ((p.turn === g.humanSide) !== (actor === 'human')) throw new Error('执棋方与 actor 不一致');
+    if (confirmation) {
+      const projection = confirmedMoveProjection(root, g, text);
+      if (confirmation.expectedStateToken !== projection.expectedStateToken || confirmation.operationDigest !== projection.operationDigest)
+        throw new Error('Host 确认摘要与当前棋步不一致');
+    }
     let audit = null,
       analysisFile = null;
     if (actor === 'companion') {
@@ -194,9 +239,58 @@ export function playGame(root, id, text, { actor, expectedRevision, origin = 'ch
         );
     }
     const record = moveRecord(p, text, actor, { audit, analysisFile, origin });
+    if (confirmation) {
+      record.confirmedAction = {
+        ...confirmation,
+        expectedRevision,
+        committedRevision: expectedRevision + 1,
+        requestMove: text,
+      };
+    }
     g.events.push({ type: 'move', record, at: new Date().toISOString() });
     const saved = snapshot(g);
     durableWrite(path, saved);
+    return saved;
+  });
+}
+export function pendingConfirmedActions(root, id, bindingGeneration) {
+  const g = readGame(root, id);
+  return g.moves.flatMap((record) => {
+    const action = record.confirmedAction;
+    if (!action || action.bindingGeneration !== bindingGeneration) return [];
+    const path = confirmedActionPath(root, id, action.actionId);
+    if (existsSync(path)) {
+      const receipt = JSON.parse(readFileSync(path, 'utf8'));
+      if (receipt.actionId !== action.actionId || receipt.operationDigest !== action.operationDigest)
+        throw new Error('通知收据与棋谱不一致');
+      return [];
+    }
+    return [{
+      objectRef: id,
+      actionId: action.actionId,
+      bindingGeneration,
+      expectedStateToken: action.expectedStateToken,
+      operationDigest: action.operationDigest,
+      stateRevision: action.committedRevision,
+    }];
+  });
+}
+export function recordConfirmedActionReceipt(root, id, actionId, receipt) {
+  return locked(root, id, () => {
+    const g = readGame(root, id);
+    const action = g.events.find((event) => event.type === 'move' && event.record.confirmedAction?.actionId === actionId)?.record.confirmedAction;
+    if (!action || receipt?.actionId !== actionId || receipt.operationDigest !== action.operationDigest || typeof receipt.receiptId !== 'string')
+      throw new Error('Host 通知收据无效');
+    const path = confirmedActionPath(root, id, actionId);
+    mkdirSync(resolve(path, '..'), { recursive: true });
+    if (existsSync(path)) {
+      const prior = JSON.parse(readFileSync(path, 'utf8'));
+      if (prior.actionId !== actionId || prior.operationDigest !== action.operationDigest || prior.receiptId !== receipt.receiptId)
+        throw new Error('Host 通知收据冲突');
+      return prior;
+    }
+    const saved = { actionId, operationDigest: action.operationDigest, receiptId: receipt.receiptId };
+    durableWrite(path, saved, true);
     return saved;
   });
 }

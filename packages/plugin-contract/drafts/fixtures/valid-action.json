@@ -1,0 +1,12 @@
+{
+  "v": 0,
+  "kind": "host-confirmed-action",
+  "sessionHandle": "session-alpha",
+  "bindingGeneration": "binding-7",
+  "runtimeLease": "lease-9",
+  "confirmationHandle": "proof-001",
+  "actionId": "action-001",
+  "objectRef": "game-001",
+  "expectedStateToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "operationDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}
