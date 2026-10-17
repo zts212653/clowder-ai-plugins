@@ -271,6 +271,14 @@ test('compact call journey keeps badge, chat, unread, card controls and work tru
     assert.deepEqual((await visibleClipping(page, 'actions')).clippedButtons, []);
     await page.click('#call-chat');
     await page.waitForFunction(() => !document.getElementById('chat').hidden);
+    const conversationHistoryChrome = await page.evaluate(() => ({
+      presentation: document.getElementById('chat').dataset.historyPresentation,
+      composeVisible: !document.getElementById('compose').hidden,
+      scopeVisible: !document.getElementById('chat-scope').hidden,
+    }));
+    assert.deepEqual(conversationHistoryChrome,
+      { presentation: 'conversation', composeVisible: true, scopeVisible: true },
+      JSON.stringify(conversationHistoryChrome));
     await page.waitForFunction(() => document.getElementById('call-transcript-log').children.length >= 2);
     await page.click('#chat header [data-action="dismiss"]');
     await page.waitForFunction(() => !document.getElementById('actions').hidden);
@@ -557,7 +565,26 @@ test('durable letter journey retries one identity, waits for a complete reply, t
     });
     await page.click('#pet');
     await page.click('#name-card-actions [data-action="write"]');
+    await page.waitForFunction(() => document.getElementById('chat')?.dataset.replyMode === 'compose');
+    const emptyComposeLayout = await page.evaluate(() => {
+      const feedback = document.querySelector('.chat-feedback');
+      return { feedbackHidden: feedback.hidden, feedbackHeight: feedback.getBoundingClientRect().height };
+    });
+    assert.deepEqual(emptyComposeLayout, { feedbackHidden: true, feedbackHeight: 0 },
+      JSON.stringify(emptyComposeLayout));
     await page.fill('#message', '把刚才那一步再讲慢一点');
+    const focusRing = await page.locator('#message').evaluate(element => {
+      const style = getComputedStyle(element);
+      return {
+        borderColor: style.borderColor,
+        outlineColor: style.outlineColor,
+        outlineOffset: Number.parseFloat(style.outlineOffset),
+        outlineWidth: Number.parseFloat(style.outlineWidth),
+      };
+    });
+    assert(focusRing.outlineWidth > 0 && focusRing.outlineOffset <= 0
+      && (focusRing.borderColor === 'rgba(0, 0, 0, 0)' || focusRing.borderColor === focusRing.outlineColor),
+    JSON.stringify(focusRing));
     await page.evaluate(() => { window.__previewUnconfirmNextText = true; });
     await page.click('#compose button[type="submit"]');
     try {
@@ -583,6 +610,20 @@ test('durable letter journey retries one identity, waits for a complete reply, t
 
     await page.click('#reply-retry');
     await page.waitForFunction(() => !document.getElementById('reply-sent').hidden);
+    const sentLayout = await page.evaluate(() => {
+      const panel = document.getElementById('chat').getBoundingClientRect();
+      const letter = document.getElementById('reply-letter-text');
+      return {
+        panel: { width: panel.width, height: panel.height },
+        repeatedText: letter?.textContent ?? '',
+        repeatedTextVisible: letter ? !letter.hidden : false,
+        status: document.getElementById('reply-sent-status').textContent,
+      };
+    });
+    assert.equal(sentLayout.repeatedText, '', JSON.stringify(sentLayout));
+    assert.equal(sentLayout.repeatedTextVisible, false, JSON.stringify(sentLayout));
+    assert(sentLayout.panel.width <= 150 && sentLayout.panel.height <= 90, JSON.stringify(sentLayout));
+    assert.equal(sentLayout.status, '已发送');
     const sends = await page.evaluate(() => window.__textV2);
     assert.equal(sends.length, 2);
     assert.deepEqual(sends[1], sends[0], 'explicit retry must preserve scope, text, id and revision');
@@ -623,9 +664,28 @@ test('durable letter journey retries one identity, waits for a complete reply, t
     }, { userRow, inputMessageId });
     await page.waitForFunction(() => document.getElementById('reply-body')?.textContent.includes('第二段把细节补全。'));
     assert.equal(await page.locator('#reply-retain').isVisible(), true);
+    const countdownRing = await page.evaluate(() => {
+      const ring = getComputedStyle(document.getElementById('reply-retain'));
+      const progress = getComputedStyle(document.querySelector('.reply-ring-progress'));
+      return { controlColor: ring.color, progressColor: progress.stroke,
+        strokeWidth: Number.parseFloat(progress.strokeWidth) };
+    });
+    assert.equal(countdownRing.progressColor, countdownRing.controlColor, JSON.stringify(countdownRing));
+    assert(countdownRing.strokeWidth <= 1, JSON.stringify(countdownRing));
     assert.deepEqual((await visibleClipping(page, 'chat')).clippedButtons, []);
     await page.click('#reply-retain');
     assert.equal(await page.locator('#reply-close').isVisible(), true);
+    const replyCloseLayout = await page.evaluate(() => {
+      const button = document.getElementById('reply-close').getBoundingClientRect();
+      const icon = document.querySelector('#reply-close svg')?.getBoundingClientRect();
+      return { hasIcon: Boolean(icon), button: { x: button.x, y: button.y, width: button.width, height: button.height },
+        icon: icon ? { x: icon.x, y: icon.y, width: icon.width, height: icon.height } : null,
+        deltaX: icon ? (icon.left + icon.width / 2) - (button.left + button.width / 2) : null,
+        deltaY: icon ? (icon.top + icon.height / 2) - (button.top + button.height / 2) : null };
+    });
+    assert.equal(replyCloseLayout.hasIcon, true, JSON.stringify(replyCloseLayout));
+    assert(Math.abs(replyCloseLayout.deltaX) < .5 && Math.abs(replyCloseLayout.deltaY) < .5,
+      JSON.stringify(replyCloseLayout));
     await page.evaluate(({ userRow, inputMessageId }) => {
       const olderRows = Array.from({ length: 18 }, (_, index) => ({
         id: `history-${String(index + 1).padStart(2, '0')}`,
@@ -659,6 +719,21 @@ test('durable letter journey retries one identity, waits for a complete reply, t
       'the long page must first be projected while transcript geometry is hidden');
     await page.click('#reply-history-open');
     await page.waitForFunction(() => !document.getElementById('chat-transcript').hidden);
+    const replyHistoryChrome = await page.evaluate(() => ({
+      presentation: document.getElementById('chat').dataset.historyPresentation,
+      composeHidden: document.getElementById('compose').hidden,
+      feedbackHidden: document.querySelector('.chat-feedback').hidden,
+      scopeHidden: document.getElementById('chat-scope').hidden,
+      emptyConnectionHeight: document.getElementById('chat-connection-status').getBoundingClientRect().height,
+      titleHidden: document.getElementById('chat-name').hidden,
+      fullDismissHidden: document.getElementById('chat-history-dismiss')?.hidden,
+      replyCloseVisible: document.getElementById('reply-history-close')
+        ? !document.getElementById('reply-history-close').hidden : false,
+    }));
+    assert.deepEqual(replyHistoryChrome, {
+      presentation: 'reply', composeHidden: true, feedbackHidden: true, scopeHidden: true,
+      emptyConnectionHeight: 0, titleHidden: true, fullDismissHidden: true, replyCloseVisible: true,
+    }, JSON.stringify(replyHistoryChrome));
     const selectedVisibility = await page.evaluate(() => {
       const transcript = document.getElementById('chat-transcript');
       const viewport = transcript.getBoundingClientRect();
@@ -694,17 +769,15 @@ test('durable letter journey retries one identity, waits for a complete reply, t
       JSON.stringify({ topAnchor, preservedAnchor }));
     assert.equal(preservedAnchor.olderReads, 1);
 
-    await page.fill('#message', '第二封信');
-    await page.click('#compose button[type="submit"]');
-    await page.waitForFunction(() => window.__textV2.length === 3);
-    const second = await page.evaluate(() => window.__textV2.at(-1));
-    const secondMessageId = `preview-text-${second.clientMessageId}`;
+    assert.equal(await page.locator('#compose').isHidden(), true,
+      'retained-reply history stays read-only while newer conversation arrives');
+    const secondMessageId = 'preview-text-external-newer';
     const secondUser = {
-      id: secondMessageId, role: 'user', name: '预览输入', text: second.text,
+      id: secondMessageId, role: 'user', name: '你', text: '第二封信',
       inputMessageIds: [], responsePhase: null,
       body: { revision: `preview-${secondMessageId}`, complete: true, continuation: null },
       deliveryReceipt: {
-        kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId: second.clientMessageId,
+        kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId: 'external-newer',
         messageId: secondMessageId, callId: null,
       },
     };
@@ -719,6 +792,35 @@ test('durable letter journey retries one identity, waits for a complete reply, t
         body: { revision: 'reply-b-final', complete: true, continuation: null } },
     ]), { userRow, inputMessageId, secondUser, secondMessageId });
     await page.waitForFunction(() => !document.getElementById('reply-return-latest').hidden);
+    const returnLatestLayout = await page.evaluate(() => {
+      const bounds = selector => {
+        const rect = document.querySelector(selector).getBoundingClientRect();
+        return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
+      };
+      const intersects = (left, right) => Math.min(left.right, right.right) > Math.max(left.left, right.left)
+        && Math.min(left.bottom, right.bottom) > Math.max(left.top, right.top);
+      const button = bounds('#reply-return-latest');
+      const transcript = bounds('#chat-transcript');
+      const compose = bounds('#compose');
+      const input = bounds('#message');
+      const send = bounds('#compose button[type="submit"]');
+      return {
+        button, transcript, compose, input, send,
+        buttonInsideTranscript: button.left >= transcript.left && button.right <= transcript.right
+          && button.top >= transcript.top && button.bottom <= transcript.bottom,
+        horizontallyCentered: Math.abs((button.left + button.right) / 2
+          - (transcript.left + transcript.right) / 2) < 1,
+        overlaps: {
+          compose: intersects(button, compose),
+          input: intersects(button, input),
+          send: intersects(button, send),
+        },
+      };
+    });
+    assert.equal(returnLatestLayout.buttonInsideTranscript, true, JSON.stringify(returnLatestLayout));
+    assert.equal(returnLatestLayout.horizontallyCentered, true, JSON.stringify(returnLatestLayout));
+    assert.deepEqual(returnLatestLayout.overlaps, { compose: false, input: false, send: false },
+      JSON.stringify(returnLatestLayout));
     await page.click('#reply-return-latest');
     assert.equal(await page.locator('#reply-return-latest').isHidden(), true);
     assert.equal(await page.locator('#chat-transcript').isVisible(), true);

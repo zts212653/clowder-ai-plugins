@@ -381,7 +381,7 @@ test('explicit writing can leave a terminal sent envelope without losing accepte
     hasMoreOlder: false, olderCursor: null,
   }));
   f.tick(); await flush();
-  assert.equal(f.nodes.get('reply-sent-status').textContent, '回复失败 · 已发送的消息仍在聊天中');
+  assert.equal(f.nodes.get('reply-sent-status').textContent, '回复失败');
 
   f.controls.dismiss(); await flush();
   f.action('write'); await f.controls.show('chat'); await flush();

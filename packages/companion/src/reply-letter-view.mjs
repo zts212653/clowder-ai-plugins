@@ -1,9 +1,9 @@
 const phaseLabel = phase => ({
   processing: '正在回复',
-  failed: '回复失败 · 已发送的消息仍在聊天中',
-  interrupted: '回复中断 · 已发送的消息仍在聊天中',
-  canceled: '回复已取消 · 已发送的消息仍在聊天中',
-  withdrawn: '回复已撤回 · 已发送的消息仍在聊天中',
+  failed: '回复失败',
+  interrupted: '回复中断',
+  canceled: '回复已取消',
+  withdrawn: '回复已撤回',
 }[phase] ?? '已发送');
 
 const draftStatus = settlement => ({
@@ -52,28 +52,38 @@ export class ReplyLetterView {
     card.addEventListener('pointercancel', () => this.controller.resume('pointer'));
     this.$('reply-retain').onclick = () => this.controller.pin();
     this.$('reply-close').onclick = () => this.controller.close();
-    this.$('reply-history-open').onclick = () => this.controller.openHistory();
+    this.$('reply-history-open').onclick = () => this.controller.openReplyHistory();
     this.$('reply-return-latest').onclick = () => this.controller.returnLatest();
     this.$('reply-retry').onclick = () => { if (this.value?.draft) this.retry(this.value.draft); };
   }
 
   render(value) {
     this.value = value;
-    const compose = value.mode === 'compose' || value.mode === 'history';
     const history = value.mode === 'history';
+    const replyHistory = history && value.historyPresentation === 'reply';
+    const conversationHistory = history && !replyHistory;
+    const compose = value.mode === 'compose' || conversationHistory;
     this.$('compose').hidden = !compose;
-    this.$('chat-history-header').hidden = !history;
+    this.$('chat-history-header').hidden = !conversationHistory;
+    this.$('chat-name').hidden = replyHistory;
+    this.$('chat-history-dismiss').hidden = replyHistory;
+    this.$('reply-history-close').hidden = !replyHistory;
+    this.$('chat-transcript-shell').hidden = !history;
+    this.$('chat-transcript-shell').dataset.hasNewer = String(history && value.hasNewer);
     this.$('chat-transcript').hidden = !history;
-    this.$('chat-scope').hidden = !history;
+    this.$('chat-scope').hidden = !conversationHistory;
+    this.$('chat-connection-status').hidden = replyHistory;
     this.$('reply-sent').hidden = value.mode !== 'sent';
     this.$('reply-card').hidden = value.mode !== 'reply';
     this.$('reply-return-latest').hidden = !history || !value.hasNewer;
 
     const retrying = value.mode === 'compose' && value.draft?.settlement === 'unconfirmed';
     this.$('reply-retry').hidden = !retrying;
-    this.$('chat-status').textContent = value.draft ? draftStatus(value.draft.settlement)
+    const feedback = value.draft ? draftStatus(value.draft.settlement)
       : value.draftNotice ? draftStatus(value.draftNotice)
       : value.blockedReason === 'permission_required' ? '聊天权限已撤销' : '';
+    this.$('chat-status').textContent = feedback;
+    this.$('chat-feedback').hidden = !compose || (!feedback && !retrying);
     if (value.draft) {
       const input = this.$('message');
       if (!input.value || input.value === this.lastRenderedDraft) input.value = value.draft.text;
@@ -81,7 +91,8 @@ export class ReplyLetterView {
     }
 
     if (value.letter) {
-      this.$('reply-letter-text').textContent = value.letter.text;
+      this.$('reply-letter-text').textContent = '';
+      this.$('reply-letter-text').hidden = true;
       this.$('reply-input-text').textContent = value.letter.text;
       this.$('reply-sent-status').textContent = phaseLabel(value.letter.responsePhase);
     }
@@ -99,5 +110,7 @@ export class ReplyLetterView {
     this.$('reply-retain').dataset.running = String(canRetain && value.timer.running);
     this.$('reply-retain').style.setProperty('--reply-visible-ms', `${value.timer.remainingMs}ms`);
     this.$('chat').dataset.replyMode = value.mode;
+    this.$('chat').dataset.historyPresentation = history
+      ? value.historyPresentation ?? 'conversation' : '';
   }
 }
