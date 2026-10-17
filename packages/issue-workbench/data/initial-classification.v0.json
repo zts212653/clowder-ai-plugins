@@ -1,0 +1,577 @@
+{
+  "schema": "issue-workbench-label-seed/v0",
+  "createdAt": "2026-10-14T11:25:21.317640+00:00",
+  "status": "proposal_only",
+  "method": {
+    "model": "gpt-6-astra",
+    "kind": "assistant_semantic_induction",
+    "scope": "12 deliberately selected public title/body samples; body excerpts, not all comments",
+    "selection": "purposive_not_random",
+    "existingSourceLabels": "visible context, not ground truth; not a blinded experiment",
+    "embeddingRun": false,
+    "clusteringRun": false,
+    "trainedModel": false,
+    "automaticClassifierImplemented": false,
+    "accuracyMeasured": false
+  },
+  "catalog": {
+    "checkedAt": "2026-10-14T11:17:39.122Z",
+    "repositoryId": "R_kgDORlB5aQ",
+    "total": 797,
+    "open": 276,
+    "closed": 521,
+    "withoutSourceLabels": 136,
+    "distinctSourceLabels": 49,
+    "sourceLabelCounts": {
+      "accepted": 256,
+      "bug": 446,
+      "documentation": 10,
+      "duplicate": 6,
+      "enhancement": 162,
+      "feature": 24,
+      "feature:F048": 1,
+      "feature:F056": 1,
+      "feature:F063": 1,
+      "feature:F070": 8,
+      "feature:F081": 2,
+      "feature:F095": 4,
+      "feature:F110": 1,
+      "feature:F113": 12,
+      "feature:F115": 3,
+      "feature:F117": 2,
+      "feature:F118": 8,
+      "feature:F121": 3,
+      "feature:F127": 5,
+      "feature:F128": 2,
+      "feature:F148": 1,
+      "feature:F150": 1,
+      "feature:F151": 1,
+      "feature:F152": 1,
+      "feature:F153": 11,
+      "feature:F155": 3,
+      "feature:F159": 5,
+      "feature:F161": 6,
+      "feature:F180": 4,
+      "feature:F186": 1,
+      "feature:F190": 5,
+      "feature:F202": 7,
+      "feature:F216": 2,
+      "feature:F241": 1,
+      "feature:F273": 1,
+      "feature:F288": 1,
+      "feature:F289": 2,
+      "feature:F300": 2,
+      "fixed-internal": 7,
+      "good first issue": 1,
+      "hotfix": 2,
+      "needs-info": 27,
+      "needs-maintainer-decision": 47,
+      "question": 5,
+      "status:accepted": 19,
+      "triaged": 519,
+      "windows": 33,
+      "wip:bouillipx": 1,
+      "wontfix": 2
+    },
+    "snapshotSha256": "966da9ac6289a27734d35ff1d84dd98e401c5792dc512114efb2f5f442c1283c",
+    "snapshotHashContract": "sha256 of compact UTF-8 JSON catalog issues in observed order; fields id,number,title,state,updatedAt,labels; object keys sorted; ensure_ascii=false"
+  },
+  "taxonomy": {
+    "area": {
+      "agent-runtime": "Agent 运行",
+      "interface": "界面交互",
+      "context-memory": "上下文与记忆",
+      "collaboration": "猫猫协作",
+      "tools-connectors": "工具与连接器",
+      "installation-build": "安装与构建",
+      "plugin-lifecycle": "插件生命周期",
+      "configuration-sync": "配置同步",
+      "repository-delivery": "代码与交付"
+    },
+    "kind": {
+      "defect": "缺陷",
+      "feature-request": "功能需求",
+      "question": "咨询",
+      "undetermined": "待判断"
+    },
+    "symptom": {
+      "missing-content": "内容缺失",
+      "startup-invocation-failure": "启动或调用失败",
+      "incorrect-status": "状态显示不符",
+      "layout-overflow": "布局溢出",
+      "retrieval-failure": "检索异常",
+      "configuration-loss": "配置丢失",
+      "build-failure": "构建失败",
+      "installation-failure": "安装失败",
+      "inbound-interrupted": "消息接收中断",
+      "handoff-wake-failure": "协作唤醒失败"
+    },
+    "environment": {
+      "windows": "Windows",
+      "desktop": "桌面端",
+      "acp": "ACP",
+      "opencode": "OpenCode",
+      "codex": "Codex"
+    }
+  },
+  "suggestions": [
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABXFDjHQ",
+        "number": 1598,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1598",
+        "updatedAt": "2026-10-14T07:29:21Z",
+        "bodySha256": "3beb3d40984a316d56bf064d0345ee717623ee8b1eb0d8d16ee0df8163295d40"
+      },
+      "title": "Bug: ACP Agent Service 不传递图片附件（image content blocks 被丢弃）",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "agent-runtime",
+          "tools-connectors"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "missing-content"
+        ],
+        "environment": [
+          "acp"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "用户在聊天界面直接发送图片附件时",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Source reports missing image blocks; no independent code diagnosis is claimed.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABW1a14g",
+        "number": 1591,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1591",
+        "updatedAt": "2026-10-14T08:37:08Z",
+        "bodySha256": "054390cce0e720d417cbdc763ae991eec0c947275f43e0b6793c482f369caad7"
+      },
+      "title": "Bug: Windows平台兼容性问题（安装/编译）",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "installation-build",
+          "plugin-lifecycle"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "build-failure",
+          "installation-failure"
+        ],
+        "environment": [
+          "windows"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "遇到 3 个平台特定兼容性 bug",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "One report contains several failures; retain multiple subjects rather than assigning one root cause.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABWmIsIQ",
+        "number": 1588,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1588",
+        "updatedAt": "2026-10-13T05:02:10Z",
+        "bodySha256": "80f6d849e2277dd165579df131a53591a284ba17554c57a5b2e1dd733340214b"
+      },
+      "title": "bug: empty composer overflows and misses width changes",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "interface"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "layout-overflow"
+        ],
+        "environment": [
+          "windows"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "Windows 上空白消息输入框出现原生滚动条",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Windows is the reported environment; body describes shared sizing logic, so this is not a Windows-only conclusion.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABWQ73DQ",
+        "number": 1580,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1580",
+        "updatedAt": "2026-10-10T07:32:07Z",
+        "bodySha256": "12a434291afeb50713b5e0b167f4feb3b26172bab440a7cce2e69ad856a53072"
+      },
+      "title": "Bug: 自动封存与跨会话重试后，已结束的 Codex 轨迹仍显示运行中",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "agent-runtime",
+          "context-memory"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "incorrect-status"
+        ],
+        "environment": [
+          "windows",
+          "codex"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "4 条历史 Codex invocation 一直显示「运行中」",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Reported stale display does not establish that executions are still active.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABUN5oMg",
+        "number": 1555,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1555",
+        "updatedAt": "2026-09-30T19:32:35Z",
+        "bodySha256": "00f3da8145aef2c36ac0647f8602a5538b2404e873c5c9168b864c642f08ec4f"
+      },
+      "title": "Bug: Collective Connector cannot start on Windows because credential privacy uses POSIX modes",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "tools-connectors",
+          "plugin-lifecycle"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "startup-invocation-failure"
+        ],
+        "environment": [
+          "windows"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "# Collective Connector cannot start on Windows",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Credential mode behavior is a reported cause, not independently validated here.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABT_dM7w",
+        "number": 1548,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1548",
+        "updatedAt": "2026-09-30T16:51:45Z",
+        "bodySha256": "966c81357c3e34ae29919fa9a2ba0c9603d5150bd58113492ff5d27768282f31"
+      },
+      "title": "Bug: OpenCode cats fail on every unbound (default projectPath) thread; no cross-provider workspace contract",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "agent-runtime"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "startup-invocation-failure"
+        ],
+        "environment": [
+          "opencode"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "fails before answering on any ordinary thread",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Do not infer an OS from a provider/workspace failure.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABThOGiA",
+        "number": 1541,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1541",
+        "updatedAt": "2026-09-27T17:49:51Z",
+        "bodySha256": "713862bbd0a35561bb20a3e9546e0e94b43e4e69a37c88631c52300b02d8606e"
+      },
+      "title": "Bug: F163 pathToAuthority classifies Windows backslash source paths as observed",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "context-memory"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "retrieval-failure"
+        ],
+        "environment": [
+          "windows"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "On Windows, F163 `pathToAuthority` classifies almost every indexed doc as `observed`",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Authority ranking behavior, not proof that all search requests fail.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABSO97pw",
+        "number": 1498,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1498",
+        "updatedAt": "2026-09-20T15:14:21Z",
+        "bodySha256": "d972ef94de97e98ca70dd0fbdd575975b06da3bd0ac8f85d5a377f6b31e37d5c"
+      },
+      "title": "Desktop IM connectors lose inbound operation after saved configuration reload",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "tools-connectors"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "inbound-interrupted"
+        ],
+        "environment": [
+          "desktop"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "WeChat polling can be torn down after QR authorization",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Desktop is stated; the OS is not established by this input.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABFzOAKw",
+        "number": 965,
+        "url": "https://github.com/zts212653/clowder-ai/issues/965",
+        "updatedAt": "2026-06-18T02:02:18Z",
+        "bodySha256": "095069455e7c02db2fc19fd5a221f0c6aacadb50ab6d8b7a745e6a321bac4f36"
+      },
+      "title": "Bug: 猫猫之间的球权转移总是失败，需要铲屎官提醒。",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "collaboration"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "handoff-wake-failure"
+        ],
+        "environment": [
+          "windows"
+        ]
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "被call的猫猫没有被正常唤起并接受任务",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Sparse report: no root-cause, feature-owner or severity assignment. Linked attachment not loaded.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABC989aA",
+        "number": 746,
+        "url": "https://github.com/zts212653/clowder-ai/issues/746",
+        "updatedAt": "2026-06-10T06:44:59Z",
+        "bodySha256": "c48dfbccf66925ef295d5551efe217acc959d9a64fe9d2011196de6ea784b98e"
+      },
+      "title": "search_evidence returns empty \"evidence_store_error\" whenever alwaysOnInjection flag is on (queryAlwaysOn called unbound → this lost)",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "context-memory"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "retrieval-failure"
+        ],
+        "environment": []
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "returns `{ results: [], degraded: true, degradeReason: \"evidence_store_error\" }`",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "No OS inference. A source-reported diagnosis is not a revalidated root cause.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABWRSEnQ",
+        "number": 1582,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1582",
+        "updatedAt": "2026-10-10T11:30:51Z",
+        "bodySha256": "e0302058ee0f684fc563bdf9b4d298d9ff1c2ea59dd90ba1f6463e5e3617e598"
+      },
+      "title": "Feature: 单向入站仓库同步工作流（Issue / PR 映射、原始 commit 保留与插件隔离）",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "repository-delivery"
+        ],
+        "kind": [
+          "feature-request"
+        ],
+        "symptom": [],
+        "environment": []
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "外部 GitHub → 内部 Git 平台单向同步流程",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "Request for a workflow, not an observed sync failure. No real internal platform is confirmed.",
+      "humanAcceptance": null
+    },
+    {
+      "source": {
+        "provider": "github",
+        "instance": "https://github.com",
+        "repositoryId": "R_kgDORlB5aQ",
+        "repository": "zts212653/clowder-ai",
+        "issueId": "I_kwDORlB5ac8AAAABUXuHwg",
+        "number": 1566,
+        "url": "https://github.com/zts212653/clowder-ai/issues/1566",
+        "updatedAt": "2026-10-02T02:22:14Z",
+        "bodySha256": "82fda36ebc18f5de594332e6f68e5b5543c21a171941ae0c81b04f453429d710"
+      },
+      "title": "Bug: Agent Hook Sync deletes third-party configuration during replacement and managed-entry matching",
+      "status": "proposed",
+      "labels": {
+        "area": [
+          "configuration-sync"
+        ],
+        "kind": [
+          "defect"
+        ],
+        "symptom": [
+          "configuration-loss"
+        ],
+        "environment": []
+      },
+      "evidence": {
+        "field": "body",
+        "excerpt": "Agent Hook Sync can remove third-party configuration",
+        "basis": "title_and_body_excerpts",
+        "commentsRead": false
+      },
+      "note": "No OS inference and no severity assigned from text alone.",
+      "humanAcceptance": null
+    }
+  ],
+  "notInferred": [
+    "rootCause",
+    "severity",
+    "owner",
+    "acceptanceDecision",
+    "resolved",
+    "sharedRootCause",
+    "WindowsOnly"
+  ],
+  "notPerformed": [
+    "source_label_writes",
+    "local_user_record_writes",
+    "internal_issue_reads",
+    "model_training",
+    "product_candidate_batch_installation"
+  ]
+}

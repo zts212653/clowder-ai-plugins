@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "stage": "pre-sdk-package",
+  "hostInstallable": false,
+  "pluginId": "dev.clowder.issue-workbench",
+  "candidateManifest": "plugin.candidate.yaml",
+  "implemented": ["read-source-engine", "versioned-archives", "standalone-workbench", "browser-draft-storage", "source-sync"],
+  "pending": ["frozen-sdk-adapter", "host-lifecycle-and-grants", "durable-work-migration", "real-cat-dispatch-and-acceptance", "catalog-publication"]
+}

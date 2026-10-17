@@ -1,0 +1,20 @@
+# Declaration candidate only: no executable Host contribution is advertised.
+# Rename to plugin.yaml only with the fixed SDK adapter and installed journey.
+pluginId: dev.clowder.issue-workbench
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Issue Workbench
+icon:
+  type: svg
+  src: assets/icon.svg
+description:
+  default: Pre-SDK READ workbench package. Host installation is not enabled yet.
+  translations:
+    zh-CN: SDK 接入前的只读问题工作台包，尚未开放宿主安装。
+features:
+  - id: read-workbench
+    name: Read and organize issues
+    resources: []
+    capabilities: []
+runtime:
+  transport: builtin

@@ -17,6 +17,7 @@ on:
       - 'packages/video-analysis/**'
       - 'packages/xiangqi/**'
       - 'packages/genoffice-docx/**'
+      - 'packages/issue-workbench/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
       - 'scripts/desktop-window-consumer.test.mjs'
@@ -125,6 +126,17 @@ jobs:
         run: |
           pnpm --filter @clowder-ai/genoffice-docx typecheck
           pnpm --filter @clowder-ai/genoffice-docx test
+
+      - name: Issue workbench independent package
+        run: |
+          pnpm --filter @clowder-ai/issue-workbench check:manifest
+          pnpm --filter @clowder-ai/issue-workbench lint
+          pnpm --filter @clowder-ai/issue-workbench test
+          pnpm --filter @clowder-ai/issue-workbench build
+          pnpm --filter @clowder-ai/issue-workbench test:artifact
+
+      - name: Issue workbench packed browser journey
+        run: pnpm --filter @clowder-ai/issue-workbench exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/issue-workbench test:browser
 
       - name: Git guards
         run: pnpm test:guards

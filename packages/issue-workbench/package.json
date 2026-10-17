@@ -1,0 +1,71 @@
+{
+  "name": "@clowder-ai/issue-workbench",
+  "version": "0.1.0-alpha.0",
+  "description": "Pre-SDK Issue workbench: READ source engine, standalone UI and reproducible Core export",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/issue-workbench"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/types/browser.d.ts",
+      "import": "./dist/browser.js"
+    },
+    "./style.css": "./dist/browser.css"
+  },
+  "files": [
+    "dist",
+    "data",
+    "assets",
+    "integration.json",
+    "sync-state.json",
+    "sync-policy.json",
+    "README.md",
+    "VALIDATION.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "plugin.candidate.yaml"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "lint": "pnpm typecheck && node scripts/check-boundaries.mjs",
+    "test": "pnpm test:sync && pnpm test:source && pnpm test:ui",
+    "test:sync": "node --test test/sync.test.mjs",
+    "test:source": "node --import tsx --test test/source/*.test.ts test/ports.test.ts",
+    "test:ui": "node scripts/test-ui.mjs",
+    "test:artifact": "node --test test/artifact.test.mjs",
+    "test:browser": "node --test test/browser.test.mjs test/coordination-browser.test.mjs",
+    "test:coordination": "node --test test/coordination-browser.test.mjs",
+    "preview:coordination": "node dist/coordination-host.mjs",
+    "sync:core": "node scripts/sync-from-core.mjs",
+    "sync:verify": "node scripts/sync-from-core.mjs --verify",
+    "preview": "node scripts/preview.mjs",
+    "check:manifest": "node scripts/check-manifest.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.10",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "dompurify": "3.3.3",
+    "esbuild": "0.27.3",
+    "jsdom": "28.0.0",
+    "marked": "15.0.7",
+    "playwright": "1.58.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}
