@@ -1,4 +1,5 @@
 const ACTIONS = new Set(['dismiss', 'timeout', 'accept']);
+export const APP_ASSIST_TIMEOUT_MS = 15_000;
 
 /**
  * Renderer projection only. The Host owns offer creation, expiry and clearing;
@@ -12,7 +13,7 @@ export class AppAssistController {
     accepted = () => {},
     scheduleTimeout = setTimeout,
     cancelTimeout = clearTimeout,
-    timeoutMs = 15_000,
+    timeoutMs = APP_ASSIST_TIMEOUT_MS,
   }) {
     this.client = client;
     this.changed = changed;

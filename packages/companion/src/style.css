@@ -79,10 +79,19 @@ button:disabled { opacity: .45; cursor: default; }
 #bubble p + p { margin-top: 4px; }
 #bubble [data-role="user"] { color: var(--cafe-text-secondary); }
 .app-assist { width: 320px; padding: 12px; }
-.app-assist p { margin: 0; color: var(--desktop-body); font-size: 13px; line-height: 1.5; }
+.app-assist p { margin: 0; padding-right: 22px; color: var(--desktop-body); font-size: 13px; line-height: 1.5; }
 .app-assist p strong { color: var(--desktop-ink); font-weight: 600; }
 .app-assist > div { display: flex; justify-content: flex-end; gap: 6px; margin-top: 9px; }
 .app-assist > div button { min-height: 30px; padding: 5px 10px; font-size: 12px; }
+.app-assist-countdown { position: absolute; top: 10px; right: 10px; width: 16px; height: 16px; overflow: visible; transform: rotate(-90deg); }
+.app-assist-countdown circle { fill: none; stroke-width: 2; }
+.app-assist-countdown-track { stroke: var(--desktop-line-strong); }
+#app-assist-countdown-progress { stroke: var(--desktop-muted); stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.app-assist-countdown[data-active="true"] #app-assist-countdown-progress { animation: app-assist-expiry var(--app-assist-duration) linear forwards; }
+@keyframes app-assist-expiry { to { stroke-dashoffset: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-assist-countdown[data-active="true"] #app-assist-countdown-progress { animation-timing-function: steps(15, end); }
+}
 #call-bubble { width: 320px; max-height: 80px; overflow: hidden; padding: 9px 11px; pointer-events: none; }
 #call-bubble:not(:has(p:not([hidden]))) { display: none; }
 #call-bubble p { margin: 0; display: flex; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 12px; line-height: 1.45; }

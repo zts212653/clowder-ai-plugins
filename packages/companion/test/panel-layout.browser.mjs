@@ -70,11 +70,24 @@ test('candidate application assistance settles explicitly without minting call o
     assert.equal(await page.locator('#app-assist').getAttribute('data-candidate'), 'true');
     assert.equal(await page.locator('#app-assist-name').textContent(), 'Fixture Writer');
     assert.equal(await page.locator('#app-assist-start').textContent(), '打开通话控制');
+    const countdown = page.locator('#app-assist-countdown');
+    const countdownProgress = page.locator('#app-assist-countdown-progress');
+    assert.equal(await countdown.count(), 1, 'the accepted prompt includes its lightweight remaining-time ring');
+    assert.equal(await countdown.isVisible(), true);
+    assert.equal(await countdown.getAttribute('aria-label'), '提示将在约十五秒后自动收起');
+    const countdownStart = await countdownProgress.evaluate(element => {
+      const animation = element.getAnimations()[0];
+      return { duration: animation?.effect.getTiming().duration, currentTime: animation?.currentTime };
+    });
+    assert.equal(countdownStart.duration, 15_000);
     assert.deepEqual(await page.evaluate(() => window.__requestKinds.filter(kind =>
       ['prepare', 'audio.connect', 'screen.pick', 'screen.open', 'screen.frame'].includes(kind))), []);
     await page.waitForTimeout(3_200);
     assert.equal(await page.locator('#app-assist').isVisible(), true,
       'periodic history reads cannot clear an unsettled application-assistance offer');
+    const countdownAfterPolls = await countdownProgress.evaluate(element => element.getAnimations()[0]?.currentTime);
+    assert.ok(countdownAfterPolls - countdownStart.currentTime >= 2_500,
+      'ordinary state polling must not restart the same offer countdown');
     assert.equal(await page.evaluate(() => window.__requestKinds.includes('app-assist.settle')), false,
       'preserving the offer must not synthesize a settlement');
 
@@ -83,6 +96,8 @@ test('candidate application assistance settles explicitly without minting call o
     assert.deepEqual(await page.evaluate(() => window.__requests.find(value => value.kind === 'app-assist.settle')), {
       kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'dismiss',
     });
+    assert.equal(await countdownProgress.evaluate(element => element.getAnimations().length), 0,
+      'settling the prompt stops the countdown projection immediately');
     await page.waitForTimeout(1_100);
     assert.equal(await page.locator('#app-assist').isHidden(), true,
       'the same offerRef stays dismissed across ordinary state refreshes');

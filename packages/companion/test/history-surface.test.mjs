@@ -24,6 +24,7 @@ import { ConversationSurface } from '../src/conversation-surface.mjs';
 import { CallControlsPresentation } from '../src/call-controls-presentation.mjs';
 import { CallDuration } from '../src/call-duration.mjs';
 import { AppAssistController } from '../src/app-assist-controller.mjs';
+import { bindAppAssistCountdown } from '../src/app-assist-countdown.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -199,7 +200,7 @@ function fixture() {
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
-    VisibleTextPresentation, CallControlsPresentation, CallDuration, AppAssistController,
+    VisibleTextPresentation, CallControlsPresentation, CallDuration, AppAssistController, bindAppAssistCountdown,
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, queueMicrotask,

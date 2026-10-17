@@ -48,6 +48,10 @@
       <p id="bubble-first" hidden></p><p id="bubble-second" hidden></p>
     </section>
     <section id="app-assist" class="floating app-assist" aria-label="应用旁的轻提示" data-candidate="true" hidden>
+      <svg id="app-assist-countdown" class="app-assist-countdown" viewBox="0 0 20 20" role="img" aria-label="提示将在约十五秒后自动收起">
+        <circle class="app-assist-countdown-track" cx="10" cy="10" r="7.5" pathLength="1"/>
+        <circle id="app-assist-countdown-progress" cx="10" cy="10" r="7.5" pathLength="1"/>
+      </svg>
       <p>你打开了 <strong id="app-assist-name"></strong>。要我一起看吗？</p>
       <div><button id="app-assist-dismiss" type="button">暂不</button><button id="app-assist-start" class="primary" type="button">打开通话控制</button></div>
     </section>

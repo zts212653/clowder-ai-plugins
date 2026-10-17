@@ -24,6 +24,7 @@ import { ConversationSurface } from './conversation-surface.mjs';
 import { CallControlsPresentation } from './call-controls-presentation.mjs';
 import { CallDuration } from './call-duration.mjs';
 import { AppAssistController } from './app-assist-controller.mjs';
+import { bindAppAssistCountdown } from './app-assist-countdown.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -61,6 +62,7 @@ let previousControlPanel = 'none';
 const ambientPanel = active => active ? 'actions' : appAssistOffer ? 'app-assist' : 'none';
 const setTexts = (ids, text) => { for (const id of ids) $(id).textContent = text; };
 const setHidden = (ids, hidden) => { for (const id of ids) $(id).hidden = hidden; };
+const renderAppAssistCountdown = bindAppAssistCountdown($('app-assist-countdown'));
 if (!window.clowderCompanion) {
   $('actions').hidden = false; $('status').hidden = false;
   status('请从 Clowder 的聊聊入口打开猫猫球');
@@ -144,6 +146,7 @@ if (!window.clowderCompanion) {
     changed: value => {
       appAssistOffer = value.offer;
       $('app-assist-name').textContent = appAssistOffer?.appName ?? '';
+      renderAppAssistCountdown(appAssistOffer);
       void controls.setAmbient(ambientPanel(previousPhase !== 'idle'));
     },
     accepted: () => {
