@@ -154,8 +154,8 @@
             "packageName": "@clowder-ai/companion",
             "version": "0.1.0-alpha.30",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/companion/-/companion-0.1.0-alpha.30.tgz",
-            "integrity": "sha512-K+kNwGY7CKrVx2VqBHWBAqZ+SyYV6XJOX25qRD3RemVNaCGiat6951wzHMvllHsqH1SpHsU/SIGnNYSLv/haMg==",
-            "shasum": "4532f447cfb6afba855cadb68cc9c1c5d545f60a",
+            "integrity": "sha512-9GHP5mRtPbkdRJ5InJ0I3Whih52PvCAWs2/ZLmjro1Tpaop893oBGsbXkCODGSooC4SkFqUDdIQ374v1AlAnUg==",
+            "shasum": "ddc5ce8b88c4e46c12e9c76e2d36f8cb1261cd0b",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/companion"
