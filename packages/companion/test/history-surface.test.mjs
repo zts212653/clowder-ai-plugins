@@ -21,6 +21,7 @@ import { ReplyLetterController } from '../src/reply-letter-controller.mjs';
 import { ReplyLetterView } from '../src/reply-letter-view.mjs';
 import { HostConversationDraft } from '../src/conversation-draft.mjs';
 import { ConversationSurface } from '../src/conversation-surface.mjs';
+import { CallControlsPresentation } from '../src/call-controls-presentation.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -36,7 +37,7 @@ const historyPage = (messages = [], { status = 'available', hasMoreOlder = false
     : { kind: 'conversation', v: 2, status };
 function fixture() {
   const nodes = new Map(), calls = [], motionCalls = [], historyReads = [];
-  const document = { getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
+  const document = { activeElement: null, getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
     createElement: () => node(), addEventListener() {} };
   function node(id) {
     const value = { dataset: {}, attributes: {}, textContent: '', hidden: false, children: [], style: {
@@ -46,6 +47,8 @@ function fixture() {
       setAttribute(name, attributeValue) { this.attributes[name] = String(attributeValue); },
       removeAttribute(name) { delete this.attributes[name]; },
       addEventListener(name, callback) { this.listeners[name] = callback; },
+      removeEventListener(name, callback) { if (this.listeners[name] === callback) delete this.listeners[name]; },
+      contains(target) { return target === this || this.children.includes(target); },
       querySelector(selector) { return selector === '.empty' ? null : document.getElementById(`${id}${selector}`); },
       querySelectorAll() { return []; },
       append(...rows) { this.children.push(...rows); }, replaceChildren(...rows) { this.children = rows; },
@@ -91,7 +94,7 @@ function fixture() {
       applies: field === 'personaTone' ? 'next_call' : 'now' };
   };
   const monitors = [];
-  const controls = { panel: 'none', ambient: 'none', async show(panel) {
+  const controls = { panel: 'none', ambient: 'none', remeasure() {}, async show(panel) {
     const previous = this.panel;
     this.panel = panel === 'none' && this.ambient !== 'none' ? this.ambient : panel;
     if (previous !== this.panel) onControls.changed(this.panel);
@@ -180,6 +183,7 @@ function fixture() {
   class LivingBody {}
   node('message');
   node('call-message');
+  node('lite-call-message');
   node('transcript');
   node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
@@ -187,10 +191,11 @@ function fixture() {
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
-    VisibleTextPresentation,
+    VisibleTextPresentation, CallControlsPresentation,
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
-    setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
+    setInterval: callback => { monitors.push(callback); }, clearInterval() {}, queueMicrotask,
+    setTimeout, clearTimeout, crypto: { randomUUID: () => 'fixture' } });
   return { calls, historyReads, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
     travel: value => travelObserver.changed(value),

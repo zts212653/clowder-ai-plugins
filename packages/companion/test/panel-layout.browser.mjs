@@ -48,15 +48,22 @@ async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscr
   await page.evaluate(() => {
     window.__layoutRequests = [];
     window.__presentationObservations = [];
+    window.__requestKinds = [];
     const bridge = window.clowderCompanion;
     const original = bridge.request.bind(bridge);
     bridge.request = command => {
+      window.__requestKinds.push(command.kind);
       if (command.kind === 'view.layout') window.__layoutRequests.push({ ...command });
       if (command.kind === 'presentation.observe') window.__presentationObservations.push({ ...command });
       return original(command);
     };
   });
   return page;
+}
+
+async function revealCallControls(page) {
+  await page.hover('#pet');
+  await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
 }
 
 async function visibleClipping(page, panelId) {
@@ -126,6 +133,7 @@ test('dynamic call content and expanded transcript keep every action visible', a
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    await revealCallControls(page);
     await page.waitForFunction(() => document.getElementById('actions').style.maxHeight !== '');
     await page.waitForTimeout(300);
     await page.evaluate(() => {
@@ -153,6 +161,102 @@ test('dynamic call content and expanded transcript keep every action visible', a
   }
 });
 
+test('an active call rests in lite mode and reveals controls without touching media', async () => {
+  const page = await openPreview({ width: 520, height: 720 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+
+    assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'lite');
+    assert.equal(await page.locator('#call-state').isVisible(), true);
+    assert.equal(await page.locator('#call-mic-state').isVisible(), true);
+    assert.equal(await page.locator('#active-actions').isVisible(), false);
+
+    await page.click('#pet', { button: 'right' });
+    await page.waitForFunction(() => !document.getElementById('menu').hidden);
+    await page.click('#pet');
+    await page.waitForFunction(() => !document.getElementById('actions').hidden
+      && document.getElementById('actions').dataset.presentation === 'controls');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite');
+
+    const protectedBefore = await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'audio.close', 'audio.microphone', 'audio.speaker', 'stop',
+        'screen.pick', 'screen.open', 'screen.close', 'screen.frame'].includes(kind)));
+
+    await page.hover('#pet');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    assert.equal(await page.locator('#active-actions').isVisible(), true);
+    assert.equal(await page.locator('#lite-call-compose').isVisible(), true);
+
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite', null,
+      { timeout: 4_000 });
+
+    await page.focus('#pet');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    await page.fill('#lite-call-message', '先别收起这句话');
+    await page.mouse.move(1, 1);
+    await page.waitForTimeout(2_100);
+    assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'controls',
+      'focused or non-empty input keeps the controls open');
+
+    await page.fill('#lite-call-message', '');
+    await page.locator('#lite-call-message').blur();
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite', null,
+      { timeout: 4_000 });
+
+    await page.focus('#pet');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    await page.fill('#lite-call-message', '通话里的一句话');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__getConversation().some(row => row.text === '通话里的一句话'));
+    assert.equal(await page.inputValue('#lite-call-message'), '');
+    assert.equal(await page.locator('#call-state').textContent(), '通话中');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite');
+
+    const protectedAfter = await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'audio.close', 'audio.microphone', 'audio.speaker', 'stop',
+        'screen.pick', 'screen.open', 'screen.close', 'screen.frame'].includes(kind)));
+    assert.deepEqual(protectedAfter, protectedBefore,
+      'revealing and folding controls must not start, stop, mute, or share media');
+  } finally {
+    await page.close();
+  }
+});
+
+test('a pending screen picker keeps the complete call controls directly available', async () => {
+  const page = await openPreview({ width: 520, height: 720 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await page.evaluate(() => { window.__previewHoldScreenPick = true; });
+    await page.hover('#pet');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    await page.click('#share');
+    await page.waitForFunction(() => document.querySelector('#share .label')?.textContent === '取消选屏');
+
+    await page.mouse.move(1, 1);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(2_100);
+    assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'controls');
+    assert.equal(await page.locator('#share').isVisible(), true);
+    assert.equal(await page.locator('#end').isVisible(), true);
+
+    await page.click('#share');
+    await page.evaluate(() => window.__previewResolveScreenPick?.());
+    await page.waitForFunction(() => document.querySelector('#share .label')?.textContent === '共享画面');
+  } finally {
+    await page.evaluate(() => window.__previewResolveScreenPick?.()).catch(() => {});
+    await page.close();
+  }
+});
+
 test('meeting status keeps the longest state phrase whole and truncates only its source', async () => {
   const page = await openPreview({ width: 460, height: 620 });
   try {
@@ -160,6 +264,7 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-meeting-label')?.textContent
       === '会议记录中 · 未接入通话');
+    await revealCallControls(page);
 
     const metrics = async prefix => page.evaluate(prefix => {
       const label = document.getElementById(`${prefix}-meeting-label`);
@@ -210,7 +315,7 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     assert(chatHeader.actionStateCenterDelta < 12, JSON.stringify(chatHeader));
 
     await page.click('#chat header [data-action="dismiss"]');
-    await page.click('#pet');
+    await page.click('#pet', { button: 'right' });
     await page.click('#menu-settings');
     const settings = await metrics('settings-call');
     assert.equal(settings.source.scrollWidth, settings.source.clientWidth,
@@ -268,6 +373,7 @@ test('compact call journey keeps badge, chat, unread, card controls and work tru
 
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    await revealCallControls(page);
     assert.deepEqual((await visibleClipping(page, 'actions')).clippedButtons, []);
     await page.click('#call-chat');
     await page.waitForFunction(() => !document.getElementById('chat').hidden);
@@ -289,7 +395,7 @@ test('compact call journey keeps badge, chat, unread, card controls and work tru
     await page.waitForFunction(() => document.getElementById('call-chat-unread').textContent === '1');
     assert.equal(await page.locator('#call-state').textContent(), '通话中');
 
-    await page.click('#pet');
+    await page.click('#pet', { button: 'right' });
     await page.waitForFunction(() => !document.getElementById('menu').hidden);
     assert.equal(await page.locator('#menu-call-context').isVisible(), true);
     assert.equal(await page.locator('#menu-mic').isVisible(), true);
@@ -324,6 +430,7 @@ test('subtitle return is visible and restores the same shared call at compact an
     });
 
     for (const expanded of [false, true]) {
+      await revealCallControls(page);
       await page.click('[data-action="transcript"]');
       if (expanded) await page.click('#transcript-expand');
       await page.fill('#call-message', '未发送的草稿');
@@ -349,7 +456,7 @@ test('first subtitle observation waits for a real visible panel and remains sing
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
-    await page.click('#pet');
+    await page.click('#pet', { button: 'right' });
     await page.waitForFunction(() => !document.getElementById('menu').hidden);
 
     await page.evaluate(() => window.__emitAudio({
@@ -360,7 +467,7 @@ test('first subtitle observation waits for a real visible panel and remains sing
     await page.waitForTimeout(100);
     assert.equal(await page.evaluate(() => window.__presentationObservations.length), 0);
 
-    await page.click('#pet');
+    await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('actions').hidden);
     await page.waitForFunction(() => window.__presentationObservations.length === 1, null, { timeout: 1_500 });
     const observation = await page.evaluate(() => window.__presentationObservations[0]);
@@ -516,6 +623,7 @@ test('recovering shared subtitles keep every header action inside compact and ex
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await revealCallControls(page);
     await page.click('[data-action="transcript"]');
     await page.evaluate(() => {
       window.__emitAudio({ kind: 'audio', type: 'recovering', callId: '11111111-1111-4111-8111-111111111111' });

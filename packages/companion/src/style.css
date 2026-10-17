@@ -86,10 +86,23 @@ button:disabled { opacity: .45; cursor: default; }
 .floating .destructive:hover:not(:disabled) { background: #942c24; }
 .floating .destructive.compact { min-width: 72px; padding: 6px 12px; }
 #actions { padding: 12px; width: 412px; overflow: hidden; }
+#actions[data-presentation="lite"] { width: 320px; display: flex; flex-direction: column; align-items: flex-end; border: 0; background: transparent; box-shadow: none; padding: 0; overflow: visible; }
+#actions[data-presentation="lite"] > :not(.call-status-line, .call-recent) { display: none !important; }
+#actions[data-presentation="lite"] .call-status-line { order: 2; min-height: 29px; width: fit-content; border: 1px solid #fff3; border-radius: 8px; background: var(--desktop-ink); box-shadow: 0 3px 8px #1817152e; color: var(--desktop-paper); padding: 5px 10px; }
+#actions[data-presentation="lite"] .call-status-line strong { color: inherit; font-size: 12px; }
+#actions[data-presentation="lite"] .call-status-line span:not(.status-dot) { color: #d8d1c6; font-size: 11px; }
+#actions[data-presentation="lite"] .call-recent { order: 1; align-self: stretch; display: none; margin: 0 0 8px; border: 1px solid var(--desktop-line-strong); border-radius: 12px; background: var(--desktop-paper); box-shadow: 0 8px 18px #1817151f; padding: 9px 11px; }
+#actions[data-presentation="lite"] .call-recent:has(p:not([hidden])) { display: block; }
+#actions[data-presentation="lite"] .call-recent-label { display: none; }
+#actions[data-presentation="lite"] .call-recent p { margin-top: 0; }
 .action-row { display: flex; align-items: center; gap: 4px; }
 .action-row button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 35px; font-size: 12px; white-space: nowrap; }
 .action-row button .icon { width: 16px; height: 16px; }
 #active-actions { border-top: 1px solid var(--desktop-line); margin-top: 9px; padding-top: 9px; }
+#lite-call-compose { display: none; align-items: center; gap: 8px; border-top: 1px solid var(--desktop-line); margin-top: 9px; padding-top: 9px; }
+#actions[data-presentation="controls"] #lite-call-compose { display: flex; }
+#lite-call-message { min-width: 0; height: 34px; flex: 1; border: 1px solid var(--desktop-line-strong); border-radius: 8px; background: var(--desktop-paper); color: var(--desktop-ink); padding: 6px 9px; }
+#lite-call-compose button { height: 34px; padding: 6px 12px; }
 #status { font-size: 12px; line-height: 1.45; margin: 8px 0 0; color: var(--desktop-muted); }
 .call-status-line { min-height: 24px; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
 .call-status-line strong { font-size: 13px; font-weight: 600; }

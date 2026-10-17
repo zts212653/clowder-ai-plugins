@@ -34,6 +34,8 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
   window.__getConversationReads = () => conversationReads;
   window.__setBodyReply = (continuation,reply) => bodyReplies.set(continuation,reply);
   window.__previewUnconfirmNextText = false;
+  window.__previewHoldScreenPick = false;
+  window.__previewResolveScreenPick = undefined;
   const draftScopeRef = 'preview-scope_A-1';
   let composerDraft = {kind:'conversation-draft',v:1,status:'available',scopeRef:draftScopeRef,revision:0,text:'',writable:true,submissions:[]};
   window.__setDraft = value => { composerDraft = value; };
@@ -132,7 +134,11 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
         if(window.__previewUnconfirmNextText){window.__previewUnconfirmNextText=false;return {kind:'delivery',delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:textCallId};}
         messages.push({id:messageId,role:'user',text:command.text,name:'预览输入',inputMessageIds:[],responsePhase:null,body:{revision:'preview-'+messageId,complete:true,continuation:null}});window.__lastPreviewMessageId=messageId;if(textCallId)transcriptRows.push({messageId,role:'user',text:command.text,source:{kind:'typed',clientMessageId:command.clientMessageId,callId:textCallId}});return {kind:'delivery',delivery:'accepted',clientMessageId:command.clientMessageId,messageId,callId:textCallId}; }
       case 'conversation.open':note('正式窗口会在这里打开原来的聊天；当前是外观预览。');return {kind:'navigation',delivery:'requested'};
-      case 'screen.pick':note('预览不采集屏幕；正式窗口需要你明确选择画面。');return {kind:'error',code:'cancelled'};
+      case 'screen.pick':{
+        note('预览不采集屏幕；正式窗口需要你明确选择画面。');
+        if(!window.__previewHoldScreenPick)return {kind:'error',code:'cancelled'};
+        return new Promise(resolve=>{window.__previewResolveScreenPick=()=>{window.__previewHoldScreenPick=false;window.__previewResolveScreenPick=undefined;resolve({kind:'error',code:'cancelled'});};});
+      }
       default:return {kind:'ok'};
     }
   }};

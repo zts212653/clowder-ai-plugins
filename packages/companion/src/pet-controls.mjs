@@ -1,5 +1,7 @@
 /** Transient controls. The Host owns native placement, movement and hiding. */
-export function bindPetControls(client, { action, error, changed, moved = () => {} }) {
+export function bindPetControls(client, {
+  action, error, changed, moved = () => {}, activate = () => false, escape = () => false,
+}) {
   const $ = id => document.getElementById(id);
   const body = $('pet');
   const panelIds = ['actions', 'menu', 'chat', 'bubble', 'decisions', 'transcript', 'settings'];
@@ -72,6 +74,7 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
   body.onclick = event => {
     if (suppressClick) { suppressClick = false; return; }
     if (event.detail > 1) return;
+    if (activate('click')) return;
     void show(panel === 'menu' ? 'none' : 'menu');
   };
   body.oncontextmenu = event => { event.preventDefault(); void show('menu'); };
@@ -100,7 +103,11 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
     if (!event.target.closest('#anchor, .floating')) void show('none');
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && panel !== 'none') { event.preventDefault(); void show('none'); body.focus(); }
+    if (event.key === 'Escape' && panel !== 'none') {
+      event.preventDefault();
+      if (!escape(panel)) void show('none');
+      body.focus();
+    }
   });
   document.querySelectorAll('[data-action]').forEach(button => button.onclick = () => {
     const kind = button.dataset.action;
