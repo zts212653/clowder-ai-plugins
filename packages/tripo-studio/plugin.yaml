@@ -1,8 +1,8 @@
 pluginId: official.tripo-studio
-version: 0.1.7
+version: 0.2.0
 contractVersion: 0.1.0
 name: Tripo Studio
-description: 分享链接后台审模、候选多角度比较与已选模型回流。分享页无需登录；连接已登录 Chrome 时单独明确授权。不生成、不贴图、不消耗生成积分。
+description: 分享链接后台审模、候选多角度比较与已选模型回流。分享页无需登录；连接已登录 Chrome 时单独明确授权。生成与正式导出需要额外明确授权；生成会消耗网页订阅积分。不调用另付费 API，不购买或升级。
 icon:
   type: svg
   src: assets/tripo-studio.svg

@@ -85,7 +85,7 @@ export async function prepareHelper({
   await mkdir(manifestDirectory, { recursive: true });
   await writeFile(
     join(manifestDirectory, `${HOST_NAME}.json`),
-    `${JSON.stringify({ name: HOST_NAME, description: 'Cat Café Tripo Studio read-only bridge', path: launcher, type: 'stdio', allowed_origins: [`chrome-extension://${extensionId}/`] }, null, 2)}\n`,
+    `${JSON.stringify({ name: HOST_NAME, description: 'Cat Café Tripo Studio browser bridge', path: launcher, type: 'stdio', allowed_origins: [`chrome-extension://${extensionId}/`] }, null, 2)}\n`,
     { mode: 0o600 },
   );
   return {
