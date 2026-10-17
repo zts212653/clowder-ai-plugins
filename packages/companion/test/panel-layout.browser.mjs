@@ -24,7 +24,7 @@ after(async () => {
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 });
 
-async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscript = true } = {}) {
+async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscript = true, appAssist = false } = {}) {
   const page = await browser.newPage({ viewport });
   await page.addInitScript(() => {
     let bridge;
@@ -43,16 +43,18 @@ async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscr
       },
     });
   });
-  await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1&autoTranscript=${autoTranscript ? '1' : '0'}`);
+  await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1&autoTranscript=${autoTranscript ? '1' : '0'}&appAssist=${appAssist ? '1' : '0'}`);
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => {
     window.__layoutRequests = [];
     window.__presentationObservations = [];
     window.__requestKinds = [];
+    window.__requests = [];
     const bridge = window.clowderCompanion;
     const original = bridge.request.bind(bridge);
     bridge.request = command => {
       window.__requestKinds.push(command.kind);
+      window.__requests.push(structuredClone(command));
       if (command.kind === 'view.layout') window.__layoutRequests.push({ ...command });
       if (command.kind === 'presentation.observe') window.__presentationObservations.push({ ...command });
       return original(command);
@@ -60,6 +62,48 @@ async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscr
   });
   return page;
 }
+
+test('candidate application assistance settles explicitly without minting call or screen authority', async () => {
+  const page = await openPreview({ width: 520, height: 720 }, { appAssist: true });
+  try {
+    await page.waitForFunction(() => !document.getElementById('app-assist').hidden);
+    assert.equal(await page.locator('#app-assist').getAttribute('data-candidate'), 'true');
+    assert.equal(await page.locator('#app-assist-name').textContent(), 'Fixture Writer');
+    assert.equal(await page.locator('#app-assist-start').textContent(), '打开通话控制');
+    assert.deepEqual(await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'screen.pick', 'screen.open', 'screen.frame'].includes(kind))), []);
+
+    await page.click('#app-assist-dismiss');
+    await page.waitForFunction(() => document.getElementById('app-assist').hidden);
+    assert.deepEqual(await page.evaluate(() => window.__requests.find(value => value.kind === 'app-assist.settle')), {
+      kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'dismiss',
+    });
+    await page.waitForTimeout(1_100);
+    assert.equal(await page.locator('#app-assist').isHidden(), true,
+      'the same offerRef stays dismissed across ordinary state refreshes');
+  } finally {
+    await page.close();
+  }
+
+  const actionPage = await openPreview({ width: 520, height: 720 }, { appAssist: true });
+  try {
+    await actionPage.waitForFunction(() => !document.getElementById('app-assist').hidden);
+    await actionPage.click('#app-assist-start');
+    await actionPage.waitForFunction(() => !document.getElementById('menu').hidden);
+    assert.equal(await actionPage.locator('#begin').isVisible(), true);
+    assert.equal(await actionPage.locator('#menu-status').textContent(),
+      '提示已收起。请先点“语音通话”，连上后再点“共享画面”。');
+    assert.deepEqual(await actionPage.evaluate(() => window.__requests.find(value => value.kind === 'app-assist.settle')), {
+      kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'accept',
+    });
+    await actionPage.waitForTimeout(600);
+    const protectedKinds = await actionPage.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'screen.pick', 'screen.open', 'screen.frame'].includes(kind)));
+    assert.deepEqual(protectedKinds, [], 'settlement is not a call, user activation or media grant');
+  } finally {
+    await actionPage.close();
+  }
+});
 
 async function revealCallControls(page) {
   await page.hover('#pet');
@@ -100,11 +144,12 @@ async function textRangeVisibility(page, rowSelector, needle) {
       const bounds = row.getBoundingClientRect();
       const text = range.getBoundingClientRect();
       const hit = document.elementFromPoint((text.left + text.right) / 2, (text.top + text.bottom) / 2);
+      const passive = getComputedStyle(row.closest('#call-bubble') ?? row).pointerEvents === 'none';
       return {
         rowText: row.textContent,
         visible: text.left >= bounds.left - 0.5 && text.right <= bounds.right + 0.5
           && text.top >= bounds.top - 0.5 && text.bottom <= bounds.bottom + 0.5
-          && hit !== null && row.contains(hit),
+          && (passive || (hit !== null && row.contains(hit))),
         bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom },
         text: { left: text.left, right: text.right, top: text.top, bottom: text.bottom },
       };
@@ -116,11 +161,13 @@ async function textRangeVisibility(page, rowSelector, needle) {
 async function recentRowPresentation(page, rowSelector) {
   return page.evaluate(rowSelector => {
     const row = document.querySelector(rowSelector);
-    const speaker = row.querySelector('.recent-speaker').getBoundingClientRect();
+    const speakerNode = row.querySelector('.recent-speaker');
+    const speaker = speakerNode?.hidden ? null : speakerNode?.getBoundingClientRect();
     const message = row.querySelector('.recent-message');
     const text = row.querySelector('.recent-message-text').getBoundingClientRect();
     return {
-      gap: text.left - speaker.right,
+      speakerVisible: speaker !== null,
+      gap: speaker ? text.left - speaker.right : null,
       textOverflow: getComputedStyle(message).textOverflow,
       textDirection: message.dataset.direction,
     };
@@ -144,10 +191,11 @@ test('dynamic call content and expanded transcript keep every action visible', a
       share.hidden = false;
       document.getElementById('call-share-target').textContent = '共享中：Blender · 一个很长的窗口标题';
     });
-    await page.waitForFunction(() => window.__layoutRequests.some(row => row.panel === 'actions' && row.height > 200));
+    await page.waitForFunction(() => window.__layoutRequests.some(row =>
+      row.panel === 'actions' && row.call?.presentation === 'controls'));
     const callbar = await visibleClipping(page, 'actions');
     assert.deepEqual(callbar.clippedButtons, []);
-    assert(callbar.height <= 500);
+    assert(callbar.height <= 156, JSON.stringify(callbar));
 
     await page.click('[data-action="transcript"]');
     await page.click('#transcript-expand');
@@ -167,6 +215,8 @@ test('an active call rests in lite mode and reveals controls without touching me
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite');
 
     assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'lite');
     assert.equal(await page.locator('#call-state').isVisible(), true);
@@ -492,7 +542,7 @@ test('first subtitle observation waits for a real visible panel and remains sing
   }
 });
 
-test('the narrow call bar keeps both speaker labels and the newest streamed tail visibly on screen', async () => {
+test('the independent call bubble omits UI speaker prefixes and keeps the newest streamed tail visible', async () => {
   const page = await openPreview({ width: 390, height: 620 });
   try {
     await page.click('#pet');
@@ -506,26 +556,24 @@ test('the narrow call bar keeps both speaker labels and the newest streamed tail
         text: `${'这是猫猫正在持续回答的长句'.repeat(18)}assistant tail!` });
     });
 
-    const userLabel = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '语音：');
     const userTail = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '用户最新尾部。');
-    const assistantLabel = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', '宪宪：');
     const assistantTail = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', 'assistant tail!');
-    assert.equal(userLabel.visible, true, JSON.stringify(userLabel));
     assert.equal(userTail.visible, true, JSON.stringify(userTail));
-    assert.equal(assistantLabel.visible, true, JSON.stringify(assistantLabel));
     assert.equal(assistantTail.visible, true, JSON.stringify(assistantTail));
+    assert.doesNotMatch(userTail.rowText, /语音：/u);
+    assert.doesNotMatch(assistantTail.rowText, /宪宪：/u);
 
     await page.evaluate(async () => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const bubble = new RecentBubble([
         document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
-      ]);
+      ], { showSpeaker: false });
       bubble.append('user', 'hi', '语音');
       bubble.append('assistant', '好的。', '宪宪');
     });
     for (const role of ['user', 'assistant']) {
       const presentation = await recentRowPresentation(page, `.call-recent p[data-role="${role}"]`);
-      assert(Math.abs(presentation.gap) <= 0.5, JSON.stringify(presentation));
+      assert.equal(presentation.speakerVisible, false, JSON.stringify(presentation));
       assert.equal(presentation.textOverflow, 'ellipsis');
       assert.equal(presentation.textDirection, 'ltr');
     }
@@ -548,7 +596,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const bubble = new RecentBubble([
         document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
-      ]);
+      ], { showSpeaker: false });
       bubble.append('user', `${'مرحبا '.repeat(40)}نهاية الجملة`, '语音');
       bubble.append('assistant', `${'שלום '.repeat(40)}סוף המשפט`, '宪宪');
     });
@@ -564,7 +612,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const bubble = new RecentBubble([
         document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
-      ]);
+      ], { showSpeaker: false });
       bubble.append('user', `${'ك'.repeat(50)}iPad  ${'مرحبا '.repeat(17)}نهاية الجملة`, '语音');
       bubble.append('assistant', `${'word '.repeat(60)}مرحبا  ${'word '.repeat(20)}final words!`, '宪宪');
     });
@@ -579,7 +627,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
     await page.evaluate(async ({ adlamPrefix, adlamTail }) => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const row = document.getElementById('call-bubble-first');
-      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')]);
+      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')], { showSpeaker: false });
       bubble.append('user', `${`${adlamPrefix} `.repeat(30)}${adlamTail}`, '语音');
     }, {
       adlamPrefix: String.fromCodePoint(0x1e927, 0x1e928, 0x1e929, 0x1e92a, 0x1e92b),
@@ -592,7 +640,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
     const streaming = await page.evaluate(async () => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const row = document.getElementById('call-bubble-first');
-      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')]);
+      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')], { showSpeaker: false });
       bubble.append('assistant', 'hello world ', '宪宪');
       const bad = [];
       for (let index = 0; index < 60; index += 1) {
@@ -607,7 +655,9 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
         const tail = range.getBoundingClientRect();
         const bounds = message.getBoundingClientRect();
         const hit = document.elementFromPoint((tail.left + tail.right) / 2, (tail.top + tail.bottom) / 2);
-        if (tail.left < bounds.left - 0.5 || tail.right > bounds.right + 0.5 || !message.contains(hit)) bad.push(index);
+        const passive = getComputedStyle(row.closest('#call-bubble') ?? row).pointerEvents === 'none';
+        if (tail.left < bounds.left - 0.5 || tail.right > bounds.right + 0.5
+          || (!passive && !message.contains(hit))) bad.push(index);
       }
       return bad;
     });

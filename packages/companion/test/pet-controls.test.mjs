@@ -6,8 +6,8 @@ function fixture({ layout } = {}) {
   const nodes = new Map();
   const calls = [], moves = [];
   const node = id => ({
-    id, hidden: false, style: {}, offsetWidth: id === 'bubble' ? 240 : 120,
-    naturalHeight: id === 'bubble' ? 80 : 130,
+    id, hidden: false, style: {}, offsetWidth: id === 'bubble' ? 240 : id === 'call-bubble' ? 320 : 120,
+    naturalHeight: id === 'bubble' ? 80 : id === 'call-bubble' ? 62 : 130,
     get scrollWidth() { return this.offsetWidth; },
     get scrollHeight() { return this.naturalHeight; },
     get offsetHeight() {
@@ -18,10 +18,11 @@ function fixture({ layout } = {}) {
     addEventListener(name, callback) { this.handlers[name] = callback; }, focus() {},
     querySelector(selector) {
       if (selector === ':scope > .settings-page:not([hidden])') return this.visiblePage ?? null;
+      if (selector === 'p:not([hidden])') return this.visibleRow ? {} : null;
       return { focus() {} };
     },
   });
-  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'decisions', 'transcript', 'settings',
+  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'call-bubble', 'app-assist', 'decisions', 'transcript', 'settings',
     'decision-reload', 'message', 'call-message', 'settings-back']) nodes.set(id, node(id));
   const mutationObservers = [];
   const previous = { document: globalThis.document, window: globalThis.window,
@@ -34,9 +35,10 @@ function fixture({ layout } = {}) {
     observe() {}
     disconnect() {}
   };
-  const client = { drag: async () => ({ kind: 'ok' }), layout: layout ?? (async (panel, width, height) => {
-    calls.push({ panel, width, height });
-    return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height }, width: 360 };
+  const client = { drag: async () => ({ kind: 'ok' }), layout: layout ?? (async (panel, width, height, call) => {
+    calls.push({ panel, width, height, ...(call ? { call } : {}) });
+    return { pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height },
+      ...(call?.bubble ? { bubble: { x: 16, y: 20, ...call.bubble } } : {}), width: 360 };
   }) };
   const errors = [];
   const controls = bindPetControls(client, { action() {}, error: (...args) => errors.push(args), changed() {}, moved: (...args) => moves.push(args) });
@@ -52,13 +54,32 @@ test('an active call bar persists after other panels dismiss, then releases when
   try {
     await f.controls.setAmbient('actions');
     assert.equal(f.controls.panel, 'actions');
-    assert.deepEqual(f.calls.at(-1), { panel: 'actions', width: 120, height: 130 });
+    assert.deepEqual(f.calls.at(-1), {
+      panel: 'actions', width: 120, height: 130, call: { presentation: 'lite' },
+    });
     await f.controls.show('chat');
     assert.equal(f.nodes.get('actions').hidden, true);
     await f.controls.show('none');
     assert.equal(f.controls.panel, 'actions');
     await f.controls.setAmbient('none');
     assert.equal(f.controls.panel, 'none');
+  } finally { f.restore(); }
+});
+
+test('active-call layout measures and places its passive speech bubble independently from controls', async () => {
+  const f = fixture();
+  try {
+    f.nodes.get('actions').dataset.presentation = 'controls';
+    f.nodes.get('call-bubble').visibleRow = true;
+    await f.controls.setAmbient('actions');
+
+    assert.deepEqual(f.calls.at(-1), {
+      panel: 'actions', width: 120, height: 130,
+      call: { presentation: 'controls', bubble: { width: 320, height: 62 } },
+    });
+    assert.equal(f.nodes.get('call-bubble').hidden, false);
+    assert.deepEqual(f.nodes.get('call-bubble').style,
+      { left: '16px', top: '20px', maxHeight: '62px' });
   } finally { f.restore(); }
 });
 

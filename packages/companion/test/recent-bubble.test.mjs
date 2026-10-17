@@ -50,3 +50,14 @@ test('call glances preserve only source identity needed to observe their rendere
   assert.equal(JSON.stringify(rows).includes('output-item-1'), false,
     'correlation metadata does not become public DOM content');
 });
+
+test('a call speech bubble can suppress synthetic speaker chrome without losing its source reference', () => {
+  const rows = [{}, {}];
+  const bubble = new RecentBubble(rows, { showSpeaker: false });
+  const live = bubble.append('assistant', 'synthetic remote voice', '隔离S7合成通话', {
+    kind: 'native-item', nativeItemId: 'output-item-2',
+  });
+
+  assert.equal(live.textContent, 'synthetic remote voice');
+  assert.deepEqual(bubble.rowsForReference({ kind: 'native-item', nativeItemId: 'output-item-2' }), [live]);
+});

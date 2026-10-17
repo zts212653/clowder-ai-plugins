@@ -16,6 +16,16 @@
       "type": "string",
       "format": "uuid"
     },
+    "CompanionAppAssistRef": {
+      "description": "Opaque Host-issued reference bound to one current application-assistance page scope or offer. It is correlation data, not authority.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "CompanionAppAssistAction": {
+      "enum": ["dismiss", "timeout", "accept"]
+    },
     "CompanionCorrelatableId": {
       "description": "A bounded single-line opaque identity issued by the Host or its current provider session.",
       "type": "string",
@@ -435,7 +445,8 @@
                 "chat",
                 "decisions",
                 "transcript",
-                "settings"
+                "settings",
+                "app-assist"
               ]
             },
             "width": {
@@ -447,6 +458,41 @@
               "type": "integer",
               "minimum": 32,
               "maximum": 500
+            },
+            "call": {
+              "type": "object",
+              "properties": {
+                "presentation": {
+                  "enum": [
+                    "lite",
+                    "controls"
+                  ]
+                },
+                "bubble": {
+                  "type": "object",
+                  "properties": {
+                    "width": {
+                      "type": "integer",
+                      "minimum": 120,
+                      "maximum": 420
+                    },
+                    "height": {
+                      "type": "integer",
+                      "minimum": 32,
+                      "maximum": 500
+                    }
+                  },
+                  "required": [
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "presentation"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
@@ -572,6 +618,27 @@
             "value": { "type": "boolean" }
           },
           "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "appAssistEnabled" },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "app-assist.settle" },
+            "scopeRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+            "offerRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+            "action": { "$ref": "#/$defs/CompanionAppAssistAction" }
+          },
+          "required": ["kind", "scopeRef", "offerRef", "action"],
           "additionalProperties": false
         },
         {
@@ -929,6 +996,85 @@
         }
       ]
     },
+    "CompanionAppAssistState": {
+      "type": "object",
+      "properties": {
+        "scopeRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "status": {
+          "enum": [
+            "off",
+            "ready",
+            "suspended",
+            "unsupported",
+            "source_unavailable",
+            "permission_required",
+            "timezone_required",
+            "identity_unavailable"
+          ]
+        },
+        "offer": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "offerRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+                "appName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$"
+                }
+              },
+              "required": ["offerRef", "appName"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["scopeRef", "revision", "status", "offer"],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "const": "ready" },
+            "offer": {}
+          },
+          "required": ["status", "offer"]
+        },
+        {
+          "properties": {
+            "status": {
+              "enum": [
+                "off",
+                "suspended",
+                "unsupported",
+                "source_unavailable",
+                "permission_required",
+                "timezone_required",
+                "identity_unavailable"
+              ]
+            },
+            "offer": { "const": null }
+          },
+          "required": ["status", "offer"]
+        }
+      ]
+    },
+    "CompanionAppAssistSettlement": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "app-assist-settlement" },
+        "scopeRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "offerRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+        "action": { "$ref": "#/$defs/CompanionAppAssistAction" },
+        "outcome": { "enum": ["settled", "stale_offer"] }
+      },
+      "required": ["kind", "scopeRef", "revision", "offerRef", "action", "outcome"],
+      "additionalProperties": false
+    },
     "CompanionState": {
       "type": "object",
       "properties": {
@@ -983,6 +1129,9 @@
         "meeting": {
           "$ref": "#/$defs/CompanionMeetingState"
         },
+        "appAssist": {
+          "$ref": "#/$defs/CompanionAppAssistState"
+        },
         "nativeWork": {
           "$ref": "#/$defs/CompanionNativeWork"
         }
@@ -1000,6 +1149,7 @@
         "nativeActivity",
         "liveTransport",
         "meeting",
+        "appAssist",
         "nativeWork"
       ],
       "additionalProperties": false
@@ -1197,7 +1347,8 @@
         "behaviorEnabled",
         "proactivePolicy",
         "personaTone",
-        "householdReadsAllowed"
+        "householdReadsAllowed",
+        "appAssistEnabled"
       ]
     },
     "CompanionSettingsValues": {
@@ -1209,7 +1360,8 @@
         "behaviorEnabled": { "type": "boolean" },
         "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
         "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
-        "householdReadsAllowed": { "type": "boolean" }
+        "householdReadsAllowed": { "type": "boolean" },
+        "appAssistEnabled": { "type": "boolean" }
       },
       "required": [
         "dutyCatProfileId",
@@ -1218,7 +1370,8 @@
         "behaviorEnabled",
         "proactivePolicy",
         "personaTone",
-        "householdReadsAllowed"
+        "householdReadsAllowed",
+        "appAssistEnabled"
       ],
       "additionalProperties": false
     },
@@ -1702,6 +1855,9 @@
           "$ref": "#/$defs/CompanionLifecycleReceipt"
         },
         {
+          "$ref": "#/$defs/CompanionAppAssistSettlement"
+        },
+        {
           "type": "object",
           "properties": {
             "kind": {
@@ -1785,6 +1941,34 @@
               "additionalProperties": false
             },
             "panel": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "width",
+                "height"
+              ],
+              "additionalProperties": false
+            },
+            "bubble": {
               "type": "object",
               "properties": {
                 "x": {

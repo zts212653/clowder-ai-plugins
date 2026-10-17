@@ -22,6 +22,8 @@ import { ReplyLetterView } from '../src/reply-letter-view.mjs';
 import { HostConversationDraft } from '../src/conversation-draft.mjs';
 import { ConversationSurface } from '../src/conversation-surface.mjs';
 import { CallControlsPresentation } from '../src/call-controls-presentation.mjs';
+import { CallDuration } from '../src/call-duration.mjs';
+import { AppAssistController } from '../src/app-assist-controller.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -58,6 +60,7 @@ function fixture() {
   let identity = { phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' } };
   let onControls, onVoice, receive, shareState, travelObserver, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
@@ -76,6 +79,7 @@ function fixture() {
     ], active: [], recentDeliveries: [] });
   let settings = { kind: 'settings', status: 'available', values: {
     dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72, behaviorEnabled: true,
+    appAssistEnabled: false,
     proactivePolicy: 'quiet-badge', personaTone: '温暖、简短、不啰嗦', householdReadsAllowed: true,
   }, companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }], selectedCompanionStatus: 'available' };
   let settingsReader = async () => settings;
@@ -165,6 +169,10 @@ function fixture() {
       calls.push(['settings-update', field, value]);
       return settingUpdate(field, value);
     },
+    settleAppAssist: async (scopeRef, offerRef, action) => {
+      calls.push(['app-assist-settle', scopeRef, offerRef, action]);
+      return { kind: 'app-assist-settlement', scopeRef, revision: 2, offerRef, action, outcome: 'settled' };
+    },
     resetPosition: async () => { calls.push('position-reset'); return { kind: 'ok' }; },
     observePresentation: async observation => { calls.push(['presentation-observe', observation]); return { kind: 'ok' }; },
     disableCompanion: async () => { calls.push('companion-disable'); return { kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' }; } };
@@ -191,7 +199,7 @@ function fixture() {
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
-    VisibleTextPresentation, CallControlsPresentation,
+    VisibleTextPresentation, CallControlsPresentation, CallDuration, AppAssistController,
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, queueMicrotask,
@@ -441,9 +449,9 @@ test('the real surface waits for completed provenance and full body before start
 test('voice keeps a persistent call bar and only call-scoped messages while history stays closed', async () => {
   const f = fixture(); await flush(); f.start(); await flush(); f.tick(); await flush();
   assert.equal(f.controls.panel, 'actions');
-  assert.equal(f.nodes.get('call-bubble-first').textContent, '语音：It is like an assistant.');
+  assert.equal(f.nodes.get('call-bubble-first').textContent, 'It is like an assistant.');
   f.voice({ type: 'transcript', callId: CALL_A, role: 'assistant', text: '正在查', itemId: 'output-live' });
-  assert.equal(f.nodes.get('call-bubble-second').textContent, '宪宪：正在查');
+  assert.equal(f.nodes.get('call-bubble-second').textContent, '正在查');
   assert.match(f.nodes.get('call-state').textContent, /通话中/u);
   assert.equal(f.nodes.get('call-mic-state').textContent, '麦克风已开启');
   assert.ok(!f.calls.includes('stop'));
@@ -730,12 +738,18 @@ test('cat-side settings read Host truth, save one field, and confirm call-sensit
   assert.equal(f.controls.panel, 'settings');
   assert.equal(f.nodes.get('settings-partner-value').textContent, '宪宪');
   assert.equal(f.nodes.get('settings-behavior').attributes['aria-checked'], 'true');
+  assert.equal(f.nodes.get('settings-app-assist').attributes['aria-checked'], 'false');
   assert.equal(f.nodes.get('settings-tone-count').textContent, '9 / 200');
 
   await f.nodes.get('settings-behavior').onclick(); await flush();
   assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
     && call[1] === 'behaviorEnabled' && call[2] === false));
   assert.equal(f.nodes.get('settings-behavior').attributes['aria-checked'], 'false');
+
+  await f.nodes.get('settings-app-assist').onclick(); await flush();
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
+    && call[1] === 'appAssistEnabled' && call[2] === true));
+  assert.equal(f.nodes.get('settings-app-assist').attributes['aria-checked'], 'true');
 
   f.start(); await flush();
   await f.controls.show('settings'); await flush();

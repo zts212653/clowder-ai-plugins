@@ -260,7 +260,7 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0' | '1.6.0';
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -823,6 +823,8 @@ export type DocxMaterializationResponse = {
 export type CompanionSelectionId = string;
 export type CompanionCallId = string;
 export type CompanionClientMessageId = string;
+export type CompanionAppAssistRef = string;
+export type CompanionAppAssistAction = 'dismiss' | 'timeout' | 'accept';
 export type CompanionCorrelatableId = string;
 export type CompanionOpaqueReadReference = string;
 export type CompanionConversationScopeRef = string;
@@ -913,9 +915,16 @@ export type CompanionCommand = {
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript' | 'settings';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript' | 'settings' | 'app-assist';
   readonly width: number;
   readonly height: number;
+  readonly call?: {
+    readonly presentation: 'lite' | 'controls';
+    readonly bubble?: {
+      readonly width: number;
+      readonly height: number;
+    };
+  };
 } | {
   readonly kind: 'view.drag';
   readonly phase: 'start' | 'end';
@@ -953,6 +962,15 @@ export type CompanionCommand = {
   readonly kind: 'settings.update';
   readonly field: 'householdReadsAllowed';
   readonly value: boolean;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'appAssistEnabled';
+  readonly value: boolean;
+} | {
+  readonly kind: 'app-assist.settle';
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly offerRef: CompanionAppAssistRef;
+  readonly action: CompanionAppAssistAction;
 } | {
   readonly kind: 'companion.disable';
 } | {
@@ -1089,6 +1107,15 @@ export type CompanionMeetingState = {
   readonly paused: false;
   readonly sourceLabel: null;
 };
+export type CompanionAppAssistState = unknown | unknown;
+export type CompanionAppAssistSettlement = {
+  readonly kind: 'app-assist-settlement';
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly revision: number;
+  readonly offerRef: CompanionAppAssistRef;
+  readonly action: CompanionAppAssistAction;
+  readonly outcome: 'settled' | 'stale_offer';
+};
 export type CompanionState = {
   readonly kind: 'state';
   readonly phase: 'idle' | 'preparing' | 'ready' | 'connecting' | 'talking' | 'closed' | 'failed';
@@ -1103,6 +1130,7 @@ export type CompanionState = {
   readonly liveTransport: CompanionLiveTransport;
   readonly audio?: CompanionAudioState;
   readonly meeting: CompanionMeetingState;
+  readonly appAssist: CompanionAppAssistState;
   readonly nativeWork: CompanionNativeWork;
 };
 export type CompanionDecisionNavigationTarget = 'origin' | 'approval_card' | 'action';
@@ -1179,7 +1207,7 @@ export type CompanionDecisionTrial = {
   readonly kind: 'decision-trial';
   readonly status: 'dismissed' | 'trial_confirmed' | 'stale' | 'unavailable';
 };
-export type CompanionSettingField = 'dutyCatProfileId' | 'skin' | 'ballSize' | 'behaviorEnabled' | 'proactivePolicy' | 'personaTone' | 'householdReadsAllowed';
+export type CompanionSettingField = 'dutyCatProfileId' | 'skin' | 'ballSize' | 'behaviorEnabled' | 'proactivePolicy' | 'personaTone' | 'householdReadsAllowed' | 'appAssistEnabled';
 export type CompanionSettingsValues = {
   readonly dutyCatProfileId: string;
   readonly skin: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
@@ -1188,6 +1216,7 @@ export type CompanionSettingsValues = {
   readonly proactivePolicy: 'ambient' | 'quiet-badge';
   readonly personaTone: string;
   readonly householdReadsAllowed: boolean;
+  readonly appAssistEnabled: boolean;
 };
 export type CompanionSettingsRosterEntry = {
   readonly catProfileId: string;
@@ -1364,7 +1393,7 @@ export type CompanionConversationBodyV2 = {
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | {
+} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | CompanionConversationPageV2 | CompanionConversationBodyV2 | {
@@ -1380,6 +1409,12 @@ export type CompanionReply = {
     readonly y: number;
   };
   readonly panel: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+  readonly bubble?: {
     readonly x: number;
     readonly y: number;
     readonly width: number;

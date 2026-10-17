@@ -63,7 +63,7 @@ async function readCallDots(page) {
       },
       dots: contextIds.map(id => {
         const context = document.getElementById(id);
-        const dot = context.querySelector(':scope > .status-dot, :scope > .call-status-line > .status-dot');
+        const dot = context.querySelector(':scope > .status-dot, :scope .call-status-line > .status-dot');
         const style = getComputedStyle(dot);
         const halo = getComputedStyle(dot, '::after');
         return {

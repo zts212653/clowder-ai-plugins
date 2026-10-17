@@ -21,6 +21,7 @@ function bounded(value: unknown): boolean {
 export function validateCompanionCommand(value: unknown): value is CompanionCommand {
   if (!bounded(value) || !command(value)) return false;
   const parsed = value as CompanionCommand;
+  if (parsed.kind === 'view.layout' && parsed.call !== undefined && parsed.panel !== 'actions') return false;
   if (parsed.kind === 'text') return parsed.text.trim().length > 0;
   if (parsed.kind === 'screen.frame') return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(parsed.frame.image);
   return true;

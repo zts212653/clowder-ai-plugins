@@ -17,7 +17,7 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 <main><iframe title="实际猫猫球界面" src="/index.html?skin=ragdoll-v1"></iframe></main>
 <script>const frame=document.querySelector('iframe');document.querySelector('#disconnect').onclick=()=>frame.contentWindow.postMessage('preview-disconnect',location.origin);function refresh(){frame.style.width='300px';frame.style.height='270px';frame.src='/index.html?skin='+document.querySelector('#skin').value+'&scenario='+document.querySelector('#scenario').value;}document.querySelectorAll('select').forEach(e=>e.onchange=refresh);document.querySelector('#background').onclick=()=>document.querySelector('main').classList.toggle('dark');window.addEventListener('message',e=>{if(e.source!==frame.contentWindow||e.origin!==location.origin)return;if(e.data.kind==='geometry'){frame.style.width=e.data.width+'px';frame.style.height=e.data.height+'px';}if(e.data.kind==='resize'){frame.style.width=e.data.expanded?'380px':'300px';frame.style.height=e.data.expanded?'590px':'270px';}if(e.data.kind==='note')document.querySelector('#note').textContent=e.data.text;});</script></html>`;
 
-export function fixture(skin, failure, pending = true, autoTranscript = true) {
+export function fixture(skin, failure, pending = true, autoTranscript = true, appAssist = false) {
   return `<script>
   const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'砚砚',inputMessageIds:[],responsePhase:null,body:{revision:'preview-history-v1',complete:true,continuation:null},companionIdentity:{
     v:1,name:'猫猫球',partner:{catId:'fable-5',displayName:'宪宪',skin:'xianxian-codex'},
@@ -50,9 +50,15 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
   let meeting = {kind:'running',sharing:false,paused:false,sourceLabel:'Zoom · Cat Café 产品周会（核心桌面协作与会议转写状态验证）'};
   window.__setMeeting = value => { meeting = value; };
   let companionSettings = {dutyCatProfileId:'fable-5',skin:${JSON.stringify(skin)},ballSize:72,behaviorEnabled:true,proactivePolicy:'quiet-badge',personaTone:'温暖、简短、不啰嗦',householdReadsAllowed:true};
+  companionSettings.appAssistEnabled=${appAssist};
+  let appAssistState={scopeRef:'fixture-view-a',revision:1,status:companionSettings.appAssistEnabled?'ready':'off',offer:companionSettings.appAssistEnabled?{offerRef:'fixture-only-1',appName:'Fixture Writer'}:null};
+  window.__getAppAssistState=()=>structuredClone(appAssistState);
+  window.__setAppAssistOffer=value=>{appAssistState={...appAssistState,revision:appAssistState.revision+1,status:'ready',offer:value};};
+  window.__setAppAssistState=value=>{appAssistState=structuredClone(value);};
   const identity = () => ({kind:'state',phase,displayName:'宪宪',skin:companionSettings.skin,documentsAllowed:allowed,toolsReady:phase==='talking',behaviorEnabled:companionSettings.behaviorEnabled,nativeActivity:'none',
     audio:{supportedModes:['duplex','receive_only'],activeMode:phase==='talking'?(activeMode??'duplex'):null},
     meeting,
+    appAssist:appAssistState,
     liveTransport:{kind:'gpt_live_v3',verifiedModel:null},nativeWork:{scopeId:phase==='idle'?null:'0123456789abcdef',revision:0,active:[],recent:[]},
     duty:{catId:'preview-cat',displayName:'宪宪'},carrier:{catId:'preview-cat',displayName:'宪宪'}});
   let activeMode = null; const emit = event => listeners.forEach(fn=>fn(event));
@@ -66,13 +72,29 @@ export function fixture(skin, failure, pending = true, autoTranscript = true) {
       case 'prepare': phase='ready';return identity();
       case 'audio.connect': activeMode=command.mode??'duplex';setTimeout(()=>{if(${failure}){emit({kind:'audio',type:'error',callId,code:'carrier_unavailable'});}else{phase='talking';emit({kind:'audio',type:'connected',callId});if(${autoTranscript})emit({kind:'audio',type:'transcript',callId,role:'assistant',text:'这是正在说的话，查看记录不会停止语音。',itemId:'preview-live-output',turnId:'preview-live-turn'});}},450);return {kind:'ok'};
       case 'stop': phase='idle';activeMode=null;return {kind:'ok'};
-      case 'view.layout': { const petWidth=Math.round(120*companionSettings.ballSize/72),petHeight=Math.round(130*companionSettings.ballSize/72);const width=Math.max(petWidth+16,command.width+16),height=command.panel==='none'?petHeight+16:command.height+petHeight+28; parent.postMessage({kind:'geometry',width,height},location.origin); return {kind:'layout',width,height,pet:{x:(width-petWidth)/2,y:height-petHeight-8},panel:{x:8,y:8,width:command.width,height:command.height}}; }
+      case 'view.layout': {
+        const petWidth=Math.round(120*companionSettings.ballSize/72),petHeight=Math.round(130*companionSettings.ballSize/72);
+        if(command.panel==='actions'&&command.call){
+          const bubble=command.call.bubble??null;
+          const width=Math.max(petWidth+16,command.width+16,(bubble?.width??0)+16);
+          const bubbleRect=bubble?{x:(width-bubble.width)/2,y:8,width:bubble.width,height:bubble.height}:null;
+          const petY=bubbleRect?bubbleRect.y+bubbleRect.height+12:8;
+          const panel={x:(width-command.width)/2,y:petY+petHeight+12,width:command.width,height:command.height};
+          const height=panel.y+panel.height+8;
+          parent.postMessage({kind:'geometry',width,height},location.origin);
+          return {kind:'layout',width,height,pet:{x:(width-petWidth)/2,y:petY},panel,...(bubbleRect?{bubble:bubbleRect}:{})};
+        }
+        const width=Math.max(petWidth+16,command.width+16),height=command.panel==='none'?petHeight+16:command.height+petHeight+28;
+        parent.postMessage({kind:'geometry',width,height},location.origin);
+        return {kind:'layout',width,height,pet:{x:(width-petWidth)/2,y:height-petHeight-8},panel:{x:8,y:8,width:command.width,height:command.height}};
+      }
       case 'view.drag':return {kind:'ok'};
       case 'view.reset':note('正式窗口会回到 Host 计算的默认桌面位置。');return {kind:'ok'};
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};
       case 'settings.read':return {kind:'settings',status:'available',values:companionSettings,companions:[
         {catProfileId:'fable-5',displayName:'宪宪',available:true},{catProfileId:'codex-sol',displayName:'砚砚',available:true},{catProfileId:'gemini38',displayName:'烁烁',available:false}],selectedCompanionStatus:'available'};
-      case 'settings.update':{const stops=phase==='talking'&&(command.field==='dutyCatProfileId'||command.field==='householdReadsAllowed');if(stops){phase='idle';activeMode=null;}companionSettings={...companionSettings,[command.field]:command.value};allowed=companionSettings.householdReadsAllowed;return {kind:'settings-update',field:command.field,outcome:'saved',callStatus:stops?'stopped':'unchanged',applies:command.field==='personaTone'?'next_call':'now'};}
+      case 'settings.update':{const stops=phase==='talking'&&(command.field==='dutyCatProfileId'||command.field==='householdReadsAllowed');if(stops){phase='idle';activeMode=null;}companionSettings={...companionSettings,[command.field]:command.value};allowed=companionSettings.householdReadsAllowed;if(command.field==='appAssistEnabled')appAssistState={...appAssistState,revision:appAssistState.revision+1,status:command.value?'ready':'off',offer:null};return {kind:'settings-update',field:command.field,outcome:'saved',callStatus:stops?'stopped':'unchanged',applies:command.field==='personaTone'?'next_call':'now'};}
+      case 'app-assist.settle':{const settled=command.scopeRef===appAssistState.scopeRef&&command.offerRef===appAssistState.offer?.offerRef;if(settled)appAssistState={...appAssistState,revision:appAssistState.revision+1,offer:null};return {kind:'app-assist-settlement',scopeRef:appAssistState.scopeRef,revision:appAssistState.revision,offerRef:command.offerRef,action:command.action,outcome:settled?'settled':'stale_offer'};}
       case 'companion.disable':note('正式 Host 会结束媒体并停用当前安装实例；预览保持打开。');return {kind:'companion-lifecycle',action:'disable',outcome:'disabled'};
       case 'conversation.read':return command.v===2
         ? (()=>{conversationReads.push({before:command.before??null});const page=command.before===undefined?{messages,...latestConversation}:olderConversationPages.get(command.before);return page?{kind:'conversation',v:2,status:'available',threadTitle:'猫猫球 · 伴随对话',messages:page.messages,hasMoreOlder:page.hasMoreOlder,olderCursor:page.olderCursor}:{kind:'conversation',v:2,status:'stale'};})()
@@ -160,7 +182,7 @@ export function createPreviewServer() {
       if (url.pathname === '/index.html') {
         const skin = url.searchParams.get('skin');
         if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
-        content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0', url.searchParams.get('autoTranscript') !== '0')}<script type="module"`);
+        content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0', url.searchParams.get('autoTranscript') !== '0', url.searchParams.get('appAssist') === '1')}<script type="module"`);
       }
       res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
     } catch { res.writeHead(404); res.end(); }

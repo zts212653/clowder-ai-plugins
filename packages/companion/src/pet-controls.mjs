@@ -4,7 +4,9 @@ export function bindPetControls(client, {
 }) {
   const $ = id => document.getElementById(id);
   const body = $('pet');
-  const panelIds = ['actions', 'menu', 'chat', 'bubble', 'decisions', 'transcript', 'settings'];
+  const panelIds = ['actions', 'menu', 'chat', 'bubble', 'app-assist', 'decisions', 'transcript', 'settings'];
+  const callBubble = $('call-bubble');
+  const managedIds = [...panelIds, 'call-bubble'];
   const desiredSizes = new WeakMap();
   let panel = 'none', ambientPanel = 'none', layoutRevision = 0, layoutScheduled = false, drag, suppressClick = false;
   const measure = node => {
@@ -21,6 +23,24 @@ export function bindPetControls(client, {
     node.style.maxHeight = appliedMaxHeight;
     return desired;
   };
+  const hasCallBubble = () => callBubble?.querySelector('p:not([hidden])') !== null;
+  const callLayout = next => {
+    if (next !== 'actions') {
+      if (callBubble) callBubble.hidden = true;
+      return undefined;
+    }
+    const presentation = $('actions').dataset.presentation === 'controls' ? 'controls' : 'lite';
+    const call = { presentation };
+    if (callBubble && hasCallBubble()) {
+      callBubble.hidden = false;
+      call.bubble = measure(callBubble);
+    } else if (callBubble) callBubble.hidden = true;
+    return call;
+  };
+  const sizeKey = (desired, call) => [
+    desired.width, desired.height, call?.presentation ?? '',
+    call?.bubble?.width ?? '', call?.bubble?.height ?? '',
+  ].join(':');
   async function show(next) {
     if (next === 'none' && ambientPanel !== 'none') next = ambientPanel;
     const previousPanel = panel;
@@ -28,14 +48,24 @@ export function bindPetControls(client, {
     panel = next;
     for (const id of panelIds) $(id).hidden = id !== next;
     body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(next)));
+    const call = callLayout(next);
     const desired = measure(node);
-    if (node) desiredSizes.set(node, `${desired.width}:${desired.height}`);
+    if (node) desiredSizes.set(node, sizeKey(desired, call));
     const revision = ++layoutRevision;
     try {
-      const placed = await client.layout(next, desired.width, desired.height);
+      const placed = await client.layout(next, desired.width, desired.height, call);
       if (revision !== layoutRevision) return;
       $('anchor').style.left = `${placed.pet.x}px`; $('anchor').style.top = `${placed.pet.y}px`;
       if (node) { node.style.left = `${placed.panel.x}px`; node.style.top = `${placed.panel.y}px`; node.style.maxHeight = `${placed.panel.height}px`; }
+      if (callBubble) {
+        const visible = next === 'actions' && call?.bubble && placed.bubble;
+        callBubble.hidden = !visible;
+        if (visible) {
+          callBubble.style.left = `${placed.bubble.x}px`;
+          callBubble.style.top = `${placed.bubble.y}px`;
+          callBubble.style.maxHeight = `${placed.bubble.height}px`;
+        }
+      }
       if (previousPanel !== next) {
         if (next === 'chat') {
           const mode = $('chat').dataset.replyMode;
@@ -54,6 +84,7 @@ export function bindPetControls(client, {
       if (revision !== layoutRevision) return;
       panel = previousPanel;
       for (const id of panelIds) $(id).hidden = id !== panel;
+      if (callBubble) callBubble.hidden = panel !== 'actions' || !hasCallBubble();
       body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(panel)));
       error(cause, { panel: next });
     }
@@ -65,8 +96,9 @@ export function bindPetControls(client, {
       layoutScheduled = false;
       const node = $(panel);
       if (!node || node.hidden) return;
+      const call = callLayout(panel);
       const desired = measure(node);
-      const key = `${desired.width}:${desired.height}`;
+      const key = sizeKey(desired, call);
       if (desiredSizes.get(node) === key) return;
       void show(panel);
     });
@@ -123,9 +155,12 @@ export function bindPetControls(client, {
     if (!current || current.hidden) return;
     // Root visibility is already handled by show(). Descendant visibility and
     // text/row mutations are content demand and may require a larger surface.
-    if (records.some(record => record.type !== 'attributes' || !panelIds.includes(record.target.id))) remeasure();
+    if (records.some(record => record.type !== 'attributes' || !managedIds.includes(record.target.id))) remeasure();
   });
   for (const id of panelIds) observer.observe($(id), {
+    subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden'],
+  });
+  if (callBubble) observer.observe(callBubble, {
     subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden'],
   });
   window.addEventListener('beforeunload', () => observer.disconnect());
@@ -133,10 +168,11 @@ export function bindPetControls(client, {
     get panel() { return panel; }, show, remeasure,
     setAmbient(value) {
       const next = value === true ? 'bubble' : value === false ? 'none' : value;
-      if (!['none', 'bubble', 'actions'].includes(next)) return Promise.resolve();
+      const ambientPanels = ['none', 'bubble', 'actions', 'app-assist'];
+      if (!ambientPanels.includes(next)) return Promise.resolve();
       if (ambientPanel === next) return Promise.resolve();
       ambientPanel = next;
-      return ['none', 'bubble', 'actions'].includes(panel) ? show('none') : Promise.resolve();
+      return ambientPanels.includes(panel) ? show('none') : Promise.resolve();
     },
     dismiss() { if (drag) suppressClick = true; void show('none'); },
   };

@@ -18,6 +18,7 @@ test('state carries only the Host-bound meeting presentation without a meeting s
     documentsAllowed: true, behaviorEnabled: true, toolsReady: true,
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     meeting: { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom' },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 1, active: [], recent: [] },
   };
   const client = createCompanionClient({
@@ -47,6 +48,42 @@ test('passive bubble layout stays a bounded presentation request', async () => {
   }, subscribe: () => () => {} });
   await client.layout('bubble', 240, 80);
   assert.deepEqual(calls, [{ kind: 'view.layout', panel: 'bubble', width: 240, height: 80 }]);
+});
+
+test('active call layout keeps the interactive bar and passive speech bubble as distinct Host regions', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return {
+      kind: 'layout', pet: { x: 420, y: 90 }, panel: { x: 0, y: 104, width: 412, height: 116 },
+      bubble: { x: 300, y: 0, width: 320, height: 62 }, width: 628, height: 236,
+    };
+  }, subscribe: () => () => {} });
+  const call = { presentation: 'controls' as const, bubble: { width: 320, height: 62 } };
+
+  const reply = await client.layout('actions', 412, 116, call);
+
+  assert.deepEqual(calls, [{ kind: 'view.layout', panel: 'actions', width: 412, height: 116, call }]);
+  assert.deepEqual(reply.bubble, { x: 300, y: 0, width: 320, height: 62 });
+});
+
+test('application assistance settlement carries only Host-issued scope, offer and the explicit action', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return {
+      kind: 'app-assist-settlement', scopeRef: 'fixture-view-a', revision: 5,
+      offerRef: 'fixture-only-1', action: 'accept', outcome: 'settled',
+    };
+  }, subscribe: () => () => {} });
+
+  const reply = await client.settleAppAssist('fixture-view-a', 'fixture-only-1', 'accept');
+
+  assert.deepEqual(calls, [{
+    kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'accept',
+  }]);
+  assert.equal(reply.kind, 'app-assist-settlement');
+  assert.equal(reply.outcome, 'settled');
 });
 
 test('presentation observation relays only the visible-text event, call fence, time and source reference', async () => {
@@ -224,7 +261,8 @@ test('settings, native reset, and disable expose no owner or installation select
   let response = {
     kind: 'settings', status: 'available',
     values: { dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72,
-      behaviorEnabled: true, proactivePolicy: 'quiet-badge', personaTone: '温暖', householdReadsAllowed: true },
+      behaviorEnabled: true, proactivePolicy: 'quiet-badge', personaTone: '温暖', householdReadsAllowed: true,
+      appAssistEnabled: false },
     companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }],
     selectedCompanionStatus: 'available',
   } as unknown as CompanionReply;
@@ -233,6 +271,8 @@ test('settings, native reset, and disable expose no owner or installation select
   await client.readSettings();
   response = { kind: 'settings-update', field: 'behaviorEnabled', outcome: 'saved', callStatus: 'unchanged', applies: 'now' } as unknown as CompanionReply;
   await client.updateSetting('behaviorEnabled', false);
+  response = { kind: 'settings-update', field: 'appAssistEnabled', outcome: 'saved', callStatus: 'unchanged', applies: 'now' } as unknown as CompanionReply;
+  await client.updateSetting('appAssistEnabled', true);
   response = { kind: 'ok' };
   await client.resetPosition();
   response = { kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' } as unknown as CompanionReply;
@@ -241,6 +281,7 @@ test('settings, native reset, and disable expose no owner or installation select
   assert.deepEqual(calls, [
     { kind: 'settings.read' },
     { kind: 'settings.update', field: 'behaviorEnabled', value: false },
+    { kind: 'settings.update', field: 'appAssistEnabled', value: true },
     { kind: 'view.reset' },
     { kind: 'companion.disable' },
   ]);

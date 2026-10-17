@@ -22,6 +22,8 @@ import { MeetingStatus, renderMeetingStatus } from './meeting-state.mjs';
 import { VisibleTextPresentation } from './visible-text-receipt.mjs';
 import { ConversationSurface } from './conversation-surface.mjs';
 import { CallControlsPresentation } from './call-controls-presentation.mjs';
+import { CallDuration } from './call-duration.mjs';
+import { AppAssistController } from './app-assist-controller.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -37,7 +39,8 @@ const callTranscript = new CallTranscriptView($('call-transcript-log'), {
   },
 });
 const bubble = new RecentBubble([$('bubble-first'), $('bubble-second')]);
-const callBubble = new RecentBubble([$('call-bubble-first'), $('call-bubble-second')]);
+const callBubble = new RecentBubble([$('call-bubble-first'), $('call-bubble-second')], { showSpeaker: false });
+const callDuration = new CallDuration($('call-duration'));
 const meetingStatus = new MeetingStatus();
 const foldedChatUnread = new FoldedChatUnread(count => {
   $('call-chat-unread').hidden = count === 0;
@@ -51,10 +54,11 @@ const nativeTravel = new NativeWindowTravel({
   changed: value => motion.syncTravel(value),
 });
 let sharing = false, pendingScreen = false, transcriptLoading = false, previousPhase = 'idle';
+let appAssistOffer = null;
 let didMove = false, settingsView, settingsValues, decisionPanel, workView, callControlsPresentation;
 let previousControlPanel = 'none';
 // F229 stays quiet: a history ID change has no provenance for proactive text.
-const ambientPanel = active => active ? 'actions' : 'none';
+const ambientPanel = active => active ? 'actions' : appAssistOffer ? 'app-assist' : 'none';
 const setTexts = (ids, text) => { for (const id of ids) $(id).textContent = text; };
 const setHidden = (ids, hidden) => { for (const id of ids) $(id).hidden = hidden; };
 if (!window.clowderCompanion) {
@@ -135,6 +139,19 @@ if (!window.clowderCompanion) {
     accepted: () => { motion.signal('received'); void conversationSurface.readHistory(); },
     changed: () => controls.remeasure(),
   });
+  const appAssist = new AppAssistController({
+    client,
+    changed: value => {
+      appAssistOffer = value.offer;
+      $('app-assist-name').textContent = appAssistOffer?.appName ?? '';
+      void controls.setAmbient(ambientPanel(previousPhase !== 'idle'));
+    },
+    accepted: () => {
+      status('提示已收起。请先点“语音通话”，连上后再点“共享画面”。');
+      $('menu-status').hidden = false;
+      void controls.show('menu');
+    },
+  });
   const screen = new ScreenShare({
     screenRequest: () => client.screenPick(), screenStart: (selectionId, name) => client.screenOpen(selectionId, name),
     screenFrame: (selectionId, frame) => client.screenFrame(selectionId, {
@@ -193,7 +210,9 @@ if (!window.clowderCompanion) {
       const canReceiveOnly = value.identity?.audio?.supportedModes?.includes('receive_only') === true;
       const retryReceiveOnly = value.failed && value.retryMode === 'receive_only' && canReceiveOnly;
       visibleText.setCall(value.callId);
+      callDuration.set(value.connectedAt);
       callControlsPresentation.setActive(active);
+      if (value.identity?.appAssist) appAssist.consume(value.identity.appAssist);
       void controls.setAmbient(ambientPanel(active));
       $('begin').hidden = active; $('begin').disabled = !value.identity;
       $('listen').hidden = active || !canReceiveOnly; $('listen').disabled = !value.identity;
@@ -212,7 +231,7 @@ if (!window.clowderCompanion) {
       $('compose').querySelector('button').disabled = !value.identity || value.phase === 'connecting';
       callControlsPresentation.setComposerState(value.identity, value.phase === 'connecting');
       status(value.message ?? '');
-      $('status').hidden = !value.message || /^(点击|正在听|只听模式|只听已结束|语音通话已结束|已发送)/.test(value.message);
+      $('status').hidden = !value.message || /^(点击|正在听|麦克风已静音|只听模式|只听已结束|语音通话已结束|已发送)/.test(value.message);
       $('menu-status').hidden = !value.message;
       const callState = value.recovering ? '连接不稳定' : value.phase === 'connecting' ? '正在连接'
         : receiveOnly ? '只听中' : active ? '通话中' : '';
@@ -278,6 +297,8 @@ if (!window.clowderCompanion) {
       if (showFailure) void controls.show('menu');
     },
   });
+  $('app-assist-dismiss').onclick = () => { void appAssist.settle('dismiss'); };
+  $('app-assist-start').onclick = () => { void appAssist.settle('accept'); };
   conversationSurface = new ConversationSurface({
     document, client, controls, bubble, transcript,
     getCallPhase: () => conversation.phase,
@@ -344,7 +365,7 @@ if (!window.clowderCompanion) {
   const decisionMonitor = setInterval(() => { if (controls.panel !== 'decisions') void decisionPanel.read(); }, 15000), workMonitor = setInterval(() => { if (controls.panel === 'menu') void workView.load(); }, 15000);
   void conversation.refresh(); conversationSurface.start(); void decisionPanel.read(); void settingsView.controller.load(); void controls.show('none');
   window.addEventListener('beforeunload', () => {
-    clearInterval(statusMonitor); clearInterval(transcriptMonitor); clearInterval(decisionMonitor); clearInterval(workMonitor); conversationSurface.close(); callControlsPresentation.close();
-    unsubscribe(); visibleText.close(); nativeTravel.close(); motion.close(); void conversation.end();
+    clearInterval(statusMonitor); clearInterval(transcriptMonitor); clearInterval(decisionMonitor); clearInterval(workMonitor); conversationSurface.close(); callControlsPresentation.close(); callDuration.close();
+    unsubscribe(); appAssist.close(); visibleText.close(); nativeTravel.close(); motion.close(); void conversation.end();
   });
 }
