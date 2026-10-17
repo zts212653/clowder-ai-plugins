@@ -26,9 +26,9 @@ borrowing today's selected companion.
 
 ## Host integration
 
-This surface requires the additive desktop bridge **1.5.0**. The Host computes
+This surface requires the additive desktop bridge **1.6.0**. The Host computes
 placement within the display work area, keeps the cat as its stable anchor, and
-owns bounded drag gestures and transparent-area hit testing. Hosts below 1.5
+owns bounded drag gestures and transparent-area hit testing. Hosts below 1.6
 reject this manifest before installation. Media admission and capture
 remain in the trusted Host; this package receives neither streams nor provider
 SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the cat.
@@ -54,6 +54,11 @@ automatically resent; an explicit retry keeps the original text, identity,
 revision and route. If the canonical thread changes, the old unconfirmed input
 stays visible as invalidated local text and is never replayed into the new scope.
 The legacy text and conversation methods remain unchanged for older pairs.
+
+Bridge 1.6 separates passive call speech from the bounded nameplate and control
+panel, and adds an optional application-assistance projection. Assistance is
+off by default; settling a prompt only opens the ordinary menu and grants no
+media, screen-selection or call authority.
 
 Xianxian uses one layered sitting body or one VP9 clip at a time. Expiring Host
 facts with task, result and event identities select tool work, workspace fetch,
