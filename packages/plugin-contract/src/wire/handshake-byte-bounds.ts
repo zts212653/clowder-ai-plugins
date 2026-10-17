@@ -21,7 +21,7 @@ import {
   PACKAGE_DIGEST_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
 } from './handshake.js';
-import { VALID_CAPABILITIES } from './grants.js';
+import { MAX_GRANT_ITEMS, VALID_CAPABILITIES } from './grants.js';
 import { REQUEST_ID_MAX_LENGTH } from './request-id.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';
 
@@ -77,7 +77,10 @@ const FAMILY_CODE_POINT: Record<HandshakeByteProofEncodingFamily, string> = {
 
 const MAX_REQUEST_ID = 'a'.repeat(REQUEST_ID_MAX_LENGTH);
 const MAX_PACKAGE_DIGEST = `sha512-${'A'.repeat(PACKAGE_DIGEST_LENGTH - 9)}==`;
-const MAX_EFFECTIVE_GRANTS = [...VALID_CAPABILITIES];
+// Vocabulary may grow without changing the frozen per-frame cardinality limit.
+const MAX_EFFECTIVE_GRANTS = [...VALID_CAPABILITIES]
+  .sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
+  .slice(0, MAX_GRANT_ITEMS);
 const MAX_HANDSHAKE_REJECT_REASON = HANDSHAKE_REJECT_REASONS.reduce(
   (longest, value) => (value.length > longest.length ? value : longest),
 );

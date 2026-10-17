@@ -45,9 +45,15 @@ test('package ships a detailed human capability guide beside the short Agent int
   const packageJson = JSON.parse(
     await readFile(new URL('../package.json', import.meta.url), 'utf8'),
   ) as { files: string[] };
-  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  const readme = await readFile(new URL('../README.en.md', import.meta.url), 'utf8');
+  const chinese = await readFile(new URL('../README.md', import.meta.url), 'utf8');
 
   assert.ok(packageJson.files.includes('README.md'));
+  assert.ok(packageJson.files.includes('README.en.md'));
+  assert.match(chinese, /^# 视频分析\n/m);
+  for (const heading of ['## 开始使用', '## 数据与失败处理', '## 安装权限']) {
+    assert.ok(chinese.includes(heading), `Chinese README is missing ${heading}`);
+  }
   assert.match(readme, /^# Video Analysis\n/m);
   for (const heading of [
     '## What it does',

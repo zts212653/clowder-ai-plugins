@@ -342,32 +342,101 @@ test('cancels an oversized provider body before buffering the full stream', asyn
   }
 });
 
-test('exposes one deterministic MCP tool over the public MCP transport', async () => {
-  const fixture = await fixtureServer(() => ({
-    body: { candidates: [{ content: { parts: [{ text: 'done' }] } }] },
-  }));
-  const config: VideoAnalysisProviderConfig = {
-    provider: 'gemini',
-    apiKey: 'test-secret',
-    baseUrl: fixture.baseUrl,
-  };
-  const server = createVideoAnalysisMcpServer(config);
-  const client = new Client({ name: 'video-analysis-test', version: '1.0.0' });
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  try {
-    await server.connect(serverTransport);
-    await client.connect(clientTransport);
-    const tools = await client.listTools();
-    assert.deepEqual(tools.tools.map((tool) => tool.name), ['video_analysis']);
-    const result = await client.callTool({
-      name: 'video_analysis',
-      arguments: { videoUrl: 'https://media.example/video.mp4', prompt: 'summarize' },
-    });
-    assert.equal(result.isError, undefined);
-    assert.deepEqual(result.content, [{ type: 'text', text: 'done' }]);
-  } finally {
-    await client.close();
-    await server.close();
-    await fixture.close();
-  }
+const legacyInputSchema = (capability: string) => ({
+  type: 'object',
+  properties: {
+    capability: {
+      type: 'string',
+      enum: [capability],
+      description: 'Capability to invoke',
+    },
+    vars: {
+      type: 'object',
+      additionalProperties: { type: 'string' },
+      description: 'Template variables (videoUrl, prompt, etc.)',
+    },
+  },
+  required: ['capability', 'vars'],
+  additionalProperties: false,
+  $schema: 'http://json-schema.org/draft-07/schema#',
 });
+
+for (const providerCase of [
+  {
+    provider: 'gemini' as const,
+    capability: 'analyze_url',
+    description: 'Execute a sync gemini request. Capabilities: analyze_url. Returns result directly.',
+    response: { candidates: [{ content: { parts: [{ text: 'gemini-result' }] } }] },
+    expectedResult: 'gemini-result',
+  },
+  {
+    provider: 'zhipu' as const,
+    capability: 'analyze',
+    description: 'Execute a sync zhipu request. Capabilities: analyze. Returns result directly.',
+    response: { choices: [{ message: { content: 'zhipu-result' } }] },
+    expectedResult: 'zhipu-result',
+  },
+]) {
+  test(`preserves the legacy ${providerCase.provider} tools/list and invocation contract`, async () => {
+    const observed: Array<{ url: URL; authorization?: string; body: unknown }> = [];
+    const fixture = await fixtureServer((request) => {
+      observed.push(request);
+      return { body: providerCase.response };
+    });
+    const config: VideoAnalysisProviderConfig = {
+      provider: providerCase.provider,
+      apiKey: 'test-secret',
+      baseUrl: fixture.baseUrl,
+    };
+    const server = createVideoAnalysisMcpServer(config);
+    const client = new Client({ name: 'video-analysis-test', version: '1.0.0' });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    try {
+      await server.connect(serverTransport);
+      await client.connect(clientTransport);
+      const tools = await client.listTools();
+      assert.equal(tools.tools.length, 1);
+      assert.deepEqual(
+        {
+          name: tools.tools[0]?.name,
+          description: tools.tools[0]?.description,
+          inputSchema: tools.tools[0]?.inputSchema,
+        },
+        {
+          name: 'video_analysis_execute',
+          description: providerCase.description,
+          inputSchema: legacyInputSchema(providerCase.capability),
+        },
+      );
+
+      const result = await client.callTool({
+        name: 'video_analysis_execute',
+        arguments: {
+          capability: providerCase.capability,
+          vars: {
+            videoUrl: 'https://media.example/video.mp4',
+            prompt: 'summarize',
+          },
+        },
+      });
+      assert.equal(result.isError, undefined);
+      assert.deepEqual(result.content, [{ type: 'text', text: providerCase.expectedResult }]);
+      assert.equal(observed.length, 1);
+
+      const rejected = await client.callTool({
+        name: 'video_analysis_execute',
+        arguments: {
+          capability: providerCase.capability,
+          vars: { videoUrl: 'http://media.example/video.mp4', prompt: 'summarize' },
+        },
+      });
+      assert.equal(rejected.isError, true);
+      assert.match(JSON.stringify(rejected.content), /HTTPS URL without embedded credentials/);
+      assert.equal(observed.length, 1, 'unsafe video URL must fail before provider I/O');
+    } finally {
+      await client.close();
+      await server.close();
+      await fixture.close();
+    }
+  });
+}

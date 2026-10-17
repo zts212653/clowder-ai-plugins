@@ -8,10 +8,13 @@ import { parse } from 'yaml';
 
 const root = new URL('../', import.meta.url);
 test('the installable package declares one companion body and contains a closed browser asset graph', async () => {
+  const discoveryDeclaration = await readFile(new URL('plugin.yaml', root), 'utf8');
   const built = spawnSync(process.execPath, ['scripts/build.mjs'], { cwd: root, encoding: 'utf8' });
   assert.equal(built.status, 0, built.stderr);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root)));
   const catalogManifest = parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
+  assert.equal(await readFile(new URL('plugin.yaml', root), 'utf8'), discoveryDeclaration,
+    'the tracked discovery declaration must match its built version and surface integrity');
   assert.deepEqual(catalogManifest, manifest, 'catalog and module consumers read the same generated manifest');
   const pkg = JSON.parse(await readFile(new URL('package.json', root)));
   assert.ok(pkg.files.includes('plugin.yaml'), 'the catalog manifest must reach the published archive');

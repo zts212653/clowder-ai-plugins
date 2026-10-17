@@ -1,0 +1,26 @@
+{
+  "kind": "f202-reconciler-mechanical-source-comparison.v1",
+  "legacyHead": "ca5b831b48c165ea10c7389fe3eb4ba03d3e01e7",
+  "legacyPath": "packages/api/src/domains/plugin/builtin-runtime/collective-participation-reconciler.ts",
+  "legacyBlob": "831098364d278d177cef189827258ec40300a717",
+  "legacySha256": "6932fdb2f0731cb42998563771484881c293eb6f9aa15934dad6b86f3c62c86b",
+  "moveHead": "21f981bbfbd8f8124b719feee62f1771b951ab3a",
+  "moveDestination": "packages/collective-connector/src/participation-reconciler.ts",
+  "wholeMoveExact": true,
+  "normalizedCoreSha256": "4cade6b6e28c88abb5a8959930d1ee0a7c1e2390ada1b70de4b177e754af5dcc",
+  "allCoreFunctionsOtherwiseExact": true,
+  "namedHostEdges": [
+    "private Host imports -> existing package business types",
+    "CatId branded type -> string for implemented neutral SDK port",
+    "public avatar roots/read/resize remain Host; package accepts already bounded portable thumbnail",
+    "strict owner get/create/addParticipants DTO mapping",
+    "actual50-item port batches original100 roster without retry or rollback",
+    "package caller currentness checked around effects, no Host/native authority invented"
+  ],
+  "portsUsed": [
+    "ownerThreads.get/create/addParticipants",
+    "participantRoster.listForNativeContribution"
+  ],
+  "productionRegistrationAdded": false,
+  "manifestRuntimeEntrypointPinsSdkContractUnchanged": true
+}

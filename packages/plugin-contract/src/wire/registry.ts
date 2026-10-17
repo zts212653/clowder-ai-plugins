@@ -1,5 +1,5 @@
 /**
- * Complete 13-row beta.11 standalone production method registry.
+ * Complete 15-row beta.22 standalone production method registry.
  * Mechanized verbatim from the #1165 frozen shape (rev11).
  *
  * Every row carries machine-readable metadata:
@@ -82,7 +82,7 @@ export interface UnreadyRegistryRow extends RegistryRow {
 // ---------------------------------------------------------------------------
 
 /**
- * The exact 13 production method names, in registry order.
+ * The exact 15 production method names, in registry order.
  * No production method exists for fixture setup/observe, grant presets,
  * revocation, permission-matrix inspection, or replay deletion.
  */
@@ -100,9 +100,11 @@ export const WIRE_METHOD_NAMES = [
   'host.lifecycle.ping',
   'host.lifecycle.drain',
   'events.publish',
+  'media.read',
+  'host.messaging.lifecycle',
 ] as const;
 
-/** Union of all 13 production method names. */
+/** Union of all 15 production method names. */
 export type WireMethodName = (typeof WIRE_METHOD_NAMES)[number];
 
 /**
@@ -284,6 +286,30 @@ export const WIRE_METHOD_REGISTRY = {
     settlementKeySource: '(Host-bound producer instance, input.signalType, input.idempotencyKey)',
     ...EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   },
+  'media.read': {
+    rowNumber: 14,
+    method: 'media.read',
+    direction: 'plugin-to-host',
+    grant: 'media.read',
+    isNotification: false,
+    ready: true,
+    leafClosure: 'CLOSED',
+    reservedEntries: [],
+    settlementKeySource: '(Host-bound plugin instance, input.reference, input.offset)',
+    ...MESSAGING_ROW_ENCODED_BYTE_BOUNDS['media.read'],
+  },
+  'host.messaging.lifecycle': {
+    rowNumber: 15,
+    method: 'host.messaging.lifecycle',
+    direction: 'host-to-plugin',
+    grant: 'onMessage',
+    isNotification: false,
+    ready: true,
+    leafClosure: 'CLOSED',
+    reservedEntries: [],
+    settlementKeySource: 'input.deliveryId (Host-side authoritative)',
+    ...MESSAGING_ROW_ENCODED_BYTE_BOUNDS['host.messaging.lifecycle'],
+  },
 } as const satisfies WireMethodRegistry;
 
 // ---------------------------------------------------------------------------
@@ -317,7 +343,7 @@ export const READY_ROWS: readonly WireMethodName[] =
   WIRE_METHOD_NAMES.filter(m => WIRE_METHOD_REGISTRY[m].ready);
 
 /** Total number of production methods. */
-export const WIRE_METHOD_COUNT = 13 as const;
+export const WIRE_METHOD_COUNT = 15 as const;
 
 // ---------------------------------------------------------------------------
 // Lookup helpers

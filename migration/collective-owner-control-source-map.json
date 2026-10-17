@@ -1,0 +1,292 @@
+{
+  "kind": "f202-collective-owner-control-adaptation.v1",
+  "acceptedSource": "thread_mrkn6povq4zzgh45#0001791787597505-000324-e7fb0711",
+  "businessSourceHead": "ca5b831b48c165ea10c7389fe3eb4ba03d3e01e7",
+  "adapter": "packages/collective-connector/src/owner-control-http.ts",
+  "businessChanges": false,
+  "implementedOwnerPairs": 11,
+  "remainingOwnerPairs": 11,
+  "remainingNativePairs": 9,
+  "rows": [
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-accept-work",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.work.accept",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-connector/:connectionId/send",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.connector.send",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-continue-work",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.work.continue",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-current-context",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.context.current",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-progress",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.progress.submit",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-propose-work",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.work.propose",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-read-context",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.context.read",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-reply",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.reply.submit",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/callbacks/collective-set-interest",
+      "sourceFile": "packages/api/src/routes/callback-collective-participation-routes.ts",
+      "lane": "verified-native-callback",
+      "targetMethod": "collective.participation.set-interest",
+      "targetPath": null,
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector/:connectionId/inbox",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/inbox",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector/:connectionId/listening",
+      "sourceFile": "packages/api/src/routes/collective-owner-listening-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/listening",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/listening",
+      "sourceFile": "packages/api/src/routes/collective-owner-listening-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/listening",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector/:connectionId/participation",
+      "sourceFile": "packages/api/src/routes/collective-owner-participation-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/participation",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/plugins/collective-connector/:connectionId/participation",
+      "sourceFile": "packages/api/src/routes/collective-owner-participation-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/participation",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/plugins/collective-connector/:connectionId/participation/policy",
+      "sourceFile": "packages/api/src/routes/collective-owner-participation-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/participation/policy",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/participation/reconcile",
+      "sourceFile": "packages/api/src/routes/collective-owner-participation-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/participation/reconcile",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/reconnect",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/reconnect",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/revoke",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/revoke",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector/:connectionId/route",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/route",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/plugins/collective-connector/:connectionId/route",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/route",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector/:connectionId/work-policy",
+      "sourceFile": "packages/api/src/routes/collective-owner-work-policy-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work-policy",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/work-policy/adopt",
+      "sourceFile": "packages/api/src/routes/collective-owner-work-policy-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work-policy/adopt",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/work-policy/revoke",
+      "sourceFile": "packages/api/src/routes/collective-owner-work-policy-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work-policy/revoke",
+      "state": "implemented-awaiting-paired-Host-use"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/work/admit",
+      "sourceFile": "packages/api/src/routes/collective-owner-participation-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work/admit",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/work/reconsider",
+      "sourceFile": "packages/api/src/routes/collective-owner-work-reconsideration.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work/reconsider",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/work/result/accepted",
+      "sourceFile": "packages/api/src/routes/collective-work-result-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work/result/accepted",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/:connectionId/work/resume",
+      "sourceFile": "packages/api/src/routes/collective-owner-participation-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "connections/:connectionId/work/resume",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "GET",
+      "path": "/api/plugins/collective-connector/entry-roster",
+      "sourceFile": "packages/api/src/routes/collective-entry-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "entry-roster",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/pair",
+      "sourceFile": "packages/api/src/routes/collective-entry-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "pair",
+      "state": "awaiting-exact-Host-facts-and-package-adaptation"
+    },
+    {
+      "method": "POST",
+      "path": "/api/plugins/collective-connector/service/provision",
+      "sourceFile": "packages/api/src/routes/collective-connector-routes.ts",
+      "lane": "authenticated-owner-control",
+      "targetMethod": "collective.control.http",
+      "targetPath": "service/provision",
+      "state": "implemented-awaiting-paired-Host-use"
+    }
+  ],
+  "limitation": "source adaptation record only; not real Host browser/owner/native acceptance"
+}

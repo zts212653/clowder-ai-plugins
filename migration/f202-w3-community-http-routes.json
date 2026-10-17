@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "bb9f9f08ec574ee8888fbde9819ff95da96bb614",
+  "status": "production_manifest_declared_installed_unverified",
+  "handler": "github.community.http",
+  "hostForwardingGap": "Production manifest declares all 33 methods using beta.35. Host matching and owner authorization remain independently implemented; exact packed alpha.16 admission and installed UI acceptance are pending.",
+  "identity": "Host owner principal for HTTP; native action context is supplied separately and is not accepted from body or headers.",
+  "routes": [
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues",
+      "pluginPath": "github/community-issues",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 128
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-issues",
+      "pluginPath": "github/community-issues",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 146
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-issues/:id",
+      "pluginPath": "github/community-issues/:id",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 154
+    },
+    {
+      "method": "PATCH",
+      "sourcePath": "/api/community-issues/:id",
+      "pluginPath": "github/community-issues/:id",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 164
+    },
+    {
+      "method": "DELETE",
+      "sourcePath": "/api/community-issues/:id",
+      "pluginPath": "github/community-issues/:id",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 181
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/dispatch",
+      "pluginPath": "github/community-issues/:id/dispatch",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 191
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/sync",
+      "pluginPath": "github/community-issues/sync",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 252
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/sync-prs",
+      "pluginPath": "github/community-issues/sync-prs",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 305
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/triage-complete",
+      "pluginPath": "github/community-issues/:id/triage-complete",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 404
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/resolve",
+      "pluginPath": "github/community-issues/:id/resolve",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 480
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/request-guardian",
+      "pluginPath": "github/community-issues/:id/request-guardian",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 684
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/guardian-signoff",
+      "pluginPath": "github/community-issues/:id/guardian-signoff",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 780
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-issues/:id/guardian-status",
+      "pluginPath": "github/community-issues/:id/guardian-status",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 841
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/validate-route",
+      "pluginPath": "github/community-issues/:id/validate-route",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 873
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/report",
+      "pluginPath": "github/community-issues/:id/report",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 1003
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:id/waive-closure",
+      "pluginPath": "github/community-issues/:id/waive-closure",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 1070
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issues/:subjectKey/await-external",
+      "pluginPath": "github/community-issues/:subjectKey/await-external",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 1136
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-repos",
+      "pluginPath": "github/community-repos",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 1227
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-board",
+      "pluginPath": "github/community-board",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issues.ts",
+      "sourceLine": 1260
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-issue-drafts/config",
+      "pluginPath": "github/community-issue-drafts/config",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "sourceLine": 80
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issue-drafts",
+      "pluginPath": "github/community-issue-drafts",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "sourceLine": 95
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issue-drafts/from-frustration-issue/:issueId",
+      "pluginPath": "github/community-issue-drafts/from-frustration-issue/:issueId",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "sourceLine": 177
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-issue-drafts/:draftId",
+      "pluginPath": "github/community-issue-drafts/by-id/:draftId",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "sourceLine": 233,
+      "adaptation": "Disjoint by-id namespace avoids overlap with config and from-frustration-issue. Console must target this pluginPath; sourcePath is historical only."
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issue-drafts/:draftId/publish",
+      "pluginPath": "github/community-issue-drafts/by-id/:draftId/publish",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "sourceLine": 261,
+      "adaptation": "Disjoint by-id namespace avoids overlap with config and from-frustration-issue. Console must target this pluginPath; sourcePath is historical only."
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-issue-drafts/:draftId/cancel",
+      "pluginPath": "github/community-issue-drafts/by-id/:draftId/cancel",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "sourceLine": 391,
+      "adaptation": "Disjoint by-id namespace avoids overlap with config and from-frustration-issue. Console must target this pluginPath; sourcePath is historical only."
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-decision-queue",
+      "pluginPath": "github/community-decision-queue",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-decision-queue.ts",
+      "sourceLine": 66
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-findings/:findingId/acknowledge",
+      "pluginPath": "github/community-findings/:findingId/acknowledge",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-decision-queue.ts",
+      "sourceLine": 93
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-findings/:findingId/resolve",
+      "pluginPath": "github/community-findings/:findingId/resolve",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-decision-queue.ts",
+      "sourceLine": 117
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-findings/:findingId/waive",
+      "pluginPath": "github/community-findings/:findingId/waive",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-decision-queue.ts",
+      "sourceLine": 141
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-findings",
+      "pluginPath": "github/community-findings",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-decision-queue.ts",
+      "sourceLine": 176
+    },
+    {
+      "method": "GET",
+      "sourcePath": "/api/community-repo-configs",
+      "pluginPath": "github/community-repo-configs",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-repo-config.ts",
+      "sourceLine": 41
+    },
+    {
+      "method": "POST",
+      "sourcePath": "/api/community-repo-configs",
+      "pluginPath": "github/community-repo-configs",
+      "dynamic": false,
+      "sourceFile": "packages/api/src/routes/community-repo-config.ts",
+      "sourceLine": 50
+    },
+    {
+      "method": "DELETE",
+      "sourcePath": "/api/community-repo-configs/:repo",
+      "pluginPath": "github/community-repo-configs/:repo",
+      "dynamic": true,
+      "sourceFile": "packages/api/src/routes/community-repo-config.ts",
+      "sourceLine": 62
+    }
+  ]
+}

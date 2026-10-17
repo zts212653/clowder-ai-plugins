@@ -1,5 +1,3 @@
-import type { EventsPublisher } from '@clowder-ai/plugin-sdk';
-
 import { normalizeGeneratedArtifact } from './artifact.js';
 import {
   FeishuCatchUpRequiredError,
@@ -14,7 +12,7 @@ const PAGE_LIMIT = 64;
 
 export interface FeishuMeetingIntakeRuntimeOptions {
   readonly gateway: FeishuPollingGateway;
-  readonly publisher: Pick<EventsPublisher, 'publish'>;
+  readonly publisher: { publish(input: unknown): Promise<unknown> };
   readonly store: MeetingIntakeStateStore;
   readonly now?: () => number;
 }

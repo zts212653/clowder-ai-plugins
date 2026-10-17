@@ -1,0 +1,428 @@
+{
+  "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+  "method": "Current package import declaration closure from frozen Host source; exact selected statements and hashes, obsolete legacy declaration roots removed. Private models do not confer Host authority.",
+  "entries": [
+    {
+      "source": "packages/shared/src/types/ids.ts",
+      "target": "packages/github-operations/src/business/model/types/ids.ts",
+      "sourceSha256": "b936b170e287306b11cd04332c4b2704a2489893ba8dec8e71a3aec9b8859d83",
+      "statements": [
+        {
+          "firstLine": 1,
+          "lastLine": 7,
+          "sha256": "907fcbf67aebd250b15f8334dd13169eed0c4b39f8891d229d5362d5746acb1c"
+        },
+        {
+          "firstLine": 7,
+          "lastLine": 9,
+          "sha256": "5a374d7572205abc96ec56f1cc21552b9cea6d5d8c56a8519c532991bac91538"
+        },
+        {
+          "firstLine": 12,
+          "lastLine": 13,
+          "sha256": "eb5f9901c1f99812dae7bdc89e916f41c2e90b39dbff10cbec78b5ea19ca3989"
+        },
+        {
+          "firstLine": 40,
+          "lastLine": 52,
+          "sha256": "2e696590b0b601d84d0ebea3c945a25097ae6af39ca94da3ea61d7872a0e8435"
+        }
+      ]
+    },
+    {
+      "source": "packages/shared/src/types/cat-breed.ts",
+      "target": "packages/github-operations/src/business/model/types/cat-breed.ts",
+      "sourceSha256": "9c576028ffb488c59eb4bf7a0ba664b40f1e8dc9445e0452f82ba4a81d339dec",
+      "statements": [
+        {
+          "firstLine": 177,
+          "lastLine": 196,
+          "sha256": "17de938da0e7409efc851303dc3098641617fc3b1d7a3f2524adcf7d5b8f97b1"
+        },
+        {
+          "firstLine": 196,
+          "lastLine": 199,
+          "sha256": "ab3ac7d9834b8c9b023b3392cfc786efcfdb966cdca73a355b0d585d6d42468c"
+        },
+        {
+          "firstLine": 199,
+          "lastLine": 214,
+          "sha256": "d5c93444d7c4365178ce1da1e964a4e75e7ec0035145e117018be84b47adfe5a"
+        }
+      ]
+    },
+    {
+      "source": "packages/shared/src/types/community-event.ts",
+      "target": "packages/github-operations/src/business/model/types/community-event.ts",
+      "sourceSha256": "265a24b6e3f2311ab8d4f53d72873c94f95737e86bccbe964633bee7659b346f",
+      "statements": [
+        {
+          "firstLine": 1,
+          "lastLine": 50,
+          "sha256": "730ebd03a412e70557f087786b3ca321ba22701b7e688345cc400bc52e58c230"
+        },
+        {
+          "firstLine": 50,
+          "lastLine": 68,
+          "sha256": "b8b802a398447cca9cf8469ec26abeb0799b5b767802fd7f13fcaf0985263419"
+        },
+        {
+          "firstLine": 68,
+          "lastLine": 71,
+          "sha256": "a66a6623e81d9a83681968807e4398b89289f4c8df41a37076f840e4983be382"
+        },
+        {
+          "firstLine": 71,
+          "lastLine": 98,
+          "sha256": "bbd1886e3f520e98f486bc174c16dd2d4e2eb9895c63469d24278192ed481f39"
+        },
+        {
+          "firstLine": 98,
+          "lastLine": 114,
+          "sha256": "f1edaf3279f65e99652dfaf4e7be63fc642326343c1b427cec13d08a8c22f0bc"
+        },
+        {
+          "firstLine": 114,
+          "lastLine": 120,
+          "sha256": "7adbe80a1a20ca9bfc87e851affb05cb1d6f0045236f87072733c2a72e446c8f"
+        },
+        {
+          "firstLine": 120,
+          "lastLine": 129,
+          "sha256": "c4f56aeb726a616e7bf93f779c1e58e4a8a9cf9f3c6b004a3a820e8b6ba2cc57"
+        },
+        {
+          "firstLine": 129,
+          "lastLine": 151,
+          "sha256": "5662db72c729d114eb8e4a6f4cd5cb513757fcfa450aedbdb6f2200880f1490c"
+        },
+        {
+          "firstLine": 151,
+          "lastLine": 154,
+          "sha256": "c12e6fa64eaf175dd3c51e947269a79670489dabff80eb489a29482d003430df"
+        },
+        {
+          "firstLine": 154,
+          "lastLine": 160,
+          "sha256": "2cc4c3ed8e4ed86f28853ef66054b16ebb8d304948ff0f51510b68bfba0dca81"
+        },
+        {
+          "firstLine": 160,
+          "lastLine": 162,
+          "sha256": "96c3bb2a4b6faa7e8d9feea990805a1e913a95b1d8ee86f8edd5b71d60731959"
+        },
+        {
+          "firstLine": 162,
+          "lastLine": 172,
+          "sha256": "2beaf260e6428c5b6dfaa24b8ba3660362671d73be2636c3f71643bff2be4136"
+        },
+        {
+          "firstLine": 172,
+          "lastLine": 174,
+          "sha256": "7939c32fe343ff5070d979a2f16c8e6213b94977d22b9a54a63ad9714d7dea69"
+        },
+        {
+          "firstLine": 174,
+          "lastLine": 176,
+          "sha256": "a17ed45750359787335d1044c57231b27c0f62cd62d87befab2f3d4a6705d5db"
+        },
+        {
+          "firstLine": 176,
+          "lastLine": 191,
+          "sha256": "9c907aab7a890added3b1e5d0f4d66821f1adbf3911359c45404688da5e72c02"
+        },
+        {
+          "firstLine": 191,
+          "lastLine": 205,
+          "sha256": "fecc3af09e3be5b43b99c1823c0e996ad83b7f66812d3a6e6437d25a36c24d70"
+        },
+        {
+          "firstLine": 205,
+          "lastLine": 256,
+          "sha256": "c0fac7eb0415dc4d3db8f7ab921820d79ec2079b7aec2c7596fa159c66b34c04"
+        },
+        {
+          "firstLine": 256,
+          "lastLine": 296,
+          "sha256": "6b76a276f0e0688bf049562dd7f3c9e5c109aa8fef2a07df4fe3f1af31a8996c"
+        }
+      ]
+    },
+    {
+      "source": "packages/shared/src/types/community-role.ts",
+      "target": "packages/github-operations/src/business/model/types/community-role.ts",
+      "sourceSha256": "cb4dfeb8021ffdbec29ef96f6869201ea9f00979fbe859af92c52b2805df890a",
+      "statements": [
+        {
+          "firstLine": 1,
+          "lastLine": 18,
+          "sha256": "625c2091f6f3d9df750fb382c603c566121edf91d49a939a7330a20f1dc345c7"
+        },
+        {
+          "firstLine": 18,
+          "lastLine": 21,
+          "sha256": "4bf1c623d82fb0a4f32fa77a047564eaf751c24213452510edc81a3679c78696"
+        }
+      ]
+    },
+    {
+      "source": "packages/shared/src/types/community-issue.ts",
+      "target": "packages/github-operations/src/business/model/types/community-issue.ts",
+      "sourceSha256": "962274b94f1e0f880c0fc9bbe7407a1dea623e3cadaa9ab1d0e934e9bbf93a96",
+      "statements": [
+        {
+          "firstLine": 8,
+          "lastLine": 10,
+          "sha256": "eb24908f9c3372873aa5c91ce6bec05fb88307dc62095630734ef7ad1e174e4a"
+        },
+        {
+          "firstLine": 10,
+          "lastLine": 11,
+          "sha256": "fe88f703124389bdfcadb7842a4e0bba635690443023d94c17e456242286e740"
+        },
+        {
+          "firstLine": 11,
+          "lastLine": 12,
+          "sha256": "9eebb500098db43b32da84dafa8a729668bd93dc7a2b0d770ac35c8fa8bb8425"
+        },
+        {
+          "firstLine": 12,
+          "lastLine": 13,
+          "sha256": "365913921aab296e126169f0d6c10379b6743076073cb8e7acb54508553afad2"
+        },
+        {
+          "firstLine": 13,
+          "lastLine": 14,
+          "sha256": "f7370db8e62f5a812dd4bdae653cc71c7944eaf31b6571279735807934eac8fa"
+        },
+        {
+          "firstLine": 14,
+          "lastLine": 38,
+          "sha256": "9476281fa5214a758e4a94412e4f7f03e8a0f74b00eb98c4d5d7a81c32a4f287"
+        },
+        {
+          "firstLine": 38,
+          "lastLine": 45,
+          "sha256": "dbe5cead8f42fd2ef7dbddacf65bbed3da8dffff4466d6391cbb1f0110388e43"
+        },
+        {
+          "firstLine": 45,
+          "lastLine": 48,
+          "sha256": "77a472a377f1e9557e42a5139c3fd6cc529f817089272389de450cb4b2022048"
+        },
+        {
+          "firstLine": 48,
+          "lastLine": 49,
+          "sha256": "9bca7ee518ad951d1a57079769934d8f891c852aeb519fe2546775d0eec806a4"
+        },
+        {
+          "firstLine": 49,
+          "lastLine": 50,
+          "sha256": "c0e18d7be1fa7a470d2991fb43673f4ff6a037b69968d6696e505de57a7cd2e2"
+        },
+        {
+          "firstLine": 50,
+          "lastLine": 55,
+          "sha256": "ffcf6251c8da4faac1c8c2bdec99ee0a1f308f91f976ca2ef6ad7825e4243080"
+        },
+        {
+          "firstLine": 55,
+          "lastLine": 61,
+          "sha256": "3cf3b5b3a3bf07f65062d58a083719bfb12c3f2b89c95621d0e097fe05c7299d"
+        },
+        {
+          "firstLine": 61,
+          "lastLine": 67,
+          "sha256": "0248888e5170967be2d7f796c43eb4394cd86d920aaf5af60ed7d6c9e361200d"
+        },
+        {
+          "firstLine": 67,
+          "lastLine": 69,
+          "sha256": "0dce6c81505b89e57afe7d27899bc5e91baa8f888f724180fc5b4c7a64138c18"
+        },
+        {
+          "firstLine": 69,
+          "lastLine": 104,
+          "sha256": "b0a952aba97f8b63620172ea7f91dbef05252eb8fb359549a35cf446e950e2aa"
+        },
+        {
+          "firstLine": 104,
+          "lastLine": 124,
+          "sha256": "76ce089eb6acd6af2d7ce047d35a69790c2ae887db7e2ac2146d1ac0dc3bc92f"
+        },
+        {
+          "firstLine": 124,
+          "lastLine": 131,
+          "sha256": "921cc0fe51d3b14d60ffa7d65715a1fd1c2f44864b70204d11edd240fd14f0b1"
+        },
+        {
+          "firstLine": 136,
+          "lastLine": 146,
+          "sha256": "e162341d02ff357231d319a5610c938ec2b3fbbb49f442bb727f3e5113d2075d"
+        },
+        {
+          "firstLine": 146,
+          "lastLine": 158,
+          "sha256": "ae1d32986a06800b836845f1ef2a11c585518084f5ae5259fcf8e51940245078"
+        },
+        {
+          "firstLine": 199,
+          "lastLine": 206,
+          "sha256": "2df7f44762d2bc79d74636cdfe2630360fb83ecfb8d5ff5d37be9431baea5789"
+        },
+        {
+          "firstLine": 206,
+          "lastLine": 209,
+          "sha256": "ce98f0e1565f943cdc5525c336ac4bb7b897008a30e5d0c4ecd328fe54cb1163"
+        },
+        {
+          "firstLine": 212,
+          "lastLine": 229,
+          "sha256": "24221ef6d138ce64b58642eacba1125144cd34e8ba63a3bb1208a556cfa121ca"
+        }
+      ]
+    },
+    {
+      "source": "packages/shared/src/types/github-wait.ts",
+      "target": "packages/github-operations/src/business/model/types/github-wait.ts",
+      "sourceSha256": "4ed3e62e1453e2dc8c777d157448a5554c64969346cd079053cdef966832457f",
+      "statements": [
+        {
+          "firstLine": 431,
+          "lastLine": 437,
+          "sha256": "be162b2750581c6d7ae0ad621b4238c157ec6de04f18d8205760e24f35096119"
+        },
+        {
+          "firstLine": 437,
+          "lastLine": 444,
+          "sha256": "0c3db68246673a124f9abc29ee26b1c8ccc009fee500792cf0703c1a2d269835"
+        },
+        {
+          "firstLine": 444,
+          "lastLine": 449,
+          "sha256": "0b580eb6d77ac7fb05e44504420dee6eb02fb802cf2e0afab538583418b41fc3"
+        }
+      ]
+    },
+    {
+      "source": "packages/shared/src/utils/subject-key.ts",
+      "target": "packages/github-operations/src/business/model/utils/subject-key.ts",
+      "sourceSha256": "9cc914eafb7ddeaa3261ba7b62d15b234b6f63dfcb17ef0dde52b274504ec2f7",
+      "statements": [
+        {
+          "firstLine": 1,
+          "lastLine": 13,
+          "sha256": "aae03f687d7c43031b08c7263cb82f6259df6047370c41219474afb1e8b3508f"
+        },
+        {
+          "firstLine": 27,
+          "lastLine": 32,
+          "sha256": "d077c4c772e08394e76e2b62bc0e028874753c50ed921a156856aef211321f78"
+        },
+        {
+          "firstLine": 32,
+          "lastLine": 41,
+          "sha256": "0cc2c6e1b9ff6c3f3c1a1de652224e596cba4babedf0cd17c372138981e92c72"
+        }
+      ]
+    }
+  ],
+  "excludedLegacyDeclarations": [
+    {
+      "source": "packages/shared/src/types/growing-artifact.ts",
+      "target": "packages/github-operations/src/business/model/types/growing-artifact.ts",
+      "sourceSha256": "097e8845ad4c4f4d78ca00625cb87f3ae491d60678a1bab478b2a30b93854fee",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/growing-development.ts",
+      "target": "packages/github-operations/src/business/model/types/growing-development.ts",
+      "sourceSha256": "7210349ecdbc3e5e28fcbd2de7c6750bb5a0f5779a8ffe5eb7677a1158a073d2",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/growing.ts",
+      "target": "packages/github-operations/src/business/model/types/growing.ts",
+      "sourceSha256": "b6dc2bc4786c82d1ca97408afa291e0ebec6e8f8baaca4ae4c46cab6f073f26e",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/concierge.ts",
+      "target": "packages/github-operations/src/business/model/types/concierge.ts",
+      "sourceSha256": "ff0eaaf649ffc1ffa10fe63a83c0806d947d0effb8627a68b27b49c0dadbff5f",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/wait-termination.ts",
+      "target": "packages/github-operations/src/business/model/types/wait-termination.ts",
+      "sourceSha256": "81778b14580861734af5e6bf2823f72cb0a46f7362e80a58a70ab171950b42cb",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/wait-contract.ts",
+      "target": "packages/github-operations/src/business/model/types/wait-contract.ts",
+      "sourceSha256": "434d541c383297c7944f94870f83b6a2aa80b062673bbff372480acf8ec3abcd",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/deployment-wait.ts",
+      "target": "packages/github-operations/src/business/model/types/deployment-wait.ts",
+      "sourceSha256": "d2582a3972596e5e4e7329c68284d0cb85919d1e914c295211bb441e609209fd",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/ball-custody.ts",
+      "target": "packages/github-operations/src/business/model/types/ball-custody.ts",
+      "sourceSha256": "3476440bd3e7637ed808c55739bd992e692d355f165f5ddbef63575237bfc6b1",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/community-issue-draft.ts",
+      "target": "packages/github-operations/src/business/model/types/community-issue-draft.ts",
+      "sourceSha256": "70fa34d7cc59e6fc422af40c44f859c83dfde4beb3833caadd3301843457e9ae",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/connector.ts",
+      "target": "packages/github-operations/src/business/model/types/connector.ts",
+      "sourceSha256": "14a826d435729050c465de2d8911f9e5fbf6605935a9f084309b57b132e9924c",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/frustration-issue.ts",
+      "target": "packages/github-operations/src/business/model/types/frustration-issue.ts",
+      "sourceSha256": "9b15d4a67c46989af4554a93db6e1b16da3c56a2f7f8a2462d2361dd69127045",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/managed-work.ts",
+      "target": "packages/github-operations/src/business/model/types/managed-work.ts",
+      "sourceSha256": "b13f8d7a7c4a5bf0eece8c7f7530f2283a06b2610f71bdad6f7fef5ee57c4717",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/memory-cue.ts",
+      "target": "packages/github-operations/src/business/model/types/memory-cue.ts",
+      "sourceSha256": "21345f248bdba1c192c4b7cba30c6d7a831acfa2dd07f978c89b9d4d264a0f5c",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/rich.ts",
+      "target": "packages/github-operations/src/business/model/types/rich.ts",
+      "sourceSha256": "049bc621466081617bd5328c795da96f4d5e8f0aab22311f4f9953f2f8771106",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/cross-thread-affordance.ts",
+      "target": "packages/github-operations/src/business/model/types/cross-thread-affordance.ts",
+      "sourceSha256": "d53a8f6fb0d8fbe2a6b5f5e189f31eb9f367c2d277c7adf72840b054c5b61c80",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    },
+    {
+      "source": "packages/shared/src/types/task.ts",
+      "target": "packages/github-operations/src/business/model/types/task.ts",
+      "sourceSha256": "f25629ac3915f6fda8b1214e15c949f4c535118507e4a2c0e47862f66540c2dd",
+      "reason": "No longer referenced by current package imports/exports after Host wait/task/authority adapters were removed; original Host declaration remains unchanged."
+    }
+  ]
+}

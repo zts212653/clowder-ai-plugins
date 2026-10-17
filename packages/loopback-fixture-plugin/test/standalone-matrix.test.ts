@@ -38,9 +38,8 @@ const pluginMetadataSchemaUrl = new URL(
   import.meta.url,
 );
 const signalSchemaUrl = new URL('../../plugin-contract/src/schemas/signal.schema.json', import.meta.url);
+const messagingSchemaUrl = new URL('../../plugin-contract/src/schemas/messaging.schema.json', import.meta.url);
 const hostHalfSeamManifestUrl = new URL('./host-half-seam-manifest.json', import.meta.url);
-const lifecycleDeadlineUnixMs = Date.now() + 60_000;
-
 interface ChildResult {
   readonly code: number | null;
   readonly stderr: string;
@@ -231,12 +230,15 @@ const LOCAL_STANDALONE_CASES: readonly {
   },
   {
     id: 'lifecycle-drain-round-trip',
-    input: [
-      Buffer.from(
-        `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${lifecycleDeadlineUnixMs}},"input":{"deadlineUnixMs":${lifecycleDeadlineUnixMs}}}}\n`,
-        'utf8',
-      ),
-    ],
+    get input() {
+      const deadlineUnixMs = Date.now() + 60_000;
+      return [
+        Buffer.from(
+          `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${deadlineUnixMs}},"input":{"deadlineUnixMs":${deadlineUnixMs}}}}\n`,
+          'utf8',
+        ),
+      ];
+    },
     expected: { code: 0, stdout: '{"jsonrpc":"2.0","id":"drain-1","result":null}\n' },
   },
   {
@@ -270,10 +272,11 @@ for (const matrixCase of LOCAL_STANDALONE_CASES) {
 }
 
 test('schema-validates and records every behavior fixture for the K-2 host half', async () => {
-  const [pluginMetadataSchema, manifestSchema, signalSchema, behaviorSchema, seamManifest] = await Promise.all([
+  const [pluginMetadataSchema, manifestSchema, signalSchema, messagingSchema, behaviorSchema, seamManifest] = await Promise.all([
     readFile(pluginMetadataSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(manifestSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(signalSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
+    readFile(messagingSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(behaviorSchemaUrl, 'utf8').then(text => JSON.parse(text) as object),
     readFile(hostHalfSeamManifestUrl, 'utf8').then(text => JSON.parse(text) as HostHalfSeamManifest),
   ]);
@@ -286,6 +289,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
   addFormats(ajv);
   ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema.$id);
   ajv.addSchema(signalSchema, signalSchema.$id);
+  ajv.addSchema(messagingSchema, messagingSchema.$id);
   ajv.addSchema(manifestSchema, manifestSchema.$id);
   const validate = ajv.compile(behaviorSchema);
 

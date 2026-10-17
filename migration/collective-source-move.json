@@ -1,0 +1,1023 @@
+{
+  "sourceCommit": "ca5b831b48c165ea10c7389fe3eb4ba03d3e01e7",
+  "baseCommit": "5dd199e5d3637e7650f4f9b98333c48ac72f0ab7",
+  "scope": "113 connector/service source+tests and14 domain declarations; no Client/Host authority implementation",
+  "entries": [
+    {
+      "source": "packages/collective-connector/src/__tests__/channel-listening-custody.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/channel-listening-custody.test.ts",
+      "sourceBlob": "6bc6d1fd6a63f863e604f42d3bd3105a6e38f9cd",
+      "sourceMode": "100644",
+      "sha256": "0f695d2bbc6a68b7a2954a39292e072dd0aa2913018bf3f40f9f62eb8857b3b2",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/collaboration-proposal.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/collaboration-proposal.test.ts",
+      "sourceBlob": "5da2df2d8ce96d299fab46a210ce85ff33236e17",
+      "sourceMode": "100644",
+      "sha256": "c1bc859a6040f6f59d64154b6436f7e86a623b1985e4002e96332f258b669fdc",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/communication-work-custody.fixture.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/communication-work-custody.fixture.ts",
+      "sourceBlob": "a3c6765bcd01d9014e93e8d4aee246d3a314a9bc",
+      "sourceMode": "100644",
+      "sha256": "93a127f09b2a21de157598df651ba5a324132e686d13d25e58efafc7cc6c0f74",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/communication-work-custody.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/communication-work-custody.test.ts",
+      "sourceBlob": "a54bb2ee859e063b9f40877eb6f2db243fa94a80",
+      "sourceMode": "100644",
+      "sha256": "b8f3ce0d63f8c5c86d87da17b7a8baf8ca9241d7bf0c8d88c3aaaf735017a85b",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/connector-service.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/connector-service.test.ts",
+      "sourceBlob": "5f5ecb555b658159c32f031a45727ef3979688cd",
+      "sourceMode": "100644",
+      "sha256": "07da6fd951e817b68516dc0f24ff1b4f3d876ab2fdde1b36443ee6c62c8d64f8",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/membership-revocation.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/membership-revocation.test.ts",
+      "sourceBlob": "634e32205b167a7a195f1fe9728614582b737c0e",
+      "sourceMode": "100644",
+      "sha256": "bfeb88b0d070c383b4a47209fdf096667e3a9ebd7cf93a28768d63cd6005bcb5",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/participation-card.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/participation-card.test.ts",
+      "sourceBlob": "2873e5138343cd3458f7306036890bf4ecebd78e",
+      "sourceMode": "100644",
+      "sha256": "ab350873816bb673452da01a800223447d629f314b4d20975b4916e31d8540c6",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/persistence-noop.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/persistence-noop.test.ts",
+      "sourceBlob": "73d5547442436909aa63021037ed7a53a1f976dc",
+      "sourceMode": "100644",
+      "sha256": "f1c6d917ee67d2841008910af9ecf990761657c06a4ce678421b92dfe67adff3",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/__tests__/reply-operation.test.ts",
+      "target": "packages/collective-connector/src/business/connector/__tests__/reply-operation.test.ts",
+      "sourceBlob": "4e864dbcc10e85368cd3dbe4c3522143fb34791a",
+      "sourceMode": "100644",
+      "sha256": "9288067a88fa63ec6155d39b0a914c363a09a50410bf314ec23a94834d079ede",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/attention-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/attention-custody.ts",
+      "sourceBlob": "ce9aae18b1c27daf0243c65aa04f70ecf9d8a9cf",
+      "sourceMode": "100644",
+      "sha256": "3ebf7f48eea9b2301268c43d0828dbf1964a15041544c49ccfe40a07f7a489c5",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/channel-listening-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/channel-listening-custody.ts",
+      "sourceBlob": "193504216c43c364d24f359aac8b1f4c44592ae5",
+      "sourceMode": "100644",
+      "sha256": "f9f2458cf8799bc1d28d0e3c38ed9fc9b22af5b8a0108a71d8c4f86c2a4ef8d6",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/connector-options.ts",
+      "target": "packages/collective-connector/src/business/connector/connector-options.ts",
+      "sourceBlob": "707a8abc8f1c37dcf102aa9cb8cd540d7dbdb909",
+      "sourceMode": "100644",
+      "sha256": "7c1da5d306b1324819a6a28162a02fcefbd828eeeee9b94f7a502889aac01a57",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/connector-synchronization.ts",
+      "target": "packages/collective-connector/src/business/connector/connector-synchronization.ts",
+      "sourceBlob": "2d9c7617e5a523beaf5d47f048a8b5f9f9487f96",
+      "sourceMode": "100644",
+      "sha256": "b3f0bcc4e773180953ce9d46f94d4556312b4a65bd46c04fae345d6bcdc71ca3",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/connector.ts",
+      "target": "packages/collective-connector/src/business/connector/connector.ts",
+      "sourceBlob": "ddb6faba4251519d9767074621528edb53a19489",
+      "sourceMode": "100644",
+      "sha256": "ce8c2f819673c6cd14764be8cdd2ec58e53d15f17ea8ee51b523da08306e682c",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/host-route-state.ts",
+      "target": "packages/collective-connector/src/business/connector/host-route-state.ts",
+      "sourceBlob": "147b555a0a2c54aace59b01b9468bc7fe775203e",
+      "sourceMode": "100644",
+      "sha256": "5ae7abced19cedc4b59b308a20656a0e92a401e5e170f9172b59f274ed831fef",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/index.ts",
+      "target": "packages/collective-connector/src/business/connector/index.ts",
+      "sourceBlob": "5a29f6e4471af753f8345495439d9c8d238ba78e",
+      "sourceMode": "100644",
+      "sha256": "492f35b81f9b048c6e8339692bd850d8f764afaa002b62c2ef14939acc7b3e19",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/outbox-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/outbox-custody.ts",
+      "sourceBlob": "39792b0208e31065e5074088716c804d67b9d35e",
+      "sourceMode": "100644",
+      "sha256": "41abe524d7aa6d91e25140757031db0b7bbdfe6dcfe869ae96ed3b19950720ec",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/participation-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/participation-custody.ts",
+      "sourceBlob": "28151e45d7c8868b8fe2cbe5780b4af90f539ccf",
+      "sourceMode": "100644",
+      "sha256": "b1e3078b521f5ceb350f06194af0fdad78b12185126100a16d65cb0989cd7e77",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/persistence.ts",
+      "target": "packages/collective-connector/src/business/connector/persistence.ts",
+      "sourceBlob": "0d8ad6a109e7a2e876569c0e1ce0fa6a8f0d3f66",
+      "sourceMode": "100644",
+      "sha256": "6b778af84adeab384d9bdd67dc96c2a9c2398792cc9d94352a8be6d92c2c5ec4",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/projection.ts",
+      "target": "packages/collective-connector/src/business/connector/projection.ts",
+      "sourceBlob": "948b1a261966368496a87aa870865a40f2fba2b7",
+      "sourceMode": "100644",
+      "sha256": "f8a86eb0b993acdaafb0533701a70db38f1735d0e1edc2aa5ac3c0cd8cbbf7cd",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/route-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/route-custody.ts",
+      "sourceBlob": "2de0df53a2129afc01c0472baf54f72691773be2",
+      "sourceMode": "100644",
+      "sha256": "fd9e7d960e0de99d3fe689886c2c0f3ebeedb3d976932528fbe804c1ac5487c4",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/route-receipt.ts",
+      "target": "packages/collective-connector/src/business/connector/route-receipt.ts",
+      "sourceBlob": "e606232661c31f6ce4b90c4308aa78fd805b8bae",
+      "sourceMode": "100644",
+      "sha256": "ccd915a7c7e94d7fe0d64d38028cc86493481559b25b36805a054b438b26ace9",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/service-client.ts",
+      "target": "packages/collective-connector/src/business/connector/service-client.ts",
+      "sourceBlob": "ec88d2e30df70ab51b4cee040f44c696c2349103",
+      "sourceMode": "100644",
+      "sha256": "079c72bb821cc046ab9196fbe14855eb6275514f61248d731f0f6f1c3e6be34d",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/state.ts",
+      "target": "packages/collective-connector/src/business/connector/state.ts",
+      "sourceBlob": "468ee090f346517567b53f08f6402c4df4318982",
+      "sourceMode": "100644",
+      "sha256": "abce999b65e131b305659ed5259e89a3750c1b598b26d134f2ef915bce25fb88",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-acceptance-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/work-acceptance-custody.ts",
+      "sourceBlob": "5528e7fe1fabd2a41e4f9bfeb5210aae77296879",
+      "sourceMode": "100644",
+      "sha256": "b9ea8c670772e333666d1f074dc2228d57d2ff5b1cbffba5691aa31b8077d00f",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-authority-client.ts",
+      "target": "packages/collective-connector/src/business/connector/work-authority-client.ts",
+      "sourceBlob": "b8b8deb6f01a9daa973ee8e3ec6fab76bc6e94ae",
+      "sourceMode": "100644",
+      "sha256": "75f183bb12f3a5f6a4a1f6d6e04074409d0ca31992f1dd137c9a1effb9407799",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-continuation-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/work-continuation-custody.ts",
+      "sourceBlob": "bcba4de7a94e46bf99eae194d3b2cbcd855b0f07",
+      "sourceMode": "100644",
+      "sha256": "2762cefb689dfa80732e4c92fabf55fa4578a63b1ebbb59d2fe1a88643c676e5",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-custody-state.ts",
+      "target": "packages/collective-connector/src/business/connector/work-custody-state.ts",
+      "sourceBlob": "d5151b6e4d4a58ea2d8301ce38631a9134a52974",
+      "sourceMode": "100644",
+      "sha256": "33a2b8865ed4c7b081da4490610f4ae4f6a4fa4e9fcb4323a25e7a86b4ce5a99",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-host-admission-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/work-host-admission-custody.ts",
+      "sourceBlob": "981998633f1583c44af89f43e82202e181f6d596",
+      "sourceMode": "100644",
+      "sha256": "086267fb14094d22f74f72b314bf83997321e82fea59693456364a282b0ebc57",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-outbound-authority.ts",
+      "target": "packages/collective-connector/src/business/connector/work-outbound-authority.ts",
+      "sourceBlob": "c12a90542b426d817590d3744107563c35c359c6",
+      "sourceMode": "100644",
+      "sha256": "520063f004e973cfa6eee070e1c23fea2aa4fb2333eb16b6fc40576589ea0943",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-policy-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/work-policy-custody.ts",
+      "sourceBlob": "37b98aa608935493d50da5d9ccc9764fa24288f0",
+      "sourceMode": "100644",
+      "sha256": "ead0074ff35fd204959d62b2c113e43f4e5713f8fc98ff15f893c22fc6081a53",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-progress-custody.ts",
+      "target": "packages/collective-connector/src/business/connector/work-progress-custody.ts",
+      "sourceBlob": "3bfe5fe4c2ad73c87d2ef4eee83a8a7a74169274",
+      "sourceMode": "100644",
+      "sha256": "948306ffc27765134380173f9bb4cdd0171b644ca4f88373885865ecdddeab0f",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-proposal.ts",
+      "target": "packages/collective-connector/src/business/connector/work-proposal.ts",
+      "sourceBlob": "918aa7570a9c1a0104d911eafbb9267e9ff5fc81",
+      "sourceMode": "100644",
+      "sha256": "244142525b8783c83d0735dc87112aed9ea78a37d987f3848af31c0baf40a6f7",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-reconsideration.ts",
+      "target": "packages/collective-connector/src/business/connector/work-reconsideration.ts",
+      "sourceBlob": "ebab5b29bdd98e011abd82cf7025fe2672367214",
+      "sourceMode": "100644",
+      "sha256": "21904a0bc29ead918d0365a18c9c210bb1405f1182c50c28507db5ae703446fe",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-result-publication.ts",
+      "target": "packages/collective-connector/src/business/connector/work-result-publication.ts",
+      "sourceBlob": "fdb06b5b244d74cc5f56182879a327ae9c205ddb",
+      "sourceMode": "100644",
+      "sha256": "1fc9fd71817e2c20f350cde6ec2b9011b037889ad80908b3b68f201b4b151f43",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-connector/src/work-revocation-recovery.ts",
+      "target": "packages/collective-connector/src/business/connector/work-revocation-recovery.ts",
+      "sourceBlob": "732a4e721c1297c1832e614f1497850fefa31b67",
+      "sourceMode": "100644",
+      "sha256": "b05b0e7aaf84546d896f280d044c869ddd527210006009e42b903a64bf413f3c",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/cli-config.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/cli-config.test.ts",
+      "sourceBlob": "76762ec9588905ae238da5813865333982f8165a",
+      "sourceMode": "100644",
+      "sha256": "13e7032d7169572f4d0b4b158dfa39460a9cbb1adb6305c7b348c84a8c7fda53",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration-binding-vote.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration-binding-vote.test.ts",
+      "sourceBlob": "7430ad4f360f4f3e2498411730609f9534c416e4",
+      "sourceMode": "100644",
+      "sha256": "3092416383da7a2d9c76d9fda042a3a548ccdf10f0a6b2f1c648635e3a184d6b",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration-human-authority.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration-human-authority.test.ts",
+      "sourceBlob": "8c4e3c80a798beecee3210a81a62744300fd2671",
+      "sourceMode": "100644",
+      "sha256": "cd637dd426e4018ce7d76fcf205c159234a3648a8395060222ef44af97a0cec5",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration-reaction-http.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration-reaction-http.test.ts",
+      "sourceBlob": "bb0fd2f712373f8037fa7315aa8675523436d24b",
+      "sourceMode": "100644",
+      "sha256": "4dbed52f2e098b259038ddf3531390545154332844ae8755ff3b55ab0e37aacd",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration-reaction.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration-reaction.test.ts",
+      "sourceBlob": "d5f2e5f9d350bcd9d6482da0f92d5c95effc98da",
+      "sourceMode": "100644",
+      "sha256": "eba938c2e9635088f5b969acd8255439986a170135d148bf953fae491eafd3a0",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration-roadmap-lifecycle.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration-roadmap-lifecycle.test.ts",
+      "sourceBlob": "120e8ac02f2c4501a49ccb8723a27b813ea8c7f0",
+      "sourceMode": "100644",
+      "sha256": "43744bc878fc689443eac31495e193bb62e55ca492ca9ff3d75c86fd47a2d304",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration-vote.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration-vote.test.ts",
+      "sourceBlob": "2054b5cc44332f8215865986262bf765e5919fa4",
+      "sourceMode": "100644",
+      "sha256": "2673602ce4e9c2bd9095ce5583f86e92a535d7d10668c0b11cfd5f4bf558c656",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/collaboration.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/collaboration.test.ts",
+      "sourceBlob": "bdd3d48039de8c3c42536087769f66d8a7c3402f",
+      "sourceMode": "100644",
+      "sha256": "aae0be59d4aa29a157eea247464c07c59f1f4f4ee0a9b6984c17211018b1ad70",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/communication-acceptance.fixture.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/communication-acceptance.fixture.ts",
+      "sourceBlob": "489d1e3de60cc98b91910734a829bfe2006ac42f",
+      "sourceMode": "100644",
+      "sha256": "289de7e6160230d5ce5f9eb87c95ce6a4a1dfa957bf65f02cbad2f98d33b9f56",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/communication-acceptance.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/communication-acceptance.test.ts",
+      "sourceBlob": "4136acbd17a6842d99a09c94aa45e47b58e5a02a",
+      "sourceMode": "100644",
+      "sha256": "bd937e699af85665a0542d61b8047ff9859ea4c13b4b2579499f28e8302913a8",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/communication-continuation.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/communication-continuation.test.ts",
+      "sourceBlob": "301836fbdb39ec50d55ff230f247f0a384cc8e6b",
+      "sourceMode": "100644",
+      "sha256": "3d32b4b4e55094b52c1ad72c5f409541adffcafb63489f969233b58f383710fd",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/communication-listening.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/communication-listening.test.ts",
+      "sourceBlob": "1e0dd0693113e29b58271014cbb024a683a5a85a",
+      "sourceMode": "100644",
+      "sha256": "ef524374cf9538e2f3732a6414279b28b4291e0911932dda20e1987a5bd0032f",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/communication-owner-policy.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/communication-owner-policy.test.ts",
+      "sourceBlob": "0d2376f3fefc1ff5364b6ff12f149dfd440076ae",
+      "sourceMode": "100644",
+      "sha256": "3a55d798cc31c57a9f3f21eac76c2884cda72bf0cd241a9191909ad37e2b673d",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/communication-participation-lineage.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/communication-participation-lineage.test.ts",
+      "sourceBlob": "09fe2e3799be3d419ee2533b1d13354c2dfeb50b",
+      "sourceMode": "100644",
+      "sha256": "0b47379bff6d4d2092948f712ee46c6f2c4457bc7c9e10e5b8a8eb043b15b2a2",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/github-app-manifest-setup.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/github-app-manifest-setup.test.ts",
+      "sourceBlob": "d281bc332f01588c845834b9f9b17501926d996b",
+      "sourceMode": "100644",
+      "sha256": "0fdcdb3fbc172df740767619ad9e32353f4913e488f23475faad54df404f4de3",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/github-app-setup-http.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/github-app-setup-http.test.ts",
+      "sourceBlob": "d135708a0ec188f4ce8dec2829fbd4e34c93d3a4",
+      "sourceMode": "100644",
+      "sha256": "dc30f1574aaedfbc4bc25351c45d7ca5eea042c9578dce1c43c6dded294ce906",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/github-human-auth-provider.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/github-human-auth-provider.test.ts",
+      "sourceBlob": "984f6e0d4e333c22bb75aabf13867c15074cae01",
+      "sourceMode": "100644",
+      "sha256": "935595e859245ea0d890f3fa328bf39b0716c98712b1a0381fce634881ec52c2",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/member-directory.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/member-directory.test.ts",
+      "sourceBlob": "278c0b507b57a15f431666bf1988488c9a76bc80",
+      "sourceMode": "100644",
+      "sha256": "9057ba8b8e3f20e5abc162271fe605f928087ce000a684c0eb06ac75e6a365f2",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/membership-lifecycle.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/membership-lifecycle.test.ts",
+      "sourceBlob": "27f6fab4001d4d1d995fecde386ccd95a451418c",
+      "sourceMode": "100644",
+      "sha256": "7c361eac18a0a8f8efebcbb984efa6632d823cfccbc7cb5b57d219d15fdc616f",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/participation-fixture.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/participation-fixture.ts",
+      "sourceBlob": "cbff2a13c844e5487d3523c2641242141cc781cf",
+      "sourceMode": "100644",
+      "sha256": "a5f934ffc6fd8fe5c633b6caba9bb9389a7d876baf5158ea009e57df663c17a1",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/participation.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/participation.test.ts",
+      "sourceBlob": "294072c9365b459367862047a91078e50ae960a5",
+      "sourceMode": "100644",
+      "sha256": "009cc67ee75be11e78d0fbb257fc39f012acc573707e8ddafe7daeba05207bb9",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/service-http.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/service-http.test.ts",
+      "sourceBlob": "cd8ee0f13214b80895c42d48514ca4ae702d8229",
+      "sourceMode": "100644",
+      "sha256": "52b70c93de3e91c23e2152e8111cfed3d87a9e38cb066ad93e5197f6259ef290",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/__tests__/service-store.test.ts",
+      "target": "packages/collective-connector/src/business/service/__tests__/service-store.test.ts",
+      "sourceBlob": "81f7d73858e12b4ff043a44cf68e92f9526284fe",
+      "sourceMode": "100644",
+      "sha256": "ab484c14d835c813ec95182979c2adf23c3dbe87044cfac2caab9aa4a99f1779",
+      "disposition": "preserve-business-regression-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/agent-message-participation.ts",
+      "target": "packages/collective-connector/src/business/service/agent-message-participation.ts",
+      "sourceBlob": "4ad1649b035d306ec63b991c28b16a337a01efb2",
+      "sourceMode": "100644",
+      "sha256": "fd1221fa538703e90c114cd30c3a873d65996f66ae2b0396fe97405fb154bbfd",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/cli-config.ts",
+      "target": "packages/collective-connector/src/business/service/cli-config.ts",
+      "sourceBlob": "0ceda2926c7cf053a7acef71aeb5653e3ee1f7ff",
+      "sourceMode": "100644",
+      "sha256": "bafdc68147fa6930ebb4bb8b361a44dabafcb465fc84fb8817f060e4fe80a7be",
+      "disposition": "service-lifecycle-config-C2-edge-adaptation"
+    },
+    {
+      "source": "packages/collective-service/src/cli.ts",
+      "target": "packages/collective-connector/src/business/service/cli.ts",
+      "sourceBlob": "451e31017a758c52768e2113617ce4689d948d38",
+      "sourceMode": "100644",
+      "sha256": "a376769341fbd641f12784517d9fae07a7b0ed6e12565926fcc24b21bdb196a2",
+      "disposition": "service-lifecycle-config-C2-edge-adaptation"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-agent-acceptance.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-agent-acceptance.ts",
+      "sourceBlob": "83c490d321d26946211cb9c4a1fd1d16ae6697f8",
+      "sourceMode": "100644",
+      "sha256": "2e874cc12986d5e827dc799be8f349d25384edea561ed1bd058f7172d48efc53",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-agent-continuation.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-agent-continuation.ts",
+      "sourceBlob": "4f1ede7cce72576aba9d19042c444995972ad6b8",
+      "sourceMode": "100644",
+      "sha256": "a6055e1b20db2fcb47180c9c68f466bee4194d12111a1d9339317e360b5ac5bf",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-binding-vote-settlement.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-binding-vote-settlement.ts",
+      "sourceBlob": "ed24a80c4ae795aad76a3e354fcc37aa242f6d7b",
+      "sourceMode": "100644",
+      "sha256": "f75de93168f908f0b7c8df24abbcc08c71409daf0b11505d702935a744bbae36",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-binding-vote-store.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-binding-vote-store.ts",
+      "sourceBlob": "aa899853812480274e179d0e542e6f3f03d093b1",
+      "sourceMode": "100644",
+      "sha256": "c0954b73bffd3921f82c9d687d012e0777bf7fb220be86d0f86338c4566289b6",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-binding-vote.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-binding-vote.ts",
+      "sourceBlob": "14fc583e681a40f1a8844b42d270a27f65d23b8f",
+      "sourceMode": "100644",
+      "sha256": "367047e1cd4c68609c256148ff723edf93454d404d7459afb44776db21650fd4",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-command-helpers.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-command-helpers.ts",
+      "sourceBlob": "c606c88f76fc105a78904d3c985855c29151dc5e",
+      "sourceMode": "100644",
+      "sha256": "84d5a78959848963447b77e5a3e0fd8353c77f33d4514ce131a0683ea4d7a89b",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-commit.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-commit.ts",
+      "sourceBlob": "0e8374a2d7b4e79f4d38d1f7b6560d3ded57acbe",
+      "sourceMode": "100644",
+      "sha256": "6c03874340657812b8acca6d4eebae33844a4e8b9d319b53b8ee6d881a65b8ca",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-complete.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-complete.ts",
+      "sourceBlob": "448473707b706eb19d4963bed979c51008101f95",
+      "sourceMode": "100644",
+      "sha256": "e8bcb5357f488d55657675fefff98b008bdbdfadca8ac93d43c3f7fed570fc52",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-http-routes.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-http-routes.ts",
+      "sourceBlob": "4fb8688c2d2d68653cb3625c4c53ecd8442e77bb",
+      "sourceMode": "100644",
+      "sha256": "511655f5b260d99f17ee70a4c44d33a8ce986df2590adb42fd74b905a46c615a",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-operations.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-operations.ts",
+      "sourceBlob": "614778ba1e6e19d7c4da71e7ff1336ed392cd3e0",
+      "sourceMode": "100644",
+      "sha256": "6fcf3fe7f85d58f6953c7c143d8067620d53c9cd10461d557bcad9c38fcddf6b",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-reaction-store.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-reaction-store.ts",
+      "sourceBlob": "3c9e2de3c8e396d4013876ba650cec84a58d91be",
+      "sourceMode": "100644",
+      "sha256": "649c1dcd27689bd5d3129f29bc6772f0ff75469f3bedbf334e0d2546f592bf09",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-revision.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-revision.ts",
+      "sourceBlob": "4a61092029d7b00a34656c302658436ab9b9d8c0",
+      "sourceMode": "100644",
+      "sha256": "d0e866a0fd9804004e1700ece7db05917be8d7d0ff9bfcd2a166f89a1de2c79d",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-roadmap.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-roadmap.ts",
+      "sourceBlob": "98bbde735cb3fe277f75e13ec3c68a55da425a46",
+      "sourceMode": "100644",
+      "sha256": "bd269317a8397b5a89f28f46fafa3084d5f65ca8cfe994b3ebb45d044c88d115",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-store.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-store.ts",
+      "sourceBlob": "a2aa63bdf250bff7bd84e7c23d33a68989e7a125",
+      "sourceMode": "100644",
+      "sha256": "9dc065320a493da8f9faa1a4828b02a826f4e728d2455984cde618488da161a3",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-vote.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-vote.ts",
+      "sourceBlob": "4af2a0def2f9e6f7b9ac860d6f826505e164b503",
+      "sourceMode": "100644",
+      "sha256": "03e3bd4515c6ccf7f2adb962030a6a5a90888a5b097be3aeae95a45dd69d06b4",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-work-progress.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-work-progress.ts",
+      "sourceBlob": "6726e7053081be04ba242d2f1ae637f0f48b8906",
+      "sourceMode": "100644",
+      "sha256": "c6810502032afc30cb37c69f5d51492d36f4e5c68b2d0af957915c804e7ca86c",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/collaboration-work.ts",
+      "target": "packages/collective-connector/src/business/service/collaboration-work.ts",
+      "sourceBlob": "4f236c9e6d582f1b71d100df078743ffd26c6b14",
+      "sourceMode": "100644",
+      "sha256": "a0a5076110fa0576bcc94a2ccf16f80ff891185f1ab81ed7287a60b9f4bf8e73",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/connection-authority.ts",
+      "target": "packages/collective-connector/src/business/service/connection-authority.ts",
+      "sourceBlob": "fb1034308d653db08bfbcc61e4826db015dfc960",
+      "sourceMode": "100644",
+      "sha256": "20182f7ce45e3eca285815cf582af543bee4b63a88f764e1c240f78662983d6a",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/connection-event-store.ts",
+      "target": "packages/collective-connector/src/business/service/connection-event-store.ts",
+      "sourceBlob": "ca3a845b21bee3b16403774b118565071cdc417e",
+      "sourceMode": "100644",
+      "sha256": "414a156d50750509faaaad96dfd7d18ecbc2215e6e9c50eb71c0db8c62fdc166",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/errors.ts",
+      "target": "packages/collective-connector/src/business/service/errors.ts",
+      "sourceBlob": "494e534adbfb4a0320e367e00b0a16a66d2a83f4",
+      "sourceMode": "100644",
+      "sha256": "4d2ba270cbbc99d068523df1238754277f179084e1d5e01007fc6a0f155d422c",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/event-location.ts",
+      "target": "packages/collective-connector/src/business/service/event-location.ts",
+      "sourceBlob": "1b0d9ff7435c99046227d12c3f9b6b3daedd5197",
+      "sourceMode": "100644",
+      "sha256": "cf4a76ff0e3d1016fdb27ec9020a0dda55560a5128edcd0c5376db5d7e6a3b1f",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/event-log.ts",
+      "target": "packages/collective-connector/src/business/service/event-log.ts",
+      "sourceBlob": "49aab6acb5957ecd090f8f5e6e1dc9e5bad27e64",
+      "sourceMode": "100644",
+      "sha256": "4b4eaf000bd9bc52011ae338642733d5f0fe250c42da47d98f820719ccd16152",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/github-app-manifest-setup.ts",
+      "target": "packages/collective-connector/src/business/service/github-app-manifest-setup.ts",
+      "sourceBlob": "bf88f2b75a23982066eb9846525f1736a783b2d1",
+      "sourceMode": "100644",
+      "sha256": "deedd893f282acc2af7f36aa2100cc1e55193efedb1bbd9ed9f4e362619d3f22",
+      "disposition": "service-lifecycle-config-C2-edge-adaptation"
+    },
+    {
+      "source": "packages/collective-service/src/github-app-setup-routes.ts",
+      "target": "packages/collective-connector/src/business/service/github-app-setup-routes.ts",
+      "sourceBlob": "87ae4c21b804ba356ecf537d5d77a9ca8d3f3bd1",
+      "sourceMode": "100644",
+      "sha256": "fe656935c800b41d75c770dffc83f797aa7776a39d45ae78ec9e885105a29c0f",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/github-human-auth-provider.ts",
+      "target": "packages/collective-connector/src/business/service/github-human-auth-provider.ts",
+      "sourceBlob": "11bfb442656f8373cdb582e79c637bb761957b40",
+      "sourceMode": "100644",
+      "sha256": "bc85291d224fdd834ac3981e60babc8c6a4e789c49dcd73702c8babe9e81265a",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/http-read-routes.ts",
+      "target": "packages/collective-connector/src/business/service/http-read-routes.ts",
+      "sourceBlob": "ef7cbb54b672d767f4fa5f0c6379e49d765a2628",
+      "sourceMode": "100644",
+      "sha256": "5d158cd3c12862888d72312f5a488346fbf9e5d4198c550de0db24d467f85ffb",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/http-router.ts",
+      "target": "packages/collective-connector/src/business/service/http-router.ts",
+      "sourceBlob": "302cf633186ee231505480f3385b92a7c6c9d1c8",
+      "sourceMode": "100644",
+      "sha256": "444286a28785872d78392b31b74cacf3f6e4a0371fcec1f0a0fc4ba46ef38f4e",
+      "disposition": "service-lifecycle-config-C2-edge-adaptation"
+    },
+    {
+      "source": "packages/collective-service/src/http-server.ts",
+      "target": "packages/collective-connector/src/business/service/http-server.ts",
+      "sourceBlob": "e07ffa81b90b16d48b9ccf611dd9a479c8ae0e23",
+      "sourceMode": "100644",
+      "sha256": "772d30d0764d75c6254dced87a1b3b5cdd94831f18f75e88e85285ca80896bc0",
+      "disposition": "service-lifecycle-config-C2-edge-adaptation"
+    },
+    {
+      "source": "packages/collective-service/src/http-transport.ts",
+      "target": "packages/collective-connector/src/business/service/http-transport.ts",
+      "sourceBlob": "fb954dc3367249929c9931084fdb0e4e0d0c635c",
+      "sourceMode": "100644",
+      "sha256": "d8ef298f75c7e4cfe9906c1fed3e618e302af8cf11a0df7b1fb632fe5191766b",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/human-auth-provider.ts",
+      "target": "packages/collective-connector/src/business/service/human-auth-provider.ts",
+      "sourceBlob": "29a14fe91be5f41de3543a9a8764dbb033934c61",
+      "sourceMode": "100644",
+      "sha256": "747cbd49bef0337682d5d8d3e2fca94a5f0514b271f39667f350cc776507fa8f",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/human-auth-state.ts",
+      "target": "packages/collective-connector/src/business/service/human-auth-state.ts",
+      "sourceBlob": "1dbae9956a890f305ba9e83a371ca3af79de701a",
+      "sourceMode": "100644",
+      "sha256": "845164e9ffacc585828829098e7b81166ad6d17a5a7dfba06713b68445a2ba03",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/human-auth-transitions.ts",
+      "target": "packages/collective-connector/src/business/service/human-auth-transitions.ts",
+      "sourceBlob": "3ed82b24ea3999ba68e653aa22c91f91290955a8",
+      "sourceMode": "100644",
+      "sha256": "2477e947cccbef1703a42c2a1b11a2707d2bc2b633de7de07b7a85c264647691",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/identity-store.ts",
+      "target": "packages/collective-connector/src/business/service/identity-store.ts",
+      "sourceBlob": "55685adb6e35f8062934cba4b9b62877f6baeea2",
+      "sourceMode": "100644",
+      "sha256": "b8b3b4059cc7275ec652ca45f53b51221677af93a9efb9a900907dab3b6200e6",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/index.ts",
+      "target": "packages/collective-connector/src/business/service/index.ts",
+      "sourceBlob": "6a7b1e56d307808569bdd4512ef94bc0c998db2e",
+      "sourceMode": "100644",
+      "sha256": "1b5f8e71f41d47990c711ba4ac8d3bb89d701f515b0693f6ae839cdc6a3c018b",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/member-directory.ts",
+      "target": "packages/collective-connector/src/business/service/member-directory.ts",
+      "sourceBlob": "e32fd492bc6d159dfa98d993ae0c984885f3729f",
+      "sourceMode": "100644",
+      "sha256": "6b740d9c0065c7374795be1f160e2074a501d17dd5626ba2b6a0a42a7836badb",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/membership-authority.ts",
+      "target": "packages/collective-connector/src/business/service/membership-authority.ts",
+      "sourceBlob": "d71c09f1096e994de8641e956b24111be16b0759",
+      "sourceMode": "100644",
+      "sha256": "2b8f26b13e858e688f719ed545dfdb13c7f4cac1b1c7bbe0eb2c799583a1ad8c",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/membership-lifecycle.ts",
+      "target": "packages/collective-connector/src/business/service/membership-lifecycle.ts",
+      "sourceBlob": "ef09f2d1f49caf713408c6c7288f634c44686796",
+      "sourceMode": "100644",
+      "sha256": "3f0d7fcd3b6278bbc3da51e3112f7ca7c955c96816fec98d6547669205ad6467",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/membership-state.ts",
+      "target": "packages/collective-connector/src/business/service/membership-state.ts",
+      "sourceBlob": "418282feb3bb2e44f2929f9029f0cec1c681b064",
+      "sourceMode": "100644",
+      "sha256": "44a36b06972a9ef9d6a0dc0e128177a36b870825e31e8e210267e9ecf1a7b2e3",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/participation-store.ts",
+      "target": "packages/collective-connector/src/business/service/participation-store.ts",
+      "sourceBlob": "25fd4da418fc5a6e8aa4c26d964b9f7d3dfae96c",
+      "sourceMode": "100644",
+      "sha256": "a9cf343b01ace3233ee2f3cb20bc86c43b2903819017637bebeba90c08b4d2af",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/persistence.ts",
+      "target": "packages/collective-connector/src/business/service/persistence.ts",
+      "sourceBlob": "23b091d836889e56622fc78adbb0dc5787341f17",
+      "sourceMode": "100644",
+      "sha256": "1116e822eef8a54d5e6ef92ce9a11a4270d87122388d1d51678b5961b7d56dde",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/provider-setup-authorization.ts",
+      "target": "packages/collective-connector/src/business/service/provider-setup-authorization.ts",
+      "sourceBlob": "a97dccf7046076c20f6c25b4537bd0bf2827baf8",
+      "sourceMode": "100644",
+      "sha256": "25ce28ce6c5146f23658ab2ce0c2ec3e9c3e05fa3b9be7df35ed16e85536eed0",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/reaction-state.ts",
+      "target": "packages/collective-connector/src/business/service/reaction-state.ts",
+      "sourceBlob": "1f99f1e6915e1539da7b79e8acbe5fcf259930a4",
+      "sourceMode": "100644",
+      "sha256": "7691ce2e792e7061e2634805f8732a5c8c353a46745c2646a728599f731e6ad1",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/service-records.ts",
+      "target": "packages/collective-connector/src/business/service/service-records.ts",
+      "sourceBlob": "9757a423f7c475036bc78275b875cc96b44ff81e",
+      "sourceMode": "100644",
+      "sha256": "f01911fa7315e8210c4f76813f7667c83f0044553315098550c092596b981dd7",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/state.ts",
+      "target": "packages/collective-connector/src/business/service/state.ts",
+      "sourceBlob": "88436ea69a713b361f998be652390cd3fb201dd6",
+      "sourceMode": "100644",
+      "sha256": "da39f8a104c6e0992dda7b89aa0072477684f5aa156fc7454b23c94c6707f53c",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/store.ts",
+      "target": "packages/collective-connector/src/business/service/store.ts",
+      "sourceBlob": "7d48c0068448c7ef8d54841c1130ff6ae621eaf2",
+      "sourceMode": "100644",
+      "sha256": "6cb760b25e322ebe0ebd3b436cd615ee3ed872364bc724859511883422c13e7c",
+      "disposition": "service-lifecycle-config-C2-edge-adaptation"
+    },
+    {
+      "source": "packages/collective-service/src/work-authority-http-routes.ts",
+      "target": "packages/collective-connector/src/business/service/work-authority-http-routes.ts",
+      "sourceBlob": "6fe239707ed0318c66c24ed538607dd3566db4ee",
+      "sourceMode": "100644",
+      "sha256": "3ee00ffed3f1aa2f9f0118bee5da0a9351c5196adabfe586d3b43707d72f76e7",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/work-execution-authority.ts",
+      "target": "packages/collective-connector/src/business/service/work-execution-authority.ts",
+      "sourceBlob": "ef07d5de793f0ec4c817dc8d4ea403ef4a2dbcdb",
+      "sourceMode": "100644",
+      "sha256": "73aa8ae87b6d167b8c77c2601ae03ea58ae77def0453bab04ecd6340c38a1fc8",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/work-execution-status.ts",
+      "target": "packages/collective-connector/src/business/service/work-execution-status.ts",
+      "sourceBlob": "17672fa37f1428b82c2778043f765cd3dac421fe",
+      "sourceMode": "100644",
+      "sha256": "02aeefad442e17306570916b8133be45df4516bd682f56496b0b79549deac39b",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/work-host-admission.ts",
+      "target": "packages/collective-connector/src/business/service/work-host-admission.ts",
+      "sourceBlob": "5660546eb10ecbc063acb3302c5193fc6950aa33",
+      "sourceMode": "100644",
+      "sha256": "50b58d075778ba82ce5b1303f52387b1ac9b264756af9fd3a8e0ff3d0142b24f",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/work-policy-store.ts",
+      "target": "packages/collective-connector/src/business/service/work-policy-store.ts",
+      "sourceBlob": "ec8b31e218065f779e0ab50b20587bfb465c77ef",
+      "sourceMode": "100644",
+      "sha256": "eec0313af1c24b5c9f0ee75f56b4bc1b992fd494d5e705afc99101f0520b8120",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/collective-service/src/work-source-context.ts",
+      "target": "packages/collective-connector/src/business/service/work-source-context.ts",
+      "sourceBlob": "1da754d9e786e125e6b3ac30d192865adccef83b",
+      "sourceMode": "100644",
+      "sha256": "912e0653739f40b70f5098ac6fbe1e3968d8d19d8c9edbc74e8f7d50b691b816",
+      "disposition": "business-byte-preserving-move-candidate"
+    },
+    {
+      "source": "packages/shared/src/collective-participation-scope.ts",
+      "target": "packages/collective-connector/src/business/contracts/collective-participation-scope.ts",
+      "sourceBlob": "668099c9aae5260a44f802c4535a527f2ebf787b",
+      "sourceMode": "100644",
+      "sha256": "c0353a56e9588cb8741f85d489fd80542c51541211728eb949a7e9ea623e9165",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/collective-work-assignment.ts",
+      "target": "packages/collective-connector/src/business/contracts/collective-work-assignment.ts",
+      "sourceBlob": "5db800be04176183b32418adb32c0cf9644e6466",
+      "sourceMode": "100644",
+      "sha256": "383dc634f7c372c7f723fbec2db01219e041c351c95828f50e2bd74114f14a2e",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-collaboration.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-collaboration.ts",
+      "sourceBlob": "2bb676f73cd246715a8528ed0e368fbd14bb4c93",
+      "sourceMode": "100644",
+      "sha256": "f2f65b77c1c1f8ae3d40ed53428f3d460fbcb88120af1f12c2ed5600ac66b1fe",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-decision-vote.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-decision-vote.ts",
+      "sourceBlob": "e468a67d002458eb12e8164552e63615c828c247",
+      "sourceMode": "100644",
+      "sha256": "b4a1ab303d51ba9f1c938a33f57045a234e89130f265fcba6dff595fb22ffc55",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-members.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-members.ts",
+      "sourceBlob": "aa94fac28338f83789975320209a597e8e8db4f0",
+      "sourceMode": "100644",
+      "sha256": "8b4b9562be500cae4ce5a7517949e67ff414171e332d2cb84b5df184acd4d170",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-participation.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-participation.ts",
+      "sourceBlob": "e2a52a269fd801a8c56ff42b91414b94e14b480c",
+      "sourceMode": "100644",
+      "sha256": "bf666db33c6e5c6b282d6cce29ebbc229e50673afeaf1c56b1d9471e03c68308",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-reaction.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-reaction.ts",
+      "sourceBlob": "0381d18bfa5fce55148c042afbb670ec29e2fdcd",
+      "sourceMode": "100644",
+      "sha256": "a5608b86155898688bf75352fb69cef1166ef2c0a8e41edb06686e388eba832d",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-vote.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-vote.ts",
+      "sourceBlob": "55976d37924a208d3dc8e22fed2e1d43b5d06ed2",
+      "sourceMode": "100644",
+      "sha256": "cf1260d554d11c0b2a1daf57606a8600a4b13b9bca028675273289ebd05684bf",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-work-acceptance.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-work-acceptance.ts",
+      "sourceBlob": "c87b448af64e7c3baca29ba333cef3ba6e811af5",
+      "sourceMode": "100644",
+      "sha256": "22ab261b84ddbf4646df74ce2b3450c4317fa7f47988b3167d186c021202742a",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-work-matter.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-work-matter.ts",
+      "sourceBlob": "b26c8e2f7af16555cebf427e020dedc84d27dc0a",
+      "sourceMode": "100644",
+      "sha256": "273dfa5c762eec3a52c00e2a08012d35ce3ffcf45efb50ee564e871326c7eb56",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-work-policy.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-work-policy.ts",
+      "sourceBlob": "bc560d17026a3609649e7ff3b1dc8a896622cfb4",
+      "sourceMode": "100644",
+      "sha256": "930dd79cdb6cba9da27692b2e701d80dcc7ad8199dc4ab0b0869353cbc4903d2",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-work-return.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-work-return.ts",
+      "sourceBlob": "8a14795f29bfbf9e248ea87bd58adeb9bba32deb",
+      "sourceMode": "100644",
+      "sha256": "6908ae58392ef6809488e68260f859006ebb932ff3ded7d395c75e74ed7c38ac",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective-work.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective-work.ts",
+      "sourceBlob": "148e03173b17af1892e75ee57380e7adf59e37de",
+      "sourceMode": "100644",
+      "sha256": "c7ec1d6eac6f7525caa206f68e7949aa2a3839742cace03c2e50aa0ed3402590",
+      "disposition": "shared-contract-candidate-public-split-required"
+    },
+    {
+      "source": "packages/shared/src/types/collective.ts",
+      "target": "packages/collective-connector/src/business/contracts/types/collective.ts",
+      "sourceBlob": "3f2454e7f919c6897b60b8dcc45baad6cba951e0",
+      "sourceMode": "100644",
+      "sha256": "244080e69f9ab36033ce6d175ff78102d1c4d9e0f0a5ff9699daeeaed43a9414",
+      "disposition": "shared-contract-candidate-public-split-required"
+    }
+  ]
+}

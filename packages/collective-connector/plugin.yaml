@@ -1,0 +1,509 @@
+pluginId: official.collective-connector
+version: 0.1.0-alpha.2
+contractVersion: 0.1.0
+name: Collective
+description:
+  default: Collective backend service. Client UI remains in the Host.
+  translations:
+    zh-CN: Collective 后端服务；独立界面保留在宿主中。
+configuration:
+  - key: service
+    label: Service status
+    kind: operation
+    required: false
+    actions:
+      - id: status
+        label: Service status
+        render: button
+        action:
+          method: collective.service.status
+  - key: recovery
+    label: Verify held local operations
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: Held operations
+        render: status
+        resultRender: rows
+        action:
+          method: collective.recovery.list
+      - id: page
+        label: More held operations
+        render: row
+        resultRender: rows
+        action:
+          method: collective.recovery.page
+      - id: reconcile
+        label: Verify result
+        render: row
+        resultRender: rows
+        action:
+          method: collective.recovery.reconcile
+      - id: resume
+        label: Resume this verified operation once
+        render: row
+        resultRender: rows
+        confirm: Resume the same operation once using its verified recovery proof?
+        action:
+          method: collective.recovery.resume
+  - key: participation
+    label: Collective participation
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: Paired connections
+        render: button
+        resultRender: rows
+        action: { method: collective.owner.connections }
+      - id: sync
+        label: Sync this connection and admit its named requests
+        render: row
+        resultRender: rows
+        action: { method: collective.owner.sync }
+  - key: work
+    label: Private Collective Work
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: Paired Work connections
+        render: button
+        resultRender: rows
+        action: { method: collective.work.owner.connections }
+      - id: sync
+        label: Admit current committed Work
+        render: row
+        resultRender: rows
+        action: { method: collective.work.owner.sync }
+features:
+  - id: collective-backend
+    name: Collective backend
+    resources: []
+    contributions:
+      - type: browser-service
+        id: collective-client-api
+      - type: webhook
+        id: collective-owner-10
+      - type: webhook
+        id: collective-owner-11
+      - type: webhook
+        id: collective-owner-12
+      - type: webhook
+        id: collective-owner-13
+      - type: webhook
+        id: collective-owner-18
+      - type: webhook
+        id: collective-owner-19
+      - type: webhook
+        id: collective-owner-20
+      - type: webhook
+        id: collective-owner-22
+      - type: webhook
+        id: collective-owner-23
+      - type: webhook
+        id: collective-owner-24
+      - type: webhook
+        id: collective-work-reconsideration
+      - type: webhook
+        id: collective-owner-31
+      - type: webhook
+        id: collective-entry-roster
+      - type: webhook
+        id: collective-pair
+      - type: webhook
+        id: collective-participation-policy
+      - type: webhook
+        id: collective-participation-view
+      - type: webhook
+        id: collective-participation-reconcile
+      - type: identity
+        id: collective
+      - type: skill
+        id: collective-participation
+      - type: mcp
+        id: collective-owner-native
+      - type: mcp
+        id: collective-native
+    capabilities:
+      - data.directory
+      - plugin.state.get
+      - thread.readContent
+      - thread.listMetadata
+      - thread.write
+      - messaging.send
+      - task.read
+  - id: collective-work
+    name: Private Collective Work
+    resources: []
+    contributions:
+      - { type: mcp, id: collective-work-native }
+      - { type: message-subscription, id: collective-work-materials }
+      - { type: webhook, id: collective-work-admit }
+      - { type: webhook, id: collective-work-resume }
+      - { type: webhook, id: collective-work-result-accepted }
+    capabilities:
+      - data.directory
+      - plugin.state.get
+      - plugin.state.set
+      - task.admitEntrusted
+      - task.write
+      - task.read
+      - thread.readContent
+      - thread.listMetadata
+      - thread.write
+      - messaging.send
+      - message.event.subscribe
+      - media.read
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js
+  dataDirectory: collective
+contributions:
+  - type: skill
+    id: collective-participation
+    path: skills/collective-participation
+  - type: identity
+    id: collective
+    displayName: Collective
+  - type: mcp
+    id: collective-native
+    runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
+    actions:
+      - { method: collective.context.current }
+      - { method: collective.context.read }
+      - { method: collective.participation.set-interest }
+      - { method: collective.reply.submit }
+      - { method: collective.work.propose }
+      - { method: collective.work.accept }
+      - { method: collective.work.continue }
+  - type: browser-service
+    id: collective-client-api
+    action:
+      method: collective.http.dispatch
+    routes:
+      - method: POST
+        path: /api/acks
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/auth/completions/exchange
+        browser: service
+      - method: POST
+        path: /api/auth/github/begin
+        browser: service
+      - method: GET
+        path: /api/auth/github/callback
+        browser: callback
+      - method: GET
+        path: /api/auth/providers
+        browser: service
+      - method: POST
+        path: /api/bootstrap
+        browser: service
+      - method: GET
+        path: /api/collaboration
+        browser: service
+      - method: POST
+        path: /api/collaboration/binding-votes
+        browser: service
+      - method: POST
+        path: /api/collaboration/binding-votes/cast
+        browser: service
+      - method: POST
+        path: /api/collaboration/binding-votes/settle
+        browser: service
+      - method: POST
+        path: /api/collaboration/binding-votes/withdraw
+        browser: service
+      - method: POST
+        path: /api/collaboration/reactions/set
+        browser: service
+      - method: POST
+        path: /api/collaboration/roadmaps
+        browser: service
+      - method: POST
+        path: /api/collaboration/roadmaps/status
+        browser: service
+      - method: POST
+        path: /api/collaboration/roadmaps/works
+        browser: service
+      - method: POST
+        path: /api/collaboration/votes
+        browser: service
+      - method: POST
+        path: /api/collaboration/votes/cast
+        browser: service
+      - method: POST
+        path: /api/collaboration/votes/close
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/accept-agent
+        browser: service
+        local: omit-origin
+      - method: GET
+        path: /api/collaboration/work/assigned
+        browser: service
+        local: omit-origin
+      - method: GET
+        path: /api/collaboration/work/assigned-by-assignment
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/collaboration/work/commit
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/complete
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/continue-agent
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/collaboration/work/decline
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/dependencies
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/host-admission
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/collaboration/work/propose
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/propose-agent
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/collaboration/work/result/accept
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/result/revision
+        browser: service
+      - method: POST
+        path: /api/collaboration/work/routing-context
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/collaboration/work/source-context
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/collectives
+        browser: service
+      - method: POST
+        path: /api/connections/exchange
+        local: parent-origin
+      - method: POST
+        path: /api/connections/revoke
+        browser: service
+      - method: POST
+        path: /api/connections/self-revoke
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/events/agent
+        browser: service
+        local: omit-origin
+      - method: GET
+        path: /api/events/endpoint
+        browser: service
+        local: omit-origin
+      - method: GET
+        path: /api/events/human
+        browser: service
+      - method: POST
+        path: /api/events/human
+        browser: service
+      - method: GET
+        path: /api/health
+        browser: service
+      - method: POST
+        path: /api/invites
+        browser: service
+      - method: POST
+        path: /api/join
+        browser: service
+      - method: GET
+        path: /api/me
+        browser: service
+      - method: GET
+        path: /api/members
+        browser: service
+      - method: POST
+        path: /api/memberships/self-leave
+        browser: service
+      - method: GET
+        path: /api/meta
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/pairing-intents
+        browser: service
+      - method: GET
+        path: /api/participants
+        browser: service
+      - method: GET
+        path: /api/participation
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/participation
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/participation/context
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/participation/work-policy/read
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/participation/work-policy/read-owner
+        browser: service
+      - method: POST
+        path: /api/participation/work-policy/register
+        browser: service
+      - method: POST
+        path: /api/participation/work-policy/revoke
+        browser: service
+        local: omit-origin
+      - method: POST
+        path: /api/setup/github-app/begin
+        browser: service
+      - method: GET
+        path: /api/setup/github-app/callback
+        browser: callback
+    credentials:
+      bearer: true
+      cookies:
+        - name: collective_auth_completion
+          path: /api/auth/completions/exchange
+          httpOnly: true
+          sameSite: Strict
+          maxAgeSeconds: 300
+  - type: webhook
+    id: collective-owner-10
+    path: connections
+    methods: [GET]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-11
+    path: connections/:connectionId/inbox
+    methods: [GET]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-12
+    path: connections/:connectionId/listening
+    methods: [GET]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-13
+    path: connections/:connectionId/listening
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-18
+    path: connections/:connectionId/reconnect
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-19
+    path: connections/:connectionId/revoke
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-20
+    path: connections/:connectionId/route
+    methods: [GET, PUT]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-22
+    path: connections/:connectionId/work-policy
+    methods: [GET]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-23
+    path: connections/:connectionId/work-policy/adopt
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-24
+    path: connections/:connectionId/work-policy/revoke
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-owner-31
+    path: service/provision
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-work-reconsideration
+    path: connections/:connectionId/work/reconsider
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-entry-roster
+    path: entry-roster
+    methods: [GET]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-pair
+    path: pair
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-participation-reconcile
+    path: connections/:connectionId/participation/reconcile
+    methods: [POST]
+    action: { method: collective.control.http }
+  - type: webhook
+    id: collective-participation-policy
+    path: connections/:connectionId/participation/policy
+    methods: [PUT]
+    action: { method: collective.control.http }
+  - type: mcp
+    id: collective-owner-native
+    runtime: { transport: stdio, entrypoint: dist/owner-mcp-entrypoint.js }
+    actions:
+      - { method: collective.connector.send }
+  - type: webhook
+    id: collective-participation-view
+    path: connections/:connectionId/participation
+    methods: [GET, PUT]
+    action: { method: collective.control.http }
+
+  - type: message-subscription
+    id: collective-work-materials
+    binding: collective
+    action: { method: collective.work.material.receive }
+    presentation: v1
+  - type: mcp
+    id: collective-work-native
+    runtime: { transport: stdio, entrypoint: dist/work-mcp-entrypoint.js }
+    actions:
+      - { method: collective.work.context.current }
+      - { method: collective.work.context.read }
+      - { method: collective.work.progress }
+      - { method: collective.work.artifact.read }
+      - { method: collective.work.artifact.register }
+      - { method: collective.work.reply.submit }
+  - type: webhook
+    id: collective-work-admit
+    path: connections/:connectionId/work/admit
+    methods: [POST]
+    action: { method: collective.work.control.http }
+  - type: webhook
+    id: collective-work-resume
+    path: connections/:connectionId/work/resume
+    methods: [POST]
+    action: { method: collective.work.control.http }
+  - type: webhook
+    id: collective-work-result-accepted
+    path: connections/:connectionId/work/result/accepted
+    methods: [POST]
+    action: { method: collective.work.control.http }

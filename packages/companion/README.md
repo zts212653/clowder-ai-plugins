@@ -1,86 +1,35 @@
-# Companion surface
+# 猫猫球
 
-At rest the desktop shows only your selected cat. Click the cat for voice or text;
-right-click for history, screen sharing, household access, sound and hiding.
-Dragging moves the cat and folds its controls. Escape folds a panel without
-ending the conversation or clearing its draft.
+简体中文 · [English](README.en.md)
 
-Voice requires an explicit **语音聊** click. An active microphone badge remains
-visible and ends the call in one click. Screen sharing has its own explicit
-picker and termination badge. There is no microphone action on a double-click,
-page load, body tap or drag.
+在桌面上与你的猫语音或文字交流，查看共同历史，并按需共享屏幕。猫猫球是置顶、透明、无边框的小窗口；需要兼容的桌面宿主。
 
-When a compatible Host advertises receive-only audio, **只听** opens the same
-conversation with playback but never requests or toggles a microphone. Older
-Hosts omit that capability, so the control stays hidden and ordinary voice keeps
-the exact legacy connect request. Text remains available independently.
+## 开始使用
 
-Typing works with voice off. The Host uses the existing owner conversation,
-configured duty cat, ordinary message routing and idempotency. The small history
-view reads a bounded recent subset; **完整聊天** opens the canonical conversation.
-No second transcript database, credentials or selectable Host identity live here.
-When the Host supplies a valid per-message identity snapshot, each history row
-keeps its real author while separately showing the partner, Live carrier and
-deep cat saved with that message. Legacy rows omit this context instead of
-borrowing today's selected companion.
+1. 安装并启用 `@clowder-ai/companion`，通过 Clowder AI 的“聊聊”入口打开猫猫球。
+2. 点击猫打开语音或文字控制；右键查看历史、屏幕共享、家园、声音和隐藏选项。拖动猫移动窗口，Escape 收起面板而不结束对话或清空草稿。
+3. 只有明确点击“语音聊”才开启麦克风；通话时可通过始终可见的标记一键结束。屏幕共享另有明确的选择与结束操作。
 
-## Host integration
+兼容宿主提供“只听”时，可以接收同一对话的音频而不申请麦克风。较旧宿主不显示这个入口。语音关闭时仍可独立输入文字。
 
-This surface requires the additive desktop bridge **1.6.0**. The Host computes
-placement within the display work area, keeps the cat as its stable anchor, and
-owns bounded drag gestures and transparent-area hit testing. Hosts below 1.6
-reject this manifest before installation. Media admission and capture
-remain in the trusted Host; this package receives neither streams nor provider
-SDP. Hiding releases media; the existing Clowder **聊聊** entry restores the cat.
-Bridge 1.4 adds one untrusted first-visible-subtitle observation containing only
-an epoch-millisecond time, the current call fence and a Host-correlatable source
-reference. It does not claim compositor paint, an unoccluded window or reading.
-Message and native-item references use the same bounded, single-line opaque ID
-contract as the transcript surfaces that supply them. A Host
-`invalid_request` rejects and remembers that candidate for the current call so
-another current reference may be observed without retrying the rejected one.
-Other failures retry after 1 and 2 seconds, then leave the call's
-first-visible result unknown; later text never backfills a manufactured success.
-Bridge 1.5 adds Host-bound conversation pages and versioned body continuations.
-The renderer can only return opaque cursors issued by the Host; it cannot select
-an owner, thread, message, call or byte offset. History progress, response phase
-and body completeness remain separate, so a processing draft or truncated body
-cannot masquerade as a completed reply.
+## 历史与草稿
 
-It also binds the one-line composer to the Host-owned durable draft. Versioned
-text submission carries the Host-issued conversation `scopeRef`, draft revision
-and caller message identity. An unknown settlement is read back but never
-automatically resent; an explicit retry keeps the original text, identity,
-revision and route. If the canonical thread changes, the old unconfirmed input
-stays visible as invalidated local text and is never replayed into the new scope.
-The legacy text and conversation methods remain unchanged for older pairs.
+小窗显示有限数量的近期历史，“完整聊天”打开对应的正式对话。每条消息沿用宿主提供的真实作者与当时角色信息，不用当前选择的猫替换历史身份。
 
-Bridge 1.6 separates passive call speech from the bounded nameplate and control
-panel, and adds an optional application-assistance projection. Assistance is
-off by default; settling a prompt only opens the ordinary menu and grants no
-media, screen-selection or call authority.
+草稿由宿主持久保存。发送结果不明时先读回状态，不自动重发；明确重试沿用原消息身份和内容。切换正式对话后，旧的未确认输入保留为已失效文字，不会自动发进新对话。历史加载进度、回复处理状态与正文是否完整分别展示。
 
-Xianxian uses one layered sitting body or one VP9 clip at a time. Expiring Host
-facts with task, result and event identities select tool work, workspace fetch,
-screen reading and applied-result delivery. Native travel is independent: the
-renderer observes the actual desktop window coordinates, so a running clip can
-appear only after the Host window really moves. Dragging suppresses that
-observer and freezes a visibly held candidate instead of renaming the running
-clip. Pounce requires an explicit play gesture by default; optional automatic
-play is bounded by idle and cooldown timers. Reduced motion keeps semantic
-poses static; a compatible Host also revokes its native movement lease.
-Other cats retain their own skins. The v3 living assets and their hashes are
-pinned in `source-lock.json`; the installable renderer carries all 21 assets
-itself, including the mid-edge `peek_fade` variant.
+## 桌面行为与隐私
 
-The Host keeps a small transparent margin left of the pet hit target so the
-pounce's tail is visible without turning empty space into a click target.
+需要桌面桥接版本 1.6.0；不兼容的宿主会在安装前拒绝。宿主控制窗口位置、拖动与透明区域点击，负责媒体授权和采集；插件不接收原始媒体流或提供方会话凭据。隐藏窗口会释放媒体资源，重新通过“聊聊”打开。
 
-## Verification
+应用协助默认关闭，确认提示只打开普通菜单，不会自动授权屏幕或通话。角色动画受宿主当前事实驱动；拖动时暂停自主移动，减少动态效果设置保留静态姿态。自动玩耍受空闲和冷却时间约束，默认扑跃需要明确操作。
 
-Run the repository's contract and SDK builds, then `pnpm --filter
-@clowder-ai/companion test` and `pnpm --filter @clowder-ai/companion lint`.
-`node packages/companion/scripts/preview.mjs` serves the accepted interaction
-spike at `/spike/` and the actual built renderer with an explicitly simulated
-bridge at `/previous`. The latter covers visual states and text controls; it
-does not prove native movement, real capture or model delivery.
+## 安装权限
+
+以下能力均来自同一份 `plugin.yaml`，由宿主决定是否授权；说明文件不授予额外权限。
+
+| 权限 | 用途 |
+| --- | --- |
+| `windows.create` | 创建并使用宿主授权的桌面窗口。 |
+
+宿主管理安装、授权和启停。英文文档是独立文件，互链不代表页面已支持自动语言切换。

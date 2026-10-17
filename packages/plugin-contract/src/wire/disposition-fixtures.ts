@@ -35,7 +35,7 @@ import {
   BINDING_NONCE_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
 } from './handshake.js';
-import { VALID_CAPABILITIES } from './grants.js';
+import { MAX_GRANT_ITEMS, VALID_CAPABILITIES } from './grants.js';
 import { PING_NONCE_MAX_LENGTH } from './row-shapes.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';
 import type { CandidateHello, SessionBinding } from './handshake.js';
@@ -146,7 +146,9 @@ const RAW_UTF8_BOUNDARY_CODE_POINTS = {
   escaping: '\u0000',
 } as const;
 
-const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES];
+const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES]
+  .sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
+  .slice(0, MAX_GRANT_ITEMS);
 
 const BETA8_BINDING: SessionBinding = {
   ...BETA8_HELLO,
@@ -1809,7 +1811,11 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
       payload: {
         provenance: { epistemicStatus: 'inference' },
         elements: [
-          { elementId: 'element-1', kind: 'rich_block', payload: { data: 1e+21 } },
+          {
+            elementId: 'element-1',
+            kind: 'rich_block',
+            payload: { id: 'proof-1', kind: 'proof', v: 1, data: 1e+21 },
+          },
         ],
       },
     }),

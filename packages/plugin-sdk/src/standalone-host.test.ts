@@ -154,6 +154,20 @@ test('rejects a schema-valid non-stdio manifest before attaching a stdio transpo
   assert.equal(output.listenerCount('error'), 0);
 });
 
+test('rejects a schema-valid static-only manifest before attaching a stdio transport', () => {
+  const input = new PassThrough();
+  const output = new PassThrough();
+  const manifest = structuredClone(validManifest) as Record<string, unknown>;
+  delete manifest['runtime'];
+
+  assert.throws(
+    () => startStandaloneHost({ manifest, input, output }),
+    /requires a manifest with runtime\.transport "stdio"/,
+  );
+  assert.equal(input.listenerCount('data'), 0);
+  assert.equal(output.listenerCount('error'), 0);
+});
+
 test('responds to closed lifecycle rows only after the manifest is valid', async () => {
   const input = new PassThrough();
   const output = new PassThrough();

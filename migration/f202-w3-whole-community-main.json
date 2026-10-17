@@ -1,0 +1,139 @@
+{
+  "sourceRevision": "bb9f9f08ec574ee8888fbde9819ff95da96bb614",
+  "packageBase": "1428f826dd23bc256ee10a11331b0bf0def65feb",
+  "stage": "mechanical-copy-unadapted",
+  "files": [
+    {
+      "source": "packages/api/src/domains/community/GuardianMatcher.ts",
+      "target": "packages/github-operations/src/business/domains/community/GuardianMatcher.ts",
+      "sha256": "56aadf8dfb26a2b70557e771acae58c27fdd2328b76897b383a942aaad5226d1",
+      "bytes": 2726
+    },
+    {
+      "source": "packages/api/src/domains/community/RoleResolver.ts",
+      "target": "packages/github-operations/src/business/domains/community/RoleResolver.ts",
+      "sha256": "ccf8df701ba658c4a9660b1df5e876f8755fd4383b6f5eb9186e56152dc4db46",
+      "bytes": 7366
+    },
+    {
+      "source": "packages/api/src/domains/community/TriageOrchestrator.ts",
+      "target": "packages/github-operations/src/business/domains/community/TriageOrchestrator.ts",
+      "sha256": "b240c7c5c108e820a444477d4f9e349213848608980416aeb853c9b9eb26db8f",
+      "bytes": 8075
+    },
+    {
+      "source": "packages/api/src/domains/community/community-auto-tracking.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-auto-tracking.ts",
+      "sha256": "1f96fb2e2362680d467dc6dc09ec50e25c681ddb11c24a94e3552a382e76cb33",
+      "bytes": 6132
+    },
+    {
+      "source": "packages/api/src/domains/community/community-bootstrap.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-bootstrap.ts",
+      "sha256": "2a3907bfbdd6cc49b1e856670cc90782a02487660eb60bcfd5e319e6423b14e1",
+      "bytes": 4190
+    },
+    {
+      "source": "packages/api/src/domains/community/community-closure-checklist.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-closure-checklist.ts",
+      "sha256": "b6c3808a87a44916f71134a776508ebebefb0cb3b997b048aa93a5c317bcf0bd",
+      "bytes": 3698
+    },
+    {
+      "source": "packages/api/src/domains/community/community-decision-queue-closure.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-decision-queue-closure.ts",
+      "sha256": "61a292ff26b7a2ac5ebc05f567ca3eb642f572d40b20e5863dacf0331f4b5543",
+      "bytes": 4247
+    },
+    {
+      "source": "packages/api/src/domains/community/community-decision-queue-types.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-decision-queue-types.ts",
+      "sha256": "c54f330e0943ea57a1ce2d5a8b79813bffcfa0d20230149fe34ae282bc7995b3",
+      "bytes": 4165
+    },
+    {
+      "source": "packages/api/src/domains/community/community-decision-queue.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-decision-queue.ts",
+      "sha256": "9a2045622ada9a23427a6a561a3bd58794241be22486b57df48dfe2d6862e074",
+      "bytes": 12874
+    },
+    {
+      "source": "packages/api/src/domains/community/community-route-recommendation.ts",
+      "target": "packages/github-operations/src/business/domains/community/community-route-recommendation.ts",
+      "sha256": "0520ef153febdffffbc58f045e234285cf120adddab9321b5a0079917325bd72",
+      "bytes": 404
+    },
+    {
+      "source": "packages/api/src/domains/community/external-review/ExternalReviewVerdictService.ts",
+      "target": "packages/github-operations/src/business/domains/community/external-review/ExternalReviewVerdictService.ts",
+      "sha256": "3b3082cc73b806591f3a2e0b62a0172a3b1d116eb4cd693004d2972a6bbdd8e0",
+      "bytes": 12878
+    },
+    {
+      "source": "packages/api/src/domains/community/external-review/external-review-verdict-submission.ts",
+      "target": "packages/github-operations/src/business/domains/community/external-review/external-review-verdict-submission.ts",
+      "sha256": "2aa28bf463397c0ea9843840fd8b7927043f207ec4127d439f125fa628b63f23",
+      "bytes": 13732
+    },
+    {
+      "source": "packages/api/src/domains/community/github/GitHubIssuePublisher.ts",
+      "target": "packages/github-operations/src/business/domains/community/github/GitHubIssuePublisher.ts",
+      "sha256": "58c9b1c6bb308db82bbbf64892787971cc4d3acc777fc083e9dbe9243e22349e",
+      "bytes": 3450
+    },
+    {
+      "source": "packages/api/src/domains/community/issue-analysis/FrustrationIssueSourceAdapter.ts",
+      "target": "packages/github-operations/src/business/domains/community/issue-analysis/FrustrationIssueSourceAdapter.ts",
+      "sha256": "fb25eaec75e8cfa799da8c3f5d5dbf23aa834093048b0cb1292094e6f9a175fa",
+      "bytes": 5719
+    },
+    {
+      "source": "packages/api/src/domains/community/issue-analysis/community-issue-preview-card-builder.ts",
+      "target": "packages/github-operations/src/business/domains/community/issue-analysis/community-issue-preview-card-builder.ts",
+      "sha256": "bb1ca393226aeeaf6c67a961494bcd0873752c0ef11a42e50d6651ff302ab0c6",
+      "bytes": 2398
+    },
+    {
+      "source": "packages/api/src/domains/community/narrator/NarratorDriver.ts",
+      "target": "packages/github-operations/src/business/domains/community/narrator/NarratorDriver.ts",
+      "sha256": "c19be5a2004388e7f336bbc6ad8e6a1f63cf6ac35bdc49179e413cb10fb2702c",
+      "bytes": 9453
+    },
+    {
+      "source": "packages/api/src/domains/community/narrator/RedisNarratorDedupStore.ts",
+      "target": "packages/github-operations/src/business/domains/community/narrator/RedisNarratorDedupStore.ts",
+      "sha256": "283c16b383dc506f5c681439ba265a03a1504c64a3a85ce6ddea97afaff150ee",
+      "bytes": 1780
+    },
+    {
+      "source": "packages/api/src/routes/community-issues.ts",
+      "target": "packages/github-operations/src/business/routes/community-issues.ts",
+      "sha256": "f2ad1551c9f584239e850a821e15d995ade5ce2cd444603a913d886c06ee9db7",
+      "bytes": 61451
+    },
+    {
+      "source": "packages/api/src/routes/community-issue-draft-routes.ts",
+      "target": "packages/github-operations/src/business/routes/community-issue-draft-routes.ts",
+      "sha256": "e688c325f6c849c55852eb1096de7f7e8bafeb1807d2033aaf35d5e69b1d550c",
+      "bytes": 16920
+    },
+    {
+      "source": "packages/api/src/routes/community-repo-config.ts",
+      "target": "packages/github-operations/src/business/routes/community-repo-config.ts",
+      "sha256": "3901bbe3e55b6eb1c3ff0a5178bce905a97deee7116b458074b72f93a6c8534e",
+      "bytes": 2850
+    },
+    {
+      "source": "packages/api/src/routes/community-decision-queue.ts",
+      "target": "packages/github-operations/src/business/routes/community-decision-queue.ts",
+      "sha256": "85e0c3c041f1de17db3817c31dcaed45cb14265698e44796295bbd43965cb2a2",
+      "bytes": 7777
+    },
+    {
+      "source": "packages/api/src/routes/community-decision-queue-read-model.ts",
+      "target": "packages/github-operations/src/business/routes/community-decision-queue-read-model.ts",
+      "sha256": "a30d6ad30760bb9083e1c64453c94ba04f1eba96c8a6b2bec82dabb46e904149",
+      "bytes": 7166
+    }
+  ]
+}

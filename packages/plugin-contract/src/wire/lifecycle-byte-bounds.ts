@@ -129,15 +129,20 @@ const longestCapability = ALL_CAPABILITY_VALUES.reduce((longest, capability) =>
   capability.length > longest.length ? capability : longest,
 );
 
-if (ALL_CAPABILITY_VALUES.length !== MAX_GRANT_ITEMS) {
-  throw new Error('capability cardinality must equal MAX_GRANT_ITEMS for lifecycle proof');
+if (ALL_CAPABILITY_VALUES.length < MAX_GRANT_ITEMS) {
+  throw new Error('capability vocabulary must cover MAX_GRANT_ITEMS for lifecycle proof');
 }
+// The closed vocabulary can grow while the frozen wire array limit stays 28.
+// A legal maximal snapshot contains the 28 longest distinct encoded names.
+const maximalGrantValues = [...ALL_CAPABILITY_VALUES]
+  .sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
+  .slice(0, MAX_GRANT_ITEMS);
 
 export const HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF = repeatedProof(
-  grantsChangedFrame(ALL_CAPABILITY_VALUES),
+  grantsChangedFrame(maximalGrantValues),
   [{
     leaf: 'effectiveGrants',
-    frame: grantsChangedFrame([...ALL_CAPABILITY_VALUES, longestCapability]),
+    frame: grantsChangedFrame([...maximalGrantValues, longestCapability]),
   }],
 );
 

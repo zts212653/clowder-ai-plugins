@@ -13,6 +13,8 @@ import {
   standardErrorWithIdTemplate,
 } from '../byte-proof/row-proofs.js';
 import { MAX_FRAME_BYTES } from './constants.js';
+import { MAX_GRANT_ITEMS, VALID_CAPABILITIES, validateEffectiveGrants } from './grants.js';
+import { WIRE_UINT53_MAX } from './wire-uint53.js';
 import {
   HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF,
   HOST_LIFECYCLE_DRAIN_ERROR_BYTE_PROOF,
@@ -31,6 +33,20 @@ const REQUEST_RESULT_PROOFS = [
   HOST_LIFECYCLE_DRAIN_REQUEST_BYTE_PROOF,
   HOST_LIFECYCLE_DRAIN_RESULT_BYTE_PROOF,
 ] as const;
+
+test('expanded capability vocabulary retains the frozen 28-item bound and proves every maximal legal subset', () => {
+  const names = [...VALID_CAPABILITIES];
+  assert.equal(MAX_GRANT_ITEMS, 28); assert.equal(names.length, 29);
+  assert.ok(names.includes('task.admitEntrusted'));
+  assert.equal(validateEffectiveGrants(names), false);
+  const sizes = names.map((_, omit) => {
+    const effectiveGrants = names.filter((_, index) => index !== omit);
+    assert.ok(validateEffectiveGrants(effectiveGrants));
+    return Buffer.byteLength(JSON.stringify({ jsonrpc: '2.0', method: 'host.grants.changed',
+      params: { meta: { deadlineUnixMs: WIRE_UINT53_MAX }, input: { grantRevision: WIRE_UINT53_MAX, effectiveGrants } } }));
+  });
+  assert.equal(HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF.maxEncodedBytes, Math.max(...sizes));
+});
 
 test('lifecycle byte proofs cover every raw UTF-8 family and fit one frame', () => {
   assert.deepEqual([...LIFECYCLE_BYTE_PROOF_ENCODING_FAMILIES], [

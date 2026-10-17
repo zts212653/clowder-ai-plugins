@@ -1,39 +1,25 @@
-# Xiangqi
+# 象棋分析
 
-Xiangqi rules, search, retained game journal, and board assets for a companion game. Version `0.1.0-alpha.0` exposes two **read-only position tools** through a builtin stdio MCP contribution:
+简体中文 · [English](README.en.md)
 
-- `xiangqi_legal_moves(fen)` returns legal moves, check state, and outcome.
-- `xiangqi_analyze_position(fen, timeMs?, maxDepth?)` returns bounded candidates, completed search depth, principal variations, and search version. It never submits a move.
+通过两个只读工具查询象棋合法走法和分析局面，无需准备棋谱或配置账号。
 
-The package also exports `createHostedBoard` and `createHostedGame` for a future Host-bound game session. **The current Host does not execute this board contribution or bind a selected companion and conversation to it.** Installing the MCP contribution alone does not enable the board journey. No companion, conversation, user ID, private API address, or data directory is configurable as an arbitrary plugin environment variable.
+## 开始使用
 
-## Host boundary
+1. 安装并启用 `@clowder-ai/xiangqi`。
+2. 向 `xiangqi_legal_moves(fen)` 提供局面的 FEN，读取合法走法、将军状态与结果。
+3. 用 `xiangqi_analyze_position(fen, timeMs?, maxDepth?)` 获取受时间与深度限制的候选、已完成深度、主要变化和搜索版本。分析工具不会替你落子。
 
-The Host selects the companion, conversation, display names, retained storage mount, and game before constructing an adapter. It verifies package identity, grants, caller, and lifecycle state on every action. The browser receives only a scoped board view and a local confirmation token; it cannot choose a target or a data path. The package validates Xiangqi moves, journal revision, FEN, and analysis freshness before committing a move. Search workers only prepare candidates. A companion must read the current candidates, choose a legal move, and explicitly commit it through an authorized Host call.
+## 棋盘支持范围
 
-`createHostedBoard({ host })` requires a Host adapter with `openSession()`, `authorizeHumanAction(session, action)`, `notifyConfirmedMove(session, event)`, `deliveryStatus(session)`, and `retryPending(session)`. `createHostedGame(host)` requires `openSession()`, `authorizeCandidateRead(session)`, and `authorizeCompanionMove(session)`. The current executable Host does **not** implement this adapter. The synthetic adapter in `test/hosted-journey.test.mjs` proves package behavior only.
+当前宿主可以运行上述 stdio MCP 工具，但尚未接入包内棋盘库与棋搭子会话。安装分析工具不等于获得可操作的宿主棋盘。
 
-The Host's notification implementation needs an idempotent, durable delivery ledger tied to a confirmed game revision. A process may stop after the journal commit and before the callback settles, so a production Host must reconcile committed journal events on restart. No browser or worker may perform private messaging directly. The package does not claim this delivery seam is implemented.
+完整棋搭子需要宿主选择角色和对话、提供受限会话与持久存储、认证落子并可靠投递确认通知。浏览器和搜索线程不能自行向私人对话发消息；这些接点不能用任意环境变量中的角色、用户、地址或目录代替。
 
-## Retained data and rollback
+## 数据与恢复
 
-Game files contain an append-only event list. Each move, undo, and restart advances the revision. Analysis reuse requires the physical storage root, game ID, revision, FEN, search version, and a complete safety pass to match. A stale candidate is rejected, including after undo returns to the same board layout. Disabling, upgrading, or uninstalling the package must retain game files by default; deletion is a separate explicit action. The current package performs no automatic import. A later migration must identify its source, replay and verify it, copy to a new destination, and leave the source untouched. The original private games are not part of this package or its tests.
+包内棋局库使用追加式事件记录；落子、悔棋和重开都会增加版本。分析复用必须与棋局、局面和当前版本完全一致，过期候选会被拒绝，即使悔棋后棋盘看起来相同。
 
-## Verify this package
+停用、升级或卸载时默认保留棋局文件，删除需单独明确操作。本包不自动导入旧棋局；包内棋盘测试使用模拟宿主，不证明真实宿主棋盘已可用。本插件不请求额外宿主能力。
 
-From the repository root:
-
-```sh
-pnpm install --frozen-lockfile
-pnpm --filter @clowder-ai/plugin-contract build
-pnpm --filter @clowder-ai/xiangqi test
-pnpm --filter @clowder-ai/xiangqi build
-pnpm --filter @clowder-ai/xiangqi lint
-pnpm --filter @clowder-ai/xiangqi test:browser
-```
-
-The browser test uses synthetic names and a mock Host at 1120 px and 480 px. It covers preselection, cancellation, confirmation, companion candidate selection and commit, refresh, undo, restart, and stale draft rejection. The independent tarball and empty-consumer check runs in repository CI. No game data is needed to run the MCP tools.
-
-## Current installation state
-
-The builtin Host can verify and run the manifest's pure MCP contribution. A complete installed game additionally needs a generic Host-issued session and restricted board surface, durable storage capability, authorized confirmed-move notification, companion candidate/commit calls, and revoke/restore fencing. Until those exist, the board library and browser harness are not a production installation path. The machine catalog pins published tarballs and remains unchanged until a package is published with approval.
+宿主管理安装、授权和启停。英文文档是独立文件，互链不代表页面已支持自动语言切换。

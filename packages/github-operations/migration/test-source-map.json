@@ -1,0 +1,74 @@
+[
+  {
+    "source": "packages/api/test/github-request-liveness.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/github-request-liveness.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/github-comment-cursors.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/github-comment-cursors.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/community-state-machine.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/community-state-machine.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/community-sla-policy.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/community-sla-policy.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/community-reconciler.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/community-reconciler.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/ci-status-fetcher.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/ci-status-fetcher.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/ci-status-batch-fetcher.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/ci-status-batch-fetcher.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/setup-noise-filter.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/setup-noise-filter.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/community-link-parser.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/community-link-parser.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/community-issue-sanitizer.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/community-issue-sanitizer.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/community-projector-concurrency.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/community-projector-concurrency.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  },
+  {
+    "source": "packages/api/test/github-issue-fetcher.test.js",
+    "sourceHead": "496e24089ffb5f99fa241e04c7ee0850df227be4",
+    "target": "packages/github-operations/test/github-issue-fetcher.test.js",
+    "adaptation": "Only dist-relative/shared import edges redirected to package source; test bodies unchanged"
+  }
+]

@@ -1,0 +1,78 @@
+{
+  "sourceHead": "e95f2e14b1c511a977563a22e24f8e449a36a82d",
+  "status": "exact source move; boundary adaptation and runtime integration pending",
+  "entries": [
+    {
+      "source": "packages/api/src/domains/github-signals/GitHubWaitPredicateCatalog.ts",
+      "target": "packages/github-operations/src/business/domains/github-signals/GitHubWaitPredicateCatalog.ts",
+      "sha256": "bbcbcf3d9a892fededf17ded1902fe35029b0b9c95289b6c255811501f02724f",
+      "bytes": 22677
+    },
+    {
+      "source": "packages/api/src/domains/github-signals/GitHubWaitBaselineReader.ts",
+      "target": "packages/github-operations/src/business/domains/github-signals/GitHubWaitBaselineReader.ts",
+      "sha256": "397e329170fcea089b4e93c5f8b0dd92f761e0ca5ae5fd53e68c06653c048c0d",
+      "bytes": 6045
+    },
+    {
+      "source": "packages/api/src/domains/github-signals/GitHubIssueWaitBaselineReader.ts",
+      "target": "packages/github-operations/src/business/domains/github-signals/GitHubIssueWaitBaselineReader.ts",
+      "sha256": "33d493363f0f6e88d482fb2e4041d1523cae11d3d998d230ca8e4beed872ca44",
+      "bytes": 1321
+    },
+    {
+      "source": "packages/api/src/domains/github-signals/GitHubWaitRenewalBaseline.ts",
+      "target": "packages/github-operations/src/business/domains/github-signals/GitHubWaitRenewalBaseline.ts",
+      "sha256": "414d7081e0f5cfa4c3861290a1b423a97b41e4b7a7d02d2952fd4111e709058e",
+      "bytes": 9163
+    },
+    {
+      "source": "packages/api/src/domains/github-signals/GitHubWaitLifecycleService.ts",
+      "target": "packages/github-operations/src/business/domains/github-signals/GitHubWaitLifecycleService.ts",
+      "sha256": "ddebf61937a6b4695e5617eb05bab31b8792e845a7e977d802f94f9a6afc3ea9",
+      "bytes": 21235
+    },
+    {
+      "source": "packages/api/src/domains/github-signals/github-wait-renderer.ts",
+      "target": "packages/github-operations/src/business/domains/github-signals/github-wait-renderer.ts",
+      "sha256": "66aedc1e978dede05630e2747d777e1090352101bb19d878ac0a69b2e413d75d",
+      "bytes": 5260
+    },
+    {
+      "source": "packages/api/src/domains/ball-custody/wait-state-machine.ts",
+      "target": "packages/github-operations/src/business/domains/ball-custody/wait-state-machine.ts",
+      "sha256": "831cd14d7937e12056679eee95c91ee30ca88fd9b81cc591648866bfa60aa972",
+      "bytes": 11074
+    },
+    {
+      "source": "packages/api/src/domains/ball-custody/WaitLifecycleRecoverySweep.ts",
+      "target": "packages/github-operations/src/business/domains/ball-custody/WaitLifecycleRecoverySweep.ts",
+      "sha256": "95b0aa96d4581c3aaa71a42d94f6db6b5f028e0f376550c4a4c540165573bf43",
+      "bytes": 1039
+    },
+    {
+      "source": "packages/shared/src/types/github-wait.ts",
+      "target": "packages/github-operations/src/business/model/types/github-wait.ts",
+      "sha256": "4ed3e62e1453e2dc8c777d157448a5554c64969346cd079053cdef966832457f",
+      "bytes": 23862
+    },
+    {
+      "source": "packages/shared/src/types/wait-contract.ts",
+      "target": "packages/github-operations/src/business/model/types/wait-contract.ts",
+      "sha256": "434d541c383297c7944f94870f83b6a2aa80b062673bbff372480acf8ec3abcd",
+      "bytes": 4493
+    },
+    {
+      "source": "packages/shared/src/types/wait-termination.ts",
+      "target": "packages/github-operations/src/business/model/types/wait-termination.ts",
+      "sha256": "81778b14580861734af5e6bf2823f72cb0a46f7362e80a58a70ab171950b42cb",
+      "bytes": 2221
+    },
+    {
+      "source": "packages/shared/src/types/task.ts",
+      "target": "packages/github-operations/src/business/model/types/task.ts",
+      "sha256": "f25629ac3915f6fda8b1214e15c949f4c535118507e4a2c0e47862f66540c2dd",
+      "bytes": 10936
+    }
+  ]
+}

@@ -1,16 +1,24 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+  copyFile,
   lstat,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
   rm,
+  writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, isAbsolute, join, posix, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, posix, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { assertProductionDependencyClosure } from './catalog-package-shrinkwrap.mjs';
+import { normalizeBundledPublishGzip } from './canonical-publish-gzip.mjs';
+import { assertArchiveBins } from './package-bins.mjs';
+import { materializeLockedDependencies } from './materialize-locked-dependencies.mjs';
+import { ownPublishMembers } from './own-publish-members.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 
@@ -114,12 +122,21 @@ async function main() {
   const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
   const bundled = packageJson.bundledDependencies;
   if (bundled === undefined || (Array.isArray(bundled) && bundled.length === 0)) {
-    process.stdout.write(
-      runNpm(
+    try {
+      const shrinkwrap = JSON.parse(
+        await readFile(join(packageRoot, 'npm-shrinkwrap.json'), 'utf8'),
+      );
+      assertProductionDependencyClosure(packageJson, shrinkwrap);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+    const output = runNpm(
         ['pack', '--json', '--ignore-scripts', '--pack-destination', destinationRoot, packageRoot],
         repoRoot,
-      ),
     );
+    const [artifact] = JSON.parse(output);
+    assertArchiveBins(packageJson, join(destinationRoot, artifact.filename));
+    process.stdout.write(output);
     return;
   }
   if (!Array.isArray(bundled) || !bundled.every(name => typeof name === 'string')) {
@@ -135,6 +152,26 @@ async function main() {
   try {
     const sourceRoot = join(temporaryRoot, 'source');
     await mkdir(sourceRoot);
+    const deploymentRoot = join(temporaryRoot, 'deployment');
+    const ownMembers = new Map();
+    async function copyPublishPackage(source, target) {
+      let members = ownMembers.get(source);
+      if (!members) {
+        members = (await ownPublishMembers(source, { runNpm })).filter(path =>
+          isContained(source, resolve(source, path)));
+        ownMembers.set(source, members);
+      }
+      for (const member of members) {
+        const from = join(source, member);
+        if (!(await lstat(from)).isFile()) throw new Error(`non-regular own publish member: ${member}`);
+        const to = join(target, member);
+        await mkdir(dirname(to), { recursive: true });
+        await copyFile(from, to);
+      }
+    }
+    await copyPublishPackage(packageRoot, deploymentRoot);
+    await materializeLockedDependencies({ repoRoot, packageRoot, destination: deploymentRoot,
+      copyPublishPackage });
     const pnpmOutput = run(
       'pnpm',
       [
@@ -145,7 +182,7 @@ async function main() {
         '--pack-destination',
         destinationRoot,
       ],
-      packageRoot,
+      deploymentRoot,
     );
     const materialized = readPnpmArtifact(pnpmOutput);
     const archivePath = resolve(packageRoot, materialized.filename);
@@ -157,7 +194,10 @@ async function main() {
 
     const stagedPackageRoot = join(sourceRoot, 'package');
     await assertPhysicalTree(stagedPackageRoot);
-    const bytes = await readFile(archivePath);
+    const packedBytes = await readFile(archivePath);
+    assertArchiveBins(packageJson, archivePath);
+    const bytes = normalizeBundledPublishGzip(packedBytes);
+    if (!bytes.equals(packedBytes)) await writeFile(archivePath, bytes);
     process.stdout.write(`${JSON.stringify([{
       ...materialized,
       filename: basename(archivePath),

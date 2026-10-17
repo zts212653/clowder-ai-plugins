@@ -21,7 +21,7 @@ const DESCRIPTOR = {
   meetingId: 'meeting-42',
 } as const;
 
-test('ships a contract-valid stdio manifest with one declared signal', async () => {
+test('ships the actual builtin record module and declared native MCP', async () => {
   const manifest: unknown = JSON.parse(
     await readFile(new URL('../manifest.json', import.meta.url), 'utf8'),
   );
@@ -31,25 +31,22 @@ test('ships a contract-valid stdio manifest with one declared signal', async () 
   const result = validateManifest(manifest);
   assert.equal(result.valid, true, result.valid ? undefined : JSON.stringify(result.errors));
   if (result.valid) {
-    assert.equal(result.manifest.version, '0.1.0-alpha.10');
+    assert.equal(result.manifest.version, '0.1.0-alpha.11');
     assert.equal(
       (packageMetadata as { readonly version?: unknown }).version,
       result.manifest.version,
       'manifest and immutable npm artifact versions must match',
     );
     assert.deepEqual(result.manifest.runtime, {
-      transport: 'stdio',
-      entrypoint: 'dist/entrypoint.js',
+      transport: 'builtin',
+      entrypoint: 'dist/index.js',
+      dataDirectory: 'feishu-meeting-intake',
     });
-    assert.deepEqual(result.manifest.signals?.provides, [
-      {
-        type: 'feishu.meeting_artifact.generated.v1',
-        schemaRef: 'schemas/feishu-meeting-artifact.schema.json',
-        epistemicStatus: 'observation',
-        privacyClass: 'content-adjacent',
-        sourceClass: 'remote-service',
-      },
-    ]);
+    assert.equal(result.manifest.signals, undefined);
+    assert.equal(result.manifest.features[0]?.capabilities.includes('events.publish'), false);
+    assert.ok(result.manifest.features[0]?.capabilities.includes('messaging.send'));
+    const native = result.manifest.contributions?.find(item => item.type === 'mcp');
+    assert.deepEqual(native && 'actions' in native ? native.actions : undefined, [{ method: 'meeting.records.list' }, { method: 'meeting.records.read' }]);
   }
 });
 

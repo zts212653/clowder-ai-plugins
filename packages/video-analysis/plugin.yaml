@@ -1,5 +1,5 @@
 pluginId: dev.clowder.video-analysis
-version: 0.1.0-alpha.1
+version: 0.1.0-alpha.3
 contractVersion: 0.1.0
 name: Video Analysis
 description:
@@ -11,18 +11,29 @@ icon:
   src: assets/icon.svg
 configuration:
   - key: provider
-    label: Video provider
+    label: 视频协议
     kind: select
     required: true
     options:
       - value: gemini
         label: Gemini
+        hint: 在 Google AI Studio 获取 API Key
         docsUrl: https://ai.google.dev/gemini-api/docs
       - value: zhipu
-        label: Zhipu
+        label: 智谱
+        hint: 在智谱开放平台注册，获取 API Key
         docsUrl: https://docs.bigmodel.cn/cn/guide/models/vlm
+  - key: authType
+    label: 认证方式
+    kind: select
+    required: true
+    options:
+      - value: apikey
+        label: API Key
+      - value: query-param
+        label: Query Parameter
   - key: apiKey
-    label: API key
+    label: API Key
     kind: secret
     required: true
   - key: baseUrl
@@ -30,7 +41,7 @@ configuration:
     kind: url
     required: false
   - key: model
-    label: Model
+    label: 模型名称
     kind: string
     required: false
 contributions:
@@ -43,6 +54,9 @@ contributions:
       VIDEO_ANALYSIS_PROVIDER:
         source: config
         key: provider
+      VIDEO_ANALYSIS_AUTH_TYPE:
+        source: config
+        key: authType
       VIDEO_ANALYSIS_API_KEY:
         source: secret
         key: apiKey

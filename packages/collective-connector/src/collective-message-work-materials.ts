@@ -1,0 +1,123 @@
+import {createHash} from 'node:crypto';
+import {isDeepStrictEqual} from 'node:util';
+import {z} from 'zod';
+import type {FeatureContext, PluginMessage, PluginMessagingDelivery} from '@clowder-ai/plugin-sdk';
+import type {CollectiveConnector} from './business/connector/connector.js';
+import {collectiveSourceIdentitySchema} from './business/contracts/index.js';
+import {collectiveContextError} from './collective-context-refs.js';
+
+export const WORK_MATERIAL_SUBSCRIPTION = 'collective-work-materials';
+export const WORK_MATERIAL_RECEIVER = 'collective.work.material.receive';
+const ref = z.string().min(1).max(1000);
+const fileSchema = z.object({index: z.number().int().nonnegative(), block: z.record(z.unknown()),
+  text: z.string().optional(), contentDigest: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
+  unavailable: z.boolean().optional()}).strict().refine(file => (file.text === undefined) === (file.contentDigest === undefined),
+  'Stored publication text and digest must remain paired');
+const captureSchema = z.object({v: z.literal(1), taskRef: ref, message: z.unknown(), trigger: z.unknown(),
+  workId: ref, resultRevision: z.number().int().positive(), executionRevision: z.number().int().positive(),
+  triggerMessageId: ref, invocationId: ref, files: z.array(fileSchema)}).strict();
+const digest = (value: string) => createHash('sha256').update(value).digest('hex');
+const changed = () => collectiveContextError('WORK_ARTIFACT_UNAVAILABLE', 'Original Work publication is missing or changed');
+const keyOf = (messageId: string) => 'collective-work-publication:' + digest(messageId);
+const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
+
+/** Capture callback file bytes during the existing Host HMR grant. Receipt is
+ * data only: arrival neither selects a result nor grants Work permission. */
+export function createCollectiveMessageWorkMaterials(connector: CollectiveConnector,
+  context: Pick<FeatureContext, 'messaging' | 'media' | 'storage' | 'tasks'>, assertActive: () => void) {
+  const subscriptions = new Map<string, Promise<void>>();
+  const subscribe = async (threadId: string) => {
+    assertActive();let pending = subscriptions.get(threadId);
+    if (!pending) {
+      pending = context.messaging.subscribe(threadId, {contributionId: WORK_MATERIAL_SUBSCRIPTION}).catch(error => {
+        subscriptions.delete(threadId);throw error;
+      });
+      subscriptions.set(threadId, pending);
+    }
+    await pending;assertActive();
+  };
+  const get = async (messageId: string) => {
+    assertActive();const message = await context.messaging.get?.(messageId);assertActive();return message;
+  };
+  return {
+    subscribe,
+    async restore() {
+      for (const task of await context.tasks.listByKind('work')) {
+        assertActive();if (task.subjectKey?.startsWith('collective-work:')) await subscribe(task.threadId);
+      }
+    },
+    async receive(unsafe: unknown) {
+      assertActive();
+      if (!object(unsafe) || typeof unsafe.threadId !== 'string' || !object(unsafe.envelope) ||
+        unsafe.envelope.threadId !== unsafe.threadId || typeof unsafe.envelope.messageId !== 'string') throw changed();
+      const delivery = unsafe as unknown as PluginMessagingDelivery;
+      const message = await get(delivery.envelope.messageId);
+      if (!message || message.threadId !== delivery.threadId || message.origin !== 'callback' || !message.catId ||
+        message.source || message.deliveryStatus === 'queued' || message.deliveryStatus === 'canceled') return;
+      const blocks = message.extra?.rich?.blocks ?? [];
+      const files = blocks.flatMap((block, index) => object(block) && block.kind === 'file' &&
+        typeof block.url === 'string' && /^\/uploads\/[A-Za-z0-9._-]+$/.test(block.url) ? [{index, block}] : []);
+      if (!files.length) return;
+      const triggerMessageId = message.extra?.causal?.triggerMessageId;
+      const invocationId = message.extra?.stream?.turnInvocationId;
+      if (!triggerMessageId || !invocationId) return;
+      const trigger = await get(triggerMessageId);
+      const parsed = collectiveSourceIdentitySchema.safeParse(trigger?.source?.meta?.participation);
+      if (!trigger || trigger.userId !== message.userId || trigger.threadId !== message.threadId ||
+        trigger.catId !== null || trigger.source?.connector !== 'collective' || !parsed.success || parsed.data.catId !== message.catId) return;
+      const source = parsed.data, meta = trigger.source.meta;
+      const notice = meta?.workExecutionNotice ?? meta?.workAcceptanceNotice;
+      const work = source.actor.kind === 'human'
+        ? await connector.readAssignedWorkByAssignment(source.connectionId, source.eventId)
+        : object(notice) && typeof notice.workId === 'string' ? await connector.readAssignedWork(source.connectionId, notice.workId) : undefined;
+      if (!work || (work.executionAuthority?.eventId ?? work.assignmentEventId) !== source.eventId) return;
+      const task = await context.tasks.getBySubject(`collective-work:${source.connectionId}:${work.workId}`);assertActive();
+      if (!task || task.threadId !== message.threadId || task.ownerCatId !== message.catId ||
+        (task.userId !== null && task.userId !== message.userId)) return;
+      const existing = await context.storage.get(keyOf(message.id));assertActive();
+      if (existing) {
+        if (!isDeepStrictEqual(captureSchema.parse(existing.value).message, message)) throw changed();
+        return;
+      }
+      const capturedFiles: z.infer<typeof fileSchema>[] = [];
+      for (const file of files) {
+        const element = delivery.envelope.payload.elements.find(item => item.elementId === `el_${message.id}_${file.index + 1}`);
+        const contentType = file.block.mimeType;
+        if (contentType !== 'text/markdown' && contentType !== 'text/plain') {
+          capturedFiles.push(file);continue; // Original non-text uploads stay metadata-only.
+        }
+        if (!element || element.kind !== 'media_ref' || element.payload.type !== 'file' || !element.payload.reference.startsWith('hmr_')) {
+          capturedFiles.push({...file, unavailable: true});continue;
+        }
+        const chunks: Uint8Array[] = [];let size = 0;
+        for await (const chunk of context.media.read(element.payload.reference)) {
+          assertActive();size += chunk.byteLength;if (size > 65536) break;chunks.push(chunk);
+        }
+        const bytes = Buffer.concat(chunks), text = bytes.toString('utf8');
+        capturedFiles.push(size > 65536 || !size || text.includes('\0') || !Buffer.from(text).equals(bytes)
+          ? {...file, unavailable: true} : {...file, text, contentDigest: 'sha256:' + digest(text)});
+      }
+      if (!isDeepStrictEqual(await get(message.id), message) || !isDeepStrictEqual(await get(trigger.id), trigger)) throw changed();
+      const resultRevision = work.executionAuthority?.resultRevision ?? (work.lifecycle === 'result_ready'
+        ? work.resultRevision ?? 1 : work.resultEventId ? (work.resultRevision ?? 1) + 1 : 1);
+      const value = captureSchema.parse({v: 1, taskRef: `task:work:${task.id}`, message, trigger, workId: work.workId,
+        resultRevision, executionRevision: work.executionAuthority?.revision ?? 1, triggerMessageId, invocationId, files: capturedFiles});
+      await context.storage.compareAndSet(keyOf(message.id), null, value);assertActive();
+      const stored = await context.storage.get(keyOf(message.id));assertActive();
+      if (!stored || !isDeepStrictEqual(stored.value, value)) throw changed();
+    },
+    async read(messageId: string, artifactRef?: string) {
+      const stored = await context.storage.get(keyOf(messageId));assertActive();if (!stored) return undefined;
+      const captured = captureSchema.parse(stored.value);
+      if (artifactRef && !captured.files.some(file => file.block.url === artifactRef)) return undefined;
+      const message = await get(messageId);
+      if (!message || !isDeepStrictEqual(captured.message, message) ||
+        !isDeepStrictEqual(await get(captured.triggerMessageId), captured.trigger)) throw changed();
+      for (const file of captured.files) if (file.text !== undefined && file.contentDigest !== 'sha256:' + digest(file.text)) throw changed();
+      return {...captured, message: message as PluginMessage};
+    },
+    async dispose() {
+      await Promise.all([...subscriptions.keys()].map(threadId => context.messaging.unsubscribe(threadId)));subscriptions.clear();
+    },
+  };
+}

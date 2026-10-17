@@ -82,3 +82,5 @@ export {
   type FeishuMeetingIntakeStdioOptions,
   type FeishuStdioRuntimeContext,
 } from './stdio-entrypoint.js';
+
+export { default } from './plugin-entrypoint.js';

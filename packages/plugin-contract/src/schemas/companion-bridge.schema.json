@@ -130,14 +130,22 @@
         {
           "type": "object",
           "properties": {
-            "kind": { "const": "text" },
-            "v": { "const": 2 },
-            "scopeRef": { "$ref": "#/$defs/CompanionConversationScopeRef" },
-            "text": { "type": "string", "minLength": 1, "maxLength": 8000 },
-            "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
-            "submissionRevision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+            "kind": { "const": "work.read" }
           },
-          "required": ["kind", "v", "scopeRef", "text", "clientMessageId", "submissionRevision"],
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "work.open" },
+            "entryRef": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,256}$",
+              "description": "Opaque Host-issued navigation identity; never a renderer-selected task, thread or route."
+            }
+          },
+          "required": ["kind", "entryRef"],
           "additionalProperties": false
         },
         {
@@ -356,27 +364,6 @@
             "reference": { "$ref": "#/$defs/CompanionPresentationReference" }
           },
           "required": ["kind", "event", "observedAt", "callId", "reference"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": { "const": "work.read" }
-          },
-          "required": ["kind"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "kind": { "const": "work.open" },
-            "entryRef": {
-              "type": "string",
-              "pattern": "^[A-Za-z0-9_-]{1,256}$",
-              "description": "Opaque Host-issued navigation identity; never a renderer-selected task, thread or route."
-            }
-          },
-          "required": ["kind", "entryRef"],
           "additionalProperties": false
         },
         {
@@ -723,6 +710,42 @@
           },
           "required": [
             "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "v": {
+              "const": 2
+            },
+            "scopeRef": {
+              "$ref": "#/$defs/CompanionConversationScopeRef"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8000
+            },
+            "clientMessageId": {
+              "$ref": "#/$defs/CompanionClientMessageId"
+            },
+            "submissionRevision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "kind",
+            "v",
+            "scopeRef",
+            "text",
+            "clientMessageId",
+            "submissionRevision"
           ],
           "additionalProperties": false
         }

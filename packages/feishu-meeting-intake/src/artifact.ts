@@ -61,7 +61,7 @@ function boundedSafeId(value: unknown, maximum: number): value is string {
   );
 }
 
-function requireDescriptor(value: unknown): FeishuGeneratedArtifact {
+export function requireGeneratedArtifactDescriptor(value: unknown): FeishuGeneratedArtifact {
   if (!isRecord(value)) throw new TypeError('Feishu artifact descriptor must be an object');
   for (const key of Object.keys(value)) {
     if (!DESCRIPTOR_KEYS.has(key)) {
@@ -109,7 +109,7 @@ function canonicalSourceHandle(locator: Required<FeishuArtifactLocator>): string
 }
 
 export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
-  const descriptor = requireDescriptor(value);
+  const descriptor = requireGeneratedArtifactDescriptor(value);
   const payload = {
     artifactId: descriptor.artifactId,
     artifactKind: descriptor.kind,

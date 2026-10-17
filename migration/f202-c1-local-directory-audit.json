@@ -1,0 +1,696 @@
+{
+  "schemaVersion": 1,
+  "subject": "F202:C1:aggregate-local-directory-acceptance",
+  "workSubject": "task:0001789822127811-001843-1c2133b0",
+  "operatorSource": "thread_mu8dg6h7l2x4ohsk#0001791692969613-000094-97be6e64",
+  "coordinationSource": "thread_mrkn6povq4zzgh45#0001791693217292-000100-b3faa627",
+  "observedPackageSourceHead": "87ba2b849adcf091b53caa93f1abc25170096038",
+  "observedHostSnapshot": {
+    "head": "2bb09b1c4bda871867ffbcd1c0972c5458fd0a6a",
+    "trackedWip": [
+      "packages/api/package.json",
+      "packages/shared/src/__tests__/plugin-manager-contract.test.ts",
+      "packages/shared/src/types/plugin.ts",
+      "pnpm-lock.yaml"
+    ],
+    "method": "git ls-files of named legacy source roots plus physical existence; ignored residues do not imply business retention. Not full compile/dependency proof."
+  },
+  "records": [
+    {
+      "directory": "collective-connector",
+      "packageName": "@clowder-ai/collective-connector",
+      "version": "0.1.0-alpha.2",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [],
+      "buildScript": "tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.20",
+        "@clowder-ai/plugin-contract": "0.1.0-beta.36"
+      },
+      "relativeSourceDirectory": "packages/collective-connector"
+    },
+    {
+      "directory": "companion",
+      "packageName": "@clowder-ai/companion",
+      "version": "0.1.0-alpha.26",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [],
+      "buildScript": "node scripts/build.mjs",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [],
+      "declaredSupportPins": {},
+      "relativeSourceDirectory": "packages/companion"
+    },
+    {
+      "directory": "connector-dingtalk",
+      "packageName": "@clowder-ai/connector-dingtalk",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "dingtalk-stream"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-dingtalk"
+    },
+    {
+      "directory": "connector-feishu",
+      "packageName": "@clowder-ai/connector-feishu",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "@larksuiteoapi/node-sdk",
+        "qrcode"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-feishu"
+    },
+    {
+      "directory": "connector-telegram",
+      "packageName": "@clowder-ai/connector-telegram",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "grammy"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-telegram"
+    },
+    {
+      "directory": "connector-wecom-agent",
+      "packageName": "@clowder-ai/connector-wecom-agent",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "fast-xml-parser"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-wecom-agent"
+    },
+    {
+      "directory": "connector-wecom-bot",
+      "packageName": "@clowder-ai/connector-wecom-bot",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "@wecom/aibot-node-sdk"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-wecom-bot"
+    },
+    {
+      "directory": "connector-weixin",
+      "packageName": "@clowder-ai/connector-weixin",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "qrcode",
+        "silk-wasm"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-weixin"
+    },
+    {
+      "directory": "connector-xiaoyi",
+      "packageName": "@clowder-ai/connector-xiaoyi",
+      "version": "0.1.0-alpha.5",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "ws"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/connector-xiaoyi"
+    },
+    {
+      "directory": "enterprise-workflow",
+      "packageName": "@clowder-ai/enterprise-workflow",
+      "version": "0.1.0-alpha.2",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "ajv"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.12"
+      },
+      "relativeSourceDirectory": "packages/enterprise-workflow"
+    },
+    {
+      "directory": "genoffice-docx",
+      "packageName": "@clowder-ai/genoffice-docx",
+      "version": "0.1.0-alpha.2",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "renderer/index.html",
+        "renderer/semantic-worker.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json && node scripts/generate-manifest.mjs",
+      "buildRendererScript": "pnpm build && node scripts/fetch-verify-source.mjs && node scripts/build-renderer.mjs",
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-contract"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-contract": "0.1.0-beta.15"
+      },
+      "relativeSourceDirectory": "packages/genoffice-docx"
+    },
+    {
+      "directory": "github-operations",
+      "packageName": "@clowder-ai/github-operations",
+      "version": "0.1.0-alpha.16",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/mcp-entrypoint.js",
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-contract",
+        "@clowder-ai/plugin-sdk",
+        "zod",
+        "@modelcontextprotocol/sdk",
+        "fastify"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-contract": "0.1.0-beta.35",
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.19"
+      },
+      "relativeSourceDirectory": "packages/github-operations"
+    },
+    {
+      "directory": "video-analysis",
+      "packageName": "@clowder-ai/video-analysis",
+      "version": "0.1.0-alpha.3",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/mcp-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json && node ../../scripts/package-bins.mjs",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@modelcontextprotocol/sdk",
+        "yaml",
+        "zod"
+      ],
+      "declaredSupportPins": {},
+      "relativeSourceDirectory": "packages/video-analysis"
+    },
+    {
+      "directory": "video-generation",
+      "packageName": "@clowder-ai/video-generation",
+      "version": "0.1.0-alpha.1",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/mcp-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json && node ../../scripts/package-bins.mjs",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@modelcontextprotocol/sdk",
+        "yaml",
+        "zod"
+      ],
+      "declaredSupportPins": {},
+      "relativeSourceDirectory": "packages/video-generation"
+    },
+    {
+      "directory": "wechat-visible-reader",
+      "packageName": "@clowder-ai/wechat-visible-reader",
+      "version": "0.1.0-alpha.3",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk",
+        "zod"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.12"
+      },
+      "relativeSourceDirectory": "packages/wechat-visible-reader"
+    },
+    {
+      "directory": "weixin-mp",
+      "packageName": "@clowder-ai/weixin-mp",
+      "version": "0.1.0-alpha.3",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.12"
+      },
+      "relativeSourceDirectory": "packages/weixin-mp"
+    },
+    {
+      "directory": "xiangqi",
+      "packageName": "@clowder-ai/xiangqi",
+      "version": "0.1.0-alpha.1",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/mcp-entrypoint.mjs"
+      ],
+      "buildScript": "node scripts/build.mjs && node ../../scripts/package-bins.mjs",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@modelcontextprotocol/sdk",
+        "zod"
+      ],
+      "declaredSupportPins": {},
+      "relativeSourceDirectory": "packages/xiangqi"
+    },
+    {
+      "directory": "feishu-meeting-intake",
+      "packageName": "@clowder-ai/feishu-meeting-intake",
+      "version": "0.1.0-alpha.10",
+      "canonicalYamlPresent": false,
+      "missingDeclaredEntrypoints": [
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clack/core",
+        "@clack/prompts",
+        "@clowder-ai/plugin-contract",
+        "@clowder-ai/plugin-sdk",
+        "@larksuite/cli",
+        "ajv",
+        "ajv-formats",
+        "fast-deep-equal",
+        "fast-string-truncated-width",
+        "fast-string-width",
+        "fast-uri",
+        "fast-wrap-ansi",
+        "json-schema-traverse",
+        "require-from-string",
+        "sisteransi"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-contract": "0.1.0-beta.9",
+        "@clowder-ai/plugin-sdk": "0.1.0-beta.5"
+      },
+      "relativeSourceDirectory": "packages/feishu-meeting-intake"
+    },
+    {
+      "directory": "personal-chrome-companion",
+      "packageName": "@clowder-ai/personal-chrome-companion",
+      "version": "0.1.0-alpha.3",
+      "canonicalYamlPresent": true,
+      "missingDeclaredEntrypoints": [
+        "dist/plugin-entrypoint.js",
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm build:extension && pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "0.2.0-beta.12"
+      },
+      "relativeSourceDirectory": "packages/personal-chrome-companion"
+    },
+    {
+      "directory": "stackchan",
+      "packageName": "@clowder-ai/stackchan",
+      "version": "0.1.0-alpha.1",
+      "canonicalYamlPresent": false,
+      "missingDeclaredEntrypoints": [
+        "./dist/index.js"
+      ],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json && node ../../scripts/package-bins.mjs",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-contract",
+        "@modelcontextprotocol/sdk",
+        "ajv",
+        "ajv-formats"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-contract": "workspace:*"
+      },
+      "relativeSourceDirectory": "packages/stackchan"
+    },
+    {
+      "directory": "plugin-contract",
+      "packageName": "@clowder-ai/plugin-contract",
+      "version": "0.1.0-beta.36",
+      "canonicalYamlPresent": false,
+      "missingDeclaredEntrypoints": [],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json && node --test scripts/conformance-public-boundary.test.mjs",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [],
+      "declaredSupportPins": {},
+      "relativeSourceDirectory": "packages/plugin-contract"
+    },
+    {
+      "directory": "plugin-sdk",
+      "packageName": "@clowder-ai/plugin-sdk",
+      "version": "0.2.0-beta.20",
+      "canonicalYamlPresent": false,
+      "missingDeclaredEntrypoints": [],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-contract": "0.1.0-beta.36"
+      },
+      "relativeSourceDirectory": "packages/plugin-sdk"
+    },
+    {
+      "directory": "loopback-fixture-plugin",
+      "packageName": "@clowder-ai/loopback-fixture-plugin",
+      "version": "0.0.0",
+      "canonicalYamlPresent": false,
+      "missingDeclaredEntrypoints": [],
+      "buildScript": "pnpm clean && tsc -p tsconfig.build.json",
+      "buildRendererScript": null,
+      "currentHostDirectoryUiJourneyAccepted": false,
+      "missingDirectDependencies": [
+        "@clowder-ai/plugin-sdk"
+      ],
+      "declaredSupportPins": {
+        "@clowder-ai/plugin-sdk": "workspace:*"
+      },
+      "relativeSourceDirectory": "packages/loopback-fixture-plugin"
+    }
+  ],
+  "alternateBuiltSourceSnapshots": [
+    {
+      "directory": "github-operations",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-p2e-astra/packages/github-operations",
+      "version": "0.1.0-alpha.16",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 1585,
+        "bytesVisited": 33587456,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@types/node/http2.d.ts",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-dingtalk",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-dingtalk",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 578,
+        "bytesVisited": 34037932,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@clowder-ai/plugin-sdk/node_modules/typescript/lib/_tsc.js",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-feishu",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-feishu",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 571,
+        "bytesVisited": 43472506,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@larksuiteoapi/node-sdk/types/index.d.ts",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-telegram",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-telegram",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 617,
+        "bytesVisited": 35317880,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@clowder-ai/plugin-sdk/node_modules/typescript/lib/_tsc.js",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-wecom-agent",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-wecom-agent",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 616,
+        "bytesVisited": 34773508,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@clowder-ai/plugin-sdk/node_modules/typescript/lib/_tsc.js",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-wecom-bot",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-wecom-bot",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 584,
+        "bytesVisited": 34444912,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@clowder-ai/plugin-sdk/node_modules/typescript/lib/_tsc.js",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-weixin",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-weixin",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 622,
+        "bytesVisited": 34450241,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@clowder-ai/plugin-sdk/node_modules/typescript/lib/_tsc.js",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    },
+    {
+      "directory": "connector-xiaoyi",
+      "sourceDirectory": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-xiaoyi",
+      "version": "0.1.0-alpha.5",
+      "missingDeclaredEntrypoints": [],
+      "directDependenciesPresent": true,
+      "rawCopyPreflight": {
+        "filesVisited": 587,
+        "bytesVisited": 34104440,
+        "copyPolicyProblem": "expanded byte budget >32MiB",
+        "memberAtStop": "node_modules/@clowder-ai/plugin-sdk/node_modules/typescript/lib/_tsc.js",
+        "complete": false,
+        "method": "read-only stat traversal matching Host dependency-symlink,4096-file and32MiB expanded-byte admission rules; no actual installation"
+      }
+    }
+  ],
+  "rawDirectoryAdmission": {
+    "method": "actual Host source LocalPluginPackageAdmission, isolated temporary packagesRoot, no activation/grants/inventory writes; ignored dist not used",
+    "hostSource": "/Users/lang/workspace/github-lab/clowder-ai-f202-c1-core/packages/api/src/domains/plugin/manager/local-package-admission.ts",
+    "hostSourceSha256": "fa88691c5544b5b28ac7cc7bbb96531f0776d7e6082f782420f96ac525900de6",
+    "node": "v24.15.0",
+    "observations": [
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-collective-sol/packages/collective-connector",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-p2e-astra/packages/github-operations",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-dingtalk",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-feishu",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-telegram",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-wecom-agent",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-wecom-bot",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-weixin",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      },
+      {
+        "source": "/Users/lang/workspace/github-lab/clowder-ai-plugins-connector-parity-sol/packages/connector-xiaoyi",
+        "errorCode": "PACKAGE_TOO_LARGE",
+        "message": "local plugin package exceeds Host limit",
+        "grantCalls": 0,
+        "inventoryCalls": 0
+      }
+    ]
+  },
+  "evidenceRoot": "/Users/lang/workspace/github-lab/f202-handoff/aggregate-directory-audit-2026-10-11",
+  "currentHostDirectoryUiAcceptance": false,
+  "c1Complete": false,
+  "releaseAdmission": false,
+  "limitations": [
+    "Point-in-time ignored build/dependency members, not a fresh build or transitive import proof",
+    "Named tracked production-root deletion census is not independent compile or full Host-cleanup proof",
+    "Old receipts using extracted tarballs/temp directories are not raw repository-directory UI acceptance",
+    "Host2bb09b1c is WIP and build is not green; no operator acceptance environment is offered"
+  ],
+  "sourceCheckout": "/Users/lang/workspace/github-lab/clowder-ai-plugins-collective-sol",
+  "physicalEvidence": {
+    "source-directories.json": "c9c73edbff8a1ff19dd48b66a9f24d901ca7574dc26daac4460ee3df5fe31dd8",
+    "host-source-census.json": "f1c5928de6dde79dc12bb4e03b30cccf70b3724c116665d405cce30c3c8c5ff5",
+    "raw-directory-admission.json": "1b8b7c15b93dc0d82a5175ad771579b71a3cf9d544bb3e86850514d90d6e9da7",
+    "raw-directory-admission.mts": "086734f6328d445ee18c7eb77f61008ff451a26de75cc07ef24f9894f22cac56"
+  }
+}

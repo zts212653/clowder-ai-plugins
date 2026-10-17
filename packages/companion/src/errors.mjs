@@ -9,5 +9,8 @@ const messages = {
 };
 export function explainError(error) {
   if (error?.name === 'NotAllowedError') return '未获得麦克风权限 · 请在系统设置中允许后重试';
-  return messages[error?.code] ?? '连接暂时不可用 · 请重试或打开聊天继续';
+  // hasOwn: `??` does not stop a truthy prototype hit — {code:'constructor'}
+  // would render `function Object() { [native code] }` as the user message.
+  if (Object.hasOwn(messages, error?.code)) return messages[error.code];
+  return '连接暂时不可用 · 请重试或打开聊天继续';
 }
