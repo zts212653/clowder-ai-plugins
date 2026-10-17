@@ -6,7 +6,8 @@ test('extension refuses operations until a matching native ready handshake', asy
   let nativeMessage;
   let reads = 0;
   const replies = [];
-  const pageUrl = 'https://studio.tripo3d.ai/3d-model/11111111-1111-4111-8111-111111111111';
+  const pageUrl =
+    'https://studio.tripo3d.ai/3d-model/11111111-1111-4111-8111-111111111111';
   const previous = globalThis.chrome;
   t.after(() => {
     globalThis.chrome = previous;
@@ -25,7 +26,13 @@ test('extension refuses operations until a matching native ready handshake', asy
       onStartup: { addListener() {} },
       onMessage: { addListener() {} },
     },
-    storage: { local: { get: async () => ({ grants: [{ tabId: 1, pageUrl }] }), set: async () => {} } },
+    downloads: { onCreated: { addListener() {} } },
+    storage: {
+      local: {
+        get: async () => ({ grants: [{ tabId: 1, pageUrl }] }),
+        set: async () => {},
+      },
+    },
     windows: { getAll: async () => [] },
     tabs: { get: async () => ({ url: pageUrl }) },
     scripting: {

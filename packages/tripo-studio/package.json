@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/tripo-studio",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Read authorized Tripo Studio models in the background and return selected assets through the Host-managed plugin lifecycle.",
   "license": "MIT",
   "type": "module",

@@ -10,6 +10,7 @@ import {
   prepareSocketPath,
 } from '../../cloud-cat-personal-host/native-host/native-socket-lease.mjs';
 import { readPersonalChromePairingRecord } from '../../cloud-cat-personal-host/native-host/pairing-record.mjs';
+import { validateWorkspaceRequest } from './workspace-contract.mjs';
 import { VERSION } from './contract.mjs';
 export function secretMatches(expected, received) {
   if (typeof received !== 'string') return false;
@@ -17,7 +18,10 @@ export function secretMatches(expected, received) {
     right = Buffer.from(received);
   return left.length === right.length && timingSafeEqual(left, right);
 }
-export async function startNativeHost(recordPath, { input = process.stdin, output = process.stdout } = {}) {
+export async function startNativeHost(
+  recordPath,
+  { input = process.stdin, output = process.stdout } = {},
+) {
   const record = await readPersonalChromePairingRecord(recordPath);
   const lease = await acquireSocketLease(record.socketPath);
   const pending = new Map();
@@ -52,18 +56,44 @@ export async function startNativeHost(recordPath, { input = process.stdin, outpu
             typeof request.id !== 'string' ||
             !/^[a-f0-9-]{36}$/.test(request.id) ||
             !secretMatches(record.pairingSecret, request.token) ||
-            !['status', 'observe'].includes(request.op) ||
-            Object.keys(request).some((key) => !['v', 'id', 'op', 'token'].includes(key))
+            !['status', 'observe', 'workspace'].includes(request.op) ||
+            Object.keys(request).some(
+              (key) =>
+                ![
+                  'v',
+                  'id',
+                  'op',
+                  'token',
+                  ...(request.op === 'workspace' ? ['payload'] : []),
+                ].includes(key),
+            )
           )
             throw new Error('UNAUTHORIZED');
+          if (request.op === 'workspace')
+            validateWorkspaceRequest(request.payload);
           used = true;
           if (pending.has(request.id)) throw new Error('DUPLICATE_REQUEST');
           const timer = setTimeout(() => {
             pending.delete(request.id);
-            socket.end(encodeNativeMessage({ v: 1, id: request.id, error: 'EXTENSION_TIMEOUT' }));
+            socket.end(
+              encodeNativeMessage({
+                v: 1,
+                id: request.id,
+                error: 'EXTENSION_TIMEOUT',
+              }),
+            );
           }, 22000);
           pending.set(request.id, { socket, timer });
-          output.write(encodeNativeMessage({ v: 1, id: request.id, op: request.op }));
+          output.write(
+            encodeNativeMessage({
+              v: 1,
+              id: request.id,
+              op: request.op,
+              ...(request.op === 'workspace'
+                ? { payload: request.payload }
+                : {}),
+            }),
+          );
         }
       } catch {
         socket.destroy();
@@ -102,7 +132,9 @@ export async function startNativeHost(recordPath, { input = process.stdin, outpu
       }
     });
     input.once('end', () => void close());
-    output.write(encodeNativeMessage({ v: 1, kind: 'ready', version: VERSION }));
+    output.write(
+      encodeNativeMessage({ v: 1, kind: 'ready', version: VERSION }),
+    );
     return { close };
   } catch (error) {
     await close();
