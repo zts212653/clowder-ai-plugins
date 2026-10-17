@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>仓库同步 · Clowder AI 交互原型</title>
+  <link rel="stylesheet" href="/native-theme.css"><link rel="stylesheet" href="/native-console.css">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/binding.css">
+  <link rel="stylesheet" href="/delivery.css">
+  <link rel="stylesheet" href="/workbench.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="原型首页"><span class="brand-icon">⌘</span><span>Clowder AI<small>工程协作 / 功能原型</small></span></a>
+    <div class="nav-label">仓库工作区</div>
+    <div class="repo-name"><span class="repo-icon">◇</span><div><span id="repo-label">demo / core</span><small>外部 → 内部 · 单向接收</small></div></div>
+    <nav aria-label="功能导航">
+      <button type="button" class="nav-item selected" data-view="overview"><span>◈</span>同步工作台</button>
+      <button type="button" class="nav-item" data-view="configuration"><span>⚙</span>仓库设置</button>
+    </nav>
+    <div class="sidebar-note">→ 单向接收上游更新<small>定制能力使用独立插件</small></div>
+    <button type="button" id="adapter-button" class="adapter">⌁ 命令适配说明</button>
+    <div class="sidebar-footer">交互原型 · 合成数据<br>未连接真实仓库</div>
+  </aside>
+  <main>
+    <header class="topbar"><div>仓库工作区 <span>/</span> <strong id="view-name">同步总览</strong></div><span class="badge neutral">演示环境</span></header>
+    <section class="page-heading"><div><div class="eyebrow">REPOSITORY SYNC</div><h1 id="page-title">仓库同步</h1><p id="page-subtitle">查看当前进度，并完成下一步操作。</p></div><button type="button" id="demo-toggle" class="button secondary" aria-expanded="false">演示场景</button></section>
+    <div id="demo-controls" class="demo-controls" hidden><label for="scenario">演示场景起点</label><select id="scenario"></select><button type="button" id="external" class="button secondary">＋ 模拟上游更新</button><button type="button" id="reset" class="text-button">重置当前场景</button><small>切换场景会重置演示进度</small></div>
+    <div id="overview"></div>
+    <div id="mapping" hidden></div>
+    <div id="delivery" hidden></div>
+    <div id="configuration" hidden></div>
+    <footer class="page-footer">交互原型 · 仅演示，不执行真实 Git 或平台命令</footer>
+  </main>
+  <dialog id="adapter-dialog"><div class="eyebrow">原型边界</div><h2>Git 与平台命令适配</h2><p>Git 负责提交对象、分支和文件树。Issue 与 PR 需要内部平台 CLI 或 API；标准 Git 没有创建这些对象的命令。</p><p>当前界面将它们统一展示为 <code>repo-sync issue / pr</code> 占位命令。落地时可接入 codehub-cli，Git 部分继续使用 Git Bash。</p><div class="notice">此原型只改变本地演示状态，不执行真实 Git、平台命令或网络同步。</div><button type="button" id="close-adapter" class="button primary">了解，返回原型</button></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.mjs"></script>
+</body>
+</html>

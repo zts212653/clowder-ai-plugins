@@ -1,0 +1,261 @@
+@media (min-width: 769px) {
+  body[data-view="workbench"] .app-shell main {
+    padding-top: 12px;
+  }
+  .heading {
+    margin-bottom: 6px;
+  }
+  .heading h1 {
+    font-size: var(--t-1);
+  }
+  body[data-view="workbench"] #page-description {
+    display: none;
+  }
+  .automation-status {
+    padding: 8px 14px;
+    margin-bottom: 6px;
+  }
+  .automation-status h3 {
+    font-size: var(--t-3);
+  }
+  .automation-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+    align-items: center;
+  }
+  .automation-status > p {
+    font-size: var(--t-5);
+  }
+  #current-activity:empty {
+    display: none;
+  }
+  .journey-layout {
+    gap: 8px;
+  }
+  .history-disclosure {
+    padding: 2px 14px;
+  }
+  .history-disclosure > summary {
+    min-height: 30px;
+  }
+  .delivery-overview {
+    padding: 8px 14px;
+    margin: 0 0 6px;
+  }
+  .delivery-overview h3 {
+    display: none;
+  }
+  .delivery-metrics {
+    gap: 16px;
+    margin: 6px 0;
+  }
+  .delivery-metrics dd {
+    font-size: var(--t-3);
+  }
+  .delivery-metrics dt {
+    font-size: var(--t-5);
+  }
+  .delivery-objects summary,
+  .delivery-more > summary {
+    font-size: var(--t-5);
+    min-height: 28px;
+  }
+  .delivery-object-details {
+    margin-top: 0;
+  }
+  .detail-head {
+    padding: 8px 14px;
+  }
+  .detail-head > .badge {
+    display: none;
+  }
+  .detail-head:has([data-record="current"]) > .badge {
+    display: inline-block;
+  }
+  .detail-head h2 {
+    font-size: var(--t-3);
+    margin: 0;
+  }
+  .journey-flow {
+    margin: 8px 0;
+  }
+  .journey-flow > li {
+    padding-bottom: 6px;
+  }
+  .journey-flow > li > details > summary {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 2px 8px;
+    padding: 4px 12px;
+    min-height: 48px;
+  }
+  .journey-flow > li > details > summary {
+    line-height: 1.35;
+  }
+  .journey-flow > li > details > summary [data-stage-detail] {
+    grid-column: 2 / -1;
+    padding-left: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .journey-flow > li > details > summary [data-stage-caption] {
+    font-size: var(--t-5);
+  }
+}
+.journey-flow [data-stage-state="waiting-system"] {
+  border-color: var(--state-blue);
+}
+.journey-flow [data-stage-state="waiting-human"] {
+  border-color: var(--state-yellow);
+  background: var(--soft);
+}
+[data-stage-state="waiting-system"] .stage-mark {
+  color: var(--state-blue);
+}
+[data-stage-state="waiting-human"] .stage-mark {
+  color: var(--state-yellow);
+}
+[data-stage-state="failed"] > summary {
+  background: var(--soft);
+}
+.substeps {
+  list-style: none;
+  padding-left: 16px;
+  border-left: 2px solid var(--line);
+}
+.substeps > li {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.substeps [data-operation-state="WAITING"] > span {
+  color: var(--state-yellow);
+}
+.substeps [data-operation-state="AUTO_WAIT"] > span {
+  color: var(--state-blue);
+}
+.substeps [data-operation-state="RUNNING"] > span,
+[data-stage-state="current"] > summary .stage-mark {
+  display: inline-block;
+  color: var(--state-blue);
+  animation: workflow-spin 1.5s linear infinite;
+}
+@keyframes workflow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.next-action {
+  position: sticky;
+  top: 12px;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  margin-top: 16px;
+  border-radius: var(--r);
+}
+.next-action .task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.next-action .task-actions > * {
+  width: auto;
+}
+.next-action .auto-merge-choice p {
+  max-width: 70ch;
+}
+body[data-view="configuration"] .app-shell main {
+  padding-right: 24px;
+}
+body[data-view="configuration"] #configuration-actions {
+  display: none;
+}
+@media (min-width: 1280px) {
+  body[data-view="workbench"] .app-shell main {
+    padding-right: 292px;
+  }
+  body[data-view="workbench"] .next-action {
+    position: static;
+    top: 94px;
+    right: max(20px, calc((100vw - 2000px) / 2 + 20px));
+    width: 248px;
+    max-height: calc(100vh - 116px);
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .next-action .task-actions > * {
+    width: 100%;
+  }
+}
+@media (max-width: 1279px) and (min-width: 769px) {
+  body[data-view="workbench"] .next-action {
+    position: static;
+    padding: 8px 14px;
+    margin-top: 8px;
+  }
+  .next-action h2 {
+    font-size: var(--t-3);
+    margin-bottom: 6px;
+  }
+  .next-action > p {
+    margin: 4px 0;
+  }
+  .next-action .auto-merge-choice {
+    margin-top: 8px;
+    padding-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: center;
+  }
+  .next-action .auto-merge-choice > label {
+    margin: 0;
+  }
+  .next-action .auto-merge-choice > p {
+    margin: 0;
+    font-size: var(--t-5);
+    flex: 1 1 300px;
+  }
+}
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  .app-shell main {
+    padding: 16px 14px 30px;
+  }
+  .settings-section {
+    padding: 16px;
+  }
+  .settings-save {
+    bottom: 0;
+  }
+  body[data-view="workbench"] .next-action {
+    position: static;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  .journey-layout .record-list,
+  .journey-layout .record-detail {
+    display: block;
+  }
+  .heading h1 {
+    font-size: var(--t-1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .substeps [data-operation-state="RUNNING"] > span,
+  [data-stage-state="current"] > summary .stage-mark {
+    animation: none;
+  }
+}

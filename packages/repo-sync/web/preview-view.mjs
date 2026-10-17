@@ -1,0 +1,5 @@
+import { fileTree } from './files.mjs';
+import { esc, sha, when } from './ui.mjs';
+export function previewPanel(report) {
+  return `<section class="card" id="sync-preview"><span class="badge">只读预览 · 尚未发起同步</span><h2>如果同步到这个版本</h2><p>${esc(report.targetName)} · ${sha(report.base.upstream)} → ${sha(report.target)}<br>内部位置 ${sha(report.base.internal)} · 读取于 ${when(report.checkedAt)}</p><details class="tech"><summary>为什么？</summary><div class="tech-copy">${report.plans.length} 笔来源；${report.changes.length} 个外部变化路径；其中 ${report.changes.filter((item) => item.category === 'internal').length} 个路径将保留内部，跳过外部更新。</div></details><details open><summary>真实来源集合</summary>${report.plans.map((plan) => `<details class="tech"><summary>为什么？</summary><div class="tech-copy">${esc(plan.source.kind === 'commit' ? '直接主干提交' : plan.source.tag ? '版本' : `PR #${plan.source.number}`)} · ${esc(plan.source.title)} · ${sha(plan.target)} · ${plan.issues.length} 个关联 Issue</div></details>`).join('') || '<p>未发现需要接收的更新。</p>'}</details>${fileTree(report.changes, '上游变化与处理范围')}<p>只进行了读取和本地 Git 缓存；没有推送、创建或关闭远端对象。写权限和项目检查尚未验证。真正同步会重新核验目标、配置和内部 HEAD，不能将此预览当作已接收结果。</p></section>`;
+}

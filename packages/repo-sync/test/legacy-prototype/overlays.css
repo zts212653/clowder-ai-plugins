@@ -1,0 +1,101 @@
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 80px #24180f30;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 28px;
+  max-width: min(520px, calc(100vw - 32px));
+}
+dialog::backdrop {
+  background: #281b1245;
+  backdrop-filter: blur(3px);
+}
+dialog h2 {
+  font-size: 23px;
+  margin-bottom: 12px;
+}
+dialog p {
+  font-size: 12px;
+  margin-top: 12px;
+}
+dialog label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--neutral-50);
+  color: var(--ink);
+  font-size: 12px;
+}
+dialog .fine {
+  font-size: 10px;
+}
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+#close-adapter {
+  margin-top: 12px;
+}
+#toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translate(-50%, 10px);
+  background: var(--neutral-800);
+  color: white;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+  z-index: 10;
+  max-width: 90vw;
+}
+#toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.muted {
+  color: var(--muted);
+  font-size: 11px;
+}
+.pr-layout {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 28px 40px;
+}
+.pr-layout .page-heading {
+  padding-top: 10px;
+}
+.pr-review {
+  padding: 22px;
+  margin-top: 20px;
+}
+.pr-review p {
+  font-size: 12px;
+  margin: 12px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pr-review label {
+  display: block;
+  margin: 18px 0 8px;
+  font-size: 12px;
+}
+.pr-review button {
+  margin-top: 12px;
+}

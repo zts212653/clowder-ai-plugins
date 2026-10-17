@@ -1,0 +1,260 @@
+:root {
+  --state-blue: var(--info);
+  --state-yellow: var(--wait);
+  --state-red: var(--bad);
+  --state-green: var(--good);
+}
+.settings-page {
+  max-width: 980px;
+}
+.settings-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: center;
+}
+.settings-heading h2 {
+  margin: 0;
+}
+.settings-heading p {
+  flex: 1 1 280px;
+}
+.settings-section {
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #fff;
+  margin: 20px 0;
+}
+.settings-section h3 {
+  margin-top: 0;
+  font-size: var(--t-2);
+}
+.settings-section section {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 16px;
+}
+form label:not(:has(input[type="checkbox"])) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+  min-width: 0;
+}
+form label input:not([type="checkbox"]),
+form label select {
+  margin-top: 0;
+}
+form .task-actions,
+.github-auth form,
+#issue-auth form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.github-auth form > label,
+.github-auth form > p,
+#issue-auth form > label,
+#issue-auth form > p {
+  flex: 1 1 100%;
+}
+form button {
+  margin: 0;
+}
+.settings-lock {
+  background: var(--soft);
+  border-left: 3px solid var(--accent);
+  padding: 12px;
+}
+.settings-save {
+  position: static;
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: var(--r);
+}
+.settings-save p {
+  margin: 8px 0 0;
+}
+.settings-result:empty {
+  display: none;
+}
+fieldset {
+  min-width: 0;
+}
+fieldset:disabled {
+  opacity: 0.85;
+}
+.app-shell {
+  grid-template-columns: 264px minmax(0, 1fr);
+}
+.app-shell main {
+  padding: 20px 24px 100px;
+}
+.project-sidebar-row small {
+  line-height: 1.5;
+}
+.project-sidebar-row b {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-sidebar-row {
+  grid-template-columns: minmax(0, 1fr) 44px;
+}
+.journey-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+.history-disclosure {
+  width: 100%;
+  margin: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 8px 16px;
+}
+.history-disclosure > summary {
+  display: flex;
+  align-items: center;
+}
+.history-disclosure .record-list {
+  max-height: 360px;
+  overflow: auto;
+  border: 0;
+}
+.record-detail {
+  width: 100%;
+  padding-bottom: 0;
+}
+.repository-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, .8fr);
+  gap: 16px;
+  padding: 12px 16px;
+  margin: 0 0 8px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.repository-summary > div { min-width: 0; }
+.repository-summary > div + div { border-left: 1px solid var(--line); padding-left: 16px; }
+.repository-summary p,
+.repository-summary small,
+.repository-summary code { display: block; margin: 2px 0; font-size: var(--t-5); overflow-wrap: anywhere; }
+.automation-status {
+  margin: 0 0 12px;
+  padding: 12px 18px;
+}
+.automation-status > p:not(:first-of-type) {
+  display: none;
+}
+.automation-status h3,
+.automation-status p {
+  margin: 4px 0;
+}
+.delivery-overview {
+  padding: 14px 18px;
+  margin: 12px 0;
+}
+.delivery-overview h3 {
+  font-size: var(--t-3);
+  margin-bottom: 6px;
+}
+.delivery-overview summary {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.delivery-overview .delivery-objects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.delivery-metrics {
+  margin: 10px 0;
+}
+.delivery-more {
+  margin-top: 4px;
+}
+.delivery-more > summary {
+  min-height: 30px;
+}
+.detail-head .execution-meta,
+.detail-head .delivery-boundary {
+  display: inline-block;
+  font-size: var(--t-5);
+  margin: 0 16px 0 0;
+}
+.detail-head .execution-meta summary,
+.detail-head .delivery-boundary summary {
+  min-height: 30px;
+}
+.detail-head .workflow-controls {
+  display: inline-flex;
+  margin-top: 0;
+}
+.detail-head button {
+  padding: 7px 10px;
+  min-height: 36px;
+}
+.history-disclosure > summary {
+  min-height: 32px;
+}
+.heading {
+  margin-bottom: 10px;
+}
+.heading p {
+  margin: 4px 0;
+}
+.heading h1 {
+  font-size: var(--t-1);
+  margin: 4px 0;
+}
+.journey-flow > li > details > summary {
+  min-height: 54px;
+}
+.journey-flow > li > details > summary [data-stage-detail] {
+  line-height: 1.4;
+}
+.settings-page input {
+  scroll-margin-bottom: 140px;
+}
+.delivery-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.delivery-metrics dd {
+  font-size: var(--t-2);
+  margin-top: 2px;
+}
+.delivery-object-details {
+  margin-top: 8px;
+}
+.detail-head {
+  padding: 12px 18px;
+}
+.detail-head h2 {
+  margin: 6px 0;
+  font-size: var(--t-2);
+}
+.journey-flow {
+  margin: 12px 0;
+}
+.journey-flow > li {
+  padding-bottom: 8px;
+}
+.journey-flow > li > details > summary {
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.journey-flow > li > details > summary [data-stage-detail] {
+  font-size: var(--t-5);
+  margin: 0;
+}

@@ -1,0 +1,129 @@
+.delivery-overview {
+  margin: 0 0 18px;
+  padding: 20px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: #fff;
+}
+.delivery-overview h3 {
+  margin-top: 0;
+  font-size: var(--t-2);
+}
+.delivery-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.delivery-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.delivery-metrics > div {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+}
+.delivery-metrics dt {
+  color: var(--muted);
+  font-size: var(--t-5);
+}
+.delivery-metrics dd {
+  margin: 6px 0 0;
+  font-size: var(--t-1);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.delivery-objects {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.delivery-objects section {
+  min-width: 0;
+}
+.delivery-object-details {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--canvas);
+  overflow: hidden;
+}
+.delivery-overview .delivery-object-details > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.delivery-object-details[open] > summary {
+  background: var(--soft);
+  border-bottom: 1px solid var(--line);
+}
+.delivery-object-title {
+  overflow-wrap: anywhere;
+}
+.delivery-object-details > summary small {
+  color: var(--muted);
+  font-size: var(--t-5);
+  font-weight: 400;
+}
+.delivery-object-guide {
+  margin: 0;
+  padding: 10px 14px 0;
+  color: var(--muted);
+  font-size: var(--t-5);
+}
+.delivery-object-details .delivery-object-list {
+  max-height: 360px;
+  overflow: auto;
+}
+.delivery-object-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px 12px;
+}
+.delivery-object-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.delivery-object-list li:last-child {
+  border-bottom: 0;
+}
+.delivery-object-list li p {
+  font-size: var(--t-5);
+  margin: 6px 0;
+}
+.delivery-object-list code {
+  font-size: var(--t-5);
+}
+.delivery-cancel {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.delivery-cancel > summary {
+  color: var(--accent);
+}
+.delivery-cancel button {
+  margin-top: 10px;
+}
+@media (max-width: 900px) {
+  .delivery-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .delivery-objects {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+@media (max-width: 480px) {
+  .delivery-overview {
+    padding: 18px;
+  }
+  .delivery-metrics dd {
+    font-size: var(--t-2);
+  }
+}

@@ -1,0 +1,87 @@
+@media (max-width: 1150px) {
+  .task-main {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .task-action {
+    justify-items: start;
+  }
+}
+@media (max-width: 650px) {
+  .task-main {
+    padding: 20px;
+    gap: 16px;
+  }
+  .task-main h2 {
+    font-size: 23px;
+    margin-top: 9px;
+  }
+  .task-main p {
+    font-size: 11px;
+  }
+  .task-action {
+    justify-items: stretch;
+  }
+  .task-action .button {
+    white-space: normal;
+  }
+  .task-subject {
+    display: block;
+    padding: 15px 20px;
+  }
+  .task-subject > .text-button {
+    margin-top: 12px;
+  }
+  .milestones {
+    padding: 15px 20px;
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+  .milestone-children {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+    margin-top: 8px;
+  }
+  .progress-legend {
+    padding: 0 20px 14px;
+  }
+  .step-failure {
+    margin: 0 20px 18px;
+  }
+  .issue-explanation {
+    padding: 16px 20px;
+  }
+  .versions-inline {
+    gap: 12px;
+  }
+  .versions-inline .text-button {
+    margin-left: 0;
+  }
+  .workbench-status {
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .wizard-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .wizard-panel,
+  .config-readonly {
+    padding: 20px;
+  }
+  .wizard-actions {
+    flex-wrap: wrap;
+  }
+  .wizard-actions > .button {
+    white-space: normal;
+  }
+  .connection-facts > div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .detail-tools {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
