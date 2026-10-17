@@ -29,6 +29,34 @@ test('packed desktop window contract and SDK work in a consumer without workspac
     }
     await writeFile(join(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
     run('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', ...artifacts], consumer);
+    const typeProbe = `
+      import { createCompanionClient } from '@clowder-ai/plugin-sdk/companion';
+      import type { CompanionSurfaceBridge } from '@clowder-ai/plugin-sdk/companion';
+      import type { CompanionAppAssistState } from '@clowder-ai/plugin-contract';
+      declare const bridge: CompanionSurfaceBridge;
+      async function consumeAppAssist() {
+        const state = await createCompanionClient(bridge).state();
+        const scopeRef: string = state.appAssist.scopeRef;
+        const revision: number = state.appAssist.revision;
+        if (state.appAssist.status !== 'ready' || !state.appAssist.offer) return [scopeRef, revision, null];
+        return [scopeRef, revision, state.appAssist.offer.appName];
+      }
+      // @ts-expect-error status is a closed public union.
+      const invalidStatus: CompanionAppAssistState = { scopeRef: 'scope-a', revision: 1, status: 'arbitrary', offer: null };
+      // @ts-expect-error revision is numeric.
+      const invalidRevision: CompanionAppAssistState = { scopeRef: 'scope-a', revision: 'one', status: 'ready', offer: null };
+      // @ts-expect-error a non-ready state cannot carry an offer.
+      const invalidOffer: CompanionAppAssistState = { scopeRef: 'scope-a', revision: 1, status: 'suspended', offer: { offerRef: 'offer-a', appName: 'Fixture Writer' } };
+      void [consumeAppAssist, invalidStatus, invalidRevision, invalidOffer];
+    `;
+    await writeFile(join(consumer, 'type-probe.mts'), typeProbe);
+    await writeFile(join(consumer, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: {
+        target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', strict: true, noEmit: true,
+      },
+      include: ['type-probe.mts'],
+    }));
+    run(process.execPath, [join(repo, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], consumer);
     const contract = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-contract/package.json'), 'utf8'));
     const sdk = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-sdk/package.json'), 'utf8'));
     assert.equal(sdk.dependencies['@clowder-ai/plugin-contract'], contract.version);

@@ -170,6 +170,75 @@ function renderObject(schema: JsonSchema): string {
   return renderObjectShape(properties, new Set(schema.required ?? []));
 }
 
+function schemaAllowsLiteral(schema: JsonSchema, value: unknown): boolean {
+  if (schema.const !== undefined) return isDeepStrictEqual(schema.const, value);
+  if (schema.enum) return schema.enum.some((candidate) => isDeepStrictEqual(candidate, value));
+  const alternatives = schema.oneOf ?? schema.anyOf;
+  if (alternatives) return alternatives.some((alternative) => schemaAllowsLiteral(alternative, value));
+  if (Array.isArray(schema.type)) return schema.type.some((type) => schemaAllowsLiteral({ type }, value));
+  switch (schema.type) {
+    case 'string':
+      return typeof value === 'string';
+    case 'integer':
+      return Number.isInteger(value);
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'boolean':
+      return typeof value === 'boolean';
+    case 'null':
+      return value === null;
+    case 'object':
+      return typeof value === 'object' && value !== null && !Array.isArray(value);
+    case 'array':
+      return Array.isArray(value);
+    case undefined:
+      return schema.$ref === undefined;
+    default:
+      return false;
+  }
+}
+
+function mergeAlternativeProperty(name: string, base: JsonSchema, constraint: JsonSchema): JsonSchema {
+  const constraintKeys = Object.keys(constraint).filter((key) => !['description', 'const', 'enum'].includes(key));
+  if (constraintKeys.length > 0) {
+    throw new Error(`Unsupported object alternative constraint for ${name}: ${constraintKeys.join(', ')}`);
+  }
+  const values = constraint.const !== undefined ? [constraint.const] : constraint.enum;
+  if (!values) return base;
+  if (!values.every((value) => schemaAllowsLiteral(base, value))) {
+    throw new Error(`Object alternative widens the base property ${name}`);
+  }
+  return constraint;
+}
+
+// JSON Schema applies object siblings and oneOf/anyOf together. Repeat the
+// shared shape in every TypeScript arm, while allowing branches only to narrow
+// shared fields to literals the base schema already admits.
+function renderObjectAlternatives(schema: JsonSchema, alternatives: readonly JsonSchema[]): string {
+  const baseProperties = schema.properties ?? {};
+  const baseRequired = schema.required ?? [];
+  return alternatives
+    .map((alternative) => {
+      if (alternative.type !== undefined && alternative.type !== 'object') {
+        throw new Error('Object alternative must remain an object');
+      }
+      const unsupported = Object.keys(alternative).filter(
+        (key) => !['description', 'type', 'properties', 'required', 'additionalProperties'].includes(key),
+      );
+      if (unsupported.length > 0) {
+        throw new Error(`Unsupported object alternative keywords: ${unsupported.join(', ')}`);
+      }
+      const properties = { ...baseProperties };
+      for (const [name, constraint] of Object.entries(alternative.properties ?? {})) {
+        properties[name] = properties[name]
+          ? mergeAlternativeProperty(name, properties[name], constraint)
+          : constraint;
+      }
+      return renderObjectShape(properties, new Set([...baseRequired, ...(alternative.required ?? [])]));
+    })
+    .join(' | ');
+}
+
 function renderDiscriminatedObject(schema: JsonSchema, discriminator: string): string {
   if (schema.type !== 'object') {
     throw new Error(`Discriminated schema must be an object: ${discriminator}`);
@@ -287,7 +356,10 @@ function renderType(schema: JsonSchema): string {
   if (schema.enum) return schema.enum.map(quote).join(' | ');
 
   const alternatives = schema.oneOf ?? schema.anyOf;
-  if (alternatives) return alternatives.map(renderType).join(' | ');
+  if (alternatives) {
+    if (schema.type === 'object') return renderObjectAlternatives(schema, alternatives);
+    return alternatives.map(renderType).join(' | ');
+  }
 
   if (Array.isArray(schema.type)) {
     return schema.type.map((type) => renderType({ ...schema, type })).join(' | ');

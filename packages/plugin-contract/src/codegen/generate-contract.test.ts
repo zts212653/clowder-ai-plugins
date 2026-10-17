@@ -159,6 +159,36 @@ test('generated object fields preserve required and optional schema fields', asy
   assert.match(source, /export type CatalogPluginEntry = [\s\S]*readonly icon: PluginIcon;/);
 });
 
+test('generated app-assist state preserves its public discriminated object branches', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+  const appAssistState = source.slice(
+    source.indexOf('export type CompanionAppAssistState ='),
+    source.indexOf('export type CompanionAppAssistSettlement ='),
+  );
+
+  assert.doesNotMatch(appAssistState, /unknown/);
+  assert.equal(appAssistState.match(/readonly scopeRef: CompanionAppAssistRef;/g)?.length, 2);
+  assert.match(appAssistState, /readonly status: 'ready';[\s\S]*readonly offer: null \| \{/);
+  assert.match(
+    appAssistState,
+    /readonly status: 'off' \| 'suspended' \| 'unsupported' \| 'source_unavailable' \| 'permission_required' \| 'timezone_required' \| 'identity_unavailable';[\s\S]*readonly offer: null;/,
+  );
+});
+
+test('generation rejects an object alternative that widens its shared public fields', async () => {
+  const mutated = structuredClone(await loadContractSchemas());
+  const appAssist = mutated.companionBridge.$defs?.['CompanionAppAssistState'];
+  const ready = appAssist?.oneOf?.[0];
+  assert.ok(ready?.properties);
+  ready.properties['status'] = { const: 'invented-status' };
+
+  assert.throws(
+    () => generateContractSource(mutated),
+    /Object alternative widens the base property status/,
+  );
+});
+
 test('generated package icons preserve type-dependent filename suffixes', async () => {
   const schemas = await loadContractSchemas();
   const source = generateContractSource(schemas);

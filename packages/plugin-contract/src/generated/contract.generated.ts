@@ -1107,7 +1107,20 @@ export type CompanionMeetingState = {
   readonly paused: false;
   readonly sourceLabel: null;
 };
-export type CompanionAppAssistState = unknown | unknown;
+export type CompanionAppAssistState = {
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly revision: number;
+  readonly status: 'ready';
+  readonly offer: null | {
+    readonly offerRef: CompanionAppAssistRef;
+    readonly appName: string;
+  };
+} | {
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly revision: number;
+  readonly status: 'off' | 'suspended' | 'unsupported' | 'source_unavailable' | 'permission_required' | 'timezone_required' | 'identity_unavailable';
+  readonly offer: null;
+};
 export type CompanionAppAssistSettlement = {
   readonly kind: 'app-assist-settlement';
   readonly scopeRef: CompanionAppAssistRef;
