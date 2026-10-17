@@ -56,7 +56,7 @@ test('packed desktop window contract and SDK work in a consumer without workspac
       },
       include: ['type-probe.mts'],
     }));
-    run(process.execPath, [join(repo, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], consumer);
+    run(process.execPath, [join(repo, 'packages/plugin-contract/node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json'], consumer);
     const contract = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-contract/package.json'), 'utf8'));
     const sdk = JSON.parse(await readFile(join(consumer, 'node_modules/@clowder-ai/plugin-sdk/package.json'), 'utf8'));
     assert.equal(sdk.dependencies['@clowder-ai/plugin-contract'], contract.version);
