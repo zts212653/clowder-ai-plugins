@@ -233,6 +233,26 @@ test('opening history during voice and refreshing it preserves speech without cl
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
 });
 
+test('three-second history polling preserves an unsettled app-assist offer from state refresh', async () => {
+  const f = fixture(); await flush();
+  f.identity({
+    phase: 'idle', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 2, status: 'ready',
+      offer: { offerRef: 'offer-a', appName: 'Fixture Writer' } },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+  });
+
+  f.tick(); await flush(); await flush();
+
+  assert.equal(f.controls.ambient, 'app-assist');
+  assert.equal(f.controls.panel, 'app-assist');
+  assert.equal(f.nodes.get('app-assist-name').textContent, 'Fixture Writer');
+  assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'app-assist-settle'), false);
+});
+
 test('a scroll for older history waits for an active latest read and uses its current cursor once', async () => {
   const f = fixture(); await flush();
   f.history(async () => historyPage([historyRow('m2')], {

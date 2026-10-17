@@ -301,7 +301,6 @@ if (!window.clowderCompanion) {
   $('app-assist-start').onclick = () => { void appAssist.settle('accept'); };
   conversationSurface = new ConversationSurface({
     document, client, controls, bubble, transcript,
-    getCallPhase: () => conversation.phase,
     onAccepted: () => motion.signal('received'),
     retryLegacy: text => conversation.send(text),
     status,

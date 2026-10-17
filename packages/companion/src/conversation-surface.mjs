@@ -6,11 +6,11 @@ import { ReplyLetterView } from './reply-letter-view.mjs';
 
 /** Owns the chat panel's history, durable draft and reply-letter interaction. */
 export class ConversationSurface {
-  constructor({ document, client, controls, bubble, transcript, getCallPhase,
+  constructor({ document, client, controls, bubble, transcript,
     onAccepted, retryLegacy, status, scheduleInterval = setInterval,
     cancelInterval = clearInterval }) {
     this.$ = id => document.getElementById(id);
-    Object.assign(this, { client, controls, bubble, transcript, getCallPhase,
+    Object.assign(this, { client, controls, bubble, transcript,
       onAccepted, retryLegacy, status });
     this.scheduleInterval = (...args) => Reflect.apply(scheduleInterval, globalThis, args);
     this.cancelInterval = (...args) => Reflect.apply(cancelInterval, globalThis, args);
@@ -140,7 +140,6 @@ export class ConversationSurface {
     try {
       const page = await this.client.readConversationPage(before === undefined ? {} : { before });
       this.history.loadPage(page, { older });
-      void this.controls.setAmbient(this.getCallPhase() === 'idle' ? 'none' : 'actions');
       this.$('chat-connection-status').textContent = page.status === 'stale'
         ? '聊天位置已变化 · 请重新往上翻' : '';
     } catch (error) {

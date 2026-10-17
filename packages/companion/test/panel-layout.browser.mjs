@@ -72,6 +72,11 @@ test('candidate application assistance settles explicitly without minting call o
     assert.equal(await page.locator('#app-assist-start').textContent(), '打开通话控制');
     assert.deepEqual(await page.evaluate(() => window.__requestKinds.filter(kind =>
       ['prepare', 'audio.connect', 'screen.pick', 'screen.open', 'screen.frame'].includes(kind))), []);
+    await page.waitForTimeout(3_200);
+    assert.equal(await page.locator('#app-assist').isVisible(), true,
+      'periodic history reads cannot clear an unsettled application-assistance offer');
+    assert.equal(await page.evaluate(() => window.__requestKinds.includes('app-assist.settle')), false,
+      'preserving the offer must not synthesize a settlement');
 
     await page.click('#app-assist-dismiss');
     await page.waitForFunction(() => document.getElementById('app-assist').hidden);
