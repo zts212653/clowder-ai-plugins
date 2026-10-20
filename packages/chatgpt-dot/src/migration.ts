@@ -5,6 +5,7 @@ import { dotConnectionStateSchema } from './connection-state.js';
 import { DotStore, CONNECTION_KEY, dispatchSchema, eventKey, digest } from './store.js';
 import { imageSchema, validatePng } from './runtime.js';
 import { retainImageFile } from './image-file.js';
+import { fenceAsyncPort } from './operation-fence.js';
 export const legacyImportSchema = z.object({
     version: z.literal(1), ownerUserId: z.string().min(1), sourceInstanceId: z.string().min(1),
     connection: dotConnectionStateSchema.optional(), dispatches: z.array(dispatchSchema).max(100).default([]),
@@ -16,13 +17,18 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
     const input = legacyImportSchema.parse(raw);
     if (!context || context.pluginInstanceId !== host.pluginInstanceId || context.userId !== input.ownerUserId || context.kind !== 'owner-operation')
         throw new Error('dot_owner_required');
-    context.signal.throwIfAborted();
-    await context.assertCurrent();
+    const authority = context;
+    const assertCurrent = async () => {
+        authority.signal.throwIfAborted();
+        await authority.assertCurrent();
+        authority.signal.throwIfAborted();
+    };
+    const storage = fenceAsyncPort(host.storage, assertCurrent);
     const batchDigest = digest(input), receiptKey = `dot/migration/receipt/${batchDigest}`;
-    const receipt = await host.storage.get(receiptKey);
+    const receipt = await storage.get(receiptKey);
     if (receipt)
         return { ...receipt.value as object, duplicate: true };
-    const store = new DotStore(host.storage), prior = await store.connection();
+    const store = new DotStore(storage), prior = await store.connection();
     if (prior && prior.ownerUserId !== input.ownerUserId)
         throw new Error('dot_owner_mismatch');
     let inserted = 0, alreadyPresent = 0;
@@ -32,11 +38,9 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
         const next = { ...input.connection, pluginInstanceId: host.pluginInstanceId };
         let retained = false;
         for (let retry = 0; retry < 8; retry++) {
-            context.signal.throwIfAborted();
-            await context.assertCurrent();
-            const entry = await host.storage.get(CONNECTION_KEY);
+            const entry = await storage.get(CONNECTION_KEY);
             if (!entry) {
-                if (!(await host.storage.compareAndSet(CONNECTION_KEY, null, next)).applied)
+                if (!(await storage.compareAndSet(CONNECTION_KEY, null, next)).applied)
                     continue;
                 inserted++;
             }
@@ -47,7 +51,7 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
                 // A later legacy authority check can revoke an earlier active import.
                 // Preserve the first revocation and every newer runtime field on retries.
                 if (current.revokedAt === null && next.revokedAt !== null &&
-                    !(await host.storage.compareAndSet(CONNECTION_KEY, entry.revision, { ...current, revokedAt: next.revokedAt })).applied)
+                    !(await storage.compareAndSet(CONNECTION_KEY, entry.revision, { ...current, revokedAt: next.revokedAt })).applied)
                     continue;
                 alreadyPresent++;
             }
@@ -62,11 +66,9 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
         throw new Error('dot_migration_connection_required');
     async function retain(key: string, value: unknown, kind: 'dispatch' | 'image') {
         for (let retry = 0; retry < 8; retry++) {
-            context!.signal.throwIfAborted();
-            await context!.assertCurrent();
-            const prior = await host.storage.get(key);
+            const prior = await storage.get(key);
             if (!prior) {
-                if ((await host.storage.compareAndSet(key, null, value)).applied) {
+                if ((await storage.compareAndSet(key, null, value)).applied) {
                     inserted++;
                     return;
                 }
@@ -99,7 +101,7 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
                 alreadyPresent++;
                 return;
             }
-            if ((await host.storage.compareAndSet(key, prior.revision, next)).applied) {
+            if ((await storage.compareAndSet(key, prior.revision, next)).applied) {
                 alreadyPresent++;
                 return;
             }
@@ -122,20 +124,16 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
         const checked = await validatePng(image.png_base64), bytes = checked.bytes;
         if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256 || bytes.length !== asset.byteSize || checked.width !== asset.width || checked.height !== asset.height)
             throw new Error('dot_migration_image_mismatch');
-        await retainImageFile(host.dataPath, asset.id, bytes, async () => {
-            context.signal.throwIfAborted();
-            await context.assertCurrent();
-        }, 'dot_migration_conflict');
+        await assertCurrent();
+        await retainImageFile(host.dataPath, asset.id, bytes, assertCurrent, 'dot_migration_conflict');
         await retain(`dot/image/${asset.id}`, asset, 'image');
     }
     const result = { version: 1, batchDigest, ownerUserId: input.ownerUserId, sourceInstanceId: input.sourceInstanceId,
         pluginInstanceId: host.pluginInstanceId, connection: input.connection ? 1 : 0, dispatches: input.dispatches.length, images: input.images.length,
         inserted, alreadyPresent, sourceDeleted: false, importedAt: Date.now() };
-    context.signal.throwIfAborted();
-    await context.assertCurrent();
-    if ((await host.storage.compareAndSet(receiptKey, null, result)).applied)
+    if ((await storage.compareAndSet(receiptKey, null, result)).applied)
         return result;
-    const raced = await host.storage.get(receiptKey);
+    const raced = await storage.get(receiptKey);
     if (!raced)
         throw new Error('dot_state_conflict');
     return { ...raced.value as object, duplicate: true };
