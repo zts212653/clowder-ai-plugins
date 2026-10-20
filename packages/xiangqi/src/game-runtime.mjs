@@ -19,8 +19,9 @@ export function createGameRuntime(root, hostCall) {
     return join(root, `${id}.binding.json`);
   };
   const binding = id => JSON.parse(readFileSync(metadataPath(id), 'utf8'));
-  function adapter(meta) {
-    const session = { ...meta, dataRoot: root, bindingGeneration: meta.generation };
+  function adapter(meta, boardHostname) {
+    const session = { ...meta, dataRoot: root, bindingGeneration: meta.generation,
+      ...(boardHostname ? { boardHostname } : {}) };
     return {
       openSession: () => session,
       authorizeCandidateRead: async () => { active(); },
@@ -86,24 +87,30 @@ export function createGameRuntime(root, hostCall) {
         createGame(root, id);
         durableWrite(path, meta, true);
       }
-      let board = boards.get(id);
-      if (!board) {
+      let opening = boards.get(id);
+      if (!opening) {
         if (boards.size >= 8) throw new Error('已有八张棋桌运行；请回到已有棋盘，或在插件设置重新启用棋桌，存档会保留');
-        const browser = createBrowserSession();
-        const host = adapter(meta);
-        host.handleRequest = (_session, req, res) => browser.handle(req, res);
-        const server = createHostedBoard({ host });
-        await new Promise((resolve, reject) => {
-          server.once('error', reject);
-          server.listen(0, '127.0.0.1', resolve);
-        });
-        board = { server, browser };
-        boards.set(id, board);
+        opening = (async () => {
+          const browser = createBrowserSession();
+          const hostname = `xq-${randomUUID().replaceAll('-', '')}.localhost`;
+          const host = adapter(meta, hostname);
+          host.handleRequest = (_session, req, res) => browser.handle(req, res);
+          const server = createHostedBoard({ host });
+          await new Promise((resolve, reject) => {
+            server.once('error', reject);
+            server.listen(0, '127.0.0.1', resolve);
+          });
+          return { server, browser, hostname };
+        })();
+        boards.set(id, opening);
+        opening.catch(() => { if (boards.get(id) === opening) boards.delete(id); });
       }
+      const board = await opening;
+      active();
       const game = readGame(root, id);
       return { gameId: id, revision: game.revision,
         needsCompanionMove: game.result.status === 'playing' && parseFen(game.fen).turn !== game.humanSide,
-        ...(input.browserLaunch ? { url: `http://127.0.0.1:${board.server.address().port}/#session=${board.browser.launch()}` } : {}),
+        ...(input.browserLaunch ? { url: `http://${board.hostname}:${board.server.address().port}/#session=${board.browser.launch()}` } : {}),
         companionName: meta.companionName };
     },
     async candidates({ gameId, revision, timeMs = 1000, maxDepth = 5 }) {
@@ -114,7 +121,8 @@ export function createGameRuntime(root, hostCall) {
       active();
       const game = readGame(root, gameId);
       const prior = game.events[revision]?.record;
-      if (prior?.actor === 'companion' && prior.ucci === move) return { gameId, revision: game.revision, duplicate: true };
+      if (game.revision === revision + 1 && prior?.actor === 'companion' && prior.ucci === move)
+        return { gameId, revision: revision + 1, duplicate: true };
       const saved = await createHostedGame(adapter(binding(gameId))).commitCompanionMove(move, revision);
       return { gameId, revision: saved.revision, lastMove: saved.moves.at(-1)?.ucci };
     },
@@ -127,9 +135,12 @@ export function createGameRuntime(root, hostCall) {
           durableWrite(path, { ...meta, revoked: true });
         }
       }
-      await Promise.all([...boards.values()].map(({ server }) => new Promise(resolve => {
-        server.close(resolve); server.closeAllConnections();
-      })));
+      await Promise.all([...boards.values()].map(async opening => {
+        const board = await opening.catch(() => null);
+        if (board) await new Promise(resolve => {
+          board.server.close(resolve); board.server.closeAllConnections();
+        });
+      }));
       boards.clear();
     },
   };

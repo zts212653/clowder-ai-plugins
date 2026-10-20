@@ -235,9 +235,9 @@
       "pluginId": "dev.clowder.xiangqi",
       "name": "Xiangqi",
       "description": {
-        "default": "Analyze Chinese chess positions; a companion board requires a compatible Host binding.",
+        "default": "Play Chinese chess with the cat in your conversation, or analyze a position.",
         "translations": {
-          "zh-CN": "分析中国象棋局面；棋搭子棋盘需兼容的宿主会话绑定。"
+          "zh-CN": "和当前对话里的猫下一盘象棋，也可以单独分析局面。"
         }
       },
       "icon": {
@@ -256,16 +256,16 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.1",
+          "version": "0.1.0-alpha.2",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/xiangqi",
-            "version": "0.1.0-alpha.1",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/xiangqi/-/xiangqi-0.1.0-alpha.1.tgz",
-            "integrity": "sha512-s1nZpxQBm9imDlLmWzyx3XlZuJ6dgrbfl7a28Dg/wRl5o81dbWPfcxvhPhI/bzYLIzQD/aif6H9ulctbyGvBCA==",
-            "shasum": "c85bb86cdf6cae41d1659ff01033c7a652c1dacd",
+            "version": "0.1.0-alpha.2",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/xiangqi/-/xiangqi-0.1.0-alpha.2.tgz",
+            "integrity": "sha512-erFpULQ3TbtwKIPC8tupN1OjjlKe/+BsKyHmS2+jvBITlwjbJ3Opy4pmbQGpx4aAdoDmk08OUenNpjuqPPsEnA==",
+            "shasum": "ebf7a1c65479e035619a71146a25855a2866948a",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/xiangqi"

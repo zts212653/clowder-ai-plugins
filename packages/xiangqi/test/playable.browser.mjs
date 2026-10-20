@@ -26,10 +26,18 @@ test('owner-launched board plays, refreshes and isolates two conversation/cat bi
   const launch = async game => (await runtime.actions['xiangqi.launch']({ request: { method: 'GET', path: `board/${game.gameId}`, principal: { id: 'owner-a' } } }, undefined,
     { kind: 'owner-http-request', operation: 'read', userId: 'owner-a', pluginInstanceId: 'installed-a', signal: new AbortController().signal, async assertCurrent() {} })).headers.location;
   const page = await browser.newPage({ viewport: { width: 1120, height: 900 } });
+  await page.context().addCookies([
+    { name: 'cat_cafe_session', value: 'fixture-ip-owner-session', url: 'http://127.0.0.1:3216' },
+    { name: 'cat_cafe_session', value: 'fixture-name-owner-session', url: 'http://localhost:3216' },
+  ]);
+  const outgoing = [];
+  page.on('request', request => outgoing.push(request.allHeaders()));
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(await launch(first));
   await page.getByText('轮到你', { exact: true }).waitFor();
+  assert.equal((await Promise.all(outgoing)).some(headers => headers.cookie?.includes('fixture-')), false,
+    'a game process must not receive the Host browser session cookie across loopback ports');
   assert.equal(new URL(page.url()).hash, '', 'launch secret is removed from browser history');
   assert.equal(await page.locator('.piece').count(), 32);
   await page.locator('[data-index="64"]').click();

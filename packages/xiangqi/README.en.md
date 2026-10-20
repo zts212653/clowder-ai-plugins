@@ -6,14 +6,14 @@ Play Chinese chess with the cat you choose in a conversation. Preview and confir
 
 ## Start a game
 
-1. Install this package from a local directory or archive in the Plugin Manager, then enable it. The Host must include F202 C1 module and native-action support.
+1. Install this package from a local directory or archive in the Plugin Manager, then enable it. The Host must include F202 C1 module and native-action support. Enabling allows this package to read conversations and send messages; its game operations verify the conversation and cat chosen when opening the game.
 2. Ask the chosen cat in the chosen conversation to open a game. Its `xiangqi_open_game` tool returns a board link.
 3. Open the link, select a piece and destination, inspect the preview, then confirm. Selecting or previewing never commits a move.
 4. Wait for that cat's own reply. The board updates automatically. You can continue, withdraw a pending move, or undo a round.
 
 Asking the same cat in the same conversation again resumes an unfinished game. Supply its game ID to reopen a specific retained game. Another cat or conversation gets a separate board and no authority over yours. The cat's launcher link requires your authenticated Host browser session. Keep the private board address after redirection to yourself; the cat never receives it. Complete that initial launch within ten minutes; a successfully opened page can refresh. After expiry or plugin restart, ask the original cat to reopen it.
 
-The board runs on the Host machine; its loopback link does not work from remote browsers or other devices. The human currently plays red first. This version has no matchmaking, automatic play, automatic resignation, or multi-game replay UI.
+Each board uses its own reserved `.localhost` address so it does not receive the Host login cookie. Chromium is verified; no local DNS setup is needed. The local link does not work from remote browsers or other devices. The human currently plays red first. This version has no matchmaking, automatic play, automatic resignation, or multi-game replay UI.
 
 ## Recovery and retained data
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { request as httpRequest } from 'node:http';
 import test from 'node:test';
 import { startPlayableXiangqi } from '../src/plugin-entrypoint.mjs';
 import { readGame } from '../src/store.mjs';
@@ -38,20 +39,33 @@ async function browser(opened, runtime, userId = 'owner-a') {
     { kind: 'owner-http-request', operation: 'read', userId, pluginInstanceId: 'installed-a', signal: new AbortController().signal, async assertCurrent() {} });
   opened = { ...opened, url: redirect.headers.location };
   const url = new URL(opened.url), origin = url.origin;
+  // Node's OS resolver need not implement reserved *.localhost names. Connect
+  // to loopback while preserving the actual browser Host/Origin contract.
+  const request = (path, options = {}) => new Promise((resolve, reject) => {
+    const req = httpRequest(`http://127.0.0.1:${url.port}${path}`,
+      { method: options.method, headers: { host: url.host, ...options.headers } }, response => {
+        const chunks = [];
+        response.on('data', chunk => chunks.push(chunk));
+        response.on('end', () => resolve(new Response(Buffer.concat(chunks),
+          { status: response.statusCode, headers: response.headers })));
+        response.on('error', reject);
+      });
+    req.on('error', reject); req.end(options.body);
+  });
   const secret = new URLSearchParams(url.hash.slice(1)).get('session');
-  const exchange = await fetch(`${origin}/api/session`, { method: 'POST', headers: { origin, authorization: `Bearer ${secret}` } });
-  assert.equal(exchange.status, 200);
+  const exchange = await request('/api/session', { method: 'POST', headers: { origin, authorization: `Bearer ${secret}` } });
+  assert.equal(exchange.status, 200, await exchange.clone().text());
   assert.equal(exchange.headers.get('set-cookie'), null, 'a sibling loopback port must not receive a game cookie');
   const authorization = `Bearer ${(await exchange.json()).session}`;
   const state = async () => {
-    const response = await fetch(`${origin}/api/state`, { headers: { authorization } });
+    const response = await request('/api/state', { headers: { authorization } });
     assert.equal(response.status, 200);
     return response.json();
   };
-  return { origin, authorization, secret, state,
+  return { origin, authorization, secret, state, request,
     async move() {
       const current = await state();
-      const response = await fetch(`${origin}/api/move`, { method: 'POST',
+      const response = await request('/api/move', { method: 'POST',
         headers: { origin, authorization, 'content-type': 'application/json', 'x-chess-token': current.token },
         body: JSON.stringify({ move: current.legalMoves[0].ucci, revision: current.revision, confirmed: true }) });
       assert.equal(response.status, 200, await response.clone().text());
@@ -79,10 +93,10 @@ test('real module, isolated child and authenticated HTTP play one human/cat roun
       'reopening from chat must not consume the browser launch allowance');
   const page = await browser(opened, runtime);
   await assert.rejects(browser(opened, runtime, 'other-owner'), /不属于/);
-  assert.equal((await fetch(page.origin+'/api/state')).status, 403);
-  const replay = await fetch(`${page.origin}/api/session`, { method: 'POST', headers: { origin: page.origin, authorization: `Bearer ${page.secret}` } });
+  assert.equal((await page.request('/api/state')).status, 403);
+  const replay = await page.request('/api/session', { method: 'POST', headers: { origin: page.origin, authorization: `Bearer ${page.secret}` } });
   assert.equal(replay.status, 403, 'launch bearers are one use');
-  const crossOrigin = await fetch(`${page.origin}/api/state`, { headers: { origin: 'https://foreign.invalid', authorization: page.authorization } });
+  const crossOrigin = await page.request('/api/state', { headers: { origin: 'https://foreign.invalid', authorization: page.authorization } });
   assert.equal(crossOrigin.status, 403);
   assert.equal((await page.move()).revision, 1);
   await eventually(() => f.sends.length === 1);
@@ -97,9 +111,15 @@ test('real module, isolated child and authenticated HTTP play one human/cat roun
   assert.equal((await page.state()).revision, 2, 'the cat personally submitted to the visible board');
   assert.equal((await runtime.actions['xiangqi.play']({ gameId: opened.gameId, revision: 1, move }, f.caller)).duplicate, true);
   await assert.rejects(runtime.actions['xiangqi.play']({ gameId: opened.gameId, revision: 0, move }, f.caller), /版本冲突/);
+  const beforeUndo = await page.state();
+  const undone = await page.request('/api/undo', { method: 'POST',
+    headers: { origin: page.origin, authorization: page.authorization, 'content-type': 'application/json', 'x-chess-token': beforeUndo.token },
+    body: JSON.stringify({ revision: beforeUndo.revision }) });
+  assert.equal(undone.status, 200);
+  await assert.rejects(runtime.actions['xiangqi.play']({ gameId: opened.gameId, revision: 1, move }, f.caller), /版本冲突/);
   await runtime.stop();
-  assert.equal(readGame(join(f.root, 'games'), opened.gameId).revision, 2);
-  await assert.rejects(fetch(`${page.origin}/api/state`));
+  assert.equal(readGame(join(f.root, 'games'), opened.gameId).revision, 3);
+  await assert.rejects(page.request('/api/state'));
   await assert.rejects(runtime.actions['xiangqi.read']({ gameId: opened.gameId, revision: 2 }, f.caller), /停止/);
 });
 
@@ -147,4 +167,18 @@ test('explicit disable retains the game, revokes old work and requires owner reo
   assert.equal(reopened.needsCompanionMove, true);
   assert.equal(f.sends.length, 1);
   assert.equal((await (await browser(reopened, second)).state()).history.length, 1);
+});
+
+test('concurrent owner launches after restart share one tracked board', async t => {
+  const f = fixture(t), first = await startPlayableXiangqi(f.host);
+  t.after(() => first.stop());
+  const opened = await first.actions['xiangqi.open']({}, f.caller);
+  await first.stop({ reason: 'host-shutdown' });
+  const runtime = await startPlayableXiangqi(f.host);
+  t.after(() => runtime.stop());
+  const request = { request: { method: 'GET', path: `board/${opened.gameId}`, principal: { id: 'owner-a' } } };
+  const owner = { kind: 'owner-http-request', operation: 'read', userId: 'owner-a', pluginInstanceId: 'installed-a',
+    signal: new AbortController().signal, async assertCurrent() {} };
+  const launches = await Promise.all(Array.from({ length: 16 }, () => runtime.actions['xiangqi.launch'](request, undefined, owner)));
+  assert.equal(new Set(launches.map(result => new URL(result.headers.location).origin)).size, 1);
 });

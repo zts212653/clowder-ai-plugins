@@ -35,7 +35,7 @@ async function jsonBody(req) {
 /**
  * Host-only adapter. The Host chooses the retained data root and the selected
  * companion/conversation before opening this board. Browser requests cannot
- * set those authorities. The current public Host does not yet mount this UI.
+ * set those authorities. The installed module supplies this adapter.
  */
 export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
   const session = host.openSession();
@@ -102,7 +102,9 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
     try {
       const port = app.address().port,
         requestHost = req.headers.host;
-      const directOrigins = [`http://localhost:${port}`, `http://127.0.0.1:${port}`];
+      const directOrigins = session.boardHostname
+        ? [`http://${session.boardHostname}:${port}`]
+        : [`http://localhost:${port}`, `http://127.0.0.1:${port}`];
       if (!directOrigins.some((o) => new URL(o).host === requestHost)) throw fail(403, 'Host 不被允许');
       const allowed = new Set([...directOrigins, ...(session.allowedOrigins ?? [])]);
       if (req.headers.origin && !allowed.has(req.headers.origin)) throw fail(403, 'Origin 不被允许');
