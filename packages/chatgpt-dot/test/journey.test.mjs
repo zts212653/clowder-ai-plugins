@@ -57,3 +57,10 @@ test('proactive questions subscribe only to their thread and forward only exact 
  await f.active.stop({reason:'disabled'});f.active=await f.module.start(f.host);
  assert.equal(subscriptions.at(-1).threadId,'thread-1');assert.equal(new Set(subscriptions.map(s=>s.threadId)).size,1);
 });
+
+test('stable delivery identity deduplicates retries even when execution diagnostics change',async t=>{
+ const f=await paired(t),input=delivery(f);
+ await f.active.actions.deliverMessage({...input,executionId:'execution-before-restart'});
+ await f.active.actions.deliverMessage({...input,executionId:'execution-after-restart'});
+ assert.equal(f.webhooks.filter(item=>item.data.name==='dot.summoned').length,1);
+});

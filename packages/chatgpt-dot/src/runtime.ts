@@ -86,7 +86,8 @@ export class DotRuntime {
         const source = await this.host.messaging.get(input.envelope.messageId);
         if (!source || source.threadId !== input.threadId || source.userId !== state.ownerUserId)
             throw new Error('dot_source_unavailable');
-        const id = eventId(state.attemptId, input.threadId, source.id, input.executionId ?? input.deliveryId);
+        // Host deliveryId is stable across execution retries and instance restarts.
+        const id = eventId(state.attemptId, input.threadId, source.id, input.deliveryId);
         await this.serial(id, async () => {
             const record = await this.connection.store.updateDispatch(id, prior => {
                 this.connection.assertLive();
