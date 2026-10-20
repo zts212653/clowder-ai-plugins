@@ -23,6 +23,8 @@ function fixture(t, { loseReceipt = false } = {}) {
       async get() { return { catId: null, userId: 'owner-a', threadId: 'conversation-a' }; },
       async send(input) {
         sends.push(input);
+        assert.deepEqual(input.payload.provenance.origin, { kind: 'plugin', instanceId: host.pluginInstanceId },
+          'a local board event is authored by this installed plugin, not an undeclared external connector');
         if (!receipts.has(input.idempotencyKey)) receipts.set(input.idempotencyKey, { messageId: `message-${receipts.size}` });
         if (loseReceipt) { loseReceipt = false; throw new Error('receipt connection lost after durable accept'); }
         return receipts.get(input.idempotencyKey);
@@ -37,7 +39,9 @@ async function browser(opened, runtime, userId = 'owner-a') {
   await assert.rejects(runtime.actions['xiangqi.launch']({ request: { method: 'GET', path: `board/${opened.gameId}`, principal: { id: userId } } }), /已认证用户/);
   const redirect = await runtime.actions['xiangqi.launch']({ request: { method: 'GET', path: `board/${opened.gameId}`, principal: { id: userId } } }, undefined,
     { kind: 'owner-http-request', operation: 'read', userId, pluginInstanceId: 'installed-a', signal: new AbortController().signal, async assertCurrent() {} });
-  opened = { ...opened, url: redirect.headers.location };
+  assert.equal(redirect.status, 200, 'C1 webhooks permit relative redirects only; opening a separate board requires an explicit link');
+  assert.equal(redirect.headers.location, undefined);
+  opened = { ...opened, url: /id="open-board" href="([^"]+)"/.exec(redirect.body)?.[1] };
   const url = new URL(opened.url), origin = url.origin;
   // Node's OS resolver need not implement reserved *.localhost names. Connect
   // to loopback while preserving the actual browser Host/Origin contract.
@@ -100,6 +104,8 @@ test('real module, isolated child and authenticated HTTP play one human/cat roun
   assert.equal(crossOrigin.status, 403);
   assert.equal((await page.move()).revision, 1);
   await eventually(() => f.sends.length === 1);
+  await eventually(async () => (await page.state()).delivery.status !== 'pending');
+  assert.equal((await page.state()).delivery.status, 'accepted');
   assert.deepEqual(f.sends[0].wake, { catId: 'cat-a' });
   assert.equal(f.sends[0].threadId, 'conversation-a');
   await assert.rejects(runtime.actions['xiangqi.read']({ gameId: opened.gameId, revision: 1 }, { ...f.caller, catId: 'cat-b' }), /不匹配/);
@@ -192,7 +198,7 @@ test('concurrent owner launches after restart share one tracked board', async t 
   const owner = { kind: 'owner-http-request', operation: 'read', userId: 'owner-a', pluginInstanceId: 'installed-a',
     signal: new AbortController().signal, async assertCurrent() {} };
   const launches = await Promise.all(Array.from({ length: 16 }, () => runtime.actions['xiangqi.launch'](request, undefined, owner)));
-  assert.equal(new Set(launches.map(result => new URL(result.headers.location).origin)).size, 1);
+  assert.equal(new Set(launches.map(result => new URL(/id="open-board" href="([^"]+)"/.exec(result.body)[1]).origin)).size, 1);
 });
 
 for (const operation of ['undo', 'restart']) test(`${operation} clears delivery failure for the discarded move`, async t => {

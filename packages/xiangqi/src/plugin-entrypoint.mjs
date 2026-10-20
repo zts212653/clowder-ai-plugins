@@ -2,6 +2,7 @@ import { fork } from 'node:child_process';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createChildRpc } from './child-rpc.mjs';
+import { ownerLaunchPage } from './owner-launch-page.mjs';
 
 function fields(input, allowed) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(key => !allowed.includes(key)))
@@ -44,8 +45,7 @@ export async function startPlayableXiangqi(host) {
       threadId: binding.threadId, identity: 'xiangqi', wake: { catId: binding.catId },
       idempotencyKey: `xiangqi:${binding.gameId}:${event.actionId}`,
       payload: {
-        provenance: { origin: { kind: 'external', connectorId: 'xiangqi',
-          sourceAddress: { connectorId: 'xiangqi', chatId: binding.gameId, messageId: event.actionId } }, epistemicStatus: 'observation' },
+        provenance: { origin: { kind: 'plugin', instanceId: host.pluginInstanceId }, epistemicStatus: 'observation' },
         elements: [{ elementId: 'move', kind: 'text', payload: { text } }],
       },
     });
@@ -107,7 +107,7 @@ export async function startPlayableXiangqi(host) {
         const opened = await rpc.call('open', { ...binding, browserLaunch: true });
         await owner.assertCurrent();
         owner.signal.throwIfAborted();
-        return { status: 302, headers: { location: opened.url, 'cache-control': 'no-store' }, body: '' };
+        return ownerLaunchPage(opened.url);
       },
       async 'xiangqi.read'(input, context) {
         await guarded(input, context, ['gameId', 'revision', 'timeMs', 'maxDepth']);

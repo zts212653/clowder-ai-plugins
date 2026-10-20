@@ -24,7 +24,7 @@ test('owner-launched board plays, refreshes and isolates two conversation/cat bi
   const secondCaller = { ...caller, threadId: 'conversation-b', catId: 'cat-b', source: { kind: 'primary', sourceMessageId: 'human-b' } };
   const first = await runtime.actions['xiangqi.open']({}, caller), second = await runtime.actions['xiangqi.open']({}, secondCaller);
   const launch = async game => (await runtime.actions['xiangqi.launch']({ request: { method: 'GET', path: `board/${game.gameId}`, principal: { id: 'owner-a' } } }, undefined,
-    { kind: 'owner-http-request', operation: 'read', userId: 'owner-a', pluginInstanceId: 'installed-a', signal: new AbortController().signal, async assertCurrent() {} })).headers.location;
+    { kind: 'owner-http-request', operation: 'read', userId: 'owner-a', pluginInstanceId: 'installed-a', signal: new AbortController().signal, async assertCurrent() {} })).body;
   const page = await browser.newPage({ viewport: { width: 1120, height: 900 } });
   await page.context().addCookies([
     { name: 'cat_cafe_session', value: 'fixture-ip-owner-session', url: 'http://127.0.0.1:3216' },
@@ -34,7 +34,8 @@ test('owner-launched board plays, refreshes and isolates two conversation/cat bi
   page.on('request', request => outgoing.push(request.allHeaders()));
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(await launch(first));
+  await page.setContent(await launch(first));
+  await page.getByRole('link', { name: '打开本地棋盘', exact: true }).click();
   await page.getByText('轮到你', { exact: true }).waitFor();
   assert.equal((await Promise.all(outgoing)).some(headers => headers.cookie?.includes('fixture-')), false,
     'a game process must not receive the Host browser session cookie across loopback ports');
@@ -52,7 +53,8 @@ test('owner-launched board plays, refreshes and isolates two conversation/cat bi
   assert.equal(await page.locator('#history li').count(), 1);
   const narrow = await browser.newPage({ viewport: { width: 480, height: 900 } });
   narrow.on('pageerror', error => errors.push(error.message));
-  await narrow.goto(await launch(second));
+  await narrow.setContent(await launch(second));
+  await narrow.getByRole('link', { name: '打开本地棋盘', exact: true }).click();
   await narrow.getByText('轮到你', { exact: true }).waitFor();
   assert.equal(await narrow.locator('#heading-companion').textContent(), '青猫');
   assert.equal(await narrow.locator('#history li').count(), 0);
