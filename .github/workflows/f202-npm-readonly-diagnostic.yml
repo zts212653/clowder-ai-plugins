@@ -1,0 +1,35 @@
+name: F202 npm publisher read-only diagnostic
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/f202-npm-readonly-diagnostic.yml'
+      - 'scripts/npm-publisher-diagnostic.mjs'
+      - 'scripts/npm-publisher-diagnostic.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: >-
+      github.event.pull_request.head.repo.full_name == 'zts212653/clowder-ai-plugins' &&
+      github.head_ref == 'diag/f202-npm-publisher' && github.actor == 'zts212653'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Verify credential redaction and GET-only boundaries
+        run: node --test scripts/npm-publisher-diagnostic.test.mjs
+      - name: Inspect the existing Actions fallback credential
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/npm-publisher-diagnostic.mjs
