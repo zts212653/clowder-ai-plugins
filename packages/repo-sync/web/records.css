@@ -1,0 +1,133 @@
+/* 同步记录页 · 块级折叠 · 本轮参数常驻 · 内联说明
+   新增于反模式治理：见 docs/audit/repo-sync-workbench-plan.html */
+
+/* ---------- 同步记录页 ---------- */
+.records-page {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.records-page .record-list {
+  max-height: none;
+  overflow: visible;
+  padding: 16px;
+  position: static;
+}
+.records-detail { min-width: 0; }
+.records-detail-body { min-width: 0; }
+.records-hint {
+  color: var(--muted);
+  font-size: var(--t-4);
+  border: 1px dashed var(--line);
+  border-radius: var(--r);
+  padding: 22px 24px;
+  margin: 0;
+}
+@media (max-width: 1000px) {
+  .records-page { grid-template-columns: 1fr; }
+  .records-page .record-list { max-height: 320px; overflow: auto; }
+}
+
+/* ---------- 块级折叠（可收起成一条横条） ---------- */
+.block-fold {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.block-fold > summary {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  cursor: pointer;
+  list-style: none;
+  background: #f6f4f1;
+}
+.block-fold > summary::-webkit-details-marker { display: none; }
+.block-fold > summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: 11px;
+  transform: translateY(-1px);
+}
+.block-fold[open] > summary::before { content: "▾"; }
+.block-fold > summary b { font-size: var(--t-3); font-weight: 650; }
+.block-brief { color: var(--muted); font-size: var(--t-5); }
+.block-body { padding: 18px; }
+.block-body > .repository-summary { margin: 0 0 12px; }
+
+/* ---------- 内联说明（原本被折叠的一句话） ---------- */
+.note-line {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: var(--t-4);
+  line-height: 1.65;
+}
+
+/* ---------- 本轮参数：常驻可见，不再两段折叠 ---------- */
+/* 操作带用普通块流，保证 DOM 顺序即视觉顺序：
+   轮到你了 → 标题 → 说明 → 按钮 → 本轮参数。
+   之前用单列 grid，显式列定位把参数区排到了标题上面。 */
+.next-action.now {
+  display: block;
+  grid-template-columns: none;
+}
+.next-action.now .now-kicker,
+.next-action.now h2,
+.next-action.now .now-description,
+.next-action.now .failure-summary,
+.next-action.now .task-actions { grid-column: auto; grid-row: auto; }
+.next-action.now .run-options {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 18px;
+  display: grid;
+  gap: 20px;
+  grid-column: auto;
+  grid-row: auto;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.run-option h4 {
+  font-size: var(--t-5);
+  color: var(--muted);
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+.next-action.now .auto-merge-choice {
+  border-top: 0;
+  margin: 0;
+  padding-top: 0;
+}
+.next-action.now .run-option + .run-option {
+  border-top: 0;
+  padding-top: 0;
+}
+@media (max-width: 900px) {
+  .next-action.now .run-options { grid-template-columns: 1fr; gap: 16px; }
+}
+
+/* ---------- 执行证据：不再单独折叠（层级从 3 层降到 2 层） ---------- */
+.attempt {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-left: 2px solid var(--line);
+  background: #faf8f5;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.attempt-h {
+  margin: 0 0 2px;
+  font-size: var(--t-5);
+  color: var(--muted);
+  font-weight: 600;
+}
+.attempt small { display: block; color: var(--muted); font-size: var(--t-5); line-height: 1.55; }
+
+/* ---------- F 类：区块之间不再用 1px 线分隔（列表行分隔保留） ---------- */
+.record-detail > .card + .card { border-top: 0; }
+.repository-summary > div + div { border-top: 0; border-left: 0; padding-top: 0; }
+.delivery-object-details { border-top: 0; }
+.flow-canvas-heading { border-bottom: 0; }

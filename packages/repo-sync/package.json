@@ -1,0 +1,56 @@
+{
+  "name": "@clowder-ai/repo-sync",
+  "version": "0.1.0-alpha.0",
+  "description": "One-way Git reception and tag upgrades with a local operator workbench",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./dist/engine.mjs",
+    "./manifest": "./plugin.yaml"
+  },
+  "bin": {
+    "clowder-repo-sync": "dist/cli.mjs",
+    "clowder-repo-sync-mcp": "dist/mcp-entrypoint.mjs"
+  },
+  "files": [
+    "dist",
+    "web",
+    "plugin.yaml",
+    "assets",
+    "README.md",
+    "LICENSE",
+    "npm-shrinkwrap.json"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node test/browser-check.mjs && node test/version-browser-check.mjs && node test/setup-browser-check.mjs && node test/connection-browser-check.mjs && node test/reliability-browser-check.mjs && node test/git-pr-browser-check.mjs && node test/recovery-browser-check.mjs && node test/scenario-audit-browser-check.mjs && node test/journey-browser-check.mjs && node test/continuous-browser-check.mjs && node test/projects-browser-check.mjs && node test/connection-ux-browser-check.mjs && node test/file-rules-browser-check.mjs && node test/setup-flow-browser-check.mjs && node test/native-source-browser-check.mjs && node test/operator-journey-browser-check.mjs && node test/project-navigation-browser-check.mjs && node test/process-setup-journey-browser-check.mjs && node test/pause-boundary-browser-check.mjs && node --test test/workflow-phase-regression-browser-check.mjs && node test/transfer-settings-browser-check.mjs && node test/transfer-real-browser-check.mjs && node test/auth-repair-browser-check.mjs && node test/development-retry-browser-check.mjs && node test/auto-merge-settings-browser-check.mjs && node test/round-panorama-browser-check.mjs && node test/baseline-review-browser-check.mjs",
+    "test:recovery": "node --test test/candidate-recovery.test.mjs test/cancel-delivery.test.mjs && node test/candidate-recovery-browser-check.mjs",
+    "test:package": "node --test test/packed-consumer.test.mjs",
+    "lint": "node scripts/check.mjs && node --test test/manifest.test.mjs test/mcp.test.mjs",
+    "prepack": "node scripts/build.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@clowder-ai/plugin-contract": "0.1.0-beta.19",
+    "playwright": "1.61.1",
+    "yaml": "2.9.0"
+  },
+  "keywords": [
+    "clowder-ai",
+    "plugin",
+    "git",
+    "repo-sync"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/repo-sync"
+  }
+}

@@ -1,0 +1,148 @@
+.delivery-identity {
+  padding: 0 22px 18px;
+  display: grid;
+  gap: 12px;
+}
+.delivery-identity small {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.delivery-identity strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.delivery-identity p {
+  font-size: 10px;
+}
+.branch-path {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  font-size: 12px;
+}
+.branch-path code {
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--neutral-50);
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+.flow-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 22px;
+  border-top: 1px solid var(--accent-200);
+  background: var(--accent-50);
+}
+.flow-action strong {
+  display: block;
+  font-size: 12px;
+  margin: 7px 0 5px;
+}
+.flow-action p {
+  font-size: 10px;
+}
+.flow-help {
+  padding: 10px 22px;
+  font-size: 10px;
+  border-top: 1px solid var(--line);
+}
+.delivery-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.delivery-heading h2 {
+  margin: 9px 0 5px;
+}
+.delivery-heading p {
+  font-size: 11px;
+}
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.delivery-objects,
+.audit-panel {
+  margin-top: 20px;
+}
+.event-list small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+}
+.object-map {
+  margin: 0;
+  padding: 0 22px 18px;
+}
+.object-map div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding: 10px 0;
+  font-size: 12px;
+}
+.object-map dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.object-map dt {
+  color: var(--muted);
+}
+.object-map a {
+  color: var(--accent-600);
+}
+.naming-rules {
+  margin-top: 20px;
+}
+.naming-rules .delivery-identity {
+  padding: 0;
+}
+.naming-rules > p {
+  font-size: 11px;
+  margin-bottom: 16px;
+}
+#delivery[hidden] {
+  display: none;
+}
+@media (max-width: 650px) {
+  .flow-action,
+  .delivery-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .flow-action {
+    padding: 16px;
+  }
+  .flow-action .button {
+    white-space: normal;
+  }
+  .delivery-identity {
+    padding-inline: 16px;
+  }
+  .naming-rules .delivery-identity {
+    padding: 0;
+  }
+  .detail-actions {
+    gap: 8px;
+  }
+  .detail-actions .button {
+    font-size: 11px;
+    padding: 8px;
+  }
+  .object-map {
+    padding-inline: 16px;
+  }
+}

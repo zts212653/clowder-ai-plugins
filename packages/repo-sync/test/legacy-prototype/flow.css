@@ -1,0 +1,224 @@
+.version-bridge {
+  display: grid;
+  grid-template-columns: 1fr 42px 1.05fr 42px 1.3fr;
+  align-items: center;
+  margin: 22px 0;
+  padding: 19px 22px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.version-bridge article {
+  min-width: 0;
+}
+.version-bridge h3 {
+  margin: 4px 0 8px;
+}
+.version-bridge h3 .sha {
+  font-size: 12px;
+  padding: 1px 5px;
+  margin: 2px 0;
+}
+.version-bridge p {
+  font-size: 10px;
+  margin-top: 8px;
+}
+.bridge-arrow {
+  text-align: center;
+  color: var(--neutral-400);
+  font-size: 22px;
+}
+.bridge-arrow small {
+  display: block;
+  font-size: 8px;
+}
+.target .eyebrow {
+  color: var(--muted);
+}
+.sha {
+  font:
+    12px / 1.5 "Cascadia Code",
+    Consolas,
+    monospace;
+  border: 1px solid var(--line);
+  background: var(--neutral-50);
+  border-radius: 5px;
+  padding: 4px 8px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.sha span {
+  color: var(--neutral-400);
+  margin-left: 7px;
+  font-size: 10px;
+}
+.sha:hover {
+  background: var(--accent-50);
+  border-color: var(--accent-200);
+}
+.internal-sha {
+  font-size: 10px;
+  color: var(--muted);
+}
+.internal-sha .sha {
+  font-size: 11px;
+  padding: 2px 6px;
+  margin-left: 5px;
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 19px 22px 16px;
+}
+.section-head p {
+  font-size: 11px;
+  margin-top: 4px;
+}
+.flow {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  margin: 2px 22px 22px;
+}
+.flow-node {
+  position: relative;
+  padding: 8px 2px 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  color: var(--neutral-500);
+  min-width: 0;
+}
+.flow-node::before {
+  content: "";
+  position: absolute;
+  top: 24px;
+  left: -50%;
+  width: 100%;
+  height: 1px;
+  background: var(--line);
+}
+.flow-node:first-child::before {
+  display: none;
+}
+.node-circle {
+  position: relative;
+  z-index: 1;
+  width: 33px;
+  height: 33px;
+  margin: 0 auto 10px;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 12px;
+}
+.flow-node strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+}
+.flow-node small {
+  display: block;
+  font-size: 9px;
+  margin-top: 4px;
+}
+.flow-node .step-owner {
+  font-size: 8px;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.flow-node.done {
+  color: var(--semantic-success);
+}
+.done .node-circle {
+  border-color: var(--semantic-success);
+  background: var(--semantic-success-surface);
+}
+.flow-node.current {
+  color: var(--accent-600);
+}
+.current .node-circle {
+  background: var(--accent-500);
+  color: white;
+  border-color: var(--accent-500);
+}
+.flow-node.blocked {
+  color: var(--semantic-critical);
+}
+.blocked .node-circle {
+  border-color: var(--semantic-critical);
+  background: var(--semantic-critical-surface);
+}
+.focused .node-circle {
+  outline: 3px solid var(--accent-100);
+  outline-offset: 3px;
+}
+.phase-detail {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 25px;
+  padding: 17px 22px;
+  background: var(--neutral-50);
+  border-top: 1px solid var(--line);
+}
+.phase-detail p {
+  font-size: 11px;
+  margin-top: 6px;
+}
+details {
+  align-self: center;
+}
+summary {
+  color: var(--accent-600);
+  font-size: 11px;
+  cursor: pointer;
+}
+pre {
+  font:
+    11px / 1.7 "Cascadia Code",
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--neutral-100);
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+details small {
+  font-size: 9px;
+}
+.notice {
+  padding: 15px 18px;
+  background: var(--semantic-info-surface);
+  color: var(--semantic-info);
+  border-radius: 8px;
+  font-size: 12px;
+  margin: 18px 0;
+}
+.notice p {
+  color: inherit;
+  font-size: 11px;
+  margin-top: 5px;
+}
+.notice.danger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: var(--semantic-critical-surface);
+  color: var(--semantic-critical);
+}
+.notice.success {
+  background: var(--semantic-success-surface);
+  color: var(--semantic-success);
+}

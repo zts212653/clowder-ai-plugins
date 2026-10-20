@@ -17,6 +17,7 @@ on:
       - 'packages/video-analysis/**'
       - 'packages/xiangqi/**'
       - 'packages/genoffice-docx/**'
+      - 'packages/repo-sync/**'
       - 'catalog/**'
       - 'scripts/fresh-consumer-install.test.mjs'
       - 'scripts/desktop-window-consumer.test.mjs'
@@ -120,6 +121,12 @@ jobs:
 
       - name: Xiangqi browser journey
         run: pnpm --filter @clowder-ai/xiangqi test:browser
+
+      - name: Repository sync plugin build, Git contracts and packed consumer
+        run: pnpm --filter @clowder-ai/repo-sync build && pnpm --filter @clowder-ai/repo-sync test && pnpm --filter @clowder-ai/repo-sync lint
+
+      - name: Repository sync browser journeys
+        run: pnpm --filter @clowder-ai/repo-sync exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/repo-sync test:browser
 
       - name: GenOffice typecheck and tests
         run: |

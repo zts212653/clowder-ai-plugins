@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V3 工作台 · 流程以下区域优化对比</title>
+<style>
+  :root { --bg:#f4f5fa; --card:#fff; --ink:#172033; --muted:#667085; --faint:#98a2b3; --line:#e4e7ec; --accent:#4f46e5; --good:#039855; --red:#d92d20; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.65 "Inter","Segoe UI","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; }
+  .page { max-width:1280px; margin:0 auto; padding:0 28px 64px; }
+  .top { display:flex; align-items:center; gap:12px; padding:18px 0; border-bottom:1px solid var(--line); font-size:11px; color:var(--faint); }
+  .brand { font-weight:750; color:var(--ink); font-size:16px; letter-spacing:-.02em; }
+  .brand span { color:var(--accent); }
+  .top .right { margin-left:auto; }
+  header { padding:34px 0 18px; }
+  .kicker { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+  h1 { font-size:34px; letter-spacing:-.04em; line-height:1.2; margin:8px 0 8px; }
+  header p { max-width:760px; color:var(--muted); font-size:12px; margin:0; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:22px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .panel .ph { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); font-size:10px; color:var(--muted); }
+  .panel .ph b { color:var(--ink); font-size:11px; }
+  .badge { margin-left:auto; padding:2px 7px; border-radius:999px; font-size:8px; letter-spacing:.08em; }
+  .badge.before { color:var(--red); background:#fef3f2; }
+  .badge.after { color:var(--good); background:#ecfdf3; }
+  .panel img { display:block; width:100%; }
+  .pair.small img { max-height:560px; object-fit:contain; object-position:top; background:#fff; }
+  h2 { margin:34px 0 10px; font-size:18px; letter-spacing:-.02em; }
+  .notes { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .note { background:#fff; border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .note b { font-size:11px; }
+  .note ul { margin:5px 0 0; padding-left:16px; color:var(--muted); font-size:10px; line-height:1.75; }
+  .full { margin-top:18px; }
+  .full img { display:block; width:100%; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  .foot { margin-top:28px; padding-top:10px; border-top:1px solid var(--line); color:var(--faint); font-size:9px; display:flex; justify-content:space-between; }
+  .sidebar-pair { grid-template-columns: 210px 210px; justify-content: center; }
+  @media (max-width:900px) { .pair,.notes { grid-template-columns:1fr; } .sidebar-pair { grid-template-columns:210px; } h1 { font-size:27px; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top"><div class="brand">repo<span>sync</span> / V3</div><div>流程以下区域优化</div><div class="right">合成数据 · 真实工作台 · 2026-10-20</div></div>
+  <header>
+    <div class="kicker">Implementation comparison</div>
+    <h1>流程下面的交付与基线，<br>不再像另一套旧界面。</h1>
+    <p>同一份 demo 数据，同一个同步中状态。只改流程 rail 以下：本笔交付、上游/内部 PR、Issue 摘要、内外基线、技术详情入口和撤销区域。</p>
+  </header>
+
+  <h2>1 · 本笔交付：从裸链接 / 指标块到 V3 交付卡</h2>
+  <div class="pair">
+    <section class="panel"><div class="ph"><b>优化前</b><span class="badge before">BEFORE</span></div><img src="shots/impl-before-delivery.png" alt=""></section>
+    <section class="panel"><div class="ph"><b>优化后</b><span class="badge after">AFTER</span></div><img src="shots/impl-after-delivery.png" alt=""></section>
+  </div>
+  <div class="notes" style="margin-top:10px">
+    <div class="note"><b>结构化</b><ul><li>「本笔交付」标题 + 上游 / 内部 PR 两个独立胶囊</li><li>内部 PR 未创建时用琥珀色 pending，不再和链接混排</li><li>4 个指标做成卡片；Issue 直接显示标题</li></ul></div>
+    <div class="note"><b>更少滚动</b><ul><li>撤销表单默认收起，只保留危险入口摘要</li><li>「关联 Issue / 本笔提交」卡片高度收紧</li><li>同一屏能同时看到交付、Issue 和基线</li></ul></div>
+  </div>
+
+  <h2>2 · 内外基线与技术详情：从折叠标签到可见基线</h2>
+  <div class="pair small">
+    <section class="panel"><div class="ph"><b>优化前</b><span class="badge before">BEFORE</span></div><img src="shots/impl-before-baseline.png" alt=""></section>
+    <section class="panel"><div class="ph"><b>优化后</b><span class="badge after">AFTER</span></div><img src="shots/impl-after-baseline.png" alt=""></section>
+  </div>
+  <div class="notes" style="margin-top:10px">
+    <div class="note"><b>先看结论</b><ul><li>外部 base → target、内部 base → accepted 直接可见</li><li>完整 SHA 保留在 title / 展开的「查看内外基线与提交位置」里</li><li>技术详情仍是折叠项，不抢占主视线</li></ul></div>
+    <div class="note"><b>V3 对齐</b><ul><li>标题不再被旧 CSS 隐藏</li><li>基线段与交付卡使用同一套边框、圆角和字号</li><li>展开 / 收起按钮和状态提示同排，不再散落</li></ul></div>
+  </div>
+
+  <h2>3 · 整体字号 +2px</h2>
+  <div class="notes">
+    <div class="note"><b>基础字号</b><ul><li>`--t-5` 12.5 → 14.5px</li><li>`--t-4` 14.5 → 16.5px</li><li>`--t-3` 16 → 18px，`--t-2` 21 → 23px，`--t-1` 28 → 30px</li></ul></div>
+    <div class="note"><b>V3 局部字号</b><ul><li>工作台内 84 处显式 `font-size` 统一 +2px</li><li>阶段标题改成只显示阶段名，避免放大后换行</li><li>项目侧栏、交付卡、基线段、撤销入口同步放大</li></ul></div>
+  </div>
+
+  <h2>4 · 左侧栏「查看项目状态」：去掉横向滚动条</h2>
+  <div class="pair small sidebar-pair">
+    <section class="panel"><div class="ph"><b>优化前</b><span class="badge before">BEFORE</span></div><img src="shots/impl-before-projects.png" alt=""></section>
+    <section class="panel"><div class="ph"><b>优化后</b><span class="badge after">AFTER</span></div><img src="shots/impl-after-projects.png" alt=""></section>
+  </div>
+  <div class="notes" style="margin-top:10px">
+    <div class="note"><b>不再横向滚动</b><ul><li>侧栏强制单列项目卡，取消 auto-fit 多列在 185px 内撑宽</li><li>侧栏与项目面板 `overflow-x: hidden`，不再出现宽横向滚动条</li><li>长项目名、状态、SHA 全部 `overflow-wrap:anywhere`</li></ul></div>
+    <div class="note"><b>窄栏也能读</b><ul><li>最后接收 / 时间从两列定义表改为纵向标签 + 值</li><li>项目标题、状态、按钮字号收紧到侧栏尺度</li><li>筛选按钮压缩为同一行，不再挤出容器</li></ul></div>
+  </div>
+
+  <h2>5 · 整页效果</h2>
+  <div class="pair full">
+    <section class="panel"><div class="ph"><b>优化前整页</b><span class="badge before">BEFORE</span></div><img src="shots/impl-before-full.png" alt=""></section>
+    <section class="panel"><div class="ph"><b>优化后整页</b><span class="badge after">AFTER</span></div><img src="shots/impl-after-full.png" alt=""></section>
+  </div>
+
+  <div class="foot"><span>V3 workbench · flow-below pass</span><span>目标：不换掉已稳定的执行逻辑，只清理旧视觉残留</span></div>
+</div>
+</body>
+</html>

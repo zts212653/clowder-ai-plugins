@@ -1,0 +1,322 @@
+#configuration[hidden] {
+  display: none;
+}
+.binding-strip {
+  display: grid;
+  grid-template-columns: 1fr 20px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 9px;
+}
+.binding-strip > div {
+  min-width: 0;
+}
+.binding-strip small,
+.binding-strip code {
+  display: block;
+}
+.binding-strip small,
+.version-bridge h3,
+.internal-sha {
+  overflow-wrap: anywhere;
+}
+.binding-strip code {
+  font-size: 11px;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.binding-arrow {
+  color: var(--accent-500);
+}
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px;
+}
+.config-header p {
+  font-size: 12px;
+  margin-top: 8px;
+}
+.setup-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  margin: 22px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+}
+.setup-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.setup-steps b {
+  border: 1px solid var(--line);
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+}
+.setup-steps .done {
+  color: var(--accent-600);
+}
+.setup-steps .done b {
+  background: var(--accent-50);
+  border-color: var(--accent-200);
+}
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.config-card {
+  padding: 22px;
+}
+.config-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.config-card-head p {
+  font-size: 11px;
+  margin-top: 4px;
+}
+.config-card-head .badge {
+  margin-left: auto;
+}
+.config-icon {
+  display: grid;
+  place-items: center;
+  background: var(--accent-50);
+  color: var(--accent-600);
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+  border-radius: 8px;
+}
+.config-field {
+  display: block;
+  min-width: 0;
+  margin-bottom: 18px;
+}
+.config-field > span {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.config-field input {
+  width: 100%;
+  font:
+    12px / 1.5 "Cascadia Code",
+    Consolas,
+    monospace;
+  color: var(--ink);
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--neutral-50);
+}
+.config-field input:focus {
+  outline: 2px solid var(--accent-200);
+  border-color: var(--accent-500);
+}
+.config-field small {
+  display: block;
+  margin-top: 7px;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.config-field select {
+  width: 100%;
+  padding-block: 10px;
+}
+.demo-config {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  margin: 16px 0 22px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--neutral-50);
+}
+.demo-config p {
+  margin: 0;
+  font-size: 12px;
+}
+.demo-config span {
+  display: block;
+  font-size: 11px;
+  margin-top: 5px;
+  color: var(--muted);
+}
+.demo-config button {
+  flex-shrink: 0;
+}
+.baseline-pair {
+  padding: 14px 16px;
+  border: 1px solid var(--accent-200);
+  background: var(--accent-50);
+  border-radius: 7px;
+  margin-bottom: 18px;
+  font-size: 12px;
+}
+.baseline-pair p {
+  margin: 7px 0 0;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.config-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.baseline-card {
+  margin-top: 20px;
+}
+.baseline-card .section-head {
+  padding: 0;
+  margin-bottom: 20px;
+}
+.baseline-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+.init-modes {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.init-modes legend {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 9px;
+}
+.init-modes label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 12px;
+}
+.init-modes input {
+  accent-color: var(--accent-500);
+  margin: 3px 0 0;
+}
+.init-modes strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+.init-modes small {
+  display: block;
+  font-size: 10px;
+  margin-top: 5px;
+}
+.config-checks {
+  margin-top: 20px;
+  padding: 22px;
+}
+.config-checks p {
+  font-size: 11px;
+  margin-top: 6px;
+}
+#config-result {
+  background: var(--neutral-50);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px 14px;
+  margin: 16px 0;
+  font-size: 12px;
+}
+.config-errors {
+  color: var(--semantic-critical);
+  padding-left: 16px;
+  margin: 0;
+}
+.config-errors li {
+  margin: 5px 0;
+}
+.config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.repo-name #repo-label {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1150px) {
+  .config-grid,
+  .baseline-grid {
+    gap: 16px;
+  }
+  .config-pair {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+@media (max-width: 850px) {
+  .binding-strip {
+    grid-template-columns: 1fr 18px 1fr;
+  }
+  .binding-strip .text-button {
+    grid-column: 3;
+    justify-self: end;
+  }
+}
+@media (max-width: 650px) {
+  .demo-config {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .config-grid,
+  .baseline-grid {
+    grid-template-columns: 1fr;
+  }
+  .config-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px;
+  }
+  .config-card,
+  .config-checks {
+    padding: 18px;
+  }
+  .baseline-card .section-head {
+    flex-direction: column;
+  }
+  .setup-steps {
+    gap: 14px;
+  }
+  .setup-steps li {
+    width: calc(50% - 14px);
+    font-size: 11px;
+  }
+  .binding-strip {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .binding-strip .text-button {
+    grid-column: auto;
+    justify-self: start;
+  }
+  .binding-arrow {
+    display: none;
+  }
+}

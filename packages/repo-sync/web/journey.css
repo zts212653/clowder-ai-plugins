@@ -1,0 +1,306 @@
+:root {
+}
+input,
+textarea,
+select,
+[id] {
+  scroll-margin-bottom: 240px;
+  scroll-margin-top: 24px;
+}
+[hidden] {
+  display: none !important;
+}
+button,
+.button,
+summary {
+  min-height: 44px;
+  min-width: 44px;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+main,
+header {
+  max-width: 1440px;
+}
+main {
+  padding-bottom: 180px;
+}
+.heading {
+  margin-bottom: 24px;
+}
+.repository-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 20px 24px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.repository-summary p {
+  margin-bottom: 0;
+}
+.journey-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
+  gap: 28px;
+  margin-top: 28px;
+  align-items: start;
+}
+.record-list {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px;
+  min-width: 0;
+}
+.record-list h2 {
+  font-size: var(--t-2);
+  margin-top: 0;
+}
+.record-list > button {
+  display: block;
+  text-align: left;
+  width: 100%;
+  margin: 10px 0;
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+.record-list > button span {
+  display: block;
+  font-size: var(--t-5);
+  margin-top: 8px;
+}
+.record-list > button[aria-current="true"] {
+  border: 2px solid var(--accent);
+  background: var(--soft);
+}
+.record-list form {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  padding-top: 4px;
+}
+.record-list form button {
+  width: 100%;
+}
+.record-list .file-pages {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.record-list p {
+  font-size: var(--t-5);
+}
+.record-detail {
+  min-width: 0;
+  padding-bottom: 50px;
+}
+.detail-head {
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: var(--r);
+  border: 1px solid var(--line);
+}
+.detail-head h2 {
+  font-size: var(--t-1);
+}
+.detail-head .delivery-boundary {
+  margin: 8px 0;
+  font-size: var(--t-5);
+}
+.execution-meta {
+  font-size: var(--t-5);
+  color: var(--muted);
+}
+.execution-meta summary {
+  min-height: 36px;
+}
+.workflow-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.journey-flow > li > details > summary [data-stage-detail] {
+  flex-basis: 100%;
+  padding-left: 44px;
+  font-size: var(--t-5);
+  color: var(--muted);
+}
+.journey-flow > li > details[data-stage-state="failed"] > summary [data-stage-detail] {
+  color: var(--bad);
+}
+.journey-flow {
+  padding: 0;
+  list-style: none;
+}
+.journey-flow > li {
+  position: relative;
+  padding-left: 20px;
+  border-left: 2px solid var(--line);
+  padding-bottom: 12px;
+}
+.journey-flow > li > details {
+  margin-top: 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+.journey-flow > li > details[data-stage-state="current"] {
+  border-color: var(--accent);
+}
+.journey-flow > li > details[data-stage-state="failed"] {
+  border-color: var(--bad);
+}
+.journey-flow > li > details > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: inherit;
+}
+.journey-flow > li > details > summary b {
+  flex: 1;
+}
+.journey-flow > li > details > summary > span:last-child {
+  font-size: var(--t-5);
+  color: var(--muted);
+}
+.stage-mark {
+  font-size: var(--t-2);
+}
+.stage-body {
+  border-top: 1px solid var(--line);
+  padding: 20px;
+}
+.stage-body .card {
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+}
+.substeps {
+  list-style: none;
+  padding: 0;
+  margin-top: 0;
+}
+.substeps li {
+  font-size: var(--t-4);
+  padding: 8px 0;
+}
+.attempt-steps {
+  padding-left: 22px;
+}
+.attempt-steps li {
+  padding: 6px 0;
+  font-size: var(--t-5);
+}
+.stage-body [data-attempt] {
+  border-top: 1px dashed var(--line);
+  padding-top: 6px;
+}
+.record-gap {
+  background: var(--soft);
+  border: 1px solid var(--line);
+  padding: 16px;
+  border-radius: var(--r-sm);
+}
+.next-action {
+  position: static;
+  bottom: 0;
+  z-index: 10;
+  left: max(calc((100vw - 1440px) / 2 + 370px), 370px);
+  right: max(calc((100vw - 1440px) / 2 + 32px), 32px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 14px 20px max(14px, env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 20px rgba(54,37,24,.07);
+}
+.next-action p {
+  margin: 0 0 10px;
+}
+.mobile-back {
+  display: none;
+}
+@media (max-width: 900px) and (min-width: 769px) {
+  .journey-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 18px;
+  }
+  .next-action {
+    left: 310px;
+  }
+}
+@media (max-width: 768px) {
+  .repository-summary,
+  .journey-layout {
+    grid-template-columns: 1fr;
+  }
+  .journey-layout.mobile-list .record-detail,
+  .journey-layout.mobile-detail .record-list {
+    display: none;
+  }
+  .mobile-back {
+    display: inline-block;
+    margin-bottom: 14px;
+  }
+  .next-action {
+    left: 0;
+    right: 0;
+    padding: 12px 18px max(12px, env(safe-area-inset-bottom));
+  }
+  .next-action .task-actions {
+    margin-top: 0;
+  }
+  .record-detail {
+    padding-bottom: 180px;
+  }
+  .journey-flow > li {
+    padding-left: 12px;
+  }
+  .stage-body {
+    padding: 16px;
+  }
+  .repository-summary {
+    gap: 12px;
+    padding: 18px;
+  }
+  .journey-flow > li > details > summary {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .journey-flow > li > details > summary > span:last-child {
+    width: 100%;
+    padding-left: 30px;
+  }
+  .journey-flow > li > details > summary [data-stage-detail] {
+    padding-left: 30px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+@media (max-height: 600px) {
+  .next-action {
+    position: static;
+  }
+}
+@media print {
+  .next-action,
+  header nav,
+  .record-list,
+  .mobile-back {
+    display: none;
+  }
+  .journey-layout {
+    display: block;
+  }
+}

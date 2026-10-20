@@ -1,0 +1,126 @@
+.milestones {
+  list-style: none;
+  margin: 0;
+  padding: 18px 26px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  border-top: 1px solid var(--line);
+}
+.milestones > li {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.milestone-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.milestone-heading > b {
+  width: 23px;
+  height: 23px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.milestones > .current {
+  color: var(--accent-600);
+  font-weight: 650;
+}
+.milestones > .current .milestone-heading > b {
+  background: var(--accent-500);
+  color: white;
+  border-color: var(--accent-500);
+}
+.milestones > .done {
+  color: var(--semantic-success);
+}
+.milestones > .done .milestone-heading > b {
+  border-color: var(--semantic-success);
+  background: var(--semantic-success-surface);
+}
+.milestones > .failed {
+  color: var(--semantic-critical);
+}
+.milestones > .failed .milestone-heading > b {
+  border-color: var(--semantic-critical);
+  background: var(--semantic-critical-surface);
+}
+.milestone-children {
+  list-style: none;
+  padding: 0 0 0 12px;
+  margin: 14px 0 0 10px;
+  border-left: 1px solid var(--line);
+}
+.substep {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 6px 0;
+  font-size: 10px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.substep b {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 650;
+}
+.substep.done {
+  color: var(--semantic-success);
+}
+.substep.current {
+  color: var(--accent-600);
+  font-weight: 650;
+}
+.substep.failed {
+  color: var(--semantic-critical);
+  font-weight: 650;
+}
+.progress-legend {
+  font-size: 10px;
+  color: var(--muted);
+  padding: 0 26px 14px;
+}
+.step-failure {
+  margin: 0 26px 20px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--semantic-critical);
+  background: var(--semantic-critical-surface);
+  border-radius: 6px;
+  color: var(--semantic-critical);
+  overflow-wrap: anywhere;
+}
+.step-failure strong {
+  font-size: 12px;
+}
+.step-failure p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 7px;
+}
+.step-failure small {
+  display: block;
+  font-size: 10px;
+  margin-top: 8px;
+}
+.issue-explanation {
+  border-top: 1px solid var(--line);
+  padding: 16px 26px;
+  background: var(--neutral-50);
+}
+.issue-explanation strong {
+  font-size: 12px;
+}
+.issue-explanation p {
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 7px;
+}

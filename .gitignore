@@ -13,3 +13,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Test data
+.repo-sync-tests/

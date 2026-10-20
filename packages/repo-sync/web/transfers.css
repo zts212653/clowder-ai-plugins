@@ -1,0 +1,134 @@
+.transfer-settings h2 {
+  margin-top: 0;
+}
+.transfer-body {
+  margin-top: 22px;
+}
+.transfer-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+}
+.transfer-columns > section {
+  min-width: 0;
+}
+.transfer-columns > section + section {
+  border-left: 1px solid var(--line);
+  padding-left: 28px;
+}
+.transfer-settings button {
+  margin: 6px 8px 6px 0;
+}
+.transfer-settings input[type="file"] {
+  font-size: var(--t-5);
+}
+.transfer-settings [data-transfer-feedback]:empty {
+  display: none;
+}
+.transfer-settings [data-transfer-feedback] {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  white-space: pre-wrap;
+}
+.transfer-preview,
+.transfer-checks {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  margin-top: 18px;
+}
+.transfer-facts {
+  margin: 14px 0;
+}
+.transfer-facts > div {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.transfer-facts dt {
+  font-size: var(--t-5);
+  color: var(--accent);
+}
+.transfer-facts dd {
+  margin: 0;
+  font-size: var(--t-5);
+  overflow-wrap: anywhere;
+}
+.transfer-steps {
+  padding-left: 22px;
+  line-height: 1.8;
+}
+.transfer-steps li {
+  margin: 12px 0;
+}
+.transfer-steps > li > b {
+  display: inline-block;
+  margin-right: 12px;
+}
+.transfer-steps .transfer-checks {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.transfer-steps .transfer-confirm {
+  margin-top: 8px;
+}
+.transfer-checks:focus,
+.transfer-check-list li:focus,
+.transfer-preview:focus,
+[data-transfer-feedback]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.transfer-steps button {
+  padding: 7px 10px;
+  font-size: var(--t-5);
+}
+.transfer-auth .card {
+  margin: 14px 0;
+}
+.transfer-auth #issue-auth {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px;
+}
+.transfer-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.transfer-check-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.transfer-check-list li p {
+  margin: 6px 0;
+}
+.transfer-confirm {
+  margin-top: 20px;
+  line-height: 1.8;
+}
+.transfer-confirm input {
+  vertical-align: middle;
+}
+@media (max-width: 760px) {
+  .transfer-steps > li > b {
+    display: block;
+  }
+  .transfer-columns {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .transfer-columns > section + section {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 14px 0 0;
+  }
+  .transfer-facts > div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .transfer-settings button {
+    max-width: 100%;
+  }
+}

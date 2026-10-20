@@ -1,0 +1,137 @@
+.file-list,
+.rule-review {
+  color: var(--text);
+}
+.file-row small:not(.bad) {
+  color: var(--muted);
+}
+.file-choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: var(--t-5);
+  cursor: pointer;
+}
+.file-choice input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.file-choice span {
+  overflow-wrap: anywhere;
+}
+.file-choice:has(input:disabled) {
+  color: var(--muted);
+  cursor: default;
+}
+.directory-line {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.directory-line > .file-choice {
+  margin-bottom: 0;
+}
+.file-row:has(.file-choice) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 16px;
+}
+.file-row:has(.file-choice) > small {
+  grid-column: 1;
+}
+.file-row > .file-choice {
+  grid-column: 2;
+  grid-row: 1 / 3;
+}
+.rule-review {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 16px;
+  background: var(--canvas);
+  margin: 20px 0;
+}
+.rule-chips {
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rule-chips li {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+.rule-chips code {
+  overflow-wrap: anywhere;
+  padding: 8px;
+}
+.rule-chips button {
+  border: 0;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.rule-manual {
+  margin: 12px 0;
+}
+[data-rule-feedback]:empty {
+  display: none;
+}
+@media (max-width: 600px) {
+  .file-row:has(.file-choice) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .file-tree ul {
+    padding-left: 12px;
+  }
+}
+
+.baseline-review-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.4fr);
+  gap: 20px;
+  align-items: start;
+}
+.baseline-selection,
+.baseline-viewer {
+  min-width: 0;
+}
+.baseline-viewer {
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+}
+.baseline-viewer pre {
+  max-height: 420px;
+  overflow: auto;
+}
+@media (max-width: 900px) {
+  .baseline-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .baseline-viewer {
+    position: static;
+  }
+}
+
+/* The review tree occupies one narrow column; inherited-rule help must not squeeze names. */
+.baseline-selection .file-row:has(.file-choice) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.baseline-selection .file-row > span { width: 100%; }
+.baseline-selection .file-row > button { align-self: flex-start; }
+.baseline-selection .file-tree { max-height: 480px; overflow: auto; }

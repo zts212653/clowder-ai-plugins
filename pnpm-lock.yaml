@@ -164,6 +164,25 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/repo-sync:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: 1.26.0
+        version: 1.26.0(zod@4.4.3)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@clowder-ai/plugin-contract':
+        specifier: 0.1.0-beta.19
+        version: 0.1.0-beta.19
+      playwright:
+        specifier: 1.61.1
+        version: 1.61.1
+      yaml:
+        specifier: 2.9.0
+        version: 2.9.0
+
   packages/stackchan:
     dependencies:
       '@clowder-ai/plugin-contract':

@@ -1,0 +1,45 @@
+pluginId: dev.clowder.repo-sync
+version: 0.1.0-alpha.0
+contractVersion: 0.1.0
+name: Repository Sync
+description:
+  default: Receive upstream Git changes or tag upgrades through a local operator workbench.
+  translations:
+    zh-CN: 在本地工作台接收上游研发交付或按 tag 升级，保留声明的内部文件差异。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: configurationFile
+    label: Private configuration file
+    description: Absolute private JSON path outside Git and plugin installation. May be new; open the workbench to configure repositories. Git handles code credentials; GitHub read tokens remain in service memory or the startup environment. No gh dependency.
+    kind: string
+    required: true
+contributions:
+  - type: mcp
+    id: repo-sync-workbench
+    runtime:
+      transport: stdio
+      entrypoint: dist/mcp-entrypoint.mjs
+    environment:
+      REPO_SYNC_CONFIG_FILE:
+        source: config
+        key: configurationFile
+features:
+  - id: operator-reception
+    name: Inspect reception state and open the local workbench
+    resources: []
+    contributions:
+      - type: mcp
+        id: repo-sync-workbench
+    capabilities:
+      - plugin.config.read
+data:
+  - name: private-configuration
+    dataClass: user-authored
+    strategy: retained
+  - name: reception-ledger
+    dataClass: interaction-history
+    strategy: retained
+runtime:
+  transport: builtin
