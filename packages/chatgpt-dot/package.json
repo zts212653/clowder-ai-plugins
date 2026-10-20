@@ -1,0 +1,54 @@
+{
+  "name": "@clowder-ai/chatgpt-dot",
+  "version": "0.2.0-alpha.0",
+  "private": true,
+  "description": "Paired ChatGPT Dot connection and source-bound messaging plugin",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/plugin-entrypoint.js",
+  "exports": {
+    ".": "./dist/plugin-entrypoint.js",
+    "./migration": "./dist/migration.js",
+    "./manifest": "./plugin.yaml"
+  },
+  "files": [
+    "dist",
+    "plugin.yaml",
+    "assets",
+    "README.md",
+    "README.en.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "lint": "tsc -p tsconfig.build.json --noEmit",
+    "test": "node --import tsx --test test/*.test.mjs",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-contract": "0.1.0-beta.39",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
+    "zod": "3.24.1",
+    "sharp": "0.33.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "yaml": "2.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/chatgpt-dot"
+  },
+  "bundledDependencies": [
+    "@clowder-ai/plugin-contract",
+    "@clowder-ai/plugin-sdk",
+    "zod",
+    "sharp"
+  ]
+}
