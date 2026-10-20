@@ -1155,6 +1155,13 @@
         "verificationSecretRef": {
           "type": "string",
           "minLength": 1
+        },
+        "requestBodyLimitBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 15728640,
+          "default": 1048576,
+          "description": "Optional body byte budget. Absence retains 1 MiB. Host rejects overflow before package invocation and never exceeds 15 MiB. This limit changes neither owner/anonymous admission nor credential/header filtering."
         }
       },
       "required": [

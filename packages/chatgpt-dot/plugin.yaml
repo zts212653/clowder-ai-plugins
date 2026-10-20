@@ -62,6 +62,7 @@ contributions:
     displayName: Dot
   - type: webhook
     id: dot-mcp
+    requestBodyLimitBytes: 15728640
     path: mcp
     methods: [POST]
     verificationSecretRef: dotCredential

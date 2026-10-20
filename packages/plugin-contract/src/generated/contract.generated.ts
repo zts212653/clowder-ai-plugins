@@ -299,6 +299,7 @@ export type WebhookContribution = {
   readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE')[];
   readonly action: CallbackAction;
   readonly verificationSecretRef?: string;
+  readonly requestBodyLimitBytes?: number;
 };
 export type MessageSubscriptionContribution = {
   readonly type: 'message-subscription';
@@ -2173,6 +2174,9 @@ export const DATA_CLASS_ALLOWED_STRATEGIES = {
   'relationship': ['retained', 'ask-on-uninstall'],
   'interaction-history': ['retained', 'ask-on-uninstall'],
 } as const satisfies Readonly<Record<DataClass, readonly DataStrategy[]>>;
+
+export const PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES = 1048576 as const;
+export const PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES = 15728640 as const;
 
 export const MESSAGING_BOUNDS = {
   maxElementsPerOperation: 32,

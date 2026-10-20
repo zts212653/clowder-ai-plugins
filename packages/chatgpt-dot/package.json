@@ -25,11 +25,11 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "lint": "tsc -p tsconfig.build.json --noEmit",
-    "test": "node --import tsx --test test/*.test.mjs",
+    "test": "node --import tsx --test test/*.test.mjs test/*.test.ts",
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-contract": "0.1.0-beta.39",
+    "@clowder-ai/plugin-contract": "0.1.0-beta.40",
     "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
     "zod": "3.24.1",
     "sharp": "0.33.5"

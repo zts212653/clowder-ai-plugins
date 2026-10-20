@@ -8,7 +8,7 @@ export function parseDotProxyUrl(raw: string): URL {
   try {
     url = new URL(raw);
   } catch {
-    throw new Error('invalid_dot_proxy_url: CAT_CAFE_DOT_WEBHOOK_PROXY_URL');
+    throw new Error('invalid_dot_proxy_url: webhookProxyUrl');
   }
   if (
     url.protocol !== 'http:' ||
@@ -20,7 +20,7 @@ export function parseDotProxyUrl(raw: string): URL {
     url.search ||
     url.hash
   )
-    throw new Error('invalid_dot_proxy_url: CAT_CAFE_DOT_WEBHOOK_PROXY_URL');
+    throw new Error('invalid_dot_proxy_url: webhookProxyUrl');
   return url;
 }
 
