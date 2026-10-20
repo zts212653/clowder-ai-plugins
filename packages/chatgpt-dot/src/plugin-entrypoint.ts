@@ -58,8 +58,12 @@ export function createDotPlugin(options: DotPluginOptions = {}): PluginModuleDef
                         signal: AbortSignal.any([context.signal, controller.signal]),
                         assertCurrent: async () => { current.assertLive(); await context.assertCurrent(); current.assertLive(); },
                     } : undefined;
-                    const result = await handler(input, native, fenced);
-                    current.assertLive();return result;
+                    return current.within(fenced, async () => {
+                        await current.assertCurrent();
+                        const result = await handler(input, native, fenced);
+                        await current.assertCurrent();
+                        return result;
+                    });
                 },
             ]));
             return { actions: guarded, dispose() { controller.abort(new Error('dot_settings_revoked')); } };
@@ -121,8 +125,23 @@ export function createDotPlugin(options: DotPluginOptions = {}): PluginModuleDef
             const settings = await definition.settings!(host);
             const {['dot.import']: migrationOnly, ...liveSettings} = settings.actions;
             Object.assign(actions, liveSettings);
-            return { actions, streams: runtime.streams, configRefresh: refresh, stop() {
-                    stop ??= (async () => { controller.abort(new Error('dot_stopped')); await runtime.settle(); await settings.dispose?.(); if (running === runtime)
+            const admitted = new Set<Promise<unknown>>();
+            const guarded = Object.fromEntries(Object.entries(actions).map(([method, handler]) => [method,
+                async (input: unknown, native?: Parameters<PluginActionHandler>[1], context?: PluginHostActionContext) => {
+                    current.assertLive();
+                    const task = current.within(context, async () => {
+                        await current.assertCurrent();
+                        const result = await handler(input, native, context);
+                        await current.assertCurrent();
+                        return result;
+                    });
+                    admitted.add(task);
+                    try { return await task; }
+                    finally { admitted.delete(task); }
+                },
+            ]));
+            return { actions: guarded, streams: runtime.streams, configRefresh: refresh, stop() {
+                    stop ??= (async () => { controller.abort(new Error('dot_stopped')); await settings.dispose?.(); await Promise.allSettled([...admitted]); await runtime.settle(); if (running === runtime)
                         running = undefined; })();
                     return stop;
                 } };

@@ -1,18 +1,46 @@
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { ModulePluginSettingsHost, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import type { DotConnectionState } from './connection-state.js';
 import { DotStore, digest } from './store.js';
 import { verifyDotWebhook, type DotWebhookSend } from './dot-webhook.js';
+import { fenceAsyncPort } from './operation-fence.js';
 export const equalSecret = (a: string, b: string) => {
     const left = Buffer.from(a), right = Buffer.from(b);
     return left.length === right.length && timingSafeEqual(left, right);
 };
 export class DotConnection {
     readonly store: DotStore;
+    private readonly operations = new AsyncLocalStorage<PluginHostActionContext | undefined>();
     constructor(readonly host: ModulePluginSettingsHost, readonly send: DotWebhookSend, readonly signal: AbortSignal, readonly now = Date.now) {
-        this.store = new DotStore(host.storage);
+        this.store = new DotStore(fenceAsyncPort(host.storage, () => this.assertCurrent()));
     }
-    assertLive() { this.signal.throwIfAborted(); }
+    within<T>(context: PluginHostActionContext | undefined, run: () => Promise<T>): Promise<T> {
+        return this.operations.run(context, run);
+    }
+    assertLive() { this.signal.throwIfAborted(); this.operations.getStore()?.signal.throwIfAborted(); }
+    private async checkCurrent(context?: PluginHostActionContext) {
+        this.signal.throwIfAborted();
+        context?.signal.throwIfAborted();
+        await context?.assertCurrent();
+        this.signal.throwIfAborted();
+        context?.signal.throwIfAborted();
+    }
+    assertCurrent() { return this.checkCurrent(this.operations.getStore()); }
+    captureFence() {
+        const context = this.operations.getStore();
+        return () => this.checkCurrent(context);
+    }
+    get operationSignal() {
+        const context = this.operations.getStore();
+        return context ? AbortSignal.any([this.signal, context.signal]) : this.signal;
+    }
+    async sameAttempt(state: DotConnectionState) {
+        const current = await this.ready(state.credentialSecret);
+        if (current.attemptId !== state.attemptId)
+            throw new Error('dot_stale_connection');
+        return current;
+    }
     async owner(context?: PluginHostActionContext) {
         this.assertLive();
         if (!context || !['owner-operation', 'owner-http-request'].includes(context.kind) || context.pluginInstanceId !== this.host.pluginInstanceId || !context.userId)
@@ -77,7 +105,7 @@ export class DotConnection {
         if (ttl !== null && (!Number.isSafeInteger(ttl) || ttl <= 0))
             throw new Error('dot_invalid_subscription_ttl');
         const id = `dot_${digest([state.ownerUserId, state.agentKeyId, state.attemptId, input.url])}`;
-        await verifyDotWebhook(input.url, id, input.secret, this.send, this.signal);
+        await verifyDotWebhook(input.url, id, input.secret, this.send, this.operationSignal);
         this.assertLive();
         await this.authenticate(secret);
         const expiresAt = ttl === null ? null : this.now() + ttl;
@@ -114,7 +142,7 @@ export class DotConnection {
             this.assertLive();
             if (!state)
                 throw new Error('dot_connection_missing');
-            return { ...state, revision: state.revision + 1, revokedAt: this.now() };
+            return { ...state, revision: state.revision + 1, revokedAt: state.revokedAt ?? this.now() };
         });
         return {};
     }

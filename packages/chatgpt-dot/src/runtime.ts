@@ -10,6 +10,7 @@ import { digest, eventId, type Dispatch } from './store.js';
 import { dotWebhookHeaders } from './dot-webhook.js';
 import { dotAskArguments, dotImageArguments } from './protocol.js';
 import { retainImageFile } from './image-file.js';
+import { fenceAsyncPort } from './operation-fence.js';
 export const imageSchema = z.object({
     id: z.string().regex(/^dot_img_[a-f0-9]{64}$/), ownerUserId: z.string().min(1), threadId: z.string().min(1),
     eventId: z.string().regex(/^dot_evt_[a-f0-9]{64}$/), publicationKey: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -47,7 +48,11 @@ export function imageReference(id: string): string {
 }
 export class DotRuntime {
     private readonly pending = new Map<string, Promise<unknown>>();
-    constructor(readonly host: ModulePluginHostShape, readonly connection: DotConnection) { }
+    constructor(readonly host: ModulePluginHostShape, readonly connection: DotConnection) {
+        const fence = () => connection.assertCurrent();
+        this.host = { ...host, storage: connection.store.storage,
+            messaging: fenceAsyncPort(host.messaging, fence), threads: fenceAsyncPort(host.threads, fence) };
+    }
     async serial<T>(key: string, run: () => Promise<T>): Promise<T> {
         const task = (this.pending.get(key) ?? Promise.resolve()).catch(() => undefined).then(run);
         this.pending.set(key, task);
@@ -114,7 +119,7 @@ export class DotRuntime {
             const body = JSON.stringify({ eventId: record.eventId, name: 'dot.summoned', timestamp: new Date(record.occurredAt).toISOString(),
                 data: { event_id: record.eventId, thread_id: record.threadId, source_message_id: record.sourceMessageId, dispatch_invocation_id: record.dispatchInvocationId }, cursor: null });
             try {
-                const result = await this.connection.send(subscription.url, dotWebhookHeaders(record.eventId, subscription.id, subscription.secret, body, Date.now(), subscription.rotationUntil && subscription.rotationUntil > Date.now() ? subscription.previousSecret ?? undefined : undefined), body, this.connection.signal);
+                const result = await this.connection.send(subscription.url, dotWebhookHeaders(record.eventId, subscription.id, subscription.secret, body, Date.now(), subscription.rotationUntil && subscription.rotationUntil > Date.now() ? subscription.previousSecret ?? undefined : undefined), body, this.connection.operationSignal);
                 this.connection.assertLive();
                 await this.authorize(secret, record.eventId);
                 if (result.status >= 200 && result.status < 300) {
@@ -210,7 +215,7 @@ export class DotRuntime {
             if (!asset) {
                 asset = { id, ownerUserId: state.ownerUserId, threadId: record.threadId, eventId: record.eventId, publicationKey: input.publication_key,
                     sha256, byteSize: checked.bytes.length, width: checked.width, height: checked.height, messageId: null, alt: input.alt ?? 'dot 原图' };
-                await retainImageFile(this.host.dataPath, id, checked.bytes, () => this.connection.assertLive(), 'dot_publication_conflict');
+                await retainImageFile(this.host.dataPath, id, checked.bytes, () => this.connection.assertCurrent(), 'dot_publication_conflict');
                 const inserted = await this.host.storage.compareAndSet(key, null, asset);
                 if (!inserted.applied) {
                     const existing = imageSchema.parse((await this.host.storage.get(key))?.value);
@@ -249,8 +254,9 @@ export class DotRuntime {
         return bytes;
     }
     readonly streams: PluginStreams = { read: (reference, options = {}) => {
-            const runtime = this;
+            const runtime = this, fence = this.connection.captureFence();
             return { async *[Symbol.asyncIterator]() {
+                    await fence();
                     runtime.connection.assertLive();
                     options.signal?.throwIfAborted();
                     if (!/^pmr_dot_[a-f0-9]{64}$/.test(reference))
@@ -263,6 +269,7 @@ export class DotRuntime {
                     await runtime.authorize(state.credentialSecret, asset.eventId, true);
                     const bytes = await runtime.imageBytes(asset);
                     for (let offset = 0; offset < bytes.length; offset += 64 * 1024) {
+                        await fence();
                         runtime.connection.assertLive();
                         options.signal?.throwIfAborted();
                         yield bytes.subarray(offset, offset + 64 * 1024);
@@ -293,14 +300,16 @@ export class DotRuntime {
         }
         const text = targets.map(cat => `@${cat}`).join('\n') + '\n' + input.content;
         const reservation = { requestDigest, attemptId: state.attemptId, threadId: input.thread_id, recipientCatIds: targets, messageId: null as string | null };
+        await this.connection.sameAttempt(state);
         if (!prior && !((await this.host.storage.compareAndSet(key, null, reservation)).applied))
             throw new Error('dot_state_conflict');
-        await this.connection.ready(secret);
+        await this.connection.sameAttempt(state);
         this.connection.assertLive();
         const result = await this.host.messaging.send({ threadId: input.thread_id, identity: 'dot', idempotencyKey: `dot-ask:${digest([state.attemptId, input.client_message_id])}`,
             payload: textPayload(text), wake: 'auto', meta: { attemptId: state.attemptId } });
-        this.connection.assertLive();
+        await this.connection.sameAttempt(state);
         await this.host.storage.set(key, { ...reservation, messageId: result.messageId });
+        await this.connection.sameAttempt(state);
         await this.host.messaging.subscribe({ threadId: input.thread_id, method: 'dot.followup', includeOwnMessages: false });
         return result;
     }
@@ -345,9 +354,11 @@ export class DotRuntime {
     async testRoundtrip(secret: string) {
         const state = await this.connection.ready(secret), nonce = randomBytes(8).toString('hex');
         const thread = await this.host.threads.create({ title: 'Dot connection test' });
+        await this.connection.sameAttempt(state);
         const posted = await this.host.messaging.send({ threadId: thread.id, identity: 'dot', idempotencyKey: `dot-test:${state.attemptId}:${nonce}`,
             payload: textPayload(`连接测试：请读取原消息，并原样回复 ${nonce}`) });
         const source = await this.host.messaging.get(posted.messageId);
+        await this.connection.sameAttempt(state);
         if (!source)
             throw new Error('dot_source_unavailable');
         const execution = `test:${nonce}`, id = eventId(state.attemptId, thread.id, source.id, execution);
