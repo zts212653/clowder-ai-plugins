@@ -24,10 +24,17 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
         authority.signal.throwIfAborted();
     };
     const storage = fenceAsyncPort(host.storage, assertCurrent);
-    const batchDigest = digest(input), receiptKey = `dot/migration/receipt/${batchDigest}`;
+    // Storage survives uninstall; completion belongs to both the batch and its target installation.
+    // Retain legacy unscoped receipts as history, but never use them as current completion evidence.
+    const batchDigest = digest(input), receiptKey = `dot/migration/receipt/${digest([host.pluginInstanceId, batchDigest])}`;
     const receipt = await storage.get(receiptKey);
-    if (receipt)
+    if (receipt) {
+        const value = receipt.value as Record<string, unknown>;
+        if (!value || value.batchDigest !== batchDigest || value.ownerUserId !== input.ownerUserId ||
+            value.sourceInstanceId !== input.sourceInstanceId || value.pluginInstanceId !== host.pluginInstanceId)
+            throw new Error('dot_migration_receipt_mismatch');
         return { ...receipt.value as object, duplicate: true };
+    }
     const store = new DotStore(storage), prior = await store.connection();
     if (prior && prior.ownerUserId !== input.ownerUserId)
         throw new Error('dot_owner_mismatch');
@@ -46,12 +53,13 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
             }
             else {
                 const current = dotConnectionStateSchema.parse(entry.value);
-                if (current.ownerUserId !== next.ownerUserId || current.attemptId !== next.attemptId || current.credentialSecret !== next.credentialSecret || current.agentKeyId !== next.agentKeyId || current.pluginInstanceId !== host.pluginInstanceId)
+                if (current.ownerUserId !== next.ownerUserId || current.attemptId !== next.attemptId || current.credentialSecret !== next.credentialSecret || current.agentKeyId !== next.agentKeyId || current.pairingCode !== next.pairingCode)
                     throw new Error('dot_migration_conflict');
-                // A later legacy authority check can revoke an earlier active import.
-                // Preserve the first revocation and every newer runtime field on retries.
-                if (current.revokedAt === null && next.revokedAt !== null &&
-                    !(await storage.compareAndSet(CONNECTION_KEY, entry.revision, { ...current, revokedAt: next.revokedAt })).applied)
+                // Only the current Host owner-operation fence may relocate retained state after
+                // reinstall. Recheck through fenced CAS; never copy stale runtime or revocation data.
+                const revokedAt = current.revokedAt ?? next.revokedAt;
+                if ((current.pluginInstanceId !== host.pluginInstanceId || current.revokedAt !== revokedAt) &&
+                    !(await storage.compareAndSet(CONNECTION_KEY, entry.revision, { ...current, pluginInstanceId: host.pluginInstanceId, revokedAt })).applied)
                     continue;
                 alreadyPresent++;
             }
