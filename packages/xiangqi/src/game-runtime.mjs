@@ -103,7 +103,7 @@ export function createGameRuntime(root, hostCall) {
       const game = readGame(root, id);
       return { gameId: id, revision: game.revision,
         needsCompanionMove: game.result.status === 'playing' && parseFen(game.fen).turn !== game.humanSide,
-        url: `http://127.0.0.1:${board.server.address().port}/#session=${board.browser.launch()}`,
+        ...(input.browserLaunch ? { url: `http://127.0.0.1:${board.server.address().port}/#session=${board.browser.launch()}` } : {}),
         companionName: meta.companionName };
     },
     async candidates({ gameId, revision, timeMs = 1000, maxDepth = 5 }) {

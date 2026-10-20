@@ -74,6 +74,9 @@ test('real module, isolated child and authenticated HTTP play one human/cat roun
   const opened = await runtime.actions['xiangqi.open']({}, f.caller);
   assert.equal(opened.url, undefined, 'the cat must never receive the owner board bearer');
   assert.match(opened.launchPath, /^\/api\/plugins\/dev\.clowder\.xiangqi\/board\/game_/);
+  for (let retry = 0; retry < 20; retry++)
+    assert.equal((await runtime.actions['xiangqi.open']({}, f.caller)).gameId, opened.gameId,
+      'reopening from chat must not consume the browser launch allowance');
   const page = await browser(opened, runtime);
   await assert.rejects(browser(opened, runtime, 'other-owner'), /不属于/);
   assert.equal((await fetch(page.origin+'/api/state')).status, 403);

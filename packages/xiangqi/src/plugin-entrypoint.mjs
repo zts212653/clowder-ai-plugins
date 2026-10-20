@@ -101,7 +101,7 @@ export async function startPlayableXiangqi(host) {
         if (binding.revoked || binding.userId !== owner.userId) throw new Error('棋盘不属于当前用户或已停用');
         await roster(binding);
         await owner.assertCurrent();
-        const opened = await rpc.call('open', binding);
+        const opened = await rpc.call('open', { ...binding, browserLaunch: true });
         await owner.assertCurrent();
         owner.signal.throwIfAborted();
         return { status: 302, headers: { location: opened.url, 'cache-control': 'no-store' }, body: '' };
