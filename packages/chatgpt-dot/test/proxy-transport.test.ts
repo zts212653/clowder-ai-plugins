@@ -45,6 +45,27 @@ for (const transport of ['direct', 'proxy']) test(`${transport} TLS writer await
   } finally { release(); await f.close(); syncBuiltinESMExports(); }
 });
 
+test('proxy deadline cancels a stalled pre-write authority check and releases its TLS socket', async (t) => {
+  const f = await dotProxyFixture();
+  t.mock.timers.enable({apis:['setTimeout']});
+  let release!: () => void, entered = false, settled = false;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
+  const pending = createProxyDotWebhookSender(f.proxyUrl)(
+    'https://callback.example.com/events', {}, '{}', undefined,
+    async () => { entered = true; await barrier; },
+  ).then(value => ({value}), error => ({error})).finally(() => { settled = true; });
+  try {
+    await waitForIo(() => entered);
+    t.mock.timers.tick(10_000);
+    await waitForIo(() => settled);
+    const result = await pending;
+    assert.ok('error' in result, 'the transport deadline must settle even if its authority checker stalls');
+    assert.match(result.error.message, /callback_response_timeout/);
+    await waitForIo(() => f.clientSockets.size === 0);
+    assert.equal(f.callbackStarts.length, 0);
+  } finally { release(); await pending; t.mock.timers.reset(); await f.close(); }
+});
+
 test('opt-in proxy resolves safely despite system fake-IP and pins callback TLS on the same CONNECT socket', async () => {
   const f = await dotProxyFixture();
   let systemLookups = 0;

@@ -14,3 +14,20 @@ export function fenceAsyncPort<T extends object>(port: T, assertCurrent: () => P
         },
     });
 }
+
+/** Cancel waiting on a read-only authority check; never use this to abandon an admitted Host write. */
+export async function awaitAbortableFence(check: () => Promise<void>, signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted();
+    let abort!: () => void;
+    const cancelled = new Promise<never>((_resolve, reject) => {
+        abort = () => reject(signal.reason);
+        signal.addEventListener('abort', abort, { once: true });
+    });
+    try {
+        await Promise.race([check(), cancelled]);
+        signal.throwIfAborted();
+    }
+    finally {
+        signal.removeEventListener('abort', abort);
+    }
+}

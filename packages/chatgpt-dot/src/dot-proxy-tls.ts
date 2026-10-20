@@ -3,6 +3,7 @@ import https, { type RequestOptions } from 'node:https';
 import type { Socket } from 'node:net';
 import tls from 'node:tls';
 import type { DotEffectFence } from './dot-webhook.js';
+import { awaitAbortableFence } from './operation-fence.js';
 
 export function parseDotProxyUrl(raw: string): URL {
   let url: URL;
@@ -102,7 +103,7 @@ export async function requestOnDotTls(
     return socket;
   };
   try {
-    await beforeWrite?.();
+    if (beforeWrite) await awaitAbortableFence(beforeWrite, signal);
     signal.throwIfAborted();
     return await new Promise((resolve, reject) => {
       const request = https.request({ ...options, agent, signal }, (response: IncomingMessage) => {
