@@ -72,16 +72,23 @@ export {
   // Reject-reason taxonomies
   HANDSHAKE_REJECT_REASONS,
   DELIVERY_REJECT_REASONS,
+  LIFECYCLE_REJECT_REASONS,
   SNAPSHOT_UNAVAILABLE_REASONS,
   // Collected code arrays
   APPLICATION_ERROR_CODES,
   STANDARD_ERROR_CODES,
   ALL_ERROR_CODES,
+  // Closed error body key sets (mirrors of the error variant types below)
+  ERROR_BODY_STANDARD_KEYS,
+  ERROR_BODY_APPLICATION_KEYS,
+  REASON_DATA_KEYS,
+  CODE_DATA_KEYS,
 } from './errors.js';
 
 export type {
   HandshakeRejectReason,
   DeliveryRejectReason,
+  LifecycleRejectReason,
   SnapshotUnavailableReason,
   MessagingErrorCode,
   // Application error body types
@@ -115,8 +122,6 @@ export {
 export {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
-  BETA9_EVENTS_PUBLISH_VECTOR_IDS,
-  BETA10_LIFECYCLE_VECTOR_IDS,
   BETA11_MESSAGING_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
@@ -155,6 +160,10 @@ export {
   BINDING_NONCE_MIN_LENGTH,
   BINDING_NONCE_MAX_LENGTH,
   BINDING_NONCE_MAX_ENCODED_BYTES,
+  // Closed handshake object key sets (mirrors of the handshake types below)
+  CANDIDATE_HELLO_KEYS,
+  SESSION_BINDING_KEYS,
+  BROKER_READY_PARAMS_KEYS,
   validatePackageDigest,
   validatePluginId,
   validateContractVersion,
@@ -191,29 +200,13 @@ export {
 } from './handshake-byte-bounds.js';
 
 // Derived beta.9 C-2 signal-publish byte-bound evidence
-export {
-  EVENTS_PUBLISH_BYTE_PROOF_ENCODING_FAMILIES,
-  SIGNAL_TYPE_MAX_LENGTH,
-  SIGNAL_EVENT_ID_MAX_LENGTH,
-  SIGNAL_IDEMPOTENCY_KEY_MAX_LENGTH,
-  SIGNAL_OCCURRED_AT_MAX_LENGTH,
-  SIGNAL_SOURCE_HANDLE_MAX_LENGTH,
-  EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
-  EVENTS_PUBLISH_RESULT_BYTE_PROOF,
-  EVENTS_PUBLISH_ERROR_BYTE_PROOF,
-  EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
-} from './signal-byte-bounds.js';
 
 // Derived beta.10 M0-B lifecycle byte-bound evidence
 export {
   LIFECYCLE_BYTE_PROOF_ENCODING_FAMILIES,
-  HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF,
   HOST_LIFECYCLE_PING_REQUEST_BYTE_PROOF,
   HOST_LIFECYCLE_PING_RESULT_BYTE_PROOF,
   HOST_LIFECYCLE_PING_ERROR_BYTE_PROOF,
-  HOST_LIFECYCLE_DRAIN_REQUEST_BYTE_PROOF,
-  HOST_LIFECYCLE_DRAIN_RESULT_BYTE_PROOF,
-  HOST_LIFECYCLE_DRAIN_ERROR_BYTE_PROOF,
   LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
 } from './lifecycle-byte-bounds.js';
 
@@ -223,7 +216,6 @@ export type {
   LifecycleEncodedByteProofCase,
   LifecycleEncodedByteProof,
   LifecycleRequestRowEncodedByteBounds,
-  LifecycleNotificationRowEncodedByteBounds,
 } from './lifecycle-byte-bounds.js';
 
 // Derived beta.11 M0-C messaging byte-bound evidence
@@ -244,13 +236,6 @@ export type {
   MessagingRowEncodedByteBounds,
 } from './messaging-byte-bounds.js';
 
-export type {
-  EventsPublishByteProofEncodingFamily,
-  EventsPublishNPlusOneWitness,
-  EventsPublishEncodedByteProofCase,
-  EventsPublishEncodedByteProof,
-  EventsPublishRowEncodedByteBounds,
-} from './signal-byte-bounds.js';
 
 export type {
   HandshakeByteProofEncodingFamily,
@@ -299,6 +284,16 @@ export type {
   WireResponse,
 } from './envelope.js';
 
+// Closed envelope key sets (mirrors of the envelope family in envelope.ts)
+export {
+  REQUEST_ALLOWED_KEYS,
+  NOTIFICATION_ALLOWED_KEYS,
+  RESPONSE_SUCCESS_KEYS,
+  RESPONSE_ERROR_KEYS,
+  PARAMS_ALLOWED_KEYS,
+  META_ALLOWED_KEYS,
+} from './envelope.js';
+
 // 13-row method registry (frozen original 12 + C-2 publish)
 export {
   WIRE_METHOD_NAMES,
@@ -326,6 +321,17 @@ export type {
   WireMethodName,
 } from './registry.js';
 
+// Pre-dispatch frame classifier (moved in from @clowder-ai/plugin-sdk, F202
+// C1 — the classifier gates wire frames before any transport behavior runs).
+// RequestSnapshot is already exported from disposition-fixtures above; the
+// classifier re-exports it at module level for parity with its former SDK
+// module surface.
+export { classifyFrame } from './dispatch.js';
+export type {
+  DispatchResult,
+  InFlightEntry,
+} from './dispatch.js';
+
 // Per-row input/result shapes
 export type {
   // Closed rows
@@ -337,11 +343,8 @@ export type {
   SubscribeResult,
   MessagingAckRequest,
   MessagingAckResult,
-  GrantsChangedInput,
   PingInput,
   PingResult,
-  DrainInput,
-  DrainResult,
   SendInput,
   SendResult,
   AppendInput,
@@ -365,10 +368,6 @@ export type {
   DeliverResult,
 } from './row-shapes.js';
 
-export type {
-  EventsPublishInput,
-  EventsPublishResult,
-} from '../generated/contract.generated.js';
 
 export {
   // Row 5 bounds
@@ -408,4 +407,7 @@ export {
   PING_NONCE_MIN_LENGTH,
   PING_NONCE_MAX_LENGTH,
   PING_NONCE_MAX_ENCODED_BYTES,
+  // Closed row input/result key sets (mirrors of the row shape types above)
+  PING_INPUT_KEYS,
+  PING_RESULT_KEYS,
 } from './row-shapes.js';

@@ -35,7 +35,7 @@ const envelope = {
   },
 } as const;
 
-test('all seven M0-C request shapes have one executable contract validator', () => {
+test('all nine messaging request shapes have one executable contract validator', () => {
   for (const [method, input] of [
     ['messaging.send', draft],
     [
@@ -53,12 +53,24 @@ test('all seven M0-C request shapes have one executable contract validator', () 
     ['messaging.read', { subscriptionId: 'subscription-1', limit: 32 }],
     ['messaging.ack', { subscriptionId: 'subscription-1', ackToken: 'ack-1' }],
     ['messaging.snapshot', { subscriptionId: 'subscription-1', maxItems: 64 }],
+    ['streams.read', { reference: 'hmr_1', offset: 0, limit: 524_288 }],
     [
       'host.messaging.deliver',
-      {
+      {kind:'message' as const,
         deliveryId: 'delivery-1',
-        threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+        threadId: (envelope).threadId,
         envelope,
+      },
+    ],
+    [
+      'host.messaging.deliver',
+      {kind:'execution_status' as const,
+        executionId: 'life-1',
+        deliveryId: 'delivery-2',
+        threadId: 'thread-1',
+        state: 'settled',
+        chainDone: true,
+        outcome: 'completed',
       },
     ],
   ] as const) {
@@ -70,7 +82,7 @@ test('all seven M0-C request shapes have one executable contract validator', () 
   }
 });
 
-test('all seven M0-C success shapes have one executable contract validator', () => {
+test('all nine messaging success shapes have one executable contract validator', () => {
   for (const [method, result] of [
     [
       'messaging.send',
@@ -88,11 +100,13 @@ test('all seven M0-C success shapes have one executable contract validator', () 
     ['messaging.subscribe', { subscriptionId: 'subscription-1' }],
     ['messaging.read', { events: [], ackToken: null, stale: false }],
     ['messaging.ack', null],
+    ['streams.read', { offset: 0, dataBase64: 'AQID', done: true }],
     [
       'messaging.snapshot',
       { items: [envelope], nextPageToken: 'page-2', snapshotAckToken: null },
     ],
     ['host.messaging.deliver', { deliveryId: 'delivery-1' }],
+    ['host.messaging.deliver', { deliveryId: 'delivery-2' }],
   ] as const) {
     assert.equal(
       validateMessagingRowResult(method, result).valid,
@@ -186,9 +200,9 @@ test('envelope timestamps accept canonical Date output and reject invalid histor
     '+010000-01-01T00:00:00.000Z',
   ]) {
     assert.equal(
-      validateMessagingRowInput('host.messaging.deliver', {
+      validateMessagingRowInput('host.messaging.deliver', {kind:'message' as const,
         deliveryId: 'delivery-1',
-        threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+        threadId: ({ ...envelope, occurredAt }).threadId,
         envelope: { ...envelope, occurredAt },
       }).valid,
       true,
@@ -201,9 +215,9 @@ test('envelope timestamps accept canonical Date output and reject invalid histor
     'not-a-date',
   ]) {
     assert.equal(
-      validateMessagingRowInput('host.messaging.deliver', {
+      validateMessagingRowInput('host.messaging.deliver', {kind:'message' as const,
         deliveryId: 'delivery-1',
-        threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+        threadId: ({ ...envelope, occurredAt }).threadId,
         envelope: { ...envelope, occurredAt },
       }).valid,
       false,

@@ -41,13 +41,24 @@ test('plugin.yaml is the static access protocol and matches the package version'
   ]);
 });
 
-test('package ships a detailed human capability guide beside the short Agent introduction', async () => {
+test('package ships human usage and configuration guides beside the short Agent introduction', async () => {
   const packageJson = JSON.parse(
     await readFile(new URL('../package.json', import.meta.url), 'utf8'),
   ) as { files: string[] };
-  const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+  const readme = await readFile(new URL('../README.en.md', import.meta.url), 'utf8');
+  const chinese = await readFile(new URL('../README.md', import.meta.url), 'utf8');
 
   assert.ok(packageJson.files.includes('README.md'));
+  assert.ok(packageJson.files.includes('README.en.md'));
+  assert.match(chinese, /^# 视频分析\n/m);
+  for (const heading of ['## 开始使用', '## 数据与失败处理']) {
+    assert.ok(chinese.includes(heading), `Chinese README is missing ${heading}`);
+  }
+  for (const guide of [chinese, readme]) {
+    assert.doesNotMatch(guide, /^## (?:安装权限|Install permissions|Install consent|Exposed capabilit(?:y|ies))$/mu);
+    assert.doesNotMatch(guide, /^\|\s*(?:权限|Capability)\s*\|/mu);
+    assert.doesNotMatch(guide, /`(?:plugin\.config\.read|secret\.read)`/u);
+  }
   assert.match(readme, /^# Video Analysis\n/m);
   for (const heading of [
     '## What it does',

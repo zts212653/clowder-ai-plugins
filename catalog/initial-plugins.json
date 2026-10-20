@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "pluginId": "dev.clowder.genoffice-docx",
+      "enabled": true
+    },
+    {
+      "pluginId": "dev.clowder.video-analysis",
+      "enabled": true
+    },
+    {
+      "pluginId": "dev.clowder.video-generation",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.collective-connector",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.companion.personal-chrome",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.dingtalk",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.feishu",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.telegram",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.wecom-agent",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.wecom-bot",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.weixin",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.connector.xiaoyi",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.enterprise-workflow",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.feishu-meeting-intake",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.github-operations",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.wechat-visible-reader",
+      "enabled": true
+    },
+    {
+      "pluginId": "official.weixin-mp",
+      "enabled": true
+    }
+  ]
+}

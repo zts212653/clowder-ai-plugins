@@ -35,7 +35,7 @@ import {
   BINDING_NONCE_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
 } from './handshake.js';
-import { VALID_CAPABILITIES } from './grants.js';
+import { MAX_GRANT_ITEMS, VALID_CAPABILITIES } from './grants.js';
 import { PING_NONCE_MAX_LENGTH } from './row-shapes.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';
 import type { CandidateHello, SessionBinding } from './handshake.js';
@@ -146,7 +146,9 @@ const RAW_UTF8_BOUNDARY_CODE_POINTS = {
   escaping: '\u0000',
 } as const;
 
-const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES];
+const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES]
+  .sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
+  .slice(0, MAX_GRANT_ITEMS);
 
 const BETA8_BINDING: SessionBinding = {
   ...BETA8_HELLO,
@@ -397,7 +399,7 @@ export const RESPONSE_CANDIDATE_CASES: Readonly<Record<string, PartitionCase>> =
  */
 export const NOTIFICATION_PARTITION_CASES: Readonly<Record<string, PartitionCase>> = {
   /** §3.8-1 NT #1: legal row-10 notification → T-J accept */
-  'nt-1-legal-row10': { vectorId: 'T-J-1', expectedClass: 'T-J' },
+  'nt-1-removed-callback': { vectorId: 'T-K-11', expectedClass: 'T-K' },
   /** §3.8-1 NT #2: request-only method without id → T-K close */
   'nt-2-request-method': { vectorId: 'T-K-1', expectedClass: 'T-K' },
   /** §3.8-1 NT #3: unknown method without id → T-K close */
@@ -417,6 +419,10 @@ export const NOTIFICATION_PARTITION_CASES: Readonly<Record<string, PartitionCase
 // ---------------------------------------------------------------------------
 
 export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = [
+  {id: 'T-K-4', rawFrame: "{\"jsonrpc\":\"2.0\",\"method\":\"host.lifecycle.ping\",\"params\":{\"meta\":{\"deadlineUnixMs\":1},\"input\":{\"nonce\":\"n\"}},\"error\":{\"code\":-1}}", rawFrameEncoding:'utf8', preState:{inFlightRequests:[]}, expectedClass:'T-K', expectedOutcome:'close', expectedErrorArm:null, expectedErrorCode:null, expectedResponseFrame:null, zeroSideEffects:true, description:'request-only ping notification rejects without dispatch'},
+  {id: 'T-K-5', rawFrame: "{\"jsonrpc\":\"2.0\",\"method\":\"host.lifecycle.ping\",\"extra\":true,\"params\":{\"meta\":{\"deadlineUnixMs\":1},\"input\":{\"nonce\":\"n\"}}}", rawFrameEncoding:'utf8', preState:{inFlightRequests:[]}, expectedClass:'T-K', expectedOutcome:'close', expectedErrorArm:null, expectedErrorCode:null, expectedResponseFrame:null, zeroSideEffects:true, description:'request-only ping notification rejects without dispatch'},
+  {id: 'T-K-6', rawFrame: "{\"jsonrpc\":\"2.0\",\"method\":\"host.lifecycle.ping\",\"params\":{\"meta\":{\"deadlineUnixMs\":1},\"input\":null}}", rawFrameEncoding:'utf8', preState:{inFlightRequests:[]}, expectedClass:'T-K', expectedOutcome:'close', expectedErrorArm:null, expectedErrorCode:null, expectedResponseFrame:null, zeroSideEffects:true, description:'request-only ping notification rejects without dispatch'},
+  {id: 'T-K-7', rawFrame: "{\"jsonrpc\":\"2.0\",\"method\":\"host.lifecycle.ping\",\"params\":{\"meta\":{\"deadlineUnixMs\":0},\"input\":{\"nonce\":\"n\"}}}", rawFrameEncoding:'utf8', preState:{inFlightRequests:[]}, expectedClass:'T-K', expectedOutcome:'close', expectedErrorArm:null, expectedErrorCode:null, expectedResponseFrame:null, zeroSideEffects:true, description:'request-only ping notification rejects without dispatch'},
 
   // ═════════════════════════════════════════════════════════════════════════
   // PRE-STRUCTURAL (T-A, T-B, T-C)
@@ -675,31 +681,9 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   // Additional: T-J-2, T-K-2.
   // ═════════════════════════════════════════════════════════════════════════
 
-  {
-    id: 'T-J-1',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-J',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: '[NT-1] legal row-10 grants.changed notification, empty grants',
-  },
 
-  {
-    id: 'T-J-2',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":1,"effectiveGrants":["message.event.subscribe"]}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-J',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: 'legal row-10 grants.changed, non-empty grants (additional NT-1 variant)',
-  },
+
+
 
   {
     id: 'T-K-1',
@@ -741,61 +725,13 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[NT-3] unknown method as notification → v0 violation',
   },
 
-  {
-    id: 'T-K-4',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}},"error":{"code":-32600,"message":"Invalid Request"}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[RC-7 / NT-5 variant] Notification with extra error member → T-K close',
-  },
 
-  {
-    id: 'T-K-5',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed"}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[NT-5] Notification missing params → idless envelope violation → T-K close',
-  },
 
-  {
-    id: 'T-K-6',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":"not-a-number","effectiveGrants":[]}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[NT-4] structurally valid Notification, invocation-level invalid params (grantRevision wrong type)',
-  },
 
-  {
-    id: 'T-K-7',
-    rawFrame: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":0},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[NT-6] row-10 notification with deadlineUnixMs:0 → value failure (H7), T-K close',
-  },
+
+
+
+
 
   // ═════════════════════════════════════════════════════════════════════════
   // RESPONSE-CANDIDATE PARTITION — frozen 9 cases + additional coverage
@@ -1364,68 +1300,17 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[beta.8 error] closed HANDSHAKE_REJECTED error settles the correlated hello',
   },
   {
-    id: 'T-M-9',
-    rawFrame: '{"jsonrpc":"2.0","id":"publish-1","method":"events.publish","params":{"meta":{"deadlineUnixMs":1},"input":{"signalType":"feishu.meeting_artifact.generated.v1","eventId":"feishu-minute-om_abc123-v7","idempotencyKey":"feishu:minute:om_abc123:7","occurredAt":"2026-08-09T04:12:31Z","payload":{"artifactId":"om_abc123","revision":"7"},"source":{"handle":"feishu://meeting-artifacts/minute/om_abc123?revision=7"}}}}',
+    id: 'T-K-11',
+    rawFrame: grantsChangedNotificationFrame(ALL_CAPABILITY_VALUES),
     rawFrameEncoding: 'utf8',
     preState: { inFlightRequests: [] },
-    expectedClass: 'T-M',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[beta.9 C-2] declared-shape events.publish request reaches Host dispatch without a destination',
-  },
-  {
-    id: 'T-G-15',
-    rawFrame: '{"jsonrpc":"2.0","id":"a","method":"events.publish","params":{"meta":{"deadlineUnixMs":1},"input":{"signalType":"feishu.meeting_artifact.generated.v1","eventId":"event-1","idempotencyKey":"event-1","occurredAt":"2026-08-09T04:12:31Z","payload":{},"destination":{"threadId":"thread-1"}}}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-G',
-    expectedOutcome: 'respond',
-    expectedErrorArm: 'InvalidParamsEnvelope',
-    expectedErrorCode: INVALID_PARAMS_CODE,
-    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
-    zeroSideEffects: true,
-    description: '[beta.9 C-2] plugin-supplied destination is rejected before Host routing',
-  },
-  {
-    id: 'T-H-12',
-    rawFrame: '{"jsonrpc":"2.0","id":"publish-result","result":{"publicationId":"publication-1","disposition":"accepted","destination":"thread-1"}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [{ id: 'publish-result', method: 'events.publish' }] },
-    expectedClass: 'T-H',
+    expectedClass: 'T-K',
     expectedOutcome: 'close',
     expectedErrorArm: null,
     expectedErrorCode: null,
     expectedResponseFrame: null,
     zeroSideEffects: true,
-    description: '[beta.9 C-2] open Host receipt is rejected as a protocol violation',
-  },
-  {
-    id: 'T-L-7',
-    rawFrame: '{"jsonrpc":"2.0","id":"publish-result","result":{"publicationId":"publication-1","disposition":"duplicate"}}',
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [{ id: 'publish-result', method: 'events.publish' }] },
-    expectedClass: 'T-L',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[beta.9 C-2] duplicate receipt legally settles a correlated publication',
-  },
-  {
-    id: 'T-J-3',
-    rawFrame: grantsChangedNotificationFrame(ALL_CAPABILITY_VALUES),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-J',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: '[beta.10 lifecycle] maximum legal grant snapshot notification reaches dispatch without a response',
+    description: 'removed grant callback closes without dispatch',
   },
   {
     id: 'T-K-8',
@@ -1606,78 +1491,11 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     zeroSideEffects: true,
     description: '[beta.10 lifecycle] ping result with a non-equal nonce closes without settlement',
   },
-  {
-    id: 'T-M-13',
-    rawFrame: lifecycleRequestFrame('drain-max', 'host.lifecycle.drain', {
-      deadlineUnixMs: WIRE_UINT53_MAX,
-    }),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-M',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: '[beta.10 lifecycle] maximum legal drain deadline reaches dispatch',
-  },
-  {
-    id: 'T-G-19',
-    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.drain', {
-      deadlineUnixMs: WIRE_UINT53_MAX + 1,
-    }),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-G',
-    expectedOutcome: 'respond',
-    expectedErrorArm: 'InvalidParamsEnvelope',
-    expectedErrorCode: INVALID_PARAMS_CODE,
-    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
-    zeroSideEffects: true,
-    description: '[beta.10 lifecycle] drain WireUInt53 N+1 rejects before dispatch',
-  },
-  {
-    id: 'T-G-20',
-    rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.drain', {
-      deadlineUnixMs: 0,
-    }),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-G',
-    expectedOutcome: 'respond',
-    expectedErrorArm: 'InvalidParamsEnvelope',
-    expectedErrorCode: INVALID_PARAMS_CODE,
-    expectedResponseFrame: JSON.stringify(RESPONSE_INVALID_PARAMS_A),
-    zeroSideEffects: true,
-    description: '[beta.10 lifecycle] zero drain deadline rejects before dispatch',
-  },
-  {
-    id: 'T-L-9',
-    rawFrame: '{"jsonrpc":"2.0","id":"drain-null","result":null}',
-    rawFrameEncoding: 'utf8',
-    preState: {
-      inFlightRequests: [{ id: 'drain-null', method: 'host.lifecycle.drain' }],
-    },
-    expectedClass: 'T-L',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: '[beta.10 lifecycle] exact null drain result settles its request',
-  },
-  {
-    id: 'T-L-10',
-    rawFrame: JSON.stringify(RESPONSE_DEADLINE_EXPIRED_DRAIN),
-    rawFrameEncoding: 'utf8',
-    preState: {
-      inFlightRequests: [{ id: 'drain-deadline', method: 'host.lifecycle.drain' }],
-    },
-    expectedClass: 'T-L',
-    expectedOutcome: 'accept',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    description: '[beta.10 lifecycle] DEADLINE_EXPIRED legally settles a drain request',
-  },
+
+
+
+
+
   {
     id: 'T-M-14',
     rawFrame: messagingRequestFrame('send-1', 'messaging.send', M0C_DRAFT),
@@ -1793,7 +1611,8 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     id: 'T-M-20',
     rawFrame: messagingRequestFrame('deliver-1', 'host.messaging.deliver', {
       deliveryId: 'delivery-1',
-      threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+      kind: 'message', executionId: 'execution-1',
+      threadId: M0C_ENVELOPE.threadId,
       envelope: M0C_ENVELOPE,
     }),
     rawFrameEncoding: 'utf8', preState: { inFlightRequests: [] },
@@ -1809,7 +1628,11 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
       payload: {
         provenance: { epistemicStatus: 'inference' },
         elements: [
-          { elementId: 'element-1', kind: 'rich_block', payload: { data: 1e+21 } },
+          {
+            elementId: 'element-1',
+            kind: 'rich_block',
+            payload: { id: 'proof-1', kind: 'proof', v: 1, data: 1e+21 },
+          },
         ],
       },
     }),
@@ -2038,45 +1861,8 @@ export const BETA8_HANDSHAKE_VECTOR_IDS = [
 ] as const;
 
 /** Complete beta.9 C-2 publish safety surface exported for downstream runners. */
-export const BETA9_EVENTS_PUBLISH_VECTOR_IDS = [
-  'T-M-9',
-  'T-G-15',
-  'T-H-12',
-  'T-L-7',
-] as const;
 
 /** Complete beta.10 M0-B lifecycle safety surface for rows 10 through 12. */
-export const BETA10_LIFECYCLE_VECTOR_IDS = [
-  'T-G-1',
-  'T-J-1',
-  'T-J-2',
-  'T-K-1',
-  'T-K-4',
-  'T-K-5',
-  'T-K-6',
-  'T-K-7',
-  'T-H-3',
-  'T-L-1',
-  'T-L-2',
-  'T-L-3',
-  'T-J-3',
-  'T-K-8',
-  'T-K-9',
-  'T-K-10',
-  'T-M-10',
-  'T-G-16',
-  'T-M-11',
-  'T-G-17',
-  'T-M-12',
-  'T-G-18',
-  'T-L-8',
-  'T-H-13',
-  'T-M-13',
-  'T-G-19',
-  'T-G-20',
-  'T-L-9',
-  'T-L-10',
-] as const;
 
 /** Complete beta.11 M0-C messaging safety surface for rows 3 through 9. */
 export const BETA11_MESSAGING_VECTOR_IDS = [

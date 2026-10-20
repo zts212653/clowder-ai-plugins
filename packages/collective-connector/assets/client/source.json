@@ -1,0 +1,123 @@
+{
+  "repository": "zts212653/clowder-ai",
+  "sourceBaseHead": "db22707d59d530e4d140f79eedf8bd0db6ee7a29",
+  "sourceState": "base-with-recorded-input-overrides",
+  "package": "packages/collective-client",
+  "buildEntrypoint": "packages/collective-client/scripts/build.mjs#buildRetainedClient",
+  "assetDigest": "5beb73752a3f5804e8cc0ef1699224b20197a41ebd60de5e97835e2bd9e3f1c9",
+  "buildInputsSha256": "2c9c7a7098c0fbd9ad95a766eb925dbc3623b3810e52e8c0a725899556977f17",
+  "manifestSha256": "fc55c71fc1b2282e574c4e74d5f7c5b8454a9a7f303d42145fc98bb582ea55d1",
+  "inputOverrides": [
+    {
+      "path": "packages/shared/src/approval-producer-catalog.ts",
+      "baselineSha256": "e02e31350640d4a9bcf6f014c4abe8fb9ab6172e2f3fe8531ba4892db96fecf9",
+      "sha256": "a4a6fa7bfc87a54b3f4c131b893d913db477ead91208fd52f990886a6a150071"
+    },
+    {
+      "path": "packages/shared/src/index.ts",
+      "baselineSha256": "0e03a3bc06d4844b722c5f32d3867081ad6062fb5f33cebe3fe75c69ba7011bb",
+      "sha256": "9662015d9b01bfb2d5da7be1ddaa7094028440b0e67e3f5834c64a36cc072db7"
+    },
+    {
+      "path": "packages/shared/src/plugin-configuration-required.ts",
+      "baselineSha256": null,
+      "sha256": "8560eedd668264069ed06dd967267d928ab4f540ec8ade7959318cdfcc17bbf1"
+    },
+    {
+      "path": "packages/shared/src/schemas/message.schema.ts",
+      "baselineSha256": "3cb6b6ad481ebeb5ae45e7effa6882ff5c6318a50ef6348e30f4ff030a08f3ac",
+      "sha256": "e1c0dfd5a831e86b540f1ca45293377fede369080f873e42f8290bb5e86307a4"
+    },
+    {
+      "path": "packages/shared/src/types/action-successor.ts",
+      "baselineSha256": "7d6a11ccdc02032ca0efd80da63672595353797f816e1103705ddc7942814953",
+      "sha256": "16edda90bb8fd53666266cab6def6b970697bd6a77f844815b7b5513879c4bb9"
+    },
+    {
+      "path": "packages/shared/src/types/approval-hub.ts",
+      "baselineSha256": "2dad559031fe16d7e009b3276a2aba9d4d5b443b93b3611a0a5b501c4ad01a05",
+      "sha256": "fd7c588a654a58a90f2d08f15c7a921a70e54c8b2b9e325b3b90e7d132d0927c"
+    },
+    {
+      "path": "packages/shared/src/types/callback-auth-reasons.ts",
+      "baselineSha256": "a4cc6a4412c95930ad16edecf9f8b9534bbb401a95765c3a5c1260c347384f46",
+      "sha256": "c94f967b222e09a3fd7b40f05d3d91acb03e017d130d9b68ea4b7ffbf3ee80d6"
+    },
+    {
+      "path": "packages/shared/src/types/cloud-binding-refusals.ts",
+      "baselineSha256": null,
+      "sha256": "799f1466469ebd5ab3d0b285c96edf3cb6baaeae5268fc454af7d0c6ee849af3"
+    },
+    {
+      "path": "packages/shared/src/types/connector-definitions.ts",
+      "baselineSha256": "5afbda9f85314ab0ec992113089543afbc6f154f84840a9c9b767e48dad61602",
+      "sha256": "eb94607a477a223b1434c3c16c72d24eb76077dbd0c39206ceb92b7f589f0bd3"
+    },
+    {
+      "path": "packages/shared/src/types/connector.ts",
+      "baselineSha256": "839464248c3ee64dabf99e2d9f8691f2a5dbfe693cc0a53c930ddbeeae7cd14d",
+      "sha256": "09bd0301f1d9fe5415506eb1e85888c07e37166e1a0ab1728d615c14e4c22257"
+    },
+    {
+      "path": "packages/shared/src/types/frustration-issue.ts",
+      "baselineSha256": "9b15d4a67c46989af4554a93db6e1b16da3c56a2f7f8a2462d2361dd69127045",
+      "sha256": "5abfc6335bcc4e25e2321223882ad3b60c58f1abfcdc52d02be5d9953b546b5e"
+    },
+    {
+      "path": "packages/shared/src/types/growing.ts",
+      "baselineSha256": "7d4b59da515f6e237aee8db96a6fef33feee1a07e9d5eccdf438e035701f6a8c",
+      "sha256": "24815de54a5ea4549696e585f1ea96cdc784becc0b9c56204fece52c38faaee3"
+    },
+    {
+      "path": "packages/shared/src/types/index.ts",
+      "baselineSha256": "9e644fbe3b47eca81055658d8498f2a5314c69a00556b28c257c0dd990b2cdeb",
+      "sha256": "a6396bd1c28707e9efe6c6da36656eec09cee685341898fb2eaeb98bbb0c7ae6"
+    },
+    {
+      "path": "packages/shared/src/types/plugin.ts",
+      "baselineSha256": "2919fa77fa1516ef7a1a2fa84b6b9976a21cc5887ff908118b068e99f363c453",
+      "sha256": "a0eb6b3662f48f5080cfcb9aed000c61a33eb6c4b7d1dd7985ce4d5aab6faff8"
+    },
+    {
+      "path": "packages/shared/src/types/queue-receipt.ts",
+      "baselineSha256": "731c17a0eebd09dc42f291dead016d439ac8bf7cff441243b29314ba358de4db",
+      "sha256": "81f9ebdb8a7266558a22a716b070e610d0a0b71d3c4bd1866a192ad3f367f79e"
+    },
+    {
+      "path": "packages/shared/src/types/task.ts",
+      "baselineSha256": "f25629ac3915f6fda8b1214e15c949f4c535118507e4a2c0e47862f66540c2dd",
+      "sha256": "514b68d3523a9a363f248845236615f3eb555d175587fe0feceae08b734811eb"
+    },
+    {
+      "path": "packages/shared/src/types/unified-attention.ts",
+      "baselineSha256": "e01b78eb2fe55678e36cd90fa2fbf3699fb51e92c54b4681e470231bad46e524",
+      "sha256": "3f4e1d16fa8d8a88c08abe6951fd82f5281b7a745243c029ecd391adfe266124"
+    },
+    {
+      "path": "packages/ui/src/styles.css",
+      "baselineSha256": "c59e40c3e7c793146a0e3b60b34e45d6d783cb7fce1b536fc58ab8ec13e4b0eb",
+      "sha256": "b3c84282b8b9ccc3e0ee02b059955c4e13f6bf75b8d646f621cffcf6e330ed07"
+    },
+    {
+      "path": "packages/collective-client/assets/collective-landing-A.png",
+      "baselineSha256": null,
+      "sha256": "f6460455c4ed29b5b87bdd55245f4171175bc9fcd30f70dfc0784589b0be9ae9"
+    },
+    {
+      "path": "packages/collective-client/scripts/build.mjs",
+      "baselineSha256": "564c672a6ad846ff1894cae2d1cd17589a6a8699f8fe910ed80ccddb2d1b05ee",
+      "sha256": "e3941053e5b5d59f3f7316b71adc6d39624fd6afc4f06acc07e7f1f011dc90e1"
+    },
+    {
+      "path": "packages/collective-client/src/index.html",
+      "baselineSha256": null,
+      "sha256": "7d0a9321c00150e9e73a1c1489ef7e35f569f10a9c37b5841a5e5dc2a2ec505c"
+    },
+    {
+      "path": "packages/collective-client/src/use-human-auth-session.ts",
+      "baselineSha256": "97e7356f66fc0cb6ff2b622b34ea5010f1b5f623b387806b0c98e515805ee1cb",
+      "sha256": "71780abcc32baf4030a0dbaa1b0ec633d1bdaff4bd525fd9f3977bf170c8a741"
+    }
+  ],
+  "dependencyInputs": "build-inputs.json"
+}

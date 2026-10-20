@@ -12,7 +12,10 @@ import {
   PARSE_ERROR_CODE,
   PARSE_ERROR_MESSAGE,
   validateManifest,
+  isPluginDeliveryInput,
+  isPluginDeliveryReceipt,
   type DeliverInput,
+  type PluginDeliveryReceipt,
   type DeliveryRejectReason,
   type ManifestValidationError,
   type PluginManifest,
@@ -26,7 +29,7 @@ import {
   type StdioFrameErrorHandler,
   type StdioRuntimeFatalError,
 } from './stdio-runtime.js';
-import { classifyFrame, type InFlightEntry } from './wire-dispatch.js';
+import { classifyFrame, type InFlightEntry } from '@clowder-ai/plugin-contract';
 
 export class ManifestStartupError extends Error {
   readonly errors: readonly ManifestValidationError[];
@@ -44,27 +47,14 @@ export interface StandaloneHostOptions {
   /** Caller-owned streams are useful for embedding and tests; provide both or neither. */
   readonly input?: Readable;
   readonly output?: Writable;
-  /**
-   * Runs before the closed drain row is acknowledged with `result: null`.
-   * A cleanup that outlives its drain deadline is acknowledged as expired;
-   * callers that need cancellation must arrange it within their callback.
-   */
-  readonly onDrain?: (input: { readonly deadlineUnixMs: number }) => void | Promise<void>;
-  /**
-   * Handles the ready Host-to-plugin messaging callback and reports only the
-   * plugin-observed delivery fact. Retry and dead-letter policy remain Host-owned.
-   */
-  readonly onMessage?: StandaloneMessageHandler;
+
+
+  /** A receipt acknowledges only this delivery input. */
+  readonly delivery?: StandaloneDeliveryHandler;
   readonly onFatal?: (error: StdioRuntimeFatalError) => void;
 }
 
-export type StandaloneMessageDisposition =
-  | { readonly accepted: true }
-  | { readonly accepted: false; readonly reason: DeliveryRejectReason };
-
-export type StandaloneMessageHandler = (
-  input: DeliverInput,
-) => StandaloneMessageDisposition | Promise<StandaloneMessageDisposition>;
+export type StandaloneDeliveryHandler = (input: DeliverInput) => PluginDeliveryReceipt | Promise<PluginDeliveryReceipt>;
 
 export interface StandaloneHost extends StdioChannel {
   readonly manifest: PluginManifest;
@@ -87,7 +77,7 @@ function requireValidManifest(value: unknown): PluginManifest {
 
 function requireStdioManifest(value: unknown): PluginManifest {
   const manifest = requireValidManifest(value);
-  if (manifest.runtime.transport !== 'stdio') {
+  if (manifest.runtime?.transport !== 'stdio') {
     throw new TypeError('standalone stdio host requires a manifest with runtime.transport "stdio"');
   }
   return manifest;
@@ -119,17 +109,7 @@ function requireRequest(value: JsonObject): {
   return { id, method, input: params.input };
 }
 
-function deadlineExpiredResponse(id: string): JsonObject {
-  return {
-    jsonrpc: '2.0',
-    id,
-    error: {
-      code: DEADLINE_EXPIRED_CODE,
-      message: DEADLINE_EXPIRED_MESSAGE,
-      data: {},
-    },
-  };
-}
+
 
 function methodNotFoundResponse(id: string): JsonObject {
   return {
@@ -151,89 +131,33 @@ function deliveryRejectedResponse(id: string, reason: DeliveryRejectReason): Jso
   };
 }
 
-const DELIVERY_REJECT_REASON_SET = new Set<string>(DELIVERY_REJECT_REASONS);
 const HOST_BOUND_REQUEST_METHODS = new Set([
   'broker.hello',
   'broker.ready',
-  'events.publish',
   'messaging.send',
   'messaging.appendElements',
   'messaging.subscribe',
   'messaging.read',
   'messaging.ack',
   'messaging.snapshot',
+  'streams.read',
 ]);
 
-function isStandaloneMessageDisposition(value: unknown): value is StandaloneMessageDisposition {
-  if (!isObject(value) || typeof value.accepted !== 'boolean') {
-    return false;
-  }
-  if (value.accepted) {
-    return Object.keys(value).length === 1;
-  }
-  return Object.keys(value).length === 2
-    && typeof value.reason === 'string'
-    && DELIVERY_REJECT_REASON_SET.has(value.reason);
-}
-
-async function dispatchMessage(
-  id: string,
-  input: JsonObject,
-  onMessage: StandaloneHostOptions['onMessage'],
-): Promise<JsonObject> {
-  if (onMessage === undefined) {
-    return deliveryRejectedResponse(id, 'NO_HANDLER');
-  }
-
-  let disposition: unknown;
+async function dispatchMessage(id: string, input: JsonObject, delivery: StandaloneHostOptions['delivery']): Promise<JsonObject> {
+  if (!delivery) return deliveryRejectedResponse(id, 'NO_HANDLER');
+  if (!isPluginDeliveryInput(input)) return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
   try {
-    disposition = await onMessage(structuredClone(input) as DeliverInput);
+    const receipt = await delivery(structuredClone(input));
+    if (!isPluginDeliveryReceipt(receipt) || receipt.deliveryId !== input.deliveryId) {
+      return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
+    }
+    return {jsonrpc: '2.0', id, result: {deliveryId: receipt.deliveryId}};
   } catch {
     return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
   }
-
-  if (!isStandaloneMessageDisposition(disposition)) {
-    return deliveryRejectedResponse(id, 'PLUGIN_INTERNAL');
-  }
-  if (!disposition.accepted) {
-    return deliveryRejectedResponse(id, disposition.reason);
-  }
-  return { jsonrpc: '2.0', id, result: { deliveryId: input.deliveryId } };
 }
 
-async function completesBeforeDrainDeadline(
-  onDrain: StandaloneHostOptions['onDrain'],
-  deadlineUnixMs: number,
-): Promise<boolean> {
-  if (Date.now() >= deadlineUnixMs) {
-    return false;
-  }
 
-  const cleanup = Promise.resolve().then(() => onDrain?.({ deadlineUnixMs }));
-  while (true) {
-    const remaining = deadlineUnixMs - Date.now();
-    if (remaining <= 0) {
-      return false;
-    }
-
-    let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const completed = await Promise.race([
-        cleanup.then(() => true),
-        new Promise<false>(resolve => {
-          deadlineTimer = setTimeout(resolve, Math.min(remaining, 2 ** 31 - 1), false);
-        }),
-      ]);
-      if (completed) {
-        return Date.now() < deadlineUnixMs;
-      }
-    } finally {
-      if (deadlineTimer !== undefined) {
-        clearTimeout(deadlineTimer);
-      }
-    }
-  }
-}
 
 function createFrameHandler(options: StandaloneHostOptions) {
   const inFlight = new Map<string, InFlightEntry>();
@@ -250,12 +174,7 @@ function createFrameHandler(options: StandaloneHostOptions) {
       throw new StandaloneProtocolError(`classifier rejected frame as ${dispatch.disposition ?? 'unknown'}`);
     }
 
-    if (frame.value.method === 'host.grants.changed') {
-      // The notification is closed and legal, but S2 has no grant-gated
-      // behavior yet. Accepting it without fabricating a response preserves
-      // its notification semantics while keeping authorization fail-closed.
-      return undefined;
-    }
+
 
     const request = requireRequest(frame.value);
     if (HOST_BOUND_REQUEST_METHODS.has(request.method)) {
@@ -272,18 +191,9 @@ function createFrameHandler(options: StandaloneHostOptions) {
       return { jsonrpc: '2.0', id: request.id, result: { nonce } };
     }
     if (request.method === 'host.messaging.deliver') {
-      return dispatchMessage(request.id, request.input, options.onMessage);
+      return dispatchMessage(request.id, request.input, options.delivery);
     }
-    if (request.method === 'host.lifecycle.drain') {
-      const deadlineUnixMs = request.input.deadlineUnixMs;
-      if (typeof deadlineUnixMs !== 'number') {
-        throw new StandaloneProtocolError('classifier accepted drain without a deadline');
-      }
-      if (!(await completesBeforeDrainDeadline(options.onDrain, deadlineUnixMs))) {
-        return deadlineExpiredResponse(request.id);
-      }
-      return { jsonrpc: '2.0', id: request.id, result: null };
-    }
+
     // No other unsupported method reaches this branch. Keep the assertion so
     // a future ready row cannot silently create standalone-shell behavior.
     throw new StandaloneProtocolError(`unsupported accepted method: ${request.method}`);

@@ -25,6 +25,7 @@ export class ReplyLetterController {
     this.reply = null;
     this.retained = false;
     this.hasNewer = false;
+    this.historyPresentation = null;
     this.selectedMessageId = null;
     this.pauseReasons = new Set();
     this.requestedContinuations = new Set();
@@ -95,6 +96,7 @@ export class ReplyLetterController {
     this.mode = 'compose';
     this.retained = false;
     this.hasNewer = false;
+    this.historyPresentation = null;
     this.selectedMessageId = null;
     this.pauseReasons.clear();
     this.emit();
@@ -164,6 +166,7 @@ export class ReplyLetterController {
       this.reply = presentationPair.reply;
       this.selectedMessageId = presentationPair.replyId;
       this.mode = 'reply';
+      this.historyPresentation = null;
       if (changedReply) {
         this.retained = false;
         this.pauseReasons.clear();
@@ -234,6 +237,7 @@ export class ReplyLetterController {
     this.stopTimer();
     this.reply = null;
     this.retained = false;
+    this.historyPresentation = null;
     this.selectedMessageId = null;
     this.letter = [...this.pending.values()].at(-1) ?? null;
     this.mode = this.letter ? 'sent' : 'idle';
@@ -258,6 +262,7 @@ export class ReplyLetterController {
       this.stopTimer();
       this.reply = null;
       this.retained = false;
+      this.historyPresentation = null;
       this.selectedMessageId = null;
       this.letter = restored ?? [...this.pending.values()].at(-1) ?? null;
       this.mode = this.letter ? 'sent' : 'idle';
@@ -275,6 +280,7 @@ export class ReplyLetterController {
     this.reply = null;
     this.retained = false;
     this.hasNewer = false;
+    this.historyPresentation = null;
     this.selectedMessageId = null;
     this.requestedContinuations.clear();
     this.dismissedReplies.clear();
@@ -287,6 +293,17 @@ export class ReplyLetterController {
     this.stopTimer();
     this.mode = 'history';
     this.retained = true;
+    this.historyPresentation = 'conversation';
+    this.selectedMessageId = messageId;
+    this.hasNewer = false;
+    this.emit();
+  }
+
+  openReplyHistory(messageId = newestHistoryAnchor(this.selectedMessageId, this.settled, this.history)) {
+    this.stopTimer();
+    this.mode = 'history';
+    this.retained = true;
+    this.historyPresentation = 'reply';
     this.selectedMessageId = messageId;
     this.hasNewer = false;
     this.emit();
@@ -325,6 +342,7 @@ export class ReplyLetterController {
       letter: this.letter,
       reply: this.reply,
       retained: this.retained,
+      historyPresentation: this.mode === 'history' ? this.historyPresentation : null,
       selectedMessageId: this.selectedMessageId,
       hasNewer: this.hasNewer,
       blockedReason: this.blockedReason,

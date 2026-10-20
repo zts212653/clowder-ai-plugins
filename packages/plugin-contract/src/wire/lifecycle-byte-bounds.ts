@@ -53,12 +53,10 @@ export interface LifecycleRequestRowEncodedByteBounds {
   readonly maxEncodedErrorBytes: number;
 }
 
-export interface LifecycleNotificationRowEncodedByteBounds {
-  readonly maxEncodedRequestBytes: number;
-}
+
 
 const MAX_REQUEST_ID = 'a'.repeat(REQUEST_ID_MAX_LENGTH);
-const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES];
+
 
 function byteLength(value: object): number {
   return Buffer.byteLength(JSON.stringify(value), 'utf8');
@@ -111,35 +109,15 @@ function repeatedProof(
   return proof(() => maximumFrame, () => nPlusOneFrames);
 }
 
-function grantsChangedFrame(effectiveGrants: readonly string[]): object {
-  return {
-    jsonrpc: '2.0',
-    method: 'host.grants.changed',
-    params: {
-      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
-      input: {
-        grantRevision: WIRE_UINT53_MAX,
-        effectiveGrants,
-      },
-    },
-  };
-}
 
-const longestCapability = ALL_CAPABILITY_VALUES.reduce((longest, capability) =>
-  capability.length > longest.length ? capability : longest,
-);
 
-if (ALL_CAPABILITY_VALUES.length !== MAX_GRANT_ITEMS) {
-  throw new Error('capability cardinality must equal MAX_GRANT_ITEMS for lifecycle proof');
-}
 
-export const HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF = repeatedProof(
-  grantsChangedFrame(ALL_CAPABILITY_VALUES),
-  [{
-    leaf: 'effectiveGrants',
-    frame: grantsChangedFrame([...ALL_CAPABILITY_VALUES, longestCapability]),
-  }],
-);
+
+// The closed vocabulary can grow while the frozen wire array limit stays 28.
+// A legal maximal snapshot contains the 28 longest distinct encoded names.
+
+
+
 
 function pingRequestFrame(
   family: LifecycleByteProofEncodingFamily,
@@ -197,46 +175,13 @@ export const HOST_LIFECYCLE_PING_RESULT_BYTE_PROOF = proof(
   ],
 );
 
-function drainRequestFrame(
-  requestId = MAX_REQUEST_ID,
-  deadlineUnixMs: number = WIRE_UINT53_MAX,
-): object {
-  return {
-    jsonrpc: '2.0',
-    id: requestId,
-    method: 'host.lifecycle.drain',
-    params: {
-      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
-      input: { deadlineUnixMs },
-    },
-  };
-}
 
-function drainResultFrame(requestId = MAX_REQUEST_ID): object {
-  return { jsonrpc: '2.0', id: requestId, result: null };
-}
 
-export const HOST_LIFECYCLE_DRAIN_REQUEST_BYTE_PROOF = repeatedProof(
-  drainRequestFrame(),
-  [
-    {
-      leaf: 'requestId',
-      frame: drainRequestFrame('a'.repeat(REQUEST_ID_MAX_LENGTH + 1)),
-    },
-    {
-      leaf: 'deadlineUnixMs',
-      frame: drainRequestFrame(MAX_REQUEST_ID, WIRE_UINT53_MAX + 1),
-    },
-  ],
-);
 
-export const HOST_LIFECYCLE_DRAIN_RESULT_BYTE_PROOF = repeatedProof(
-  drainResultFrame(),
-  [{
-    leaf: 'requestId',
-    frame: drainResultFrame('a'.repeat(REQUEST_ID_MAX_LENGTH + 1)),
-  }],
-);
+
+
+
+
 
 function standardErrorEnvelopes() {
   return STANDARD_ERROR_CODES.flatMap((code) => {
@@ -301,27 +246,12 @@ export const HOST_LIFECYCLE_PING_ERROR_BYTE_PROOF = errorProof(
   standardErrorEnvelopes(),
 );
 
-export const HOST_LIFECYCLE_DRAIN_ERROR_BYTE_PROOF = errorProof([
-  ...standardErrorEnvelopes(),
-  deadlineExpiredEnvelope(),
-]);
+
 
 export const LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS = {
-  'host.grants.changed': {
-    maxEncodedRequestBytes: HOST_GRANTS_CHANGED_NOTIFICATION_BYTE_PROOF.maxEncodedBytes,
-  },
-  'host.lifecycle.ping': {
-    maxEncodedRequestBytes: HOST_LIFECYCLE_PING_REQUEST_BYTE_PROOF.maxEncodedBytes,
-    maxEncodedResultBytes: HOST_LIFECYCLE_PING_RESULT_BYTE_PROOF.maxEncodedBytes,
-    maxEncodedErrorBytes: HOST_LIFECYCLE_PING_ERROR_BYTE_PROOF.maxEncodedBytes,
-  },
-  'host.lifecycle.drain': {
-    maxEncodedRequestBytes: HOST_LIFECYCLE_DRAIN_REQUEST_BYTE_PROOF.maxEncodedBytes,
-    maxEncodedResultBytes: HOST_LIFECYCLE_DRAIN_RESULT_BYTE_PROOF.maxEncodedBytes,
-    maxEncodedErrorBytes: HOST_LIFECYCLE_DRAIN_ERROR_BYTE_PROOF.maxEncodedBytes,
-  },
-} as const satisfies {
-  readonly 'host.grants.changed': LifecycleNotificationRowEncodedByteBounds;
-  readonly 'host.lifecycle.ping': LifecycleRequestRowEncodedByteBounds;
-  readonly 'host.lifecycle.drain': LifecycleRequestRowEncodedByteBounds;
-};
+ 'host.lifecycle.ping': {
+  maxEncodedRequestBytes:HOST_LIFECYCLE_PING_REQUEST_BYTE_PROOF.maxEncodedBytes,
+  maxEncodedResultBytes:HOST_LIFECYCLE_PING_RESULT_BYTE_PROOF.maxEncodedBytes,
+  maxEncodedErrorBytes:HOST_LIFECYCLE_PING_ERROR_BYTE_PROOF.maxEncodedBytes,
+ },
+} as const satisfies {readonly 'host.lifecycle.ping':LifecycleRequestRowEncodedByteBounds};

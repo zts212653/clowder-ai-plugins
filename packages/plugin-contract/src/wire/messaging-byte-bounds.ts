@@ -19,6 +19,8 @@ import type {
 import type {
   DeliverInput,
   DeliverResult,
+  MediaReadInput,
+  MediaReadResult,
   MessagingAckRequest,
   MessagingAckResult,
   ReadInput,
@@ -41,6 +43,7 @@ import {
   DELIVERY_REJECTED_CODE,
   DELIVERY_REJECTED_MESSAGE,
   DELIVERY_REJECT_REASONS,
+  LIFECYCLE_REJECT_REASONS,
   DOMAIN_ERROR_CODE,
   DOMAIN_ERROR_MESSAGE,
   ERROR_CODE_TO_MESSAGE,
@@ -137,15 +140,15 @@ function maximumString(
 function exactPayload(
   family: MessagingByteProofEncodingFamily,
   targetBytes: number,
-): Readonly<Record<string, unknown>> {
+): Readonly<Record<string, unknown>> & { readonly id: string; readonly kind: string; readonly v: 1 } {
   const scalar = familyScalar(family);
-  const empty = { data: '', pad: '' };
+  const empty = { id: 'proof', kind: 'proof', v: 1 as const, data: '', pad: '' };
   const staticBytes = byteLength(empty);
-  const unitBytes = byteLength({ data: scalar, pad: '' }) - staticBytes;
+  const unitBytes = byteLength({ ...empty, data: scalar }) - staticBytes;
   const repetitions = Math.floor((targetBytes - staticBytes) / unitBytes);
   const data = scalar.repeat(repetitions);
-  const usedBytes = byteLength({ data, pad: '' });
-  const payload = { data, pad: 'a'.repeat(targetBytes - usedBytes) };
+  const usedBytes = byteLength({ ...empty, data });
+  const payload = { ...empty, data, pad: 'a'.repeat(targetBytes - usedBytes) };
   if (byteLength(payload) !== targetBytes) {
     throw new Error(`failed to construct exact ${targetBytes}-byte messaging payload`);
   }
@@ -233,6 +236,29 @@ function maximumEnvelope(family: MessagingByteProofEncodingFamily): MessageEnvel
   };
 }
 
+function maximumFrontendDisplayUrl(length = 2048): string {
+  const prefix = 'https://example.invalid/';
+  return `${prefix}${'a'.repeat(length - prefix.length)}`;
+}
+
+function maximumPresentation(
+  family: MessagingByteProofEncodingFamily,
+  salt = 0,
+) {
+  return {
+    actor: {
+      displayName: maximumString(family, 256, salt + 1),
+      emoji: maximumString(family, 32, salt + 2),
+    },
+    thread: {
+      shortId: maximumString(family, 128, salt + 3),
+      title: maximumString(family, 512, salt + 4),
+      featId: maximumString(family, 128, salt + 5),
+    },
+    deepLinkUrl: maximumFrontendDisplayUrl(),
+  };
+}
+
 function requestFrame(method: MessagingRowMethod, input: unknown, requestId = MAX_REQUEST_ID) {
   return {
     jsonrpc: '2.0',
@@ -250,7 +276,7 @@ export function messagingMaximumRequestInput(
   method: MessagingRowMethod,
   family: MessagingByteProofEncodingFamily,
 ): SendInput | AppendElementsRequest | SubscribeInput | ReadInput |
-  MessagingAckRequest | SnapshotInput | DeliverInput {
+  MessagingAckRequest | SnapshotInput | DeliverInput | MediaReadInput {
   switch (method) {
     case 'messaging.send':
       return maximumDraft(family);
@@ -276,22 +302,29 @@ export function messagingMaximumRequestInput(
         maxItems: 64,
         pageToken: maximumString(family, 512, 2),
       };
+    case 'streams.read':
+      return {
+        reference: `hmr_${maximumString(family, 2044, 1)}`,
+        offset: WIRE_UINT53_MAX,
+        limit: 524_288,
+      };
     case 'host.messaging.deliver':
       return {
         deliveryId: maximumString(family, 128, 1),
-        threadHandle: {
-          kind: 'thread_handle',
-          handle: maximumString(family, 256, 2),
-        },
+        kind: 'message',
+        executionId: maximumString(family, 128, 2),
+        threadId: maximumEnvelope(family).threadId,
         envelope: maximumEnvelope(family),
+        presentation: maximumPresentation(family, 3),
       };
+
   }
 }
 
 export function messagingMaximumResult(
   method: Exclude<MessagingRowMethod, 'messaging.read' | 'messaging.snapshot'>,
   family: MessagingByteProofEncodingFamily,
-): SendReceipt | AppendReceipt | SubscribeResult | MessagingAckResult | DeliverResult {
+): SendReceipt | AppendReceipt | SubscribeResult | MessagingAckResult | DeliverResult | MediaReadResult {
   switch (method) {
     case 'messaging.send':
       return {
@@ -313,8 +346,15 @@ export function messagingMaximumResult(
       return { subscriptionId: maximumString(family, 128, 1) };
     case 'messaging.ack':
       return null;
+    case 'streams.read':
+      return {
+        offset: WIRE_UINT53_MAX,
+        dataBase64: 'A'.repeat(699_048),
+        done: true,
+      };
     case 'host.messaging.deliver':
       return { deliveryId: maximumString(family, 128, 1) };
+
   }
 }
 
@@ -329,7 +369,7 @@ function payloadNPlusOneDraft(
         kind: 'rich_block' as const,
         payload: exactPayload(
           family,
-          index === 4 ? 20 : MAX_ELEMENT_PAYLOAD_BYTES,
+          index === 4 ? 64 : MAX_ELEMENT_PAYLOAD_BYTES,
         ),
       }))
     : [{
@@ -388,19 +428,102 @@ export function messagingRequestNPlusOneInputs(
         { leaf: 'maxItems', input: { subscriptionId: 'a', maxItems: 65 } },
         { leaf: 'pageToken', input: { subscriptionId: 'a', maxItems: 64, pageToken: maximumString(family, 513) } },
       ];
+    case 'streams.read':
+      return [
+        { leaf: 'reference', input: { reference: `hmr_${maximumString(family, 2045)}`, offset: 0, limit: 1 } },
+        { leaf: 'limit', input: { reference: 'hmr_a', offset: 0, limit: 524_289 } },
+      ];
     case 'host.messaging.deliver': {
       const maximum = messagingMaximumRequestInput(method, family) as DeliverInput;
+      if (maximum.kind !== 'message') throw new Error('message arm supplies the delivery byte maximum');
       return [
         { leaf: 'deliveryId', input: { ...maximum, deliveryId: maximumString(family, 129) } },
+        { leaf: 'executionId', input: { ...maximum, executionId: maximumString(family, 129) } },
         {
-          leaf: 'threadHandle.handle',
+          leaf: 'threadId',
           input: {
             ...maximum,
-            threadHandle: { kind: 'thread_handle', handle: maximumString(family, 257) },
+            threadId: maximumString(family, 513),
+          },
+        },
+        {
+          leaf: 'presentation.actor.displayName',
+          input: {
+            ...maximum,
+            presentation: {
+              ...maximum.presentation!,
+              actor: {
+                ...maximum.presentation!.actor,
+                displayName: maximumString(family, 257),
+              },
+            },
+          },
+        },
+        {
+          leaf: 'presentation.actor.emoji',
+          input: {
+            ...maximum,
+            presentation: {
+              ...maximum.presentation!,
+              actor: {
+                ...maximum.presentation!.actor,
+                emoji: maximumString(family, 33),
+              },
+            },
+          },
+        },
+        {
+          leaf: 'presentation.thread.shortId',
+          input: {
+            ...maximum,
+            presentation: {
+              ...maximum.presentation!,
+              thread: {
+                ...maximum.presentation!.thread,
+                shortId: maximumString(family, 129),
+              },
+            },
+          },
+        },
+        {
+          leaf: 'presentation.thread.title',
+          input: {
+            ...maximum,
+            presentation: {
+              ...maximum.presentation!,
+              thread: {
+                ...maximum.presentation!.thread,
+                title: maximumString(family, 513),
+              },
+            },
+          },
+        },
+        {
+          leaf: 'presentation.thread.featId',
+          input: {
+            ...maximum,
+            presentation: {
+              ...maximum.presentation!,
+              thread: {
+                ...maximum.presentation!.thread,
+                featId: maximumString(family, 129),
+              },
+            },
+          },
+        },
+        {
+          leaf: 'presentation.deepLinkUrl',
+          input: {
+            ...maximum,
+            presentation: {
+              ...maximum.presentation!,
+              deepLinkUrl: maximumFrontendDisplayUrl(2049),
+            },
           },
         },
       ];
     }
+
   }
 }
 
@@ -425,8 +548,14 @@ export function messagingResultNPlusOneInputs(
       return [{ leaf: 'subscriptionId', result: { subscriptionId: maximumString(family, 129) } }];
     case 'messaging.ack':
       return [];
+    case 'streams.read':
+      return [{
+        leaf: 'dataBase64',
+        result: { offset: 0, dataBase64: 'A'.repeat(699_053), done: true },
+      }];
     case 'host.messaging.deliver':
       return [{ leaf: 'deliveryId', result: { deliveryId: maximumString(family, 129) } }];
+
   }
 }
 
@@ -521,6 +650,8 @@ const MESSAGING_ERROR_CODES = [
   'CONFLICT',
   'RETRYABLE_INFLIGHT',
   'STALE_CURSOR',
+  'MEDIA_ACCESS_DENIED',
+  'MESSAGE_NOT_PUBLISHED',
 ] as const;
 
 function longest(values: readonly string[]): string {
@@ -607,6 +738,7 @@ export const MESSAGING_REQUEST_BYTE_PROOFS = Object.fromEntries(
     'messaging.read',
     'messaging.ack',
     'messaging.snapshot',
+    'streams.read',
     'host.messaging.deliver',
   ] as const).map(method => [method, requestProof(method)]),
 ) as Readonly<Record<MessagingRowMethod, MessagingEncodedByteProof>>;
@@ -618,6 +750,7 @@ export const MESSAGING_RESULT_BYTE_PROOFS = {
   'messaging.read': assemblerBudgetProof(),
   'messaging.ack': resultProof('messaging.ack'),
   'messaging.snapshot': assemblerBudgetProof(),
+  'streams.read': resultProof('streams.read'),
   'host.messaging.deliver': resultProof('host.messaging.deliver'),
 } as const satisfies Readonly<Record<MessagingRowMethod, MessagingEncodedByteProof>>;
 

@@ -1,0 +1,1495 @@
+/**
+ * Community Issue + Board Routes (F168)
+ *
+ * POST   /api/community-issues              → 创建 issue 台账
+ * GET    /api/community-issues?repo=xxx      → 列出 repo 下 issues
+ * GET    /api/community-issues/:id           → 获取单个
+ * PATCH  /api/community-issues/:id           → 更新状态/字段
+ * DELETE /api/community-issues/:id           → 删除
+ * POST   /api/community-issues/:id/dispatch  → 手动触发 triage
+ * POST   /api/community-issues/:id/triage-complete → 猫上报 triage 结果
+ * POST   /api/community-issues/:id/resolve   → co-creator拍板 accept/decline
+ * POST   /api/community-issues/:id/report   → D1: 标记已回复（case.reported）
+ * POST   /api/community-issues/:id/waive-closure → D1: 免除公开回复要求
+ * GET    /api/community-board?repo=xxx       → 聚合看板（issues + PR projection）
+ */
+
+import { createHash, randomUUID } from 'node:crypto';
+import {
+  type CatId,
+  type CommunityEvent,
+  createCatId,
+  DEFAULT_INTAKE_CHECKLIST,
+  parseIssueSubjectKey,
+  parsePrSubjectKey,
+  validateIntakeChecklist,
+} from '../model/index.js';
+import type { FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
+import type { ICommunityIssueStore } from '../domains/community/ports/CommunityIssueStore.js';
+import type { ICommunityPrStore } from '../domains/community/ports/CommunityPrStore.js';
+import type { CommunityTracking as ITaskStore } from '../domains/community/ports/CommunityTracking.js';
+import type { CommunityThreads } from '../domains/community/ports/CommunityThreads.js';
+import type { ICommunityEventLog } from '../domains/community/CommunityEventLog.js';
+import type { ICommunityObjectStore } from '../domains/community/CommunityObjectStore.js';
+import type { ICommunityRepoConfigStore } from '../domains/community/CommunityRepoConfigStore.js';
+import { registerRoutingTracking } from '../domains/community/community-auto-tracking.js';
+import { computeClosureChecklist } from '../domains/community/community-closure-checklist.js';
+import { parseRouteRecommendation } from '../domains/community/community-route-recommendation.js';
+import { derivePrGroup } from '../domains/community/derivePrGroup.js';
+import { type GhIssueFull, mapGitHubIssue } from '../domains/community/github/GitHubIssueFetcher.js';
+import { type GhPrFull, type GhPrReview, mapGitHubPr } from '../domains/community/github/GitHubPrFetcher.js';
+import type { NarratorDeliveryDraft } from '../domains/community/narrator/SdkNarratorDelivery.js';
+import type { NarratorSpawnParams } from '../domains/community/narrator/narrator-briefing.js';
+import { TriageOrchestrator } from '../domains/community/TriageOrchestrator.js';
+import type { CommunityRequestContext } from './community-request-context.js';
+import { type CommunityDecisionQueueFindingStore, communityDecisionQueueRoutes } from './community-decision-queue.js';
+
+export interface CommunityIssuesRoutesOptions {
+  verifyPublicIssueComment?: (input: { repo: string; issueNumber: number; url: string }) => Promise<boolean>;
+  requestContext: CommunityRequestContext;
+  communityIssueStore: ICommunityIssueStore;
+  taskStore: ITaskStore;
+  threadStore?: CommunityThreads;
+  fetchIssues?: (repo: string) => Promise<GhIssueFull[]>;
+  communityPrStore?: ICommunityPrStore;
+  fetchPrs?: (repo: string) => Promise<GhPrFull[]>;
+  fetchPrReviews?: (repo: string, prNumber: number) => Promise<GhPrReview[]>;
+  /** Cloud R2 P2: optional cursor seeder for auto-registered issue_tracking tasks.
+   * When provided, the initial comment cursor is seeded to the current latest
+   * comment ID so the first poll does not replay all historical comments. */
+  fetchIssueCommentCursor?: (repoFullName: string, issueNumber: number) => Promise<number>;
+  // F168 Phase A: community event log + projector (best-effort, optional)
+  eventLog?: ICommunityEventLog;
+  projector?: { apply(event: CommunityEvent): Promise<void>; applyChecked(event: CommunityEvent): Promise<boolean> };
+  // F168 Phase A Task 9: object store for board projection enrichment
+  objectStore?: ICommunityObjectStore;
+  /** Production: freeze the exact owner-configured delivery in the same workflow CAS as dispatch. */
+  narrator?: { prepare(input: NarratorSpawnParams): Promise<NarratorDeliveryDraft | null> };
+  // F168 Phase D D3/D4: reconciliation finding store for read model
+  // D-PR2 AC line 305: return open/acknowledged/waived/resolved findings for D-PR3 UX
+  findingStore?: CommunityDecisionQueueFindingStore;
+  // F168 Phase F: per-repo routing config for auto-route (SO-3)
+  repoConfigStore?: Pick<ICommunityRepoConfigStore, 'getByRepo'>;
+}
+
+const VALID_ISSUE_TYPES = ['bug', 'feature', 'enhancement', 'question'] as const;
+const VALID_ISSUE_STATES = ['unreplied', 'discussing', 'pending-decision', 'accepted', 'declined', 'closed'] as const;
+const VALID_REPLY_STATES = ['unreplied', 'replied'] as const;
+const VALID_CONSENSUS_STATES = ['discussing', 'consensus-reached', 'stalled'] as const;
+
+const createSchema = z.object({
+  repo: z.string().min(1),
+  issueNumber: z.number().int().positive(),
+  issueType: z.enum(VALID_ISSUE_TYPES),
+  title: z.string().min(1).max(300),
+});
+
+const updateSchema = z
+  .object({
+    state: z.enum(VALID_ISSUE_STATES).optional(),
+    replyState: z.enum(VALID_REPLY_STATES).optional(),
+    consensusState: z.enum(VALID_CONSENSUS_STATES).optional(),
+    issueType: z.enum(VALID_ISSUE_TYPES).optional(),
+    title: z.string().min(1).max(300).optional(),
+    assignedThreadId: z.string().nullable().optional(),
+    assignedCatId: z.string().nullable().optional(),
+    linkedPrNumbers: z.array(z.number().int().positive()).optional(),
+    directionCard: z.record(z.unknown()).nullable().optional(),
+    ownerDecision: z.enum(['accepted', 'declined']).nullable().optional(),
+    relatedFeature: z.string().nullable().optional(),
+    lastActivity: z.object({ at: z.number(), event: z.string() }).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  });
+
+export const communityIssueRoutes: FastifyPluginAsync<CommunityIssuesRoutesOptions> = async (app, opts) => {
+  const { communityIssueStore, taskStore, requestContext } = opts;
+  const resolveUserId = requestContext.userId.bind(requestContext);
+  const requireCallbackPrincipal = requestContext.requireCaller.bind(requestContext);
+
+  app.post('/api/community-issues', async (request, reply) => {
+    const result = createSchema.safeParse(request.body);
+    if (!result.success) {
+      reply.status(400);
+      return { error: 'Invalid request body', details: result.error.issues };
+    }
+
+    const item = await communityIssueStore.create(result.data);
+    if (!item) {
+      const existing = await communityIssueStore.getByRepoAndNumber(result.data.repo, result.data.issueNumber);
+      reply.status(409);
+      return { error: 'Issue already tracked', existingId: existing?.id ?? null };
+    }
+
+    reply.status(201);
+    return item;
+  });
+
+  app.get('/api/community-issues', async (request) => {
+    const { repo } = request.query as { repo?: string };
+    if (repo) {
+      return { issues: await communityIssueStore.listByRepo(repo) };
+    }
+    return { issues: await communityIssueStore.listAll() };
+  });
+
+  app.get('/api/community-issues/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const item = await communityIssueStore.get(id);
+    if (!item) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    return item;
+  });
+
+  app.patch('/api/community-issues/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = updateSchema.safeParse(request.body);
+    if (!result.success) {
+      reply.status(400);
+      return { error: 'Invalid request body', details: result.error.issues };
+    }
+
+    const updated = await communityIssueStore.update(id, result.data);
+    if (!updated) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+
+    return updated;
+  });
+
+  app.delete('/api/community-issues/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const deleted = await communityIssueStore.delete(id);
+    if (!deleted) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    reply.status(204);
+  });
+
+  app.post('/api/community-issues/:id/dispatch', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const item = await communityIssueStore.get(id);
+    if (!item) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    if (item.state !== 'unreplied') {
+      reply.status(409);
+      return { error: 'Issue already dispatched or assigned' };
+    }
+    const { threadId } = (request.body ?? {}) as { threadId?: string };
+    const subjectKey = `issue:${item.repo}#${item.issueNumber}`;
+    const dispatchSourceEventId = `dispatch:${id}:${randomUUID()}`;
+    const params = { caseId: id, subjectKey, sourceEventId: dispatchSourceEventId,
+      briefingContext: `${item.title} [${item.issueType}] (${item.repo}#${item.issueNumber})` };
+    const delivery = opts.narrator ? await opts.narrator.prepare(params) : null;
+    const communityEvent: CommunityEvent = {
+      sourceEventId: dispatchSourceEventId, subjectKey, kind: 'case.triaged', classification: 'state-changing',
+      payload: { threadId: threadId ?? null, dispatchedAt: Date.now() }, at: Date.now(),
+    };
+    // Never commit discussing without its recoverable intent. A concurrent
+    // terminal transition wins the CAS guard and leaves no narrator delivery.
+    const updated = await communityIssueStore.update(id, {
+      state: 'discussing', ...(threadId && { assignedThreadId: threadId }),
+      ...(opts.narrator && { narratorDelivery: delivery }),
+    }, 'unreplied');
+    if (!updated) { reply.status(409); return { error: 'Issue changed during dispatch' }; }
+    if (opts.eventLog) {
+      try {
+        const { appended } = await opts.eventLog.append(communityEvent);
+        if (appended && opts.projector) await opts.projector.apply(communityEvent);
+      } catch (error) {
+        // The workflow and narrator intent are already committed. Projection repair is separate.
+        request.log.error({ error, subjectKey }, 'Community dispatch projection pending');
+      }
+    }
+
+    return updated;
+  });
+
+  app.post('/api/community-issues/sync', async (request, reply) => {
+    const { repo } = request.query as { repo?: string };
+    if (!repo) {
+      reply.status(400);
+      return { error: 'Missing repo query parameter' };
+    }
+    if (!opts.fetchIssues) {
+      reply.status(501);
+      return { error: 'GitHub issue fetching not configured' };
+    }
+
+    const ghIssues = await opts.fetchIssues(repo);
+    let created = 0;
+    let updated = 0;
+    let unchanged = 0;
+
+    const LOCAL_LIFECYCLE_STATES = new Set(['pending-decision', 'accepted', 'declined']);
+
+    for (const gh of ghIssues) {
+      const mapped = mapGitHubIssue(gh);
+      const replyState = mapped.state === 'unreplied' ? 'unreplied' : 'replied';
+      const existing = await communityIssueStore.getByRepoAndNumber(repo, gh.number);
+      if (!existing) {
+        await communityIssueStore.create({
+          repo,
+          issueNumber: gh.number,
+          issueType: mapped.issueType,
+          title: gh.title,
+        });
+        if (mapped.state !== 'unreplied' || replyState !== 'unreplied') {
+          const fresh = await communityIssueStore.getByRepoAndNumber(repo, gh.number);
+          if (fresh) await communityIssueStore.update(fresh.id, { state: mapped.state, replyState });
+        }
+        created++;
+      } else if (LOCAL_LIFECYCLE_STATES.has(existing.state) && mapped.state !== 'closed') {
+        const titleChanged = existing.title !== gh.title;
+        if (titleChanged) {
+          await communityIssueStore.update(existing.id, { title: gh.title });
+          updated++;
+        } else {
+          unchanged++;
+        }
+      } else if (existing.state !== mapped.state || existing.title !== gh.title || existing.replyState !== replyState) {
+        await communityIssueStore.update(existing.id, { state: mapped.state, title: gh.title, replyState });
+        updated++;
+      } else {
+        unchanged++;
+      }
+    }
+
+    return { repo, created, updated, unchanged, total: ghIssues.length };
+  });
+
+  app.post('/api/community-issues/sync-prs', async (request, reply) => {
+    const { repo } = request.query as { repo?: string };
+    if (!repo) {
+      reply.status(400);
+      return { error: 'Missing repo query parameter' };
+    }
+    if (!opts.fetchPrs || !opts.communityPrStore) {
+      reply.status(501);
+      return { error: 'GitHub PR fetching not configured' };
+    }
+
+    const ghPrs = await opts.fetchPrs(repo);
+    let created = 0;
+    let updated = 0;
+    let unchanged = 0;
+
+    const openPrs = ghPrs.filter((p) => p.state === 'open');
+    const CONCURRENCY = 5;
+    const reviewsByNumber = new Map<number, Array<{ user: string; state: string; commit_id: string }>>();
+    if (opts.fetchPrReviews && openPrs.length > 0) {
+      for (let i = 0; i < openPrs.length; i += CONCURRENCY) {
+        const batch = openPrs.slice(i, i + CONCURRENCY);
+        // Unavailable reviews are not evidence of no reviews. Finish all reads
+        // before mutating the workflow so a failed sync retains prior truth.
+        const results = await Promise.all(batch.map((p) => opts.fetchPrReviews!(repo, p.number)));
+        for (let j = 0; j < batch.length; j++) reviewsByNumber.set(batch[j].number, results[j]);
+      }
+    }
+
+    for (const pr of ghPrs) {
+      const reviews = reviewsByNumber.get(pr.number) ?? [];
+      const mapped = mapGitHubPr(pr, reviews);
+      const existing = await opts.communityPrStore.getByRepoAndNumber(repo, pr.number);
+
+      if (!existing) {
+        await opts.communityPrStore.create({
+          repo,
+          prNumber: pr.number,
+          title: pr.title,
+          author: pr.user,
+          state: mapped.state,
+          replyState: mapped.replyState,
+          headSha: pr.head_sha,
+          draft: pr.draft,
+        });
+        if (mapped.lastReviewedSha) {
+          const fresh = await opts.communityPrStore.getByRepoAndNumber(repo, pr.number);
+          if (fresh) await opts.communityPrStore.update(fresh.id, { lastReviewedSha: mapped.lastReviewedSha });
+        }
+        created++;
+      } else if (
+        existing.state !== mapped.state ||
+        existing.replyState !== mapped.replyState ||
+        existing.title !== pr.title ||
+        existing.headSha !== pr.head_sha
+      ) {
+        await opts.communityPrStore.update(existing.id, {
+          state: mapped.state,
+          replyState: mapped.replyState,
+          title: pr.title,
+          headSha: pr.head_sha,
+          ...(mapped.lastReviewedSha ? { lastReviewedSha: mapped.lastReviewedSha } : {}),
+        });
+        updated++;
+      } else {
+        unchanged++;
+      }
+    }
+
+    return { repo, created, updated, unchanged, total: ghPrs.length };
+  });
+
+  // F168 Phase C C2.1: narrator extension fields added (R1 fix — Zod must not strip them).
+  // routeRecommendation is a discriminated union keyed on `kind`.
+  const routeRecommendationSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('existing-thread'), threadId: z.string().min(1) }),
+    z.object({ kind: z.literal('new-thread') }),
+    z.object({ kind: z.literal('decline') }),
+  ]);
+
+  const triageCompleteSchema = z.object({
+    catId: z.string().min(1),
+    verdict: z.enum(['WELCOME', 'NEEDS-DISCUSSION', 'POLITELY-DECLINE']),
+    questions: z
+      .array(
+        z.object({
+          id: z.enum(['Q1', 'Q2', 'Q3', 'Q4', 'Q5']),
+          result: z.enum(['PASS', 'WARN', 'FAIL', 'UNKNOWN']),
+        }),
+      )
+      .length(5),
+    reasonCode: z.string().optional(),
+    relatedFeature: z.string().nullable().optional(),
+    // C2.1 narrator extension fields — all optional for INV-12 backward compat
+    authoredByRole: z.enum(['narrator', 'case-owner', 'reconciler']).optional(),
+    narrative: z.string().optional(),
+    evidenceRefs: z.array(z.string()).optional(),
+    routeRecommendation: routeRecommendationSchema.optional(),
+    recommendedOwnerRole: z.enum(['narrator', 'case-owner', 'reconciler']).optional(),
+  });
+
+  app.post('/api/community-issues/:id/triage-complete', async (request, reply) => {
+    const caller = requireCallbackPrincipal(request, reply);
+    if (!caller) return;
+    const { id } = request.params as { id: string };
+    const result = triageCompleteSchema.safeParse(request.body);
+    if (!result.success) {
+      reply.status(400);
+      return { error: 'Invalid request body', details: result.error.issues };
+    }
+
+    if (result.data.catId !== caller.catId) {
+      return reply.code(403).send({ error: 'Body catId does not match authenticated principal' });
+    }
+
+    const issue = await communityIssueStore.get(id);
+    if (!issue) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    if (issue.state !== 'discussing' && issue.state !== 'pending-decision') {
+      reply.status(409);
+      return { error: 'Issue not in triageable state', currentState: issue.state };
+    }
+
+    await caller.assertCurrent();
+    const entry = { ...result.data, catId: caller.catId, timestamp: Date.now() } as import('../model/index.js').TriageEntry;
+    const orchestrator = new TriageOrchestrator({
+      communityIssueStore,
+      threadStore: opts.threadStore,
+      repoConfigStore: opts.repoConfigStore,
+    });
+    const triageResult = await orchestrator.recordTriageEntry(id, entry);
+
+    // P1-R2-3: Auto-routed issues must emit case.routed event + register tracking,
+    // matching the /resolve path's integration. Without this, auto-routed issues
+    // won't update CommunityObjectStore projection or create issue_tracking tasks.
+    if (triageResult.action === 'auto-routed' && opts.eventLog) {
+      try {
+        const subjectKey = `issue:${issue.repo}#${issue.issueNumber}`;
+        const routedEvent: CommunityEvent = {
+          sourceEventId: `routed:${id}:${randomUUID()}`,
+          subjectKey,
+          kind: 'case.routed',
+          classification: 'state-changing',
+          payload: {
+            userId: resolveUserId(request),
+            ownerThreadId: triageResult.threadId,
+            catId: triageResult.targetCatId,
+            ownerRole: triageResult.targetCatId,
+            relatedFeature: issue.relatedFeature ?? null,
+            routedAt: Date.now(),
+          },
+          at: Date.now(),
+        };
+        const { appended } = await opts.eventLog.append(routedEvent);
+        if (appended) {
+          if (opts.projector) {
+            try {
+              await opts.projector.apply(routedEvent);
+            } catch {
+              // best-effort — projector failure does not block tracking
+            }
+          }
+          await registerRoutingTracking(routedEvent, opts.taskStore, {
+            fetchCommentCursor: opts.fetchIssueCommentCursor,
+            userId: resolveUserId(request) ?? undefined,
+          });
+        }
+      } catch {
+        // Best-effort — event log failure never blocks triage-complete
+      }
+    }
+
+    return triageResult;
+  });
+
+  const resolveSchema = z.object({
+    decision: z.enum(['accepted', 'declined']),
+    relatedFeature: z.string().nullable().optional(),
+    threadId: z.string().min(1).optional(),
+    catId: z.string().min(1).optional(),
+    routeRecommendation: routeRecommendationSchema.optional(),
+  });
+
+  app.post('/api/community-issues/:id/resolve', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const result = resolveSchema.safeParse(request.body);
+    if (!result.success) {
+      reply.status(400);
+      return { error: 'Invalid body', details: result.error.issues };
+    }
+
+    const issue = await communityIssueStore.get(id);
+    if (!issue) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    if (issue.state !== 'pending-decision') {
+      reply.status(409);
+      return { error: 'Issue not pending decision', currentState: issue.state };
+    }
+
+    const userId = resolveUserId(request);
+    if (!userId) return reply.code(401).send({ error: 'Authenticated owner required' });
+
+    // C3.1: routeRecommendation → effectiveThreadId mapping
+    let effectiveThreadId = result.data.threadId ?? undefined;
+    const rr = result.data.routeRecommendation;
+    if (rr && result.data.decision === 'accepted') {
+      if (rr.kind === 'existing-thread') {
+        effectiveThreadId = rr.threadId;
+      } else if (rr.kind === 'new-thread') {
+        // Cloud R2 P1: new-thread must create a thread even when relatedFeature exists.
+        // Without explicit creation here, routeAccepted takes the relatedFeature early
+        // return and skips thread creation, leaving the issue without assignedThreadId.
+        if (opts.threadStore) {
+          const newThread = await opts.threadStore.create(userId, `Community: ${issue.title}`, issue.id);
+          effectiveThreadId = newThread.id;
+        }
+      }
+      // kind === 'decline': handled by decision='declined' path (not reachable here)
+    }
+
+    // INV-7 (consolidated Cloud R2 P2 + R3 P1 + R4 P2): validate effectiveThreadId if
+    // it came from user input (legacy threadId or existing-thread recommendation). Skip
+    // for new-thread — we just created it. Fail-closed when threadStore is unavailable.
+    if (effectiveThreadId && result.data.decision === 'accepted' && rr?.kind !== 'new-thread') {
+      if (!opts.threadStore) {
+        reply.status(500);
+        return { error: 'Thread validation unavailable — threadStore not wired' };
+      }
+      const targetThread = await opts.threadStore.get(effectiveThreadId);
+      if (!targetThread || targetThread.deletedAt) {
+        reply.status(404);
+        return { error: `Target thread not found: ${effectiveThreadId}` };
+      }
+    }
+
+    const orchestrator = new TriageOrchestrator({
+      communityIssueStore,
+      threadStore: opts.threadStore,
+      repoConfigStore: opts.repoConfigStore,
+    });
+    if (result.data.decision === 'accepted') {
+      await orchestrator.routeAccepted(
+        id,
+        result.data.relatedFeature ?? issue.relatedFeature,
+        userId,
+        effectiveThreadId,
+      );
+    } else {
+      await orchestrator.routeDeclined(id);
+    }
+    if (result.data.catId) {
+      await communityIssueStore.update(id, { assignedCatId: result.data.catId });
+    }
+
+    // Cloud R11 P1: routeAccepted() may auto-create a thread (assignedThreadId) when
+    // no threadId is supplied in the request body. Re-read the store to resolve the
+    // actual thread ID so case.routed is always emitted for accepted cases.
+    // C3.1 Cloud P2: use effectiveThreadId (which incorporates routeRecommendation)
+    // instead of raw result.data.threadId, so case.routed/tracking align with actual routing.
+    let resolvedThreadId = effectiveThreadId;
+    if (result.data.decision === 'accepted' && !resolvedThreadId) {
+      resolvedThreadId = (await communityIssueStore.get(id))?.assignedThreadId ?? undefined;
+    }
+
+    // Commit a distinct route intent, then attempt its materialized collection.
+    // The schedule reconciles committed journal intents if this hint fails.
+    if (result.data.decision === 'accepted' && opts.eventLog && resolvedThreadId && result.data.catId) {
+      try {
+        const subjectKey = `issue:${issue.repo}#${issue.issueNumber}`;
+        const routedEvent: CommunityEvent = {
+          sourceEventId: `routed:${id}:${randomUUID()}`,
+          subjectKey,
+          kind: 'case.routed',
+          classification: 'state-changing',
+          payload: {
+            userId,
+            ownerThreadId: resolvedThreadId,
+            catId: result.data.catId,
+            // Cloud R7 P2: ownerRole must be the assigned cat (catId), not the feature ID.
+            // The projector maps ownerRole → assignedCatId in the board view; storing
+            // relatedFeature here would display the feature ID as the owner cat.
+            ownerRole: result.data.catId ?? null,
+            relatedFeature: result.data.relatedFeature ?? null,
+            routedAt: Date.now(),
+          },
+          at: Date.now(),
+        };
+        const { appended } = await opts.eventLog.append(routedEvent);
+        if (appended) {
+          // Projector is best-effort — its failure must not prevent tracking registration.
+          // Cloud R21 P1: if projector.apply() throws, the outer catch would previously skip
+          // registerRoutingTracking(). Since the case.routed sourceEventId is already claimed,
+          // any retry sees appended:false and the tracking path is never re-entered,
+          // leaving the accepted case permanently without an issue_tracking task.
+          if (opts.projector) {
+            try {
+              await opts.projector.apply(routedEvent);
+            } catch {
+              // best-effort — projector failure does not block tracking registration
+            }
+          }
+          // Eager materialization; the production collector recovers from the journal.
+          // Cloud R2 P2: pass fetchIssueCommentCursor to seed the initial cursor
+          // Cloud R13 P1: pass userId so the poller can deliver notifications to the right user
+          await registerRoutingTracking(routedEvent, opts.taskStore, {
+            fetchCommentCursor: opts.fetchIssueCommentCursor,
+            userId,
+          });
+        }
+      } catch {
+        // Best-effort — event log failure never blocks resolve
+      }
+    }
+
+    // F168 C3.2 eval.1 (INV-13): record RouteDecisionEvalEvent when narrator had a recommendation.
+    // `agreed` is a pure projection — computed at creation, not separately stored.
+    // When no narrator recommendation exists (pure human decision), skip eval entirely.
+    if (opts.eventLog) {
+      try {
+        const freshIssue = await communityIssueStore.get(id);
+        const dc = freshIssue?.directionCard as {
+          entries?: Array<{ authoredByRole?: string; routeRecommendation?: unknown }>;
+        } | null;
+        const narratorEntry = dc?.entries?.find(
+          (e) => e.authoredByRole === 'narrator' && e.routeRecommendation != null,
+        );
+        if (narratorEntry) {
+          const parsed = parseRouteRecommendation(narratorEntry.routeRecommendation);
+          if (!parsed.ok) {
+            request.log.warn(
+              { subjectKey: `issue:${issue.repo}#${issue.issueNumber}`, reason: parsed.reason },
+              '[F168] resolve: narrator routeRecommendation failed parse — skipping eval event',
+            );
+          } else {
+            const narratorRec = parsed.value;
+            // Compute agreed: narrator recommendation matches owner decision
+            let agreed: boolean;
+            if (result.data.decision === 'declined') {
+              agreed = narratorRec.kind === 'decline';
+            } else {
+              // accepted: compare route kind + threadId if applicable
+              const ownerRR = result.data.routeRecommendation;
+              if (!ownerRR) {
+                // Owner accepted without specifying route → doesn't match narrator recommendation
+                agreed = false;
+              } else {
+                agreed =
+                  ownerRR.kind === narratorRec.kind &&
+                  (ownerRR.kind !== 'existing-thread' ||
+                    (ownerRR.kind === 'existing-thread' &&
+                      narratorRec.kind === 'existing-thread' &&
+                      ownerRR.threadId === narratorRec.threadId));
+              }
+            }
+            const subjectKey = `issue:${issue.repo}#${issue.issueNumber}`;
+            const evalEvent: CommunityEvent = {
+              sourceEventId: `route-eval:${id}:${Date.now()}`,
+              subjectKey,
+              kind: 'case.route_decision_eval',
+              classification: 'informational',
+              payload: {
+                narratorRecommendation: narratorRec,
+                ownerDecision: {
+                  threadId: resolvedThreadId ?? null,
+                  verdict: result.data.decision,
+                },
+                agreed,
+              },
+              at: Date.now(),
+            };
+            await opts.eventLog.append(evalEvent);
+          }
+        }
+      } catch {
+        // Best-effort — eval recording failure never blocks resolve
+      }
+    }
+
+    return communityIssueStore.get(id);
+  });
+
+  // --- Phase D: Guardian endpoints ---
+
+  const requestGuardianSchema = z.object({
+    guardianCatId: z.string().min(1),
+  }).strict();
+
+  app.post('/api/community-issues/:id/request-guardian', async (request, reply) => {
+    const principal = requireCallbackPrincipal(request, reply);
+    if (!principal) return;
+    const { id } = request.params as { id: string };
+    const result = requestGuardianSchema.safeParse(request.body);
+    if (!result.success) {
+      reply.status(400);
+      return { error: 'Invalid body', details: result.error.issues };
+    }
+
+    const callerCatId = principal.catId as string;
+    const issue = await communityIssueStore.get(id);
+    if (!issue) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    if (issue.state !== 'accepted') {
+      reply.status(409);
+      return { error: 'Issue must be in accepted state', currentState: issue.state };
+    }
+    if (issue.guardianAssignment) {
+      reply.status(409);
+      return { error: 'Guardian already assigned' };
+    }
+
+    const checklist = DEFAULT_INTAKE_CHECKLIST.map((item) => ({
+      ...item,
+      evidence: undefined,
+      verifiedAt: undefined,
+      verifiedBy: undefined,
+    }));
+
+    const signoffToken = randomUUID();
+    const signoffTokenHash = createHash('sha256').update(signoffToken).digest('hex');
+
+    const guardianCatId = result.data.guardianCatId;
+    const updated = await communityIssueStore.update(id, {
+      guardianAssignment: {
+        guardianCatId,
+        signoffTokenHash,
+        requestedAt: Date.now(),
+        requestedBy: callerCatId,
+        signedOff: false,
+        checklist,
+      },
+    });
+
+    return { ...updated, signoffToken };
+  });
+
+  const guardianSignoffSchema = z.object({
+    signoffToken: z.string().min(1),
+    checklist: z.array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        required: z.boolean(),
+        evidence: z.string().optional(),
+        verifiedAt: z.number().optional(),
+        verifiedBy: z.string().optional(),
+      }),
+    ),
+    approved: z.boolean(),
+    reason: z.string().optional(),
+  }).strict();
+
+  app.post('/api/community-issues/:id/guardian-signoff', async (request, reply) => {
+    const principal = requireCallbackPrincipal(request, reply);
+    if (!principal) return;
+    const { id } = request.params as { id: string };
+    const result = guardianSignoffSchema.safeParse(request.body);
+    if (!result.success) {
+      reply.status(400);
+      return { error: 'Invalid body', details: result.error.issues };
+    }
+    const callerCatId = principal.catId as string;
+    const issue = await communityIssueStore.get(id);
+    if (!issue) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+    if (!issue.guardianAssignment) {
+      reply.status(409);
+      return { error: 'No guardian assigned' };
+    }
+    const providedHash = createHash('sha256').update(result.data.signoffToken).digest('hex');
+    if (providedHash !== issue.guardianAssignment.signoffTokenHash) {
+      reply.status(403);
+      return { error: 'Invalid signoff token' };
+    }
+    if (issue.guardianAssignment.guardianCatId !== callerCatId) {
+      reply.status(403);
+      return { error: 'Only the assigned guardian can sign off', expected: issue.guardianAssignment.guardianCatId };
+    }
+
+    if (result.data.approved) {
+      const validation = validateIntakeChecklist(result.data.checklist as any);
+      if (!validation.valid) {
+        reply.status(400);
+        return { error: 'Required checklist items missing evidence', missing: validation.missing };
+      }
+    }
+
+    const updated = await communityIssueStore.update(id, {
+      guardianAssignment: {
+        ...issue.guardianAssignment,
+        signedOff: true,
+        signedOffAt: Date.now(),
+        approved: result.data.approved,
+        reason: result.data.reason,
+        checklist: result.data.checklist,
+      },
+    });
+
+    return updated;
+  });
+
+  app.get('/api/community-issues/:id/guardian-status', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const issue = await communityIssueStore.get(id);
+    if (!issue) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+
+    if (!issue.guardianAssignment) {
+      return { hasGuardian: false, signedOff: false, checklistComplete: false, missingItems: [] };
+    }
+
+    const validation = validateIntakeChecklist(issue.guardianAssignment.checklist as any);
+    return {
+      hasGuardian: true,
+      signedOff: issue.guardianAssignment.signedOff,
+      checklistComplete: validation.valid,
+      missingItems: validation.missing,
+    };
+  });
+
+  // ── F168 Phase F: validate-route (SO-2 state machine) ──────────────────────
+  // POST /api/community-issues/:id/validate-route
+  // Target cat accepts or rejects a routed issue.
+  // INV-F2: routeAcceptance only changeable via this endpoint.
+  // INV-F3: rejected → clears assignedCatId + assignedThreadId + state → pending-decision.
+
+  const validateRouteSchema = z.object({
+    decision: z.enum(['accept', 'reject']),
+    reason: z.string().optional(),
+  });
+
+  app.post('/api/community-issues/:id/validate-route', async (request, reply) => {
+    const caller = requestContext.caller();
+    if (!caller) {
+      reply.status(401);
+      return { error: 'Callback authentication required' };
+    }
+
+    const { id } = request.params as { id: string };
+    const issue = await communityIssueStore.get(id);
+    if (!issue) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+
+    // INV-F2: routeAcceptance must be pending
+    if (issue.routeAcceptance !== 'pending') {
+      reply.status(409);
+      return {
+        error: 'Route validation requires routeAcceptance=pending',
+        currentRouteAcceptance: issue.routeAcceptance ?? null,
+      };
+    }
+
+    // Identity check: only the assigned cat can validate
+    const callerCatId = caller.catId;
+    if (issue.assignedCatId !== callerCatId) {
+      reply.status(403);
+      return {
+        error: 'Only the assigned cat can validate this route',
+        expected: issue.assignedCatId,
+        actual: callerCatId,
+      };
+    }
+
+    const parsed = validateRouteSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.status(400);
+      return { error: 'Invalid body', details: parsed.error.issues };
+    }
+
+    if (parsed.data.decision === 'accept') {
+      const updated = await communityIssueStore.update(id, {
+        routeAcceptance: 'accepted',
+        lastActivity: { at: Date.now(), event: `route-validated-by-${callerCatId}` },
+      });
+
+      // Emit case.route-validated event (best-effort)
+      if (opts.eventLog) {
+        try {
+          const event: CommunityEvent = {
+            sourceEventId: `route-validated:${id}:${Date.now()}`,
+            subjectKey: `issue:${issue.repo}#${issue.issueNumber}`,
+            kind: 'case.route_validated',
+            classification: 'state-changing',
+            payload: { catId: callerCatId, decision: 'accept', validatedAt: Date.now() },
+            at: Date.now(),
+          };
+          const { appended } = await opts.eventLog.append(event);
+          if (appended && opts.projector) {
+            await opts.projector.apply(event);
+          }
+        } catch {
+          /* best-effort */
+        }
+      }
+
+      return updated;
+    }
+
+    // INV-F3: reject → clear assignment, state → pending-decision
+    const updated = await communityIssueStore.update(id, {
+      routeAcceptance: 'rejected',
+      assignedCatId: null,
+      assignedThreadId: null,
+      state: 'pending-decision',
+      lastActivity: { at: Date.now(), event: `route-rejected-by-${callerCatId}` },
+    });
+
+    // P1-R3-2: Delete tracking task registered by auto-route. Without this,
+    // the rejected issue keeps polling for GitHub activity on the old thread.
+    if (opts.taskStore) {
+      try {
+        const subjectKey = `issue:${issue.repo}#${issue.issueNumber}`;
+        const trackingTask = await opts.taskStore.getBySubject(subjectKey);
+        if (trackingTask) {
+          await opts.taskStore.delete(trackingTask.id);
+        }
+      } catch {
+        // Best-effort — cleanup failure does not block rejection
+      }
+    }
+
+    // Emit case.route-rejected event (best-effort)
+    if (opts.eventLog) {
+      try {
+        const event: CommunityEvent = {
+          sourceEventId: `route-rejected:${id}:${Date.now()}`,
+          subjectKey: `issue:${issue.repo}#${issue.issueNumber}`,
+          kind: 'case.route_rejected',
+          classification: 'state-changing',
+          payload: { catId: callerCatId, decision: 'reject', reason: parsed.data.reason, rejectedAt: Date.now() },
+          at: Date.now(),
+        };
+        const { appended } = await opts.eventLog.append(event);
+        if (appended && opts.projector) {
+          await opts.projector.apply(event);
+        }
+      } catch {
+        /* best-effort */
+      }
+    }
+
+    return updated;
+  });
+
+  // ── F168 Phase D D1: closure action API ────────────────────────────────────
+
+  // POST /api/community-issues/:id/report
+  // Appends case.reported event. Unlike dispatch (best-effort), closure
+  // endpoints MUST fail visibly if event log or projector is absent.
+  const reportSchema = z.object({
+    publicCommentUrl: z.string().url(),
+    actor: z.string().min(1).optional(),
+  });
+
+  // States where report/waive are not applicable (terminal states)
+  const CLOSURE_TERMINAL_STATES = new Set(['closed', 'declined']);
+  // States where closure actions (report/waive) are semantically valid.
+  // Only cases that have been fixed (or already reported) should accept closure actions.
+  const CLOSURE_VALID_STATES = new Set(['fixed', 'reported']);
+
+  app.post('/api/community-issues/:id/report', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const item = await communityIssueStore.get(id);
+    if (!item) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+
+    const caller = requestContext.caller();
+    if (caller) {
+      if (item.assignedCatId !== caller.catId || item.assignedThreadId !== caller.threadId) return reply.code(403).send({ error: 'Only the assigned case owner in its thread may report' });
+    } else if (!requestContext.requireOwner(reply)) return;
+    const actor = caller?.catId ?? requestContext.userId();
+
+    if (!opts.eventLog || !opts.projector) {
+      reply.status(501);
+      return { error: 'Community event log or projector not configured — closure endpoints require both' };
+    }
+
+    // State guard: derive effective state from projection (preferred) or legacy item.state (fallback).
+    // Handles: objectStore present+projection found, objectStore present+no projection, objectStore absent.
+    const subjectKey = `issue:${item.repo}#${item.issueNumber}`;
+    const projState = opts.objectStore ? (await opts.objectStore.get(subjectKey))?.state : undefined;
+    const effectiveState = projState ?? item.state;
+
+    if (effectiveState) {
+      if (CLOSURE_TERMINAL_STATES.has(effectiveState)) {
+        reply.status(409);
+        return { error: `Cannot report on a ${effectiveState} case — terminal state` };
+      }
+      if (!CLOSURE_VALID_STATES.has(effectiveState)) {
+        reply.status(409);
+        return { error: `Cannot report on a ${effectiveState} case — closure actions require fixed or reported state` };
+      }
+    }
+
+    const parsed = reportSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.status(400);
+      return { error: 'Invalid payload', details: parsed.error.issues };
+    }
+    if (parsed.data.actor !== undefined && parsed.data.actor !== actor) return reply.code(403).send({ error: 'Body actor does not match authenticated principal' });
+    const url = new URL(parsed.data.publicCommentUrl);
+    if (url.origin !== 'https://github.com' || url.pathname.toLowerCase() !== `/${item.repo}/issues/${item.issueNumber}`.toLowerCase() || !/^#issuecomment-[1-9][0-9]*$/.test(url.hash) || url.search || url.username || url.password) return reply.code(400).send({ error: 'Public comment must belong to this issue' });
+    if (!opts.verifyPublicIssueComment) return reply.code(503).send({ error: 'Public comment verification unavailable' });
+    if (!await opts.verifyPublicIssueComment({ repo: item.repo, issueNumber: item.issueNumber, url: parsed.data.publicCommentUrl })) return reply.code(422).send({ error: 'Public comment could not be verified' });
+    await requestContext.assertCurrent();
+    const current = await communityIssueStore.get(id);
+    if (!current || (caller && (current.assignedCatId !== caller.catId || current.assignedThreadId !== caller.threadId))) return reply.code(403).send({ error: 'Case ownership changed during verification' });
+    const at = Date.now();
+    const communityEvent: CommunityEvent = {
+      sourceEventId: `report:${id}:${at}`,
+      subjectKey,
+      kind: 'case.reported',
+      classification: 'state-changing',
+      payload: {
+        publicCommentUrl: parsed.data.publicCommentUrl,
+        actor,
+        reportedAt: at,
+      },
+      at,
+    };
+
+    const { appended } = await opts.eventLog.append(communityEvent);
+    if (appended) {
+      const accepted = await opts.projector.applyChecked(communityEvent);
+      if (!accepted) return reply.code(409).send({ error: 'Case no longer permits reporting', subjectKey, eventId: communityEvent.sourceEventId });
+    }
+
+    return { subjectKey, appended, eventId: communityEvent.sourceEventId };
+  });
+
+  // POST /api/community-issues/:id/waive-closure
+  // Appends case.waived event with required reason/actor/evidence.
+  // Waiver does NOT change case state — it satisfies the closure invariant
+  // so that fixed→closed can proceed without a public comment.
+  const waiveClosureSchema = z.object({
+    reason: z.string().min(1),
+    actor: z.string().min(1).optional(),
+    evidence: z.string().min(1),
+  });
+
+  app.post('/api/community-issues/:id/waive-closure', async (request, reply) => {
+    if (!requestContext.requireOwner(reply)) return;
+    const { id } = request.params as { id: string };
+    const item = await communityIssueStore.get(id);
+    if (!item) {
+      reply.status(404);
+      return { error: 'Community issue not found' };
+    }
+
+    if (!opts.eventLog || !opts.projector) {
+      reply.status(501);
+      return { error: 'Community event log or projector not configured — closure endpoints require both' };
+    }
+
+    // State guard: derive effective state from projection (preferred) or legacy item.state (fallback).
+    const subjectKey = `issue:${item.repo}#${item.issueNumber}`;
+    const projState = opts.objectStore ? (await opts.objectStore.get(subjectKey))?.state : undefined;
+    const effectiveState = projState ?? item.state;
+
+    if (effectiveState) {
+      if (CLOSURE_TERMINAL_STATES.has(effectiveState)) {
+        reply.status(409);
+        return { error: `Cannot waive closure on a ${effectiveState} case — terminal state` };
+      }
+      if (!CLOSURE_VALID_STATES.has(effectiveState)) {
+        reply.status(409);
+        return {
+          error: `Cannot waive closure on a ${effectiveState} case — closure actions require fixed or reported state`,
+        };
+      }
+    }
+
+    const parsed = waiveClosureSchema.safeParse(request.body);
+    if (!parsed.success) {
+      reply.status(400);
+      return { error: 'Invalid payload — reason, actor, and evidence are all required', details: parsed.error.issues };
+    }
+    const actor = requestContext.userId();
+    if (parsed.data.actor !== undefined && parsed.data.actor !== actor) return reply.code(403).send({ error: 'Body actor does not match authenticated principal' });
+    const at = Date.now();
+    const communityEvent: CommunityEvent = {
+      sourceEventId: `waive:${id}:${at}`,
+      subjectKey,
+      kind: 'case.waived',
+      classification: 'state-changing',
+      payload: {
+        reason: parsed.data.reason,
+        actor,
+        evidence: parsed.data.evidence,
+        waivedAt: at,
+      },
+      at,
+    };
+
+    const { appended } = await opts.eventLog.append(communityEvent);
+    if (appended) {
+      await opts.projector.apply(communityEvent);
+    }
+
+    return { subjectKey, appended, eventId: communityEvent.sourceEventId };
+  });
+
+  // ── F168 Phase B Task 6: awaiting_external endpoint ──────────────────────────
+  // POST /api/community-issues/:subjectKey/await-external
+  // Declares that the owner is waiting for an external response.
+  // Appends case.awaiting_external to the community event log and applies the projector.
+  // Requires callback auth. subjectKey must be URL-encoded by the caller
+  // (e.g. "issue:owner/repo#42" → "issue%3Aowner%2Frepo%2342").
+
+  app.post('/api/community-issues/:subjectKey/await-external', async (request, reply) => {
+    const caller = requestContext.caller();
+    if (!caller) {
+      reply.status(401);
+      return { error: 'Callback authentication required' };
+    }
+
+    const { subjectKey } = request.params as { subjectKey: string };
+
+    // Cloud R10 P1: validate full format, not just prefix.
+    // Prefix-only check accepts malformed keys like "issue:not-a-real-key" or
+    // "issue:owner/repo#abc" which cause 500s or unprojectable events downstream.
+    if (parseIssueSubjectKey(subjectKey) === null && parsePrSubjectKey(subjectKey) === null) {
+      reply.status(400);
+      return { error: 'Invalid subjectKey format. Expected: issue:{owner/repo}#{number} or pr:{owner/repo}#{number}' };
+    }
+
+    if (!opts.eventLog) {
+      reply.status(501);
+      return { error: 'Community event log not configured' };
+    }
+
+    // Pre-flight checks: validate state AND ownership before appending.
+    // If objectStore is available, the case must exist before declaring awaiting_external.
+    // case.awaiting_external is only valid from {in_progress, awaiting_external, routed};
+    // a missing projection would always be rejected by the state machine ('new' state),
+    // and returning state:'awaiting_external' in that case is misleading (Cloud R20 P2).
+    if (opts.objectStore) {
+      const proj = await opts.objectStore.get(subjectKey);
+      if (proj === null) {
+        reply.status(404);
+        return { error: 'not_found', detail: 'No tracked case found for this subject key' };
+      }
+      // P1-B (R1): State check — case.awaiting_external is valid from:
+      //   - in_progress: owner actively working on the case
+      //   - awaiting_external: idempotent re-declare (owner re-confirms waiting)
+      //   - routed: primary workflow entry — /resolve sets state=routed and there
+      //     is no production path that automatically advances routed→in_progress,
+      //     so the owner must be able to declare awaiting_external directly from routed.
+      //     (Cloud R6 P1-1)
+      const ACTIVATABLE_STATES = new Set<string>(['in_progress', 'awaiting_external', 'routed']);
+      if (!ACTIVATABLE_STATES.has(proj.state)) {
+        reply.status(409);
+        return {
+          error: 'invalid_transition',
+          currentState: proj.state,
+          detail: `case.awaiting_external requires state in {in_progress, awaiting_external, routed}, got: ${proj.state}`,
+        };
+      }
+
+      // P1-B (R2): Ownership check — only the case owner can declare awaiting_external.
+      // ownerThreadId is set when the case is routed (case.routed event).
+      // null/undefined ownerThreadId (no owner assigned yet) → allow.
+      const callerThreadId = caller.threadId;
+      if (proj.ownerThreadId != null && callerThreadId !== undefined && callerThreadId !== proj.ownerThreadId) {
+        reply.status(403);
+        return {
+          error: 'forbidden',
+          detail: 'Only the case owner (ownerThreadId match) can declare awaiting_external',
+        };
+      }
+    }
+
+    const body = (request.body ?? {}) as { reason?: string };
+    const at = Date.now();
+    const callerCatId = caller.catId;
+    const communityEvent: CommunityEvent = {
+      sourceEventId: `await-external:${subjectKey}:${at}`,
+      subjectKey,
+      kind: 'case.awaiting_external',
+      classification: 'state-changing',
+      payload: {
+        reason: body.reason ?? null,
+        declaredBy: callerCatId,
+        declaredAt: at,
+      },
+      at,
+    };
+
+    const { appended } = await opts.eventLog.append(communityEvent);
+    if (appended && opts.projector) {
+      await opts.projector.apply(communityEvent);
+    }
+
+    return {
+      subjectKey,
+      appended,
+      state: 'awaiting_external',
+      eventId: communityEvent.sourceEventId,
+    };
+  });
+
+  app.get('/api/community-repos', async () => {
+    const allIssues = await communityIssueStore.listAll();
+    const issueRepos = allIssues.map((i) => i.repo);
+
+    const prTasks = await taskStore.listByKind('pr_tracking');
+    const prRepos = prTasks.map((t) => t.subjectKey?.match(/^pr:(.+)#\d+$/)?.[1]).filter(Boolean) as string[];
+
+    const communityPrRepos = opts.communityPrStore
+      ? [...new Set((await opts.communityPrStore.listAll()).map((p) => p.repo))]
+      : [];
+
+    const projectionRepos: string[] = [];
+    if (opts.objectStore) {
+      try {
+        const subjectKeys = await opts.objectStore.listSubjectKeys();
+        for (const subjectKey of subjectKeys) {
+          const parsedIssue = parseIssueSubjectKey(subjectKey);
+          if (parsedIssue) {
+            projectionRepos.push(parsedIssue.repoFullName);
+            continue;
+          }
+          const parsedPr = parsePrSubjectKey(subjectKey);
+          if (parsedPr) projectionRepos.push(parsedPr.repoFullName);
+        }
+      } catch {
+        /* best-effort: repo discovery should keep legacy sources available */
+      }
+    }
+
+    const repos = [...new Set([...issueRepos, ...prRepos, ...communityPrRepos, ...projectionRepos])].sort();
+    return { repos };
+  });
+
+  app.get('/api/community-board', async (request, reply) => {
+    const { repo } = request.query as { repo?: string };
+    if (!repo) {
+      reply.status(400);
+      return { error: 'Missing repo query parameter' };
+    }
+
+    const issues = await communityIssueStore.listByRepo(repo);
+
+    const subjectPrefix = `pr:${repo}#`;
+    const allTasks = await taskStore.listByKind('pr_tracking');
+    const repoPrTasks = allTasks.filter((t) => t.subjectKey?.startsWith(subjectPrefix));
+
+    const communityPrs = opts.communityPrStore ? await opts.communityPrStore.listByRepo(repo) : [];
+    const communityPrStateByNumber = new Map(communityPrs.map((p) => [p.prNumber, p.state]));
+
+    const oldGroupToPhaseF: Record<string, string> = {
+      'in-review': 'replied',
+      're-review-needed': 'has-new-activity',
+      'has-conflict': 'has-new-activity',
+      completed: 'merged',
+    };
+
+    const trackedPrItems = repoPrTasks.map((t) => {
+      const oldGroup = derivePrGroup(t.automationState, t.status);
+      let group = oldGroupToPhaseF[oldGroup] ?? oldGroup;
+      const prNumMatch = t.subjectKey?.match(/#(\d+)$/);
+      const prNumber = prNumMatch ? Number(prNumMatch[1]) : null;
+      if (group === 'merged') {
+        const actualState = prNumber != null ? communityPrStateByNumber.get(prNumber) : undefined;
+        if (actualState === 'closed') group = 'closed';
+      }
+      return {
+        taskId: t.id,
+        threadId: t.threadId,
+        prNumber,
+        ownerCatId: t.ownerCatId,
+        title: t.title,
+        status: t.status,
+        group,
+        automationState: t.automationState,
+        updatedAt: t.updatedAt,
+      };
+    });
+    const trackedPrNumbers = new Set(
+      repoPrTasks
+        .map((t) => {
+          const match = t.subjectKey?.match(/#(\d+)$/);
+          return match ? Number(match[1]) : null;
+        })
+        .filter(Boolean),
+    );
+
+    const communityPrItems = communityPrs
+      .filter((p) => !trackedPrNumbers.has(p.prNumber))
+      .map((p) => ({
+        taskId: p.id,
+        prNumber: p.prNumber,
+        title: p.title,
+        author: p.author,
+        state: p.state,
+        status: p.state,
+        replyState: p.replyState,
+        group: p.state !== 'open' ? p.state : p.replyState,
+        headSha: p.headSha,
+        draft: p.draft,
+        updatedAt: p.updatedAt,
+      }));
+
+    const prItems = [...trackedPrItems, ...communityPrItems];
+
+    // F168 Phase A Task 9: enrich issues + prItems with CommunityObjectStore projection fields.
+    // P1-2 fix: objectStore is the authoritative source for new cases (e.g., from webhook).
+    // Items that only exist in objectStore (not in legacy stores) are included via projection-only path.
+    // New fields (projectionState, nextOwner, closureWaiver) are additive — zero frontend breakage.
+    if (opts.objectStore) {
+      const objectStore = opts.objectStore;
+
+      // Enrich existing legacy issues with projection fields
+      const enrichedIssues = await Promise.all(
+        issues.map(async (issue) => {
+          const subjectKey = `issue:${issue.repo}#${issue.issueNumber}`;
+          try {
+            const proj = await objectStore.get(subjectKey);
+            if (!proj) return issue;
+            return {
+              ...issue,
+              projectionState: proj.state,
+              nextOwner: proj.nextOwner,
+              closureWaiver: proj.closureWaiver,
+              closureChecklist: computeClosureChecklist(proj),
+            };
+          } catch {
+            return issue;
+          }
+        }),
+      );
+
+      // P1-2 fix: find projection-only issues (came via webhook, not in legacy communityIssueStore)
+      const legacyIssueNumbers = new Set(issues.map((i) => i.issueNumber));
+      try {
+        const allSubjectKeys = await objectStore.listSubjectKeys();
+        const issuePrefix = `issue:${repo}#`;
+        const projectionOnlyKeys = allSubjectKeys.filter(
+          (sk) => sk.startsWith(issuePrefix) && !legacyIssueNumbers.has(Number(sk.slice(issuePrefix.length))),
+        );
+
+        for (const sk of projectionOnlyKeys) {
+          try {
+            const proj = await objectStore.get(sk);
+            if (!proj) continue;
+            // Map terminal projection states to their legacy-compatible equivalents so the
+            // board panel shows them in the correct column (closed / fixed issues must not
+            // appear in the active unreplied bucket).
+            const issueIsTerminal = proj.state === 'closed' || proj.state === 'fixed';
+            const issueState = issueIsTerminal ? ('closed' as const) : ('unreplied' as const);
+            // Synthesize a minimal issue from projection — backward-compatible shape.
+            // 'state' uses a legacy-compatible fallback; 'projectionState' carries the canonical state.
+            enrichedIssues.push({
+              id: sk,
+              repo,
+              issueNumber: proj.number,
+              issueType: 'question' as const,
+              title: '',
+              state: issueState,
+              replyState: 'unreplied' as const,
+              assignedThreadId: proj.ownerThreadId,
+              assignedCatId: proj.ownerRole,
+              linkedPrNumbers: proj.linkedPrs ?? [],
+              directionCard: null,
+              ownerDecision: null,
+              relatedFeature: null,
+              guardianAssignment: null,
+              lastActivity: { at: proj.updatedAt, event: 'projection' },
+              createdAt: proj.createdAt,
+              updatedAt: proj.updatedAt,
+              projectionState: proj.state,
+              nextOwner: proj.nextOwner,
+              closureWaiver: proj.closureWaiver,
+              closureChecklist: computeClosureChecklist(proj),
+            });
+          } catch {
+            /* best-effort */
+          }
+        }
+      } catch {
+        /* best-effort: listSubjectKeys failure should not break the board */
+      }
+
+      // Enrich prItems
+      const enrichedPrItems = await Promise.all(
+        prItems.map(async (item) => {
+          if (item.prNumber == null) return item;
+          const subjectKey = `pr:${repo}#${item.prNumber}`;
+          try {
+            const proj = await objectStore.get(subjectKey);
+            if (!proj) return item;
+            return {
+              ...item,
+              projectionState: proj.state,
+              nextOwner: proj.nextOwner,
+              closureWaiver: proj.closureWaiver,
+              closureChecklist: computeClosureChecklist(proj),
+              externalReview: proj.externalReview,
+            };
+          } catch {
+            return item;
+          }
+        }),
+      );
+
+      // P1-R2-2 fix: find projection-only PRs (webhook-only, not in legacy taskStore or communityPrStore)
+      const trackedAndLegacyPrNumbers = new Set([...trackedPrNumbers, ...communityPrs.map((p) => p.prNumber)]);
+      try {
+        const allSubjectKeys = await objectStore.listSubjectKeys();
+        const prPrefix = `pr:${repo}#`;
+        const projectionOnlyPrKeys = allSubjectKeys.filter(
+          (sk) => sk.startsWith(prPrefix) && !trackedAndLegacyPrNumbers.has(Number(sk.slice(prPrefix.length))),
+        );
+        for (const sk of projectionOnlyPrKeys) {
+          try {
+            const proj = await objectStore.get(sk);
+            if (!proj) continue;
+            // Map projection terminal states to board state/group so these PRs land in the
+            // correct column (merged / closed) rather than always appearing in unreplied.
+            const isFixedProj = proj.state === 'fixed';
+            const isClosedProj = proj.state === 'closed';
+            const projState = isFixedProj
+              ? ('merged' as const)
+              : isClosedProj
+                ? ('closed' as const)
+                : ('open' as const);
+            const projGroup = isFixedProj ? 'merged' : isClosedProj ? 'closed' : 'unreplied';
+            // Synthesize a communityPrItem-shaped entry (matches union member) + projection fields
+            enrichedPrItems.push({
+              taskId: sk,
+              prNumber: proj.number,
+              title: '',
+              author: '',
+              state: projState,
+              status: projState,
+              replyState: 'unreplied' as const,
+              group: projGroup,
+              headSha: '',
+              draft: false,
+              updatedAt: proj.updatedAt,
+              projectionState: proj.state,
+              nextOwner: proj.nextOwner,
+              closureWaiver: proj.closureWaiver,
+              closureChecklist: computeClosureChecklist(proj),
+              externalReview: proj.externalReview,
+            });
+          } catch {
+            /* best-effort */
+          }
+        }
+      } catch {
+        /* best-effort: listSubjectKeys failure must not break the board */
+      }
+
+      const finalIssues = enrichedIssues;
+      const finalPrItems = enrichedPrItems;
+
+      // AC-F6: resolve thread names for board display
+      if (opts.threadStore) {
+        const threadIds = [...new Set(finalIssues.map((i) => i.assignedThreadId).filter(Boolean) as string[])];
+        const threadNameMap = new Map<string, string | null>();
+        await Promise.all(
+          threadIds.map(async (tid) => {
+            try {
+              const thread = await opts.threadStore!.get(tid);
+              threadNameMap.set(tid, thread?.title ?? null);
+            } catch {
+              threadNameMap.set(tid, null);
+            }
+          }),
+        );
+        const issuesWithThreadNames = finalIssues.map((issue) => ({
+          ...issue,
+          assignedThreadName: issue.assignedThreadId ? (threadNameMap.get(issue.assignedThreadId) ?? null) : null,
+        }));
+        return { repo, issues: issuesWithThreadNames, prItems: finalPrItems };
+      }
+
+      return { repo, issues: finalIssues, prItems: finalPrItems };
+    }
+
+    // No objectStore path — still resolve thread names if threadStore available
+    if (opts.threadStore) {
+      const threadIds = [...new Set(issues.map((i) => i.assignedThreadId).filter(Boolean) as string[])];
+      const threadNameMap = new Map<string, string | null>();
+      await Promise.all(
+        threadIds.map(async (tid) => {
+          try {
+            const thread = await opts.threadStore!.get(tid);
+            threadNameMap.set(tid, thread?.title ?? null);
+          } catch {
+            threadNameMap.set(tid, null);
+          }
+        }),
+      );
+      const issuesWithThreadNames = issues.map((issue) => ({
+        ...issue,
+        assignedThreadName: issue.assignedThreadId ? (threadNameMap.get(issue.assignedThreadId) ?? null) : null,
+      }));
+      return { repo, issues: issuesWithThreadNames, prItems };
+    }
+
+    return { repo, issues, prItems };
+  });
+
+  await app.register(communityDecisionQueueRoutes, {
+    requestContext,
+    communityIssueStore,
+    taskStore,
+    communityPrStore: opts.communityPrStore,
+    objectStore: opts.objectStore,
+    findingStore: opts.findingStore,
+  });
+};

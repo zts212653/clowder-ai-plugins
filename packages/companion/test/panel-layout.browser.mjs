@@ -24,7 +24,7 @@ after(async () => {
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 });
 
-async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscript = true } = {}) {
+async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscript = true, appAssist = false } = {}) {
   const page = await browser.newPage({ viewport });
   await page.addInitScript(() => {
     let bridge;
@@ -43,20 +43,91 @@ async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscr
       },
     });
   });
-  await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1&autoTranscript=${autoTranscript ? '1' : '0'}`);
+  await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1&autoTranscript=${autoTranscript ? '1' : '0'}&appAssist=${appAssist ? '1' : '0'}`);
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => {
     window.__layoutRequests = [];
     window.__presentationObservations = [];
+    window.__requestKinds = [];
+    window.__requests = [];
     const bridge = window.clowderCompanion;
     const original = bridge.request.bind(bridge);
     bridge.request = command => {
+      window.__requestKinds.push(command.kind);
+      window.__requests.push(structuredClone(command));
       if (command.kind === 'view.layout') window.__layoutRequests.push({ ...command });
       if (command.kind === 'presentation.observe') window.__presentationObservations.push({ ...command });
       return original(command);
     };
   });
   return page;
+}
+
+test('candidate application assistance settles explicitly without minting call or screen authority', async () => {
+  const page = await openPreview({ width: 520, height: 720 }, { appAssist: true });
+  try {
+    await page.waitForFunction(() => !document.getElementById('app-assist').hidden);
+    assert.equal(await page.locator('#app-assist').getAttribute('data-candidate'), 'true');
+    assert.equal(await page.locator('#app-assist-name').textContent(), 'Fixture Writer');
+    assert.equal(await page.locator('#app-assist-start').textContent(), '打开通话控制');
+    const countdown = page.locator('#app-assist-countdown');
+    const countdownProgress = page.locator('#app-assist-countdown-progress');
+    assert.equal(await countdown.count(), 1, 'the accepted prompt includes its lightweight remaining-time ring');
+    assert.equal(await countdown.isVisible(), true);
+    assert.equal(await countdown.getAttribute('aria-label'), '提示将在约十五秒后自动收起');
+    const countdownStart = await countdownProgress.evaluate(element => {
+      const animation = element.getAnimations()[0];
+      return { duration: animation?.effect.getTiming().duration, currentTime: animation?.currentTime };
+    });
+    assert.equal(countdownStart.duration, 15_000);
+    assert.deepEqual(await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'screen.pick', 'screen.open', 'screen.frame'].includes(kind))), []);
+    await page.waitForTimeout(3_200);
+    assert.equal(await page.locator('#app-assist').isVisible(), true,
+      'periodic history reads cannot clear an unsettled application-assistance offer');
+    const countdownAfterPolls = await countdownProgress.evaluate(element => element.getAnimations()[0]?.currentTime);
+    assert.ok(countdownAfterPolls - countdownStart.currentTime >= 2_500,
+      'ordinary state polling must not restart the same offer countdown');
+    assert.equal(await page.evaluate(() => window.__requestKinds.includes('app-assist.settle')), false,
+      'preserving the offer must not synthesize a settlement');
+
+    await page.click('#app-assist-dismiss');
+    await page.waitForFunction(() => document.getElementById('app-assist').hidden);
+    assert.deepEqual(await page.evaluate(() => window.__requests.find(value => value.kind === 'app-assist.settle')), {
+      kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'dismiss',
+    });
+    assert.equal(await countdownProgress.evaluate(element => element.getAnimations().length), 0,
+      'settling the prompt stops the countdown projection immediately');
+    await page.waitForTimeout(1_100);
+    assert.equal(await page.locator('#app-assist').isHidden(), true,
+      'the same offerRef stays dismissed across ordinary state refreshes');
+  } finally {
+    await page.close();
+  }
+
+  const actionPage = await openPreview({ width: 520, height: 720 }, { appAssist: true });
+  try {
+    await actionPage.waitForFunction(() => !document.getElementById('app-assist').hidden);
+    await actionPage.click('#app-assist-start');
+    await actionPage.waitForFunction(() => !document.getElementById('menu').hidden);
+    assert.equal(await actionPage.locator('#begin').isVisible(), true);
+    assert.equal(await actionPage.locator('#menu-status').textContent(),
+      '提示已收起。请先点“语音通话”，连上后再点“共享画面”。');
+    assert.deepEqual(await actionPage.evaluate(() => window.__requests.find(value => value.kind === 'app-assist.settle')), {
+      kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'accept',
+    });
+    await actionPage.waitForTimeout(600);
+    const protectedKinds = await actionPage.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'screen.pick', 'screen.open', 'screen.frame'].includes(kind)));
+    assert.deepEqual(protectedKinds, [], 'settlement is not a call, user activation or media grant');
+  } finally {
+    await actionPage.close();
+  }
+});
+
+async function revealCallControls(page) {
+  await page.hover('#pet');
+  await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
 }
 
 async function visibleClipping(page, panelId) {
@@ -93,11 +164,12 @@ async function textRangeVisibility(page, rowSelector, needle) {
       const bounds = row.getBoundingClientRect();
       const text = range.getBoundingClientRect();
       const hit = document.elementFromPoint((text.left + text.right) / 2, (text.top + text.bottom) / 2);
+      const passive = getComputedStyle(row.closest('#call-bubble') ?? row).pointerEvents === 'none';
       return {
         rowText: row.textContent,
         visible: text.left >= bounds.left - 0.5 && text.right <= bounds.right + 0.5
           && text.top >= bounds.top - 0.5 && text.bottom <= bounds.bottom + 0.5
-          && hit !== null && row.contains(hit),
+          && (passive || (hit !== null && row.contains(hit))),
         bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom },
         text: { left: text.left, right: text.right, top: text.top, bottom: text.bottom },
       };
@@ -109,11 +181,13 @@ async function textRangeVisibility(page, rowSelector, needle) {
 async function recentRowPresentation(page, rowSelector) {
   return page.evaluate(rowSelector => {
     const row = document.querySelector(rowSelector);
-    const speaker = row.querySelector('.recent-speaker').getBoundingClientRect();
+    const speakerNode = row.querySelector('.recent-speaker');
+    const speaker = speakerNode?.hidden ? null : speakerNode?.getBoundingClientRect();
     const message = row.querySelector('.recent-message');
     const text = row.querySelector('.recent-message-text').getBoundingClientRect();
     return {
-      gap: text.left - speaker.right,
+      speakerVisible: speaker !== null,
+      gap: speaker ? text.left - speaker.right : null,
       textOverflow: getComputedStyle(message).textOverflow,
       textDirection: message.dataset.direction,
     };
@@ -126,6 +200,7 @@ test('dynamic call content and expanded transcript keep every action visible', a
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    await revealCallControls(page);
     await page.waitForFunction(() => document.getElementById('actions').style.maxHeight !== '');
     await page.waitForTimeout(300);
     await page.evaluate(() => {
@@ -136,10 +211,11 @@ test('dynamic call content and expanded transcript keep every action visible', a
       share.hidden = false;
       document.getElementById('call-share-target').textContent = '共享中：Blender · 一个很长的窗口标题';
     });
-    await page.waitForFunction(() => window.__layoutRequests.some(row => row.panel === 'actions' && row.height > 200));
+    await page.waitForFunction(() => window.__layoutRequests.some(row =>
+      row.panel === 'actions' && row.call?.presentation === 'controls'));
     const callbar = await visibleClipping(page, 'actions');
     assert.deepEqual(callbar.clippedButtons, []);
-    assert(callbar.height <= 500);
+    assert(callbar.height <= 156, JSON.stringify(callbar));
 
     await page.click('[data-action="transcript"]');
     await page.click('#transcript-expand');
@@ -153,6 +229,104 @@ test('dynamic call content and expanded transcript keep every action visible', a
   }
 });
 
+test('an active call rests in lite mode and reveals controls without touching media', async () => {
+  const page = await openPreview({ width: 520, height: 720 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite');
+
+    assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'lite');
+    assert.equal(await page.locator('#call-state').isVisible(), true);
+    assert.equal(await page.locator('#call-mic-state').isVisible(), true);
+    assert.equal(await page.locator('#active-actions').isVisible(), false);
+
+    await page.click('#pet', { button: 'right' });
+    await page.waitForFunction(() => !document.getElementById('menu').hidden);
+    await page.click('#pet');
+    await page.waitForFunction(() => !document.getElementById('actions').hidden
+      && document.getElementById('actions').dataset.presentation === 'controls');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite');
+
+    const protectedBefore = await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'audio.close', 'audio.microphone', 'audio.speaker', 'stop',
+        'screen.pick', 'screen.open', 'screen.close', 'screen.frame'].includes(kind)));
+
+    await page.hover('#pet');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    assert.equal(await page.locator('#active-actions').isVisible(), true);
+    assert.equal(await page.locator('#lite-call-compose').isVisible(), true);
+
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite', null,
+      { timeout: 4_000 });
+
+    await page.focus('#pet');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    await page.fill('#lite-call-message', '先别收起这句话');
+    await page.mouse.move(1, 1);
+    await page.waitForTimeout(2_100);
+    assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'controls',
+      'focused or non-empty input keeps the controls open');
+
+    await page.fill('#lite-call-message', '');
+    await page.locator('#lite-call-message').blur();
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite', null,
+      { timeout: 4_000 });
+
+    await page.focus('#pet');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    await page.fill('#lite-call-message', '通话里的一句话');
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => window.__getConversation().some(row => row.text === '通话里的一句话'));
+    assert.equal(await page.inputValue('#lite-call-message'), '');
+    assert.equal(await page.locator('#call-state').textContent(), '通话中');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'lite');
+
+    const protectedAfter = await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'audio.close', 'audio.microphone', 'audio.speaker', 'stop',
+        'screen.pick', 'screen.open', 'screen.close', 'screen.frame'].includes(kind)));
+    assert.deepEqual(protectedAfter, protectedBefore,
+      'revealing and folding controls must not start, stop, mute, or share media');
+  } finally {
+    await page.close();
+  }
+});
+
+test('a pending screen picker keeps the complete call controls directly available', async () => {
+  const page = await openPreview({ width: 520, height: 720 });
+  try {
+    await page.click('#pet');
+    await page.click('#begin');
+    await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await page.evaluate(() => { window.__previewHoldScreenPick = true; });
+    await page.hover('#pet');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
+    await page.click('#share');
+    await page.waitForFunction(() => document.querySelector('#share .label')?.textContent === '取消选屏');
+
+    await page.mouse.move(1, 1);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(2_100);
+    assert.equal(await page.locator('#actions').getAttribute('data-presentation'), 'controls');
+    assert.equal(await page.locator('#share').isVisible(), true);
+    assert.equal(await page.locator('#end').isVisible(), true);
+
+    await page.click('#share');
+    await page.evaluate(() => window.__previewResolveScreenPick?.());
+    await page.waitForFunction(() => document.querySelector('#share .label')?.textContent === '共享画面');
+  } finally {
+    await page.evaluate(() => window.__previewResolveScreenPick?.()).catch(() => {});
+    await page.close();
+  }
+});
+
 test('meeting status keeps the longest state phrase whole and truncates only its source', async () => {
   const page = await openPreview({ width: 460, height: 620 });
   try {
@@ -160,6 +334,7 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-meeting-label')?.textContent
       === '会议记录中 · 未接入通话');
+    await revealCallControls(page);
 
     const metrics = async prefix => page.evaluate(prefix => {
       const label = document.getElementById(`${prefix}-meeting-label`);
@@ -210,7 +385,7 @@ test('meeting status keeps the longest state phrase whole and truncates only its
     assert(chatHeader.actionStateCenterDelta < 12, JSON.stringify(chatHeader));
 
     await page.click('#chat header [data-action="dismiss"]');
-    await page.click('#pet');
+    await page.click('#pet', { button: 'right' });
     await page.click('#menu-settings');
     const settings = await metrics('settings-call');
     assert.equal(settings.source.scrollWidth, settings.source.clientWidth,
@@ -268,9 +443,18 @@ test('compact call journey keeps badge, chat, unread, card controls and work tru
 
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent.includes('通话中'));
+    await revealCallControls(page);
     assert.deepEqual((await visibleClipping(page, 'actions')).clippedButtons, []);
     await page.click('#call-chat');
     await page.waitForFunction(() => !document.getElementById('chat').hidden);
+    const conversationHistoryChrome = await page.evaluate(() => ({
+      presentation: document.getElementById('chat').dataset.historyPresentation,
+      composeVisible: !document.getElementById('compose').hidden,
+      scopeVisible: !document.getElementById('chat-scope').hidden,
+    }));
+    assert.deepEqual(conversationHistoryChrome,
+      { presentation: 'conversation', composeVisible: true, scopeVisible: true },
+      JSON.stringify(conversationHistoryChrome));
     await page.waitForFunction(() => document.getElementById('call-transcript-log').children.length >= 2);
     await page.click('#chat header [data-action="dismiss"]');
     await page.waitForFunction(() => !document.getElementById('actions').hidden);
@@ -281,7 +465,7 @@ test('compact call journey keeps badge, chat, unread, card controls and work tru
     await page.waitForFunction(() => document.getElementById('call-chat-unread').textContent === '1');
     assert.equal(await page.locator('#call-state').textContent(), '通话中');
 
-    await page.click('#pet');
+    await page.click('#pet', { button: 'right' });
     await page.waitForFunction(() => !document.getElementById('menu').hidden);
     assert.equal(await page.locator('#menu-call-context').isVisible(), true);
     assert.equal(await page.locator('#menu-mic').isVisible(), true);
@@ -316,6 +500,7 @@ test('subtitle return is visible and restores the same shared call at compact an
     });
 
     for (const expanded of [false, true]) {
+      await revealCallControls(page);
       await page.click('[data-action="transcript"]');
       if (expanded) await page.click('#transcript-expand');
       await page.fill('#call-message', '未发送的草稿');
@@ -341,7 +526,7 @@ test('first subtitle observation waits for a real visible panel and remains sing
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
-    await page.click('#pet');
+    await page.click('#pet', { button: 'right' });
     await page.waitForFunction(() => !document.getElementById('menu').hidden);
 
     await page.evaluate(() => window.__emitAudio({
@@ -352,7 +537,7 @@ test('first subtitle observation waits for a real visible panel and remains sing
     await page.waitForTimeout(100);
     assert.equal(await page.evaluate(() => window.__presentationObservations.length), 0);
 
-    await page.click('#pet');
+    await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.getElementById('actions').hidden);
     await page.waitForFunction(() => window.__presentationObservations.length === 1, null, { timeout: 1_500 });
     const observation = await page.evaluate(() => window.__presentationObservations[0]);
@@ -377,7 +562,7 @@ test('first subtitle observation waits for a real visible panel and remains sing
   }
 });
 
-test('the narrow call bar keeps both speaker labels and the newest streamed tail visibly on screen', async () => {
+test('the independent call bubble omits UI speaker prefixes and keeps the newest streamed tail visible', async () => {
   const page = await openPreview({ width: 390, height: 620 });
   try {
     await page.click('#pet');
@@ -391,26 +576,24 @@ test('the narrow call bar keeps both speaker labels and the newest streamed tail
         text: `${'这是猫猫正在持续回答的长句'.repeat(18)}assistant tail!` });
     });
 
-    const userLabel = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '语音：');
     const userTail = await textRangeVisibility(page, '.call-recent p[data-role="user"]', '用户最新尾部。');
-    const assistantLabel = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', '宪宪：');
     const assistantTail = await textRangeVisibility(page, '.call-recent p[data-role="assistant"]', 'assistant tail!');
-    assert.equal(userLabel.visible, true, JSON.stringify(userLabel));
     assert.equal(userTail.visible, true, JSON.stringify(userTail));
-    assert.equal(assistantLabel.visible, true, JSON.stringify(assistantLabel));
     assert.equal(assistantTail.visible, true, JSON.stringify(assistantTail));
+    assert.doesNotMatch(userTail.rowText, /语音：/u);
+    assert.doesNotMatch(assistantTail.rowText, /宪宪：/u);
 
     await page.evaluate(async () => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const bubble = new RecentBubble([
         document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
-      ]);
+      ], { showSpeaker: false });
       bubble.append('user', 'hi', '语音');
       bubble.append('assistant', '好的。', '宪宪');
     });
     for (const role of ['user', 'assistant']) {
       const presentation = await recentRowPresentation(page, `.call-recent p[data-role="${role}"]`);
-      assert(Math.abs(presentation.gap) <= 0.5, JSON.stringify(presentation));
+      assert.equal(presentation.speakerVisible, false, JSON.stringify(presentation));
       assert.equal(presentation.textOverflow, 'ellipsis');
       assert.equal(presentation.textDirection, 'ltr');
     }
@@ -433,7 +616,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const bubble = new RecentBubble([
         document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
-      ]);
+      ], { showSpeaker: false });
       bubble.append('user', `${'مرحبا '.repeat(40)}نهاية الجملة`, '语音');
       bubble.append('assistant', `${'שלום '.repeat(40)}סוף המשפט`, '宪宪');
     });
@@ -449,7 +632,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const bubble = new RecentBubble([
         document.getElementById('call-bubble-first'), document.getElementById('call-bubble-second'),
-      ]);
+      ], { showSpeaker: false });
       bubble.append('user', `${'ك'.repeat(50)}iPad  ${'مرحبا '.repeat(17)}نهاية الجملة`, '语音');
       bubble.append('assistant', `${'word '.repeat(60)}مرحبا  ${'word '.repeat(20)}final words!`, '宪宪');
     });
@@ -464,7 +647,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
     await page.evaluate(async ({ adlamPrefix, adlamTail }) => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const row = document.getElementById('call-bubble-first');
-      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')]);
+      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')], { showSpeaker: false });
       bubble.append('user', `${`${adlamPrefix} `.repeat(30)}${adlamTail}`, '语音');
     }, {
       adlamPrefix: String.fromCodePoint(0x1e927, 0x1e928, 0x1e929, 0x1e92a, 0x1e92b),
@@ -477,7 +660,7 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
     const streaming = await page.evaluate(async () => {
       const { RecentBubble } = await import('/recent-bubble.mjs');
       const row = document.getElementById('call-bubble-first');
-      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')]);
+      const bubble = new RecentBubble([row, document.getElementById('call-bubble-second')], { showSpeaker: false });
       bubble.append('assistant', 'hello world ', '宪宪');
       const bad = [];
       for (let index = 0; index < 60; index += 1) {
@@ -492,7 +675,9 @@ test('the narrow call bar keeps the logical tail visible for right-to-left messa
         const tail = range.getBoundingClientRect();
         const bounds = message.getBoundingClientRect();
         const hit = document.elementFromPoint((tail.left + tail.right) / 2, (tail.top + tail.bottom) / 2);
-        if (tail.left < bounds.left - 0.5 || tail.right > bounds.right + 0.5 || !message.contains(hit)) bad.push(index);
+        const passive = getComputedStyle(row.closest('#call-bubble') ?? row).pointerEvents === 'none';
+        if (tail.left < bounds.left - 0.5 || tail.right > bounds.right + 0.5
+          || (!passive && !message.contains(hit))) bad.push(index);
       }
       return bad;
     });
@@ -508,6 +693,7 @@ test('recovering shared subtitles keep every header action inside compact and ex
     await page.click('#pet');
     await page.click('#begin');
     await page.waitForFunction(() => document.getElementById('call-state')?.textContent === '通话中');
+    await revealCallControls(page);
     await page.click('[data-action="transcript"]');
     await page.evaluate(() => {
       window.__emitAudio({ kind: 'audio', type: 'recovering', callId: '11111111-1111-4111-8111-111111111111' });
@@ -557,7 +743,26 @@ test('durable letter journey retries one identity, waits for a complete reply, t
     });
     await page.click('#pet');
     await page.click('#name-card-actions [data-action="write"]');
+    await page.waitForFunction(() => document.getElementById('chat')?.dataset.replyMode === 'compose');
+    const emptyComposeLayout = await page.evaluate(() => {
+      const feedback = document.querySelector('.chat-feedback');
+      return { feedbackHidden: feedback.hidden, feedbackHeight: feedback.getBoundingClientRect().height };
+    });
+    assert.deepEqual(emptyComposeLayout, { feedbackHidden: true, feedbackHeight: 0 },
+      JSON.stringify(emptyComposeLayout));
     await page.fill('#message', '把刚才那一步再讲慢一点');
+    const focusRing = await page.locator('#message').evaluate(element => {
+      const style = getComputedStyle(element);
+      return {
+        borderColor: style.borderColor,
+        outlineColor: style.outlineColor,
+        outlineOffset: Number.parseFloat(style.outlineOffset),
+        outlineWidth: Number.parseFloat(style.outlineWidth),
+      };
+    });
+    assert(focusRing.outlineWidth > 0 && focusRing.outlineOffset <= 0
+      && (focusRing.borderColor === 'rgba(0, 0, 0, 0)' || focusRing.borderColor === focusRing.outlineColor),
+    JSON.stringify(focusRing));
     await page.evaluate(() => { window.__previewUnconfirmNextText = true; });
     await page.click('#compose button[type="submit"]');
     try {
@@ -583,6 +788,20 @@ test('durable letter journey retries one identity, waits for a complete reply, t
 
     await page.click('#reply-retry');
     await page.waitForFunction(() => !document.getElementById('reply-sent').hidden);
+    const sentLayout = await page.evaluate(() => {
+      const panel = document.getElementById('chat').getBoundingClientRect();
+      const letter = document.getElementById('reply-letter-text');
+      return {
+        panel: { width: panel.width, height: panel.height },
+        repeatedText: letter?.textContent ?? '',
+        repeatedTextVisible: letter ? !letter.hidden : false,
+        status: document.getElementById('reply-sent-status').textContent,
+      };
+    });
+    assert.equal(sentLayout.repeatedText, '', JSON.stringify(sentLayout));
+    assert.equal(sentLayout.repeatedTextVisible, false, JSON.stringify(sentLayout));
+    assert(sentLayout.panel.width <= 150 && sentLayout.panel.height <= 90, JSON.stringify(sentLayout));
+    assert.equal(sentLayout.status, '已发送');
     const sends = await page.evaluate(() => window.__textV2);
     assert.equal(sends.length, 2);
     assert.deepEqual(sends[1], sends[0], 'explicit retry must preserve scope, text, id and revision');
@@ -623,23 +842,120 @@ test('durable letter journey retries one identity, waits for a complete reply, t
     }, { userRow, inputMessageId });
     await page.waitForFunction(() => document.getElementById('reply-body')?.textContent.includes('第二段把细节补全。'));
     assert.equal(await page.locator('#reply-retain').isVisible(), true);
+    const countdownRing = await page.evaluate(() => {
+      const ring = getComputedStyle(document.getElementById('reply-retain'));
+      const progress = getComputedStyle(document.querySelector('.reply-ring-progress'));
+      return { controlColor: ring.color, progressColor: progress.stroke,
+        strokeWidth: Number.parseFloat(progress.strokeWidth) };
+    });
+    assert.equal(countdownRing.progressColor, countdownRing.controlColor, JSON.stringify(countdownRing));
+    assert(countdownRing.strokeWidth <= 1, JSON.stringify(countdownRing));
     assert.deepEqual((await visibleClipping(page, 'chat')).clippedButtons, []);
     await page.click('#reply-retain');
     assert.equal(await page.locator('#reply-close').isVisible(), true);
+    const replyCloseLayout = await page.evaluate(() => {
+      const button = document.getElementById('reply-close').getBoundingClientRect();
+      const icon = document.querySelector('#reply-close svg')?.getBoundingClientRect();
+      return { hasIcon: Boolean(icon), button: { x: button.x, y: button.y, width: button.width, height: button.height },
+        icon: icon ? { x: icon.x, y: icon.y, width: icon.width, height: icon.height } : null,
+        deltaX: icon ? (icon.left + icon.width / 2) - (button.left + button.width / 2) : null,
+        deltaY: icon ? (icon.top + icon.height / 2) - (button.top + button.height / 2) : null };
+    });
+    assert.equal(replyCloseLayout.hasIcon, true, JSON.stringify(replyCloseLayout));
+    assert(Math.abs(replyCloseLayout.deltaX) < .5 && Math.abs(replyCloseLayout.deltaY) < .5,
+      JSON.stringify(replyCloseLayout));
+    await page.evaluate(({ userRow, inputMessageId }) => {
+      const olderRows = Array.from({ length: 18 }, (_, index) => ({
+        id: `history-${String(index + 1).padStart(2, '0')}`,
+        role: index % 2 ? 'assistant' : 'user',
+        name: index % 2 ? '宪宪' : '你',
+        text: `更早的第 ${index + 1} 条聊天，用足够长的正文让真实 transcript 产生可滚动高度。`,
+        inputMessageIds: [], responsePhase: null,
+        body: { revision: `history-${index + 1}`, complete: true, continuation: null },
+      }));
+      window.__setConversationPage({
+        messages: [...olderRows, userRow,
+          { id: 'reply-a', role: 'assistant', name: '宪宪', text: '第一段先从起点讲。第二段把细节补全。',
+            inputMessageIds: [inputMessageId], responsePhase: 'completed',
+            body: { revision: 'reply-a-final', complete: true, continuation: null } }],
+        hasMoreOlder: true,
+        olderCursor: 'history.before-01',
+      });
+      window.__setOlderConversationPage('history.before-01', {
+        messages: [
+          { id: 'history-00a', role: 'user', name: '你', text: '最早一页 A', inputMessageIds: [], responsePhase: null,
+            body: { revision: 'history-00a', complete: true, continuation: null } },
+          { id: 'history-00b', role: 'assistant', name: '宪宪', text: '最早一页 B', inputMessageIds: [], responsePhase: null,
+            body: { revision: 'history-00b', complete: true, continuation: null } },
+        ],
+        hasMoreOlder: false,
+        olderCursor: null,
+      });
+    }, { userRow, inputMessageId });
+    await page.waitForFunction(() => document.querySelectorAll('#chat-transcript > p[data-message-id]').length >= 20);
+    assert.equal(await page.locator('#chat-transcript').isHidden(), true,
+      'the long page must first be projected while transcript geometry is hidden');
     await page.click('#reply-history-open');
     await page.waitForFunction(() => !document.getElementById('chat-transcript').hidden);
+    const replyHistoryChrome = await page.evaluate(() => ({
+      presentation: document.getElementById('chat').dataset.historyPresentation,
+      composeHidden: document.getElementById('compose').hidden,
+      feedbackHidden: document.querySelector('.chat-feedback').hidden,
+      scopeHidden: document.getElementById('chat-scope').hidden,
+      emptyConnectionHeight: document.getElementById('chat-connection-status').getBoundingClientRect().height,
+      titleHidden: document.getElementById('chat-name').hidden,
+      fullDismissHidden: document.getElementById('chat-history-dismiss')?.hidden,
+      replyCloseVisible: document.getElementById('reply-history-close')
+        ? !document.getElementById('reply-history-close').hidden : false,
+    }));
+    assert.deepEqual(replyHistoryChrome, {
+      presentation: 'reply', composeHidden: true, feedbackHidden: true, scopeHidden: true,
+      emptyConnectionHeight: 0, titleHidden: true, fullDismissHidden: true, replyCloseVisible: true,
+    }, JSON.stringify(replyHistoryChrome));
+    const selectedVisibility = await page.evaluate(() => {
+      const transcript = document.getElementById('chat-transcript');
+      const viewport = transcript.getBoundingClientRect();
+      const selected = transcript.querySelector('[data-message-id="reply-a"]').getBoundingClientRect();
+      return { visible: selected.bottom > viewport.top && selected.top < viewport.bottom,
+        selected: { top: selected.top, bottom: selected.bottom },
+        viewport: { top: viewport.top, bottom: viewport.bottom } };
+    });
+    assert.equal(selectedVisibility.visible, true, JSON.stringify(selectedVisibility));
 
-    await page.fill('#message', '第二封信');
-    await page.click('#compose button[type="submit"]');
-    await page.waitForFunction(() => window.__textV2.length === 3);
-    const second = await page.evaluate(() => window.__textV2.at(-1));
-    const secondMessageId = `preview-text-${second.clientMessageId}`;
+    const topAnchor = await page.evaluate(() => {
+      const transcript = document.getElementById('chat-transcript');
+      transcript.scrollTop = 0;
+      const viewport = transcript.getBoundingClientRect();
+      const row = transcript.querySelector('p[data-message-id]');
+      const rect = row.getBoundingClientRect();
+      return { id: row.dataset.messageId, offset: rect.top - viewport.top };
+    });
+    await page.locator('#chat-transcript').hover();
+    await page.mouse.wheel(0, -200_000);
+    await page.waitForFunction(() => window.__getConversationReads()
+      .filter(read => read.before === 'history.before-01').length === 1);
+    await page.waitForFunction(() => document.querySelector('[data-message-id="history-00a"]'));
+    const preservedAnchor = await page.evaluate(anchor => {
+      const transcript = document.getElementById('chat-transcript');
+      const viewport = transcript.getBoundingClientRect();
+      const row = transcript.querySelector(`[data-message-id="${anchor.id}"]`);
+      return { id: row.dataset.messageId, offset: row.getBoundingClientRect().top - viewport.top,
+        olderReads: window.__getConversationReads().filter(read => read.before !== null).length };
+    }, topAnchor);
+    assert.equal(preservedAnchor.id, topAnchor.id);
+    assert(Math.abs(preservedAnchor.offset - topAnchor.offset) < 1,
+      JSON.stringify({ topAnchor, preservedAnchor }));
+    assert.equal(preservedAnchor.olderReads, 1);
+
+    assert.equal(await page.locator('#compose').isHidden(), true,
+      'retained-reply history stays read-only while newer conversation arrives');
+    const secondMessageId = 'preview-text-external-newer';
     const secondUser = {
-      id: secondMessageId, role: 'user', name: '预览输入', text: second.text,
+      id: secondMessageId, role: 'user', name: '你', text: '第二封信',
       inputMessageIds: [], responsePhase: null,
       body: { revision: `preview-${secondMessageId}`, complete: true, continuation: null },
       deliveryReceipt: {
-        kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId: second.clientMessageId,
+        kind: 'delivery', v: 2, delivery: 'accepted', clientMessageId: 'external-newer',
         messageId: secondMessageId, callId: null,
       },
     };
@@ -654,6 +970,35 @@ test('durable letter journey retries one identity, waits for a complete reply, t
         body: { revision: 'reply-b-final', complete: true, continuation: null } },
     ]), { userRow, inputMessageId, secondUser, secondMessageId });
     await page.waitForFunction(() => !document.getElementById('reply-return-latest').hidden);
+    const returnLatestLayout = await page.evaluate(() => {
+      const bounds = selector => {
+        const rect = document.querySelector(selector).getBoundingClientRect();
+        return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
+      };
+      const intersects = (left, right) => Math.min(left.right, right.right) > Math.max(left.left, right.left)
+        && Math.min(left.bottom, right.bottom) > Math.max(left.top, right.top);
+      const button = bounds('#reply-return-latest');
+      const transcript = bounds('#chat-transcript');
+      const compose = bounds('#compose');
+      const input = bounds('#message');
+      const send = bounds('#compose button[type="submit"]');
+      return {
+        button, transcript, compose, input, send,
+        buttonInsideTranscript: button.left >= transcript.left && button.right <= transcript.right
+          && button.top >= transcript.top && button.bottom <= transcript.bottom,
+        horizontallyCentered: Math.abs((button.left + button.right) / 2
+          - (transcript.left + transcript.right) / 2) < 1,
+        overlaps: {
+          compose: intersects(button, compose),
+          input: intersects(button, input),
+          send: intersects(button, send),
+        },
+      };
+    });
+    assert.equal(returnLatestLayout.buttonInsideTranscript, true, JSON.stringify(returnLatestLayout));
+    assert.equal(returnLatestLayout.horizontallyCentered, true, JSON.stringify(returnLatestLayout));
+    assert.deepEqual(returnLatestLayout.overlaps, { compose: false, input: false, send: false },
+      JSON.stringify(returnLatestLayout));
     await page.click('#reply-return-latest');
     assert.equal(await page.locator('#reply-return-latest').isHidden(), true);
     assert.equal(await page.locator('#chat-transcript').isVisible(), true);

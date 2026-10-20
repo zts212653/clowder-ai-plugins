@@ -1,0 +1,579 @@
+pluginId: official.github-operations
+version: 0.1.0-alpha.16
+contractVersion: 0.1.0
+name: GitHub Operations
+description:
+  default: 跟踪 GitHub PR 审查、CI 检查、冲突、Issue 和评论，并同步仓库协作动态。
+  translations:
+    zh-CN: 跟踪 GitHub PR 审查、CI 检查、冲突、Issue 和评论，并同步仓库协作动态。
+    en: Track GitHub reviews, checks, conflicts, issues, comments, and repository
+      reconciliation.
+icon:
+  type: svg
+  src: assets/icon.svg
+steps:
+  - text: "Log in with the GitHub CLI (`gh auth login`) on the machine running
+      Clowder AI"
+  - text: "Optional: configure a token only for plugin-managed child processes that
+      explicitly consume it"
+  - text: "Optional: configure Noise Bot list to reduce setup-only comment noise"
+configuration:
+  - key: narratorCatId
+    label: Community narrator cat
+    description: Explicit notification recipient for manual Community triage.
+      Configure together with the narrator thread. Host handles recipient
+      availability and wake outcomes.
+    kind: string
+    required: false
+  - key: narratorThreadId
+    label: Community narrator thread
+    description: Existing accessible thread for triage briefings. Pending deliveries
+      retain their original target and pause if either setting changes.
+    kind: string
+    required: false
+  - key: narratorDeliveries
+    label: Community narrator deliveries
+    description: Inspect durable dispatches or retry pending delivery. Restore the
+      original target settings to resume paused delivery; changing settings
+      never redirects an existing briefing.
+    kind: operation
+    required: false
+    actions:
+      - id: status
+        label: Delivery status
+        render: status
+        action: { method: github.narrator.status }
+      - id: retry
+        label: Retry pending deliveries
+        render: button
+        action: { method: github.narrator.retry }
+        next: status
+  - key: publishRepositories
+    label: Repositories allowed for public issue drafts
+    description: Comma-separated owner/repository names. Empty disables issue publishing.
+    kind: string
+    required: false
+  - key: issueDrafts
+    label: Plugin-native issue drafts
+    description: Review sanitized drafts before publishing. Legacy Host drafts
+      remain in their existing entry point.
+    kind: operation
+    required: false
+    actions:
+      - id: list
+        label: Drafts
+        render: status
+        resultRender: rows
+        action: { method: github.draft.list }
+      - id: publish
+        label: Publish or recover publication
+        render: row
+        confirm: Publish this sanitized draft to its GitHub repository? If publication
+          already started, only check its existing outcome.
+        action: { method: github.draft.publish }
+        next: list
+      - id: cancel
+        label: Cancel draft
+        render: row
+        confirm: Cancel this unpublished draft? Its history will remain stored.
+        action: { method: github.draft.cancel }
+        next: list
+  - key: webhookSecret
+    label: GitHub Webhook Secret
+    kind: secret
+    required: false
+  - key: token
+    label: Personal Access Token
+    kind: secret
+    required: false
+  - key: mcpToken
+    label: MCP Token
+    kind: secret
+    required: false
+  - key: setupNoiseBotLogins
+    label: Noise Bot Login List
+    kind: string
+    required: false
+  - key: cloudReviewerLogins
+    label: Cloud Reviewer GitHub Logins
+    kind: string
+    required: false
+contributions:
+  - type: tool
+    id: refresh-pull-requests
+    name: github_refresh_pull_requests
+    description: Fetch one bounded PR metadata page into a private staged
+      generation. Repeat while incomplete; retries resume persisted review-page
+      progress. Only a complete generation becomes visible. Provider
+      observations do not grant Host governance authority.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ repo ]
+      properties:
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+        restart: { type: boolean }
+    action: { method: github.pull-requests.refresh }
+  - type: tool
+    id: observe-review-trigger
+    name: github_observe_review_trigger
+    description: Read exact review-trigger acceptance and subsequent feedback from
+      GitHub. This is a provider observation, not admission, wait, reviewer or
+      lease authority. Unavailable or incomplete evidence fails explicitly.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ repoFullName, prNumber, triggerCommentId ]
+      properties:
+        repoFullName: { type: string, maxLength: 256 }
+        prNumber: { type: integer, minimum: 1 }
+        triggerCommentId: { type: integer, minimum: 1 }
+    action: { method: github.review-trigger.observe }
+  - type: tool
+    id: issue-metadata
+    name: github_issue_metadata
+    description: Read installation-private issue metadata by repository and number.
+      Imported legacy fields do not establish assignment, signoff, route
+      acceptance or current provider state.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ repo, number ]
+      properties:
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+        number: { type: integer, minimum: 1 }
+    action: { method: github.issue.metadata }
+  - type: tool
+    id: get-issue-draft
+    name: github_get_issue_draft
+    description: Read the complete sanitized draft and its publication outcome by
+      ID, including retained cancelled or published records. Does not publish.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ draftId ]
+      properties:
+        draftId: { type: string, pattern: '^[a-f0-9]{64}$' }
+    action: { method: github.draft.get }
+  - type: tool
+    id: create-issue-draft
+    name: github_create_issue_draft
+    description: Save sanitized public issue text as an installation-private draft.
+      Publishing requires the owner-confirmed Settings action. Cannot import
+      legacy Host ownership or confirmation.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ requestId, repo, title, bodyMarkdown ]
+      properties:
+        requestId: { type: string, pattern: '^[A-Za-z0-9_.:-]{1,128}$' }
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+        title: { type: string, minLength: 1, maxLength: 256 }
+        bodyMarkdown: { type: string, maxLength: 65536 }
+    action: { method: github.draft.create }
+  - type: tool
+    id: repository-observations
+    name: github_repository_observations
+    description: Read a bounded page of locally collected provider observations,
+      including webhook-only subjects. No network fetch, governance verdict,
+      assignment or closure action.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ repo ]
+      properties:
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+        after: { type: string }
+        prAfter: { type: string, maxLength: 160 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+    action: { method: github.repository.observations }
+  - type: tool
+    id: preview-issue
+    name: github_preview_issue
+    description: Sanitize explicitly supplied public issue text for preview. Does
+      not save a draft, authenticate its owner, or publish to GitHub.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ title, bodyMarkdown ]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 256 }
+        bodyMarkdown: { type: string, maxLength: 65536 }
+    action: { method: github.issue.preview }
+  - type: skill
+    id: github-operations
+    path: skills/github-operations
+  - type: mcp
+    id: github-tracking
+    runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
+    actions:
+      - { method: github.typed-wait.register-pr }
+      - { method: github.typed-wait.register-issue }
+      - { method: github.typed-wait.unregister }
+      - { method: github.review.record-verdict }
+      - { method: github.community.triage-complete }
+      - { method: github.community.request-guardian }
+      - { method: github.community.guardian-signoff }
+      - { method: github.community.validate-route }
+      - { method: github.community.report }
+      - { method: github.community.await-external }
+  - type: webhook
+    id: repository-events
+    path: github/events
+    methods: [ POST ]
+    verificationSecretRef: webhookSecret
+    action: { method: github.webhook }
+  - type: identity
+    id: github-notification
+    displayName: GitHub
+  - type: identity
+    id: github-wait
+    displayName: GitHub
+  - type: tool
+    id: recommend-triage
+    name: github_recommend_triage
+    description: Compare supplied issue observations and recommend a direction. This
+      does not authenticate reviewers, accept a case, assign a guardian, or
+      record a formal decision.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [ issueType, observations ]
+      properties:
+        issueType: { type: string, enum: [ bug, feature, enhancement, question ] }
+        observations:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items:
+            type: object
+            additionalProperties: false
+            required: [ sourceId, verdict ]
+            properties:
+              sourceId: { type: string, minLength: 1, maxLength: 256 }
+              verdict: { type: string, enum: [ WELCOME, NEEDS-DISCUSSION, POLITELY-DECLINE ] }
+              reasonCode: { type: string, maxLength: 256 }
+    action: { method: github.triage.recommend }
+  - type: tool
+    id: list-tracking
+    name: github_list_tracking
+    description: List this installation's PR and issue tracking status and pending
+      deliveries.
+    inputSchema: { type: object, additionalProperties: false, properties: {} }
+    action: { method: github.tracking.list }
+  - type: schedule
+    id: pr-tracking
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.pr-tracking }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: tool
+    id: inspect-subject
+    name: github_inspect_subject
+    description: Read this installation's PR or issue observations and derived
+      status. These are provider facts, not a governance verdict or approval.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        subjectKey:
+          {
+            type: string,
+            pattern: '^(pr|issue):[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[1-9][0-9]*$'
+          }
+        fromSequence: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+      required: [ subjectKey ]
+    action: { method: github.subject.inspect }
+  - type: tool
+    id: inspect-legacy-history
+    name: github_inspect_legacy_history
+    description: Read copied historical GitHub event metadata. This is archived
+      history, not current state, delivery progress or a governance verdict.
+      Original bodies and Host decisions remain at the source.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        subjectKey: { type: string, pattern: '^(pr|issue):[a-z0-9_.-]+/[a-z0-9_.-]+#[1-9][0-9]*$' }
+        offset: { type: integer, minimum: 0 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+      required: [ subjectKey ]
+    action: { method: github.legacy-history.inspect }
+  - type: schedule
+    id: repo-scan
+    schedule: { kind: interval, everyMs: 300000 }
+    action: { method: github.repo-scan }
+    policy: { overlap: skip, timeoutMs: 90000 }
+  - type: schedule
+    id: issue-tracking
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.issue-tracking }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: repo-comment-poll
+    schedule: { kind: interval, everyMs: 60000 }
+    action: { method: github.repo-comment-poll }
+    policy: { overlap: skip, timeoutMs: 30000 }
+  - type: schedule
+    id: community-reconciler
+    schedule: { kind: interval, everyMs: 600000 }
+    action: { method: github.community-reconciler }
+    policy: { overlap: skip, timeoutMs: 120000 }
+  - type: tool
+    id: register-repository
+    name: github_register_repository
+    description: Register an authorized repository inbox for package-owned
+      collection and notifications.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+        guardThreadId: { type: string, minLength: 1 }
+        guardCatId: { type: string, minLength: 1 }
+        reviewMode: { type: string, enum: [ observe_only, maintainer_review ] }
+        cloudReviewPolicy: { type: string, enum: [ optional, required ] }
+      required: [ repo, guardThreadId, guardCatId ]
+    action: { method: github.repository.register }
+  - type: tool
+    id: unregister-repository
+    name: github_unregister_repository
+    description: Stop repository collection while retaining historical events.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        repo: { type: string, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+      required: [ repo ]
+    action: { method: github.repository.unregister }
+  - type: tool
+    id: list-repository
+    name: github_list_repository
+    description: List configured repository inboxes and separately identify
+      repositories with published private PR observations. Does not register
+      polling or fetch GitHub.
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties: {}
+    action: { method: github.repository.list }
+  - type: webhook
+    id: community-http-01
+    path: github/community-issues
+    methods: [ POST, GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-02
+    path: github/community-issues/:id
+    methods: [ GET, PATCH, DELETE ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-03
+    path: github/community-issues/:id/dispatch
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-04
+    path: github/community-issues/sync
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-05
+    path: github/community-issues/sync-prs
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-06
+    path: github/community-issues/:id/triage-complete
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-07
+    path: github/community-issues/:id/resolve
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-08
+    path: github/community-issues/:id/request-guardian
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-09
+    path: github/community-issues/:id/guardian-signoff
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-10
+    path: github/community-issues/:id/guardian-status
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-11
+    path: github/community-issues/:id/validate-route
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-12
+    path: github/community-issues/:id/report
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-13
+    path: github/community-issues/:id/waive-closure
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-14
+    path: github/community-issues/:subjectKey/await-external
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-15
+    path: github/community-repos
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-16
+    path: github/community-board
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-17
+    path: github/community-issue-drafts/config
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-18
+    path: github/community-issue-drafts
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-20
+    path: github/community-issue-drafts/by-id/:draftId
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-21
+    path: github/community-issue-drafts/by-id/:draftId/publish
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-22
+    path: github/community-issue-drafts/by-id/:draftId/cancel
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-23
+    path: github/community-decision-queue
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-24
+    path: github/community-findings/:findingId/acknowledge
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-25
+    path: github/community-findings/:findingId/resolve
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-26
+    path: github/community-findings/:findingId/waive
+    methods: [ POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-27
+    path: github/community-findings
+    methods: [ GET ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-28
+    path: github/community-repo-configs
+    methods: [ GET, POST ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: community-http-29
+    path: github/community-repo-configs/:repo
+    methods: [ DELETE ]
+    action: { method: github.community.http }
+  - type: webhook
+    id: pr-title-http
+    path: github/pr-title
+    methods: [ GET ]
+    action: { method: github.pr-title.http }
+features:
+  - id: github-collaboration
+    name: GitHub collaboration operations
+    resources: []
+    contributions:
+      - { type: webhook, id: pr-title-http }
+      - { type: webhook, id: community-http-01 }
+      - { type: webhook, id: community-http-02 }
+      - { type: webhook, id: community-http-03 }
+      - { type: webhook, id: community-http-04 }
+      - { type: webhook, id: community-http-05 }
+      - { type: webhook, id: community-http-06 }
+      - { type: webhook, id: community-http-07 }
+      - { type: webhook, id: community-http-08 }
+      - { type: webhook, id: community-http-09 }
+      - { type: webhook, id: community-http-10 }
+      - { type: webhook, id: community-http-11 }
+      - { type: webhook, id: community-http-12 }
+      - { type: webhook, id: community-http-13 }
+      - { type: webhook, id: community-http-14 }
+      - { type: webhook, id: community-http-15 }
+      - { type: webhook, id: community-http-16 }
+      - { type: webhook, id: community-http-17 }
+      - { type: webhook, id: community-http-18 }
+      - { type: webhook, id: community-http-20 }
+      - { type: webhook, id: community-http-21 }
+      - { type: webhook, id: community-http-22 }
+      - { type: webhook, id: community-http-23 }
+      - { type: webhook, id: community-http-24 }
+      - { type: webhook, id: community-http-25 }
+      - { type: webhook, id: community-http-26 }
+      - { type: webhook, id: community-http-27 }
+      - { type: webhook, id: community-http-28 }
+      - { type: webhook, id: community-http-29 }
+      - { type: tool, id: refresh-pull-requests }
+      - { type: tool, id: observe-review-trigger }
+      - { type: tool, id: issue-metadata }
+      - { type: tool, id: get-issue-draft }
+      - { type: tool, id: create-issue-draft }
+      - { type: tool, id: repository-observations }
+      - { type: tool, id: preview-issue }
+      - { type: skill, id: github-operations }
+      - { type: mcp, id: github-tracking }
+      - { type: webhook, id: repository-events }
+      - { type: tool, id: list-repository }
+      - { type: tool, id: unregister-repository }
+      - { type: tool, id: register-repository }
+      - { type: identity, id: github-notification }
+      - { type: identity, id: github-wait }
+      - { type: tool, id: list-tracking }
+      - { type: tool, id: inspect-subject }
+      - { type: tool, id: inspect-legacy-history }
+      - { type: tool, id: recommend-triage }
+      - { type: schedule, id: pr-tracking }
+      - { type: schedule, id: repo-scan }
+      - { type: schedule, id: issue-tracking }
+      - { type: schedule, id: repo-comment-poll }
+      - { type: schedule, id: community-reconciler }
+    capabilities:
+      [
+        schedule.register,
+        plugin.config.read,
+        secret.read,
+        plugin.state.get,
+        plugin.state.set,
+        task.read,
+        task.write,
+        thread.listMetadata,
+        thread.readContent,
+        thread.write,
+        messaging.send
+      ]
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

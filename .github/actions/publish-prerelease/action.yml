@@ -39,7 +39,8 @@ runs:
             throw new Error(`npm pack did not report ${field}`);
           }
         }
-        if (artifact.name !== packageJson.name || artifact.version !== packageJson.version) {
+        if (artifact.name !== packageJson.name ||
+            artifact.version !== packageJson.version) {
           throw new Error(
             `packed identity mismatch: ${artifact.name}@${artifact.version} != ${packageJson.name}@${packageJson.version}`,
           );
@@ -76,9 +77,18 @@ runs:
           PREVIOUS_LATEST=$(node packages/plugin-contract/scripts/classify-prerelease-latest.mjs)
           printf 'had_previous_latest=%s\n' "$([[ -n "$PREVIOUS_LATEST" ]] && printf true || printf false)" >> "$GITHUB_OUTPUT"
           printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
+          node --input-type=module <<'NODE'
+        import { appendFileSync, readFileSync } from 'node:fs';
+        const tags = JSON.parse(readFileSync(process.env.PACKAGE_TAGS_PATH, 'utf8'));
+        if (tags.next !== undefined && (typeof tags.next !== 'string' || !/^[a-zA-Z0-9.+-]+$/.test(tags.next))) {
+          throw new Error('invalid registry next tag');
+        }
+        appendFileSync(process.env.GITHUB_OUTPUT, `previous_next=${tags.next ?? ''}\n`);
+        NODE
         elif grep -q 'E404' "$PACKAGE_TAGS_ERROR_PATH"; then
           printf 'had_previous_latest=false\n' >> "$GITHUB_OUTPUT"
           printf 'previous_latest=\n' >> "$GITHUB_OUTPUT"
+          printf 'previous_next=\n' >> "$GITHUB_OUTPUT"
         else
           cat "$PACKAGE_TAGS_ERROR_PATH" >&2
           exit 1
@@ -120,6 +130,8 @@ runs:
         EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
         HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
+        PREVIOUS_NEXT: ${{ steps.registry.outputs.previous_next }}
+        ALREADY_PUBLISHED: ${{ steps.registry.outputs.already_published }}
         REGISTRY_JSON_PATH: ${{ runner.temp }}/prerelease-published-version.json
         DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-published-tags.json
       run: |
@@ -140,7 +152,8 @@ runs:
         if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
           throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
         }
-        if (distTags.next !== process.env.PACKAGE_VERSION) {
+        const expectedNext = process.env.PACKAGE_VERSION;
+        if (distTags.next !== expectedNext) {
           throw new Error(`registry next tag mismatch: ${distTags.next}`);
         }
 
@@ -176,6 +189,8 @@ runs:
         EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
         HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
+        PREVIOUS_NEXT: ${{ steps.registry.outputs.previous_next }}
+        ALREADY_PUBLISHED: ${{ steps.registry.outputs.already_published }}
         REGISTRY_JSON_PATH: ${{ runner.temp }}/prerelease-final-version.json
         DIST_TAGS_JSON_PATH: ${{ runner.temp }}/prerelease-final-tags.json
       run: |
@@ -194,7 +209,8 @@ runs:
         if (metadata.dist?.integrity !== process.env.EXPECTED_INTEGRITY) {
           throw new Error(`registry integrity mismatch: ${metadata.dist?.integrity}`);
         }
-        if (distTags.next !== process.env.PACKAGE_VERSION) {
+        const expectedNext = process.env.PACKAGE_VERSION;
+        if (distTags.next !== expectedNext) {
           throw new Error(`registry next tag mismatch: ${distTags.next}`);
         }
         if (process.env.HAD_PREVIOUS_LATEST === 'true') {

@@ -62,6 +62,19 @@ test(
     );
     const admission = validateManifest(manifest);
     assert.equal(admission.valid, true, JSON.stringify(admission));
+  const loaded = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '--eval', `
+    import entry from './${manifest.runtime.entrypoint}';
+    const module = entry.create(${JSON.stringify(manifest)});
+    const settings = await module.settings({});
+    const result = await settings.actions['tripo.status']({ input: {} });
+    await settings.dispose();
+    const active = await module.start({});
+    await active.stop({ reason: 'disabled' });
+    console.log(JSON.stringify(result));
+  `], { cwd: installed, encoding: 'utf8', env: { ...process.env, HOME: consumer } }));
+  assert.equal(loaded.data.artifact.version, manifest.version);
+  assert.equal(loaded.data.auth.status, 'unverified');
+  assert.equal(loaded.data.live.status, 'dormant');
     const lock = JSON.parse(lockBytes);
     assert.equal(lock.lockfileVersion, 3);
     for (const [path, entry] of Object.entries(lock.packages)) {

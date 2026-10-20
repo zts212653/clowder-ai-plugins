@@ -23,8 +23,6 @@ import type {
   // beta.8 handshake inputs plus still-RESERVED row stubs
   HelloInput,
   ReadyInput,
-  EventsPublishInput,
-  EventsPublishResult,
   SendInput,
   SendResult,
   AppendInput,
@@ -86,20 +84,6 @@ const _closedReady: ReadyInput = { bindingNonce: 'nonce-1' };
 void _closedHello;
 void _closedReady;
 
-const _closedPublish: EventsPublishInput = {
-  signalType: 'feishu.meeting_artifact.generated.v1',
-  eventId: 'event-1',
-  idempotencyKey: 'artifact-1',
-  occurredAt: '2026-08-09T05:55:00Z',
-  payload: { artifactId: 'artifact-1' },
-  source: { handle: 'feishu-minute:artifact-1' },
-};
-const _closedPublishResult: EventsPublishResult = {
-  publicationId: 'publication-1',
-  disposition: 'accepted',
-};
-void _closedPublish;
-void _closedPublishResult;
 
 declare const _draft: MessageDraft;
 declare const _sendReceipt: SendReceipt;
@@ -126,9 +110,9 @@ const _closedSnapshotResult: SnapshotResult = {
   nextPageToken: null,
   snapshotAckToken: 'snapshot-ack-1',
 };
-const _closedDeliver: DeliverInput = {
+const _closedDeliver: DeliverInput = {kind:'message' as const,
   deliveryId: 'delivery-1',
-  threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
+  threadId: (_envelope).threadId,
   envelope: _envelope,
 };
 const _closedDeliverResult: DeliverResult = { deliveryId: 'delivery-1' };
@@ -198,10 +182,7 @@ const _readReady: true = _registry['messaging.read'].ready;
 const _ackReady: true = _registry['messaging.ack'].ready;
 const _snapshotReady: true = _registry['messaging.snapshot'].ready;
 const _deliverReady: true = _registry['host.messaging.deliver'].ready;
-const _grantsChangedReady: true = _registry['host.grants.changed'].ready;
 const _pingReady: true = _registry['host.lifecycle.ping'].ready;
-const _drainReady: true = _registry['host.lifecycle.drain'].ready;
-const _publishReady: true = _registry['events.publish'].ready;
 void _helloReady;
 void _readyReady;
 void _sendReady;
@@ -211,7 +192,4 @@ void _readReady;
 void _ackReady;
 void _snapshotReady;
 void _deliverReady;
-void _grantsChangedReady;
 void _pingReady;
-void _drainReady;
-void _publishReady;

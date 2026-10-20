@@ -1,4 +1,4 @@
-import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
+import type { FeishuArtifactNotification } from './artifact.js';
 
 import { validateFeishuMeetingPublishInput } from './artifact.js';
 
@@ -57,7 +57,7 @@ export type MeetingIntakeCatchUp =
 export interface MeetingIntakeState {
   readonly v: typeof STATE_VERSION;
   readonly cursor: string | null;
-  readonly pending: readonly EventsPublishInput[];
+  readonly pending: readonly FeishuArtifactNotification[];
   readonly health: MeetingIntakeHealth;
   readonly catchUp: MeetingIntakeCatchUp;
 }
@@ -163,7 +163,7 @@ export function isCatchUp(value: unknown): value is MeetingIntakeCatchUp {
   return false;
 }
 
-function validPending(value: unknown): value is readonly EventsPublishInput[] {
+function validPending(value: unknown): value is readonly FeishuArtifactNotification[] {
   if (!Array.isArray(value) || value.length > MAX_PENDING) return false;
   const keys = new Set<string>();
   for (const candidate of value) {

@@ -5,6 +5,8 @@ import type {
   AppendResult,
   DeliverInput,
   DeliverResult,
+  MediaReadInput,
+  MediaReadResult,
   ReadInput,
   ReadResult,
   SendInput,
@@ -64,6 +66,7 @@ export const MESSAGING_ROW_METHODS = [
   'messaging.read',
   'messaging.ack',
   'messaging.snapshot',
+  'streams.read',
   'host.messaging.deliver',
 ] as const;
 
@@ -76,6 +79,7 @@ export interface MessagingRowInputByMethod {
   readonly 'messaging.read': ReadInput;
   readonly 'messaging.ack': MessagingAckRequest;
   readonly 'messaging.snapshot': SnapshotInput;
+  readonly 'streams.read': MediaReadInput;
   readonly 'host.messaging.deliver': DeliverInput;
 }
 
@@ -86,6 +90,7 @@ export interface MessagingRowResultByMethod {
   readonly 'messaging.read': ReadResult;
   readonly 'messaging.ack': MessagingAckResult;
   readonly 'messaging.snapshot': SnapshotResult;
+  readonly 'streams.read': MediaReadResult;
   readonly 'host.messaging.deliver': DeliverResult;
 }
 
@@ -113,7 +118,8 @@ const INPUT_VALIDATORS: Readonly<Record<MessagingRowMethod, ValidatorEntry>> = {
   'messaging.read': validator('M0CReadInput'),
   'messaging.ack': validator('M0CAckInput'),
   'messaging.snapshot': validator('M0CSnapshotInput'),
-  'host.messaging.deliver': validator('M0CDeliverInput'),
+  'streams.read': validator('MediaReadInput'),
+  'host.messaging.deliver': validator('PluginDeliveryInput'),
 };
 
 const RESULT_VALIDATORS: Readonly<Record<MessagingRowMethod, ValidatorEntry>> = {
@@ -123,7 +129,8 @@ const RESULT_VALIDATORS: Readonly<Record<MessagingRowMethod, ValidatorEntry>> = 
   'messaging.read': validator('M0CReadResult'),
   'messaging.ack': validator('M0CAckResult'),
   'messaging.snapshot': validator('M0CSnapshotResult'),
-  'host.messaging.deliver': validator('M0CDeliverResult'),
+  'streams.read': validator('MediaReadResult'),
+  'host.messaging.deliver': validator('PluginDeliveryReceipt'),
 };
 
 function hasOnlyUnicodeScalars(value: string): boolean {
@@ -230,6 +237,13 @@ function validateWith<Value>(
       : invalid('', `#/$defs/${entry.definition}`, 'schema', 'schema validation failed');
   }
 
+  if (entry.definition === 'PluginDeliveryInput') {
+    const delivery = value as import('../generated/contract.generated.js').PluginDeliveryInput;
+    if (delivery.kind === 'message' && delivery.threadId !== delivery.envelope.threadId) {
+      return invalid('/threadId', '#/$defs/PluginDeliveryInput', 'threadIdentity', 'delivery thread must match the envelope');
+    }
+  }
+
   const semantic = validateMessagingSemantics(entry.definition, value);
   if (!semantic.valid) {
     return {
@@ -273,4 +287,15 @@ export function validateMessagingRowResult<Method extends MessagingRowMethod>(
     );
   }
   return structural;
+}
+
+const PLUGIN_DELIVERY = validator('PluginDeliveryInput');
+const PLUGIN_RECEIPT = validator('PluginDeliveryReceipt');
+export function isPluginDeliveryInput(value: unknown): value is import('../generated/contract.generated.js').PluginDeliveryInput {
+  if (!validateWith(PLUGIN_DELIVERY, value).valid) return false;
+  const input = value as import('../generated/contract.generated.js').PluginDeliveryInput;
+  return input.kind !== 'message' || input.envelope.threadId === input.threadId;
+}
+export function isPluginDeliveryReceipt(value: unknown): value is import('../generated/contract.generated.js').PluginDeliveryReceipt {
+  return PLUGIN_RECEIPT.validate(value);
 }

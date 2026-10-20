@@ -1,6 +1,4 @@
 import { registerWorkspaceTools } from './workspace-tools.mjs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -11,8 +9,8 @@ import { exportSelected } from './export-selected.mjs';
 import { prepareHelper } from './install.mjs';
 import { closeActiveReview, reviewSharedModel } from './shared-review.mjs';
 import { wrapTool as wrap } from './tool-request.mjs';
+import { defaultRoot, readStatus } from './status.mjs';
 
-const defaultRoot = join(homedir(), 'Downloads/Tripo');
 const outputDirectoryInput = z
   .string()
   .max(4096)
@@ -68,48 +66,7 @@ server.registerTool(
       openWorldHint: false,
     },
   },
-  wrap(async (_args, { signal }) => {
-    try {
-      const bridge = await callBridge('status', { signal });
-      return {
-        artifact: { version: VERSION },
-        config: {
-          defaultOutputDirectory: defaultRoot,
-          directorySource: 'per_call',
-        },
-        auth: {
-          status: bridge.authorized?.length ? 'authorized' : 'disconnected',
-          pages: bridge.authorized ?? [],
-        },
-        live: { status: 'connected', observedVersion: bridge.version },
-        workspace: {
-          authorized: bridge.workspaceAuthorized === true,
-          requiresSeparateChromeGrant: true,
-        },
-        sharedLinks: { requiresLogin: false },
-      };
-    } catch (error) {
-      signal.throwIfAborted();
-      const mismatch = error.code === 'CHROME_VERSION_MISMATCH';
-      return {
-        artifact: { version: VERSION },
-        config: {
-          defaultOutputDirectory: defaultRoot,
-          directorySource: 'per_call',
-        },
-        auth: { status: 'unverified' },
-        live: {
-          status: mismatch ? 'error' : 'dormant',
-          reason: error.message,
-          ...(mismatch ? { observedVersion: error.observedVersion } : {}),
-        },
-        sharedLinks: { requiresLogin: false },
-        nextAction: mismatch
-          ? error.message
-          : '分享链接可直接审模；已登录页面通道需要准备本机组件，并在 Chrome 授权。',
-      };
-    }
-  }),
+  wrap((_args, { signal }) => readStatus({ signal })),
 );
 server.registerTool(
   'tripo_prepare_chrome',

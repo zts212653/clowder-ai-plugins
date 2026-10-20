@@ -291,6 +291,23 @@ test('new replies do not pull a reader away from older history', () => {
   assert.equal(f.current().hasNewer, false);
 });
 
+test('retained reply history is read-only without changing the shared history selection', () => {
+  const f = fixture();
+  f.controller.recordDelivery(receipt('client-a', 'input-a'), '第一封');
+  f.controller.loadHistory([assistant('reply-a', '第一封回复', ['input-a'])]);
+  f.controller.pin();
+
+  f.controller.openReplyHistory();
+  assert.equal(f.current().mode, 'history');
+  assert.equal(f.current().historyPresentation, 'reply');
+  assert.equal(f.current().selectedMessageId, 'reply-a');
+
+  f.controller.openHistory('reply-a');
+  assert.equal(f.current().mode, 'history');
+  assert.equal(f.current().historyPresentation, 'conversation');
+  assert.equal(f.current().selectedMessageId, 'reply-a');
+});
+
 test('settled replies cannot steal an explicit compose or a newer sent letter', () => {
   const f = fixture();
   f.controller.recordDelivery(receipt('client-a', 'input-a'), '第一封');

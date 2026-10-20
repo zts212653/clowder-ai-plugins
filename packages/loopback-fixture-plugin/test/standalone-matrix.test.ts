@@ -38,9 +38,8 @@ const pluginMetadataSchemaUrl = new URL(
   import.meta.url,
 );
 const signalSchemaUrl = new URL('../../plugin-contract/src/schemas/signal.schema.json', import.meta.url);
+const messagingSchemaUrl = new URL('../../plugin-contract/src/schemas/messaging.schema.json', import.meta.url);
 const hostHalfSeamManifestUrl = new URL('./host-half-seam-manifest.json', import.meta.url);
-const lifecycleDeadlineUnixMs = Date.now() + 60_000;
-
 interface ChildResult {
   readonly code: number | null;
   readonly stderr: string;
@@ -112,12 +111,6 @@ function expectedForFixture(vector: DispositionFixtureVector): ExpectedChildResu
         })}\n`,
       };
     }
-    if (frame.method === 'host.lifecycle.drain') {
-      return {
-        code: 0,
-        stdout: `${JSON.stringify({ jsonrpc: '2.0', id: frame.id, result: null })}\n`,
-      };
-    }
     if (frame.method === 'host.messaging.deliver') {
       return {
         code: 0,
@@ -173,12 +166,8 @@ test('records every pre-state vector as an explicit non-black-box seam', () => {
       { id: 'T-H-11', coveredBy: 'S1 unit layer' },
       { id: 'T-L-5', coveredBy: 'S1 unit layer' },
       { id: 'T-L-6', coveredBy: 'S1 unit layer' },
-      { id: 'T-H-12', coveredBy: 'S1 unit layer' },
-      { id: 'T-L-7', coveredBy: 'S1 unit layer' },
       { id: 'T-L-8', coveredBy: 'S1 unit layer' },
       { id: 'T-H-13', coveredBy: 'S1 unit layer' },
-      { id: 'T-L-9', coveredBy: 'S1 unit layer' },
-      { id: 'T-L-10', coveredBy: 'S1 unit layer' },
   ] as const;
   const legacyIds = new Set<string>(legacyExpected.map(entry => entry.id));
   const beta11Expected = BETA11_MESSAGING_VECTOR_IDS
@@ -200,6 +189,17 @@ const LOCAL_STANDALONE_CASES: readonly {
   readonly input: readonly Buffer[];
   readonly expected: ExpectedChildResult;
 }[] = [
+  {
+    id: 'execution-status-delivery-echoes-this-input-receipt',
+    input: [Buffer.from(JSON.stringify({
+      jsonrpc: '2.0', id: 'status-1', method: 'host.messaging.deliver',
+      params: { meta: { deadlineUnixMs: 1 }, input: {
+        kind: 'execution_status', state: 'catching_up', threadId: 'thread-1',
+        executionId: 'execution-1', deliveryId: 'feedback-delivery-1',
+      } },
+    }) + '\n')],
+    expected: { code: 0, stdout: '{"jsonrpc":"2.0","id":"status-1","result":{"deliveryId":"feedback-delivery-1"}}\n' },
+  },
   {
     id: 'lifecycle-ping-round-trip',
     input: [
@@ -230,14 +230,17 @@ const LOCAL_STANDALONE_CASES: readonly {
     },
   },
   {
-    id: 'lifecycle-drain-round-trip',
-    input: [
-      Buffer.from(
-        `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${lifecycleDeadlineUnixMs}},"input":{"deadlineUnixMs":${lifecycleDeadlineUnixMs}}}}\n`,
-        'utf8',
-      ),
-    ],
-    expected: { code: 0, stdout: '{"jsonrpc":"2.0","id":"drain-1","result":null}\n' },
+    id: 'removed-lifecycle-drain-is-not-an-execution-entrypoint',
+    get input() {
+      const deadlineUnixMs = Date.now() + 60_000;
+      return [
+        Buffer.from(
+          `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${deadlineUnixMs}},"input":{"deadlineUnixMs":${deadlineUnixMs}}}}\n`,
+          'utf8',
+        ),
+      ];
+    },
+    expected: { code: 0, stdout: '{"jsonrpc":"2.0","id":"drain-1","error":{"code":-32601,"message":"Method not found"}}\n' },
   },
   {
     id: 'malformed-handshake-request-is-rejected-before-dispatch',
@@ -270,10 +273,11 @@ for (const matrixCase of LOCAL_STANDALONE_CASES) {
 }
 
 test('schema-validates and records every behavior fixture for the K-2 host half', async () => {
-  const [pluginMetadataSchema, manifestSchema, signalSchema, behaviorSchema, seamManifest] = await Promise.all([
+  const [pluginMetadataSchema, manifestSchema, signalSchema, messagingSchema, behaviorSchema, seamManifest] = await Promise.all([
     readFile(pluginMetadataSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(manifestSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(signalSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
+    readFile(messagingSchemaUrl, 'utf8').then(text => JSON.parse(text) as { $id: string }),
     readFile(behaviorSchemaUrl, 'utf8').then(text => JSON.parse(text) as object),
     readFile(hostHalfSeamManifestUrl, 'utf8').then(text => JSON.parse(text) as HostHalfSeamManifest),
   ]);
@@ -286,6 +290,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
   addFormats(ajv);
   ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema.$id);
   ajv.addSchema(signalSchema, signalSchema.$id);
+  ajv.addSchema(messagingSchema, messagingSchema.$id);
   ajv.addSchema(manifestSchema, manifestSchema.$id);
   const validate = ajv.compile(behaviorSchema);
 
@@ -295,7 +300,7 @@ test('schema-validates and records every behavior fixture for the K-2 host half'
     version: 1,
     contract: {
       package: '@clowder-ai/plugin-contract',
-      version: '0.1.0-beta.12',
+      version: '0.1.0-beta.37',
       behaviorFixture: M0C_BEHAVIOR_FIXTURE_EXPORT,
     },
     behaviorFixtures: [

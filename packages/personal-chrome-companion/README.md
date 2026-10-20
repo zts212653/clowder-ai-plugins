@@ -1,48 +1,34 @@
-# Personal Chrome companion (F247)
+# 个人 Chrome 伴侣
 
-`@clowder-ai/personal-chrome-companion` is the public, packable source closure
-for F247's narrow Chrome MV3 and Native Messaging companion. It exports the
-versioned v1 machine grammar, a static extension, and the POSIX helper CLI.
+简体中文 · [English](README.en.md)
 
-It is **not** a Clowder PluginManifest, a stdio plugin, an Extension Hub, or an
-installer.
+将你明确授权的 ChatGPT 网页对话接入 Clowder AI。插件提供 Chrome 扩展和本机 Native Messaging 辅助程序；授权精确到单个对话。
 
-## Authority boundary
+## 开始使用
 
-Cat Café remains responsible for catalog/SRI/admission, the Native Messaging
-manifest and launcher installation/uninstall, pairing-secret issuance and
-rotation, lifecycle supervision, Settings/onboarding, and user-visible status.
-The installed helper receives a complete Host-supplied pairing record or
-environment configuration; it never generates a secret or chooses an install
-path.
+1. 打开“设置 → 插件 → Personal Chrome → Chrome connection”，选择安装操作并确认注册本机辅助程序。启用插件本身不会授予浏览器注册权限。
+2. 首次安装时，在 Chrome 扩展管理页开启开发者模式，选择“加载已解压的扩展”，使用设置卡片给出的固定扩展目录。无需复制扩展 ID、密钥或终端命令。
+3. 返回设置运行连接测试，保持 Chrome 和扩展运行。显示已安装只证明本地文件与注册存在，不代表连接正常或对话已授权。
+4. 打开你想授权的准确 ChatGPT 对话，点击扩展工具栏按钮。设置中会列出这条授权，可逐条撤销。
 
-The extension may bind only an explicitly clicked exact
-`https://chatgpt.com/c/<id>` conversation. Normal dispatch finds that exact
-background tab and sends the append request without focusing, navigating,
-reloading, activating, selecting, moving, highlighting, reading cookies, or
-calling a private ChatGPT API.
+此发布不提供 Chrome 应用商店交付或无人值守安装。辅助程序支持 macOS、Linux，不支持 Windows；初始宿主集成以 macOS 为目标。
 
-## Development-only helper entrypoint
+## 授权与状态
 
-```sh
-clowder-personal-chrome-host --help
-```
+最多保存 32 条授权。“刷新标题”从已连接扩展读取已授权对话的标题，不新增授权。授权列表、撤销和状态读取独立于运行启用状态，使用同一份私有数据。
 
-The executable is POSIX-only. It requires either a Cat Café-created
-`--pairing-record /absolute/path.json` or all three Host-supplied variables:
+状态显示最近观察到的辅助程序连接，不会自动探测网络：用连接测试检查当前健康。`unknown` 表示尚未观察；`not_installed` 表示缺少配对；`invalid_installation` 表示配对记录无效；`unreachable` 表示连接不可达；`connected` 只表示曾成功接受连接。辅助程序可达不等于扩展或对话已就绪。
 
-```text
-CAT_CAFE_PERSONAL_CHROME_SOCKET
-CAT_CAFE_PERSONAL_CHROME_LEDGER
-CAT_CAFE_PERSONAL_CHROME_PAIRING_SECRET
-```
+辅助程序不可达时，后续宿主轮询采用 2、4、8、16、32、最多 60 秒的退避，不建立后台重试定时器。发送、确认、测试和刷新标题可立即尝试。回复列出后仍须确认才移除；停止不会删除授权或待确认回复。
 
-The helper does not install its Native Messaging manifest or launcher. That is
-intentionally a Cat Café operation.
+## 更新与卸除
 
-## Release status
+升级或回退会刷新固定扩展目录的文件。请在 Chrome 中重新加载已加载的扩展，再测试；只有对应版本的关联回复确认后才清除重新加载提示。未安装辅助程序时，单纯重新加载扩展不能完成注册。
 
-This package is a review candidate only. It does not publish to npm or the
-Chrome Web Store. Signed Chrome Web Store identity/admission, the Cat Café
-installer's consumption of this tarball, Settings onboarding, and Windows
-support remain open; Windows is explicitly unsupported.
+重试安装不轮换有效配对身份；属于其他安装的注册不会被静默覆盖。损坏配对需移除后重建。移除辅助程序前先关闭 Chrome；它只移除此安装的注册、启动器和配对，保留授权、标题、扩展文件及投递历史。需要时另行撤销授权并在 Chrome 移除扩展。
+
+## 隐私边界
+
+扩展只绑定明确点击的 `https://chatgpt.com/c/<id>` 对话。发送在准确的后台标签中完成，不主动切换、导航、刷新或读取 Cookie，也不调用私人 ChatGPT API。宿主发放配对身份和受限私有目录，包不会自行生成密钥或猜测安装位置。完整宿主安装和账号旅程需分别验收。
+
+宿主管理安装、授权、凭据和启停；配置保存不自动改变启用意图。英文文档是独立文件，互链不代表页面已支持自动语言切换。

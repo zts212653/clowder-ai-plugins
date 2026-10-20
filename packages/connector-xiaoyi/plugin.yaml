@@ -1,0 +1,59 @@
+pluginId: official.connector.xiaoyi
+version: 0.1.0-alpha.5
+contractVersion: 0.1.0
+name: XiaoYi Connector
+description:
+  default: Receive and send XiaoYi OpenClaw messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送小艺 OpenClaw 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: accessKey
+    label: Access Key
+    kind: string
+    required: true
+  - key: secretKey
+    label: Secret Key
+    kind: secret
+    required: true
+  - key: agentId
+    label: Agent ID
+    kind: string
+    required: true
+steps:
+  - text: 在小艺开放平台创建 OpenClaw 模式智能体，获取 AK/SK 和 Agent ID
+  - text: 填写以下配置并保存，启用后通过 WebSocket 连接华为 HAG
+contributions:
+  - type: identity
+    id: xiaoyi-agent
+    displayName: XiaoYi agent
+  - type: message-subscription
+    id: xiaoyi
+    binding: xiaoyi-agent
+    action:
+      method: xiaoyi.outbound
+    presentation: v1
+features:
+  - id: xiaoyi-messaging
+    name: XiaoYi messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: xiaoyi-agent
+      - type: message-subscription
+        id: xiaoyi
+    capabilities:
+      - plugin.config.read
+      - plugin.state.get
+      - plugin.state.set
+      - message.event.subscribe
+      - messaging.send
+      - secret.read
+      - thread.listMetadata
+      - thread.readContent
+      - thread.write
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

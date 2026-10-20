@@ -73,12 +73,5 @@ export {
   type LarkCliFeishuArtifactInspectorOptions,
 } from './lark-cli-artifact-inspector.js';
 
-export {
-  meetingIntakeStatePath,
-  readRuntimeClaims,
-  runFeishuMeetingIntakeEntrypoint,
-  startFeishuMeetingIntakeStdio,
-  type FeishuMeetingIntakeStdioController,
-  type FeishuMeetingIntakeStdioOptions,
-  type FeishuStdioRuntimeContext,
-} from './stdio-entrypoint.js';
+
+export { default } from './plugin-entrypoint.js';

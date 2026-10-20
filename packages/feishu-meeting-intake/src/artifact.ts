@@ -1,10 +1,7 @@
 import { createRequire } from 'node:module';
 
 import {
-  validateDeclaredEventsPublishInput,
-  type EventsPublishInput,
   type SignalDeclaration,
-  type SignalSchemaCatalog,
   type SignalValidationResult,
 } from '@clowder-ai/plugin-contract';
 
@@ -15,6 +12,16 @@ import type {
   FeishuGeneratedArtifact,
   FeishuTranscript,
 } from './gateway.js';
+
+/** Private durable notification passed to this package's messaging adapter. */
+export interface FeishuArtifactNotification {
+  readonly signalType: string;
+  readonly eventId: string;
+  readonly idempotencyKey: string;
+  readonly occurredAt: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+  readonly source: { readonly handle: string };
+}
 
 export const FEISHU_MEETING_SIGNAL_TYPE =
   'feishu.meeting_artifact.generated.v1' as const;
@@ -30,11 +37,30 @@ export const FEISHU_MEETING_SIGNAL_DECLARATION = {
 } as const satisfies SignalDeclaration;
 
 const require = createRequire(import.meta.url);
-const meetingArtifactSchema = require('../schemas/feishu-meeting-artifact.schema.json') as Readonly<
-  Record<string, unknown>
->;
-export const FEISHU_MEETING_SIGNAL_SCHEMAS: SignalSchemaCatalog = Object.freeze({
+const meetingArtifactSchema = require('../schemas/feishu-meeting-artifact.schema.json') as {readonly properties: Readonly<Record<'payload'|'source', Readonly<Record<string, unknown>>>>};
+export const FEISHU_MEETING_SIGNAL_SCHEMAS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = Object.freeze({
   [FEISHU_MEETING_SIGNAL_SCHEMA_REF]: meetingArtifactSchema,
+});
+
+interface NotificationValidator {
+  (value: unknown): boolean;
+  readonly errors?: readonly {readonly instancePath:string;readonly schemaPath:string;readonly keyword:string;readonly message?:string}[] | null;
+}
+const Ajv = require('ajv/dist/2020') as new(options: {allErrors:boolean;strict:boolean}) => {compile(schema:unknown): NotificationValidator};
+const addFormats = require('ajv-formats') as (ajv:object) => void;
+const ajv = new Ajv({allErrors:true,strict:false});
+addFormats(ajv);
+const validateNotification = ajv.compile({
+  type:'object',additionalProperties:false,
+  required:['signalType','eventId','idempotencyKey','occurredAt','payload','source'],
+  properties:{
+    signalType:{const:FEISHU_MEETING_SIGNAL_TYPE},
+    eventId:{type:'string',minLength:1,maxLength:128,pattern:'^[A-Za-z0-9][A-Za-z0-9._:-]*$'},
+    idempotencyKey:{type:'string',minLength:1,maxLength:256,pattern:'^[^\\u0000-\\u001F\\u007F\\uD800-\\uDFFF]+$'},
+    occurredAt:{type:'string',format:'date-time',minLength:20,maxLength:30,pattern:'Z$'},
+    payload:meetingArtifactSchema.properties.payload,
+    source:meetingArtifactSchema.properties.source,
+  },
 });
 
 const DESCRIPTOR_KEYS = new Set([
@@ -61,7 +87,7 @@ function boundedSafeId(value: unknown, maximum: number): value is string {
   );
 }
 
-function requireDescriptor(value: unknown): FeishuGeneratedArtifact {
+export function requireGeneratedArtifactDescriptor(value: unknown): FeishuGeneratedArtifact {
   if (!isRecord(value)) throw new TypeError('Feishu artifact descriptor must be an object');
   for (const key of Object.keys(value)) {
     if (!DESCRIPTOR_KEYS.has(key)) {
@@ -108,8 +134,8 @@ function canonicalSourceHandle(locator: Required<FeishuArtifactLocator>): string
   return `feishu://meeting-artifacts/${locator.kind}/${locator.artifactId}?revision=${locator.revision}`;
 }
 
-export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
-  const descriptor = requireDescriptor(value);
+export function normalizeGeneratedArtifact(value: unknown): FeishuArtifactNotification {
+  const descriptor = requireGeneratedArtifactDescriptor(value);
   const payload = {
     artifactId: descriptor.artifactId,
     artifactKind: descriptor.kind,
@@ -124,7 +150,7 @@ export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
     occurredAt: descriptor.generatedAt,
     payload,
     source: { handle: sourceHandle(descriptor) },
-  } satisfies EventsPublishInput;
+  } satisfies FeishuArtifactNotification;
   const validation = validateFeishuMeetingPublishInput(input);
   if (!validation.valid) {
     throw new TypeError(
@@ -138,13 +164,12 @@ export function normalizeGeneratedArtifact(value: unknown): EventsPublishInput {
 
 export function validateFeishuMeetingPublishInput(
   value: unknown,
-): SignalValidationResult<EventsPublishInput> {
-  const validation = validateDeclaredEventsPublishInput(
-    [FEISHU_MEETING_SIGNAL_DECLARATION],
-    FEISHU_MEETING_SIGNAL_SCHEMAS,
-    value,
-  );
-  if (!validation.valid) return validation;
+): SignalValidationResult<FeishuArtifactNotification> {
+  if (!validateNotification(value)) return {valid:false,errors:(validateNotification.errors??[]).map(error=>({...error,message:error.message??'Invalid meeting notification'}))};
+  const notification = value as FeishuArtifactNotification;
+  if (Buffer.byteLength(JSON.stringify(notification.payload),'utf8')>65_536)
+    return {valid:false,errors:[{instancePath:'/payload',schemaPath:FEISHU_MEETING_SIGNAL_SCHEMA_REF,keyword:'maxEncodedBytes',message:'Meeting metadata exceeds 65536 encoded bytes'}]};
+  const validation: SignalValidationResult<FeishuArtifactNotification> = {valid:true,value:notification,errors:[]};
 
   const payload = validation.value.payload as Record<string, unknown>;
   const locator = parseFeishuSourceHandle(validation.value.source.handle);

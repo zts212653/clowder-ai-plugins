@@ -37,8 +37,6 @@ import test from 'node:test';
 import {
   DISPOSITION_FIXTURE_VECTORS,
   BETA8_HANDSHAKE_VECTOR_IDS,
-  BETA9_EVENTS_PUBLISH_VECTOR_IDS,
-  BETA10_LIFECYCLE_VECTOR_IDS,
   BETA11_MESSAGING_VECTOR_IDS,
   CLOSED_ERROR_ARM_NAMES,
   RESPONSE_CANDIDATE_CASES,
@@ -129,7 +127,8 @@ test('every disposition class T-A through T-M has at least one fixture vector', 
   const coveredClasses = new Set(
     DISPOSITION_FIXTURE_VECTORS.map((v) => v.expectedClass),
   );
-  for (const cls of DISPOSITION_CLASSES) {
+  // T-J denotes a supported notification; the current registry has none.
+  for (const cls of DISPOSITION_CLASSES.filter(cls => cls !== 'T-J')) {
     assert.ok(
       coveredClasses.has(cls),
       `disposition class ${cls} has no fixture vector`,
@@ -398,120 +397,6 @@ test('beta.8 authority-injection vectors use the closed handshake rejection arm'
     assert.equal(response.error.code, -32090);
     assert.equal(response.error.data.reason, 'AUTHORITY_VIOLATION');
   }
-});
-
-test('beta.9 exports the closed C-2 request, rejection, and settlement vectors', () => {
-  assert.deepEqual(BETA9_EVENTS_PUBLISH_VECTOR_IDS, [
-    'T-M-9',
-    'T-G-15',
-    'T-H-12',
-    'T-L-7',
-  ]);
-  for (const id of BETA9_EVENTS_PUBLISH_VECTOR_IDS) {
-    assert.equal(findVector(id).zeroSideEffects, true, `${id} must be pre-side-effect`);
-  }
-  assert.equal(findVector('T-M-9').expectedClass, 'T-M');
-  assert.equal(findVector('T-G-15').expectedErrorArm, 'InvalidParamsEnvelope');
-  assert.equal(findVector('T-H-12').expectedClass, 'T-H');
-  assert.equal(findVector('T-L-7').expectedClass, 'T-L');
-});
-
-test('beta.10 exports one lifecycle safety set spanning rows 10 through 12', () => {
-  assert.deepEqual(BETA10_LIFECYCLE_VECTOR_IDS, [
-    'T-G-1',
-    'T-J-1',
-    'T-J-2',
-    'T-K-1',
-    'T-K-4',
-    'T-K-5',
-    'T-K-6',
-    'T-K-7',
-    'T-H-3',
-    'T-L-1',
-    'T-L-2',
-    'T-L-3',
-    'T-J-3',
-    'T-K-8',
-    'T-K-9',
-    'T-K-10',
-    'T-M-10',
-    'T-G-16',
-    'T-M-11',
-    'T-G-17',
-    'T-M-12',
-    'T-G-18',
-    'T-L-8',
-    'T-H-13',
-    'T-M-13',
-    'T-G-19',
-    'T-G-20',
-    'T-L-9',
-    'T-L-10',
-  ]);
-
-  const invalidIds = new Set([
-    'T-G-1',
-    'T-K-1',
-    'T-K-4',
-    'T-K-5',
-    'T-K-6',
-    'T-K-7',
-    'T-H-3',
-    'T-K-8',
-    'T-K-9',
-    'T-K-10',
-    'T-G-16',
-    'T-G-17',
-    'T-G-18',
-    'T-H-13',
-    'T-G-19',
-    'T-G-20',
-  ]);
-  for (const id of BETA10_LIFECYCLE_VECTOR_IDS) {
-    const vector = findVector(id);
-    if (invalidIds.has(id)) {
-      assert.equal(vector.zeroSideEffects, true, `${id} must reject before side effects`);
-    }
-  }
-
-  const lifecycleMethods = new Set([
-    'host.grants.changed',
-    'host.lifecycle.ping',
-    'host.lifecycle.drain',
-  ]);
-  const directlyScopedFrames = new Set(
-    DISPOSITION_FIXTURE_VECTORS.filter((vector) => {
-      let method: unknown;
-      try {
-        method = (JSON.parse(vector.rawFrame) as { method?: unknown }).method;
-      } catch {
-        method = undefined;
-      }
-      return (
-        (typeof method === 'string' && lifecycleMethods.has(method)) ||
-        vector.preState.inFlightRequests.some((request) => lifecycleMethods.has(request.method))
-      );
-    }).map((vector) => vector.rawFrame),
-  );
-  const completeLifecycleIds = DISPOSITION_FIXTURE_VECTORS
-    .filter((vector) => directlyScopedFrames.has(vector.rawFrame))
-    .map((vector) => vector.id);
-  assert.deepEqual(
-    BETA10_LIFECYCLE_VECTOR_IDS,
-    completeLifecycleIds,
-    'public beta.10 safety set must include every canonical lifecycle fixture and proof companion',
-  );
-
-  const duplicate = JSON.parse(findVector('T-K-9').rawFrame) as {
-    params: { input: { effectiveGrants: string[] } };
-  };
-  assert.equal(duplicate.params.input.effectiveGrants.length, 2);
-  assert.equal(new Set(duplicate.params.input.effectiveGrants).size, 1);
-
-  const unknown = JSON.parse(findVector('T-K-10').rawFrame) as {
-    params: { input: { effectiveGrants: string[] } };
-  };
-  assert.deepEqual(unknown.params.input.effectiveGrants, ['unknown.capability']);
 });
 
 test('beta.11 exports one messaging safety set spanning rows 3 through 9', () => {

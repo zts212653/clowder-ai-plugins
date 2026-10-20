@@ -13,6 +13,23 @@ test('cat-first controls stay bounded to this window and its existing conversati
   for (const width of [0, -1, 100000, 200.5]) assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'menu', width, height: 250 }), false);
   assert.equal(validateCompanionCommand({ kind: 'view.drag', phase: 'unlimited' }), false);
   assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'bubble', width: 240, height: 80 }), true);
+  const splitCall = {
+    kind: 'view.layout', panel: 'actions', width: 412, height: 116,
+    call: { presentation: 'controls', bubble: { width: 320, height: 62 } },
+  };
+  assert.equal(validateCompanionCommand(splitCall), true,
+    'active calls may request one separately placed passive speech bubble');
+  assert.equal(validateCompanionReply({
+    kind: 'layout', pet: { x: 420, y: 90 },
+    panel: { x: 0, y: 104, width: 412, height: 116 },
+    bubble: { x: 300, y: 0, width: 320, height: 62 },
+    width: 628, height: 236,
+  }), true);
+  for (const invalid of [
+    { ...splitCall, panel: 'menu' },
+    { ...splitCall, call: { ...splitCall.call, presentation: 'expanded' } },
+    { ...splitCall, call: { ...splitCall.call, bubble: { width: 421, height: 62 } } },
+  ]) assert.equal(validateCompanionCommand(invalid), false);
   assert.equal(validateCompanionReply({ kind: 'conversation', threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'real-message', role: 'user', text: '你好', name: '你' }], hasMore: false }), true);
   assert.equal(validateCompanionReply({ kind: 'conversation', messages: [], hasMore: false }), false);
   assert.equal(validateCompanionEvent({ kind: 'view-dismiss' }), true);
@@ -301,6 +318,7 @@ test('companion settings are Host-bound single-field updates with explicit settl
   assert.equal(validateCompanionCommand({ kind: 'settings.read' }), true);
   assert.equal(validateCompanionCommand({ kind: 'settings.read', ownerId: 'renderer-choice' }), false);
   assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'settings', width: 360, height: 478 }), true);
+  assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'app-assist', width: 320, height: 92 }), true);
 
   const updates = [
     { kind: 'settings.update', field: 'dutyCatProfileId', value: 'fable-5' },
@@ -310,6 +328,7 @@ test('companion settings are Host-bound single-field updates with explicit settl
     { kind: 'settings.update', field: 'proactivePolicy', value: 'ambient' },
     { kind: 'settings.update', field: 'personaTone', value: '温暖、简短、不啰嗦' },
     { kind: 'settings.update', field: 'householdReadsAllowed', value: false },
+    { kind: 'settings.update', field: 'appAssistEnabled', value: true },
   ];
   for (const update of updates) {
     assert.equal(validateCompanionCommand(update), true, update.field);
@@ -333,6 +352,7 @@ test('companion settings are Host-bound single-field updates with explicit settl
       dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72,
       behaviorEnabled: true, proactivePolicy: 'quiet-badge',
       personaTone: '温暖、简短、不啰嗦', householdReadsAllowed: true,
+      appAssistEnabled: false,
     },
     companions: [
       { catProfileId: 'fable-5', displayName: '宪宪', available: true },
@@ -364,6 +384,32 @@ test('companion settings are Host-bound single-field updates with explicit settl
   assert.equal(validateCompanionReply({
     kind: 'settings-update', field: 'householdReadsAllowed', outcome: 'unconfirmed', callStatus: 'stopped', reconcile: 'settings.read',
   }), true);
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'appAssistEnabled', outcome: 'unconfirmed', callStatus: 'unchanged', reconcile: 'settings.read',
+  }), true);
+  assert.equal(validateCompanionReply({
+    kind: 'settings-update', field: 'appAssistEnabled', outcome: 'saved', callStatus: 'stopped', applies: 'now',
+  }), false, 'application assistance cannot claim authority over an existing call');
+  for (const action of ['dismiss', 'timeout', 'accept']) {
+    assert.equal(validateCompanionCommand({
+      kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action,
+    }), true, action);
+    assert.equal(validateCompanionReply({
+      kind: 'app-assist-settlement', scopeRef: 'fixture-view-a', revision: 5,
+      offerRef: 'fixture-only-1', action, outcome: 'settled',
+    }), true, action);
+  }
+  assert.equal(validateCompanionReply({
+    kind: 'app-assist-settlement', scopeRef: 'fixture-view-a', revision: 5,
+    offerRef: 'fixture-only-1', action: 'accept', outcome: 'stale_offer',
+  }), true);
+  for (const invalid of [
+    { kind: 'app-assist.settle', scopeRef: 'foreign scope', offerRef: 'fixture-only-1', action: 'dismiss' },
+    { kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'open' },
+    { kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'accept', activated: true },
+    { kind: 'app-assist-settlement', scopeRef: 'fixture-view-a', revision: -1,
+      offerRef: 'fixture-only-1', action: 'accept', outcome: 'settled' },
+  ]) assert.equal('outcome' in invalid ? validateCompanionReply(invalid) : validateCompanionCommand(invalid), false);
   assert.equal(validateCompanionReply({
     kind: 'settings-update', field: 'personaTone', outcome: 'saved', callStatus: 'unchanged', applies: 'now',
   }), false, 'tone starts with the next call');
@@ -462,11 +508,42 @@ test('surface state preserves real actors but never leaks internal handles or ra
     carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, behaviorEnabled: true,
     toolsReady: false, nativeActivity: 'none',
     liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
-    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null }, nativeWork };
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null }, nativeWork };
   assert.equal(validateCompanionReply(state), true);
   const { meeting: _meeting, ...withoutMeeting } = state;
   assert.equal(validateCompanionReply(withoutMeeting), false,
     'an exact-version state cannot silently erase meeting capture truth');
+  const { appAssist: _appAssist, ...withoutAppAssist } = state;
+  assert.equal(validateCompanionReply(withoutAppAssist), false,
+    'the new exact version always states whether application assistance is off or unavailable');
+  for (const status of ['off', 'suspended', 'unsupported', 'source_unavailable', 'permission_required',
+    'timezone_required', 'identity_unavailable']) {
+    assert.equal(validateCompanionReply({ ...state, appAssist: {
+      scopeRef: 'fixture-view-a', revision: 2, status, offer: null,
+    } }), true, status);
+    assert.equal(validateCompanionReply({ ...state, appAssist: {
+      scopeRef: 'fixture-view-a', revision: 2, status,
+      offer: { offerRef: 'fixture-only-1', appName: 'Fixture Writer' },
+    } }), false, `${status} cannot carry an offer`);
+  }
+  assert.equal(validateCompanionReply({ ...state, appAssist: {
+    scopeRef: 'fixture-view-a', revision: 3, status: 'ready', offer: null,
+  } }), true);
+  assert.equal(validateCompanionReply({ ...state, appAssist: {
+    scopeRef: 'fixture-view-a', revision: 4, status: 'ready',
+    offer: { offerRef: 'fixture-only-1', appName: 'Fixture Writer' },
+  } }), true);
+  assert.equal(validateCompanionReply({ ...state, appAssist: {
+    scopeRef: 'fixture-view-a', revision: 4, status: 'ready',
+    offer: { offerRef: 'fixture-only-1', appName: 'Fixture Writer', bundleId: 'org.fixture.writer' },
+  } }), false, 'the renderer never receives a bundle id or app frequency key');
+  for (const invalidAppAssist of [
+    { revision: 1, status: 'off', offer: null },
+    { scopeRef: 'fixture-view-a', status: 'off', offer: null },
+    { scopeRef: 'fixture view a', revision: 1, status: 'off', offer: null },
+    { scopeRef: 'fixture-view-a', revision: 1.5, status: 'off', offer: null },
+  ]) assert.equal(validateCompanionReply({ ...state, appAssist: invalidAppAssist }), false);
   for (const meeting of [
     { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom' },
     { kind: 'running', sharing: false, paused: false, sourceLabel: 'Google Meet' },

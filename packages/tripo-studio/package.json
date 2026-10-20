@@ -9,13 +9,14 @@
   },
   "files": [
     "plugin.yaml",
-    "README.md",
+    "README*.md",
     "assets",
     "plugins",
     "npm-shrinkwrap.json",
     "NOTICE.md"
   ],
   "exports": {
+    ".": "./plugins/tripo-studio/runtime/plugin-entrypoint.mjs",
     "./manifest": "./plugin.yaml"
   },
   "scripts": {

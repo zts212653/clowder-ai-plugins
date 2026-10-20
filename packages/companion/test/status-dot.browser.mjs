@@ -63,7 +63,7 @@ async function readCallDots(page) {
       },
       dots: contextIds.map(id => {
         const context = document.getElementById(id);
-        const dot = context.querySelector(':scope > .status-dot, :scope > .call-status-line > .status-dot');
+        const dot = context.querySelector(':scope > .status-dot, :scope .call-status-line > .status-dot');
         const style = getComputedStyle(dot);
         const halo = getComputedStyle(dot, '::after');
         return {
@@ -142,6 +142,8 @@ test('real call headers breathe from connected through recovering and settle whe
       kind: 'audio', type: 'recovering', callId: window.__previewCallId,
     }));
     await page.waitForFunction(() => document.getElementById('actions')?.dataset.connectionState === 'recovering');
+    await page.hover('#pet');
+    await page.waitForFunction(() => document.getElementById('actions').dataset.presentation === 'controls');
     await page.click('[data-action="transcript"]');
     const recovering = await readCallDots(page);
     for (const dot of recovering.dots) {

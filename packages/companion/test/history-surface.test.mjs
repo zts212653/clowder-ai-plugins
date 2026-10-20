@@ -21,6 +21,10 @@ import { ReplyLetterController } from '../src/reply-letter-controller.mjs';
 import { ReplyLetterView } from '../src/reply-letter-view.mjs';
 import { HostConversationDraft } from '../src/conversation-draft.mjs';
 import { ConversationSurface } from '../src/conversation-surface.mjs';
+import { CallControlsPresentation } from '../src/call-controls-presentation.mjs';
+import { CallDuration } from '../src/call-duration.mjs';
+import { AppAssistController } from '../src/app-assist-controller.mjs';
+import { bindAppAssistCountdown } from '../src/app-assist-countdown.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -36,7 +40,7 @@ const historyPage = (messages = [], { status = 'available', hasMoreOlder = false
     : { kind: 'conversation', v: 2, status };
 function fixture() {
   const nodes = new Map(), calls = [], motionCalls = [], historyReads = [];
-  const document = { getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
+  const document = { activeElement: null, getElementById: id => nodes.get(id) ?? node(id), querySelectorAll: () => [],
     createElement: () => node(), addEventListener() {} };
   function node(id) {
     const value = { dataset: {}, attributes: {}, textContent: '', hidden: false, children: [], style: {
@@ -46,6 +50,8 @@ function fixture() {
       setAttribute(name, attributeValue) { this.attributes[name] = String(attributeValue); },
       removeAttribute(name) { delete this.attributes[name]; },
       addEventListener(name, callback) { this.listeners[name] = callback; },
+      removeEventListener(name, callback) { if (this.listeners[name] === callback) delete this.listeners[name]; },
+      contains(target) { return target === this || this.children.includes(target); },
       querySelector(selector) { return selector === '.empty' ? null : document.getElementById(`${id}${selector}`); },
       querySelectorAll() { return []; },
       append(...rows) { this.children.push(...rows); }, replaceChildren(...rows) { this.children = rows; },
@@ -55,6 +61,7 @@ function fixture() {
   let identity = { phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' } };
   let onControls, onVoice, receive, shareState, travelObserver, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
@@ -73,6 +80,7 @@ function fixture() {
     ], active: [], recentDeliveries: [] });
   let settings = { kind: 'settings', status: 'available', values: {
     dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72, behaviorEnabled: true,
+    appAssistEnabled: false,
     proactivePolicy: 'quiet-badge', personaTone: '温暖、简短、不啰嗦', householdReadsAllowed: true,
   }, companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }], selectedCompanionStatus: 'available' };
   let settingsReader = async () => settings;
@@ -91,7 +99,7 @@ function fixture() {
       applies: field === 'personaTone' ? 'next_call' : 'now' };
   };
   const monitors = [];
-  const controls = { panel: 'none', ambient: 'none', async show(panel) {
+  const controls = { panel: 'none', ambient: 'none', remeasure() {}, async show(panel) {
     const previous = this.panel;
     this.panel = panel === 'none' && this.ambient !== 'none' ? this.ambient : panel;
     if (previous !== this.panel) onControls.changed(this.panel);
@@ -162,6 +170,10 @@ function fixture() {
       calls.push(['settings-update', field, value]);
       return settingUpdate(field, value);
     },
+    settleAppAssist: async (scopeRef, offerRef, action) => {
+      calls.push(['app-assist-settle', scopeRef, offerRef, action]);
+      return { kind: 'app-assist-settlement', scopeRef, revision: 2, offerRef, action, outcome: 'settled' };
+    },
     resetPosition: async () => { calls.push('position-reset'); return { kind: 'ok' }; },
     observePresentation: async observation => { calls.push(['presentation-observe', observation]); return { kind: 'ok' }; },
     disableCompanion: async () => { calls.push('companion-disable'); return { kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' }; } };
@@ -180,6 +192,7 @@ function fixture() {
   class LivingBody {}
   node('message');
   node('call-message');
+  node('lite-call-message');
   node('transcript');
   node('decisions');
   runInNewContext(source.replace(/^import .*;\n/gm, ''), { document, window: { clowderCompanion: {}, addEventListener() {} },
@@ -187,10 +200,11 @@ function fixture() {
     CompanionConversation, TranscriptView, CallTranscriptView, SettingsView, RecentBubble, PetMotion, LivingBody, NativeWindowTravel, VoicePeer, ScreenShare,
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
-    VisibleTextPresentation,
+    VisibleTextPresentation, CallControlsPresentation, CallDuration, AppAssistController, bindAppAssistCountdown,
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
-    setInterval: callback => { monitors.push(callback); }, clearInterval() {}, crypto: { randomUUID: () => 'fixture' } });
+    setInterval: callback => { monitors.push(callback); }, clearInterval() {}, queueMicrotask,
+    setTimeout, clearTimeout, crypto: { randomUUID: () => 'fixture' } });
   return { calls, historyReads, motionCalls, nodes, controls, action: kind => onControls.action(kind), start: () => onControls.action('begin'), voice: event => onVoice(event),
     tick: () => monitors.forEach(callback => callback()), receive: event => receive(event), share: value => shareState(value),
     travel: value => travelObserver.changed(value),
@@ -218,6 +232,26 @@ test('opening history during voice and refreshing it preserves speech without cl
   f.tick(); await flush();
   assert.equal(f.nodes.get('chat-transcript').children.at(-1).textContent, '正在说');
   assert.ok(!f.calls.includes('stop')); assert.ok(!f.calls.includes('close'));
+});
+
+test('three-second history polling preserves an unsettled app-assist offer from state refresh', async () => {
+  const f = fixture(); await flush();
+  f.identity({
+    phase: 'idle', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 2, status: 'ready',
+      offer: { offerRef: 'offer-a', appName: 'Fixture Writer' } },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+  });
+
+  f.tick(); await flush(); await flush();
+
+  assert.equal(f.controls.ambient, 'app-assist');
+  assert.equal(f.controls.panel, 'app-assist');
+  assert.equal(f.nodes.get('app-assist-name').textContent, 'Fixture Writer');
+  assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'app-assist-settle'), false);
 });
 
 test('a scroll for older history waits for an active latest read and uses its current cursor once', async () => {
@@ -253,6 +287,26 @@ test('a scroll for older history waits for an active latest read and uses its cu
   assert.deepEqual(f.historyReads.slice(readStart), [{}, { before: 'history.before-current' }],
     'repeated scroll events preserve one intent and re-read the cursor after latest settles');
   assert.deepEqual(transcript.children.map(row => row.dataset.messageId), ['m1', 'm2', 'm3']);
+});
+
+test('an upward wheel at the exact top reads one older page when the transcript cannot scroll further', async () => {
+  const f = fixture(); await flush();
+  f.history(options => options.before === undefined
+    ? Promise.resolve(historyPage([historyRow('m2')], {
+      hasMoreOlder: true, olderCursor: 'history.before-m2',
+    }))
+    : Promise.resolve(historyPage([historyRow('m1')])));
+  f.action('history'); await f.controls.show('chat'); await flush();
+
+  const transcript = f.nodes.get('chat-transcript');
+  transcript.scrollHeight = transcript.clientHeight;
+  transcript.scrollTop = 0;
+  const readStart = f.historyReads.length;
+  transcript.listeners.wheel({ deltaY: -200_000 });
+  await flush();
+
+  assert.deepEqual(f.historyReads.slice(readStart), [{ before: 'history.before-m2' }]);
+  assert.deepEqual(transcript.children.map(row => row.dataset.messageId), ['m1', 'm2']);
 });
 
 test('a queued older read cannot reuse a cursor after latest history becomes stale or loses permission', async t => {
@@ -361,7 +415,7 @@ test('explicit writing can leave a terminal sent envelope without losing accepte
     hasMoreOlder: false, olderCursor: null,
   }));
   f.tick(); await flush();
-  assert.equal(f.nodes.get('reply-sent-status').textContent, '回复失败 · 已发送的消息仍在聊天中');
+  assert.equal(f.nodes.get('reply-sent-status').textContent, '回复失败');
 
   f.controls.dismiss(); await flush();
   f.action('write'); await f.controls.show('chat'); await flush();
@@ -416,9 +470,9 @@ test('the real surface waits for completed provenance and full body before start
 test('voice keeps a persistent call bar and only call-scoped messages while history stays closed', async () => {
   const f = fixture(); await flush(); f.start(); await flush(); f.tick(); await flush();
   assert.equal(f.controls.panel, 'actions');
-  assert.equal(f.nodes.get('call-bubble-first').textContent, '语音：It is like an assistant.');
+  assert.equal(f.nodes.get('call-bubble-first').textContent, 'It is like an assistant.');
   f.voice({ type: 'transcript', callId: CALL_A, role: 'assistant', text: '正在查', itemId: 'output-live' });
-  assert.equal(f.nodes.get('call-bubble-second').textContent, '宪宪：正在查');
+  assert.equal(f.nodes.get('call-bubble-second').textContent, '正在查');
   assert.match(f.nodes.get('call-state').textContent, /通话中/u);
   assert.equal(f.nodes.get('call-mic-state').textContent, '麦克风已开启');
   assert.ok(!f.calls.includes('stop'));
@@ -705,12 +759,18 @@ test('cat-side settings read Host truth, save one field, and confirm call-sensit
   assert.equal(f.controls.panel, 'settings');
   assert.equal(f.nodes.get('settings-partner-value').textContent, '宪宪');
   assert.equal(f.nodes.get('settings-behavior').attributes['aria-checked'], 'true');
+  assert.equal(f.nodes.get('settings-app-assist').attributes['aria-checked'], 'false');
   assert.equal(f.nodes.get('settings-tone-count').textContent, '9 / 200');
 
   await f.nodes.get('settings-behavior').onclick(); await flush();
   assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
     && call[1] === 'behaviorEnabled' && call[2] === false));
   assert.equal(f.nodes.get('settings-behavior').attributes['aria-checked'], 'false');
+
+  await f.nodes.get('settings-app-assist').onclick(); await flush();
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'settings-update'
+    && call[1] === 'appAssistEnabled' && call[2] === true));
+  assert.equal(f.nodes.get('settings-app-assist').attributes['aria-checked'], 'true');
 
   f.start(); await flush();
   await f.controls.show('settings'); await flush();
