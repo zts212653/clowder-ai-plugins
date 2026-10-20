@@ -15,6 +15,7 @@ import type { HumanAuthProvider, HumanAuthProviderId } from './human-auth-provid
 import { CollectiveIdentityStore } from './identity-store.js';
 import { readMemberDirectory } from './member-directory.js';
 import { leaveCollectiveMembership } from './membership-lifecycle.js';
+import { readMembershipLeaveReadiness } from './membership-leave-readiness.js';
 import { CollectiveParticipationStore } from './participation-store.js';
 import {
   createSecret,
@@ -343,6 +344,10 @@ export class CollectiveServiceStore {
 
   leaveCollective(input: { sessionToken: string; collectiveId: string }) {
     return leaveCollectiveMembership(this.persistence, this.now, input);
+  }
+
+  readMembershipLeaveReadiness(sessionToken: string, collectiveId: string) {
+    return readMembershipLeaveReadiness(this.persistence.snapshot(), sessionToken, collectiveId);
   }
 
   createPairingIntent(input: {

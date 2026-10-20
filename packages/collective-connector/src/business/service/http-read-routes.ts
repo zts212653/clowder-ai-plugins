@@ -13,6 +13,14 @@ export async function routeCollectiveRead(
     writeJson(response, 200, await store.getHumanProjection(requireBearer(request)));
     return true;
   }
+  if (url.pathname === '/api/memberships/self-leave/readiness') {
+    writeJson(
+      response,
+      200,
+      store.readMembershipLeaveReadiness(requireBearer(request), requiredQuery(url, 'collectiveId')),
+    );
+    return true;
+  }
   if (url.pathname === '/api/events/human') {
     const collectiveId = requiredQuery(url, 'collectiveId');
     writeJson(response, 200, {

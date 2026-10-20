@@ -1,9 +1,9 @@
-import { requireNoArtifactCustody } from './artifact-revocation-guard.js';
 import { CollectiveServiceError } from './errors.js';
 import { requireHumanAuthBinding, resolveSession } from './identity-store.js';
+import { projectMembershipLeaveReadiness } from './membership-leave-readiness.js';
 import type { PersistentServiceState } from './persistence.js';
 import type { MembershipRecord } from './service-records.js';
-import { type MutableServiceState, membershipKey, type ServiceState } from './state.js';
+import { type MutableServiceState, membershipKey } from './state.js';
 
 export async function leaveCollectiveMembership(
   persistence: PersistentServiceState,
@@ -21,27 +21,22 @@ export async function leaveCollectiveMembership(
       throw new CollectiveServiceError('FORBIDDEN', 'Collective membership is required', 403);
     }
     if (membership.status === 'left') return structuredClone(membership);
-    if (membership.role === 'steward') {
+    const readiness = projectMembershipLeaveReadiness(state, input.collectiveId, human.humanId);
+    if (readiness.governanceHandoffRequired) {
       throw new CollectiveServiceError(
         'MEMBERSHIP_HANDOFF_REQUIRED',
         'A Collective steward must hand off governance before leaving',
         409,
       );
     }
-    requireNoMemberArtifactCustody(state, input.collectiveId, human.humanId);
-    const ownsOpenWork = Object.values(state.works).some(
-      (work) =>
-        work.collectiveId === input.collectiveId &&
-        work.accountableHumanId === human.humanId &&
-        !['completed', 'declined', 'cancelled'].includes(work.lifecycle),
-    );
-    const ownsActiveRoadmap = Object.values(state.roadmaps).some(
-      (roadmap) =>
-        roadmap.collectiveId === input.collectiveId &&
-        roadmap.accountableHumanId === human.humanId &&
-        roadmap.status === 'active',
-    );
-    if (ownsOpenWork || ownsActiveRoadmap) {
+    if (readiness.responsibilities.artifacts.items.length || readiness.responsibilities.artifacts.inaccessibleCount) {
+      throw new CollectiveServiceError(
+        'ARTIFACT_CUSTODY_HANDOFF_REQUIRED',
+        'Settle pending publications and hand off shared work custody before leaving',
+        409,
+      );
+    }
+    if (readiness.responsibilities.works.length || readiness.responsibilities.roadmaps.length) {
       throw new CollectiveServiceError(
         'MEMBERSHIP_RESPONSIBILITY_REQUIRED',
         'Finish, cancel, or hand off current Collective responsibilities before leaving',
@@ -82,10 +77,4 @@ function revokeMembershipConnections(
       connection.revocationReason = 'membership_left';
     }
   }
-}
-
-function requireNoMemberArtifactCustody(state: ServiceState, collectiveId: string, humanId: string) {
-  for (const connection of Object.values(state.connections))
-    if (connection.collectiveId === collectiveId && connection.authorizedHumanId === humanId)
-      requireNoArtifactCustody(state, connection.connectionId);
 }

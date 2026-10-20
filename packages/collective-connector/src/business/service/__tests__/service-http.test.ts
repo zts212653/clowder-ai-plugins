@@ -98,6 +98,27 @@ describe('Collective Service HTTP process boundary', () => {
     const member = await completeAuth(server.url, memberAttempt.state, 'member-code');
     expect(reboundOwner.human).toMatchObject({ displayName: 'You' });
     expect(member.human).toMatchObject({ displayName: 'Member' });
+    await expect(
+      get(
+        server.url,
+        `/api/memberships/self-leave/readiness?collectiveId=${collective.collectiveId}`,
+        member.sessionToken,
+      ),
+    ).resolves.toMatchObject({
+      collectiveId: collective.collectiveId,
+      role: 'member',
+      governanceHandoffRequired: false,
+      canLeave: true,
+      responsibilities: {
+        works: [],
+        roadmaps: [],
+        artifacts: { items: [], inaccessibleCount: 0 },
+      },
+    });
+    expect(
+      (await fetch(`${server.url}/api/memberships/self-leave/readiness?collectiveId=${collective.collectiveId}`))
+        .status,
+    ).toBe(401);
 
     const ownerEvent = await post(
       server.url,
