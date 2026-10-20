@@ -13,7 +13,7 @@ function run(command,args,cwd,env=process.env) {
  assert.equal(result.status,0,[result.stdout,result.stderr].join('\n'));return result.stdout;
 }
 
-test('canonical bundled archive installs offline in an empty consumer and runs setup/enable/stop/restart',async()=>{
+test('canonical archive installs offline and survives two independently materialized installations',async()=>{
  const temporary=await mkdtemp(join(tmpdir(),'dot-packed-consumer-')),packs=join(temporary,'packs'),consumer=join(temporary,'consumer');
  await mkdir(packs);await mkdir(consumer);
  try {
@@ -46,5 +46,11 @@ test('canonical bundled archive installs offline in an empty consumer and runs s
    console.log(JSON.stringify({offlineInstall:true,setup:true,enableStopRestart:true,retained:true}));
   `,JSON.stringify(actualManifest)],consumer,{...process.env,NODE_PATH:''});
   assert.match(output,/"retained":true/);
+  const secondMaterialization=join(temporary,'second-materialization');await mkdir(secondMaterialization);
+  run('tar',['-xzf',archive,'-C',secondMaterialization],temporary);
+  const reinstalled=run(process.execPath,[join(root,'packages/chatgpt-dot/test/helpers/packed-reinstall-journey.mjs'),
+    installed,join(secondMaterialization,'package'),join(temporary,'retained-private-data'),JSON.stringify(actualManifest)],consumer,{...process.env,NODE_PATH:''});
+  assert.match(reinstalled,/"twoIndependentMaterializations":true/);
+  assert.match(reinstalled,/"newImagePublishedAndStreamed":true/);
  }finally{await rm(temporary,{recursive:true,force:true});}
 });
