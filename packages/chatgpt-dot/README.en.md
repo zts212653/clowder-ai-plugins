@@ -24,12 +24,12 @@ Disable revokes the runtime and aborts network requests. Enable restores durable
 
 ## Upgrade and legacy data
 
-Migration preserves credentials, pairing, subscriptions, event IDs and reply IDs while explicitly rebinding the installation identity. It validates the installation owner and image hashes and sizes, returns resumable batch receipts, and never deletes the source files. Historical attempts remain evidence and do not become active grants.
+Migration preserves credentials, pairing, subscriptions, event IDs and reply IDs while explicitly rebinding the installation identity. It validates the installation owner and image hashes and sizes, returns resumable batch receipts, and never deletes the source files. The Host rechecks legacy authority before cutover. Later imports can revoke the same connection; retries cannot restore the credential or replace its first revocation timestamp.
 
 The matching Host retains compatibility reads for historical image URLs. Import and legacy routing need joint Host acceptance. This package does not independently read another project directory or rewrite message history.
 
 ## Development
 
-Install dependencies at the workspace root, build Contract and SDK, then run this package's typecheck, test and build scripts. The runtime entry is dist/plugin-entrypoint.js. The public migration export is ./migration; it accepts explicit records and original bytes rather than server filesystem paths.
+Install dependencies at the workspace root, build Contract and SDK, then run this package's typecheck, test and build scripts. The runtime entry is dist/plugin-entrypoint.js. Before enable, the Host invokes the declared non-UI dot.import action through its owner-operation boundary. The ./migration export provides the batch schema. Batches accept explicit records and original bytes rather than server filesystem paths.
 
 Tests cover pairing, signed summons, read-before-reply authorization, image streams, retries, abort on disable, restart and legacy import. Account authentication, Settings and the full real roundtrip still require an isolated Host acceptance journey.

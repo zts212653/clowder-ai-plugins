@@ -31,6 +31,40 @@ test('import rejects a wrong owner before retaining secrets or user records',asy
  const f=fixture(t);await assert.rejects(()=>importLegacyBatch(f.host,{version:1,ownerUserId:'other',sourceInstanceId:'old'},f.owner),/owner/);assert.equal(f.records.size,0);
 });
 
+test('legacy connection revocation strengthens an imported credential and never restores or replaces it',async t=>{
+ const old=await paired(t),connection=structuredClone((await old.host.storage.get(CONNECTION_KEY)).value);connection.pluginInstanceId='legacy-instance';
+ const f=fixture(t),batch={version:1,ownerUserId:'owner',sourceInstanceId:'legacy-instance',connection};
+ await importLegacyBatch(f.host,batch,f.owner);
+ const revoked={...batch,connection:{...connection,revokedAt:100}};
+ await importLegacyBatch(f.host,revoked,f.owner);
+ assert.equal((await f.host.storage.get(CONNECTION_KEY)).value.revokedAt,100);
+ await importLegacyBatch(f.host,batch,f.owner);
+ await importLegacyBatch(f.host,{...batch,connection:{...connection,revokedAt:200}},f.owner);
+ assert.equal((await f.host.storage.get(CONNECTION_KEY)).value.revokedAt,100);
+ const conflict={...revoked,connection:{...revoked.connection,credentialSecret:'e'.repeat(64)}};
+ await assert.rejects(()=>importLegacyBatch(f.host,conflict,f.owner),/conflict/);
+});
+
+test('revocation survives CAS contention, receipt failure and concurrent stale import retries',async t=>{
+ const old=await paired(t),connection=structuredClone((await old.host.storage.get(CONNECTION_KEY)).value);connection.pluginInstanceId='legacy-instance';
+ const f=fixture(t),batch={version:1,ownerUserId:'owner',sourceInstanceId:'legacy-instance',connection};
+ await importLegacyBatch(f.host,batch,f.owner);
+ const cas=f.host.storage.compareAndSet.bind(f.host.storage);let contend=true,crash=true;
+ f.host.storage.compareAndSet=async(key,revision,value)=>{
+  if(key===CONNECTION_KEY&&value.revokedAt===100&&contend){contend=false;const current=(await f.host.storage.get(key)).value;await f.host.storage.set(key,{...current,lastReplyAt:42});}
+  if(key.startsWith('dot/migration/receipt/')&&crash)throw new Error('simulated_crash');
+  return cas(key,revision,value);
+ };
+ const revoked={...batch,connection:{...connection,revokedAt:100}};
+ await assert.rejects(()=>importLegacyBatch(f.host,revoked,f.owner),/simulated_crash/);
+ assert.equal(contend,false);assert.equal((await f.host.storage.get(CONNECTION_KEY)).value.revokedAt,100);
+ crash=false;
+ const receipts=await Promise.all([importLegacyBatch(f.host,revoked,f.owner),importLegacyBatch(f.host,revoked,f.owner),importLegacyBatch(f.host,batch,f.owner)]);
+ assert.equal(receipts[0].batchDigest,receipts[1].batchDigest);
+ const state=(await f.host.storage.get(CONNECTION_KEY)).value;
+ assert.equal(state.revokedAt,100);assert.equal(state.lastReplyAt,42);
+});
+
 test('interrupted import resumes after runtime evidence advances, without overwriting read/reply/image facts',async t=>{
  const old=await paired(t),connection=structuredClone((await old.host.storage.get(CONNECTION_KEY)).value);connection.pluginInstanceId='legacy-instance';
  const f=fixture(t),id=eventId(connection.attemptId,'thread-1','source-1','run');

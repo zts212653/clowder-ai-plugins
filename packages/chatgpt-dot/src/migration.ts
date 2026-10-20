@@ -31,14 +31,32 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
         if (input.connection.ownerUserId !== input.ownerUserId || input.connection.pluginInstanceId !== input.sourceInstanceId)
             throw new Error('dot_migration_source_mismatch');
         const next = { ...input.connection, pluginInstanceId: host.pluginInstanceId };
-        if (!prior) {
-            if (!(await host.storage.compareAndSet(CONNECTION_KEY, null, next)).applied)
-                throw new Error('dot_state_conflict');
-            inserted++;
+        let retained = false;
+        for (let retry = 0; retry < 8; retry++) {
+            context.signal.throwIfAborted();
+            await context.assertCurrent();
+            const entry = await host.storage.get(CONNECTION_KEY);
+            if (!entry) {
+                if (!(await host.storage.compareAndSet(CONNECTION_KEY, null, next)).applied)
+                    continue;
+                inserted++;
+            }
+            else {
+                const current = dotConnectionStateSchema.parse(entry.value);
+                if (current.ownerUserId !== next.ownerUserId || current.attemptId !== next.attemptId || current.credentialSecret !== next.credentialSecret || current.agentKeyId !== next.agentKeyId || current.pluginInstanceId !== host.pluginInstanceId)
+                    throw new Error('dot_migration_conflict');
+                // A later legacy authority check can revoke an earlier active import.
+                // Preserve the first revocation and every newer runtime field on retries.
+                if (current.revokedAt === null && next.revokedAt !== null &&
+                    !(await host.storage.compareAndSet(CONNECTION_KEY, entry.revision, { ...current, revokedAt: next.revokedAt })).applied)
+                    continue;
+                alreadyPresent++;
+            }
+            retained = true;
+            break;
         }
-        else if (prior.attemptId !== next.attemptId || prior.credentialSecret !== next.credentialSecret || prior.agentKeyId !== next.agentKeyId || prior.pluginInstanceId !== host.pluginInstanceId)
-            throw new Error('dot_migration_conflict');
-        else alreadyPresent++;
+        if (!retained)
+            throw new Error('dot_state_conflict');
     }
     const state = await store.connection();
     if (!state || state.ownerUserId !== input.ownerUserId || state.pluginInstanceId !== host.pluginInstanceId)
