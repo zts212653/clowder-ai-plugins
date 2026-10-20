@@ -1,3 +1,15 @@
+const launchSession = new URLSearchParams(location.hash.slice(1)).get('session');
+let sessionError = null;
+if (launchSession) {
+  history.replaceState(null, '', location.pathname);
+  const response = await fetch('./api/session', { method: 'POST', headers: { authorization: `Bearer ${launchSession}` } });
+  if (!response.ok) sessionError = '棋盘链接已失效，请从原对话重新打开';
+  else sessionStorage.setItem('xiangqi-session', (await response.json()).session);
+}
+const browserHeaders = () => {
+  const session = sessionStorage.getItem('xiangqi-session');
+  return session ? { authorization: `Bearer ${session}` } : {};
+};
 const $ = (id) => document.getElementById(id);
 const glyph = {
   r: '車',
@@ -214,8 +226,9 @@ function render() {
 async function refresh() {
   if (busy) return;
   try {
-    const response = await fetch('./api/state', { cache: 'no-store' });
-    if (!response.ok) throw Error('暂时连不上棋桌');
+    if (sessionError) throw Error(sessionError);
+    const response = await fetch('./api/state', { cache: 'no-store', headers: browserHeaders() });
+    if (!response.ok) throw Error(response.status === 403 ? '请从原对话重新打开这盘棋' : '暂时连不上棋桌');
     const next = await response.json();
     if (busy) return;
     if (state && next.revision < state.revision) return;
@@ -245,7 +258,7 @@ async function action(path, body) {
   try {
     const response = await fetch(`./api/${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-chess-token': state.token },
+      headers: { ...browserHeaders(), 'content-type': 'application/json', 'x-chess-token': state.token },
       body: JSON.stringify(body),
     });
     const result = await response.json();

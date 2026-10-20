@@ -95,6 +95,7 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
         'cache-control': 'no-store',
         'x-content-type-options': 'nosniff',
         'referrer-policy': 'no-referrer',
+        ...(host.handleRequest ? { 'content-security-policy': "default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" } : {}),
       });
       res.end(type.startsWith('application/json') ? JSON.stringify(value) : value);
     };
@@ -106,6 +107,7 @@ export function createHostedBoard({ host, prepare = startPreparedAnalysis }) {
       const allowed = new Set([...directOrigins, ...(session.allowedOrigins ?? [])]);
       if (req.headers.origin && !allowed.has(req.headers.origin)) throw fail(403, 'Origin 不被允许');
       const path = new URL(req.url, 'http://localhost').pathname;
+      if (await host.handleRequest?.(session, req, res)) return;
       if (req.method === 'GET' && path === '/api/state') {
         await host.authorizeHumanAction(session, 'read');
         return send(200, view());

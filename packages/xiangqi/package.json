@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/xiangqi",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Xiangqi analysis and board assets for a Host-bound companion game",
   "license": "MIT",
   "type": "module",
@@ -27,11 +27,12 @@
   "scripts": {
     "build": "node scripts/build.mjs && node ../../scripts/package-bins.mjs",
     "test": "node --test test/*.test.mjs",
-    "test:browser": "node --test test/browser.journey.mjs",
+    "test:browser": "node --test --test-concurrency=1 test/browser.journey.mjs test/playable.browser.mjs",
     "lint": "node --test test/manifest.test.mjs test/privacy.test.mjs",
     "prepack": "pnpm build"
   },
   "dependencies": {
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.21",
     "@modelcontextprotocol/sdk": "1.26.0",
     "zod": "4.4.3"
   },

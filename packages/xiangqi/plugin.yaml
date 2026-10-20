@@ -1,28 +1,47 @@
 pluginId: dev.clowder.xiangqi
-version: 0.1.0-alpha.1
+version: 0.1.0-alpha.2
 contractVersion: 0.1.0
 name: Xiangqi
 description:
-  default: Analyze Chinese chess positions; a companion board requires a compatible Host binding.
+  default: Play Chinese chess with the cat in your conversation, or analyze a position.
   translations:
-    zh-CN: 分析中国象棋局面；棋搭子棋盘需兼容的宿主会话绑定。
+    zh-CN: 和当前对话里的猫下一盘象棋，也可以单独分析局面。
 icon:
   type: svg
   src: assets/icon.svg
 contributions:
+  - type: identity
+    id: xiangqi
+    displayName: 象棋棋桌
+  - type: webhook
+    id: xiangqi-owner-board
+    path: board/:gameId
+    methods: [ GET ]
+    action: { method: xiangqi.launch }
   - type: mcp
     id: xiangqi-analysis
     runtime:
       transport: stdio
       entrypoint: dist/mcp-entrypoint.mjs
+    actions:
+      - { method: xiangqi.open }
+      - { method: xiangqi.read }
+      - { method: xiangqi.play }
 features:
   - id: analyze-position
-    name: Analyze a Xiangqi position
+    name: Play and analyze Xiangqi
     resources: []
     contributions:
       - type: mcp
         id: xiangqi-analysis
-    capabilities: []
+      - type: identity
+        id: xiangqi
+      - type: webhook
+        id: xiangqi-owner-board
+    capabilities:
+      - thread.readContent
+      - thread.listMetadata
+      - messaging.send
 data:
   - name: games
     dataClass: user-authored
@@ -32,3 +51,5 @@ data:
     strategy: retained
 runtime:
   transport: builtin
+  entrypoint: dist/plugin-entrypoint.mjs
+  dataDirectory: xiangqi
