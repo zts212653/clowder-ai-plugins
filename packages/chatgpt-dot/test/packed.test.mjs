@@ -34,7 +34,8 @@ test('canonical bundled archive installs offline in an empty consumer and runs s
    const module=(await import(entry)).default.create(manifest),records=new Map();let revision=0;
    const host={pluginInstanceId:'fresh-instance',dataPath:join(process.cwd(),'private-data'),config:{get:async()=>undefined},secrets:{get:async()=>undefined},log(){},
     storage:{get:async key=>records.get(key),list:async()=>Object.fromEntries(records),compareAndSet:async(key,expected,value)=>{if((records.get(key)?.revision??null)!==expected)return{applied:false};records.set(key,{revision:++revision,value});return{applied:true,revision};}},
-    messaging:{subscribe:async()=>assert.fail('unexpected global subscription')}};
+    messaging:{subscribe:async()=>assert.fail('unexpected global subscription'),unsubscribe:async()=>{},get:async()=>assert.fail('unexpected message read'),send:async()=>assert.fail('unexpected message send')},
+    threads:{get:async()=>assert.fail('unexpected thread read'),create:async()=>assert.fail('unexpected thread creation'),getCats:async()=>assert.fail('unexpected member lookup'),readMessages:async()=>assert.fail('unexpected history read')}};
    const owner={kind:'owner-operation',pluginInstanceId:host.pluginInstanceId,userId:'owner',operationKey:'connection',actionId:'begin',requestId:'request',signal:new AbortController().signal,assertCurrent:async()=>{}};
    const settings=await module.settings(host),first=(await settings.actions['dot.begin']({},undefined,owner)).data;
    await settings.dispose();const active=await module.start(host);assert.equal(typeof active.actions.deliverMessage,'function');
