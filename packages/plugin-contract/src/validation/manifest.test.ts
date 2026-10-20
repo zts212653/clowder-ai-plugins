@@ -94,7 +94,7 @@ test('admits a declared remote meeting signal without granting routing authority
         id: 'meeting-intake',
         name: 'Meeting Intake',
         resources: [],
-        capabilities: ['events.publish'],
+        capabilities: ['messaging.send'],
       },
     ],
     signals: {

@@ -9,7 +9,8 @@ function fixture() {
     toggleAttribute(name, present) { if (present) attributes.add(name); else attributes.delete(name); },
     hasAttribute(name) { return attributes.has(name); } };
   const makeVideo = () => ({
-    hidden: true, src: '', loop: false, playbackRate: 1, currentTime: 0, paused: true, style: {},
+    hidden: true, src: '', loop: false, playbackRate: 1, currentTime: 0, paused: true,
+    style: { setProperty(name, value) { this[name] = value; } },
     plays: 0, pauses: 0,
     play() { this.paused = false; this.plays++; return Promise.resolve(); },
     pause() { this.paused = true; this.pauses++; },
@@ -48,6 +49,38 @@ test('one living body switches from layered sit to real movement and back', () =
   assert.equal(f.video.hidden, true);
   assert.equal(f.video.paused, true);
   assert.equal(f.sit.hidden, false);
+});
+
+test('video clips share the layered identity centre and ground without a second CSS inset', () => {
+  const f = fixture();
+  const scale = 120 / 290;
+  const centreX = 145 * scale;
+  const groundY = 262.5 * scale;
+  const anchors = new Map([
+    ['running-right', { centre: 132.5, ground: 234.8 }],
+    ['play', { centre: 201.9, ground: 303.9 }],
+    ['sleeping', { centre: 133.2, ground: 161 }],
+    ['delivering', { centre: 198.3, ground: 263 }],
+    ['pending_decision', { centre: 98.4, ground: 249.6 }],
+    ['working', { centre: 132.1, ground: 253.7 }],
+  ]);
+
+  for (const [action, anchor] of anchors) {
+    f.body.show(action);
+    const active = [f.video, f.transitionVideo].find(video => !video.hidden);
+    assert.ok(active, `${action}: one clip is visible`);
+    assert.ok(Math.abs(Number.parseFloat(active.style.left) + anchor.centre * scale - centreX) < 1e-9,
+      `${action}: pendant/identity centre stays fixed`);
+    assert.ok(Math.abs(Number.parseFloat(active.style.top) + anchor.ground * scale - groundY) < 1e-9,
+      `${action}: ground stays on the layered baseline`);
+  }
+
+  f.body.show('waking');
+  const wake = [f.video, f.transitionVideo].find(video => /wake\.webm$/u.test(video.src));
+  assert.ok(Math.abs(Number.parseFloat(wake.style.left) + 200.5 * scale - centreX) < 1e-9);
+  assert.ok(Math.abs(Number.parseFloat(wake.style.top) + 244.2 * scale - groundY) < 1e-9);
+  assert.ok(Math.abs(Number.parseFloat(wake.style['--living-left-end']) + 197.7 * scale - centreX) < 1e-9);
+  assert.ok(Math.abs(Number.parseFloat(wake.style['--living-top-end']) + 277.4 * scale - groundY) < 1e-9);
 });
 
 test('work, pending decisions and completed answers use distinct real signals', () => {

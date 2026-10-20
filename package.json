@@ -9,15 +9,23 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r --workspace-concurrency=1 test",
+    "test:scripts": "node --test scripts/catalog-runtime-entrypoints.test.mjs scripts/verify-self-contained-artifact.test.mjs scripts/ci-gate.test.mjs scripts/test-file-deadline.test.mjs scripts/genoffice-source-download.test.mjs scripts/package-bins.test.mjs packages/stackchan/test/build-artifact.test.mjs scripts/workspace-link-versions.test.mjs scripts/materialize-locked-dependencies.test.mjs && node --import tsx --test --test-concurrency=2 scripts/connector-original-settings.test.mjs scripts/connector-command-entrypoints.test.mjs && node --test scripts/plugin-original-settings-parity.test.mjs && node --import tsx --test scripts/plugin-loaded-settings.test.mjs && node --import tsx --test scripts/connector-original-declarations.test.mjs",
     "test:guards": "node --test scripts/git-guard-commit.test.mjs scripts/git-guard-push.test.mjs scripts/git-guard-install.test.mjs",
     "test:fresh-consumer": "node --test scripts/fresh-consumer-install.test.mjs",
+    "test:package-inventory": "node --test scripts/package-inventory.test.mjs",
+    "registry:check": "node --test scripts/registry-publish-compatibility.test.mjs && node scripts/registry-publish-compatibility.mjs",
+    "gate:ci": "node scripts/ci-gate.mjs",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "conformance": "pnpm --filter @clowder-ai/plugin-contract conformance",
     "guards:install": "bash scripts/install-git-guards.sh",
-    "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter @clowder-ai/companion build && node --test scripts/catalog-static-package.test.mjs && node scripts/catalog-check.mjs"
+    "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter './packages/connector-*' build && pnpm --filter @clowder-ai/enterprise-workflow build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/video-generation build && pnpm --filter @clowder-ai/wechat-visible-reader build && pnpm --filter @clowder-ai/weixin-mp build && pnpm --filter @clowder-ai/companion build && pnpm --filter @clowder-ai/genoffice-docx build:renderer && pnpm --filter @clowder-ai/personal-chrome-companion build && node --test scripts/catalog-package-shrinkwrap.test.mjs scripts/catalog-static-package.test.mjs && node scripts/catalog-check.mjs",
+    "pack:gate": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter './packages/connector-*' build && pnpm --filter @clowder-ai/enterprise-workflow build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/video-generation build && pnpm --filter @clowder-ai/wechat-visible-reader build && pnpm --filter @clowder-ai/weixin-mp build && pnpm --filter @clowder-ai/genoffice-docx build && pnpm --filter @clowder-ai/github-operations build && pnpm --filter @clowder-ai/stackchan build && pnpm --filter @clowder-ai/feishu-meeting-intake build && pnpm --filter @clowder-ai/personal-chrome-companion build && pnpm --filter @clowder-ai/companion build && node scripts/pack-gate.mjs",
+    "catalog:live-check": "node --test scripts/catalog-activation.test.mjs && node scripts/catalog-activation.mjs",
+    "catalog:activate": "pnpm catalog:check && node scripts/catalog-activation.mjs --activate"
   },
   "devDependencies": {
+    "tsx": "4.23.1",
     "yaml": "2.9.0"
   }
 }

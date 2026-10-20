@@ -2,39 +2,127 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/manifest/v0.1",
   "title": "Clowder AI Plugin Manifest (v0.1)",
-  "description": "Machine-readable truth source for the static plugin.yaml access protocol (§3.4/§3.5). beta.16 adds the Host-governed desktop-window contribution. Window, media and conversation authorities remain separate Host runtime decisions; the signed broker wire is unchanged.",
+  "description": "Machine-readable truth source for the current static plugin.yaml access protocol: declarations, capabilities, operation row actions, runtime dataDirectory, and contribution schemas. Runtime data paths need no separate capability; attachment readers use streams.read.",
   "x-clowder-capability-layers": {
-    "L0": ["plugin.config.read", "plugin.state.get", "plugin.state.set"],
-    "L1": ["messaging.send", "schedule.register", "events.publish", "messaging.appendElements"],
-    "L2": ["onMessage", "message.event.subscribe", "secret.read", "thread.listMetadata", "thread.readContent", "memory.query", "memory.append", "memory.retrieve", "windows.create", "whisper.extend"]
+    "L0": [
+      "plugin.config.read",
+      "plugin.state.get",
+      "plugin.state.set"
+    ],
+    "L1": [
+      "messaging.send",
+      "schedule.register",
+      "messaging.appendElements",
+      "streams.read"
+    ],
+    "L2": [
+      "onMessage",
+      "message.event.subscribe",
+      "secret.read",
+      "thread.listMetadata",
+      "thread.readContent",
+      "thread.write",
+      "task.read",
+      "task.write",
+      "task.admitEntrusted",
+      "memory.query",
+      "memory.append",
+      "memory.retrieve",
+      "windows.create",
+      "whisper.extend",
+      "cloud.conversation.host"
+    ]
   },
   "x-clowder-data-class-strategies": {
-    "cache": ["lifecycle", "retained", "ask-on-uninstall"],
-    "ephemeral": ["lifecycle", "retained", "ask-on-uninstall"],
-    "user-authored": ["retained", "ask-on-uninstall"],
-    "derived-user-visible": ["retained", "ask-on-uninstall"],
-    "relationship": ["retained", "ask-on-uninstall"],
-    "interaction-history": ["retained", "ask-on-uninstall"]
+    "cache": [
+      "lifecycle",
+      "retained",
+      "ask-on-uninstall"
+    ],
+    "ephemeral": [
+      "lifecycle",
+      "retained",
+      "ask-on-uninstall"
+    ],
+    "user-authored": [
+      "retained",
+      "ask-on-uninstall"
+    ],
+    "derived-user-visible": [
+      "retained",
+      "ask-on-uninstall"
+    ],
+    "relationship": [
+      "retained",
+      "ask-on-uninstall"
+    ],
+    "interaction-history": [
+      "retained",
+      "ask-on-uninstall"
+    ]
   },
-
   "$defs": {
+    "PluginMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catId",
+        "displayName",
+        "defaultModel",
+        "available"
+      ],
+      "properties": {
+        "catId": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "defaultModel": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "variantLabel": {
+          "type": "string"
+        },
+        "roleDescription": {
+          "type": "string"
+        },
+        "avatar": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      }
+    },
     "SemVer": {
       "type": "string",
       "minLength": 1,
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$",
       "description": "SemVer 2.0.0 including optional prerelease and build metadata."
     },
-
     "DataClass": {
       "type": "string",
-      "enum": ["cache", "ephemeral", "user-authored", "derived-user-visible", "relationship", "interaction-history"]
+      "enum": [
+        "cache",
+        "ephemeral",
+        "user-authored",
+        "derived-user-visible",
+        "relationship",
+        "interaction-history"
+      ]
     },
-
     "DataStrategy": {
       "type": "string",
-      "enum": ["lifecycle", "retained", "ask-on-uninstall"]
+      "enum": [
+        "lifecycle",
+        "retained",
+        "ask-on-uninstall"
+      ]
     },
-
     "Capability": {
       "type": "string",
       "enum": [
@@ -43,347 +131,1608 @@
         "plugin.state.set",
         "messaging.send",
         "schedule.register",
-        "events.publish",
         "messaging.appendElements",
+        "streams.read",
         "onMessage",
         "message.event.subscribe",
         "secret.read",
         "thread.listMetadata",
         "thread.readContent",
+        "thread.write",
+        "task.read",
+        "task.write",
+        "task.admitEntrusted",
         "memory.query",
         "memory.append",
         "memory.retrieve",
         "windows.create",
-        "whisper.extend"
+        "whisper.extend",
+        "cloud.conversation.host"
       ]
     },
-
     "DataDeclaration": {
       "type": "object",
       "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "dataClass": { "$ref": "#/$defs/DataClass" },
-        "strategy": { "$ref": "#/$defs/DataStrategy" },
-        "schemaVersion": { "type": "string" }
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataClass": {
+          "$ref": "#/$defs/DataClass"
+        },
+        "strategy": {
+          "$ref": "#/$defs/DataStrategy"
+        },
+        "schemaVersion": {
+          "type": "string"
+        }
       },
-      "required": ["name", "dataClass", "strategy"],
+      "required": [
+        "name",
+        "dataClass",
+        "strategy"
+      ],
       "additionalProperties": false,
       "allOf": [
         {
           "if": {
             "properties": {
               "dataClass": {
-                "enum": ["user-authored", "derived-user-visible", "relationship", "interaction-history"]
+                "enum": [
+                  "user-authored",
+                  "derived-user-visible",
+                  "relationship",
+                  "interaction-history"
+                ]
               }
             },
-            "required": ["dataClass"]
+            "required": [
+              "dataClass"
+            ]
           },
           "then": {
             "properties": {
               "strategy": {
-                "enum": ["retained", "ask-on-uninstall"],
-                "description": "User-visible/relationship data MUST be retained or ask-on-uninstall. lifecycle is structurally forbidden (铁律 #5: user state defaults to persistent)."
+                "enum": [
+                  "retained",
+                  "ask-on-uninstall"
+                ],
+                "description": "User-visible/relationship data MUST be retained or ask-on-uninstall. lifecycle is structurally forbidden (\u94c1\u5f8b #5: user state defaults to persistent)."
               }
             }
           }
         }
       ]
     },
-
     "ResourceReference": {
       "type": "object",
       "properties": {
-        "type": { "type": "string", "minLength": 1 },
-        "id": { "type": "string", "minLength": 1 }
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["type", "id"],
+      "required": [
+        "type",
+        "id"
+      ],
       "additionalProperties": false
     },
-
     "ContributionReference": {
       "type": "object",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["identity", "schedule", "tool", "mcp", "skill", "limb", "webhook", "message-subscription", "service", "connector", "ui", "content-editor-provider", "desktop-window"]
+          "enum": [
+            "identity",
+            "schedule",
+            "tool",
+            "mcp",
+            "skill",
+            "limb",
+            "webhook",
+            "message-subscription",
+            "media-source",
+            "service",
+            "connector",
+            "cloud-conversation-host",
+            "ui",
+            "content-editor-provider",
+            "desktop-window"
+          ]
         },
-        "id": { "type": "string", "minLength": 1 }
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["type", "id"],
+      "required": [
+        "type",
+        "id"
+      ],
       "additionalProperties": false
     },
-
     "PackageRelativePath": {
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
     },
-
     "ConfigurationOption": {
       "type": "object",
       "properties": {
-        "value": { "type": "string", "minLength": 1 },
-        "label": { "type": "string", "minLength": 1 },
-        "hint": { "type": "string" },
-        "docsUrl": { "type": "string", "format": "uri" }
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hint": {
+          "type": "string"
+        },
+        "docsUrl": {
+          "type": "string",
+          "format": "uri"
+        }
       },
-      "required": ["value", "label"],
+      "required": [
+        "value",
+        "label"
+      ],
       "additionalProperties": false
     },
-
+    "RequiredWhen": {
+      "type": "object",
+      "description": "Makes the containing field conditionally required and overrides its required flag. The condition compares against the referenced field's effective value (stored value, otherwise default); an array matches when any listed value is strictly equal.",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              "minItems": 1
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "additionalProperties": false
+    },
     "ConfigurationField": {
       "type": "object",
       "properties": {
-        "key": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z][A-Za-z0-9._-]*$" },
-        "label": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" },
-        "kind": { "type": "string", "enum": ["string", "secret", "select", "boolean", "number", "url"] },
-        "required": { "type": "boolean" },
-        "default": { "type": ["string", "number", "boolean"] },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "string",
+            "secret",
+            "select",
+            "boolean",
+            "number",
+            "url",
+            "operation"
+          ]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Makes the field unconditionally required unless requiredWhen is present; requiredWhen overrides this flag."
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "Hide a value field from manual owner editing while retaining it as an operation target or runtime value."
+        },
+        "requiredWhen": {
+          "$ref": "#/$defs/RequiredWhen",
+          "description": "Overrides required and makes this field required only when the referenced field's effective value (stored value, otherwise default) strictly equals value, or any member when value is an array."
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
         "options": {
           "type": "array",
-          "items": { "$ref": "#/$defs/ConfigurationOption" },
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          },
+          "minItems": 1
+        },
+        "target": {
+          "type": "array",
+          "description": "Configuration keys whose values are backfilled when the operation succeeds; operation fields use contract key rather than the legacy Host name property.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+          },
+          "uniqueItems": true
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ActionDef"
+          },
           "minItems": 1
         }
       },
-      "required": ["key", "label", "kind", "required"],
+      "required": [
+        "key",
+        "label",
+        "kind",
+        "required"
+      ],
       "additionalProperties": false,
       "allOf": [
         {
-          "if": { "properties": { "kind": { "const": "select" } }, "required": ["kind"] },
-          "then": { "required": ["options"] },
-          "else": { "properties": { "options": false } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "select"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "options"
+            ]
+          },
+          "else": {
+            "properties": {
+              "options": false
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "const": "secret" } }, "required": ["kind"] },
-          "then": { "properties": { "default": false } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "secret"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "default": false
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "const": "boolean" } }, "required": ["kind"] },
-          "then": { "properties": { "default": { "type": "boolean" } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "boolean"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "boolean"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "const": "number" } }, "required": ["kind"] },
-          "then": { "properties": { "default": { "type": "number" } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "number"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "number"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "enum": ["string", "select"] } }, "required": ["kind"] },
-          "then": { "properties": { "default": { "type": "string" } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "string",
+                  "select"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "string"
+              }
+            }
+          }
         },
         {
-          "if": { "properties": { "kind": { "const": "url" } }, "required": ["kind"] },
-          "then": { "properties": { "default": { "type": "string", "format": "uri" } } }
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "url"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "default": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "operation"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "actions"
+            ],
+            "properties": {
+              "default": false,
+              "hidden": false,
+              "requiredWhen": false
+            }
+          },
+          "else": {
+            "properties": {
+              "target": false,
+              "actions": false
+            }
+          }
         }
       ]
     },
-
     "EnvironmentBinding": {
       "oneOf": [
         {
           "type": "object",
           "properties": {
-            "source": { "const": "config" },
-            "key": { "type": "string", "minLength": 1 }
+            "source": {
+              "const": "config"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "required": ["source", "key"],
+          "required": [
+            "source",
+            "key"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
           "properties": {
-            "source": { "const": "secret" },
-            "key": { "type": "string", "minLength": 1 }
+            "source": {
+              "const": "secret"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1
+            }
           },
-          "required": ["source", "key"],
+          "required": [
+            "source",
+            "key"
+          ],
           "additionalProperties": false
         }
       ]
     },
-
     "ContributionRuntime": {
       "type": "object",
       "properties": {
-        "transport": { "type": "string", "enum": ["stdio", "ipc"] },
-        "entrypoint": { "$ref": "#/$defs/PackageRelativePath" },
-        "args": { "type": "array", "items": { "type": "string" } }
+        "transport": {
+          "type": "string",
+          "enum": [
+            "stdio",
+            "ipc"
+          ]
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/PackageRelativePath"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
-      "required": ["transport", "entrypoint"],
+      "required": [
+        "transport",
+        "entrypoint"
+      ],
       "additionalProperties": false
     },
-
     "CallbackAction": {
       "type": "object",
       "properties": {
-        "method": { "type": "string", "minLength": 1 },
-        "params": { "type": "object", "additionalProperties": true }
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
       },
-      "required": ["method"],
+      "required": [
+        "method"
+      ],
       "additionalProperties": false
     },
-
+    "ActionDef": {
+      "type": "object",
+      "description": "One Host-rendered operation action. render is closed to the renderers the frontend implements: 'row' actions are not rendered standalone and can only be invoked from a row of a 'rows' result in the same operation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "render": {
+          "type": "string",
+          "enum": [
+            "button",
+            "polling",
+            "status",
+            "row"
+          ]
+        },
+        "confirm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Plain text (1..200 chars). Applies to button and row actions: the Host must ask the owner to confirm before every invocation when the manifest declares it; a row-level confirm can only replace the wording, never skip the confirmation step."
+        },
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        },
+        "resultRender": {
+          "type": "string"
+        },
+        "next": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rollback": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "render",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "OperationRows": {
+      "type": "object",
+      "description": "Typed payload of an operation result whose render is 'rows': a bounded, Host-rendered row list. Runtime data is validated by the contract-exported rows validator against the declaring operation, fail-closed.",
+      "properties": {
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationRow"
+          },
+          "minItems": 0,
+          "maxItems": 200
+        },
+        "empty": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "rows"
+      ],
+      "additionalProperties": false
+    },
+    "OperationRow": {
+      "type": "object",
+      "description": "One row of a 'rows' result. The hard storage ceiling behind a row list is 32 authorizations; stay well below the 200-row schema bound.",
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationRowAction"
+          },
+          "minItems": 0,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "key",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "OperationRowAction": {
+      "type": "object",
+      "description": "Invocation of one render-'row' ActionDef of the same operation, carrying this row's input. Host validates the reference fail-closed: undeclared, or referencing a non-row action, invalidates the whole result.",
+      "properties": {
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Defaults to the referenced ActionDef label."
+        },
+        "input": {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
+          "propertyNames": {
+            "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+          },
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ],
+            "maxLength": 1000
+          }
+        },
+        "confirm": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Replaces the referenced ActionDef confirm wording; it can never remove the confirmation step the manifest declared."
+        }
+      },
+      "required": [
+        "action",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "OperationActionResult": {
+      "type": "object",
+      "properties": {
+        "render": {
+          "type": "string"
+        },
+        "data": {},
+        "label": {
+          "type": "string"
+        },
+        "targetValues": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "advance": {
+          "type": "boolean"
+        },
+        "activate": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "render",
+        "data"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "render": {
+                "const": "rows"
+              }
+            },
+            "required": [
+              "render"
+            ]
+          },
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/OperationRows"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "PluginTestDeclaration": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "PluginTestResult": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "additionalProperties": false
+    },
+    "SetupStep": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "type": "string",
+          "description": "Original connector setup visibility: show this step when the connectionMode configuration value matches."
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "ConnectorPermissions": {
+      "type": "object",
+      "description": "Original connector group settings declaration. The label names the owner UI; this does not grant Host capabilities or contain permission state.",
+      "properties": {
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false
+    },
     "IdentityContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "identity" },
-        "id": { "type": "string", "minLength": 1 },
-        "displayName": { "type": "string", "minLength": 1 },
-        "icon": { "type": "string" },
-        "color": { "type": "string" }
+        "type": {
+          "const": "identity"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "icon": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        }
       },
-      "required": ["type", "id", "displayName"],
+      "required": [
+        "type",
+        "id",
+        "displayName"
+      ],
       "additionalProperties": false
     },
-
     "ScheduleContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "schedule" },
-        "id": { "type": "string", "minLength": 1 },
+        "type": {
+          "const": "schedule"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
         "schedule": {
           "oneOf": [
             {
               "type": "object",
-              "properties": { "kind": { "const": "interval" }, "everyMs": { "type": "integer", "minimum": 1000 } },
-              "required": ["kind", "everyMs"],
+              "properties": {
+                "kind": {
+                  "const": "interval"
+                },
+                "everyMs": {
+                  "type": "integer",
+                  "minimum": 1000
+                }
+              },
+              "required": [
+                "kind",
+                "everyMs"
+              ],
               "additionalProperties": false
             },
             {
               "type": "object",
-              "properties": { "kind": { "const": "cron" }, "expression": { "type": "string", "minLength": 1 } },
-              "required": ["kind", "expression"],
+              "properties": {
+                "kind": {
+                  "const": "cron"
+                },
+                "expression": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "kind",
+                "expression"
+              ],
               "additionalProperties": false
             }
           ]
         },
-        "action": { "$ref": "#/$defs/CallbackAction" },
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        },
         "policy": {
           "type": "object",
           "properties": {
-            "overlap": { "const": "skip" },
-            "timeoutMs": { "type": "integer", "minimum": 1000, "maximum": 86400000 }
+            "overlap": {
+              "const": "skip"
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 86400000
+            }
           },
-          "required": ["overlap", "timeoutMs"],
+          "required": [
+            "overlap",
+            "timeoutMs"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["type", "id", "schedule", "action", "policy"],
+      "required": [
+        "type",
+        "id",
+        "schedule",
+        "action",
+        "policy"
+      ],
       "additionalProperties": false
     },
-
     "DirectToolContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "tool" },
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" },
-        "inputSchema": { "type": "object", "additionalProperties": true },
-        "action": { "$ref": "#/$defs/CallbackAction" }
+        "type": {
+          "const": "tool"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        }
       },
-      "required": ["type", "id", "name", "inputSchema", "action"],
+      "required": [
+        "type",
+        "id",
+        "name",
+        "inputSchema",
+        "action"
+      ],
       "additionalProperties": false
     },
-
+    "McpActionMethod": {
+      "description": "A native MCP method allowlist entry, without fixed business parameters.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "additionalProperties": false
+    },
     "McpContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "mcp" },
-        "id": { "type": "string", "minLength": 1 },
-        "runtime": { "$ref": "#/$defs/ContributionRuntime" },
+        "type": {
+          "const": "mcp"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "$ref": "#/$defs/ContributionRuntime"
+        },
+        "actions": {
+          "description": "Module methods callable by this native MCP server; these do not publish direct tools.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/McpActionMethod"
+          }
+        },
         "environment": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/EnvironmentBinding" }
+          "additionalProperties": {
+            "$ref": "#/$defs/EnvironmentBinding"
+          }
         }
       },
-      "required": ["type", "id", "runtime"],
+      "required": [
+        "type",
+        "id",
+        "runtime"
+      ],
       "additionalProperties": false
     },
-
     "SkillContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "skill" },
-        "id": { "type": "string", "minLength": 1 },
-        "path": { "$ref": "#/$defs/PackageRelativePath" }
+        "type": {
+          "const": "skill"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "$ref": "#/$defs/PackageRelativePath"
+        }
       },
-      "required": ["type", "id", "path"],
+      "required": [
+        "type",
+        "id",
+        "path"
+      ],
       "additionalProperties": false
     },
-
     "LimbContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "limb" },
-        "id": { "type": "string", "minLength": 1 },
-        "manifestPath": { "$ref": "#/$defs/PackageRelativePath" }
+        "type": {
+          "const": "limb"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifestPath": {
+          "$ref": "#/$defs/PackageRelativePath"
+        }
       },
-      "required": ["type", "id", "manifestPath"],
+      "required": [
+        "type",
+        "id",
+        "manifestPath"
+      ],
       "additionalProperties": false
     },
-
     "WebhookContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "webhook" },
-        "id": { "type": "string", "minLength": 1 },
-        "path": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*(/[A-Za-z0-9][A-Za-z0-9_-]*)*$" },
-        "methods": { "type": "array", "items": { "type": "string", "enum": ["GET", "POST", "PUT", "DELETE"] }, "minItems": 1, "uniqueItems": true },
-        "action": { "$ref": "#/$defs/CallbackAction" },
-        "verificationSecretRef": { "type": "string", "minLength": 1 }
+        "type": {
+          "const": "webhook"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^(?!(?:config|test|enable|disable|actions|operations)(?:/|$))[A-Za-z0-9][A-Za-z0-9_-]*(/(?:[A-Za-z0-9][A-Za-z0-9_-]*|:[A-Za-z_][A-Za-z0-9_]*))*$"
+        },
+        "methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        },
+        "verificationSecretRef": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["type", "id", "path", "methods", "action"],
+      "required": [
+        "type",
+        "id",
+        "path",
+        "methods",
+        "action"
+      ],
       "additionalProperties": false
     },
-
     "MessageSubscriptionContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "message-subscription" },
-        "id": { "type": "string", "minLength": 1 },
-        "binding": { "type": "string", "minLength": 1 },
-        "filter": { "type": "object", "additionalProperties": true },
-        "action": { "$ref": "#/$defs/CallbackAction" }
+        "type": {
+          "const": "message-subscription"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "filter": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        },
+        "presentation": {
+          "enum": [
+            "v1",
+            "v2"
+          ]
+        }
       },
-      "required": ["type", "id", "binding", "action"],
+      "required": [
+        "type",
+        "id",
+        "binding",
+        "action"
+      ],
       "additionalProperties": false
     },
-
+    "MediaSourceContribution": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "media-source"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "binding": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "binding"
+      ],
+      "additionalProperties": false
+    },
     "ServiceContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "service" },
-        "id": { "type": "string", "minLength": 1 },
-        "runtime": { "$ref": "#/$defs/ContributionRuntime" },
-        "healthMethod": { "type": "string", "minLength": 1 },
+        "type": {
+          "const": "service"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "$ref": "#/$defs/ContributionRuntime"
+        },
+        "healthMethod": {
+          "type": "string",
+          "minLength": 1
+        },
         "environment": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/EnvironmentBinding" }
+          "additionalProperties": {
+            "$ref": "#/$defs/EnvironmentBinding"
+          }
         }
       },
-      "required": ["type", "id", "runtime", "healthMethod"],
+      "required": [
+        "type",
+        "id",
+        "runtime",
+        "healthMethod"
+      ],
       "additionalProperties": false
     },
-
     "ConnectorContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "connector" },
-        "id": { "type": "string", "minLength": 1 },
-        "identityRef": { "type": "string", "minLength": 1 },
-        "inboundMethod": { "type": "string", "minLength": 1 },
-        "outboundMethod": { "type": "string", "minLength": 1 }
+        "type": {
+          "const": "connector"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identityRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inboundMethod": {
+          "type": "string",
+          "minLength": 1
+        },
+        "outboundMethod": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["type", "id", "identityRef", "inboundMethod", "outboundMethod"],
+      "required": [
+        "type",
+        "id",
+        "identityRef",
+        "inboundMethod",
+        "outboundMethod"
+      ],
       "additionalProperties": false
     },
-
+    "CloudConversationHostMethod": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationHostContribution": {
+      "type": "object",
+      "description": "Declares that this package hosts one cloud conversation provider: the Host sends owner cloud-cat messages through appendMessage and pulls assistant returns through assistantReturns.list / ack. Method semantics come from the manifest only; runtime data can never introduce new methods. Error codes are data (external-process transports flatten thrown errors): NEEDS_BINDING / BOUND_CONVERSATION_MISMATCH -> needs-binding (incl. h4); HOST_UNAVAILABLE -> treated as no adapter (null); every other code (the STALE_* revisions, AMBIGUOUS_EFFECT, IDEMPOTENCY_CONFLICT, NEEDS_AUTHORIZATION, HOST_STOPPED, PAIRING_REJECTED, ...) and any unknown code -> host-append-failed. HOST_UNAVAILABLE must only describe failures before a request could have had any effect (no pairing record, missing socket, connection refused); any error after the request was written is AMBIGUOUS_EFFECT. The owning feature must be granted cloud.conversation.host; one provider accepts at most one enabled package.",
+      "properties": {
+        "type": {
+          "const": "cloud-conversation-host"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "const": "chatgpt"
+        },
+        "appendMessage": {
+          "$ref": "#/$defs/CloudConversationHostMethod"
+        },
+        "assistantReturns": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "$ref": "#/$defs/CloudConversationHostMethod"
+            },
+            "ack": {
+              "$ref": "#/$defs/CloudConversationHostMethod"
+            }
+          },
+          "required": [
+            "list",
+            "ack"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "provider",
+        "appendMessage",
+        "assistantReturns"
+      ],
+      "additionalProperties": false
+    },
+    "CloudBridgeDomFingerprintNodeV1": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^composer(?:/(?:[a-z][a-z0-9-]{0,31}|#text|#node-(?:0|[1-9]\\d{0,3}))\\[(?:0|[1-9]\\d{0,9})\\])*$"
+        },
+        "kind": {
+          "enum": [
+            "text",
+            "element",
+            "other"
+          ]
+        },
+        "empty": {
+          "type": "boolean"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9-]{0,31}$"
+        },
+        "nodeType": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "childCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "contentEditable": {
+          "type": "boolean"
+        },
+        "proseMirror": {
+          "type": "boolean"
+        },
+        "placeholder": {
+          "type": "boolean"
+        },
+        "virtualKeyboard": {
+          "type": "boolean"
+        },
+        "trailingBreak": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "CloudBridgeDomFingerprintV1": {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "adapterRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "artifactRevision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "firstUnsupportedPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^composer(?:/(?:[a-z][a-z0-9-]{0,31}|#text|#node-(?:0|[1-9]\\d{0,3}))\\[(?:0|[1-9]\\d{0,9})\\])*$"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CloudBridgeDomFingerprintNodeV1"
+          },
+          "maxItems": 12
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "v",
+        "phase",
+        "adapterRevision",
+        "artifactRevision",
+        "nodes",
+        "truncated"
+      ],
+      "additionalProperties": false
+    },
+    "CloudBridgeFailureDiagnosticV1": {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "errorCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+        },
+        "nextAction": {
+          "const": "inspect_bound_tab"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/CloudBridgeDomFingerprintV1"
+        }
+      },
+      "required": [
+        "v",
+        "errorCode",
+        "nextAction",
+        "fingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAppendMessageInput": {
+      "type": "object",
+      "description": "Host -> package input of the appendMessage method. idempotencyKey references the shared MessageId (1..512) and is the Clowder source message id; the package answers failed + INVALID_REQUEST when the key does not match its own token format. text is additionally checked in code: UTF-8 <= 128 KiB and non-empty after trim (isCloudConversationTextBudget).",
+      "properties": {
+        "conversationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 131072
+        },
+        "idempotencyKey": {
+          "$ref": "https://clowder-ai.dev/schemas/messaging/v0.1#/$defs/MessageId"
+        }
+      },
+      "required": [
+        "conversationId",
+        "text",
+        "idempotencyKey"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAppendMessageAppendedResult": {
+      "type": "object",
+      "description": "Successful append. providerMessageId is the provider-side (ChatGPT) message id; the Host's generic adapter maps it back to its internal hostMessageId.",
+      "properties": {
+        "status": {
+          "const": "appended"
+        },
+        "providerMessageId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "idempotentReplay": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "providerMessageId"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAppendMessageFailedResult": {
+      "type": "object",
+      "description": "Failed append. errorCode is a safe string; diagnostic is the contract copy of CloudBridgeFailureDiagnosticV1 and is re-validated by the contract-exported isCloudBridgeFailureDiagnosticV1. A Host that preserves errorCode while dropping an invalid diagnostic validates in two stages: validate the envelope without diagnostic, then validate diagnostic separately.",
+      "properties": {
+        "status": {
+          "const": "failed"
+        },
+        "errorCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+        },
+        "diagnostic": {
+          "$ref": "#/$defs/CloudBridgeFailureDiagnosticV1"
+        },
+        "idempotentReplay": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "errorCode"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAppendMessageResult": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CloudConversationAppendMessageAppendedResult"
+        },
+        {
+          "$ref": "#/$defs/CloudConversationAppendMessageFailedResult"
+        }
+      ]
+    },
+    "CloudConversationReturnCursor": {
+      "type": "object",
+      "description": "Assistant-return cursor: the after? triplet is either fully present or fully absent.",
+      "properties": {
+        "conversationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "sourceMessageId": {
+          "$ref": "https://clowder-ai.dev/schemas/messaging/v0.1#/$defs/MessageId"
+        },
+        "assistantMessageId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "conversationId",
+        "sourceMessageId",
+        "assistantMessageId"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAssistantReturn": {
+      "type": "object",
+      "description": "One candidate assistant return. sourceMessageId echoes the appendMessage idempotencyKey (the Clowder source message id). content is additionally checked in code: UTF-8 <= 128 KiB and non-empty after trim.",
+      "properties": {
+        "conversationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "sourceMessageId": {
+          "$ref": "https://clowder-ai.dev/schemas/messaging/v0.1#/$defs/MessageId"
+        },
+        "assistantMessageId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 131072
+        }
+      },
+      "required": [
+        "conversationId",
+        "sourceMessageId",
+        "assistantMessageId",
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationListInput": {
+      "type": "object",
+      "description": "Host -> package input of the assistantReturns.list method. Returns at most one return per call (the native inbox delivers one per poll; a single content can reach ~768 KiB after JSON escaping, so two would risk the 1 MiB frame bound).",
+      "properties": {
+        "after": {
+          "$ref": "#/$defs/CloudConversationReturnCursor"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CloudConversationListResult": {
+      "type": "object",
+      "properties": {
+        "returns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CloudConversationAssistantReturn"
+          },
+          "minItems": 0,
+          "maxItems": 1
+        }
+      },
+      "required": [
+        "returns"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAckInput": {
+      "type": "object",
+      "description": "Host -> package input of the assistantReturns.ack method.",
+      "properties": {
+        "conversationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "sourceMessageId": {
+          "$ref": "https://clowder-ai.dev/schemas/messaging/v0.1#/$defs/MessageId"
+        },
+        "assistantMessageId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "conversationId",
+        "sourceMessageId",
+        "assistantMessageId"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAcknowledgedResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "acknowledged"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAckFailedResult": {
+      "type": "object",
+      "description": "Failed ack. ASSISTANT_RETURN_NOT_FOUND means the return is already settled and must not be retried. A Host that preserves errorCode while dropping an invalid diagnostic validates in two stages: validate the envelope without diagnostic, then validate diagnostic separately.",
+      "properties": {
+        "status": {
+          "const": "failed"
+        },
+        "errorCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+        },
+        "diagnostic": {
+          "$ref": "#/$defs/CloudBridgeFailureDiagnosticV1"
+        }
+      },
+      "required": [
+        "status",
+        "errorCode"
+      ],
+      "additionalProperties": false
+    },
+    "CloudConversationAckResult": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CloudConversationAcknowledgedResult"
+        },
+        {
+          "$ref": "#/$defs/CloudConversationAckFailedResult"
+        }
+      ]
+    },
     "UiWhenClause": {
       "type": "object",
       "properties": {
-        "featureEnabled": { "type": "boolean" },
+        "featureEnabled": {
+          "type": "boolean"
+        },
         "requiresCapabilities": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Capability" },
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
           "minItems": 1,
           "uniqueItems": true
         }
@@ -391,124 +1740,287 @@
       "minProperties": 1,
       "additionalProperties": false
     },
-
     "UiAnchor": {
       "type": "object",
       "properties": {
-        "position": { "type": "string", "enum": ["before", "after"] },
-        "target": { "type": "string", "minLength": 1 }
+        "position": {
+          "type": "string",
+          "enum": [
+            "before",
+            "after"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        }
       },
-      "required": ["position", "target"],
+      "required": [
+        "position",
+        "target"
+      ],
       "additionalProperties": false
     },
-
     "UiCommandContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "ui" },
-        "id": { "type": "string", "minLength": 1 },
-        "kind": { "const": "command" },
-        "label": { "type": "string", "minLength": 1 },
-        "action": { "$ref": "#/$defs/CallbackAction" },
-        "when": { "$ref": "#/$defs/UiWhenClause" }
+        "type": {
+          "const": "ui"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "command"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "$ref": "#/$defs/CallbackAction"
+        },
+        "when": {
+          "$ref": "#/$defs/UiWhenClause"
+        }
       },
-      "required": ["type", "id", "kind", "label", "action"],
+      "required": [
+        "type",
+        "id",
+        "kind",
+        "label",
+        "action"
+      ],
       "additionalProperties": false
     },
-
     "UiSlotItemContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "ui" },
-        "id": { "type": "string", "minLength": 1 },
-        "kind": { "const": "slot-item" },
-        "label": { "type": "string", "minLength": 1 },
-        "command": { "type": "string", "minLength": 1 },
-        "group": { "type": "string", "minLength": 1 },
-        "anchor": { "$ref": "#/$defs/UiAnchor" },
-        "order": { "type": "integer", "minimum": -10000, "maximum": 10000 },
-        "when": { "$ref": "#/$defs/UiWhenClause" }
+        "type": {
+          "const": "ui"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "slot-item"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "anchor": {
+          "$ref": "#/$defs/UiAnchor"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": -10000,
+          "maximum": 10000
+        },
+        "when": {
+          "$ref": "#/$defs/UiWhenClause"
+        }
       },
-      "required": ["type", "id", "kind", "label", "command", "group"],
+      "required": [
+        "type",
+        "id",
+        "kind",
+        "label",
+        "command",
+        "group"
+      ],
       "additionalProperties": false
     },
-
     "UiMessageElementContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "ui" },
-        "id": { "type": "string", "minLength": 1 },
-        "kind": { "const": "message-element" },
-        "label": { "type": "string", "minLength": 1 },
-        "elementKind": { "type": "string", "minLength": 1 },
-        "renderer": { "type": "string", "minLength": 1 },
-        "when": { "$ref": "#/$defs/UiWhenClause" }
+        "type": {
+          "const": "ui"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "message-element"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "elementKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renderer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "when": {
+          "$ref": "#/$defs/UiWhenClause"
+        }
       },
-      "required": ["type", "id", "kind", "label", "elementKind", "renderer"],
+      "required": [
+        "type",
+        "id",
+        "kind",
+        "label",
+        "elementKind",
+        "renderer"
+      ],
       "additionalProperties": false
     },
-
     "UiContribution": {
       "oneOf": [
-        { "$ref": "#/$defs/UiCommandContribution" },
-        { "$ref": "#/$defs/UiSlotItemContribution" },
-        { "$ref": "#/$defs/UiMessageElementContribution" }
+        {
+          "$ref": "#/$defs/UiCommandContribution"
+        },
+        {
+          "$ref": "#/$defs/UiSlotItemContribution"
+        },
+        {
+          "$ref": "#/$defs/UiMessageElementContribution"
+        }
       ]
     },
-
     "SemanticMaterializerDeclaration": {
       "type": "object",
       "description": "Optional independent DOCX computation. The Host admits one closed worker bundle under the installed package and live feature authority, in a fresh sandboxed private browser process with no ambient effects. This is not permission to execute package code in the Host or renderer.",
       "properties": {
-        "executionClass": { "const": "dedicated-browser-worker" },
-        "entrypoint": { "$ref": "#/$defs/PackageRelativePath", "pattern": "\\.js$" },
-        "integrity": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]{43}=$" },
-        "protocolVersion": { "const": "1.0.0" }
+        "executionClass": {
+          "const": "dedicated-browser-worker"
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/PackageRelativePath",
+          "pattern": "\\.js$"
+        },
+        "integrity": {
+          "type": "string",
+          "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+        },
+        "protocolVersion": {
+          "const": "1.0.0"
+        }
       },
-      "required": ["executionClass", "entrypoint", "integrity", "protocolVersion"],
+      "required": [
+        "executionClass",
+        "entrypoint",
+        "integrity",
+        "protocolVersion"
+      ],
       "additionalProperties": false
     },
-
     "DesktopWindowContribution": {
       "type": "object",
       "description": "Host-created desktop surface under its owning feature's windows.create grant. surface.integrity verifies only the entry HTML bytes. The Host must separately verify the complete installed package and serve a verified snapshot of all referenced assets. This declares no executable, Host origin, identity, or capture permission. The Host owns window execution, media/session admission and the isolated receive-only provider channel.",
       "properties": {
-        "type": { "const": "desktop-window" },
-        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "role": { "const": "companion" },
+        "type": {
+          "const": "desktop-window"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "role": {
+          "const": "companion"
+        },
         "surface": {
           "type": "object",
           "properties": {
-            "entrypoint": { "$ref": "#/$defs/PackageRelativePath", "pattern": "\\.html$" },
-            "integrity": { "type": "string", "pattern": "^sha256-[A-Za-z0-9+/]{43}=$" }
+            "entrypoint": {
+              "$ref": "#/$defs/PackageRelativePath",
+              "pattern": "\\.html$"
+            },
+            "integrity": {
+              "type": "string",
+              "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
+            }
           },
-          "required": ["entrypoint", "integrity"],
+          "required": [
+            "entrypoint",
+            "integrity"
+          ],
           "additionalProperties": false
         },
-        "bridgeVersion": { "enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0"] },
+        "bridgeVersion": {
+          "enum": [
+            "1.0.0",
+            "1.1.0",
+            "1.2.0",
+            "1.3.0",
+            "1.4.0",
+            "1.5.0",
+            "1.6.0"
+          ]
+        },
         "presentation": {
           "type": "object",
           "properties": {
-            "width": { "type": "integer", "minimum": 160, "maximum": 600 },
-            "height": { "type": "integer", "minimum": 160, "maximum": 1000 },
-            "transparent": { "const": true },
-            "frame": { "const": false },
-            "alwaysOnTop": { "type": "boolean" },
-            "skipTaskbar": { "type": "boolean" }
+            "width": {
+              "type": "integer",
+              "minimum": 160,
+              "maximum": 600
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 160,
+              "maximum": 1000
+            },
+            "transparent": {
+              "const": true
+            },
+            "frame": {
+              "const": false
+            },
+            "alwaysOnTop": {
+              "type": "boolean"
+            },
+            "skipTaskbar": {
+              "type": "boolean"
+            }
           },
-          "required": ["width", "height", "transparent", "frame", "alwaysOnTop", "skipTaskbar"],
+          "required": [
+            "width",
+            "height",
+            "transparent",
+            "frame",
+            "alwaysOnTop",
+            "skipTaskbar"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["type", "id", "role", "surface", "bridgeVersion", "presentation"],
+      "required": [
+        "type",
+        "id",
+        "role",
+        "surface",
+        "bridgeVersion",
+        "presentation"
+      ],
       "additionalProperties": false
     },
-
     "ContentEditorProviderContribution": {
       "type": "object",
       "properties": {
-        "type": { "const": "content-editor-provider" },
-        "id": { "type": "string", "minLength": 1 },
+        "type": {
+          "const": "content-editor-provider"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
         "mediaTypes": {
           "type": "array",
           "items": {
@@ -521,7 +2033,9 @@
         "surface": {
           "type": "object",
           "properties": {
-            "entrypoint": { "$ref": "#/$defs/PackageRelativePath" },
+            "entrypoint": {
+              "$ref": "#/$defs/PackageRelativePath"
+            },
             "integrity": {
               "type": "string",
               "pattern": "^sha256-[A-Za-z0-9+/]{43}=$"
@@ -535,138 +2049,272 @@
               "description": "The renderer must install a fail-closed Navigation API listener before upstream code and prevent every self-navigation before its request starts."
             }
           },
-          "required": ["entrypoint", "integrity", "sandbox", "navigationPolicy"],
+          "required": [
+            "entrypoint",
+            "integrity",
+            "sandbox",
+            "navigationPolicy"
+          ],
           "additionalProperties": false
         },
-        "bridgeVersion": { "const": "1.0.0" },
-        "semanticMaterializer": { "$ref": "#/$defs/SemanticMaterializerDeclaration" },
+        "bridgeVersion": {
+          "const": "1.0.0"
+        },
+        "semanticMaterializer": {
+          "$ref": "#/$defs/SemanticMaterializerDeclaration"
+        },
         "operations": {
           "type": "array",
-          "items": { "type": "string", "enum": ["load", "settle", "comment", "tracked-change"] },
+          "items": {
+            "type": "string",
+            "enum": [
+              "load",
+              "settle",
+              "comment",
+              "tracked-change"
+            ]
+          },
           "minItems": 4,
           "maxItems": 4,
           "uniqueItems": true
         }
       },
-      "required": ["type", "id", "mediaTypes", "surface", "bridgeVersion", "operations"],
+      "required": [
+        "type",
+        "id",
+        "mediaTypes",
+        "surface",
+        "bridgeVersion",
+        "operations"
+      ],
       "additionalProperties": false
     },
-
     "StaticContribution": {
       "oneOf": [
-        { "$ref": "#/$defs/IdentityContribution" },
-        { "$ref": "#/$defs/ScheduleContribution" },
-        { "$ref": "#/$defs/DirectToolContribution" },
-        { "$ref": "#/$defs/McpContribution" },
-        { "$ref": "#/$defs/SkillContribution" },
-        { "$ref": "#/$defs/LimbContribution" },
-        { "$ref": "#/$defs/WebhookContribution" },
-        { "$ref": "#/$defs/MessageSubscriptionContribution" },
-        { "$ref": "#/$defs/ServiceContribution" },
-        { "$ref": "#/$defs/ConnectorContribution" },
-        { "$ref": "#/$defs/UiContribution" },
-        { "$ref": "#/$defs/ContentEditorProviderContribution" },
-        { "$ref": "#/$defs/DesktopWindowContribution" }
+        {
+          "$ref": "#/$defs/IdentityContribution"
+        },
+        {
+          "$ref": "#/$defs/ScheduleContribution"
+        },
+        {
+          "$ref": "#/$defs/DirectToolContribution"
+        },
+        {
+          "$ref": "#/$defs/McpContribution"
+        },
+        {
+          "$ref": "#/$defs/SkillContribution"
+        },
+        {
+          "$ref": "#/$defs/LimbContribution"
+        },
+        {
+          "$ref": "#/$defs/WebhookContribution"
+        },
+        {
+          "$ref": "#/$defs/MessageSubscriptionContribution"
+        },
+        {
+          "$ref": "#/$defs/MediaSourceContribution"
+        },
+        {
+          "$ref": "#/$defs/ServiceContribution"
+        },
+        {
+          "$ref": "#/$defs/ConnectorContribution"
+        },
+        {
+          "$ref": "#/$defs/CloudConversationHostContribution"
+        },
+        {
+          "$ref": "#/$defs/UiContribution"
+        },
+        {
+          "$ref": "#/$defs/ContentEditorProviderContribution"
+        },
+        {
+          "$ref": "#/$defs/DesktopWindowContribution"
+        }
       ]
     },
-
     "PluginFeature": {
       "type": "object",
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "name": { "type": "string", "minLength": 1 },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "resources": {
           "type": "array",
-          "items": { "$ref": "#/$defs/ResourceReference" }
+          "items": {
+            "$ref": "#/$defs/ResourceReference"
+          }
         },
         "contributions": {
           "type": "array",
-          "items": { "$ref": "#/$defs/ContributionReference" }
+          "items": {
+            "$ref": "#/$defs/ContributionReference"
+          }
         },
         "capabilities": {
           "type": "array",
-          "items": { "$ref": "#/$defs/Capability" },
-          "description": "@signed(G-0 2026-07-15) — capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer. Lifecycle callbacks are protocol-intrinsic baseline behavior, so they are not grantable or revocable capability IDs."
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "description": "@signed(G-0 2026-07-15) \u2014 capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer. Lifecycle callbacks are protocol-intrinsic baseline behavior, so they are not grantable or revocable capability IDs."
         }
       },
-      "required": ["id", "name", "resources", "capabilities"],
+      "required": [
+        "id",
+        "name",
+        "resources",
+        "capabilities"
+      ],
       "additionalProperties": false
     },
-
     "RuntimeTransport": {
       "type": "string",
-      "enum": ["stdio", "ipc", "builtin"]
+      "enum": [
+        "stdio",
+        "ipc",
+        "builtin"
+      ]
     },
-
     "ExternalRuntimeTransport": {
       "type": "string",
-      "enum": ["stdio", "ipc"]
+      "enum": [
+        "stdio",
+        "ipc"
+      ]
     },
-
     "ExternalRuntimeDeclaration": {
       "type": "object",
       "properties": {
-        "transport": { "$ref": "#/$defs/ExternalRuntimeTransport" },
-        "entrypoint": { "$ref": "#/$defs/PackageRelativePath" }
+        "transport": {
+          "$ref": "#/$defs/ExternalRuntimeTransport"
+        },
+        "entrypoint": {
+          "$ref": "#/$defs/PackageRelativePath"
+        }
       },
-      "required": ["transport", "entrypoint"],
+      "required": [
+        "transport",
+        "entrypoint"
+      ],
       "additionalProperties": false
     },
-
     "BuiltinRuntimeDeclaration": {
       "type": "object",
       "properties": {
-        "transport": { "const": "builtin" },
-        "entrypoint": { "type": "string", "minLength": 1 }
+        "transport": {
+          "const": "builtin"
+        },
+        "entrypoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataDirectory": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$",
+          "description": "Single-segment module data directory name ('.' and '..' are excluded by the pattern). The Host creates <projectRoot>/.cat-cafe/plugin-host/<name> (0700) before start and each installed instance receives it as dataPath without a separate grant; omit to derive the name from the plugin id. Uninstall retains the directory (owner data)."
+        }
       },
-      "required": ["transport"],
+      "required": [
+        "transport"
+      ],
       "additionalProperties": false
     },
-
     "RuntimeDeclaration": {
       "oneOf": [
-        { "$ref": "#/$defs/ExternalRuntimeDeclaration" },
-        { "$ref": "#/$defs/BuiltinRuntimeDeclaration" }
+        {
+          "$ref": "#/$defs/ExternalRuntimeDeclaration"
+        },
+        {
+          "$ref": "#/$defs/BuiltinRuntimeDeclaration"
+        }
       ]
     }
   },
-
   "type": "object",
   "properties": {
-    "pluginId": { "type": "string", "minLength": 1 },
+    "pluginId": {
+      "type": "string",
+      "minLength": 1
+    },
     "version": {
       "$ref": "#/$defs/SemVer",
-      "description": "Plugin version — must be valid semver (§9: numeric prerelease identifiers MUST NOT have leading zeroes)."
+      "description": "Plugin version \u2014 must be valid semver (\u00a79: numeric prerelease identifiers MUST NOT have leading zeroes)."
     },
     "contractVersion": {
       "$ref": "#/$defs/SemVer",
-      "description": "Must be an exact published semver version — no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). §9: numeric prerelease identifiers MUST NOT have leading zeroes."
+      "description": "Must be an exact published semver version \u2014 no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). \u00a79: numeric prerelease identifiers MUST NOT have leading zeroes."
     },
-    "name": { "type": "string", "minLength": 1 },
-    "description": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/LocalizedDescription" },
-    "icon": { "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/PluginIcon" },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/LocalizedDescription"
+    },
+    "icon": {
+      "$ref": "https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/PluginIcon"
+    },
     "configuration": {
       "type": "array",
-      "items": { "$ref": "#/$defs/ConfigurationField" }
+      "items": {
+        "$ref": "#/$defs/ConfigurationField"
+      }
     },
     "contributions": {
       "type": "array",
-      "items": { "$ref": "#/$defs/StaticContribution" }
+      "items": {
+        "$ref": "#/$defs/StaticContribution"
+      }
     },
     "features": {
       "type": "array",
-      "items": { "$ref": "#/$defs/PluginFeature" },
+      "items": {
+        "$ref": "#/$defs/PluginFeature"
+      },
       "minItems": 1
     },
     "data": {
       "type": "array",
-      "items": { "$ref": "#/$defs/DataDeclaration" }
+      "items": {
+        "$ref": "#/$defs/DataDeclaration"
+      }
     },
-    "runtime": { "$ref": "#/$defs/RuntimeDeclaration" },
+    "runtime": {
+      "$ref": "#/$defs/RuntimeDeclaration"
+    },
+    "test": {
+      "$ref": "#/$defs/PluginTestDeclaration"
+    },
+    "permissions": {
+      "$ref": "#/$defs/ConnectorPermissions"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SetupStep"
+      },
+      "minItems": 1
+    },
     "signals": {
       "$ref": "https://clowder-ai.dev/schemas/signals/v0.2#/$defs/SignalContribution"
     }
   },
-  "required": ["pluginId", "version", "contractVersion", "name", "features", "runtime"],
+  "required": [
+    "pluginId",
+    "version",
+    "contractVersion",
+    "name",
+    "features"
+  ],
   "additionalProperties": false
 }

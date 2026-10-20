@@ -18,10 +18,20 @@ export type PackageIcon = {
 };
 export type PluginIcon = 'github' | PackageIcon;
 
+export type PluginMember = {
+  readonly catId: string;
+  readonly displayName: string;
+  readonly defaultModel: string;
+  readonly nickname?: string;
+  readonly variantLabel?: string;
+  readonly roleDescription?: string;
+  readonly avatar?: string;
+  readonly available: boolean;
+};
 export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
 export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
-export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'events.publish' | 'messaging.appendElements' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend';
+export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'messaging.appendElements' | 'streams.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'task.admitEntrusted' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend' | 'cloud.conversation.host';
 export type DataDeclaration = {
   readonly name: string;
   readonly dataClass: 'cache';
@@ -58,7 +68,7 @@ export type ResourceReference = {
   readonly id: string;
 };
 export type ContributionReference = {
-  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'service' | 'connector' | 'ui' | 'content-editor-provider' | 'desktop-window';
+  readonly type: 'identity' | 'schedule' | 'tool' | 'mcp' | 'skill' | 'limb' | 'webhook' | 'message-subscription' | 'media-source' | 'service' | 'connector' | 'cloud-conversation-host' | 'ui' | 'content-editor-provider' | 'desktop-window';
   readonly id: string;
 };
 export type PackageRelativePath = string;
@@ -68,54 +78,94 @@ export type ConfigurationOption = {
   readonly hint?: string;
   readonly docsUrl?: string;
 };
+export type RequiredWhen = {
+  readonly key: string;
+  readonly value: string | number | boolean | readonly (string | number | boolean)[];
+};
 export type ConfigurationField = {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'string';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: string;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'secret';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: never;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'select';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: string;
   readonly options: readonly ConfigurationOption[];
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'boolean';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: boolean;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'number';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: number;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
 } | {
   readonly key: string;
   readonly label: string;
   readonly description?: string;
   readonly kind: 'url';
   readonly required: boolean;
+  readonly hidden?: boolean;
+  readonly requiredWhen?: RequiredWhen;
   readonly default?: string;
   readonly options?: never;
+  readonly target?: never;
+  readonly actions?: never;
+} | {
+  readonly key: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly kind: 'operation';
+  readonly required: boolean;
+  readonly hidden?: never;
+  readonly requiredWhen?: never;
+  readonly default?: never;
+  readonly options?: never;
+  readonly target?: readonly string[];
+  readonly actions: readonly ActionDef[];
 };
 export type EnvironmentBinding = {
   readonly source: 'config';
@@ -132,6 +182,56 @@ export type ContributionRuntime = {
 export type CallbackAction = {
   readonly method: string;
   readonly params?: Readonly<Record<string, unknown>>;
+};
+export type ActionDef = {
+  readonly id: string;
+  readonly label: string;
+  readonly render: 'button' | 'polling' | 'status' | 'row';
+  readonly confirm?: string;
+  readonly action: CallbackAction;
+  readonly resultRender?: string;
+  readonly next?: string;
+  readonly rollback?: string;
+  readonly timeout?: number;
+};
+export type OperationRows = {
+  readonly rows: readonly OperationRow[];
+  readonly empty?: string;
+};
+export type OperationRow = {
+  readonly key: string;
+  readonly label: string;
+  readonly detail?: string;
+  readonly actions?: readonly OperationRowAction[];
+};
+export type OperationRowAction = {
+  readonly action: string;
+  readonly label?: string;
+  readonly input: Readonly<Record<string, string | number | boolean>>;
+  readonly confirm?: string;
+};
+export type OperationActionResult = {
+  readonly render: string;
+  readonly data: unknown;
+  readonly label?: string;
+  readonly targetValues?: Readonly<Record<string, string>>;
+  readonly advance?: boolean;
+  readonly activate?: boolean;
+};
+export type PluginTestDeclaration = {
+  readonly action: CallbackAction;
+};
+export type PluginTestResult = {
+  readonly ok: boolean;
+  readonly message?: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+};
+export type SetupStep = {
+  readonly text: string;
+  readonly mode?: string;
+};
+export type ConnectorPermissions = {
+  readonly label: string;
 };
 export type IdentityContribution = {
   readonly type: 'identity';
@@ -164,10 +264,14 @@ export type DirectToolContribution = {
   readonly inputSchema: Readonly<Record<string, unknown>>;
   readonly action: CallbackAction;
 };
+export type McpActionMethod = {
+  readonly method: string;
+};
 export type McpContribution = {
   readonly type: 'mcp';
   readonly id: string;
   readonly runtime: ContributionRuntime;
+  readonly actions?: readonly McpActionMethod[];
   readonly environment?: Readonly<Record<string, EnvironmentBinding>>;
 };
 export type SkillContribution = {
@@ -184,7 +288,7 @@ export type WebhookContribution = {
   readonly type: 'webhook';
   readonly id: string;
   readonly path: string;
-  readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'DELETE')[];
+  readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE')[];
   readonly action: CallbackAction;
   readonly verificationSecretRef?: string;
 };
@@ -194,6 +298,12 @@ export type MessageSubscriptionContribution = {
   readonly binding: string;
   readonly filter?: Readonly<Record<string, unknown>>;
   readonly action: CallbackAction;
+  readonly presentation?: 'v1' | 'v2';
+};
+export type MediaSourceContribution = {
+  readonly type: 'media-source';
+  readonly id: string;
+  readonly binding: string;
 };
 export type ServiceContribution = {
   readonly type: 'service';
@@ -209,6 +319,95 @@ export type ConnectorContribution = {
   readonly inboundMethod: string;
   readonly outboundMethod: string;
 };
+export type CloudConversationHostMethod = {
+  readonly method: string;
+};
+export type CloudConversationHostContribution = {
+  readonly type: 'cloud-conversation-host';
+  readonly id: string;
+  readonly provider: 'chatgpt';
+  readonly appendMessage: CloudConversationHostMethod;
+  readonly assistantReturns: {
+    readonly list: CloudConversationHostMethod;
+    readonly ack: CloudConversationHostMethod;
+  };
+};
+export type CloudBridgeDomFingerprintNodeV1 = {
+  readonly path: string;
+  readonly kind: 'text' | 'element' | 'other';
+  readonly empty?: boolean;
+  readonly tag?: string;
+  readonly nodeType?: number;
+  readonly childCount?: number;
+  readonly contentEditable?: boolean;
+  readonly proseMirror?: boolean;
+  readonly placeholder?: boolean;
+  readonly virtualKeyboard?: boolean;
+  readonly trailingBreak?: boolean;
+};
+export type CloudBridgeDomFingerprintV1 = {
+  readonly v: 1;
+  readonly phase: string;
+  readonly adapterRevision: string;
+  readonly artifactRevision: string;
+  readonly firstUnsupportedPath?: string;
+  readonly nodes: readonly CloudBridgeDomFingerprintNodeV1[];
+  readonly truncated: boolean;
+};
+export type CloudBridgeFailureDiagnosticV1 = {
+  readonly v: 1;
+  readonly errorCode: string;
+  readonly nextAction: 'inspect_bound_tab';
+  readonly fingerprint: CloudBridgeDomFingerprintV1;
+};
+export type CloudConversationAppendMessageInput = {
+  readonly conversationId: string;
+  readonly text: string;
+  readonly idempotencyKey: MessageId;
+};
+export type CloudConversationAppendMessageAppendedResult = {
+  readonly status: 'appended';
+  readonly providerMessageId: string;
+  readonly idempotentReplay?: boolean;
+};
+export type CloudConversationAppendMessageFailedResult = {
+  readonly status: 'failed';
+  readonly errorCode: string;
+  readonly diagnostic?: CloudBridgeFailureDiagnosticV1;
+  readonly idempotentReplay?: boolean;
+};
+export type CloudConversationAppendMessageResult = CloudConversationAppendMessageAppendedResult | CloudConversationAppendMessageFailedResult;
+export type CloudConversationReturnCursor = {
+  readonly conversationId: string;
+  readonly sourceMessageId: MessageId;
+  readonly assistantMessageId: string;
+};
+export type CloudConversationAssistantReturn = {
+  readonly conversationId: string;
+  readonly sourceMessageId: MessageId;
+  readonly assistantMessageId: string;
+  readonly content: string;
+};
+export type CloudConversationListInput = {
+  readonly after?: CloudConversationReturnCursor;
+};
+export type CloudConversationListResult = {
+  readonly returns: readonly CloudConversationAssistantReturn[];
+};
+export type CloudConversationAckInput = {
+  readonly conversationId: string;
+  readonly sourceMessageId: MessageId;
+  readonly assistantMessageId: string;
+};
+export type CloudConversationAcknowledgedResult = {
+  readonly status: 'acknowledged';
+};
+export type CloudConversationAckFailedResult = {
+  readonly status: 'failed';
+  readonly errorCode: string;
+  readonly diagnostic?: CloudBridgeFailureDiagnosticV1;
+};
+export type CloudConversationAckResult = CloudConversationAcknowledgedResult | CloudConversationAckFailedResult;
 export type UiWhenClause = {
   readonly featureEnabled?: boolean;
   readonly requiresCapabilities?: readonly Capability[];
@@ -260,7 +459,7 @@ export type DesktopWindowContribution = {
     readonly entrypoint: PackageRelativePath & `${string}.html`;
     readonly integrity: string;
   };
-  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0';
+  readonly bridgeVersion: '1.0.0' | '1.1.0' | '1.2.0' | '1.3.0' | '1.4.0' | '1.5.0' | '1.6.0';
   readonly presentation: {
     readonly width: number;
     readonly height: number;
@@ -284,7 +483,7 @@ export type ContentEditorProviderContribution = {
   readonly semanticMaterializer?: SemanticMaterializerDeclaration;
   readonly operations: readonly ['load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change', 'load' | 'settle' | 'comment' | 'tracked-change'];
 };
-export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | ServiceContribution | ConnectorContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
+export type StaticContribution = IdentityContribution | ScheduleContribution | DirectToolContribution | McpContribution | SkillContribution | LimbContribution | WebhookContribution | MessageSubscriptionContribution | MediaSourceContribution | ServiceContribution | ConnectorContribution | CloudConversationHostContribution | UiContribution | ContentEditorProviderContribution | DesktopWindowContribution;
 export type PluginFeature = {
   readonly id: string;
   readonly name: string;
@@ -301,6 +500,7 @@ export type ExternalRuntimeDeclaration = {
 export type BuiltinRuntimeDeclaration = {
   readonly transport: 'builtin';
   readonly entrypoint?: string;
+  readonly dataDirectory?: string;
 };
 export type RuntimeDeclaration = ExternalRuntimeDeclaration | BuiltinRuntimeDeclaration;
 
@@ -315,7 +515,10 @@ export type PluginManifest = {
   readonly contributions?: readonly StaticContribution[];
   readonly features: readonly PluginFeature[];
   readonly data?: readonly DataDeclaration[];
-  readonly runtime: RuntimeDeclaration;
+  readonly runtime?: RuntimeDeclaration;
+  readonly test?: PluginTestDeclaration;
+  readonly permissions?: ConnectorPermissions;
+  readonly steps?: readonly SetupStep[];
   readonly signals?: SignalContribution;
 };
 
@@ -375,25 +578,6 @@ export type SignalDeclaration = {
 export type SignalContribution = {
   readonly provides: readonly SignalDeclaration[];
 };
-export type SignalEventId = string;
-export type SignalIdempotencyKey = string;
-export type OpaqueSourceHandle = string;
-export type SignalSourceRef = {
-  readonly handle: OpaqueSourceHandle;
-};
-export type EventsPublishInput = {
-  readonly signalType: SignalType;
-  readonly eventId: SignalEventId;
-  readonly idempotencyKey: SignalIdempotencyKey;
-  readonly occurredAt: string;
-  readonly payload: Readonly<Record<string, unknown>>;
-  readonly source: SignalSourceRef;
-};
-export type EventsPublishDisposition = 'accepted' | 'duplicate';
-export type EventsPublishResult = {
-  readonly publicationId: SignalEventId;
-  readonly disposition: EventsPublishDisposition;
-};
 
 export type ActorKind = 'user' | 'cat' | 'plugin' | 'device' | 'system';
 export type ActorRef = {
@@ -429,12 +613,34 @@ export type DraftProvenance = {
   readonly origin?: DraftOrigin;
   readonly epistemicStatus: EpistemicStatus;
 };
-export type ElementKind = 'text' | 'media_ref' | 'rich_block';
+export type MediaType = 'image' | 'file' | 'audio' | 'video';
+export type ElementKind = 'text' | 'media_ref' | 'rich_block' | 'media_unavailable' | 'media_warning';
 export type TextElementPayload = {
   readonly text: string;
 };
-export type MediaRefElementPayload = Readonly<Record<string, unknown>>;
-export type RichBlockElementPayload = Readonly<Record<string, unknown>>;
+export type MediaRefElementPayload = {
+  readonly type: MediaType;
+  readonly reference: string;
+  readonly sourceId?: string;
+  readonly fileName?: string;
+  readonly [key: string]: unknown;
+};
+export type RichBlockElementPayload = {
+  readonly id: string;
+  readonly kind: string;
+  readonly v: 1;
+  readonly [key: string]: unknown;
+};
+export type MediaUnavailableElementPayload = {
+  readonly type: MediaType;
+  readonly fileName?: string;
+  readonly reason: 'source_expired' | 'timeout' | 'unavailable';
+};
+export type MediaWarningElementPayload = {
+  readonly mediaElementId: string;
+  readonly stage: 'transcription' | 'preview';
+  readonly reason: 'timeout' | 'processing_failed';
+};
 export type TextMessageElement = {
   readonly elementId: string;
   readonly kind: 'text';
@@ -449,6 +655,12 @@ export type MediaRefMessageElement = {
   readonly derivedFromElementId?: string;
   readonly epistemicStatus?: EpistemicStatus;
 };
+export type PmrMediaRefElementMatch = {
+  readonly kind: 'media_ref';
+  readonly payload: {
+    readonly reference: string;
+  };
+};
 export type RichBlockMessageElement = {
   readonly elementId: string;
   readonly kind: 'rich_block';
@@ -456,7 +668,21 @@ export type RichBlockMessageElement = {
   readonly derivedFromElementId?: string;
   readonly epistemicStatus?: EpistemicStatus;
 };
-export type MessageElement = TextMessageElement | MediaRefMessageElement | RichBlockMessageElement;
+export type MediaUnavailableMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'media_unavailable';
+  readonly payload: MediaUnavailableElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type MediaWarningMessageElement = {
+  readonly elementId: string;
+  readonly kind: 'media_warning';
+  readonly payload: MediaWarningElementPayload;
+  readonly derivedFromElementId?: string;
+  readonly epistemicStatus?: EpistemicStatus;
+};
+export type MessageElement = TextMessageElement | MediaRefMessageElement | RichBlockMessageElement | MediaUnavailableMessageElement | MediaWarningMessageElement;
 export type MessagePayload = {
   readonly provenance: MessageProvenance;
   readonly elements: readonly MessageElement[];
@@ -490,20 +716,22 @@ export type SystemAudience = {
 };
 export type DraftAudience = PublicAudience | WhisperAudience;
 export type CanonicalAudience = PublicAudience | WhisperAudience | SystemAudience;
+export type MessageId = string;
 export type MessageDraft = {
   readonly address: MessageAddress;
   readonly draftAudience?: DraftAudience;
   readonly idempotencyKey: string;
   readonly sourceEventId?: string;
-  readonly replyTo?: string;
+  readonly replyTo?: MessageId;
   readonly payload: DraftPayload;
 };
 export type OccurredAt = string | string;
+export type ThreadId = string;
 export type MessageEnvelope = {
-  readonly messageId: string;
+  readonly messageId: MessageId;
   readonly revision: number;
-  readonly threadId: string;
-  readonly replyTo?: string;
+  readonly threadId: ThreadId;
+  readonly replyTo?: MessageId;
   readonly actor: ActorRef;
   readonly audience: CanonicalAudience;
   readonly occurredAt: OccurredAt;
@@ -519,8 +747,8 @@ export type MessageElementsAppendEvent = {
   readonly eventId: string;
   readonly sequence: number;
   readonly type: 'message.elements.append';
-  readonly messageId: string;
-  readonly threadId: string;
+  readonly messageId: MessageId;
+  readonly threadId: ThreadId;
   readonly operationId: string;
   readonly baseRevision?: number;
   readonly revision: number;
@@ -528,19 +756,20 @@ export type MessageElementsAppendEvent = {
 };
 export type MessageOutputEvent = MessagePublishEvent | MessageElementsAppendEvent;
 export type SendReceipt = {
-  readonly messageId: string;
-  readonly threadId: string;
+  readonly messageId: MessageId;
+  readonly threadId: ThreadId;
   readonly revision: number;
   readonly messageHandle: MessageHandle;
   readonly publishSequence?: number;
+  readonly pendingPublication?: true;
 };
 export type AppendReceipt = {
-  readonly messageId: string;
+  readonly messageId: MessageId;
   readonly revision: number;
   readonly appendSequence?: number;
   readonly appliedElementIds: readonly string[];
 };
-export type MessagingErrorCode = 'VALIDATION' | 'PERMISSION' | 'NOT_FOUND' | 'CONFLICT' | 'RETRYABLE_INFLIGHT' | 'STALE_CURSOR';
+export type MessagingErrorCode = 'VALIDATION' | 'PERMISSION' | 'NOT_FOUND' | 'CONFLICT' | 'RETRYABLE_INFLIGHT' | 'STALE_CURSOR' | 'MEDIA_ACCESS_DENIED' | 'MESSAGE_NOT_PUBLISHED';
 export type MessageHandle = {
   readonly kind: 'message';
   readonly token: string;
@@ -571,6 +800,87 @@ export type SubscriptionReadResponse = SubscriptionNormalResponse | Subscription
 export type SnapshotResponse = {
   readonly envelopes: readonly MessageEnvelope[];
   readonly resumeSequence: number;
+};
+export type FrontendDisplayUrl = string;
+export type DeliveryPresentationActor = {
+  readonly displayName: string;
+  readonly emoji: string;
+};
+export type DeliveryPresentationThread = {
+  readonly shortId: string;
+  readonly title?: string;
+  readonly featId?: string;
+};
+export type DeliveryPresentationContext = {
+  readonly actor: DeliveryPresentationActor;
+  readonly thread: DeliveryPresentationThread;
+  readonly deepLinkUrl?: FrontendDisplayUrl;
+};
+export type MediaReadInput = {
+  readonly reference: string;
+  readonly offset: number;
+  readonly limit: number;
+};
+export type MediaReadResult = {
+  readonly offset: number;
+  readonly dataBase64: string;
+  readonly nextOffset?: number;
+  readonly done: boolean;
+};
+export type PluginMessageDelivery = {
+  readonly kind: 'message';
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly executionId?: string;
+  readonly envelope: MessageEnvelope;
+  readonly presentation?: DeliveryPresentationContext;
+};
+export type PluginExecutionStartedDelivery = {
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'started';
+  readonly presentation: DeliveryPresentationContext;
+  readonly placeholderLine?: string;
+  readonly replyTo?: MessageId;
+  readonly executionId: string;
+  readonly kind: 'execution_status';
+};
+export type PluginExecutionCatchingUpDelivery = {
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'catching_up';
+  readonly executionId: string;
+  readonly kind: 'execution_status';
+};
+export type PluginExecutionBlockedDelivery = {
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'blocked';
+  readonly reason: string;
+  readonly recoveryUrl?: FrontendDisplayUrl;
+  readonly executionId: string;
+  readonly kind: 'execution_status';
+};
+export type PluginExecutionResumedDelivery = {
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'resumed';
+  readonly executionId: string;
+  readonly kind: 'execution_status';
+};
+export type PluginExecutionSettledDelivery = {
+  readonly deliveryId: string;
+  readonly threadId: ThreadId;
+  readonly state: 'settled';
+  readonly chainDone: boolean;
+  readonly outcome: 'completed' | 'failed' | 'cancelled';
+  readonly executionId: string;
+  readonly kind: 'execution_status';
+};
+export type PluginExecutionStatusDelivery = PluginExecutionStartedDelivery | PluginExecutionCatchingUpDelivery | PluginExecutionBlockedDelivery | PluginExecutionResumedDelivery | PluginExecutionSettledDelivery;
+export type PluginDeliveryInput = PluginMessageDelivery | PluginExecutionStatusDelivery;
+export type PluginDeliveryReceipt = {
+  readonly deliveryId: string;
 };
 export type M0CSubscribeInput = {
   readonly handle: string;
@@ -619,14 +929,68 @@ export type M0CSnapshotFinalResult = {
   readonly snapshotAckToken: string;
 };
 export type M0CSnapshotResult = M0CSnapshotIntermediateResult | M0CSnapshotFinalResult;
-export type M0CDeliverInput = {
-  readonly deliveryId: string;
-  readonly threadHandle: ThreadHandleAddress;
-  readonly envelope: MessageEnvelope;
-};
-export type M0CDeliverResult = {
-  readonly deliveryId: string;
-};
+
+export const ACTOR_KIND_VALUES = ['user', 'cat', 'plugin', 'device', 'system'] as const;
+export const ACTOR_REF_KEYS = ['kind', 'id'] as const;
+export const EPISTEMIC_STATUS_VALUES = ['observation', 'user_intent', 'inference'] as const;
+export const EXTERNAL_SOURCE_ADDRESS_KEYS = ['connectorId', 'chatId', 'messageId'] as const;
+export const PLUGIN_ORIGIN_KEYS = ['kind', 'instanceId'] as const;
+export const EXTERNAL_ORIGIN_KEYS = ['kind', 'connectorId', 'sourceAddress'] as const;
+export const HOST_ORIGIN_KEYS = ['kind'] as const;
+export const MESSAGE_PROVENANCE_KEYS = ['origin', 'epistemicStatus'] as const;
+export const DRAFT_PROVENANCE_KEYS = ['origin', 'epistemicStatus'] as const;
+export const MEDIA_TYPE_VALUES = ['image', 'file', 'audio', 'video'] as const;
+export const ELEMENT_KIND_VALUES = ['text', 'media_ref', 'rich_block', 'media_unavailable', 'media_warning'] as const;
+export const TEXT_ELEMENT_PAYLOAD_KEYS = ['text'] as const;
+export const MEDIA_UNAVAILABLE_ELEMENT_PAYLOAD_KEYS = ['type', 'fileName', 'reason'] as const;
+export const MEDIA_WARNING_ELEMENT_PAYLOAD_KEYS = ['mediaElementId', 'stage', 'reason'] as const;
+export const TEXT_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MEDIA_REF_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const RICH_BLOCK_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MEDIA_UNAVAILABLE_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MEDIA_WARNING_MESSAGE_ELEMENT_KEYS = ['elementId', 'kind', 'payload', 'derivedFromElementId', 'epistemicStatus'] as const;
+export const MESSAGE_PAYLOAD_KEYS = ['provenance', 'elements', 'correlationId', 'causationId'] as const;
+export const DRAFT_PAYLOAD_KEYS = ['provenance', 'elements', 'correlationId', 'causationId'] as const;
+export const THREAD_HANDLE_ADDRESS_KEYS = ['kind', 'handle'] as const;
+export const CONNECTOR_BINDING_ADDRESS_KEYS = ['kind', 'handle'] as const;
+export const PUBLIC_AUDIENCE_KEYS = ['kind'] as const;
+export const WHISPER_AUDIENCE_KEYS = ['kind', 'targets'] as const;
+export const SYSTEM_AUDIENCE_KEYS = ['kind'] as const;
+export const MESSAGE_DRAFT_KEYS = ['address', 'draftAudience', 'idempotencyKey', 'sourceEventId', 'replyTo', 'payload'] as const;
+export const MESSAGE_ENVELOPE_KEYS = ['messageId', 'revision', 'threadId', 'replyTo', 'actor', 'audience', 'occurredAt', 'payload'] as const;
+export const MESSAGE_PUBLISH_EVENT_KEYS = ['eventId', 'sequence', 'type', 'envelope'] as const;
+export const MESSAGE_ELEMENTS_APPEND_EVENT_KEYS = ['eventId', 'sequence', 'type', 'messageId', 'threadId', 'operationId', 'baseRevision', 'revision', 'elements'] as const;
+export const SEND_RECEIPT_KEYS = ['messageId', 'threadId', 'revision', 'messageHandle', 'publishSequence', 'pendingPublication'] as const;
+export const APPEND_RECEIPT_KEYS = ['messageId', 'revision', 'appendSequence', 'appliedElementIds'] as const;
+export const MESSAGING_ERROR_CODE_VALUES = ['VALIDATION', 'PERMISSION', 'NOT_FOUND', 'CONFLICT', 'RETRYABLE_INFLIGHT', 'STALE_CURSOR', 'MEDIA_ACCESS_DENIED', 'MESSAGE_NOT_PUBLISHED'] as const;
+export const MESSAGE_HANDLE_KEYS = ['kind', 'token'] as const;
+export const APPEND_ELEMENTS_REQUEST_KEYS = ['handle', 'operationId', 'baseRevision', 'elements'] as const;
+export const SUBSCRIPTION_NORMAL_RESPONSE_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const SUBSCRIPTION_EMPTY_RESPONSE_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const SUBSCRIPTION_STALE_RESPONSE_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const SNAPSHOT_RESPONSE_KEYS = ['envelopes', 'resumeSequence'] as const;
+export const DELIVERY_PRESENTATION_ACTOR_KEYS = ['displayName', 'emoji'] as const;
+export const DELIVERY_PRESENTATION_THREAD_KEYS = ['shortId', 'title', 'featId'] as const;
+export const DELIVERY_PRESENTATION_CONTEXT_KEYS = ['actor', 'thread', 'deepLinkUrl'] as const;
+export const MEDIA_READ_INPUT_KEYS = ['reference', 'offset', 'limit'] as const;
+export const MEDIA_READ_RESULT_KEYS = ['offset', 'dataBase64', 'nextOffset', 'done'] as const;
+export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
+export const PLUGIN_EXECUTION_STARTED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'presentation', 'placeholderLine', 'replyTo', 'executionId', 'kind'] as const;
+export const PLUGIN_EXECUTION_CATCHING_UP_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'executionId', 'kind'] as const;
+export const PLUGIN_EXECUTION_BLOCKED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'reason', 'recoveryUrl', 'executionId', 'kind'] as const;
+export const PLUGIN_EXECUTION_RESUMED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'executionId', 'kind'] as const;
+export const PLUGIN_EXECUTION_SETTLED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'chainDone', 'outcome', 'executionId', 'kind'] as const;
+export const PLUGIN_DELIVERY_RECEIPT_KEYS = ['deliveryId'] as const;
+export const M0CSUBSCRIBE_INPUT_KEYS = ['handle'] as const;
+export const M0CSUBSCRIBE_RESULT_KEYS = ['subscriptionId'] as const;
+export const M0CREAD_INPUT_KEYS = ['subscriptionId', 'limit'] as const;
+export const M0CREAD_NORMAL_RESULT_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const M0CREAD_EMPTY_RESULT_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const M0CREAD_STALE_RESULT_KEYS = ['events', 'ackToken', 'stale'] as const;
+export const M0CACK_INPUT_KEYS = ['subscriptionId', 'ackToken'] as const;
+export const M0CSNAPSHOT_INPUT_KEYS = ['subscriptionId', 'maxItems', 'pageToken'] as const;
+export const M0CSNAPSHOT_INTERMEDIATE_RESULT_KEYS = ['items', 'nextPageToken', 'snapshotAckToken'] as const;
+export const M0CSNAPSHOT_FINAL_RESULT_KEYS = ['items', 'nextPageToken', 'snapshotAckToken'] as const;
 
 export type PhysicalLimbIdentifier = string;
 export type PhysicalLimbGrant = 'limb.action.motion' | 'limb.action.display' | 'limb.action.light' | 'limb.action.speaker' | 'limb.observe.touch' | 'limb.sensor.microphone' | 'limb.sensor.camera';
@@ -821,6 +1185,20 @@ export type DocxMaterializationResponse = {
   readonly result: DocxMaterializationResult;
 };
 export type CompanionSelectionId = string;
+export type CompanionCallId = string;
+export type CompanionClientMessageId = string;
+export type CompanionAppAssistRef = string;
+export type CompanionAppAssistAction = 'dismiss' | 'timeout' | 'accept';
+export type CompanionCorrelatableId = string;
+export type CompanionOpaqueReadReference = string;
+export type CompanionConversationScopeRef = string;
+export type CompanionPresentationReference = {
+  readonly kind: 'message';
+  readonly messageId: CompanionCorrelatableId;
+} | {
+  readonly kind: 'native-item';
+  readonly nativeItemId: CompanionCorrelatableId;
+};
 export type CompanionScreenFrame = {
   readonly image: string;
   readonly width: number;
@@ -832,9 +1210,15 @@ export type CompanionScreenFrame = {
 export type CompanionCommand = {
   readonly kind: 'state';
 } | {
+  readonly kind: 'work.read';
+} | {
+  readonly kind: 'work.open';
+  readonly entryRef: string;
+} | {
   readonly kind: 'prepare';
 } | {
   readonly kind: 'audio.connect';
+  readonly mode?: 'receive_only';
 } | {
   readonly kind: 'audio.close';
 } | {
@@ -867,9 +1251,19 @@ export type CompanionCommand = {
 } | {
   readonly kind: 'conversation.open';
 } | {
+  readonly kind: 'presentation.observe';
+  readonly event: 'first_text_visible';
+  readonly observedAt: number;
+  readonly callId: CompanionCallId;
+  readonly reference: CompanionPresentationReference;
+} | {
   readonly kind: 'decisions.read';
   readonly offset: number;
   readonly limit: number;
+} | {
+  readonly kind: 'decision.open';
+  readonly variantRef: string;
+  readonly target: CompanionDecisionNavigationTarget;
 } | {
   readonly kind: 'f221.inspect';
   readonly proposalId: string;
@@ -878,24 +1272,170 @@ export type CompanionCommand = {
   readonly expanded: boolean;
 } | {
   readonly kind: 'view.layout';
-  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions';
+  readonly panel: 'none' | 'bubble' | 'actions' | 'menu' | 'chat' | 'decisions' | 'transcript' | 'settings' | 'app-assist';
   readonly width: number;
   readonly height: number;
+  readonly call?: {
+    readonly presentation: 'lite' | 'controls';
+    readonly bubble?: {
+      readonly width: number;
+      readonly height: number;
+    };
+  };
 } | {
   readonly kind: 'view.drag';
   readonly phase: 'start' | 'end';
 } | {
   readonly kind: 'view.hide';
 } | {
+  readonly kind: 'view.reset';
+} | {
+  readonly kind: 'settings.read';
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'dutyCatProfileId';
+  readonly value: string;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'skin';
+  readonly value: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'ballSize';
+  readonly value: number;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'behaviorEnabled';
+  readonly value: boolean;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'proactivePolicy';
+  readonly value: 'ambient' | 'quiet-badge';
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'personaTone';
+  readonly value: string;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'householdReadsAllowed';
+  readonly value: boolean;
+} | {
+  readonly kind: 'settings.update';
+  readonly field: 'appAssistEnabled';
+  readonly value: boolean;
+} | {
+  readonly kind: 'app-assist.settle';
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly offerRef: CompanionAppAssistRef;
+  readonly action: CompanionAppAssistAction;
+} | {
+  readonly kind: 'companion.disable';
+} | {
   readonly kind: 'conversation.read';
+} | {
+  readonly kind: 'conversation.read';
+  readonly v: 2;
+  readonly before?: CompanionOpaqueReadReference;
+  readonly limit?: number;
+} | {
+  readonly kind: 'conversation.body.read';
+  readonly v: 2;
+  readonly continuation: CompanionOpaqueReadReference;
+} | {
+  readonly kind: 'conversation.draft.read';
+  readonly v: 1;
+} | {
+  readonly kind: 'conversation.draft.save';
+  readonly v: 1;
+  readonly scopeRef: CompanionConversationScopeRef;
+  readonly expectedRevision: number;
+  readonly text: string;
+} | {
+  readonly kind: 'conversation.delivery.read';
+  readonly v: 1;
+  readonly scopeRef: CompanionConversationScopeRef;
+  readonly clientMessageId: CompanionClientMessageId;
+} | {
+  readonly kind: 'transcript.read';
+} | {
+  readonly kind: 'text';
+  readonly v: 2;
+  readonly scopeRef: CompanionConversationScopeRef;
+  readonly text: string;
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly submissionRevision: number;
 };
 export type CompanionActor = {
   readonly catId: string;
   readonly displayName: string;
 };
+export type CompanionWorkCoverage = {
+  readonly source: 'tasks' | 'messages' | 'artifacts';
+  readonly status: 'available' | 'partial' | 'unavailable';
+};
+export type CompanionWorkActive = {
+  readonly entryRef: string;
+  readonly title: string;
+  readonly actor: CompanionActor | null;
+  readonly activity: 'working' | 'waiting';
+  readonly taskId: string | null;
+  readonly homeThreadId: string | null;
+  readonly sourceRef: string;
+  readonly updatedAt: number;
+};
+export type CompanionWorkDelivery = {
+  readonly entryRef: string;
+  readonly title: string;
+  readonly taskId: string | null;
+  readonly homeThreadId: string | null;
+  readonly sourceRef: string;
+  readonly deliveredAt: number;
+  readonly artifact: null | {
+    readonly artifactId: string;
+    readonly version: string | null;
+    readonly versionState: 'current' | 'superseded' | 'unknown';
+  };
+};
+export type CompanionWorkOverview = {
+  readonly kind: 'work';
+  readonly v: 1;
+  readonly status: 'available' | 'partial' | 'unavailable';
+  readonly observedAt: number;
+  readonly scope: {
+    readonly kind: 'current-project';
+    readonly label: string;
+  };
+  readonly coverage: readonly [CompanionWorkCoverage, CompanionWorkCoverage, CompanionWorkCoverage];
+  readonly active: readonly CompanionWorkActive[];
+  readonly recentDeliveries: readonly CompanionWorkDelivery[];
+};
+export type CompanionIdentitySnapshotV1 = {
+  readonly v: 1;
+  readonly name: '猫猫球';
+  readonly partner: {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly skin: string;
+  };
+  readonly live: {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly transport: 'gpt_live_v3';
+    readonly verifiedModel: string | null;
+  };
+  readonly deep: {
+    readonly catId: string;
+    readonly displayName: string;
+    readonly verifiedModel: string | null;
+  };
+};
 export type CompanionLiveTransport = {
   readonly kind: 'gpt_live_v3';
   readonly verifiedModel: null;
+};
+export type CompanionAudioState = {
+  readonly supportedModes: readonly ('duplex' | 'receive_only')[];
+  readonly activeMode: 'duplex' | 'receive_only' | null;
 };
 export type CompanionNativeWorkEntry = {
   readonly taskId: string;
@@ -920,6 +1460,39 @@ export type CompanionNativeWork = {
   readonly active: readonly CompanionNativeWorkEntry[];
   readonly recent: readonly CompanionNativeWorkEvent[];
 };
+export type CompanionMeetingState = {
+  readonly kind: 'running';
+  readonly sharing: boolean;
+  readonly paused: boolean;
+  readonly sourceLabel: string | null;
+} | {
+  readonly kind: 'idle' | 'stopped' | 'unconfirmed' | 'needs_source';
+  readonly sharing: false;
+  readonly paused: false;
+  readonly sourceLabel: null;
+};
+export type CompanionAppAssistState = {
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly revision: number;
+  readonly status: 'ready';
+  readonly offer: null | {
+    readonly offerRef: CompanionAppAssistRef;
+    readonly appName: string;
+  };
+} | {
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly revision: number;
+  readonly status: 'off' | 'suspended' | 'unsupported' | 'source_unavailable' | 'permission_required' | 'timezone_required' | 'identity_unavailable';
+  readonly offer: null;
+};
+export type CompanionAppAssistSettlement = {
+  readonly kind: 'app-assist-settlement';
+  readonly scopeRef: CompanionAppAssistRef;
+  readonly revision: number;
+  readonly offerRef: CompanionAppAssistRef;
+  readonly action: CompanionAppAssistAction;
+  readonly outcome: 'settled' | 'stale_offer';
+};
 export type CompanionState = {
   readonly kind: 'state';
   readonly phase: 'idle' | 'preparing' | 'ready' | 'connecting' | 'talking' | 'closed' | 'failed';
@@ -928,12 +1501,45 @@ export type CompanionState = {
   readonly duty: CompanionActor;
   readonly carrier: CompanionActor;
   readonly documentsAllowed: boolean;
+  readonly behaviorEnabled: boolean;
   readonly toolsReady: boolean;
   readonly nativeActivity: 'none' | 'reasoning' | 'tool_running';
   readonly liveTransport: CompanionLiveTransport;
+  readonly audio?: CompanionAudioState;
+  readonly meeting: CompanionMeetingState;
+  readonly appAssist: CompanionAppAssistState;
   readonly nativeWork: CompanionNativeWork;
 };
-export type CompanionDecisions = {
+export type CompanionDecisionNavigationTarget = 'origin' | 'approval_card' | 'action';
+export type CompanionDecisionNavigation = {
+  readonly targets: readonly CompanionDecisionNavigationTarget[];
+};
+export type CompanionDecisionSourceRead = {
+  readonly status: 'available' | 'unavailable' | 'unauthenticated' | 'forbidden' | 'invalid';
+  readonly coverage: 'complete' | 'partial' | 'unknown';
+};
+export type CompanionDecisionSources = {
+  readonly approvals: CompanionDecisionSourceRead;
+  readonly needsMe: CompanionDecisionSourceRead;
+};
+export type CompanionDecisionApproval = {
+  readonly resolution: 'open' | 'accepted' | 'rejected' | 'closed_without_decision';
+  readonly materializationState: 'not_started' | 'outcome_unknown' | 'in_progress' | 'succeeded' | 'failed';
+  readonly linkedNeedsMe: boolean;
+};
+export type CompanionDecisionItem = {
+  readonly variantRef: string;
+  readonly kind: 'approval';
+  readonly summary: string;
+  readonly navigation: CompanionDecisionNavigation;
+  readonly approval: CompanionDecisionApproval;
+} | {
+  readonly variantRef: string;
+  readonly kind: 'judgment' | 'repair';
+  readonly summary: string;
+  readonly navigation: CompanionDecisionNavigation;
+};
+export type CompanionLegacyDecisions = {
   readonly kind: 'decisions';
   readonly status: 'available' | 'unavailable';
   readonly approvalCount: number | null;
@@ -958,22 +1564,218 @@ export type CompanionDecisions = {
     readonly hasMoreNeedsMe: boolean;
   };
 };
+export type CompanionUnifiedDecisions = {
+  readonly kind: 'decisions';
+  readonly version: 1;
+  readonly status: 'available' | 'partial' | 'unavailable';
+  readonly observedAt: number;
+  readonly sources: CompanionDecisionSources;
+  readonly items: readonly CompanionDecisionItem[];
+  readonly totalCount?: number;
+  readonly page: {
+    readonly offset: number;
+    readonly limit: number;
+    readonly scope: 'known_rows';
+    readonly hasMore: boolean;
+  };
+};
+export type CompanionDecisions = CompanionLegacyDecisions | CompanionUnifiedDecisions;
 export type CompanionDecisionTrial = {
   readonly kind: 'decision-trial';
   readonly status: 'dismissed' | 'trial_confirmed' | 'stale' | 'unavailable';
 };
+export type CompanionSettingField = 'dutyCatProfileId' | 'skin' | 'ballSize' | 'behaviorEnabled' | 'proactivePolicy' | 'personaTone' | 'householdReadsAllowed' | 'appAssistEnabled';
+export type CompanionSettingsValues = {
+  readonly dutyCatProfileId: string;
+  readonly skin: 'yarn-ball' | 'ragdoll-v1' | 'yanyan-codex' | 'xianxian-codex';
+  readonly ballSize: number;
+  readonly behaviorEnabled: boolean;
+  readonly proactivePolicy: 'ambient' | 'quiet-badge';
+  readonly personaTone: string;
+  readonly householdReadsAllowed: boolean;
+  readonly appAssistEnabled: boolean;
+};
+export type CompanionSettingsRosterEntry = {
+  readonly catProfileId: string;
+  readonly displayName: string;
+  readonly available: boolean;
+};
+export type CompanionSettings = {
+  readonly kind: 'settings';
+  readonly status: 'available';
+  readonly values: CompanionSettingsValues;
+  readonly companions: readonly CompanionSettingsRosterEntry[];
+  readonly selectedCompanionStatus: 'available' | 'unavailable';
+} | {
+  readonly kind: 'settings';
+  readonly status: 'unavailable';
+  readonly reason: 'host_upgrade_required' | 'temporarily_unavailable';
+};
+export type CompanionSettingsUpdateReceipt = {
+  readonly kind: 'settings-update';
+  readonly field: CompanionSettingField;
+  readonly outcome: 'saved';
+  readonly callStatus: 'unchanged' | 'stopped';
+  readonly applies: 'now' | 'next_call';
+} | {
+  readonly kind: 'settings-update';
+  readonly field: CompanionSettingField;
+  readonly outcome: 'rejected';
+  readonly callStatus: 'unchanged' | 'stopped' | 'stop_failed';
+  readonly reason: 'invalid_value' | 'selection_unavailable' | 'permission_denied' | 'call_stop_failed' | 'save_failed' | 'unsupported';
+} | {
+  readonly kind: 'settings-update';
+  readonly field: CompanionSettingField;
+  readonly outcome: 'unconfirmed';
+  readonly callStatus: 'unchanged' | 'stopped';
+  readonly reconcile: 'settings.read';
+};
+export type CompanionLifecycleReceipt = {
+  readonly kind: 'companion-lifecycle';
+  readonly action: 'disable';
+  readonly outcome: 'disabled';
+};
+export type CompanionTranscriptScope = {
+  readonly callId: CompanionCallId;
+  readonly realtimeSessionId: string;
+};
+export type CompanionTranscriptVoiceSource = {
+  readonly kind: 'voice';
+  readonly nativeThreadId: string;
+  readonly realtimeSessionId: string;
+  readonly nativeItemId: CompanionCorrelatableId;
+  readonly nativeTurnId?: string;
+};
+export type CompanionTranscriptTypedSource = {
+  readonly kind: 'typed';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly callId: CompanionCallId;
+};
+export type CompanionTranscriptRow = {
+  readonly messageId: CompanionCorrelatableId;
+  readonly role: 'user' | 'assistant';
+  readonly text: string;
+  readonly source: CompanionTranscriptVoiceSource;
+} | {
+  readonly messageId: CompanionCorrelatableId;
+  readonly role: 'user';
+  readonly text: string;
+  readonly source: CompanionTranscriptTypedSource;
+};
+export type CompanionDeliveryReceipt = {
+  readonly kind: 'delivery';
+  readonly delivery: 'accepted';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly messageId: CompanionCorrelatableId;
+  readonly callId: CompanionCallId | null;
+} | {
+  readonly kind: 'delivery';
+  readonly delivery: 'unconfirmed';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly messageId: null;
+  readonly callId: CompanionCallId | null;
+};
+export type CompanionDeliveryAcceptedV2 = {
+  readonly kind: 'delivery';
+  readonly v: 2;
+  readonly delivery: 'accepted';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly messageId: CompanionCorrelatableId;
+  readonly callId: CompanionCallId | null;
+};
+export type CompanionDeliveryUnconfirmedV2 = {
+  readonly kind: 'delivery';
+  readonly v: 2;
+  readonly delivery: 'unconfirmed';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly messageId: null;
+  readonly callId: CompanionCallId | null;
+};
+export type CompanionDeliveryRejectedV2 = {
+  readonly kind: 'delivery';
+  readonly v: 2;
+  readonly delivery: 'rejected';
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly reason: 'draft_changed' | 'unsupported_draft' | 'pending_limit';
+  readonly draftRevision: number;
+};
+export type CompanionDeliveryReceiptV2 = CompanionDeliveryAcceptedV2 | CompanionDeliveryUnconfirmedV2 | CompanionDeliveryRejectedV2;
+export type CompanionConversationDraftSubmissionV1 = {
+  readonly clientMessageId: CompanionClientMessageId;
+  readonly text: string;
+  readonly submissionRevision: number;
+  readonly receipt: CompanionDeliveryAcceptedV2 | CompanionDeliveryUnconfirmedV2;
+};
+export type CompanionConversationDraftV1 = {
+  readonly kind: 'conversation-draft';
+  readonly v: 1;
+  readonly status: 'available';
+  readonly scopeRef: CompanionConversationScopeRef;
+  readonly revision: number;
+  readonly text: string;
+  readonly writable: boolean;
+  readonly submissions: readonly CompanionConversationDraftSubmissionV1[];
+} | {
+  readonly kind: 'conversation-draft';
+  readonly v: 1;
+  readonly status: 'conflict' | 'readonly';
+  readonly revision: number;
+};
+export type CompanionConversationResponsePhase = 'processing' | 'completed' | 'failed' | 'canceled' | 'interrupted' | null;
+export type CompanionConversationBodyProjection = {
+  readonly revision: CompanionCorrelatableId;
+  readonly complete: true;
+  readonly continuation: null;
+} | {
+  readonly revision: CompanionCorrelatableId;
+  readonly complete: false;
+  readonly continuation: CompanionOpaqueReadReference;
+};
+export type CompanionConversationRowV2 = {
+  readonly id: CompanionCorrelatableId;
+  readonly role: 'user' | 'assistant';
+  readonly name: string;
+  readonly text: string;
+  readonly companionIdentity?: CompanionIdentitySnapshotV1;
+  readonly inputMessageIds: readonly CompanionCorrelatableId[];
+  readonly responsePhase: CompanionConversationResponsePhase;
+  readonly body: CompanionConversationBodyProjection;
+  readonly deliveryReceipt?: CompanionDeliveryAcceptedV2;
+};
+export type CompanionConversationPageV2 = {
+  readonly kind: 'conversation';
+  readonly v: 2;
+  readonly status: 'available';
+  readonly threadTitle: string;
+  readonly messages: readonly CompanionConversationRowV2[];
+  readonly hasMoreOlder: boolean;
+  readonly olderCursor: CompanionOpaqueReadReference | null;
+} | {
+  readonly kind: 'conversation';
+  readonly v: 2;
+  readonly status: 'stale';
+};
+export type CompanionConversationBodyV2 = {
+  readonly kind: 'conversation-body';
+  readonly v: 2;
+  readonly status: 'available';
+  readonly messageId: CompanionCorrelatableId;
+  readonly text: string;
+  readonly body: CompanionConversationBodyProjection;
+} | {
+  readonly kind: 'conversation-body';
+  readonly v: 2;
+  readonly status: 'stale' | 'withdrawn';
+};
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionDecisions | CompanionDecisionTrial | {
-  readonly kind: 'delivery';
-  readonly delivery: 'accepted' | 'unconfirmed';
-} | {
+} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
-} | {
+} | CompanionConversationPageV2 | CompanionConversationBodyV2 | {
   readonly kind: 'navigation';
-  readonly delivery: 'requested' | 'unconfirmed';
+  readonly delivery: 'requested' | 'applied' | 'queued' | 'blocked' | 'unconfirmed';
 } | {
   readonly kind: 'error';
   readonly code: CompanionErrorCode;
@@ -989,6 +1791,12 @@ export type CompanionReply = {
     readonly width: number;
     readonly height: number;
   };
+  readonly bubble?: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
   readonly width: number;
   readonly height: number;
 } | {
@@ -999,7 +1807,13 @@ export type CompanionReply = {
     readonly role: 'user' | 'assistant';
     readonly text: string;
     readonly name: string;
+    readonly companionIdentity?: CompanionIdentitySnapshotV1;
   })[];
+  readonly hasMore: boolean;
+} | {
+  readonly kind: 'transcript';
+  readonly scope: CompanionTranscriptScope;
+  readonly rows: readonly CompanionTranscriptRow[];
   readonly hasMore: boolean;
 };
 export type CompanionEvent = {
@@ -1008,18 +1822,21 @@ export type CompanionEvent = {
 } | {
   readonly kind: 'audio';
   readonly type: 'connected' | 'recovering' | 'recovered' | 'error';
+  readonly callId: CompanionCallId;
 } | {
   readonly kind: 'audio';
   readonly type: 'transcript';
   readonly role: 'user' | 'assistant';
   readonly text: string;
+  readonly callId: CompanionCallId;
   readonly turnId?: string;
-  readonly itemId?: string;
+  readonly itemId?: CompanionCorrelatableId;
 } | {
   readonly kind: 'audio';
   readonly type: 'turn-done';
   readonly role?: 'user' | 'assistant';
   readonly transcript?: string;
+  readonly callId: CompanionCallId;
   readonly turnId?: string;
 } | {
   readonly kind: 'view-dismiss';
@@ -1153,7 +1970,7 @@ export type PermissionMatrixEntry = {
   readonly firstPartyPreset: boolean;
 };
 export type PermissionMatrixInput = {
-  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
+  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;
@@ -1254,9 +2071,9 @@ export type BehaviorFixture = {
 
 export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugin.state.set'] as const;
 export type L0Capability = (typeof L0_CAPABILITIES)[number];
-export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'events.publish', 'messaging.appendElements'] as const;
+export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'messaging.appendElements', 'streams.read'] as const;
 export type L1Capability = (typeof L1_CAPABILITIES)[number];
-export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend'] as const;
+export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'task.admitEntrusted', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend', 'cloud.conversation.host'] as const;
 export type L2Capability = (typeof L2_CAPABILITIES)[number];
 export const CAPABILITY_TABLE = {
   L0: L0_CAPABILITIES,

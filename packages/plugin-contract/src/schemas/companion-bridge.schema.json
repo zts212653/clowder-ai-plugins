@@ -2,11 +2,73 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/companion-bridge/v1",
   "title": "Desktop companion renderer bridge",
-  "description": "Closed package presentation bridge. The Host-owned isolated preload owns WebRTC, microphone playback and its receive-only provider data channel. Packages never provide SDP, get a peer/channel handle, or send provider events. Host binds owner, installation and conversation; the trusted executor requires explicit gestures for voice and screen admission. Renderer screen observations remain untrusted. No new M0 methods.",
+  "description": "Closed package presentation bridge. The Host-owned isolated preload owns WebRTC, microphone playback and its receive-only provider data channel. Packages never provide SDP, get a peer/channel handle, or send provider events. Host binds owner, installation, conversation and the current transcript scope; the renderer can read only that bound call. The trusted executor requires explicit gestures for voice and screen admission. Renderer screen observations remain untrusted. No new M0 methods.",
   "$defs": {
     "CompanionSelectionId": {
       "type": "string",
       "pattern": "^[a-zA-Z0-9_-]{1,160}$"
+    },
+    "CompanionCallId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "CompanionClientMessageId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "CompanionAppAssistRef": {
+      "description": "Opaque Host-issued reference bound to one current application-assistance page scope or offer. It is correlation data, not authority.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "CompanionAppAssistAction": {
+      "enum": ["dismiss", "timeout", "accept"]
+    },
+    "CompanionCorrelatableId": {
+      "description": "A bounded single-line opaque identity issued by the Host or its current provider session.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\s\\u2028\\u2029]+$"
+    },
+    "CompanionOpaqueReadReference": {
+      "description": "A bounded opaque continuation issued by the Host for this bound conversation. The renderer can only return it to the matching read command.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "pattern": "^[^\\s\\u2028\\u2029]+$"
+    },
+    "CompanionConversationScopeRef": {
+      "description": "Stable opaque owner + canonical conversation fingerprint derived by the Host. It fences thread-local revisions but is not an authorization token.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\s\\u2028\\u2029]+$"
+    },
+    "CompanionPresentationReference": {
+      "description": "One Host-correlatable identity already present on the current call. The renderer cannot register or select a session with this reference.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "message" },
+            "messageId": { "$ref": "#/$defs/CompanionCorrelatableId" }
+          },
+          "required": ["kind", "messageId"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "native-item" },
+            "nativeItemId": { "$ref": "#/$defs/CompanionCorrelatableId" }
+          },
+          "required": ["kind", "nativeItemId"],
+          "additionalProperties": false
+        }
+      ]
     },
     "CompanionScreenFrame": {
       "type": "object",
@@ -68,6 +130,27 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "work.read" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "work.open" },
+            "entryRef": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,256}$",
+              "description": "Opaque Host-issued navigation identity; never a renderer-selected task, thread or route."
+            }
+          },
+          "required": ["kind", "entryRef"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "const": "prepare"
             }
@@ -82,6 +165,9 @@
           "properties": {
             "kind": {
               "const": "audio.connect"
+            },
+            "mode": {
+              "const": "receive_only"
             }
           },
           "required": [
@@ -264,6 +350,24 @@
         },
         {
           "type": "object",
+          "description": "Untrusted renderer observation that one assistant subtitle row passed an animation-frame, document, panel and viewport visibility check. It does not prove compositor paint, an unoccluded native window or human reading.",
+          "properties": {
+            "kind": { "const": "presentation.observe" },
+            "event": { "const": "first_text_visible" },
+            "observedAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991,
+              "description": "Renderer wall-clock observation time in Unix epoch milliseconds (Date.now domain)."
+            },
+            "callId": { "$ref": "#/$defs/CompanionCallId" },
+            "reference": { "$ref": "#/$defs/CompanionPresentationReference" }
+          },
+          "required": ["kind", "event", "observedAt", "callId", "reference"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
           "properties": {
             "kind": { "const": "decisions.read" },
             "offset": { "type": "integer", "minimum": 0 },
@@ -275,8 +379,24 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "decision.open" },
+            "variantRef": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "description": "Opaque Host-issued identity for one concrete decision variant; never a private route or renderer-selected address."
+            },
+            "target": { "$ref": "#/$defs/CompanionDecisionNavigationTarget" }
+          },
+          "required": ["kind", "variantRef", "target"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": { "const": "f221.inspect" },
-            "proposalId": { "type": "string", "format": "uuid" }
+            "proposalId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,200}$" }
           },
           "required": ["kind", "proposalId"],
           "additionalProperties": false
@@ -310,7 +430,10 @@
                 "actions",
                 "menu",
                 "chat",
-                "decisions"
+                "decisions",
+                "transcript",
+                "settings",
+                "app-assist"
               ]
             },
             "width": {
@@ -322,6 +445,41 @@
               "type": "integer",
               "minimum": 32,
               "maximum": 500
+            },
+            "call": {
+              "type": "object",
+              "properties": {
+                "presentation": {
+                  "enum": [
+                    "lite",
+                    "controls"
+                  ]
+                },
+                "bubble": {
+                  "type": "object",
+                  "properties": {
+                    "width": {
+                      "type": "integer",
+                      "minimum": 120,
+                      "maximum": 420
+                    },
+                    "height": {
+                      "type": "integer",
+                      "minimum": 32,
+                      "maximum": 500
+                    }
+                  },
+                  "required": [
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "presentation"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
@@ -366,12 +524,228 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "view.reset" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.read" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "dutyCatProfileId" },
+            "value": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "skin" },
+            "value": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "ballSize" },
+            "value": { "type": "integer", "minimum": 43, "maximum": 192 }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "behaviorEnabled" },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "proactivePolicy" },
+            "value": { "enum": ["ambient", "quiet-badge"] }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "personaTone" },
+            "value": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^(?=.*\\S)[^\\r\\n\\u2028\\u2029]+$" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "householdReadsAllowed" },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings.update" },
+            "field": { "const": "appAssistEnabled" },
+            "value": { "type": "boolean" }
+          },
+          "required": ["kind", "field", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "app-assist.settle" },
+            "scopeRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+            "offerRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+            "action": { "$ref": "#/$defs/CompanionAppAssistAction" }
+          },
+          "required": ["kind", "scopeRef", "offerRef", "action"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "companion.disable" }
+          },
+          "required": ["kind"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": {
               "const": "conversation.read"
             }
           },
           "required": [
             "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation.read" },
+            "v": { "const": 2 },
+            "before": { "$ref": "#/$defs/CompanionOpaqueReadReference" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 32 }
+          },
+          "required": ["kind", "v"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation.body.read" },
+            "v": { "const": 2 },
+            "continuation": { "$ref": "#/$defs/CompanionOpaqueReadReference" }
+          },
+          "required": ["kind", "v", "continuation"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation.draft.read" },
+            "v": { "const": 1 }
+          },
+          "required": ["kind", "v"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation.draft.save" },
+            "v": { "const": 1 },
+            "scopeRef": { "$ref": "#/$defs/CompanionConversationScopeRef" },
+            "expectedRevision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "text": { "type": "string", "maxLength": 8000 }
+          },
+          "required": ["kind", "v", "scopeRef", "expectedRevision", "text"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation.delivery.read" },
+            "v": { "const": 1 },
+            "scopeRef": { "$ref": "#/$defs/CompanionConversationScopeRef" },
+            "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" }
+          },
+          "required": ["kind", "v", "scopeRef", "clientMessageId"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "transcript.read"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "text"
+            },
+            "v": {
+              "const": 2
+            },
+            "scopeRef": {
+              "$ref": "#/$defs/CompanionConversationScopeRef"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8000
+            },
+            "clientMessageId": {
+              "$ref": "#/$defs/CompanionClientMessageId"
+            },
+            "submissionRevision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "kind",
+            "v",
+            "scopeRef",
+            "text",
+            "clientMessageId",
+            "submissionRevision"
           ],
           "additionalProperties": false
         }
@@ -397,6 +771,154 @@
       ],
       "additionalProperties": false
     },
+    "CompanionWorkCoverage": {
+      "type": "object",
+      "properties": {
+        "source": { "enum": ["tasks", "messages", "artifacts"] },
+        "status": { "enum": ["available", "partial", "unavailable"] }
+      },
+      "required": ["source", "status"],
+      "additionalProperties": false
+    },
+    "CompanionWorkActive": {
+      "type": "object",
+      "properties": {
+        "entryRef": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,256}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 280, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "actor": {
+          "oneOf": [
+            { "$ref": "#/$defs/CompanionActor" },
+            { "type": "null" }
+          ]
+        },
+        "activity": { "enum": ["working", "waiting"] },
+        "taskId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "homeThreadId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "updatedAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      },
+      "required": ["entryRef", "title", "actor", "activity", "taskId", "homeThreadId", "sourceRef", "updatedAt"],
+      "additionalProperties": false
+    },
+    "CompanionWorkDelivery": {
+      "type": "object",
+      "properties": {
+        "entryRef": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,256}$" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 280, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "taskId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "homeThreadId": { "type": ["string", "null"], "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "sourceRef": { "type": "string", "minLength": 1, "maxLength": 512, "pattern": "^(?=.*\\S)[^\\r\\n]+$" },
+        "deliveredAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "artifact": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "artifactId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+                "version": { "type": ["string", "null"], "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+                "versionState": { "enum": ["current", "superseded", "unknown"] }
+              },
+              "required": ["artifactId", "version", "versionState"],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "versionState": { "enum": ["current", "superseded"] } },
+                    "required": ["versionState"]
+                  },
+                  "then": {
+                    "properties": {
+                      "version": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" }
+                    }
+                  }
+                }
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["entryRef", "title", "taskId", "homeThreadId", "sourceRef", "deliveredAt", "artifact"],
+      "additionalProperties": false
+    },
+    "CompanionWorkOverview": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "work" },
+        "v": { "const": 1 },
+        "status": { "enum": ["available", "partial", "unavailable"] },
+        "observedAt": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "current-project" },
+            "label": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?=.*\\S)[^\\r\\n]+$" }
+          },
+          "required": ["kind", "label"],
+          "additionalProperties": false
+        },
+        "coverage": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/CompanionWorkCoverage" },
+          "allOf": [
+            { "contains": { "type": "object", "properties": { "source": { "const": "tasks" } }, "required": ["source"] } },
+            { "contains": { "type": "object", "properties": { "source": { "const": "messages" } }, "required": ["source"] } },
+            { "contains": { "type": "object", "properties": { "source": { "const": "artifacts" } }, "required": ["source"] } }
+          ]
+        },
+        "active": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/CompanionWorkActive" } },
+        "recentDeliveries": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/CompanionWorkDelivery" } }
+      },
+      "required": ["kind", "v", "status", "observedAt", "scope", "coverage", "active", "recentDeliveries"],
+      "additionalProperties": false
+    },
+    "CompanionIdentitySnapshotV1": {
+      "type": "object",
+      "description": "Immutable display identity saved with one historical message. The real author and source remain on the message itself.",
+      "properties": {
+        "v": { "const": 1 },
+        "name": { "const": "猫猫球" },
+        "partner": {
+          "type": "object",
+          "properties": {
+            "catId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "displayName": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "skin": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" }
+          },
+          "required": ["catId", "displayName", "skin"],
+          "additionalProperties": false
+        },
+        "live": {
+          "type": "object",
+          "properties": {
+            "catId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "displayName": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "transport": { "const": "gpt_live_v3" },
+            "verifiedModel": {
+              "type": ["string", "null"], "minLength": 1, "maxLength": 160, "pattern": "\\S"
+            }
+          },
+          "required": ["catId", "displayName", "transport", "verifiedModel"],
+          "additionalProperties": false
+        },
+        "deep": {
+          "type": "object",
+          "properties": {
+            "catId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "displayName": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+            "verifiedModel": {
+              "type": ["string", "null"], "minLength": 1, "maxLength": 160, "pattern": "\\S"
+            }
+          },
+          "required": ["catId", "displayName", "verifiedModel"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["v", "name", "partner", "live", "deep"],
+      "additionalProperties": false
+    },
     "CompanionLiveTransport": {
       "type": "object",
       "properties": {
@@ -404,6 +926,26 @@
         "verifiedModel": { "type": "null" }
       },
       "required": ["kind", "verifiedModel"],
+      "additionalProperties": false
+    },
+    "CompanionAudioState": {
+      "type": "object",
+      "properties": {
+        "supportedModes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "enum": ["duplex", "receive_only"] }
+        },
+        "activeMode": {
+          "oneOf": [
+            { "enum": ["duplex", "receive_only"] },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["supportedModes", "activeMode"],
       "additionalProperties": false
     },
     "CompanionNativeWorkEntry": {
@@ -444,6 +986,118 @@
       "required": ["scopeId", "revision", "active", "recent"],
       "additionalProperties": false
     },
+    "CompanionMeetingState": {
+      "description": "Bounded, read-only projection of Host meeting-capture truth for the current companion call. It carries no meeting selector, raw identifier, transcript metric, lease, participant, or control authority.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "running" },
+            "sharing": { "type": "boolean", "description": "Whether this capture is connected to the current companion call. This is not proof that speech was heard or transcribed." },
+            "paused": { "type": "boolean", "description": "Whether capture is paused. Pause and call sharing are independent Host observations." },
+            "sourceLabel": {
+              "description": "Optional verified display label for the meeting application; never a raw source identifier.",
+              "oneOf": [
+                { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "sharing", "paused", "sourceLabel"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "enum": ["idle", "stopped", "unconfirmed", "needs_source"] },
+            "sharing": { "const": false },
+            "paused": { "const": false },
+            "sourceLabel": { "const": null }
+          },
+          "required": ["kind", "sharing", "paused", "sourceLabel"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionAppAssistState": {
+      "type": "object",
+      "properties": {
+        "scopeRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "status": {
+          "enum": [
+            "off",
+            "ready",
+            "suspended",
+            "unsupported",
+            "source_unavailable",
+            "permission_required",
+            "timezone_required",
+            "identity_unavailable"
+          ]
+        },
+        "offer": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "offerRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+                "appName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^(?=.*\\S)[^\\u0000-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u2028-\\u202E\\u2066-\\u2069]+$"
+                }
+              },
+              "required": ["offerRef", "appName"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["scopeRef", "revision", "status", "offer"],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "const": "ready" },
+            "offer": {}
+          },
+          "required": ["status", "offer"]
+        },
+        {
+          "properties": {
+            "status": {
+              "enum": [
+                "off",
+                "suspended",
+                "unsupported",
+                "source_unavailable",
+                "permission_required",
+                "timezone_required",
+                "identity_unavailable"
+              ]
+            },
+            "offer": { "const": null }
+          },
+          "required": ["status", "offer"]
+        }
+      ]
+    },
+    "CompanionAppAssistSettlement": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "app-assist-settlement" },
+        "scopeRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+        "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "offerRef": { "$ref": "#/$defs/CompanionAppAssistRef" },
+        "action": { "$ref": "#/$defs/CompanionAppAssistAction" },
+        "outcome": { "enum": ["settled", "stale_offer"] }
+      },
+      "required": ["kind", "scopeRef", "revision", "offerRef", "action", "outcome"],
+      "additionalProperties": false
+    },
     "CompanionState": {
       "type": "object",
       "properties": {
@@ -480,6 +1134,9 @@
         "documentsAllowed": {
           "type": "boolean"
         },
+        "behaviorEnabled": {
+          "type": "boolean"
+        },
         "toolsReady": {
           "type": "boolean"
         },
@@ -488,6 +1145,15 @@
         },
         "liveTransport": {
           "$ref": "#/$defs/CompanionLiveTransport"
+        },
+        "audio": {
+          "$ref": "#/$defs/CompanionAudioState"
+        },
+        "meeting": {
+          "$ref": "#/$defs/CompanionMeetingState"
+        },
+        "appAssist": {
+          "$ref": "#/$defs/CompanionAppAssistState"
         },
         "nativeWork": {
           "$ref": "#/$defs/CompanionNativeWork"
@@ -501,14 +1167,100 @@
         "duty",
         "carrier",
         "documentsAllowed",
+        "behaviorEnabled",
         "toolsReady",
         "nativeActivity",
         "liveTransport",
+        "meeting",
+        "appAssist",
         "nativeWork"
       ],
       "additionalProperties": false
     },
-    "CompanionDecisions": {
+    "CompanionDecisionNavigationTarget": {
+      "enum": ["origin", "approval_card", "action"]
+    },
+    "CompanionDecisionNavigation": {
+      "type": "object",
+      "properties": {
+        "targets": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/CompanionDecisionNavigationTarget" }
+        }
+      },
+      "required": ["targets"],
+      "additionalProperties": false
+    },
+    "CompanionDecisionSourceRead": {
+      "type": "object",
+      "properties": {
+        "status": { "enum": ["available", "unavailable", "unauthenticated", "forbidden", "invalid"] },
+        "coverage": { "enum": ["complete", "partial", "unknown"] }
+      },
+      "required": ["status", "coverage"],
+      "additionalProperties": false
+    },
+    "CompanionDecisionSources": {
+      "type": "object",
+      "properties": {
+        "approvals": { "$ref": "#/$defs/CompanionDecisionSourceRead" },
+        "needsMe": { "$ref": "#/$defs/CompanionDecisionSourceRead" }
+      },
+      "required": ["approvals", "needsMe"],
+      "additionalProperties": false
+    },
+    "CompanionDecisionApproval": {
+      "type": "object",
+      "properties": {
+        "resolution": { "enum": ["open", "accepted", "rejected", "closed_without_decision"] },
+        "materializationState": { "enum": ["not_started", "outcome_unknown", "in_progress", "succeeded", "failed"] },
+        "linkedNeedsMe": { "type": "boolean" }
+      },
+      "required": ["resolution", "materializationState", "linkedNeedsMe"],
+      "additionalProperties": false
+    },
+    "CompanionDecisionItem": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "variantRef": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "description": "Opaque stable identity for this concrete canonical version; unique even when internal logical identities conflict."
+            },
+            "kind": { "const": "approval" },
+            "summary": { "type": "string", "maxLength": 500 },
+            "navigation": { "$ref": "#/$defs/CompanionDecisionNavigation" },
+            "approval": { "$ref": "#/$defs/CompanionDecisionApproval" }
+          },
+          "required": ["variantRef", "kind", "summary", "navigation", "approval"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "variantRef": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "description": "Opaque stable identity for this concrete canonical version; unique even when internal logical identities conflict."
+            },
+            "kind": { "enum": ["judgment", "repair"] },
+            "summary": { "type": "string", "maxLength": 500 },
+            "navigation": { "$ref": "#/$defs/CompanionDecisionNavigation" }
+          },
+          "required": ["variantRef", "kind", "summary", "navigation"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionLegacyDecisions": {
       "type": "object",
       "properties": {
         "kind": { "const": "decisions" },
@@ -561,6 +1313,46 @@
       "required": ["kind", "status", "approvalCount", "needsMeCount", "otherNeedsMeCount", "approvals", "otherNeedsMe", "page"],
       "additionalProperties": false
     },
+    "CompanionUnifiedDecisions": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "decisions" },
+        "version": { "const": 1 },
+        "status": { "enum": ["available", "partial", "unavailable"] },
+        "observedAt": { "type": "number", "minimum": 0 },
+        "sources": { "$ref": "#/$defs/CompanionDecisionSources" },
+        "items": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/CompanionDecisionItem" }
+        },
+        "totalCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000,
+          "description": "Exact normalized count before paging; omitted unless every declared source is complete and identity reconciliation is trustworthy."
+        },
+        "page": {
+          "type": "object",
+          "properties": {
+            "offset": { "type": "integer", "minimum": 0 },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 20 },
+            "scope": { "const": "known_rows" },
+            "hasMore": { "type": "boolean" }
+          },
+          "required": ["offset", "limit", "scope", "hasMore"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["kind", "version", "status", "observedAt", "sources", "items", "page"],
+      "additionalProperties": false
+    },
+    "CompanionDecisions": {
+      "oneOf": [
+        { "$ref": "#/$defs/CompanionLegacyDecisions" },
+        { "$ref": "#/$defs/CompanionUnifiedDecisions" }
+      ]
+    },
     "CompanionDecisionTrial": {
       "type": "object",
       "properties": {
@@ -569,6 +1361,464 @@
       },
       "required": ["kind", "status"],
       "additionalProperties": false
+    },
+    "CompanionSettingField": {
+      "enum": [
+        "dutyCatProfileId",
+        "skin",
+        "ballSize",
+        "behaviorEnabled",
+        "proactivePolicy",
+        "personaTone",
+        "householdReadsAllowed",
+        "appAssistEnabled"
+      ]
+    },
+    "CompanionSettingsValues": {
+      "type": "object",
+      "properties": {
+        "dutyCatProfileId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+        "skin": { "enum": ["yarn-ball", "ragdoll-v1", "yanyan-codex", "xianxian-codex"] },
+        "ballSize": { "type": "integer", "minimum": 43, "maximum": 192 },
+        "behaviorEnabled": { "type": "boolean" },
+        "proactivePolicy": { "enum": ["ambient", "quiet-badge"] },
+        "personaTone": { "type": "string", "minLength": 1, "maxLength": 200, "pattern": "^[^\\r\\n]+$" },
+        "householdReadsAllowed": { "type": "boolean" },
+        "appAssistEnabled": { "type": "boolean" }
+      },
+      "required": [
+        "dutyCatProfileId",
+        "skin",
+        "ballSize",
+        "behaviorEnabled",
+        "proactivePolicy",
+        "personaTone",
+        "householdReadsAllowed",
+        "appAssistEnabled"
+      ],
+      "additionalProperties": false
+    },
+    "CompanionSettingsRosterEntry": {
+      "type": "object",
+      "properties": {
+        "catProfileId": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 160, "pattern": "\\S" },
+        "available": { "type": "boolean" }
+      },
+      "required": ["catProfileId", "displayName", "available"],
+      "additionalProperties": false
+    },
+    "CompanionSettings": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings" },
+            "status": { "const": "available" },
+            "values": { "$ref": "#/$defs/CompanionSettingsValues" },
+            "companions": {
+              "type": "array",
+              "maxItems": 64,
+              "items": { "$ref": "#/$defs/CompanionSettingsRosterEntry" }
+            },
+            "selectedCompanionStatus": { "enum": ["available", "unavailable"] }
+          },
+          "required": ["kind", "status", "values", "companions", "selectedCompanionStatus"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings" },
+            "status": { "const": "unavailable" },
+            "reason": { "enum": ["host_upgrade_required", "temporarily_unavailable"] }
+          },
+          "required": ["kind", "status", "reason"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionSettingsUpdateReceipt": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings-update" },
+            "field": { "$ref": "#/$defs/CompanionSettingField" },
+            "outcome": { "const": "saved" },
+            "callStatus": { "enum": ["unchanged", "stopped"] },
+            "applies": { "enum": ["now", "next_call"] }
+          },
+          "required": ["kind", "field", "outcome", "callStatus", "applies"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings-update" },
+            "field": { "$ref": "#/$defs/CompanionSettingField" },
+            "outcome": { "const": "rejected" },
+            "callStatus": { "enum": ["unchanged", "stopped", "stop_failed"] },
+            "reason": {
+              "enum": [
+                "invalid_value",
+                "selection_unavailable",
+                "permission_denied",
+                "call_stop_failed",
+                "save_failed",
+                "unsupported"
+              ]
+            }
+          },
+          "required": ["kind", "field", "outcome", "callStatus", "reason"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "settings-update" },
+            "field": { "$ref": "#/$defs/CompanionSettingField" },
+            "outcome": { "const": "unconfirmed" },
+            "callStatus": { "enum": ["unchanged", "stopped"] },
+            "reconcile": { "const": "settings.read" }
+          },
+          "required": ["kind", "field", "outcome", "callStatus", "reconcile"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionLifecycleReceipt": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "companion-lifecycle" },
+        "action": { "const": "disable" },
+        "outcome": { "const": "disabled" }
+      },
+      "required": ["kind", "action", "outcome"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptScope": {
+      "type": "object",
+      "properties": {
+        "callId": { "$ref": "#/$defs/CompanionCallId" },
+        "realtimeSessionId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" }
+      },
+      "required": ["callId", "realtimeSessionId"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptVoiceSource": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "voice" },
+        "nativeThreadId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "realtimeSessionId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" },
+        "nativeItemId": { "$ref": "#/$defs/CompanionCorrelatableId" },
+        "nativeTurnId": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S" }
+      },
+      "required": ["kind", "nativeThreadId", "realtimeSessionId", "nativeItemId"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptTypedSource": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "typed" },
+        "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+        "callId": { "$ref": "#/$defs/CompanionCallId" }
+      },
+      "required": ["kind", "clientMessageId", "callId"],
+      "additionalProperties": false
+    },
+    "CompanionTranscriptRow": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "messageId": { "$ref": "#/$defs/CompanionCorrelatableId" },
+            "role": { "enum": ["user", "assistant"] },
+            "text": { "type": "string", "minLength": 1, "maxLength": 16000 },
+            "source": { "$ref": "#/$defs/CompanionTranscriptVoiceSource" }
+          },
+          "required": ["messageId", "role", "text", "source"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "messageId": { "$ref": "#/$defs/CompanionCorrelatableId" },
+            "role": { "const": "user" },
+            "text": { "type": "string", "minLength": 1, "maxLength": 16000 },
+            "source": { "$ref": "#/$defs/CompanionTranscriptTypedSource" }
+          },
+          "required": ["messageId", "role", "text", "source"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionDeliveryReceipt": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "delivery" },
+            "delivery": { "const": "accepted" },
+            "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+            "messageId": { "$ref": "#/$defs/CompanionCorrelatableId" },
+            "callId": {
+              "oneOf": [
+                { "$ref": "#/$defs/CompanionCallId" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "delivery", "clientMessageId", "messageId", "callId"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "delivery" },
+            "delivery": { "const": "unconfirmed" },
+            "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+            "messageId": { "type": "null" },
+            "callId": {
+              "oneOf": [
+                { "$ref": "#/$defs/CompanionCallId" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "delivery", "clientMessageId", "messageId", "callId"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionDeliveryAcceptedV2": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "delivery" },
+        "v": { "const": 2 },
+        "delivery": { "const": "accepted" },
+        "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+        "messageId": { "$ref": "#/$defs/CompanionCorrelatableId" },
+        "callId": {
+          "oneOf": [
+            { "$ref": "#/$defs/CompanionCallId" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["kind", "v", "delivery", "clientMessageId", "messageId", "callId"],
+      "additionalProperties": false
+    },
+    "CompanionDeliveryUnconfirmedV2": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "delivery" },
+        "v": { "const": 2 },
+        "delivery": { "const": "unconfirmed" },
+        "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+        "messageId": { "type": "null" },
+        "callId": {
+          "oneOf": [
+            { "$ref": "#/$defs/CompanionCallId" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["kind", "v", "delivery", "clientMessageId", "messageId", "callId"],
+      "additionalProperties": false
+    },
+    "CompanionDeliveryRejectedV2": {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "delivery" },
+        "v": { "const": 2 },
+        "delivery": { "const": "rejected" },
+        "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+        "reason": { "enum": ["draft_changed", "unsupported_draft", "pending_limit"] },
+        "draftRevision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      },
+      "required": ["kind", "v", "delivery", "clientMessageId", "reason", "draftRevision"],
+      "additionalProperties": false
+    },
+    "CompanionDeliveryReceiptV2": {
+      "oneOf": [
+        { "$ref": "#/$defs/CompanionDeliveryAcceptedV2" },
+        { "$ref": "#/$defs/CompanionDeliveryUnconfirmedV2" },
+        { "$ref": "#/$defs/CompanionDeliveryRejectedV2" }
+      ]
+    },
+    "CompanionConversationDraftSubmissionV1": {
+      "type": "object",
+      "properties": {
+        "clientMessageId": { "$ref": "#/$defs/CompanionClientMessageId" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 8000 },
+        "submissionRevision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "receipt": {
+          "oneOf": [
+            { "$ref": "#/$defs/CompanionDeliveryAcceptedV2" },
+            { "$ref": "#/$defs/CompanionDeliveryUnconfirmedV2" }
+          ]
+        }
+      },
+      "required": ["clientMessageId", "text", "submissionRevision", "receipt"],
+      "additionalProperties": false
+    },
+    "CompanionConversationDraftV1": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation-draft" },
+            "v": { "const": 1 },
+            "status": { "const": "available" },
+            "scopeRef": { "$ref": "#/$defs/CompanionConversationScopeRef" },
+            "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "text": { "type": "string", "maxLength": 100000 },
+            "writable": { "type": "boolean" },
+            "submissions": {
+              "type": "array",
+              "maxItems": 32,
+              "items": { "$ref": "#/$defs/CompanionConversationDraftSubmissionV1" }
+            }
+          },
+          "required": ["kind", "v", "status", "scopeRef", "revision", "text", "writable", "submissions"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation-draft" },
+            "v": { "const": 1 },
+            "status": { "enum": ["conflict", "readonly"] },
+            "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+          },
+          "required": ["kind", "v", "status", "revision"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionConversationResponsePhase": {
+      "oneOf": [
+        { "enum": ["processing", "completed", "failed", "canceled", "interrupted"] },
+        { "type": "null" }
+      ]
+    },
+    "CompanionConversationBodyProjection": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "revision": { "$ref": "#/$defs/CompanionCorrelatableId" },
+            "complete": { "const": true },
+            "continuation": { "type": "null" }
+          },
+          "required": ["revision", "complete", "continuation"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "revision": { "$ref": "#/$defs/CompanionCorrelatableId" },
+            "complete": { "const": false },
+            "continuation": { "$ref": "#/$defs/CompanionOpaqueReadReference" }
+          },
+          "required": ["revision", "complete", "continuation"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionConversationRowV2": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/CompanionCorrelatableId" },
+        "role": { "enum": ["user", "assistant"] },
+        "name": { "type": "string", "maxLength": 256 },
+        "text": { "type": "string", "maxLength": 16000 },
+        "companionIdentity": { "$ref": "#/$defs/CompanionIdentitySnapshotV1" },
+        "inputMessageIds": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/CompanionCorrelatableId" }
+        },
+        "responsePhase": { "$ref": "#/$defs/CompanionConversationResponsePhase" },
+        "body": { "$ref": "#/$defs/CompanionConversationBodyProjection" },
+        "deliveryReceipt": { "$ref": "#/$defs/CompanionDeliveryAcceptedV2" }
+      },
+      "required": ["id", "role", "name", "text", "inputMessageIds", "responsePhase", "body"],
+      "additionalProperties": false
+    },
+    "CompanionConversationPageV2": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation" },
+            "v": { "const": 2 },
+            "status": { "const": "available" },
+            "threadTitle": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "messages": {
+              "type": "array",
+              "maxItems": 32,
+              "items": { "$ref": "#/$defs/CompanionConversationRowV2" }
+            },
+            "hasMoreOlder": { "type": "boolean" },
+            "olderCursor": {
+              "oneOf": [
+                { "$ref": "#/$defs/CompanionOpaqueReadReference" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": ["kind", "v", "status", "threadTitle", "messages", "hasMoreOlder", "olderCursor"],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": { "properties": { "hasMoreOlder": { "const": true } }, "required": ["hasMoreOlder"] },
+              "then": { "properties": { "olderCursor": { "$ref": "#/$defs/CompanionOpaqueReadReference" } } },
+              "else": { "properties": { "olderCursor": { "type": "null" } } }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation" },
+            "v": { "const": 2 },
+            "status": { "const": "stale" }
+          },
+          "required": ["kind", "v", "status"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CompanionConversationBodyV2": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation-body" },
+            "v": { "const": 2 },
+            "status": { "const": "available" },
+            "messageId": { "$ref": "#/$defs/CompanionCorrelatableId" },
+            "text": { "type": "string", "maxLength": 16000 },
+            "body": { "$ref": "#/$defs/CompanionConversationBodyProjection" }
+          },
+          "required": ["kind", "v", "status", "messageId", "text", "body"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "conversation-body" },
+            "v": { "const": 2 },
+            "status": { "enum": ["stale", "withdrawn"] }
+          },
+          "required": ["kind", "v", "status"],
+          "additionalProperties": false
+        }
+      ]
     },
     "CompanionErrorCode": {
       "enum": [
@@ -601,29 +1851,34 @@
           "$ref": "#/$defs/CompanionState"
         },
         {
+          "$ref": "#/$defs/CompanionWorkOverview"
+        },
+        {
           "$ref": "#/$defs/CompanionDecisions"
         },
         {
           "$ref": "#/$defs/CompanionDecisionTrial"
         },
         {
-          "type": "object",
-          "properties": {
-            "kind": {
-              "const": "delivery"
-            },
-            "delivery": {
-              "enum": [
-                "accepted",
-                "unconfirmed"
-              ]
-            }
-          },
-          "required": [
-            "kind",
-            "delivery"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/CompanionDeliveryReceipt"
+        },
+        {
+          "$ref": "#/$defs/CompanionDeliveryReceiptV2"
+        },
+        {
+          "$ref": "#/$defs/CompanionConversationDraftV1"
+        },
+        {
+          "$ref": "#/$defs/CompanionSettings"
+        },
+        {
+          "$ref": "#/$defs/CompanionSettingsUpdateReceipt"
+        },
+        {
+          "$ref": "#/$defs/CompanionLifecycleReceipt"
+        },
+        {
+          "$ref": "#/$defs/CompanionAppAssistSettlement"
         },
         {
           "type": "object",
@@ -642,14 +1897,24 @@
           "additionalProperties": false
         },
         {
+          "$ref": "#/$defs/CompanionConversationPageV2"
+        },
+        {
+          "$ref": "#/$defs/CompanionConversationBodyV2"
+        },
+        {
           "type": "object",
           "properties": {
             "kind": {
               "const": "navigation"
             },
             "delivery": {
+              "description": "Host navigation truth: requested/queued mean accepted but not visibly applied; applied means the destination owner confirmed the effect; blocked means the Host refused it; unconfirmed means settlement is unknown.",
               "enum": [
                 "requested",
+                "applied",
+                "queued",
+                "blocked",
                 "unconfirmed"
               ]
             }
@@ -699,6 +1964,34 @@
               "additionalProperties": false
             },
             "panel": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 2000
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "width",
+                "height"
+              ],
+              "additionalProperties": false
+            },
+            "bubble": {
               "type": "object",
               "properties": {
                 "x": {
@@ -780,6 +2073,9 @@
                   "name": {
                     "type": "string",
                     "maxLength": 256
+                  },
+                  "companionIdentity": {
+                    "$ref": "#/$defs/CompanionIdentitySnapshotV1"
                   }
                 },
                 "required": [
@@ -801,6 +2097,21 @@
             "messages",
             "hasMore"
           ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "transcript" },
+            "scope": { "$ref": "#/$defs/CompanionTranscriptScope" },
+            "rows": {
+              "type": "array",
+              "maxItems": 32,
+              "items": { "$ref": "#/$defs/CompanionTranscriptRow" }
+            },
+            "hasMore": { "type": "boolean" }
+          },
+          "required": ["kind", "scope", "rows", "hasMore"],
           "additionalProperties": false
         }
       ]
@@ -842,11 +2153,15 @@
                 "recovered",
                 "error"
               ]
+            },
+            "callId": {
+              "$ref": "#/$defs/CompanionCallId"
             }
           },
           "required": [
             "kind",
-            "type"
+            "type",
+            "callId"
           ],
           "additionalProperties": false
         },
@@ -869,20 +2184,20 @@
               "type": "string",
               "maxLength": 16000
             },
+            "callId": {
+              "$ref": "#/$defs/CompanionCallId"
+            },
             "turnId": {
               "type": "string",
               "minLength": 1,
               "maxLength": 256
             },
-            "itemId": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 256
-            }
+            "itemId": { "$ref": "#/$defs/CompanionCorrelatableId" }
           },
           "required": [
             "kind",
             "type",
+            "callId",
             "role",
             "text"
           ],
@@ -907,6 +2222,9 @@
               "type": "string",
               "maxLength": 16000
             },
+            "callId": {
+              "$ref": "#/$defs/CompanionCallId"
+            },
             "turnId": {
               "type": "string",
               "minLength": 1,
@@ -915,7 +2233,8 @@
           },
           "required": [
             "kind",
-            "type"
+            "type",
+            "callId"
           ],
           "additionalProperties": false
         },

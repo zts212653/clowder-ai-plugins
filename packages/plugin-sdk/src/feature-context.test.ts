@@ -4,15 +4,17 @@ import test from 'node:test';
 import type { StaticContribution } from '@clowder-ai/plugin-contract';
 
 import {
-  ContributionConflictError,
   FeatureContextRevokedError,
+  FeaturePermissionError,
+  activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
+  featureActionMethods,
   type FeatureBinding,
   type FeatureContext,
   type FeatureHostAdapter,
-  type HostContributionReceipt,
 } from './feature-context.js';
+import { definePluginModule, requirePluginModuleEntrypoint } from './module-plugin.js';
 
 const BINDING: FeatureBinding = {
   pluginInstanceId: 'instance-1',
@@ -24,6 +26,39 @@ const BINDING: FeatureBinding = {
   grantedCapabilities: [],
   executionLease: 'opaque-host-signed-lease',
 };
+
+test('accepted thread projections and preferredCats patch cross the real FeatureContext wrapper', async () => {
+  const adapter = new RecordingAdapter();
+  const seen: unknown[] = [];
+  Object.assign(adapter.threads, {
+    async list(options?: unknown) { seen.push(['list', options]); return []; },
+    async readMessages(id: string, options: unknown) { seen.push(['readMessages', id, options]); return []; },
+    async getCats(id: string) { seen.push(['getCats', id]); return { participants: [], routableNow: [], routableNotJoined: [], notRoutable: [] }; },
+    async update(id: string, patch: unknown) { seen.push(['update', id, patch]); return { id, deepLinkUrl: 'https://owner.example/thread/projected', title: null, createdAt: 1, lastActiveAt: 1, featureRefs: [], preferredCats: [] }; },
+  addParticipants: async () => { throw new Error('unused fixture addParticipants'); },
+});
+  const session = createFeatureContextSession(BINDING, adapter);
+  const threads = session.context.threads;
+  if (false) {
+    // @ts-expect-error Numeric-only cursors lose messages sharing a timeline millisecond.
+    await threads.readMessages('thread', { before: 20, limit: 1 });
+    // @ts-expect-error Thread activity cursors must carry the composite position.
+    await threads.list({ before: 20 });
+  }
+  await threads.list({ limit: 50, before: { lastActiveAt: 30, id: 'thread-30' } });
+  await threads.readMessages('thread', { before: { timestamp: 20, id: 'message-20' }, limit: 500 });
+  await threads.getCats('thread');
+  assert.equal((await threads.update('thread', { preferredCats: [] })).deepLinkUrl,
+    'https://owner.example/thread/projected', 'the wrapper preserves Host navigation without reconstructing it');
+  assert.deepEqual(seen, [['list', { limit: 50, before: { lastActiveAt: 30, id: 'thread-30' } }], ['readMessages', 'thread', { before: { timestamp: 20, id: 'message-20' }, limit: 500 }],
+    ['getCats', 'thread'], ['update', 'thread', { preferredCats: [] }]]);
+  await session.revoke();
+  for (const invoke of [() => threads.list(), () => threads.readMessages('thread', { limit: 1 }),
+    () => threads.getCats('thread'), () => threads.update('thread', { preferredCats: [] })]) {
+    await assert.rejects(invoke(), FeatureContextRevokedError);
+  }
+  assert.equal(seen.length, 4);
+});
 
 function manifest() {
   return {
@@ -46,6 +81,7 @@ function manifest() {
 }
 
 class RecordingAdapter implements FeatureHostAdapter {
+  async getMessage(_id: string) { return null; }
   readonly calls: Array<{ operation: string; binding: FeatureBinding; value?: unknown }> = [];
   failNextDispose = false;
   #revision = 0;
@@ -61,97 +97,90 @@ class RecordingAdapter implements FeatureHostAdapter {
   }
 
   async readState(binding: FeatureBinding, key: string): Promise<unknown> {
-    this.calls.push({ operation: 'state.get', binding, value: key });
+    this.calls.push({ operation: 'storage.get', binding, value: key });
     return undefined;
   }
 
   async writeState(binding: FeatureBinding, key: string, value: unknown): Promise<void> {
-    this.calls.push({ operation: 'state.set', binding, value: { key, value } });
+    this.calls.push({ operation: 'storage.set', binding, value: { key, value } });
   }
 
-  async registerContribution(
+  readonly storage: FeatureHostAdapter['storage'] = {
+    get: async (key) => {
+      await this.readState(BINDING, key);
+      return undefined;
+    },
+    list: async () => ({}),
+    set: async (key, value) => {
+      await this.writeState(BINDING, key, value);
+      return { revision: 1 };
+    },
+    compareAndSet: async (key, expectedRevision, value) => {
+      this.calls.push({ operation: 'state.compareAndSet', binding: BINDING, value: { key, expectedRevision, value } });
+      return { applied: true, revision: 1 };
+    },
+    delete: async (key, expectedRevision) => {
+      this.calls.push({ operation: 'state.delete', binding: BINDING, value: { key, expectedRevision } });
+      return { deleted: true, revision: 1 };
+    },
+  };
+
+  readonly tasks = {
+    get: async () => null,
+    list: async () => [],
+    create: async () => { throw new Error('not implemented by fixture'); },
+    update: async () => null,
+  } satisfies FeatureHostAdapter['tasks'];
+
+  readonly threads = {
+    get: async () => null,
+    list: async () => [],
+    readMessages: async () => [],
+    getCats: async () => ({ participants: [], routableNow: [], routableNotJoined: [], notRoutable: [] }),
+    create: async () => { throw new Error('not implemented by fixture'); },
+    update: async () => { throw new Error('not implemented by fixture'); },
+  addParticipants: async () => { throw new Error('unused fixture addParticipants'); },
+} satisfies FeatureHostAdapter['threads'];
+
+  async sendMessage(
     binding: FeatureBinding,
-    contribution: StaticContribution,
-  ): Promise<HostContributionReceipt> {
-    this.calls.push({ operation: 'register', binding, value: contribution });
-    this.#revision += 1;
-    return { registrationId: `registration-${this.#revision}`, registryRevision: this.#revision };
+    threadId: string,
+    input: Parameters<FeatureHostAdapter['sendMessage']>[2],
+  ): Promise<Awaited<ReturnType<FeatureHostAdapter['sendMessage']>>> {
+    this.calls.push({ operation: 'messaging.send', binding, value: { threadId, ...input } });
+    return {
+      messageId: 'message-1',
+      threadId: 'thread-1',
+    };
   }
 
-  async disposeContribution(
+  async subscribeMessage(
     binding: FeatureBinding,
-    receipt: HostContributionReceipt,
+    input: Parameters<FeatureHostAdapter['subscribeMessage']>[1],
   ): Promise<void> {
-    this.calls.push({ operation: 'dispose', binding, value: receipt });
-    if (this.failNextDispose) {
-      this.failNextDispose = false;
-      throw new Error('transient disposal failure');
-    }
-  }
-}
-
-class PausingDisposeAdapter extends RecordingAdapter {
-  readonly disposeStarted: Promise<void>;
-  readonly #releaseDispose: Promise<void>;
-  #markDisposeStarted!: () => void;
-  #finishDispose!: () => void;
-
-  constructor() {
-    super();
-    this.disposeStarted = new Promise((resolve) => {
-      this.#markDisposeStarted = resolve;
-    });
-    this.#releaseDispose = new Promise((resolve) => {
-      this.#finishDispose = resolve;
-    });
+    this.calls.push({ operation: 'messaging.subscribe', binding, value: input });
   }
 
-  releaseDispose(): void {
-    this.#finishDispose();
-  }
-
-  override async disposeContribution(
+  async unsubscribeMessage(
     binding: FeatureBinding,
-    receipt: HostContributionReceipt,
+    input: Parameters<FeatureHostAdapter['unsubscribeMessage']>[1],
   ): Promise<void> {
-    this.calls.push({ operation: 'dispose', binding, value: receipt });
-    this.#markDisposeStarted();
-    await this.#releaseDispose;
-  }
-}
-
-class PausingRegisterAdapter extends RecordingAdapter {
-  readonly registerStarted: Promise<void>;
-  readonly #releaseRegister: Promise<void>;
-  #markRegisterStarted!: () => void;
-  #finishRegister!: () => void;
-
-  constructor() {
-    super();
-    this.registerStarted = new Promise((resolve) => {
-      this.#markRegisterStarted = resolve;
-    });
-    this.#releaseRegister = new Promise((resolve) => {
-      this.#finishRegister = resolve;
-    });
+    this.calls.push({ operation: 'messaging.unsubscribe', binding, value: input });
   }
 
-  releaseRegister(): void {
-    this.#finishRegister();
-  }
+  readonly streams: FeatureHostAdapter['streams'] = {read: async function*() {}};
 
-  override async registerContribution(
+  log(
     binding: FeatureBinding,
-    contribution: StaticContribution,
-  ): Promise<HostContributionReceipt> {
-    this.calls.push({ operation: 'register', binding, value: contribution });
-    this.#markRegisterStarted();
-    await this.#releaseRegister;
-    return { registrationId: 'registration-paused', registryRevision: 1 };
+    level: Parameters<FeatureHostAdapter['log']>[1],
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ): void {
+    this.calls.push({ operation: `log.${level}`, binding, value: { message, fields } });
   }
 }
 
-type PausedHostOperation = 'config.get' | 'secrets.get' | 'state.get' | 'state.set';
+type PausedHostOperation = 'config.get' | 'secrets.get' | 'storage.get' | 'storage.set';
 
 class PausingHostOperationAdapter extends RecordingAdapter {
   readonly operationStarted: Promise<void>;
@@ -192,12 +221,12 @@ class PausingHostOperationAdapter extends RecordingAdapter {
   }
 
   override async readState(binding: FeatureBinding, key: string): Promise<unknown> {
-    await this.#pause('state.get');
+    await this.#pause('storage.get');
     return super.readState(binding, key);
   }
 
   override async writeState(binding: FeatureBinding, key: string, value: unknown): Promise<void> {
-    await this.#pause('state.set');
+    await this.#pause('storage.set');
     return super.writeState(binding, key, value);
   }
 }
@@ -223,353 +252,151 @@ test('definePlugin validates the manifest and rejects undeclared activators', ()
   );
 });
 
-test('feature context keeps authority in the Host binding and namespaces typed registrations', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-
-  assert.equal(await context.config.get('mode'), 'safe');
-  assert.equal(await context.secrets.get('apiKey'), 'secret:apiKey');
-  await context.state.set('cursor', { value: 1 });
-
-  const registration = await context.identity.register({ id: 'cat', displayName: 'Fixture cat' });
-  assert.equal(registration.key, 'identity:cat');
-  const call = adapter.calls.find((entry) => entry.operation === 'register');
-  assert.deepEqual(call?.binding, BINDING);
-  assert.deepEqual(call?.value, {
-    type: 'identity',
-    id: 'cat',
-    displayName: 'Fixture cat',
-  });
-  assert.equal('pluginId' in (call?.value as object), false);
-  assert.equal('featureId' in (call?.value as object), false);
+test('module entrypoint accepts the Host-validated manifest without embedding a second copy', () => {
+  const module = definePluginModule((candidate) => definePlugin({ manifest: candidate }));
+  const candidate = manifest();
+  candidate.runtime = { transport: 'builtin', entrypoint: 'dist/plugin.js' };
+  const defined = requirePluginModuleEntrypoint(module).create(candidate);
+  assert.equal(typeof defined.start, 'function');
 });
 
-test('registrar authority cannot be overridden by an untyped contribution input', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-  const untypedInput = {
-    type: 'webhook',
-    id: 'cat',
-    displayName: 'Fixture cat',
-  } as unknown as Parameters<typeof context.identity.register>[0];
-
-  const registration = await context.identity.register(untypedInput);
-  const call = adapter.calls.find((entry) => entry.operation === 'register');
-
-  assert.equal(registration.key, 'identity:cat');
-  assert.deepEqual(call?.value, {
-    type: 'identity',
-    id: 'cat',
-    displayName: 'Fixture cat',
-  });
+test('module entrypoint guard rejects absent or ambiguous default exports', () => {
+  assert.throws(() => requirePluginModuleEntrypoint(undefined), /default export.*PluginModuleEntrypoint/u);
+  assert.throws(() => requirePluginModuleEntrypoint({ create: 'not-callable' }), /default export/u);
 });
 
-test('registration snapshots nested payloads before crossing the Host boundary', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-  const inputSchema = {
-    type: 'object',
-    properties: { prompt: { type: 'string' } },
-  };
-
-  await context.tools.register({
-    id: 'analyze',
-    name: 'analyze',
-    inputSchema,
-    action: { method: 'video.analyze' },
-  });
-  inputSchema.properties.prompt.type = 'number';
-
-  const call = adapter.calls.find((entry) => entry.operation === 'register');
-  const contribution = call?.value as StaticContribution;
-  assert.equal(contribution.type, 'tool');
-  if (contribution.type !== 'tool') return;
-  assert.equal(
-    (contribution.inputSchema.properties as Record<string, { type: string }>).prompt?.type,
-    'string',
-  );
-  assert.equal(Object.isFrozen(contribution.inputSchema.properties), true);
-});
-
-test('UI registrar preserves every variant-specific typed input', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-
-  await context.ui.register({
-    id: 'open-settings',
-    kind: 'command',
-    label: 'Open settings',
-    action: { method: 'settings.open' },
-  });
-  await context.ui.register({
-    id: 'settings-menu',
-    kind: 'slot-item',
-    label: 'Settings',
-    command: 'open-settings',
-    group: 'navigation',
-  });
-  await context.ui.register({
-    id: 'analysis-card',
-    kind: 'message-element',
-    label: 'Analysis card',
-    elementKind: 'video-analysis',
-    renderer: 'video-analysis-card',
-  });
-
-  assert.deepEqual(
-    adapter.calls
-      .filter((entry) => entry.operation === 'register')
-      .map((entry) => entry.value),
-    [
-      {
-        type: 'ui',
-        id: 'open-settings',
-        kind: 'command',
-        label: 'Open settings',
-        action: { method: 'settings.open' },
-      },
-      {
-        type: 'ui',
-        id: 'settings-menu',
-        kind: 'slot-item',
-        label: 'Settings',
-        command: 'open-settings',
-        group: 'navigation',
-      },
-      {
-        type: 'ui',
-        id: 'analysis-card',
-        kind: 'message-element',
-        label: 'Analysis card',
-        elementKind: 'video-analysis',
-        renderer: 'video-analysis-card',
-      },
-    ],
-  );
-});
-
-test('content editor registrar exposes only the typed provider artifact declaration', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-
-  const registration = await context.contentEditors.register({
-    id: 'genoffice-docx',
-    mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-    surface: {
-      entrypoint: 'renderer/index.html',
-      integrity: `sha256-${'A'.repeat(43)}=`,
-      sandbox: 'dedicated-origin-iframe',
-      navigationPolicy: 'navigation-api-deny',
-    },
-    bridgeVersion: '1.0.0',
-    operations: ['load', 'settle', 'comment', 'tracked-change'],
-  });
-
-  assert.equal(registration.key, 'content-editor-provider:genoffice-docx');
-  assert.deepEqual(
-    adapter.calls.find((entry) => entry.operation === 'register')?.value,
-    {
-      type: 'content-editor-provider',
-      id: 'genoffice-docx',
-      mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      surface: {
-        entrypoint: 'renderer/index.html',
-        integrity: `sha256-${'A'.repeat(43)}=`,
-        sandbox: 'dedicated-origin-iframe',
-        navigationPolicy: 'navigation-api-deny',
-      },
-      bridgeVersion: '1.0.0',
-      operations: ['load', 'settle', 'comment', 'tracked-change'],
-    },
-  );
-});
-
-test('same-key retries are idempotent, conflicts fail closed, and disposal runs once', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-  const input = { id: 'cat', displayName: 'Fixture cat' };
-
-  const first = await context.identity.register(input);
-  const retry = await context.identity.register({ ...input });
-  assert.equal(retry, first);
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 1);
-
-  await assert.rejects(
-    context.identity.register({ ...input, displayName: 'Different' }),
-    ContributionConflictError,
-  );
-  await first.dispose();
-  await first.dispose();
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
-});
-
-test('desktop window registration stays under the existing feature lease and revocation', async () => {
-  const adapter = new RecordingAdapter();
-  const binding = { ...BINDING, grantedCapabilities: ['windows.create' as const] };
-  const session = createFeatureContextSession(binding, adapter);
-  const declaration = {
-    id: 'companion', role: 'companion' as const,
-    surface: { entrypoint: 'surface/index.html' as const, integrity: `sha256-${'A'.repeat(43)}=` },
-    bridgeVersion: '1.0.0' as const,
-    presentation: { width: 320, height: 350, transparent: true as const, frame: false as const, alwaysOnTop: true, skipTaskbar: true },
-  };
-  const first = await session.context.windows.register(declaration);
-  assert.equal(await session.context.windows.register(declaration), first);
-  const registration = adapter.calls.find((call) => call.operation === 'register');
-  assert.equal(registration?.binding, binding);
-  assert.deepEqual(registration?.value, { ...declaration, type: 'desktop-window' });
-  await session.revoke();
-  assert.equal(adapter.calls.filter((call) => call.operation === 'dispose').length, 1);
-  await assert.rejects(session.context.windows.register(declaration), FeatureContextRevokedError);
-});
-
-test('registration rejects non-plain values instead of collapsing distinct payloads', async () => {
-  const adapter = new RecordingAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-
-  for (const at of [new Date('2020-01-01T00:00:00.000Z'), new Date('2030-01-01T00:00:00.000Z')]) {
-    await assert.rejects(
-      context.scheduler.register({
-        id: 'dated-schedule',
-        schedule: { kind: 'interval', everyMs: 60_000 },
-        action: { method: 'dated-schedule.run', params: { at } },
-        policy: { overlap: 'skip', timeoutMs: 30_000 },
-      }),
-      /plain JSON objects or arrays/,
-    );
-  }
-
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 0);
-});
-
-test('registration rejects non-JSON leaves before reserving an idempotency key', async () => {
-  const cyclic: Record<string, unknown> = {};
-  cyclic.self = cyclic;
-  const invalidValues = [
-    NaN, Infinity, -Infinity, undefined, [undefined], { nested: NaN }, 1n,
-    Symbol('value'), () => null, cyclic, { [Symbol('hidden')]: true },
-    Object.assign([], { extra: true }),
+test('native MCP methods are feature-owned handlers without publishing direct tools', async () => {
+  const candidate = manifest();
+  candidate.contributions.push({ type: 'mcp', id: 'native', runtime: { transport: 'stdio', entrypoint: 'native.js' },
+    actions: [{ method: 'native.run' }] } as never);
+  candidate.contributions.push({ type: 'mcp', id: 'foreign', runtime: { transport: 'stdio', entrypoint: 'foreign.js' },
+    actions: [{ method: 'foreign.run' }] } as never);
+  candidate.features[0]!.contributions.push({ type: 'mcp', id: 'native' } as never);
+  candidate.features.push({ id: 'feature-2', name: 'Foreign feature', resources: [], capabilities: [],
+    contributions: [{ type: 'mcp', id: 'foreign' }] } as never);
+  assert.deepEqual([...featureActionMethods(candidate as never, 'feature-1')], ['native.run']);
+  const { context } = createFeatureContextSession(BINDING, new RecordingAdapter());
+  const defined = definePlugin({ manifest: candidate, activate: { 'feature-1': () => ({
+    actions: { 'native.run': async input => input }, dispose: () => undefined,
+  }) } });
+  const active = await activateDefinedFeature(defined, 'feature-1', context);
+  assert.equal(await active.actions['native.run']!('native input'), 'native input');
+  await active.dispose();
+  const invalidHandlers: ReadonlyArray<Readonly<Record<string, () => Promise<void>>>> = [
+    {}, { 'native.run': async () => undefined, 'foreign.run': async () => undefined },
   ];
-  for (const value of invalidValues) {
-    const adapter = new RecordingAdapter();
-    const { context } = createFeatureContextSession(BINDING, adapter);
-    const schedule = {
-      id: 'json-schedule',
-      schedule: { kind: 'interval' as const, everyMs: 60_000 },
-      action: { method: 'json-schedule.run', params: { value } },
-      policy: { overlap: 'skip' as const, timeoutMs: 30_000 },
-    };
-    await assert.rejects(context.scheduler.register(schedule), /JSON/);
-    assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 0);
-
-    const valid = { ...schedule, action: { method: 'json-schedule.run', params: { value: null } } };
-    const first = await context.scheduler.register(valid);
-    assert.equal(await context.scheduler.register(valid), first);
-    await assert.rejects(
-      context.scheduler.register({ ...valid, action: { ...valid.action, params: {} } }),
-      ContributionConflictError,
-    );
-    assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 1);
+  for (const actions of invalidHandlers) {
+    const invalid = definePlugin({ manifest: candidate, activate: { 'feature-1': () => ({ actions, dispose: () => undefined }) } });
+    await assert.rejects(activateDefinedFeature(invalid, 'feature-1', context), /no handler|not declared/);
   }
 });
 
-test('registration rejects sparse arrays instead of collapsing holes', async () => {
+test('feature activation closes declared method handlers and owns idempotent disposal', async () => {
+  const candidate = manifest();
+  candidate.contributions.push({
+    type: 'message-subscription',
+    id: 'fixture-connector',
+    binding: 'fixture-binding',
+    action: { method: 'fixture.outbound' },
+  } as never);
+  candidate.features[0]!.contributions.push({ type: 'message-subscription', id: 'fixture-connector' } as never);
+  let disposeCalls = 0;
+  const defined = definePlugin({
+    manifest: candidate,
+    activate: {
+      'feature-1': () => ({
+        actions: { 'fixture.outbound': async (input) => ({ input }) },
+        dispose: () => { disposeCalls += 1; },
+      }),
+    },
+  });
   const adapter = new RecordingAdapter();
   const { context } = createFeatureContextSession(BINDING, adapter);
-  await assert.rejects(
-    context.scheduler.register({
-      id: 'sparse-schedule',
-      schedule: { kind: 'interval', everyMs: 60_000 },
-      action: { method: 'sparse-schedule.run', params: { values: Array(1) } },
-      policy: { overlap: 'skip', timeoutMs: 30_000 },
-    }),
-    /JSON/,
-  );
-  assert.equal(adapter.calls.length, 0);
+  const active = await activateDefinedFeature(defined, 'feature-1', context);
+
+  assert.deepEqual(await active.actions['fixture.outbound']?.('hello'), { input: 'hello' });
+  await active.dispose();
+  await active.dispose();
+  assert.equal(disposeCalls, 1);
 });
 
-test('registration rejects array prototype and iterator substitutions before Host dispatch', async (t) => {
-  class SparseInherited extends Array<string> {}
-  SparseInherited.prototype[0] = 'from-prototype';
-  class RedirectArray extends Array<string> {
-    override [Symbol.iterator]() { return ['shadow'][Symbol.iterator](); }
-  }
-  for (const [name, values] of [
-    ['inherited hole', new SparseInherited(1)],
-    ['redirected iterator', new RedirectArray('actual')],
-  ] as const) {
+test('feature activation rolls back missing or undeclared package handlers', async (t) => {
+  const candidate = manifest();
+  candidate.contributions.push({
+    type: 'message-subscription', id: 'fixture-connector', binding: 'fixture-binding',
+    action: { method: 'fixture.outbound' },
+  } as never);
+  candidate.features[0]!.contributions.push({ type: 'message-subscription', id: 'fixture-connector' } as never);
+  const cases: ReadonlyArray<readonly [
+    string,
+    Readonly<Record<string, (input: unknown) => unknown>>,
+    RegExp,
+  ]> = [
+    ['missing', {}, /fixture\.outbound.*no handler/i],
+    ['undeclared', { 'fixture.outbound': () => undefined, 'foreign.method': () => undefined }, /foreign\.method.*not declared/i],
+  ];
+  for (const [name, actions, pattern] of cases) {
     await t.test(name, async () => {
-      const adapter = new RecordingAdapter();
-      const { context } = createFeatureContextSession(BINDING, adapter);
-      await assert.rejects(context.scheduler.register({
-        id: 'array-schedule',
-        schedule: { kind: 'interval', everyMs: 60_000 },
-        action: { method: 'array.run', params: { values } },
-        policy: { overlap: 'skip', timeoutMs: 30_000 },
-      }), /JSON/);
-      assert.equal(adapter.calls.length, 0);
+      let disposeCalls = 0;
+      const defined = definePlugin({
+        manifest: candidate,
+        activate: {
+          'feature-1': () => ({ actions, dispose: () => { disposeCalls += 1; } }),
+        },
+      });
+      const { context } = createFeatureContextSession(BINDING, new RecordingAdapter());
+      await assert.rejects(activateDefinedFeature(defined, 'feature-1', context), pattern);
+      assert.equal(disposeCalls, 1);
     });
   }
 });
 
-test('same-payload registration waits for overlapping disposal and creates a fresh receipt', async () => {
-  const adapter = new PausingDisposeAdapter();
-  const { context } = createFeatureContextSession(BINDING, adapter);
-  const input = { id: 'cat', displayName: 'Fixture cat' };
-  const first = await context.identity.register(input);
-
-  const disposal = first.dispose();
-  await adapter.disposeStarted;
-  let replacementResolved = false;
-  const replacementPromise = context.identity.register(input).then((registration) => {
-    replacementResolved = true;
-    return registration;
-  });
-  await Promise.resolve();
-  assert.equal(replacementResolved, false);
-
-  adapter.releaseDispose();
-  await disposal;
-  const replacement = await replacementPromise;
-  assert.notEqual(replacement, first);
-  assert.notEqual(replacement.receipt.registrationId, first.receipt.registrationId);
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 2);
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
-});
-
-test('pending registrations reject after revocation and dispose the late Host receipt once', async () => {
-  const adapter = new PausingRegisterAdapter();
+test('messaging send ingress and logs retain Host-issued feature authority', async () => {
+  const adapter = new RecordingAdapter();
   const session = createFeatureContextSession(BINDING, adapter);
-  const input = { id: 'cat', displayName: 'Fixture cat' };
-  const first = session.context.identity.register(input);
-  await adapter.registerStarted;
-  const retry = session.context.identity.register({ ...input });
-  const revocation = session.revoke();
-  const firstRejection = assert.rejects(first, FeatureContextRevokedError);
-  const retryRejection = assert.rejects(retry, FeatureContextRevokedError);
+  const draft = {
+    idempotencyKey: 'provider-message-1',
+    payload: {
+      provenance: {
+        origin: {
+          kind: 'external',
+          connectorId: 'fixture-connector',
+          sourceAddress: {
+            connectorId: 'fixture-connector',
+            chatId: 'provider-chat-1',
+            messageId: 'provider-message-1',
+          },
+        },
+        epistemicStatus: 'observation',
+      },
+      elements: [{ elementId: 'text-1', kind: 'text', payload: { text: 'hello' } }],
+    },
+  } as const;
+  await session.context.messaging.send('thread-1', draft);
+  session.context.log('info', 'provider connected', { connectorId: 'fixture-connector' });
 
-  adapter.releaseRegister();
-  await Promise.all([firstRejection, retryRejection, revocation]);
+  assert.deepEqual(adapter.calls.slice(-2), [
+    {
+      operation: 'messaging.send',
+      binding: BINDING,
+      value: { threadId: 'thread-1', ...draft },
+    },
+    {
+      operation: 'log.info',
+      binding: BINDING,
+      value: { message: 'provider connected', fields: { connectorId: 'fixture-connector' } },
+    },
+  ]);
 
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'register').length, 1);
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
-});
-
-test('failed late-receipt disposal stays owned by the revoked session for retry', async () => {
-  const adapter = new PausingRegisterAdapter();
-  const session = createFeatureContextSession(BINDING, adapter);
-  const registration = session.context.identity.register({ id: 'cat', displayName: 'Fixture cat' });
-  await adapter.registerStarted;
-  adapter.failNextDispose = true;
-  const revocation = session.revoke();
-  const registrationRejection = assert.rejects(registration, FeatureContextRevokedError);
-  const revocationRejection = assert.rejects(revocation, /transient disposal failure/);
-
-  adapter.releaseRegister();
-  await Promise.all([registrationRejection, revocationRejection]);
   await session.revoke();
-
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 2);
+  await assert.rejects(
+    session.context.messaging.send('thread-1', {
+      ...draft,
+      idempotencyKey: 'provider-message-2',
+    }),
+    FeatureContextRevokedError,
+  );
+  assert.throws(() => session.context.log('warn','late'), FeatureContextRevokedError);
 });
 
 test('Host operation results never cross a revoked context boundary', async (t) => {
@@ -579,8 +406,8 @@ test('Host operation results never cross a revoked context boundary', async (t) 
   }[] = [
     { operation: 'config.get', invoke: (context) => context.config.get('mode') },
     { operation: 'secrets.get', invoke: (context) => context.secrets.get('apiKey') },
-    { operation: 'state.get', invoke: (context) => context.state.get('cursor') },
-    { operation: 'state.set', invoke: (context) => context.state.set('cursor', { value: 1 }) },
+    { operation: 'storage.get', invoke: (context) => context.storage.get('cursor') },
+    { operation: 'storage.set', invoke: (context) => context.storage.set('cursor', { value: 1 }) },
   ];
 
   for (const scenario of cases) {
@@ -597,36 +424,47 @@ test('Host operation results never cross a revoked context boundary', async (t) 
   }
 });
 
-test('revocation disposes owned registrations and rejects stale context while leaving siblings live', async () => {
+test('wait patch delegates the full neutral snapshot and rejects a late result after revocation', async () => {
   const adapter = new RecordingAdapter();
-  const first = createFeatureContextSession(BINDING, adapter);
-  const sibling = createFeatureContextSession(
-    { ...BINDING, featureId: 'feature-2', activationRevision: 8, executionLease: 'sibling-lease' },
-    adapter,
-  );
-
-  await first.context.identity.register({ id: 'cat', displayName: 'Fixture cat' });
-  await first.revoke();
-  await first.revoke();
-  await assert.rejects(first.context.config.get('mode'), FeatureContextRevokedError);
-  await assert.rejects(
-    first.context.identity.register({ id: 'late', displayName: 'Late' }),
-    FeatureContextRevokedError,
-  );
-
-  assert.equal(await sibling.context.config.get('mode'), 'safe');
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 1);
+  let release!: () => void;
+  let began!: () => void;
+  const started = new Promise<void>(resolve => { began = resolve; });
+  const input = { expectedGeneration: 1, generation: 2, active: { expiresAt: 1234 },
+    outcome: { outcomeId: 'outcome-1', generation: 1, ownerFence: { kind: 'containing_task' as const, generation: 1 },
+      reason: 'matched' as const, delivery: 'pending' as const } };
+  Object.assign(adapter.tasks, { update: async (id: string, value: unknown) => {
+    assert.equal(id, 'task-1'); assert.deepEqual(value, {wait:input}); began();
+    await new Promise<void>(resolve => { release = resolve; }); return null;
+  } });
+  const session = createFeatureContextSession(BINDING, adapter);
+  const pending = session.context.tasks.update('task-1', { wait: input });
+  await started; await session.revoke();
+  const rejected = assert.rejects(pending, FeatureContextRevokedError);
+  release(); await rejected;
+  await assert.rejects(session.context.tasks.update('task-1', { wait: input }), FeatureContextRevokedError);
 });
 
-test('failed disposal keeps the revoked session retryable without reopening it', async () => {
+test('Task public surface has four ordinary methods and forwards selector, conflict and conditions intact', async () => {
   const adapter = new RecordingAdapter();
+  const calls: unknown[] = [];
+  Object.assign(adapter.tasks, {
+    get: async (selector: unknown) => {calls.push(['get',selector]);return null;},
+    list: async (filter: unknown) => {calls.push(['list',filter]);return [];},
+    create: async (input: unknown, options: unknown) => {calls.push(['create',input,options]);return {id:'task'};},
+    update: async (id: string, patch: unknown, conditions: unknown) => {calls.push(['update',id,patch,conditions]);return null;},
+  });
   const session = createFeatureContextSession(BINDING, adapter);
-  await session.context.identity.register({ id: 'cat', displayName: 'Fixture cat' });
-  adapter.failNextDispose = true;
-
-  await assert.rejects(session.revoke(), /transient disposal failure/);
-  await assert.rejects(session.context.config.get('mode'), FeatureContextRevokedError);
+  assert.deepEqual(Object.keys(session.context.tasks).sort(), ['create','get','list','update']);
+  await session.context.tasks.get({subjectKey:'work:one'});
+  await session.context.tasks.list({threadId:'thread',kind:'work'});
+  const input={threadId:'thread',title:'Work',subjectKey:'work:one'};
+  await session.context.tasks.create(input,{onConflict:'update'});
+  const wait={expectedGeneration:null,generation:1,active:null};
+  await session.context.tasks.update('task',{wait},{expectedThreadId:'thread'});
+  assert.deepEqual(calls,[['get',{subjectKey:'work:one'}],['list',{threadId:'thread',kind:'work'}],
+    ['create',input,{onConflict:'update'}],['update','task',{wait},{expectedThreadId:'thread'}]]);
+  await assert.rejects(session.context.tasks.update('task', {wait,title:'mixed'} as unknown as import('./module-host.js').PluginTaskUpdateInput), /wait.*mix/i);
+  assert.equal(calls.length,4,'mixed wait patch cannot enter a Host write');
   await session.revoke();
-
-  assert.equal(adapter.calls.filter((entry) => entry.operation === 'dispose').length, 2);
+  await assert.rejects(session.context.tasks.list({}),FeatureContextRevokedError);
 });

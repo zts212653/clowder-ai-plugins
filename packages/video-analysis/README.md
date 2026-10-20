@@ -1,72 +1,28 @@
-# Video Analysis
+# 视频分析
 
-`@clowder-ai/video-analysis` gives a Clowder AI Agent one read-only MCP tool for
-sending one remote HTTPS video URL and a prompt to the configured provider for
-analysis. The package owns the provider protocol and runs as a Host-supervised
-stdio process; installation, configuration, secret storage, grants, enablement,
-and lifecycle remain Host decisions.
+简体中文 · [English](README.en.md)
 
-## What it does
+让猫把一个远程 HTTPS 视频地址和问题发送给指定模型，返回文字分析。插件不在本地下载、转码或保存视频。
 
-The `video_analysis` tool accepts:
+## 开始使用
 
-- `videoUrl`: one HTTPS video URL without embedded credentials.
-- `prompt`: the question or analysis instruction sent with the video.
-- `mimeType`: an optional media type; it defaults to `video/mp4` for Gemini.
+1. 在插件设置选择 `gemini` 或 `zhipu`，填写 API 密钥。
+2. 选择 `authType`：`apikey` 使用 Bearer 认证，`query-param` 使用 URL 的 `key` 参数。按需设置可信的 HTTPS `baseUrl` 和 `model`。
+3. 保存并启用插件，再使用 `video_analysis_execute`。不要把密钥放进视频地址或提示词。
 
-The plugin asks the selected provider to analyze that remote URL and returns the
-provider's textual result. It does not download, transcode, index, or retain the
-video locally, and it does not grant itself access to Clowder AI messages,
-threads, memory, or files.
+工具接收 `capability` 与字符串值组成的 `vars`：
 
-## Configuration
-
-Configure the plugin through the Clowder AI Manager. Do not place credentials in
-a video URL or prompt.
-
-| Field | Required | Meaning |
+| 提供方 | 能力 | 变量 |
 | --- | --- | --- |
-| `provider` | Yes | `gemini` or `zhipu`. |
-| `apiKey` | Yes | Provider credential stored and injected by the Host as a secret. |
-| `baseUrl` | No | HTTPS provider-compatible API origin. Use only an origin you trust. |
-| `model` | No | Provider model override. |
+| Gemini | `analyze_url` | `videoUrl`、`prompt`，可选 `mimeType`，默认 `video/mp4`。 |
+| 智谱 | `analyze` | `videoUrl`、`prompt`。 |
 
-The manifest requests only `plugin.config.read` and `secret.read`. The Host must
-grant those capabilities before enabling the MCP contribution.
+包内默认模型分别为 `gemini-2.0-flash` 和 `glm-4.6v-flash`；实际模型可用性、额度、费用和数据政策以所选服务为准。
 
-## Provider defaults
+## 数据与失败处理
 
-| Provider | Default model | Default API origin | Documentation |
-| --- | --- | --- | --- |
-| Gemini | `gemini-2.0-flash` | `https://generativelanguage.googleapis.com` | [Gemini API](https://ai.google.dev/gemini-api/docs) |
-| Zhipu | `glm-4.6v-flash` | `https://open.bigmodel.cn` | [Zhipu visual models](https://docs.bigmodel.cn/cn/guide/models/vlm) |
+每次调用会把视频地址和问题发给配置的提供方，由对方获取视频。仅允许 HTTPS 视频地址，拒绝地址内嵌凭据。插件不读取聊天、记忆或本地文件，也不会绕过视频服务器访问控制。
 
-A custom model or base URL replaces the corresponding default. Provider model
-availability, URL-fetch support, quotas, billing, and data handling are governed
-by the selected provider.
+单次请求超时 30 秒，网络错误及 HTTP 429/500/502/503/504 最多重试两次；响应最多 4 MiB，必须是有效的 UTF-8 JSON。错误、非法地址或异常响应会明确失败。已知密钥原文及编码形式会从返回内容中清除。
 
-## Security and data flow
-
-For each invocation, the plugin sends the prompt and remote video URL to the
-configured provider. Gemini receives the API key as its documented `key` query
-parameter; Zhipu receives it as a bearer credential. Known raw and encoded forms
-of the key are scrubbed from returned errors and results.
-
-Only HTTPS video URLs are accepted, and embedded URL credentials are rejected.
-Provider base URLs must use HTTPS; a loopback HTTP origin is accepted only for
-isolated local fixtures. The runtime keeps no package-owned history or cache; the
-Host owns process supervision and any user-visible records around the tool call.
-
-## Limits and failure behavior
-
-- Each provider request has a 30-second timeout.
-- Network failures and HTTP 429/500/502/503/504 responses are retried twice, for
-  at most three attempts. A bounded `Retry-After` value is honored.
-- Provider response bodies are limited to 4 MiB and must be valid UTF-8 JSON.
-- Other HTTP failures, malformed provider responses, invalid configuration, and
-  invalid URLs fail closed and are returned as MCP tool errors.
-- The plugin relies on the provider fetching the remote URL; it does not upload
-  a local file or bypass the remote server's access controls.
-
-This package is an alpha release. Verify provider compatibility and data policy
-in an isolated environment before relying on it for sensitive workloads.
+宿主管理安装、授权、凭据和启停；配置保存不自动改变启用意图。英文文档是独立文件，互链不代表页面已支持自动语言切换。

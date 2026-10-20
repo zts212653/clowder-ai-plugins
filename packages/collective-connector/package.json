@@ -1,0 +1,55 @@
+{
+  "name": "@clowder-ai/collective-connector",
+  "version": "0.1.0-alpha.2",
+  "private": true,
+  "description": "Collective backend business and Host-loadable module",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./manifest": "./plugin.yaml"
+  },
+  "files": [
+    "dist",
+    "plugin.yaml",
+    "README.md",
+    "skills",
+    "README.en.md",
+    "assets",
+    "npm-shrinkwrap.json"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+    "test:lifecycle": "node --import tsx --test test/module-lifecycle.test.ts",
+    "test:transport": "node --import tsx --test test/transport-recovery.test.ts",
+    "test:business": "vitest run --maxWorkers=2 src/business",
+    "test:installed": "node --test test/installed-directory.test.mjs",
+    "test:source": "node --test test/source-continuity.test.mjs",
+    "test": "pnpm test:lifecycle && pnpm test:control && pnpm test:transport && pnpm test:business",
+    "prepack": "pnpm build",
+    "test:control": "node --import tsx --test test/owner-control.test.ts test/entry-control.test.ts test/participation-reconciler.test.ts test/context-refs.test.ts test/work-entry.test.ts test/accountability-attention.test.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.21",
+    "zod": "3.25.76",
+    "@clowder-ai/plugin-contract": "0.1.0-beta.37",
+    "@modelcontextprotocol/sdk": "1.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "vitest": "4.0.18",
+    "yaml": "2.9.0"
+  }
+}

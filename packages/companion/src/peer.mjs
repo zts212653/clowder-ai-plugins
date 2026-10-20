@@ -10,7 +10,7 @@ export class VoicePeer {
       }
     });
   }
-  async connect() { if (!this.closed) await this.client.connectAudio(); }
+  async connect(mode) { if (!this.closed) await this.client.connectAudio(mode); }
   muteMic(muted) { void this.client.muteMicrophone(muted).catch(() => this.failed()); }
   muteSpeaker(muted) { void this.client.muteSpeaker(muted).catch(() => this.failed()); }
   failed() { if (!this.closed) this.onEvent({ type: 'error', code: 'unavailable' }); }

@@ -24,6 +24,24 @@ export {
   type ManifestValidationResult,
 } from './manifest.js';
 export {
+  CLOUD_CONVERSATION_MAX_TEXT_BYTES,
+  isCloudBridgeFailureDiagnosticV1,
+  isCloudConversationAckInput,
+  isCloudConversationAckResult,
+  isCloudConversationAppendMessageInput,
+  isCloudConversationAppendMessageResult,
+  isCloudConversationListInput,
+  isCloudConversationListResult,
+  isCloudConversationTextBudget,
+  type CloudBridgeDomFingerprintV1,
+  type CloudBridgeFailureDiagnosticV1,
+} from './cloud-conversation-host.js';
+export {
+  validateOperationRowsResult,
+  type OperationRowsValidationError,
+  type OperationRowsValidationResult,
+} from './operation-rows.js';
+export {
   getCatalogPlugin,
   listCatalogPlugins,
   searchCatalogPlugins,
@@ -32,12 +50,7 @@ export {
   type CatalogValidationResult,
 } from './catalog.js';
 export {
-  SIGNAL_PAYLOAD_MAX_ENCODED_BYTES,
-  validateDeclaredEventsPublishInput,
-  validateEventsPublishInput,
-  validateEventsPublishResult,
   validateSignalDeclaration,
-  type SignalSchemaCatalog,
   type SignalValidationError,
   type SignalValidationResult,
 } from './signals.js';
@@ -47,3 +60,11 @@ export {
   validateDocxMaterializationRequest,
   validateDocxMaterializationResponse,
 } from './docx-materialization.js';
+
+
+
+
+export * from './members.js';
+
+
+export { isPluginDeliveryInput, isPluginDeliveryReceipt } from './messaging-wire.js';

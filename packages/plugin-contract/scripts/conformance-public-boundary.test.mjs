@@ -19,8 +19,7 @@ test('the built conformance boundary exports the stdio harness', async () => {
   assert.ok(Array.isArray(conformance.DISPOSITION_FIXTURE_VECTORS));
   assert.ok(Array.isArray(conformance.BETA8_HANDSHAKE_VECTOR_IDS));
   assert.ok(conformance.BETA8_HANDSHAKE_VECTOR_IDS.includes('T-L-5'));
-  assert.ok(Array.isArray(conformance.BETA10_LIFECYCLE_VECTOR_IDS));
-  assert.ok(conformance.BETA10_LIFECYCLE_VECTOR_IDS.includes('T-L-10'));
+  assert.equal(Object.hasOwn(conformance,'BETA10_LIFECYCLE_VECTOR_IDS'),false);
   assert.ok(Array.isArray(conformance.BETA11_MESSAGING_VECTOR_IDS));
   assert.equal(conformance.BETA11_MESSAGING_VECTOR_IDS.length, 39);
   assert.deepEqual(conformance.M0C_BEHAVIOR_CASE_IDS, [

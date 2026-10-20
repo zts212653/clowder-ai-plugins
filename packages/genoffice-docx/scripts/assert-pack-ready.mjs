@@ -50,10 +50,13 @@ assertPackEntries(packEntries);
 const packEntrySet = new Set(packEntries);
 for (const required of [
   'package/package.json',
+  'package/npm-shrinkwrap.json',
   'package/plugin.yaml',
   'package/manifest.json',
   'package/assets/icon.svg',
   'package/source-lock.json',
+  'package/README.md',
+  'package/README.en.md',
   'package/LICENSE',
   'package/NOTICE',
   'package/THIRD_PARTY_NOTICES.md',
@@ -68,10 +71,13 @@ for (const entry of packEntries) {
     !entry.startsWith('package/renderer/') &&
     ![
       'package/package.json',
+      'package/npm-shrinkwrap.json',
       'package/plugin.yaml',
       'package/manifest.json',
       'package/assets/icon.svg',
       'package/source-lock.json',
+      'package/README.md',
+      'package/README.en.md',
       'package/LICENSE',
       'package/NOTICE',
       'package/THIRD_PARTY_NOTICES.md',

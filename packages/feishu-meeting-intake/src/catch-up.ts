@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
+import type { FeishuArtifactNotification } from './artifact.js';
 
 import { normalizeGeneratedArtifact } from './artifact.js';
 import {
@@ -42,7 +42,7 @@ function decisionWindow(state: MeetingIntakeState) {
   return state.catchUp;
 }
 
-function fingerprint(events: readonly EventsPublishInput[]): string {
+function fingerprint(events: readonly FeishuArtifactNotification[]): string {
   return createHash('sha256').update(JSON.stringify(events)).digest('hex');
 }
 
@@ -80,7 +80,7 @@ export function createFeishuMeetingCatchUpService(
 
   async function scan(signal: AbortSignal): Promise<{
     readonly state: MeetingIntakeState;
-    readonly events: EventsPublishInput[];
+    readonly events: FeishuArtifactNotification[];
     readonly fingerprint: string;
   }> {
     const state = await options.store.load();

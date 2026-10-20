@@ -22,3 +22,18 @@ export function normalizeNativeWork(value, now = Date.now()) {
     travel: null,
   };
 }
+
+const workLabels = {
+  reasoning: '正在思考',
+  tool: '正在处理',
+  workspace: '正在处理家里的事务',
+  screen_reading: '正在查看共享画面',
+};
+
+/** Product wording for the same bounded work fact used by body motion. */
+export function nativeWorkLabel(snapshot, nativeActivity = 'none') {
+  const kind = snapshot
+    ? snapshot.work?.kind
+    : nativeActivity === 'reasoning' ? 'reasoning' : nativeActivity === 'tool_running' ? 'tool' : null;
+  return workLabels[kind] ?? '';
+}

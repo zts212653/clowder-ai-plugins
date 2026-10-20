@@ -9,13 +9,46 @@ function fixture() {
   return { container, view: new TranscriptView(container) };
 }
 const message = (id, text = id) => ({ id, role: 'user', name: '你', text });
+const companionIdentity = {
+  v: 1,
+  name: '猫猫球',
+  partner: { catId: 'fable-5', displayName: '宪宪', skin: 'xianxian-codex' },
+  live: { catId: 'codex-sol', displayName: '砚砚', transport: 'gpt_live_v3', verifiedModel: null },
+  deep: { catId: 'fable-5', displayName: '宪宪', verifiedModel: 'claude-fable-5-1' },
+};
+
+test('history keeps the real author visible beside the saved companion identity', () => {
+  const { view, container } = fixture();
+  view.load([{ ...message('m1', '查到了'), role: 'assistant', name: '砚砚', companionIdentity }]);
+  const row = container.children[0];
+  assert.equal(row.dataset.author, '砚砚');
+  assert.equal(row.dataset.companion, '当时由宪宪陪伴');
+  assert.match(row.dataset.companionLive, /Live 快端：砚砚 · 型号未核实/u);
+  assert.match(row.dataset.companionDeep, /深思端：宪宪 · claude-fable-5-1/u);
+  assert.match(row.title, /^砚砚/u);
+  assert.match(row.title, /当时由宪宪陪伴/u);
+});
+
+test('a reused legacy row clears saved identity instead of borrowing another message face', () => {
+  const { view, container } = fixture();
+  view.load([{ ...message('m1'), companionIdentity }]);
+  const original = container.children[0];
+  view.load([message('m1')]);
+  assert.equal(container.children[0], original);
+  assert.equal(original.dataset.author, '你');
+  assert.equal(original.dataset.companion, undefined);
+  assert.equal(original.dataset.companionLive, undefined);
+  assert.equal(original.dataset.companionDeep, undefined);
+  assert.equal(original.title, '你');
+});
 
 test('history refresh preserves the unfinished voice caption and its following chunks', () => {
   const { view, container } = fixture();
   view.load([message('old')]);
-  view.append('assistant', '正在', true);
+  const live = view.append('assistant', '正在', true);
+  assert.equal(live, container.children.at(-1), 'the caller receives the exact row written in this surface');
   view.load([message('old'), message('new')]);
-  view.append('assistant', '说话', true);
+  assert.equal(view.append('assistant', '说话', true), live);
   assert.deepEqual(container.children.map(row => row.textContent), ['old', 'new', '正在说话']);
   assert.equal(container.children.at(-1).dataset.live, 'true');
 });
@@ -56,6 +89,73 @@ test('history refresh restores an older reading position when DOM replacement re
   container.scrollTop = 240;
   view.load([message('old'), message('new')]);
   assert.equal(container.scrollTop, 240);
+});
+
+test('loading history while the transcript is hidden does not replace its saved reading position with zero geometry', () => {
+  const { view, container } = fixture();
+  container.hidden = true;
+  container.scrollTop = 240;
+  container.scrollHeight = 0;
+  container.clientHeight = 0;
+  view.load([message('old'), message('new')]);
+  assert.equal(container.scrollTop, 240);
+});
+
+test('showing history reveals the selected reply after its rows were loaded while hidden', () => {
+  const { view, container } = fixture();
+  container.hidden = true;
+  container.scrollHeight = 0;
+  container.clientHeight = 0;
+  container.getBoundingClientRect = () => ({ top: 0, bottom: container.clientHeight });
+  container.ownerDocument.createElement = () => ({
+    dataset: {}, textContent: '',
+    getBoundingClientRect() {
+      const top = container.children.indexOf(this) * 40 - container.scrollTop;
+      return { top, bottom: top + 40 };
+    },
+  });
+  const ids = Array.from({ length: 20 }, (_, index) => `m${index + 1}`);
+  view.load(ids.map(id => message(id)));
+
+  container.hidden = false;
+  container.clientHeight = 100;
+  container.scrollHeight = ids.length * 40;
+  view.enterHistory('m16');
+
+  const selected = container.children.find(row => row.dataset.messageId === 'm16').getBoundingClientRect();
+  assert(selected.bottom > 0 && selected.top < container.clientHeight,
+    `selected reply must be visible, got ${JSON.stringify(selected)}`);
+});
+
+test('reopening the same history selection restores its first visible row after a hidden refresh', () => {
+  const { view, container } = fixture();
+  container.clientHeight = 100;
+  container.scrollHeight = 800;
+  container.getBoundingClientRect = () => ({ top: 0, bottom: container.clientHeight });
+  container.ownerDocument.createElement = () => ({
+    dataset: {}, textContent: '',
+    getBoundingClientRect() {
+      const top = container.children.indexOf(this) * 40 - container.scrollTop;
+      return { top, bottom: top + 40 };
+    },
+  });
+  const ids = Array.from({ length: 20 }, (_, index) => `m${index + 1}`);
+  view.load(ids.map(id => message(id)));
+  container.scrollTop = 365;
+  const anchor = view.visibleHistoryAnchor();
+  view.leaveHistory('m16');
+
+  container.hidden = true;
+  container.scrollHeight = 0;
+  container.clientHeight = 0;
+  view.load([message('m0'), ...ids.map(id => message(id))]);
+  container.hidden = false;
+  container.scrollHeight = 840;
+  container.clientHeight = 100;
+  view.enterHistory('m16');
+
+  const restored = view.historyRows.get(anchor.id).getBoundingClientRect();
+  assert.equal(restored.top, anchor.offset);
 });
 
 test('a full 32-message window keeps the same visible message when its oldest row rotates out', () => {

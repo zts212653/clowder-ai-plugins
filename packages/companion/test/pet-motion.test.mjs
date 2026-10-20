@@ -74,6 +74,24 @@ test('dragging uses a truthful held candidate, cancels travel, and rereads curre
   assert.equal(f.element.dataset.action, 'working', 'the next Host snapshot restores only current truth');
 });
 
+test('observed native travel drives running without replacing Host work truth', () => {
+  const f = fixture();
+  f.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  f.motion.syncSnapshot({ work: null, delivery: null, travel: null });
+  f.motion.syncTravel({ eventId: 'native-1', status: 'active', dx: 12, dy: 0, expiresAt: 1_000 });
+  assert.equal(f.element.dataset.action, 'running-right');
+  f.motion.syncNativeSnapshot({ work: null, delivery: null, travel: null });
+  assert.equal(f.element.dataset.action, 'running-right', 'native work polling cannot erase measured window travel');
+  f.motion.syncNativeSnapshot({
+    work: { taskId: 'task-1', kind: 'tool', status: 'active', expiresAt: 1_000 },
+    delivery: null,
+    travel: { eventId: 'native-1', status: 'active', dx: 12, dy: 0, expiresAt: 1_000 },
+  });
+  assert.equal(f.element.dataset.action, 'working', 'real work remains higher priority than locomotion');
+  f.motion.syncTravel(null);
+  assert.equal(f.element.dataset.action, 'working');
+});
+
 test('structured Host work distinguishes tool, workspace and screen reading and expires without polling tricks', () => {
   const f = fixture();
   f.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
@@ -156,6 +174,23 @@ test('automatic pounce is opt-in, waits 90 seconds, respects a three-minute cool
   assert.notEqual(reduced.element.dataset.action, 'play');
 });
 
+test('persisted autonomous preference can enable later and disabling cancels automatic play immediately', () => {
+  const before = fixture(false);
+  before.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  before.motion.setBehaviorEnabled(true);
+  before.motion.setBehaviorEnabled(false);
+  before.tick(600_000);
+  assert.notEqual(before.element.dataset.action, 'play');
+
+  const active = fixture(false);
+  active.motion.setContext({ skin: 'xianxian-codex', phase: 'idle', nativeActivity: 'none', muted: false });
+  active.motion.setBehaviorEnabled(true);
+  active.tick(90_000);
+  assert.equal(active.element.dataset.action, 'play');
+  active.motion.setBehaviorEnabled(false);
+  assert.notEqual(active.element.dataset.action, 'play');
+});
+
 test('animation timers use the browser global receiver', () => {
   const timers = new Map();
   let nextId = 0;
@@ -228,5 +263,24 @@ test('waking and edge peeking yield to listening and real work', () => {
   assert.equal(shown.at(-1).action, 'waking', 'a generic connection signal cannot replace the living wake clip');
   motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'reasoning', muted: false });
   assert.equal(shown.at(-1).action, 'staged_thought');
+  motion.close();
+});
+
+test('edge posture remains visible while listening stays an orthogonal signal', () => {
+  const shown = [];
+  const body = { show(action, options) { shown.push({ action, options }); }, hide() {}, close() {} };
+  const motion = new PetMotion({ dataset: {}, style: {} }, { livingBody: body, reducedMotion: false,
+    setTimer() { return 1; }, clearTimer() {} });
+
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'none', muted: false });
+  assert.equal(motion.element.dataset.listening, 'true');
+  assert.equal(shown.at(-1).action, 'waiting');
+
+  motion.setDockedEdge({ edge: 'right', zone: 'mid' });
+  assert.equal(shown.at(-1).action, 'peek', 'docking remains a body posture during an active call');
+  assert.equal(motion.element.dataset.listening, 'true', 'voice state remains independently visible');
+
+  motion.setContext({ skin: 'xianxian-codex', phase: 'talking', nativeActivity: 'reasoning', muted: false });
+  assert.equal(shown.at(-1).action, 'staged_thought', 'truthful work still preempts the edge posture');
   motion.close();
 });

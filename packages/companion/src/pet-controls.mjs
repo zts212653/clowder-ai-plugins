@@ -1,31 +1,113 @@
 /** Transient controls. The Host owns native placement, movement and hiding. */
-export function bindPetControls(client, { action, error, changed, moved = () => {} }) {
+export function bindPetControls(client, {
+  action, error, changed, moved = () => {}, activate = () => false, escape = () => false,
+}) {
   const $ = id => document.getElementById(id);
   const body = $('pet');
-  let panel = 'none', ambient = false, layoutRevision = 0, drag, suppressClick = false;
+  const panelIds = ['actions', 'menu', 'chat', 'bubble', 'app-assist', 'decisions', 'transcript', 'settings'];
+  const callBubble = $('call-bubble');
+  const managedIds = [...panelIds, 'call-bubble'];
+  const desiredSizes = new WeakMap();
+  let panel = 'none', ambientPanel = 'none', layoutRevision = 0, layoutScheduled = false, drag, suppressClick = false;
+  const measure = node => {
+    if (!node) return { width: 120, height: 130 };
+    // Host placement is an applied cap, not the panel's desired geometry.
+    // Release it synchronously while measuring so CSS height and nested flex
+    // overflow can expose their natural demand, then restore it before paint.
+    const appliedMaxHeight = node.style.maxHeight;
+    node.style.maxHeight = '';
+    const desired = {
+      width: Math.min(420, Math.max(120, Math.ceil(Math.max(node.offsetWidth, node.scrollWidth)))),
+      height: Math.min(500, Math.max(32, Math.ceil(Math.max(node.offsetHeight, node.scrollHeight)))),
+    };
+    node.style.maxHeight = appliedMaxHeight;
+    return desired;
+  };
+  const hasCallBubble = () => callBubble?.querySelector('p:not([hidden])') !== null;
+  const callLayout = next => {
+    if (next !== 'actions') {
+      if (callBubble) callBubble.hidden = true;
+      return undefined;
+    }
+    const presentation = $('actions').dataset.presentation === 'controls' ? 'controls' : 'lite';
+    const call = { presentation };
+    if (callBubble && hasCallBubble()) {
+      callBubble.hidden = false;
+      call.bubble = measure(callBubble);
+    } else if (callBubble) callBubble.hidden = true;
+    return call;
+  };
+  const sizeKey = (desired, call) => [
+    desired.width, desired.height, call?.presentation ?? '',
+    call?.bubble?.width ?? '', call?.bubble?.height ?? '',
+  ].join(':');
   async function show(next) {
-    if (next === 'none' && ambient) next = 'bubble';
-    if (panel !== next && $(next)) $(next).style.maxHeight = '500px';
-    panel = next;
-    for (const id of ['actions', 'menu', 'chat', 'bubble', 'decisions']) $(id).hidden = id !== next;
-    body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(next)));
+    if (next === 'none' && ambientPanel !== 'none') next = ambientPanel;
+    const previousPanel = panel;
     const node = $(next);
+    panel = next;
+    for (const id of panelIds) $(id).hidden = id !== next;
+    body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(next)));
+    const call = callLayout(next);
+    const desired = measure(node);
+    if (node) desiredSizes.set(node, sizeKey(desired, call));
     const revision = ++layoutRevision;
     try {
-      const placed = await client.layout(next, Math.max(120, Math.ceil(node?.offsetWidth ?? 120)), Math.max(32, Math.ceil(node?.offsetHeight ?? 130)));
+      const placed = await client.layout(next, desired.width, desired.height, call);
       if (revision !== layoutRevision) return;
       $('anchor').style.left = `${placed.pet.x}px`; $('anchor').style.top = `${placed.pet.y}px`;
       if (node) { node.style.left = `${placed.panel.x}px`; node.style.top = `${placed.panel.y}px`; node.style.maxHeight = `${placed.panel.height}px`; }
-      if (next === 'chat') $('message').focus({ preventScroll: true });
-      if (next === 'decisions') $('decision-reload').focus({ preventScroll: true });
-      if (next === 'menu') $('menu').querySelector('button').focus({ preventScroll: true });
-      changed(next);
-    } catch (cause) { error(cause); }
+      if (callBubble) {
+        const visible = next === 'actions' && call?.bubble && placed.bubble;
+        callBubble.hidden = !visible;
+        if (visible) {
+          callBubble.style.left = `${placed.bubble.x}px`;
+          callBubble.style.top = `${placed.bubble.y}px`;
+          callBubble.style.maxHeight = `${placed.bubble.height}px`;
+        }
+      }
+      if (previousPanel !== next) {
+        if (next === 'chat') {
+          const mode = $('chat').dataset.replyMode;
+          const target = mode === 'reply'
+            ? ($('reply-close')?.hidden === false ? $('reply-close') : $('reply-retain'))
+            : mode === 'sent' ? $('reply-sent') : $('message');
+          target?.focus?.({ preventScroll: true });
+        }
+        if (next === 'transcript') $('call-message').focus({ preventScroll: true });
+        if (next === 'settings') $('settings-back').focus({ preventScroll: true });
+        if (next === 'decisions') $('decision-reload').focus({ preventScroll: true });
+        if (next === 'menu') $('menu').querySelector('button').focus({ preventScroll: true });
+        changed(next);
+      }
+    } catch (cause) {
+      if (revision !== layoutRevision) return;
+      panel = previousPanel;
+      for (const id of panelIds) $(id).hidden = id !== panel;
+      if (callBubble) callBubble.hidden = panel !== 'actions' || !hasCallBubble();
+      body.setAttribute('aria-expanded', String(!['none', 'bubble'].includes(panel)));
+      error(cause, { panel: next });
+    }
+  }
+  function remeasure() {
+    if (layoutScheduled) return;
+    layoutScheduled = true;
+    queueMicrotask(() => {
+      layoutScheduled = false;
+      const node = $(panel);
+      if (!node || node.hidden) return;
+      const call = callLayout(panel);
+      const desired = measure(node);
+      const key = sizeKey(desired, call);
+      if (desiredSizes.get(node) === key) return;
+      void show(panel);
+    });
   }
   body.onclick = event => {
     if (suppressClick) { suppressClick = false; return; }
     if (event.detail > 1) return;
-    void show(panel === 'actions' ? 'none' : 'actions');
+    if (activate('click')) return;
+    void show(panel === 'menu' ? 'none' : 'menu');
   };
   body.oncontextmenu = event => { event.preventDefault(); void show('menu'); };
   body.onkeydown = event => {
@@ -53,31 +135,44 @@ export function bindPetControls(client, { action, error, changed, moved = () => 
     if (!event.target.closest('#anchor, .floating')) void show('none');
   });
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && panel !== 'none') { event.preventDefault(); void show('none'); body.focus(); }
+    if (event.key === 'Escape' && panel !== 'none') {
+      event.preventDefault();
+      if (!escape(panel)) void show('none');
+      body.focus();
+    }
   });
   document.querySelectorAll('[data-action]').forEach(button => button.onclick = () => {
     const kind = button.dataset.action;
-    if (kind === 'write' || kind === 'history') { void show('chat'); return; }
+    if (kind === 'write' || kind === 'history') { action(kind); void show('chat'); return; }
+    if (kind === 'transcript') { void show('transcript'); return; }
+    if (kind === 'settings') { void show('settings'); return; }
     if (kind === 'decisions') { void show('decisions'); return; }
     if (kind === 'dismiss') { void show('none'); return; }
     action(kind);
   });
-  const sizes = new WeakMap();
-  const observer = new ResizeObserver(entries => {
-    for (const entry of entries) {
-      const size = `${entry.contentRect.width}:${entry.contentRect.height}`;
-      const previous = sizes.get(entry.target); sizes.set(entry.target, size);
-      if (previous && previous !== size && entry.target.id === panel && !entry.target.hidden) void show(panel);
-    }
+  const observer = new MutationObserver(records => {
+    const current = $(panel);
+    if (!current || current.hidden) return;
+    // Root visibility is already handled by show(). Descendant visibility and
+    // text/row mutations are content demand and may require a larger surface.
+    if (records.some(record => record.type !== 'attributes' || !managedIds.includes(record.target.id))) remeasure();
   });
-  for (const id of ['actions', 'menu', 'chat', 'bubble', 'decisions']) observer.observe($(id));
+  for (const id of panelIds) observer.observe($(id), {
+    subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden'],
+  });
+  if (callBubble) observer.observe(callBubble, {
+    subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden'],
+  });
   window.addEventListener('beforeunload', () => observer.disconnect());
   return {
-    get panel() { return panel; }, show,
-    setAmbient(enabled) {
-      if (ambient === enabled) return Promise.resolve();
-      ambient = enabled;
-      return ['none', 'bubble'].includes(panel) ? show('none') : Promise.resolve();
+    get panel() { return panel; }, show, remeasure,
+    setAmbient(value) {
+      const next = value === true ? 'bubble' : value === false ? 'none' : value;
+      const ambientPanels = ['none', 'bubble', 'actions', 'app-assist'];
+      if (!ambientPanels.includes(next)) return Promise.resolve();
+      if (ambientPanel === next) return Promise.resolve();
+      ambientPanel = next;
+      return ambientPanels.includes(panel) ? show('none') : Promise.resolve();
     },
     dismiss() { if (drag) suppressClick = true; void show('none'); },
   };

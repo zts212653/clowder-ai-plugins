@@ -1,14 +1,20 @@
+import { createStreamsClient, type PluginStreams } from './streams.js';
+import { projectTaskRead, projectTaskReadList } from './task-read.js';
+import { createMessageReader, type PluginMessage } from './message-read.js';
+import { createMemberClient, type PluginMemberHost } from './members.js';
+import type { PluginHostActionContext } from './host-action-context.js';
 import {
   validateManifest,
   type Capability,
+  type CloudConversationHostContribution,
   type ContentEditorProviderContribution,
-  type ConnectorContribution,
   type DirectToolContribution,
   type DesktopWindowContribution,
   type IdentityContribution,
   type LimbContribution,
   type McpContribution,
   type MessageSubscriptionContribution,
+  type MediaSourceContribution,
   type PluginManifest,
   type ScheduleContribution,
   type ServiceContribution,
@@ -17,6 +23,16 @@ import {
   type UiContribution,
   type WebhookContribution,
 } from '@clowder-ai/plugin-contract';
+import type {
+  ModulePluginLogLevel,
+  PluginMessagingDraft,
+  PluginMessagingHost,
+  PluginMessagingSubscribeOptions,
+  PluginStorageHost,
+  PluginTaskHost,
+  PluginThreadHost,
+} from './module-host.js';
+
 
 export interface FeatureBinding {
   readonly pluginInstanceId: string;
@@ -26,25 +42,46 @@ export interface FeatureBinding {
   readonly activationRevision: number;
   readonly grantRevision: number;
   readonly grantedCapabilities: readonly Capability[];
+  /**
+   * Absolute path of the Host-provisioned data directory. Present only when the
+   * owning instance starts and the manifest
+   * declares runtime.dataDirectory.
+   */
+  readonly dataPath?: string;
   /** Opaque Host-issued authority. SDK code transports it but never interprets it. */
   readonly executionLease: string;
 }
 
-export interface HostContributionReceipt {
-  readonly registrationId: string;
-  readonly registryRevision: number;
-}
+export type PluginLogLevel = ModulePluginLogLevel;
 
 export interface FeatureHostAdapter {
+  getMessage(messageId: string): Promise<PluginMessage | null>;
+  readonly members?: PluginMemberHost;
   readConfig(binding: FeatureBinding, key: string): Promise<unknown>;
-  readSecret(binding: FeatureBinding, key: string): Promise<string>;
-  readState(binding: FeatureBinding, key: string): Promise<unknown>;
-  writeState(binding: FeatureBinding, key: string, value: unknown): Promise<void>;
-  registerContribution(
+  readSecret(binding: FeatureBinding, key: string): Promise<string | undefined>;
+  readonly storage: PluginStorageHost;
+  readonly tasks: PluginTaskHost;
+  readonly threads: PluginThreadHost;
+  sendMessage(
     binding: FeatureBinding,
-    contribution: StaticContribution,
-  ): Promise<HostContributionReceipt>;
-  disposeContribution(binding: FeatureBinding, receipt: HostContributionReceipt): Promise<void>;
+    threadId: string,
+    input: PluginMessagingDraft,
+  ): ReturnType<PluginMessagingHost['send']>;
+  subscribeMessage(
+    binding: FeatureBinding,
+    input: Parameters<PluginMessagingHost['subscribe']>[0],
+  ): ReturnType<PluginMessagingHost['subscribe']>;
+  unsubscribeMessage(
+    binding: FeatureBinding,
+    input: Parameters<PluginMessagingHost['unsubscribe']>[0],
+  ): ReturnType<PluginMessagingHost['unsubscribe']>;
+  readonly streams: PluginStreams;
+  log(
+    binding: FeatureBinding,
+    level: PluginLogLevel,
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ): void;
 }
 
 export class FeatureContextRevokedError extends Error {
@@ -54,48 +91,48 @@ export class FeatureContextRevokedError extends Error {
   }
 }
 
-export class ContributionConflictError extends Error {
-  constructor(key: string) {
-    super(`contribution ${key} is already registered with a different payload`);
-    this.name = 'ContributionConflictError';
+export class FeaturePermissionError extends Error {
+  readonly code = 'PERMISSION' as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'FeaturePermissionError';
   }
 }
 
-export interface ContributionRegistration {
-  readonly key: string;
-  readonly receipt: HostContributionReceipt;
-  dispose(): Promise<void>;
-}
-
-type RegistrationInput<T extends StaticContribution> = T extends unknown ? Omit<T, 'type'> : never;
-
-export interface ContributionRegistrar<T extends StaticContribution> {
-  register(input: RegistrationInput<T>): Promise<ContributionRegistration>;
-}
-
 export interface FeatureContext {
+  /** Host installation attribution. This id grants no operation or business authority. */
+  readonly pluginInstanceId: string;
+  /** One ordinary Host member directory, guarded by thread.listMetadata. */
+  readonly members?: PluginMemberHost;
   readonly featureId: string;
   readonly config: { get(key: string): Promise<unknown> };
-  readonly secrets: { get(key: string): Promise<string> };
-  readonly state: {
-    get(key: string): Promise<unknown>;
-    set(key: string, value: unknown): Promise<void>;
-  };
-  readonly identity: ContributionRegistrar<IdentityContribution>;
-  readonly scheduler: ContributionRegistrar<ScheduleContribution>;
-  readonly tools: ContributionRegistrar<DirectToolContribution>;
-  readonly mcp: ContributionRegistrar<McpContribution>;
-  readonly skills: ContributionRegistrar<SkillContribution>;
-  readonly limbs: ContributionRegistrar<LimbContribution>;
-  readonly webhooks: ContributionRegistrar<WebhookContribution>;
+  readonly secrets: { get(key: string): Promise<string | undefined> };
+  readonly storage: PluginStorageHost;
+  readonly tasks: PluginTaskHost;
+  readonly threads: PluginThreadHost;
   readonly messaging: {
-    readonly subscribe: ContributionRegistrar<MessageSubscriptionContribution>['register'];
+    readonly get: (messageId: string) => Promise<PluginMessage | null>;
+    readonly subscribe: (
+      threadId: string,
+      options?: PluginMessagingSubscribeOptions,
+    ) => Promise<void>;
+    readonly unsubscribe: (threadId: string) => Promise<void>;
+    readonly send: (
+      threadId: string,
+      input: PluginMessagingDraft,
+    ) => ReturnType<PluginMessagingHost['send']>;
   };
-  readonly services: ContributionRegistrar<ServiceContribution>;
-  readonly connectors: ContributionRegistrar<ConnectorContribution>;
-  readonly ui: ContributionRegistrar<UiContribution>;
-  readonly contentEditors: ContributionRegistrar<ContentEditorProviderContribution>;
-  readonly windows: ContributionRegistrar<DesktopWindowContribution>;
+  readonly streams: PluginStreams;
+  /**
+   * Stable Host-provisioned instance data path. Access checks instance lifetime.
+   */
+  readonly dataPath: string;
+  readonly log: (
+    level: PluginLogLevel,
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ) => void;
 }
 
 export interface FeatureContextSession {
@@ -103,13 +140,12 @@ export interface FeatureContextSession {
   revoke(): Promise<void>;
 }
 
-interface ActiveRegistration {
-  readonly digest: string;
-  readonly promise: Promise<ContributionRegistration>;
-  disposePromise?: Promise<void>;
+export interface FeatureContextSessionOptions {
+  readonly messageSubscriptions?: readonly MessageSubscriptionContribution[];
 }
 
-function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
+/** @internal Stable JSON identity shared by contribution validation and module startup. */
+export function canonicalJson(value: unknown, ancestors = new Set<object>()): string {
   if (value === null) return 'null';
   if (typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number' && Number.isFinite(value)) return JSON.stringify(value);
@@ -163,82 +199,15 @@ function deepFreeze<T>(value: T): T {
 export function createFeatureContextSession(
   binding: FeatureBinding,
   adapter: FeatureHostAdapter,
+  options: FeatureContextSessionOptions = {},
 ): FeatureContextSession {
   let revoked = false;
   let revokePromise: Promise<void> | undefined;
-  const active = new Map<string, ActiveRegistration>();
+  const lifetime = new AbortController();
 
   const assertActive = (): void => {
     if (revoked) throw new FeatureContextRevokedError();
   };
-
-  const register = async <T extends StaticContribution>(
-    type: T['type'],
-    input: RegistrationInput<T>,
-  ): Promise<ContributionRegistration> => {
-    assertActive();
-    const digest = canonicalJson({ ...input, type });
-    // Dispatch exactly the JSON snapshot used for identity; cloning first can
-    // silently erase non-JSON keys, while reading twice can invoke changing getters.
-    const contribution = deepFreeze(JSON.parse(digest)) as unknown as T;
-    const key = `${type}:${contribution.id}`;
-    const existing = active.get(key);
-    if (existing !== undefined) {
-      if (existing.disposePromise !== undefined) {
-        await existing.disposePromise.catch(() => undefined);
-        assertActive();
-        return register<T>(type, input);
-      }
-      if (existing.digest !== digest) throw new ContributionConflictError(key);
-      const registration = await existing.promise;
-      if (revoked) {
-        await registration.dispose().catch(() => undefined);
-        throw new FeatureContextRevokedError();
-      }
-      return registration;
-    }
-
-    let entry: ActiveRegistration;
-    const promise = adapter.registerContribution(binding, contribution).then((receipt) => {
-      const registration: ContributionRegistration = {
-        key,
-        receipt,
-        dispose: () => {
-          if (entry.disposePromise !== undefined) return entry.disposePromise;
-          entry.disposePromise = adapter.disposeContribution(binding, receipt).then(
-            () => {
-              if (active.get(key) === entry) active.delete(key);
-            },
-            (error: unknown) => {
-              entry.disposePromise = undefined;
-              throw error;
-            },
-          );
-          return entry.disposePromise;
-        },
-      };
-      return registration;
-    });
-    entry = { digest, promise };
-    active.set(key, entry);
-    let registered = false;
-    try {
-      const registration = await promise;
-      registered = true;
-      if (revoked) {
-        await registration.dispose().catch(() => undefined);
-        throw new FeatureContextRevokedError();
-      }
-      return registration;
-    } catch (error) {
-      if (!registered && active.get(key) === entry) active.delete(key);
-      throw error;
-    }
-  };
-
-  const registrar = <T extends StaticContribution>(type: T['type']): ContributionRegistrar<T> => ({
-    register: (input) => register<T>(type, input),
-  });
 
   const runWhileActive = async <T>(operation: () => Promise<T>): Promise<T> => {
     assertActive();
@@ -250,35 +219,111 @@ export function createFeatureContextSession(
   const readConfig = async (key: string): Promise<unknown> => {
     return runWhileActive(() => adapter.readConfig(binding, key));
   };
-  const readSecret = async (key: string): Promise<string> => {
+  const readSecret = async (key: string): Promise<string | undefined> => {
     return runWhileActive(() => adapter.readSecret(binding, key));
   };
-  const readState = async (key: string): Promise<unknown> => {
-    return runWhileActive(() => adapter.readState(binding, key));
+
+  const storage: PluginStorageHost = {
+    get: (key) => runWhileActive(() => adapter.storage.get(key)),
+    list: () => runWhileActive(() => adapter.storage.list()),
+    set: (key, value) => runWhileActive(() => adapter.storage.set(key, value)),
+    compareAndSet: (key, expectedRevision, value) =>
+      runWhileActive(() => adapter.storage.compareAndSet(key, expectedRevision, value)),
+    delete: (key, expectedRevision) =>
+      runWhileActive(() => adapter.storage.delete(key, expectedRevision)),
   };
-  const writeState = async (key: string, value: unknown): Promise<void> => {
-    return runWhileActive(() => adapter.writeState(binding, key, value));
+  const tasks: PluginTaskHost = {
+    get: selector => runWhileActive(async () => projectTaskRead(await adapter.tasks.get(selector))),
+    list: filter => runWhileActive(async () => projectTaskReadList(await adapter.tasks.list(filter))),
+    create: (input, options) => runWhileActive(() => adapter.tasks.create(input, options)),
+    update: (taskId, patch, conditions) => runWhileActive(() => {
+      if (Object.hasOwn(patch, 'wait') && Object.keys(patch).some(key => key !== 'wait'))
+        throw new TypeError('Task wait patch cannot mix other fields');
+      return adapter.tasks.update(taskId, patch, conditions);
+    }),
+  };
+  const threads: PluginThreadHost = {
+    get: (threadId) => runWhileActive(() => adapter.threads.get(threadId)),
+    list: (options) => runWhileActive(() => adapter.threads.list(options)),
+    readMessages: (threadId, options) => runWhileActive(() => adapter.threads.readMessages(threadId, options)),
+    getCats: (threadId) => runWhileActive(() => adapter.threads.getCats(threadId)),
+    addParticipants: (input) => runWhileActive(() => adapter.threads.addParticipants(input)),
+    create: (input) => runWhileActive(() => adapter.threads.create(input)),
+    update: (threadId, patch) => runWhileActive(() => adapter.threads.update(threadId, patch)),
+  };
+  const assertContentAccess = () => {
+    assertActive();
+    if (!binding.grantedCapabilities.includes('thread.readContent')) throw new FeaturePermissionError('thread.readContent not granted');
+  };
+  const getMessage = createMessageReader(messageId => adapter.getMessage(messageId), assertContentAccess);
+  const members = adapter.members === undefined ? undefined : createMemberClient(adapter.members, () => {
+    assertActive();
+    if (!binding.grantedCapabilities.includes('thread.listMetadata')) throw new FeaturePermissionError('thread.listMetadata not granted');
+  });
+  const sendMessage = (threadId: string, input: PluginMessagingDraft) =>
+    runWhileActive(() => adapter.sendMessage(binding, threadId, input));
+  const subscribeMessage = (
+    threadId: string,
+    subscriptionOptions: PluginMessagingSubscribeOptions = {},
+  ): Promise<void> => {
+    const candidates = options.messageSubscriptions ?? [];
+    const contribution = subscriptionOptions.contributionId === undefined
+      ? candidates.length === 1 ? candidates[0] : undefined
+      : candidates.find((candidate) => candidate.id === subscriptionOptions.contributionId);
+    if (contribution === undefined) {
+      const reason = candidates.length === 0
+        ? 'feature declares no message-subscription contribution'
+        : subscriptionOptions.contributionId === undefined
+          ? 'feature declares multiple message-subscription contributions; contributionId is required'
+          : `message-subscription ${subscriptionOptions.contributionId} is not declared by this feature`;
+      return Promise.reject(new TypeError(reason));
+    }
+    return runWhileActive(() => adapter.subscribeMessage(binding, {
+      threadId,
+      method: contribution.action.method,
+      ...(subscriptionOptions.includeOwnMessages === undefined
+        ? {}
+        : { includeOwnMessages: subscriptionOptions.includeOwnMessages }),
+    }));
+  };
+  const unsubscribeMessage = (threadId: string): Promise<void> =>
+    runWhileActive(() => adapter.unsubscribeMessage(binding, { threadId }));
+  const streams = createStreamsClient({read: (reference, options) => adapter.streams.read(reference, options)}, () => {
+    assertActive();
+    if (!binding.grantedCapabilities.includes('streams.read')) throw new FeaturePermissionError('streams.read not granted');
+  }, lifetime.signal);
+
+  const log = (
+    level: PluginLogLevel,
+    message: string,
+    fields?: Readonly<Record<string, unknown>>,
+  ): void => {
+    assertActive();
+    adapter.log(binding, level, message, fields);
   };
 
-  const subscriptions = registrar<MessageSubscriptionContribution>('message-subscription');
   const context: FeatureContext = {
+    get pluginInstanceId() {
+      assertActive();
+      if (typeof binding.pluginInstanceId !== 'string' || !binding.pluginInstanceId.trim())
+        throw new TypeError('Host installed plugin instance id is unavailable');
+      return binding.pluginInstanceId;
+    },
+    ...(members ? { members } : {}),
     featureId: binding.featureId,
     config: { get: readConfig },
     secrets: { get: readSecret },
-    state: { get: readState, set: writeState },
-    identity: registrar<IdentityContribution>('identity'),
-    scheduler: registrar<ScheduleContribution>('schedule'),
-    tools: registrar<DirectToolContribution>('tool'),
-    mcp: registrar<McpContribution>('mcp'),
-    skills: registrar<SkillContribution>('skill'),
-    limbs: registrar<LimbContribution>('limb'),
-    webhooks: registrar<WebhookContribution>('webhook'),
-    messaging: { subscribe: subscriptions.register },
-    services: registrar<ServiceContribution>('service'),
-    connectors: registrar<ConnectorContribution>('connector'),
-    ui: registrar<UiContribution>('ui'),
-    contentEditors: registrar<ContentEditorProviderContribution>('content-editor-provider'),
-    windows: registrar<DesktopWindowContribution>('desktop-window'),
+    storage,
+    tasks,
+    threads,
+    messaging: { get: getMessage, subscribe: subscribeMessage, unsubscribe: unsubscribeMessage, send: sendMessage },
+    streams,
+    get dataPath(): string {
+      assertActive();
+      if (!binding.dataPath) throw new TypeError('Host dataPath is unavailable');
+      return binding.dataPath;
+    },
+    log,
   };
 
   return {
@@ -286,30 +331,182 @@ export function createFeatureContextSession(
     revoke: () => {
       revoked = true;
       if (revokePromise !== undefined) return revokePromise;
-      revokePromise = Promise.all(
-        [...active.values()].map(async (entry) => (await entry.promise).dispose()),
-      ).then(
-        () => undefined,
-        (error: unknown) => {
-          revokePromise = undefined;
-          throw error;
-        },
-      );
+      lifetime.abort(new FeatureContextRevokedError());
+      revokePromise = Promise.resolve();
       return revokePromise;
     },
   };
 }
 
-export type FeatureActivator = (context: FeatureContext) => void | Promise<void>;
+export type PluginActionHandler = (input: unknown, context?: import('./module-action-client.js').PluginActionContext, hostContext?: PluginHostActionContext) => unknown | Promise<unknown>;
 
-export interface PluginDefinitionInput {
+export interface FeatureActivation {
+  readonly streams?: PluginStreams;
+  configRefresh?(): void | Promise<void>;
+  preStop?(context: import('./module-host.js').PluginPreStopContext): void | Promise<void>;
+  readonly actions?: Readonly<Record<string, PluginActionHandler>>;
+  dispose?(): void | Promise<void>;
+}
+
+export type FeatureActivator = (
+  context: FeatureContext,
+) => void | FeatureActivation | Promise<void | FeatureActivation>;
+
+interface PluginDefinitionHooks {
+  preStart?(host: import('./module-host.js').ModulePluginHostShape): void | Promise<void>;
+  preUninstall?(host: import('./module-host.js').ModulePluginSettingsHost): void | Promise<void>;
+  uninstall?(host: import('./module-host.js').ModulePluginSettingsHost): void | Promise<void>;
+}
+export interface PluginDefinitionInput extends PluginDefinitionHooks {
   readonly manifest: unknown;
   readonly activate?: Readonly<Record<string, FeatureActivator>>;
 }
 
-export interface DefinedPlugin {
+export interface DefinedPlugin extends PluginDefinitionHooks {
   readonly manifest: PluginManifest;
   readonly activate: Readonly<Record<string, FeatureActivator>>;
+}
+
+export interface ActivePluginFeature {
+  readonly streams?: PluginStreams;
+  configRefresh?(): void | Promise<void>;
+  preStop?(context: import('./module-host.js').PluginPreStopContext): void | Promise<void>;
+  readonly actions: Readonly<Record<string, PluginActionHandler>>;
+  dispose(): Promise<void>;
+}
+
+export interface ActivePluginFeatureOptions {
+  /** CallbackAction methods declared outside a feature contribution (operation/test). */
+  readonly additionalMethods?: ReadonlySet<string>;
+  /** Limb handler names live in limb YAML, so the SDK passes extra handlers through. */
+  readonly allowLimbHandlers?: boolean;
+}
+
+function actionMethods(contribution: StaticContribution): readonly string[] {
+  switch (contribution.type) {
+    case 'mcp':
+      return (contribution.actions ?? []).map(action => action.method);
+    case 'schedule':
+    case 'tool':
+    case 'webhook':
+      return [contribution.action.method];
+    case 'message-subscription':
+      return [contribution.action.method];
+    case 'media-source':
+      return [];
+    case 'service':
+      return [contribution.healthMethod];
+    case 'cloud-conversation-host':
+      return [
+        contribution.appendMessage.method,
+        contribution.assistantReturns.list.method,
+        contribution.assistantReturns.ack.method,
+      ];
+    case 'ui':
+      return contribution.kind === 'command' ? [contribution.action.method] : [];
+    default:
+      return [];
+  }
+}
+
+export function featureActionMethods(manifest: PluginManifest, featureId: string): ReadonlySet<string> {
+  const feature = manifest.features.find((candidate) => candidate.id === featureId);
+  if (feature === undefined) throw new TypeError(`feature ${featureId} is not declared by the plugin manifest`);
+  const keys = new Set((feature.contributions ?? []).map((item) => `${item.type}:${item.id}`));
+  return new Set(
+    (manifest.contributions ?? [])
+      .filter((contribution) => keys.has(`${contribution.type}:${contribution.id}`))
+      .flatMap(actionMethods),
+  );
+}
+
+/** Activate one Host-authorized feature and close its method/disposal surface. */
+export async function activateDefinedFeature(
+  plugin: DefinedPlugin,
+  featureId: string,
+  context: FeatureContext,
+  options: ActivePluginFeatureOptions = {},
+): Promise<ActivePluginFeature> {
+  if (context.featureId !== featureId) {
+    throw new TypeError(`feature context ${context.featureId} cannot activate ${featureId}`);
+  }
+  const activate = plugin.activate[featureId];
+  if (activate === undefined) {
+    throw new TypeError(`feature ${featureId} has no package activator`);
+  }
+  const result = await activate(context);
+  const activation = result ?? {};
+  const disposeActivation = activation.dispose ?? (() => undefined);
+  const rawActions = Object.freeze({ ...(activation.actions ?? {}) });
+  const actions = rawActions;
+  const requiredMethods = featureActionMethods(plugin.manifest, featureId);
+  const allowedMethods = new Set(requiredMethods);
+  for (const method of options.additionalMethods ?? []) allowedMethods.add(method);
+  const undeclared = options.allowLimbHandlers === true
+    ? undefined
+    : Object.keys(actions).find((method) => !allowedMethods.has(method));
+  if (undeclared !== undefined) {
+    await Promise.resolve(disposeActivation()).catch(() => undefined);
+    throw new TypeError(`action handler ${undeclared} is not declared by feature ${featureId}`);
+  }
+  const missing = [...requiredMethods].find((method) => actions[method] === undefined);
+  if (missing !== undefined) {
+    await Promise.resolve(disposeActivation()).catch(() => undefined);
+    throw new TypeError(`declared action ${missing} has no handler for feature ${featureId}`);
+  }
+  let disposed = false;
+  const ownerWebhooks = (plugin.manifest.contributions ?? []).filter(
+    (contribution): contribution is WebhookContribution => contribution.type === 'webhook',
+  );
+  const guardedActions = Object.freeze(Object.fromEntries(Object.entries(actions).map(([method, handler]) => [method,
+    async (input: unknown, nativeContext?: import('./module-action-client.js').PluginActionContext, hostContext?: PluginHostActionContext) => {
+      const assertCall = async () => {
+        if (disposed) throw new FeatureContextRevokedError();
+        if (hostContext && (hostContext.kind !== 'owner-operation' && hostContext.kind !== 'owner-http-request'))
+          throw new FeaturePermissionError('unknown Host action context');
+        if (hostContext?.kind === 'owner-http-request') {
+          if (nativeContext !== undefined || !hostContext.userId || !hostContext.pluginInstanceId ||
+            !['read', 'write'].includes(hostContext.operation))
+            throw new FeaturePermissionError('owner HTTP caller is invalid');
+          const request = hostContext.requestIdentity;
+          if (!ownerWebhooks.some(webhook => webhook.action.method === method &&
+            (request === undefined || webhook.id === request.contributionId && webhook.path === request.declaredPath &&
+              webhook.methods.some(verb => verb === request.method))))
+            throw new FeaturePermissionError('owner HTTP call does not match its declared webhook');
+          if (request && (request.kind !== 'owner_http' || !request.requestId ||
+            request.userId !== hostContext.userId || request.pluginInstanceId !== hostContext.pluginInstanceId ||
+            request.pluginId !== plugin.manifest.pluginId ||
+            (request.method === 'GET' ? 'read' : 'write') !== hostContext.operation))
+            throw new FeaturePermissionError('owner HTTP descriptor is inconsistent');
+        }
+        if (hostContext?.kind === 'owner-operation') {
+          if (nativeContext !== undefined || !hostContext.userId || !hostContext.pluginInstanceId || !hostContext.requestId)
+            throw new FeaturePermissionError('owner-operation caller is invalid');
+          const operation = plugin.manifest.configuration?.find(field => field.kind === 'operation' && field.key === hostContext.operationKey);
+          if (!operation || operation.kind !== 'operation' || !operation.actions.some(action =>
+            action.id === hostContext.actionId && action.action.method === method))
+            throw new FeaturePermissionError('owner-operation tuple does not match its declared method');
+        }
+        if (hostContext) { hostContext.signal.throwIfAborted(); await hostContext.assertCurrent(); }
+        if (disposed) throw new FeatureContextRevokedError();
+      };
+      await assertCall();
+      const result = await handler(input, nativeContext, hostContext);
+      await assertCall(); return result;
+    },
+  ])));
+  let disposePromise: Promise<void> | undefined;
+  return Object.freeze({
+    actions: guardedActions,
+    ...(activation.streams ? {streams: createStreamsClient(activation.streams, () => { if (disposed) throw new FeatureContextRevokedError(); })} : {}),
+    ...(activation.configRefresh ? {configRefresh: () => activation.configRefresh!()} : {}),
+    ...(activation.preStop ? {preStop: (input: import('./module-host.js').PluginPreStopContext) => activation.preStop!(input)} : {}),
+    dispose: () => {
+      disposed = true;
+      disposePromise ??= Promise.resolve().then(() => disposeActivation());
+      return disposePromise;
+    },
+  });
 }
 
 /** Validate one manifest truth and bind only activators for declared feature IDs. */
@@ -326,5 +523,9 @@ export function definePlugin(input: PluginDefinitionInput): DefinedPlugin {
     }
   }
   const manifest = deepFreeze(structuredClone(validation.manifest));
-  return Object.freeze({ manifest, activate: Object.freeze({ ...activate }) });
+  return Object.freeze({ manifest, activate: Object.freeze({ ...activate }),
+    ...(input.preStart ? {preStart: input.preStart} : {}),
+    ...(input.preUninstall ? {preUninstall: input.preUninstall} : {}),
+    ...(input.uninstall ? {uninstall: input.uninstall} : {}),
+  });
 }

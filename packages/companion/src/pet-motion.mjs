@@ -1,29 +1,6 @@
 import { isLivingClip } from './living-body.mjs';
 import { MotionFacts } from './motion-facts.mjs';
-
-// F229 pet.json frame durations, plus the three F258 rows pinned in source-lock.json.
-const atlas = {
-  idle: { row: 0, frames: [1200, 400, 400, 500, 500, 800] },
-  'running-right': { row: 1, frames: [120, 120, 120, 120, 120, 120, 120, 220] },
-  'running-left': { row: 2, frames: [120, 120, 120, 120, 120, 120, 120, 220] },
-  waving: { row: 3, frames: [140, 140, 140, 280] },
-  jumping: { row: 4, frames: [140, 140, 140, 140, 280] },
-  failed: { row: 5, frames: [140, 140, 140, 140, 140, 140, 140, 240] },
-  waiting: { row: 6, frames: [150, 150, 150, 150, 150, 260] },
-  running: { row: 7, frames: [120, 120, 120, 120, 120, 220] },
-  review: { row: 8, frames: [150, 150, 150, 150, 150, 280] },
-};
-const additional = {
-  sleeping: { file: 'xianxian-sleeping-row.png', frames: [700, 700, 700, 700, 700, 700] },
-  working: { file: 'xianxian-working-row.png', frames: [520, 560, 520, 640, 520, 560, 520, 640] },
-  staged_thought: { file: 'xianxian-staged-thought-row.png', frames: [1200, 500, 700, 900, 1200, 500] },
-};
-const visualAlias = { fetching: 'working', studying: 'staged_thought', delivering: 'review', held: 'idle' };
-const workAction = { reasoning: 'staged_thought', tool: 'working', workspace: 'fetching', screen_reading: 'studying' };
-const signals = { connected: 'waving', received: 'jumping', failed: 'failed' };
-const staticSkins = { 'ragdoll-v1': 'ragdoll-v1.png', 'yarn-ball': 'yarn-ball.png' };
-const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 256;
-
+import { additional, atlas, signals, staticSkins, validId, visualAlias, workAction } from './pet-motion-assets.mjs';
 /** Select one truthful body from Host facts and local, user-controlled gestures. */
 export class PetMotion {
   constructor(element, options = {}) {
@@ -73,12 +50,33 @@ export class PetMotion {
       this.transient = { action: 'waking' };
     this.refresh(changedSkin);
   }
-
+  setBehaviorEnabled(enabled) {
+    const next = enabled === true;
+    if (this.autoPlay === next) return;
+    this.autoPlay = next;
+    if (!next) {
+      if (this.autoTimer !== undefined) this.clearTimer(this.autoTimer);
+      this.autoTimer = undefined;
+      if (this.transient?.automatic) {
+        this.transient = null;
+        this.refresh();
+      }
+      return;
+    }
+    this.refresh();
+  }
   syncSnapshot(value) {
+    this.syncFacts(value, false);
+  }
+  syncNativeSnapshot(value) {
+    this.syncFacts(value, true);
+  }
+  syncFacts(value, nativeOnly) {
     const now = this.now();
     this.hasNativeWork = value !== null && value !== undefined;
     for (const [id, expiresAt] of this.seenEvents) if (expiresAt <= now) this.seenEvents.delete(id);
-    this.facts.sync(value, this.dragging);
+    if (nativeOnly) this.facts.syncNative(value);
+    else this.facts.sync(value, this.dragging);
     if (this.snapshot.work) {
       this.resting = false;
       this.cancelIdleTimers();
@@ -90,7 +88,15 @@ export class PetMotion {
     }
     this.refresh();
   }
-
+  syncTravel(value) {
+    this.facts.syncTravel(value, this.dragging);
+    if (this.resting && this.snapshot.travel) {
+      this.resting = false;
+      this.cancelRest();
+      this.transient = { action: 'waking' };
+    }
+    this.refresh();
+  }
   setPendingDecision(value) {
     const pending = value === true;
     if (this.pendingDecision === pending) return;
@@ -102,7 +108,6 @@ export class PetMotion {
     }
     this.refresh();
   }
-
   setDockedEdge(value) {
     const candidate = typeof value === 'string' ? { edge: value, zone: 'corner' } : value;
     const edge = ['left', 'right'].includes(candidate?.edge) ? candidate.edge : null;
@@ -113,7 +118,6 @@ export class PetMotion {
     if (edge) this.cancelIdleTimers();
     this.refresh(this.action === 'peek');
   }
-
   signal(kind, eventId) {
     if (kind === 'answered') return;
     if (kind === 'connected' && this.living()) return;
@@ -122,7 +126,7 @@ export class PetMotion {
       this.lastPlayAt = this.now();
       this.resting = false;
       this.cancelIdleTimers();
-      this.transient = { action: 'play' };
+      this.transient = { action: 'play', automatic: false };
       this.refresh();
       return;
     }
@@ -139,7 +143,6 @@ export class PetMotion {
     this.transient = { action: requested };
     this.refresh();
   }
-
   move(dx, dy) {
     if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.hypot(dx, dy) < 6) return;
     if (this.dragging) return;
@@ -152,7 +155,6 @@ export class PetMotion {
     this.cancelIdleTimers();
     this.refresh();
   }
-
   stopMove() {
     if (!this.dragging) return;
     this.dragging = false;
@@ -160,7 +162,6 @@ export class PetMotion {
     delete this.element.dataset.interaction;
     this.refresh();
   }
-
   close() {
     this.cancelFrame();
     this.cancelIdleTimers();
@@ -177,8 +178,8 @@ export class PetMotion {
       return visual === 'sleeping' ? 'idle' : 'review';
     return action;
   }
-
   refresh(force = false) {
+    this.element.dataset.listening = String(this.listening());
     const selection = this.select();
     this.base = this.baseAction();
     const action = this.resolve(selection.action);
@@ -190,7 +191,6 @@ export class PetMotion {
     if (action === 'idle') this.armRest();
     else if (action !== 'sleeping') this.cancelRest();
   }
-
   select() {
     if (this.dragging) return { action: 'held', oneShot: false };
     if (this.transient?.action === 'failed') return { action: 'failed', oneShot: true };
@@ -208,30 +208,28 @@ export class PetMotion {
       const { dx, dy } = this.snapshot.travel;
       return { action: Math.abs(dx) >= Math.abs(dy) ? dx < 0 ? 'running-left' : 'running-right' : 'running', oneShot: false };
     }
-    if (['talking', 'connecting'].includes(this.phase) && !this.context?.muted)
-      return { action: 'waiting', oneShot: false };
     if (this.transient?.action === 'play') return { action: 'play', oneShot: true };
     if (this.dockedEdge) return { action: 'peek', oneShot: false };
+    if (this.listening()) return { action: 'waiting', oneShot: false };
     if (this.resting) return { action: 'sleeping', oneShot: false };
     return { action: 'idle', oneShot: false };
   }
-
   baseAction() {
     if (this.pendingDecision) return 'pending_decision';
     const work = this.activeWorkAction();
     if (work) return work;
-    if (['talking', 'connecting'].includes(this.phase) && !this.context?.muted) return 'waiting';
     if (this.dockedEdge) return 'peek';
+    if (this.listening()) return 'waiting';
     return 'idle';
   }
 
+  listening() { return ['talking', 'connecting'].includes(this.phase) && !this.context?.muted; }
   activeWorkAction() {
     if (this.snapshot.work) return workAction[this.snapshot.work.kind];
     if (!this.hasNativeWork && this.context?.nativeActivity === 'tool_running') return 'working';
     if (!this.hasNativeWork && this.context?.nativeActivity === 'reasoning') return 'staged_thought';
     return null;
   }
-
   play(action, force = false) {
     if (this.action === action && !force) return;
     this.cancelFrame();
@@ -240,7 +238,6 @@ export class PetMotion {
     this.paint();
     this.scheduleFrame();
   }
-
   paint() {
     const { style, dataset } = this.element;
     dataset.skin = this.skin;
@@ -266,7 +263,6 @@ export class PetMotion {
     style.backgroundSize = extra ? '960px 130px' : '960px 1170px';
     style.backgroundPosition = `${-120 * this.frame}px ${-130 * (atlas[visual]?.row ?? 0)}px`;
   }
-
   scheduleFrame() {
     if (this.reducedMotion) {
       if (this.oneShot) this.frameTimer = this.setTimer(() => { this.frameTimer = undefined; this.completeOneShot(); }, 1_000);
@@ -292,12 +288,10 @@ export class PetMotion {
       this.scheduleFrame();
     }, frames[this.frame]);
   }
-
   cancelFrame() {
     if (this.frameTimer !== undefined) this.clearTimer(this.frameTimer);
     this.frameTimer = undefined;
   }
-
   completeOneShot() {
     if (!this.oneShot) return;
     this.oneShot = false;
@@ -305,7 +299,6 @@ export class PetMotion {
     this.action = '';
     this.refresh();
   }
-
   canPlay() {
     return !this.reducedMotion && !this.dragging && !this.pendingDecision && this.phase === 'idle'
       && !this.activeWorkAction() && !this.snapshot.delivery && !this.snapshot.travel && !this.dockedEdge
@@ -329,7 +322,7 @@ export class PetMotion {
         if (!this.canPlay()) return;
         this.lastPlayAt = this.now();
         this.resting = false;
-        this.transient = { action: 'play' };
+        this.transient = { action: 'play', automatic: true };
         this.refresh();
       }, delay);
     }

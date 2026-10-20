@@ -1,9 +1,13 @@
+import { historicalCompanionIdentity } from './companion-identity.mjs';
+
 export class TranscriptView {
   constructor(container) {
     this.container = container;
     this.activeRows = new Map();
     this.historyRows = new Map();
     this.completed = new Set();
+    this.savedHistoryViewport = null;
+    this.pendingHistoryEntry = null;
   }
   append(role, text, chunk = false) {
     const pinned = this.nearBottom();
@@ -18,6 +22,7 @@ export class TranscriptView {
     }
     row.textContent = (row.textContent + text).slice(-16000);
     if (pinned) this.container.scrollTop = this.container.scrollHeight;
+    return row;
   }
   finish({ role, transcript, turnId }) {
     if (!['user', 'assistant'].includes(role) || (turnId && this.completed.has(turnId))) return;
@@ -30,7 +35,8 @@ export class TranscriptView {
     if (pinned) this.container.scrollTop = this.container.scrollHeight;
   }
   nearBottom() {
-    return this.container.scrollHeight - this.container.scrollTop - this.container.clientHeight < 32;
+    return !this.container.hidden
+      && this.container.scrollHeight - this.container.scrollTop - this.container.clientHeight < 32;
   }
   visibleHistoryAnchor() {
     const viewport = this.container.getBoundingClientRect?.();
@@ -42,34 +48,106 @@ export class TranscriptView {
     }
     return null;
   }
+  restoreHistoryAnchor(anchor, readingPosition, useFirstAvailable = false) {
+    const row = this.historyRows.get(anchor?.id)
+      ?? (useFirstAvailable ? this.historyRows.values().next().value : null);
+    const rect = row?.getBoundingClientRect?.();
+    const viewport = this.container.getBoundingClientRect?.();
+    if (!rect || !viewport || viewport.bottom <= viewport.top) {
+      this.container.scrollTop = readingPosition;
+      return false;
+    }
+    this.container.scrollTop += rect.top - viewport.top - anchor.offset;
+    return true;
+  }
+  revealHistoryRow(id) {
+    const row = this.historyRows.get(id);
+    const rect = row?.getBoundingClientRect?.();
+    const viewport = this.container.getBoundingClientRect?.();
+    if (!rect || !viewport || viewport.bottom <= viewport.top) return false;
+    if (rect.top >= viewport.top && rect.bottom <= viewport.bottom) return true;
+    const viewportHeight = viewport.bottom - viewport.top;
+    const rowHeight = Math.max(0, rect.bottom - rect.top);
+    const offset = Math.max(0, (viewportHeight - rowHeight) / 2);
+    this.container.scrollTop += rect.top - viewport.top - offset;
+    return true;
+  }
+  placeHistoryEntry(afterLoad) {
+    if (!this.pendingHistoryEntry || this.container.hidden) return false;
+    const viewport = this.pendingHistoryEntry;
+    if (viewport.anchor && this.restoreHistoryAnchor(viewport.anchor, viewport.scrollTop)) {
+      this.pendingHistoryEntry = null;
+      return true;
+    }
+    if (viewport.selectedMessageId && this.revealHistoryRow(viewport.selectedMessageId)) {
+      this.pendingHistoryEntry = null;
+      return true;
+    }
+    const bounds = this.container.getBoundingClientRect?.();
+    if (!afterLoad || !bounds || bounds.bottom <= bounds.top) return false;
+    this.container.scrollTop = this.container.scrollHeight;
+    this.pendingHistoryEntry = null;
+    return true;
+  }
+  leaveHistory(selectedMessageId) {
+    this.savedHistoryViewport = {
+      selectedMessageId,
+      anchor: this.visibleHistoryAnchor(),
+      scrollTop: this.container.scrollTop,
+    };
+    this.pendingHistoryEntry = null;
+  }
+  enterHistory(selectedMessageId) {
+    const saved = this.savedHistoryViewport?.selectedMessageId === selectedMessageId
+      ? this.savedHistoryViewport : null;
+    this.pendingHistoryEntry = {
+      selectedMessageId,
+      anchor: saved?.anchor ?? null,
+      scrollTop: saved?.scrollTop ?? this.container.scrollTop,
+    };
+    this.placeHistoryEntry(false);
+  }
   reset() {
     for (const row of this.activeRows.values()) row.remove();
     this.activeRows.clear();
     this.completed.clear();
   }
   load(messages) {
-    const pinned = this.nearBottom();
+    const hidden = this.container.hidden;
+    const pinned = !hidden && this.nearBottom();
     const readingPosition = this.container.scrollTop;
-    const anchor = pinned ? null : this.visibleHistoryAnchor();
+    const anchor = hidden || pinned ? null : this.visibleHistoryAnchor();
     const previous = this.historyRows;
     this.historyRows = new Map();
     const rows = messages.map(message => {
       const row = previous.get(message.id) ?? this.container.ownerDocument.createElement('p');
       row.className = message.role; row.dataset.messageId = message.id;
       if (row.textContent !== message.text) row.textContent = message.text;
-      row.title = message.name; row.dataset.author = message.name;
+      const identity = historicalCompanionIdentity(message.companionIdentity, message.name);
+      row.dataset.author = identity.authorLabel;
+      if (identity.companionKnown) {
+        row.dataset.companion = identity.partnerLabel;
+        row.dataset.companionLive = identity.liveLabel;
+        row.dataset.companionDeep = identity.deepLabel;
+        row.dataset.companionAvatar = identity.avatarCatId;
+        row.dataset.companionSkin = identity.skin;
+        row.title = [identity.authorLabel, identity.partnerLabel, identity.liveLabel, identity.deepLabel].join('\n');
+        row.setAttribute('aria-label', [identity.authorLabel, message.text,
+          identity.partnerLabel, identity.liveLabel, identity.deepLabel].join('。'));
+      } else {
+        for (const key of ['companion', 'companionLive', 'companionDeep', 'companionAvatar', 'companionSkin'])
+          delete row.dataset[key];
+        row.title = identity.authorLabel;
+        row.removeAttribute?.('aria-label');
+      }
       this.historyRows.set(message.id, row);
       return row;
     });
     this.container.replaceChildren(...rows, ...this.activeRows.values());
-    if (pinned) this.container.scrollTop = this.container.scrollHeight;
-    else if (anchor) {
-      const row = this.historyRows.get(anchor.id) ?? rows[0];
-      const rect = row?.getBoundingClientRect?.();
-      const viewport = this.container.getBoundingClientRect?.();
-      this.container.scrollTop = rect && viewport
-        ? this.container.scrollTop + rect.top - viewport.top - anchor.offset
-        : readingPosition;
-    } else this.container.scrollTop = readingPosition;
+    if (hidden) this.container.scrollTop = readingPosition;
+    else if (this.placeHistoryEntry(true)) return;
+    else if (pinned) this.container.scrollTop = this.container.scrollHeight;
+    else if (anchor) this.restoreHistoryAnchor(anchor, readingPosition, true);
+    else this.container.scrollTop = readingPosition;
   }
 }

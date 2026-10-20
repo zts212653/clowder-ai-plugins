@@ -16,13 +16,14 @@
  */
 
 import type { ByteProofInput, ClosedStringLeafProfile, JsonValue } from './encoded-byte-proof.js';
+import {
+  L0_CAPABILITIES,
+  L1_CAPABILITIES,
+  L2_CAPABILITIES,
+} from '../generated/contract.generated.js';
 import { WIRE_UINT53_MAX } from '../wire/wire-uint53.js';
 import { MAX_FRAME_BYTES } from '../wire/constants.js';
-import {
-  EVENTS_PUBLISH_ERROR_BYTE_PROOF,
-  EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
-  EVENTS_PUBLISH_RESULT_BYTE_PROOF,
-} from '../wire/signal-byte-bounds.js';
+import { MAX_GRANT_ITEMS } from '../wire/grants.js';
 import {
   REQUEST_ID_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
@@ -49,6 +50,7 @@ import {
   DELIVERY_REJECTED_CODE,
   DELIVERY_REJECTED_MESSAGE,
   DELIVERY_REJECT_REASONS,
+  LIFECYCLE_REJECT_REASONS,
   DOMAIN_ERROR_CODE,
   DOMAIN_ERROR_MESSAGE,
   DEADLINE_EXPIRED_CODE,
@@ -89,6 +91,8 @@ const ALL_MESSAGING_ERROR_CODES = [
   'CONFLICT',
   'RETRYABLE_INFLIGHT',
   'STALE_CURSOR',
+  'MEDIA_ACCESS_DENIED',
+  'MESSAGE_NOT_PUBLISHED',
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -313,29 +317,15 @@ export function ackResponseTemplate(): ByteProofInput {
 // ---------------------------------------------------------------------------
 
 /**
- * All 17 capability enum values from the generated contract.
- * Listed in alphabetical order for deterministic worst-case computation.
- * Must stay in sync with the Capability type in contract.generated.ts.
+ * Maximal legal distinct grant snapshot from the generated vocabulary.
+ * New capability names do not enlarge the frozen wire array limit.
  */
 const ALL_CAPABILITY_VALUES = [
-  'events.publish',
-  'memory.append',
-  'memory.query',
-  'memory.retrieve',
-  'message.event.subscribe',
-  'messaging.appendElements',
-  'messaging.send',
-  'onMessage',
-  'plugin.config.read',
-  'plugin.state.get',
-  'plugin.state.set',
-  'schedule.register',
-  'secret.read',
-  'thread.listMetadata',
-  'thread.readContent',
-  'whisper.extend',
-  'windows.create',
-] as const;
+  ...L0_CAPABILITIES,
+  ...L1_CAPABILITIES,
+  ...L2_CAPABILITIES,
+].sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
+  .slice(0, MAX_GRANT_ITEMS);
 
 /**
  * Compute the maximum encoded bytes for a host.grants.changed notification.
@@ -363,9 +353,9 @@ export function grantsChangedMaxBytes(): number {
 /**
  * N+1 cardinality proof for host.grants.changed.
  *
- * Computes the byte count with MAX_GRANT_ITEMS + 1 (18) capabilities.
- * This exceeds the structural validity bound (MAX_GRANT_ITEMS = 17),
- * demonstrating the cardinality limit. The 18th element uses the longest
+ * Computes the byte count with MAX_GRANT_ITEMS + 1 capabilities.
+ * This exceeds the structural validity bound MAX_GRANT_ITEMS,
+ * demonstrating the cardinality limit. The extra element uses the longest
  * capability value for worst-case measurement.
  */
 export function grantsChangedNPlusOneBytes(): number {
@@ -582,6 +572,25 @@ export function deliveryRejectedErrorTemplate(): ByteProofInput {
   };
 }
 
+/** Lifecycle-row DELIVERY_REJECTED template with its extended reason set. */
+export function lifecycleRejectedErrorTemplate(): ByteProofInput {
+  const template: JsonValue = {
+    jsonrpc: '2.0',
+    id: '',
+    error: {
+      code: DELIVERY_REJECTED_CODE,
+      message: DELIVERY_REJECTED_MESSAGE,
+      data: { reason: longestValue(LIFECYCLE_REJECT_REASONS) },
+    },
+  };
+
+  return {
+    template,
+    leaves: [REQUEST_ID_LEAF],
+    frameLimitBytes: MAX_FRAME_BYTES,
+  };
+}
+
 /**
  * T-G: DOMAIN_ERROR (-32092) error template.
  * Worst-case code: longest value from MessagingErrorCode enum.
@@ -665,19 +674,11 @@ export interface ClosedRowNotificationTemplate {
   };
 }
 
-export interface ClosedRowEncodedProofTemplate {
-  readonly encoded: {
-    readonly request: typeof EVENTS_PUBLISH_REQUEST_BYTE_PROOF;
-    readonly response: typeof EVENTS_PUBLISH_RESULT_BYTE_PROOF;
-    readonly error: typeof EVENTS_PUBLISH_ERROR_BYTE_PROOF;
-  };
-}
-
 /**
  * All closed row templates indexed by row number.
  * Row 10 is special — it's a notification with no variable-length leaves.
  */
-export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> & Record<13, ClosedRowEncodedProofTemplate> {
+export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> {
   return {
     1: { request: helloRequestTemplate(), response: helloResponseTemplate() },
     2: { request: readyRequestTemplate(), response: {
@@ -690,12 +691,5 @@ export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedR
     10: { notification: { maxBytes: grantsChangedMaxBytes(), nPlusOneBytes: grantsChangedNPlusOneBytes() } },
     11: { request: pingRequestTemplate(), response: pingResponseTemplate() },
     12: { request: drainRequestTemplate(), response: drainResponseTemplate() },
-    13: {
-      encoded: {
-        request: EVENTS_PUBLISH_REQUEST_BYTE_PROOF,
-        response: EVENTS_PUBLISH_RESULT_BYTE_PROOF,
-        error: EVENTS_PUBLISH_ERROR_BYTE_PROOF,
-      },
-    },
   };
 }

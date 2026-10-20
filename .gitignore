@@ -13,3 +13,18 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Generated owner-local retained runtime graphs (prepare:local-directories)
+packages/*/.clowder-local-directory/
+packages/connector-dingtalk/pnpm-lock.yaml
+packages/connector-feishu/pnpm-lock.yaml
+packages/connector-telegram/pnpm-lock.yaml
+packages/connector-wecom-agent/pnpm-lock.yaml
+packages/connector-wecom-bot/pnpm-lock.yaml
+packages/connector-weixin/pnpm-lock.yaml
+packages/connector-xiaoyi/pnpm-lock.yaml
+packages/enterprise-workflow/pnpm-lock.yaml
+packages/github-operations/pnpm-lock.yaml
+packages/personal-chrome-companion/pnpm-lock.yaml
+packages/wechat-visible-reader/pnpm-lock.yaml
+packages/weixin-mp/pnpm-lock.yaml

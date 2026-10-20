@@ -29,8 +29,9 @@ const validManifest = {
 } as const;
 
 const deliverInput = {
+  kind: 'message',
+  threadId: 'thread-1',
   deliveryId: 'delivery-1',
-  threadHandle: { kind: 'thread_handle', handle: 'thread-handle-1' },
   envelope: {
     messageId: 'message-1',
     revision: 1,
@@ -154,36 +155,21 @@ test('rejects a schema-valid non-stdio manifest before attaching a stdio transpo
   assert.equal(output.listenerCount('error'), 0);
 });
 
-test('responds to closed lifecycle rows only after the manifest is valid', async () => {
+test('rejects a schema-valid static-only manifest before attaching a stdio transport', () => {
   const input = new PassThrough();
   const output = new PassThrough();
-  let drainedAt: number | undefined;
-  const deadlineUnixMs = Date.now() + 60_000;
-  const frames = collectFrames(output, 2);
-  const channel = startStandaloneHost({
-    manifest: validManifest,
-    input,
-    output,
-    onDrain: ({ deadlineUnixMs }) => {
-      drainedAt = deadlineUnixMs;
-    },
-  });
+  const manifest = structuredClone(validManifest) as Record<string, unknown>;
+  delete manifest['runtime'];
 
-  input.end(
-    Buffer.from(
-      `{"jsonrpc":"2.0","id":"ping-1","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":${deadlineUnixMs}},"input":{"nonce":"nonce-1"}}}\n` +
-        `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${deadlineUnixMs}},"input":{"deadlineUnixMs":${deadlineUnixMs}}}}\n`,
-      'utf8',
-    ),
+  assert.throws(
+    () => startStandaloneHost({ manifest, input, output }),
+    /requires a manifest with runtime\.transport "stdio"/,
   );
-
-  assert.deepEqual(await frames, [
-    { jsonrpc: '2.0', id: 'ping-1', result: { nonce: 'nonce-1' } },
-    { jsonrpc: '2.0', id: 'drain-1', result: null },
-  ]);
-  assert.equal(drainedAt, deadlineUnixMs, 'drain acknowledgement follows graceful shutdown work');
-  channel.close();
+  assert.equal(input.listenerCount('data'), 0);
+  assert.equal(output.listenerCount('error'), 0);
 });
+
+
 
 test('returns Method Not Found for a valid ready handshake request without activating it', async () => {
   const input = new PassThrough();
@@ -268,9 +254,9 @@ test('dispatches a legal host.messaging.deliver request and echoes deliveryId ex
     manifest: validManifest,
     input,
     output,
-    onMessage: received => {
+    delivery: received => {
       observedInput = received;
-      return { accepted: true };
+      return { deliveryId: received.deliveryId };
     },
   });
 
@@ -307,7 +293,7 @@ test('reports NO_HANDLER for delivery when no plugin callback is registered', as
   channel.close();
 });
 
-test('maps an explicit delivery rejection to the closed DELIVERY_REJECTED arm', async () => {
+test('rejects a mismatched receipt without closing the carrier', async () => {
   const input = new PassThrough();
   const output = new PassThrough();
   const frames = collectFrames(output, 1);
@@ -315,7 +301,7 @@ test('maps an explicit delivery rejection to the closed DELIVERY_REJECTED arm', 
     manifest: validManifest,
     input,
     output,
-    onMessage: () => ({ accepted: false, reason: 'PLUGIN_BUSY' }),
+    delivery: () => ({ deliveryId: 'wrong-delivery' }),
   });
 
   input.end(deliverRequest('deliver-busy'));
@@ -327,7 +313,7 @@ test('maps an explicit delivery rejection to the closed DELIVERY_REJECTED arm', 
       error: {
         code: -32091,
         message: 'delivery rejected',
-        data: { reason: 'PLUGIN_BUSY' },
+        data: { reason: 'PLUGIN_INTERNAL' },
       },
     },
   ]);
@@ -343,7 +329,7 @@ test('maps a thrown delivery callback to PLUGIN_INTERNAL without closing stdio',
     manifest: validManifest,
     input,
     output,
-    onMessage: () => {
+    delivery: () => {
       throw new Error('plugin implementation detail');
     },
   });
@@ -365,148 +351,13 @@ test('maps a thrown delivery callback to PLUGIN_INTERNAL without closing stdio',
   channel.close();
 });
 
-test('rejects an already-expired drain deadline without starting shutdown work', async () => {
-  const input = new PassThrough();
-  const output = new PassThrough();
-  let drainCalls = 0;
-  const frames = collectFrames(output, 1);
-  const channel = startStandaloneHost({
-    manifest: validManifest,
-    input,
-    output,
-    onDrain: () => {
-      drainCalls += 1;
-    },
-  });
-  const requestDeadline = Date.now() + 60_000;
-  const expiredDrainDeadline = Date.now() - 1;
 
-  input.end(
-    Buffer.from(
-      `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${requestDeadline}},"input":{"deadlineUnixMs":${expiredDrainDeadline}}}}\n`,
-      'utf8',
-    ),
-  );
 
-  assert.deepEqual(await frames, [
-    {
-      jsonrpc: '2.0',
-      id: 'drain-1',
-      error: { code: -32093, message: 'deadline expired', data: {} },
-    },
-  ]);
-  assert.equal(drainCalls, 0);
-  assert.equal(channel.failed, false);
-  channel.close();
-});
 
-test('rejects a drain whose cleanup remains pending beyond its deadline', async () => {
-  const input = new PassThrough();
-  const output = new PassThrough();
-  let releaseDrain!: () => void;
-  const blockedDrain = new Promise<void>(resolve => {
-    releaseDrain = resolve;
-  });
-  const frames = collectFrames(output, 1);
-  const channel = startStandaloneHost({
-    manifest: validManifest,
-    input,
-    output,
-    onDrain: () => blockedDrain,
-  });
-  const requestDeadline = Date.now() + 60_000;
-  const drainDeadline = Date.now() + 20;
 
-  input.end(
-    Buffer.from(
-      `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${requestDeadline}},"input":{"deadlineUnixMs":${drainDeadline}}}}\n`,
-      'utf8',
-    ),
-  );
 
-  let observationTimer: ReturnType<typeof setTimeout> | undefined;
-  const outcome = await Promise.race([
-    frames.then(value => ({ kind: 'response' as const, value })),
-    new Promise<{ readonly kind: 'timeout' }>(resolve => {
-      observationTimer = setTimeout(() => resolve({ kind: 'timeout' }), 150);
-    }),
-  ]);
-  if (observationTimer !== undefined) {
-    clearTimeout(observationTimer);
-  }
-  releaseDrain();
 
-  assert.notEqual(outcome.kind, 'timeout', 'drain must not wait past its deadline');
-  if (outcome.kind === 'response') {
-    assert.deepEqual(outcome.value, [
-      {
-        jsonrpc: '2.0',
-        id: 'drain-1',
-        error: { code: -32093, message: 'deadline expired', data: {} },
-      },
-    ]);
-  }
-  assert.equal(channel.failed, false);
-  channel.close();
-});
 
-test('does not expire a drain whose valid deadline spans Node timer chunks', async () => {
-  const input = new PassThrough();
-  const output = new PassThrough();
-  const frames = collectFrames(output, 1);
-  const channel = startStandaloneHost({
-    manifest: validManifest,
-    input,
-    output,
-    onDrain: () => new Promise<void>(resolve => setTimeout(resolve, 20)),
-  });
-  const requestDeadline = Date.now() + 60_000;
-  const drainDeadline = Date.now() + 2 ** 40;
-
-  input.end(
-    Buffer.from(
-      `{"jsonrpc":"2.0","id":"drain-1","method":"host.lifecycle.drain","params":{"meta":{"deadlineUnixMs":${requestDeadline}},"input":{"deadlineUnixMs":${drainDeadline}}}}\n`,
-      'utf8',
-    ),
-  );
-
-  assert.deepEqual(await frames, [
-    { jsonrpc: '2.0', id: 'drain-1', result: null },
-  ]);
-  assert.equal(channel.failed, false);
-  channel.close();
-});
-
-test('accepts a legal grants notification without manufacturing a response', async () => {
-  const input = new PassThrough();
-  const output = new PassThrough();
-  let fatalError: unknown;
-  const channel = startStandaloneHost({
-    manifest: validManifest,
-    input,
-    output,
-    onFatal: error => {
-      fatalError = error;
-    },
-  });
-  const stdout: Buffer[] = [];
-  output.on('data', (chunk: Buffer) => stdout.push(chunk));
-  const ended = new Promise<void>(resolve => input.once('end', resolve));
-
-  input.end(
-    Buffer.from(
-      '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":1,"effectiveGrants":[]}}}\n',
-      'utf8',
-    ),
-  );
-  await ended;
-  await new Promise<void>(resolve => setImmediate(resolve));
-
-  assert.equal(fatalError, undefined);
-  assert.equal(channel.failed, false);
-  assert.equal(Buffer.concat(stdout).byteLength, 0);
-  channel.close();
-});
 
 test('closes without emitting a frame when S1 rejects a protocol violation', async () => {
   const input = new PassThrough();

@@ -1,34 +1,291 @@
 {
   "pluginId": "official.feishu-meeting-intake",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "contractVersion": "0.1.0",
   "name": "Feishu Meeting Intake",
+  "description": "Owned meeting records, ordinary notifications and authenticated native reads.",
+  "icon": {
+    "type": "png",
+    "src": "assets/icon.png"
+  },
+  "configuration": [
+    {
+      "key": "appId",
+      "label": "Feishu app ID",
+      "kind": "string",
+      "required": false
+    },
+    {
+      "key": "appSecret",
+      "label": "Feishu app secret",
+      "kind": "secret",
+      "required": false
+    },
+    {
+      "key": "notificationThreadId",
+      "label": "Meeting notification thread",
+      "description": "Choose an existing thread you own. Pending notifications retain their original destination.",
+      "kind": "string",
+      "required": false
+    },
+    {
+      "key": "minutesReference",
+      "label": "Minutes reference to import",
+      "kind": "string",
+      "required": false
+    },
+    {
+      "key": "account",
+      "label": "Account status",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "status",
+          "label": "Status",
+          "render": "button",
+          "action": {
+            "method": "meeting.status"
+          }
+        }
+      ]
+    },
+    {
+      "key": "authorization",
+      "label": "Authorize Feishu",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "connect",
+          "label": "Authorize Feishu",
+          "render": "button",
+          "action": {
+            "method": "meeting.connect"
+          },
+          "next": "complete"
+        },
+        {
+          "id": "complete",
+          "label": "Check authorization",
+          "render": "button",
+          "action": {
+            "method": "meeting.complete"
+          }
+        }
+      ]
+    },
+    {
+      "key": "verifyAccount",
+      "label": "Reconcile account",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "verify",
+          "label": "Verify existing account",
+          "render": "button",
+          "action": {
+            "method": "meeting.verify"
+          }
+        }
+      ]
+    },
+    {
+      "key": "resetAuthorization",
+      "label": "Abandon interrupted authorization",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "reset",
+          "label": "Start a fresh authorization attempt",
+          "render": "button",
+          "action": {
+            "method": "meeting.reset"
+          },
+          "confirm": "The previous exchange may have taken effect. Preserve its evidence, pause collection and explicitly start a fresh attempt?"
+        }
+      ]
+    },
+    {
+      "key": "collection",
+      "label": "Collection",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "start",
+          "label": "Start collection",
+          "render": "button",
+          "action": {
+            "method": "meeting.start"
+          },
+          "next": "pause"
+        },
+        {
+          "id": "status",
+          "label": "Collection status",
+          "render": "status",
+          "action": {
+            "method": "meeting.status"
+          }
+        },
+        {
+          "id": "pause",
+          "label": "Pause collection",
+          "render": "button",
+          "action": {
+            "method": "meeting.pause"
+          },
+          "next": "start"
+        }
+      ]
+    },
+    {
+      "key": "collectNow",
+      "label": "Collect now",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "poll",
+          "label": "Collect now",
+          "render": "button",
+          "action": {
+            "method": "meeting.poll"
+          }
+        }
+      ]
+    },
+    {
+      "key": "records",
+      "label": "Meeting records",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "list",
+          "label": "Records",
+          "render": "button",
+          "action": {
+            "method": "meeting.list"
+          },
+          "resultRender": "rows"
+        },
+        {
+          "id": "retry",
+          "label": "Retry notification",
+          "render": "row",
+          "action": {
+            "method": "meeting.retry"
+          },
+          "resultRender": "rows"
+        }
+      ]
+    },
+    {
+      "key": "manualImport",
+      "label": "Import a saved Minutes reference",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "import",
+          "label": "Import Minutes reference",
+          "render": "button",
+          "action": {
+            "method": "meeting.import"
+          },
+          "confirm": "Read the saved Minutes reference and notify the selected thread?"
+        }
+      ]
+    },
+    {
+      "key": "catchup",
+      "label": "Historical catch-up",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "preview",
+          "label": "Preview missed sources",
+          "render": "button",
+          "action": {
+            "method": "meeting.catchup.preview"
+          },
+          "resultRender": "rows"
+        },
+        {
+          "id": "future",
+          "label": "Future sources only",
+          "render": "row",
+          "action": {
+            "method": "meeting.catchup.future"
+          },
+          "confirm": "Apply this decision to the exact previewed historical sources?"
+        },
+        {
+          "id": "replay",
+          "label": "Notify previewed sources",
+          "render": "row",
+          "action": {
+            "method": "meeting.catchup.replay"
+          },
+          "confirm": "Apply this decision to the exact previewed historical sources?"
+        }
+      ]
+    }
+  ],
   "features": [
     {
       "id": "generated-meeting-artifacts",
-      "name": "Generated meeting artifacts",
-      "resources": [
+      "name": "Meeting records",
+      "resources": [],
+      "contributions": [
         {
-          "type": "input-source",
-          "id": "feishu.meeting_artifact.generated.v1"
+          "type": "identity",
+          "id": "feishu-meeting"
+        },
+        {
+          "type": "mcp",
+          "id": "meeting-records"
         }
       ],
-      "capabilities": ["events.publish"]
+      "capabilities": [
+        "plugin.config.read",
+        "secret.read",
+        "thread.readContent",
+        "messaging.send"
+      ]
     }
   ],
-  "signals": {
-    "provides": [
-      {
-        "type": "feishu.meeting_artifact.generated.v1",
-        "schemaRef": "schemas/feishu-meeting-artifact.schema.json",
-        "epistemicStatus": "observation",
-        "privacyClass": "content-adjacent",
-        "sourceClass": "remote-service"
-      }
-    ]
-  },
   "runtime": {
-    "transport": "stdio",
-    "entrypoint": "dist/entrypoint.js"
-  }
+    "transport": "builtin",
+    "entrypoint": "dist/index.js",
+    "dataDirectory": "feishu-meeting-intake"
+  },
+  "contributions": [
+    {
+      "type": "identity",
+      "id": "feishu-meeting",
+      "displayName": "Feishu meetings"
+    },
+    {
+      "type": "mcp",
+      "id": "meeting-records",
+      "runtime": {
+        "transport": "stdio",
+        "entrypoint": "dist/mcp-entrypoint.js"
+      },
+      "actions": [
+        {
+          "method": "meeting.records.list"
+        },
+        {
+          "method": "meeting.records.read"
+        }
+      ]
+    }
+  ]
 }

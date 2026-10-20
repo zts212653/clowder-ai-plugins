@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute } from 'node:path';
 
-import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
+import type { FeishuArtifactNotification } from './artifact.js';
 
 import { validateFeishuMeetingPublishInput } from './artifact.js';
 import {
@@ -38,10 +38,10 @@ export interface MeetingIntakeStateStore {
   commitPage(
     expectedCursor: string | null,
     nextCursor: string | null,
-    events: readonly EventsPublishInput[],
+    events: readonly FeishuArtifactNotification[],
     observedAt: number,
   ): Promise<void>;
-  enqueue(events: readonly EventsPublishInput[]): Promise<void>;
+  enqueue(events: readonly FeishuArtifactNotification[]): Promise<void>;
   acknowledge(idempotencyKey: string, publishedAt: number): Promise<void>;
   setHealth(health: MeetingIntakeHealthUpdate): Promise<void>;
   requireCatchUp(input: {
@@ -60,12 +60,12 @@ export interface MeetingIntakeStateStore {
   resolveCatchUpFutureOnly(fingerprint: string, resolvedAt: number): Promise<void>;
   resolveCatchUpReplay(
     fingerprint: string,
-    events: readonly EventsPublishInput[],
+    events: readonly FeishuArtifactNotification[],
     resolvedAt: number,
   ): Promise<void>;
 }
 
-function validatedEvents(events: readonly EventsPublishInput[]): EventsPublishInput[] {
+function validatedEvents(events: readonly FeishuArtifactNotification[]): FeishuArtifactNotification[] {
   return events.map((candidate) => {
     const validation = validateFeishuMeetingPublishInput(candidate);
     if (!validation.valid) throw new TypeError('refusing to persist an invalid signal');
@@ -74,9 +74,9 @@ function validatedEvents(events: readonly EventsPublishInput[]): EventsPublishIn
 }
 
 function mergePending(
-  current: readonly EventsPublishInput[],
-  incoming: readonly EventsPublishInput[],
-): EventsPublishInput[] {
+  current: readonly FeishuArtifactNotification[],
+  incoming: readonly FeishuArtifactNotification[],
+): FeishuArtifactNotification[] {
   const merged = current.map((event) => structuredClone(event));
   const byKey = new Map(merged.map((event) => [event.idempotencyKey, event]));
   for (const event of validatedEvents(incoming)) {

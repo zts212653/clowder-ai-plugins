@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "clientBuildId": "collective-client-v2",
+  "files": [
+    {
+      "path": "/collective-client/app.css",
+      "size": 137361,
+      "sha256": "c1105207977ba06e4fc071db4f231814646f4925ba1b238a175d5a97533bf824",
+      "contentType": "text/css; charset=utf-8"
+    },
+    {
+      "path": "/collective-client/app.js",
+      "size": 2834540,
+      "sha256": "1d537bb7fc6c224ed1f64a5c52d5b93f1705448df2b9f8bbd57c2062034f5cb0",
+      "contentType": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "/collective-client/collective-landing-A.png",
+      "size": 3093246,
+      "sha256": "f6460455c4ed29b5b87bdd55245f4171175bc9fcd30f70dfc0784589b0be9ae9",
+      "contentType": "image/png"
+    },
+    {
+      "path": "/index.html",
+      "size": 593,
+      "sha256": "7d0a9321c00150e9e73a1c1489ef7e35f569f10a9c37b5841a5e5dc2a2ec505c",
+      "contentType": "text/html; charset=utf-8"
+    }
+  ]
+}

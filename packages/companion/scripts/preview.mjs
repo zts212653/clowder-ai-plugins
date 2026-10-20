@@ -17,60 +17,179 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 <main><iframe title="实际猫猫球界面" src="/index.html?skin=ragdoll-v1"></iframe></main>
 <script>const frame=document.querySelector('iframe');document.querySelector('#disconnect').onclick=()=>frame.contentWindow.postMessage('preview-disconnect',location.origin);function refresh(){frame.style.width='300px';frame.style.height='270px';frame.src='/index.html?skin='+document.querySelector('#skin').value+'&scenario='+document.querySelector('#scenario').value;}document.querySelectorAll('select').forEach(e=>e.onchange=refresh);document.querySelector('#background').onclick=()=>document.querySelector('main').classList.toggle('dark');window.addEventListener('message',e=>{if(e.source!==frame.contentWindow||e.origin!==location.origin)return;if(e.data.kind==='geometry'){frame.style.width=e.data.width+'px';frame.style.height=e.data.height+'px';}if(e.data.kind==='resize'){frame.style.width=e.data.expanded?'380px':'300px';frame.style.height=e.data.expanded?'590px':'270px';}if(e.data.kind==='note')document.querySelector('#note').textContent=e.data.text;});</script></html>`;
 
-export function fixture(skin, failure, pending = true) {
+export function fixture(skin, failure, pending = true, autoTranscript = true, appAssist = false) {
   return `<script>
-  const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'宪宪'}]; let phase = 'idle', allowed = true;
-  const identity = () => ({kind:'state',phase,displayName:'猫猫',skin:${JSON.stringify(skin)},documentsAllowed:allowed,toolsReady:phase==='talking',nativeActivity:'none',
+  const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'砚砚',inputMessageIds:[],responsePhase:null,body:{revision:'preview-history-v1',complete:true,continuation:null},companionIdentity:{
+    v:1,name:'猫猫球',partner:{catId:'fable-5',displayName:'宪宪',skin:'xianxian-codex'},
+    live:{catId:'codex-sol',displayName:'砚砚',transport:'gpt_live_v3',verifiedModel:null},
+    deep:{catId:'fable-5',displayName:'宪宪',verifiedModel:'claude-fable-5-1'}}}];
+  const bodyReplies = new Map();
+  let latestConversation = {hasMoreOlder:false,olderCursor:null};
+  const olderConversationPages = new Map(); const conversationReads = [];
+  window.__pushConversation = row => messages.push(row);
+  window.__setConversation = rows => {messages.splice(0,messages.length,...rows);latestConversation={hasMoreOlder:false,olderCursor:null};};
+  window.__getConversation = () => messages;
+  window.__setConversationPage = page => {messages.splice(0,messages.length,...page.messages);latestConversation={hasMoreOlder:page.hasMoreOlder,olderCursor:page.olderCursor};};
+  window.__setOlderConversationPage = (cursor,page) => olderConversationPages.set(cursor,page);
+  window.__getConversationReads = () => conversationReads;
+  window.__setBodyReply = (continuation,reply) => bodyReplies.set(continuation,reply);
+  window.__previewUnconfirmNextText = false;
+  window.__previewHoldScreenPick = false;
+  window.__previewResolveScreenPick = undefined;
+  const draftScopeRef = 'preview-scope_A-1';
+  let composerDraft = {kind:'conversation-draft',v:1,status:'available',scopeRef:draftScopeRef,revision:0,text:'',writable:true,submissions:[]};
+  window.__setDraft = value => { composerDraft = value; };
+  window.__getDraft = () => composerDraft;
+  const callId = '11111111-1111-4111-8111-111111111111'; const realtimeSessionId = 'preview-realtime-session';
+  const transcriptRows = [
+    {messageId:'preview-voice-input',role:'user',text:'It is like an AI assistant that is always there, supporting you.',source:{kind:'voice',nativeThreadId:'preview-thread',realtimeSessionId,nativeItemId:'preview-input-1',nativeTurnId:'preview-turn-1'}},
+    {messageId:'preview-voice-output',role:'assistant',text:'它就像一个始终在你身边支持你的 AI 助手。',source:{kind:'voice',nativeThreadId:'preview-thread',realtimeSessionId,nativeItemId:'preview-output-1',nativeTurnId:'preview-turn-2'}},
+  ];
+  window.__pushTranscript = row => transcriptRows.push(row);
+  let phase = 'idle', allowed = true;
+  let meeting = {kind:'running',sharing:false,paused:false,sourceLabel:'Zoom · Cat Café 产品周会（核心桌面协作与会议转写状态验证）'};
+  window.__setMeeting = value => { meeting = value; };
+  let companionSettings = {dutyCatProfileId:'fable-5',skin:${JSON.stringify(skin)},ballSize:72,behaviorEnabled:true,proactivePolicy:'quiet-badge',personaTone:'温暖、简短、不啰嗦',householdReadsAllowed:true};
+  companionSettings.appAssistEnabled=${appAssist};
+  let appAssistState={scopeRef:'fixture-view-a',revision:1,status:companionSettings.appAssistEnabled?'ready':'off',offer:companionSettings.appAssistEnabled?{offerRef:'fixture-only-1',appName:'Fixture Writer'}:null};
+  window.__getAppAssistState=()=>structuredClone(appAssistState);
+  window.__setAppAssistOffer=value=>{appAssistState={...appAssistState,revision:appAssistState.revision+1,status:'ready',offer:value};};
+  window.__setAppAssistState=value=>{appAssistState=structuredClone(value);};
+  const identity = () => ({kind:'state',phase,displayName:'宪宪',skin:companionSettings.skin,documentsAllowed:allowed,toolsReady:phase==='talking',behaviorEnabled:companionSettings.behaviorEnabled,nativeActivity:'none',
+    audio:{supportedModes:['duplex','receive_only'],activeMode:phase==='talking'?(activeMode??'duplex'):null},
+    meeting,
+    appAssist:appAssistState,
     liveTransport:{kind:'gpt_live_v3',verifiedModel:null},nativeWork:{scopeId:phase==='idle'?null:'0123456789abcdef',revision:0,active:[],recent:[]},
-    duty:{catId:'preview-cat',displayName:'猫猫'},carrier:{catId:'preview-cat',displayName:'猫猫'}});
-  const emit = event => listeners.forEach(fn=>fn(event));
+    duty:{catId:'preview-cat',displayName:'宪宪'},carrier:{catId:'preview-cat',displayName:'宪宪'}});
+  let activeMode = null; const emit = event => listeners.forEach(fn=>fn(event));
+  window.__previewCallId = callId;
+  window.__previewEmit = emit;
   window.addEventListener('message',event=>{if(event.source===parent&&event.origin===location.origin&&event.data==='preview-disconnect'){phase='closed';emit({kind:'media-stopped',reason:'closed'});}});
   const note = text => parent.postMessage({kind:'note',text},location.origin);
   window.clowderCompanion = {subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},async request(command){
     switch(command.kind){
       case 'state': return identity();
       case 'prepare': phase='ready';return identity();
-      case 'audio.connect': setTimeout(()=>{if(${failure}){emit({kind:'audio',type:'error',code:'carrier_unavailable'});}else{phase='talking';emit({kind:'audio',type:'connected'});emit({kind:'audio',type:'transcript',role:'assistant',text:'这是正在说的话，查看记录不会停止语音。'});}},450);return {kind:'ok'};
-      case 'stop': phase='idle';return {kind:'ok'};
-      case 'view.layout': { const width=Math.max(136,command.width+16),height=command.panel==='none'?146:command.height+158; parent.postMessage({kind:'geometry',width,height},location.origin); return {kind:'layout',width,height,pet:{x:(width-120)/2,y:height-138},panel:{x:8,y:8,width:command.width,height:command.height}}; }
+      case 'audio.connect': activeMode=command.mode??'duplex';setTimeout(()=>{if(${failure}){emit({kind:'audio',type:'error',callId,code:'carrier_unavailable'});}else{phase='talking';emit({kind:'audio',type:'connected',callId});if(${autoTranscript})emit({kind:'audio',type:'transcript',callId,role:'assistant',text:'这是正在说的话，查看记录不会停止语音。',itemId:'preview-live-output',turnId:'preview-live-turn'});}},450);return {kind:'ok'};
+      case 'stop': phase='idle';activeMode=null;return {kind:'ok'};
+      case 'view.layout': {
+        const petWidth=Math.round(120*companionSettings.ballSize/72),petHeight=Math.round(130*companionSettings.ballSize/72);
+        if(command.panel==='actions'&&command.call){
+          const bubble=command.call.bubble??null;
+          const width=Math.max(petWidth+16,command.width+16,(bubble?.width??0)+16);
+          const bubbleRect=bubble?{x:(width-bubble.width)/2,y:8,width:bubble.width,height:bubble.height}:null;
+          const petY=bubbleRect?bubbleRect.y+bubbleRect.height+12:8;
+          const panel={x:(width-command.width)/2,y:petY+petHeight+12,width:command.width,height:command.height};
+          const height=panel.y+panel.height+8;
+          parent.postMessage({kind:'geometry',width,height},location.origin);
+          return {kind:'layout',width,height,pet:{x:(width-petWidth)/2,y:petY},panel,...(bubbleRect?{bubble:bubbleRect}:{})};
+        }
+        const width=Math.max(petWidth+16,command.width+16),height=command.panel==='none'?petHeight+16:command.height+petHeight+28;
+        parent.postMessage({kind:'geometry',width,height},location.origin);
+        return {kind:'layout',width,height,pet:{x:(width-petWidth)/2,y:height-petHeight-8},panel:{x:8,y:8,width:command.width,height:command.height}};
+      }
       case 'view.drag':return {kind:'ok'};
+      case 'view.reset':note('正式窗口会回到 Host 计算的默认桌面位置。');return {kind:'ok'};
       case 'view.hide':note('正式窗口会隐藏；可从 Clowder 的聊聊入口叫回。');return {kind:'ok'};
-      case 'conversation.read':return {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages,hasMore:false};
-      case 'decisions.read':return ${pending}?{kind:'decisions',status:'available',approvalCount:2,needsMeCount:2,otherNeedsMeCount:1,
-        approvals:[{proposalId:'11111111-1111-4111-8111-111111111111',sourceFeatureId:'F221',summary:'保留一点呼吸感',resolution:'open',materializationState:'not_started',linkedNeedsMe:true},
-          {proposalId:'thread-preview',sourceFeatureId:'F128',summary:'新线程需要完整表单确认',resolution:'open',materializationState:'not_started',linkedNeedsMe:false}],
-        otherNeedsMe:[{subjectRef:'task:preview',summary:'看看工作进展'}],
-        page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}}:
+      case 'settings.read':return {kind:'settings',status:'available',values:companionSettings,companions:[
+        {catProfileId:'fable-5',displayName:'宪宪',available:true},{catProfileId:'codex-sol',displayName:'砚砚',available:true},{catProfileId:'gemini38',displayName:'烁烁',available:false}],selectedCompanionStatus:'available'};
+      case 'settings.update':{const stops=phase==='talking'&&(command.field==='dutyCatProfileId'||command.field==='householdReadsAllowed');if(stops){phase='idle';activeMode=null;}companionSettings={...companionSettings,[command.field]:command.value};allowed=companionSettings.householdReadsAllowed;if(command.field==='appAssistEnabled')appAssistState={...appAssistState,revision:appAssistState.revision+1,status:command.value?'ready':'off',offer:null};return {kind:'settings-update',field:command.field,outcome:'saved',callStatus:stops?'stopped':'unchanged',applies:command.field==='personaTone'?'next_call':'now'};}
+      case 'app-assist.settle':{const settled=command.scopeRef===appAssistState.scopeRef&&command.offerRef===appAssistState.offer?.offerRef;if(settled)appAssistState={...appAssistState,revision:appAssistState.revision+1,offer:null};return {kind:'app-assist-settlement',scopeRef:appAssistState.scopeRef,revision:appAssistState.revision,offerRef:command.offerRef,action:command.action,outcome:settled?'settled':'stale_offer'};}
+      case 'companion.disable':note('正式 Host 会结束媒体并停用当前安装实例；预览保持打开。');return {kind:'companion-lifecycle',action:'disable',outcome:'disabled'};
+      case 'conversation.read':return command.v===2
+        ? (()=>{conversationReads.push({before:command.before??null});const page=command.before===undefined?{messages,...latestConversation}:olderConversationPages.get(command.before);return page?{kind:'conversation',v:2,status:'available',threadTitle:'猫猫球 · 伴随对话',messages:page.messages,hasMoreOlder:page.hasMoreOlder,olderCursor:page.olderCursor}:{kind:'conversation',v:2,status:'stale'};})()
+        : {kind:'conversation',threadTitle:'猫猫球 · 伴随对话',messages:messages.map(({inputMessageIds,responsePhase,body,...row})=>row),hasMore:false};
+      case 'conversation.body.read':return bodyReplies.get(command.continuation)??{kind:'conversation-body',v:2,status:'stale'};
+      case 'conversation.draft.read':return composerDraft;
+      case 'conversation.draft.save':{
+        if(command.scopeRef!==composerDraft.scopeRef)return {kind:'error',code:'invalid_request'};
+        if(!composerDraft.writable)return {kind:'conversation-draft',v:1,status:'readonly',revision:composerDraft.revision};
+        if(command.expectedRevision!==composerDraft.revision)return {kind:'conversation-draft',v:1,status:'conflict',revision:composerDraft.revision};
+        composerDraft={...composerDraft,revision:composerDraft.revision+1,text:command.text};return composerDraft;
+      }
+      case 'conversation.delivery.read':{
+        if(command.scopeRef!==composerDraft.scopeRef)return {kind:'error',code:'invalid_request'};
+        return composerDraft.submissions.find(value=>value.clientMessageId===command.clientMessageId)?.receipt
+          ??{kind:'delivery',v:2,delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:null};
+      }
+      case 'transcript.read':return {kind:'transcript',scope:{callId,realtimeSessionId},rows:transcriptRows,hasMore:false};
+      case 'presentation.observe':return {kind:'ok'};
+      case 'decisions.read':return ${pending}?{kind:'decisions',version:1,status:'partial',observedAt:Date.now(),
+        sources:{approvals:{status:'available',coverage:'complete'},needsMe:{status:'unavailable',coverage:'unknown'}},
+        items:[
+          {variantRef:'preview_taste_v1',kind:'approval',summary:'保留一点呼吸感',navigation:{targets:['approval_card','origin']},approval:{resolution:'open',materializationState:'not_started',linkedNeedsMe:true}},
+          {variantRef:'preview_thread_v1',kind:'approval',summary:'新线程需要完整表单确认',navigation:{targets:['approval_card']},approval:{resolution:'open',materializationState:'not_started',linkedNeedsMe:false}},
+          {variantRef:'preview_repair_v1',kind:'repair',summary:'看看工作进展',navigation:{targets:['action','origin']}}
+        ],page:{offset:command.offset,limit:command.limit,scope:'known_rows',hasMore:false}}:
         {kind:'decisions',status:'available',approvalCount:0,needsMeCount:0,otherNeedsMeCount:0,approvals:[],otherNeedsMe:[],
           page:{offset:command.offset,limit:command.limit,hasMoreApprovals:false,hasMoreNeedsMe:false}};
+      case 'work.read':return {kind:'work',v:1,status:'partial',observedAt:Date.now(),scope:{kind:'current-project',label:'Cat Café'},coverage:[
+        {source:'tasks',status:'available'},{source:'messages',status:'available'},{source:'artifacts',status:'partial'}],
+        active:[{entryRef:'preview_work_one',title:'F322 主页外壳 1.6 接线核对',actor:{catId:'codex-sol',displayName:'小太阳'},activity:'working',taskId:'task-preview',homeThreadId:'thread-preview',sourceRef:'task:task-preview',updatedAt:Date.now()}],
+        recentDeliveries:[{entryRef:'preview_delivery_one',title:'主页北极星稿 1.6',taskId:null,homeThreadId:'thread-preview',sourceRef:'thread:thread-preview#message-preview',deliveredAt:Date.now(),artifact:{artifactId:'artifact-preview',version:'1.6',versionState:'current'}}]};
+      case 'work.open':note('正式 Host 会按 opaque entryRef 打开原处；预览不持有私有地址。');return {kind:'navigation',delivery:'applied'};
+      case 'decision.open':note('正式 Host 会按当前事项重新核对并打开原处；预览不持有私有地址。');return {kind:'navigation',delivery:'requested'};
       case 'f221.inspect':note('外观预览没有受信 Host 确认窗口，也不会提交决定。');return {kind:'decision-trial',status:'unavailable'};
       case 'view.resize':parent.postMessage({kind:'resize',expanded:command.expanded},location.origin);return {kind:'ok'};
       case 'documents':allowed=command.allowed;phase='idle';return identity();
-      case 'text': messages.push({id:command.clientMessageId,role:'user',text:command.text,name:'预览输入'});return {kind:'delivery',delivery:'accepted'};
+      case 'text': {
+        const messageId='preview-text-'+command.clientMessageId;const textCallId=phase==='talking'?callId:null;
+        if(command.v===2){
+          if(command.scopeRef!==composerDraft.scopeRef)return {kind:'error',code:'invalid_request'};
+          const existing=composerDraft.submissions.find(value=>value.clientMessageId===command.clientMessageId);
+          if(existing&&(existing.text!==command.text||existing.submissionRevision!==command.submissionRevision))return {kind:'error',code:'invalid_request'};
+          if(existing?.receipt.delivery==='accepted')return existing.receipt;
+          if(!existing){
+            if(command.submissionRevision!==composerDraft.revision)return {kind:'delivery',v:2,delivery:'rejected',clientMessageId:command.clientMessageId,reason:'draft_changed',draftRevision:composerDraft.revision};
+            if(!composerDraft.writable||composerDraft.text!==command.text)return {kind:'delivery',v:2,delivery:'rejected',clientMessageId:command.clientMessageId,reason:'unsupported_draft',draftRevision:composerDraft.revision};
+            if(composerDraft.submissions.filter(value=>value.receipt.delivery==='unconfirmed').length>=32)return {kind:'delivery',v:2,delivery:'rejected',clientMessageId:command.clientMessageId,reason:'pending_limit',draftRevision:composerDraft.revision};
+            composerDraft={...composerDraft,revision:composerDraft.revision+1};
+          }
+          const boundCallId=existing?.receipt.callId??textCallId;
+          if(window.__previewUnconfirmNextText){window.__previewUnconfirmNextText=false;const receipt={kind:'delivery',v:2,delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:boundCallId};composerDraft={...composerDraft,submissions:[...composerDraft.submissions.filter(value=>value.clientMessageId!==command.clientMessageId),{clientMessageId:command.clientMessageId,text:command.text,submissionRevision:command.submissionRevision,receipt}]};return receipt;}
+          const receipt={kind:'delivery',v:2,delivery:'accepted',clientMessageId:command.clientMessageId,messageId,callId:boundCallId};
+          if(!messages.some(value=>value.id===messageId))messages.push({id:messageId,role:'user',text:command.text,name:'预览输入',inputMessageIds:[],responsePhase:null,body:{revision:'preview-'+messageId,complete:true,continuation:null},deliveryReceipt:receipt});
+          const canClear=composerDraft.revision===command.submissionRevision+1&&composerDraft.text===command.text;
+          composerDraft={...composerDraft,revision:canClear?composerDraft.revision+1:composerDraft.revision,text:canClear?'':composerDraft.text,submissions:[...composerDraft.submissions.filter(value=>value.clientMessageId!==command.clientMessageId&&value.receipt.delivery!=='accepted'),{clientMessageId:command.clientMessageId,text:command.text,submissionRevision:command.submissionRevision,receipt}]};
+          window.__lastPreviewMessageId=messageId;return receipt;
+        }
+        if(window.__previewUnconfirmNextText){window.__previewUnconfirmNextText=false;return {kind:'delivery',delivery:'unconfirmed',clientMessageId:command.clientMessageId,messageId:null,callId:textCallId};}
+        messages.push({id:messageId,role:'user',text:command.text,name:'预览输入',inputMessageIds:[],responsePhase:null,body:{revision:'preview-'+messageId,complete:true,continuation:null}});window.__lastPreviewMessageId=messageId;if(textCallId)transcriptRows.push({messageId,role:'user',text:command.text,source:{kind:'typed',clientMessageId:command.clientMessageId,callId:textCallId}});return {kind:'delivery',delivery:'accepted',clientMessageId:command.clientMessageId,messageId,callId:textCallId}; }
       case 'conversation.open':note('正式窗口会在这里打开原来的聊天；当前是外观预览。');return {kind:'navigation',delivery:'requested'};
-      case 'screen.pick':note('预览不采集屏幕；正式窗口需要你明确选择画面。');return {kind:'error',code:'cancelled'};
+      case 'screen.pick':{
+        note('预览不采集屏幕；正式窗口需要你明确选择画面。');
+        if(!window.__previewHoldScreenPick)return {kind:'error',code:'cancelled'};
+        return new Promise(resolve=>{window.__previewResolveScreenPick=()=>{window.__previewHoldScreenPick=false;window.__previewResolveScreenPick=undefined;resolve({kind:'error',code:'cancelled'});};});
+      }
       default:return {kind:'ok'};
     }
   }};
   </script>`;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) createServer(async (req, res) => {
-  try {
-    const url = new URL(req.url, 'http://localhost');
-    if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
-    if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': previewMime['.html'] }); res.end(page); return; }
-    const isSpike = url.pathname.startsWith('/spike/');
-    const directory = isSpike ? spikeRoot : root;
-    const path = isSpike ? url.pathname.slice('/spike'.length) : url.pathname;
-    const file = resolve(directory, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
-    if (!file.startsWith(directory + sep) || !previewMime[extname(file)]) { res.writeHead(404); res.end(); return; }
-    let content = await readFile(file);
-    if (url.pathname === '/index.html') {
-      const skin = url.searchParams.get('skin');
-      if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
-      content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0')}<script type="module"`);
-    }
-    res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
-  } catch { res.writeHead(404); res.end(); }
-}).listen(Number(process.env.PORT ?? 3891), '127.0.0.1', () => console.log('Companion visual preview ready (no Host or media)'));
+export function createPreviewServer() {
+  return createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      if (url.pathname === '/') { res.writeHead(302, { Location: '/spike/' }); res.end(); return; }
+      if (url.pathname === '/previous') { res.writeHead(200, { 'Content-Type': previewMime['.html'] }); res.end(page); return; }
+      const isSpike = url.pathname.startsWith('/spike/');
+      const directory = isSpike ? spikeRoot : root;
+      const path = isSpike ? url.pathname.slice('/spike'.length) : url.pathname;
+      const file = resolve(directory, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
+      if (!file.startsWith(directory + sep) || !previewMime[extname(file)]) { res.writeHead(404); res.end(); return; }
+      let content = await readFile(file);
+      if (url.pathname === '/index.html') {
+        const skin = url.searchParams.get('skin');
+        if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
+        content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0', url.searchParams.get('autoTranscript') !== '0', url.searchParams.get('appAssist') === '1')}<script type="module"`);
+      }
+      res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);
+    } catch { res.writeHead(404); res.end(); }
+  });
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  createPreviewServer().listen(Number(process.env.PORT ?? 3891), '127.0.0.1',
+    () => console.log('Companion visual preview ready (no Host or media)'));
+}

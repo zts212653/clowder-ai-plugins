@@ -8,17 +8,61 @@ import { parse } from 'yaml';
 
 const root = new URL('../', import.meta.url);
 test('the installable package declares one companion body and contains a closed browser asset graph', async () => {
+  const discoveryDeclaration = await readFile(new URL('plugin.yaml', root), 'utf8');
   const built = spawnSync(process.execPath, ['scripts/build.mjs'], { cwd: root, encoding: 'utf8' });
   assert.equal(built.status, 0, built.stderr);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root)));
   const catalogManifest = parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
+  assert.equal(await readFile(new URL('plugin.yaml', root), 'utf8'), discoveryDeclaration,
+    'the tracked discovery declaration must match its built version and surface integrity');
   assert.deepEqual(catalogManifest, manifest, 'catalog and module consumers read the same generated manifest');
   const pkg = JSON.parse(await readFile(new URL('package.json', root)));
   assert.ok(pkg.files.includes('plugin.yaml'), 'the catalog manifest must reach the published archive');
   assert.equal(validateManifest(manifest).valid, true);
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
+  assert.equal(manifest.contributions[0].bridgeVersion, '1.6.0');
   assert.deepEqual(manifest.features[0].capabilities, ['windows.create']);
   const html = await readFile(new URL('renderer/index.html', root));
+  const markup = html.toString();
+  assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,
+    'the package must carry a distinct capability-gated receive-only control');
+  assert.match(html.toString(), /id="actions"[^>]*class="[^"]*call-bar[^"]*"/u,
+    'the package must carry the persistent active-call bar');
+  assert.match(html.toString(), /id="call-state"[^>]*>通话中</u,
+    'connection state must remain visible as text instead of a mode-only badge');
+  assert.match(html.toString(), /id="begin"[^>]*>[\s\S]*?<span class="label">语音通话<\/span>/u,
+    'the primary action must use the approved Voice call product name');
+  assert.match(markup, /<section id="call-bubble"[^>]*aria-label="通话中的最新话语"[^>]*>[\s\S]*?id="call-bubble-first"[\s\S]*?id="call-bubble-second"[\s\S]*?<\/section>/u,
+    'call speech stays in its own passive surface');
+  assert.match(markup, /<section id="app-assist"[^>]*data-candidate="true"[^>]*>[\s\S]*?id="app-assist-start"[^>]*>打开通话控制<\/button>/u,
+    'application assistance remains a labelled candidate that returns to explicit call controls');
+  assert.doesNotMatch(markup, /开始通话并共享/u,
+    'the package must not claim that application-assistance settlement grants media authority');
+  const callBarMarkup = markup.slice(markup.indexOf('<section id="actions"'), markup.indexOf('</section>', markup.indexOf('<section id="actions"')));
+  assert.doesNotMatch(callBarMarkup, /最新消息|call-bubble-/u,
+    'the compact call bar must not absorb the speech bubble or add a Latest message label');
+  assert.match(html.toString(), /id="call-share-context"/u,
+    'the persistent call bar must retain the exact shared target while sharing');
+  assert.match(html.toString(), /id="call-meeting"[^>]*class="call-meeting"[^>]*hidden/u,
+    'meeting status must stay a read-only, call-scoped line that idle can hide');
+  assert.match(html.toString(), /data-action="stop"[^>]*><span>挂断</u,
+    'the persistent call bar must keep an explicit destructive hang-up action');
+  assert.match(html.toString(), /id="call-chat"[^>]*data-action="write"/u,
+    'the persistent call bar must expose chat without routing through the card');
+  assert.match(html.toString(), /id="call-chat-unread"[^>]*hidden/u,
+    'folded call chat must carry its own bounded unread indicator');
+  assert.match(html.toString(), /id="menu-call-actions"[\s\S]*?id="menu-mic"[\s\S]*?id="menu-call-share"[\s\S]*?id="menu-call-chat"[\s\S]*?data-action="stop"/u,
+    'the in-call card must preserve mute, stop-share, chat and independent hang-up controls');
+  assert.match(html.toString(), /id="menu-hide-label">隐藏<\/span>/u,
+    'ordinary card hiding must not be labelled as folding chat');
+  assert.match(html.toString(), /id="menu-size-toggle"[^>]*data-action="size-toggle"/u,
+    'the card must expose one-click compact sizing through the persisted setting');
+  assert.match(html.toString(), /id="work-overview"/u,
+    'the card must have a bounded current-project work and delivery surface');
+  assert.match(html.toString(), /id="call-transcript-log"[^>]*role="log"/u,
+    'the installable renderer must contain the Host-bound transcript surface');
+  assert.match(html.toString(), /<button id="transcript-return"[^>]*data-action="transcript-return"[^>]*>[\s\S]*?返回通话[\s\S]*?<\/button>/u,
+    'compact and expanded subtitles must expose a visible return to the persistent call bar');
   assert.equal(manifest.contributions[0].surface.integrity, `sha256-${createHash('sha256').update(html).digest('base64')}`);
   for (const name of await readdir(new URL('renderer/', root))) {
     if (!/\.(html|css|mjs)$/.test(name)) continue;

@@ -1,6 +1,6 @@
 # clowder-ai-plugins
 
-> Clowder AI 官方插件生态仓——契约、插件侧 SDK/runtime 与官方插件的家。**契约 v0.1 候选实现中**，见 [Issue #1](https://github.com/zts212653/clowder-ai-plugins/issues/1)。
+> Clowder AI 官方插件生态仓——契约、插件侧 SDK/runtime 与官方插件的家。开发入口见[插件开发指南](docs/plugin-development.md)，贡献与发布要求见 [CONTRIBUTING](CONTRIBUTING.md)。源码中的候选版本不代表 npm 已发布版本。
 
 ## 这个仓在做什么
 
@@ -50,31 +50,30 @@ Host Broker ─────┐
 ```
 
 - `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures；F285 的 `physical-limb` contribution schema 在这里定义物理动作、观察、readiness 与独立设备 grant，刻意不包含 raw sensor media。
-- `@clowder-ai/plugin-sdk`：提供 schema-neutral standalone stdio runtime、握手/`events.publish` Host-bound helper 与 beta.10 Train B contribution facade；其余 RPC 仍须等对应 contract row 从 reservation 变为 executable。
+- `@clowder-ai/plugin-sdk`：提供 standalone stdio 载体工具、统一 delivery／streams 和 module 生命周期辅助。声明 `runtime.transport: builtin` + root `entrypoint` 的包必须让该 ESM 模块的 `default` export 通过 `requirePluginModuleEntrypoint(...)`，Host 不猜测 named exports。
 - Host Adapter/Broker：属于 `clowder-ai` 内核，不放在本仓，也不通过插件 client SDK 实现。
 
 仓库名与 npm 包名不需要一一对应；SDK 可以从本 monorepo 的独立 package 构建并单独发布，无需另开一个 `clowder-ai-sdk` 仓。
 
-## 当前阶段
+## 开发入口
 
-`packages/plugin-contract` 是机器契约真相源；`packages/plugin-sdk` 已落地 schema-neutral standalone stdio runtime，并开放 Host-bound `events.publish`。`packages/feishu-meeting-intake` 是 C-2 的首个官方纵切：只发布有界 meeting metadata + opaque source handle，durable outbox/cursor 负责断线恢复，长期飞书凭据仍由 Host 注入的 gateway 保管。Host Broker、Needs Me 与用户数据仍属于内核仓。
+- **开发官方插件**：在 `packages/<插件目录>` 维护独立声明、源码和构建，按[开发指南](docs/plugin-development.md)进行仓内联调与制品验证。
+- **开发独立插件或团队 Git 仓**：直接依赖可获取的 SDK npm 版本，也可按公开 module 契约实现不依赖 SDK 的插件；不必复制本仓 SDK 源码或先发布自己的插件。
+- **同时修改 SDK**：SDK 在本仓独立 package 中开发；插件通过包名导入其公开 API。workspace 联调与最终制品依赖分别验证。
 
-## 插件类型（capability contributions）
+插件按[接口基线](docs/plugin-development.md)与[源码开发和安装指南](docs/plugin-projects.md)验证。workspace 联调与最终安装制品须分别核实；已激活的官方版本和摘要见 [catalog](catalog/catalog.json)，源码候选见 [candidate](catalog/candidate.json)。包发布并验证可获取后，再通过普通 PR 更新官方目录；候选不直接参与发现。
 
-`input-source`（感知采集）· `surface`（展示表达）· `connector`（消息渠道）· `service`（本地服务，如 ASR/TTS 模型）· `tool-provider`（给猫加工具）· `skin`（形象资产）· `local-brain`（端上反射）
+## 插件提供什么能力（contributions）
 
-一个插件包可声明多种 contribution。
+常见声明有 `mcp`（MCP 工具服务）、`skill`（使用指引）、`schedule`（调度）、`limb`（工具接入）、`connector`（消息渠道）和 `desktop-window`（桌面窗口）。一个包按实际需要选择，不要求每种都声明。
 
-## 首批插件（规划中）
+`tool`、`webhook`、`identity` 等也可能是功能与 Host 之间的接线；内部路由或验证编号不等于用户要逐项设置的功能。完整机器字段以 Contract 为准，用户说明放在每个插件的 README 中。
 
-| 插件 | 类型 | 状态 |
-|---|---|---|
-| `probe-desktop` 桌面探针 | input-source | 契约讨论中 |
-| `foreground-cat` 前台猫 | surface + skin + local-brain | 契约讨论中 |
-| `voice-suite` 语音包 | service | 契约讨论中 |
-| `feishu-meeting-intake` 飞书会议入口 | input-source | alpha 实现中 |
-| GenOffice | content-editor-provider | DOCX alpha：静态编辑界面及独立修订/批注 worker；需兼容 Host，完整共同编辑旅程仍在验收 |
-| IM connectors（微信公众号等存量迁移） | connector | 待收编 |
+## 已有插件源码
+
+`packages/` 已包含 IM 渠道、微信公众号、个人 Chrome、微信可见读取、企业工作流、GitHub、Collective、飞书纪要、视频分析/生成、GenOffice、Companion、象棋等插件。每包的 `plugin.yaml` 和 README 描述实际能力。
+
+源码存在、制品发布和兼容 Host 验收是不同状态。官方 npm 安装目录以 `catalog/catalog.json` 为准；不要把所有源码包都视为已发布或完整验收。
 
 ## 皮肤 ≠ 身份
 
@@ -86,4 +85,4 @@ Host Broker ─────┐
 
 ## 参与
 
-契约 v0 讨论阶段：请到 [Issue #1](../../issues/1) 参与；实现 PR 待契约 v0 冻结后开放。
+新插件与修复通过 PR 提交。先读[插件开发指南](docs/plugin-development.md)和[贡献说明](CONTRIBUTING.md)；契约变更继续按路径责任与审批规则处理。

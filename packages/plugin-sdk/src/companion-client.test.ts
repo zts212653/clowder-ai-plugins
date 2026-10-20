@@ -9,11 +9,34 @@ test('companion client relays declared actions; no Host or identity arguments ar
   await client.stop(); await client.resize(true); await client.screenClose();
   assert.deepEqual(calls, [{ kind: 'stop' }, { kind: 'view.resize', expanded: true }, { kind: 'screen.close' }]);
 });
+test('state carries only the Host-bound meeting presentation without a meeting selector or command', async () => {
+  const calls: CompanionCommand[] = [];
+  const response: CompanionReply = {
+    kind: 'state', phase: 'talking', displayName: '宪宪', skin: 'xianxian-codex',
+    duty: { catId: 'fable-5', displayName: '宪宪' },
+    carrier: { catId: 'codex-sol', displayName: '砚砚' },
+    documentsAllowed: true, behaviorEnabled: true, toolsReady: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'running', sharing: true, paused: false, sourceLabel: 'Zoom' },
+    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 1, active: [], recent: [] },
+  };
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+
+  assert.deepEqual((await client.state()).meeting, response.meeting);
+  assert.deepEqual(calls, [{ kind: 'state' }]);
+  assert.equal('meeting' in client, false);
+});
 test('audio controls expose no generic provider event or SDP operation', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => { calls.push(command); return { kind: 'ok' }; }, subscribe: () => () => {} });
-  await client.connectAudio(); await client.muteMicrophone(true); await client.muteSpeaker(false); await client.closeAudio();
-  assert.deepEqual(calls, [{ kind: 'audio.connect' }, { kind: 'audio.microphone', muted: true }, { kind: 'audio.speaker', muted: false }, { kind: 'audio.close' }]);
+  await client.connectAudio(); await client.connectAudio('receive_only');
+  await client.muteMicrophone(true); await client.muteSpeaker(false); await client.closeAudio();
+  assert.deepEqual(calls, [{ kind: 'audio.connect' }, { kind: 'audio.connect', mode: 'receive_only' },
+    { kind: 'audio.microphone', muted: true }, { kind: 'audio.speaker', muted: false }, { kind: 'audio.close' }]);
   assert.equal('offer' in client, false);
 });
 
@@ -25,6 +48,80 @@ test('passive bubble layout stays a bounded presentation request', async () => {
   }, subscribe: () => () => {} });
   await client.layout('bubble', 240, 80);
   assert.deepEqual(calls, [{ kind: 'view.layout', panel: 'bubble', width: 240, height: 80 }]);
+});
+
+test('active call layout keeps the interactive bar and passive speech bubble as distinct Host regions', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return {
+      kind: 'layout', pet: { x: 420, y: 90 }, panel: { x: 0, y: 104, width: 412, height: 116 },
+      bubble: { x: 300, y: 0, width: 320, height: 62 }, width: 628, height: 236,
+    };
+  }, subscribe: () => () => {} });
+  const call = { presentation: 'controls' as const, bubble: { width: 320, height: 62 } };
+
+  const reply = await client.layout('actions', 412, 116, call);
+
+  assert.deepEqual(calls, [{ kind: 'view.layout', panel: 'actions', width: 412, height: 116, call }]);
+  assert.deepEqual(reply.bubble, { x: 300, y: 0, width: 320, height: 62 });
+});
+
+test('application assistance settlement carries only Host-issued scope, offer and the explicit action', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return {
+      kind: 'app-assist-settlement', scopeRef: 'fixture-view-a', revision: 5,
+      offerRef: 'fixture-only-1', action: 'accept', outcome: 'settled',
+    };
+  }, subscribe: () => () => {} });
+
+  const reply = await client.settleAppAssist('fixture-view-a', 'fixture-only-1', 'accept');
+
+  assert.deepEqual(calls, [{
+    kind: 'app-assist.settle', scopeRef: 'fixture-view-a', offerRef: 'fixture-only-1', action: 'accept',
+  }]);
+  assert.equal(reply.kind, 'app-assist-settlement');
+  assert.equal(reply.outcome, 'settled');
+});
+
+test('presentation observation relays only the visible-text event, call fence, time and source reference', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command); return { kind: 'ok' };
+  }, subscribe: () => () => {} });
+  const observation = {
+    event: 'first_text_visible' as const,
+    observedAt: 1_791_804_000_000,
+    callId: '863adf11-9fa3-4156-93af-94f7d6022d85',
+    reference: { kind: 'native-item' as const, nativeItemId: 'output-item-1' },
+  };
+
+  await client.observePresentation(observation);
+
+  assert.deepEqual(calls, [{ kind: 'presentation.observe', ...observation }]);
+});
+
+test('presentation observation constructs the narrow command at runtime instead of spreading caller fields', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command); return { kind: 'ok' };
+  }, subscribe: () => () => {} });
+  const observation = {
+    event: 'first_text_visible' as const,
+    observedAt: 1_791_804_000_000,
+    callId: '863adf11-9fa3-4156-93af-94f7d6022d85',
+    reference: { kind: 'message' as const, messageId: 'message-1' },
+  };
+
+  await client.observePresentation({
+    ...observation,
+    kind: 'view.hide',
+    text: 'private subtitle',
+  } as unknown as typeof observation);
+
+  assert.deepEqual(calls, [{ kind: 'presentation.observe', ...observation }]);
 });
 
 test('decision reading requests a page without a writer or owner selector', async () => {
@@ -39,23 +136,178 @@ test('decision reading requests a page without a writer or owner selector', asyn
   assert.deepEqual(calls, [{ kind: 'decisions.read', offset: 0, limit: 10 }]);
 });
 
+test('decision navigation sends only the Host-issued concrete variant and closed target', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command); return { kind: 'navigation', delivery: 'requested' };
+  }, subscribe: () => () => {} });
+  await client.openDecision('variant-a', 'approval_card');
+  assert.deepEqual(calls, [{ kind: 'decision.open', variantRef: 'variant-a', target: 'approval_card' }]);
+});
+
+test('work overview reads and opens only Host-issued opaque entries', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = { kind: 'work', v: 1, status: 'unavailable', observedAt: 1,
+    scope: { kind: 'current-project', label: 'Cat Café' }, coverage: [
+      { source: 'tasks', status: 'unavailable' }, { source: 'messages', status: 'unavailable' },
+      { source: 'artifacts', status: 'unavailable' },
+    ], active: [], recentDeliveries: [] } as CompanionReply;
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; }, subscribe: () => () => {} });
+  await client.readWork();
+  response = { kind: 'navigation', delivery: 'requested' };
+  await client.openWork('work-one');
+  assert.deepEqual(calls, [{ kind: 'work.read' }, { kind: 'work.open', entryRef: 'work-one' }]);
+});
+
+test('transcript reading is bound by the Host and exposes no call selector', async () => {
+  const calls: CompanionCommand[] = [];
+  const client = createCompanionClient({ request: async command => {
+    calls.push(command);
+    return { kind: 'transcript', scope: {
+      callId: '863adf11-9fa3-4156-93af-94f7d6022d85', realtimeSessionId: 'rtc-session-1',
+    }, rows: [], hasMore: false };
+  }, subscribe: () => () => {} });
+  await client.readTranscript();
+  assert.deepEqual(calls, [{ kind: 'transcript.read' }]);
+});
+
+test('conversation v2 reads only Host-issued history and body continuations', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = {
+    kind: 'conversation', v: 2, status: 'available', threadTitle: '猫猫球 · 伴随对话',
+    messages: [], hasMoreOlder: true, olderCursor: 'history.before_A-1',
+  };
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+
+  assert.deepEqual(await client.readConversationPage(), response);
+  assert.deepEqual(await client.readConversationPage({
+    before: 'history.before_A-1', limit: 12,
+    threadId: 'renderer-choice',
+  } as unknown as { before: string; limit: number }), response);
+
+  response = {
+    kind: 'conversation-body', v: 2, status: 'available', messageId: 'assistant-a', text: '第二段',
+    body: { revision: 'sha256:body-a', complete: true, continuation: null },
+  };
+  assert.deepEqual(await client.readConversationBody('body.next_A-1'), response);
+  assert.deepEqual(calls, [
+    { kind: 'conversation.read', v: 2 },
+    { kind: 'conversation.read', v: 2, before: 'history.before_A-1', limit: 12 },
+    { kind: 'conversation.body.read', v: 2, continuation: 'body.next_A-1' },
+  ]);
+});
+
+test('draft and v2 delivery methods construct only the revision-bound public fields', async () => {
+  const calls: CompanionCommand[] = [];
+  const clientMessageId = '6d01d254-1e3b-4588-a352-756449e95025';
+  const scopeRef = 'companion-scope_A-1';
+  let response: CompanionReply = {
+    kind: 'conversation-draft', v: 1, status: 'available', scopeRef, revision: 4,
+    text: '原草稿', writable: true, submissions: [],
+  } as CompanionReply;
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+
+  assert.deepEqual(await client.readConversationDraft(), response);
+  assert.deepEqual(await client.saveConversationDraft(4, '修改后', scopeRef), response);
+  response = {
+    kind: 'delivery', v: 2, delivery: 'unconfirmed', clientMessageId,
+    messageId: null, callId: null,
+  } as CompanionReply;
+  assert.deepEqual(await client.submitConversationText('请继续', clientMessageId, 5, scopeRef), response);
+  assert.deepEqual(await client.readConversationDelivery(clientMessageId, scopeRef), response);
+  assert.deepEqual(calls, [
+    { kind: 'conversation.draft.read', v: 1 },
+    { kind: 'conversation.draft.save', v: 1, scopeRef, expectedRevision: 4, text: '修改后' },
+    { kind: 'text', v: 2, scopeRef, text: '请继续', clientMessageId, submissionRevision: 5 },
+    { kind: 'conversation.delivery.read', v: 1, scopeRef, clientMessageId },
+  ]);
+});
+
+test('draft save does not spread renderer-selected owner or route fields', async () => {
+  const calls: CompanionCommand[] = [];
+  const response = {
+    kind: 'conversation-draft', v: 1, status: 'available', scopeRef: 'companion-scope_A-1', revision: 5,
+    text: '修改后', writable: true, submissions: [],
+  } as CompanionReply;
+  const client = createCompanionClient({
+    request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {},
+  });
+  await client.saveConversationDraft(...([4, '修改后', 'companion-scope_A-1', {
+    ownerId: 'renderer', threadId: 'other',
+  }] as unknown as [number, string, string]));
+  assert.deepEqual(calls, [
+    { kind: 'conversation.draft.save', v: 1, scopeRef: 'companion-scope_A-1', expectedRevision: 4, text: '修改后' },
+  ]);
+});
+
+test('legacy conversation reading cannot accept a v2 page as v1 history', async () => {
+  const client = createCompanionClient({
+    request: async () => ({ kind: 'conversation', v: 2, status: 'stale' }),
+    subscribe: () => () => {},
+  });
+  await assert.rejects(client.readConversation(),
+    (error) => error instanceof CompanionRequestError && error.code === 'unavailable');
+});
+
+test('settings, native reset, and disable expose no owner or installation selectors', async () => {
+  const calls: CompanionCommand[] = [];
+  let response = {
+    kind: 'settings', status: 'available',
+    values: { dutyCatProfileId: 'fable-5', skin: 'xianxian-codex', ballSize: 72,
+      behaviorEnabled: true, proactivePolicy: 'quiet-badge', personaTone: '温暖', householdReadsAllowed: true,
+      appAssistEnabled: false },
+    companions: [{ catProfileId: 'fable-5', displayName: '宪宪', available: true }],
+    selectedCompanionStatus: 'available',
+  } as unknown as CompanionReply;
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; }, subscribe: () => () => {} });
+
+  await client.readSettings();
+  response = { kind: 'settings-update', field: 'behaviorEnabled', outcome: 'saved', callStatus: 'unchanged', applies: 'now' } as unknown as CompanionReply;
+  await client.updateSetting('behaviorEnabled', false);
+  response = { kind: 'settings-update', field: 'appAssistEnabled', outcome: 'saved', callStatus: 'unchanged', applies: 'now' } as unknown as CompanionReply;
+  await client.updateSetting('appAssistEnabled', true);
+  response = { kind: 'ok' };
+  await client.resetPosition();
+  response = { kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' } as unknown as CompanionReply;
+  await client.disableCompanion();
+
+  assert.deepEqual(calls, [
+    { kind: 'settings.read' },
+    { kind: 'settings.update', field: 'behaviorEnabled', value: false },
+    { kind: 'settings.update', field: 'appAssistEnabled', value: true },
+    { kind: 'view.reset' },
+    { kind: 'companion.disable' },
+  ]);
+});
+
 test('F221 inspection requests a Host dialog trial without an approval payload', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => {
     calls.push(command); return { kind: 'decision-trial', status: 'dismissed' };
   }, subscribe: () => () => {} });
-  await client.inspectF221('11111111-1111-4111-8111-111111111111');
-  assert.deepEqual(calls, [{ kind: 'f221.inspect', proposalId: '11111111-1111-4111-8111-111111111111' }]);
+  await client.inspectF221('proposal_mgf2abc12345678');
+  assert.deepEqual(calls, [{ kind: 'f221.inspect', proposalId: 'proposal_mgf2abc12345678' }]);
 });
 
 test('unconfirmed text is retained for an explicit retry with the same caller id', async () => {
   const calls: CompanionCommand[] = [];
-  let response: CompanionReply = { kind: 'delivery', delivery: 'unconfirmed' };
+  const callId = 'c377802e-452e-4936-8d33-6bbf379764c2';
+  let response: CompanionReply = {
+    kind: 'delivery', delivery: 'unconfirmed', clientMessageId: '863adf11-9fa3-4156-93af-94f7d6022d85',
+    messageId: null, callId,
+  };
   const client = createCompanionClient({ request: async (command) => { calls.push(command); return response; }, subscribe: () => () => {} });
   const id = '863adf11-9fa3-4156-93af-94f7d6022d85';
   await assert.rejects(client.text('new thought', id), (error) => error instanceof CompanionRequestError && error.code === 'unconfirmed');
-  response = { kind: 'delivery', delivery: 'accepted' };
-  await client.text('new thought', id);
+  response = { kind: 'delivery', delivery: 'accepted', clientMessageId: id, messageId: 'message-1', callId };
+  assert.deepEqual(await client.text('new thought', id), response);
   assert.equal(calls.length, 2); assert.deepEqual(calls[0], calls[1]);
 });
 

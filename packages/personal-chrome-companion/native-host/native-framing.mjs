@@ -1,9 +1,6 @@
 export const MAX_NATIVE_MESSAGE_BYTES = 1024 * 1024;
 
 export function encodeNativeMessage(message) {
-  if (typeof message !== 'object' || message === null || Array.isArray(message)) {
-    throw new Error('Native message payload must be an object');
-  }
   const payload = Buffer.from(JSON.stringify(message), 'utf8');
   if (payload.length === 0) throw new Error('Native message length must be positive');
   if (payload.length > MAX_NATIVE_MESSAGE_BYTES) throw new Error('Native message is too large');

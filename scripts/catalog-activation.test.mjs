@@ -1,0 +1,161 @@
+import assert from 'node:assert/strict';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { parse } from 'yaml';
+import { activateCatalog, assertCatalogAvailable, assertPublishedArchive } from './catalog-activation.mjs';
+
+async function fixture(t) {
+  const directory = await mkdtemp(join(tmpdir(), 'catalog-activation-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await mkdir(join(directory, 'catalog'), { recursive: true });
+  await mkdir(join(directory, '.github/workflows'), { recursive: true });
+  await mkdir(join(directory, 'package'));
+  const archives = new Map(), published = new Map();
+  async function archive(name, version) {
+    await writeFile(join(directory, 'package/package.json'), JSON.stringify({ name, version }));
+    const tar = spawnSync('tar', ['-czf', '-', '-C', directory, 'package']);
+    assert.equal(tar.status, 0);
+    const bytes = tar.stdout;
+    const artifact = { kind: 'npm', packageName: name, version,
+      tarballUrl: `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz`,
+      integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}`,
+      shasum: createHash('sha1').update(bytes).digest('hex'),
+      provenance: { repository: 'https://github.com/example/plugins', sourceDirectory: 'packages/example' } };
+    archives.set(artifact.tarballUrl, bytes);
+    published.set(`${name}@${version}`, artifact.integrity);
+    return artifact;
+  }
+  const previous = await archive('@clowder-ai/example', '0.1.0-alpha.1');
+  const next = await archive('@clowder-ai/example', '0.1.0-alpha.2');
+  const core = await archive('@clowder-ai/plugin-contract', '0.1.0-beta.37');
+  const sdk = await archive('@clowder-ai/plugin-sdk', '0.2.0-beta.21');
+  const row = artifact => ({ version: artifact.version, contractVersion: '0.1.0', manifestPath: 'plugin.yaml', artifact });
+  const entry = versions => ({ pluginId: 'official.example', name: 'Example', description: 'Example',
+    icon: { type: 'svg', src: 'assets/icon.svg' }, publisher: { id: 'example', name: 'Example' }, versions: versions.map(row) });
+  const live = { schemaVersion: '1', plugins: [entry([previous])] };
+  const candidate = { schemaVersion: '1', plugins: [entry([next, previous])] };
+  const livePath = join(directory, 'catalog/catalog.json');
+  await writeFile(livePath, JSON.stringify(live));
+  await writeFile(join(directory, 'catalog/candidate.json'), JSON.stringify(candidate));
+  await writeFile(join(directory, '.github/workflows/contract-ci.yml'), `jobs:
+  publish:
+    steps:
+      - uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/plugin-contract
+      - uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/plugin-sdk
+      - uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/example
+`);
+  const options = { root: directory,
+    registryIntegrity: async (name, version) => published.get(`${name}@${version}`),
+    readArchive: async url => { assert.ok(archives.has(url), `archive unavailable: ${url}`); return archives.get(url); },
+    packCurrentPackage: async path => {
+      const artifact = path.endsWith('plugin-contract') ? core : path.endsWith('plugin-sdk') ? sdk : next;
+      return { name: artifact.packageName, version: artifact.version, integrity: artifact.integrity };
+    } };
+  return { directory, livePath, live, candidate, previous, next, core, sdk, archives, published, options };
+}
+
+for (const missing of ['all', 'plugin', 'sdk']) {
+  test(`a ${missing === 'all' ? 'paused' : 'partially failed'} publication (${missing}) leaves live discovery unchanged`, async t => {
+    const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+    if (missing === 'all') f.published.clear();
+    else {
+      const artifact = missing === 'sdk' ? f.sdk : f.next;
+      f.published.delete(`${artifact.packageName}@${artifact.version}`);
+    }
+    await assert.rejects(activateCatalog(f.options), /complete publication batch/);
+    assert.equal(await readFile(f.livePath, 'utf8'), before);
+  });
+}
+
+test('metadata without a retrievable archive cannot activate the catalog', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  f.archives.delete(f.next.tarballUrl);
+  await assert.rejects(activateCatalog(f.options), /archive unavailable/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('a mismatching actual tarball blocks activation even if registry metadata claims the expected digest', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  f.archives.set(f.next.tarballUrl, Buffer.from('corrupt archive'));
+  await assert.rejects(activateCatalog(f.options), /archive integrity mismatch/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('a core dependency with missing bytes blocks activation after plugins have published', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  f.archives.delete(f.core.tarballUrl);
+  await assert.rejects(activateCatalog(f.options), /archive unavailable/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('a complete published batch updates discovery without changing staged source', async t => {
+  const f = await fixture(t);
+  const staged = await readFile(join(f.directory, 'catalog/candidate.json'), 'utf8');
+  await activateCatalog(f.options);
+  assert.deepEqual(JSON.parse(await readFile(f.livePath, 'utf8')), f.candidate);
+  assert.equal(await readFile(join(f.directory, 'catalog/candidate.json'), 'utf8'), staged);
+  await activateCatalog(f.options); // Retry is idempotent without publishing or replacing archives.
+  assert.equal(await assertCatalogAvailable(f.candidate, f.options), 1);
+});
+
+test('inactive historical rows do not require publishing old candidates or change the offered current version', async t => {
+  const f = await fixture(t);
+  f.published.delete(`${f.previous.packageName}@${f.previous.version}`);
+  f.archives.delete(f.previous.tarballUrl);
+  await activateCatalog(f.options);
+  assert.equal(await assertCatalogAvailable(f.candidate, f.options), 1);
+  assert.deepEqual(JSON.parse(await readFile(f.livePath, 'utf8')).plugins[0].versions[1],
+    f.live.plugins[0].versions[0]);
+});
+
+test('activation cannot delete or rewrite an existing immutable release', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  f.candidate.plugins[0].versions.pop();
+  await writeFile(join(f.directory, 'catalog/candidate.json'), JSON.stringify(f.candidate));
+  await assert.rejects(activateCatalog(f.options), /cannot remove or rewrite/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('digest verification also checks the tarball package identity', async t => {
+  const f = await fixture(t);
+  assert.throws(() => assertPublishedArchive(f.archives.get(f.next.tarballUrl),
+    { ...f.next, packageName: '@clowder-ai/other' }), /package name mismatch/);
+});
+
+test('candidate changes during verification do not overwrite the active catalog', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  let changed = false;
+  await assert.rejects(activateCatalog({ ...f.options, readArchive: async url => {
+    if (!changed) { changed = true; await writeFile(join(f.directory, 'catalog/candidate.json'), '{}'); }
+    return f.options.readArchive(url);
+  } }), /Candidate changed/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('a concurrent catalog edit is preserved instead of being overwritten by activation', async t => {
+  const f = await fixture(t);
+  const changed = JSON.stringify({ ...f.live, plugins: [] });
+  let edited = false;
+  await assert.rejects(activateCatalog({ ...f.options, readArchive: async url => {
+    if (!edited) { edited = true; await writeFile(f.livePath, changed); }
+    return f.options.readArchive(url);
+  } }), /Live catalog changed/);
+  assert.equal(await readFile(f.livePath, 'utf8'), changed);
+});
+
+test('the ordinary npm publication job never activates live discovery', async () => {
+  const workflow = parse(await readFile(new URL('../.github/workflows/contract-ci.yml', import.meta.url), 'utf8'));
+  for (const step of workflow.jobs.publish.steps) {
+    assert.doesNotMatch(step.run ?? '', /catalog:activate|catalog-activation\.mjs\s+--activate/);
+  }
+});
