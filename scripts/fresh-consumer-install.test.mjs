@@ -482,7 +482,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       'clowder-personal-chrome-host': 'native-host/native-host-cli.mjs',
     });
     assert.equal(videoPackage.version, '0.1.0-alpha.3');
-    assert.equal(xiangqiPackage.version, '0.1.0-alpha.1');
+    assert.equal(xiangqiPackage.version, '0.1.0-alpha.2');
     assert.deepEqual(videoPackage.bin, {
       'clowder-video-analysis-mcp': './dist/mcp-entrypoint.js',
     });
