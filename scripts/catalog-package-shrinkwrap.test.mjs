@@ -9,6 +9,7 @@ import { parse } from 'yaml';
 import {
   assertProductionDependencyClosure,
   assertWorkspaceSdkContractClosure,
+  sdkContractClosureForConsumer,
   collectWorkspacePackageIntegrityMismatches,
 } from './catalog-package-shrinkwrap.mjs';
 
@@ -17,6 +18,7 @@ const repoRoot = new URL('../', import.meta.url);
 const workspaceContract = JSON.parse(
   await readFile(new URL('../packages/plugin-contract/package.json', import.meta.url), 'utf8'),
 );
+const workspaceLock = parse(await readFile(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'));
 const workspaceSdk = JSON.parse(
   await readFile(new URL('../packages/plugin-sdk/package.json', import.meta.url), 'utf8'),
 );
@@ -66,10 +68,9 @@ for (const { directory, pkg } of productionConsumers) test(`${directory} ships a
     await readFile(new URL(`../packages/${directory}/npm-shrinkwrap.json`, import.meta.url), 'utf8'),
   );
   assertProductionDependencyClosure(pkg, shrinkwrap);
-  assertWorkspaceSdkContractClosure(shrinkwrap, {
-    sdkVersion: workspaceSdk.version,
-    contractVersion: workspaceContract.version,
-  });
+  assertWorkspaceSdkContractClosure(shrinkwrap, sdkContractClosureForConsumer(pkg, {
+    workspaceSdk, workspaceContract, lock: workspaceLock,
+  }));
 });
 
 test('current workspace contract and SDK shrinkwrap entries pin exact-head packed bytes', async () => {
@@ -358,4 +359,16 @@ test('includes optional dependencies in the production closure', () => {
     ),
     /runtime requires missing optional production dependency optional/u,
   );
+});
+
+test('consumer closure uses its exact locked SDK instead of upgrading unrelated plugins', async () => {
+  const { sdkContractClosureForConsumer } = await import('./catalog-package-shrinkwrap.mjs');
+  const current={name:'@clowder-ai/plugin-sdk',version:'0.2.0-beta.22'};
+  const contract={version:'0.1.0-beta.39'};
+  const lock={snapshots:{'@clowder-ai/plugin-sdk@0.2.0-beta.21':{dependencies:{'@clowder-ai/plugin-contract':'0.1.0-beta.37'}}}};
+  assert.deepEqual(sdkContractClosureForConsumer({dependencies:{'@clowder-ai/plugin-sdk':'0.2.0-beta.21'}},{workspaceSdk:current,workspaceContract:contract,lock}),
+    {sdkVersion:'0.2.0-beta.21',contractVersion:'0.1.0-beta.37'});
+  assert.deepEqual(sdkContractClosureForConsumer({dependencies:{'@clowder-ai/plugin-sdk':'0.2.0-beta.22'}},{workspaceSdk:current,workspaceContract:contract,lock}),
+    {sdkVersion:'0.2.0-beta.22',contractVersion:'0.1.0-beta.39'});
+  assert.throws(()=>sdkContractClosureForConsumer({dependencies:{'@clowder-ai/plugin-sdk':'0.2.0-beta.20'}},{workspaceSdk:current,workspaceContract:contract,lock}),/missing locked SDK/);
 });

@@ -710,3 +710,25 @@ test('current public thread surface matches the developer baseline', async () =>
       assert.equal(Object.hasOwn(context, field), false);
   } finally { await active.stop({reason:'test'}); }
 });
+
+test('explicit addressed delivery uses the existing handler and receipt; subscriptions do not opt in', async () => {
+  const definition = {...manifest(), addressedDelivery: {method:'deliverMessage'}};
+  const module = definePluginModule(() => definePlugin({
+    manifest: definition,
+    activate: {'feature-1': () => ({actions: {
+      'fixture.outbound': () => undefined,
+      'fixture.echo': () => undefined,
+      deliverMessage: (input: unknown) => ({deliveryId:(input as {deliveryId:string}).deliveryId}),
+    }})},
+  }));
+  const active = await module.create(definition).start(host([]));
+  assert.deepEqual(await active.actions['deliverMessage']!({deliveryId:'source-1'}),{deliveryId:'source-1'});
+  await active.stop({reason:'disabled'});
+  await assert.rejects(async()=>active.actions['deliverMessage']!({deliveryId:'late'}),FeatureContextRevokedError);
+  const missing = definePluginModule(() => definePlugin({
+    manifest: definition,
+    activate: {'feature-1': () => ({actions: {'fixture.outbound':()=>undefined,'fixture.echo':()=>undefined}})},
+  }));
+  await assert.rejects(missing.create(definition).start(host([])),/deliverMessage.*no plugin handler/);
+  assert.equal(Object.hasOwn(manifest(),'addressedDelivery'),false);
+});

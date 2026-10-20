@@ -88,3 +88,14 @@ stateDiagram-v2
 ## 契约边界验证
 
 Contract 的 schema、公开类型和 wire registry 是同一份接口真相；SDK 和独立 Loopback fixture 消费相同的契约夹具，不各自复制一套常量或方法矩阵。协议字节上限从允许的输入形状推导，并以合法最大值和 N+1、UTF-8 多字节与转义字符重新计算验证。请求与响应关联、错误结果、取消及授权撤销也须覆盖；测试通过不表示 Host 已支持或已启用该能力。
+
+
+## Dot 迁移配套候选声明
+
+Contract beta.40 与 SDK beta.22 提供以下声明；配套 Host 路由、迁移调用与容量限制仍须共同验收，schema 通过不代表旧 Host 已支持。
+
+- 顶层 `addressedDelivery: {method: 'deliverMessage'}` 显式选择可寻址投递，指向 activation.actions 中的实际方法。SDK 要求该 handler 存在；未声明不会从订阅或 handler 推断。输入沿用 PluginMessageDelivery，回执仅 `{deliveryId}`。实例 ID、别名与图标由 Host 管理。
+- 顶层 `migration: {method: 'dot.import'}` 是非 UI、Host-only 的迁移动作。Host 先验证本地 owner、已安装实例、包摘要与当前 fence，再用停用状态的 settings carrier 调用。它不是工具或 HTTP 授权，也不要求临时启用插件；迁移输入与幂等回执由包定义。
+- webhook contribution 的可选 `requestBodyLimitBytes` 为正安全整数，缺省 1 MiB，上限 15 MiB。Host 消费要求是在 body stream／preParsing 阶段按已解析的声明早拒绝，超过限额返回 413 且不调用 action；未知目标和无声明目标保持 1 MiB。声明不改变 anonymous／owner 身份规则或请求头剥离。默认值与硬上限从 schema 生成的 `PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES`、`PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES` 读取。
+
+Dot 的 dot-mcp 声明 15 MiB，容纳既有 10 MiB PNG 的 base64 与 JSON-RPC 封装。其他插件保留自己的精确依赖版本与默认请求预算，不为此迁移强制升级。

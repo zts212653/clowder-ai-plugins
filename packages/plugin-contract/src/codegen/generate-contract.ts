@@ -568,6 +568,18 @@ function renderDataStrategyTable(schema: JsonSchema): string[] {
   return lines;
 }
 
+function renderWebhookBodyBounds(schema: JsonSchema): string[] {
+  const budget = schema.$defs?.['WebhookContribution']?.properties?.['requestBodyLimitBytes'];
+  const normal = budget?.['default'], maximum = budget?.['maximum'];
+  if (typeof normal !== 'number' || typeof maximum !== 'number' ||
+      !Number.isSafeInteger(normal) || !Number.isSafeInteger(maximum) || normal < 1 || maximum < normal)
+    throw new Error('Webhook request body bounds must be positive safe integers');
+  return [
+    `export const PLUGIN_WEBHOOK_DEFAULT_REQUEST_BODY_LIMIT_BYTES = ${normal} as const;`,
+    `export const PLUGIN_WEBHOOK_MAX_REQUEST_BODY_LIMIT_BYTES = ${maximum} as const;`,
+  ];
+}
+
 function renderMessagingBounds(schema: JsonSchema): string[] {
   const bounds = numberMap(schema['x-clowder-bounds'], 'x-clowder-bounds');
   const lines = ['export const MESSAGING_BOUNDS = {'];
@@ -831,6 +843,8 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderCapabilityTables(schemas.manifest),
     '',
     ...renderDataStrategyTable(schemas.manifest),
+    '',
+    ...renderWebhookBodyBounds(schemas.manifest),
     '',
     ...renderMessagingBounds(schemas.messaging),
     '',

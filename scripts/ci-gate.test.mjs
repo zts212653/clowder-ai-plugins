@@ -93,6 +93,7 @@ test('connector gate covers all seven connectors in the workflow order', () => {
 test('every package gate runs typecheck, test, lint, and build like the workflow', () => {
   const steps = buildGateSteps();
   for (const name of [
+    'Dot plugin gates',
     'Feishu intake gates',
     'Video analysis gates',
     'Video generation gates',

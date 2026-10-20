@@ -83,6 +83,7 @@ function featureContributions(
 
 function globalActionMethods(manifest: PluginManifest): ReadonlySet<string> {
   const methods = new Set<string>();
+  if (manifest.addressedDelivery) methods.add(manifest.addressedDelivery.method);
   for (const field of manifest.configuration ?? []) {
     if (field.kind !== 'operation') continue;
     for (const action of field.actions) methods.add(action.action.method);

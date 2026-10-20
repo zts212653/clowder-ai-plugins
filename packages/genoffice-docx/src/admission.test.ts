@@ -16,11 +16,10 @@ import {
 
 const packageRoot = join(import.meta.dirname, '..');
 
-test('pins the current exact contract dependency for the packed consumer', async () => {
+test('pins its declared exact contract dependency for the packed consumer', async () => {
   const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
-  // This unpublished candidate follows the current pair. Published alpha.1
-  // archives remain immutable; protocol compatibility is checked below.
-  const contractPackage = JSON.parse(await readFile(join(packageRoot, '..', 'plugin-contract', 'package.json'), 'utf8'));
+  // New SDK/Contract candidates do not upgrade this plugin's installed dependency.
+  const contractPackage = JSON.parse(await readFile(join(packageRoot, 'node_modules', '@clowder-ai', 'plugin-contract', 'package.json'), 'utf8'));
   assert.equal(packageJson.dependencies['@clowder-ai/plugin-contract'], contractPackage.version);
 });
 

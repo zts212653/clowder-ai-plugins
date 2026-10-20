@@ -16,11 +16,13 @@ import { parse } from 'yaml';
 import {
   assertProductionDependencyClosure,
   assertWorkspaceSdkContractClosure,
+  sdkContractClosureForConsumer,
 } from './catalog-package-shrinkwrap.mjs';
 import { assertStaticPackageDependencies } from './catalog-static-package.mjs';
 import { assertPackedRuntimeEntrypoints } from './catalog-runtime-entrypoints.mjs';
 
 
+const workspaceLock = parse(await readFile(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8'));
 const workspaceSdk = JSON.parse(
   await readFile(new URL('../packages/plugin-sdk/package.json', import.meta.url), 'utf8'),
 );
@@ -329,10 +331,9 @@ async function verifyCatalogEntry(catalogEntry) {
         packageJson.optionalDependencies ?? {},
       );
       assertProductionDependencyClosure(packageJson, shrinkwrap);
-      assertWorkspaceSdkContractClosure(shrinkwrap, {
-        sdkVersion: workspaceSdk.version,
-        contractVersion: workspaceContract.version,
-      });
+      assertWorkspaceSdkContractClosure(shrinkwrap, sdkContractClosureForConsumer(packageJson, {
+        workspaceSdk, workspaceContract, lock: workspaceLock,
+      }));
       for (const [packagePath, entry] of Object.entries(shrinkwrap.packages ?? {})) {
         if (packagePath.length === 0) continue;
         assert.match(packagePath, /^node_modules\//u);

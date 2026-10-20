@@ -1165,6 +1165,13 @@
         "verificationSecretRef": {
           "type": "string",
           "minLength": 1
+        },
+        "requestBodyLimitBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 15728640,
+          "default": 1048576,
+          "description": "Optional body byte budget. Absence retains 1 MiB. Host rejects overflow before package invocation and never exceeds 15 MiB. This limit changes neither owner/anonymous admission nor credential/header filtering."
         }
       },
       "required": [
@@ -2238,6 +2245,38 @@
           "$ref": "#/$defs/BuiltinRuntimeDeclaration"
         }
       ]
+    },
+    "AddressedDelivery": {
+      "type": "object",
+      "description": "Explicit opt-in to addressed input delivery. The method names an activation action; the Host verifies the live handler. Identity and alias remain Host instance facts. A delivery receipt acknowledges input only.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]*$"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "additionalProperties": false
+    },
+    "MigrationAction": {
+      "type": "object",
+      "description": "Non-UI, Host-only migration action. Invoked through the dormant settings carrier only after local owner authentication, with installed package identity/integrity, instance lifetime and owner-operation fencing. The package owns migration payload schemas; declaring this action does not grant tools, external HTTP access or automatic activation.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]*$"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "additionalProperties": false
     }
   },
   "type": "object",
@@ -2307,6 +2346,12 @@
     },
     "signals": {
       "$ref": "https://clowder-ai.dev/schemas/signals/v0.2#/$defs/SignalContribution"
+    },
+    "addressedDelivery": {
+      "$ref": "#/$defs/AddressedDelivery"
+    },
+    "migration": {
+      "$ref": "#/$defs/MigrationAction"
     }
   },
   "required": [

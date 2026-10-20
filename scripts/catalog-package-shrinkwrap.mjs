@@ -98,6 +98,20 @@ export function assertProductionDependencyClosure(packageJson, shrinkwrap) {
   }
 }
 
+/** Keep installed old plugins on their declared, locked SDK while validating new workspace consumers. */
+export function sdkContractClosureForConsumer(pkg, { workspaceSdk, workspaceContract, lock }) {
+  const specifier = pkg.dependencies?.['@clowder-ai/plugin-sdk'];
+  if (!specifier || specifier === 'workspace:*' || specifier === workspaceSdk.version) {
+    return { sdkVersion: workspaceSdk.version, contractVersion: workspaceContract.version };
+  }
+  assert.match(specifier, exactVersionPattern, 'SDK consumers must select an exact version');
+  const snapshot = lock.snapshots?.[`@clowder-ai/plugin-sdk@${specifier}`];
+  const contractVersion = snapshot?.dependencies?.['@clowder-ai/plugin-contract'];
+  assert.equal(typeof contractVersion, 'string', `missing locked SDK closure for ${specifier}`);
+  assert.match(contractVersion, exactVersionPattern, 'locked SDK contract must select an exact version');
+  return { sdkVersion: specifier, contractVersion };
+}
+
 export function assertWorkspaceSdkContractClosure(
   shrinkwrap,
   { sdkVersion, contractVersion },

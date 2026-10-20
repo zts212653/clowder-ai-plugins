@@ -390,8 +390,8 @@ function replaceNamedActionStepOnce(
   return prereleasePublishAction.replace(step, mutatedStep);
 }
 
-test('browser-service transport advances the local package to beta.37 while the broker protocol stays at signed v0.1', () => {
-  assert.equal(contractPackage.version, '0.1.0-beta.37');
+test('addressed delivery and dormant migration advance the package while the broker protocol stays at signed v0.1', () => {
+  assert.equal(contractPackage.version, '0.1.0-beta.40');
   assert.equal(contractPackage.private, false);
   assert.equal(messagingBehaviorSuite._meta?.contractVersion, '0.1.0');
 });

@@ -77,6 +77,7 @@ export function buildGateSteps() {
       name: 'Enterprise workflow package gates',
       command: chain('@clowder-ai/enterprise-workflow', ['typecheck', 'test', 'lint', 'build']),
     },
+    { name: 'Dot plugin gates', command: chain('@clowder-ai/chatgpt-dot', ['typecheck', 'test', 'lint', 'build']) },
     { name: 'Connector command entrypoint parity', command: 'node --import tsx --test scripts/connector-command-entrypoints.test.mjs' },
     { name: 'Script test coverage', command: 'node scripts/assert-script-tests-covered.mjs' },
     { name: 'Script-only unit tests', command: 'pnpm test:scripts' },

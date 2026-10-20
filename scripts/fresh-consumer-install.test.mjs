@@ -53,20 +53,7 @@ function runNpm(args, cwd) {
   return run(process.execPath, [npmCli, ...args], cwd);
 }
 
-function currentPairOverrides(sdk, contract) {
-  return Object.fromEntries([
-    ...['personal-chrome-companion','weixin-mp','wechat-visible-reader','enterprise-workflow','github-operations','feishu-meeting-intake',...connectorPackages.map(({name})=>name.slice('@clowder-ai/'.length))].map(name => [
-      `@clowder-ai/${name}`, {
-        '@clowder-ai/plugin-contract@0.1.0-beta.37': contract,
-        '@clowder-ai/plugin-sdk@0.2.0-beta.21': { '.': sdk,
-          '@clowder-ai/plugin-contract@0.1.0-beta.37': contract },
-      },
-    ]),
-    ['@clowder-ai/genoffice-docx', { '@clowder-ai/plugin-contract@0.1.0-beta.37': contract }],
-  ]);
-}
-
-test('Chrome and the current SDK resolve the same current contract in a fresh consumer', async () => {
+test('Chrome retains its declared pair alongside the current SDK in a fresh consumer', async () => {
   const root = await mkdtemp(join(tmpdir(), 'clowder-chrome-direct-consumer-'));
   const packs = join(root, 'packs');
   const consumer = join(root, 'consumer');
@@ -80,7 +67,6 @@ test('Chrome and the current SDK resolve the same current contract in a fresh co
       .map(name => pack(`packages/${name}`, packs));
     await writeFile(join(consumer, 'package.json'), JSON.stringify({
       private: true, type: 'module',
-      overrides: currentPairOverrides(pathToFileURL(tarballs[1]).href, pathToFileURL(tarballs[0]).href),
     }));
     runNpm(['install', '--ignore-scripts', '--package-lock=false', '--no-audit', '--no-fund',
       '--registry=https://registry.npmjs.org/', ...tarballs], consumer);
@@ -100,8 +86,8 @@ test('Chrome and the current SDK resolve the same current contract in a fresh co
       assert.equal(version(resolvedSdkEntry), '0.2.0-beta.21');
       assert.equal(version(resolveFrom(dirname(resolvedSdkEntry), '@clowder-ai/plugin-contract')), '0.1.0-beta.37');
       const currentSdkEntry = fileURLToPath(import.meta.resolve('@clowder-ai/plugin-sdk'));
-      assert.equal(version(currentSdkEntry), '0.2.0-beta.21');
-      assert.equal(version(resolveFrom(dirname(currentSdkEntry), '@clowder-ai/plugin-contract')), '0.1.0-beta.37');
+      assert.equal(version(currentSdkEntry), '0.2.0-beta.22');
+      assert.equal(version(resolveFrom(dirname(currentSdkEntry), '@clowder-ai/plugin-contract')), '0.1.0-beta.40');
       assert.equal(typeof (await import(pathToFileURL(chromeEntry).href)).default.create, 'function');
     `], consumer);
   } finally {
@@ -313,7 +299,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       stagedVideoPackage,
     );
 
-    // Every installed current consumer must resolve this exact current pair.
+    // Old consumers keep their pins; current consumers must match exact packed bytes.
     const sdkBytes = await readFile(tarballs[1]);
     const contractBytes = await readFile(tarballs[0]);
     for (const directory of ['personal-chrome-companion','weixin-mp','wechat-visible-reader','enterprise-workflow','github-operations',...connectorPackages.map(({directory})=>directory.slice('packages/'.length))]) {
@@ -321,11 +307,12 @@ test('packed public packages install and import in a fresh npm consumer', async 
       for (const [name, version, bytes] of [['plugin-sdk','0.2.0-beta.21',sdkBytes],['plugin-contract','0.1.0-beta.37',contractBytes]]) {
         const entry=lock.packages[`node_modules/@clowder-ai/${name}`];
         assert.equal(entry.version,version);
-        assert.equal(entry.integrity,`sha512-${createHash('sha512').update(bytes).digest('base64')}`);
+        // Old consumers retain their immutable registry bytes; compare only the current version.
+        const current=JSON.parse(await readFile(join(repoRoot,'packages',name,'package.json'),'utf8'));
+        if(entry.version===current.version)assert.equal(entry.integrity,`sha512-${createHash('sha512').update(bytes).digest('base64')}`);
       }
     }
-    await writeFile(join(consumer,'package.json'), JSON.stringify({private:true,
-      overrides:currentPairOverrides(pathToFileURL(tarballs[1]).href,pathToFileURL(tarballs[0]).href)}));
+    await writeFile(join(consumer,'package.json'), JSON.stringify({private:true}));
     runNpm(
       [
         'install',
@@ -453,11 +440,9 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.equal(contractPackage.version, sourceContract.version);
     assert.equal(sdkPackage.version, sourceSdk.version);
     assert.equal(sdkPackage.dependencies['@clowder-ai/plugin-contract'], sourceContract.version);
-    assert.equal(
-      feishuPackage.dependencies['@clowder-ai/plugin-contract'],
-      sourceContract.version,
-    );
-    assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-sdk'], sourceSdk.version);
+    const sourceFeishu = JSON.parse(await readFile(join(repoRoot, 'packages/feishu-meeting-intake/package.json'), 'utf8'));
+    assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-contract'], sourceFeishu.dependencies['@clowder-ai/plugin-contract']);
+    assert.equal(feishuPackage.dependencies['@clowder-ai/plugin-sdk'], sourceFeishu.dependencies['@clowder-ai/plugin-sdk']);
     assert.equal(feishuPackage.dependencies['@larksuite/cli'], '1.0.85');
     assert.deepEqual(
       [...feishuPackage.bundledDependencies].sort(),
@@ -501,7 +486,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.equal(enterprisePackage.dependencies['@clowder-ai/plugin-sdk'], '0.2.0-beta.21');
     assert.doesNotMatch(JSON.stringify(enterprisePackage), /"workspace:/u);
     // Resolve from each installed consumer, not the top-level SDK: npm must
-    // really use the same current dependency pair in one fresh installation.
+    // preserve each declared dependency pair in one fresh installation.
     for (const [directory, expected] of [
       ...['personal-chrome-companion', 'weixin-mp', 'wechat-visible-reader', 'enterprise-workflow'].map(name => [name, '0.2.0-beta.21']),
       ...connectorPackages.map(({ name }) => [name.slice('@clowder-ai/'.length), '0.2.0-beta.21']),
