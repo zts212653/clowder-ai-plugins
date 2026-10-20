@@ -2,7 +2,8 @@ import { defineDeliveryAction, type ModulePluginHostShape, type ModulePluginSett
 import { validateManifest } from '@clowder-ai/plugin-contract';
 import { z } from 'zod';
 import { DotConnection } from './connection.js';
-import { DotRuntime } from './runtime.js';
+import { DotRuntime, imageReference } from './runtime.js';
+import { Readable } from 'node:stream';
 import { rpc, httpRequestSchema } from './rpc.js';
 import { createDotWebhookSender, type DotWebhookSend } from './dot-webhook.js';
 import { importLegacyBatch } from './migration.js';
@@ -111,10 +112,9 @@ export function createDotPlugin(options: DotPluginOptions = {}): PluginModuleDef
                     if (request.method !== 'GET' || !/^images\/dot_img_[a-f0-9]{64}$/.test(request.path))
                         throw new Error('dot_image_access_denied');
                     await current.owner(context);
-                    const reference = request.path.slice('images/'.length), chunks = [];
-                    for await (const chunk of runtime.streams.read(reference, { signal: context!.signal }))
-                        chunks.push(Buffer.from(chunk));
-                    return { status: 200, headers: { 'content-type': 'image/png', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' }, body: Buffer.concat(chunks) };
+                    const reference = imageReference(request.path.slice('images/'.length));
+                    return { status: 200, headers: { 'content-type': 'image/png', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' },
+                        body: Readable.from(runtime.streams.read(reference, {signal: context!.signal})) };
                 },
             };
             // Settings actions exist in the stopped Manager path and the active action table.

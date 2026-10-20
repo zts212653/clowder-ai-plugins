@@ -10,13 +10,13 @@ test('original PNG uses ordinary media_ref streams, stable publication keys, and
  const args={event_id:id,publication_key:'image-one',png_base64:png.toString('base64'),alt:'original'};
  const result=(await rpc(f,'cat_cafe_dot_publish_image',args)).result.structuredContent;
  assert.equal(result.original,true);assert.equal(result.width,2);
- const media=f.sent[0].input.payload.elements.find(e=>e.kind==='media_ref');assert.equal(media.payload.reference,result.publicationId);
- assert.deepEqual(Buffer.concat(await Array.fromAsync(f.active.streams.read(result.publicationId))),png);
+ const media=f.sent[0].input.payload.elements.find(e=>e.kind==='media_ref');assert.match(media.payload.reference,/^pmr_dot_[a-f0-9]{64}$/);assert.equal(media.payload.reference,result.reference);
+ assert.deepEqual(Buffer.concat(await Array.fromAsync(f.active.streams.read(result.reference))),png);
  await rpc(f,'cat_cafe_dot_publish_image',args);assert.equal(f.sent.length,1);
  const different=await sharp({create:{width:2,height:2,channels:4,background:'blue'}}).png().toBuffer();
  assert.ok((await rpc(f,'cat_cafe_dot_publish_image',{...args,png_base64:different.toString('base64')})).error);
- await f.active.stop({reason:'disabled'});await assert.rejects(async()=>Array.fromAsync(f.active.streams.read(result.publicationId)),/stopped|revoked/);
- f.active=await f.module.start(f.host);assert.deepEqual(Buffer.concat(await Array.fromAsync(f.active.streams.read(result.publicationId))),png);
+ await f.active.stop({reason:'disabled'});await assert.rejects(async()=>Array.fromAsync(f.active.streams.read(result.reference)),/stopped|revoked/);
+ f.active=await f.module.start(f.host);assert.deepEqual(Buffer.concat(await Array.fromAsync(f.active.streams.read(result.reference))),png);
 });
 
 test('bad PNG and unread-source image calls do not publish a message or consume an image slot',async t=>{

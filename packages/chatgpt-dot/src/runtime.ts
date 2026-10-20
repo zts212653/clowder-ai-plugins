@@ -40,6 +40,10 @@ export async function validatePng(encoded: string) {
 function textPayload(text: string): PluginMessagingDraft['payload'] {
     return { provenance: { epistemicStatus: 'inference' }, elements: [{ elementId: 'text', kind: 'text', payload: { text } }] };
 }
+export function imageReference(id: string): string {
+    if (!/^dot_img_[a-f0-9]{64}$/.test(id)) throw new Error('dot_image_id_invalid');
+    return `pmr_dot_${id.slice('dot_img_'.length)}`;
+}
 export class DotRuntime {
     private readonly pending = new Map<string, Promise<unknown>>();
     constructor(readonly host: ModulePluginHostShape, readonly connection: DotConnection) { }
@@ -219,7 +223,7 @@ export class DotRuntime {
                 const posted = await this.host.messaging.send({ threadId: record.threadId, identity: 'dot', replyTo: record.sourceMessageId,
                     idempotencyKey: `dot-image:${id}`, sourceEventId: id, payload: { provenance: { epistemicStatus: 'observation' }, elements: [
                             { elementId: 'caption', kind: 'text', payload: { text: asset.alt } },
-                            { elementId: 'original', kind: 'media_ref', payload: { type: 'image', reference: id, sourceId: 'dot-images', fileName: `${id}.png`, mimeType: 'image/png', sha256, byteSize: asset.byteSize, width: asset.width, height: asset.height } },
+                            { elementId: 'original', kind: 'media_ref', payload: { type: 'image', reference: imageReference(id), sourceId: 'dot-images', fileName: `${id}.png`, mimeType: 'image/png', sha256, byteSize: asset.byteSize, width: asset.width, height: asset.height } },
                         ] } });
                 this.connection.assertLive();
                 asset = { ...asset, messageId: posted.messageId };
@@ -232,7 +236,7 @@ export class DotRuntime {
                 return { ...current, imagePublicationIds: [...new Set([...current.imagePublicationIds, id])] };
             });
             await this.connection.evidence(state, 'image');
-            return { ...asset, publicationId: id, mimeType: 'image/png', original: true };
+            return { ...asset, publicationId: id, reference: imageReference(id), mimeType: 'image/png', original: true };
         });
     }
     async imageBytes(asset: ImageAsset) {
@@ -270,9 +274,10 @@ export class DotRuntime {
             return { async *[Symbol.asyncIterator]() {
                     runtime.connection.assertLive();
                     options.signal?.throwIfAborted();
-                    if (!/^dot_img_[a-f0-9]{64}$/.test(reference))
+                    if (!/^pmr_dot_[a-f0-9]{64}$/.test(reference))
                         throw new Error('dot_image_access_denied');
-                    const asset = imageSchema.parse((await runtime.host.storage.get(`dot/image/${reference}`))?.value);
+                    const id = `dot_img_${reference.slice('pmr_dot_'.length)}`;
+                    const asset = imageSchema.parse((await runtime.host.storage.get(`dot/image/${id}`))?.value);
                     const state = await runtime.connection.store.connection();
                     if (!state || asset.ownerUserId !== state.ownerUserId)
                         throw new Error('dot_image_access_denied');
