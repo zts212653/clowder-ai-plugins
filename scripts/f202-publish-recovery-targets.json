@@ -1,0 +1,177 @@
+{
+  "sourceCommit": "29595a7794486ed0e6354a35a706875998e23d8f",
+  "tag": "next",
+  "targets": [
+    {
+      "directory": "plugin-contract",
+      "name": "@clowder-ai/plugin-contract",
+      "version": "0.1.0-beta.37",
+      "sha256": "785543498768f4e65fca2f1c60ff9a9c45693f45a304692a73042cc13e50a713",
+      "integrity": "sha512-6J4XPbWRWHRd7IkvZuITm/zGy8/ZxZfZiSGiEBXbeDDABhOzPcbHwxf7krcF5NIfDtUwdHNHA5kd6blb2apgbw==",
+      "shasum": "08026403bbb09175bd0c417891f50da6f462c195",
+      "size": 223740
+    },
+    {
+      "directory": "plugin-sdk",
+      "name": "@clowder-ai/plugin-sdk",
+      "version": "0.2.0-beta.21",
+      "sha256": "59fedad9d87043558b57315cc1ad0f4fb22cebdcf1329bec84825a3579d3db03",
+      "integrity": "sha512-acvi9BWJWXDgi0Ttk8BVQ54ZcPwds+MyHpOW0ohb9WFSfL92C3SFHD/ilfZcNp7lxx4euh8EEFhIABfVtyMSzA==",
+      "shasum": "d095cb268b8a80b99dca112420373965783a4019",
+      "size": 88841
+    },
+    {
+      "directory": "enterprise-workflow",
+      "name": "@clowder-ai/enterprise-workflow",
+      "version": "0.1.0-alpha.2",
+      "sha256": "faaf68c8ade83a4d2f6ad4c41908a3b1561efc7f5e4322a4ee9ab4f953871c39",
+      "integrity": "sha512-nBwfGzT9AMliBvR2eKDvPw88ohFvr+/9z5sSenXh+v2XRZVArN+VrkCoYDr9P+02DYWghOoIYq4kjcxtyKBSRw==",
+      "shasum": "7eb04a9883953402a135d77d015e52ade79b757e",
+      "size": 36916
+    },
+    {
+      "directory": "personal-chrome-companion",
+      "name": "@clowder-ai/personal-chrome-companion",
+      "version": "0.1.0-alpha.4",
+      "sha256": "0873de0f3d586e5376df3dbee651636f4053695ef60fc74675991855eb3eb790",
+      "integrity": "sha512-GEymCCqqEI1wIvUnqx/q05AMnP9Uc6xQy6QD/U8xx3aCXIbS8SVkP3ZHABUAavBc4ZnFetfFTWblWCxSAa1nUA==",
+      "shasum": "52ef7545ab953c1a867430909449fee6d2d68bb5",
+      "size": 150805
+    },
+    {
+      "directory": "connector-telegram",
+      "name": "@clowder-ai/connector-telegram",
+      "version": "0.1.0-alpha.5",
+      "sha256": "89bbe863bb9e2503a6b58da64f5825452f71e8175e0734a52c9f23444f044959",
+      "integrity": "sha512-Cwg+B34LuWuzTPCBAJITrxFDh21twyxpeM38jzJh0uT8kXUsZJN2qkauFKkAQsG8orQqRyvjkpNhBFXCuytQjg==",
+      "shasum": "8f3a871a0757db82f47078ed4198c57047759179",
+      "size": 60974
+    },
+    {
+      "directory": "connector-dingtalk",
+      "name": "@clowder-ai/connector-dingtalk",
+      "version": "0.1.0-alpha.5",
+      "sha256": "d51afc36a9d6b974f3fd4bf7339b587290f148c85173450fed139aaedf892e6b",
+      "integrity": "sha512-iB5nRpqANbDY8My7t9A73ZDoIzEISLVTQjcaqhReDXP8BlMcyxufhChNAbAvntzcevfromk7QejBl0/7tv1zog==",
+      "shasum": "a1faa190a5069d571aedcde02fd42c9502017dbb",
+      "size": 60303
+    },
+    {
+      "directory": "connector-feishu",
+      "name": "@clowder-ai/connector-feishu",
+      "version": "0.1.0-alpha.5",
+      "sha256": "7f44b357ac26cc70bdcebcfbcbf4b3268e0c8e3971577ca36fe583fb37ba620f",
+      "integrity": "sha512-dcnhLLiuW+35EX4hgiV+iqPLiYkdEFGuYrw1ywjdVfiBpBqzb87c3VwaZ74AikcMe9+qxGaUt5Bcst+NT/Rb+Q==",
+      "shasum": "c6b038eac99fe8371aef6c0658f2efc42df12e71",
+      "size": 86557
+    },
+    {
+      "directory": "connector-wecom-agent",
+      "name": "@clowder-ai/connector-wecom-agent",
+      "version": "0.1.0-alpha.5",
+      "sha256": "b9089c222fb85c7c7bae1b7d37c625d31fcbf52c38c2e3f9c45e3a3d24e2aee3",
+      "integrity": "sha512-R/AtX0SuEq8hSI7QvubT6PliIcxzWh9oa6dhf0rRW28w0tSyrkLQdjwFRKNoVAsP04EpUjfJfMZx6WKdlSjvBQ==",
+      "shasum": "93292da572ea84313469febb9bee9fefc152abe2",
+      "size": 41004
+    },
+    {
+      "directory": "connector-wecom-bot",
+      "name": "@clowder-ai/connector-wecom-bot",
+      "version": "0.1.0-alpha.5",
+      "sha256": "7e7d4b209379acafc4c3e76aa28a8fc5c8653055743b04a1d35aaeed5f2b2676",
+      "integrity": "sha512-0zJ4m6zLWkO+As/F8Uqothi21htLO8aOLa5QFoxI6qHDwqF96cgHtABGLSAfXYVL9IoSWAJlNnsvMInIy8+Shg==",
+      "shasum": "dd1f5aa270461535150e259cbf371e0b2965440f",
+      "size": 58902
+    },
+    {
+      "directory": "connector-weixin",
+      "name": "@clowder-ai/connector-weixin",
+      "version": "0.1.0-alpha.5",
+      "sha256": "e8263ca1c9d23106960aa0317755cee77f299ff71e2ce99cf6fc3613bb914a30",
+      "integrity": "sha512-Uwge6hTWC9ASzcAMzR2i936DRrxfV/6Dmm4RKBeXE/3GUPIS8ZIXSr2EaOyz8rscxC3Y9MDbJAmzwcEj9fIX6Q==",
+      "shasum": "01423aced676aabe43944a9f08b8f41e92c79d60",
+      "size": 68133
+    },
+    {
+      "directory": "connector-xiaoyi",
+      "name": "@clowder-ai/connector-xiaoyi",
+      "version": "0.1.0-alpha.5",
+      "sha256": "9916e6815401f03f37b76cef02cefa6e4330ec4b6882699e1ef3faffe48725fc",
+      "integrity": "sha512-FrlPQZ2i62SiEN+M3f2onTER/VfxT/pmteMweLwl29Njy416nsHqXp6uU6JzKUJ/WDfTnpZYTNRrcMjPWS6htA==",
+      "shasum": "c91e3ea378348cebbfc67e8ea8c3703749e27b3a",
+      "size": 43596
+    },
+    {
+      "directory": "companion",
+      "name": "@clowder-ai/companion",
+      "version": "0.1.0-alpha.33",
+      "sha256": "eb622562e6b5070f01b9b89d119fbb087c732669f776128c1e3d00f4b7040537",
+      "integrity": "sha512-PAItL3fieQIKdvAqE0+0KKdd+jPbKahx7gWyx+rf3mVLSuhH2dBdko5n+wlwYxIaYU7EuX2kp4+cmyGpCgSSRw==",
+      "shasum": "d889d26f7e2e2d1eb81c04f55d472374fb1ab771",
+      "size": 12535185
+    },
+    {
+      "directory": "video-analysis",
+      "name": "@clowder-ai/video-analysis",
+      "version": "0.1.0-alpha.3",
+      "sha256": "31243bbfdb2bd8de48741acc2ef6968c5063d4c6d4f2769d196f8acc3b50ec8f",
+      "integrity": "sha512-TIPMgWyUbBwa2FS2kAr6JSU6WOHxVzoDssCMMKi1rrnAz9IycMmsF/qBpM4nBf20oWi95o4MubgSqfPlqgT17g==",
+      "shasum": "3da87cdf4dbcaa7156efe9fc4464f69cffbd7ab3",
+      "size": 47210
+    },
+    {
+      "directory": "video-generation",
+      "name": "@clowder-ai/video-generation",
+      "version": "0.1.0-alpha.1",
+      "sha256": "ba0461074d42982fc1354930abdf8f957cf4599f55dc9c7ab67adb51b7014d66",
+      "integrity": "sha512-ZfVBcaAboJL2FJTj4rOjy/dd1vn/Pk6rOKV7BFNLTbgHgV0TxfK+PykGmGIxw2JLumu0Tn4uZXJCdY3Fy7TuQw==",
+      "shasum": "14d97e39051a10c9c98ddd4769074288d2c84ae3",
+      "size": 47116
+    },
+    {
+      "directory": "weixin-mp",
+      "name": "@clowder-ai/weixin-mp",
+      "version": "0.1.0-alpha.3",
+      "sha256": "8336d87214579524306a8f8fbd5c14cbc1983009f1462c1c5e4a9fb193711dfc",
+      "integrity": "sha512-D3UcrtKfBqGOakvnxqVrvbe4FuDEoHJiGj8o0ebx8Gz2fz9q6ZzriB+TICAH895GibQO4OQZ47TRxuCwQmuYnw==",
+      "shasum": "b29690b1263e6ecc6cf37ce56fd086613b3be66f",
+      "size": 34723
+    },
+    {
+      "directory": "wechat-visible-reader",
+      "name": "@clowder-ai/wechat-visible-reader",
+      "version": "0.1.0-alpha.3",
+      "sha256": "3db5fcb8cdf259c51175ee4529f359cf7c35dd807c8ffa49fa035f537dbf8d24",
+      "integrity": "sha512-0vHzVu5AqhCYhKULzOQIfsKa4IPb4mUvGWhYpXiw7+v7MH7q1IW4c2Wnkl1LPcBC/pFDNz8+I0d99iQ7V1id/w==",
+      "shasum": "11fab421a4ebb9dad4bd2fe5364f7ddd06d410e3",
+      "size": 42329
+    },
+    {
+      "directory": "genoffice-docx",
+      "name": "@clowder-ai/genoffice-docx",
+      "version": "0.1.0-alpha.2",
+      "sha256": "abed518a678aea3b14327fb0b6e69d433f5a9ecad795dc25e781102a7bb8716c",
+      "integrity": "sha512-9VSjkw9mxElkEza2Mz7dgo61ckoz2J8A58faQ55TxioI/AqQpiml+PKMfInstO0kXe0H5EOpmKYCq6FSfNxIHQ==",
+      "shasum": "07935953ace2b29fe9b7067155c7d12c2c3feec4",
+      "size": 12288002
+    },
+    {
+      "directory": "xiangqi",
+      "name": "@clowder-ai/xiangqi",
+      "version": "0.1.0-alpha.1",
+      "sha256": "ec49c206c54bed6ce03d65ca8c0ecb8d7279c53bd89abf7d247ad70a7c9e16f0",
+      "integrity": "sha512-s1nZpxQBm9imDlLmWzyx3XlZuJ6dgrbfl7a28Dg/wRl5o81dbWPfcxvhPhI/bzYLIzQD/aif6H9ulctbyGvBCA==",
+      "shasum": "c85bb86cdf6cae41d1659ff01033c7a652c1dacd",
+      "size": 37566
+    },
+    {
+      "directory": "github-operations",
+      "name": "@clowder-ai/github-operations",
+      "version": "0.1.0-alpha.16",
+      "sha256": "eec674ee19323d1849b99e2eefcb21fbb7c1e7c9e081cce5f9b3ca476ca98627",
+      "integrity": "sha512-4pjuEdeHvjmSjyzzgOFLRKk2pK+Z38xxBbLZqiYuhFhZEWy8PKy+dJCKzQylVNv9GnUZV8Z4Ml9nJzSUP4wzbA==",
+      "shasum": "2e04b85da5ce8e341da7db899dac554ee558773c",
+      "size": 428225
+    }
+  ]
+}

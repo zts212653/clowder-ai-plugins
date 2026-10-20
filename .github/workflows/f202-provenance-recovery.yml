@@ -1,0 +1,95 @@
+name: F202 original-byte provenance recovery
+'on':
+  pull_request:
+    types:
+    - opened
+    - synchronize
+    - reopened
+permissions:
+  contents: read
+env:
+  ARTIFACT_NODE_VERSION: 24.18.0
+  ARTIFACT_NPM_VERSION: 11.16.0
+  ARTIFACT_ZLIB_VERSION: 1.3.1-e00f703
+jobs:
+  sign:
+    if: github.repository == 'zts212653/clowder-ai-plugins' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref
+      == 'diag/f202-provenance-recovery' && github.actor == 'zts212653'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.sha }}
+        fetch-depth: 0
+        persist-credentials: false
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 9
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24.18.0
+        package-manager-cache: false
+    - name: Assert exact source and no npm credentials
+      run: |-
+        test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+        test -z "${NPM_TOKEN:-}"
+        test -z "${NODE_AUTH_TOKEN:-}"
+        test "$(npm --version)" = "11.16.0"
+        node --test scripts/f202-sign-publish-recovery.test.mjs
+    - name: Verify artifact toolchain
+      run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+    - name: Build public packages
+      run: pnpm --filter @clowder-ai/plugin-contract build
+    - name: Build SDK package
+      run: pnpm --filter @clowder-ai/plugin-sdk build
+    - name: Build connector packages
+      run: |
+        set -euo pipefail
+        for package in \
+          @clowder-ai/connector-telegram \
+          @clowder-ai/connector-dingtalk \
+          @clowder-ai/connector-feishu \
+          @clowder-ai/connector-wecom-agent \
+          @clowder-ai/connector-wecom-bot \
+          @clowder-ai/connector-weixin \
+          @clowder-ai/connector-xiaoyi
+        do
+          pnpm --filter "$package" build
+        done
+    - name: Build enterprise workflow package
+      run: pnpm --filter @clowder-ai/enterprise-workflow build
+    - name: Build personal Chrome companion package
+      run: pnpm --filter @clowder-ai/personal-chrome-companion build
+    - name: Build companion package
+      run: pnpm --filter @clowder-ai/companion build
+    - name: Build Xiangqi package
+      run: pnpm --filter @clowder-ai/xiangqi build
+    - name: Build video analysis package
+      run: pnpm --filter @clowder-ai/video-analysis build
+    - name: Build video generation package
+      run: pnpm --filter @clowder-ai/video-generation build
+    - name: Build Weixin MP package
+      run: pnpm --filter @clowder-ai/weixin-mp build
+    - name: Build WeChat visible reader package
+      run: pnpm --filter @clowder-ai/wechat-visible-reader build
+    - name: Build GitHub operations package
+      run: pnpm --filter @clowder-ai/github-operations build
+    - name: Build and verify frozen GenOffice renderer
+      run: |
+        pnpm --filter @clowder-ai/genoffice-docx build:renderer
+        pnpm --filter @clowder-ai/genoffice-docx prepack
+    - name: Pack, compare frozen bytes, sign and verify provenance
+      run: node scripts/f202-sign-publish-recovery.mjs "$RUNNER_TEMP/f202-recovery"
+    - name: Upload verified original-byte packages and provenance
+      uses: actions/upload-artifact@v4
+      with:
+        name: f202-provenance-recovery-${{ github.sha }}
+        path: ${{ runner.temp }}/f202-recovery
+        if-no-files-found: error
+        retention-days: 7
