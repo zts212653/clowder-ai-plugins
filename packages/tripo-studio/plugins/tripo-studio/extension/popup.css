@@ -1,0 +1,78 @@
+:root {
+  color-scheme: light;
+  font:
+    13px / 1.6 system-ui,
+    sans-serif;
+  color: #3d3d3a;
+  background: #fffbf6;
+}
+body {
+  margin: 0;
+  width: 340px;
+}
+main {
+  padding: 20px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5dfd5;
+  padding-bottom: 12px;
+}
+strong {
+  color: #141413;
+}
+header span,
+.label {
+  font-size: 11px;
+  color: #5f5d57;
+}
+.label {
+  margin: 16px 0 0;
+}
+#page {
+  margin-top: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #d8d1c6;
+  border-radius: 6px;
+  padding: 7px 12px;
+  background: #fcf7f0;
+  color: #3d3d3a;
+}
+#grant {
+  width: 100%;
+  background: #b05f45;
+  color: white;
+  border-color: #b05f45;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+#error {
+  color: #c64545;
+}
+#revoke-confirm {
+  color: #c64545;
+}
+footer {
+  margin-top: 16px;
+  border-top: 1px solid #e5dfd5;
+  padding-top: 8px;
+}
+footer button {
+  border: 0;
+  background: none;
+  padding-left: 0;
+  color: #5f5d57;
+}
+[hidden] {
+  display: none;
+}

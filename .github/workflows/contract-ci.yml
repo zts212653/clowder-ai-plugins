@@ -24,6 +24,7 @@ on:
       - 'packages/personal-chrome-companion/**'
       - 'packages/feishu-meeting-intake/**'
       - 'packages/video-analysis/**'
+      - 'packages/tripo-studio/**'
       - 'packages/video-generation/**'
       - 'packages/wechat-visible-reader/**'
       - 'packages/weixin-mp/**'

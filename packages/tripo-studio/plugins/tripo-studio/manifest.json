@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Cat Café · Tripo",
+  "version": "0.2.0",
+  "description": "读取模型，或经单独授权使用网页订阅生成与取回正式导出。",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoHuGpPxhxZ928p75irfp8TIAvqZ5Ako6QIn+n1KYHcU312R7UX6zyhCUrDFdaQ/pASQcRFVz9Cg0ujQ9q3LaWfY503lP6JYtuQhbbsaCSdNxhE/Y0EsLrCP0f+eAqm+n8sPpRnYxawgPJfxUbez1Hujt+55zztKo2fahtKlNXvXZ5uCL7nI9Kf/SIBaj5Oy5oDdLzN/JK40ha+pS+4O37OuWZ4QYBtHqFWec/0yq450sTyoAF8s6M+tw5EmW6vVL+KyHCbOigwpki+I7Vf+RuI3Q6G+aHaKQCZXfNuTX0XolpecHHRvImvP/pYjGoCIRRdbHzA6Uuw99ENYpdVgKvQIDAQAB",
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "scripting",
+    "activeTab"
+  ],
+  "optional_host_permissions": [
+    "https://studio.tripo3d.ai/*"
+  ],
+  "background": {
+    "service_worker": "extension/background.mjs",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "extension/popup.html",
+    "default_title": "Tripo 后台审模"
+  },
+  "optional_permissions": [
+    "downloads"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "name": "@clowder-ai/tripo-studio",
+  "version": "0.2.0",
+  "description": "Read authorized Tripo Studio models in the background and return selected assets through the Host-managed plugin lifecycle.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "plugin.yaml",
+    "README*.md",
+    "assets",
+    "plugins",
+    "npm-shrinkwrap.json",
+    "NOTICE.md"
+  ],
+  "exports": {
+    ".": "./plugins/tripo-studio/runtime/plugin-entrypoint.mjs",
+    "./manifest": "./plugin.yaml"
+  },
+  "scripts": {
+    "build": "node --check plugins/tripo-studio/runtime/mcp.mjs",
+    "test": "pnpm --filter @clowder-ai/plugin-contract build && node --test test/*.test.mjs",
+    "lint": "node --check plugins/tripo-studio/runtime/mcp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "3.25.76"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/tripo-studio"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "keywords": [
+    "clowder-ai",
+    "plugin",
+    "tripo",
+    "3d",
+    "mcp"
+  ]
+}
