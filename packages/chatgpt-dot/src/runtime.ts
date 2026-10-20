@@ -74,6 +74,9 @@ export class DotRuntime {
         this.connection.assertLive();
         if (!thread || !source || source.threadId !== record.threadId || source.userId !== record.ownerUserId || record.sourceRevision && source.sourceRevision !== record.sourceRevision)
             throw new Error('dot_source_unavailable');
+        // The Host reads may outlive reconnect, disconnect or subscription expiry.
+        // All source-authorized effects must use authority observed after those reads.
+        await this.connection.sameAttempt(state);
         return source;
     }
     async authorize(secret: string, id: string, read = false) {
@@ -272,6 +275,7 @@ export class DotRuntime {
                     const bytes = await runtime.imageBytes(asset);
                     for (let offset = 0; offset < bytes.length; offset += 64 * 1024) {
                         await fence();
+                        await runtime.connection.sameAttempt(state);
                         runtime.connection.assertLive();
                         options.signal?.throwIfAborted();
                         yield bytes.subarray(offset, offset + 64 * 1024);
