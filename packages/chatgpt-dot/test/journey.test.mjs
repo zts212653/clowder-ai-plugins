@@ -64,3 +64,18 @@ test('stable delivery identity deduplicates retries even when execution diagnost
  await f.active.actions.deliverMessage({...input,executionId:'execution-after-restart'});
  assert.equal(f.webhooks.filter(item=>item.data.name==='dot.summoned').length,1);
 });
+
+test('a source-bound reply never treats cloud text as a new recipient selector',async t=>{
+ const f=await paired(t);await f.active.actions.deliverMessage(delivery(f));const eventId=f.webhooks.at(-1).data.eventId;
+ await rpc(f,'cat_cafe_dot_read_source',{event_id:eventId});
+ await rpc(f,'cat_cafe_dot_reply',{event_id:eventId,content:'@Dot\nanswer'});
+ assert.equal(f.sent[0].input.wake,undefined);
+});
+
+test('a reply to a member wakes only the member proven by the original source',async t=>{
+ const f=await paired(t);f.messages.set(f.source.id,{...f.source,catId:'cat-1'});
+ await f.active.actions.deliverMessage(delivery(f));const eventId=f.webhooks.at(-1).data.eventId;
+ await rpc(f,'cat_cafe_dot_read_source',{event_id:eventId});
+ await rpc(f,'cat_cafe_dot_reply',{event_id:eventId,content:'@other\nanswer'});
+ assert.deepEqual(f.sent[0].input.wake,{catId:'cat-1'});
+});

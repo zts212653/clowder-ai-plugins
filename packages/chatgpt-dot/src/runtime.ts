@@ -151,7 +151,7 @@ export class DotRuntime {
     }
     async reply(secret: string, id: string, content: string) {
         return this.serial(id, async () => {
-            const { state, record } = await this.authorize(secret, id, true);
+            const { state, record, source } = await this.authorize(secret, id, true);
             if (record.expectedNonce && !content.includes(record.expectedNonce))
                 throw new Error('dot_test_nonce_mismatch');
             const contentDigest = digest(content);
@@ -170,7 +170,8 @@ export class DotRuntime {
             await this.authorize(secret, id, true);
             const posted = await this.host.messaging.send({ threadId: record.threadId, identity: 'dot', replyTo: record.sourceMessageId,
                 idempotencyKey: `dot-reply:${id}`, sourceEventId: id, payload: textPayload(content),
-                meta: { eventId: id, attemptId: state.attemptId }, wake: 'auto' });
+                meta: { eventId: id, attemptId: state.attemptId },
+                ...(source.catId ? {wake: {catId: source.catId}} : {}) });
             this.connection.assertLive();
             await this.authorize(secret, id, true);
             await this.connection.store.updateDispatch(id, current => {
