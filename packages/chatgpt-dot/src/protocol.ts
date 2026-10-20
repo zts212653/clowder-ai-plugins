@@ -1,10 +1,29 @@
 import { z } from 'zod';
+import { MESSAGING_BOUNDS, validateMessagingSemantics } from '@clowder-ai/plugin-contract';
+import type { PluginMessagingDraft } from '@clowder-ai/plugin-sdk';
+
+const textBudgetDescription = `The serialized JSON text element payload must fit ${MESSAGING_BOUNDS.maxElementPayloadBytes} UTF-8 bytes, including JSON escaping.`;
+function rawTextPayload(text: string): PluginMessagingDraft['payload'] {
+  return { provenance: { epistemicStatus: 'inference' }, elements: [{ elementId: 'text', kind: 'text', payload: { text } }] };
+}
+function textFits(text: string): boolean {
+  return validateMessagingSemantics('MessageDraft', {payload: rawTextPayload(text)}).valid;
+}
+export function textPayload(text: string): PluginMessagingDraft['payload'] {
+  const payload = rawTextPayload(text);
+  if (!validateMessagingSemantics('MessageDraft', {payload}).valid) throw new Error('dot_text_payload_too_large');
+  return payload;
+}
+export function dotAskText(targets: readonly string[], content: string): string {
+  return [...new Set(targets)].sort().map(cat => `@${cat}`).join('\n') + '\n' + content;
+}
+const textContent = z.string().min(1).max(50000).refine(textFits, {message: textBudgetDescription});
 
 export const dotEventRefSchema = z.object({ event_id: z.string().regex(/^dot_evt_[a-f0-9]{64}$/) }).strict();
 export const dotSubscriptionArguments = z
   .object({ attempt_id: z.string().min(1).max(512), pairing_code: z.string().min(16).max(128) })
   .strict();
-export const dotReplyArguments = dotEventRefSchema.extend({ content: z.string().min(1).max(50000) });
+export const dotReplyArguments = dotEventRefSchema.extend({ content: textContent });
 export const dotImageArguments = dotEventRefSchema.extend({
   publication_key: z.string().min(1).max(128),
   png_base64: z.string().min(1).max(13981016),
@@ -29,7 +48,8 @@ export const dotAskArguments = z
     content: z.string().trim().min(1).max(50000),
     client_message_id: z.string().min(1).max(128),
   })
-  .strict();
+  .strict()
+  .refine(input => textFits(dotAskText(input.target_cat_ids, input.content)), {path:['content'], message:textBudgetDescription});
 const eventRef = { type: 'string', pattern: '^dot_evt_[a-f0-9]{64}$' };
 export const DOT_TOOLS = [
   {
@@ -50,7 +70,7 @@ export const DOT_TOOLS = [
       'Use when: you have read this summon and are ready to answer in its original conversation. NOT for: selecting a different author, thread or user approval. Output: the durable source-bound reply message ID. GOTCHA: retries recover the same reply; a webhook acknowledgement alone does not authorize an unread-source reply.',
     inputSchema: {
       type: 'object',
-      properties: { event_id: eventRef, content: { type: 'string', minLength: 1, maxLength: 50000 } },
+      properties: { event_id: eventRef, content: { type: 'string', minLength: 1, maxLength: 50000, description: textBudgetDescription } },
       required: ['event_id', 'content'],
       additionalProperties: false,
     },
@@ -88,7 +108,7 @@ export const DOT_TOOLS = [
           minItems: 1,
           maxItems: 8,
         },
-        content: { type: 'string', minLength: 1, maxLength: 50000 },
+        content: { type: 'string', minLength: 1, maxLength: 50000, description: textBudgetDescription + ' This includes the prepended recipient mentions and newlines; leave room for them.' },
         client_message_id: { type: 'string', minLength: 1, maxLength: 128 },
       },
       required: ['attempt_id', 'thread_id', 'target_cat_ids', 'content', 'client_message_id'],

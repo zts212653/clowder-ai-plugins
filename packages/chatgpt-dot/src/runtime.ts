@@ -2,13 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import sharp from 'sharp';
-import type { ModulePluginHostShape, PluginMessage, PluginMessagingDraft, PluginStreams } from '@clowder-ai/plugin-sdk';
+import type { ModulePluginHostShape, PluginMessage, PluginStreams } from '@clowder-ai/plugin-sdk';
 import type { PluginMessageDelivery, PluginDeliveryReceipt } from '@clowder-ai/plugin-contract';
 import { z } from 'zod';
 import { DotConnection } from './connection.js';
 import { digest, eventId, type Dispatch } from './store.js';
 import { dotWebhookHeaders } from './dot-webhook.js';
-import { dotAskArguments, dotImageArguments } from './protocol.js';
+import { dotAskArguments, dotImageArguments, dotAskText, textPayload } from './protocol.js';
 import { retainImageFile } from './image-file.js';
 import { fenceAsyncPort } from './operation-fence.js';
 export const imageSchema = z.object({
@@ -38,9 +38,6 @@ export async function validatePng(encoded: string) {
     catch {
         throw new Error('invalid_png');
     }
-}
-function textPayload(text: string): PluginMessagingDraft['payload'] {
-    return { provenance: { epistemicStatus: 'inference' }, elements: [{ elementId: 'text', kind: 'text', payload: { text } }] };
 }
 export function imageReference(id: string): string {
     if (!/^dot_img_[a-f0-9]{64}$/.test(id)) throw new Error('dot_image_id_invalid');
@@ -165,6 +162,7 @@ export class DotRuntime {
             const { state, record, source } = await this.authorize(secret, id, true);
             if (record.expectedNonce && !content.includes(record.expectedNonce))
                 throw new Error('dot_test_nonce_mismatch');
+            const payload = textPayload(content);
             const contentDigest = digest(content);
             if (record.replyDigest && record.replyDigest !== contentDigest)
                 throw new Error('dot_reply_conflict');
@@ -180,7 +178,7 @@ export class DotRuntime {
             });
             await this.authorize(secret, id, true);
             const posted = await this.host.messaging.send({ threadId: record.threadId, identity: 'dot', replyTo: record.sourceMessageId,
-                idempotencyKey: `dot-reply:${id}`, sourceEventId: id, payload: textPayload(content),
+                idempotencyKey: `dot-reply:${id}`, sourceEventId: id, payload,
                 meta: { eventId: id, attemptId: state.attemptId },
                 ...(source.catId ? {wake: {catId: source.catId}} : {}) });
             this.connection.assertLive();
@@ -306,7 +304,7 @@ export class DotRuntime {
             if (mention && !allowed.has(mention))
                 throw new Error('dot_ask_target_mismatch');
         }
-        const text = targets.map(cat => `@${cat}`).join('\n') + '\n' + input.content;
+        const payload = textPayload(dotAskText(targets, input.content));
         const reservation = { requestDigest, attemptId: state.attemptId, threadId: input.thread_id, recipientCatIds: targets, messageId: null as string | null };
         await this.connection.sameAttempt(state);
         if (!prior && !((await this.host.storage.compareAndSet(key, null, reservation)).applied))
@@ -314,7 +312,7 @@ export class DotRuntime {
         await this.connection.sameAttempt(state);
         this.connection.assertLive();
         const result = await this.host.messaging.send({ threadId: input.thread_id, identity: 'dot', idempotencyKey: `dot-ask:${digest([state.attemptId, input.client_message_id])}`,
-            payload: textPayload(text), wake: 'auto', meta: { attemptId: state.attemptId } });
+            payload, wake: 'auto', meta: { attemptId: state.attemptId } });
         await this.connection.sameAttempt(state);
         await this.host.storage.set(key, { ...reservation, messageId: result.messageId });
         await this.connection.sameAttempt(state);
