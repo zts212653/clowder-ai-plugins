@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,readdir,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import sharp from 'sharp';
@@ -92,4 +92,27 @@ test('migration requires the Host-only owner-operation fence and is absent from 
  assert.equal(Object.hasOwn(f.active.actions,'dot.import'),false);
  await assert.rejects(()=>importLegacyBatch(f.host,{version:1,ownerUserId:'owner',sourceInstanceId:'old'},{...f.owner,kind:'owner-http-request',operation:'write'}),/owner/);
  await f.settings.dispose();await assert.rejects(()=>f.settings.actions['dot.begin']({},undefined,f.owner),/revoked/);
+});
+
+for(const conflict of [true,false])test(conflict?'conflicting concurrent image imports cannot overwrite the original retained by the winning batch':'identical concurrent image imports reuse the winning original and receipt',async t=>{
+ const old=await paired(t),connection=structuredClone((await old.host.storage.get(CONNECTION_KEY)).value);connection.pluginInstanceId='legacy-instance';
+ const f=fixture(t);f.host.dataPath=await mkdtemp(join(tmpdir(),'dot-image-race-'));t.after(()=>rm(f.host.dataPath,{recursive:true,force:true}));
+ const id=eventId(connection.attemptId,'thread-1','source-1','run');
+ const dispatch={eventId:id,ownerUserId:'owner',threadId:'thread-1',sourceMessageId:'source-1',dispatchInvocationId:'run',attemptId:connection.attemptId,agentKeyId:connection.agentKeyId,occurredAt:1,webhookAcknowledgedAt:null,sourceReadAt:null,replyMessageId:null,imagePublicationIds:[],connectionTest:false};
+ const first=await sharp({create:{width:2,height:3,channels:4,background:'#123456'}}).png().toBuffer();
+ const winner=conflict?await sharp({create:{width:2,height:3,channels:4,background:'#abcdef'}}).png().toBuffer():first;
+ const assetId='dot_img_'+'c'.repeat(64);
+ const batch=bytes=>({version:1,ownerUserId:'owner',sourceInstanceId:'legacy-instance',connection,dispatches:[dispatch],images:[{metadata:{id:assetId,ownerUserId:'owner',threadId:'thread-1',eventId:id,publicationKey:'racing',sha256:createHash('sha256').update(bytes).digest('hex'),byteSize:bytes.length,width:2,height:3,messageId:null,alt:'original'},png_base64:bytes.toString('base64')}]});
+ let interleaved=false;
+ const context={...f.owner,assertCurrent:async()=>{
+  if(interleaved)return;
+  const entries=await readdir(join(f.host.dataPath,'images')).catch(error=>{if(error.code==='ENOENT')return[];throw error;});
+  if(entries.some(name=>name.endsWith('.tmp'))){interleaved=true;await importLegacyBatch(f.host,batch(winner),f.owner);}
+ }};
+ if(conflict)await assert.rejects(()=>importLegacyBatch(f.host,batch(first),context),/conflict/);
+ else assert.equal((await importLegacyBatch(f.host,batch(first),context)).duplicate,true);
+ assert.equal(interleaved,true);
+ assert.deepEqual(await readFile(join(f.host.dataPath,'images',assetId+'.png')),winner);
+ assert.equal((await f.host.storage.get('dot/image/'+assetId)).value.sha256,createHash('sha256').update(winner).digest('hex'));
+ assert.equal((await importLegacyBatch(f.host,batch(winner),f.owner)).duplicate,true);
 });

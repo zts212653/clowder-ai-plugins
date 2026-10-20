@@ -1,6 +1,6 @@
-import { readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createHash, randomUUID, randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import sharp from 'sharp';
 import type { ModulePluginHostShape, PluginMessage, PluginMessagingDraft, PluginStreams } from '@clowder-ai/plugin-sdk';
 import type { PluginMessageDelivery, PluginDeliveryReceipt } from '@clowder-ai/plugin-contract';
@@ -9,6 +9,7 @@ import { DotConnection } from './connection.js';
 import { digest, eventId, type Dispatch } from './store.js';
 import { dotWebhookHeaders } from './dot-webhook.js';
 import { dotAskArguments, dotImageArguments } from './protocol.js';
+import { retainImageFile } from './image-file.js';
 export const imageSchema = z.object({
     id: z.string().regex(/^dot_img_[a-f0-9]{64}$/), ownerUserId: z.string().min(1), threadId: z.string().min(1),
     eventId: z.string().regex(/^dot_evt_[a-f0-9]{64}$/), publicationKey: z.string().min(1), sha256: z.string().regex(/^[a-f0-9]{64}$/),
@@ -209,7 +210,7 @@ export class DotRuntime {
             if (!asset) {
                 asset = { id, ownerUserId: state.ownerUserId, threadId: record.threadId, eventId: record.eventId, publicationKey: input.publication_key,
                     sha256, byteSize: checked.bytes.length, width: checked.width, height: checked.height, messageId: null, alt: input.alt ?? 'dot 原图' };
-                await this.writeImage(id, checked.bytes, sha256);
+                await retainImageFile(this.host.dataPath, id, checked.bytes, () => this.connection.assertLive(), 'dot_publication_conflict');
                 const inserted = await this.host.storage.compareAndSet(key, null, asset);
                 if (!inserted.applied) {
                     const existing = imageSchema.parse((await this.host.storage.get(key))?.value);
@@ -246,29 +247,6 @@ export class DotRuntime {
             throw new Error('dot_image_corrupt');
         this.connection.assertLive();
         return bytes;
-    }
-    private async writeImage(id: string, bytes: Buffer, sha: string) {
-        const directory = join(this.host.dataPath, 'images');
-        await mkdir(directory, { recursive: true, mode: 0o700 });
-        const path = join(directory, `${id}.png`), temporary = join(directory, `${id}.${randomUUID()}.tmp`);
-        try {
-            const existing = await readFile(path);
-            if (createHash('sha256').update(existing).digest('hex') !== sha)
-                throw new Error('dot_publication_conflict');
-            return;
-        }
-        catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-                throw error;
-        }
-        try {
-            await writeFile(temporary, bytes, { flag: 'wx', mode: 0o600 });
-            this.connection.assertLive();
-            await rename(temporary, path);
-        }
-        finally {
-            await rm(temporary, { force: true });
-        }
     }
     readonly streams: PluginStreams = { read: (reference, options = {}) => {
             const runtime = this;

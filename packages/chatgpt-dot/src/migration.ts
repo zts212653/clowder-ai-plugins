@@ -1,11 +1,10 @@
-import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
-import { join } from 'node:path';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { ModulePluginSettingsHost, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import { dotConnectionStateSchema } from './connection-state.js';
 import { DotStore, CONNECTION_KEY, dispatchSchema, eventKey, digest } from './store.js';
 import { imageSchema, validatePng } from './runtime.js';
+import { retainImageFile } from './image-file.js';
 export const legacyImportSchema = z.object({
     version: z.literal(1), ownerUserId: z.string().min(1), sourceInstanceId: z.string().min(1),
     connection: dotConnectionStateSchema.optional(), dispatches: z.array(dispatchSchema).max(100).default([]),
@@ -123,29 +122,10 @@ export async function importLegacyBatch(host: ModulePluginSettingsHost, raw: unk
         const checked = await validatePng(image.png_base64), bytes = checked.bytes;
         if (createHash('sha256').update(bytes).digest('hex') !== asset.sha256 || bytes.length !== asset.byteSize || checked.width !== asset.width || checked.height !== asset.height)
             throw new Error('dot_migration_image_mismatch');
-        const directory = join(host.dataPath, 'images');
-        await mkdir(directory, { recursive: true, mode: 0o700 });
-        const path = join(directory, `${asset.id}.png`), temporary = `${path}.${randomUUID()}.tmp`;
-        let existing: Buffer | undefined;
-        try {
-            existing = await readFile(path);
-        }
-        catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-                throw error;
-        }
-        if (existing && !existing.equals(bytes))
-            throw new Error('dot_migration_conflict');
-        if (!existing)
-            try {
-                await writeFile(temporary, bytes, { flag: 'wx', mode: 0o600 });
-                context.signal.throwIfAborted();
-                await context.assertCurrent();
-                await rename(temporary, path);
-            }
-            finally {
-                await rm(temporary, { force: true });
-            }
+        await retainImageFile(host.dataPath, asset.id, bytes, async () => {
+            context.signal.throwIfAborted();
+            await context.assertCurrent();
+        }, 'dot_migration_conflict');
         await retain(`dot/image/${asset.id}`, asset, 'image');
     }
     const result = { version: 1, batchDigest, ownerUserId: input.ownerUserId, sourceInstanceId: input.sourceInstanceId,
