@@ -1,6 +1,6 @@
 # Play Xiangqi with your cat
 
-[简体中文](README.md) · English
+[Simplified Chinese](README.md) · English
 
 Play Chinese chess with the cat you choose in a conversation. Preview and confirm your move on the board; that same cat reads candidates, personally chooses a reply, and submits it to the same board.
 
