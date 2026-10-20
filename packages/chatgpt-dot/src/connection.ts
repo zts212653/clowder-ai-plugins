@@ -35,11 +35,20 @@ export class DotConnection {
         const context = this.operations.getStore();
         return context ? AbortSignal.any([this.signal, context.signal]) : this.signal;
     }
-    async sameAttempt(state: DotConnectionState) {
-        const current = await this.ready(state.credentialSecret);
-        if (current.attemptId !== state.attemptId)
+    async sameAttempt(state: DotConnectionState, requireReady = true) {
+        const current = await (requireReady ? this.ready(state.credentialSecret) : this.authenticate(state.credentialSecret));
+        if (current.attemptId !== state.attemptId || current.ownerUserId !== state.ownerUserId || current.agentKeyId !== state.agentKeyId || current.pluginInstanceId !== state.pluginInstanceId)
             throw new Error('dot_stale_connection');
+        if (!requireReady && current.pairedAt === null && current.pairingExpiresAt <= this.now())
+            throw new Error('dot_pairing_expired_or_mismatched');
         return current;
+    }
+    pairingFence(state: DotConnectionState, requireReady = true) {
+        const requestFence = this.captureFence();
+        return async () => {
+            await requestFence();
+            await this.sameAttempt(state, requireReady);
+        };
     }
     async owner(context?: PluginHostActionContext) {
         this.assertLive();
@@ -105,7 +114,7 @@ export class DotConnection {
         if (ttl !== null && (!Number.isSafeInteger(ttl) || ttl <= 0))
             throw new Error('dot_invalid_subscription_ttl');
         const id = `dot_${digest([state.ownerUserId, state.agentKeyId, state.attemptId, input.url])}`;
-        await verifyDotWebhook(input.url, id, input.secret, this.send, this.operationSignal);
+        await verifyDotWebhook(input.url, id, input.secret, this.send, this.operationSignal, this.pairingFence(state, false));
         this.assertLive();
         await this.authenticate(secret);
         const expiresAt = ttl === null ? null : this.now() + ttl;

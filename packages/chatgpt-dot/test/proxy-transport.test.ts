@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import dns from 'node:dns/promises';
+import https from 'node:https';
 import { syncBuiltinESMExports } from 'node:module';
 import { mock, test } from 'node:test';
 import { dotDohAddresses } from '../src/dot-doh-answer.js';
@@ -13,6 +14,36 @@ import {
 import { dotProxyFixture } from './helpers/dot-proxy-tls-fixture.ts';
 
 const secret = `whsec_${Buffer.alloc(32, 7).toString('base64')}`;
+
+for (const transport of ['direct', 'proxy']) test(`${transport} TLS writer awaits its authority fence before sending any HTTP bytes`, async () => {
+  const f = await dotProxyFixture();
+  let release!: () => void, entered!: () => void, current = true;
+  const barrier = new Promise<void>(resolve => { release = resolve; });
+  const reached = new Promise<void>(resolve => { entered = resolve; });
+  const request = https.request;
+  if (transport === 'direct') {
+    mock.method(dns, 'lookup', async () => [{address:'93.184.216.34',family:4}]);
+    syncBuiltinESMExports();
+    mock.method(https, 'request', (options: https.RequestOptions, callback: (response: import('node:http').IncomingMessage) => void) => {
+      assert.equal(options.hostname, '93.184.216.34');
+      return request({...options,hostname:'127.0.0.1',port:f.originPort,ca:f.cert},callback);
+    });
+  }
+  try {
+    const pending = createDotWebhookSender(transport === 'proxy' ? f.proxyUrl : undefined)(
+      'https://callback.example.com:8443/events', {}, '{}', undefined,
+      async () => { entered(); await barrier; if (!current) throw new Error('dot_stale_connection'); },
+    ).then(value => ({value}), error => ({error}));
+    const first = await Promise.race([reached.then(() => 'fence'), pending.then(() => 'request completed')]);
+    assert.equal(first, 'fence', 'TLS-ready transport must consult the captured authority before POST');
+    assert.equal(f.callbacks.length, 0);
+    assert.equal(f.callbackStarts.length, 0, 'no HTTP headers may precede authority admission');
+    current = false; release();
+    assert.ok('error' in await pending);
+    assert.equal(f.callbacks.length, 0, 'revoked authority must expose neither HTTP headers nor callback body');
+    assert.equal(f.callbackStarts.length, 0);
+  } finally { release(); await f.close(); syncBuiltinESMExports(); }
+});
 
 test('opt-in proxy resolves safely despite system fake-IP and pins callback TLS on the same CONNECT socket', async () => {
   const f = await dotProxyFixture();

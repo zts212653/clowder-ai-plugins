@@ -81,7 +81,7 @@ async function resolveDotProxyUrl(proxy: URL, url: string, signal: AbortSignal) 
 /** No global proxy/DNS mutations. Opt-in transport uses only the operator's loopback HTTP proxy. */
 export function createProxyDotWebhookSender(rawProxy: string, totalMs = 20_000): DotWebhookSend {
   const proxy = parseDotProxyUrl(rawProxy);
-  return async (url, headers, body, parent) => {
+  return async (url, headers, body, parent, beforeWrite) => {
     const parsed = validateExternalUrl(url);
     if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.hash)
       throw new Error('invalid_callback_url');
@@ -101,7 +101,7 @@ export function createProxyDotWebhookSender(rawProxy: string, totalMs = 20_000):
       options.method = 'POST';
       options.headers = { ...headers, ...options.headers };
       return await withDotPhaseTimeout(signal, 10_000, 'callback_response_timeout', (signal) =>
-        requestOnDotTls(socket, options, signal, body),
+        requestOnDotTls(socket, options, signal, body, beforeWrite),
       );
     } finally {
       clearTimeout(timer);

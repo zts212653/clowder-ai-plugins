@@ -124,7 +124,7 @@ export class DotRuntime {
             const body = JSON.stringify({ eventId: record.eventId, name: 'dot.summoned', timestamp: new Date(record.occurredAt).toISOString(),
                 data: { event_id: record.eventId, thread_id: record.threadId, source_message_id: record.sourceMessageId, dispatch_invocation_id: record.dispatchInvocationId }, cursor: null });
             try {
-                const result = await this.connection.send(subscription.url, dotWebhookHeaders(record.eventId, subscription.id, subscription.secret, body, Date.now(), subscription.rotationUntil && subscription.rotationUntil > Date.now() ? subscription.previousSecret ?? undefined : undefined), body, this.connection.operationSignal);
+                const result = await this.connection.send(subscription.url, dotWebhookHeaders(record.eventId, subscription.id, subscription.secret, body, Date.now(), subscription.rotationUntil && subscription.rotationUntil > Date.now() ? subscription.previousSecret ?? undefined : undefined), body, this.connection.operationSignal, this.connection.pairingFence(state));
                 this.connection.assertLive();
                 await this.authorize(secret, record.eventId);
                 if (result.status >= 200 && result.status < 300) {
@@ -220,7 +220,9 @@ export class DotRuntime {
             if (!asset) {
                 asset = { id, ownerUserId: state.ownerUserId, threadId: record.threadId, eventId: record.eventId, publicationKey: input.publication_key,
                     sha256, byteSize: checked.bytes.length, width: checked.width, height: checked.height, messageId: null, alt: input.alt ?? 'dot 原图' };
-                await retainImageFile(this.host.dataPath, id, checked.bytes, () => this.connection.assertCurrent(), 'dot_publication_conflict');
+                const assertPublicationCurrent = this.connection.pairingFence(state);
+                await retainImageFile(this.host.dataPath, id, checked.bytes, assertPublicationCurrent, 'dot_publication_conflict');
+                await assertPublicationCurrent();
                 const inserted = await this.host.storage.compareAndSet(key, null, asset);
                 if (!inserted.applied) {
                     const existing = imageSchema.parse((await this.host.storage.get(key))?.value);

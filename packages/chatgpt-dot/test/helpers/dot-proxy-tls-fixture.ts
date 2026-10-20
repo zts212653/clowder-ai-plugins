@@ -37,6 +37,7 @@ export async function dotProxyFixture() {
   const clientSockets = new Set<Socket>();
   const connects: string[] = [];
   const callbacks: { host: string; sni: string; path: string; body: string; headers: http.IncomingHttpHeaders }[] = [];
+  const callbackStarts: string[] = [];
   const queries: string[] = [];
   const settings = {
     a: ['93.184.216.34'],
@@ -77,6 +78,7 @@ export async function dotProxyFixture() {
     res.end(settings.dnsText ?? JSON.stringify(body));
   }
   async function serveCallback(req: http.IncomingMessage, res: http.ServerResponse, sni: string) {
+    callbackStarts.push(req.url ?? '');
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(Buffer.from(chunk));
     const body = Buffer.concat(chunks).toString();
@@ -144,9 +146,12 @@ export async function dotProxyFixture() {
     return request;
   });
   return {
+    originPort: port,
+    cert,
     proxyUrl: `http://127.0.0.1:${(proxy.address() as net.AddressInfo).port}`,
     connects,
     callbacks,
+    callbackStarts,
     queries,
     settings,
     sockets,

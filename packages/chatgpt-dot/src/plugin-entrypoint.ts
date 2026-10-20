@@ -23,9 +23,9 @@ export function createDotPlugin(options: DotPluginOptions = {}): PluginModuleDef
             return options.sendWebhook ?? createDotWebhookSender(proxy ? String(proxy) : undefined);
         }
         let sender = await configuredSender();
-        const send: DotWebhookSend = (url, headers, body, signal) => sender(url, headers, body, AbortSignal.any([
+        const send: DotWebhookSend = (url, headers, body, signal, beforeWrite) => sender(url, headers, body, AbortSignal.any([
             controller.signal, transport.signal, ...signal ? [signal] : [],
-        ]));
+        ]), beforeWrite);
         const current = new DotConnection(host, send, controller.signal, options.now);
         const refresh = async () => {
             const next = await configuredSender();

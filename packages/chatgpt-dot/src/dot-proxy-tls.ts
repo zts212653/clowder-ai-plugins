@@ -2,6 +2,7 @@ import http, { type IncomingMessage } from 'node:http';
 import https, { type RequestOptions } from 'node:https';
 import type { Socket } from 'node:net';
 import tls from 'node:tls';
+import type { DotEffectFence } from './dot-webhook.js';
 
 export function parseDotProxyUrl(raw: string): URL {
   let url: URL;
@@ -91,6 +92,7 @@ export async function requestOnDotTls(
   options: RequestOptions,
   signal: AbortSignal,
   body?: string,
+  beforeWrite?: DotEffectFence,
 ): Promise<{ status: number; body: string }> {
   const agent = new https.Agent({ keepAlive: false });
   let supplied = false;
@@ -100,6 +102,7 @@ export async function requestOnDotTls(
     return socket;
   };
   try {
+    await beforeWrite?.();
     signal.throwIfAborted();
     return await new Promise((resolve, reject) => {
       const request = https.request({ ...options, agent, signal }, (response: IncomingMessage) => {

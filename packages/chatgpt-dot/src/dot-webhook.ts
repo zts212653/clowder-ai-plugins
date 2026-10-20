@@ -7,11 +7,13 @@ export interface DotWebhookResponse {
   status: number;
   body: string;
 }
+export type DotEffectFence = () => Promise<void>;
 export type DotWebhookSend = (
   url: string,
   headers: Record<string, string>,
   body: string,
   signal?: AbortSignal,
+  beforeWrite?: DotEffectFence,
 ) => Promise<DotWebhookResponse>;
 
 export function createDotWebhookSender(proxyUrl?: string): DotWebhookSend {
@@ -50,7 +52,7 @@ export function dotWebhookHeaders(
 }
 
 /** Re-resolve on every send, pin the address, preserve TLS hostname, never follow redirects. */
-export const sendDotWebhookPinned: DotWebhookSend = async (url, headers, body, signal) => {
+export const sendDotWebhookPinned: DotWebhookSend = async (url, headers, body, signal, beforeWrite) => {
   signal?.throwIfAborted();
   validateDotCallbackUrl(url);
   let dnsTimer: ReturnType<typeof setTimeout> | undefined;
@@ -97,7 +99,23 @@ export const sendDotWebhookPinned: DotWebhookSend = async (url, headers, body, s
       clearTimeout(timer);
       reject(error);
     });
-    req.end(body);
+    // Creating a request establishes TLS but sends no HTTP until end/flushHeaders.
+    // The authority check belongs after TLS readiness, not before DNS or handshake.
+    const post = async () => {
+      try {
+        await beforeWrite?.();
+        signal?.throwIfAborted();
+        if (!req.destroyed) req.end(body);
+      } catch (error) {
+        req.destroy(error instanceof Error ? error : new Error('callback_authority_revoked'));
+      }
+    };
+    req.once('socket', socket => {
+      const secure = socket as import('node:tls').TLSSocket;
+      if (secure.encrypted && (secure.connecting || !secure.authorized))
+        secure.once('secureConnect', () => { void post(); });
+      else void post();
+    });
   });
 };
 
@@ -113,13 +131,14 @@ export async function verifyDotWebhook(
   secret: string,
   send = sendDotWebhookPinned,
   signal?: AbortSignal,
+  beforeWrite?: DotEffectFence,
 ) {
   validateDotCallbackUrl(url);
   dotSigningKey(secret);
   const challenge = randomUUID();
   const id = `verification_${randomUUID()}`;
   const body = JSON.stringify({ type: 'verification', challenge });
-  const response = await send(url, dotWebhookHeaders(id, subscriptionId, secret, body), body, signal);
+  const response = await send(url, dotWebhookHeaders(id, subscriptionId, secret, body), body, signal, beforeWrite);
   if (response.status < 200 || response.status >= 300) throw new Error('challenge_failed');
   const value: unknown = JSON.parse(response.body);
   const echo = typeof value === 'object' && value !== null && 'challenge' in value ? value.challenge : undefined;
