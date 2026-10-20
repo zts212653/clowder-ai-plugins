@@ -72,9 +72,12 @@ export async function startPlayableXiangqi(host) {
       async 'xiangqi.open'(input, context) {
         active(); fields(input, ['gameId']);
         const caller = await requireCaller(context);
-        if (context.ownerAuthProvenance !== 'strict' || context.source?.kind !== 'primary')
+        // Typed wait metadata is optional on ordinary native invocations. The
+        // authenticated origin and its public message facts establish consent.
+        const sourceId = context.originTriggerMessageId ?? context.source?.sourceMessageId;
+        if (context.ownerAuthProvenance !== 'strict' || (context.source && context.source.kind !== 'primary') ||
+          typeof sourceId !== 'string' || !sourceId || sourceId.length > 500)
           throw new Error('请由人类在当前对话请求打开棋盘');
-        const sourceId = context.originTriggerMessageId ?? context.source.sourceMessageId;
         const source = await host.messaging.get(sourceId);
         if (!source || source.catId !== null || source.source || source.userId !== caller.userId || source.threadId !== caller.threadId)
           throw new Error('打开棋盘需要当前对话的人类授权来源');

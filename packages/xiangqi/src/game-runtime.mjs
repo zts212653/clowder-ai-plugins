@@ -35,18 +35,25 @@ export function createGameRuntime(root, hostCall) {
       async notifyConfirmedMove(_session, event) {
         active();
         if (binding(meta.gameId).generation !== event.bindingGeneration) throw new Error('旧棋桌授权已撤销');
-        deliveries.set(meta.gameId, { status: 'pending' });
+        deliveries.set(meta.gameId, { status: 'pending', actionId: event.actionId });
         try {
           const receipt = await hostCall('notify', { binding: meta, event });
           active();
-          deliveries.set(meta.gameId, { status: 'accepted' });
+          deliveries.set(meta.gameId, { status: 'accepted', actionId: event.actionId });
           return receipt;
         } catch (error) {
-          deliveries.set(meta.gameId, { status: 'error' });
+          deliveries.set(meta.gameId, { status: 'error', actionId: event.actionId });
           throw error;
         }
       },
-      deliveryStatus: () => deliveries.get(meta.gameId) ?? { status: 'idle' },
+      deliveryStatus: () => {
+        const delivery = deliveries.get(meta.gameId);
+        if (!delivery || !readGame(root, meta.gameId).moves.some(move => move.confirmedAction?.actionId === delivery.actionId)) {
+          deliveries.delete(meta.gameId);
+          return { status: 'idle' };
+        }
+        return { status: delivery.status };
+      },
       retryPending: async () => {},
     };
   }

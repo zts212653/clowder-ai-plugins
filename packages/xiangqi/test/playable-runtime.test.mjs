@@ -150,6 +150,18 @@ test('untrusted opening source and revoked caller cannot acquire a board session
   await assert.rejects(runtime.actions['xiangqi.open']({}, { ...f.caller, async assertCurrent() { throw new Error('revoked'); } }), /revoked/);
 });
 
+test('ordinary owner invocation opens from its authenticated origin without optional wait metadata', async t => {
+  const f = fixture(t), runtime = await startPlayableXiangqi(f.host);
+  t.after(() => runtime.stop());
+  const caller = { ...f.caller, source: undefined, originTriggerMessageId: 'real-human-origin' };
+  let requested;
+  const get = f.host.messaging.get;
+  f.host.messaging.get = async id => { requested = id; return get(id); };
+  assert.equal((await runtime.actions['xiangqi.open']({}, caller)).revision, 0);
+  assert.equal(requested, 'real-human-origin');
+  await assert.rejects(runtime.actions['xiangqi.open']({}, { ...caller, originTriggerMessageId: undefined }), /人类.*请求/);
+});
+
 test('explicit disable retains the game, revokes old work and requires owner reopening', async t => {
   const f = fixture(t, { loseReceipt: true }), first = await startPlayableXiangqi(f.host);
   t.after(() => first.stop());
@@ -181,4 +193,19 @@ test('concurrent owner launches after restart share one tracked board', async t 
     signal: new AbortController().signal, async assertCurrent() {} };
   const launches = await Promise.all(Array.from({ length: 16 }, () => runtime.actions['xiangqi.launch'](request, undefined, owner)));
   assert.equal(new Set(launches.map(result => new URL(result.headers.location).origin)).size, 1);
+});
+
+for (const operation of ['undo', 'restart']) test(`${operation} clears delivery failure for the discarded move`, async t => {
+  const f = fixture(t, { loseReceipt: true }), runtime = await startPlayableXiangqi(f.host);
+  t.after(() => runtime.stop());
+  const page = await browser(await runtime.actions['xiangqi.open']({}, f.caller), runtime);
+  await page.move();
+  await eventually(async () => (await page.state()).delivery.status === 'error');
+  const current = await page.state();
+  const result = await page.request(`/api/${operation}`, { method: 'POST',
+    headers: { origin: page.origin, authorization: page.authorization, 'content-type': 'application/json', 'x-chess-token': current.token },
+    body: JSON.stringify({ revision: current.revision, ...(operation === 'restart' ? { confirmed: true } : {}) }) });
+  assert.equal(result.status, 200);
+  assert.equal((await page.state()).history.length, 0);
+  assert.equal((await page.state()).delivery.status, 'idle');
 });

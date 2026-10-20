@@ -264,8 +264,8 @@
             "packageName": "@clowder-ai/xiangqi",
             "version": "0.1.0-alpha.2",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/xiangqi/-/xiangqi-0.1.0-alpha.2.tgz",
-            "integrity": "sha512-erFpULQ3TbtwKIPC8tupN1OjjlKe/+BsKyHmS2+jvBITlwjbJ3Opy4pmbQGpx4aAdoDmk08OUenNpjuqPPsEnA==",
-            "shasum": "ebf7a1c65479e035619a71146a25855a2866948a",
+            "integrity": "sha512-n3ishq3vTzzcXWvjslSliSXTtYQhrpsm7c0L9omp/fDbjCg+IawHRXPEjBADVEf9uhK9/RBozWx18r+Zf9RdwA==",
+            "shasum": "5c6f44301bc3b6b29ad2965e237786e66684d5bb",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/xiangqi"
