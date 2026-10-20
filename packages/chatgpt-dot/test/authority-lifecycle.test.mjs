@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import sharp from 'sharp';
-import {paired,rpc,delivery} from './fixture.mjs';
+import {paired,rpc,delivery,fixture} from './fixture.mjs';
+import {createDotPlugin} from '../src/plugin-entrypoint.ts';
 import {CONNECTION_KEY,eventKey} from '../src/store.ts';
 
 function deferred(){let resolve;const promise=new Promise(done=>{resolve=done;});return{promise,resolve};}
@@ -66,4 +67,33 @@ test('repeated owner disconnect preserves the first imported revocation timestam
  await f.settings.actions['dot.disconnect']({},undefined,f.owner);
  await f.settings.actions['dot.disconnect']({},undefined,f.owner);
  assert.equal((await f.host.storage.get(CONNECTION_KEY)).value.revokedAt,123);
+});
+
+for(const reuseCredential of [false,true])test(`follow-up cannot cross a pairing generation while ask lookup waits (credential reuse=${reuseCredential})`,async t=>{
+ const f=await paired(t);f.host.messaging.subscribe=async()=>{};
+ if(reuseCredential)f.host.secrets.get=async()=>f.credentials.credentialSecret;
+ const question=(await rpc(f,'cat_cafe_dot_ask',{attempt_id:f.credentials.attemptId,thread_id:'thread-1',target_cat_ids:['cat-1'],content:'old question',client_message_id:'followup-race'})).result.structuredContent;
+ const reply={...f.source,id:'cat-followup',catId:'cat-1',replyTo:question.messageId};f.messages.set(reply.id,reply);
+ const entered=deferred(),release=deferred(),list=f.host.storage.list;
+ f.host.storage.list=async()=>{const result=await list();entered.resolve();await release.promise;return result;};
+ const pending=f.active.actions['dot.followup']({...delivery(f,'stale-followup'),envelope:{...delivery(f).envelope,messageId:reply.id}}).catch(error=>({error}));
+ await entered.promise;
+ const next=(await f.settings.actions['dot.reconnect']({},undefined,f.owner)).data;
+ const state=(await f.host.storage.get(CONNECTION_KEY)).value;
+ await f.host.storage.set(CONNECTION_KEY,{...state,pairedAt:Date.now(),subscription:{id:'new',url:'https://new-callback.example/dot',secret:'whsec_'+Buffer.alloc(32,2).toString('base64'),expiresAt:null,verifiedAt:Date.now(),previousSecret:null,rotationUntil:null}});
+ assert.notEqual(next.attemptId,f.credentials.attemptId);
+ release.resolve();const result=await pending;
+ assert.equal(f.webhooks.filter(item=>item.data.name==='dot.summoned').length,0,'a reply to the retired question must never reach the new callback');
+ assert.ok(result.error,'the matched old pairing must be rejected');
+ assert.equal([...f.records.keys()].filter(key=>key.startsWith('dot/dispatch/')).length,0);
+});
+
+for(const failure of ['read rejection','invalid proxy'])test(`failed settings initialization cleans up start and permits retry: ${failure}`,async t=>{
+ const f=fixture(t),module=createDotPlugin();let reads=0;
+ f.host.config.get=async()=>{if(++reads!==2)return undefined;if(failure==='read rejection')throw new Error('config_read_failed');return 'https://proxy.example:443';};
+ await assert.rejects(()=>module.start(f.host),failure==='read rejection'?/config_read_failed/:/proxy/);
+ f.host.config.get=async()=>undefined;
+ const active=await module.start(f.host);t.after(()=>active.stop({reason:'test'}));
+ await active.stop({reason:'disabled'});
+ await assert.rejects(()=>active.actions.deliverMessage(delivery(f)),/stopped|revoked/);
 });

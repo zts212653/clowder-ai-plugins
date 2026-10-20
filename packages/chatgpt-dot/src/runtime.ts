@@ -85,12 +85,14 @@ export class DotRuntime {
             throw new Error('dot_source_not_read');
         return { state, record, source };
     }
-    async deliver(input: PluginMessageDelivery): Promise<PluginDeliveryReceipt> {
+    async deliver(input: PluginMessageDelivery, expectedAttemptId?: string): Promise<PluginDeliveryReceipt> {
         this.connection.assertLive();
         const state = await this.connection.store.connection();
         if (!state)
             throw new Error('dot_subscription_required');
-        await this.connection.ready(state.credentialSecret);
+        if (expectedAttemptId !== undefined && state.attemptId !== expectedAttemptId)
+            throw new Error('dot_stale_connection');
+        await this.connection.sameAttempt(state);
         if (input.threadId !== input.envelope.threadId)
             throw new Error('dot_source_mismatch');
         const source = await this.host.messaging.get(input.envelope.messageId);
@@ -347,7 +349,7 @@ export class DotRuntime {
                 recipientCatIds: string[];
             };
             if (ask.attemptId === state.attemptId && ask.threadId === source.threadId && ask.messageId === replyTo && ask.recipientCatIds.includes(source.catId))
-                return this.deliver(input);
+                return this.deliver(input, ask.attemptId);
         }
         return { deliveryId: input.deliveryId };
     }
