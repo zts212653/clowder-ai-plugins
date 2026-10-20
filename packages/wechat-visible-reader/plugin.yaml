@@ -1,0 +1,58 @@
+pluginId: official.wechat-visible-reader
+version: 0.1.0-alpha.3
+contractVersion: 0.1.0
+name: WeChat Visible Reader
+description:
+  default: Read visible Mac WeChat messages under explicit, short-lived local authorization.
+  translations:
+    zh-CN: 在明确、短时的本机授权下读取 Mac 微信可见消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+steps:
+  - text: 启用插件后，在 Mac 微信中选中需要猫查看的会话
+  - text: 展开插件并阅读隐私披露，再授权读取 10 分钟
+  - text: 回到目标 Clowder AI thread，对猫说“看一下微信”
+configuration:
+  - key: visibleReadingAuthorization
+    label: Visible WeChat reading authorization
+    description: 不会保存截图。识别出的微信文字会进入当前猫的模型上下文和 Clowder AI invocation trace。按联系人读取由你在当前 thread 逐次授权；执行时会短暂切到微信，可能清除目标会话未读，并在结束后尽力恢复原会话、滚动位置与前台 app。
+    kind: operation
+    required: false
+    actions:
+      - id: arm
+        label: Authorize for 10 minutes
+        render: button
+        action:
+          method: wechat-visible-reader:arm
+          params:
+            minutes: 10
+        next: disarm
+      - id: disarm
+        label: Revoke authorization
+        render: button
+        action:
+          method: wechat-visible-reader:disarm
+        next: arm
+      - id: status
+        label: Authorization status
+        render: status
+        action:
+          method: wechat-visible-reader:status
+contributions:
+  - type: limb
+    id: wechat-visible-reader-limb
+    manifestPath: limbs/wechat-visible-reader.yml
+features:
+  - id: read-visible-wechat
+    name: Read visible WeChat messages
+    resources: []
+    contributions:
+      - type: limb
+        id: wechat-visible-reader-limb
+    capabilities:
+      - plugin.state.get
+      - plugin.state.set
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

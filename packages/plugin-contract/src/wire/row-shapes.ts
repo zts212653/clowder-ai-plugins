@@ -16,8 +16,8 @@ import type {
   Capability,
   M0CAckInput,
   M0CAckResult,
-  M0CDeliverInput,
-  M0CDeliverResult,
+  PluginDeliveryInput,
+  PluginDeliveryReceipt,
   M0CReadEmptyResult,
   M0CReadInput,
   M0CReadNormalResult,
@@ -29,6 +29,8 @@ import type {
   M0CSnapshotResult,
   M0CSubscribeInput,
   M0CSubscribeResult,
+  MediaReadInput as GeneratedMediaReadInput,
+  MediaReadResult as GeneratedMediaReadResult,
   MessageDraft,
   SendReceipt,
 } from '../generated/contract.generated.js';
@@ -140,7 +142,13 @@ export const ACK_TOKEN_MAX_ENCODED_BYTES = 3074 as const;
  *
  * additionalProperties: false. CLOSED.
  */
-export type GrantsChangedInput = GrantSnapshot;
+
+
+/**
+ * Runtime key set mirror of {@link GrantsChangedInput} (= GrantSnapshot).
+ * additionalProperties: false — { grantRevision, effectiveGrants }.
+ */
+
 
 // Re-export GrantSnapshot for downstream convenience — consumers of
 // row shapes should not need to import grants.ts separately.
@@ -162,6 +170,12 @@ export interface PingInput {
 }
 
 /**
+ * Runtime key set mirror of the {@link PingInput} interface.
+ * additionalProperties: false — { nonce }.
+ */
+export const PING_INPUT_KEYS: ReadonlySet<string> = new Set(['nonce']);
+
+/**
  * Row 11 result: echo of the input nonce.
  * Wire shape: `{ nonce: string }` — additionalProperties: false.
  *
@@ -171,6 +185,12 @@ export interface PingResult {
   /** Byte-equal echo of the input nonce. */
   readonly nonce: string;
 }
+
+/**
+ * Runtime key set mirror of the {@link PingResult} interface.
+ * additionalProperties: false — { nonce }.
+ */
+export const PING_RESULT_KEYS: ReadonlySet<string> = new Set(['nonce']);
 
 /** Minimum code-point length for ping nonce. */
 export const PING_NONCE_MIN_LENGTH = 1 as const;
@@ -186,7 +206,7 @@ export const PING_NONCE_MAX_LENGTH = 512 as const;
 export const PING_NONCE_MAX_ENCODED_BYTES = 3074 as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Row 12 — host.lifecycle.drain (CLOSED leaf shape)
+// Messaging subscription rows
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
@@ -199,20 +219,20 @@ export const PING_NONCE_MAX_ENCODED_BYTES = 3074 as const;
  *
  * W2 covers "row 12 `params.input.deadlineUnixMs`".
  */
-export interface DrainInput {
-  /**
-   * Drain-specific deadline.
-   * WireUInt53(1, 9_007_199_254_740_991) — same profile as CallMeta.
-   */
-  readonly deadlineUnixMs: number;
-}
+
+
+/**
+ * Runtime key set mirror of the {@link DrainInput} interface.
+ * additionalProperties: false — { deadlineUnixMs }.
+ */
+
 
 /**
  * Row 12 result: null.
  * Drain is fire-and-confirm — a null result signals the plugin
  * has completed its graceful shutdown sequence.
  */
-export type DrainResult = null;
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Rows 1–2 — CLOSED beta.8 handshake shapes
@@ -318,12 +338,17 @@ export const SNAPSHOT_ACK_TOKEN_MAX_LENGTH = 512 as const;
 /**
  * Row 9 — Host → Plugin callback request and byte-equal acknowledgement.
  */
-export type HostMessagingDeliverRequest = M0CDeliverInput;
+export type HostMessagingDeliverRequest = PluginDeliveryInput;
 
-export type HostMessagingDeliverResult = M0CDeliverResult;
+export type HostMessagingDeliverResult = PluginDeliveryReceipt;
 
 export type DeliverInput = HostMessagingDeliverRequest;
 export type DeliverResult = HostMessagingDeliverResult;
 
 export const DELIVER_DELIVERY_ID_MIN_LENGTH = 1 as const;
 export const DELIVER_DELIVERY_ID_MAX_LENGTH = 128 as const;
+
+/** P1 media byte streaming row. Each result is bounded to one 512 KiB chunk. */
+export type MediaReadInput = GeneratedMediaReadInput;
+export type MediaReadResult = GeneratedMediaReadResult;
+export const MEDIA_READ_CHUNK_MAX_BYTES = 524_288 as const;

@@ -3,8 +3,8 @@ import { explainError } from './errors.mjs';
 /** Local controls only. Durable messages, identity and preferences belong to the Host. */
 export class CompanionConversation {
   constructor({ client, createPeer, render, transcript, delivery = () => {}, stopScreen,
-    uuid = () => crypto.randomUUID() }) {
-    Object.assign(this, { client, createPeer, render, transcript, delivery, stopScreen, uuid });
+    uuid = () => crypto.randomUUID(), now = Date.now }) {
+    Object.assign(this, { client, createPeer, render, transcript, delivery, stopScreen, uuid, now });
     this.active = false;
     this.generation = 0;
     this.phase = 'idle';
@@ -20,7 +20,7 @@ export class CompanionConversation {
     this.message = message;
     this.render({ phase: this.phase, identity: this.identity, audioMode: this.audioMode, retryMode: this.retryMode,
       muted: this.muted, silent: this.silent, failed: this.failed, recovering: this.recovering,
-      callId: this.callId, message });
+      callId: this.callId, connectedAt: this.connectedAt ?? null, message });
   }
   current(generation) { return this.active && generation === this.generation; }
   listening() {
@@ -69,6 +69,7 @@ export class CompanionConversation {
     this.recovering = false;
     this.phase = 'connecting';
     this.callId = null;
+    this.connectedAt = null;
     this.expectedHostStop = undefined;
     const generation = ++this.generation;
     // Must reach the isolated preload while the click still has user activation.
@@ -82,6 +83,7 @@ export class CompanionConversation {
         if (event.type === 'connected') {
           if (this.callId && this.callId !== event.callId) return;
           this.callId = event.callId;
+          this.connectedAt ??= this.now();
           this.recovering = false;
           clearTimeout(this.deadline); this.phase = 'talking'; this.show(this.listening());
         }
@@ -130,6 +132,7 @@ export class CompanionConversation {
     this.phase = 'idle';
     this.recovering = false;
     this.callId = null;
+    this.connectedAt = null;
     this.show(message);
     await Promise.allSettled([peer?.close(), this.stopScreen()]);
   }

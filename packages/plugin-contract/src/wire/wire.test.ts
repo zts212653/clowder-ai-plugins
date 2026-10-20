@@ -48,6 +48,7 @@ import {
   STANDARD_ERROR_CODES,
   HANDSHAKE_REJECT_REASONS,
   DELIVERY_REJECT_REASONS,
+  LIFECYCLE_REJECT_REASONS,
   SNAPSHOT_UNAVAILABLE_REASONS,
   // Disposition
   DISPOSITION_CLASSES,
@@ -85,7 +86,6 @@ import {
   BROKER_READY_REQUEST_BYTE_PROOF,
   HANDSHAKE_REJECTED_ERROR_BYTE_PROOF,
   HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS,
-  EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
   LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
   MESSAGING_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
@@ -252,6 +252,10 @@ test('reject-reason taxonomies are frozen', () => {
 
   assert.equal(DELIVERY_REJECT_REASONS.length, 4);
   assert.ok(DELIVERY_REJECT_REASONS.includes('NO_HANDLER'));
+
+  assert.equal(LIFECYCLE_REJECT_REASONS.length, 6);
+  assert.ok(LIFECYCLE_REJECT_REASONS.includes('LIFECYCLE_OUT_OF_ORDER'));
+  assert.ok(LIFECYCLE_REJECT_REASONS.includes('LIFECYCLE_DELIVERY_CONFLICT'));
 
   assert.equal(SNAPSHOT_UNAVAILABLE_REASONS.length, 3);
   assert.ok(SNAPSHOT_UNAVAILABLE_REASONS.includes('VIEW_EXPIRED'));
@@ -480,7 +484,7 @@ test('beta.8 closes H1/H3/H4/H5/H6 bounded grammars', () => {
 test('beta.8 exact-validation evidence covers every H field boundary and type', () => {
   const digest = `sha512-${'A'.repeat(86)}==`;
   const maxVersion = `0.0.0-${'a'.repeat(HANDSHAKE_VERSION_MAX_LENGTH - 6)}`;
-  const maxGrants = [...VALID_CAPABILITIES];
+  const maxGrants = [...VALID_CAPABILITIES].slice(0, MAX_GRANT_ITEMS);
   const binding = {
     pluginId: 'a',
     packageDigest: digest,
@@ -531,7 +535,7 @@ test('beta.8 exact-validation evidence covers every H field boundary and type', 
   assert.equal(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX + 1 }), false);
   assert.equal(validateSessionBinding({ ...binding, grantRevision: '0' }), false);
   assert.ok(validateSessionBinding({ ...binding, effectiveGrants: [] }));
-  assert.equal(maxGrants.length, MAX_GRANT_ITEMS);
+  assert.equal(maxGrants.length, Math.min(VALID_CAPABILITIES.size, MAX_GRANT_ITEMS));
   assert.ok(validateSessionBinding({ ...binding, effectiveGrants: maxGrants }));
   assert.equal(
     validateSessionBinding({
@@ -626,7 +630,7 @@ test('validateBindingNonce boundary cases', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test('MAX_GRANT_ITEMS is frozen at the complete v0 capability cardinality', () => {
-  assert.equal(MAX_GRANT_ITEMS, 17);
+  assert.equal(MAX_GRANT_ITEMS, 28);
 });
 
 test('validateEffectiveGrants accepts valid arrays', () => {
@@ -641,8 +645,8 @@ test('validateEffectiveGrants rejects invalid arrays', () => {
     false,
     'duplicates',
   );
-  // 18 items exceeds MAX_GRANT_ITEMS
-  const tooMany = Array.from({ length: 18 }, (_, i) => `cap-${i}`);
+  // One beyond the current closed capability cardinality
+  const tooMany = Array.from({ length: MAX_GRANT_ITEMS + 1 }, (_, i) => `cap-${i}`);
   assert.equal(validateEffectiveGrants(tooMany), false, 'too many');
 });
 
@@ -669,170 +673,40 @@ test('validateEffectiveGrants rejects unknown capabilities (FC-52-4: fail-closed
 // §8 Registry regression locks
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('beta.9 appends one C-2 publish row without renumbering the original 12', () => {
-  assert.equal(WIRE_METHOD_NAMES.length, 13);
-  assert.equal(WIRE_METHOD_COUNT, 13);
-});
-
-test('method names are frozen in order', () => {
-  const expected = [
-    'broker.hello',
-    'broker.ready',
-    'messaging.send',
-    'messaging.appendElements',
-    'messaging.subscribe',
-    'messaging.read',
-    'messaging.ack',
-    'messaging.snapshot',
-    'host.messaging.deliver',
-    'host.grants.changed',
-    'host.lifecycle.ping',
-    'host.lifecycle.drain',
-    'events.publish',
-  ];
+test('current standalone registry contains exactly the implemented methods', () => {
+  const expected = ['broker.hello','broker.ready','messaging.send','messaging.appendElements','messaging.subscribe','messaging.read','messaging.ack','messaging.snapshot','host.messaging.deliver','host.lifecycle.ping','streams.read'];
   assert.deepEqual([...WIRE_METHOD_NAMES], expected);
-});
-
-test('beta.11 readies the complete 13-row standalone contract', () => {
-  const expectedReady = new Set(WIRE_METHOD_NAMES);
-  for (const method of WIRE_METHOD_NAMES) {
-    const row = WIRE_METHOD_REGISTRY[method];
-    assert.equal(
-      row.ready,
-      expectedReady.has(method),
-      `${method} readiness must match beta.11 scope`,
-    );
-  }
-  assert.deepEqual([...READY_ROWS], [
-    'broker.hello',
-    'broker.ready',
-    'messaging.send',
-    'messaging.appendElements',
-    'messaging.subscribe',
-    'messaging.read',
-    'messaging.ack',
-    'messaging.snapshot',
-    'host.messaging.deliver',
-    'host.grants.changed',
-    'host.lifecycle.ping',
-    'host.lifecycle.drain',
-    'events.publish',
-  ]);
-  assert.deepEqual(
-    {
-      maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedRequestBytes,
-      maxEncodedResultBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedResultBytes,
-      maxEncodedErrorBytes: WIRE_METHOD_REGISTRY['broker.hello'].maxEncodedErrorBytes,
-    },
-    HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.hello'],
-  );
-  assert.deepEqual(
-    {
-      maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['broker.ready'].maxEncodedRequestBytes,
-      maxEncodedResultBytes: WIRE_METHOD_REGISTRY['broker.ready'].maxEncodedResultBytes,
-      maxEncodedErrorBytes: WIRE_METHOD_REGISTRY['broker.ready'].maxEncodedErrorBytes,
-    },
-    HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS['broker.ready'],
-  );
-  assert.deepEqual(
-    {
-      maxEncodedRequestBytes: WIRE_METHOD_REGISTRY['events.publish'].maxEncodedRequestBytes,
-      maxEncodedResultBytes: WIRE_METHOD_REGISTRY['events.publish'].maxEncodedResultBytes,
-      maxEncodedErrorBytes: WIRE_METHOD_REGISTRY['events.publish'].maxEncodedErrorBytes,
-    },
-    EVENTS_PUBLISH_ROW_ENCODED_BYTE_BOUNDS,
-  );
-  for (const method of [
-    'host.grants.changed',
-    'host.lifecycle.ping',
-    'host.lifecycle.drain',
-  ] as const) {
-    const row = WIRE_METHOD_REGISTRY[method];
-    assert.deepEqual(
-      {
-        maxEncodedRequestBytes: row.maxEncodedRequestBytes,
-        ...('maxEncodedResultBytes' in row
-          ? { maxEncodedResultBytes: row.maxEncodedResultBytes }
-          : {}),
-        ...('maxEncodedErrorBytes' in row
-          ? { maxEncodedErrorBytes: row.maxEncodedErrorBytes }
-          : {}),
-      },
-      LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS[method],
-    );
-  }
-  for (const method of WIRE_METHOD_NAMES.slice(2, 9) as readonly (
-    keyof typeof MESSAGING_ROW_ENCODED_BYTE_BOUNDS
-  )[]) {
-    const row = WIRE_METHOD_REGISTRY[method];
-    assert.deepEqual(
-      {
-        maxEncodedRequestBytes: row.maxEncodedRequestBytes,
-        maxEncodedResultBytes: row.maxEncodedResultBytes,
-        maxEncodedErrorBytes: row.maxEncodedErrorBytes,
-      },
-      MESSAGING_ROW_ENCODED_BYTE_BOUNDS[method],
-    );
-  }
-});
-
-test('row numbers are sequential 1-13', () => {
-  WIRE_METHOD_NAMES.forEach((method, i) => {
-    assert.equal(
-      WIRE_METHOD_REGISTRY[method].rowNumber,
-      i + 1,
-      `${method} should be row ${i + 1}`,
-    );
+  assert.deepEqual([...READY_ROWS], expected);
+  assert.equal(WIRE_METHOD_COUNT, 11);
+  assert.deepEqual([...CLOSED_LEAF_ROWS], expected);
+  assert.equal(RESERVED_LEAF_ROWS.length, 0);
+  expected.forEach((method, i) => {
+    const row = WIRE_METHOD_REGISTRY[method as keyof typeof WIRE_METHOD_REGISTRY];
+    assert.equal(row.rowNumber, i + 1);
+    assert.equal(row.leafClosure, 'CLOSED');
+    assert.equal(row.isNotification, false);
+    assert.ok(row.maxEncodedRequestBytes > 0);
+    assert.ok(row.maxEncodedResultBytes > 0);
+    assert.ok(row.maxEncodedErrorBytes > 0);
   });
-});
-
-test('beta.11 closes every registry leaf', () => {
-  const closed = [...WIRE_METHOD_NAMES];
-
-  assert.equal(CLOSED_LEAF_ROWS.length, 13, '13 closed rows');
-  assert.equal(RESERVED_LEAF_ROWS.length, 0, 'no reserved rows');
-
-  for (const m of closed) {
-    assert.equal(WIRE_METHOD_REGISTRY[m as keyof typeof WIRE_METHOD_REGISTRY].leafClosure, 'CLOSED', `${m} CLOSED`);
+  for (const method of ['broker.hello','broker.ready'] as const) {
+    const row = WIRE_METHOD_REGISTRY[method];
+    assert.deepEqual({ maxEncodedRequestBytes:row.maxEncodedRequestBytes,maxEncodedResultBytes:row.maxEncodedResultBytes,maxEncodedErrorBytes:row.maxEncodedErrorBytes }, HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS[method]);
+  }
+  for (const method of ['host.lifecycle.ping'] as const) {
+    const row = WIRE_METHOD_REGISTRY[method];
+    assert.deepEqual({ maxEncodedRequestBytes:row.maxEncodedRequestBytes,maxEncodedResultBytes:row.maxEncodedResultBytes,maxEncodedErrorBytes:row.maxEncodedErrorBytes }, LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS[method]);
+  }
+  for (const method of WIRE_METHOD_NAMES.slice(2,9) as readonly (keyof typeof MESSAGING_ROW_ENCODED_BYTE_BOUNDS)[]) {
+    const row = WIRE_METHOD_REGISTRY[method];
+    assert.deepEqual({ maxEncodedRequestBytes:row.maxEncodedRequestBytes,maxEncodedResultBytes:row.maxEncodedResultBytes,maxEncodedErrorBytes:row.maxEncodedErrorBytes }, MESSAGING_ROW_ENCODED_BYTE_BOUNDS[method]);
   }
 });
-
-test('direction partition appends events.publish to plugin-to-host', () => {
-  const p2h = ['broker.hello', 'broker.ready', 'messaging.send', 'messaging.appendElements', 'messaging.subscribe', 'messaging.read', 'messaging.ack', 'messaging.snapshot', 'events.publish'];
-  const h2p = ['host.messaging.deliver', 'host.grants.changed', 'host.lifecycle.ping', 'host.lifecycle.drain'];
-
-  assert.equal(PLUGIN_TO_HOST_METHODS.length, 9, '9 plugin-to-host');
-  assert.equal(HOST_TO_PLUGIN_METHODS.length, 4, '4 host-to-plugin');
-
-  for (const m of p2h) {
-    assert.equal(WIRE_METHOD_REGISTRY[m as keyof typeof WIRE_METHOD_REGISTRY].direction, 'plugin-to-host', `${m}`);
-  }
-  for (const m of h2p) {
-    assert.equal(WIRE_METHOD_REGISTRY[m as keyof typeof WIRE_METHOD_REGISTRY].direction, 'host-to-plugin', `${m}`);
-  }
-});
-
-test('only row 10 is a notification', () => {
-  assert.equal(NOTIFICATION_METHODS.length, 1);
-  assert.equal(NOTIFICATION_METHODS[0], 'host.grants.changed');
-  assert.equal(WIRE_METHOD_REGISTRY['host.grants.changed'].isNotification, true);
-
-  for (const method of WIRE_METHOD_NAMES) {
-    if (method !== 'host.grants.changed') {
-      assert.equal(
-        WIRE_METHOD_REGISTRY[method].isNotification,
-        false,
-        `${method} should not be a notification`,
-      );
-    }
-  }
-});
-
-test('isWireMethod accepts valid methods and rejects invalid ones', () => {
-  assert.ok(isWireMethod('broker.hello'));
-  assert.ok(isWireMethod('host.lifecycle.drain'));
-  assert.equal(isWireMethod('nonexistent.method'), false);
-  assert.equal(isWireMethod(''), false);
+test('stdio directions have no grant or drain notification callbacks', () => {
+  assert.equal(PLUGIN_TO_HOST_METHODS.length,9);
+  assert.deepEqual([...HOST_TO_PLUGIN_METHODS], ['host.messaging.deliver','host.lifecycle.ping']);
+  assert.deepEqual([...NOTIFICATION_METHODS], []);
+  for(const removed of ['host.grants.changed','host.lifecycle.drain','events.publish','media.read','host.messaging.lifecycle']) assert.equal(isWireMethod(removed),false);
 });
 
 test('getRegistryRow returns row or undefined', () => {

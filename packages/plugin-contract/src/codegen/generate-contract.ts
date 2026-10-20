@@ -41,6 +41,7 @@ const MANIFEST_CAPABILITY_REF =
 const PLUGIN_METADATA_SCHEMA_PREFIX =
   'https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/';
 const SIGNAL_SCHEMA_PREFIX = 'https://clowder-ai.dev/schemas/signals/v0.2#/$defs/';
+const MESSAGING_SCHEMA_PREFIX = 'https://clowder-ai.dev/schemas/messaging/v0.1#/$defs/';
 
 async function readSchema(url: URL): Promise<JsonSchema> {
   return JSON.parse(await readFile(url, 'utf8')) as JsonSchema;
@@ -86,6 +87,9 @@ function refName(ref: string): string {
   }
   if (ref.startsWith(SIGNAL_SCHEMA_PREFIX)) {
     return decodeURIComponent(ref.slice(SIGNAL_SCHEMA_PREFIX.length));
+  }
+  if (ref.startsWith(MESSAGING_SCHEMA_PREFIX)) {
+    return decodeURIComponent(ref.slice(MESSAGING_SCHEMA_PREFIX.length));
   }
 
   const marker = '#/$defs/';
@@ -168,6 +172,81 @@ function renderObject(schema: JsonSchema): string {
     return 'Readonly<Record<string, unknown>>';
   }
   return renderObjectShape(properties, new Set(schema.required ?? []));
+}
+
+function renderOpenObject(schema: JsonSchema): string {
+  const structural = renderObject(schema);
+  if (structural === 'Readonly<Record<string, unknown>>') return structural;
+  return structural.replace(/\n\}$/u, '\n  readonly [key: string]: unknown;\n}');
+}
+
+function schemaAllowsLiteral(schema: JsonSchema, value: unknown): boolean {
+  if (schema.const !== undefined) return isDeepStrictEqual(schema.const, value);
+  if (schema.enum) return schema.enum.some((candidate) => isDeepStrictEqual(candidate, value));
+  const alternatives = schema.oneOf ?? schema.anyOf;
+  if (alternatives) return alternatives.some((alternative) => schemaAllowsLiteral(alternative, value));
+  if (Array.isArray(schema.type)) return schema.type.some((type) => schemaAllowsLiteral({ type }, value));
+  switch (schema.type) {
+    case 'string':
+      return typeof value === 'string';
+    case 'integer':
+      return Number.isInteger(value);
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'boolean':
+      return typeof value === 'boolean';
+    case 'null':
+      return value === null;
+    case 'object':
+      return typeof value === 'object' && value !== null && !Array.isArray(value);
+    case 'array':
+      return Array.isArray(value);
+    case undefined:
+      return schema.$ref === undefined;
+    default:
+      return false;
+  }
+}
+
+function mergeAlternativeProperty(name: string, base: JsonSchema, constraint: JsonSchema): JsonSchema {
+  const constraintKeys = Object.keys(constraint).filter((key) => !['description', 'const', 'enum'].includes(key));
+  if (constraintKeys.length > 0) {
+    throw new Error(`Unsupported object alternative constraint for ${name}: ${constraintKeys.join(', ')}`);
+  }
+  const values = constraint.const !== undefined ? [constraint.const] : constraint.enum;
+  if (!values) return base;
+  if (!values.every((value) => schemaAllowsLiteral(base, value))) {
+    throw new Error(`Object alternative widens the base property ${name}`);
+  }
+  return constraint;
+}
+
+// JSON Schema applies object siblings and oneOf/anyOf together. Repeat the
+// shared shape in every TypeScript arm, while allowing branches only to narrow
+// shared fields to literals the base schema already admits.
+function renderObjectAlternatives(schema: JsonSchema, alternatives: readonly JsonSchema[]): string {
+  const baseProperties = schema.properties ?? {};
+  const baseRequired = schema.required ?? [];
+  return alternatives
+    .map((alternative) => {
+      if (alternative.type !== undefined && alternative.type !== 'object') {
+        throw new Error('Object alternative must remain an object');
+      }
+      const unsupported = Object.keys(alternative).filter(
+        (key) => !['description', 'type', 'properties', 'required', 'additionalProperties'].includes(key),
+      );
+      if (unsupported.length > 0) {
+        throw new Error(`Unsupported object alternative keywords: ${unsupported.join(', ')}`);
+      }
+      const properties = { ...baseProperties };
+      for (const [name, constraint] of Object.entries(alternative.properties ?? {})) {
+        properties[name] = properties[name]
+          ? mergeAlternativeProperty(name, properties[name], constraint)
+          : constraint;
+      }
+      return renderObjectShape(properties, new Set([...baseRequired, ...(alternative.required ?? [])]));
+    })
+    .join(' | ');
 }
 
 function renderDiscriminatedObject(schema: JsonSchema, discriminator: string): string {
@@ -287,7 +366,10 @@ function renderType(schema: JsonSchema): string {
   if (schema.enum) return schema.enum.map(quote).join(' | ');
 
   const alternatives = schema.oneOf ?? schema.anyOf;
-  if (alternatives) return alternatives.map(renderType).join(' | ');
+  if (alternatives) {
+    if (schema.type === 'object') return renderObjectAlternatives(schema, alternatives);
+    return alternatives.map(renderType).join(' | ');
+  }
 
   if (Array.isArray(schema.type)) {
     return schema.type.map((type) => renderType({ ...schema, type })).join(' | ');
@@ -338,6 +420,27 @@ function renderDefinition(schema: JsonSchema, name: string, definition: JsonSche
   }
   if (name === 'PackageIcon') {
     return renderDiscriminatedObject(definition, 'type');
+  }
+  if (name === 'MediaRefElementPayload') {
+    // The remaining provider-specific metadata is intentionally open, while
+    // JSON Schema owns the conditional pmr/hmr relation.
+    return renderOpenObject(definition);
+  }
+  if (
+    name === 'MediaReadResult'
+    || name === 'MessageDraft'
+    || name === 'MessageSubscriptionContribution'
+    || name === 'OperationActionResult'
+  ) {
+    // JSON Schema owns conditional cross-field relations. The TypeScript
+    // projection remains structural because these rules depend on nested
+    // values (pmr/hmr, done/nextOffset, and whisper media admission).
+    // The generated structural projection keeps every declared property while
+    // runtime validation enforces the cross-field constraints.
+    return renderObject(definition);
+  }
+  if (name === 'RichBlockElementPayload') {
+    return renderOpenObject(definition);
   }
   if (definition.allOf?.length) {
     throw new Error(`Unhandled conditional schema definition: ${name}`);
@@ -490,6 +593,61 @@ function renderMessagingReplayWindowDefault(schema: JsonSchema): string[] {
   ];
 }
 
+/**
+ * Deterministic def-name → SCREAMING_SNAKE conversion.
+ * Inserts `_` only at lowercase → uppercase word boundaries, so
+ * `M0CSubscribeInput` → `M0C_SUBSCRIBE_INPUT` (the `M0C` prefix stays
+ * attached; digit→uppercase boundaries are not word starts). All messaging
+ * def names are PascalCase words with an optional `M0C` digit-caps prefix,
+ * which this rule tokenizes exactly.
+ */
+function screamingSnake(name: string): string {
+  return name.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
+}
+
+/**
+ * Runtime key sets and enum value arrays projected from the messaging
+ * schema's closed definitions:
+ *
+ *   - every `additionalProperties: false` object def exports
+ *     `<SCREAMING_SNAKE(defName)>_KEYS` with the def's property keys in
+ *     schema declaration order (mirrors the same-named generated type);
+ *   - every string-enum def exports `<SCREAMING_SNAKE(defName)>_VALUES`
+ *     with the enum members in schema order.
+ *
+ * The `*_VALUES` suffix (not `*_CODES`) avoids shadowing module-local
+ * constants in wire/messaging-byte-bounds.ts.
+ */
+function renderClosedKeySets(schema: JsonSchema): string[] {
+  const lines: string[] = [];
+  for (const [name, definition] of Object.entries(schema.$defs ?? {})) {
+    if (definition.type === 'object' && definition.additionalProperties === false) {
+      lines.push(
+        renderConstArray(`${screamingSnake(name)}_KEYS`, Object.keys(definition.properties ?? {})),
+      );
+    } else if (
+      definition.type === 'string' &&
+      definition.enum !== undefined &&
+      definition.enum.length > 0 &&
+      definition.enum.every((value) => typeof value === 'string')
+    ) {
+      lines.push(renderConstArray(`${screamingSnake(name)}_VALUES`, definition.enum));
+    }
+  }
+  return lines;
+}
+
+/** Fail closed if the generated source would export two consts with one name. */
+function assertUniqueConstExports(source: string): void {
+  const seen = new Set<string>();
+  for (const match of source.matchAll(/export const ([A-Za-z0-9_$]+)/g)) {
+    if (seen.has(match[1]!)) {
+      throw new Error(`Duplicate generated const export: ${match[1]}`);
+    }
+    seen.add(match[1]!);
+  }
+}
+
 function schemaProperty(
   schema: JsonSchema,
   definitionName: string,
@@ -627,6 +785,11 @@ function validateDataStrategyMetadata(schema: JsonSchema): void {
 }
 
 export function generateContractSource(schemas: ContractSchemas): string {
+  const layers=schemas.manifest['x-clowder-capability-layers'] as Record<string,readonly string[]>;
+  const count=Object.values(layers).flat().length;
+  const matrix=schemas.behavior.$defs?.PermissionMatrixInput?.properties?.entries;
+  if(matrix?.minItems!==count||matrix.maxItems!==count)throw new Error('behavior permission matrix bounds must match manifest capabilities');
+
   validateDataStrategyMetadata(schemas.manifest);
   validateMessagingBounds(schemas.messaging);
   const sections = [
@@ -648,6 +811,8 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderDefinitions(schemas.signals),
     '',
     ...renderDefinitions(schemas.messaging),
+    '',
+    ...renderClosedKeySets(schemas.messaging),
     '',
     ...renderDefinitions(schemas.physicalLimb),
     '',
@@ -672,7 +837,9 @@ export function generateContractSource(schemas: ContractSchemas): string {
     ...renderMessagingReplayWindowDefault(schemas.messaging),
     '',
   ];
-  return `${sections.join('\n').trimEnd()}\n`;
+  const source = `${sections.join('\n').trimEnd()}\n`;
+  assertUniqueConstExports(source);
+  return source;
 }
 
 export async function writeGeneratedContract(): Promise<void> {

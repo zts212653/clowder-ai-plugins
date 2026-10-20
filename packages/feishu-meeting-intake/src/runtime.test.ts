@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import type { EventsPublishInput, EventsPublishResult } from '@clowder-ai/plugin-contract';
+import type { FeishuArtifactNotification } from './artifact.js';
+type FeishuTestReceipt = {readonly publicationId:string;readonly disposition:'accepted'|'duplicate'};
 
 import {
   FeishuCatchUpRequiredError,
@@ -38,12 +39,12 @@ function gateway(overrides: Partial<FeishuPollingGateway> = {}): FeishuPollingGa
 }
 
 class RecordingPublisher {
-  readonly calls: EventsPublishInput[] = [];
+  readonly calls: FeishuArtifactNotification[] = [];
   fail = false;
-  disposition: EventsPublishResult['disposition'] = 'accepted';
+  disposition: FeishuTestReceipt['disposition'] = 'accepted';
 
-  async publish(input: unknown): Promise<EventsPublishResult> {
-    this.calls.push(structuredClone(input as EventsPublishInput));
+  async publish(input: unknown): Promise<FeishuTestReceipt> {
+    this.calls.push(structuredClone(input as FeishuArtifactNotification));
     if (this.fail) throw new Error('Host unavailable');
     return { publicationId: 'publication-1', disposition: this.disposition };
   }
@@ -177,7 +178,7 @@ test('state store rejects direct transcript and forged-source bypasses', async (
     },
   ]) {
     await assert.rejects(
-      store.enqueue([candidate as EventsPublishInput]),
+      store.enqueue([candidate as FeishuArtifactNotification]),
       /invalid signal/,
     );
   }

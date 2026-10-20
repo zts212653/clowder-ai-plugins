@@ -5,5 +5,5 @@ import {
 
 startStandaloneHost({
   manifest: await loadStandaloneManifest(new URL('../manifest.json', import.meta.url)),
-  onMessage: () => ({ accepted: true }),
+  delivery: input => ({ deliveryId: input.deliveryId }),
 });

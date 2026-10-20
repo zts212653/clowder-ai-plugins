@@ -6,11 +6,11 @@ import { ReplyLetterView } from './reply-letter-view.mjs';
 
 /** Owns the chat panel's history, durable draft and reply-letter interaction. */
 export class ConversationSurface {
-  constructor({ document, client, controls, bubble, transcript, getCallPhase,
+  constructor({ document, client, controls, bubble, transcript,
     onAccepted, retryLegacy, status, scheduleInterval = setInterval,
     cancelInterval = clearInterval }) {
     this.$ = id => document.getElementById(id);
-    Object.assign(this, { client, controls, bubble, transcript, getCallPhase,
+    Object.assign(this, { client, controls, bubble, transcript,
       onAccepted, retryLegacy, status });
     this.scheduleInterval = (...args) => Reflect.apply(scheduleInterval, globalThis, args);
     this.cancelInterval = (...args) => Reflect.apply(cancelInterval, globalThis, args);
@@ -18,6 +18,7 @@ export class ConversationSurface {
     this.pendingOlderRead = false;
     this.bodyReads = new Set();
     this.replyMode = 'idle';
+    this.historySelection = null;
     this.controller = new ReplyLetterController({
       requestContinuation: value => void this.readBody(value.messageId, value.continuation),
       render: value => this.renderReply(value),
@@ -59,14 +60,27 @@ export class ConversationSurface {
         void this.readOlderHistory();
       }
     });
+    this.$('chat-transcript').addEventListener('wheel', event => {
+      if (event.deltaY < 0 && this.controller.mode === 'history'
+        && this.$('chat-transcript').scrollTop <= 0) void this.readOlderHistory();
+    }, { passive: true });
     this.$('compose').onsubmit = event => this.submit(event);
   }
 
   renderReply(value) {
     const previous = this.replyMode;
+    const previousSelection = this.historySelection;
+    if (previous === 'history' && value.mode !== 'history') {
+      this.transcript.leaveHistory(previousSelection);
+    }
     this.replyMode = value.mode;
     this.view.render(value);
     this.controls.remeasure?.();
+    if (value.mode === 'history'
+      && (previous !== 'history' || previousSelection !== value.selectedMessageId)) {
+      this.transcript.enterHistory(value.selectedMessageId);
+    }
+    this.historySelection = value.mode === 'history' ? value.selectedMessageId : null;
     if (value.mode === 'reply' && previous !== 'reply' && this.controls.panel !== 'chat') {
       void this.controls.show('chat');
     }
@@ -126,7 +140,6 @@ export class ConversationSurface {
     try {
       const page = await this.client.readConversationPage(before === undefined ? {} : { before });
       this.history.loadPage(page, { older });
-      void this.controls.setAmbient(this.getCallPhase() === 'idle' ? 'none' : 'actions');
       this.$('chat-connection-status').textContent = page.status === 'stale'
         ? '聊天位置已变化 · 请重新往上翻' : '';
     } catch (error) {

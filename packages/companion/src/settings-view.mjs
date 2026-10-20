@@ -14,6 +14,7 @@ const fieldLabels = {
   proactivePolicy: '主动提示',
   personaTone: '人设基调',
   householdReadsAllowed: '资料查询',
+  appAssistEnabled: '应用旁问一句',
 };
 
 export class SettingsView {
@@ -43,6 +44,9 @@ export class SettingsView {
     );
     this.$('settings-proactive').onclick = () => void this.controller.requestUpdate(
       'proactivePolicy', this.controller.state.values?.proactivePolicy === 'quiet-badge' ? 'ambient' : 'quiet-badge',
+    );
+    this.$('settings-app-assist').onclick = () => void this.controller.requestUpdate(
+      'appAssistEnabled', !this.controller.state.values?.appAssistEnabled,
     );
     this.$('settings-documents').onclick = () => {
       const value = !this.controller.state.values?.householdReadsAllowed;
@@ -123,6 +127,7 @@ export class SettingsView {
     this.$('settings-look-value').textContent = skinLabels[values.skin] ?? values.skin;
     this.setToggle('settings-behavior', values.behaviorEnabled);
     this.setToggle('settings-proactive', values.proactivePolicy === 'quiet-badge');
+    this.setToggle('settings-app-assist', values.appAssistEnabled);
     this.setToggle('settings-documents', values.householdReadsAllowed);
     this.$('settings-size').value = String(values.ballSize);
     this.$('settings-tone').value = values.personaTone;
@@ -139,7 +144,8 @@ export class SettingsView {
     if (field === 'skin') return skinLabels[value] ?? value;
     if (field === 'dutyCatProfileId')
       return state.companions?.find(item => item.catProfileId === value)?.displayName ?? '已保存的陪伴者';
-    if (field === 'behaviorEnabled' || field === 'householdReadsAllowed') return value ? '开启' : '关闭';
+    if (field === 'behaviorEnabled' || field === 'householdReadsAllowed' || field === 'appAssistEnabled')
+      return value ? '开启' : '关闭';
     if (field === 'proactivePolicy') return value === 'quiet-badge' ? '开启' : '关闭';
     if (field === 'ballSize') return `${value}`;
     return value;
@@ -169,12 +175,13 @@ export class SettingsView {
 
   renderSettlement(state) {
     for (const id of ['settings-partner-open', 'settings-look-open', 'settings-behavior',
-      'settings-proactive', 'settings-documents', 'settings-tone-field', 'settings-size-field'])
+      'settings-proactive', 'settings-app-assist', 'settings-documents', 'settings-tone-field', 'settings-size-field'])
       delete this.$(id).dataset.settlement;
     if (state.notice?.kind !== 'unconfirmed') return;
     const ids = {
       dutyCatProfileId: 'settings-partner-open', skin: 'settings-look-open',
       behaviorEnabled: 'settings-behavior', proactivePolicy: 'settings-proactive',
+      appAssistEnabled: 'settings-app-assist',
       householdReadsAllowed: 'settings-documents', personaTone: 'settings-tone-field',
       ballSize: 'settings-size-field',
     };

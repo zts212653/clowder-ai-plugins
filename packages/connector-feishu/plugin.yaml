@@ -1,0 +1,118 @@
+pluginId: official.connector.feishu
+version: 0.1.0-alpha.5
+contractVersion: 0.1.0
+name: Feishu / Lark Connector
+description:
+  default: Receive and send Feishu or Lark messages through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收和发送飞书或 Lark 消息。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: appId
+    label: App ID
+    kind: string
+    required: true
+  - key: appSecret
+    label: App Secret
+    kind: secret
+    required: true
+  - key: connectionMode
+    label: 连接模式
+    kind: select
+    required: false
+    default: webhook
+    options:
+      - value: webhook
+        label: Webhook（需公网 URL）
+      - value: websocket
+        label: WebSocket（无需公网，推荐内网）
+  - key: verificationToken
+    label: Verification Token
+    kind: secret
+    required: false
+    requiredWhen:
+      key: connectionMode
+      value: webhook
+  - key: groupBotMentionsJson
+    label: Group Bot Mentions (JSON, .env-only)
+    kind: string
+    required: false
+    hidden: true
+  - key: feishu_qr_login
+    label: 飞书扫码授权
+    kind: operation
+    required: false
+    target: [appId, appSecret, connectionMode]
+    actions:
+      - id: qr-generate
+        label: 生成二维码
+        render: button
+        resultRender: img
+        action:
+          method: feishu.qr-generate
+        next: qr-status
+      - id: qr-status
+        label: 等待扫码
+        render: polling
+        action:
+          method: feishu.qr-status
+        timeout: 600
+        rollback: qr-generate
+        next: disconnect
+      - id: disconnect
+        label: 断开连接
+        render: button
+        action:
+          method: feishu.disconnect
+        next: qr-generate
+test:
+  action:
+    method: feishu.test
+permissions:
+  label: 飞书
+steps:
+  - text: "在飞书开放平台创建企业自建应用，获取 App ID 和 App Secret"
+  - text: "选择连接模式：Webhook（需公网 URL）或 WebSocket（无需公网，推荐内网环境）"
+  - text: "在「事件订阅」中配置请求地址并获取 Verification Token"
+    mode: webhook
+  - text: "在「事件订阅」中选择「使用长连接接收事件」，无需 Verification Token"
+    mode: websocket
+contributions:
+  - type: identity
+    id: feishu-bot
+    displayName: Feishu bot
+  - type: message-subscription
+    id: feishu
+    binding: feishu-bot
+    action:
+      method: feishu.outbound
+    presentation: v2
+  - type: media-source
+    id: feishu-media
+    binding: feishu-bot
+  - type: webhook
+    id: feishu-events
+    path: feishu/events
+    methods: [POST]
+    action:
+      method: feishu.webhook
+    verificationSecretRef: verificationToken
+features:
+  - id: feishu-messaging
+    name: Feishu messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: feishu-bot
+      - type: message-subscription
+        id: feishu
+      - type: media-source
+        id: feishu-media
+      - type: webhook
+        id: feishu-events
+    capabilities: [plugin.config.read, plugin.state.get, plugin.state.set, streams.read, message.event.subscribe, messaging.send, secret.read, thread.readContent, thread.listMetadata, thread.write]
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

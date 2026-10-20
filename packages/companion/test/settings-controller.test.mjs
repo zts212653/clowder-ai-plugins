@@ -10,6 +10,7 @@ const values = (overrides = {}) => ({
   proactivePolicy: 'quiet-badge',
   personaTone: '温暖、简短、不啰嗦',
   householdReadsAllowed: true,
+  appAssistEnabled: false,
   ...overrides,
 });
 const settings = (overrides = {}) => ({

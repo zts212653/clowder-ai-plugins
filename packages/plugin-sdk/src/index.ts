@@ -3,7 +3,8 @@
  *
  * This package exposes:
  *   1. Schema-neutral NDJSON transport (stdio-runtime, S0/#12)
- *   2. Wire dispatch classifier (wire-dispatch, S1)
+ *   2. Wire dispatch classifier (classifyFrame, re-exported from
+ *      @clowder-ai/plugin-contract where the classifier now lives, F202 C1)
  *
  * The beta.8 handshake, beta.9 events.publish, beta.10 lifecycle, and beta.11
  * messaging rows are executable. SDK beta.10 adds the content editor provider
@@ -12,6 +13,8 @@
  * The dispatch classifier gates every method before standalone callbacks or
  * Host-bound transport behavior can run.
  */
+export type { CollectiveArtifactOwnerPort, CollectiveArtifactOwnerResult, CollectiveArtifactCustodyTransferPort,
+  CollectiveArtifactMediaReadPort, CollectiveArtifactMediaResult } from './collective-artifact-owner.js';
 export {
   NdjsonFrameError,
   StdioRuntimeFatalError,
@@ -34,8 +37,7 @@ export {
   startStandaloneHost,
   type StandaloneHost,
   type StandaloneHostOptions,
-  type StandaloneMessageDisposition,
-  type StandaloneMessageHandler,
+  type StandaloneDeliveryHandler,
 } from './standalone-host.js';
 
 export {
@@ -56,36 +58,139 @@ export {
   type RejectedHandshakeState,
 } from './handshake-client.js';
 
-export {
-  classifyFrame,
-  type DispatchResult,
-  type InFlightEntry,
-  type RequestSnapshot,
-} from './wire-dispatch.js';
+export { classifyFrame } from '@clowder-ai/plugin-contract';
+export type { PluginMessage } from './message-read.js';
+export type {
+  DispatchResult,
+  InFlightEntry,
+  RequestSnapshot,
+} from '@clowder-ai/plugin-contract';
+
 
 export {
-  EventsPublishError,
-  createEventsPublisher,
-  type EventsPublishErrorCode,
-  type EventsPublishHostTransport,
-  type StdioSessionLiveness,
-  type EventsPublisherOptions,
-  type EventsPublisher,
-} from './events-publisher.js';
+  MessagingClientError,
+  createMessagingClient,
+  type MessagingClient,
+  type MessagingClientErrorCode,
+  type MessagingClientOptions,
+  type MessagingHostTransport,
+  type OutboundMessagingMethod,
+} from './messaging-client.js';
 
 export {
-  ContributionConflictError,
+  PresentationDeliveryInputError,
+  isDeliveryPresentationContext,
+  isMediaUnavailableMessageElement,
+  isMediaWarningMessageElement,
+  requireDeliveryPresentation,
+} from './p1-runtime.js';
+
+export {
+  HostBoundSessionError,
+  createHostBoundSession,
+  type HostBoundSession,
+  type HostBoundSessionOptions,
+  type HostBoundDeliveryHandler,
+} from './host-bound-session.js';
+
+export {
   FeatureContextRevokedError,
+  FeaturePermissionError,
+  activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
-  type ContributionRegistration,
-  type ContributionRegistrar,
+  type ActivePluginFeature,
+  type ActivePluginFeatureOptions,
   type DefinedPlugin,
+  type FeatureActivation,
   type FeatureActivator,
   type FeatureBinding,
   type FeatureContext,
   type FeatureContextSession,
+  type FeatureContextSessionOptions,
   type FeatureHostAdapter,
-  type HostContributionReceipt,
+  type PluginActionHandler,
   type PluginDefinitionInput,
+  type PluginLogLevel,
 } from './feature-context.js';
+
+export {
+  operationRowAction,
+  rowsResult,
+  type OperationRowActionOptions,
+  type RowsResultOptions,
+} from './operation-results.js';
+
+export {
+  PluginModuleEntrypointError,
+  definePluginModule,
+  requirePluginModuleEntrypoint,
+  type PluginModuleDefinition,
+  type PluginModuleEntrypoint,
+} from './module-plugin.js';
+
+export type {
+  ModulePluginHostShape,
+  ModulePluginSettingsHost,
+  ModulePluginLogLevel,
+  PluginMessageContent,
+  PluginMessagingDelivery,
+  PluginMessagingDraft,
+  PluginMessagingHost,
+  PluginMessagingSubscribeOptions,
+  PluginModuleActivationShape,
+  PluginStorageCompareAndSetResult,
+  PluginStorageDeleteResult,
+  PluginStorageEntry,
+  PluginStorageHost,
+  PluginTaskCreateInput,
+  PluginTaskWorkTime,
+  PluginTaskWorkData,
+  PluginTaskWorkMutation,
+  PluginTaskHost,
+  PluginTaskSelector,
+  PluginTaskFilter,
+  PluginTaskCreateOptions,
+  PluginTaskUpdateConditions,
+  PluginTaskItem,
+  PluginTaskReadItem,
+  PluginTaskEntrustedWorkSummary,
+  PluginTaskWait,
+  PluginWaitUpdate,
+  PluginTaskKind,
+  PluginTaskStatus,
+  PluginTaskUpdateInput,
+  PluginThreadHost,
+  PluginThreadCreateInput,
+  PluginThreadMessage,
+  PluginThreadCat,
+  PluginThreadCats,
+  PluginThreadSummary,
+} from './module-host.js';
+
+export {
+  ConnectorOutboundDeliveryError,
+  requireConnectorOutboundDelivery,
+  type ConnectorCardAction,
+  type ConnectorOutboundDelivery,
+  type ConnectorOutboundMedia,
+  type ConnectorPresentation,
+} from './connector-runtime.js';
+
+export { createConnectorCommandBridge } from './connector-command-bridge.js';
+
+export { createModuleActionClient, type ModuleActionCallOptions,
+  type ModuleActionClientOptions, type PluginActionContext } from './module-action-client.js';
+
+
+
+
+export * from './host-action-context.js';
+
+export * from './members.js';
+
+
+export { createStreamsClient, type PluginStreams, type PluginStreamReadOptions } from './streams.js';
+export type { PluginStopContext, PluginPreStopContext } from './module-host.js';
+
+export * from './delivery.js';

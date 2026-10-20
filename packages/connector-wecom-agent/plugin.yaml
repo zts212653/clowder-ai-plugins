@@ -1,0 +1,83 @@
+pluginId: official.connector.wecom-agent
+version: 0.1.0-alpha.5
+contractVersion: 0.1.0
+name: WeCom Agent Connector
+description:
+  default: Receive encrypted WeCom callbacks and send replies through a Host-owned connector binding.
+  translations:
+    zh-CN: 通过宿主所有的连接器绑定接收企微加密回调并发送回复。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: corpId
+    label: Corp ID (企业 ID)
+    kind: string
+    required: true
+  - key: agentId
+    label: Agent ID (应用 ID)
+    kind: string
+    required: true
+  - key: agentSecret
+    label: Agent Secret
+    kind: secret
+    required: true
+  - key: callbackToken
+    label: 回调 Token
+    kind: secret
+    required: true
+  - key: encodingAesKey
+    label: EncodingAESKey (43 字符)
+    kind: secret
+    required: true
+steps:
+  - text: 点击上方链接登录企微管理后台 → 创建自建应用，获取 AgentId 和 Secret
+  - text: 在「API 接收消息」中设置回调 URL、Token 和 EncodingAESKey
+  - text: 回调 URL 需通过公网访问（可使用 Cloudflare Tunnel）
+contributions:
+  - type: identity
+    id: wecom-agent
+    displayName: WeCom custom application
+  - type: message-subscription
+    id: wecom-agent
+    binding: wecom-agent
+    action:
+      method: wecom-agent.outbound
+    presentation: v1
+  - type: media-source
+    id: wecom-agent-media
+    binding: wecom-agent
+  - type: webhook
+    id: wecom-agent-callback
+    path: connectors/wecom-agent
+    methods: [GET, POST]
+    action:
+      method: wecom-agent.webhook
+    verificationSecretRef: callbackToken
+features:
+  - id: wecom-agent-messaging
+    name: WeCom agent messaging
+    resources: []
+    contributions:
+      - type: identity
+        id: wecom-agent
+      - type: message-subscription
+        id: wecom-agent
+      - type: media-source
+        id: wecom-agent-media
+      - type: webhook
+        id: wecom-agent-callback
+    capabilities:
+      - plugin.config.read
+      - plugin.state.get
+      - plugin.state.set
+      - streams.read
+      - message.event.subscribe
+      - messaging.send
+      - secret.read
+      - thread.listMetadata
+      - thread.readContent
+      - thread.write
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js

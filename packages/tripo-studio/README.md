@@ -1,21 +1,25 @@
-# Tripo Studio
+# Tripo Studio 插件
 
-Read existing Tripo Studio share links in an anonymous background page, compare models from multiple angles, and return selected available model files to a directory you choose. This is a standalone plugin package; Clowder owns installation, authorization and process supervision.
+[English guide](README.en.md)
 
-Install the reviewed local npm archive through Settings → Plugins → offline install, then enable it. Registry installation becomes available only after an exact package has actually been published and admitted to the machine catalog. Source integration does not imply publication.
+通过独立匿名后台页面读取已有 Tripo Studio 分享链接，从多个角度比较候选，并把用户选定且实际可用的模型文件保存到指定目录。插件独立发布；安装、授权与进程监督由 Clowder 管理。
 
-The enabled MCP contribution exposes five tools:
+在设置的插件管理中安装已审查的本地 npm 归档，再启用插件。只有实际发布且获目录准入的精确版本才能通过 registry 安装；源码合入不代表已经发布。
 
-- `tripo_review_shared_model`: capture an exact public Studio model URL without using your logged-in Chrome profile.
-- `tripo_status`: inspect package, authorization and native-component readiness separately.
-- `tripo_prepare_chrome`: prepare the optional local component and browser extension.
-- `tripo_collect_authorized_models`: read models already authorized in the browser extension.
-- `tripo_export_selected`: verify and copy a previously collected available GLB without overwriting an existing file.
+安装后可在插件卡片的「本机组件」中点「刷新状态」。此操作只检查当前连接；安装、打开设置和启用都不会自行准备本机组件、启动 Chrome 或授予网页权限。停用和关闭设置会取消尚未完成的状态检查。
 
-For the optional logged-in path, load the prepared extension in Chrome and explicitly authorize the intended Studio pages. New pages are not automatically authorized. Revoking access stops further reads. The extension, local component and plugin versions must match; preparation and native browser confirmation remain separate from Host enablement.
+启用后提供五个工具：
 
-This version does not submit generation, texturing, purchases or subscription-credit operations. Preview availability is separate from the supplier's formal export: if no model file is exposed, the receipt says `not_exported`. Screenshots do not imply GLB/FBX export, triangle counts or animation support.
+- `tripo_review_shared_model`：读取准确的公开 Studio 模型 URL，不使用已登录的 Chrome profile。
+- `tripo_status`：分别检查插件版本、授权与本机组件连接状态。
+- `tripo_prepare_chrome`：准备可选的本机组件与浏览器扩展，不代替 Chrome 原生确认。
+- `tripo_collect_authorized_models`：读取扩展中已明确授权的模型页，每批 1–8 个准确模型 UUID。
+- `tripo_export_selected`：验证并复制已收集且实际存在的 GLB，不覆盖同名文件；不替用户选择模型。
 
-Model files, images and provenance stay in the caller's chosen directory. This package contains no user browser profile, cookies, generated models or project-specific paths.
+需要读取已登录页面时，在 Chrome 加载已准备的扩展并明确授权目标模型页。新增页面不会自动获授权，撤销后停止后续读取。扩展、本机组件与插件版本必须匹配；Host 已启用不代表浏览器已经连接或授权。
 
-The package runs as native ESM and carries a registry-integrity-pinned `npm-shrinkwrap.json`. The Host materializes those dependencies with its existing script-free dependency admission. Build, pack and tests are owned by this repository; no Core source checkout or bundled-package generator is required.
+这个版本不提交生成、贴图、购买或订阅积分操作，也不枚举全账号目录或读取逐件账单。已有预览资源与供应商正式导出分开记录：没有可用模型文件时返回 `not_exported`。截图不能证明 GLB/FBX 已导出、真实三角面数或动画可用。
+
+模型、图片和来源记录留在用户指定目录。包内不包含用户 profile、Cookie、已生成模型或项目专用路径。
+
+包使用原生 ESM 与锁定 registry 完整性的 `npm-shrinkwrap.json`，由 Host 通过既有无脚本依赖准入安装。构建、打包与测试归本插件仓维护，不依赖 Core 源码或 bundled 归档生成器。

@@ -8,17 +8,22 @@ import { parse } from 'yaml';
 
 const root = new URL('../', import.meta.url);
 test('the installable package declares one companion body and contains a closed browser asset graph', async () => {
+  const discoveryDeclaration = await readFile(new URL('plugin.yaml', root), 'utf8');
   const built = spawnSync(process.execPath, ['scripts/build.mjs'], { cwd: root, encoding: 'utf8' });
   assert.equal(built.status, 0, built.stderr);
   const manifest = JSON.parse(await readFile(new URL('manifest.json', root)));
   const catalogManifest = parse(await readFile(new URL('plugin.yaml', root), 'utf8'));
+  assert.equal(await readFile(new URL('plugin.yaml', root), 'utf8'), discoveryDeclaration,
+    'the tracked discovery declaration must match its built version and surface integrity');
   assert.deepEqual(catalogManifest, manifest, 'catalog and module consumers read the same generated manifest');
   const pkg = JSON.parse(await readFile(new URL('package.json', root)));
   assert.ok(pkg.files.includes('plugin.yaml'), 'the catalog manifest must reach the published archive');
   assert.equal(validateManifest(manifest).valid, true);
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
+  assert.equal(manifest.contributions[0].bridgeVersion, '1.6.0');
   assert.deepEqual(manifest.features[0].capabilities, ['windows.create']);
   const html = await readFile(new URL('renderer/index.html', root));
+  const markup = html.toString();
   assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,
     'the package must carry a distinct capability-gated receive-only control');
   assert.match(html.toString(), /id="actions"[^>]*class="[^"]*call-bar[^"]*"/u,
@@ -27,8 +32,15 @@ test('the installable package declares one companion body and contains a closed 
     'connection state must remain visible as text instead of a mode-only badge');
   assert.match(html.toString(), /id="begin"[^>]*>[\s\S]*?<span class="label">语音通话<\/span>/u,
     'the primary action must use the approved Voice call product name');
-  assert.match(html.toString(), /class="call-recent-label">最新消息<\/small>/u,
-    'the call bar must use the approved Latest message label');
+  assert.match(markup, /<section id="call-bubble"[^>]*aria-label="通话中的最新话语"[^>]*>[\s\S]*?id="call-bubble-first"[\s\S]*?id="call-bubble-second"[\s\S]*?<\/section>/u,
+    'call speech stays in its own passive surface');
+  assert.match(markup, /<section id="app-assist"[^>]*data-candidate="true"[^>]*>[\s\S]*?id="app-assist-start"[^>]*>打开通话控制<\/button>/u,
+    'application assistance remains a labelled candidate that returns to explicit call controls');
+  assert.doesNotMatch(markup, /开始通话并共享/u,
+    'the package must not claim that application-assistance settlement grants media authority');
+  const callBarMarkup = markup.slice(markup.indexOf('<section id="actions"'), markup.indexOf('</section>', markup.indexOf('<section id="actions"')));
+  assert.doesNotMatch(callBarMarkup, /最新消息|call-bubble-/u,
+    'the compact call bar must not absorb the speech bubble or add a Latest message label');
   assert.match(html.toString(), /id="call-share-context"/u,
     'the persistent call bar must retain the exact shared target while sharing');
   assert.match(html.toString(), /id="call-meeting"[^>]*class="call-meeting"[^>]*hidden/u,

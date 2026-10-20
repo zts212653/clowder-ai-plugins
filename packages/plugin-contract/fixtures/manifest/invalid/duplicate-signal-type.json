@@ -8,7 +8,7 @@
       "id": "meeting-intake",
       "name": "Meeting intake",
       "resources": [],
-      "capabilities": ["events.publish"]
+      "capabilities": []
     }
   ],
   "signals": {
@@ -29,5 +29,7 @@
       }
     ]
   },
-  "runtime": { "transport": "builtin" }
+  "runtime": {
+    "transport": "builtin"
+  }
 }

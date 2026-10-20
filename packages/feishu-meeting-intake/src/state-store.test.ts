@@ -4,14 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import type { EventsPublishInput } from '@clowder-ai/plugin-contract';
+import type { FeishuArtifactNotification } from './artifact.js';
 
 import {
   createFileMeetingIntakeStateStore,
   normalizeGeneratedArtifact,
 } from './index.js';
 
-const EVENT: EventsPublishInput = normalizeGeneratedArtifact({
+const EVENT: FeishuArtifactNotification = normalizeGeneratedArtifact({
   artifactId: 'om_state_1',
   kind: 'minute',
   revision: '1',

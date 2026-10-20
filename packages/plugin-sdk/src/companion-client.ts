@@ -135,14 +135,25 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
     ) => invoke({ kind: 'decision.open', variantRef, target }, 'navigation'),
     inspectF221: (proposalId: string) => invoke({ kind: 'f221.inspect', proposalId }, 'decision-trial'),
     resize: (expanded: boolean) => invoke({ kind: 'view.resize', expanded }, 'ok'),
-    layout: (panel: Extract<CompanionCommand, { kind: 'view.layout' }>['panel'], width: number, height: number) =>
-      invoke({ kind: 'view.layout', panel, width, height }, 'layout'),
+    layout: (
+      panel: Extract<CompanionCommand, { kind: 'view.layout' }>['panel'],
+      width: number,
+      height: number,
+      call?: Extract<CompanionCommand, { kind: 'view.layout' }>['call'],
+    ) => invoke(call === undefined
+      ? { kind: 'view.layout', panel, width, height }
+      : { kind: 'view.layout', panel, width, height, call }, 'layout'),
     drag: (phase: 'start' | 'end') => invoke({ kind: 'view.drag', phase }, 'ok'),
     hide: () => invoke({ kind: 'view.hide' }, 'ok'),
     resetPosition: () => invoke({ kind: 'view.reset' }, 'ok'),
     readSettings: () => invoke({ kind: 'settings.read' }, 'settings'),
     updateSetting: <K extends CompanionSettingField>(field: K, value: CompanionSettingsValues[K]) =>
       invoke({ kind: 'settings.update', field, value } as CompanionCommand, 'settings-update'),
+    settleAppAssist: (
+      scopeRef: string,
+      offerRef: string,
+      action: Extract<CompanionCommand, { kind: 'app-assist.settle' }>['action'],
+    ) => invoke({ kind: 'app-assist.settle', scopeRef, offerRef, action }, 'app-assist-settlement'),
     disableCompanion: () => invoke({ kind: 'companion.disable' }, 'companion-lifecycle'),
     readConversation,
     readConversationPage,

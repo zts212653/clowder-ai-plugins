@@ -1,0 +1,103 @@
+pluginId: dev.clowder.video-generation
+version: 0.1.0-alpha.1
+contractVersion: 0.1.0
+name: Video Generation
+description:
+  default: Submit and track image or video generation jobs through a configured provider.
+  translations:
+    zh-CN: 通过已配置的提供商提交并跟踪图片或视频生成任务。
+icon:
+  type: svg
+  src: assets/icon.svg
+configuration:
+  - key: provider
+    label: 视频协议
+    kind: select
+    required: true
+    options:
+      - value: zhipu
+        label: 智谱
+        hint: 在智谱开放平台注册，获取 API Key
+        docsUrl: https://docs.bigmodel.cn/cn/guide/models/video-generation
+      - value: kling
+        label: 可灵
+        hint: 在可灵 AI 开放平台注册，获取 Access Key + Secret Key
+        docsUrl: https://klingapi.com/docs
+      - value: jimeng
+        label: 即梦 (火山引擎)
+        hint: 在火山引擎控制台注册，获取 Access Key + Secret Key
+        docsUrl: https://www.volcengine.com/docs/85621/1777001
+  - key: authType
+    label: 认证方式
+    kind: select
+    required: true
+    options:
+      - value: apikey
+        label: API Key
+      - value: jwt-hs256
+        label: JWT (Access Key + Secret)
+      - value: hmac-sha256-v4
+        label: HMAC-SHA256 V4
+  - key: apiKey
+    label: API Key
+    kind: secret
+    required: false
+    requiredWhen: { key: authType, value: apikey }
+  - key: accessKey
+    label: Access Key
+    kind: secret
+    required: false
+    requiredWhen: { key: authType, value: ["jwt-hs256", "hmac-sha256-v4"] }
+  - key: secretKey
+    label: Secret Key
+    kind: secret
+    required: false
+    requiredWhen: { key: authType, value: ["jwt-hs256", "hmac-sha256-v4"] }
+  - key: baseUrl
+    label: Base URL
+    kind: url
+    required: false
+  - key: model
+    label: 模型名称
+    kind: string
+    required: false
+contributions:
+  - type: mcp
+    id: video-generation-toolset
+    runtime:
+      transport: stdio
+      entrypoint: dist/mcp-entrypoint.js
+    environment:
+      VIDEO_GEN_PROVIDER:
+        source: config
+        key: provider
+      VIDEO_GEN_AUTH_TYPE:
+        source: config
+        key: authType
+      VIDEO_GEN_API_KEY:
+        source: secret
+        key: apiKey
+      VIDEO_GEN_ACCESS_KEY:
+        source: secret
+        key: accessKey
+      VIDEO_GEN_SECRET_KEY:
+        source: secret
+        key: secretKey
+      VIDEO_GEN_BASE_URL:
+        source: config
+        key: baseUrl
+      VIDEO_GEN_MODEL:
+        source: config
+        key: model
+features:
+  - id: generate-media
+    name: Generate media
+    resources: []
+    contributions:
+      - type: mcp
+        id: video-generation-toolset
+    capabilities:
+      - plugin.config.read
+      - secret.read
+runtime:
+  transport: builtin

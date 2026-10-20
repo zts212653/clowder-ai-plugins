@@ -6,8 +6,9 @@ function referenceKey(reference) {
 }
 
 export class RecentBubble {
-  constructor(rows) {
+  constructor(rows, { showSpeaker = true } = {}) {
     this.rows = rows;
+    this.showSpeaker = showSpeaker;
     this.history = [];
     this.live = new Map();
     this.rowReferences = new WeakMap();
@@ -58,7 +59,7 @@ export class RecentBubble {
     for (const [index, row] of this.rows.entries()) {
       const entry = entries[index];
       row.hidden = !entry;
-      const speaker = entry ? `${String(entry.name).slice(0, 28)}：` : '';
+      const speaker = entry && this.showSpeaker ? `${String(entry.name).slice(0, 28)}：` : '';
       const message = entry ? String(entry.text).slice(-120) : '';
       row.textContent = `${speaker}${message}`;
       if (entry && row.ownerDocument?.createElement && typeof row.replaceChildren === 'function') {
@@ -66,6 +67,7 @@ export class RecentBubble {
         const messageNode = row.ownerDocument.createElement('span');
         const messageText = row.ownerDocument.createElement('bdi');
         speakerNode.className = 'recent-speaker';
+        speakerNode.hidden = !speaker;
         messageNode.className = 'recent-message';
         messageText.className = 'recent-message-text';
         messageText.dir = 'auto';
