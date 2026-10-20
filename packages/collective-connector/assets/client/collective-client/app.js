@@ -474,7 +474,7 @@ var require_react_development = __commonJS({
             }
           }
         }
-        var ReactElement = function(type, key, ref8, self2, source4, owner3, props) {
+        var ReactElement = function(type, key, ref8, self2, source3, owner3, props) {
           var element3 = {
             // This tag allows us to uniquely identify this as a React Element
             $$typeof: REACT_ELEMENT_TYPE,
@@ -504,7 +504,7 @@ var require_react_development = __commonJS({
               configurable: false,
               enumerable: false,
               writable: false,
-              value: source4
+              value: source3
             });
             if (Object.freeze) {
               Object.freeze(element3.props);
@@ -519,7 +519,7 @@ var require_react_development = __commonJS({
           var key = null;
           var ref8 = null;
           var self2 = null;
-          var source4 = null;
+          var source3 = null;
           if (config != null) {
             if (hasValidRef(config)) {
               ref8 = config.ref;
@@ -534,7 +534,7 @@ var require_react_development = __commonJS({
               key = "" + config.key;
             }
             self2 = config.__self === void 0 ? null : config.__self;
-            source4 = config.__source === void 0 ? null : config.__source;
+            source3 = config.__source === void 0 ? null : config.__source;
             for (propName in config) {
               if (hasOwnProperty2.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
                 props[propName] = config[propName];
@@ -575,7 +575,7 @@ var require_react_development = __commonJS({
               }
             }
           }
-          return ReactElement(type, key, ref8, self2, source4, ReactCurrentOwner.current, props);
+          return ReactElement(type, key, ref8, self2, source3, ReactCurrentOwner.current, props);
         }
         function cloneAndReplaceKey(oldElement, newKey) {
           var newElement = ReactElement(oldElement.type, newKey, oldElement.ref, oldElement._self, oldElement._source, oldElement._owner, oldElement.props);
@@ -590,7 +590,7 @@ var require_react_development = __commonJS({
           var key = element3.key;
           var ref8 = element3.ref;
           var self2 = element3._self;
-          var source4 = element3._source;
+          var source3 = element3._source;
           var owner3 = element3._owner;
           if (config != null) {
             if (hasValidRef(config)) {
@@ -627,7 +627,7 @@ var require_react_development = __commonJS({
             }
             props.children = childArray;
           }
-          return ReactElement(element3.type, key, ref8, self2, source4, owner3, props);
+          return ReactElement(element3.type, key, ref8, self2, source3, owner3, props);
         }
         function isValidElement(object) {
           return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
@@ -1087,7 +1087,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState53(initialState) {
+        function useState54(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1095,11 +1095,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef41(initialValue) {
+        function useRef42(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect37(create2, deps) {
+        function useEffect38(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -1111,7 +1111,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create2, deps);
         }
-        function useCallback18(callback, deps) {
+        function useCallback19(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
@@ -1225,7 +1225,7 @@ var require_react_development = __commonJS({
         }
         var ReactCurrentDispatcher$1 = ReactSharedInternals.ReactCurrentDispatcher;
         var prefix;
-        function describeBuiltInComponentFrame(name2, source4, ownerFn) {
+        function describeBuiltInComponentFrame(name2, source3, ownerFn) {
           {
             if (prefix === void 0) {
               try {
@@ -1347,7 +1347,7 @@ var require_react_development = __commonJS({
           }
           return syntheticFrame;
         }
-        function describeFunctionComponentFrame(fn, source4, ownerFn) {
+        function describeFunctionComponentFrame(fn, source3, ownerFn) {
           {
             return describeNativeComponentFrame(fn, false);
           }
@@ -1356,7 +1356,7 @@ var require_react_development = __commonJS({
           var prototype = Component2.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function describeUnknownElementTypeFrameInDEV(type, source4, ownerFn) {
+        function describeUnknownElementTypeFrameInDEV(type, source3, ownerFn) {
           if (type == null) {
             return "";
           }
@@ -1379,13 +1379,13 @@ var require_react_development = __commonJS({
               case REACT_FORWARD_REF_TYPE:
                 return describeFunctionComponentFrame(type.render);
               case REACT_MEMO_TYPE:
-                return describeUnknownElementTypeFrameInDEV(type.type, source4, ownerFn);
+                return describeUnknownElementTypeFrameInDEV(type.type, source3, ownerFn);
               case REACT_LAZY_TYPE: {
                 var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init = lazyComponent._init;
                 try {
-                  return describeUnknownElementTypeFrameInDEV(init(payload), source4, ownerFn);
+                  return describeUnknownElementTypeFrameInDEV(init(payload), source3, ownerFn);
                 } catch (x) {
                 }
               }
@@ -1461,10 +1461,10 @@ var require_react_development = __commonJS({
           }
           return "";
         }
-        function getSourceInfoErrorAddendum(source4) {
-          if (source4 !== void 0) {
-            var fileName = source4.fileName.replace(/^.*[\\\/]/, "");
-            var lineNumber2 = source4.lineNumber;
+        function getSourceInfoErrorAddendum(source3) {
+          if (source3 !== void 0) {
+            var fileName = source3.fileName.replace(/^.*[\\\/]/, "");
+            var lineNumber2 = source3.lineNumber;
             return "\n\nCheck your code at " + fileName + ":" + lineNumber2 + ".";
           }
           return "";
@@ -1878,19 +1878,19 @@ var require_react_development = __commonJS({
         exports.memo = memo;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback18;
+        exports.useCallback = useCallback19;
         exports.useContext = useContext4;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect37;
+        exports.useEffect = useEffect38;
         exports.useId = useId6;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect5;
         exports.useMemo = useMemo9;
         exports.useReducer = useReducer;
-        exports.useRef = useRef41;
-        exports.useState = useState53;
+        exports.useRef = useRef42;
+        exports.useState = useState54;
         exports.useSyncExternalStore = useSyncExternalStore3;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2437,7 +2437,7 @@ var require_react_dom_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment26 = 7;
+        var Fragment27 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -3292,7 +3292,7 @@ var require_react_dom_development = __commonJS({
         }
         var ReactCurrentDispatcher = ReactSharedInternals.ReactCurrentDispatcher;
         var prefix;
-        function describeBuiltInComponentFrame(name2, source4, ownerFn) {
+        function describeBuiltInComponentFrame(name2, source3, ownerFn) {
           {
             if (prefix === void 0) {
               try {
@@ -3414,12 +3414,12 @@ var require_react_dom_development = __commonJS({
           }
           return syntheticFrame;
         }
-        function describeClassComponentFrame(ctor, source4, ownerFn) {
+        function describeClassComponentFrame(ctor, source3, ownerFn) {
           {
             return describeNativeComponentFrame(ctor, true);
           }
         }
-        function describeFunctionComponentFrame(fn, source4, ownerFn) {
+        function describeFunctionComponentFrame(fn, source3, ownerFn) {
           {
             return describeNativeComponentFrame(fn, false);
           }
@@ -3428,7 +3428,7 @@ var require_react_dom_development = __commonJS({
           var prototype = Component.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function describeUnknownElementTypeFrameInDEV(type, source4, ownerFn) {
+        function describeUnknownElementTypeFrameInDEV(type, source3, ownerFn) {
           if (type == null) {
             return "";
           }
@@ -3451,13 +3451,13 @@ var require_react_dom_development = __commonJS({
               case REACT_FORWARD_REF_TYPE:
                 return describeFunctionComponentFrame(type.render);
               case REACT_MEMO_TYPE:
-                return describeUnknownElementTypeFrameInDEV(type.type, source4, ownerFn);
+                return describeUnknownElementTypeFrameInDEV(type.type, source3, ownerFn);
               case REACT_LAZY_TYPE: {
                 var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init = lazyComponent._init;
                 try {
-                  return describeUnknownElementTypeFrameInDEV(init(payload), source4, ownerFn);
+                  return describeUnknownElementTypeFrameInDEV(init(payload), source3, ownerFn);
                 } catch (x) {
                 }
               }
@@ -3467,7 +3467,7 @@ var require_react_dom_development = __commonJS({
         }
         function describeFiber(fiber) {
           var owner3 = fiber._debugOwner ? fiber._debugOwner.type : null;
-          var source4 = fiber._debugSource;
+          var source3 = fiber._debugSource;
           switch (fiber.tag) {
             case HostComponent:
               return describeBuiltInComponentFrame(fiber.type);
@@ -3594,7 +3594,7 @@ var require_react_dom_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment26:
+            case Fragment27:
               return "Fragment";
             case HostComponent:
               return type;
@@ -12023,7 +12023,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current3, fragment, lanes, key) {
-            if (current3 === null || current3.tag !== Fragment26) {
+            if (current3 === null || current3.tag !== Fragment27) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -12426,7 +12426,7 @@ var require_react_dom_development = __commonJS({
               if (child.key === key) {
                 var elementType = element3.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment26) {
+                  if (child.tag === Fragment27) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element3.props.children);
                     existing.return = returnFiber;
@@ -13811,12 +13811,12 @@ var require_react_dom_development = __commonJS({
           }
           return [newState, dispatch];
         }
-        function mountMutableSource(source4, getSnapshot, subscribe) {
+        function mountMutableSource(source3, getSnapshot, subscribe) {
           {
             return void 0;
           }
         }
-        function updateMutableSource(source4, getSnapshot, subscribe) {
+        function updateMutableSource(source3, getSnapshot, subscribe) {
           {
             return void 0;
           }
@@ -14519,7 +14519,7 @@ var require_react_dom_development = __commonJS({
               mountHookTypesDev();
               return mountTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               mountHookTypesDev();
               return mountMutableSource();
@@ -14623,7 +14623,7 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return mountTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               updateHookTypesDev();
               return mountMutableSource();
@@ -14727,7 +14727,7 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               updateHookTypesDev();
               return updateMutableSource();
@@ -14831,7 +14831,7 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return rerenderTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               updateHookTypesDev();
               return updateMutableSource();
@@ -14949,7 +14949,7 @@ var require_react_dom_development = __commonJS({
               mountHookTypesDev();
               return mountTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               warnInvalidHookAccess();
               mountHookTypesDev();
@@ -15070,7 +15070,7 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               warnInvalidHookAccess();
               updateHookTypesDev();
@@ -15191,7 +15191,7 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return rerenderTransition();
             },
-            useMutableSource: function(source4, getSnapshot, subscribe) {
+            useMutableSource: function(source3, getSnapshot, subscribe) {
               currentHookNameInDev = "useMutableSource";
               warnInvalidHookAccess();
               updateHookTypesDev();
@@ -15940,11 +15940,11 @@ var require_react_dom_development = __commonJS({
           instance.context = nextContext;
           return shouldUpdate;
         }
-        function createCapturedValueAtFiber(value, source4) {
+        function createCapturedValueAtFiber(value, source3) {
           return {
             value,
-            source: source4,
-            stack: getStackByFiberInDevAndProd(source4),
+            source: source3,
+            stack: getStackByFiberInDevAndProd(source3),
             digest: null
           };
         }
@@ -15967,7 +15967,7 @@ var require_react_dom_development = __commonJS({
             }
             var error2 = errorInfo.value;
             if (true) {
-              var source4 = errorInfo.source;
+              var source3 = errorInfo.source;
               var stack = errorInfo.stack;
               var componentStack = stack !== null ? stack : "";
               if (error2 != null && error2._suppressLogging) {
@@ -15976,7 +15976,7 @@ var require_react_dom_development = __commonJS({
                 }
                 console["error"](error2);
               }
-              var componentName = source4 ? getComponentNameFromFiber(source4) : null;
+              var componentName = source3 ? getComponentNameFromFiber(source3) : null;
               var componentNameMessage = componentName ? "The above error occurred in the <" + componentName + "> component:" : "The above error occurred in one of your React components:";
               var errorBoundaryMessage;
               if (boundary.tag === HostRoot) {
@@ -17902,7 +17902,7 @@ var require_react_dom_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current3, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment26:
+            case Fragment27:
               return updateFragment(current3, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current3, workInProgress2, renderLanes2);
@@ -18174,7 +18174,7 @@ var require_react_dom_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment26:
+            case Fragment27:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -22435,7 +22435,7 @@ var require_react_dom_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment26, elements, key, mode);
+          var fiber = createFiber(Fragment27, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -22505,42 +22505,42 @@ var require_react_dom_development = __commonJS({
           };
           return fiber;
         }
-        function assignFiberPropertiesInDEV(target, source4) {
+        function assignFiberPropertiesInDEV(target, source3) {
           if (target === null) {
             target = createFiber(IndeterminateComponent, null, null, NoMode);
           }
-          target.tag = source4.tag;
-          target.key = source4.key;
-          target.elementType = source4.elementType;
-          target.type = source4.type;
-          target.stateNode = source4.stateNode;
-          target.return = source4.return;
-          target.child = source4.child;
-          target.sibling = source4.sibling;
-          target.index = source4.index;
-          target.ref = source4.ref;
-          target.pendingProps = source4.pendingProps;
-          target.memoizedProps = source4.memoizedProps;
-          target.updateQueue = source4.updateQueue;
-          target.memoizedState = source4.memoizedState;
-          target.dependencies = source4.dependencies;
-          target.mode = source4.mode;
-          target.flags = source4.flags;
-          target.subtreeFlags = source4.subtreeFlags;
-          target.deletions = source4.deletions;
-          target.lanes = source4.lanes;
-          target.childLanes = source4.childLanes;
-          target.alternate = source4.alternate;
+          target.tag = source3.tag;
+          target.key = source3.key;
+          target.elementType = source3.elementType;
+          target.type = source3.type;
+          target.stateNode = source3.stateNode;
+          target.return = source3.return;
+          target.child = source3.child;
+          target.sibling = source3.sibling;
+          target.index = source3.index;
+          target.ref = source3.ref;
+          target.pendingProps = source3.pendingProps;
+          target.memoizedProps = source3.memoizedProps;
+          target.updateQueue = source3.updateQueue;
+          target.memoizedState = source3.memoizedState;
+          target.dependencies = source3.dependencies;
+          target.mode = source3.mode;
+          target.flags = source3.flags;
+          target.subtreeFlags = source3.subtreeFlags;
+          target.deletions = source3.deletions;
+          target.lanes = source3.lanes;
+          target.childLanes = source3.childLanes;
+          target.alternate = source3.alternate;
           {
-            target.actualDuration = source4.actualDuration;
-            target.actualStartTime = source4.actualStartTime;
-            target.selfBaseDuration = source4.selfBaseDuration;
-            target.treeBaseDuration = source4.treeBaseDuration;
+            target.actualDuration = source3.actualDuration;
+            target.actualStartTime = source3.actualStartTime;
+            target.selfBaseDuration = source3.selfBaseDuration;
+            target.treeBaseDuration = source3.treeBaseDuration;
           }
-          target._debugSource = source4._debugSource;
-          target._debugOwner = source4._debugOwner;
-          target._debugNeedsRemount = source4._debugNeedsRemount;
-          target._debugHookTypes = source4._debugHookTypes;
+          target._debugSource = source3._debugSource;
+          target._debugOwner = source3._debugOwner;
+          target._debugNeedsRemount = source3._debugNeedsRemount;
+          target._debugHookTypes = source3._debugHookTypes;
           return target;
         }
         function FiberRootNode(containerInfo, tag, hydrate2, identifierPrefix, onRecoverableError) {
@@ -23912,7 +23912,7 @@ var require_react_jsx_runtime_development = __commonJS({
         }
         var ReactCurrentDispatcher = ReactSharedInternals.ReactCurrentDispatcher;
         var prefix;
-        function describeBuiltInComponentFrame(name2, source4, ownerFn) {
+        function describeBuiltInComponentFrame(name2, source3, ownerFn) {
           {
             if (prefix === void 0) {
               try {
@@ -24034,7 +24034,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return syntheticFrame;
         }
-        function describeFunctionComponentFrame(fn, source4, ownerFn) {
+        function describeFunctionComponentFrame(fn, source3, ownerFn) {
           {
             return describeNativeComponentFrame(fn, false);
           }
@@ -24043,7 +24043,7 @@ var require_react_jsx_runtime_development = __commonJS({
           var prototype = Component.prototype;
           return !!(prototype && prototype.isReactComponent);
         }
-        function describeUnknownElementTypeFrameInDEV(type, source4, ownerFn) {
+        function describeUnknownElementTypeFrameInDEV(type, source3, ownerFn) {
           if (type == null) {
             return "";
           }
@@ -24066,13 +24066,13 @@ var require_react_jsx_runtime_development = __commonJS({
               case REACT_FORWARD_REF_TYPE:
                 return describeFunctionComponentFrame(type.render);
               case REACT_MEMO_TYPE:
-                return describeUnknownElementTypeFrameInDEV(type.type, source4, ownerFn);
+                return describeUnknownElementTypeFrameInDEV(type.type, source3, ownerFn);
               case REACT_LAZY_TYPE: {
                 var lazyComponent = type;
                 var payload = lazyComponent._payload;
                 var init = lazyComponent._init;
                 try {
-                  return describeUnknownElementTypeFrameInDEV(init(payload), source4, ownerFn);
+                  return describeUnknownElementTypeFrameInDEV(init(payload), source3, ownerFn);
                 } catch (x) {
                 }
               }
@@ -24233,7 +24233,7 @@ var require_react_jsx_runtime_development = __commonJS({
             });
           }
         }
-        var ReactElement = function(type, key, ref8, self2, source4, owner3, props) {
+        var ReactElement = function(type, key, ref8, self2, source3, owner3, props) {
           var element3 = {
             // This tag allows us to uniquely identify this as a React Element
             $$typeof: REACT_ELEMENT_TYPE,
@@ -24263,7 +24263,7 @@ var require_react_jsx_runtime_development = __commonJS({
               configurable: false,
               enumerable: false,
               writable: false,
-              value: source4
+              value: source3
             });
             if (Object.freeze) {
               Object.freeze(element3.props);
@@ -24272,7 +24272,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return element3;
         };
-        function jsxDEV(type, config, maybeKey, source4, self2) {
+        function jsxDEV(type, config, maybeKey, source3, self2) {
           {
             var propName;
             var props = {};
@@ -24316,7 +24316,7 @@ var require_react_jsx_runtime_development = __commonJS({
                 defineRefPropWarningGetter(props, displayName);
               }
             }
-            return ReactElement(type, key, ref8, self2, source4, ReactCurrentOwner.current, props);
+            return ReactElement(type, key, ref8, self2, source3, ReactCurrentOwner.current, props);
           }
         }
         var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
@@ -24352,11 +24352,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return "";
           }
         }
-        function getSourceInfoErrorAddendum(source4) {
+        function getSourceInfoErrorAddendum(source3) {
           {
-            if (source4 !== void 0) {
-              var fileName = source4.fileName.replace(/^.*[\\\/]/, "");
-              var lineNumber2 = source4.lineNumber;
+            if (source3 !== void 0) {
+              var fileName = source3.fileName.replace(/^.*[\\\/]/, "");
+              var lineNumber2 = source3.lineNumber;
               return "\n\nCheck your code at " + fileName + ":" + lineNumber2 + ".";
             }
             return "";
@@ -24476,7 +24476,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
         }
         var didWarnAboutKeySpread = {};
-        function jsxWithValidation(type, props, key, isStaticChildren, source4, self2) {
+        function jsxWithValidation(type, props, key, isStaticChildren, source3, self2) {
           {
             var validType = isValidElementType(type);
             if (!validType) {
@@ -24484,7 +24484,7 @@ var require_react_jsx_runtime_development = __commonJS({
               if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
                 info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
               }
-              var sourceInfo = getSourceInfoErrorAddendum(source4);
+              var sourceInfo = getSourceInfoErrorAddendum(source3);
               if (sourceInfo) {
                 info += sourceInfo;
               } else {
@@ -24503,7 +24503,7 @@ var require_react_jsx_runtime_development = __commonJS({
               }
               error("React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
             }
-            var element3 = jsxDEV(type, props, key, source4, self2);
+            var element3 = jsxDEV(type, props, key, source3, self2);
             if (element3 == null) {
               return element3;
             }
@@ -24558,11 +24558,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx86 = jsxWithValidationDynamic;
-        var jsxs77 = jsxWithValidationStatic;
+        var jsx88 = jsxWithValidationDynamic;
+        var jsxs79 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx86;
-        exports.jsxs = jsxs77;
+        exports.jsx = jsx88;
+        exports.jsxs = jsxs79;
       })();
     }
   }
@@ -24819,7 +24819,7 @@ var require_cjs3 = __commonJS({
 });
 
 // src/main.tsx
-var import_react75 = __toESM(require_react(), 1);
+var import_react76 = __toESM(require_react(), 1);
 var import_client = __toESM(require_client(), 1);
 
 // src/CollectiveScopeRecovery.tsx
@@ -25117,31 +25117,31 @@ var ZodError = class _ZodError extends Error {
     this.issues = issues;
   }
   format(_mapper) {
-    const mapper = _mapper || function(issue) {
-      return issue.message;
+    const mapper = _mapper || function(issue2) {
+      return issue2.message;
     };
     const fieldErrors = { _errors: [] };
     const processError = (error) => {
-      for (const issue of error.issues) {
-        if (issue.code === "invalid_union") {
-          issue.unionErrors.map(processError);
-        } else if (issue.code === "invalid_return_type") {
-          processError(issue.returnTypeError);
-        } else if (issue.code === "invalid_arguments") {
-          processError(issue.argumentsError);
-        } else if (issue.path.length === 0) {
-          fieldErrors._errors.push(mapper(issue));
+      for (const issue2 of error.issues) {
+        if (issue2.code === "invalid_union") {
+          issue2.unionErrors.map(processError);
+        } else if (issue2.code === "invalid_return_type") {
+          processError(issue2.returnTypeError);
+        } else if (issue2.code === "invalid_arguments") {
+          processError(issue2.argumentsError);
+        } else if (issue2.path.length === 0) {
+          fieldErrors._errors.push(mapper(issue2));
         } else {
           let curr = fieldErrors;
           let i = 0;
-          while (i < issue.path.length) {
-            const el = issue.path[i];
-            const terminal = i === issue.path.length - 1;
+          while (i < issue2.path.length) {
+            const el = issue2.path[i];
+            const terminal = i === issue2.path.length - 1;
             if (!terminal) {
               curr[el] = curr[el] || { _errors: [] };
             } else {
               curr[el] = curr[el] || { _errors: [] };
-              curr[el]._errors.push(mapper(issue));
+              curr[el]._errors.push(mapper(issue2));
             }
             curr = curr[el];
             i++;
@@ -25166,7 +25166,7 @@ var ZodError = class _ZodError extends Error {
   get isEmpty() {
     return this.issues.length === 0;
   }
-  flatten(mapper = (issue) => issue.message) {
+  flatten(mapper = (issue2) => issue2.message) {
     const fieldErrors = {};
     const formErrors = [];
     for (const sub of this.issues) {
@@ -25190,30 +25190,30 @@ ZodError.create = (issues) => {
 };
 
 // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/locales/en.js
-var errorMap = (issue, _ctx) => {
+var errorMap = (issue2, _ctx) => {
   let message;
-  switch (issue.code) {
+  switch (issue2.code) {
     case ZodIssueCode.invalid_type:
-      if (issue.received === ZodParsedType.undefined) {
+      if (issue2.received === ZodParsedType.undefined) {
         message = "Required";
       } else {
-        message = `Expected ${issue.expected}, received ${issue.received}`;
+        message = `Expected ${issue2.expected}, received ${issue2.received}`;
       }
       break;
     case ZodIssueCode.invalid_literal:
-      message = `Invalid literal value, expected ${JSON.stringify(issue.expected, util.jsonStringifyReplacer)}`;
+      message = `Invalid literal value, expected ${JSON.stringify(issue2.expected, util.jsonStringifyReplacer)}`;
       break;
     case ZodIssueCode.unrecognized_keys:
-      message = `Unrecognized key(s) in object: ${util.joinValues(issue.keys, ", ")}`;
+      message = `Unrecognized key(s) in object: ${util.joinValues(issue2.keys, ", ")}`;
       break;
     case ZodIssueCode.invalid_union:
       message = `Invalid input`;
       break;
     case ZodIssueCode.invalid_union_discriminator:
-      message = `Invalid discriminator value. Expected ${util.joinValues(issue.options)}`;
+      message = `Invalid discriminator value. Expected ${util.joinValues(issue2.options)}`;
       break;
     case ZodIssueCode.invalid_enum_value:
-      message = `Invalid enum value. Expected ${util.joinValues(issue.options)}, received '${issue.received}'`;
+      message = `Invalid enum value. Expected ${util.joinValues(issue2.options)}, received '${issue2.received}'`;
       break;
     case ZodIssueCode.invalid_arguments:
       message = `Invalid function arguments`;
@@ -25225,50 +25225,50 @@ var errorMap = (issue, _ctx) => {
       message = `Invalid date`;
       break;
     case ZodIssueCode.invalid_string:
-      if (typeof issue.validation === "object") {
-        if ("includes" in issue.validation) {
-          message = `Invalid input: must include "${issue.validation.includes}"`;
-          if (typeof issue.validation.position === "number") {
-            message = `${message} at one or more positions greater than or equal to ${issue.validation.position}`;
+      if (typeof issue2.validation === "object") {
+        if ("includes" in issue2.validation) {
+          message = `Invalid input: must include "${issue2.validation.includes}"`;
+          if (typeof issue2.validation.position === "number") {
+            message = `${message} at one or more positions greater than or equal to ${issue2.validation.position}`;
           }
-        } else if ("startsWith" in issue.validation) {
-          message = `Invalid input: must start with "${issue.validation.startsWith}"`;
-        } else if ("endsWith" in issue.validation) {
-          message = `Invalid input: must end with "${issue.validation.endsWith}"`;
+        } else if ("startsWith" in issue2.validation) {
+          message = `Invalid input: must start with "${issue2.validation.startsWith}"`;
+        } else if ("endsWith" in issue2.validation) {
+          message = `Invalid input: must end with "${issue2.validation.endsWith}"`;
         } else {
-          util.assertNever(issue.validation);
+          util.assertNever(issue2.validation);
         }
-      } else if (issue.validation !== "regex") {
-        message = `Invalid ${issue.validation}`;
+      } else if (issue2.validation !== "regex") {
+        message = `Invalid ${issue2.validation}`;
       } else {
         message = "Invalid";
       }
       break;
     case ZodIssueCode.too_small:
-      if (issue.type === "array")
-        message = `Array must contain ${issue.exact ? "exactly" : issue.inclusive ? `at least` : `more than`} ${issue.minimum} element(s)`;
-      else if (issue.type === "string")
-        message = `String must contain ${issue.exact ? "exactly" : issue.inclusive ? `at least` : `over`} ${issue.minimum} character(s)`;
-      else if (issue.type === "number")
-        message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
-      else if (issue.type === "bigint")
-        message = `Number must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${issue.minimum}`;
-      else if (issue.type === "date")
-        message = `Date must be ${issue.exact ? `exactly equal to ` : issue.inclusive ? `greater than or equal to ` : `greater than `}${new Date(Number(issue.minimum))}`;
+      if (issue2.type === "array")
+        message = `Array must contain ${issue2.exact ? "exactly" : issue2.inclusive ? `at least` : `more than`} ${issue2.minimum} element(s)`;
+      else if (issue2.type === "string")
+        message = `String must contain ${issue2.exact ? "exactly" : issue2.inclusive ? `at least` : `over`} ${issue2.minimum} character(s)`;
+      else if (issue2.type === "number")
+        message = `Number must be ${issue2.exact ? `exactly equal to ` : issue2.inclusive ? `greater than or equal to ` : `greater than `}${issue2.minimum}`;
+      else if (issue2.type === "bigint")
+        message = `Number must be ${issue2.exact ? `exactly equal to ` : issue2.inclusive ? `greater than or equal to ` : `greater than `}${issue2.minimum}`;
+      else if (issue2.type === "date")
+        message = `Date must be ${issue2.exact ? `exactly equal to ` : issue2.inclusive ? `greater than or equal to ` : `greater than `}${new Date(Number(issue2.minimum))}`;
       else
         message = "Invalid input";
       break;
     case ZodIssueCode.too_big:
-      if (issue.type === "array")
-        message = `Array must contain ${issue.exact ? `exactly` : issue.inclusive ? `at most` : `less than`} ${issue.maximum} element(s)`;
-      else if (issue.type === "string")
-        message = `String must contain ${issue.exact ? `exactly` : issue.inclusive ? `at most` : `under`} ${issue.maximum} character(s)`;
-      else if (issue.type === "number")
-        message = `Number must be ${issue.exact ? `exactly` : issue.inclusive ? `less than or equal to` : `less than`} ${issue.maximum}`;
-      else if (issue.type === "bigint")
-        message = `BigInt must be ${issue.exact ? `exactly` : issue.inclusive ? `less than or equal to` : `less than`} ${issue.maximum}`;
-      else if (issue.type === "date")
-        message = `Date must be ${issue.exact ? `exactly` : issue.inclusive ? `smaller than or equal to` : `smaller than`} ${new Date(Number(issue.maximum))}`;
+      if (issue2.type === "array")
+        message = `Array must contain ${issue2.exact ? `exactly` : issue2.inclusive ? `at most` : `less than`} ${issue2.maximum} element(s)`;
+      else if (issue2.type === "string")
+        message = `String must contain ${issue2.exact ? `exactly` : issue2.inclusive ? `at most` : `under`} ${issue2.maximum} character(s)`;
+      else if (issue2.type === "number")
+        message = `Number must be ${issue2.exact ? `exactly` : issue2.inclusive ? `less than or equal to` : `less than`} ${issue2.maximum}`;
+      else if (issue2.type === "bigint")
+        message = `BigInt must be ${issue2.exact ? `exactly` : issue2.inclusive ? `less than or equal to` : `less than`} ${issue2.maximum}`;
+      else if (issue2.type === "date")
+        message = `Date must be ${issue2.exact ? `exactly` : issue2.inclusive ? `smaller than or equal to` : `smaller than`} ${new Date(Number(issue2.maximum))}`;
       else
         message = "Invalid input";
       break;
@@ -25279,14 +25279,14 @@ var errorMap = (issue, _ctx) => {
       message = `Intersection results could not be merged`;
       break;
     case ZodIssueCode.not_multiple_of:
-      message = `Number must be a multiple of ${issue.multipleOf}`;
+      message = `Number must be a multiple of ${issue2.multipleOf}`;
       break;
     case ZodIssueCode.not_finite:
       message = "Number must be finite";
       break;
     default:
       message = _ctx.defaultError;
-      util.assertNever(issue);
+      util.assertNever(issue2);
   }
   return { message };
 };
@@ -25330,7 +25330,7 @@ var makeIssue = (params) => {
 var EMPTY_PATH = [];
 function addIssueToContext(ctx, issueData) {
   const overrideMap = getErrorMap();
-  const issue = makeIssue({
+  const issue2 = makeIssue({
     issueData,
     data: ctx.data,
     path: ctx.path,
@@ -25345,7 +25345,7 @@ function addIssueToContext(ctx, issueData) {
       // then global default map
     ].filter((x) => !!x)
   });
-  ctx.common.issues.push(issue);
+  ctx.common.issues.push(issue2);
 }
 var ParseStatus = class _ParseStatus {
   constructor() {
@@ -27303,9 +27303,9 @@ var ZodObject = class _ZodObject extends ZodType {
       ...this._def,
       unknownKeys: "strict",
       ...message !== void 0 ? {
-        errorMap: (issue, ctx) => {
-          const defaultError = this._def.errorMap?.(issue, ctx).message ?? ctx.defaultError;
-          if (issue.code === "unrecognized_keys")
+        errorMap: (issue2, ctx) => {
+          const defaultError = this._def.errorMap?.(issue2, ctx).message ?? ctx.defaultError;
+          if (issue2.code === "unrecognized_keys")
             return {
               message: errorUtil.errToObj(message).message ?? defaultError
             };
@@ -29235,15 +29235,15 @@ var ignoredItemPatchSchema = external_exports.object({
 
 // ../../node_modules/.pnpm/ccount@2.0.1/node_modules/ccount/index.js
 function ccount(value, character) {
-  const source4 = String(value);
+  const source3 = String(value);
   if (typeof character !== "string") {
     throw new TypeError("Expected character");
   }
   let count = 0;
-  let index4 = source4.indexOf(character);
+  let index4 = source3.indexOf(character);
   while (index4 !== -1) {
     count++;
-    index4 = source4.indexOf(character, index4 + character.length);
+    index4 = source3.indexOf(character, index4 + character.length);
   }
   return count;
 }
@@ -30091,8 +30091,8 @@ function hardBreak(_, _1, state, info) {
 
 // ../../node_modules/.pnpm/longest-streak@3.1.0/node_modules/longest-streak/index.js
 function longestStreak(value, substring) {
-  const source4 = String(value);
-  let index4 = source4.indexOf(substring);
+  const source3 = String(value);
+  let index4 = source3.indexOf(substring);
   let expected = index4;
   let count = 0;
   let max = 0;
@@ -30108,7 +30108,7 @@ function longestStreak(value, substring) {
       count = 1;
     }
     expected = index4 + substring.length;
-    index4 = source4.indexOf(substring, expected);
+    index4 = source3.indexOf(substring, expected);
   }
   return max;
 }
@@ -35687,479 +35687,6 @@ function remarkGfm(options) {
   toMarkdownExtensions.push(gfmToMarkdown(settings));
 }
 
-// ../../node_modules/.pnpm/mdast-util-math@3.0.0/node_modules/mdast-util-math/lib/index.js
-function mathFromMarkdown() {
-  return {
-    enter: {
-      mathFlow: enterMathFlow,
-      mathFlowFenceMeta: enterMathFlowMeta,
-      mathText: enterMathText
-    },
-    exit: {
-      mathFlow: exitMathFlow,
-      mathFlowFence: exitMathFlowFence,
-      mathFlowFenceMeta: exitMathFlowMeta,
-      mathFlowValue: exitMathData,
-      mathText: exitMathText,
-      mathTextData: exitMathData
-    }
-  };
-  function enterMathFlow(token) {
-    const code4 = {
-      type: "element",
-      tagName: "code",
-      properties: { className: ["language-math", "math-display"] },
-      children: []
-    };
-    this.enter(
-      {
-        type: "math",
-        meta: null,
-        value: "",
-        data: { hName: "pre", hChildren: [code4] }
-      },
-      token
-    );
-  }
-  function enterMathFlowMeta() {
-    this.buffer();
-  }
-  function exitMathFlowMeta() {
-    const data = this.resume();
-    const node2 = this.stack[this.stack.length - 1];
-    ok(node2.type === "math");
-    node2.meta = data;
-  }
-  function exitMathFlowFence() {
-    if (this.data.mathFlowInside) return;
-    this.buffer();
-    this.data.mathFlowInside = true;
-  }
-  function exitMathFlow(token) {
-    const data = this.resume().replace(/^(\r?\n|\r)|(\r?\n|\r)$/g, "");
-    const node2 = this.stack[this.stack.length - 1];
-    ok(node2.type === "math");
-    this.exit(token);
-    node2.value = data;
-    const code4 = (
-      /** @type {HastElement} */
-      node2.data.hChildren[0]
-    );
-    ok(code4.type === "element");
-    ok(code4.tagName === "code");
-    code4.children.push({ type: "text", value: data });
-    this.data.mathFlowInside = void 0;
-  }
-  function enterMathText(token) {
-    this.enter(
-      {
-        type: "inlineMath",
-        value: "",
-        data: {
-          hName: "code",
-          hProperties: { className: ["language-math", "math-inline"] },
-          hChildren: []
-        }
-      },
-      token
-    );
-    this.buffer();
-  }
-  function exitMathText(token) {
-    const data = this.resume();
-    const node2 = this.stack[this.stack.length - 1];
-    ok(node2.type === "inlineMath");
-    this.exit(token);
-    node2.value = data;
-    const children = (
-      /** @type {Array<HastElementContent>} */
-      // @ts-expect-error: we defined it in `enterMathFlow`.
-      node2.data.hChildren
-    );
-    children.push({ type: "text", value: data });
-  }
-  function exitMathData(token) {
-    this.config.enter.data.call(this, token);
-    this.config.exit.data.call(this, token);
-  }
-}
-function mathToMarkdown(options) {
-  let single = (options || {}).singleDollarTextMath;
-  if (single === null || single === void 0) {
-    single = true;
-  }
-  inlineMath.peek = inlineMathPeek;
-  return {
-    unsafe: [
-      { character: "\r", inConstruct: "mathFlowMeta" },
-      { character: "\n", inConstruct: "mathFlowMeta" },
-      {
-        character: "$",
-        after: single ? void 0 : "\\$",
-        inConstruct: "phrasing"
-      },
-      { character: "$", inConstruct: "mathFlowMeta" },
-      { atBreak: true, character: "$", after: "\\$" }
-    ],
-    handlers: { math: math2, inlineMath }
-  };
-  function math2(node2, _, state, info) {
-    const raw = node2.value || "";
-    const tracker = state.createTracker(info);
-    const sequence = "$".repeat(Math.max(longestStreak(raw, "$") + 1, 2));
-    const exit3 = state.enter("mathFlow");
-    let value = tracker.move(sequence);
-    if (node2.meta) {
-      const subexit = state.enter("mathFlowMeta");
-      value += tracker.move(
-        state.safe(node2.meta, {
-          after: "\n",
-          before: value,
-          encode: ["$"],
-          ...tracker.current()
-        })
-      );
-      subexit();
-    }
-    value += tracker.move("\n");
-    if (raw) {
-      value += tracker.move(raw + "\n");
-    }
-    value += tracker.move(sequence);
-    exit3();
-    return value;
-  }
-  function inlineMath(node2, _, state) {
-    let value = node2.value || "";
-    let size = 1;
-    if (!single) size++;
-    while (new RegExp("(^|[^$])" + "\\$".repeat(size) + "([^$]|$)").test(value)) {
-      size++;
-    }
-    const sequence = "$".repeat(size);
-    if (
-      // Contains non-space.
-      /[^ \r\n]/.test(value) && // Starts with space and ends with space.
-      (/^[ \r\n]/.test(value) && /[ \r\n]$/.test(value) || // Starts or ends with dollar.
-      /^\$|\$$/.test(value))
-    ) {
-      value = " " + value + " ";
-    }
-    let index4 = -1;
-    while (++index4 < state.unsafe.length) {
-      const pattern = state.unsafe[index4];
-      if (!pattern.atBreak) continue;
-      const expression = state.compilePattern(pattern);
-      let match;
-      while (match = expression.exec(value)) {
-        let position3 = match.index;
-        if (value.codePointAt(position3) === 10 && value.codePointAt(position3 - 1) === 13) {
-          position3--;
-        }
-        value = value.slice(0, position3) + " " + value.slice(match.index + 1);
-      }
-    }
-    return sequence + value + sequence;
-  }
-  function inlineMathPeek() {
-    return "$";
-  }
-}
-
-// ../../node_modules/.pnpm/micromark-extension-math@3.1.0/node_modules/micromark-extension-math/lib/math-flow.js
-var mathFlow = {
-  tokenize: tokenizeMathFenced,
-  concrete: true,
-  name: "mathFlow"
-};
-var nonLazyContinuation2 = {
-  tokenize: tokenizeNonLazyContinuation2,
-  partial: true
-};
-function tokenizeMathFenced(effects, ok3, nok) {
-  const self2 = this;
-  const tail = self2.events[self2.events.length - 1];
-  const initialSize = tail && tail[1].type === "linePrefix" ? tail[2].sliceSerialize(tail[1], true).length : 0;
-  let sizeOpen = 0;
-  return start2;
-  function start2(code4) {
-    effects.enter("mathFlow");
-    effects.enter("mathFlowFence");
-    effects.enter("mathFlowFenceSequence");
-    return sequenceOpen(code4);
-  }
-  function sequenceOpen(code4) {
-    if (code4 === 36) {
-      effects.consume(code4);
-      sizeOpen++;
-      return sequenceOpen;
-    }
-    if (sizeOpen < 2) {
-      return nok(code4);
-    }
-    effects.exit("mathFlowFenceSequence");
-    return factorySpace(effects, metaBefore, "whitespace")(code4);
-  }
-  function metaBefore(code4) {
-    if (code4 === null || markdownLineEnding(code4)) {
-      return metaAfter(code4);
-    }
-    effects.enter("mathFlowFenceMeta");
-    effects.enter("chunkString", {
-      contentType: "string"
-    });
-    return meta(code4);
-  }
-  function meta(code4) {
-    if (code4 === null || markdownLineEnding(code4)) {
-      effects.exit("chunkString");
-      effects.exit("mathFlowFenceMeta");
-      return metaAfter(code4);
-    }
-    if (code4 === 36) {
-      return nok(code4);
-    }
-    effects.consume(code4);
-    return meta;
-  }
-  function metaAfter(code4) {
-    effects.exit("mathFlowFence");
-    if (self2.interrupt) {
-      return ok3(code4);
-    }
-    return effects.attempt(nonLazyContinuation2, beforeNonLazyContinuation, after)(code4);
-  }
-  function beforeNonLazyContinuation(code4) {
-    return effects.attempt({
-      tokenize: tokenizeClosingFence,
-      partial: true
-    }, after, contentStart)(code4);
-  }
-  function contentStart(code4) {
-    return (initialSize ? factorySpace(effects, beforeContentChunk, "linePrefix", initialSize + 1) : beforeContentChunk)(code4);
-  }
-  function beforeContentChunk(code4) {
-    if (code4 === null) {
-      return after(code4);
-    }
-    if (markdownLineEnding(code4)) {
-      return effects.attempt(nonLazyContinuation2, beforeNonLazyContinuation, after)(code4);
-    }
-    effects.enter("mathFlowValue");
-    return contentChunk(code4);
-  }
-  function contentChunk(code4) {
-    if (code4 === null || markdownLineEnding(code4)) {
-      effects.exit("mathFlowValue");
-      return beforeContentChunk(code4);
-    }
-    effects.consume(code4);
-    return contentChunk;
-  }
-  function after(code4) {
-    effects.exit("mathFlow");
-    return ok3(code4);
-  }
-  function tokenizeClosingFence(effects2, ok4, nok2) {
-    let size = 0;
-    return factorySpace(effects2, beforeSequenceClose, "linePrefix", self2.parser.constructs.disable.null.includes("codeIndented") ? void 0 : 4);
-    function beforeSequenceClose(code4) {
-      effects2.enter("mathFlowFence");
-      effects2.enter("mathFlowFenceSequence");
-      return sequenceClose(code4);
-    }
-    function sequenceClose(code4) {
-      if (code4 === 36) {
-        size++;
-        effects2.consume(code4);
-        return sequenceClose;
-      }
-      if (size < sizeOpen) {
-        return nok2(code4);
-      }
-      effects2.exit("mathFlowFenceSequence");
-      return factorySpace(effects2, afterSequenceClose, "whitespace")(code4);
-    }
-    function afterSequenceClose(code4) {
-      if (code4 === null || markdownLineEnding(code4)) {
-        effects2.exit("mathFlowFence");
-        return ok4(code4);
-      }
-      return nok2(code4);
-    }
-  }
-}
-function tokenizeNonLazyContinuation2(effects, ok3, nok) {
-  const self2 = this;
-  return start2;
-  function start2(code4) {
-    if (code4 === null) {
-      return ok3(code4);
-    }
-    effects.enter("lineEnding");
-    effects.consume(code4);
-    effects.exit("lineEnding");
-    return lineStart;
-  }
-  function lineStart(code4) {
-    return self2.parser.lazy[self2.now().line] ? nok(code4) : ok3(code4);
-  }
-}
-
-// ../../node_modules/.pnpm/micromark-extension-math@3.1.0/node_modules/micromark-extension-math/lib/math-text.js
-function mathText(options) {
-  const options_ = options || {};
-  let single = options_.singleDollarTextMath;
-  if (single === null || single === void 0) {
-    single = true;
-  }
-  return {
-    tokenize: tokenizeMathText,
-    resolve: resolveMathText,
-    previous: previous3,
-    name: "mathText"
-  };
-  function tokenizeMathText(effects, ok3, nok) {
-    const self2 = this;
-    let sizeOpen = 0;
-    let size;
-    let token;
-    return start2;
-    function start2(code4) {
-      effects.enter("mathText");
-      effects.enter("mathTextSequence");
-      return sequenceOpen(code4);
-    }
-    function sequenceOpen(code4) {
-      if (code4 === 36) {
-        effects.consume(code4);
-        sizeOpen++;
-        return sequenceOpen;
-      }
-      if (sizeOpen < 2 && !single) {
-        return nok(code4);
-      }
-      effects.exit("mathTextSequence");
-      return between(code4);
-    }
-    function between(code4) {
-      if (code4 === null) {
-        return nok(code4);
-      }
-      if (code4 === 36) {
-        token = effects.enter("mathTextSequence");
-        size = 0;
-        return sequenceClose(code4);
-      }
-      if (code4 === 32) {
-        effects.enter("space");
-        effects.consume(code4);
-        effects.exit("space");
-        return between;
-      }
-      if (markdownLineEnding(code4)) {
-        effects.enter("lineEnding");
-        effects.consume(code4);
-        effects.exit("lineEnding");
-        return between;
-      }
-      effects.enter("mathTextData");
-      return data(code4);
-    }
-    function data(code4) {
-      if (code4 === null || code4 === 32 || code4 === 36 || markdownLineEnding(code4)) {
-        effects.exit("mathTextData");
-        return between(code4);
-      }
-      effects.consume(code4);
-      return data;
-    }
-    function sequenceClose(code4) {
-      if (code4 === 36) {
-        effects.consume(code4);
-        size++;
-        return sequenceClose;
-      }
-      if (size === sizeOpen) {
-        effects.exit("mathTextSequence");
-        effects.exit("mathText");
-        return ok3(code4);
-      }
-      token.type = "mathTextData";
-      return data(code4);
-    }
-  }
-}
-function resolveMathText(events) {
-  let tailExitIndex = events.length - 4;
-  let headEnterIndex = 3;
-  let index4;
-  let enter;
-  if ((events[headEnterIndex][1].type === "lineEnding" || events[headEnterIndex][1].type === "space") && (events[tailExitIndex][1].type === "lineEnding" || events[tailExitIndex][1].type === "space")) {
-    index4 = headEnterIndex;
-    while (++index4 < tailExitIndex) {
-      if (events[index4][1].type === "mathTextData") {
-        events[tailExitIndex][1].type = "mathTextPadding";
-        events[headEnterIndex][1].type = "mathTextPadding";
-        headEnterIndex += 2;
-        tailExitIndex -= 2;
-        break;
-      }
-    }
-  }
-  index4 = headEnterIndex - 1;
-  tailExitIndex++;
-  while (++index4 <= tailExitIndex) {
-    if (enter === void 0) {
-      if (index4 !== tailExitIndex && events[index4][1].type !== "lineEnding") {
-        enter = index4;
-      }
-    } else if (index4 === tailExitIndex || events[index4][1].type === "lineEnding") {
-      events[enter][1].type = "mathTextData";
-      if (index4 !== enter + 2) {
-        events[enter][1].end = events[index4 - 1][1].end;
-        events.splice(enter + 2, index4 - enter - 2);
-        tailExitIndex -= index4 - enter - 2;
-        index4 = enter + 2;
-      }
-      enter = void 0;
-    }
-  }
-  return events;
-}
-function previous3(code4) {
-  return code4 !== 36 || this.events[this.events.length - 1][1].type === "characterEscape";
-}
-
-// ../../node_modules/.pnpm/micromark-extension-math@3.1.0/node_modules/micromark-extension-math/lib/syntax.js
-function math(options) {
-  return {
-    flow: {
-      [36]: mathFlow
-    },
-    text: {
-      [36]: mathText(options)
-    }
-  };
-}
-
-// ../../node_modules/.pnpm/remark-math@6.0.0/node_modules/remark-math/lib/index.js
-var emptyOptions3 = {};
-function remarkMath(options) {
-  const self2 = (
-    /** @type {Processor} */
-    this
-  );
-  const settings = options || emptyOptions3;
-  const data = self2.data();
-  const micromarkExtensions = data.micromarkExtensions || (data.micromarkExtensions = []);
-  const fromMarkdownExtensions = data.fromMarkdownExtensions || (data.fromMarkdownExtensions = []);
-  const toMarkdownExtensions = data.toMarkdownExtensions || (data.toMarkdownExtensions = []);
-  micromarkExtensions.push(math(settings));
-  fromMarkdownExtensions.push(mathFromMarkdown());
-  toMarkdownExtensions.push(mathToMarkdown(settings));
-}
-
 // ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/initialize/content.js
 var content2 = {
   tokenize: initializeContent
@@ -36645,7 +36172,7 @@ var disable = {
 };
 
 // ../../node_modules/.pnpm/micromark@4.0.2/node_modules/micromark/lib/create-tokenizer.js
-function createTokenizer(parser2, initialize, from) {
+function createTokenizer(parser3, initialize, from) {
   let point6 = {
     _bufferIndex: -1,
     _index: 0,
@@ -36674,7 +36201,7 @@ function createTokenizer(parser2, initialize, from) {
     defineSkip,
     events: [],
     now,
-    parser: parser2,
+    parser: parser3,
     previous: null,
     sliceSerialize,
     sliceStream,
@@ -36974,7 +36501,7 @@ function parse(options) {
     /** @type {FullNormalizedExtension} */
     combineExtensions([constructs_exports, ...settings.extensions || []])
   );
-  const parser2 = {
+  const parser3 = {
     constructs: constructs2,
     content: create2(content2),
     defined: [],
@@ -36984,11 +36511,11 @@ function parse(options) {
     string: create2(string),
     text: create2(text3)
   };
-  return parser2;
+  return parser3;
   function create2(initial) {
     return creator;
     function creator(from) {
-      return createTokenizer(parser2, initial, from);
+      return createTokenizer(parser3, initial, from);
     }
   }
 }
@@ -37817,8 +37344,8 @@ function defaultOnError(left, right) {
 // ../../node_modules/.pnpm/remark-parse@11.0.0/node_modules/remark-parse/lib/index.js
 function remarkParse(options) {
   const self2 = this;
-  self2.parser = parser2;
-  function parser2(doc) {
+  self2.parser = parser3;
+  function parser3(doc) {
     return fromMarkdown(doc, {
       ...self2.data("settings"),
       ...options,
@@ -39002,9 +38529,9 @@ var Processor = class _Processor extends CallableInstance {
   parse(file) {
     this.freeze();
     const realFile = vfile(file);
-    const parser2 = this.parser || this.Parser;
-    assertParser("parse", parser2);
-    return parser2(String(realFile), realFile);
+    const parser3 = this.parser || this.Parser;
+    assertParser("parse", parser3);
+    return parser3(String(realFile), realFile);
   }
   /**
    * Process the given file as configured on the processor.
@@ -39461,8 +38988,484 @@ function isUint8Array2(value) {
   );
 }
 
+// ../shared/src/markdown-link-safety.ts
+var parser = unified().use(remarkParse).use(remarkGfm);
+
+// ../../node_modules/.pnpm/mdast-util-math@3.0.0/node_modules/mdast-util-math/lib/index.js
+function mathFromMarkdown() {
+  return {
+    enter: {
+      mathFlow: enterMathFlow,
+      mathFlowFenceMeta: enterMathFlowMeta,
+      mathText: enterMathText
+    },
+    exit: {
+      mathFlow: exitMathFlow,
+      mathFlowFence: exitMathFlowFence,
+      mathFlowFenceMeta: exitMathFlowMeta,
+      mathFlowValue: exitMathData,
+      mathText: exitMathText,
+      mathTextData: exitMathData
+    }
+  };
+  function enterMathFlow(token) {
+    const code4 = {
+      type: "element",
+      tagName: "code",
+      properties: { className: ["language-math", "math-display"] },
+      children: []
+    };
+    this.enter(
+      {
+        type: "math",
+        meta: null,
+        value: "",
+        data: { hName: "pre", hChildren: [code4] }
+      },
+      token
+    );
+  }
+  function enterMathFlowMeta() {
+    this.buffer();
+  }
+  function exitMathFlowMeta() {
+    const data = this.resume();
+    const node2 = this.stack[this.stack.length - 1];
+    ok(node2.type === "math");
+    node2.meta = data;
+  }
+  function exitMathFlowFence() {
+    if (this.data.mathFlowInside) return;
+    this.buffer();
+    this.data.mathFlowInside = true;
+  }
+  function exitMathFlow(token) {
+    const data = this.resume().replace(/^(\r?\n|\r)|(\r?\n|\r)$/g, "");
+    const node2 = this.stack[this.stack.length - 1];
+    ok(node2.type === "math");
+    this.exit(token);
+    node2.value = data;
+    const code4 = (
+      /** @type {HastElement} */
+      node2.data.hChildren[0]
+    );
+    ok(code4.type === "element");
+    ok(code4.tagName === "code");
+    code4.children.push({ type: "text", value: data });
+    this.data.mathFlowInside = void 0;
+  }
+  function enterMathText(token) {
+    this.enter(
+      {
+        type: "inlineMath",
+        value: "",
+        data: {
+          hName: "code",
+          hProperties: { className: ["language-math", "math-inline"] },
+          hChildren: []
+        }
+      },
+      token
+    );
+    this.buffer();
+  }
+  function exitMathText(token) {
+    const data = this.resume();
+    const node2 = this.stack[this.stack.length - 1];
+    ok(node2.type === "inlineMath");
+    this.exit(token);
+    node2.value = data;
+    const children = (
+      /** @type {Array<HastElementContent>} */
+      // @ts-expect-error: we defined it in `enterMathFlow`.
+      node2.data.hChildren
+    );
+    children.push({ type: "text", value: data });
+  }
+  function exitMathData(token) {
+    this.config.enter.data.call(this, token);
+    this.config.exit.data.call(this, token);
+  }
+}
+function mathToMarkdown(options) {
+  let single = (options || {}).singleDollarTextMath;
+  if (single === null || single === void 0) {
+    single = true;
+  }
+  inlineMath.peek = inlineMathPeek;
+  return {
+    unsafe: [
+      { character: "\r", inConstruct: "mathFlowMeta" },
+      { character: "\n", inConstruct: "mathFlowMeta" },
+      {
+        character: "$",
+        after: single ? void 0 : "\\$",
+        inConstruct: "phrasing"
+      },
+      { character: "$", inConstruct: "mathFlowMeta" },
+      { atBreak: true, character: "$", after: "\\$" }
+    ],
+    handlers: { math: math2, inlineMath }
+  };
+  function math2(node2, _, state, info) {
+    const raw = node2.value || "";
+    const tracker = state.createTracker(info);
+    const sequence = "$".repeat(Math.max(longestStreak(raw, "$") + 1, 2));
+    const exit3 = state.enter("mathFlow");
+    let value = tracker.move(sequence);
+    if (node2.meta) {
+      const subexit = state.enter("mathFlowMeta");
+      value += tracker.move(
+        state.safe(node2.meta, {
+          after: "\n",
+          before: value,
+          encode: ["$"],
+          ...tracker.current()
+        })
+      );
+      subexit();
+    }
+    value += tracker.move("\n");
+    if (raw) {
+      value += tracker.move(raw + "\n");
+    }
+    value += tracker.move(sequence);
+    exit3();
+    return value;
+  }
+  function inlineMath(node2, _, state) {
+    let value = node2.value || "";
+    let size = 1;
+    if (!single) size++;
+    while (new RegExp("(^|[^$])" + "\\$".repeat(size) + "([^$]|$)").test(value)) {
+      size++;
+    }
+    const sequence = "$".repeat(size);
+    if (
+      // Contains non-space.
+      /[^ \r\n]/.test(value) && // Starts with space and ends with space.
+      (/^[ \r\n]/.test(value) && /[ \r\n]$/.test(value) || // Starts or ends with dollar.
+      /^\$|\$$/.test(value))
+    ) {
+      value = " " + value + " ";
+    }
+    let index4 = -1;
+    while (++index4 < state.unsafe.length) {
+      const pattern = state.unsafe[index4];
+      if (!pattern.atBreak) continue;
+      const expression = state.compilePattern(pattern);
+      let match;
+      while (match = expression.exec(value)) {
+        let position3 = match.index;
+        if (value.codePointAt(position3) === 10 && value.codePointAt(position3 - 1) === 13) {
+          position3--;
+        }
+        value = value.slice(0, position3) + " " + value.slice(match.index + 1);
+      }
+    }
+    return sequence + value + sequence;
+  }
+  function inlineMathPeek() {
+    return "$";
+  }
+}
+
+// ../../node_modules/.pnpm/micromark-extension-math@3.1.0/node_modules/micromark-extension-math/lib/math-flow.js
+var mathFlow = {
+  tokenize: tokenizeMathFenced,
+  concrete: true,
+  name: "mathFlow"
+};
+var nonLazyContinuation2 = {
+  tokenize: tokenizeNonLazyContinuation2,
+  partial: true
+};
+function tokenizeMathFenced(effects, ok3, nok) {
+  const self2 = this;
+  const tail = self2.events[self2.events.length - 1];
+  const initialSize = tail && tail[1].type === "linePrefix" ? tail[2].sliceSerialize(tail[1], true).length : 0;
+  let sizeOpen = 0;
+  return start2;
+  function start2(code4) {
+    effects.enter("mathFlow");
+    effects.enter("mathFlowFence");
+    effects.enter("mathFlowFenceSequence");
+    return sequenceOpen(code4);
+  }
+  function sequenceOpen(code4) {
+    if (code4 === 36) {
+      effects.consume(code4);
+      sizeOpen++;
+      return sequenceOpen;
+    }
+    if (sizeOpen < 2) {
+      return nok(code4);
+    }
+    effects.exit("mathFlowFenceSequence");
+    return factorySpace(effects, metaBefore, "whitespace")(code4);
+  }
+  function metaBefore(code4) {
+    if (code4 === null || markdownLineEnding(code4)) {
+      return metaAfter(code4);
+    }
+    effects.enter("mathFlowFenceMeta");
+    effects.enter("chunkString", {
+      contentType: "string"
+    });
+    return meta(code4);
+  }
+  function meta(code4) {
+    if (code4 === null || markdownLineEnding(code4)) {
+      effects.exit("chunkString");
+      effects.exit("mathFlowFenceMeta");
+      return metaAfter(code4);
+    }
+    if (code4 === 36) {
+      return nok(code4);
+    }
+    effects.consume(code4);
+    return meta;
+  }
+  function metaAfter(code4) {
+    effects.exit("mathFlowFence");
+    if (self2.interrupt) {
+      return ok3(code4);
+    }
+    return effects.attempt(nonLazyContinuation2, beforeNonLazyContinuation, after)(code4);
+  }
+  function beforeNonLazyContinuation(code4) {
+    return effects.attempt({
+      tokenize: tokenizeClosingFence,
+      partial: true
+    }, after, contentStart)(code4);
+  }
+  function contentStart(code4) {
+    return (initialSize ? factorySpace(effects, beforeContentChunk, "linePrefix", initialSize + 1) : beforeContentChunk)(code4);
+  }
+  function beforeContentChunk(code4) {
+    if (code4 === null) {
+      return after(code4);
+    }
+    if (markdownLineEnding(code4)) {
+      return effects.attempt(nonLazyContinuation2, beforeNonLazyContinuation, after)(code4);
+    }
+    effects.enter("mathFlowValue");
+    return contentChunk(code4);
+  }
+  function contentChunk(code4) {
+    if (code4 === null || markdownLineEnding(code4)) {
+      effects.exit("mathFlowValue");
+      return beforeContentChunk(code4);
+    }
+    effects.consume(code4);
+    return contentChunk;
+  }
+  function after(code4) {
+    effects.exit("mathFlow");
+    return ok3(code4);
+  }
+  function tokenizeClosingFence(effects2, ok4, nok2) {
+    let size = 0;
+    return factorySpace(effects2, beforeSequenceClose, "linePrefix", self2.parser.constructs.disable.null.includes("codeIndented") ? void 0 : 4);
+    function beforeSequenceClose(code4) {
+      effects2.enter("mathFlowFence");
+      effects2.enter("mathFlowFenceSequence");
+      return sequenceClose(code4);
+    }
+    function sequenceClose(code4) {
+      if (code4 === 36) {
+        size++;
+        effects2.consume(code4);
+        return sequenceClose;
+      }
+      if (size < sizeOpen) {
+        return nok2(code4);
+      }
+      effects2.exit("mathFlowFenceSequence");
+      return factorySpace(effects2, afterSequenceClose, "whitespace")(code4);
+    }
+    function afterSequenceClose(code4) {
+      if (code4 === null || markdownLineEnding(code4)) {
+        effects2.exit("mathFlowFence");
+        return ok4(code4);
+      }
+      return nok2(code4);
+    }
+  }
+}
+function tokenizeNonLazyContinuation2(effects, ok3, nok) {
+  const self2 = this;
+  return start2;
+  function start2(code4) {
+    if (code4 === null) {
+      return ok3(code4);
+    }
+    effects.enter("lineEnding");
+    effects.consume(code4);
+    effects.exit("lineEnding");
+    return lineStart;
+  }
+  function lineStart(code4) {
+    return self2.parser.lazy[self2.now().line] ? nok(code4) : ok3(code4);
+  }
+}
+
+// ../../node_modules/.pnpm/micromark-extension-math@3.1.0/node_modules/micromark-extension-math/lib/math-text.js
+function mathText(options) {
+  const options_ = options || {};
+  let single = options_.singleDollarTextMath;
+  if (single === null || single === void 0) {
+    single = true;
+  }
+  return {
+    tokenize: tokenizeMathText,
+    resolve: resolveMathText,
+    previous: previous3,
+    name: "mathText"
+  };
+  function tokenizeMathText(effects, ok3, nok) {
+    const self2 = this;
+    let sizeOpen = 0;
+    let size;
+    let token;
+    return start2;
+    function start2(code4) {
+      effects.enter("mathText");
+      effects.enter("mathTextSequence");
+      return sequenceOpen(code4);
+    }
+    function sequenceOpen(code4) {
+      if (code4 === 36) {
+        effects.consume(code4);
+        sizeOpen++;
+        return sequenceOpen;
+      }
+      if (sizeOpen < 2 && !single) {
+        return nok(code4);
+      }
+      effects.exit("mathTextSequence");
+      return between(code4);
+    }
+    function between(code4) {
+      if (code4 === null) {
+        return nok(code4);
+      }
+      if (code4 === 36) {
+        token = effects.enter("mathTextSequence");
+        size = 0;
+        return sequenceClose(code4);
+      }
+      if (code4 === 32) {
+        effects.enter("space");
+        effects.consume(code4);
+        effects.exit("space");
+        return between;
+      }
+      if (markdownLineEnding(code4)) {
+        effects.enter("lineEnding");
+        effects.consume(code4);
+        effects.exit("lineEnding");
+        return between;
+      }
+      effects.enter("mathTextData");
+      return data(code4);
+    }
+    function data(code4) {
+      if (code4 === null || code4 === 32 || code4 === 36 || markdownLineEnding(code4)) {
+        effects.exit("mathTextData");
+        return between(code4);
+      }
+      effects.consume(code4);
+      return data;
+    }
+    function sequenceClose(code4) {
+      if (code4 === 36) {
+        effects.consume(code4);
+        size++;
+        return sequenceClose;
+      }
+      if (size === sizeOpen) {
+        effects.exit("mathTextSequence");
+        effects.exit("mathText");
+        return ok3(code4);
+      }
+      token.type = "mathTextData";
+      return data(code4);
+    }
+  }
+}
+function resolveMathText(events) {
+  let tailExitIndex = events.length - 4;
+  let headEnterIndex = 3;
+  let index4;
+  let enter;
+  if ((events[headEnterIndex][1].type === "lineEnding" || events[headEnterIndex][1].type === "space") && (events[tailExitIndex][1].type === "lineEnding" || events[tailExitIndex][1].type === "space")) {
+    index4 = headEnterIndex;
+    while (++index4 < tailExitIndex) {
+      if (events[index4][1].type === "mathTextData") {
+        events[tailExitIndex][1].type = "mathTextPadding";
+        events[headEnterIndex][1].type = "mathTextPadding";
+        headEnterIndex += 2;
+        tailExitIndex -= 2;
+        break;
+      }
+    }
+  }
+  index4 = headEnterIndex - 1;
+  tailExitIndex++;
+  while (++index4 <= tailExitIndex) {
+    if (enter === void 0) {
+      if (index4 !== tailExitIndex && events[index4][1].type !== "lineEnding") {
+        enter = index4;
+      }
+    } else if (index4 === tailExitIndex || events[index4][1].type === "lineEnding") {
+      events[enter][1].type = "mathTextData";
+      if (index4 !== enter + 2) {
+        events[enter][1].end = events[index4 - 1][1].end;
+        events.splice(enter + 2, index4 - enter - 2);
+        tailExitIndex -= index4 - enter - 2;
+        index4 = enter + 2;
+      }
+      enter = void 0;
+    }
+  }
+  return events;
+}
+function previous3(code4) {
+  return code4 !== 36 || this.events[this.events.length - 1][1].type === "characterEscape";
+}
+
+// ../../node_modules/.pnpm/micromark-extension-math@3.1.0/node_modules/micromark-extension-math/lib/syntax.js
+function math(options) {
+  return {
+    flow: {
+      [36]: mathFlow
+    },
+    text: {
+      [36]: mathText(options)
+    }
+  };
+}
+
+// ../../node_modules/.pnpm/remark-math@6.0.0/node_modules/remark-math/lib/index.js
+var emptyOptions3 = {};
+function remarkMath(options) {
+  const self2 = (
+    /** @type {Processor} */
+    this
+  );
+  const settings = options || emptyOptions3;
+  const data = self2.data();
+  const micromarkExtensions = data.micromarkExtensions || (data.micromarkExtensions = []);
+  const fromMarkdownExtensions = data.fromMarkdownExtensions || (data.fromMarkdownExtensions = []);
+  const toMarkdownExtensions = data.toMarkdownExtensions || (data.toMarkdownExtensions = []);
+  micromarkExtensions.push(math(settings));
+  fromMarkdownExtensions.push(mathFromMarkdown());
+  toMarkdownExtensions.push(mathToMarkdown(settings));
+}
+
 // ../shared/src/markdown-readable-text.ts
-var parser = unified().use(remarkParse).use(remarkGfm).use(remarkMath, { singleDollarTextMath: false });
+var parser2 = unified().use(remarkParse).use(remarkGfm).use(remarkMath, { singleDollarTextMath: false });
 var GENERATED_TEXT_NODES = /* @__PURE__ */ new Set(["footnoteReference", "footnoteDefinition", "math", "inlineMath"]);
 var NORMALIZED_MATH_DELIMITERS = /\\\[|\\\(/;
 var TEXT_VALUE_NODES = /* @__PURE__ */ new Set(["text", "inlineCode", "code", "math", "inlineMath"]);
@@ -39492,19 +39495,19 @@ function sourceRange(node2) {
   const end = node2.position?.end?.offset;
   return start2 === void 0 || end === void 0 ? null : { start: start2, end };
 }
-function alignText(value, source4, start2, end) {
+function alignText(value, source3, start2, end) {
   const offsets = [];
   let at = start2;
   for (let index4 = 0; index4 < value.length; index4 += 1) {
     const character = value[index4];
-    if (at > start2 && source4[at - 1] === "\n") while (at < end && /[ \t>]/.test(source4[at] ?? "")) at += 1;
-    if (source4[at] === "&" && /^&(?:#\d{1,7}|#[xX][\da-fA-F]{1,6}|[A-Za-z][A-Za-z\d]{1,31});/.test(source4.slice(at, at + 40))) {
+    if (at > start2 && source3[at - 1] === "\n") while (at < end && /[ \t>]/.test(source3[at] ?? "")) at += 1;
+    if (source3[at] === "&" && /^&(?:#\d{1,7}|#[xX][\da-fA-F]{1,6}|[A-Za-z][A-Za-z\d]{1,31});/.test(source3.slice(at, at + 40))) {
       offsets.push(null);
-      at = source4.indexOf(";", at) + 1;
-    } else if (source4[at] === character) {
+      at = source3.indexOf(";", at) + 1;
+    } else if (source3[at] === character) {
       offsets.push(at);
       at += 1;
-    } else if (source4[at] === "\\" && source4[at + 1] === character) {
+    } else if (source3[at] === "\\" && source3[at + 1] === character) {
       offsets.push(at + 1);
       at += 2;
     } else {
@@ -39514,18 +39517,18 @@ function alignText(value, source4, start2, end) {
   }
   return offsets;
 }
-function alignVerbatim(value, source4, start2, end) {
-  const slice = source4.slice(start2, end);
+function alignVerbatim(value, source3, start2, end) {
+  const slice = source3.slice(start2, end);
   const at = slice.indexOf(value);
   if (value.length === 0 || at === -1 || slice.indexOf(value, at + 1) !== -1) return unitNulls(value.length);
   return Array.from({ length: value.length }, (_unused, index4) => start2 + at + index4);
 }
-function projectNode(node2, source4) {
+function projectNode(node2, source3) {
   const range = sourceRange(node2);
   if (TEXT_VALUE_NODES.has(node2.type)) {
     const value = node2.value ?? "";
     if (!range) return nulls(value);
-    const offsets = node2.type === "text" ? alignText(value, source4, range.start, range.end) : alignVerbatim(value, source4, range.start, range.end);
+    const offsets = node2.type === "text" ? alignText(value, source3, range.start, range.end) : alignVerbatim(value, source3, range.start, range.end);
     return { text: value, offsets };
   }
   if (node2.type === "break") return nulls("\n");
@@ -39537,7 +39540,7 @@ function projectNode(node2, source4) {
         joined.text += separator;
         for (const offset2 of nulls(separator).offsets) joined.offsets.push(offset2);
       }
-      const piece = projectNode(child, source4);
+      const piece = projectNode(child, source3);
       joined.text += piece.text;
       for (const offset2 of piece.offsets) joined.offsets.push(offset2);
     });
@@ -39545,7 +39548,7 @@ function projectNode(node2, source4) {
   }
   if (!range) return nulls("");
   return {
-    text: source4.slice(range.start, range.end),
+    text: source3.slice(range.start, range.end),
     offsets: Array.from({ length: range.end - range.start }, (_unused, index4) => range.start + index4)
   };
 }
@@ -39555,12 +39558,12 @@ function collectGeneratedTextNodes(node2, found) {
 }
 function findGeneratedTextConstructs(markdown) {
   const found = /* @__PURE__ */ new Set();
-  collectGeneratedTextNodes(parser.parse(markdown), found);
+  collectGeneratedTextNodes(parser2.parse(markdown), found);
   if (NORMALIZED_MATH_DELIMITERS.test(markdown)) found.add("math");
   return [...found].sort();
 }
 function projectMarkdownReadableTextWithSourceMap(markdown) {
-  const piece = projectNode(parser.parse(markdown), markdown);
+  const piece = projectNode(parser2.parse(markdown), markdown);
   const aligned = piece.offsets.length === piece.text.length;
   return { text: piece.text, sourceOffsets: aligned ? piece.offsets : unitNulls(piece.text.length) };
 }
@@ -40752,22 +40755,22 @@ function validateProjectModification(request, ctx) {
   const selections = request.intent.selections;
   if (request.source.kind !== "video-project") return;
   {
-    const source4 = request.source;
-    if (source4.input.contentRef !== source4.contentRef || !selections?.length || request.taskContext)
+    const source3 = request.source;
+    if (source3.input.contentRef !== source3.contentRef || !selections?.length || request.taskContext)
       ctx.addIssue({
         code: "custom",
         path: ["source"],
         message: "Project takeover requires frozen project selections without a media/text task context"
       });
     for (const [index4, item] of (selections ?? []).entries()) {
-      if (item.selection.kind !== "video-project" || item.selection.baseOwnerRevision !== source4.input.ownerRevision || item.selection.baseRevision !== source4.input.blobDigest)
+      if (item.selection.kind !== "video-project" || item.selection.baseOwnerRevision !== source3.input.ownerRevision || item.selection.baseRevision !== source3.input.blobDigest)
         ctx.addIssue({
           code: "custom",
           path: ["intent", "selections", index4],
           message: "Project selection must bind the source input revision"
         });
     }
-    if (new Set(source4.annotationIds).size !== source4.annotationIds.length || source4.annotationIds.length !== selections?.length)
+    if (new Set(source3.annotationIds).size !== source3.annotationIds.length || source3.annotationIds.length !== selections?.length)
       ctx.addIssue({
         code: "custom",
         path: ["source", "annotationIds"],
@@ -40916,10 +40919,35 @@ var evolutionExplorationRefSchema = ownerTruthRefV1Schema.refine((ref8) => Boole
 });
 var exact2 = evolutionExplorationRefSchema;
 var evolutionExplorationNodeRefSchema = external_exports.union([exact2, exactAssetVersionRefV1Schema]);
-var fact = external_exports.object({ label: bounded(240), value: bounded(4e3) }).strict();
-var source2 = external_exports.object({ label: bounded(240), ref: exact2, href: evolutionOwnerHrefSchema.optional() }).strict();
-var evolutionExplorationReadFailureSchema = external_exports.object({ status: external_exports.enum(["unavailable", "invalid"]), reason: bounded(2e3) }).strict();
-var mediaRef = exact2.refine((ref8) => /^[a-f0-9]{64}$/.test(ref8.version ?? ""), "media needs a SHA-256 revision");
+var evolutionExplorationReadOwnerRefSchema = external_exports.object({ ...refShape, assetKind: external_exports.never().optional(), assetId: external_exports.never().optional() }).strip().transform(
+  (ref8) => ({
+    ownerFeatureId: ref8.ownerFeatureId,
+    ownerStateRef: ref8.ownerStateRef,
+    ...ref8.version ? { version: ref8.version } : {}
+  })
+);
+var evolutionExplorationReadRefSchema = evolutionExplorationReadOwnerRefSchema.refine(
+  (ref8) => Boolean(ref8.version),
+  {
+    message: "exploration sources require an exact revision"
+  }
+);
+var evolutionExplorationReadAssetRefSchema = external_exports.object({
+  ...refShape,
+  version: bounded(240),
+  assetKind: bounded(120),
+  assetId: bounded(240)
+}).strip();
+var evolutionExplorationReadNodeRefSchema = external_exports.union([
+  evolutionExplorationReadAssetRefSchema,
+  evolutionExplorationReadRefSchema
+]);
+var readExact = evolutionExplorationReadRefSchema;
+var readNodeRef = evolutionExplorationReadNodeRefSchema;
+var fact = external_exports.object({ label: bounded(240), value: bounded(4e3) }).strip();
+var evolutionExplorationSourceSchema = external_exports.object({ label: bounded(240), ref: readExact, href: evolutionOwnerHrefSchema.optional() }).strip();
+var evolutionExplorationReadFailureSchema = external_exports.object({ status: external_exports.enum(["unavailable", "invalid"]), reason: bounded(2e3) }).strip();
+var mediaRef = readExact.refine((ref8) => /^[a-f0-9]{64}$/.test(ref8.version ?? ""), "media needs a SHA-256 revision");
 var mediaType = {
   kind: external_exports.enum(["image", "video"]),
   contentType: external_exports.enum(["image/png", "image/jpeg", "image/webp", "video/mp4", "video/webm"])
@@ -40933,61 +40961,69 @@ var evolutionExplorationMediaReadV1Schema = external_exports.discriminatedUnion(
       (bytes) => bytes instanceof Uint8Array && bytes.byteLength > 0,
       "media needs nonempty bytes"
     )
-  }).strict(),
+  }).strip(),
   evolutionExplorationReadFailureSchema,
-  external_exports.object({ status: external_exports.literal("not_found"), reason: bounded(2e3) }).strict()
+  external_exports.object({ status: external_exports.literal("not_found"), reason: bounded(2e3) }).strip()
 ]).superRefine((read, ctx) => {
   if (read.status === "resolved" && !read.contentType.startsWith(`${read.kind}/`))
     ctx.addIssue({ code: "custom", message: "media type and kind disagree" });
 });
-var evolutionExplorationMetricSchema = external_exports.object({ key: bounded(120), label: bounded(240), unit: bounded(80), definition: bounded(2e3), sourceRef: exact2 }).strict();
+var evolutionExplorationMetricSchema = external_exports.object({
+  key: bounded(120),
+  label: bounded(240),
+  unit: bounded(80),
+  definition: bounded(2e3),
+  sourceRef: readExact
+}).strip();
 var evolutionExplorationMediaSchema = external_exports.object({
   mediaRef,
   ...mediaType,
   label: bounded(240),
   provenance: external_exports.enum(["original", "identical_capture_replay"]),
-  sourceRecordRef: exact2,
+  sourceRecordRef: readExact,
   durationSeconds: external_exports.number().finite().positive().max(86400).optional(),
-  timeRange: external_exports.object({ startSeconds: external_exports.number().finite().nonnegative(), endSeconds: external_exports.number().finite().nonnegative() }).strict().optional()
-}).strict().superRefine((media, ctx) => {
+  timeRange: external_exports.object({ startSeconds: external_exports.number().finite().nonnegative(), endSeconds: external_exports.number().finite().nonnegative() }).strip().optional()
+}).strip().superRefine((media, ctx) => {
   if (!media.contentType.startsWith(`${media.kind}/`))
     ctx.addIssue({ code: "custom", message: "media type and kind disagree" });
   if (media.timeRange && media.timeRange.endSeconds < media.timeRange.startSeconds)
     ctx.addIssue({ code: "custom", message: "media time range is reversed" });
 });
 var evolutionExplorationRecordSchema = external_exports.object({
-  recordRef: exact2,
-  experimentRef: exact2,
-  nodeRef: evolutionExplorationNodeRefSchema,
+  recordRef: readExact,
+  experimentRef: readExact,
+  nodeRef: readNodeRef,
   /** Row identity within this experiment; repeated captures keep distinct row ids. */
   caseId: bounded(240),
   label: bounded(240),
+  /** Owner-authored reading body. Structured measurement fields remain available to non-article adapters. */
+  bodyMarkdown: bounded(2e4).optional(),
   /** Same actual input, independently of the display name or the row's place in a list. */
-  inputRef: exact2,
+  inputRef: readExact,
   /** Shared hashes expose repeated records; a row is not automatically an independent sample. */
-  evidenceRef: exact2,
-  windowRef: exact2,
-  measurementRef: exact2,
+  evidenceRef: readExact,
+  windowRef: readExact,
+  measurementRef: readExact,
   input: external_exports.array(fact).max(32),
   output: external_exports.array(fact).max(32),
-  result: external_exports.object({ status: external_exports.enum(["satisfied", "violated", "observed", "unknown"]), label: bounded(400) }).strict(),
+  result: external_exports.object({ status: external_exports.enum(["satisfied", "violated", "observed", "unknown"]), label: bounded(400) }).strip(),
   values: external_exports.record(external_exports.string().max(120), external_exports.number().finite().nullable()),
   trace: external_exports.object({
-    sourceRef: exact2,
+    sourceRef: readExact,
     label: bounded(240),
     definition: bounded(2e3),
     xLabel: bounded(120),
     yLabel: bounded(120),
     unit: bounded(80),
     points: external_exports.array(
-      external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite(), seconds: external_exports.number().finite().nonnegative() }).strict()
+      external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite(), seconds: external_exports.number().finite().nonnegative() }).strip()
     ).min(2).max(512),
-    target: external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite(), label: bounded(120) }).strict().optional()
-  }).strict().optional(),
+    target: external_exports.object({ x: external_exports.number().finite(), y: external_exports.number().finite(), label: bounded(120) }).strip().optional()
+  }).strip().optional(),
   media: external_exports.array(evolutionExplorationMediaSchema).max(8),
   mediaStatus: evolutionExplorationReadFailureSchema.optional(),
-  sources: external_exports.array(source2).min(1).max(16)
-}).strict().superRefine((record, ctx) => {
+  sources: external_exports.array(evolutionExplorationSourceSchema).min(1).max(16)
+}).strip().superRefine((record, ctx) => {
   if (record.mediaStatus && record.media.length)
     ctx.addIssue({ code: "custom", message: "failed media inventory cannot publish verified media" });
   if (record.trace && (refIdentity(record.trace.sourceRef) !== refIdentity(record.evidenceRef) || record.trace.points.some(
@@ -41000,26 +41036,26 @@ var evolutionExplorationRecordSchema = external_exports.object({
       message: "media must bind this record evidence, including identical-capture replays"
     });
 });
-var condition = external_exports.object({ label: bounded(240), detail: bounded(2e3), sourceRef: exact2 }).strict();
+var condition = external_exports.object({ label: bounded(240), detail: bounded(2e3), sourceRef: readExact }).strip();
 var evolutionExplorationConditionsSchema = external_exports.object({
   environment: condition,
   sampleSet: condition,
   measurement: condition,
-  groundTruth: condition.extend({ status: external_exports.enum(["bounded", "unverified", "missing"]) }).strict(),
+  groundTruth: condition.extend({ status: external_exports.enum(["bounded", "unverified", "missing"]) }).strip(),
   window: condition,
   exposure: external_exports.enum(["public_development", "isolated_test", "independent_validation", "production_observation"]),
   limitation: bounded(4e3),
   threshold: external_exports.discriminatedUnion("status", [
-    external_exports.object({ status: external_exports.literal("unknown"), detail: bounded(2e3) }).strict(),
-    external_exports.object({ status: external_exports.literal("frozen"), detail: bounded(2e3), sourceRef: exact2 }).strict()
+    external_exports.object({ status: external_exports.literal("unknown"), detail: bounded(2e3) }).strip(),
+    external_exports.object({ status: external_exports.literal("frozen"), detail: bounded(2e3), sourceRef: readExact }).strip()
   ]),
   comparison: external_exports.object({
     design: external_exports.enum(["paired", "unpaired", "undeclared"]),
     method: bounded(2e3),
-    planRef: exact2.optional()
-  }).strict(),
-  preparationRefs: external_exports.array(source2).max(16)
-}).strict().superRefine((conditions, ctx) => {
+    planRef: readExact.optional()
+  }).strip(),
+  preparationRefs: external_exports.array(evolutionExplorationSourceSchema).max(16)
+}).strip().superRefine((conditions, ctx) => {
   if (conditions.comparison.design !== "undeclared" && !conditions.comparison.planRef)
     ctx.addIssue({ code: "custom", message: "declared comparison requires an exact owner method" });
 });
@@ -41232,7 +41268,7 @@ var workspaceContentReviewSchema = external_exports.object({
   updatedAt: timestamp2
 }).strict().superRefine((review, context2) => {
   const shared = review.source.kind === "collective-artifact" || review.source.kind === "collective-media";
-  if (shared !== Boolean(review.collaborationScope) || shared && (review.sourceHistory ?? []).some((source4) => source4.kind !== review.source.kind) || review.source.kind === "collective-media" && (!review.collaborationScope?.sourceEventId || !review.collaborationScope.custodyRevision))
+  if (shared !== Boolean(review.collaborationScope) || shared && (review.sourceHistory ?? []).some((source3) => source3.kind !== review.source.kind) || review.source.kind === "collective-media" && (!review.collaborationScope?.sourceEventId || !review.collaborationScope.custodyRevision))
     context2.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Collective source and collaboration scope must agree"
@@ -44598,7 +44634,7 @@ var collectiveRetainedMediaPageSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-media-surface-rpc.ts
-var source3 = workspaceContentSourceSchema.options[0];
+var source2 = workspaceContentSourceSchema.options[0];
 var positive11 = external_exports.number().int().positive().safe();
 var offset = external_exports.number().int().nonnegative().safe();
 var page = external_exports.object({ offset, total: offset, nextOffset: offset.optional() }).strict();
@@ -44607,10 +44643,10 @@ var collectiveMediaViewSchema = reviewedMediaAssetSchema.omit({ sourcePublicatio
   mediaType: external_exports.enum(["image/png", "video/mp4"]),
   view: external_exports.object({
     review: workspaceContentReviewSchema.innerType().omit({ ownerUserId: true }).extend({
-      source: source3,
-      sourceHistory: source3.array().max(1001).optional()
+      source: source2,
+      sourceHistory: source2.array().max(1001).optional()
     }).strict(),
-    currentSource: source3,
+    currentSource: source2,
     sourceState: external_exports.enum(["current", "changed"]),
     canWrite: external_exports.boolean(),
     canReply: external_exports.boolean(),
@@ -45592,7 +45628,7 @@ var deploymentWaitPredicateSchema = external_exports.discriminatedUnion("kind", 
 ]);
 
 // ../shared/src/types/action-subject-ref.ts
-var ACTION_SUBJECT_REF_DESCRIPTION = "subjectRef must use pr:<owner>/<repo>#<positive-number> (for example pr:zts212653/clowder-ai#2943) or subject:<namespace>:<opaque-id>. GitHub URL forms and SHA suffixes such as github:owner/repo#2943@abc123 are invalid.";
+var ACTION_SUBJECT_REF_DESCRIPTION = "subjectRef must use pr:<owner>/<repo>#<positive-number> (for example pr:zts212653/cat-cafe#2943) or subject:<namespace>:<opaque-id>. GitHub URL forms and SHA suffixes such as github:owner/repo#2943@abc123 are invalid.";
 var ACTION_SUBJECT_REF_MAX_LENGTH = 240;
 var ACTION_SUBJECT_REF_PATTERN = /^(?:pr:[^/\s\x1f]+\/[^#\s\x1f]+#[1-9]\d*|subject:[a-z][a-z0-9_-]{0,63}:[^\s\x1f]{1,200})$/i;
 var actionSubjectRefSchema = external_exports.string().trim().min(1).max(ACTION_SUBJECT_REF_MAX_LENGTH).regex(ACTION_SUBJECT_REF_PATTERN, ACTION_SUBJECT_REF_DESCRIPTION).describe(ACTION_SUBJECT_REF_DESCRIPTION);
@@ -45964,20 +46000,20 @@ var attributionDiagnosisV1Schema = external_exports.object({
   comparabilityStatus: external_exports.enum(EVOLUTION_COMPARABILITY_STATUSES),
   reasonCodes: external_exports.array(external_exports.enum(EVOLUTION_EVAL_REASON_CODES)).max(32)
 }).strict().superRefine((value, ctx) => {
-  const issue = (path2, message) => ctx.addIssue({ code: external_exports.ZodIssueCode.custom, path: [path2], message });
-  if (!unique(value.assessedLayers)) issue("assessedLayers", "each layer may be assessed once");
-  if (!unique(value.competingLayers)) issue("competingLayers", "each competing layer may appear once");
-  if (!unique(value.reasonCodes)) issue("reasonCodes", "reason codes must be unique");
+  const issue2 = (path2, message) => ctx.addIssue({ code: external_exports.ZodIssueCode.custom, path: [path2], message });
+  if (!unique(value.assessedLayers)) issue2("assessedLayers", "each layer may be assessed once");
+  if (!unique(value.competingLayers)) issue2("competingLayers", "each competing layer may appear once");
+  if (!unique(value.reasonCodes)) issue2("reasonCodes", "reason codes must be unique");
   if (value.verdict === "attributed" !== (value.primaryLayer !== void 0))
-    issue("primaryLayer", "a primary layer exists exactly when the verdict is attributed");
+    issue2("primaryLayer", "a primary layer exists exactly when the verdict is attributed");
   if (value.primaryLayer !== void 0 && !value.assessedLayers.includes(value.primaryLayer))
-    issue("primaryLayer", "the primary layer must have been assessed");
+    issue2("primaryLayer", "the primary layer must have been assessed");
   if (value.competingLayers.some((layer) => !value.assessedLayers.includes(layer)))
-    issue("competingLayers", "competing layers must have been assessed");
+    issue2("competingLayers", "competing layers must have been assessed");
   if (value.verdict === "incomparable" && value.comparabilityStatus !== "incomparable")
-    issue("comparabilityStatus", "an incomparable verdict requires incomparable comparability");
+    issue2("comparabilityStatus", "an incomparable verdict requires incomparable comparability");
   if (value.comparabilityMode === "none" && value.comparabilityStatus === "comparable")
-    issue("comparabilityStatus", "a moved ruler with no rejudge or rebuild is never comparable");
+    issue2("comparabilityStatus", "a moved ruler with no rejudge or rebuild is never comparable");
 });
 var measurementLinkedEventV1Schema = strictEvent({
   type: external_exports.literal("measurement_linked"),
@@ -46568,139 +46604,11 @@ var evolutionProgramEventEnvelopeV1Schema = external_exports.object({
   }
 });
 
-// ../shared/src/types/capability-evolution-exploration.ts
-var exact3 = evolutionExplorationRefSchema;
-var baseNode = {
-  nodeRef: exact3,
-  title: bounded(240),
-  summary: bounded(4e3),
-  sourceRef: ownerTruthRefV1Schema,
-  changes: external_exports.array(
-    external_exports.object({
-      label: bounded(240),
-      detail: bounded(2e3),
-      sourceRef: exact3,
-      ownerHref: evolutionOwnerHrefSchema.optional()
-    }).strict()
-  ).max(32),
-  parentEdges: external_exports.array(
-    external_exports.object({
-      parentNodeRef: evolutionExplorationNodeRefSchema,
-      sourceRef: ownerTruthRefV1Schema,
-      description: bounded(2e3).optional()
-    }).strict()
-  ).max(32),
-  /** A publisher-bound cover frame; fetching bytes still uses exact Program/experiment/record guards. */
-  preview: external_exports.object({ experimentRef: exact3, recordRef: exact3, media: evolutionExplorationMediaSchema }).strict().optional()
-};
-var evolutionExplorationNodeSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({
-    ...baseNode,
-    kind: external_exports.literal("owner_version"),
-    nodeRef: exactAssetVersionRefV1Schema,
-    versionRef: exactAssetVersionRefV1Schema
-  }).strict(),
-  external_exports.object({
-    ...baseNode,
-    kind: external_exports.literal("public_archive"),
-    /** Source-declared historical reading; absence keeps the experiment presentation. */
-    history: external_exports.object({ period: bounded(80), updatedThrough: external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict().optional()
-  }).strict()
-]);
-var evolutionExplorationExperimentSchema = external_exports.object({
-  experimentRef: exact3,
-  nodeRef: evolutionExplorationNodeRefSchema,
-  sourceRef: exact3,
-  title: bounded(240),
-  status: external_exports.enum(["recorded", "partial", "running", "failed", "unknown"]),
-  recordCount: external_exports.number().int().min(0).max(128),
-  conditions: evolutionExplorationConditionsSchema,
-  metrics: external_exports.array(evolutionExplorationMetricSchema).max(24)
-}).strict();
-var evolutionExplorationDetailSchema = external_exports.discriminatedUnion("status", [
-  evolutionExplorationReadFailureSchema.extend({
-    experimentRef: exact3,
-    nodeRef: evolutionExplorationNodeRefSchema
-  }).strict(),
-  external_exports.object({
-    status: external_exports.literal("resolved"),
-    experimentRef: exact3,
-    nodeRef: evolutionExplorationNodeRefSchema,
-    records: external_exports.array(evolutionExplorationRecordSchema).max(128)
-  }).strict()
-]);
-var evolutionExplorationSelectionSchema = external_exports.object({
-  selectedSourceRef: exact3.optional(),
-  selectedNodeRef: evolutionExplorationNodeRefSchema.optional(),
-  selectedExperimentRef: exact3.optional(),
-  comparisonExperimentRef: exact3.optional()
-}).strict();
-var evolutionExplorationRequestV1Schema = evolutionExplorationSelectionSchema.extend({
-  programRef: ownerTruthRefV1Schema,
-  objectRef: ownerTruthRefV1Schema
-}).strict();
-var evolutionArchiveVersionSchema = external_exports.object({
-  ref: exact3,
-  sourceRevision: bounded(240),
-  revision: external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  bundled: external_exports.boolean(),
-  occurredAt: timestampSchema.optional(),
-  actorRef: bounded(240).optional(),
-  reason: bounded(1e3).optional()
-}).strict();
-var evolutionArchivePublicationSchema = external_exports.object({
-  revision: external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  current: evolutionArchiveVersionSchema,
-  selected: evolutionArchiveVersionSchema,
-  attempts: external_exports.array(
-    external_exports.object({
-      revision: external_exports.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-      action: bounded(80),
-      status: external_exports.enum(["published", "failed"]),
-      actorRef: bounded(240),
-      originRef: bounded(2e3),
-      reason: bounded(1e3),
-      occurredAt: timestampSchema,
-      failureCode: bounded(240).optional()
-    }).strict()
-  ).max(50),
-  hasMore: external_exports.boolean(),
-  selectionUpdate: external_exports.object({
-    kind: external_exports.enum(["unchanged", "modified", "moved", "removed", "legacy"]),
-    nextSelection: evolutionExplorationSelectionSchema.optional()
-  }).strict().optional()
-}).strict();
-var evolutionExplorationMediaRequestV1Schema = external_exports.object({
-  programRef: ownerTruthRefV1Schema,
-  objectRef: ownerTruthRefV1Schema,
-  experimentRef: exact3,
-  recordRef: exact3,
-  mediaRef: exact3
-}).strict();
-var envelope2 = { schemaVersion: external_exports.literal(1), programRef: ownerTruthRefV1Schema, objectRef: ownerTruthRefV1Schema };
-var blockers = external_exports.array(evolutionAssetReviewBlockerV1Schema).max(64);
-var reviewSchema = external_exports.discriminatedUnion("status", [
-  external_exports.object({
-    ...envelope2,
-    status: external_exports.enum(["unavailable", "invalid"]),
-    blockers: blockers.min(1),
-    recoverySelection: evolutionExplorationSelectionSchema.optional()
-  }).strict(),
-  external_exports.object({
-    ...envelope2,
-    status: external_exports.literal("resolved"),
-    sourceRef: ownerTruthRefV1Schema,
-    readAt: timestampSchema,
-    publication: evolutionArchivePublicationSchema.optional(),
-    nodes: external_exports.array(evolutionExplorationNodeSchema).max(512),
-    experiments: external_exports.array(evolutionExplorationExperimentSchema).max(512),
-    details: external_exports.array(evolutionExplorationDetailSchema).max(2),
-    blockers
-  }).strict()
-]);
-function validateNodes(review, ctx) {
+// ../shared/src/types/capability-evolution-exploration-validation.ts
+var issue = (ctx, message) => ctx.addIssue({ code: external_exports.ZodIssueCode.custom, message });
+function validateExplorationNodes(review, ctx) {
   const nodes = new Map(review.nodes.map((node2) => [refIdentity(node2.nodeRef), node2]));
-  if (nodes.size !== review.nodes.length) ctx.addIssue({ code: "custom", message: "duplicate exploration nodes" });
+  if (nodes.size !== review.nodes.length) issue(ctx, "duplicate exploration nodes");
   const colors = /* @__PURE__ */ new Map();
   const visit2 = (key) => {
     if (colors.get(key) === "visiting") return false;
@@ -46714,64 +46622,225 @@ function validateNodes(review, ctx) {
   };
   for (const node2 of review.nodes) {
     if (!visit2(refIdentity(node2.nodeRef))) {
-      ctx.addIssue({ code: "custom", message: "lineage must be acyclic with published parents" });
+      issue(ctx, "lineage must be acyclic with published parents");
       break;
     }
-    if (node2.kind === "owner_version") {
-      if (refIdentity(node2.nodeRef) !== refIdentity(node2.versionRef))
-        ctx.addIssue({ code: "custom", message: "owner node must address its exact asset version" });
-    }
+    if (node2.kind === "owner_version" && refIdentity(node2.nodeRef) !== refIdentity(node2.versionRef))
+      issue(ctx, "owner node must address its exact asset version");
   }
 }
-function validateExperiments(review, ctx) {
-  const nodes = new Set(review.nodes.map((node2) => refIdentity(node2.nodeRef)));
-  const experiments = new Map(
-    review.experiments.map((experiment) => [refIdentity(experiment.experimentRef), experiment])
-  );
-  if (experiments.size !== review.experiments.length)
-    ctx.addIssue({ code: "custom", message: "experiment refs must be unique" });
+function validateExperimentCatalog(review, nodes, experiments, ctx) {
+  if (experiments.size !== review.experiments.length) issue(ctx, "experiment refs must be unique");
   for (const experiment of review.experiments) {
-    if (!nodes.has(refIdentity(experiment.nodeRef)))
-      ctx.addIssue({ code: "custom", message: "experiment must belong to a published node" });
+    if (!nodes.has(refIdentity(experiment.nodeRef))) issue(ctx, "experiment must belong to a published node");
     if (new Set(experiment.metrics.map((metric) => metric.key)).size !== experiment.metrics.length)
-      ctx.addIssue({ code: "custom", message: "metric definitions must be unique" });
+      issue(ctx, "metric definitions must be unique");
   }
+}
+function validatePreviews(review, experiments, ctx) {
   for (const node2 of review.nodes) {
     if (!node2.preview) continue;
     const experiment = experiments.get(refIdentity(node2.preview.experimentRef));
     if (!experiment || refIdentity(experiment.nodeRef) !== refIdentity(node2.nodeRef) || node2.preview.media.kind !== "image")
-      ctx.addIssue({ code: "custom", message: "cover must bind an image in this published node experiment" });
+      issue(ctx, "cover must bind an image in this published node experiment");
   }
+}
+function recordEscapesExperiment(record, experiment, experimentKey, recordKeys, caseIds, metrics) {
+  return recordKeys.has(refIdentity(record.recordRef)) || caseIds.has(record.caseId) || refIdentity(record.experimentRef) !== experimentKey || refIdentity(record.nodeRef) !== refIdentity(experiment.nodeRef) || refIdentity(record.windowRef) !== refIdentity(experiment.conditions.window.sourceRef) || refIdentity(record.measurementRef) !== refIdentity(experiment.conditions.measurement.sourceRef) || Object.keys(record.values).some((metric) => !metrics.has(metric));
+}
+function validateRecords(detail, experiment, experimentKey, ctx) {
+  if (detail.records.length !== experiment.recordCount)
+    issue(ctx, "detail must disclose its complete declared record set");
+  const recordKeys = /* @__PURE__ */ new Set();
+  const caseIds = /* @__PURE__ */ new Set();
+  const metrics = new Set(experiment.metrics.map((metric) => metric.key));
+  for (const record of detail.records) {
+    const recordKey = refIdentity(record.recordRef);
+    if (recordEscapesExperiment(record, experiment, experimentKey, recordKeys, caseIds, metrics))
+      issue(ctx, "record identity, window or measurement escaped its experiment");
+    recordKeys.add(recordKey);
+    caseIds.add(record.caseId);
+  }
+}
+function validateDetails(review, experiments, ctx) {
   const detailKeys = /* @__PURE__ */ new Set();
   for (const detail of review.details) {
     const key = refIdentity(detail.experimentRef);
     const experiment = experiments.get(key);
     if (!experiment || refIdentity(experiment.nodeRef) !== refIdentity(detail.nodeRef) || detailKeys.has(key)) {
-      ctx.addIssue({ code: "custom", message: "detail must bind one exact published experiment" });
+      issue(ctx, "detail must bind one exact published experiment");
       continue;
     }
     detailKeys.add(key);
-    if (detail.status !== "resolved") continue;
-    if (detail.records.length !== experiment.recordCount)
-      ctx.addIssue({ code: "custom", message: "detail must disclose its complete declared record set" });
-    const recordKeys = /* @__PURE__ */ new Set();
-    const caseIds = /* @__PURE__ */ new Set();
-    const metrics = new Set(experiment.metrics.map((metric) => metric.key));
-    for (const record of detail.records) {
-      const recordKey = refIdentity(record.recordRef);
-      if (recordKeys.has(recordKey) || caseIds.has(record.caseId) || refIdentity(record.experimentRef) !== key || refIdentity(record.nodeRef) !== refIdentity(experiment.nodeRef) || refIdentity(record.windowRef) !== refIdentity(experiment.conditions.window.sourceRef) || refIdentity(record.measurementRef) !== refIdentity(experiment.conditions.measurement.sourceRef) || Object.keys(record.values).some((metric) => !metrics.has(metric)))
-        ctx.addIssue({ code: "custom", message: "record identity, window or measurement escaped its experiment" });
-      recordKeys.add(recordKey);
-      caseIds.add(record.caseId);
-    }
+    if (detail.status === "resolved") validateRecords(detail, experiment, key, ctx);
   }
 }
+function validateExplorationExperiments(review, ctx) {
+  const nodes = new Set(review.nodes.map((node2) => refIdentity(node2.nodeRef)));
+  const experiments = new Map(
+    review.experiments.map((experiment) => [refIdentity(experiment.experimentRef), experiment])
+  );
+  validateExperimentCatalog(review, nodes, experiments, ctx);
+  validatePreviews(review, experiments, ctx);
+  validateDetails(review, experiments, ctx);
+}
+
+// ../shared/src/types/capability-evolution-exploration.ts
+var HARNESS_HISTORY_IGNORED_FIELD_PATH_MAX_LENGTH = 1e3;
+var HARNESS_HISTORY_IGNORED_FIELD_PATH_MAX_COUNT = 512;
+var exact3 = evolutionExplorationRefSchema;
+var readExact2 = evolutionExplorationReadRefSchema;
+var readNodeRef2 = evolutionExplorationReadNodeRefSchema;
+var readOwnerRef = evolutionExplorationReadOwnerRefSchema;
+var readSelectionSchema = external_exports.object({
+  selectedSourceRef: readExact2.optional(),
+  selectedNodeRef: readNodeRef2.optional(),
+  selectedExperimentRef: readExact2.optional(),
+  comparisonExperimentRef: readExact2.optional()
+}).strip();
+var readBlockerSchema = external_exports.object({ code: bounded(120), ownerRef: readOwnerRef }).strip();
+var baseNode = {
+  nodeRef: readExact2,
+  title: bounded(240),
+  summary: bounded(4e3),
+  /** Stable authored article body; old adapters continue to use summary + changes. */
+  bodyMarkdown: bounded(2e4).optional(),
+  sourceRef: readOwnerRef,
+  sources: external_exports.array(evolutionExplorationSourceSchema).max(32).optional(),
+  changes: external_exports.array(
+    external_exports.object({
+      label: bounded(240),
+      detail: bounded(2e3),
+      sourceRef: readExact2,
+      ownerHref: evolutionOwnerHrefSchema.optional()
+    }).strip()
+  ).max(32),
+  parentEdges: external_exports.array(
+    external_exports.object({
+      parentNodeRef: readNodeRef2,
+      sourceRef: readOwnerRef,
+      description: bounded(2e3).optional()
+    }).strip()
+  ).max(32),
+  /** A publisher-bound cover frame; fetching bytes still uses exact Program/experiment/record guards. */
+  preview: external_exports.object({ experimentRef: readExact2, recordRef: readExact2, media: evolutionExplorationMediaSchema }).strip().optional()
+};
+var evolutionExplorationNodeSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    ...baseNode,
+    kind: external_exports.literal("owner_version"),
+    nodeRef: evolutionExplorationReadAssetRefSchema,
+    versionRef: evolutionExplorationReadAssetRefSchema
+  }).strip(),
+  external_exports.object({
+    ...baseNode,
+    kind: external_exports.literal("public_archive"),
+    /** Source-declared historical reading; absence keeps the experiment presentation. */
+    history: external_exports.object({ period: bounded(80), updatedThrough: external_exports.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strip().optional()
+  }).strip()
+]);
+var evolutionExplorationExperimentSchema = external_exports.object({
+  experimentRef: readExact2,
+  nodeRef: readNodeRef2,
+  sourceRef: readExact2,
+  title: bounded(240),
+  status: external_exports.enum(["recorded", "partial", "running", "failed", "unknown"]),
+  recordCount: external_exports.number().int().min(0).max(128),
+  conditions: evolutionExplorationConditionsSchema,
+  metrics: external_exports.array(evolutionExplorationMetricSchema).max(24)
+}).strip();
+var evolutionExplorationDetailSchema = external_exports.discriminatedUnion("status", [
+  evolutionExplorationReadFailureSchema.extend({
+    experimentRef: readExact2,
+    nodeRef: readNodeRef2
+  }).strip(),
+  external_exports.object({
+    status: external_exports.literal("resolved"),
+    experimentRef: readExact2,
+    nodeRef: readNodeRef2,
+    records: external_exports.array(evolutionExplorationRecordSchema).max(128)
+  }).strip()
+]);
+var evolutionExplorationSelectionSchema = external_exports.object({
+  selectedSourceRef: exact3.optional(),
+  selectedNodeRef: evolutionExplorationNodeRefSchema.optional(),
+  selectedExperimentRef: exact3.optional(),
+  comparisonExperimentRef: exact3.optional()
+}).strict();
+var evolutionExplorationRequestV1Schema = evolutionExplorationSelectionSchema.extend({
+  programRef: ownerTruthRefV1Schema,
+  objectRef: ownerTruthRefV1Schema
+}).strict();
+var evolutionArchiveVersionSchema = external_exports.object({
+  ref: readExact2,
+  sourceRevision: bounded(240),
+  revision: external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  bundled: external_exports.boolean(),
+  occurredAt: timestampSchema.optional(),
+  actorRef: bounded(240).optional(),
+  reason: bounded(1e3).optional()
+}).strip();
+var evolutionArchivePublicationSchema = external_exports.object({
+  revision: external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  current: evolutionArchiveVersionSchema,
+  selected: evolutionArchiveVersionSchema,
+  attempts: external_exports.array(
+    external_exports.object({
+      revision: external_exports.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      action: bounded(80),
+      status: external_exports.enum(["published", "failed"]),
+      actorRef: bounded(240),
+      originRef: bounded(2e3),
+      reason: bounded(1e3),
+      occurredAt: timestampSchema,
+      failureCode: bounded(240).optional(),
+      ignoredFieldPaths: external_exports.array(bounded(HARNESS_HISTORY_IGNORED_FIELD_PATH_MAX_LENGTH)).max(HARNESS_HISTORY_IGNORED_FIELD_PATH_MAX_COUNT).optional()
+    }).strip()
+  ).max(50),
+  hasMore: external_exports.boolean(),
+  selectionUpdate: external_exports.object({
+    kind: external_exports.enum(["unchanged", "modified", "moved", "removed", "legacy"]),
+    nextSelection: readSelectionSchema.optional()
+  }).strip().optional()
+}).strip();
+var evolutionExplorationMediaRequestV1Schema = external_exports.object({
+  programRef: ownerTruthRefV1Schema,
+  objectRef: ownerTruthRefV1Schema,
+  experimentRef: exact3,
+  recordRef: exact3,
+  mediaRef: exact3
+}).strict();
+var envelope2 = { schemaVersion: external_exports.literal(1), programRef: readOwnerRef, objectRef: readOwnerRef };
+var blockers = external_exports.array(readBlockerSchema).max(64);
+var reviewSchema = external_exports.discriminatedUnion("status", [
+  external_exports.object({
+    ...envelope2,
+    status: external_exports.enum(["unavailable", "invalid"]),
+    blockers: blockers.min(1),
+    recoverySelection: readSelectionSchema.optional()
+  }).strip(),
+  external_exports.object({
+    ...envelope2,
+    status: external_exports.literal("resolved"),
+    sourceRef: readOwnerRef,
+    readAt: timestampSchema,
+    /** Optional owner-authored orientation for a published exploration or historical story. */
+    overview: bounded(1e3).optional(),
+    /** Stable Markdown orientation authored by the source owner. */
+    overviewMarkdown: bounded(2e4).optional(),
+    publication: evolutionArchivePublicationSchema.optional(),
+    nodes: external_exports.array(evolutionExplorationNodeSchema).max(512),
+    experiments: external_exports.array(evolutionExplorationExperimentSchema).max(512),
+    details: external_exports.array(evolutionExplorationDetailSchema).max(2),
+    blockers
+  }).strip()
+]);
 var evolutionExplorationReviewV1Schema = reviewSchema.superRefine((review, ctx) => {
   if (review.status !== "resolved") return;
   if (review.publication && (refIdentity(review.publication.selected.ref) !== refIdentity(review.sourceRef) || review.publication.selectionUpdate?.nextSelection && (!review.publication.selectionUpdate.nextSelection.selectedSourceRef || refIdentity(review.publication.selectionUpdate.nextSelection.selectedSourceRef) !== refIdentity(review.publication.current.ref))))
     ctx.addIssue({ code: "custom", message: "archive publication must bind its exact selected and target sources" });
-  validateNodes(review, ctx);
-  validateExperiments(review, ctx);
+  validateExplorationNodes(review, ctx);
+  validateExplorationExperiments(review, ctx);
 });
 
 // ../shared/src/types/capability-evolution-message-source.ts
@@ -46962,7 +47031,7 @@ var CONNECTOR_DEFINITIONS = [
   },
   {
     id: "system-command",
-    displayName: "Clowder AI",
+    displayName: "Cat Caf\xE9",
     icon: { type: "svg", iconId: "settings" },
     themeColor: "#6B7280",
     description: "\u7CFB\u7EDF\u547D\u4EE4\u54CD\u5E94"
@@ -47661,7 +47730,8 @@ var harnessHistoryPublicationAttemptSchema = external_exports.object({
   originRef: bounded(2e3),
   reason: bounded(1e3),
   occurredAt: timestampSchema,
-  failureCode: harnessHistoryFailureCodeSchema.optional()
+  failureCode: harnessHistoryFailureCodeSchema.optional(),
+  ignoredFieldPaths: external_exports.array(bounded(HARNESS_HISTORY_IGNORED_FIELD_PATH_MAX_LENGTH)).max(HARNESS_HISTORY_IGNORED_FIELD_PATH_MAX_COUNT).optional()
 }).strict().superRefine((attempt, ctx) => {
   if (attempt.status === "published" && (!attempt.sourceRevision || attempt.failureCode))
     ctx.addIssue({ code: "custom", message: "a successful publication requires its immutable source" });
@@ -47888,7 +47958,7 @@ var memoryRecallFrameV0Schema = external_exports.object({
   requireRefs("application", "not_observed");
   requireRefs("outcome", "not_observed");
   requireRefs("invalidation", "none_observed");
-  const sourceKeys = value.sourceRefs.map((source4) => `${source4.sourceRef}\0${source4.sourceRevision}`);
+  const sourceKeys = value.sourceRefs.map((source3) => `${source3.sourceRef}\0${source3.sourceRevision}`);
   if (new Set(sourceKeys).size !== sourceKeys.length) {
     ctx.addIssue({
       code: external_exports.ZodIssueCode.custom,
@@ -47965,7 +48035,7 @@ var lessonConsumptionReplayV1Schema = external_exports.object({
   receipt: memoryRecallFrameV0Schema,
   recurrenceOutcome: recurrenceOutcomeSchema
 }).strict().superRefine((value, ctx) => {
-  const { receipt: receipt2, predicate, source: source4, recurrenceOutcome } = value;
+  const { receipt: receipt2, predicate, source: source3, recurrenceOutcome } = value;
   if (receipt2.trigger.kind !== "typed_event" || receipt2.trigger.eventKind !== predicate.eventKind || receipt2.predicateRevision !== predicate.revision) {
     ctx.addIssue({
       code: external_exports.ZodIssueCode.custom,
@@ -47973,9 +48043,9 @@ var lessonConsumptionReplayV1Schema = external_exports.object({
       message: "receipt must bind the exact typed predicate revision"
     });
   }
-  const expectedSourceRef = `lesson://${source4.lessonRef}`;
+  const expectedSourceRef = `lesson://${source3.lessonRef}`;
   const expectedEligibilityRef = `lesson-predicate://${predicate.revision}`;
-  const sourceBound = receipt2.sourceRefs.length === 1 && receipt2.sourceRefs[0]?.sourceRef === expectedSourceRef && receipt2.sourceRefs[0]?.sourceRevision === source4.lessonRevision && receipt2.sourceRefs[0]?.authorityRef === source4.canonicalRef && receipt2.sourceRefs[0]?.eligibilityRef === expectedEligibilityRef;
+  const sourceBound = receipt2.sourceRefs.length === 1 && receipt2.sourceRefs[0]?.sourceRef === expectedSourceRef && receipt2.sourceRefs[0]?.sourceRevision === source3.lessonRevision && receipt2.sourceRefs[0]?.authorityRef === source3.canonicalRef && receipt2.sourceRefs[0]?.eligibilityRef === expectedEligibilityRef;
   if (!sourceBound) {
     ctx.addIssue({
       code: external_exports.ZodIssueCode.custom,
@@ -49019,7 +49089,7 @@ var personMemoryAssertionBindingSchema = external_exports.object({
   role: personMemoryAssertionRoleSchema
 }).strict();
 function validateSourceBundleReferences(sources, bindings, ctx) {
-  const sourceIds = sources.map((source4) => source4.sourceId);
+  const sourceIds = sources.map((source3) => source3.sourceId);
   if (new Set(sourceIds).size !== sourceIds.length) {
     ctx.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["sources"], message: "source IDs must be unique" });
   }
@@ -49468,11 +49538,11 @@ function requiredInteractionEvidenceFields(payload) {
   ];
 }
 function validateInteractionEvidenceCoverage(payload, sources, ctx) {
-  const sourceIds = sources.map((source4) => source4.messageId ?? source4.sourceRef?.messageId);
+  const sourceIds = sources.map((source3) => source3.messageId ?? source3.sourceRef?.messageId);
   if (new Set(sourceIds).size !== sourceIds.length) {
     addCandidateIssue(ctx, ["sources"], "interaction evidence message IDs must be unique and ordered");
   }
-  const supported = new Set(sources.flatMap((source4) => source4.supports));
+  const supported = new Set(sources.flatMap((source3) => source3.supports));
   for (const field of requiredInteractionEvidenceFields(payload)) {
     if (!supported.has(field)) {
       addCandidateIssue(ctx, ["sources"], `interaction field ${field} requires source evidence`);
@@ -49646,7 +49716,7 @@ function validateResolvedCandidateBinding(binding, path2, claims, sourceKinds, c
 function validateResolvedCandidateAssertionMatrix(value, ctx) {
   if (!value.sourceBundle) return;
   const claims = new Map(value.claimDrafts.map((draft) => [draft.draftId, draft]));
-  const sourceKinds = new Map(value.sourceBundle.sources.map((source4) => [source4.sourceId, source4.kind]));
+  const sourceKinds = new Map(value.sourceBundle.sources.map((source3) => [source3.sourceId, source3.kind]));
   for (const [index4, binding] of value.sourceBundle.assertionBindings.entries()) {
     validateResolvedCandidateBinding(binding, ["sourceBundle", "assertionBindings", index4], claims, sourceKinds, ctx);
   }
@@ -51008,7 +51078,7 @@ var approvalSourceItemSchema = external_exports.object({
     resolution: item.resolution,
     materialization: item.materialization
   });
-  if (!lifecycle.success) for (const issue of lifecycle.error.issues) ctx.addIssue(issue);
+  if (!lifecycle.success) for (const issue2 of lifecycle.error.issues) ctx.addIssue(issue2);
 });
 var unifiedAttentionApprovalsSourceSchema = external_exports.object({
   coverage: sourceCoverageSchema.optional(),
@@ -51243,8 +51313,8 @@ var videoProjectSegmentSchema = external_exports.object({
       });
     }
   });
-  for (const issue of assetSwitchSequenceIssues(segment)) {
-    ctx.addIssue({ code: "custom", path: ["visuals", issue.visualIndex, issue.field], message: issue.message });
+  for (const issue2 of assetSwitchSequenceIssues(segment)) {
+    ctx.addIssue({ code: "custom", path: ["visuals", issue2.visualIndex, issue2.field], message: issue2.message });
   }
 });
 var videoProjectEventSchema = external_exports.object({
@@ -51305,11 +51375,11 @@ var videoProjectDocumentBaseSchema = external_exports.object({
 
 // ../shared/src/types/video-project-references.ts
 function refineVideoProjectReferences(document4, ctx) {
-  const issue = (path2, message) => ctx.addIssue({ code: "custom", path: path2, message });
+  const issue2 = (path2, message) => ctx.addIssue({ code: "custom", path: path2, message });
   const uniqueIds = (items, path2) => {
     const ids2 = /* @__PURE__ */ new Set();
     items.forEach((item, index4) => {
-      if (ids2.has(item.id)) issue([...path2, index4, "id"], "ID must be unique");
+      if (ids2.has(item.id)) issue2([...path2, index4, "id"], "ID must be unique");
       ids2.add(item.id);
     });
     return ids2;
@@ -51317,8 +51387,8 @@ function refineVideoProjectReferences(document4, ctx) {
   const references = (values, allowed, path2) => {
     const seen = /* @__PURE__ */ new Set();
     values.forEach((value, index4) => {
-      if (!allowed.has(value)) issue([...path2, index4], "Reference is not in this project");
-      if (seen.has(value)) issue([...path2, index4], "Reference must be unique");
+      if (!allowed.has(value)) issue2([...path2, index4], "Reference is not in this project");
+      if (seen.has(value)) issue2([...path2, index4], "Reference must be unique");
       seen.add(value);
     });
   };
@@ -51333,7 +51403,7 @@ function refineVideoProjectReferences(document4, ctx) {
   document4.assets.forEach((asset, assetIndex) => {
     asset.versions.forEach((version, versionIndex) => {
       if (versionIds.has(version.id))
-        issue(["assets", assetIndex, "versions", versionIndex, "id"], "Asset version ID must be globally unique");
+        issue2(["assets", assetIndex, "versions", versionIndex, "id"], "Asset version ID must be globally unique");
       versionIds.add(version.id);
     });
   });
@@ -51343,7 +51413,7 @@ function refineVideoProjectReferences(document4, ctx) {
     if (segment.sceneId !== void 0) references([segment.sceneId], sceneIds, [...path2, "sceneId"]);
     segment.visuals.forEach((visual, visualIndex) => {
       const visualPath = [...path2, "visuals", visualIndex];
-      if (visualIds.has(visual.id)) issue([...visualPath, "id"], "Visual usage ID must be globally unique");
+      if (visualIds.has(visual.id)) issue2([...visualPath, "id"], "Visual usage ID must be globally unique");
       visualIds.add(visual.id);
       if (visual.assetVersionRef !== void 0)
         references([visual.assetVersionRef], versionIds, [...visualPath, "assetVersionRef"]);
@@ -51367,10 +51437,10 @@ function refineVideoProjectReferences(document4, ctx) {
     if (result.kind === "sheet") references(result.assetVersionRefs, versionIds, [...path2, "assetVersionRefs"]);
     else {
       references([result.coveredByPageId], pageIds, [...path2, "coveredByPageId"]);
-      if (result.pageId === result.coveredByPageId) issue([...path2, "coveredByPageId"], "A page cannot cover itself");
+      if (result.pageId === result.coveredByPageId) issue2([...path2, "coveredByPageId"], "A page cannot cover itself");
     }
   });
-  refineCoverageCycles(document4, issue);
+  refineCoverageCycles(document4, issue2);
   document4.decisions.forEach((decision, index4) => {
     const path2 = ["decisions", index4];
     references(decision.targets.sceneIds, sceneIds, [...path2, "targets", "sceneIds"]);
@@ -51383,12 +51453,12 @@ function refineVideoProjectReferences(document4, ctx) {
     const operationIds = /* @__PURE__ */ new Set();
     decision.history.forEach((event, eventIndex) => {
       if (operationIds.has(event.operationId))
-        issue([...path2, "history", eventIndex, "operationId"], "Decision history operation must be unique");
+        issue2([...path2, "history", eventIndex, "operationId"], "Decision history operation must be unique");
       operationIds.add(event.operationId);
     });
   });
 }
-function refineCoverageCycles(document4, issue) {
+function refineCoverageCycles(document4, issue2) {
   const snapshots = /* @__PURE__ */ new Map();
   document4.checkResults.forEach((result) => {
     if (result.kind !== "coveredBy") return;
@@ -51401,20 +51471,20 @@ function refineCoverageCycles(document4, issue) {
   });
   for (const edges of snapshots.values()) {
     if (coverageGraphHasCycle(edges))
-      issue(["checkResults"], "Same-scene coverage must not form a cycle within an input revision");
+      issue2(["checkResults"], "Same-scene coverage must not form a cycle within an input revision");
   }
 }
 function coverageGraphHasCycle(edges) {
   const indegrees = /* @__PURE__ */ new Map();
-  for (const [source4, targets] of edges) {
-    if (!indegrees.has(source4)) indegrees.set(source4, 0);
+  for (const [source3, targets] of edges) {
+    if (!indegrees.has(source3)) indegrees.set(source3, 0);
     for (const target of targets) indegrees.set(target, (indegrees.get(target) ?? 0) + 1);
   }
   const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id27]) => id27);
   let visited = 0;
-  for (const source4 of pending) {
+  for (const source3 of pending) {
     visited++;
-    for (const target of edges.get(source4) ?? []) {
+    for (const target of edges.get(source3) ?? []) {
       const degree = (indegrees.get(target) ?? 0) - 1;
       indegrees.set(target, degree);
       if (degree === 0) pending.push(target);
@@ -51662,7 +51732,7 @@ function CollectiveScopeRecovery({
 }
 
 // src/CollectiveWorkspace.tsx
-var import_react68 = __toESM(require_react(), 1);
+var import_react69 = __toESM(require_react(), 1);
 
 // ../ui/src/AppTooltip.tsx
 var import_react2 = __toESM(require_react(), 1);
@@ -51931,7 +52001,7 @@ var en = {
   \u53EA: "cats",
   \u6211\u5BB6\u7684\u732B\u5728\u8FD9\u4E2A\u9891\u9053: "My cats in this channel",
   "\u76EE\u6807\u5171\u540C\u5BB6\u56ED\u9700\u8981\u91CD\u65B0\u767B\u5F55\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u5207\u6362\u5230\u5176\u4ED6\u5171\u540C\u5BB6\u56ED\u3002": "Sign in again to open this collective. Your selected collective stays unchanged.",
-  "Clowder AI \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026": "Clowder AI is securely saving connection credentials\u2026",
+  "Cat Caf\xE9 \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026": "Cat Caf\xE9 is securely saving connection credentials\u2026",
   \u63A8\u8FDB: "is progressing",
   \u5173\u6389: "Turn off",
   \u53D6\u6D88: "Cancel",
@@ -52069,7 +52139,7 @@ var en = {
   "Collective \u9080\u8BF7": "Collective invitation",
   \u52A0\u5165\u5171\u540C\u4F53: "Join the collective",
   "\u4F7F\u7528 GitHub \u9A8C\u8BC1\u5E76\u52A0\u5165": "Verify with GitHub and join",
-  "\u5148\u9A8C\u8BC1\u4F60\u7684 Human \u8EAB\u4EFD\uFF0C\u518D\u63A5\u53D7\u8FD9\u6B21\u9080\u8BF7\u3002Clowder AI endpoint \u7684\u8FDE\u63A5\u4E0E\u64A4\u9500\u4ECD\u72EC\u7ACB\u7BA1\u7406\u3002": "Verify your identity before accepting this invitation. Caf\xE9 connections remain separately managed.",
+  "\u5148\u9A8C\u8BC1\u4F60\u7684 Human \u8EAB\u4EFD\uFF0C\u518D\u63A5\u53D7\u8FD9\u6B21\u9080\u8BF7\u3002Cat Caf\xE9 endpoint \u7684\u8FDE\u63A5\u4E0E\u64A4\u9500\u4ECD\u72EC\u7ACB\u7BA1\u7406\u3002": "Verify your identity before accepting this invitation. Caf\xE9 connections remain separately managed.",
   \u4E00\u6B21\u6027\u521D\u59CB\u5316: "Initial setup",
   \u521B\u5EFA\u8FD9\u91CC\u7684\u7B2C\u4E00\u4F4D\u7BA1\u7406\u8005: "Create the first steward",
   \u4F60\u5E0C\u671B\u663E\u793A\u7684\u540D\u5B57: "Your display name",
@@ -52492,8 +52562,8 @@ function createHostAppearance(input) {
     return true;
   };
   const onMessage = (event) => {
-    const { origin, source: source4, data } = event;
-    receive({ origin, source: source4, data });
+    const { origin, source: source3, data } = event;
+    receive({ origin, source: source3, data });
   };
   if (input.hostOrigin) input.target?.addEventListener("message", onMessage);
   return {
@@ -53055,9 +53125,9 @@ function appendSharedAnnotationPage(view, page3) {
   expanded.view.review.annotations.push(...page3.view.review.annotations);
   expanded.view.review.sourceHistory = [
     ...new Map(
-      [...view.view.review.sourceHistory ?? [], ...page3.view.review.sourceHistory ?? []].map((source4) => [
-        source4.revision,
-        source4
+      [...view.view.review.sourceHistory ?? [], ...page3.view.review.sourceHistory ?? []].map((source3) => [
+        source3.revision,
+        source3
       ])
     ).values()
   ];
@@ -53484,7 +53554,7 @@ async function sendSharedAnnotationReply(request, operation, namespace, input) {
   if (pending.conflict) pending.revision = view.view.review.revision;
   pending.conflict = false;
   localStorage.setItem(key, JSON.stringify(pending));
-  const source4 = await request("/api/events/human", {
+  const source3 = await request("/api/events/human", {
     method: "POST",
     body: JSON.stringify({
       serviceInstanceId: artifact.serviceInstanceId,
@@ -53507,7 +53577,7 @@ async function sendSharedAnnotationReply(request, operation, namespace, input) {
         {
           kind: "review-action",
           expectedReviewRevision: pending.revision,
-          action: { kind: "reply", annotationId: reply.annotationId, messageEventId: source4.eventId }
+          action: { kind: "reply", annotationId: reply.annotationId, messageEventId: source3.eventId }
         },
         `reply:${pending.id}`,
         view.ownerRevision
@@ -55884,11 +55954,11 @@ function addChildren(props, children) {
     }
   }
 }
-function productionCreate(_, jsx86, jsxs77) {
+function productionCreate(_, jsx88, jsxs79) {
   return create2;
   function create2(_2, type, props, key) {
     const isStaticChildren = Array.isArray(props.children);
-    const fn = isStaticChildren ? jsxs77 : jsx86;
+    const fn = isStaticChildren ? jsxs79 : jsx88;
     return key ? fn(type, props, key) : fn(type, props);
   }
 }
@@ -56580,20 +56650,20 @@ function tableCell(state, node2) {
 var tab = 9;
 var space = 32;
 function trimLines(value) {
-  const source4 = String(value);
+  const source3 = String(value);
   const search2 = /\r?\n|\r/g;
-  let match = search2.exec(source4);
+  let match = search2.exec(source3);
   let last = 0;
   const lines = [];
   while (match) {
     lines.push(
-      trimLine(source4.slice(last, match.index), last > 0, true),
+      trimLine(source3.slice(last, match.index), last > 0, true),
       match[0]
     );
     last = match.index + match[0].length;
-    match = search2.exec(source4);
+    match = search2.exec(source3);
   }
-  lines.push(trimLine(source4.slice(last), last > 0, false));
+  lines.push(trimLine(source3.slice(last), last > 0, false));
   return lines.join("");
 }
 function trimLine(value, start2, end) {
@@ -56712,8 +56782,8 @@ var deserializer = ($, _) => {
       case DATE:
         return as(new Date(value), index4);
       case REGEXP: {
-        const { source: source4, flags } = value;
-        return as(new RegExp(source4, flags), index4);
+        const { source: source3, flags } = value;
+        return as(new RegExp(source3, flags), index4);
       }
       case MAP: {
         const map3 = as(/* @__PURE__ */ new Map(), index4);
@@ -56849,8 +56919,8 @@ var serializer = (strict, json, $, _) => {
       case DATE:
         return as([TYPE, value.toISOString()], value);
       case REGEXP: {
-        const { source: source4, flags } = value;
-        return as([TYPE, { source: source4, flags }], value);
+        const { source: source3, flags } = value;
+        return as([TYPE, { source: source3, flags }], value);
       }
       case MAP: {
         const entries = [];
@@ -57931,7 +58001,7 @@ function AuthenticatedWorkResultFile({ href, children }) {
   ] });
 }
 function MessageMarkdown({
-  source: source4,
+  source: source3,
   prefix,
   sourceCoordinates = false
 }) {
@@ -57964,7 +58034,7 @@ function MessageMarkdown({
           },
           img: ({ alt }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "message-markdown-inert-image", children: alt ? `\u56FE\u7247\uFF1A${alt}` : "\u56FE\u7247" })
         },
-        children: source4
+        children: source3
       }
     )
   ] });
@@ -59486,10 +59556,10 @@ function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
   const reading = useSharedArtifactReading();
   const annotations = reading?.view?.view.review.annotations.filter((annotation) => annotation.collectiveMessage?.eventId === eventId2) ?? [];
   const requests = reading?.view?.modifications?.requests.filter((request) => request.requestEventId === eventId2) ?? [];
-  const source4 = shared?.sourceMessage(eventId2);
+  const source3 = shared?.sourceMessage(eventId2);
   const receipts = useSharedArtifactRequestReceipt(
     eventId2,
-    source4?.actor.kind === "human" && source4.recipient?.kind === "agent"
+    source3?.actor.kind === "human" && source3.recipient?.kind === "agent"
   );
   if (!annotations.length && !requests.length && !receipts.length) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "shared-artifact-message-feedback", children: [
@@ -63616,8 +63686,8 @@ function SharedArtifactAnnotations({
     ] }),
     view.view.review.annotations.map((annotation, index4) => {
       const status = view.view.annotationResolutions?.find((item) => item.annotationId === annotation.id)?.status;
-      const source4 = annotation.collectiveMessage;
-      const original = source4?.ownerRevision;
+      const source3 = annotation.collectiveMessage;
+      const original = source3?.ownerRevision;
       const orphaned = status === "orphaned" || status === "ambiguous";
       return /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("article", { children: [
         /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("header", { children: [
@@ -63637,14 +63707,14 @@ function SharedArtifactAnnotations({
             original,
             " \u7248\u67E5\u770B"
           ] }),
-          artifact && source4 && /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)(import_jsx_runtime63.Fragment, { children: [
+          artifact && source3 && /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)(import_jsx_runtime63.Fragment, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(
               "button",
               {
                 type: "button",
                 onClick: () => {
                   shared?.close();
-                  shared?.returnToSource?.(source4.channelId, source4.eventId);
+                  shared?.returnToSource?.(source3.channelId, source3.eventId);
                 },
                 children: "\u5728\u539F\u8BA8\u8BBA\u67E5\u770B"
               }
@@ -63654,13 +63724,13 @@ function SharedArtifactAnnotations({
               {
                 type: "button",
                 onClick: () => {
-                  shared?.open(artifact, source4.ownerRevision);
+                  shared?.open(artifact, source3.ownerRevision);
                   reading?.setReply({
                     artifactId: artifact.artifactId,
-                    ownerRevision: source4.ownerRevision,
-                    blobDigest: source4.blobDigest,
+                    ownerRevision: source3.ownerRevision,
+                    blobDigest: source3.blobDigest,
                     annotationId: annotation.id,
-                    messageEventId: source4.eventId,
+                    messageEventId: source3.eventId,
                     authorHumanId: annotation.author.actorId
                   });
                   onOpenDiscussion();
@@ -63682,7 +63752,7 @@ function SharedArtifactAnnotations({
 var import_react46 = __toESM(require_react(), 1);
 
 // src/shared-markdown-selection.ts
-function sharedMarkdownDomSelection(paper, event, source4) {
+function sharedMarkdownDomSelection(paper, event, source3) {
   if (!(event.target instanceof Node) || !paper.contains(event.target)) return void 0;
   const selection = window.getSelection();
   if (!selection || !selection.rangeCount || selection.isCollapsed) return void 0;
@@ -63692,10 +63762,10 @@ function sharedMarkdownDomSelection(paper, event, source4) {
   const element3 = node2 instanceof Element ? node2 : node2.parentElement;
   const block = element3?.closest("[data-source-start]");
   const bounds = block ? { start: Number(block.dataset.sourceStart), end: Number(block.dataset.sourceEnd) } : void 0;
-  return resolveSharedMarkdownSelection(source4, selection.toString(), bounds);
+  return resolveSharedMarkdownSelection(source3, selection.toString(), bounds);
 }
-function resolveSharedMarkdownSelection(source4, selectedText, bounds = { start: 0, end: source4.length }) {
-  const raw = source4.slice(bounds.start, bounds.end);
+function resolveSharedMarkdownSelection(source3, selectedText, bounds = { start: 0, end: source3.length }) {
+  const raw = source3.slice(bounds.start, bounds.end);
   if (findGeneratedTextConstructs(raw).length) return null;
   const projection = projectMarkdownReadableTextWithSourceMap(raw);
   const selected = selectedText.trim().replace(/\s+/gu, " ");
@@ -64723,9 +64793,9 @@ function ChannelScene(props) {
       const sourceChannel = eventChannelId(event);
       onOpenChannel?.(sourceChannel ?? channelId, event.eventId);
       requestAnimationFrame(() => {
-        const source4 = document.getElementById(`collective-event-${event.eventId}`);
-        source4?.scrollIntoView({ block: "center" });
-        source4?.focus({ preventScroll: true });
+        const source3 = document.getElementById(`collective-event-${event.eventId}`);
+        source3?.scrollIntoView({ block: "center" });
+        source3?.focus({ preventScroll: true });
       });
     },
     [channelId, onOpenChannel, shared?.close]
@@ -65865,8 +65935,339 @@ function useFirstEntryGuide(input) {
   };
 }
 
-// src/CollectiveWorldRail.tsx
+// src/LeaveCollectiveDialog.tsx
+var import_react61 = __toESM(require_react(), 1);
+
+// src/LeaveResponsibilityGroups.tsx
 var import_jsx_runtime80 = __toESM(require_jsx_runtime(), 1);
+function LeaveResponsibilityGroups({
+  readiness,
+  onOpenWork,
+  onOpenProject,
+  onOpenArtifact,
+  onOpenMembers
+}) {
+  const { works, roadmaps, artifacts } = readiness.responsibilities;
+  const knownCount = Number(readiness.governanceHandoffRequired) + works.length + roadmaps.length + artifacts.items.length + artifacts.inaccessibleCount;
+  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-groups", children: [
+    readiness.governanceHandoffRequired && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(ResponsibilityGroup, { title: "\u7BA1\u7406\u5458", children: /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-static", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { children: "\u4F60\u662F\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u7BA1\u7406\u5458" }),
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: "\u8981\u5148\u628A\u7BA1\u7406\u5458\u4EA4\u7ED9\u522B\u4EBA\u624D\u80FD\u79BB\u5F00\u3002\u4EA4\u63A5\u7BA1\u7406\u5458\u73B0\u5728\u8FD8\u6CA1\u6709\u5165\u53E3\u3002" })
+    ] }) }),
+    works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(
+      ResponsibilityGroup,
+      {
+        title: `\u4F60\u8D1F\u8D23\u7684\u4EFB\u52A1 ${works.length}`,
+        description: "\u53EF\u4EE5\u5B8C\u6210\u3001\u53D6\u6D88\uFF0C\u6216\u5728\u90A3\u91CC\u8BF7\u522B\u4EBA\u63A5\u624B\u8D1F\u8D23\u3002",
+        children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-row", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("span", { className: "leave-status-dot", "data-tone": workStatusTone(work2.status), "aria-hidden": "true" }),
+          /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { className: "leave-responsibility-copy", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { title: work2.title, children: work2.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+              workProjectLabel(work2),
+              " \xB7 # ",
+              work2.source.location.channelId,
+              " \xB7 ",
+              workStatusLabel2(work2.status)
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: () => onOpenWork(work2), children: "\u53BB\u5904\u7406 \u203A" })
+        ] }, work2.workId))
+      }
+    ),
+    roadmaps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(ResponsibilityGroup, { title: `\u4F60\u8D1F\u8D23\u7684\u9879\u76EE ${roadmaps.length}`, children: roadmaps.map((project) => /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-row", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("span", { className: "leave-status-dot", "data-tone": "info", "aria-hidden": "true" }),
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { className: "leave-responsibility-copy", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { title: project.title, children: project.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+          "# ",
+          project.source.location.channelId,
+          " \xB7 \u8FDB\u884C\u4E2D"
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: () => onOpenProject(project), children: "\u53BB\u9879\u76EE \u203A" })
+    ] }, project.roadmapId)) }),
+    (artifacts.items.length > 0 || artifacts.inaccessibleCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(
+      ResponsibilityGroup,
+      {
+        title: `\u4F60\u5BB6\u4FDD\u7BA1\u7684\u4F5C\u54C1 ${artifacts.items.length + artifacts.inaccessibleCount}`,
+        description: artifacts.items.some((item) => item.kind === "artifact") ? "\u6253\u5F00\u4F5C\u54C1\u540E\uFF0C\u53EF\u5728\u300C\u6743\u9650\u4E0E\u4FDD\u7BA1\u300D\u91CC\u4EA4\u63A5\u7ED9\u522B\u4EBA\u7684 Caf\xE9\u3002" : void 0,
+        children: [
+          artifacts.items.map(
+            (item) => item.kind === "artifact" ? /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-row leave-responsibility-row-no-status", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { className: "leave-responsibility-copy", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("strong", { title: item.title, children: [
+                  item.title,
+                  " \xB7 \u7B2C ",
+                  item.ownerRevision,
+                  " \u7248"
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+                  "\u5728 # ",
+                  item.source.location.channelId,
+                  " \xB7 \u539F\u4EF6\u5728\u4F60\u7684 Caf\xE9"
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: () => onOpenArtifact(item), children: "\u53BB\u4F5C\u54C1 \u203A" })
+            ] }, item.artifactId) : /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-static", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("strong", { children: [
+                "\u300A",
+                item.title,
+                "\u300B\u6B63\u5728\u53D1\u5E03"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: "\u53D1\u5E03\u7ED3\u675F\u540E\u91CD\u65B0\u68C0\u67E5\uFF1B\u82E5\u539F\u4EF6\u4ECD\u5728\u4F60\u7684 Caf\xE9\uFF0C\u8FD8\u9700\u5904\u7406\u4FDD\u7BA1\u8D23\u4EFB\u3002" })
+            ] }, item.publicationId)
+          ),
+          artifacts.inaccessibleCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-hidden", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(LockIcon, {}),
+            /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("strong", { children: [
+                "\u8FD8\u6709 ",
+                artifacts.inaccessibleCount,
+                " \u4EF6\u4F60\u73B0\u5728\u6253\u4E0D\u5F00"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: "\u5B83\u4EEC\u4E5F\u8981\u5148\u5904\u7406\uFF1B\u53EF\u4EE5\u8BF7\u7BA1\u7406\u5458\u770B\u770B\u3002" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: onOpenMembers, children: "\u67E5\u770B\u7BA1\u7406\u5458" })
+          ] })
+        ]
+      }
+    ),
+    knownCount === 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("output", { className: "leave-dialog-unknown", children: "\u8FD8\u6709\u8D23\u4EFB\u6CA1\u6709\u5B8C\u6574\u663E\u793A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\uFF0C\u786E\u8BA4\u5B8C\u6574\u7ED3\u679C\u540E\u624D\u80FD\u79BB\u5F00\u3002" })
+  ] });
+}
+function ResponsibilityGroup({
+  title,
+  description,
+  children
+}) {
+  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("section", { className: "leave-responsibility-group", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("h3", { children: title }),
+    description && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("p", { children: description }),
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("div", { children })
+  ] });
+}
+function workProjectLabel(work2) {
+  if (work2.projects.length === 0) return "\u672A\u5F52\u5165\u9879\u76EE";
+  if (work2.projects.length === 1) return work2.projects[0]?.title ?? "\u672A\u5F52\u5165\u9879\u76EE";
+  return `${work2.projects.length} \u4E2A\u9879\u76EE`;
+}
+var workLabels = {
+  proposed: "\u7B49\u5F85\u786E\u8BA4",
+  unassigned: "\u5F85\u6307\u6D3E",
+  ready: "\u53EF\u4EE5\u5F00\u59CB",
+  blocked: "\u7B49\u5F85\u524D\u7F6E\u4EFB\u52A1",
+  in_progress: "\u8FDB\u884C\u4E2D",
+  result_ready: "\u7ED3\u679C\u5F85\u786E\u8BA4",
+  completed: "\u5DF2\u5B8C\u6210",
+  declined: "\u4E0D\u8DDF\u8E2A",
+  cancelled: "\u5DF2\u53D6\u6D88"
+};
+function workStatusLabel2(status) {
+  return workLabels[status];
+}
+function workStatusTone(status) {
+  if (status === "blocked") return "critical";
+  if (status === "proposed" || status === "unassigned" || status === "result_ready") return "warning";
+  if (status === "completed") return "success";
+  return "info";
+}
+function LockIcon() {
+  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("rect", { x: "5", y: "10", width: "14", height: "10", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("path", { d: "M8 10V7a4 4 0 0 1 8 0v3" })
+  ] });
+}
+
+// src/LeaveCollectiveDialog.tsx
+var import_jsx_runtime81 = __toESM(require_jsx_runtime(), 1);
+function LeaveCollectiveDialog(props) {
+  const [state, setState] = (0, import_react61.useState)({ kind: "loading" });
+  const generation = (0, import_react61.useRef)(0);
+  const dialog = (0, import_react61.useRef)(null);
+  const closeButton = (0, import_react61.useRef)(null);
+  const busy = state.kind === "leaving";
+  const check = (0, import_react61.useCallback)(async () => {
+    const current2 = ++generation.current;
+    setState({ kind: "loading" });
+    try {
+      const readiness2 = await props.read();
+      if (current2 === generation.current) setState({ kind: "ready", readiness: readiness2 });
+    } catch {
+      if (current2 === generation.current) setState({ kind: "read-failed" });
+    }
+  }, [props.read]);
+  (0, import_react61.useEffect)(() => {
+    void check();
+    return () => {
+      ++generation.current;
+    };
+  }, [check]);
+  (0, import_react61.useEffect)(() => closeButton.current?.focus(), []);
+  (0, import_react61.useEffect)(() => {
+    const closeOnEscape = (event) => {
+      if (event.key !== "Escape" || busy) return;
+      event.preventDefault();
+      props.onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [busy, props.onClose]);
+  const attemptLeave = async (readiness2) => {
+    if (!readiness2.canLeave || readiness2.role !== "member") return;
+    setState({ kind: "leaving", readiness: readiness2 });
+    try {
+      await props.leave();
+      props.onClose();
+    } catch (error) {
+      if (error instanceof CollectiveClientRequestError && error.status === 409) {
+        await check();
+        return;
+      }
+      setState({ kind: "leave-failed", readiness: readiness2, message: leaveFailureMessage(error) });
+    }
+  };
+  const readiness = "readiness" in state ? state.readiness : void 0;
+  const readyToLeave = Boolean(readiness && readinessIsCompleteAndEmpty(readiness));
+  const close = () => {
+    if (!busy) props.onClose();
+  };
+  const leaveFor = (callback) => (value) => {
+    callback(value);
+    props.onClose();
+  };
+  const trapFocus = (event) => {
+    if (event.key !== "Tab" || !dialog.current) return;
+    const focusable = [
+      ...dialog.current.querySelectorAll("button:not(:disabled), [href], input, select, textarea")
+    ];
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (!first || !last) return;
+    if (event.shiftKey && (document.activeElement === first || !dialog.current.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-layer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+      "button",
+      {
+        type: "button",
+        className: "leave-dialog-backdrop",
+        "aria-label": "\u5173\u95ED\u79BB\u5F00\u5171\u540C\u4F53\u5BF9\u8BDD\u6846",
+        disabled: busy,
+        onClick: close
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(
+      "dialog",
+      {
+        ref: dialog,
+        open: true,
+        className: "leave-dialog",
+        "aria-labelledby": "leave-dialog-title",
+        "aria-busy": busy || void 0,
+        onKeyDown: trapFocus,
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("header", { className: "leave-dialog-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h2", { id: "leave-dialog-title", children: leaveDialogTitle(props.collectiveName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { ref: closeButton, type: "button", "aria-label": "\u5173\u95ED\u79BB\u5F00\u5171\u540C\u4F53\u5BF9\u8BDD\u6846", disabled: busy, onClick: close, children: "\xD7" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-body", "aria-live": "polite", children: [
+            state.kind === "loading" && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { className: "leave-dialog-state", children: "\u6B63\u5728\u770B\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406\u2026" }),
+            state.kind === "read-failed" && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-state", role: "alert", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("strong", { children: "\u6CA1\u80FD\u68C0\u67E5\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406" }),
+              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u6CA1\u6709\u5B8C\u6574\u7ED3\u679C\u65F6\u4E0D\u4F1A\u628A\u6E05\u5355\u5F53\u6210\u7A7A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\u3002" })
+            ] }),
+            readiness && !readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(import_jsx_runtime81.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u4E0B\u9762\u8FD9\u4E9B\u5904\u7406\u5B8C\u624D\u80FD\u79BB\u5F00\u3002\u70B9\u4E00\u4EF6\uFF0C\u56DE\u5230\u5B83\u539F\u6765\u7684\u5730\u65B9\u3002" }),
+              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+                LeaveResponsibilityGroups,
+                {
+                  readiness,
+                  onOpenWork: leaveFor(props.onOpenWork),
+                  onOpenProject: leaveFor(props.onOpenProject),
+                  onOpenArtifact: leaveFor(props.onOpenArtifact),
+                  onOpenMembers: () => {
+                    props.onOpenMembers();
+                    props.onClose();
+                  }
+                }
+              )
+            ] }),
+            readiness && readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u79BB\u5F00\u4EE5\u540E\uFF0C\u4F60\u7684 Caf\xE9 \u9A6C\u4E0A\u505C\u6B62\u5728\u8FD9\u91CC\u8BFB\u53D6\u548C\u53D1\u9001\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4F1A\u4FDD\u7559\u3002" }),
+            state.kind === "leave-failed" && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-error", role: "alert", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("strong", { children: "\u6CA1\u80FD\u79BB\u5F00" }),
+              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("span", { children: state.message })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+            DialogFooter,
+            {
+              state,
+              readyToLeave,
+              onClose: close,
+              onCheck: () => void check(),
+              onLeave: () => readiness && void attemptLeave(readiness)
+            }
+          )
+        ]
+      }
+    )
+  ] });
+}
+function DialogFooter({
+  state,
+  readyToLeave,
+  onClose,
+  onCheck,
+  onLeave
+}) {
+  if (state.kind === "loading") {
+    return /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("footer", { className: "leave-dialog-footer", children: /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onClose, children: "\u53D6\u6D88" }) });
+  }
+  if (state.kind === "read-failed") {
+    return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "leave-dialog-footer", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u8BD5" }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
+    ] });
+  }
+  if (!readyToLeave) {
+    return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "leave-dialog-footer leave-dialog-footer-split", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("small", { children: "\u5904\u7406\u5B8C\u56DE\u6765\u70B9\u300C\u91CD\u65B0\u68C0\u67E5\u300D" }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u65B0\u68C0\u67E5" }),
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
+      ] })
+    ] });
+  }
+  const leaving = state.kind === "leaving";
+  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "leave-dialog-footer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", disabled: leaving, onClick: onClose, children: "\u53D6\u6D88" }),
+    /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "leave-dialog-danger", disabled: leaving, onClick: onLeave, children: leaving ? "\u6B63\u5728\u79BB\u5F00\u2026" : state.kind === "leave-failed" ? "\u91CD\u8BD5" : "\u79BB\u5F00\u5171\u540C\u4F53" })
+  ] });
+}
+function leaveFailureMessage(error) {
+  if (error instanceof CollectiveClientRequestError) {
+    if (error.status === 401) return "\u767B\u5F55\u72B6\u6001\u5DF2\u7ECF\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u767B\u5F55\u540E\u518D\u8BD5\u3002";
+    if (error.status === 403) return "\u4F60\u73B0\u5728\u6CA1\u6709\u79BB\u5F00\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u6743\u9650\u3002";
+    if (error.status >= 500) return "\u5171\u540C\u4F53\u670D\u52A1\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002";
+  }
+  return "\u6682\u65F6\u6CA1\u80FD\u79BB\u5F00\uFF0C\u8BF7\u91CD\u8BD5\u3002";
+}
+function leaveDialogTitle(collectiveName) {
+  return /^[A-Za-z0-9]/u.test(collectiveName) ? `\u79BB\u5F00 ${collectiveName}` : `\u79BB\u5F00${collectiveName}`;
+}
+function readinessIsCompleteAndEmpty(readiness) {
+  return readiness.role === "member" && readiness.canLeave && !readiness.governanceHandoffRequired && readiness.responsibilities.works.length === 0 && readiness.responsibilities.roadmaps.length === 0 && readiness.responsibilities.artifacts.items.length === 0 && readiness.responsibilities.artifacts.inaccessibleCount === 0;
+}
+
+// src/CollectiveWorldRail.tsx
+var import_jsx_runtime82 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorldRail({
   activeCollective,
   collectives,
@@ -65875,11 +66276,11 @@ function CollectiveWorldRail({
   visible
 }) {
   if (!visible || !collectives?.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": "\u9009\u62E9\u5171\u540C\u5BB6\u56ED", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Clowder AI Collective", children: /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(MeowClubMark, {}) }),
-    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("nav", { children: collectives.map((item) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": "\u9009\u62E9\u5171\u540C\u5BB6\u56ED", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(MeowClubMark, {}) }),
+    /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("nav", { children: collectives.map((item) => {
       const active = item.collectiveId === activeCollective?.collectiveId;
-      return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(
+      return /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(
         "button",
         {
           type: "button",
@@ -65888,8 +66289,8 @@ function CollectiveWorldRail({
           "aria-current": active ? "page" : void 0,
           onClick: () => active ? onHome?.() : onSelectCollective?.(item.collectiveId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("span", { children: item.name })
+            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
+            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("span", { children: item.name })
           ]
         },
         item.collectiveId
@@ -65899,13 +66300,12 @@ function CollectiveWorldRail({
 }
 
 // src/ProductShell.tsx
-var import_jsx_runtime81 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime83 = __toESM(require_jsx_runtime(), 1);
 function DestinationTitle({
   collective,
   onHome,
   meta,
   canSteward,
-  canLeave,
   onInvite,
   onCafe,
   onReplayGuide,
@@ -65915,20 +66315,20 @@ function DestinationTitle({
   onLeave
 }) {
   const t = useCollectiveText();
-  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h1", { children: t("\u5171\u540C\u5BB6\u56ED") });
-  const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || canLeave && onLeave);
-  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h1", { children: collective.name });
+  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: t("\u5171\u540C\u5BB6\u56ED") });
+  const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || onLeave);
+  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: collective.name });
   const action = (callback) => (event) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("details", { className: "collective-menu", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("summary", { "aria-label": `${collective.name}\u83DC\u5355`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h1", { children: collective.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
+  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("details", { className: "collective-menu", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("summary", { "aria-label": `${collective.name}\u83DC\u5355`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: collective.name }),
+      /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "collective-menu-popover", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("div", { className: "collective-menu-popover", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
         "button",
         {
           type: "button",
@@ -65936,22 +66336,22 @@ function DestinationTitle({
           "aria-label": onHome ? `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
           onClick: onHome ? action(onHome) : void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("strong", { children: collective.name }),
-            meta && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("span", { children: meta })
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: collective.name }),
+            meta && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { children: meta })
           ]
         }
       ),
-      canSteward && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
-      onCafe && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
+      canSteward && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
+      onCafe && /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
         t("\u6211\u7684\u732B\u2026"),
         " ",
-        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
+        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
       ] }),
-      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
-      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
-      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
-      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
-      canLeave && onLeave && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
+      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
+      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
+      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
+      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
+      onLeave && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
     ] })
   ] });
 }
@@ -65965,7 +66365,6 @@ function ProductShell({
   canSteward,
   canPair,
   pairNudge = false,
-  canLeave = false,
   notice,
   onInvite,
   onPair,
@@ -65983,7 +66382,7 @@ function ProductShell({
 }) {
   const t = useCollectiveText();
   const hasWorldRail = !embedded && Boolean(collectives?.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
     "main",
     {
       className: "collective-shell",
@@ -65992,7 +66391,7 @@ function ProductShell({
       "data-world-rail": hasWorldRail,
       "data-navigation-open": navigationOpen,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
           CollectiveWorldRail,
           {
             activeCollective: collective,
@@ -66002,17 +66401,16 @@ function ProductShell({
             visible: !embedded
           }
         ),
-        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
-        /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u5BFC\u822A"), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("header", { className: "destination-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
+        /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u5BFC\u822A"), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("header", { className: "destination-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
               DestinationTitle,
               {
                 collective,
                 onHome,
                 meta: headerMeta,
                 canSteward,
-                canLeave,
                 onInvite,
                 onCafe,
                 onReplayGuide,
@@ -66022,49 +66420,49 @@ function ProductShell({
                 onLeave
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
           ] }),
           destinations,
-          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "destination-footer", children: [
-            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: "\u8FDE\u63A5\u6B64 Caf\xE9" }) }),
-            notice && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { className: "destination-notice", children: t(notice) }),
-            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { className: "connection-line", children: "\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5" })
+          /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("footer", { className: "destination-footer", children: [
+            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: "\u8FDE\u63A5\u6B64 Caf\xE9" }) }),
+            notice && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "destination-notice", children: t(notice) }),
+            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "connection-line", children: "\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5" })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
+        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
       ]
     }
   );
 }
 
 // src/SharedArtifactPublication.tsx
-var import_react61 = __toESM(require_react(), 1);
-var import_jsx_runtime82 = __toESM(require_jsx_runtime(), 1);
+var import_react62 = __toESM(require_react(), 1);
+var import_jsx_runtime84 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactPublication({
   snapshot,
   onPair,
   onShareMedia
 }) {
   const shared = useSharedArtifacts();
-  const source4 = snapshot.events.find((event) => event.eventId === shared?.publicationSource);
+  const source3 = snapshot.events.find((event) => event.eventId === shared?.publicationSource);
   const cafes = snapshot.members?.cafes.filter((cafe) => cafe.humanId === snapshot.me?.human.humanId) ?? [];
-  const [file, setFile] = (0, import_react61.useState)();
-  const [title, setTitle] = (0, import_react61.useState)("");
-  const [connectionId, setConnectionId] = (0, import_react61.useState)("");
-  const [workId, setWorkId] = (0, import_react61.useState)("");
-  const sourceWorks = snapshot.collaboration?.works.filter((work2) => work2.sourceEventId === source4?.eventId) ?? [];
-  const [pending, setPending] = (0, import_react61.useState)(false);
-  const [error, setError] = (0, import_react61.useState)();
-  const dialog = (0, import_react61.useRef)(null);
-  const mounted = (0, import_react61.useRef)(true);
-  (0, import_react61.useEffect)(() => {
+  const [file, setFile] = (0, import_react62.useState)();
+  const [title, setTitle] = (0, import_react62.useState)("");
+  const [connectionId, setConnectionId] = (0, import_react62.useState)("");
+  const [workId, setWorkId] = (0, import_react62.useState)("");
+  const sourceWorks = snapshot.collaboration?.works.filter((work2) => work2.sourceEventId === source3?.eventId) ?? [];
+  const [pending, setPending] = (0, import_react62.useState)(false);
+  const [error, setError] = (0, import_react62.useState)();
+  const dialog = (0, import_react62.useRef)(null);
+  const mounted = (0, import_react62.useRef)(true);
+  (0, import_react62.useEffect)(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
-  const sourceId = source4?.eventId;
-  (0, import_react61.useEffect)(() => {
+  const sourceId = source3?.eventId;
+  (0, import_react62.useEffect)(() => {
     if (!sourceId) {
       dialog.current?.close();
       return;
@@ -66078,7 +66476,7 @@ function SharedArtifactPublication({
   }, [sourceId]);
   const submit2 = async (event) => {
     event.preventDefault();
-    if (!shared?.api || !file || !source4 || !title.trim() || pending) return;
+    if (!shared?.api || !file || !source3 || !title.trim() || pending) return;
     const target = connectionId || cafes[0]?.connectionId;
     if (!target) return;
     setPending(true);
@@ -66088,7 +66486,7 @@ function SharedArtifactPublication({
         file,
         title: title.trim(),
         connectionId: target,
-        sourceEventId: source4.eventId,
+        sourceEventId: source3.eventId,
         ...workId ? { workId } : {}
       });
       await shared.refresh();
@@ -66102,38 +66500,38 @@ function SharedArtifactPublication({
       if (mounted.current) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
     "dialog",
     {
       ref: dialog,
       className: "shared-publication-dialog",
       onCancel: () => shared?.closePublication(),
       onClose: () => shared?.closePublication(),
-      children: /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
+      children: /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
-        /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("blockquote", { children: source4?.body }),
-        onShareMedia && source4 && /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("blockquote", { children: source3?.body }),
+        onShareMedia && source3 && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
           "button",
           {
             type: "button",
             onClick: () => {
               dialog.current?.close();
-              onShareMedia(source4.eventId);
+              onShareMedia(source3.eventId);
             },
             children: "\u4ECE\u6B64 Caf\xE9 \u9009\u62E9\u56FE\u7247\u6216\u89C6\u9891"
           }
         ),
-        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("p", { children: [
+        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("p", { children: [
           "\u5148\u8FDE\u63A5\u81EA\u5DF1\u7684 Caf\xE9\uFF0C\u518D\u5206\u4EAB\u4F5C\u54C1\u3002",
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(import_jsx_runtime82.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(import_jsx_runtime84.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
             "Markdown \u6587\u4EF6",
-            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
               "input",
               {
                 type: "file",
@@ -66148,37 +66546,37 @@ function SharedArtifactPublication({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
             "\u4F5C\u54C1\u540D\u79F0",
-            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
+            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
             "\u4F5C\u54C1\u5B58\u653E\u5728",
-            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
               "select",
               {
                 value: connectionId || cafes[0]?.connectionId,
                 onChange: (event) => setConnectionId(event.target.value),
-                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
+                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
               }
             )
           ] }),
-          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("label", { children: [
+          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
             "\u5C5E\u4E8E\u4EFB\u52A1",
-            /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
-              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
+            /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
+              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
         ] }),
-        error && /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("p", { role: "alert", children: [
+        error && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("p", { role: "alert", children: [
           error,
           " \u8BF7\u4FDD\u7559\u6587\u4EF6\uFF0C\u91CD\u8BD5\u4F1A\u63A5\u7740\u540C\u4E00\u6B21\u53D1\u5E03\u3002"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)("footer", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("footer", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
         ] })
       ] })
     }
@@ -66186,10 +66584,10 @@ function SharedArtifactPublication({
 }
 
 // src/use-host-context.ts
-var import_react66 = __toESM(require_react(), 1);
+var import_react67 = __toESM(require_react(), 1);
 
 // src/use-host-accountability-context.ts
-var import_react62 = __toESM(require_react(), 1);
+var import_react63 = __toESM(require_react(), 1);
 
 // src/collective-accountability-events.ts
 var COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT = "collective:accountability-changed";
@@ -66203,13 +66601,13 @@ function publishCollectiveAccountabilityChanged(detail) {
 
 // src/use-host-accountability-context.ts
 function useHostAccountabilityContext(input) {
-  const currentWorks = (0, import_react62.useRef)(input.works);
+  const currentWorks = (0, import_react63.useRef)(input.works);
   currentWorks.current = input.works;
-  const currentRoadmaps = (0, import_react62.useRef)(input.roadmaps);
+  const currentRoadmaps = (0, import_react63.useRef)(input.roadmaps);
   currentRoadmaps.current = input.roadmaps;
-  const pendingFocus = (0, import_react62.useRef)();
-  const pendingChange = (0, import_react62.useRef)();
-  const applyFocus = (0, import_react62.useCallback)(
+  const pendingFocus = (0, import_react63.useRef)();
+  const pendingChange = (0, import_react63.useRef)();
+  const applyFocus = (0, import_react63.useCallback)(
     (value) => {
       if (!generationMatches(value, input.context.current)) return false;
       const activeHumanId = input.context.current.bridge?.humanId;
@@ -66232,7 +66630,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.onFocus]
   );
-  const postChange = (0, import_react62.useCallback)(
+  const postChange = (0, import_react63.useCallback)(
     (detail) => {
       const active = input.context.current;
       const activeBridge = active.bridge;
@@ -66259,7 +66657,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.hostOrigin]
   );
-  const handleFocus = (0, import_react62.useCallback)(
+  const handleFocus = (0, import_react63.useCallback)(
     (data) => {
       const parsed = collectiveHostProjectWorkFocusSchema.safeParse(data);
       if (!parsed.success) return false;
@@ -66271,11 +66669,11 @@ function useHostAccountabilityContext(input) {
     },
     [applyFocus, input.context]
   );
-  const reset = (0, import_react62.useCallback)(() => {
+  const reset = (0, import_react63.useCallback)(() => {
     pendingFocus.current = void 0;
     pendingChange.current = void 0;
   }, []);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const handleChange = (event) => {
       const detail = event.detail;
       if (!detail) return;
@@ -66285,7 +66683,7 @@ function useHostAccountabilityContext(input) {
     window.addEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
     return () => window.removeEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
   }, [postChange]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     const pending = pendingFocus.current;
     if (!pending || !input.works || !input.roadmaps) return;
     if (!generationMatches(pending, input.context.current)) {
@@ -66294,7 +66692,7 @@ function useHostAccountabilityContext(input) {
     }
     if (applyFocus(pending)) pendingFocus.current = void 0;
   }, [applyFocus, input.context, input.roadmaps, input.works]);
-  (0, import_react62.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     if (!input.works) return;
     const pending = pendingChange.current;
     if (pending && postChange(pending)) pendingChange.current = void 0;
@@ -66306,12 +66704,12 @@ function generationMatches(value, active) {
 }
 
 // src/use-host-media-share.ts
-var import_react63 = __toESM(require_react(), 1);
+var import_react64 = __toESM(require_react(), 1);
 function useHostMediaShare(options) {
-  const latest = (0, import_react63.useRef)(options);
+  const latest = (0, import_react64.useRef)(options);
   latest.current = options;
-  const pending = (0, import_react63.useRef)();
-  (0, import_react63.useEffect)(() => {
+  const pending = (0, import_react64.useRef)();
+  (0, import_react64.useEffect)(() => {
     const listener = async (event) => {
       const { context: context2, hostOrigin, bridge, onShared } = latest.current;
       if (event.source !== window.parent || event.origin !== hostOrigin) return;
@@ -66331,7 +66729,7 @@ function useHostMediaShare(options) {
       window.removeEventListener("message", listener);
     };
   }, []);
-  return (0, import_react63.useCallback)((sourceEventId) => {
+  return (0, import_react64.useCallback)((sourceEventId) => {
     const { context: context2, bridge, hostOrigin, channelId } = latest.current;
     if (!bridge || bridge.authorityStatus === "revoked" || !hostOrigin || context2.current.bridge?.bridgeId !== bridge.bridgeId || context2.current.revision < 1)
       return;
@@ -66353,7 +66751,7 @@ function useHostMediaShare(options) {
 }
 
 // src/use-host-media-surface.ts
-var import_react64 = __toESM(require_react(), 1);
+var import_react65 = __toESM(require_react(), 1);
 
 // src/collective-media-surface-client.ts
 async function serveCollectiveMediaRequest(message, api, artifact, humanName) {
@@ -66410,13 +66808,13 @@ function mediaFailureCode(error) {
 
 // src/use-host-media-surface.ts
 function useHostMediaSurface(options) {
-  const latest = (0, import_react64.useRef)(options);
+  const latest = (0, import_react65.useRef)(options);
   latest.current = options;
-  const active = (0, import_react64.useRef)();
+  const active = (0, import_react65.useRef)();
   const { artifact, ownerRevision: ownerRevision2 } = options.selection ?? {};
   const selectedRevision = ownerRevision2 ?? artifact?.versions.at(-1)?.ownerRevision;
   const selectionKey = JSON.stringify([artifact?.artifactId, selectedRevision, artifact?.sourceEventId]);
-  (0, import_react64.useEffect)(() => {
+  (0, import_react65.useEffect)(() => {
     const { context: context2, bridge, hostOrigin, channelId, selection } = latest.current;
     active.current = void 0;
     const { contextId, revision: revision9 } = context2.current;
@@ -66439,7 +66837,7 @@ function useHostMediaSurface(options) {
     active.current = ref8;
     window.parent.postMessage({ type: "collective:client-media-surface", ref: ref8 }, hostOrigin);
   }, [options.generation, options.channelId, selectionKey, selectedRevision]);
-  (0, import_react64.useEffect)(() => {
+  (0, import_react65.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
     const current2 = (ref8) => {
       const value = latest.current, context2 = value.context.current;
@@ -66487,9 +66885,9 @@ function useHostMediaSurface(options) {
 }
 
 // src/use-host-ui-placement.ts
-var import_react65 = __toESM(require_react(), 1);
+var import_react66 = __toESM(require_react(), 1);
 function useHostUiPlacement(origin, active, channelId, generation) {
-  (0, import_react65.useEffect)(() => {
+  (0, import_react66.useEffect)(() => {
     if (!origin) return;
     let frame = 0;
     const publish = () => {
@@ -66556,29 +66954,29 @@ function useHostUiPlacement(origin, active, channelId, generation) {
 
 // src/use-host-context.ts
 function useHostContext(embedded, snapshot, channelId, channelIds, humanSession, media, onOpenMembers) {
-  const openMembersAction = (0, import_react66.useRef)(onOpenMembers);
+  const openMembersAction = (0, import_react67.useRef)(onOpenMembers);
   openMembersAction.current = onOpenMembers;
-  const [bridge, setBridge] = (0, import_react66.useState)();
-  const liveBridge = (0, import_react66.useRef)();
-  const [participationReady, setParticipationReady] = (0, import_react66.useState)();
-  const [open, setOpen] = (0, import_react66.useState)(false);
-  const [cafeSection, setCafeSection] = (0, import_react66.useState)("cats");
-  const [focusWork, setFocusWork] = (0, import_react66.useState)();
-  const [contextId] = (0, import_react66.useState)(() => crypto.randomUUID());
-  const revision9 = (0, import_react66.useRef)(0);
-  const opener = (0, import_react66.useRef)();
-  const reconciledWorks = (0, import_react66.useRef)(/* @__PURE__ */ new Set());
-  const pendingWorkFocus = (0, import_react66.useRef)();
+  const [bridge, setBridge] = (0, import_react67.useState)();
+  const liveBridge = (0, import_react67.useRef)();
+  const [participationReady, setParticipationReady] = (0, import_react67.useState)();
+  const [open, setOpen] = (0, import_react67.useState)(false);
+  const [cafeSection, setCafeSection] = (0, import_react67.useState)("cats");
+  const [focusWork, setFocusWork] = (0, import_react67.useState)();
+  const [contextId] = (0, import_react67.useState)(() => crypto.randomUUID());
+  const revision9 = (0, import_react67.useRef)(0);
+  const opener = (0, import_react67.useRef)();
+  const reconciledWorks = (0, import_react67.useRef)(/* @__PURE__ */ new Set());
+  const pendingWorkFocus = (0, import_react67.useRef)();
   const hostOrigin = embedded ? new URLSearchParams(location.search).get("hostOrigin") : null;
-  const publicContext = (0, import_react66.useRef)({ bridge, contextId, revision: 0 });
+  const publicContext = (0, import_react67.useRef)({ bridge, contextId, revision: 0 });
   const requestWorkPermission = useHostWorkPolicy({ hostOrigin, context: publicContext, ...humanSession });
-  const currentWorks = (0, import_react66.useRef)(snapshot.collaboration?.works);
+  const currentWorks = (0, import_react67.useRef)(snapshot.collaboration?.works);
   currentWorks.current = snapshot.collaboration?.works;
   const serviceInstanceId = snapshot.meta?.serviceInstanceId;
   const collectiveId = snapshot.collective?.collectiveId;
   const humanId = snapshot.me?.human.humanId;
   const projectionReady = snapshot.participants !== void 0 && snapshot.members !== void 0 && snapshot.collaboration !== void 0;
-  const applyWorkFocus = (0, import_react66.useCallback)((value) => {
+  const applyWorkFocus = (0, import_react67.useCallback)((value) => {
     if (!reconciliationMatches(value, publicContext.current)) return false;
     const work2 = currentWorks.current?.find(
       (candidate) => candidate.workId === value.workId && candidate.revision === value.workRevision && candidate.lifecycle === "result_ready" && candidate.status === "result_ready" && candidate.sourceLocation.channelId === value.channelId && candidate.resultEventId === value.resultEventId && (candidate.resultRevision ?? 1) === value.resultRevision && candidate.assignment?.connectionId === publicContext.current.bridge?.connectionId
@@ -66594,7 +66992,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     roadmaps: snapshot.collaboration?.roadmaps,
     onFocus: setFocusWork
   });
-  (0, import_react66.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (!hostOrigin || !serviceInstanceId || !collectiveId || !humanId) return;
     const handleInit = (data) => {
       const parsed = collectiveHostContextInitSchema.safeParse(data);
@@ -66667,7 +67065,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     resetAccountabilityContext,
     serviceInstanceId
   ]);
-  (0, import_react66.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     const pending = pendingWorkFocus.current;
     if (!pending || !snapshot.collaboration?.works) return;
     if (!reconciliationMatches(pending, publicContext.current)) {
@@ -66677,7 +67075,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     if (applyWorkFocus(pending)) pendingWorkFocus.current = void 0;
   }, [applyWorkFocus, snapshot.collaboration?.works]);
   const channelKey = JSON.stringify([.../* @__PURE__ */ new Set([channelId, ...channelIds])].slice(0, 100));
-  (0, import_react66.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (!bridge || !hostOrigin || !projectionReady) return;
     const nextRevision = ++revision9.current;
     publicContext.current = { bridge, contextId, revision: nextRevision };
@@ -66717,7 +67115,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     channelId,
     JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady])
   );
-  const completedWorks = (0, import_react66.useMemo)(
+  const completedWorks = (0, import_react67.useMemo)(
     () => (snapshot.collaboration?.works ?? []).filter(
       (work2) => work2.lifecycle === "completed" && work2.status === "completed" && work2.assignment?.connectionId === bridge?.connectionId && work2.assignmentEventId !== void 0 && work2.resultEventId !== void 0
     ),
@@ -66738,7 +67136,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     generation: JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady]),
     ...media
   });
-  (0, import_react66.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (!bridge || !hostOrigin || completedWorks.length === 0) return;
     const postPending = () => {
       const active = publicContext.current;
@@ -66769,12 +67167,12 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     const retry = window.setInterval(postPending, 5e3);
     return () => window.clearInterval(retry);
   }, [bridge, completedWorks, hostOrigin]);
-  const show = (0, import_react66.useCallback)((section = "cats") => {
+  const show = (0, import_react67.useCallback)((section = "cats") => {
     if (document.activeElement instanceof HTMLElement) opener.current = document.activeElement;
     setCafeSection(section);
     setOpen(true);
   }, []);
-  const hide = (0, import_react66.useCallback)(() => setOpen(false), []);
+  const hide = (0, import_react67.useCallback)(() => setOpen(false), []);
   return {
     shareMedia: bridge && bridge.authorityStatus !== "revoked" ? shareMedia : void 0,
     requestWorkPermission: humanSession ? requestWorkPermission : void 0,
@@ -66803,17 +67201,17 @@ function workRevisionKey(value) {
 }
 
 // src/use-shared-artifact-navigation.ts
-var import_react67 = __toESM(require_react(), 1);
+var import_react68 = __toESM(require_react(), 1);
 function useSharedArtifactNavigation(options) {
-  const current2 = (0, import_react67.useRef)(options);
+  const current2 = (0, import_react68.useRef)(options);
   current2.current = options;
-  const origin = (0, import_react67.useRef)();
+  const origin = (0, import_react68.useRef)();
   if (origin.current && origin.current.namespace !== options.namespace) origin.current = void 0;
-  const discard = (0, import_react67.useCallback)(() => {
+  const discard = (0, import_react68.useCallback)(() => {
     origin.current = void 0;
     current2.current.artifacts?.close();
   }, []);
-  const open = (0, import_react67.useCallback)((artifact, ownerRevision2) => {
+  const open = (0, import_react68.useCallback)((artifact, ownerRevision2) => {
     const { namespace, place, artifacts, onOpenSource } = current2.current;
     const previous4 = origin.current ?? { namespace, place };
     if (place.destination !== "channel" || place.channelId !== artifact.sourceLocation.channelId)
@@ -66821,7 +67219,7 @@ function useSharedArtifactNavigation(options) {
     origin.current = previous4;
     artifacts?.open(artifact, ownerRevision2);
   }, []);
-  const close = (0, import_react67.useCallback)(() => {
+  const close = (0, import_react68.useCallback)(() => {
     const previous4 = origin.current;
     origin.current = void 0;
     const { namespace, artifacts, onRestore } = current2.current;
@@ -66833,25 +67231,26 @@ function useSharedArtifactNavigation(options) {
 }
 
 // src/CollectiveWorkspace.tsx
-var import_jsx_runtime83 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime85 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorkspace({
   embedded,
   client
 }) {
   const { snapshot } = client;
   const namespace = collectiveClientNamespace(snapshot) ?? "";
-  const previousNamespace = (0, import_react68.useRef)(namespace);
+  const previousNamespace = (0, import_react69.useRef)(namespace);
   const initialEntry = readChannelEntry(namespace);
-  const [channelId, setChannelId] = (0, import_react68.useState)(initialEntry.channelId);
-  const [destination, setDestination] = (0, import_react68.useState)(initialEntry.destination);
-  const [focusEventId, setFocusEventId] = (0, import_react68.useState)();
-  const [content3, setContent] = (0, import_react68.useState)("conversation");
-  const [roadmapViews, setRoadmapViews] = (0, import_react68.useState)({});
-  const [roadmapReturn, setRoadmapReturn] = (0, import_react68.useState)();
-  const [query, setQuery] = (0, import_react68.useState)("");
-  const [libraryChannel, setLibraryChannel] = (0, import_react68.useState)();
-  const [navigationOpen, setNavigationOpen] = (0, import_react68.useState)(false);
-  const [selectedMember, setSelectedMember] = (0, import_react68.useState)();
+  const [channelId, setChannelId] = (0, import_react69.useState)(initialEntry.channelId);
+  const [destination, setDestination] = (0, import_react69.useState)(initialEntry.destination);
+  const [focusEventId, setFocusEventId] = (0, import_react69.useState)();
+  const [content3, setContent] = (0, import_react69.useState)("conversation");
+  const [roadmapViews, setRoadmapViews] = (0, import_react69.useState)({});
+  const [roadmapReturn, setRoadmapReturn] = (0, import_react69.useState)();
+  const [query, setQuery] = (0, import_react69.useState)("");
+  const [libraryChannel, setLibraryChannel] = (0, import_react69.useState)();
+  const [navigationOpen, setNavigationOpen] = (0, import_react69.useState)(false);
+  const [selectedMember, setSelectedMember] = (0, import_react69.useState)();
+  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react69.useState)(false);
   const participants = snapshot.participants ?? [];
   const channels = channelDestinations(snapshot.events, participants);
   const mediaArtifact = client.artifacts?.catalogue.find(
@@ -66894,7 +67293,7 @@ function CollectiveWorkspace({
     participants: snapshot.participants,
     events: snapshot.events
   });
-  const previousFirstEntryPhase = (0, import_react68.useRef)();
+  const previousFirstEntryPhase = (0, import_react69.useRef)();
   const artifactNavigation = useSharedArtifactNavigation({
     namespace,
     artifacts: client.artifacts,
@@ -66914,7 +67313,7 @@ function CollectiveWorkspace({
       else writeChannelTarget(place.destination === "channel" ? place.channelId : void 0);
     }
   });
-  const enterFirstEntryChannel = (0, import_react68.useCallback)(() => {
+  const enterFirstEntryChannel = (0, import_react69.useCallback)(() => {
     setDestination("channel");
     setChannelId("general");
     writeChannelTarget("general");
@@ -66923,12 +67322,12 @@ function CollectiveWorkspace({
     setNavigationOpen(false);
     host.hide();
   }, [host.hide]);
-  (0, import_react68.useEffect)(() => {
+  (0, import_react69.useEffect)(() => {
     const guideStarted = firstEntry.phase === "playing" && previousFirstEntryPhase.current !== "playing";
     previousFirstEntryPhase.current = firstEntry.phase;
     if (guideStarted && destination === "home") enterFirstEntryChannel();
   }, [destination, enterFirstEntryChannel, firstEntry.phase]);
-  (0, import_react68.useEffect)(() => {
+  (0, import_react69.useEffect)(() => {
     const focus = host.focusWork;
     if (!focus) return;
     if ("roadmapId" in focus) {
@@ -67018,11 +67417,11 @@ function CollectiveWorkspace({
     host.hide();
     writeLibraryTarget();
   };
-  (0, import_react68.useEffect)(() => {
+  (0, import_react69.useEffect)(() => {
     if (previousNamespace.current !== namespace) return;
     saveChannelPosition(namespace, channelId);
   }, [namespace, channelId]);
-  (0, import_react68.useEffect)(() => {
+  (0, import_react69.useEffect)(() => {
     const worldChanged = previousNamespace.current !== namespace;
     previousNamespace.current = namespace;
     setContent("conversation");
@@ -67036,6 +67435,7 @@ function CollectiveWorkspace({
     setQuery("");
     setSelectedMember(void 0);
     setNavigationOpen(false);
+    setLeaveDialogOpen(false);
     host.hide();
   }, [namespace]);
   if (!snapshot.collective || !snapshot.me) return null;
@@ -67079,7 +67479,53 @@ function CollectiveWorkspace({
     setNavigationOpen(false);
     setQuery("");
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+  const openReadinessProject = (project, workId) => {
+    const currentProject = snapshot.collaboration?.roadmaps.find(
+      (candidate) => candidate.roadmapId === project.roadmapId
+    );
+    if (!currentProject || workId && !currentProject.workIds.includes(workId)) {
+      selectChannel(project.source.location.channelId, project.source.eventId);
+      return;
+    }
+    artifactNavigation.discard();
+    setDestination("channel");
+    setChannelId(project.source.location.channelId);
+    setFocusEventId(void 0);
+    setContent("roadmap");
+    setRoadmapReturn(void 0);
+    setRoadmapViews((current2) => ({
+      ...current2,
+      [project.source.location.channelId]: {
+        ...defaultRoadmapView,
+        workspace: "project",
+        roadmapId: project.roadmapId,
+        ...workId ? { workId } : {}
+      }
+    }));
+    setQuery("");
+    setSelectedMember(void 0);
+    setNavigationOpen(false);
+    host.hide();
+    writeChannelTarget(project.source.location.channelId);
+  };
+  const openReadinessWork = (work2) => {
+    const project = work2.projects.length === 1 ? work2.projects[0] : void 0;
+    const currentWork = snapshot.collaboration?.works.find((candidate) => candidate.workId === work2.workId);
+    if (project && currentWork) {
+      openReadinessProject(project, work2.workId);
+      return;
+    }
+    selectChannel(work2.source.location.channelId, work2.source.eventId);
+  };
+  const openReadinessArtifact = (item) => {
+    const current2 = client.artifacts?.catalogue.find((candidate) => candidate.artifactId === item.artifactId);
+    if (current2) {
+      artifactNavigation.open(current2, item.ownerRevision);
+      return;
+    }
+    selectChannel(item.source.location.channelId, item.source.eventId);
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
     CollectiveArtifactContext.Provider,
     {
       value: client.artifacts && {
@@ -67089,13 +67535,13 @@ function CollectiveWorkspace({
         returnLabel: artifactNavigation.returnLabel,
         returnToSource: selectChannel
       },
-      children: /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(SharedArtifactReading, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(SharedArtifactReading, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(
           HostWorkPermissionContext.Provider,
           {
             value: { connectionId: host.connectionId, request: host.requestWorkPermission },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(
                 ProductShell,
                 {
                   embedded,
@@ -67107,12 +67553,14 @@ function CollectiveWorkspace({
                   canSteward: snapshot.collective.role === "steward",
                   canPair: Boolean(snapshot.me.auth) && !host.paired,
                   pairNudge: firstEntry.phase === "browsing",
-                  canLeave: snapshot.collective.role === "member",
                   headerMeta: members ? `${members.cafes.length} \u4E2A Caf\xE9 \xB7 ${members.humans.length + visibleCats.length} \u4F4D\u6210\u5458` : "\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026",
                   notice: snapshot.notice,
                   onInvite: () => void client.createInvite(),
                   onPair: beginPair,
-                  onLeave: () => void client.leaveCollective(),
+                  onLeave: () => {
+                    setNavigationOpen(false);
+                    setLeaveDialogOpen(true);
+                  },
                   onCafe: host.available ? showMembers : void 0,
                   onPermissions: host.available ? () => showPrivateSection("permissions") : void 0,
                   onCalendar: host.available ? () => showPrivateSection("calendar") : void 0,
@@ -67120,7 +67568,7 @@ function CollectiveWorkspace({
                   onReplayGuide: firstEntry.narrator ? replayGuide : void 0,
                   navigationOpen: navigationOpen || firstEntry.phase === "entry",
                   onCloseNavigation: () => setNavigationOpen(false),
-                  destinations: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+                  destinations: /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
                     ChannelNavigation,
                     {
                       channels,
@@ -67152,7 +67600,7 @@ function CollectiveWorkspace({
                     }
                   ),
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
                       SharedArtifactLibrary,
                       {
                         title: "\u5168\u90E8\u4F5C\u54C1",
@@ -67163,7 +67611,7 @@ function CollectiveWorkspace({
                       },
                       namespace
                     ),
-                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
                       CollectiveHome,
                       {
                         collective: snapshot.collective,
@@ -67174,7 +67622,7 @@ function CollectiveWorkspace({
                         onOpenNavigation: () => setNavigationOpen((value) => !value),
                         onOpenEvent: selectChannel
                       }
-                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
                       CollectiveChannelWorkspace,
                       {
                         channelId,
@@ -67206,7 +67654,20 @@ function CollectiveWorkspace({
                   ]
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+                LeaveCollectiveDialog,
+                {
+                  collectiveName: snapshot.collective.name,
+                  read: client.readLeaveReadiness,
+                  leave: client.leaveCollective,
+                  onClose: () => setLeaveDialogOpen(false),
+                  onOpenWork: openReadinessWork,
+                  onOpenProject: openReadinessProject,
+                  onOpenArtifact: openReadinessArtifact,
+                  onOpenMembers: showMembers
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
                 FirstEntryOverlays,
                 {
                   firstEntry,
@@ -67218,15 +67679,15 @@ function CollectiveWorkspace({
             ]
           }
         ),
-        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
+        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
       ] })
     }
   );
 }
 
 // src/OnboardingScene.tsx
-var import_react69 = __toESM(require_react(), 1);
-var import_jsx_runtime84 = __toESM(require_jsx_runtime(), 1);
+var import_react70 = __toESM(require_react(), 1);
+var import_jsx_runtime86 = __toESM(require_jsx_runtime(), 1);
 function OnboardingScene({
   phase,
   mode,
@@ -67239,17 +67700,17 @@ function OnboardingScene({
   onCreateCollective
 }) {
   const t = useCollectiveText();
-  const [busy, setBusy] = (0, import_react69.useState)(false);
-  const [localError, setLocalError] = (0, import_react69.useState)();
+  const [busy, setBusy] = (0, import_react70.useState)(false);
+  const [localError, setLocalError] = (0, import_react70.useState)();
   const github = providers.find((provider) => provider.id === "github");
   if (phase === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u5BB6\u56ED\u2026") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u5BB6\u56ED\u2026") }) });
   }
   if (phase === "unavailable") {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: error })
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("small", { children: error })
     ] });
   }
   const run2 = async (action) => {
@@ -67270,23 +67731,23 @@ function OnboardingScene({
   };
   const canConfigureProvider = shouldConfigureProvider(github, mode, phase);
   if (canConfigureProvider) {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("section", { className: "entry-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
-      localError && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "form-error", children: localError })
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "entry-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
+      localError && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "form-error", children: localError })
     ] }) });
   }
   if (phase === "create-collective") {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
       EntryCard,
       {
         eyebrow: hasAuthenticatedHuman ? "\u9009\u62E9\u4E0B\u4E00\u6B65" : "\u7B2C\u4E00\u6B21\u5EFA\u7ACB Collective",
         title: hasAuthenticatedHuman ? "\u5EFA\u7ACB\u65B0\u7684\u5171\u540C\u5BB6\u56ED" : "\u7ED9\u5171\u540C\u5BB6\u56ED\u8D77\u4E2A\u540D\u5B57",
         description: hasAuthenticatedHuman ? "\u4F60\u5DF2\u79BB\u5F00\u539F\u5171\u540C\u5BB6\u56ED\u3002\u53EF\u4EE5\u5728\u8FD9\u91CC\u65B0\u5EFA\uFF0C\u4E5F\u53EF\u4EE5\u4ECE\u65B0\u7684\u9080\u8BF7\u94FE\u63A5\u52A0\u5165\uFF1B\u539F\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002" : "\u4F60\u4F1A\u6210\u4E3A\u7B2C\u4E00\u4F4D\u7BA1\u7406\u8005\u3002\u9996\u542F\u5B8C\u6210\u540E\u8FD8\u9700\u7ED1\u5B9A Human \u8EAB\u4EFD\uFF0C\u624D\u80FD\u9080\u8BF7\u6210\u5458\u3001\u8FDE\u63A5 Caf\xE9 \u6216\u8FDB\u5165\u65E5\u5E38\u534F\u4F5C\u3002",
         label: "Collective \u540D\u79F0",
-        defaultValue: "Clowder AI Collective",
+        defaultValue: "Cat Caf\xE9 Collective",
         button: "\u5EFA\u7ACB Collective",
         busy,
         error: localError,
@@ -67295,7 +67756,7 @@ function OnboardingScene({
     );
   }
   if (phase === "bind-identity") {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
       AuthCard,
       {
         eyebrow: "Human \u8EAB\u4EFD",
@@ -67310,7 +67771,7 @@ function OnboardingScene({
     );
   }
   if (mode === "bootstrap") {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
       EntryCard,
       {
         eyebrow: "\u4E00\u6B21\u6027\u521D\u59CB\u5316",
@@ -67325,12 +67786,12 @@ function OnboardingScene({
     );
   }
   if (mode === "invite") {
-    return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
       AuthCard,
       {
         eyebrow: "Collective \u9080\u8BF7",
         title: "\u52A0\u5165\u5171\u540C\u4F53",
-        description: "\u5148\u9A8C\u8BC1\u4F60\u7684 Human \u8EAB\u4EFD\uFF0C\u518D\u63A5\u53D7\u8FD9\u6B21\u9080\u8BF7\u3002Clowder AI endpoint \u7684\u8FDE\u63A5\u4E0E\u64A4\u9500\u4ECD\u72EC\u7ACB\u7BA1\u7406\u3002",
+        description: "\u5148\u9A8C\u8BC1\u4F60\u7684 Human \u8EAB\u4EFD\uFF0C\u518D\u63A5\u53D7\u8FD9\u6B21\u9080\u8BF7\u3002Cat Caf\xE9 endpoint \u7684\u8FDE\u63A5\u4E0E\u64A4\u9500\u4ECD\u72EC\u7ACB\u7BA1\u7406\u3002",
         button: "\u4F7F\u7528 GitHub \u9A8C\u8BC1\u5E76\u52A0\u5165",
         providerReady: github?.ready === true,
         busy,
@@ -67339,7 +67800,7 @@ function OnboardingScene({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
     AuthCard,
     {
       eyebrow: "\u6B22\u8FCE\u56DE\u6765",
@@ -67367,13 +67828,13 @@ function AuthCard({
   onAuthenticate
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
-    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "form-error", children: error })
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
+    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 function EntryCard({
@@ -67388,23 +67849,82 @@ function EntryCard({
   onSubmit
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("label", { children: [
         t(label),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
+        /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "form-error", children: error })
+    error && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 
 // src/use-collective-client.ts
-var import_react73 = __toESM(require_react(), 1);
+var import_react74 = __toESM(require_react(), 1);
+
+// src/leave-readiness.ts
+var sourceSchema3 = external_exports.object({
+  eventId: external_exports.string().trim().min(1),
+  location: collectiveLocationSchema
+}).strict();
+var projectSchema = external_exports.object({
+  roadmapId: external_exports.string().trim().min(1),
+  title: external_exports.string().trim().min(1).max(200),
+  source: sourceSchema3
+}).strict();
+var workSchema = external_exports.object({
+  workId: external_exports.string().trim().min(1),
+  title: external_exports.string().trim().min(1).max(200),
+  lifecycle: collectiveWorkLifecycleSchema,
+  status: collectiveWorkStatusSchema,
+  source: sourceSchema3,
+  projects: external_exports.array(projectSchema).max(100)
+}).strict();
+var artifactSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    kind: external_exports.literal("artifact"),
+    artifactId: external_exports.string().trim().min(1),
+    title: external_exports.string().trim().min(1).max(200),
+    mediaType: external_exports.enum(["text/markdown", "image/png", "image/jpeg", "image/webp", "video/mp4", "video/webm"]),
+    ownerRevision: external_exports.number().int().positive(),
+    source: sourceSchema3,
+    workId: external_exports.string().trim().min(1).optional()
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("publication"),
+    publicationId: external_exports.string().trim().min(1),
+    title: external_exports.string().trim().min(1).max(200),
+    source: sourceSchema3,
+    workId: external_exports.string().trim().min(1).optional()
+  }).strict()
+]);
+var membershipLeaveReadinessSchema = external_exports.object({
+  serviceInstanceId: external_exports.string().trim().min(1),
+  collectiveId: external_exports.string().trim().min(1),
+  role: external_exports.enum(["steward", "member"]),
+  membershipRevision: external_exports.number().int().positive(),
+  governanceHandoffRequired: external_exports.boolean(),
+  canLeave: external_exports.boolean(),
+  responsibilities: external_exports.object({
+    works: external_exports.array(workSchema),
+    roadmaps: external_exports.array(projectSchema),
+    artifacts: external_exports.object({
+      items: external_exports.array(artifactSchema),
+      inaccessibleCount: external_exports.number().int().nonnegative()
+    }).strict()
+  }).strict()
+}).strict();
+async function readMembershipLeaveReadiness(request, collectiveId) {
+  const value = await request(
+    `/api/memberships/self-leave/readiness?collectiveId=${encodeURIComponent(collectiveId)}`
+  );
+  return membershipLeaveReadinessSchema.parse(value);
+}
 
 // src/pairing-bridge.ts
 function resolvePairingAuthority(input) {
@@ -67459,7 +67979,7 @@ async function respondToPairingRequest(options) {
 }
 
 // src/use-collective-collaboration.ts
-var import_react70 = __toESM(require_react(), 1);
+var import_react71 = __toESM(require_react(), 1);
 
 // src/collaboration-command-custody.ts
 var pendingCommandSchema = external_exports.object({
@@ -67488,8 +68008,8 @@ function acknowledgeCollaborationCommand(storage, namespace, requestId2) {
 
 // src/use-collective-collaboration.ts
 function useCollectiveCollaboration(input) {
-  const running = (0, import_react70.useRef)();
-  const command = (0, import_react70.useCallback)(
+  const running = (0, import_react71.useRef)();
+  const command = (0, import_react71.useCallback)(
     (path2, payload, acceptedLabel, onAccepted) => {
       const { snapshot } = input;
       const namespace = collectiveClientNamespace(snapshot);
@@ -67723,7 +68243,7 @@ function prepareProjectSuggestionDecision(roadmap, work2, works, decision, edits
 }
 
 // src/use-collective-refresh.ts
-var import_react71 = __toESM(require_react(), 1);
+var import_react72 = __toESM(require_react(), 1);
 async function readCollectiveProjection(request, collectiveId, signal) {
   const query = `?collectiveId=${encodeURIComponent(collectiveId)}`;
   const [result, declared, members, collaboration] = await Promise.all([
@@ -67748,17 +68268,17 @@ async function reconcileDeniedScope(loadMe, collectiveId, close) {
 function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
   const scope = currentCollectiveScope(snapshot);
   const key = scope && `${scope.serviceInstanceId}:${scope.collectiveId}:${scope.humanId}`;
-  const currentKey = (0, import_react71.useRef)(key);
+  const currentKey = (0, import_react72.useRef)(key);
   currentKey.current = key;
-  const latest = (0, import_react71.useRef)(snapshot);
+  const latest = (0, import_react72.useRef)(snapshot);
   latest.current = snapshot;
-  const generation = (0, import_react71.useRef)(0);
-  const pending = (0, import_react71.useRef)();
-  const cancelRefresh = (0, import_react71.useCallback)(() => {
+  const generation = (0, import_react72.useRef)(0);
+  const pending = (0, import_react72.useRef)();
+  const cancelRefresh = (0, import_react72.useCallback)(() => {
     ++generation.current;
     pending.current?.abort();
   }, []);
-  const run2 = (0, import_react71.useCallback)(
+  const run2 = (0, import_react72.useCallback)(
     async (verifyMembership = false) => {
       const target = currentCollectiveScope(latest.current);
       if (!target || !token.current) return;
@@ -67810,7 +68330,7 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     },
     [key, loadMe, request, setSnapshot, token]
   );
-  (0, import_react71.useEffect)(() => {
+  (0, import_react72.useEffect)(() => {
     if (snapshot.phase !== "ready" || !key) return;
     if (!latest.current.restrictedScope) void run2();
     const interval = window.setInterval(() => {
@@ -67822,14 +68342,14 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     };
   }, [cancelRefresh, key, run2, snapshot.phase]);
   return {
-    refreshEvents: (0, import_react71.useCallback)(() => run2(), [run2]),
-    recheckScope: (0, import_react71.useCallback)(() => run2(true), [run2]),
+    refreshEvents: (0, import_react72.useCallback)(() => run2(), [run2]),
+    recheckScope: (0, import_react72.useCallback)(() => run2(true), [run2]),
     cancelRefresh
   };
 }
 
 // src/use-collective-send.ts
-var import_react72 = __toESM(require_react(), 1);
+var import_react73 = __toESM(require_react(), 1);
 function humanSendPayload(snapshot, body4, destination) {
   const { collective, meta } = snapshot;
   if (!collective || !meta) return void 0;
@@ -67841,8 +68361,8 @@ function humanSendPayload(snapshot, body4, destination) {
   };
 }
 function useCollectiveSend(input) {
-  const sending = (0, import_react72.useRef)();
-  return (0, import_react72.useCallback)(
+  const sending = (0, import_react73.useRef)();
+  return (0, import_react73.useCallback)(
     (body4, destination) => {
       const namespace = collectiveClientNamespace(input.snapshot);
       const payload = humanSendPayload(input.snapshot, body4, destination);
@@ -67895,8 +68415,11 @@ var initialSnapshot = {
   delivery: { kind: "idle" }
 };
 function useCollectiveClient() {
-  const [snapshot, setSnapshot] = (0, import_react73.useState)(initialSnapshot);
-  const currentNamespace = (0, import_react73.useRef)();
+  const [snapshot, setSnapshot] = (0, import_react74.useState)(initialSnapshot);
+  const activeCollectiveId = snapshot.collective?.collectiveId;
+  const activeCollectiveName = snapshot.collective?.name;
+  const activeCollectiveRole = snapshot.collective?.role;
+  const currentNamespace = (0, import_react74.useRef)();
   currentNamespace.current = collectiveClientNamespace(snapshot);
   const { token, request, loadMe, invitationMode, bootstrap, authenticate, configureProvider } = useHumanAuthSession(
     snapshot,
@@ -67909,7 +68432,7 @@ function useCollectiveClient() {
     loadMe,
     token
   );
-  const createCollective = (0, import_react73.useCallback)(
+  const createCollective = (0, import_react74.useCallback)(
     async (name2) => {
       const created = await request("/api/collectives", {
         method: "POST",
@@ -67937,7 +68460,7 @@ function useCollectiveClient() {
     [loadMe, request]
   );
   const sendMessage = useCollectiveSend({ snapshot, setSnapshot, currentNamespace, request, refresh: refreshEvents });
-  const createInvite = (0, import_react73.useCallback)(async () => {
+  const createInvite = (0, import_react74.useCallback)(async () => {
     if (!snapshot.collective) return;
     const result = await request("/api/invites", {
       method: "POST",
@@ -67946,22 +68469,23 @@ function useCollectiveClient() {
     const inviteUrl = `${location.origin}/#invite=${encodeURIComponent(result.inviteToken)}`;
     setSnapshot((current2) => ({ ...current2, notice: inviteUrl }));
   }, [request, snapshot.collective]);
-  const leaveCollective = (0, import_react73.useCallback)(async () => {
-    const collective = snapshot.collective;
-    if (!collective || collective.role !== "member") return;
-    if (!window.confirm("\u9000\u51FA\u540E\uFF0C\u4F60\u7684 Caf\xE9 \u4F1A\u7ACB\u5373\u505C\u6B62\u8BFB\u53D6\u548C\u53D1\u9001\uFF1B\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4F1A\u4FDD\u7559\u3002\u786E\u8BA4\u9000\u51FA\uFF1F")) return;
-    try {
-      await request("/api/memberships/self-leave", {
-        method: "POST",
-        body: JSON.stringify({ collectiveId: collective.collectiveId })
-      });
-      await recheckScope();
-      setSnapshot((current2) => ({ ...current2, notice: "\u5DF2\u9000\u51FA\u5171\u540C\u5BB6\u56ED\uFF1B\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002" }));
-    } catch (error) {
-      setSnapshot((current2) => ({ ...current2, error: collectiveClientErrorMessage(error) }));
-    }
-  }, [recheckScope, request, snapshot.collective]);
-  const selectCollective = (0, import_react73.useCallback)(
+  const readLeaveReadiness = (0, import_react74.useCallback)(async () => {
+    if (!activeCollectiveId) throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u68C0\u67E5\u7684\u5171\u540C\u4F53");
+    return readMembershipLeaveReadiness(request, activeCollectiveId);
+  }, [activeCollectiveId, request]);
+  const leaveCollective = (0, import_react74.useCallback)(async () => {
+    if (!activeCollectiveId || activeCollectiveRole !== "member") return;
+    await request("/api/memberships/self-leave", {
+      method: "POST",
+      body: JSON.stringify({ collectiveId: activeCollectiveId })
+    });
+    await recheckScope();
+    setSnapshot((current2) => ({
+      ...current2,
+      notice: `\u5DF2\u79BB\u5F00${activeCollectiveName ?? "\u5171\u540C\u4F53"}\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002`
+    }));
+  }, [activeCollectiveId, activeCollectiveName, activeCollectiveRole, recheckScope, request]);
+  const selectCollective = (0, import_react74.useCallback)(
     (collectiveId) => {
       const collective = snapshot.me?.collectives.find((item) => item.collectiveId === collectiveId);
       if (!collective) return;
@@ -67986,7 +68510,7 @@ function useCollectiveClient() {
     },
     [snapshot, cancelRefresh]
   );
-  const pairHost = (0, import_react73.useCallback)(async () => {
+  const pairHost = (0, import_react74.useCallback)(async () => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const authority = resolvePairingAuthority({
@@ -68020,10 +68544,10 @@ function useCollectiveClient() {
       postToHost: (message, targetOrigin) => window.parent.postMessage(message, targetOrigin)
     });
     setSnapshot(
-      (current2) => result === "paired" ? { ...current2, notice: "Clowder AI \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026", error: void 0 } : { ...current2, error: "\u6682\u65F6\u65E0\u6CD5\u521B\u5EFA\u65B0\u7684\u914D\u5BF9\u9080\u8BF7" }
+      (current2) => result === "paired" ? { ...current2, notice: "Cat Caf\xE9 \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026", error: void 0 } : { ...current2, error: "\u6682\u65F6\u65E0\u6CD5\u521B\u5EFA\u65B0\u7684\u914D\u5BF9\u9080\u8BF7" }
     );
   }, [loadMe, request, snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope, token]);
-  const announcePairingState = (0, import_react73.useCallback)(() => {
+  const announcePairingState = (0, import_react74.useCallback)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window || snapshot.phase === "loading") return;
     const authority = resolvePairingAuthority({
@@ -68038,8 +68562,8 @@ function useCollectiveClient() {
       postToHost: (message, targetOrigin) => window.parent.postMessage(message, targetOrigin)
     });
   }, [snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope]);
-  (0, import_react73.useEffect)(() => announcePairingState(), [announcePairingState]);
-  (0, import_react73.useEffect)(() => {
+  (0, import_react74.useEffect)(() => announcePairingState(), [announcePairingState]);
+  (0, import_react74.useEffect)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const onMessage = (event) => {
@@ -68069,6 +68593,7 @@ function useCollectiveClient() {
     createCollective,
     sendMessage,
     createInvite,
+    readLeaveReadiness,
     leaveCollective,
     pairHost,
     selectCollective,
@@ -68077,7 +68602,7 @@ function useCollectiveClient() {
 }
 
 // src/use-host-world-directory.ts
-var import_react74 = __toESM(require_react(), 1);
+var import_react75 = __toESM(require_react(), 1);
 
 // src/world-directory-bridge.ts
 function projectWorldDirectory(snapshot, bridgeId, revision9) {
@@ -68135,7 +68660,7 @@ function trustedWorldDirectoryHostMessage(event, hostOrigin, parent) {
 function useHostWorldDirectory(input) {
   const hostOrigin = resolveHostOrigin2(input.embedded);
   const authorityKey = `${input.snapshot.meta?.serviceInstanceId ?? "unknown"}:${input.snapshot.me?.human.humanId ?? "anonymous"}`;
-  const projectionSource = (0, import_react74.useMemo)(
+  const projectionSource = (0, import_react75.useMemo)(
     () => ({
       phase: input.snapshot.phase,
       meta: input.snapshot.meta,
@@ -68151,12 +68676,12 @@ function useHostWorldDirectory(input) {
       input.snapshot.phase
     ]
   );
-  const [bridge, setBridge] = (0, import_react74.useState)();
-  const revision9 = (0, import_react74.useRef)(0);
-  const current2 = (0, import_react74.useRef)();
-  const selectCollective = (0, import_react74.useRef)(input.selectCollective);
+  const [bridge, setBridge] = (0, import_react75.useState)();
+  const revision9 = (0, import_react75.useRef)(0);
+  const current2 = (0, import_react75.useRef)();
+  const selectCollective = (0, import_react75.useRef)(input.selectCollective);
   selectCollective.current = input.selectCollective;
-  (0, import_react74.useEffect)(() => {
+  (0, import_react75.useEffect)(() => {
     if (!hostOrigin || window.parent === window) return;
     const parent = window.parent;
     const onMessage = (event) => {
@@ -68184,7 +68709,7 @@ function useHostWorldDirectory(input) {
       window.removeEventListener("message", onMessage);
     };
   }, [authorityKey, hostOrigin]);
-  (0, import_react74.useEffect)(() => {
+  (0, import_react75.useEffect)(() => {
     if (!bridge || bridge.authorityKey !== authorityKey || !hostOrigin || window.parent === window) return;
     const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision9.current + 1);
     if (!projection) return;
@@ -68206,11 +68731,11 @@ function resolveHostOrigin2(embedded) {
 }
 
 // src/CollectiveClient.tsx
-var import_jsx_runtime85 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime87 = __toESM(require_jsx_runtime(), 1);
 function CollectiveClient() {
   const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
   const embedded = window.parent !== window && hostOrigin !== null;
-  return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(LiveCollectiveClient, { embedded });
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(LiveCollectiveClient, { embedded });
 }
 function LiveCollectiveClient({ embedded }) {
   const client = useCollectiveClient();
@@ -68219,9 +68744,9 @@ function LiveCollectiveClient({ embedded }) {
   const canSteward = !snapshot.restrictedScope && snapshot.collective?.role === "steward";
   const canPair = !snapshot.restrictedScope && snapshot.phase === "ready" && Boolean(snapshot.me?.auth && snapshot.collective);
   if (!snapshot.restrictedScope && snapshot.phase === "ready" && snapshot.collective && snapshot.me) {
-    return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot));
+    return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot));
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
     ProductShell,
     {
       embedded,
@@ -68231,12 +68756,10 @@ function LiveCollectiveClient({ embedded }) {
       connection: snapshot.connection,
       canSteward,
       canPair,
-      canLeave: false,
       notice: snapshot.notice,
       onInvite: () => void client.createInvite(),
       onPair: () => void client.pairHost(),
-      onLeave: () => void 0,
-      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
         CollectiveScopeRecovery,
         {
           scope: snapshot.restrictedScope,
@@ -68244,7 +68767,7 @@ function LiveCollectiveClient({ embedded }) {
           onAuthenticate: client.authenticate
         },
         `${snapshot.restrictedScope.serviceInstanceId}:${snapshot.restrictedScope.collectiveId}:${snapshot.restrictedScope.humanId}`
-      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u5BB6\u56ED\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u5BB6\u56ED\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
         OnboardingScene,
         {
           phase: snapshot.phase,
@@ -68263,10 +68786,10 @@ function LiveCollectiveClient({ embedded }) {
 }
 
 // src/main.tsx
-var import_jsx_runtime86 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime88 = __toESM(require_jsx_runtime(), 1);
 var root4 = document.getElementById("collective-root");
 if (!root4) throw new Error("Collective client root is missing");
 startHostAppearance();
 (0, import_client.createRoot)(root4).render(
-  /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(import_react75.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(CollectiveClient, {}) })
+  /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(import_react76.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(CollectiveClient, {}) })
 );
