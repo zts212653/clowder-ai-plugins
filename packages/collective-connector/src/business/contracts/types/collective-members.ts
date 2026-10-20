@@ -10,7 +10,7 @@ import {
   collectiveServiceInstanceIdSchema,
 } from './collective.js';
 import { collectiveArtifactRecordSchema } from './collective-artifact.js';
-import { collectiveWorkLifecycleSchema } from './collective-collaboration.js';
+import { collectiveWorkLifecycleSchema, collectiveWorkStatusSchema } from './collective-collaboration.js';
 import { collectiveRoadmapIdSchema, collectiveWorkIdSchema } from './collective-collaboration-identifiers.js';
 
 /** Public membership, not live presence or a Host execution/credential projection. */
@@ -44,21 +44,22 @@ const leaveResponsibilitySourceSchema = z
   })
   .strict();
 
-const leaveWorkResponsibilitySchema = z
-  .object({
-    workId: collectiveWorkIdSchema,
-    title: z.string().trim().min(1).max(200),
-    lifecycle: collectiveWorkLifecycleSchema,
-    source: leaveResponsibilitySourceSchema,
-    roadmapIds: z.array(collectiveRoadmapIdSchema).max(100),
-  })
-  .strict();
-
 const leaveRoadmapResponsibilitySchema = z
   .object({
     roadmapId: collectiveRoadmapIdSchema,
     title: z.string().trim().min(1).max(200),
     source: leaveResponsibilitySourceSchema,
+  })
+  .strict();
+
+const leaveWorkResponsibilitySchema = z
+  .object({
+    workId: collectiveWorkIdSchema,
+    title: z.string().trim().min(1).max(200),
+    lifecycle: collectiveWorkLifecycleSchema,
+    status: collectiveWorkStatusSchema,
+    source: leaveResponsibilitySourceSchema,
+    projects: z.array(leaveRoadmapResponsibilitySchema).max(100),
   })
   .strict();
 
@@ -69,6 +70,7 @@ const leaveArtifactResponsibilitySchema = z.discriminatedUnion('kind', [
       artifactId: z.string().trim().min(1).max(256),
       title: z.string().trim().min(1).max(200),
       mediaType: collectiveArtifactRecordSchema.shape.mediaType,
+      ownerRevision: z.number().int().positive().safe(),
       source: leaveResponsibilitySourceSchema,
       workId: collectiveWorkIdSchema.optional(),
     })

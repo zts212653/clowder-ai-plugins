@@ -1,5 +1,6 @@
 import type { CollectiveMembershipLeaveReadiness } from '../contracts/index.js';
 import { requireArtifactAction } from './artifact-authority.js';
+import { projectCollectiveWork } from './collaboration-work.js';
 import { CollectiveServiceError } from './errors.js';
 import { requireHumanAuthBinding, requireMembership, resolveSession } from './identity-store.js';
 import type { ServiceState } from './state.js';
@@ -38,12 +39,12 @@ export function projectMembershipLeaveReadiness(
   const allRoadmaps = Object.values(state.roadmaps)
     .filter((roadmap) => roadmap.collectiveId === collectiveId)
     .sort(byCreated);
-  const roadmapIdsByWork = new Map<string, string[]>();
+  const roadmapsByWork = new Map<string, typeof allRoadmaps>();
   for (const roadmap of allRoadmaps) {
     for (const workId of roadmap.workIds) {
-      const roadmapIds = roadmapIdsByWork.get(workId) ?? [];
-      roadmapIds.push(roadmap.roadmapId);
-      roadmapIdsByWork.set(workId, roadmapIds);
+      const workRoadmaps = roadmapsByWork.get(workId) ?? [];
+      workRoadmaps.push(roadmap);
+      roadmapsByWork.set(workId, workRoadmaps);
     }
   }
   const works = Object.values(state.works)
@@ -52,13 +53,21 @@ export function projectMembershipLeaveReadiness(
         work.collectiveId === collectiveId && work.accountableHumanId === humanId && !terminalWork.has(work.lifecycle),
     )
     .sort(byCreated)
-    .map((work) => ({
-      workId: work.workId,
-      title: work.title,
-      lifecycle: work.lifecycle,
-      source: { eventId: work.sourceEventId, location: structuredClone(work.sourceLocation) },
-      roadmapIds: roadmapIdsByWork.get(work.workId) ?? [],
-    }));
+    .map((work) => {
+      const projection = projectCollectiveWork(state, work);
+      return {
+        workId: work.workId,
+        title: work.title,
+        lifecycle: work.lifecycle,
+        status: projection.status,
+        source: { eventId: work.sourceEventId, location: structuredClone(work.sourceLocation) },
+        projects: (roadmapsByWork.get(work.workId) ?? []).map((roadmap) => ({
+          roadmapId: roadmap.roadmapId,
+          title: roadmap.title,
+          source: { eventId: roadmap.sourceEventId, location: structuredClone(roadmap.sourceLocation) },
+        })),
+      };
+    });
   const connectionIds = new Set(
     Object.values(state.connections)
       .filter((connection) => connection.collectiveId === collectiveId && connection.authorizedHumanId === humanId)
@@ -71,11 +80,14 @@ export function projectMembershipLeaveReadiness(
   )) {
     try {
       requireArtifactAction(state, artifact, humanId, 'read');
+      const head = artifact.versions.at(-1);
+      if (!head) throw new CollectiveServiceError('STATE_CORRUPT', 'Artifact has no current version', 500);
       artifacts.push({
         kind: 'artifact',
         artifactId: artifact.artifactId,
         title: artifact.title,
         mediaType: artifact.mediaType,
+        ownerRevision: head.ownerRevision,
         source: { eventId: artifact.sourceEventId, location: structuredClone(artifact.sourceLocation) },
         ...(artifact.workId ? { workId: artifact.workId } : {}),
       });

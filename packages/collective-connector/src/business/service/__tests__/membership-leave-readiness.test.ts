@@ -126,8 +126,15 @@ it('lists every readable responsibility while withholding an inaccessible custod
         {
           workId: created.work.workId,
           title: '离开前要处理的任务',
+          status: 'ready',
           source: { eventId: created.work.sourceEventId, location: { channelId: 'general' } },
-          roadmapIds: [project.roadmapId],
+          projects: [
+            {
+              roadmapId: project.roadmapId,
+              title: '离开前要处理的项目',
+              source: { eventId: project.sourceEventId, location: { channelId: 'general' } },
+            },
+          ],
         },
       ],
       roadmaps: [
@@ -143,6 +150,7 @@ it('lists every readable responsibility while withholding an inaccessible custod
             kind: 'artifact',
             artifactId: visible.artifactId,
             title: '可返回处理的托管作品',
+            ownerRevision: 1,
             source: { eventId: created.work.sourceEventId, location: { channelId: 'general' } },
           },
         ],
