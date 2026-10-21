@@ -1,5 +1,6 @@
 import {isDeepStrictEqual} from 'node:util';
-import type {FeatureContext, PluginMessage, PluginOwnerHttpContext, PluginTaskWorkTime} from '@clowder-ai/plugin-sdk';
+import type {FeatureContext, PluginMessage, PluginOwnerHttpContext, PluginTaskReadItem,
+  PluginTaskWorkTime} from '@clowder-ai/plugin-sdk';
 import type {CollectiveConnector} from './business/connector/connector.js';
 import {collectiveWorkAssignmentMatches, participationSourceIsCurrent,
   type CollectiveSourceIdentity} from './business/contracts/index.js';
@@ -7,6 +8,7 @@ import {resolveHumanStandingWorkBasis} from './collective-human-standing.js';
 import {collectiveWorkContinuation} from './owner-work-continuation.js';
 import {classifyEntrustedWorkSourceTime} from './work-source-signals.js';
 import {readWorkFirstReceipt, retainWorkFirstReceipt, workReceiptDigest} from './owner-work-first-receipt.js';
+import {assertCollectiveWorkTask} from './collective-work-thread.js';
 
 const unavailable = (): never => {throw Object.assign(new Error('Current committed Human Work or owner choice is unavailable'),
   {code: 'OWNER_ADMISSION_UNAVAILABLE'});};
@@ -16,7 +18,8 @@ const unavailable = (): never => {throw Object.assign(new Error('Current committ
 export async function resolveHumanMessageWork(connector: CollectiveConnector,
   storage: FeatureContext['storage'], source: CollectiveSourceIdentity, message: PluginMessage,
   ownerUserId: string, current: () => Promise<void>,
-  options: {mode: 'read' | 'send'; hasTask: boolean; manual?: PluginOwnerHttpContext; resume?: boolean; time?: PluginTaskWorkTime}) {
+  options: {mode: 'read' | 'send'; hasTask: boolean; manual?: PluginOwnerHttpContext; resume?: boolean;
+    time?: PluginTaskWorkTime;existingTask?:PluginTaskReadItem;pluginInstanceId?:string}) {
   if (source.actor.kind !== 'human') return unavailable();
   await current();await connector.readParticipationContext(source, 0, 1);await current();
   const assignment = await connector.readAssignedWorkByAssignment(source.connectionId, source.eventId);await current();
@@ -57,6 +60,20 @@ export async function resolveHumanMessageWork(connector: CollectiveConnector,
         bodyDigest: workReceiptDigest(message.content), identity: source},
       work: {workId: work.workId, assignmentEventId: work.assignmentEventId!, resultRevision: 1,
         executionRevision: 1, intendedOutcomeDigest: workReceiptDigest(work.intendedOutcome)}};
+    let recoveredBinding: import('./owner-work-first-receipt.js').ManualWorkExecutionBinding|undefined;
+    if(!captured&&options.hasTask){
+      const task=options.existingTask,pluginInstanceId=options.pluginInstanceId;
+      const taskWork=task?.entrustedWork,hostReceipt=taskWork?.admission.hostReceipt;
+      if(!task||!taskWork||!pluginInstanceId||!hostReceipt||
+        hostReceipt.receiptRef!==taskWork.admission.authorityRef||
+        hostReceipt.sourceRef!==`message:${message.id}`||hostReceipt.catId!==source.catId)return unavailable();
+      const site=assertCollectiveWorkTask(task,message,source.catId,pluginInstanceId);
+      if(!site.dataControllerReceiptRef)return unavailable();
+      recoveredBinding={taskRef:site.taskRef,taskRevision:taskWork.revision,threadId:site.threadId,
+        admissionRef:`message:${message.id}`,executionRef:`message:${message.id}`,
+        refScope:`message:${message.id}:work:${work.workId}:result:1:execution:1`,
+        dataControllerReceiptRef:site.dataControllerReceiptRef};
+    }
     if (captured) {
       if (!isDeepStrictEqual(captured.source, selected.source) ||
         !isDeepStrictEqual(captured.work, selected.work)) return unavailable();
@@ -69,15 +86,17 @@ export async function resolveHumanMessageWork(connector: CollectiveConnector,
       if (options.mode !== 'send') return unavailable();
       if (basis.kind === 'manual_owner_write') {
         const request = manual?.requestIdentity;if (!request || !manual) return unavailable();
-        retention = await retainWorkFirstReceipt(storage, {...selected, basis, pluginInstanceId: manual.pluginInstanceId,
-          firstRequest: {requestId: request.requestId, contributionId: request.contributionId, method: request.method,
-            path: request.path, bodyDigest: request.bodyDigest, queryDigest: request.queryDigest}}, current, options.hasTask);
-      } else retention = await retainWorkFirstReceipt(storage, {...selected, basis}, current, options.hasTask);
+        retention = await retainWorkFirstReceipt(storage, {...selected, basis,pluginInstanceId:manual.pluginInstanceId,
+          firstRequest:{requestId:request.requestId,contributionId:request.contributionId,method:request.method,
+            path:request.path,bodyDigest:request.bodyDigest,queryDigest:request.queryDigest},
+          ...(recoveredBinding?{binding:recoveredBinding}:{})},current,options.hasTask);
+      } else retention=await retainWorkFirstReceipt(storage,{...selected,basis,
+        ...(recoveredBinding?{binding:recoveredBinding}:{})},current,options.hasTask);
     }
     await current();
     const resultRevision = work.lifecycle === 'result_ready' ? work.resultRevision ?? 1
       : collectiveWorkContinuation(scope, source, message.id).resultRevision;
-    return {work, resultRevision, binding: captured?.binding,
+    return {work,resultRevision,binding:captured?.binding??recoveredBinding,
       ...(retention ? {bindTask: retention.bind} : {})};
   });
 }

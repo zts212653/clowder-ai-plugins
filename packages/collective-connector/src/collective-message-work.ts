@@ -242,7 +242,7 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
           time?.businessDeadline?.value !== manual.businessDeadline) throw changed();
         const human = source.actor.kind === 'human' ? await resolveHumanMessageWork(connector, context.storage, source,
           original, ownerUserId, current, {mode: 'send', hasTask: !!existing, ...(manual ? {manual: manual.owner} : {}),
-            resume: !!resume, time}) : undefined;
+            resume: !!resume,time,...(existing?{existingTask:existing,pluginInstanceId:context.pluginInstanceId}:{})}) : undefined;
         const work = human?.work ?? grant!.work;
         const resultRevision = human?.resultRevision ?? work.executionAuthority?.resultRevision ?? 1;
         if (!work.assignmentEventId || work.workId !== authorizedWork.workId ||

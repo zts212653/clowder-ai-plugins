@@ -19,6 +19,17 @@ const operationId = (kind:'bind'|'revoke', taskId:string, revision:number, sourc
 type EntrustedWork = NonNullable<PluginTaskReadItem['entrustedWork']>;
 type EntrustedTask = PluginTaskReadItem & {subjectKey:string;ownerCatId:string;
   entrustedWork:EntrustedWork&{admission:EntrustedWork['admission']&{authorityRef:string}}};
+function verifiedHostReceipt(task:EntrustedTask,sourceMessageId:string,catId:string) {
+  const admission=task.entrustedWork.admission,receipt=admission.hostReceipt;
+  return receipt&&receipt.receiptRef===admission.authorityRef&&receipt.sourceRef===`message:${sourceMessageId}`&&
+    admission.sourceRefs[0]===receipt.sourceRef&&receipt.catId===catId&&task.ownerCatId===catId?receipt:undefined;
+}
+function taskLocator(task:EntrustedTask,source:PluginMessage,receiptRef:string):ManualWorkExecutionBinding {
+  return {taskRef:`task:work:${task.id}`,taskRevision:task.entrustedWork.revision,threadId:task.threadId,
+    admissionRef:`message:${source.id}`,executionRef:`message:${source.id}`,
+    refScope:`task-data-controller:${task.id}:${task.entrustedWork.dataController?.bindingRevision??1}`,
+    dataControllerReceiptRef:receiptRef};
+}
 function requiredSource(source:PluginMessage|null):PluginMessage {
   if (!source) return refuse('OWNER_ADOPTION_UNAVAILABLE','The exact original Task source is unavailable');
   return source;
@@ -43,14 +54,16 @@ export async function listCollectiveTaskDataControllerRows(
     try{receipt=await readWorkFirstReceipt(ports.storage,ownerUserId,sourceMessageId,task.ownerCatId);}
     catch{rows.push({key:`task-controller:${task.id}`,label:task.title,
       detail:'The original Work receipt is unavailable; this Task was not changed.'});continue;}
-    if(!receipt)continue;
+    const hostReceipt=verifiedHostReceipt(task as EntrustedTask,sourceMessageId,task.ownerCatId);
+    if(!receipt&&!hostReceipt)continue;
     const controller=work.dataController;
     const family=controller?.binding.pluginId==='official.collective-connector'&&
       controller.binding.moduleRef==='plugin:official.collective-connector';
     const local=family&&controller.binding.pluginInstanceId===ports.pluginInstanceId;
-    const locatorCurrent=receipt.binding?.dataControllerReceiptRef!==undefined&&
-      receipt.binding.dataControllerReceiptRef===controller?.binding.ownerOperationReceiptRef;
-    const locatorNamesTask=!receipt.binding||(receipt.binding.taskRef===`task:work:${task.id}`&&
+    const locatorCurrent=receipt?.binding?.dataControllerReceiptRef!==undefined
+      ? receipt.binding.dataControllerReceiptRef===controller?.binding.ownerOperationReceiptRef
+      : hostReceipt!==undefined;
+    const locatorNamesTask=!receipt?.binding||(receipt.binding.taskRef===`task:work:${task.id}`&&
       receipt.binding.threadId===task.threadId&&receipt.binding.admissionRef===sourceRef);
     const canRevoke=locatorNamesTask&&local&&controller?.state==='active'&&controller.currentForCaller&&locatorCurrent;
     const needsAdopt=locatorNamesTask&&(!controller||(family&&(!local||controller.state==='revoked'||
@@ -74,14 +87,20 @@ async function sourceAndTask(ports:Ports, ownerUserId:string, input:CollectiveTa
     task.ownerCatId !== input.catId || task.entrustedWork.admission.sourceRefs[0] !== `message:${source.id}` ||
     task.status === 'done' || task.entrustedWork.closure.state !== 'open')
     refuse('OWNER_ADOPTION_UNAVAILABLE','The exact original Task and source are unavailable');
-  const receipt = await readWorkFirstReceipt(ports.storage,ownerUserId,source.id,input.catId);await current();
-  if (!receipt) return refuse('OWNER_ADOPTION_RECEIPT_UNAVAILABLE','The original Work receipt is unavailable');
   const identity=collectiveSourceIdentitySchema.safeParse(source.source?.meta?.participation);
-  if (!identity.success || source.threadId!==receipt.source.threadId || source.sourceRevision!==receipt.source.revision ||
-    workReceiptDigest(source.content)!==receipt.source.bodyDigest || !isDeepStrictEqual(identity.data,receipt.source.identity))
+  if (!identity.success || identity.data.catId!==input.catId)
     return refuse('OWNER_ADOPTION_RECEIPT_UNAVAILABLE','The original Work receipt no longer matches its source');
-  const {binding:_binding,...selected} = receipt;
-  const retention = await retainWorkFirstReceipt(ports.storage,selected,current,true);
+  const receipt = await readWorkFirstReceipt(ports.storage,ownerUserId,source.id,input.catId);await current();
+  if (!receipt&&!verifiedHostReceipt(task,source.id,input.catId))
+    return refuse('OWNER_ADOPTION_RECEIPT_UNAVAILABLE','The original Work receipt is unavailable');
+  if (receipt&&(source.threadId!==receipt.source.threadId || source.sourceRevision!==receipt.source.revision ||
+    workReceiptDigest(source.content)!==receipt.source.bodyDigest || !isDeepStrictEqual(identity.data,receipt.source.identity)))
+    return refuse('OWNER_ADOPTION_RECEIPT_UNAVAILABLE','The original Work receipt no longer matches its source');
+  let retention:Awaited<ReturnType<typeof retainWorkFirstReceipt>>|undefined;
+  if(receipt){
+    const {binding:_binding,...selected}=receipt;
+    retention=await retainWorkFirstReceipt(ports.storage,selected,current,true);
+  }
   return {source,task,receipt,retention};
 }
 
@@ -96,19 +115,25 @@ export async function adoptCollectiveTaskDataController(ports:Ports, owner:Plugi
   const {source,task,receipt,retention} = await sourceAndTask(ports,owner.userId,input,current);
   const work = task.entrustedWork;
   const activeController=work.dataController?.state==='active'?work.dataController:undefined;
-  const locatorNamesCurrent=receipt.binding?.dataControllerReceiptRef!==undefined &&
+  if(!receipt&&activeController?.currentForCaller===true){
+    assertMatchingActive(task,source,input,ports.pluginInstanceId);
+    return {disposition:'replayed' as const,receiptRef:activeController.binding.ownerOperationReceiptRef,
+      bindingRevision:activeController.bindingRevision,task,
+      locator:taskLocator(task,source,activeController.binding.ownerOperationReceiptRef)};
+  }
+  const locatorNamesCurrent=receipt?.binding?.dataControllerReceiptRef!==undefined &&
     receipt.binding.dataControllerReceiptRef===activeController?.binding.ownerOperationReceiptRef;
   if (locatorNamesCurrent && activeController?.currentForCaller === true) {
     assertMatchingActive(task,source,input,ports.pluginInstanceId,receipt.binding);
     return {disposition:'replayed' as const,receiptRef:activeController.binding.ownerOperationReceiptRef,
       bindingRevision:activeController.bindingRevision,
-      task,locator:receipt.binding};
+      task,locator:receipt!.binding!};
   }
   const controller = work.dataController;
   if (controller?.state === 'active') assertCollectiveWorkTask(task,source,input.catId,ports.pluginInstanceId,
-    receipt.binding,{allowStaleController:true,allowControllerReplacement:true});
+    receipt?.binding,{allowStaleController:true,allowControllerReplacement:true});
   else {
-    try {assertCollectiveWorkTask(task,source,input.catId,ports.pluginInstanceId,receipt.binding);}
+    try {assertCollectiveWorkTask(task,source,input.catId,ports.pluginInstanceId,receipt?.binding);}
     catch (error) {
       if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'OWNER_ADOPTION_REQUIRED') throw error;
     }
@@ -131,15 +156,16 @@ export async function adoptCollectiveTaskDataController(ports:Ports, owner:Plugi
   if (resultController?.state !== 'active' ||
     resultController.binding.ownerOperationReceiptRef !== result.receiptRef)
     refuse('OWNER_ADOPTION_UNAVAILABLE','The Host did not return the exact adopted Task');
-  const locator:ManualWorkExecutionBinding = receipt.binding
+  const locator:ManualWorkExecutionBinding = receipt?.binding
     ? {...receipt.binding,taskRevision:resultWork.revision,dataControllerReceiptRef:result.receiptRef}
-    : {taskRef:`task:work:${task.id}`,taskRevision:resultWork.revision,threadId:task.threadId,
-      admissionRef:`message:${source.id}`,executionRef:`message:${source.id}`,
-      refScope:`task-data-controller:${task.id}:${nextBindingRevision}`,dataControllerReceiptRef:result.receiptRef};
-  await retention.bind(locator);await current();
-  const stored = await readWorkFirstReceipt(ports.storage,owner.userId,source.id,input.catId);await current();
-  if (!stored?.binding || !isDeepStrictEqual(stored.binding,locator))
-    refuse('OWNER_ADOPTION_UNAVAILABLE','The adopted Task locator was not retained');
+    : {...taskLocator(result.task as EntrustedTask,source,result.receiptRef),taskRevision:resultWork.revision,
+      refScope:`task-data-controller:${task.id}:${nextBindingRevision}`};
+  if(retention){
+    await retention.bind(locator);await current();
+    const stored = await readWorkFirstReceipt(ports.storage,owner.userId,source.id,input.catId);await current();
+    if (!stored?.binding || !isDeepStrictEqual(stored.binding,locator))
+      refuse('OWNER_ADOPTION_UNAVAILABLE','The adopted Task locator was not retained');
+  }
   return {...result,locator};
 }
 
@@ -147,12 +173,13 @@ export async function revokeCollectiveTaskDataController(ports:Ports, owner:Plug
   unsafe:unknown,current:()=>Promise<void>) {
   const input = collectiveTaskControllerInput.parse(unsafe);
   const {source,task,receipt} = await sourceAndTask(ports,owner.userId,input,current);
-  const locator = receipt.binding;
+  const durable=task.entrustedWork.dataController;
+  const locator = receipt?.binding??(durable?taskLocator(task,source,durable.binding.ownerOperationReceiptRef):undefined);
   const controllerReceiptRef = locator?.dataControllerReceiptRef;
   if (!locator || typeof controllerReceiptRef !== 'string')
     return refuse('OWNER_ADOPTION_UNAVAILABLE','The original Work has no adopted Task controller');
   const exactLocator = locator;
-  const work=task.entrustedWork,durable=work.dataController;
+  const work=task.entrustedWork;
   if(durable?.state==='revoked'){
     try {assertCollectiveWorkTask(task,source,input.catId,ports.pluginInstanceId,exactLocator,
       {allowStaleController:true,allowControllerReplacement:true});}

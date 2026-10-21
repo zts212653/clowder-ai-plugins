@@ -33,7 +33,9 @@ test('Task read exposes only the typed current data-controller projection and im
     entrustedWork: {
       revision: 4,
       closure: { state: 'open' },
-      admission: { sourceRefs: ['message:first'], authorityRef: 'message:admission' },
+      admission: { sourceRefs: ['message:first'], authorityRef: 'message:admission', hostReceipt: {
+        receiptRef: 'message:admission', sourceRef: 'message:first', catId: 'cat',
+      } },
       dataController: {
         bindingRevision: 3,
         state: 'active',
@@ -60,6 +62,7 @@ test('Task read exposes only the typed current data-controller projection and im
   assert.deepEqual(read.entrustedWork?.admission, {
     sourceRefs: ['message:first'],
     authorityRef: 'message:admission',
+    hostReceipt: {receiptRef:'message:admission',sourceRef:'message:first',catId:'cat'},
   });
   assert.deepEqual(read.entrustedWork?.dataController, {
     bindingRevision: 3,
@@ -84,6 +87,12 @@ test('Task read exposes only the typed current data-controller projection and im
   assert.throws(() => projectTaskRead({...task,entrustedWork:{...task.entrustedWork,dataController:{
     ...task.entrustedWork.dataController,state:'revoked',currentForCaller:true,
     revocationReceiptRef:`task-data-controller:${'b'.repeat(64)}`}}}),/currentForCaller/);
+  for(const hostReceipt of [
+    {receiptRef:'message:other',sourceRef:'message:first',catId:'cat'},
+    {receiptRef:'message:admission',sourceRef:'message:other',catId:'cat'},
+    {receiptRef:'message:admission',sourceRef:'message:first',catId:'other'},
+  ]) assert.throws(()=>projectTaskRead({...task,entrustedWork:{...task.entrustedWork,
+    admission:{...task.entrustedWork.admission,hostReceipt}}}),/hostReceipt/);
 });
 
 test('Task controller mutation results share the read projection and reject mismatched Host receipts',()=>{

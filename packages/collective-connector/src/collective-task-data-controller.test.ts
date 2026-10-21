@@ -25,20 +25,25 @@ function task():PluginTaskReadItem {return {id:'legacy-task',userId:'owner',kind
   createdAt:1,updatedAt:1,entrustedWork:{revision:3,closure:{state:'open'},artifactRefs:['/uploads/original.md'],
     admission:{sourceRefs:[`message:${source.id}`],authorityRef:'message:original-admission'}}};}
 function harness(options:{activeBeforeReceipt?:boolean;foreign?:boolean;previousInstance?:boolean;
-  stale?:boolean;rebindAfterCrash?:boolean;copiedLocator?:boolean}={}) {
-  let currentTask=task(),revision=1,binds=0,revokes=0;
+  stale?:boolean;rebindAfterCrash?:boolean;copiedLocator?:boolean;missingReceipt?:boolean;
+  unverifiedHostReceipt?:boolean}={}) {
+  let currentTask=task(),revision=1,binds=0,revokes=0,storageWrites=0,creates=0;
+  if(options.missingReceipt&&!options.unverifiedHostReceipt) currentTask={...currentTask,entrustedWork:{
+    ...currentTask.entrustedWork!,admission:{...currentTask.entrustedWork!.admission,hostReceipt:{
+      receiptRef:'message:original-admission',sourceRef:`message:${source.id}`,catId:'cat',
+    }}}};
   const records=new Map<string,{revision:number;value:unknown}>();
   const storage={async get(key:string){return structuredClone(records.get(key));},async list(){return{};},
     async set(){throw new Error('unused');},async delete(){throw new Error('unused');},
-    async compareAndSet(key:string,expected:number|null,value:unknown){if((records.get(key)?.revision??null)!==expected)return{applied:false};
+    async compareAndSet(key:string,expected:number|null,value:unknown){storageWrites++;if((records.get(key)?.revision??null)!==expected)return{applied:false};
       records.set(key,{revision:++revision,value:structuredClone(value)});return{applied:true,revision};}};
   const original = originalReceipt();
   const oldLocator={taskRef:options.copiedLocator?'task:work:another-task':'task:work:legacy-task',
     taskRevision:4,threadId:'private',admissionRef:`message:${source.id}`,
     executionRef:`message:${source.id}`,refScope:'task-data-controller:legacy-task:1',dataControllerReceiptRef:receiptRef};
-  records.set('collective-owner-admission:'+
-    createHash('sha256').update(JSON.stringify(['owner',source.id,'cat'])).digest('hex'),
-    {revision,value:options.stale||options.rebindAfterCrash?{...original,binding:oldLocator}:original});
+  if(!options.missingReceipt) records.set('collective-owner-admission:'+
+      createHash('sha256').update(JSON.stringify(['owner',source.id,'cat'])).digest('hex'),
+      {revision,value:options.stale||options.rebindAfterCrash?{...original,binding:oldLocator}:original});
   const active=(foreign=false,bindingRevision=1,currentForCaller=!foreign&&!options.previousInstance,ref=receiptRef)=>({bindingRevision,state:'active' as const,currentForCaller,binding:{userId:'owner',catId:'cat',threadId:'private',
     subjectKey:'entrusted:legacy',firstSourceRef:`message:${source.id}`,admissionAuthorityRef:'message:original-admission',
     pluginId:foreign?'foreign.plugin':'official.collective-connector',pluginInstanceId:foreign?'foreign':
@@ -56,7 +61,7 @@ function harness(options:{activeBeforeReceipt?:boolean;foreign?:boolean;previous
     tasks:{
       async get(selector:{id?:string}){return selector.id===currentTask.id?structuredClone(currentTask):null;},
       async list(){return[currentTask];},
-      async create(){throw new Error('must not create');},
+      async create(){creates++;throw new Error('must not create');},
       async update(){throw new Error('unused');},
       async bindDataController(input:Record<string,unknown>){
         binds++;assert.equal('confirmed' in input,false);assert.equal('actor' in input,false);
@@ -80,7 +85,8 @@ function harness(options:{activeBeforeReceipt?:boolean;foreign?:boolean;previous
       },
     },
   } as unknown as FeatureContext);
-  return{context,storage,get task(){return currentTask;},binds:()=>binds,revokes:()=>revokes};
+  return{context,storage,get task(){return currentTask;},binds:()=>binds,revokes:()=>revokes,
+    storageWrites:()=>storageWrites,creates:()=>creates};
 }
 const owner:PluginOwnerOperationContext={kind:'owner-operation',userId:'owner',pluginInstanceId:'installed',operationKey:'work',
   actionId:'adopt-task',requestId:'owner-request',confirmed:true,signal:new AbortController().signal,assertCurrent:async()=>{}};
@@ -102,6 +108,26 @@ test('owner adoption binds the exact legacy Task, retains its locator, replays, 
   const rebound=await adoptCollectiveTaskDataController(f.context,owner,input,async()=>{});
   assert.equal(rebound.receiptRef,reboundRef);assert.equal(rebound.task.entrustedWork?.dataController?.bindingRevision,3);
   assert.equal((await readWorkFirstReceipt(f.storage,'owner',source.id,'cat'))?.binding?.dataControllerReceiptRef,reboundRef);
+});
+
+test('an old Host Task without a package-private receipt stays discoverable and adopts only through Host truth',async()=>{
+  const f=harness({missingReceipt:true});
+  const rows=await listCollectiveTaskDataControllerRows(f.context,'owner',async()=>{});
+  assert.equal(rows.length,1);assert.equal(rows[0]?.actions?.[0]?.action,'adopt-task');
+  assert.equal(f.storageWrites(),0);assert.equal(f.creates(),0);
+  const adopted=await adoptCollectiveTaskDataController(f.context,owner,input,async()=>{});
+  assert.equal(adopted.task.id,'legacy-task');assert.equal(adopted.receiptRef,receiptRef);
+  assert.equal(f.binds(),1);assert.equal(f.storageWrites(),0);assert.equal(f.creates(),0);
+  const after=await listCollectiveTaskDataControllerRows(f.context,'owner',async()=>{});
+  assert.equal(after[0]?.actions?.[0]?.action,'revoke-task');
+});
+
+test('a missing private receipt without the Host-verified admission coordinate stays unavailable and zero-write',async()=>{
+  const f=harness({missingReceipt:true,unverifiedHostReceipt:true});
+  assert.deepEqual(await listCollectiveTaskDataControllerRows(f.context,'owner',async()=>{}),[]);
+  await assert.rejects(adoptCollectiveTaskDataController(f.context,owner,input,async()=>{}),
+    {code:'OWNER_ADOPTION_RECEIPT_UNAVAILABLE'});
+  assert.equal(f.binds(),0);assert.equal(f.storageWrites(),0);assert.equal(f.creates(),0);
 });
 
 test('a Host-success/package-crash replay fills the same locator, while a foreign active controller stays zero-write',async()=>{

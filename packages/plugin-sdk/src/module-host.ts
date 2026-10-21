@@ -147,7 +147,12 @@ export interface PluginTaskEntrustedWorkSummary {
   readonly time?: PluginTaskWorkTime;
   readonly artifactRefs?: readonly string[];
   readonly closure: { readonly state: string };
-  readonly admission: { readonly sourceRefs: readonly string[]; readonly authorityRef?: string };
+  readonly admission: {
+    readonly sourceRefs: readonly string[];
+    readonly authorityRef?: string;
+    /** Host-verified historical receipt coordinate; read-only and never an execution grant. */
+    readonly hostReceipt?: {readonly receiptRef: string; readonly sourceRef: string; readonly catId: string};
+  };
   readonly dataController?: PluginTaskDataControllerSummary;
 }
 

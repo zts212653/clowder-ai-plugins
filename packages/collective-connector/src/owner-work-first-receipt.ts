@@ -229,8 +229,10 @@ export async function retainWorkFirstReceipt(
   let first = await read();
   if (!first) {
     // A surviving Task without its original receipt is a migration/recovery gap,
-    // never evidence that its original basis was manual.
-    if (hasExistingTask) throw conflict();
+    // never evidence that its original basis was manual. The only repair path
+    // carries an exact current Host controller locator derived after explicit
+    // owner adoption and current Service revalidation.
+    if (hasExistingTask && !expected.binding?.dataControllerReceiptRef) throw conflict();
     await current();
     await storage.compareAndSet(key, null, expected);
     first = await read();

@@ -62,6 +62,9 @@ function workSummary(value: unknown): PluginTaskEntrustedWorkSummary {
   const authorityRef = admission.authorityRef === undefined
     ? undefined
     : text(admission.authorityRef, 'entrustedWork.admission.authorityRef');
+  const hostReceipt = admission.hostReceipt === undefined
+    ? undefined
+    : record(admission.hostReceipt, 'entrustedWork.admission.hostReceipt');
   const dataController = work.dataController === undefined
     ? undefined
     : dataControllerSummary(work.dataController);
@@ -70,6 +73,11 @@ function workSummary(value: unknown): PluginTaskEntrustedWorkSummary {
     closure: { state }, admission: {
     sourceRefs: admission.sourceRefs.map(ref => text(ref, 'entrustedWork.admission.sourceRefs')),
     ...(authorityRef === undefined ? {} : {authorityRef}),
+    ...(hostReceipt === undefined ? {} : {hostReceipt: {
+      receiptRef: text(hostReceipt.receiptRef, 'entrustedWork.admission.hostReceipt.receiptRef'),
+      sourceRef: text(hostReceipt.sourceRef, 'entrustedWork.admission.hostReceipt.sourceRef'),
+      catId: text(hostReceipt.catId, 'entrustedWork.admission.hostReceipt.catId'),
+    }}),
   }, ...(dataController === undefined ? {} : {dataController}) };
 }
 
@@ -180,6 +188,15 @@ export function projectTaskRead(value: unknown): PluginTaskReadItem | null {
     ...(task.entrustedWork === undefined ? {} : { entrustedWork: workSummary(task.entrustedWork) }),
   };
   const work = result.entrustedWork, controller = work?.dataController;
+  const hostReceipt = work?.admission.hostReceipt;
+  if (hostReceipt && (
+    result.ownerCatId === null ||
+    hostReceipt.receiptRef !== work?.admission.authorityRef ||
+    hostReceipt.sourceRef !== work.admission.sourceRefs[0] ||
+    hostReceipt.catId !== result.ownerCatId ||
+    !hostReceipt.receiptRef.startsWith('message:') ||
+    !hostReceipt.sourceRef.startsWith('message:')
+  )) invalid('entrustedWork.admission.hostReceipt');
   if (controller?.currentForCaller && (!work ||
     controller.state !== 'active' ||
     result.userId === null ||

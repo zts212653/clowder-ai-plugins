@@ -698,7 +698,10 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('actual compiled Host controller 
   const taskHost:ModulePluginHostShape['tasks']=createPluginTaskHost({pluginId:controller.pluginId,
     pluginInstanceId:controller.pluginInstanceId,ownerUserId:'owner',effectiveGrants:controller.effectiveGrants,
     taskStore,readThreadStore:{async get(id:string){return{id,createdBy:'owner',participants:['cat']};}},
-    admission:{messageStore:{},isCatAvailable:(catId:string)=>catId==='cat',assertCurrent:async()=>{},
+    admission:{messageStore:{async getById(id:string){return id==='admission'?{id:'admission',userId:'owner',
+      threadId:'private',catId:null,from:{kind:'user',userId:'owner'},content:'Host admission receipt',mentions:[],
+      timestamp:1,extra:{collectiveOwnerAdmissionV1:{v:1,sourceRef:'message:first',catId:'cat',
+        ownerAuthProvenance:'strict'}}}:undefined;}},isCatAvailable:(catId:string)=>catId==='cat',assertCurrent:async()=>{},
       readCurrentDataControllerAuthority:async()=>controller,
       withCurrentDataControllerAuthority:async(run:(value:unknown)=>unknown)=>run(controller)}});
   const {context,activation}=await taskReadFixture(undefined,taskHost);
@@ -710,6 +713,8 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('actual compiled Host controller 
       expectedTaskRevision:1,operationId:'owner-bind-operation',expected:{ownerCatId:'cat',threadId:'private',
         subjectKey:'entrusted:legacy',firstSourceRef:'message:first',admissionAuthorityRef:'message:admission'}}));
     assert.equal(bound.disposition,'bound');assert.equal(bound.task.entrustedWork!.dataController!.currentForCaller,true);
+    assert.deepEqual(bound.task.entrustedWork!.admission.hostReceipt,
+      {receiptRef:'message:admission',sourceRef:'message:first',catId:'cat'});
     assert.equal('receipts' in bound.task.entrustedWork!.dataController!,false);
     const binding=bound.task.entrustedWork!.dataController!;
     const revoked=await withCurrentOwnerOperation({...owner,actionId:'revoke-task',requestId:'owner-revoke'},()=>
