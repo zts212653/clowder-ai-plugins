@@ -1,7 +1,6 @@
 import { constants } from 'node:fs';
-import { open } from 'node:fs/promises';
+import { open, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { assertSourceEnvelope, canonicalBytes, freezeGitHubSource } from './migration-source.js';
 
@@ -30,7 +29,7 @@ export async function freezeSourceFile(input: string, output: string, signal: Ab
   finally { await file.close(); }
   return { digest: frozen.digest, counts: frozen.counts, rawContentPrinted: false };
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && await realpath(process.argv[1]).catch(() => '') === fileURLToPath(import.meta.url)) {
   const { values } = parseArgs({ options: { input: { type: 'string' }, output: { type: 'string' } }, allowPositionals: false });
   if (!values.input || !values.output) throw new Error('Explicit GitHub-only source input and new private output paths required');
   const summary = await freezeSourceFile(values.input, values.output, AbortSignal.timeout(30_000));

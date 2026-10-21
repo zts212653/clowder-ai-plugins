@@ -19,6 +19,9 @@ test('real file producer freezes only bounded GitHub input, keeps source bytes a
   const result=await run(input,output),summary=JSON.parse(result.stdout);
   assert.equal(summary.digest,sourceDigest(source));assert.equal(summary.rawContentPrinted,false);
   assert.equal((await stat(output)).mode&0o777,0o600);assert.equal(await readFile(input,'utf8'),raw);
+  const cliAlias=join(dir,'source-cli-alias.ts');await symlink(new URL('./migration-source-cli.ts',import.meta.url).pathname,cliAlias);
+  const aliased=await execute(process.execPath,['--import','tsx',cliAlias,'--input',input,'--output',join(dir,'aliased.json')]);
+  assert.equal(JSON.parse(aliased.stdout).digest,summary.digest,'an alias path executes the same physical CLI');
   await assert.rejects(run(input,output),/EEXIST/);
   const link=join(dir,'link.json');await symlink(input,link);await assert.rejects(run(link,join(dir,'linked-output.json')),/ELOOP/);
   await writeFile(input,JSON.stringify({...source,messages:[{body:'Unrelated chat must not enter this producer'}]}));

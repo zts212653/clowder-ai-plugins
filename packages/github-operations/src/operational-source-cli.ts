@@ -1,6 +1,5 @@
 import { constants } from 'node:fs';
-import { open } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { open, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { canonicalBytes, freezeGitHubSource, sourceDigest } from './migration-source.js';
@@ -81,7 +80,7 @@ export async function exportLegacySource(
     await file.close();
   }
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && (await realpath(process.argv[1]).catch(() => '')) === fileURLToPath(import.meta.url)) {
   try {
     const { values } = parseArgs({
       options: {
