@@ -32,7 +32,7 @@ test('real stdio MCP process invokes module action over HTTP and refreshes turn 
   try {
     await writeFile(credentials, JSON.stringify({ invocationId: 'first', callbackToken: 'token1' }));
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 10);
+    assert.equal((await client.listTools()).tools.length, 11);
     const args = { registrationId: 'stable', repoFullName: 'owner/repo', prNumber: 1 };
     assert.equal((await client.callTool({ name: 'cat_cafe_register_pr_tracking', arguments: args })).isError, undefined);
     await writeFile(credentials, JSON.stringify({ invocationId: 'next', callbackToken: 'token2' }));

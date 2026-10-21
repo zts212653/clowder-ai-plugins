@@ -59,6 +59,11 @@ export class SdkCommunityEventLog implements ICommunityEventLog {
 
   async append(event: CommunityEvent): Promise<{ appended: boolean; sequence: number }> {
     if (!event.sourceEventId || !event.subjectKey) throw new TypeError('Community event requires source and subject');
+    // A migrated cursor deliberately overlaps the previous second. These are
+    // opaque original seen receipts, not fabricated historical journal events.
+    const imported = await this.storage.get('community.imported-comment.' + createHash('sha256').update(event.sourceEventId).digest('hex'));
+    if (imported && (imported.value as { sourceEventId?: string }).sourceEventId === event.sourceEventId)
+      return { appended: false, sequence: -1 };
     for (let attempt = 0; attempt < 256; attempt++) {
       const head = await this.ready();
       if (await this.storage.get(eventKey(event.sourceEventId))) return { appended: false, sequence: -1 };

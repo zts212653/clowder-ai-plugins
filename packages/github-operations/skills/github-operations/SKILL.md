@@ -19,11 +19,13 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
-Tracking is a package-private notification subscription. Declared schedules poll
+New tracking is a package-private notification subscription. Declared schedules poll
 GitHub and use `messaging.send` to post ordinary thread messages; the normal message
-route wakes the recipient. Do not create or update Host Tasks, register a second
+route wakes the recipient. For new subscriptions, do not create or update Host Tasks, register a second
 callback/continuation, or claim that a previous invocation is resumed. This package
-needs no Task or conversation-content grants. Optional notification author allowlist
+does not call Task or conversation-content ports for new subscriptions. Declared
+Task grants support only the retained-wait recovery below; never manufacture or
+edit that original binding outside its authenticated recovery entry. Optional notification author allowlist
 and blocklist are configured in Settings; blocklist wins and both further narrow
 registered comment/review conditions. CI/merge/conflict state notifications are
 unaffected. Filter changes do not backfill suppressed history; pending deliveries
@@ -141,3 +143,17 @@ identity or replace it. Treat error statuses as refusal, not completion.
 Owner decisions remain in Console. Do not invoke generic HTTP forwarding, supply
 callback credentials in payloads, or treat a public-comment observation as a
 verified external review publication.
+
+
+## Continuing an owner-approved state import
+
+If the installation is in import-only recovery, ordinary collection is held.
+Use its Settings recovery status/source coverage; incomplete source is not an
+empty baseline. After the owner stages and starts commit, it may return existing
+Task IDs requiring the original cat/thread binding. Only from that original
+current responsibility, use `github_bind_migrated_wait` with the exact plan digest
+and Task ID. It writes a fresh Host invocation projection while retaining the old
+wait generation and provider baseline. Do not call normal register, replace an
+owner, rearm an expired wait or treat bound as collection released. A lost reply
+can be retried with the same ID/digest from a fresh authenticated turn. The owner
+must recover/verify the complete import and explicitly release one writer.

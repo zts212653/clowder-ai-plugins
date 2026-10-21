@@ -57,6 +57,8 @@ export class InMemoryCommunityRepoConfigStore implements ICommunityRepoConfigSto
       repo,
       guardThreadId: input.guardThreadId,
       guardCatId: input.guardCatId,
+      ...(existing?.notificationThreadId && input.guardThreadId === existing.guardThreadId
+        ? { notificationThreadId: existing.notificationThreadId } : {}),
       reviewMode: input.reviewMode ?? existing?.reviewMode ?? 'observe_only',
       cloudReviewPolicy: input.cloudReviewPolicy ?? existing?.cloudReviewPolicy ?? 'optional',
       createdAt: existing?.createdAt ?? now,
@@ -92,6 +94,8 @@ export class SdkCommunityRepoConfigStore implements ICommunityRepoConfigStore {
       const now = Date.now();
       const config: CommunityRepoConfig = {
         repo, guardThreadId: input.guardThreadId, guardCatId: input.guardCatId,
+        ...(existing?.notificationThreadId && input.guardThreadId === existing.guardThreadId
+          ? { notificationThreadId: existing.notificationThreadId } : {}),
         reviewMode: input.reviewMode ?? existing?.reviewMode ?? 'observe_only',
         cloudReviewPolicy: input.cloudReviewPolicy ?? existing?.cloudReviewPolicy ?? 'optional',
         createdAt: existing?.createdAt ?? now, updatedAt: now,

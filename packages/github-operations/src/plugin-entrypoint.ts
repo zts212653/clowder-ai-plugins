@@ -1,3 +1,6 @@
+import { MigratedIssueRuntime } from './migrated-issue-runtime.js';
+import { GitHubMigrationRuntime } from './migration-runtime.js';
+import { migrationActions } from './migration-http.js';
 import { z } from 'zod';
 import { CommunityReviewVerdictRuntime, REVIEW_VERDICT_METHOD } from './community-review-verdict.js';
 import { CommunityNarratorRuntime } from './community-narrator.js';
@@ -45,6 +48,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const threads = context.threads;
   context = { ...context, threads: { ...threads, get: id => findThreadMetadata(threads, id) } };
   const connectionSettings = createGitHubSettings(context, options.settingsExecFileAsync);
+  const migration = new GitHubMigrationRuntime(context, options.now);
   const transport = new GitHubProvider({
     token: () => context.secrets.get('token'),
     log: { warn: (message, fields) => context.log('warn', message, fields) },
@@ -73,7 +77,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     collect: (target, snapshot) => community.collectTracking(target, snapshot),
     observe: (target, snapshot) => community.observeTracking(target, snapshot),
   });
-  await tracking.recover();
+  const migratedIssues = new MigratedIssueRuntime(context, provider, () => provider.selfLogin(), options.now);
+  if (!await migration.held()) await tracking.recover();
   const http = await createCommunityHttpRouter({
     storage: context.storage, threads: context.threads, projectionOperations: community.projectionOperations,
     provider: { token: () => context.secrets.get('token') },
@@ -89,11 +94,12 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   const poll = async (kind: 'pr' | 'issue') => {
     // Admit both module-owned streams before awaiting either: shutdown must
     // never resume a completed native tick into a newly started collector.
-    await Promise.all([tracking.poll(kind), collection.poll(kind)]);
+    await Promise.all([tracking.poll(kind), collection.poll(kind), ...(kind === 'issue' ? [migratedIssues.poll()] : [])]);
     return { data: { completed: true } };
   };
   return {
-    actions: {
+    actions: migration.guard({
+      ...migrationActions(context, migration, () => tracking.recover()),
       ...connectionSettings.actions,
       'github.pr-title.http': prTitleHttp(prTitles),
       [REVIEW_VERDICT_METHOD]: (input: unknown, caller?: PluginActionContext) => reviewVerdicts.record(input, caller),
@@ -114,7 +120,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.typed-wait.register-issue': (value: unknown, caller?: PluginActionContext) => tracking.registerIssue(value, caller),
       'github.typed-wait.unregister': (value: unknown, caller?: PluginActionContext) => tracking.unregister(value, caller),
       'github.tracking.list': async () => ({ data: { tracking: [
-        ...await tracking.store.listByKind('pr_tracking'), ...await tracking.store.listByKind('issue_tracking'),
+        ...await tracking.store.listByKind('pr_tracking'), ...await tracking.store.listByKind('issue_tracking'), ...await migratedIssues.list(),
       ], diagnostics: await tracking.diagnostics() } }),
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),
@@ -138,8 +144,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.draft.create': (value: unknown) => drafts.create(value),
       'github.draft.get': (value: unknown) => drafts.get(value),
       'github.triage.recommend': recommendTriage,
-    },
-    dispose: async () => { await Promise.all([connectionSettings.dispose(), prTitles.stop(), reviewVerdicts.stop(), narrator.stop(), http.stop(), collection.stop(), tracking.stop(), community.stop(), drafts.stop(), reviewTriggers.stop(), prIndex.stop()]); },
+    }),
+    dispose: async () => { await Promise.all([connectionSettings.dispose(), migration.stop(), migratedIssues.stop(), prTitles.stop(), reviewVerdicts.stop(), narrator.stop(), http.stop(), collection.stop(), tracking.stop(), community.stop(), drafts.stop(), reviewTriggers.stop(), prIndex.stop()]); },
   };
 }
 

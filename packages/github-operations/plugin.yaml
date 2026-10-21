@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.18
+version: 0.1.0-alpha.19
 contractVersion: 0.1.0
 name: GitHub Operations
 description:
@@ -18,6 +18,26 @@ steps:
 test:
   action: { method: github.connection.test }
 configuration:
+  - key: recoveryMode
+    label: 接续旧跟踪（可选）
+    description: 新安装留空。接续旧记录时，在启用替代实例前填写 import-only；
+      核验旧进度并明确释放前，采集和登记保持暂停。
+    kind: string
+    required: false
+  - key: migrationRecovery
+    label: 旧跟踪恢复状态
+    description: 仅接续旧记录时使用。先核对导入进度和来源覆盖；重新登记不能替代旧等待迁移。
+    kind: operation
+    required: false
+    actions:
+      - id: status
+        label: 导入状态
+        render: status
+        action: { method: github.migration.owner-status }
+      - id: source
+        label: 来源覆盖
+        render: button
+        action: { method: github.migration.owner-source }
   - key: token
     label: GitHub 访问令牌（可选）
     description: 已有本机 gh 登录时留空。填写后，插件的 GitHub 请求优先使用此令牌；不要填写 MCP 凭据。
@@ -72,6 +92,41 @@ configuration:
     required: false
     hidden: true
 contributions:
+  - type: webhook
+    id: migration-source
+    path: github/migration/source
+    methods: [ GET ]
+    action: { method: github.migration.source }
+  - type: webhook
+    id: migration-status
+    path: github/migration/status
+    methods: [ GET ]
+    action: { method: github.migration.status }
+  - type: webhook
+    id: migration-stage
+    path: github/migration/stage
+    methods: [ POST ]
+    action: { method: github.migration.stage }
+  - type: webhook
+    id: migration-commit
+    path: github/migration/commit
+    methods: [ POST ]
+    action: { method: github.migration.commit }
+  - type: webhook
+    id: migration-recover
+    path: github/migration/recover
+    methods: [ POST ]
+    action: { method: github.migration.recover }
+  - type: webhook
+    id: migration-abort
+    path: github/migration/abort
+    methods: [ POST ]
+    action: { method: github.migration.abort }
+  - type: webhook
+    id: migration-release
+    path: github/migration/release
+    methods: [ POST ]
+    action: { method: github.migration.release }
   - type: tool
     id: refresh-pull-requests
     name: github_refresh_pull_requests
@@ -183,6 +238,7 @@ contributions:
       - { method: github.typed-wait.register-pr }
       - { method: github.typed-wait.register-issue }
       - { method: github.typed-wait.unregister }
+      - { method: github.migration.bind-wait }
       - { method: github.review.record-verdict }
       - { method: github.community.triage-complete }
       - { method: github.community.request-guardian }
@@ -480,6 +536,13 @@ features:
     name: GitHub collaboration operations
     resources: []
     contributions:
+      - { type: webhook, id: migration-source }
+      - { type: webhook, id: migration-status }
+      - { type: webhook, id: migration-stage }
+      - { type: webhook, id: migration-commit }
+      - { type: webhook, id: migration-recover }
+      - { type: webhook, id: migration-abort }
+      - { type: webhook, id: migration-release }
       - { type: webhook, id: pr-title-http }
       - { type: webhook, id: community-http-01 }
       - { type: webhook, id: community-http-02 }
@@ -535,6 +598,8 @@ features:
       - { type: schedule, id: community-reconciler }
     capabilities:
       [
+        task.read,
+        task.write,
         schedule.register,
         plugin.config.read,
         secret.read,

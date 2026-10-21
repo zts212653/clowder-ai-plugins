@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { REVIEW_VERDICT_METHOD, reviewVerdictInput } from './community-review-verdict.js';
 import { communityNativeMethods, communityNativeInput, type CommunityNativeMethod } from './community-native-actions.js';
 import { GITHUB_PR_WAIT_PREDICATE_LIMIT } from './business/model/index.js';
@@ -7,6 +8,7 @@ import { registerPrTrackingInputSchema, registerIssueTrackingInputSchema, unregi
 
 /** The installed plugin owns these handlers. No callback URL or Host GitHub route. */
 export interface TrackingMcpHandlers {
+  bindMigration?(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   reviewVerdict?(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   community?(method: CommunityNativeMethod, input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
   registerPr(input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
@@ -25,6 +27,7 @@ export function createRemoteTrackingMcpServer(client: {
   invoke(method: string, input: unknown, call: ModuleActionCallOptions): Promise<unknown>;
 }): McpServer {
   return createTrackingMcpServer({
+    bindMigration: (input, call) => client.invoke('github.migration.bind-wait', input, call),
     reviewVerdict: (input, call) => client.invoke(REVIEW_VERDICT_METHOD, input, call),
     community: (method, input, call) => client.invoke(method, input, call),
     registerPr: (input, call) => client.invoke(TRACKING_ACTION_METHODS.registerPr, input, call),
@@ -63,6 +66,10 @@ export function createTrackingMcpServer(handlers: TrackingMcpHandlers): McpServe
       '(review feedback, CI/CD, conflict detection, issue comments) for this subject. ' +
       'Format: "pr:{owner/repo}#{num}" or "issue:{owner/repo}#{num}".',
     unregisterTrackingInputSchema, respond((input, call) => handlers.unregister(input, call)));
+  if (handlers.bindMigration) server.tool('github_bind_migrated_wait',
+    'Use when an owner-approved GitHub import is committing and requests this existing Task binding. Call from its original authenticated cat and thread with the exact plan digest and Task ID. Writes a Host wait projection while preserving its generation and baseline. Not for fresh registration, owner changes, expired waits, ambiguous old deliveries or releasing collectors. Output: bound with original generation while collection stays held; changed bindings or missing strict authentication fail. A lost response may be retried from a fresh authenticated turn using the same Task and digest.',
+    { taskId: z.string().min(1).max(500), expectedDigest: z.string().regex(/^[a-f0-9]{64}$/) },
+    respond((input, call) => handlers.bindMigration!(input, call)));
   if (handlers.reviewVerdict) server.tool('github_record_external_review_verdict',
     'Submit a verdict for the assigned exact PR HEAD under the current native invocation and action lease. ' +
     'Use the exact lease generation and review/comment URL, or an explicit pending_delivery reason. ' +

@@ -62,7 +62,7 @@ test('remote Community MCP tools carry identity only in runtime metadata and mar
   const [a, b] = InMemoryTransport.createLinkedPair(); await server.connect(a); await client.connect(b);
   try {
     const tools = (await client.listTools()).tools;
-    assert.equal(tools.length, 10);
+    assert.equal(tools.length, 11);
     const input = { id: 'issue:org/repo#1', payload: { reason: 'await provider' } }, meta = { threadId: 'real-thread' };
     const result = await client.callTool({ name: 'github_community_await_external', arguments: input, _meta: meta });
     assert.equal(result.isError, true);

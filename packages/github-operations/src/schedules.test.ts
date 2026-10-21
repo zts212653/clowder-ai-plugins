@@ -46,6 +46,6 @@ test('native tracking MCP and skill use the same installed entrypoint and direct
   assert.deepEqual(manifest.contributions.filter((item: { type: string }) => item.type === 'mcp'),
     [{ type: 'mcp', id: 'github-tracking', runtime: { transport: 'stdio', entrypoint: 'dist/mcp-entrypoint.js' },
       actions: [{ method: 'github.typed-wait.register-pr' }, { method: 'github.typed-wait.register-issue' },
-        { method: 'github.typed-wait.unregister' }, { method: 'github.review.record-verdict' }, ...['triage-complete', 'request-guardian', 'guardian-signoff', 'validate-route', 'report', 'await-external'].map(name => ({ method: `github.community.${name}` }))] }]);
+        { method: 'github.typed-wait.unregister' }, { method: 'github.migration.bind-wait' }, { method: 'github.review.record-verdict' }, ...['triage-complete', 'request-guardian', 'guardian-signoff', 'validate-route', 'report', 'await-external'].map(name => ({ method: `github.community.${name}` }))] }]);
   assert.equal(manifest.runtime.transport, 'builtin');
 });

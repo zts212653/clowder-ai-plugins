@@ -430,7 +430,7 @@ test('native draft owner operation publishes once and recovers partial success a
   const draft = await active.actions[create.action.method]!(input) as { data: { id: string; bodyMarkdown: string } };
   assert.equal(draft.data.bodyMarkdown, 'Observed [redacted]');
   assert.deepEqual(await active.actions[create.action.method]!(input), draft);
-  assert.equal(manifest.configuration.some((c: { kind: string }) => c.kind === 'operation'), false);
+  assert.equal(manifest.configuration.some((c: { key: string; kind: string }) => c.kind === 'operation' && c.key !== 'migrationRecovery'), false);
   assert.equal(validateManifest(manifest).valid, true);
   assert.ok(!manifest.contributions.some((c: { action?: { method: string } }) => c.action?.method === 'github.draft.publish'), 'publish must not be a general tool');
   const publish = () => active.actions['github.community.http']!({ request: { method: 'POST', path: `github/community-issue-drafts/by-id/${draft.data.id}/publish`, principal: { kind: 'owner', id: 'user-1' }, body: {} } }) as Promise<any>;
@@ -456,7 +456,7 @@ test('native draft owner operation publishes once and recovers partial success a
 });
 
 for (const length of [0, 10001, 65000]) test(`native thread confirmation accepts the stored native body limit (${length})`, async () => {
-  const f = host(); f.runtimeHost.config.get = async () => 'example/project';
+  const f = host(); f.runtimeHost.config.get = async key => key === 'publishRepositories' ? 'example/project' : undefined;
   const published: string[] = [];
   const active = await createGitHubPluginModule({ createIssuePublisher: () => ({
     create: async draft => { published.push(draft.bodyMarkdown); return { number: 7, url: 'https://github.com/example/project/issues/7' }; },
@@ -476,7 +476,7 @@ for (const length of [0, 10001, 65000]) test(`native thread confirmation accepts
 
 test('native draft ambiguous publication never retries POST, and stop waits for provider cleanup', async () => {
   const f = host();
-  f.runtimeHost.config.get = async () => 'example/project';
+  f.runtimeHost.config.get = async key => key === 'publishRepositories' ? 'example/project' : undefined;
   let creates = 0;
   let release!: () => void;
   let started!: () => void;
@@ -698,7 +698,7 @@ test('real builtin projects provider HEAD and CI without accepting or writing a 
   const events = await new SdkCommunityEventLog(f.runtimeHost.storage).read('pr:example/project#12');
   assert.equal(events.filter(event => event.kind === 'case.ci_observed').length, 2);
   assert.equal(events.some(event => event.kind === 'case.review_verdict_recorded' || event.kind === 'case.review_verdict_submitted'), false);
-  assert.deepEqual(Object.keys(active.actions).filter(method => /verdict|lease|admission/.test(method)), ['github.review.record-verdict']);
+  assert.deepEqual(Object.keys(active.actions).filter(method => /verdict|(^|[.])lease([.]|$)|admission/.test(method)), ['github.review.record-verdict']);
   await assert.rejects(async () => active.actions['github.review.record-verdict']!({}), /native action context/);
   assert.equal(f.deliveries.length, 1, 'ordinary CI notification uses existing SDK messaging exactly once');
   snapshot = { ...snapshot, ci: 'pending' };
@@ -839,9 +839,11 @@ function host() {
 }
 
 test('real manifest → SDK builtin activation → tracking → schedule → ordinary message → terminal → stop without Host Tasks', async () => {
-  for (const capability of ['task.read', 'task.write', 'thread.readContent']) {
-    assert.equal(manifest.features[0].capabilities.includes(capability), false,
-      'GitHub notifications must not require Host Task or content access');
+  assert.equal(manifest.features[0].capabilities.includes('thread.readContent'), false,
+    'GitHub notifications never require content access');
+  for (const capability of ['task.read', 'task.write']) {
+    assert.equal(manifest.features[0].capabilities.includes(capability), true,
+      'Retained Host wait migration declares its existing Task requirements');
   }
   const f = host();
   let snapshot: GitHubSnapshot = { state: 'open', headSha: 'a'.repeat(40), ci: 'pending', comments: [], reviews: [] };
@@ -970,7 +972,7 @@ test('declared webhook authenticates exact bytes, delivers via SDK, deduplicates
   const f = host();
   f.runtimeHost.secrets.get = async key => key === 'webhookSecret' ? 'isolated-test-secret' : undefined;
   const active = await createGitHubPluginModule().create(manifest).start(f.runtimeHost);
-  const declaration = manifest.contributions.find((c: { type: string }) => c.type === 'webhook');
+  const declaration = manifest.contributions.find((c: { type: string; id: string }) => c.type === 'webhook' && c.id === 'repository-events');
   assert.ok(declaration, 'real package declares its webhook');
   assert.equal(declaration.verificationSecretRef, 'webhookSecret');
   const body = { action: 'opened', repository: { full_name: 'example/project' },

@@ -13,6 +13,7 @@ import { copyLegacyIssueProgress } from './legacy-issue-progress.js';
 import { legacyIssueOperationInput } from './legacy-issue-observations.js';
 import { readRegistrationDiagnostics, writeRegistrationDiagnostic, registrationFailureCode, diagnosticError, type DiagnosticError, type RegistrationDiagnostic } from './tracking-diagnostics.js';
 import { readNotificationFilter } from './notification-filter.js';
+import { assertMigratedWaitCurrent, projectMigratedWait } from './migration-host-wait.js';
 
 export interface TypedWaitRuntimeOptions {
   readonly context: FeatureContext;
@@ -76,7 +77,14 @@ export class TypedWaitRuntime {
       throw new Error('Tracking subscription is unavailable');
     }
     this.assertOwner(current, { userId: task.userId!, catId: task.ownerCatId!, threadId: task.threadId });
+    await assertMigratedWaitCurrent(this.options.context, current);
     return current;
+  }
+
+  private async projectImportedWait(taskId: string, check: () => Promise<void>) {
+    const task = await this.store.get(taskId);
+    if (!task) throw new Error('Private tracking subscription is unavailable');
+    await projectMigratedWait(this.options.context, task, check);
   }
 
   async registerPr(input: unknown, caller?: PluginActionContext): Promise<TaskItem> {
@@ -141,6 +149,7 @@ export class TypedWaitRuntime {
           installed = await installPreparedWait(store, { ...task, userId: caller.userId }, plan);
         }
         await check();
+        await this.projectImportedWait(installed.id, check);
         phase = 'complete'; await diagnostic('registered', 'registered');
         return installed;
       } catch (error) {
@@ -156,13 +165,13 @@ export class TypedWaitRuntime {
   diagnostics() { return readRegistrationDiagnostics(this.options.context.storage); }
 
   private lifecycle(task: TaskItem, check: () => Promise<void>) {
-    const store = this.guardedStore(check);
+    const store = this.guardedStore(async () => { await check(); await this.currentSubscription(task); });
     return new GitHubWaitLifecycleService({ taskStore: store, now: this.now,
       eventLog: { append: event => store.appendLifecycleEvent(task.id, event) },
       log: { info: () => {}, warn: () => this.options.context.log('warn', 'GitHub wait delivery/event will be retried'),
         error: () => this.options.context.log('error', 'GitHub wait lifecycle failed') },
       deliveryDeps: { messaging: { send: async ({ threadId, ...draft }) => {
-        await check();
+        await this.projectImportedWait(task.id, check);
         return this.options.context.messaging.send(threadId, draft);
       } } },
     });
@@ -178,6 +187,7 @@ export class TypedWaitRuntime {
       if (!task) return { unregistered: false };
       this.assertOwner(task, caller);
       const result = await this.lifecycle(task, check).cancel(task.id, { kind: 'cat', catId: caller.catId, invocationId: caller.invocationId });
+      await this.projectImportedWait(task.id, check);
       return { unregistered: true, result };
     });
   }
@@ -189,6 +199,7 @@ export class TypedWaitRuntime {
       await this.run(task.subjectKey!, async signal => {
         const check = async () => { this.assertRunning(); signal.throwIfAborted(); };
         await this.lifecycle(task, check).recoverOutcome(task.id);
+        await this.projectImportedWait(task.id, check);
       }).catch(() => this.options.context.log('warn', 'GitHub pending outcome retained for recovery'));
     }
   }
@@ -217,6 +228,8 @@ export class TypedWaitRuntime {
           const wait = task.automationState?.await;
           if (!wait || (wait.expiresAt !== undefined && wait.expiresAt <= this.now())) continue;
           if (task.status === 'done') continue;
+          try { await this.currentSubscription(task); }
+          catch { this.options.context.log('warn', 'GitHub imported binding is unavailable; observation remains paused'); continue; }
           targets.push(waitTarget(task)); batchGenerations.set(task.id, wait.generation);
         }
         if (targets.length) {
@@ -232,11 +245,14 @@ export class TypedWaitRuntime {
         await this.run(task.subjectKey!, async taskSignal => {
           const check = async () => { this.assertRunning(); signal.throwIfAborted(); taskSignal.throwIfAborted(); };
           const current = await this.store.get(task.id); if (!current) return;
+          await this.currentSubscription(current);
           const lifecycle = this.lifecycle(current, check);
           await lifecycle.recoverOutcome(task.id); await check();
+          if (current.automationState?.waitOutcome || !current.automationState?.await) await this.projectImportedWait(task.id, check);
           if (!current.automationState?.await) return;
           if (current.automationState.await.expiresAt !== undefined && current.automationState.await.expiresAt <= this.now()) {
             await lifecycle.observe({ taskId: task.id, at: this.now(), facts: {} });
+            await this.projectImportedWait(task.id, check);
             return;
           }
           if (batchError) throw batchError; // Recover durable outboxes even when new facts are unavailable.
@@ -254,6 +270,7 @@ export class TypedWaitRuntime {
           await this.currentSubscription(current); await check();
           const notificationFilter = await readNotificationFilter(this.options.context, snapshot, observed.observation.facts.review?.reviewer);
           await lifecycle.observe({ ...observed.observation, notificationFilter });
+          await this.projectImportedWait(task.id, check);
         }, this.options.objectTimeoutMs ?? 10_000).catch(() => this.options.context.log('warn', 'GitHub observation failed; wait and pending delivery remain recoverable'));
       }
     });

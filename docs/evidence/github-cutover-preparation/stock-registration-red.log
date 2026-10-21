@@ -1,0 +1,81 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Stock fresh registration must not replace the original generation, baseline, cursors or continuation during cutover
++ actual - expected
+
+  {
+    await: {
+      baseline: {
++       capturedAt: 1000,
++       headSha: 'new'
+-       capturedAt: 1,
+-       headSha: 'old'
+      },
+      continuation: {
++       then: 'Check what changed on this subject, then continue the responsibility you already hold.',
+-       then: 'Original continuation',
+        when: [
+          {
+            kind: 'pr_head_changed'
+          }
+        ]
+      },
++     createdAt: 1000,
++     generation: 1,
+-     createdAt: 1,
+-     generation: 27,
+      ownerFence: {
++       generation: 1,
+-       generation: 27,
+        kind: 'containing_task'
+      },
++     provenance: 'explicit_registration',
+      subjectRef: 'pr:owner/repo#42',
+      v: 1
+    },
+-   review: {
+-     lastConversationCommentCursor: 23,
+-     lastInlineCommentCursor: 17
+-   }
+  }
+
+    at <anonymous> (<worktree>/packages/github-operations/test/cutover-baseline-red.ts:27:8) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: {
+    await: {
+      v: 1,
+      generation: 1,
+      subjectRef: 'pr:owner/repo#42',
+      ownerFence: { kind: 'containing_task', generation: 1 },
+      baseline: { capturedAt: 1000, headSha: 'new' },
+      continuation: {
+        when: [ { kind: 'pr_head_changed' } ],
+        then: 'Check what changed on this subject, then continue the responsibility you already hold.'
+      },
+      createdAt: 1000,
+      provenance: 'explicit_registration'
+    }
+  },
+  expected: {
+    review: { lastInlineCommentCursor: 17, lastConversationCommentCursor: 23 },
+    await: {
+      v: 1,
+      generation: 27,
+      subjectRef: 'pr:owner/repo#42',
+      ownerFence: { kind: 'containing_task', generation: 27 },
+      baseline: { capturedAt: 1, headSha: 'old' },
+      continuation: {
+        when: [ { kind: 'pr_head_changed' } ],
+        then: 'Original continuation'
+      },
+      createdAt: 1
+    }
+  },
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.16.0

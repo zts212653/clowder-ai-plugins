@@ -228,6 +228,8 @@ export interface CommunityRepoConfig {
   readonly repo: string;
   readonly guardThreadId: string;
   readonly guardCatId: string;
+  /** Imported connector Inbox; guard assignment keeps its original semantics. */
+  readonly notificationThreadId?: string;
   /** Missing legacy values hydrate fail-closed as observe_only. */
   readonly reviewMode: 'observe_only' | 'maintainer_review';
   /** Optional allows readiness only when no cloud review was requested. */
