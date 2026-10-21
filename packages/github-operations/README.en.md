@@ -89,7 +89,7 @@ Release note: this is an unpublished local candidate. Real-account journeys and 
 
 ## Continue existing tracking after a consumer migration
 
-For an existing observation history, configure **接续旧跟踪（可选）**
+For an existing observation history, configure **Continue existing tracking (optional)**
 with the exact value `import-only` before activating the replacement. Collection,
 webhooks and registration remain paused; normal registration freezes a new
 baseline and cannot preserve an old wait. The recovery status/source buttons show
