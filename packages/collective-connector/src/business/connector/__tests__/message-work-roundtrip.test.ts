@@ -236,6 +236,51 @@ test('Task controller authority is rechecked after the last pre-wake yield',asyn
   }finally{vi.restoreAllMocks();await f.close();}
 });
 
+test.each([
+  ['revoked controller','OWNER_ADOPTION_REQUIRED'],
+  ['terminal Task','OWNER_TASK_UNAVAILABLE'],
+  ['locator drift','WORK_EXECUTION_NOT_CURRENT'],
+] as const)('wake revalidates %s before sending',async(drift,code)=>{
+  const f=await setup();
+  try{
+    const work=f.task.entrustedWork!;
+    Object.assign(f.task,{entrustedWork:{...work,dataController:{
+      bindingRevision:1,state:'active',currentForCaller:true,
+      binding:{userId:f.auth.userId,catId:f.auth.catId,threadId:f.task.threadId,
+        subjectKey:f.task.subjectKey!,firstSourceRef:'message:canonical-source',
+        admissionAuthorityRef:work.admission.authorityRef!,pluginId:'official.collective-connector',
+        pluginInstanceId:'installed-collective',moduleRef:'plugin:official.collective-connector',
+        lifecycleRevision:1,grantRevision:1,ownerOperationReceiptRef:`task-data-controller:${'a'.repeat(64)}`},
+    }}});
+    await f.store.postHumanMessage(f.owner.sessionToken,{serviceInstanceId:f.connection.serviceInstanceId,
+      collectiveId:f.connection.collectiveId,clientEventId:`wake-${drift}`,
+      location:{channelId:'general',rootEventId:f.work.sourceEventId},recipient:{kind:'channel'},
+      replyToEventId:f.work.assignmentEventId,body:'Continue original Work.'});
+    await f.connector.sync(f.connection.connectionId);
+    const event=(await f.connector.listInbox(f.connection.connectionId))
+      .find(row=>row.event.workWakeNotice?.workId===f.work.workId)!.event;
+    const send=vi.spyOn(f.context.messaging,'send');
+    const caller=createCollectiveMessageWorkCaller(f.connector,f.context,{beforeWake:async()=>{
+      if(drift==='revoked controller')Object.assign(f.task,{entrustedWork:{...f.task.entrustedWork!,
+        revision:f.task.entrustedWork!.revision+1,dataController:{...f.task.entrustedWork!.dataController!,
+          bindingRevision:2,state:'revoked',currentForCaller:false,
+          revocationReceiptRef:`task-data-controller:${'b'.repeat(64)}`}}});
+      else if(drift==='terminal Task')Object.assign(f.task,{status:'done',entrustedWork:{...f.task.entrustedWork!,
+        revision:f.task.entrustedWork!.revision+1,closure:{...f.task.entrustedWork!.closure,state:'satisfied'}}});
+      else{
+        const drifted=structuredClone({...f.task,id:'other-task'});
+        const originalGet=f.context.tasks.get.bind(f.context.tasks);
+        vi.spyOn(f.context.tasks,'list').mockResolvedValue([drifted]);
+        vi.spyOn(f.context.tasks,'get').mockImplementation(async selector=>
+          selector.id===drifted.id?drifted:originalGet(selector));
+      }
+    }});
+    await expect(caller.wake(f.connection.connectionId,event.eventId,f.auth.userId,async()=>{}))
+      .rejects.toMatchObject({code});
+    expect(send).not.toHaveBeenCalled();
+  }finally{vi.restoreAllMocks();await f.close();}
+});
+
 test('ordinary Work uses the injected Cat and current installation as separate authorization coordinates', async () => {
   const f = await setup();
   try {

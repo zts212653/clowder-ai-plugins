@@ -147,9 +147,14 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
         const grant = await connector.resolveAcceptedWorkGrant(source);await current();
         if (grant.work.workId !== work.workId || !isDeepStrictEqual(grant.work, work)) throw changed();
       }
-      await current();await options?.beforeWake(task.threadId);await current();
+      const assertWakeCurrent = async () => {
+        const latest = await readCollectiveWorkWake(connector, context, connectionId, eventId, ownerUserId, current);
+        if (!isDeepStrictEqual(latest.work, work) || !isDeepStrictEqual(latest.task, task)) throw changed();
+      };
+      await current();await options?.beforeWake(task.threadId);await current();await assertWakeCurrent();
       const projected = collectiveSource(wake.event);
       await connector.beginInboxRouting(connectionId, eventId, hostRoute.revision);await current();
+      await assertWakeCurrent();
       const sent = await context.messaging.send(task.threadId, {idempotencyKey: `collective-work-wake:${wake.event.eventId}`,
         identity: 'collective', sender: projected.sender, meta: projected.meta, wake: {catId: source.catId},
         payload: {provenance: {origin: {kind: 'plugin', instanceId: context.pluginInstanceId}, epistemicStatus: 'observation'},
