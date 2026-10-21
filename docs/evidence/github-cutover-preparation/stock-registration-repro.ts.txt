@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import { registerPrWait } from '../src/typed-wait-registration.js';
+import { GitHubWaitStorage } from '../src/typed-wait-storage.js';
+import type { PluginStorageHost, PluginStorageEntry } from '@clowder-ai/plugin-sdk';
+import type { TaskItem } from '../src/business/model/index.js';
+const rows = new Map<string, PluginStorageEntry>();
+const storage = {
+  get: async (key: string) => rows.get(key),
+  compareAndSet: async (key: string, expected: number | null, value: unknown) => {
+    if ((rows.get(key)?.revision ?? null) !== expected) return { applied: false };
+    rows.set(key, { revision: 1, value }); return { applied: true, revision: 1 };
+  },
+} as PluginStorageHost;
+const source: TaskItem = { id: 'legacy', kind: 'pr_tracking', subjectKey: 'pr:owner/repo#42',
+  threadId: 'original-thread', ownerCatId: 'original-cat', createdBy: 'original-cat', userId: 'owner',
+  status: 'doing', title: 'Fixture', why: '', createdAt: 1, updatedAt: 2, automationState: {
+    review: { lastInlineCommentCursor: 17, lastConversationCommentCursor: 23 },
+    await: { v: 1, generation: 27, subjectRef: 'pr:owner/repo#42',
+      ownerFence: { kind: 'containing_task', generation: 27 }, baseline: { capturedAt: 1, headSha: 'old' },
+      continuation: { when: [{ kind: 'pr_head_changed' }], then: 'Original continuation' }, createdAt: 1 },
+  } };
+const target = await registerPrWait(new GitHubWaitStorage(storage), source,
+  { registrationId: 'reinstall', repoFullName: 'owner/repo', prNumber: 42, when: [{ kind: 'pr_head_changed' }] }, {
+    identity: async () => ({}), coverage: async () => ({ covered: true }), now: () => 1000,
+    baseline: async () => ({ baseline: { capturedAt: 1000, headSha: 'new' }, collectorState: {} }),
+  });
+assert.deepEqual(target.automationState, source.automationState,
+  'Stock fresh registration must not replace the original generation, baseline, cursors or continuation during cutover');
