@@ -285,6 +285,11 @@ test('repository import preserves separate notification and guard routes, old de
     repoComments:async()=>[],state:async()=>null,selfLogin:()=>undefined,
   })});
   const active=await module.create(manifest).start(f.host);t.after(()=>active.stop({reason:'test'}));
+  for(const route of [null,{threadId:'original-inbox',userId:'another-owner'},{threadId:'original-inbox',userId:'owner',extra:'unapproved'}]) {
+    const invalid={...snapshot,repositories:[{...snapshot.repositories[0]!,notificationRoute:route}]};
+    await assert.rejects(ownerCall(f,active,'stage',{snapshot:invalid,expectedDigest:sourceDigest(invalid)}),/notification route/);
+    assert.equal(Object.keys(await f.storage.list()).length,0);
+  }
   const staged=await ownerCall(f,active,'stage',{snapshot,expectedDigest:sourceDigest(snapshot)});
   await ownerCall(f,active,'commit',{expectedDigest:staged.body.data.planDigest});
   const journal=new SdkCommunityEventLog(f.storage);

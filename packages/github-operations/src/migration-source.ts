@@ -59,7 +59,8 @@ export function assertSourceEnvelope(value: unknown): asserts value is Migration
     if (Object.keys(row).some(key => !['config','progress','commentOverlapEventIds','notificationRoute'].includes(key))
       || !row.progress || typeof row.progress !== 'object' || Array.isArray(row.progress) || !Array.isArray(row.commentOverlapEventIds))
       throw new Error('Only GitHub repository progress metadata may be exported');
-    if (row.notificationRoute && (Object.keys(row.notificationRoute).some(key => !['threadId','userId'].includes(key))
+    if (row.notificationRoute !== undefined && (!row.notificationRoute || typeof row.notificationRoute !== 'object'
+      || Array.isArray(row.notificationRoute) || Object.keys(row.notificationRoute).some(key => !['threadId','userId'].includes(key))
       || typeof row.notificationRoute.threadId !== 'string' || !/^[A-Za-z0-9_.@-]{1,200}$/.test(row.notificationRoute.threadId)
       || row.notificationRoute.userId !== cut.userId)) throw new Error('Original repository notification route ownership is invalid');
     const repo = row.config.repo, notified = `f141:notified:${repo}#`;
