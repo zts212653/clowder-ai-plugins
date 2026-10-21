@@ -1168,8 +1168,7 @@
         "type",
         "id",
         "path",
-        "methods",
-        "action"
+        "methods"
       ],
       "additionalProperties": false
     },
@@ -2377,6 +2376,28 @@
         "mcpId"
       ],
       "additionalProperties": false
+    },
+    "PluginCallDeclaration": {
+      "type": "object",
+      "description": "Opt-in metadata for a plugin instance that can be called as a conversation participant. The Host owns the fixed call delivery interface; packages do not select a Host method name.",
+      "properties": {
+        "alias": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48,
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "alias",
+        "displayName"
+      ],
+      "additionalProperties": false
     }
   },
   "type": "object",
@@ -2457,6 +2478,9 @@
       "items": {
         "$ref": "#/$defs/ProjectOutputAction"
       }
+    },
+    "call": {
+      "$ref": "#/$defs/PluginCallDeclaration"
     }
   },
   "required": [

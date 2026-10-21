@@ -297,7 +297,7 @@ export type WebhookContribution = {
   readonly id: string;
   readonly path: string;
   readonly methods: readonly ('GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE')[];
-  readonly action: CallbackAction;
+  readonly action?: CallbackAction;
   readonly verificationSecretRef?: string;
   readonly requestBodyLimitBytes?: number;
 };
@@ -539,6 +539,10 @@ export type ProjectOutputAction = {
   readonly maxBytes: number;
   readonly mcpId: string;
 };
+export type PluginCallDeclaration = {
+  readonly alias: string;
+  readonly displayName: string;
+};
 
 export type PluginManifest = {
   readonly pluginId: string;
@@ -558,6 +562,7 @@ export type PluginManifest = {
   readonly steps?: readonly SetupStep[];
   readonly signals?: SignalContribution;
   readonly projectOutputs?: readonly ProjectOutputAction[];
+  readonly call?: PluginCallDeclaration;
 };
 
 export type CatalogSemVer = string;
@@ -870,6 +875,7 @@ export type PluginMessageDelivery = {
   readonly deliveryId: string;
   readonly threadId: ThreadId;
   readonly executionId?: string;
+  readonly reason?: 'addressed' | 'subscription';
   readonly envelope: MessageEnvelope;
   readonly presentation?: DeliveryPresentationContext;
 };

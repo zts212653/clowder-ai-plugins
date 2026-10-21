@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.0
+version: 0.2.0-alpha.1
 contractVersion: 0.1.0
 name: ChatGPT Dot
 description:
@@ -9,10 +9,9 @@ description:
 icon:
   type: svg
   src: assets/chatgpt-cloud.svg
-migration:
-  method: dot.import
-addressedDelivery:
-  method: deliverMessage
+call:
+  alias: dot
+  displayName: Dot
 steps:
   - text: 准备连接后先启用插件，再在目标云端对话按配对说明订阅召唤。
   - text: 发起往返测试；读取原消息并回复校验码后，再检查测试结果。
@@ -66,19 +65,13 @@ contributions:
     path: mcp
     methods: [POST]
     verificationSecretRef: dotCredential
-    action: { method: dot.rpc }
   - type: webhook
     id: dot-original
     path: images/:imageId
     methods: [GET]
-    action: { method: dot.image }
   - type: media-source
     id: dot-images
     binding: dot
-  - type: message-subscription
-    id: dot-replies
-    binding: dot
-    action: { method: dot.followup }
 features:
   - id: dot-connection
     name: Dot 配对与对话
@@ -88,7 +81,6 @@ features:
       - { type: webhook, id: dot-mcp }
       - { type: webhook, id: dot-original }
       - { type: media-source, id: dot-images }
-      - { type: message-subscription, id: dot-replies }
     capabilities:
       - plugin.config.read
       - secret.read

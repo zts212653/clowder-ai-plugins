@@ -206,3 +206,9 @@ export { createStreamsClient, type PluginStreams, type PluginStreamReadOptions }
 export type { PluginStopContext, PluginPreStopContext } from './module-host.js';
 
 export * from './delivery.js';
+export {
+  defineWebhookHandler,
+  type PluginWebhookHandler,
+  type PluginWebhookRequest,
+  type PluginWebhookSurface,
+} from './webhook.js';

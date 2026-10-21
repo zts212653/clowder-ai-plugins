@@ -30,6 +30,6 @@ Dot 把已配对的 ChatGPT 云端对话接入 Clowder AI。安装实例可作�
 
 ## 开发
 
-从插件仓根目录安装依赖，先构建 Contract 和 SDK，再运行本包的 typecheck、test 和 build。运行入口是 dist/plugin-entrypoint.js。Host 通过清单声明的非 UI action dot.import，在启用前经 owner-operation 边界导入；./migration 导出提供批次 schema。批次接受明确的记录和原图字节，不接受服务端文件路径。
+从插件仓根目录安装依赖，先构建 Contract 和 SDK，再运行本包的 typecheck、test 和 build。运行入口是 dist/plugin-entrypoint.js。旧 Host 数据迁移不属于公开 manifest/action；Host 的 Dot 兼容适配在启用前、经 owner-operation 边界调用 `./migration` 导出的批次 importer。批次接受明确的记录和原图字节，不接受服务端文件路径。
 
 测试覆盖配对、签名召唤、先读后回复、图片流、重试、停用中止、恢复和旧数据导入。最终账号连接、设置页面及完整往返仍须在隔离 Host 中验证。

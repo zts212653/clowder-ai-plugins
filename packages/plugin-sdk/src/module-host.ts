@@ -369,6 +369,8 @@ export interface PluginPreStopContext extends PluginStopContext { /** Absolute U
 
 export interface PluginModuleActivationShape {
   readonly streams?: import('./streams.js').PluginStreams;
+  readonly call?: import('./delivery.js').PluginCallSurface;
+  readonly webhook?: import('./webhook.js').PluginWebhookSurface;
   configRefresh?(): void | Promise<void>;
   preStop?(context: PluginPreStopContext): void | Promise<void>;
   readonly actions: Readonly<Record<string, import('./feature-context.js').PluginActionHandler>>;

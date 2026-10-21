@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/messaging/v0.1",
-  "title": "Clowder AI Plugin Contract — Messaging Domain (v0.1)",
-  "description": "Machine-readable truth source for messaging types (§3.1). Candidate — do not consume until published.",
+  "title": "Clowder AI Plugin Contract \u2014 Messaging Domain (v0.1)",
+  "description": "Machine-readable truth source for messaging types (\u00a73.1). Candidate \u2014 do not consume until published.",
   "x-clowder-bounds": {
     "maxElementsPerOperation": 32,
     "maxElementPayloadBytes": 65536,
@@ -21,41 +21,91 @@
   },
   "x-clowder-replay-window-default": "P7D",
   "oneOf": [
-    { "$ref": "#/$defs/MessageDraft" },
-    { "$ref": "#/$defs/MessageEnvelope" },
-    { "$ref": "#/$defs/MessageOutputEvent" },
-    { "$ref": "#/$defs/AppendElementsRequest" },
-    { "$ref": "#/$defs/SendReceipt" },
-    { "$ref": "#/$defs/AppendReceipt" },
-    { "$ref": "#/$defs/SubscriptionReadResponse" },
-    { "$ref": "#/$defs/SnapshotResponse" }
+    {
+      "$ref": "#/$defs/MessageDraft"
+    },
+    {
+      "$ref": "#/$defs/MessageEnvelope"
+    },
+    {
+      "$ref": "#/$defs/MessageOutputEvent"
+    },
+    {
+      "$ref": "#/$defs/AppendElementsRequest"
+    },
+    {
+      "$ref": "#/$defs/SendReceipt"
+    },
+    {
+      "$ref": "#/$defs/AppendReceipt"
+    },
+    {
+      "$ref": "#/$defs/SubscriptionReadResponse"
+    },
+    {
+      "$ref": "#/$defs/SnapshotResponse"
+    }
   ],
   "$defs": {
     "ActorKind": {
       "type": "string",
-      "enum": ["user", "cat", "plugin", "device", "system"]
+      "enum": [
+        "user",
+        "cat",
+        "plugin",
+        "device",
+        "system"
+      ]
     },
     "ActorRef": {
       "type": "object",
       "properties": {
-        "kind": { "$ref": "#/$defs/ActorKind" },
-        "id": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "kind": {
+          "$ref": "#/$defs/ActorKind"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["kind", "id"],
+      "required": [
+        "kind",
+        "id"
+      ],
       "additionalProperties": false
     },
     "EpistemicStatus": {
       "type": "string",
-      "enum": ["observation", "user_intent", "inference"]
+      "enum": [
+        "observation",
+        "user_intent",
+        "inference"
+      ]
     },
     "ExternalSourceAddress": {
       "type": "object",
       "properties": {
-        "connectorId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "chatId": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "messageId": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "connectorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "chatId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "messageId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["connectorId", "chatId"],
+      "required": [
+        "connectorId",
+        "chatId"
+      ],
       "additionalProperties": false
     },
     "IngressSourceAddress": {
@@ -65,315 +115,657 @@
     "PluginOrigin": {
       "type": "object",
       "properties": {
-        "kind": { "const": "plugin" },
-        "instanceId": { "type": "string", "minLength": 1, "maxLength": 256 }
+        "kind": {
+          "const": "plugin"
+        },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       },
-      "required": ["kind", "instanceId"],
+      "required": [
+        "kind",
+        "instanceId"
+      ],
       "additionalProperties": false
     },
     "ExternalOrigin": {
       "type": "object",
       "properties": {
-        "kind": { "const": "external" },
-        "connectorId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "sourceAddress": { "$ref": "#/$defs/ExternalSourceAddress" }
+        "kind": {
+          "const": "external"
+        },
+        "connectorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sourceAddress": {
+          "$ref": "#/$defs/ExternalSourceAddress"
+        }
       },
-      "required": ["kind", "connectorId"],
+      "required": [
+        "kind",
+        "connectorId"
+      ],
       "additionalProperties": false
     },
     "HostOrigin": {
       "type": "object",
       "properties": {
-        "kind": { "const": "host" }
+        "kind": {
+          "const": "host"
+        }
       },
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "additionalProperties": false
     },
     "ProvenanceOrigin": {
       "oneOf": [
-        { "$ref": "#/$defs/PluginOrigin" },
-        { "$ref": "#/$defs/ExternalOrigin" },
-        { "$ref": "#/$defs/HostOrigin" }
+        {
+          "$ref": "#/$defs/PluginOrigin"
+        },
+        {
+          "$ref": "#/$defs/ExternalOrigin"
+        },
+        {
+          "$ref": "#/$defs/HostOrigin"
+        }
       ]
     },
     "DraftOrigin": {
       "oneOf": [
-        { "$ref": "#/$defs/PluginOrigin" },
-        { "$ref": "#/$defs/ExternalOrigin" }
+        {
+          "$ref": "#/$defs/PluginOrigin"
+        },
+        {
+          "$ref": "#/$defs/ExternalOrigin"
+        }
       ],
       "description": "Drafts cannot self-declare host provenance."
     },
     "MessageProvenance": {
       "type": "object",
       "properties": {
-        "origin": { "$ref": "#/$defs/ProvenanceOrigin" },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "origin": {
+          "$ref": "#/$defs/ProvenanceOrigin"
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["origin", "epistemicStatus"],
+      "required": [
+        "origin",
+        "epistemicStatus"
+      ],
       "additionalProperties": false
     },
     "DraftProvenance": {
       "type": "object",
       "properties": {
-        "origin": { "$ref": "#/$defs/DraftOrigin" },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "origin": {
+          "$ref": "#/$defs/DraftOrigin"
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["epistemicStatus"],
+      "required": [
+        "epistemicStatus"
+      ],
       "additionalProperties": false
     },
     "MediaType": {
       "type": "string",
-      "enum": ["image", "file", "audio", "video"]
+      "enum": [
+        "image",
+        "file",
+        "audio",
+        "video"
+      ]
     },
     "ElementKind": {
       "type": "string",
-      "enum": ["text", "media_ref", "rich_block", "media_unavailable", "media_warning"]
+      "enum": [
+        "text",
+        "media_ref",
+        "rich_block",
+        "media_unavailable",
+        "media_warning"
+      ]
     },
     "TextElementPayload": {
       "type": "object",
       "properties": {
-        "text": { "type": "string" }
+        "text": {
+          "type": "string"
+        }
       },
-      "required": ["text"],
+      "required": [
+        "text"
+      ],
       "additionalProperties": false
     },
     "MediaRefElementPayload": {
       "type": "object",
       "properties": {
-        "type": { "$ref": "#/$defs/MediaType" },
+        "type": {
+          "$ref": "#/$defs/MediaType"
+        },
         "reference": {
           "type": "string",
           "minLength": 1,
           "maxLength": 2048,
           "description": "pmr_* enters only through a public messaging.send draft that carries sourceEventId; whisper, appendElements, and pmr drafts without sourceEventId are rejected. hmr_* is an opaque identifier, not a bearer token: send, appendElements, and media.read share the same Host authorization decision, and unknown, unauthorized, cross-instance, or revoked references all return MEDIA_ACCESS_DENIED. References without either prefix are legacy opaque values: the Host does not parse, materialize, or expose them through media.read."
         },
-        "sourceId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "fileName": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["type", "reference"],
+      "required": [
+        "type",
+        "reference"
+      ],
       "additionalProperties": true,
       "allOf": [
         {
-          "if": { "properties": { "reference": { "pattern": "^pmr_" } }, "required": ["reference"] },
-          "then": { "required": ["sourceId"] }
+          "if": {
+            "properties": {
+              "reference": {
+                "pattern": "^pmr_"
+              }
+            },
+            "required": [
+              "reference"
+            ]
+          },
+          "then": {
+            "required": [
+              "sourceId"
+            ]
+          }
         },
         {
-          "if": { "properties": { "reference": { "pattern": "^hmr_" } }, "required": ["reference"] },
-          "then": { "not": { "required": ["sourceId"] } }
+          "if": {
+            "properties": {
+              "reference": {
+                "pattern": "^hmr_"
+              }
+            },
+            "required": [
+              "reference"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "sourceId"
+              ]
+            }
+          }
         }
       ]
     },
     "RichBlockElementPayload": {
       "type": "object",
       "properties": {
-        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "kind": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "v": { "const": 1 }
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "v": {
+          "const": 1
+        }
       },
-      "required": ["id", "kind", "v"],
+      "required": [
+        "id",
+        "kind",
+        "v"
+      ],
       "additionalProperties": true
     },
     "MediaUnavailableElementPayload": {
       "type": "object",
       "properties": {
-        "type": { "$ref": "#/$defs/MediaType" },
-        "fileName": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "reason": { "type": "string", "enum": ["source_expired", "timeout", "unavailable"] }
+        "type": {
+          "$ref": "#/$defs/MediaType"
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "source_expired",
+            "timeout",
+            "unavailable"
+          ]
+        }
       },
-      "required": ["type", "reason"],
+      "required": [
+        "type",
+        "reason"
+      ],
       "additionalProperties": false
     },
     "MediaWarningElementPayload": {
       "type": "object",
       "properties": {
-        "mediaElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "stage": { "type": "string", "enum": ["transcription", "preview"] },
-        "reason": { "type": "string", "enum": ["timeout", "processing_failed"] }
+        "mediaElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "transcription",
+            "preview"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "timeout",
+            "processing_failed"
+          ]
+        }
       },
-      "required": ["mediaElementId", "stage", "reason"],
+      "required": [
+        "mediaElementId",
+        "stage",
+        "reason"
+      ],
       "additionalProperties": false
     },
     "TextMessageElement": {
       "type": "object",
       "properties": {
-        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "kind": { "const": "text" },
-        "payload": { "$ref": "#/$defs/TextElementPayload" },
-        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "elementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "const": "text"
+        },
+        "payload": {
+          "$ref": "#/$defs/TextElementPayload"
+        },
+        "derivedFromElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["elementId", "kind", "payload"],
+      "required": [
+        "elementId",
+        "kind",
+        "payload"
+      ],
       "additionalProperties": false
     },
     "MediaRefMessageElement": {
       "type": "object",
       "properties": {
-        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "kind": { "const": "media_ref" },
-        "payload": { "$ref": "#/$defs/MediaRefElementPayload" },
-        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "elementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "const": "media_ref"
+        },
+        "payload": {
+          "$ref": "#/$defs/MediaRefElementPayload"
+        },
+        "derivedFromElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["elementId", "kind", "payload"],
+      "required": [
+        "elementId",
+        "kind",
+        "payload"
+      ],
       "additionalProperties": false
     },
     "PmrMediaRefElementMatch": {
       "type": "object",
       "properties": {
-        "kind": { "const": "media_ref" },
+        "kind": {
+          "const": "media_ref"
+        },
         "payload": {
           "type": "object",
           "properties": {
-            "reference": { "type": "string", "pattern": "^pmr_" }
+            "reference": {
+              "type": "string",
+              "pattern": "^pmr_"
+            }
           },
-          "required": ["reference"]
+          "required": [
+            "reference"
+          ]
         }
       },
-      "required": ["kind", "payload"]
+      "required": [
+        "kind",
+        "payload"
+      ]
     },
     "RichBlockMessageElement": {
       "type": "object",
       "properties": {
-        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "kind": { "const": "rich_block" },
-        "payload": { "$ref": "#/$defs/RichBlockElementPayload" },
-        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "elementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "const": "rich_block"
+        },
+        "payload": {
+          "$ref": "#/$defs/RichBlockElementPayload"
+        },
+        "derivedFromElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["elementId", "kind", "payload"],
+      "required": [
+        "elementId",
+        "kind",
+        "payload"
+      ],
       "additionalProperties": false
     },
     "MediaUnavailableMessageElement": {
       "type": "object",
       "properties": {
-        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "kind": { "const": "media_unavailable" },
-        "payload": { "$ref": "#/$defs/MediaUnavailableElementPayload" },
-        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "elementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "const": "media_unavailable"
+        },
+        "payload": {
+          "$ref": "#/$defs/MediaUnavailableElementPayload"
+        },
+        "derivedFromElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["elementId", "kind", "payload"],
+      "required": [
+        "elementId",
+        "kind",
+        "payload"
+      ],
       "additionalProperties": false
     },
     "MediaWarningMessageElement": {
       "type": "object",
       "properties": {
-        "elementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "kind": { "const": "media_warning" },
-        "payload": { "$ref": "#/$defs/MediaWarningElementPayload" },
-        "derivedFromElementId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "epistemicStatus": { "$ref": "#/$defs/EpistemicStatus" }
+        "elementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "const": "media_warning"
+        },
+        "payload": {
+          "$ref": "#/$defs/MediaWarningElementPayload"
+        },
+        "derivedFromElementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "epistemicStatus": {
+          "$ref": "#/$defs/EpistemicStatus"
+        }
       },
-      "required": ["elementId", "kind", "payload"],
+      "required": [
+        "elementId",
+        "kind",
+        "payload"
+      ],
       "additionalProperties": false
     },
     "MessageElement": {
       "oneOf": [
-        { "$ref": "#/$defs/TextMessageElement" },
-        { "$ref": "#/$defs/MediaRefMessageElement" },
-        { "$ref": "#/$defs/RichBlockMessageElement" },
-        { "$ref": "#/$defs/MediaUnavailableMessageElement" },
-        { "$ref": "#/$defs/MediaWarningMessageElement" }
+        {
+          "$ref": "#/$defs/TextMessageElement"
+        },
+        {
+          "$ref": "#/$defs/MediaRefMessageElement"
+        },
+        {
+          "$ref": "#/$defs/RichBlockMessageElement"
+        },
+        {
+          "$ref": "#/$defs/MediaUnavailableMessageElement"
+        },
+        {
+          "$ref": "#/$defs/MediaWarningMessageElement"
+        }
       ]
     },
     "MessagePayload": {
       "type": "object",
       "properties": {
-        "provenance": { "$ref": "#/$defs/MessageProvenance" },
+        "provenance": {
+          "$ref": "#/$defs/MessageProvenance"
+        },
         "elements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageElement" },
+          "items": {
+            "$ref": "#/$defs/MessageElement"
+          },
           "minItems": 1,
           "maxItems": 128
         },
-        "correlationId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "causationId": { "type": "string", "minLength": 1, "maxLength": 256 }
+        "correlationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "causationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       },
-      "required": ["provenance", "elements"],
+      "required": [
+        "provenance",
+        "elements"
+      ],
       "additionalProperties": false
     },
     "DraftPayload": {
       "type": "object",
       "properties": {
-        "provenance": { "$ref": "#/$defs/DraftProvenance" },
+        "provenance": {
+          "$ref": "#/$defs/DraftProvenance"
+        },
         "elements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageElement" },
+          "items": {
+            "$ref": "#/$defs/MessageElement"
+          },
           "minItems": 1,
           "maxItems": 32
         },
-        "correlationId": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "causationId": { "type": "string", "minLength": 1, "maxLength": 256 }
+        "correlationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "causationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       },
-      "required": ["provenance", "elements"],
+      "required": [
+        "provenance",
+        "elements"
+      ],
       "additionalProperties": false
     },
     "ThreadHandleAddress": {
       "type": "object",
       "properties": {
-        "kind": { "const": "thread_handle" },
-        "handle": { "type": "string", "minLength": 1, "maxLength": 256 }
+        "kind": {
+          "const": "thread_handle"
+        },
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       },
-      "required": ["kind", "handle"],
+      "required": [
+        "kind",
+        "handle"
+      ],
       "additionalProperties": false
     },
     "ConnectorBindingAddress": {
       "type": "object",
       "properties": {
-        "kind": { "const": "connector_binding" },
-        "handle": { "type": "string", "minLength": 1, "maxLength": 256 }
+        "kind": {
+          "const": "connector_binding"
+        },
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       },
-      "required": ["kind", "handle"],
+      "required": [
+        "kind",
+        "handle"
+      ],
       "additionalProperties": false
     },
     "MessageAddress": {
       "oneOf": [
-        { "$ref": "#/$defs/ThreadHandleAddress" },
-        { "$ref": "#/$defs/ConnectorBindingAddress" }
+        {
+          "$ref": "#/$defs/ThreadHandleAddress"
+        },
+        {
+          "$ref": "#/$defs/ConnectorBindingAddress"
+        }
       ]
     },
     "PublicAudience": {
       "type": "object",
       "properties": {
-        "kind": { "const": "public" }
+        "kind": {
+          "const": "public"
+        }
       },
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "additionalProperties": false
     },
     "WhisperAudience": {
       "type": "object",
       "properties": {
-        "kind": { "const": "whisper" },
+        "kind": {
+          "const": "whisper"
+        },
         "targets": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
           "minItems": 1,
           "maxItems": 16,
           "uniqueItems": true
         }
       },
-      "required": ["kind", "targets"],
+      "required": [
+        "kind",
+        "targets"
+      ],
       "additionalProperties": false
     },
     "SystemAudience": {
       "type": "object",
       "properties": {
-        "kind": { "const": "system" }
+        "kind": {
+          "const": "system"
+        }
       },
-      "required": ["kind"],
+      "required": [
+        "kind"
+      ],
       "additionalProperties": false
     },
     "DraftAudience": {
       "oneOf": [
-        { "$ref": "#/$defs/PublicAudience" },
-        { "$ref": "#/$defs/WhisperAudience" }
+        {
+          "$ref": "#/$defs/PublicAudience"
+        },
+        {
+          "$ref": "#/$defs/WhisperAudience"
+        }
       ]
     },
     "CanonicalAudience": {
       "oneOf": [
-        { "$ref": "#/$defs/PublicAudience" },
-        { "$ref": "#/$defs/WhisperAudience" },
-        { "$ref": "#/$defs/SystemAudience" }
+        {
+          "$ref": "#/$defs/PublicAudience"
+        },
+        {
+          "$ref": "#/$defs/WhisperAudience"
+        },
+        {
+          "$ref": "#/$defs/SystemAudience"
+        }
       ]
     },
     "MessageId": {
@@ -385,14 +777,34 @@
     "MessageDraft": {
       "type": "object",
       "properties": {
-        "address": { "$ref": "#/$defs/MessageAddress" },
-        "draftAudience": { "$ref": "#/$defs/DraftAudience" },
-        "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 200 },
-        "sourceEventId": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "replyTo": { "$ref": "#/$defs/MessageId" },
-        "payload": { "$ref": "#/$defs/DraftPayload" }
+        "address": {
+          "$ref": "#/$defs/MessageAddress"
+        },
+        "draftAudience": {
+          "$ref": "#/$defs/DraftAudience"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "sourceEventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "replyTo": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "payload": {
+          "$ref": "#/$defs/DraftPayload"
+        }
       },
-      "required": ["address", "idempotencyKey", "payload"],
+      "required": [
+        "address",
+        "idempotencyKey",
+        "payload"
+      ],
       "additionalProperties": false,
       "allOf": [
         {
@@ -400,18 +812,30 @@
             "properties": {
               "draftAudience": {
                 "type": "object",
-                "properties": { "kind": { "const": "whisper" } },
-                "required": ["kind"]
+                "properties": {
+                  "kind": {
+                    "const": "whisper"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
               }
             },
-            "required": ["draftAudience"]
+            "required": [
+              "draftAudience"
+            ]
           },
           "then": {
             "properties": {
               "payload": {
                 "properties": {
                   "elements": {
-                    "not": { "contains": { "$ref": "#/$defs/PmrMediaRefElementMatch" } }
+                    "not": {
+                      "contains": {
+                        "$ref": "#/$defs/PmrMediaRefElementMatch"
+                      }
+                    }
                   }
                 }
               }
@@ -424,13 +848,19 @@
               "payload": {
                 "properties": {
                   "elements": {
-                    "contains": { "$ref": "#/$defs/PmrMediaRefElementMatch" }
+                    "contains": {
+                      "$ref": "#/$defs/PmrMediaRefElementMatch"
+                    }
                   }
                 }
               }
             }
           },
-          "then": { "required": ["sourceEventId"] }
+          "then": {
+            "required": [
+              "sourceEventId"
+            ]
+          }
         }
       ]
     },
@@ -458,117 +888,281 @@
     "MessageEnvelope": {
       "type": "object",
       "properties": {
-        "messageId": { "$ref": "#/$defs/MessageId" },
-        "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "threadId": { "$ref": "#/$defs/ThreadId" },
-        "replyTo": { "$ref": "#/$defs/MessageId" },
-        "actor": { "$ref": "#/$defs/ActorRef" },
-        "audience": { "$ref": "#/$defs/CanonicalAudience" },
-        "occurredAt": { "$ref": "#/$defs/OccurredAt" },
-        "payload": { "$ref": "#/$defs/MessagePayload" }
+        "messageId": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "threadId": {
+          "$ref": "#/$defs/ThreadId"
+        },
+        "replyTo": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "actor": {
+          "$ref": "#/$defs/ActorRef"
+        },
+        "audience": {
+          "$ref": "#/$defs/CanonicalAudience"
+        },
+        "occurredAt": {
+          "$ref": "#/$defs/OccurredAt"
+        },
+        "payload": {
+          "$ref": "#/$defs/MessagePayload"
+        }
       },
-      "required": ["messageId", "revision", "threadId", "actor", "audience", "occurredAt", "payload"],
+      "required": [
+        "messageId",
+        "revision",
+        "threadId",
+        "actor",
+        "audience",
+        "occurredAt",
+        "payload"
+      ],
       "additionalProperties": false
     },
     "MessagePublishEvent": {
       "type": "object",
       "properties": {
-        "eventId": { "type": "string", "minLength": 1, "maxLength": 720 },
-        "sequence": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-        "type": { "const": "message.publish" },
-        "envelope": { "$ref": "#/$defs/MessageEnvelope" }
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 720
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "message.publish"
+        },
+        "envelope": {
+          "$ref": "#/$defs/MessageEnvelope"
+        }
       },
-      "required": ["eventId", "sequence", "type", "envelope"],
+      "required": [
+        "eventId",
+        "sequence",
+        "type",
+        "envelope"
+      ],
       "additionalProperties": false
     },
     "MessageElementsAppendEvent": {
       "type": "object",
       "properties": {
-        "eventId": { "type": "string", "minLength": 1, "maxLength": 720 },
-        "sequence": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-        "type": { "const": "message.elements.append" },
-        "messageId": { "$ref": "#/$defs/MessageId" },
-        "threadId": { "$ref": "#/$defs/ThreadId" },
-        "operationId": { "type": "string", "minLength": 1, "maxLength": 200 },
-        "baseRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 720
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "type": {
+          "const": "message.elements.append"
+        },
+        "messageId": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "threadId": {
+          "$ref": "#/$defs/ThreadId"
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "baseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
         "elements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageElement" },
+          "items": {
+            "$ref": "#/$defs/MessageElement"
+          },
           "minItems": 1,
           "maxItems": 32
         }
       },
-      "required": ["eventId", "sequence", "type", "messageId", "threadId", "operationId", "revision", "elements"],
+      "required": [
+        "eventId",
+        "sequence",
+        "type",
+        "messageId",
+        "threadId",
+        "operationId",
+        "revision",
+        "elements"
+      ],
       "additionalProperties": false
     },
     "MessageOutputEvent": {
       "oneOf": [
-        { "$ref": "#/$defs/MessagePublishEvent" },
-        { "$ref": "#/$defs/MessageElementsAppendEvent" }
+        {
+          "$ref": "#/$defs/MessagePublishEvent"
+        },
+        {
+          "$ref": "#/$defs/MessageElementsAppendEvent"
+        }
       ]
     },
     "SendReceipt": {
       "type": "object",
       "properties": {
-        "messageId": { "$ref": "#/$defs/MessageId" },
-        "threadId": { "$ref": "#/$defs/ThreadId" },
-        "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "messageHandle": { "$ref": "#/$defs/MessageHandle" },
-        "publishSequence": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "messageId": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "threadId": {
+          "$ref": "#/$defs/ThreadId"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "messageHandle": {
+          "$ref": "#/$defs/MessageHandle"
+        },
+        "publishSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
         "pendingPublication": {
           "const": true,
           "description": "The Host accepted and reserved this message, but media import is still pending and the message is not yet published or readable."
         }
       },
-      "required": ["messageId", "threadId", "revision", "messageHandle"],
+      "required": [
+        "messageId",
+        "threadId",
+        "revision",
+        "messageHandle"
+      ],
       "additionalProperties": false,
-      "not": { "required": ["publishSequence", "pendingPublication"] }
+      "not": {
+        "required": [
+          "publishSequence",
+          "pendingPublication"
+        ]
+      }
     },
     "AppendReceipt": {
       "type": "object",
       "properties": {
-        "messageId": { "$ref": "#/$defs/MessageId" },
-        "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "appendSequence": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+        "messageId": {
+          "$ref": "#/$defs/MessageId"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "appendSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
         "appliedElementIds": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
           "minItems": 1,
           "maxItems": 32
         }
       },
-      "required": ["messageId", "revision", "appliedElementIds"],
+      "required": [
+        "messageId",
+        "revision",
+        "appliedElementIds"
+      ],
       "additionalProperties": false
     },
     "MessagingErrorCode": {
       "type": "string",
-      "enum": ["VALIDATION", "PERMISSION", "NOT_FOUND", "CONFLICT", "RETRYABLE_INFLIGHT", "STALE_CURSOR", "MEDIA_ACCESS_DENIED", "MESSAGE_NOT_PUBLISHED"]
+      "enum": [
+        "VALIDATION",
+        "PERMISSION",
+        "NOT_FOUND",
+        "CONFLICT",
+        "RETRYABLE_INFLIGHT",
+        "STALE_CURSOR",
+        "MEDIA_ACCESS_DENIED",
+        "MESSAGE_NOT_PUBLISHED"
+      ]
     },
     "MessageHandle": {
       "type": "object",
       "properties": {
-        "kind": { "const": "message" },
-        "token": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "kind": {
+          "const": "message"
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["kind", "token"],
+      "required": [
+        "kind",
+        "token"
+      ],
       "additionalProperties": false
     },
     "AppendElementsRequest": {
       "type": "object",
       "properties": {
-        "handle": { "$ref": "#/$defs/MessageHandle" },
-        "operationId": { "type": "string", "minLength": 1, "maxLength": 200 },
-        "baseRevision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "handle": {
+          "$ref": "#/$defs/MessageHandle"
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "baseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
         "elements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageElement" },
+          "items": {
+            "$ref": "#/$defs/MessageElement"
+          },
           "minItems": 1,
           "maxItems": 32,
-          "not": { "contains": { "$ref": "#/$defs/PmrMediaRefElementMatch" } }
+          "not": {
+            "contains": {
+              "$ref": "#/$defs/PmrMediaRefElementMatch"
+            }
+          }
         }
       },
-      "required": ["handle", "operationId", "elements"],
+      "required": [
+        "handle",
+        "operationId",
+        "elements"
+      ],
       "additionalProperties": false
     },
     "SubscriptionCursor": {
@@ -582,14 +1176,24 @@
       "properties": {
         "events": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "items": {
+            "$ref": "#/$defs/MessageOutputEvent"
+          },
           "minItems": 1,
           "maxItems": 32
         },
-        "ackToken": { "$ref": "#/$defs/SubscriptionCursor" },
-        "stale": { "const": false }
+        "ackToken": {
+          "$ref": "#/$defs/SubscriptionCursor"
+        },
+        "stale": {
+          "const": false
+        }
       },
-      "required": ["events", "ackToken", "stale"],
+      "required": [
+        "events",
+        "ackToken",
+        "stale"
+      ],
       "additionalProperties": false
     },
     "SubscriptionEmptyResponse": {
@@ -597,14 +1201,24 @@
       "properties": {
         "events": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "items": {
+            "$ref": "#/$defs/MessageOutputEvent"
+          },
           "minItems": 0,
           "maxItems": 0
         },
-        "ackToken": { "type": "null" },
-        "stale": { "const": false }
+        "ackToken": {
+          "type": "null"
+        },
+        "stale": {
+          "const": false
+        }
       },
-      "required": ["events", "ackToken", "stale"],
+      "required": [
+        "events",
+        "ackToken",
+        "stale"
+      ],
       "additionalProperties": false
     },
     "SubscriptionStaleResponse": {
@@ -612,21 +1226,37 @@
       "properties": {
         "events": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "items": {
+            "$ref": "#/$defs/MessageOutputEvent"
+          },
           "minItems": 0,
           "maxItems": 0
         },
-        "ackToken": { "type": "null" },
-        "stale": { "const": true }
+        "ackToken": {
+          "type": "null"
+        },
+        "stale": {
+          "const": true
+        }
       },
-      "required": ["events", "ackToken", "stale"],
+      "required": [
+        "events",
+        "ackToken",
+        "stale"
+      ],
       "additionalProperties": false
     },
     "SubscriptionReadResponse": {
       "oneOf": [
-        { "$ref": "#/$defs/SubscriptionNormalResponse" },
-        { "$ref": "#/$defs/SubscriptionEmptyResponse" },
-        { "$ref": "#/$defs/SubscriptionStaleResponse" }
+        {
+          "$ref": "#/$defs/SubscriptionNormalResponse"
+        },
+        {
+          "$ref": "#/$defs/SubscriptionEmptyResponse"
+        },
+        {
+          "$ref": "#/$defs/SubscriptionStaleResponse"
+        }
       ]
     },
     "SnapshotResponse": {
@@ -634,12 +1264,21 @@
       "properties": {
         "envelopes": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageEnvelope" },
+          "items": {
+            "$ref": "#/$defs/MessageEnvelope"
+          },
           "maxItems": 128
         },
-        "resumeSequence": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+        "resumeSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
       },
-      "required": ["envelopes", "resumeSequence"],
+      "required": [
+        "envelopes",
+        "resumeSequence"
+      ],
       "additionalProperties": false
     },
     "FrontendDisplayUrl": {
@@ -653,61 +1292,162 @@
     "DeliveryPresentationActor": {
       "type": "object",
       "properties": {
-        "displayName": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "emoji": { "type": "string", "minLength": 1, "maxLength": 32 }
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "emoji": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
       },
-      "required": ["displayName", "emoji"],
+      "required": [
+        "displayName",
+        "emoji"
+      ],
       "additionalProperties": false
     },
     "DeliveryPresentationThread": {
       "type": "object",
       "properties": {
-        "shortId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "title": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "featId": { "type": "string", "minLength": 1, "maxLength": 128 }
+        "shortId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "featId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
       },
-      "required": ["shortId"],
+      "required": [
+        "shortId"
+      ],
       "additionalProperties": false
     },
     "DeliveryPresentationContext": {
       "type": "object",
       "properties": {
-        "actor": { "$ref": "#/$defs/DeliveryPresentationActor" },
-        "thread": { "$ref": "#/$defs/DeliveryPresentationThread" },
-        "deepLinkUrl": { "$ref": "#/$defs/FrontendDisplayUrl" }
+        "actor": {
+          "$ref": "#/$defs/DeliveryPresentationActor"
+        },
+        "thread": {
+          "$ref": "#/$defs/DeliveryPresentationThread"
+        },
+        "deepLinkUrl": {
+          "$ref": "#/$defs/FrontendDisplayUrl"
+        }
       },
-      "required": ["actor", "thread"],
+      "required": [
+        "actor",
+        "thread"
+      ],
       "additionalProperties": false
     },
     "MediaReadInput": {
       "type": "object",
       "properties": {
-        "reference": { "type": "string", "pattern": "^hmr_", "maxLength": 2048 },
-        "offset": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 524288 }
+        "reference": {
+          "type": "string",
+          "pattern": "^hmr_",
+          "maxLength": 2048
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 524288
+        }
       },
-      "required": ["reference", "offset", "limit"],
+      "required": [
+        "reference",
+        "offset",
+        "limit"
+      ],
       "additionalProperties": false
     },
     "MediaReadResult": {
       "type": "object",
       "properties": {
-        "offset": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-        "dataBase64": { "type": "string", "maxLength": 699052, "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$" },
-        "nextOffset": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
-        "done": { "type": "boolean" }
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "dataBase64": {
+          "type": "string",
+          "maxLength": 699052,
+          "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
+        },
+        "nextOffset": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "done": {
+          "type": "boolean"
+        }
       },
-      "required": ["offset", "dataBase64", "done"],
+      "required": [
+        "offset",
+        "dataBase64",
+        "done"
+      ],
       "additionalProperties": false,
       "allOf": [
         {
-          "if": { "properties": { "done": { "const": false } }, "required": ["done"] },
+          "if": {
+            "properties": {
+              "done": {
+                "const": false
+              }
+            },
+            "required": [
+              "done"
+            ]
+          },
           "then": {
-            "properties": { "dataBase64": { "minLength": 4 } },
-            "required": ["nextOffset"]
+            "properties": {
+              "dataBase64": {
+                "minLength": 4
+              }
+            },
+            "required": [
+              "nextOffset"
+            ]
           }
         },
-        { "if": { "properties": { "done": { "const": true } }, "required": ["done"] }, "then": { "not": { "required": ["nextOffset"] } } }
+        {
+          "if": {
+            "properties": {
+              "done": {
+                "const": true
+              }
+            },
+            "required": [
+              "done"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "nextOffset"
+              ]
+            }
+          }
+        }
       ]
     },
     "PluginMessageDelivery": {
@@ -728,6 +1468,12 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "reason": {
+          "enum": [
+            "addressed",
+            "subscription"
+          ]
         },
         "envelope": {
           "$ref": "#/$defs/MessageEnvelope"
@@ -981,35 +1727,52 @@
       ],
       "additionalProperties": false
     },
-
-
-
-
-
-
     "M0CSubscribeInput": {
       "type": "object",
       "properties": {
-        "handle": { "type": "string", "minLength": 1, "maxLength": 256 }
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
       },
-      "required": ["handle"],
+      "required": [
+        "handle"
+      ],
       "additionalProperties": false
     },
     "M0CSubscribeResult": {
       "type": "object",
       "properties": {
-        "subscriptionId": { "type": "string", "minLength": 1, "maxLength": 128 }
+        "subscriptionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
       },
-      "required": ["subscriptionId"],
+      "required": [
+        "subscriptionId"
+      ],
       "additionalProperties": false
     },
     "M0CReadInput": {
       "type": "object",
       "properties": {
-        "subscriptionId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 32 }
+        "subscriptionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        }
       },
-      "required": ["subscriptionId", "limit"],
+      "required": [
+        "subscriptionId",
+        "limit"
+      ],
       "additionalProperties": false
     },
     "M0CReadNormalResult": {
@@ -1017,14 +1780,26 @@
       "properties": {
         "events": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "items": {
+            "$ref": "#/$defs/MessageOutputEvent"
+          },
           "minItems": 1,
           "maxItems": 32
         },
-        "ackToken": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "stale": { "const": false }
+        "ackToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "stale": {
+          "const": false
+        }
       },
-      "required": ["events", "ackToken", "stale"],
+      "required": [
+        "events",
+        "ackToken",
+        "stale"
+      ],
       "additionalProperties": false
     },
     "M0CReadEmptyResult": {
@@ -1032,14 +1807,24 @@
       "properties": {
         "events": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "items": {
+            "$ref": "#/$defs/MessageOutputEvent"
+          },
           "minItems": 0,
           "maxItems": 0
         },
-        "ackToken": { "type": "null" },
-        "stale": { "const": false }
+        "ackToken": {
+          "type": "null"
+        },
+        "stale": {
+          "const": false
+        }
       },
-      "required": ["events", "ackToken", "stale"],
+      "required": [
+        "events",
+        "ackToken",
+        "stale"
+      ],
       "additionalProperties": false
     },
     "M0CReadStaleResult": {
@@ -1047,30 +1832,57 @@
       "properties": {
         "events": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageOutputEvent" },
+          "items": {
+            "$ref": "#/$defs/MessageOutputEvent"
+          },
           "minItems": 0,
           "maxItems": 0
         },
-        "ackToken": { "type": "null" },
-        "stale": { "const": true }
+        "ackToken": {
+          "type": "null"
+        },
+        "stale": {
+          "const": true
+        }
       },
-      "required": ["events", "ackToken", "stale"],
+      "required": [
+        "events",
+        "ackToken",
+        "stale"
+      ],
       "additionalProperties": false
     },
     "M0CReadResult": {
       "oneOf": [
-        { "$ref": "#/$defs/M0CReadNormalResult" },
-        { "$ref": "#/$defs/M0CReadEmptyResult" },
-        { "$ref": "#/$defs/M0CReadStaleResult" }
+        {
+          "$ref": "#/$defs/M0CReadNormalResult"
+        },
+        {
+          "$ref": "#/$defs/M0CReadEmptyResult"
+        },
+        {
+          "$ref": "#/$defs/M0CReadStaleResult"
+        }
       ]
     },
     "M0CAckInput": {
       "type": "object",
       "properties": {
-        "subscriptionId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "ackToken": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "subscriptionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "ackToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["subscriptionId", "ackToken"],
+      "required": [
+        "subscriptionId",
+        "ackToken"
+      ],
       "additionalProperties": false
     },
     "M0CAckResult": {
@@ -1079,11 +1891,26 @@
     "M0CSnapshotInput": {
       "type": "object",
       "properties": {
-        "subscriptionId": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "maxItems": { "type": "integer", "minimum": 1, "maximum": 64 },
-        "pageToken": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "subscriptionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "pageToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["subscriptionId", "maxItems"],
+      "required": [
+        "subscriptionId",
+        "maxItems"
+      ],
       "additionalProperties": false
     },
     "M0CSnapshotIntermediateResult": {
@@ -1091,14 +1918,26 @@
       "properties": {
         "items": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageEnvelope" },
+          "items": {
+            "$ref": "#/$defs/MessageEnvelope"
+          },
           "minItems": 1,
           "maxItems": 64
         },
-        "nextPageToken": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "snapshotAckToken": { "type": "null" }
+        "nextPageToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "snapshotAckToken": {
+          "type": "null"
+        }
       },
-      "required": ["items", "nextPageToken", "snapshotAckToken"],
+      "required": [
+        "items",
+        "nextPageToken",
+        "snapshotAckToken"
+      ],
       "additionalProperties": false
     },
     "M0CSnapshotFinalResult": {
@@ -1106,19 +1945,35 @@
       "properties": {
         "items": {
           "type": "array",
-          "items": { "$ref": "#/$defs/MessageEnvelope" },
+          "items": {
+            "$ref": "#/$defs/MessageEnvelope"
+          },
           "maxItems": 64
         },
-        "nextPageToken": { "type": "null" },
-        "snapshotAckToken": { "type": "string", "minLength": 1, "maxLength": 512 }
+        "nextPageToken": {
+          "type": "null"
+        },
+        "snapshotAckToken": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
       },
-      "required": ["items", "nextPageToken", "snapshotAckToken"],
+      "required": [
+        "items",
+        "nextPageToken",
+        "snapshotAckToken"
+      ],
       "additionalProperties": false
     },
     "M0CSnapshotResult": {
       "oneOf": [
-        { "$ref": "#/$defs/M0CSnapshotIntermediateResult" },
-        { "$ref": "#/$defs/M0CSnapshotFinalResult" }
+        {
+          "$ref": "#/$defs/M0CSnapshotIntermediateResult"
+        },
+        {
+          "$ref": "#/$defs/M0CSnapshotFinalResult"
+        }
       ]
     }
   }
