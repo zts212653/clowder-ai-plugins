@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/github-operations",
-  "version": "0.1.0-alpha.16",
+  "version": "0.1.0-alpha.18",
   "description": "GitHub collaboration schedules and event operations for Clowder AI hosts",
   "license": "MIT",
   "type": "module",

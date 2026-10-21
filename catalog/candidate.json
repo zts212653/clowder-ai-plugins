@@ -1612,14 +1612,14 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.16",
+          "version": "0.1.0-alpha.18",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/github-operations",
-            "version": "0.1.0-alpha.16",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.16.tgz",
+            "version": "0.1.0-alpha.18",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.18.tgz",
             "integrity": "sha512-4pjuEdeHvjmSjyzzgOFLRKk2pK+Z38xxBbLZqiYuhFhZEWy8PKy+dJCKzQylVNv9GnUZV8Z4Ml9nJzSUP4wzbA==",
             "shasum": "2e04b85da5ce8e341da7db899dac554ee558773c",
             "provenance": {
