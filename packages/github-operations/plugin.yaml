@@ -18,6 +18,28 @@ steps:
       explicitly consume it"
   - text: "Optional: configure Noise Bot list to reduce setup-only comment noise"
 configuration:
+  - key: recoveryMode
+    label: Existing GitHub state recovery
+    description: Set import-only before activating a replacement installation.
+      All collection and ordinary actions stay paused until the owner commits
+      existing progress and explicitly releases it. Normal starts without import.
+    kind: string
+    required: false
+  - key: migrationRecovery
+    label: GitHub recovery status
+    description: Inspect the paused import and source coverage before releasing collection.
+      Existing waits are preserved; fresh registration cannot replace a migration.
+    kind: operation
+    required: false
+    actions:
+      - id: status
+        label: Import status
+        render: status
+        action: { method: github.migration.owner-status }
+      - id: source
+        label: Source coverage
+        render: button
+        action: { method: github.migration.owner-source }
   - key: narratorCatId
     label: Community narrator cat
     description: Explicit notification recipient for manual Community triage.
@@ -99,6 +121,41 @@ configuration:
     kind: string
     required: false
 contributions:
+  - type: webhook
+    id: migration-source
+    path: github/migration/source
+    methods: [ GET ]
+    action: { method: github.migration.source }
+  - type: webhook
+    id: migration-status
+    path: github/migration/status
+    methods: [ GET ]
+    action: { method: github.migration.status }
+  - type: webhook
+    id: migration-stage
+    path: github/migration/stage
+    methods: [ POST ]
+    action: { method: github.migration.stage }
+  - type: webhook
+    id: migration-commit
+    path: github/migration/commit
+    methods: [ POST ]
+    action: { method: github.migration.commit }
+  - type: webhook
+    id: migration-recover
+    path: github/migration/recover
+    methods: [ POST ]
+    action: { method: github.migration.recover }
+  - type: webhook
+    id: migration-abort
+    path: github/migration/abort
+    methods: [ POST ]
+    action: { method: github.migration.abort }
+  - type: webhook
+    id: migration-release
+    path: github/migration/release
+    methods: [ POST ]
+    action: { method: github.migration.release }
   - type: tool
     id: refresh-pull-requests
     name: github_refresh_pull_requests
@@ -210,6 +267,7 @@ contributions:
       - { method: github.typed-wait.register-pr }
       - { method: github.typed-wait.register-issue }
       - { method: github.typed-wait.unregister }
+      - { method: github.migration.bind-wait }
       - { method: github.review.record-verdict }
       - { method: github.community.triage-complete }
       - { method: github.community.request-guardian }
@@ -507,6 +565,13 @@ features:
     name: GitHub collaboration operations
     resources: []
     contributions:
+      - { type: webhook, id: migration-source }
+      - { type: webhook, id: migration-status }
+      - { type: webhook, id: migration-stage }
+      - { type: webhook, id: migration-commit }
+      - { type: webhook, id: migration-recover }
+      - { type: webhook, id: migration-abort }
+      - { type: webhook, id: migration-release }
       - { type: webhook, id: pr-title-http }
       - { type: webhook, id: community-http-01 }
       - { type: webhook, id: community-http-02 }
@@ -570,7 +635,6 @@ features:
         task.read,
         task.write,
         thread.listMetadata,
-        thread.readContent,
         thread.write,
         messaging.send
       ]

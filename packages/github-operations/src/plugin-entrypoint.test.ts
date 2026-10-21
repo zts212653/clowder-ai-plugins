@@ -460,7 +460,7 @@ test('native draft owner operation publishes once and recovers partial success a
 
 test('native draft ambiguous publication never retries POST, and stop waits for provider cleanup', async () => {
   const f = host();
-  f.runtimeHost.config.get = async () => 'example/project';
+  f.runtimeHost.config.get = async key => key === 'publishRepositories' ? 'example/project' : undefined;
   let creates = 0;
   let release!: () => void;
   let started!: () => void;
@@ -678,7 +678,7 @@ test('real builtin projects provider HEAD and CI without accepting or writing a 
   const events = await new SdkCommunityEventLog(f.runtimeHost.storage).read('pr:example/project#12');
   assert.equal(events.filter(event => event.kind === 'case.ci_observed').length, 2);
   assert.equal(events.some(event => event.kind === 'case.review_verdict_recorded' || event.kind === 'case.review_verdict_submitted'), false);
-  assert.deepEqual(Object.keys(active.actions).filter(method => /verdict|lease|admission/.test(method)), ['github.review.record-verdict']);
+  assert.deepEqual(Object.keys(active.actions).filter(method => /verdict|(^|[.])lease([.]|$)|admission/.test(method)), ['github.review.record-verdict']);
   await assert.rejects(async () => active.actions['github.review.record-verdict']!({}), /native action context/);
   assert.equal(f.deliveries.length, 1, 'ordinary CI notification uses existing SDK messaging exactly once');
   snapshot = { ...snapshot, ci: 'pending' };
@@ -945,7 +945,7 @@ test('declared webhook authenticates exact bytes, delivers via SDK, deduplicates
   const f = host();
   f.runtimeHost.secrets.get = async key => key === 'webhookSecret' ? 'isolated-test-secret' : undefined;
   const active = await createGitHubPluginModule().create(manifest).start(f.runtimeHost);
-  const declaration = manifest.contributions.find((c: { type: string }) => c.type === 'webhook');
+  const declaration = manifest.contributions.find((c: { type: string; id: string }) => c.type === 'webhook' && c.id === 'repository-events');
   assert.ok(declaration, 'real package declares its webhook');
   assert.equal(declaration.verificationSecretRef, 'webhookSecret');
   const body = { action: 'opened', repository: { full_name: 'example/project' },

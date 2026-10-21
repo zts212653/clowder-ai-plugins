@@ -109,3 +109,17 @@ identity or replace it. Treat error statuses as refusal, not completion.
 Owner decisions remain in Console. Do not invoke generic HTTP forwarding, supply
 callback credentials in payloads, or treat a public-comment observation as a
 verified external review publication.
+
+
+## Continuing an owner-approved state import
+
+If the installation is in import-only recovery, ordinary collection is held.
+Use its Settings recovery status/source coverage; incomplete source is not an
+empty baseline. After the owner stages and starts commit, it may return existing
+Task IDs requiring the original cat/thread binding. Only from that original
+current responsibility, use `github_bind_migrated_wait` with the exact plan digest
+and Task ID. It writes a fresh Host invocation projection while retaining the old
+wait generation and provider baseline. Do not call normal register, replace an
+owner, rearm an expired wait or treat bound as collection released. A lost reply
+can be retried with the same ID/digest from a fresh authenticated turn. The owner
+must recover/verify the complete import and explicitly release one writer.

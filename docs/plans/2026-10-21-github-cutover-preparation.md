@@ -1,136 +1,119 @@
 ---
-title: GitHub state continuity preparation and isolated rehearsal
+title: GitHub consumer continuity through supported module recovery
 created: 2026-10-21
-status: preparation-candidate
+status: implementation-candidate
 ---
 
-# Preserve observation state before activating a replacement writer
+# Resume existing GitHub observation without replacing its baseline
 
-This candidate is an executable preparation and review packet, not a production
-migration facility. Its code lives under `packages/github-operations/test/`, is
-excluded from the package build, and adds no action, Host route, manifest grant,
-catalog entry or published package. All fixtures are synthetic. Installation,
-activation, source export and real state import require their own exact authority.
+Before: retired observers retain progress but their replacement has no active
+consumer. Re-registering silently substitutes a fresh baseline. After: the owner
+reviews a bounded frozen source, imports under a durable collection hold, obtains
+current original-owner Host bindings, and releases one collector. Installation,
+persistent grants and real source export retain their separate operator authority.
 
-The result to preserve is a continuing observer: the existing task and subject,
-owner and thread, generation, original baseline and predicates, collected and
-delivered frontiers, outcomes and their delivery receipts. Fresh registration is
-not a migration: the archived failing stock-entry probe freezes a new baseline,
-generation 1 and default continuation instead of retaining generation 27. The
-normal registration implementation is correct for its own purpose and is unchanged.
+The first PR96 revision was a test-only preparation. This continuation adds real
+module code and declared owner HTTP/Settings/native entries; its earlier review
+covers only the earlier revision. This candidate requires a new exact-HEAD review.
 
-## Required source cut
+## Source and authority
 
-The operator must establish a complete, frozen source and absence of both writers.
-The source digest detects changed bytes; it does not authenticate an export or
-authorize new destinations. Unknown coverage is a refusal, never an empty family.
-Current task owners and repository notification recipients require a separately
-resolved routability witness. An unavailable current recipient blocks preparation;
-an unavailable historical author is retained and does not become the new owner.
+`freezeGitHubSource` takes only read-only ports, compares two bounded cuts with the
+old writer absent, and rejects unknown families or drift. `migration-source-cli`
+provides a real file producer for an already authorized GitHub-only source export.
+It rejects unrelated top-level families, oversized/non-regular/symlink input,
+keeps the input unchanged, writes a new 0600 file exclusively, and prints counts
+and digest only. Hashing proves consistency, not origin, grant or completeness.
 
-| Source | Destination or treatment |
-| --- | --- |
-| Existing PR/issue Task identity and complete fenced `automationState` | `github.typed-wait.v1.<sha256(taskId)>`, schemaVersion 1, unchanged Task; no normal registration call |
-| Existing repo configuration | `community.repo.<sha256(repo)>`; retain policy, destination and original timestamps |
-| `f141:baseline:<repo>` | `community.scan-baseline.<sha256(repo)>` |
-| `f141:notified:<repo>#<kind>-<number>` | `community.scan-notified.<sha256(kind:repo#number)>` |
-| `community:repo-comment:cursor:<repo>` | `community.comment-cursor.<sha256(repo)>`; preserve the timestamp, including the provider's deliberate overlap behavior |
-| Old pending outcome/wake and transport claims/receipts | Reconcile against the authoritative old delivery ledger before transfer; this candidate refuses pending or unknown delivery |
-| Provider event history, old dispatch receipts, terminal registrations | Retain immutable originals under their existing owner; historical metadata copy is not an active event replay or governance import |
+The actual generic Host Task projection omits `automationState` and hidden
+`typedWaitRegistration`. The owner source-coverage entry reports that gap instead
+of manufacturing a complete export. The remaining operator backend must provide:
 
-The prototype deliberately covers only settled, already fenced waits and repo
-progress. It does not translate legacy issue trackers without an `await`, migrate
-pending outboxes, or claim to copy provider journals/transport receipts. A caller
-asserting complete coverage must separately retain and verify those sources; that
-assertion is not checked by this in-memory rehearsal. The current operator packet
-must name every unknown or unsupported family and cannot be declared production ready.
+- full selected live/unsettled GitHub tracking state and original identity/version;
+- original repo configuration, baseline/notified membership and comment cursor;
+- exact already-seen comment IDs in the cursor's overlap, without provider bodies;
+- pending append/wake claims and conclusive source receipts, scoped to those tasks/repos;
+- opaque original registration/history retention references, never copied grants.
 
-## Actual consumer boundaries still required for production
+Read those from the original authorized operational adapters or an approved
+immutable GitHub-only export. There is no new Host business route, Redis access,
+chat/secret export or full-store dump. Current SDK reads alone cannot produce it.
+The source inspector and file producer are executable; a live legacy exporter is
+still a precise prerequisite, not a capability this module claims to own.
 
-`TypedWaitRuntime.poll()` requires both the installation-private record and the
-Host Task's matching `pluginWait` projection. Copying private KV alone is silent.
-The consumer test demonstrates zero reads without that projection and one new
-fact delivered to the original thread/cat after a simulated Host acknowledgement,
-using the old generation/baseline. The acknowledgement is a fixture, not an
-implemented production import action.
+## Ordinary owner journey
 
-An eventual module-owned import must use existing owner-scoped SDK Task and thread
-ports, verify current bindings, and publish the matching Host wait projection with
-generation/instance fences before releasing collection. It must neither create a
-replacement Task nor overwrite a changed owner, subject, thread or generation.
-The current ordinary action map has no such import/commit operation or import-only
-activation hold. Those are explicit remaining implementation requirements. Do not
-enable the stock module and then re-register waits to approximate this protocol.
+Set `recoveryMode` to `import-only` before activation. The mode is frozen for that
+activation; changing it requires a fresh controlled activation. Hold pauses all
+ordinary actions, five schedules, webhooks, registration and outcome recovery.
+The Settings recovery panel exposes authenticated status and source coverage.
 
-Host and plugin delivery ledgers can have different scopes, even when the textual
-idempotency key matches. An ambiguous old send must not be retried in a new plugin
-instance namespace. Reconcile old append, broadcast and wake outcomes separately;
-do not claim that a visible message proves its owner was woken. Pending deliveries
-with no verified bridge block a cut rather than being discarded or sent twice.
+Declared non-anonymous owner HTTP contributions use `github/migration/{status,
+source,stage,commit,recover,abort,release}` (GET for the first two, POST otherwise).
+They accept only the Host-authenticated owner context, not an input principal or
+native caller as substitute. Stage takes `{ snapshot, expectedDigest }`; subsequent
+operations take the returned plan digest as `expectedDigest`.
 
-## Staging, recovery and rollback
+1. Stage validates the whole source and every current binding/routable destination
+   before the first insert-only inert row. Source/owner/version drift, duplicate
+   subjects, active targets and ambiguous receipts refuse the batch.
+2. Commit copies exact private records while the hold remains active. Partial
+   responses/crashes resume the same records and reject conflicts. It reports
+   any live typed waits still requiring their original Host binding.
+3. From each original current cat/thread, the installed native
+   `github_bind_migrated_wait` confirms that Task ID/plan digest. It requires strict
+   owner provenance and preserves the original generation/baseline. The generic
+   Host first-wait port requires a real original-cat invocation; owner HTTP cannot
+   impersonate it. A fresh binding intent/ack records this new authorization and
+   recovers a lost reply without copying old registration authority or rearming.
+4. Owner recover verifies the complete import and all current Host projections.
+   Release checks them again before opening the single writer. Pending outcomes
+   are recovered only after release, using the original outcome ID/fence.
+5. A stage interruption is idempotently retryable. Abort is allowed before active
+   copy; it fences late completion and keeps inert evidence. An explicit new
+   frozen cut may start a new import epoch in the same installation, preserving
+   the aborted journal. Once copy/binding begins, rollback is forward recovery
+   under hold; it does not erase Host state or restore a stale source snapshot.
 
-The preparation prototype validates every task and repository before constructing
-the plan. It uses the existing repository-progress decoder and real private Task
-reader, not a copied business implementation. A changed source digest, stale
-binding, active writer, duplicate subject, invalid progress key or pending delivery
-refuses the plan.
+## State preservation and receipts
 
-Staging writes only `github.cutover.rehearsal.<planDigest>.*` inert keys. A crash
-leaves a retryable identical prefix; conflicting payloads are refused. Current
-Task/repo readers see none of these rows. An abort fences later completion and
-retains inert evidence. Materialization allocates fresh memory internally, so the
-prototype cannot be pointed at production storage. It never calls a provider,
-publishes a Host projection, sends a message or starts a schedule.
+Typed waits retain Task ID, subject, user, cat, thread, historical author,
+generation, baseline, predicates, expiry, renewal and collector frontiers.
+Expired waits remain inert history with their original identity/generation; they
+do not acquire a route, wake or new deadline and do not block live valid rows.
+Legacy owner-readable historical Tasks may retain a null persisted user binding;
+active observation requires a verified user. No owner is silently rewritten.
 
-Before a production commit, rollback means keep both writers paused and preserve
-the original source and inert stage. After any real new delivery or cursor move,
-blindly restoring the old snapshot is unsafe: pause the replacement, export its
-new frontiers and receipts, reconcile their ownership, and roll forward or obtain
-a separately verified reverse transition. No deletion or full historical replay
-is a rollback mechanism.
+A legacy issue without await continues its original dual cursor through a dedicated
+observer, never a fabricated typed generation or fresh provider baseline. New
+comments use a durable same-instance outbox; unknown sends retry the same key.
+New source facts retain original GitHub IDs and go to the original current owner.
 
-## Proposed authorized execution order
+Pending old outcomes require an exact source receipt. Conclusive append+wake
+success marks delivered; conclusive no-append/no-wake permits that same matched
+outcome after a fresh native binding. Partial/ambiguous old sends stay at source.
+A pending legacy wake with an existing message cannot be sent again in a new
+instance namespace. Repository pending claims must be settled before importing.
+Only overlap seen IDs become dedup fences; no fake event history/body is appended.
 
-1. Resolve the current cutover owner and exact source-export, install and grant
-   authority. Freeze a content-addressed source with complete counts and receipts.
-2. Verify the retired writer is absent; acquire a bounded replacement hold before
-   any activation/recovery/schedule can run. The stock package lacks this hold.
-3. Verify the selected package bytes/provenance and the Host policy versus its
-   requested capabilities. A catalog miss is not authority to publish a new row.
-4. Preview every mapping and recheck original owner/thread/subject/version. Reject
-   unresolved old issues, pending receipts or changed bindings without writes.
-5. Stage and verify all module state; use a reviewed owner operation to publish
-   fenced Host projections. Recovery must finish that same import generation and
-   respect cancellations or owner changes, not start a fresh registration.
-6. Release exactly one writer only after the full import and projections agree.
-   Observe the module's five schedule contributions and natural progress, then a
-   subsequent complete idempotent cycle and source-bound owner delivery.
-7. Preserve original state/receipts/history and the cutover receipt. Closing the
-   recovery requires actual runtime acceptance, not this prototype or package publication.
+## Scope, permissions and verification
 
-## Reproduction
+No source/current policy/grant, catalog or package publication is changed.
+The production consumer closure has no thread timeline read; remove the unused
+`thread.readContent` request. The manifest now requests ten capabilities; the
+existing official Host policy allows eight, leaving exactly `task.read` and
+`task.write` for separate final authorization. Generic Task access stays owner
+scoped; import uses read/get and exact wait CAS, not Work/lease ownership changes.
 
-From this repository's worktree:
+Executable checks use ordinary module activation and owner/native actions:
+hold, cross-user/refused spoofing, original g27 binding, expired g1 history,
+legacy issue progress, source drift, receipt ambiguity, prefix/active-copy/lost
+binding response recovery, abort, revocation and release-time binding changes.
+Fresh-consumer evidence must use the final packed bytes without workspace links.
+Actual production installation/grants/source export/natural ticks remain separate
+unperformed conditions. A code or package pass is not recovery completion.
 
-```sh
-env -u NODE_ENV pnpm install --frozen-lockfile --ignore-scripts --filter @clowder-ai/github-operations...
-pnpm --filter @clowder-ai/plugin-contract build
-pnpm --filter @clowder-ai/plugin-sdk build
-pnpm --filter @clowder-ai/github-operations typecheck
-node --import tsx --test packages/github-operations/test/cutover-preparation.test.ts
-```
-
-The negative stock-registration probe is archived as text in
-`docs/evidence/github-cutover-preparation/stock-registration-repro.ts.txt` so an
-intentionally failing diagnostic is not added to the ordinary test suite. Its
-original assertion and actual/expected diff are retained. The passing rehearsal
-does not redefine normal registration or assert any production migration happened.
-
-Architecture cell: github-operations. Map delta: none in production. Why: this is
-a test-only preparation candidate; current private storage, SDK Task projection,
-registration and delivery authority remain unchanged. Consumer evidence is the
-real `GitHubWaitStorage`, repository progress decoder, `SdkCommunityRepoConfigStore`
-and `TypedWaitRuntime` driven by the tests. Claim guard: a lost baseline, changed
-binding, unprojected wait, ambiguous receipt or resumed aborted stage fails the
-corresponding executable fixture.
+Architecture cell: github-operations. Map delta: module-owned recovery and legacy
+issue continuation inside the existing cell. No Host GitHub API, second publisher
+or new business authority is added. Review focus: source completeness, original
+identity, CAS/recovery, cross-namespace delivery and import/release boundaries.

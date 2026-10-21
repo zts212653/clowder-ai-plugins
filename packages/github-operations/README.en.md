@@ -72,3 +72,16 @@ Tool arguments, comments, repository text and message metadata never supply call
 A PR poll admits at most 20 waits using shared CI base facts. Each PR's deeper read has a 10-second deadline within the 30-second poll budget. Failure preserves its baseline and generation. Registration/cancellation is rechecked before consuming results; pending notifications can recover even when new batch facts are unavailable.
 
 Release note: this is an unpublished local candidate. Real-account journeys and public distribution require separate acceptance.
+
+## Continue existing tracking after a consumer migration
+
+For an existing observation history, configure **Existing GitHub state recovery**
+with the exact value `import-only` before activating the replacement. Collection,
+webhooks and registration remain paused; normal registration freezes a new
+baseline and cannot preserve an old wait. The recovery status/source buttons show
+what is imported and which source fields are missing. Use the reviewed owner
+recovery flow and original-owner binding requested there, then explicitly release
+one collector. An incomplete or ambiguous old delivery keeps recovery paused.
+The [recovery contract](../../docs/plans/2026-10-21-github-cutover-preparation.md)
+describes the operator entry and rollback limits; this is not installation or
+persistent-grant approval.
