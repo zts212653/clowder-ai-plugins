@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { parse } from 'yaml';
-import { activateCatalog, assertCatalogAvailable, assertPublishedArchive } from './catalog-activation.mjs';
+import { activateCatalog, assertCatalogActivated, assertCatalogAvailable, assertPublishedArchive } from './catalog-activation.mjs';
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'catalog-activation-'));
@@ -108,6 +108,28 @@ test('a complete published batch updates discovery without changing staged sourc
   assert.equal(await assertCatalogAvailable(f.candidate, f.options), 1);
 });
 
+test('publication alone does not satisfy the activation completion check', async t => {
+  const f = await fixture(t);
+  assert.throws(() => assertCatalogActivated(f.candidate, f.live), /official.example@0.1.0-alpha.2/);
+  await activateCatalog(f.options);
+  assertCatalogActivated(f.candidate, JSON.parse(await readFile(f.livePath, 'utf8')));
+});
+
+test('completion detects missing plugins and rewritten selected identities', async t => {
+  const f = await fixture(t);
+  assert.throws(() => assertCatalogActivated(f.candidate, { ...f.live, plugins: [] }), /official.example/);
+  const changed = structuredClone(f.candidate);
+  changed.plugins[0].versions[0].artifact.shasum = '0'.repeat(40);
+  assert.throws(() => assertCatalogActivated(f.candidate, changed), /official.example/);
+});
+
+test('candidate-only history does not create a false activation obligation', async t => {
+  const f = await fixture(t);
+  const live = structuredClone(f.candidate);
+  live.plugins[0].versions.pop();
+  assertCatalogActivated(f.candidate, live);
+});
+
 test('inactive historical rows do not require publishing old candidates or change the offered current version', async t => {
   const f = await fixture(t);
   f.published.delete(`${f.previous.packageName}@${f.previous.version}`);
@@ -158,4 +180,13 @@ test('the ordinary npm publication job never activates live discovery', async ()
   for (const step of workflow.jobs.publish.steps) {
     assert.doesNotMatch(step.run ?? '', /catalog:activate|catalog-activation\.mjs\s+--activate/);
   }
+  assert.equal(workflow.jobs.publish.steps.at(-1).run, 'pnpm catalog:activation-check');
+});
+
+test('manual npm publication is covered by a scheduled read-only activation audit', async () => {
+  const audit = parse(await readFile(new URL('../.github/workflows/catalog-activation.yml', import.meta.url), 'utf8'));
+  assert.ok(audit.on.workflow_dispatch);
+  assert.ok(audit.on.schedule.length > 0);
+  assert.deepEqual(audit.permissions, { contents: 'read' });
+  assert.equal(audit.jobs.activation.steps.at(-1).run, 'pnpm catalog:activation-check');
 });

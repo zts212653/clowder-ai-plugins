@@ -21,6 +21,8 @@ node scripts/assert-pr-head.mjs <owner/repo> <pr-number> <新HEAD-sha>
 
 ## 提交插件
 
+发布完成后还须交付独立的 live catalog PR；发布操作者持有这一步责任，交接须给出明确 owner 与 PR／阻塞原因。`pnpm catalog:activation-check` 是上架完成检查，已接入发布 job 末尾及独立的每日／手动 Catalog Activation Audit。它失败时先区分 npm 发布失败与目录待激活，不要重新发布已存在的 immutable 版本。手工 npm 恢复后立即手动运行 audit，按 `docs/plugin-projects.md` 的三步流程闭环。
+
 每个插件独立目录、独立 `package.json` 与 `plugin.yaml`。PR 说明用途、稳定 pluginId、版本、维护者、所需权限、依赖变动和实际安装/启停结果；没有配置或账号要求的插件不要增加无意义的用户步骤。
 
 仓内新增目录不会自动获得 npm 发布或官方目录条目。需要官方 npm 分发时，同步核对发布 workflow 的实际包清单与 catalog 制品坐标；这些变更继续遵循下面的路径权限规则。团队 Git 仓的目录发现不依赖本仓的 npm catalog。

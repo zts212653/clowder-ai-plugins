@@ -21,7 +21,7 @@ function running(pid) {
   }
 }
 
-async function fixture(run, { wait = false, inheritedStdio = false } = {}) {
+async function fixture(run, { wait = false, inheritedStdio = false, watchdogMs = 5000 } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'github-owned-process-'));
   const pidsFile = join(dir, 'pids');
   const helper = join(dir, 'credential-helper.cjs');
@@ -69,7 +69,7 @@ if (${wait}) setInterval(() => {}, 1000);
     // Failure containment even when the implementation under test leaks a helper.
     // This timer never makes the assertion green: cleanup must finish unaided.
     let rescued = false;
-    watchdog = setTimeout(() => { rescued = true; void kill(); }, 5000);
+    watchdog = setTimeout(() => { rescued = true; void kill(); }, watchdogMs);
     await run({
       async ready() {
         for (let i = 0; i < 300; i++) { if ((await pids()).length >= 2) return; await delay(10); }
@@ -112,8 +112,11 @@ test('default request budget abort joins gh and SIGTERM-resistant helper cleanup
 
 test('default request budget deadline joins gh and helper cleanup', { skip: posix }, async () => {
   await fixture(async () => {
-    await assert.rejects(new GitHubRequestBudget().execute(['api', '/repos/owner/repo'], { ghToken: 'isolated-fixture', timeoutMs: 1000 }), /timeout|timed out/i);
-  }, { wait: true });
+    // The parallel package suite must start two Node processes before expiry.
+    // Exercise deadline cleanup without making a one-second startup guarantee;
+    // the independent watchdog must still never rescue either owned process.
+    await assert.rejects(new GitHubRequestBudget().execute(['api', '/repos/owner/repo'], { ghToken: 'isolated-fixture', timeoutMs: 5000 }), /timeout|timed out/i);
+  }, { wait: true, watchdogMs: 10_000 });
 });
 
 test('actual GitHubProvider default transport closes inherited helper stdio', { skip: posix }, async () => {

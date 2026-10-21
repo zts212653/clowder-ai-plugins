@@ -162,6 +162,8 @@ export interface GitHubWaitFacts {
     readonly headDecisionCursor?: number;
     readonly decision?: string;
     readonly reviewer?: string;
+    /** Current-HEAD review objects retain their own source for actor policy. */
+    readonly decisions?: readonly { readonly id: number; readonly state: string; readonly author: string }[];
     readonly resultTriggerCommentId?: number;
     readonly resultSourceRef?: string;
     readonly resultConversationCommentCursor?: number;
@@ -415,12 +417,21 @@ export function matchGitHubWaitPredicates(
         // not its approval. N must report it here, because N+1 starts past this poll's review ids.
         const frontier = current.headSha === baseline.headSha ? after?.decisionCursor : after?.headDecisionCursor;
         if (before && after && frontier !== undefined && frontier > before.decisionCursor) {
-          const verdict = after.decision ?? 'RESULT_AVAILABLE';
-          matches.push({
-            kind: predicate.kind,
-            delta: `review ${before.decision ?? 'pending'} → ${verdict}${after.reviewer ? ` (${after.reviewer})` : ''}`,
-            ...(after.resultSourceRef ? { sourceRef: after.resultSourceRef } : {}),
-          });
+          if (after.decisions) {
+            for (const review of [...after.decisions].sort((a, b) => a.id - b.id)) {
+              if (review.id <= before.decisionCursor || review.id > frontier) continue;
+              matches.push({ kind: predicate.kind,
+                delta: `review ${before.decision ?? 'pending'} → ${review.state} (${review.author})`,
+                sourceRef: `review:${review.id}` });
+            }
+          } else {
+            const verdict = after.decision ?? 'RESULT_AVAILABLE';
+            matches.push({
+              kind: predicate.kind,
+              delta: `review ${before.decision ?? 'pending'} → ${verdict}${after.reviewer ? ` (${after.reviewer})` : ''}`,
+              ...(after.resultSourceRef ? { sourceRef: after.resultSourceRef } : {}),
+            });
+          }
         }
         matches.push(...matchDismissedVerdicts(before?.verdicts, after?.verdicts));
         break;

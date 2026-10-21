@@ -13,7 +13,6 @@ import { CommunityReconciliationFindingStore } from './business/domains/communit
 
 function options(): CommunityHttpRouterOptions {
   const storage=memoryStorage();
-  const native=new NativeIssueDraftRuntime({storage,config:{get:async()=> 'org/repo'}}, {create:async()=>{throw new Error('Unexpected publish');},find:async()=>null});
   return {
     storage,
     threads: { get: async () => null, create: async () => { throw new Error('unexpected thread creation'); } },
@@ -23,7 +22,6 @@ function options(): CommunityHttpRouterOptions {
       taskStore: { listByKind: async () => [], getBySubject: async () => null, upsertBySubject: async () => { throw new Error('unexpected tracking'); }, delete: async () => false },
     },
     drafts: {
-      createDraft: input => native.create(input),
       publisher: { create: async () => { throw new Error('unexpected GitHub publish'); }, find: async () => null },
       config: { defaultRepo: 'org/repo', repoAllowlist: ['org/repo'] },
     },
@@ -120,10 +118,10 @@ test('concurrent routers freeze one publication and reconcile uncertain results 
   t.after(async () => { release(); await a.stop(); await b.stop(); });
   const request = { principal, method: 'POST', path: `github/community-issue-drafts/by-id/${draft.draftId}/publish`, body: {} };
   const pending = a.forwardOwner(request); await creating;
-  assert.equal((await b.forwardOwner(request)).status, 202);
+  assert.equal((await b.forwardOwner(request)).status, 409);
   await assert.rejects(store.cancel(draft.draftId), /not draft/);
   await assert.rejects(store.updateContent(draft.draftId, 'other', 'other'), /not draft/);
-  release(); assert.equal((await pending).status, 202);
+  release(); assert.equal((await pending).status, 409);
   found = true;
   assert.equal((await b.forwardOwner(request)).body.draft.status, 'published');
   assert.equal(creates, 1);
@@ -315,4 +313,70 @@ test('owner draft POST uses explicit content and the same plugin-private draft i
  assert.equal((await router.forwardOwner({...request,body:{...body,sourceId:'Host source'}})).status,400);
  assert.equal((await router.forwardOwner({...request,path:'github/community-issue-drafts/from-frustration-issue/feedback-1'})).status,404);
  assert.deepEqual((await router.forwardOwner({principal,method:'GET',path:'github/community-issue-drafts/config'})).body,{defaultRepo:'org/repo',repos:['org/repo']});
+});
+
+test('owner-created native draft supports the existing thread preview, edits and publication replay', async t => {
+  const deps = options(); let creates = 0;
+  deps.drafts.publisher = { create: async draft => {
+    creates++; assert.equal(draft.title, 'Edited title'); assert.equal(draft.bodyMarkdown, 'Edited public body');
+    return { number: 7, url: 'https://github.com/org/repo/issues/7' };
+  }, find: async () => null };
+  const router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const created = await router.forwardOwner({ principal, method: 'POST', path: 'github/community-issue-drafts',
+    body: { requestId: 'preview-1', repo: 'org/repo', title: 'Original', bodyMarkdown: 'Original body' } });
+  assert.equal(created.status, 200);
+  const path = `github/community-issue-drafts/by-id/${created.body.data.id}`;
+  const preview = await router.forwardOwner({ principal, method: 'GET', path });
+  assert.equal(preview.status, 200); assert.equal(preview.body.draft.draftId, created.body.data.id);
+  assert.equal(preview.body.draft.targetRepo, 'org/repo');
+  const request = { principal, method: 'POST', path: `${path}/publish`, body: { title: 'Edited title', bodyMarkdown: 'Edited public body' } };
+  const published = await router.forwardOwner(request);
+  assert.equal(published.status, 200); assert.equal(published.body.draft.status, 'published');
+  assert.equal(published.body.draft.githubIssueNumber, 7);
+  assert.equal((await router.forwardOwner(request)).body.draft.githubIssueNumber, 7); assert.equal(creates, 1);
+  const recreated = await router.forwardOwner({ principal, method: 'POST', path: 'github/community-issue-drafts',
+    body: { requestId: 'preview-1', repo: 'org/repo', title: 'Original', bodyMarkdown: 'Original body' } });
+  assert.equal(recreated.status, 200, 'a remounted source card must rediscover its edited draft');
+  assert.equal(recreated.body.data.id, created.body.data.id); assert.equal(recreated.body.data.status, 'published');
+});
+
+test('cat draft card content is accepted without treating source fields as Host ownership', async t => {
+  const deps = options(), router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const request = { principal, method: 'POST', path: 'github/community-issue-drafts', body: {
+    sourceType: 'cat_initiated', sourceId: 'block-1', threadId: 'message-1', messageId: 'message-1',
+    title: 'Cat proposal', bodyMarkdown: 'Selected public content', targetRepo: 'org/repo', labels: ['bug'],
+  } };
+  const created = await router.forwardOwner(request);
+  assert.equal(created.status, 200); assert.equal(created.body.draft.title, 'Cat proposal');
+  assert.equal(created.body.draft.draftId, (await router.forwardOwner(request)).body.draft.draftId);
+  assert.equal((await router.forwardOwner({ ...request, body: { ...request.body, userId: 'another-owner' } })).status, 400);
+  const second = await router.forwardOwner({ ...request, body: { ...request.body, messageId: 'message-2' } });
+  assert.notEqual(second.body.draft.draftId, created.body.draft.draftId);
+  const path = `github/community-issue-drafts/by-id/${created.body.draft.draftId}`;
+  assert.equal((await router.forwardOwner({ principal, method: 'POST', path: `${path}/cancel` })).body.draft.status, 'cancelled');
+  assert.equal((await router.forwardOwner({ principal, method: 'POST', path: `${path}/publish`, body: {} })).status, 409);
+});
+
+test('native thread publication survives an uncertain response and freezes edits before retry', async t => {
+  const deps = options(); let creates = 0, finds = 0;
+  deps.drafts.publisher = { create: async () => { creates++; throw new Error('connection lost after POST'); },
+    find: async () => { finds++; return { number: 9, url: 'https://github.com/org/repo/issues/9' }; } };
+  const native = new NativeIssueDraftRuntime({ storage: deps.storage, config: { get: async () => 'org/repo' } }, deps.drafts.publisher);
+  t.after(() => native.stop());
+  const created = await native.create({ requestId: 'already-saved', repo: 'org/repo', title: 'Previously saved', bodyMarkdown: 'Public body' });
+  let router = await createCommunityHttpRouter(deps); t.after(() => router.stop());
+  const path = `github/community-issue-drafts/by-id/${created.data.id}`;
+  assert.equal((await router.forwardOwner({ principal, method: 'GET', path })).body.draft.title, 'Previously saved');
+  const request = { principal, method: 'POST', path: `${path}/publish`, body: {} };
+  const uncertain = await router.forwardOwner(request);
+  assert.equal(uncertain.status, 409, 'an unconfirmed publication must not be HTTP-success for existing Host previews');
+  assert.match(uncertain.body.error, /uncertain/i);
+  assert.equal(uncertain.body.draft.status, 'publishing'); assert.equal(creates, 1);
+  assert.equal((await router.forwardOwner({ ...request, body: { title: 'Changed after POST' } })).status, 409);
+  assert.equal((await router.forwardOwner({ principal, method: 'POST', path: `${path}/cancel` })).status, 409);
+  await router.stop(); router = await createCommunityHttpRouter(deps);
+  const retried = await router.forwardOwner(request);
+  assert.equal(retried.body.draft.status, 'published'); assert.equal(retried.body.draft.githubIssueNumber, 9);
+  assert.equal(creates, 1); assert.equal(finds, 1);
+  assert.equal((await router.forwardOwner({ principal, method: 'GET', path: `github/community-issue-drafts/by-id/${'f'.repeat(64)}` })).status, 404);
 });

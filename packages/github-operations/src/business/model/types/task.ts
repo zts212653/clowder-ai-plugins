@@ -129,7 +129,7 @@ export interface IssueWaitAutomationState {
 /** Composite automation state embedded in pr_tracking/issue_tracking tasks (#320 KD-14, F202-2D). */
 export type AutomationState = PrAutomationState | IssueWaitAutomationState;
 
-/** Plugin-private wait record; Host task projection carries no provider state. */
+/** Plugin-private subscription record; its historical Task-shaped fields are not Host Task state. */
 export interface TaskItem extends PluginTaskItem {
   readonly automationState?: AutomationState;
   readonly userId?: string;

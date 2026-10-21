@@ -7,19 +7,33 @@
 ## Get started
 
 1. Install through Clowder AI Settings. Authenticate the canonical GitHub CLI (`gh`) on the machine running Clowder AI.
-2. Optionally configure a Personal Access Token in the plugin secret field, or use the machine's existing `gh` login. Never put credentials in conversations, tool arguments or repository content.
-3. Enable the plugin and use its installed GitHub Operations skill and tools. Saving configuration and enabling runtime work are separate actions; tracking and background polling require the plugin to be running.
+2. Leave the optional GitHub access token empty to use the machine's existing `gh` login. Save configuration, then test the connection to check the current account. This read-only probe does not start polling or prove access to every repository.
+3. Enable the plugin and use its installed GitHub Operations skill and tools to register tracking. Configuration, authentication and runtime health are separate states; tracking and background polling require the plugin to be running.
 
 Other settings are optional, not installation prerequisites:
 
 | Setting | Purpose |
 | --- | --- |
-| Noise Bot Login List | Filter known setup-only comment noise. |
+| Notification author allowlist | Optional additional filter for comment/review notifications. Empty adds no restriction. |
+| Notification author blocklist | Suppress named comment/review authors, case-insensitively. Blocklist wins. CI, merge and conflict state notifications are unaffected. |
 | GitHub Webhook Secret | Configure only when using the optional repository webhook, with the exact callback URL exposed by the Host. |
 | Repositories allowed for public issue drafts | Comma-separated `owner/repository` names. Empty disables new drafts and publishing. |
-| Community narrator cat / thread | Set both to an available cat and an accessible existing thread for manual triage briefings. Empty disables new requests. |
 
-The legacy `mcpToken` key remains for inventory continuity; it is not a current action credential and is not needed to use native MCP. Fresh installation requires no old configuration, permissions or cursor import. Existing stored metadata is not implicitly deleted.
+The five ordinary-use settings remain optional: GitHub token, notification author allowlist/blocklist, webhook secret and publication repository allowlist. The retained-state recovery mode and status controls are only for existing observers; leave them unused for a fresh installation. Internal policies, the legacy `mcpToken` and narrator target coordinates retain their declarations and saved values. Drafts are saved by the plugin; publishing needs an owner-authenticated preview that supports that saved draft. The migrated feedback entry may show only a saved summary, which does not prove the full publication journey; Settings has no draft or narrator operation buttons. Existing drafts, credentials and tracking records remain intact. Fresh installation requires no legacy import.
+
+## Local update and verification
+
+New tracking subscriptions, predicates, cursors, receipts and notification outboxes stay in plugin-private storage. Scheduled polling turns GitHub changes into ordinary conversation messages. New subscriptions create no Host Task and read no conversation content. Imported Host waits retain their original Task, owner, thread and generation; only that recovery path uses the declared task.read/task.write capabilities to verify the existing binding and settle its projection. Native admission authenticates the registrant and messaging validates the destination. Community summary lookup uses metadata visible to the current user. New subscriptions do not call Host Tasks; the manifest and installation page specify the requested permissions.
+
+[Host generic proposal #232](https://github.com/mindfn/clowder-ai/pull/232) separately handles project MCP synchronization and empty binding presentation. GitHub-specific grants and draft UI changes are not prerequisites. When tools are missing, inspect project capability synchronization. When a visible tool fails, inspect the persisted phase and safe failure code from `github_list_tracking`; HTTP 502 alone does not identify a PAT problem. First registration reads a fresh GitHub baseline; later polling belongs to the plugin. Different authenticated threads have independent private subscriptions to the same subject, retaining old cancelled history. Reuse the exact registrationId and input after an unknown response. Register successfully before triggering a review event being tested.
+
+Actor lists accept comma/whitespace-separated logins, case-insensitively, as additional filters on registered conditions. Filtering preserves provider evidence and collection cursors; widening a list does not replay filtered history. Already admitted durable notifications remain available for delivery recovery.
+
+Use the delivered exact archive with its SHA256 and SHA512 SRI. Extract it and select the resulting `package` directory through Settings' directory installation. Updating the same pluginId through a local directory preserves the instance, credentials and durable tracking state; do not uninstall first. An enabled plugin follows the Host's ordinary suspend/update/resume lifecycle. A fresh installation can upload the self-contained `.tgz` directly.
+
+For an existing catalog/npm installation, use the directory update: the current Host's archive replacement requires matching local-archive provenance and may reject a direct upload as already installed. Do not work around that by uninstalling.
+
+After updating, confirm `0.1.0-alpha.19`, the hidden internal fields, and optional visible fields. Save, test the account, and confirm runtime health. Read existing registrations with `github_list_tracking` and local observations with `github_inspect_subject`. Register an explicitly authorized PR if needed, reusing its registrationId after an ambiguous response. `github_refresh_pull_requests` followed by `github_repository_observations` checks the provider read path. Initial registration is silent; verify delivery on a subsequent real review or CI change. Isolated package tests do not establish that the live installation has recovered. To roll back, install the extracted previous verified package without clearing the instance or history.
 
 ## Track PRs and issues
 
@@ -75,7 +89,7 @@ Release note: this is an unpublished local candidate. Real-account journeys and 
 
 ## Continue existing tracking after a consumer migration
 
-For an existing observation history, configure **Existing GitHub state recovery**
+For an existing observation history, configure **接续旧跟踪（可选）**
 with the exact value `import-only` before activating the replacement. Collection,
 webhooks and registration remain paused; normal registration freezes a new
 baseline and cannot preserve an old wait. The recovery status/source buttons show

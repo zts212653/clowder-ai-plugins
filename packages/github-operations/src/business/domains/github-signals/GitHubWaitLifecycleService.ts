@@ -1,13 +1,14 @@
 import type {
   AutomationState,
   GitHubWaitOutcomeV1,
+  GitHubWaitMatchedDelta,
   IssueWaitAutomationState,
   PrAutomationState,
   TaskItem,
   WaitTerminationActor,
   WaitTerminationEventV1,
 } from '../../model/index.js';
-import { createWaitContinuationCarrier, parseWaitOwnerFence } from '../../model/index.js';
+import { parseWaitOwnerFence } from '../../model/index.js';
 import type { ConnectorDeliveryDeps, ConnectorDeliveryInput, IWaitLifecycleEventLog, ITaskStore } from './wait-ports.js';
 import { deliverConnectorMessage, automationGeneration } from './wait-ports.js';
 import {
@@ -18,7 +19,7 @@ import {
   type WaitTransitionEvent,
 } from '../ball-custody/wait-state-machine.js';
 import { type GitHubWaitFacts, matchGitHubWaitPredicates } from './GitHubWaitPredicateCatalog.js';
-import { planWaitRenewal, quietBaselineUpdate } from './GitHubWaitRenewalBaseline.js';
+import { planWaitRenewal, quietBaselineUpdate, renewPrWaitBaseline, renewIssueWaitBaseline } from './GitHubWaitRenewalBaseline.js';
 import {
   type GitHubReviewLoopBrake,
   REVIEW_LOOP_BRAKE_NEXT_STEP,
@@ -41,6 +42,7 @@ export interface GitHubWaitObservation {
   readonly at?: number;
   /** Source-owned, typed metadata for the connector message created by this observation. */
   readonly deliveryExtra?: ConnectorDeliveryInput['extra'];
+  readonly notificationFilter?: (match: GitHubWaitMatchedDelta) => boolean;
   /** Action-time review-history observation; projected only through the existing outcome nextStep. */
   readonly reviewLoopBrake?: GitHubReviewLoopBrake;
 }
@@ -258,6 +260,20 @@ export class GitHubWaitLifecycleService {
           },
         } as AutomationState)
       : collectorState;
+    const allMatches = matchGitHubWaitPredicates(active.continuation.when, active.baseline, input.facts);
+    const matched = input.notificationFilter ? allMatches.filter(input.notificationFilter) : allMatches;
+    if (!input.subjectState && matched.length === 0 && allMatches.length > 0 && !isAwaitExpired(active, at)) {
+      // Consume filtered events privately so a later policy change cannot replay old history.
+      const baseline = 'headSha' in active.baseline
+        ? renewPrWaitBaseline(active.baseline, collectorState as PrAutomationState, input.facts, at)
+        : renewIssueWaitBaseline(active.baseline, collectorState as IssueWaitAutomationState, input.facts, at);
+      const installed = await this.opts.taskStore.replaceAutomationStateIfGeneration(task.id, {
+        expectedGeneration: active.generation, expectedUpdatedAt: task.updatedAt,
+        automationState: { ...collectorState, await: { ...active, baseline } } as AutomationState,
+        status: 'doing',
+      });
+      return installed ? { kind: 'state_only', reason: 'notification_filtered' } : LOST_RACE;
+    }
     let transition: WaitTransitionEvent;
     if (input.subjectState) {
       // #1392 AC-2: terminal ends tracking, not the poll it arrived in. Whatever else this poll
@@ -267,10 +283,9 @@ export class GitHubWaitLifecycleService {
         generation: active.generation,
         at,
         subjectState: input.subjectState,
-        matched: matchGitHubWaitPredicates(active.continuation.when, active.baseline, input.facts),
+        matched,
       };
     } else {
-      const matched = matchGitHubWaitPredicates(active.continuation.when, active.baseline, input.facts);
       if (matched.length === 0 && !isAwaitExpired(active, at)) {
         const moved = quietBaselineUpdate(active, collectorState, input.facts, at);
         if (moved) {
@@ -414,7 +429,6 @@ export class GitHubWaitLifecycleService {
       return this.quarantineLegacyUnfencedOutcome(task, outcome);
     }
     const content = renderGitHubWaitOutcome(outcome);
-    const waitContinuationCarrier = createWaitContinuationCarrier(task.id, outcome);
     const result = await deliverConnectorMessage(this.opts.deliveryDeps, {
       threadId: task.threadId,
       userId: task.userId ?? '',
@@ -431,7 +445,7 @@ export class GitHubWaitLifecycleService {
         url: outcome.subjectRef.startsWith('pr:')
           ? `https://github.com/${outcome.subjectRef.slice('pr:'.length).replace('#', '/pull/')}`
           : `https://github.com/${outcome.subjectRef.slice('issue:'.length).replace('#', '/issues/')}`,
-        meta: { waitContinuationCarrier },
+        meta: {},
       },
       ...(deliveryExtra ? { extra: deliveryExtra } : {}),
     });

@@ -89,7 +89,15 @@ export class GitHubWaitStorage implements ITaskStore {
       .map(([, entry]) => decode(entry.value)).filter(task => task.kind === kind);
   }
 
-  /** Caller supplies the SDK-created task projection; one immutable id per tracking history. */
+  async getBySubject(subjectKey: string, owner?: { userId: string; catId: string; threadId: string }): Promise<TaskItem | null> {
+    const matches = [...await this.listByKind('pr_tracking'), ...await this.listByKind('issue_tracking')]
+      .filter(task => task.subjectKey === subjectKey && (!owner ||
+        (task.userId === owner.userId && task.ownerCatId === owner.catId && task.threadId === owner.threadId)));
+    if (matches.length > 1) throw new Error('Ambiguous private tracking subject; retain records for owner inspection');
+    return matches[0] ?? null;
+  }
+
+  /** One immutable private ID per subscription history; no Host Task is created. */
   async create(task: TaskItem, registration?: RegistrationRequest): Promise<TaskItem | null> {
     decode({ schemaVersion: 1, task });
     const stored = structuredClone(task);

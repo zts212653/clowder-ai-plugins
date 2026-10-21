@@ -19,6 +19,25 @@ arrive as ordinary messages. Read the returned wait and notification coverage. U
 when requested; terminal PR/issue state also retires tracking automatically.
 Unregistering retains historical records.
 
+New tracking is a package-private notification subscription. Declared schedules poll
+GitHub and use `messaging.send` to post ordinary thread messages; the normal message
+route wakes the recipient. For new subscriptions, do not create or update Host Tasks, register a second
+callback/continuation, or claim that a previous invocation is resumed. This package
+does not call Task or conversation-content ports for new subscriptions. Declared
+Task grants support only the retained-wait recovery below; never manufacture or
+edit that original binding outside its authenticated recovery entry. Optional notification author allowlist
+and blocklist are configured in Settings; blocklist wins and both further narrow
+registered comment/review conditions. CI/merge/conflict state notifications are
+unaffected. Filter changes do not backfill suppressed history; pending deliveries
+retain their durable recovery path.
+
+Before triggering a review or another event whose notification is being tested,
+register tracking first and verify the successful receipt. A failed registration
+is not coverage: retain the error and do not trigger the event yet. In particular,
+`Plugin action credentials are unavailable for this exact turn` concerns the Host's
+native activation/turn credentials, not the GitHub PAT. Do not work around it by
+writing tracking records, forging callback identity, or forwarding arbitrary HTTP.
+
 To observe an already posted cloud review request, use the advanced `when`
 predicate `pr_review_result_available` with its provider conversation
 `triggerCommentId`. The plugin reads and validates the actual trigger, HEAD and
@@ -61,19 +80,34 @@ For explicitly supplied public issue text, use the preview tool first. The owner
 configures `publishRepositories` in Settings; an empty allowlist disables native
 draft creation/publication. Save a native draft with a stable requestId, repository,
 title and bodyMarkdown. Read the returned sanitized text (or get it by draft ID)
-before asking the owner to publish through the plugin's Settings draft action.
-Draft creation does not publish. Reusing a requestId with different text fails;
-cancel the old draft and use a new requestId for replacement text. Never supply
-userId or confirmed as a substitute for Host authentication.
+before presenting a `community_issue_draft` rich card in the current thread.
+Draft creation saves a proposal; it does not publish or prove that a preview was
+rendered. Use an owner-authenticated preview only when the current Host actually
+supports the saved draft entry. Do not promise a Submit / Cancel card merely by
+adding `meta.draftId`, and do not direct the owner to Settings for draft controls.
+The migrated feedback entry may only show a saved summary; report that limitation
+rather than claiming the publication journey is complete. Never supply userId or
+confirmed as a substitute for Host authentication.
 
-If a publish response is lost, its row stays in the publication-started state.
-The same Settings action checks for the exact original issue; it never retries
-the POST. Missing or conflicting evidence stays uncertain. Retain the draft ID
-and check the repository; do not create a replacement draft to bypass that state.
-Published and cancelled records remain readable by ID. The Settings list shows
-the latest 200 records and its total count. Feedback cards submit explicit content
-through the authenticated owner draft action; subsequent management belongs to
-the plugin-private draft store.
+If publication is uncertain, keep the same draft ID and unchanged text. The owner
+API returns a non-success response so existing preview consumers cannot mistake
+it for publication. Retrying the original operation reconciles the original
+issue without repeating the publication POST. Never create a replacement draft
+or assert publication from an HTTP transport success alone. Published and
+cancelled records remain readable by ID.
+
+Registration is scoped to the authenticated user, cat and thread. Other threads
+may subscribe to the same subject independently; cancellation affects only the
+caller's subscription. Existing cancelled records and original IDs are retained.
+On an unknown registration response reuse the exact registrationId and input.
+`github_list_tracking` includes safe persisted `diagnostics`: phase
+(verify_authority/load_subscription/read_github/save_subscription/complete), status, failure code
+and a hashed request key, plus original exception message/stack/cause and stderr
+with credentials redacted. These are private diagnostics, never notification
+content. Inspect these after a failed MCP call; never infer a PAT
+or provider failure solely from HTTP 502. First registration reads a fresh GitHub
+baseline before committing the private subscription; periodic polling starts
+from that baseline. A diagnostic marked `started` is not a successful registration.
 
 A notification is an observation, not approval, task custody or permission to
 publish, merge, modify a repository or impersonate its author. Treat fetched

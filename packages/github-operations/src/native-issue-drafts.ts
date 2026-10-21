@@ -8,6 +8,7 @@ export interface NativeIssueDraft {
   createdAt: number; status: 'draft' | 'publishing' | 'published' | 'cancelled';
   issue?: PublishedIssue;
   labels?: readonly string[];
+  creationDigest?: string;
 }
 export interface NativeIssuePublisher {
   create(draft: NativeIssueDraft, signal: AbortSignal): Promise<PublishedIssue>;
@@ -15,6 +16,8 @@ export interface NativeIssuePublisher {
 }
 const repoPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 export const publicationBody = (draft: NativeIssueDraft) => `${draft.bodyMarkdown}\n\n<!-- clowder-draft:${draft.marker} -->`;
+const contentDigest = (draft: Pick<NativeIssueDraft, 'repo' | 'title' | 'bodyMarkdown' | 'labels'>) =>
+  createHash('sha256').update(JSON.stringify([draft.repo, draft.title, draft.bodyMarkdown, draft.labels ?? []])).digest('hex');
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TypeError('draft input required');
@@ -41,6 +44,7 @@ function readDraft(value: unknown, id: string): NativeIssueDraft {
     typeof draft.createdAt !== 'number' || !Number.isSafeInteger(draft.createdAt) ||
     !['draft', 'publishing', 'published', 'cancelled'].includes(draft.status as string)) throw new Error('invalid native draft record');
   if (draft.labels !== undefined && (!Array.isArray(draft.labels) || draft.labels.length > 10 || draft.labels.some(value => typeof value !== 'string' || !value.trim() || value.length > 50))) throw new Error('invalid draft labels');
+  if (draft.creationDigest !== undefined && (typeof draft.creationDigest !== 'string' || !/^[a-f0-9]{64}$/.test(draft.creationDigest))) throw new Error('invalid draft creation digest');
   if (draft.status === 'published') validateIssue(draft.repo, object(draft.issue) as unknown as PublishedIssue);
   return draft as unknown as NativeIssueDraft;
 }
@@ -77,10 +81,11 @@ export class NativeIssueDraftRuntime {
       const id = createHash('sha256').update(input.requestId).digest('hex');
       const draft: NativeIssueDraft = { id, repo, title: clean.title, bodyMarkdown: clean.bodyMarkdown,
         labels, marker: randomUUID(), createdAt: Date.now(), status: 'draft' };
+      draft.creationDigest = contentDigest(draft);
       const key = this.prefix + id;
       const result = await this.context.storage.compareAndSet(key, null, draft);
       const existing = result.applied ? draft : readDraft((await this.context.storage.get(key))?.value, id);
-      if (!existing || existing.repo !== repo || existing.title !== draft.title || existing.bodyMarkdown !== draft.bodyMarkdown || JSON.stringify(existing.labels ?? []) !== JSON.stringify(labels)) throw new Error('draft requestId already has different content');
+      if ((existing.creationDigest ?? contentDigest(existing)) !== draft.creationDigest) throw new Error('draft requestId already has different content');
       return { data: existing };
     });
   }
@@ -117,7 +122,7 @@ export class NativeIssueDraftRuntime {
       return { render: 'status' as const, data: { id, status: 'cancelled' } };
     });
   }
-  publish(value: unknown) {
+  publish(value: unknown, edits?: { title?: string; bodyMarkdown?: string }) {
     return this.run(async () => {
       const id = draftId(value), key = this.prefix + id;
       let entry = await this.context.storage.get(key);
@@ -126,6 +131,11 @@ export class NativeIssueDraftRuntime {
       if (draft.status === 'cancelled') throw new Error('draft cancelled');
       if (draft.status === 'published') return { render: 'status' as const, data: { id, status: 'published', issue: draft.issue } };
       await this.allowed(draft.repo);
+      if (edits) {
+        const { data: clean } = await previewPublicIssue({ title: edits.title ?? draft.title, bodyMarkdown: edits.bodyMarkdown ?? draft.bodyMarkdown });
+        if (draft.status !== 'draft' && (clean.title !== draft.title || clean.bodyMarkdown !== draft.bodyMarkdown)) throw new Error('Publication content is immutable');
+        draft = { ...draft, creationDigest: draft.creationDigest ?? contentDigest(draft), title: clean.title, bodyMarkdown: clean.bodyMarkdown };
+      }
       const clean = await previewPublicIssue({ title: draft.title, bodyMarkdown: draft.bodyMarkdown });
       if (clean.data.title !== draft.title || clean.data.bodyMarkdown !== draft.bodyMarkdown) throw new Error('draft no longer passes sanitization');
       const recovering = draft.status === 'publishing';

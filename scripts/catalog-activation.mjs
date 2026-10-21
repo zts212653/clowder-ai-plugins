@@ -10,6 +10,19 @@ import { assertRegistryCompatibility, OFFICIAL_NPM_REGISTRY, readRegistryIntegri
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const maxArchiveBytes = 64 * 1024 * 1024;
 
+export function assertCatalogActivated(candidate, live) {
+  validate(candidate); validate(live);
+  const pending = [];
+  for (const plugin of candidate.plugins) {
+    const expected = getCatalogPlugin(candidate, plugin.pluginId);
+    const actual = getCatalogPlugin(live, plugin.pluginId);
+    try { assert.deepEqual(actual, expected); }
+    catch { pending.push(`${plugin.pluginId}@${expected.version}`); }
+  }
+  assert.deepEqual(pending, [],
+    `Catalog activation pending: ${pending.join(', ')}. The publication owner must run pnpm catalog:activate and deliver the reviewed catalog PR; npm publication alone is not completion.`);
+}
+
 function validate(catalog) {
   const result = validatePluginCatalog(catalog);
   assert.equal(result.valid, true, JSON.stringify(result.errors));
@@ -128,8 +141,14 @@ async function main() {
     // This prepares a reviewed catalog change; it never publishes npm packages or pushes Git.
     await activateCatalog();
     console.log('Prepared published catalog update. Review and commit it with the C1 Host delivery; no npm publication or Git push was performed.');
+  } else if (process.argv[2] === '--check-activation') {
+    const candidate = JSON.parse(await readFile(join(repoRoot, 'catalog/candidate.json'), 'utf8'));
+    const live = JSON.parse(await readFile(join(repoRoot, 'catalog/catalog.json'), 'utf8'));
+    assertCatalogActivated(candidate, live);
+    const count = await assertCatalogAvailable(candidate);
+    console.log(`Catalog activation complete: ${count} current plugin identities are live and their published archives verified.`);
   } else {
-    assert.equal(process.argv[2], undefined, 'Use no argument to check live catalogs, or --activate to prepare an activation');
+    assert.equal(process.argv[2], undefined, 'Use no argument, --check-activation, or --activate');
     const path = 'catalog/catalog.json';
     const count = await assertCatalogAvailable(JSON.parse(await readFile(join(repoRoot, path), 'utf8')));
     console.log(`${path}: ${count} published archive identities and bytes verified`);

@@ -25,7 +25,7 @@ export interface CommunityHttpRouterOptions {
   readonly projectionOperations: CommunityProjectionOperations;
   readonly provider?: Pick<CommunityRouteProviderOptions, 'token' | 'execFileAsync'>;
   readonly issues: Omit<CommunityIssuesRoutesOptions, OwnedStores | 'taskStore'> & { taskStore?: CommunityIssuesRoutesOptions['taskStore'] };
-  readonly drafts: Omit<CommunityIssueDraftRoutesOptions, 'requestContext' | 'communityIssueDraftStore' | 'publication'> & { publisher: NativeIssuePublisher };
+  readonly drafts: Omit<CommunityIssueDraftRoutesOptions, 'requestContext' | 'communityIssueDraftStore' | 'publication' | 'nativeDrafts'> & { publisher: NativeIssuePublisher };
 }
 
 const forwarded = z.object({
@@ -61,14 +61,17 @@ export async function createCommunityHttpRouter(options: CommunityHttpRouterOpti
   const drafts = new SdkCommunityIssueDraftStore(storage);
   // Reuse the journal algorithm in a separate namespace: native draft UI
   // cancellation must not mutate a Community publication behind its workflow.
-  const publication = new NativeIssueDraftRuntime({ storage, config: { get: async () => {
+  const draftHost = { storage, config: { get: async () => {
     await scope.assertCurrent();
     const config = typeof options.drafts.config === 'function' ? await options.drafts.config() : options.drafts.config;
     await scope.assertCurrent(); return config.repoAllowlist.join(',');
-  } } }, {
+  } } };
+  const scopedPublisher: NativeIssuePublisher = {
     create: async (draft, signal) => { await scope.assertCurrent(); return options.drafts.publisher.create(draft, signal); },
     find: async (draft, signal) => { await scope.assertCurrent(); return options.drafts.publisher.find(draft, signal); },
-  }, 'community.workflow.publication.');
+  };
+  const nativeDrafts = new NativeIssueDraftRuntime(draftHost, scopedPublisher);
+  const publication = new NativeIssueDraftRuntime(draftHost, scopedPublisher, 'community.workflow.publication.');
   const findings = new CommunityReconciliationFindingStore(storage);
   app.addHook('preHandler', async (_request, reply) => {
     if (!scope.userId()) return reply.code(401).send({ error: 'Host-authenticated Community request required' });
@@ -89,7 +92,7 @@ export async function createCommunityHttpRouter(options: CommunityHttpRouterOpti
   });
   await app.register(communityRepoConfigRoutes, { requestContext: scope, repoConfigStore: configs });
   await app.register(communityIssueDraftRoutes, {
-    ...options.drafts, requestContext: scope, communityIssueDraftStore: drafts,
+    ...options.drafts, nativeDrafts, requestContext: scope, communityIssueDraftStore: drafts,
     publication: { publish: async draft => {
       const journal = await publication.create({ requestId: `community:${draft.draftId}`, repo: draft.targetRepo, title: draft.title, bodyMarkdown: draft.bodyMarkdown, labels: draft.labels });
       const result = await publication.publish({ input: { draftId: journal.data.id } });
@@ -114,6 +117,6 @@ export async function createCommunityHttpRouter(options: CommunityHttpRouterOpti
       const url = `/api/community-issues/${encodeURIComponent(value.id)}/${nativeTargets[method]}`;
       return response(await scope.injectNative(caller, { method: 'POST', url, payload: value.payload }));
     },
-    async stop() { scope.stop(); await Promise.all([publication.stop(), reader?.stop()]); await app.close(); },
+    async stop() { scope.stop(); await Promise.all([nativeDrafts.stop(), publication.stop(), reader?.stop()]); await app.close(); },
   };
 }

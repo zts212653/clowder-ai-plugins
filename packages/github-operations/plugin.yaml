@@ -12,114 +12,85 @@ icon:
   type: svg
   src: assets/icon.svg
 steps:
-  - text: "Log in with the GitHub CLI (`gh auth login`) on the machine running
-      Clowder AI"
-  - text: "Optional: configure a token only for plugin-managed child processes that
-      explicitly consume it"
-  - text: "Optional: configure Noise Bot list to reduce setup-only comment noise"
+  - text: 已在运行 Clowder AI 的机器登录 GitHub CLI 时，无需填写访问令牌；也可使用下方的可选令牌。
+  - text: 保存配置并测试连接，再启用插件。连接成功后，仍需让猫登记要跟踪的 PR、Issue 或仓库。
+  - text: 下方的 Webhook 和发布仓库仅供专项功能使用；普通 PR / Issue 跟踪全部留空即可。草稿在原会话内预览和确认。
+test:
+  action: { method: github.connection.test }
 configuration:
   - key: recoveryMode
-    label: Existing GitHub state recovery
-    description: Set import-only before activating a replacement installation.
-      All collection and ordinary actions stay paused until the owner commits
-      existing progress and explicitly releases it. Normal starts without import.
+    label: 接续旧跟踪（可选）
+    description: 新安装留空。接续旧记录时，在启用替代实例前填写 import-only；
+      核验旧进度并明确释放前，采集和登记保持暂停。
     kind: string
     required: false
   - key: migrationRecovery
-    label: GitHub recovery status
-    description: Inspect the paused import and source coverage before releasing collection.
-      Existing waits are preserved; fresh registration cannot replace a migration.
+    label: 旧跟踪恢复状态
+    description: 仅接续旧记录时使用。先核对导入进度和来源覆盖；重新登记不能替代旧等待迁移。
     kind: operation
     required: false
     actions:
       - id: status
-        label: Import status
+        label: 导入状态
         render: status
         action: { method: github.migration.owner-status }
       - id: source
-        label: Source coverage
+        label: 来源覆盖
         render: button
         action: { method: github.migration.owner-source }
+  - key: token
+    label: GitHub 访问令牌（可选）
+    description: 已有本机 gh 登录时留空。填写后，插件的 GitHub 请求优先使用此令牌；不要填写 MCP 凭据。
+    kind: secret
+    required: false
+  - key: notificationAllowlist
+    label: 通知作者白名单（可选）
+    description: 评论和审查通知仅接收这些 GitHub 登录名，以逗号或空格分隔。留空不额外限制；仍遵守登记时的过滤条件。
+    kind: string
+    required: false
+  - key: notificationBlocklist
+    label: 通知作者黑名单（可选）
+    description: 忽略这些 GitHub 登录名的评论和审查通知，以逗号或空格分隔，不区分大小写。黑名单优先；CI、合并和冲突状态不受影响。
+    kind: string
+    required: false
+  - key: webhookSecret
+    label: 仓库 Webhook 签名密钥（可选）
+    description: 仅接收 GitHub 仓库推送事件时填写，并使用 Host 提供的回调地址。定时跟踪不需要此项。
+    kind: secret
+    required: false
   - key: narratorCatId
-    label: Community narrator cat
-    description: Explicit notification recipient for manual Community triage.
-      Configure together with the narrator thread. Host handles recipient
-      availability and wake outcomes.
+    hidden: true
+    label: 社区简报接收猫（可选）
+    description: 仅手动社区分诊使用，填写猫 ID 并同时指定下方的已有会话。留空不发起新简报。
     kind: string
     required: false
   - key: narratorThreadId
-    label: Community narrator thread
-    description: Existing accessible thread for triage briefings. Pending deliveries
-      retain their original target and pause if either setting changes.
+    hidden: true
+    label: 社区简报接收会话（可选）
+    description: 填写已有且可访问的会话 ID。修改猫或会话会暂停原投递，旧简报不会转发给新目标。
     kind: string
     required: false
-  - key: narratorDeliveries
-    label: Community narrator deliveries
-    description: Inspect durable dispatches or retry pending delivery. Restore the
-      original target settings to resume paused delivery; changing settings
-      never redirects an existing briefing.
-    kind: operation
-    required: false
-    actions:
-      - id: status
-        label: Delivery status
-        render: status
-        action: { method: github.narrator.status }
-      - id: retry
-        label: Retry pending deliveries
-        render: button
-        action: { method: github.narrator.retry }
-        next: status
   - key: publishRepositories
-    label: Repositories allowed for public issue drafts
-    description: Comma-separated owner/repository names. Empty disables issue publishing.
+    label: 允许发布 Issue 的仓库（可选）
+    description: 仅发布草稿时使用，以逗号分隔 owner/repository。留空禁止创建和发布草稿，不影响 PR / Issue 跟踪。
     kind: string
-    required: false
-  - key: issueDrafts
-    label: Plugin-native issue drafts
-    description: Review sanitized drafts before publishing. Legacy Host drafts
-      remain in their existing entry point.
-    kind: operation
-    required: false
-    actions:
-      - id: list
-        label: Drafts
-        render: status
-        resultRender: rows
-        action: { method: github.draft.list }
-      - id: publish
-        label: Publish or recover publication
-        render: row
-        confirm: Publish this sanitized draft to its GitHub repository? If publication
-          already started, only check its existing outcome.
-        action: { method: github.draft.publish }
-        next: list
-      - id: cancel
-        label: Cancel draft
-        render: row
-        confirm: Cancel this unpublished draft? Its history will remain stored.
-        action: { method: github.draft.cancel }
-        next: list
-  - key: webhookSecret
-    label: GitHub Webhook Secret
-    kind: secret
-    required: false
-  - key: token
-    label: Personal Access Token
-    kind: secret
     required: false
   - key: mcpToken
     label: MCP Token
+    description: 兼容旧 inventory 的密钥，不参与当前认证；保留已存值。
     kind: secret
     required: false
+    hidden: true
   - key: setupNoiseBotLogins
     label: Noise Bot Login List
     kind: string
     required: false
+    hidden: true
   - key: cloudReviewerLogins
     label: Cloud Reviewer GitHub Logins
     kind: string
     required: false
+    hidden: true
 contributions:
   - type: webhook
     id: migration-source
@@ -216,7 +187,7 @@ contributions:
     id: create-issue-draft
     name: github_create_issue_draft
     description: Save sanitized public issue text as an installation-private draft.
-      Publishing requires the owner-confirmed Settings action. Cannot import
+      Publishing requires confirmation in the owner thread preview. Cannot import
       legacy Host ownership or confirmation.
     inputSchema:
       type: object
@@ -315,8 +286,8 @@ contributions:
   - type: tool
     id: list-tracking
     name: github_list_tracking
-    description: List this installation's PR and issue tracking status and pending
-      deliveries.
+    description: List this installation's PR and issue tracking status, pending deliveries
+      and the latest 25 safe registration diagnostics. Includes phase, failure code and original exception detail with credentials redacted.
     inputSchema: { type: object, additionalProperties: false, properties: {} }
     action: { method: github.tracking.list }
   - type: schedule
@@ -627,13 +598,13 @@ features:
       - { type: schedule, id: community-reconciler }
     capabilities:
       [
+        task.read,
+        task.write,
         schedule.register,
         plugin.config.read,
         secret.read,
         plugin.state.get,
         plugin.state.set,
-        task.read,
-        task.write,
         thread.listMetadata,
         thread.write,
         messaging.send

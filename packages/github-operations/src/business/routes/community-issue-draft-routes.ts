@@ -14,6 +14,7 @@ import type { ICommunityIssueDraftStore } from '../domains/community/ports/Commu
 import type { CommunityIssueDraft } from '../model/index.js';
 import { sanitize } from '../domains/community/issue-analysis/CommunityIssueSanitizer.js';
 import type { CommunityRequestContext } from './community-request-context.js';
+import { ownerDraftInput, ownerDraftEditsSchema, ownerNativeDraftAction, threadDraft, type OwnerNativeDrafts } from '../../owner-issue-drafts.js';
 
 // ── Options ───────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ export interface CommunityDraftConfig {
 export interface CommunityIssueDraftRoutesOptions {
   communityIssueDraftStore: ICommunityIssueDraftStore;
   requestContext: CommunityRequestContext;
-  createDraft(input: unknown): Promise<unknown>;
+  nativeDrafts: OwnerNativeDrafts;
   publication: { publish(draft: CommunityIssueDraft): Promise<{ issue?: { number: number; url: string } }> };
   config: CommunityDraftConfig | (() => Promise<CommunityDraftConfig>);
 }
@@ -81,9 +82,9 @@ export const communityIssueDraftRoutes: FastifyPluginAsync<CommunityIssueDraftRo
     if (!opts.requestContext.requireOwner(reply)) return;
     await opts.requestContext.assertCurrent();
     try {
-      const result = await opts.createDraft(request.body);
+      const result = await opts.nativeDrafts.create(ownerDraftInput(request.body, resolveUserId(request)!));
       await opts.requestContext.assertCurrent();
-      return result;
+      return { ...result, draft: threadDraft(result.data) };
     } catch (error) {
       await opts.requestContext.assertCurrent();
       return reply.code(error instanceof TypeError ? 400 : 409).send({error: error instanceof Error ? error.message : 'Draft creation failed'});
@@ -105,6 +106,11 @@ export const communityIssueDraftRoutes: FastifyPluginAsync<CommunityIssueDraftRo
       return { error: 'Invalid params', details: paramsParse.error.issues };
     }
 
+    if (/^[a-f0-9]{64}$/.test(paramsParse.data.draftId)) {
+      if (!opts.requestContext.requireOwner(reply)) return;
+      const result = await ownerNativeDraftAction(opts.nativeDrafts, paramsParse.data.draftId, 'get');
+      return reply.code(result.status).send(result.body);
+    }
     const draft = await communityIssueDraftStore.getById(paramsParse.data.draftId);
     if (!draft) {
       reply.status(404);
@@ -134,13 +140,21 @@ export const communityIssueDraftRoutes: FastifyPluginAsync<CommunityIssueDraftRo
       return { error: 'Invalid params', details: paramsParse.error.issues };
     }
 
+    const { draftId } = paramsParse.data;
+    if (/^[a-f0-9]{64}$/.test(draftId)) {
+      if (!opts.requestContext.requireOwner(reply)) return;
+      const nativeBody = ownerDraftEditsSchema.safeParse(request.body);
+      if (!nativeBody.success) return reply.code(400).send({ error: 'Invalid body', details: nativeBody.error.issues });
+      const result = await ownerNativeDraftAction(opts.nativeDrafts, draftId, 'publish', nativeBody.data);
+      return reply.code(result.status).send(result.body);
+    }
+
     const bodyParse = publishBodySchema.safeParse(request.body);
     if (!bodyParse.success) {
       reply.status(400);
       return { error: 'Invalid body', details: bodyParse.error.issues };
     }
 
-    const { draftId } = paramsParse.data;
     const edits = bodyParse.data;
 
     // Get current draft
@@ -164,7 +178,7 @@ export const communityIssueDraftRoutes: FastifyPluginAsync<CommunityIssueDraftRo
       // process before entering the durable publication journal.
       draft = await communityIssueDraftStore.beginPublish(draftId, sanitized.title, sanitized.bodyMarkdown);
       const result = await publication.publish(draft);
-      if (!result.issue) return reply.code(202).send({ draft, warning: 'Publication outcome uncertain. Retry reconciles the original issue without creating another.' });
+      if (!result.issue) return reply.code(409).send({ draft, error: 'Publication outcome uncertain. Retry reconciles the original issue without creating another.' });
       const published = await communityIssueDraftStore.publish({ draftId, githubIssueNumber: result.issue.number, githubIssueUrl: result.issue.url });
       return { draft: published, githubIssueUrl: result.issue.url };
     } catch (err: unknown) {
@@ -191,6 +205,11 @@ export const communityIssueDraftRoutes: FastifyPluginAsync<CommunityIssueDraftRo
     }
 
     const { draftId } = paramsParse.data;
+    if (/^[a-f0-9]{64}$/.test(draftId)) {
+      if (!opts.requestContext.requireOwner(reply)) return;
+      const result = await ownerNativeDraftAction(opts.nativeDrafts, draftId, 'cancel');
+      return reply.code(result.status).send(result.body);
+    }
     const draft = await communityIssueDraftStore.getById(draftId);
     if (!draft) {
       reply.status(404);

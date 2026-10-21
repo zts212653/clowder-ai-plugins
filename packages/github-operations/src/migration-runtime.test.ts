@@ -27,7 +27,8 @@ export function migrationFixture() {
     streams: { read: async function* () { throw new Error('No stream read expected'); } },
     threads: { get: async id => ({ id, title: null, createdAt: 1, lastActiveAt: 1, preferredCats: [], featureRefs: [], deepLinkUrl: 'https://host/thread' }),
       getCats: async () => ({ participants: [], routableNow: [{ catId: 'cat', displayName: 'Cat', aliases: [] }], routableNotJoined: [], notRoutable: [] }),
-      list: forbidden, readMessages: forbidden, addParticipants: forbidden, create: forbidden, update: forbidden },
+      list: async () => ['thread', 'original-inbox', 'new-owner-selected-thread'].map(id => ({ id, title: null, createdAt: 1, lastActiveAt: 1, preferredCats: [], featureRefs: [], deepLinkUrl: 'https://host/thread' })),
+      readMessages: forbidden, addParticipants: forbidden, create: forbidden, update: forbidden },
     tasks: { get: async q => structuredClone(q.id ? tasks.get(q.id) ?? null : [...tasks.values()].find(t => t.subjectKey === q.subjectKey) ?? null),
       list: async filter => [...tasks.values()].filter(t => !filter.kind || t.kind === filter.kind),
       create: forbidden, update: async (id, patch, conditions) => {
@@ -111,6 +112,8 @@ test('real owner stage/commit and original native bind preserve g27, retire expi
   await active.actions['github.pr-tracking']!({}); await active.actions['github.issue-tracking']!({});
   await active.actions['github.pr-tracking']!({}); await active.actions['github.issue-tracking']!({});
   assert.equal(f.sent.length, 2, 'one new PR fact and one new legacy comment, neither replayed');
+  assert.equal(f.tasks.get('old-pr')?.pluginWait?.await, undefined, 'the original Host wait must terminate with the imported private wait');
+  assert.equal(f.tasks.get('old-pr')?.pluginWait?.waitOutcome?.delivery, 'delivered');
   const listed = await active.actions['github.tracking.list']!({}) as { data: { tracking: TaskItem[] } };
   assert.equal(listed.data.tracking.find(task => task.id === 'old-issue')?.automationState?.issue?.lastDeliveredCursor, 24);
   assert.ok(!listed.data.tracking.some(task => task.id === 'expired'));
@@ -118,6 +121,53 @@ test('real owner stage/commit and original native bind preserve g27, retire expi
   const records = Object.values(await f.storage.list()).map(r => r.value).filter(v => !!v && typeof v === 'object');
   const history = records.find(v => 'task' in v && (v.task as TaskItem)?.id === 'expired' && 'sourceUpdatedAt' in v) as { task: TaskItem };
   assert.equal(history.task.ownerCatId, 'codex'); assert.equal(history.task.automationState?.await?.expiresAt, 10);
+});
+
+test('an imported wait stops before observation when its original Host owner or binding changes after release', async t => {
+  for (const drift of ['owner', 'binding'] as const) {
+    const f = migrationFixture(), source = frozenSource(); seed(f, source);
+    const active = await f.module.create(manifest).start(f.host);
+    t.after(() => active.stop({ reason: 'test' }));
+    const staged = await ownerCall(f, active, 'stage', { snapshot: source, expectedDigest: sourceDigest(source) });
+    const expectedDigest = staged.body.data.planDigest;
+    await ownerCall(f, active, 'commit', { expectedDigest });
+    await active.actions['github.migration.bind-wait']!({ taskId: 'old-pr', expectedDigest }, f.caller);
+    await ownerCall(f, active, 'recover', { expectedDigest });
+    await ownerCall(f, active, 'release', { expectedDigest });
+    const host = f.tasks.get('old-pr')!;
+    f.tasks.set(host.id, drift === 'owner' ? { ...host, ownerCatId: 'new-owner' } : { ...host, pluginWait: undefined });
+    await active.actions['github.pr-tracking']!({});
+    assert.equal(f.reads(), 0, `original ${drift} drift must stop provider observation`);
+    assert.equal(f.sent.length, 0, `original ${drift} drift must not wake the old destination`);
+  }
+});
+
+test('fresh private subscriptions coexist with a retained Host wait without acquiring Host Tasks', async t => {
+  const f = migrationFixture(), source = { ...frozenSource(), tasks: frozenSource().tasks.slice(0, 1) };
+  seed(f, source);
+  let hostReads = 0, freshHead = 'a'.repeat(40);
+  const get = f.host.tasks.get;
+  f.host.tasks.get = async query => { assert.equal(query.id, 'old-pr'); hostReads++; return get(query); };
+  const module = createGitHubPluginModule({ now: () => 1000, createProvider: () => ({ selfLogin: () => 'self',
+    read: async target => ({ state: 'open', headSha: target.number === 12 ? 'b'.repeat(40) : freshHead,
+      ci: 'pass', comments: [], reviews: [], commentsComplete: true }) }) });
+  const active = await module.create(manifest).start(f.host); t.after(() => active.stop({ reason: 'test' }));
+  const stage = await ownerCall(f, active, 'stage', { snapshot: source, expectedDigest: sourceDigest(source) });
+  const expectedDigest = stage.body.data.planDigest;
+  await ownerCall(f, active, 'commit', { expectedDigest });
+  await active.actions['github.migration.bind-wait']!({ taskId: 'old-pr', expectedDigest }, f.caller);
+  await ownerCall(f, active, 'recover', { expectedDigest });
+  await ownerCall(f, active, 'release', { expectedDigest });
+  const beforeRegistration = hostReads;
+  const fresh = await active.actions['github.typed-wait.register-pr']!({ registrationId: 'new-private-intent',
+    repoFullName: 'example/project', prNumber: 13, when: [{ kind: 'pr_head_changed' }], autoRenew: false }, f.caller) as TaskItem;
+  assert.equal(hostReads, beforeRegistration, 'new registration must not consult Host Tasks');
+  assert.equal(f.tasks.has(fresh.id), false); assert.equal(fresh.automationState?.await?.generation, 1);
+  assert.equal(f.tasks.get('old-pr')?.pluginWait?.generation, 27);
+  freshHead = 'c'.repeat(40);
+  await active.actions['github.pr-tracking']!({}); await active.actions['github.pr-tracking']!({});
+  assert.equal(f.sent.length, 2, 'each established registration delivers its new fact exactly once');
+  assert.equal(f.tasks.size, 1); assert.equal(f.tasks.get('old-pr')?.pluginWait?.waitOutcome?.delivery, 'delivered');
 });
 
 test('pending old outcome needs a conclusive source receipt; definitive no-send recovers only after native binding and release', async t => {

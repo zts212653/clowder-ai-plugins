@@ -20,6 +20,9 @@ import { GitHubPrIndexProvider } from './pr-index-provider.js';
 import { ReviewTriggerReader } from './review-trigger-observation.js';
 import { CommunityCollectionRuntime, SdkCommunityCollectionStore } from './community-collection.js';
 import { GitHubPrTitleReader, prTitleHttp } from './pr-title-reader.js';
+import { createGitHubSettings } from './settings.js';
+import { findThreadMetadata } from './metadata-thread.js';
+import type { GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
 
 // Host declared webhook dispatch nests the request under action params. The
 // webhook handlers declare no static params; flat requests are invalid.
@@ -27,6 +30,7 @@ const webhookEnvelope = z.object({ request: z.record(z.unknown()) }).strict();
 
 interface Provider extends GitHubTrackingProvider { selfLogin(): string | undefined }
 export interface GitHubPluginOptions {
+  readonly settingsExecFileAsync?: GitHubRequestOptions['execFileAsync'];
   readonly now?: () => number;
   readonly createReviewEvidenceProvider?: (context: FeatureContext) => Pick<GitHubProvider, 'observeReviewHead' | 'observeReviewDelivery'>;
   /** Test the real carrier with an isolated provider; production uses the migrated gh transport. */
@@ -39,6 +43,11 @@ export interface GitHubPluginOptions {
 }
 
 async function activate(context: FeatureContext, options: GitHubPluginOptions) {
+  // Host get() currently requires content access even for summaries. Package-owned
+  // Community mappings need only an owner-visible metadata lookup.
+  const threads = context.threads;
+  context = { ...context, threads: { ...threads, get: id => findThreadMetadata(threads, id) } };
+  const connectionSettings = createGitHubSettings(context, options.settingsExecFileAsync);
   const migration = new GitHubMigrationRuntime(context, options.now);
   const transport = new GitHubProvider({
     token: () => context.secrets.get('token'),
@@ -74,7 +83,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     storage: context.storage, threads: context.threads, projectionOperations: community.projectionOperations,
     provider: { token: () => context.secrets.get('token') },
     issues: { narrator },
-    drafts: { publisher, createDraft: input => drafts.create(input), config: async () => {
+    drafts: { publisher, config: async () => {
       const value = await context.config.get('publishRepositories');
       if (value !== undefined && typeof value !== 'string') throw new TypeError('Invalid publish repository configuration');
       const repos = [...new Set((value ?? '').split(/[\s,]+/).filter(Boolean).map(repo => repo.toLowerCase()))];
@@ -91,6 +100,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
   return {
     actions: migration.guard({
       ...migrationActions(context, migration, () => tracking.recover()),
+      ...connectionSettings.actions,
       'github.pr-title.http': prTitleHttp(prTitles),
       [REVIEW_VERDICT_METHOD]: (input: unknown, caller?: PluginActionContext) => reviewVerdicts.record(input, caller),
       ...Object.fromEntries(communityNativeMethods.map(method => [method, (input: unknown, caller?: PluginActionContext) => {
@@ -99,14 +109,6 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       }])),
       // Only the owner-authenticated Host HTTP forwarder may call this method.
       // It is deliberately absent from tools, MCP actions and operations.
-      'github.narrator.status': async (_value: unknown, caller?: PluginActionContext) => {
-        if (caller) throw new Error('Narrator settings require owner operation');
-        return { data: { deliveries: await narrator.status() } };
-      },
-      'github.narrator.retry': async (_value: unknown, caller?: PluginActionContext) => {
-        if (caller) throw new Error('Narrator settings require owner operation');
-        return { data: { deliveries: await narrator.reconcile() } };
-      },
       'github.community.http': (value: unknown, caller?: PluginActionContext) => {
         if (caller) throw new Error('Community owner HTTP cannot be invoked as a native action');
         return http.forwardOwner(webhookEnvelope.parse(value).request);
@@ -119,7 +121,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.typed-wait.unregister': (value: unknown, caller?: PluginActionContext) => tracking.unregister(value, caller),
       'github.tracking.list': async () => ({ data: { tracking: [
         ...await tracking.store.listByKind('pr_tracking'), ...await tracking.store.listByKind('issue_tracking'), ...await migratedIssues.list(),
-      ] } }),
+      ], diagnostics: await tracking.diagnostics() } }),
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),
       'github.repo-scan': async () => { await community.run('repo-scan'); return { data: { completed: true } }; },
@@ -141,12 +143,9 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.legacy-history.inspect': (value: unknown) => community.inspectLegacyHistory(value),
       'github.draft.create': (value: unknown) => drafts.create(value),
       'github.draft.get': (value: unknown) => drafts.get(value),
-      'github.draft.list': () => drafts.list(),
-      'github.draft.publish': (value: unknown) => drafts.publish(value),
-      'github.draft.cancel': (value: unknown) => drafts.cancel(value),
       'github.triage.recommend': recommendTriage,
     }),
-    dispose: async () => { await Promise.all([migration.stop(), migratedIssues.stop(), prTitles.stop(), reviewVerdicts.stop(), narrator.stop(), http.stop(), collection.stop(), tracking.stop(), community.stop(), drafts.stop(), reviewTriggers.stop(), prIndex.stop()]); },
+    dispose: async () => { await Promise.all([connectionSettings.dispose(), migration.stop(), migratedIssues.stop(), prTitles.stop(), reviewVerdicts.stop(), narrator.stop(), http.stop(), collection.stop(), tracking.stop(), community.stop(), drafts.stop(), reviewTriggers.stop(), prIndex.stop()]); },
   };
 }
 
@@ -162,9 +161,12 @@ function repoInput(value: unknown, register: boolean): Record<string, unknown> {
 }
 
 export function createGitHubPluginModule(options: GitHubPluginOptions = {}): PluginModuleEntrypoint {
-  return definePluginModule(manifest => definePlugin({
+  const runtimeModule = definePluginModule(manifest => definePlugin({
     manifest, activate: { 'github-collaboration': context => activate(context, options) },
   }));
+  return { create: manifest => ({ ...runtimeModule.create(manifest),
+    settings: host => createGitHubSettings(host, options.settingsExecFileAsync),
+  }) };
 }
 
 export default createGitHubPluginModule();

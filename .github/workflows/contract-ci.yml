@@ -397,3 +397,8 @@ jobs:
         with:
           package-directory: packages/github-operations
           npm-token: ${{ secrets.NPM_TOKEN }}
+
+      # A successful upload is not a completed release. Keep a visible failure
+      # until the publication owner delivers the separate reviewed catalog PR.
+      - name: Require published catalog activation
+        run: pnpm catalog:activation-check

@@ -58,6 +58,10 @@ test('immutable registry validation runs against the current catalog before fina
 
 test('catalog check builds packages whose publish surface is generated', () => {
   const command = workspacePackage.scripts['catalog:check'];
+  for (const name of ['xiangqi', 'github-operations']) {
+    assert.ok(command.includes(`pnpm --filter @clowder-ai/${name} build`),
+      `standalone catalog activation must build ${name} before packing`);
+  }
   assert.ok(
     command.includes('pnpm --filter @clowder-ai/genoffice-docx build:renderer'),
     'catalog check must build the frozen GenOffice renderer',

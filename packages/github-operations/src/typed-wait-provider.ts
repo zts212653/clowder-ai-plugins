@@ -102,6 +102,7 @@ export function waitObservation(task: TaskItem, snapshot: GitHubSnapshot, now: n
         review: {
           decisionCursor: Math.max(before?.decisionCursor ?? 0, maxId(currentReviews)), headDecisionCursor: maxId(currentReviews),
           decision: evidence?.decision ?? latest?.state, reviewer: evidence?.reviewer ?? latest?.author,
+          decisions: currentReviews,
           verdicts: reviewVerdictsOf(reviews), threads: snapshot.reviewThreads, comments,
           ...(evidence ? { resultTriggerCommentId: evidence.triggerCommentId, resultSourceRef: evidence.sourceRef,
             resultConversationCommentCursor: evidence.conversationCommentCursor } :
