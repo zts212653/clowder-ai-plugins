@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/wechat-visible-reader",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Mac WeChat visible-message reader for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -38,7 +38,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.21",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
     "zod": "3.25.76"
   },
   "devDependencies": {

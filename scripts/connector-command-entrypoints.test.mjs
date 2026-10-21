@@ -26,9 +26,9 @@ for (const [name, factoryName] of Object.entries(factories)) {
     if (packageRoot !== undefined) {
       const pkg = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
       const sdk = JSON.parse(await readFile(join(packageRoot, 'node_modules/@clowder-ai/plugin-sdk/package.json'), 'utf8'));
-      assert.equal(pkg.version, '0.1.0-alpha.5'); assert.equal(manifest.version, pkg.version);
-      assert.equal(pkg.dependencies['@clowder-ai/plugin-sdk'], '0.2.0-beta.21');
-      assert.equal(sdk.version, '0.2.0-beta.21');
+      assert.equal(pkg.version, '0.1.0-alpha.6'); assert.equal(manifest.version, pkg.version);
+      assert.equal(pkg.dependencies['@clowder-ai/plugin-sdk'], '0.2.0-beta.22');
+      assert.equal(sdk.version, '0.2.0-beta.22');
     }
     assert.deepEqual(manifest.configuration.filter(field => /legacy_permissions|connector_permissions|permission.*Json|permissionRevision/.test(field.key)), []);
     const groupsSupported = ['feishu', 'dingtalk', 'wecom-bot'].includes(name);

@@ -1,5 +1,5 @@
 pluginId: official.connector.wecom-bot
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 contractVersion: 0.1.0
 name: WeCom Bot Connector
 description:

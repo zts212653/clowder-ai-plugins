@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/personal-chrome-companion",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "F247 Chrome MV3 and Native Messaging companion for an already-authorized personal ChatGPT conversation",
   "license": "MIT",
   "type": "module",
@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@clowder-ai/plugin-contract": "0.1.0-beta.37",
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.21"
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.22"
   },
   "keywords": [
     "clowder-ai",

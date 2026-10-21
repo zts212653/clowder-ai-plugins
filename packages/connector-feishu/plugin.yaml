@@ -1,5 +1,5 @@
 pluginId: official.connector.feishu
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 contractVersion: 0.1.0
 name: Feishu / Lark Connector
 description:

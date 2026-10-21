@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/connector-wecom-agent",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.0-alpha.6",
   "description": "WeCom custom-application messaging connector for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.21",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
     "fast-xml-parser": "5.5.9",
     "@clowder-ai/plugin-contract": "0.1.0-beta.37"
   },
