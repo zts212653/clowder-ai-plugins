@@ -20,4 +20,3 @@ export class IsolatedStorage implements PluginStorageHost {
     this.rows.delete(k); return { deleted: true, revision: ++this.revision };
   }
 }
-
