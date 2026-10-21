@@ -8,6 +8,8 @@ import {collectiveWorkContinuation} from './owner-work-continuation.js';
 import type {createCollectiveMessageWorkCaller} from './collective-message-work.js';
 import {assertSettledCollectiveSource} from './collective-ingress-routing.js';
 import {collectiveWorkClosure} from './collective-message-work.js';
+import {assertCollectiveWorkTask, locateCollectiveWorkTask} from './collective-work-thread.js';
+import {readWorkFirstReceipt} from './owner-work-first-receipt.js';
 
 const refusal = (code: string, message: string): never => {throw Object.assign(new Error(message), {code});};
 
@@ -15,7 +17,7 @@ const refusal = (code: string, message: string): never => {throw Object.assign(n
  * only reconciles the existing Host UI record. No execution is authorized here.
  * Validation below is ported from ca5 collective-work-result-routes.ts. */
 export async function reconcileCollectiveMessageWorkResult(connector: CollectiveConnector,
-  ports: Pick<FeatureContext, 'tasks' | 'messaging'>, ownerUserId: string, connectionId: string,
+  ports: Pick<FeatureContext, 'tasks' | 'messaging' | 'storage' | 'pluginInstanceId'>, ownerUserId: string, connectionId: string,
   unsafe: unknown, current: () => Promise<void>) {
   const input = collectiveAcceptedWorkResultSchema.parse(unsafe);
   await current();
@@ -38,7 +40,10 @@ export async function reconcileCollectiveMessageWorkResult(connector: Collective
       return refusal('COLLECTIVE_RESULT_SOURCE_UNAVAILABLE', 'Collective Work source is unavailable');
     const message = await ports.messaging.get(item.routeReceipt.messageId);await current();
     assertSettledCollectiveSource(message, item.routeReceipt, item.event, source, ownerUserId);
-    const task = await ports.tasks.get({ subjectKey: `collective-work:${connectionId}:${work.workId}` });await current();
+    if (!message) return refusal('COLLECTIVE_RESULT_SOURCE_UNAVAILABLE', 'Collective Work source is unavailable');
+    const located = await locateCollectiveWorkTask(ports.tasks, ports.storage, message, work.assignment!.catId,
+      ports.pluginInstanceId,{allowTerminal:true});await current();
+    const task = located?.task;
     if (!task) return {result: 'not_admitted' as const};
     if ((task.userId !== null && task.userId !== ownerUserId) || task.ownerCatId !== work.assignment!.catId)
       return refusal('COLLECTIVE_RESULT_SOURCE_UNAVAILABLE', 'Collective Task does not match the accepted assignment');
@@ -120,19 +125,30 @@ function inboxSourceMatches(
 /** The retained Continue button uses its original strict DTO and Service round
  * predicate. The canonical Task contract revision is an optimistic UI snapshot only. */
 export async function resumeCollectiveMessageWork(connector: CollectiveConnector,
-  ports: Pick<FeatureContext, 'tasks' | 'messaging'>, caller: ReturnType<typeof createCollectiveMessageWorkCaller>,
+  ports: Pick<FeatureContext, 'tasks' | 'messaging' | 'storage' | 'pluginInstanceId'>, caller: ReturnType<typeof createCollectiveMessageWorkCaller>,
   ownerUserId: string, connectionId: string, unsafe: unknown, current: () => Promise<void>) {
   const input = ownerWorkResumeInput.parse(unsafe);
   const snapshot = async () => {
     await current();const task = await ports.tasks.get({ id: input.taskId });await current();
     if (!task?.entrustedWork || task.entrustedWork.closure.state !== 'open' || (task.userId !== null && task.userId !== ownerUserId) ||
       task.status === 'done' || !task.ownerCatId || task.entrustedWork.revision !== input.observedRevision ||
-      !task.subjectKey?.startsWith(`collective-work:${connectionId}:`))
+      task.entrustedWork.admission.sourceRefs.length !== 1)
       return refusal('OWNER_ADMISSION_UNAVAILABLE', 'Current owner Task changed');
-    return task;
+    const sourceRef = task.entrustedWork.admission.sourceRefs[0]!;
+    if (!sourceRef.startsWith('message:')) return refusal('OWNER_ADMISSION_UNAVAILABLE', 'Current owner Task source changed');
+    const sourceMessage = await ports.messaging.get(sourceRef.slice('message:'.length));await current();
+    const source = collectiveSourceIdentitySchema.safeParse(sourceMessage?.source?.meta?.participation);
+    if (!sourceMessage || !source.success || source.data.connectionId !== connectionId || source.data.catId !== task.ownerCatId)
+      return refusal('OWNER_ADMISSION_UNAVAILABLE', 'Current owner Task source changed');
+    const receipt = await readWorkFirstReceipt(ports.storage, ownerUserId, sourceMessage.id, task.ownerCatId);await current();
+    assertCollectiveWorkTask(task, sourceMessage, task.ownerCatId, ports.pluginInstanceId, receipt?.binding);
+    const notice = sourceMessage.source?.meta?.workExecutionNotice ?? sourceMessage.source?.meta?.workAcceptanceNotice;
+    const workId = notice && typeof notice === 'object' && 'workId' in notice && typeof notice.workId === 'string'
+      ? notice.workId : (await connector.readAssignedWorkByAssignment(connectionId, source.data.eventId)).workId;
+    await current();
+    return {task,workId};
   };
-  const task = await snapshot();
-  const workId = task.subjectKey!.slice(`collective-work:${connectionId}:`.length);
+  const initial = await snapshot(), task = initial.task, workId = initial.workId;
   const eventId = await connector.withAssignedWorkAuthority(connectionId, workId, async scope => {
     await current();
     if (scope.hostRoute?.localOwnerUserId !== ownerUserId)
@@ -149,7 +165,8 @@ export async function resumeCollectiveMessageWork(connector: CollectiveConnector
   });
   const check = async () => {
     const latest = await snapshot();
-    if (latest.threadId !== task.threadId || latest.ownerCatId !== task.ownerCatId || latest.subjectKey !== task.subjectKey)
+    if (latest.task.threadId !== task.threadId || latest.task.ownerCatId !== task.ownerCatId ||
+      latest.task.subjectKey !== task.subjectKey || latest.workId !== workId)
       refusal('OWNER_ADMISSION_UNAVAILABLE', 'Current owner Task changed');
   };
   const sent = await caller.send(connectionId, eventId, ownerUserId, check, {kind: 'resume', requestId: input.requestId, taskId: task.id});
@@ -164,7 +181,7 @@ export async function resumeCollectiveMessageWork(connector: CollectiveConnector
 /** Original strict owner click for an existing Service commitment. HTTP caller
  * facts stay in the Host lane; the body supplies only the source and site choice. */
 export async function admitCollectiveMessageWork(connector: CollectiveConnector,
-  ports: Pick<FeatureContext, 'tasks' | 'messaging'>, caller: ReturnType<typeof createCollectiveMessageWorkCaller>,
+  ports: Pick<FeatureContext, 'tasks' | 'messaging' | 'storage' | 'pluginInstanceId'>, caller: ReturnType<typeof createCollectiveMessageWorkCaller>,
   owner: PluginOwnerHttpContext, connectionId: string, unsafe: unknown, current: () => Promise<void>) {
   const input = ownerWorkInput.parse(unsafe);await current();
   const message = await ports.messaging.get(input.sourceMessageId);await current();
@@ -177,19 +194,31 @@ export async function admitCollectiveMessageWork(connector: CollectiveConnector,
     ? await connector.readAssignedWork(connectionId, String((message.source.meta.workExecutionNotice as {workId?: string})?.workId))
     : await connector.readAssignedWorkByAssignment(connectionId, source.eventId);
   await current();
+  let taskSource = message;
+  if (work.assignmentEventId && work.assignmentEventId !== source.eventId) {
+    const rows = (await connector.listInbox(connectionId)).filter(row => row.event.eventId === work.assignmentEventId);
+    const first = rows[0];
+    if (rows.length !== 1 || first?.routeReceipt?.kind !== 'thread_message')
+      return refusal('OWNER_ADMISSION_UNAVAILABLE', 'The original Collective Work source is unavailable');
+    const firstMessage = await ports.messaging.get(first.routeReceipt.messageId);await current();
+    if (!firstMessage) return refusal('OWNER_ADMISSION_UNAVAILABLE', 'The original Collective Work source is unavailable');
+    taskSource = firstMessage;
+  }
   if (source.actor.kind === 'human') {
     const relations = [work.intendedOutcome, message.content].map(classifyEntrustedWorkSourceTime);
     if (relations.includes('ambiguous')) return {result: 'needs_clarification' as const, reason: 'ambiguous_source_time'};
     if (relations.includes('deadline') && !input.businessDeadline) return {result: 'needs_clarification' as const};
   } else {
-    const task = await ports.tasks.get({ subjectKey: `collective-work:${connectionId}:${work.workId}` });await current();
+    const task = (await locateCollectiveWorkTask(ports.tasks, ports.storage, taskSource, source.catId,
+      ports.pluginInstanceId))?.task;await current();
     if (!task || (input.threadId && task.threadId !== input.threadId))
       return refusal('OWNER_ADMISSION_UNAVAILABLE', 'The registered Work has not yet been delivered');
   }
   const sent = await caller.send(connectionId, source.eventId, owner.userId, current,
     {kind: 'manual', sourceMessageId: message.id, owner, ...(input.threadId ? {threadId: input.threadId} : {}),
       ...(input.businessDeadline !== undefined ? {businessDeadline: input.businessDeadline} : {})});
-  const task = await ports.tasks.get({ subjectKey: `collective-work:${connectionId}:${work.workId}` });
+  const task = (await locateCollectiveWorkTask(ports.tasks, ports.storage, taskSource, source.catId,
+    ports.pluginInstanceId))?.task;
   const stored = await ports.messaging.get(sent.messageId);await current();
   if (!task?.entrustedWork || !stored || stored.threadId !== task.threadId || stored.userId !== owner.userId)
     return refusal('OWNER_ADMISSION_UNAVAILABLE', 'Work delivery is unavailable');

@@ -9,6 +9,7 @@ import type {createCollectiveMessageWorkMaterials} from './collective-message-wo
 import {collectiveWorkArtifactRefsSchema} from './work-native-methods.js';
 import { collectiveWorkResultTextSourceSchema } from './business/contracts/index.js';
 import { collectiveDocumentFileName, isCollectiveDocumentFile } from './collective-document-scope.js';
+import {locateCollectiveWorkTask} from './collective-work-thread.js';
 
 type Binding = Parameters<Parameters<ReturnType<typeof createCollectiveMessageWorkCaller>['withCurrentMessage']>[1]>[0];
 const changed = () => collectiveContextError('WORK_ARTIFACT_UNAVAILABLE', 'Explicitly selected Work material is unavailable or changed');
@@ -16,7 +17,8 @@ const taskRefOf = (binding: {resultKey:string}) => `task:${binding.resultKey}`;
 
 /** Original explicit selection belongs to the same canonical Task as Schedule.
  * Private captured publication bytes are data, never another selection owner. */
-export function createCollectiveMessageWorkArtifacts(context: Pick<FeatureContext, 'threads' | 'tasks'>,
+export function createCollectiveMessageWorkArtifacts(context: Pick<FeatureContext,
+  'pluginInstanceId' | 'threads' | 'tasks' | 'messaging' | 'storage'>,
   materials: ReturnType<typeof createCollectiveMessageWorkMaterials>) {
   async function selection(binding: Binding) {
     await binding.revalidate();
@@ -109,13 +111,19 @@ export function createCollectiveMessageWorkArtifacts(context: Pick<FeatureContex
         !/^\/uploads\/(?:doc-[A-Za-z0-9._-]+\.md|cwork-[A-Za-z0-9._-]+\.(?:md|txt))$/i.test(original.artifactRef)) return undefined;
       const taskId = publication.taskRef.slice('task:work:'.length);
       const task = await context.tasks.get({id:taskId});await current();
-      if (!task || task.subjectKey !== `collective-work:${publication.connectionId}:${publication.workId}` ||
+      const sourceRef = task?.entrustedWork?.admission.sourceRefs[0];
+      const sourceMessage = sourceRef?.startsWith('message:')
+        ? await context.messaging.get(sourceRef.slice('message:'.length)) : null;await current();
+      const located = sourceMessage ? await locateCollectiveWorkTask(context.tasks, context.storage, sourceMessage,
+        publication.catId, context.pluginInstanceId,{allowTerminal:true}) : undefined;await current();
+      if (!task || located?.task.id !== task.id ||
         task.ownerCatId !== publication.catId || (task.userId !== null && task.userId !== publication.localOwnerUserId)) return undefined;
       const initialWork = scope.work;
       const revalidate = async () => {
         await current();
         if (!isDeepStrictEqual(await scope.readCurrentWork(), initialWork)) throw changed();
-        const freshTask = await context.tasks.get({id:taskId});await current();
+        const freshTask = sourceMessage ? (await locateCollectiveWorkTask(context.tasks, context.storage,
+          sourceMessage, publication.catId, context.pluginInstanceId,{allowTerminal:true}))?.task : undefined;await current();
         if (!freshTask || freshTask.threadId !== task.threadId || freshTask.ownerCatId !== task.ownerCatId ||
           freshTask.userId !== task.userId || freshTask.subjectKey !== task.subjectKey) throw changed();
       };

@@ -1,6 +1,19 @@
 import type {
   MessageDraft,
 } from '@clowder-ai/plugin-contract';
+import type {
+  PluginTaskDataControllerBindInput,
+  PluginTaskDataControllerMutationResult,
+  PluginTaskDataControllerRevokeInput,
+  PluginTaskDataControllerSummary,
+} from './task-data-controller.js';
+export type {
+  PluginTaskDataControllerBinding,
+  PluginTaskDataControllerBindInput,
+  PluginTaskDataControllerMutationResult,
+  PluginTaskDataControllerRevokeInput,
+  PluginTaskDataControllerSummary,
+} from './task-data-controller.js';
 
 export type ModulePluginLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -134,7 +147,8 @@ export interface PluginTaskEntrustedWorkSummary {
   readonly time?: PluginTaskWorkTime;
   readonly artifactRefs?: readonly string[];
   readonly closure: { readonly state: string };
-  readonly admission: { readonly sourceRefs: readonly string[] };
+  readonly admission: { readonly sourceRefs: readonly string[]; readonly authorityRef?: string };
+  readonly dataController?: PluginTaskDataControllerSummary;
 }
 
 /** All Task reads explicitly distinguish an unowned legacy Task from an absent projection. */
@@ -214,7 +228,14 @@ export interface PluginTaskHost {
   list(filter: PluginTaskFilter): Promise<readonly PluginTaskReadItem[]>;
   create(input: PluginTaskCreateInput, options?: PluginTaskCreateOptions): Promise<PluginTaskItem>;
   update(taskId: string, patch: PluginTaskUpdateInput, conditions?: PluginTaskUpdateConditions): Promise<PluginTaskItem | null>;
+  bindDataController(input: PluginTaskDataControllerBindInput): Promise<PluginTaskDataControllerMutationResult>;
+  revokeDataController(input: PluginTaskDataControllerRevokeInput): Promise<PluginTaskDataControllerMutationResult>;
 }
+
+/** Raw Host adapter shape. Controller ports are optional only so a new SDK can
+ * fail closed with an older Host instead of pretending a fallback exists. */
+export type PluginTaskHostAdapter = Omit<PluginTaskHost, 'bindDataController' | 'revokeDataController'> &
+  Partial<Pick<PluginTaskHost, 'bindDataController' | 'revokeDataController'>>;
 
 export type PluginMessageContent =
   | { readonly type: 'text'; readonly text: string }
@@ -276,7 +297,7 @@ export interface ModulePluginHostShape {
   readonly config: { get(key: string): Promise<unknown> };
   readonly secrets: { get(key: string): Promise<string | undefined> };
   readonly storage: PluginStorageHost;
-  readonly tasks: PluginTaskHost;
+  readonly tasks: PluginTaskHostAdapter;
   readonly threads: PluginThreadHost;
   readonly messaging: PluginMessagingHost;
   readonly streams: import('./streams.js').PluginStreams;

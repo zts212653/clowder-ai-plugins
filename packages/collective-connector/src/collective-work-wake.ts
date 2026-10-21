@@ -4,13 +4,14 @@ import type { CollectiveConnector } from './business/connector/connector.js';
 import type { CollectiveEventEnvelope, CollectiveWorkProjection } from './business/contracts/index.js';
 import { collectiveEventSourceIdentity } from './business/contracts/index.js';
 import { assertSettledCollectiveSource } from './collective-ingress-routing.js';
+import {locateCollectiveWorkTask} from './collective-work-thread.js';
 
 const unavailable = () => Object.assign(new Error('Collective Work wake no longer has one current open Task and source'),
   {code: 'COLLECTIVE_WORK_WAKE_NOT_CURRENT'});
 
 /** Service wake notices reuse an existing Task. They never establish a new admission or authority. */
 export async function readCollectiveWorkWake(connector: CollectiveConnector,
-  ports: Pick<FeatureContext, 'tasks' | 'messaging'>, connectionId: string, eventId: string,
+  ports: Pick<FeatureContext, 'tasks' | 'messaging' | 'storage' | 'pluginInstanceId'>, connectionId: string, eventId: string,
   ownerUserId: string, current: () => Promise<void>) {
   await current();
   const wake = (await connector.listInbox(connectionId)).find(row => row.event.eventId === eventId);
@@ -33,7 +34,10 @@ export async function readCollectiveWorkWake(connector: CollectiveConnector,
     const first = await ports.messaging.get(initial.routeReceipt.messageId);await current();
     assertSettledCollectiveSource(message, item.routeReceipt, item.event, source, ownerUserId);
     assertSettledCollectiveSource(first, initial.routeReceipt, initial.event, birthSource, ownerUserId);
-    const task = await ports.tasks.get({subjectKey: `collective-work:${connectionId}:${work.workId}`});await current();
+    if (!first) throw unavailable();
+    const located = await locateCollectiveWorkTask(ports.tasks, ports.storage, first, source.catId,
+      ports.pluginInstanceId);await current();
+    const task = located?.task;
     if (!message || !first || !task?.entrustedWork || task.kind !== 'work' || task.status === 'done' ||
         task.entrustedWork.closure.state !== 'open' || task.ownerCatId !== source.catId ||
         (task.userId !== null && task.userId !== ownerUserId) ||
@@ -41,7 +45,7 @@ export async function readCollectiveWorkWake(connector: CollectiveConnector,
         task.entrustedWork.admission.sourceRefs[0] !== `message:${first.id}`) throw unavailable();
     if (!isDeepStrictEqual(work, await scope.readCurrentWork())) throw unavailable();
     await current();
-    return {wake, item, source, message, work, task, hostRoute};
+    return {wake, item, source, message, first, work, task, hostRoute};
   });
 }
 

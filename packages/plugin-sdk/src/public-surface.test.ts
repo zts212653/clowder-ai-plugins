@@ -95,7 +95,7 @@ type RequiredHostMessageRead = undefined extends ModulePluginHostShape['messagin
 const requiredHostMessageRead: RequiredHostMessageRead = true;
 void [requiredMessageRead,requiredHostMessageRead];
 const lifecycle=['settings','preStart','start','preUninstall','uninstall'] as const satisfies readonly (keyof PluginModuleDefinition)[];
-const taskPorts=['get','list','create','update'] as const satisfies readonly (keyof PluginTaskHost)[];
+const taskPorts=['get','list','create','update','bindDataController','revokeDataController'] as const satisfies readonly (keyof PluginTaskHost)[];
 const noUndocumentedTask:Record<Exclude<keyof PluginTaskHost,typeof taskPorts[number]>,never>={};
 void noUndocumentedTask;
 const activationPorts=['streams','configRefresh','preStop','actions','stop'] as const satisfies readonly (keyof PluginModuleActivationShape)[];
@@ -107,18 +107,19 @@ void [noUndocumentedContext,noUndocumentedDefinition,noUndocumentedActivation];
 test('current public objects and the three-part developer baseline move together',async()=>{
  const doc=await readFile(new URL('../../../docs/plugin-development.md',import.meta.url),'utf8');
  assert.equal((doc.match(/^## \d\./gm)??[]).length,3);
- for(const entry of ['context.tasks.get(selector)','context.tasks.list(filter)','context.tasks.create(input,options?)','context.tasks.update(id,patch,conditions?)'])assert.equal(doc.includes(entry),true,entry);
+ for(const entry of ['context.tasks.get(selector)','context.tasks.list(filter)','context.tasks.create(input,options?)','context.tasks.update(id,patch,conditions?)',
+  'context.tasks.bindDataController(input)','context.tasks.revokeDataController(input)'])assert.equal(doc.includes(entry),true,entry);
  for(const retired of ['listByThread','listByKind','getBySubject','upsertBySubject','updateIfThreadId','setWait'])assert.equal(doc.includes('context.tasks.'+retired),false,retired);
  for(const name of [...authorPorts,...lifecycle,...activationPorts])assert.match(doc,new RegExp('\\b'+name+'\\b'),name);
  for(const retired of ['publicInvocations','sourceFacts','nativeContext.current','participantRoster','ownerThreads','events.publish','host.messaging.lifecycle','custody.canonicalize','deployment.getCatalog','frustration.getSource','browserServices.getBinding','predicateVerifiers'])assert.equal(doc.includes(retired),false,retired);
 });
 
-test('Task client exposes ordinary data methods and never forwards dead execution methods', async()=>{
+test('Task client exposes data and controller methods and never forwards dead execution methods', async()=>{
  const adapter={tasks:{prepareEntrusted(){throw new Error('Dead path');},dispatchEntrusted(){throw new Error('Dead path');}}} as unknown as FeatureHostAdapter;
  const session=createFeatureContextSession(binding,adapter);
  assert.equal(Object.hasOwn(session.context.tasks,'prepareEntrusted'),false);
  assert.equal(Object.hasOwn(session.context.tasks,'dispatchEntrusted'),false);
- assert.deepEqual(Object.keys(session.context.tasks).sort(),['get','list','create','update'].sort());
+ assert.deepEqual(Object.keys(session.context.tasks).sort(),taskPorts.slice().sort());
  await session.revoke();
 });
 

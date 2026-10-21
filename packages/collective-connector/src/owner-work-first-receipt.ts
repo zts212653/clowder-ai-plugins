@@ -10,6 +10,9 @@ const digest = z.string().regex(/^[a-f0-9]{64}$/);
 const bindingSchema = z.object({
   taskRef: ref.regex(/^task:work:/), taskRevision: revision, threadId: ref,
   admissionRef: ref.regex(/^message:/), executionRef: ref.regex(/^message:/), refScope: ref,
+  // Old receipts may already name a Task but cannot authorize the new
+  // controller path until a Host-owned receipt is attached by owner adoption.
+  dataControllerReceiptRef: ref.regex(/^task-data-controller:[a-f0-9]{64}$/).optional(),
 }).strict();
 const commonReceipt = z.object({
   v: z.literal(1),
@@ -178,6 +181,8 @@ async function retainExecutionRelation<T extends ContinuedWorkExecutionReceipt |
       const binding = bindingSchema.parse(raw), before = await read(); if (!before) throw conflict();
       if (!before.receipt.binding) {
         await current(); await storage.compareAndSet(key, before.entry.revision, {...before.receipt, binding});
+      } else if (bindingControllerUpgrade(before.receipt.binding, binding)) {
+        await current(); await storage.compareAndSet(key, before.entry.revision, {...before.receipt, binding});
       }
       const bound = await read(); if (!bound || !isDeepStrictEqual(bound.receipt.binding, binding)) throw conflict();
       return bound.receipt;
@@ -244,6 +249,9 @@ export async function retainWorkFirstReceipt(
       if (!before.receipt.binding) {
         await current();
         await storage.compareAndSet(key, before.entry.revision, {...before.receipt, binding});
+      } else if (bindingControllerUpgrade(before.receipt.binding, binding)) {
+        await current();
+        await storage.compareAndSet(key, before.entry.revision, {...before.receipt, binding});
       }
       const bound = await read();
       if (!bound || !isDeepStrictEqual(bound.receipt.binding, binding)) throw conflict();
@@ -254,4 +262,12 @@ export async function retainWorkFirstReceipt(
       if (!actual || !isDeepStrictEqual(actual.receipt.binding, binding)) throw conflict();
     },
   });
+}
+
+function bindingControllerUpgrade(before: ManualWorkExecutionBinding, after: ManualWorkExecutionBinding) {
+  if (after.dataControllerReceiptRef === undefined || after.dataControllerReceiptRef === before.dataControllerReceiptRef ||
+    after.taskRevision <= before.taskRevision) return false;
+  const {taskRevision: _beforeRevision,dataControllerReceiptRef: _beforeController,...beforeIdentity} = before;
+  const {taskRevision: _afterRevision,dataControllerReceiptRef: _afterController,...afterIdentity} = after;
+  return isDeepStrictEqual(beforeIdentity,afterIdentity);
 }

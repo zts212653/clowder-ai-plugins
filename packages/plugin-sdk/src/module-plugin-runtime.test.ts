@@ -88,6 +88,8 @@ function host(
       list: async () => [task],
       create: async (input: unknown, options?: unknown) => (calls.push({ operation: 'tasks.create', value: {input,options} }), task),
       update: async () => task,
+      bindDataController: async () => { throw new Error('unused Task data-controller binding'); },
+      revokeDataController: async () => { throw new Error('unused Task data-controller revocation'); },
     },
     threads: {
       get: async () => null,
@@ -671,6 +673,52 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('actual compiled Host rich wait c
       assert.deepEqual(Object.keys(task!.pluginWait!).sort(), ['await', 'generation', 'pluginInstanceId', 'waitOutcome']);
     }
   } finally { await activation.stop({reason:'test'}); }
+});
+
+if (process.env.C1_TASK_READ_HOST_MODULE) test('actual compiled Host controller mutations cross the SDK with one validated Task projection',async()=>{
+  const hostUrl=new URL(process.env.C1_TASK_READ_HOST_MODULE!);
+  const {createPluginTaskHost}=await import(hostUrl.href);
+  const {transitionEntrustedTaskDataController}=await import(new URL(
+    '../../../cats/services/stores/ports/TaskDataControllerTransition.js',hostUrl).href);
+  const {withCurrentOwnerOperation}=await import(new URL('../../carrier/plugin-owner-operation-context.js',hostUrl).href);
+  let raw={id:'legacy-task',kind:'work',threadId:'private',subjectKey:'entrusted:legacy',title:'Legacy Work',
+    ownerCatId:'cat',status:'todo',why:'Continue',createdBy:'user',createdAt:1,updatedAt:1,userId:'owner',
+    entrustedWork:{revision:1,admission:{basis:'authorized_source',sourceRefs:['message:first'],
+      idempotencyKey:'original',receiptRef:'task:receipt:original',admittedAt:1,authorityRef:'message:admission'},
+      intendedOutcome:'Continue',time:{},artifactRefs:[],closure:{state:'open',condition:'Accepted',
+        expectedSignal:'accepted',evidenceRefs:[]}}};
+  const taskStore={async get(id:string){return id===raw.id?structuredClone(raw):null;},
+    async getBySubject(){return structuredClone(raw);},async listByThread(){return[structuredClone(raw)];},
+    async listByKind(){return[structuredClone(raw)];},async transitionEntrustedTaskDataController(input:unknown){
+      const result=transitionEntrustedTaskDataController(structuredClone(raw),input);
+      if(result.kind==='bound'||result.kind==='revoked')raw=structuredClone(result.task);return result;}};
+  const controller={pluginId:'official.collective-connector',pluginInstanceId:'installed-module-fixture',
+    moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,grantRevision:3,
+    effectiveGrants:['task.read','task.write','task.admitEntrusted']};
+  const taskHost:ModulePluginHostShape['tasks']=createPluginTaskHost({pluginId:controller.pluginId,
+    pluginInstanceId:controller.pluginInstanceId,ownerUserId:'owner',effectiveGrants:controller.effectiveGrants,
+    taskStore,readThreadStore:{async get(id:string){return{id,createdBy:'owner',participants:['cat']};}},
+    admission:{messageStore:{},isCatAvailable:(catId:string)=>catId==='cat',assertCurrent:async()=>{},
+      readCurrentDataControllerAuthority:async()=>controller,
+      withCurrentDataControllerAuthority:async(run:(value:unknown)=>unknown)=>run(controller)}});
+  const {context,activation}=await taskReadFixture(undefined,taskHost);
+  const owner={kind:'owner-operation',userId:'owner',pluginInstanceId:controller.pluginInstanceId,
+    operationKey:'work',actionId:'adopt-task',requestId:'owner-bind',confirmed:true,
+    signal:new AbortController().signal,assertCurrent:async()=>{}};
+  try{
+    const bound=await withCurrentOwnerOperation(owner,()=>context.tasks.bindDataController({taskId:raw.id,
+      expectedTaskRevision:1,operationId:'owner-bind-operation',expected:{ownerCatId:'cat',threadId:'private',
+        subjectKey:'entrusted:legacy',firstSourceRef:'message:first',admissionAuthorityRef:'message:admission'}}));
+    assert.equal(bound.disposition,'bound');assert.equal(bound.task.entrustedWork!.dataController!.currentForCaller,true);
+    assert.equal('receipts' in bound.task.entrustedWork!.dataController!,false);
+    const binding=bound.task.entrustedWork!.dataController!;
+    const revoked=await withCurrentOwnerOperation({...owner,actionId:'revoke-task',requestId:'owner-revoke'},()=>
+      context.tasks.revokeDataController({taskId:raw.id,expectedTaskRevision:2,
+        expectedBindingRevision:binding.bindingRevision,expectedControllerReceiptRef:binding.binding.ownerOperationReceiptRef,
+        operationId:'owner-revoke-operation'}));
+    assert.equal(revoked.disposition,'revoked');assert.equal(revoked.task.entrustedWork!.dataController!.currentForCaller,false);
+    assert.equal(revoked.task.entrustedWork!.dataController!.revocationReceiptRef,revoked.receiptRef);
+  }finally{await activation.stop({reason:'test'});}
 });
 
 

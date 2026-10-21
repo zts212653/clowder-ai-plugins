@@ -148,6 +148,7 @@ export type {
   PluginTaskWorkData,
   PluginTaskWorkMutation,
   PluginTaskHost,
+  PluginTaskHostAdapter,
   PluginTaskSelector,
   PluginTaskFilter,
   PluginTaskCreateOptions,
@@ -167,6 +168,13 @@ export type {
   PluginThreadCats,
   PluginThreadSummary,
 } from './module-host.js';
+export type {
+  PluginTaskDataControllerBinding,
+  PluginTaskDataControllerBindInput,
+  PluginTaskDataControllerMutationResult,
+  PluginTaskDataControllerRevokeInput,
+  PluginTaskDataControllerSummary,
+} from './task-data-controller.js';
 
 export {
   ConnectorOutboundDeliveryError,

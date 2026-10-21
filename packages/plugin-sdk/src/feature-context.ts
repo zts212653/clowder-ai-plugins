@@ -1,5 +1,9 @@
 import { createStreamsClient, type PluginStreams } from './streams.js';
-import { projectTaskRead, projectTaskReadList } from './task-read.js';
+import {
+  projectTaskDataControllerMutationResult,
+  projectTaskRead,
+  projectTaskReadList,
+} from './task-read.js';
 import { createMessageReader, type PluginMessage } from './message-read.js';
 import { createMemberClient, type PluginMemberHost } from './members.js';
 import type { PluginHostActionContext } from './host-action-context.js';
@@ -29,6 +33,7 @@ import type {
   PluginMessagingHost,
   PluginMessagingSubscribeOptions,
   PluginStorageHost,
+  PluginTaskHostAdapter,
   PluginTaskHost,
   PluginThreadHost,
 } from './module-host.js';
@@ -60,7 +65,7 @@ export interface FeatureHostAdapter {
   readConfig(binding: FeatureBinding, key: string): Promise<unknown>;
   readSecret(binding: FeatureBinding, key: string): Promise<string | undefined>;
   readonly storage: PluginStorageHost;
-  readonly tasks: PluginTaskHost;
+  readonly tasks: PluginTaskHostAdapter;
   readonly threads: PluginThreadHost;
   sendMessage(
     binding: FeatureBinding,
@@ -240,6 +245,26 @@ export function createFeatureContextSession(
       if (Object.hasOwn(patch, 'wait') && Object.keys(patch).some(key => key !== 'wait'))
         throw new TypeError('Task wait patch cannot mix other fields');
       return adapter.tasks.update(taskId, patch, conditions);
+    }),
+    bindDataController: (input) => runWhileActive(async () => {
+      if (typeof adapter.tasks.bindDataController !== 'function') {
+        throw new FeaturePermissionError('Host Task data-controller binding is unavailable');
+      }
+      const result = projectTaskDataControllerMutationResult(await adapter.tasks.bindDataController(input));
+      if (result.task.id !== input.taskId) {
+        throw new TypeError('Task data-controller result identifies another Task');
+      }
+      return result;
+    }),
+    revokeDataController: (input) => runWhileActive(async () => {
+      if (typeof adapter.tasks.revokeDataController !== 'function') {
+        throw new FeaturePermissionError('Host Task data-controller revocation is unavailable');
+      }
+      const result = projectTaskDataControllerMutationResult(await adapter.tasks.revokeDataController(input));
+      if (result.task.id !== input.taskId) {
+        throw new TypeError('Task data-controller result identifies another Task');
+      }
+      return result;
     }),
   };
   const threads: PluginThreadHost = {

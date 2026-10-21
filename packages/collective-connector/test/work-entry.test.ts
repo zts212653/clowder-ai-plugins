@@ -39,6 +39,12 @@ test('production Work module owns one private MCP and rejects untrusted calls be
       await assert.rejects(() => Promise.resolve(active.actions[method]!({})));
     }
     assert.equal(typeof active.actions['collective.work.control.http'], 'function');
+    const workOperation = manifest.configuration.find((entry: {key:string}) => entry.key === 'work');
+    for (const actionId of ['adopt-task','revoke-task']) {
+      const declaration = workOperation.actions.find((entry: {id:string}) => entry.id === actionId);
+      assert.equal(typeof declaration.confirm, 'string');
+      assert.equal(typeof active.actions[declaration.action.method], 'function');
+    }
     await assert.rejects(() => Promise.resolve(active.actions['collective.work.control.http']!({request: {
       method: 'POST', path: 'connections/c1/work/admit', principal: {kind: 'owner', id: 'forged-owner'},
       body: {sourceMessageId: 'source', requestId: 'e2ecbb52-969e-4b98-a24d-eb54c55b01ef'}, headers: {}}})));
@@ -54,6 +60,11 @@ test('production Work module owns one private MCP and rejects untrusted calls be
       signal: new AbortController().signal, assertCurrent: async () => {throw new Error('Owner operation ended');}};
     await assert.rejects(() => Promise.resolve(active.actions['collective.work.owner.connections']!({input: {}}, undefined, expired)), /ended/);
     await assert.rejects(() => Promise.resolve(active.actions['collective.work.owner.sync']!({input: {connectionId: 'c1'}}, undefined, {...expired, actionId: 'sync'})), /ended/);
+    for (const [actionId, method] of [['adopt-task','collective.work.owner.adopt-task'],
+      ['revoke-task','collective.work.owner.revoke-task']] as const) {
+      await assert.rejects(() => Promise.resolve(active.actions[method]!({input:{taskId:'task',sourceMessageId:'source',catId:'cat'}},
+        undefined,{...expired,actionId,assertCurrent:async()=>{},confirmed:false})), /confirmed owner/i);
+    }
     assert.equal(effects, 0);
     await active.stop({reason:'test'});
     await assert.rejects(() => Promise.resolve(active.actions['collective.work.context.current']!({})));

@@ -130,6 +130,8 @@ class RecordingAdapter implements FeatureHostAdapter {
     list: async () => [],
     create: async () => { throw new Error('not implemented by fixture'); },
     update: async () => null,
+    bindDataController: async () => { throw new Error('not implemented by fixture'); },
+    revokeDataController: async () => { throw new Error('not implemented by fixture'); },
   } satisfies FeatureHostAdapter['tasks'];
 
   readonly threads = {
@@ -444,27 +446,77 @@ test('wait patch delegates the full neutral snapshot and rejects a late result a
   await assert.rejects(session.context.tasks.update('task-1', { wait: input }), FeatureContextRevokedError);
 });
 
-test('Task public surface has four ordinary methods and forwards selector, conflict and conditions intact', async () => {
+test('Task public surface forwards ordinary data and explicit data-controller mutations intact', async () => {
   const adapter = new RecordingAdapter();
   const calls: unknown[] = [];
+  const controllerReceipt=`task-data-controller:${'a'.repeat(64)}`;
+  const revocationReceipt=`task-data-controller:${'b'.repeat(64)}`;
+  const controlledTask={id:'task',kind:'work' as const,userId:'owner',threadId:'thread',subjectKey:'work:one',
+    title:'Work',ownerCatId:'cat',status:'todo' as const,why:'Work',createdBy:'owner',createdAt:1,updatedAt:2,
+    entrustedWork:{revision:2,artifactRefs:[],closure:{state:'open'},admission:{sourceRefs:['message:first'],
+      authorityRef:'message:admission'},dataController:{bindingRevision:1,state:'active' as const,currentForCaller:true,
+        binding:{userId:'owner',catId:'cat',threadId:'thread',subjectKey:'work:one',firstSourceRef:'message:first',
+          admissionAuthorityRef:'message:admission',pluginId:'official.collective-connector',pluginInstanceId:'instance-1',
+          moduleRef:'plugin:official.collective-connector',lifecycleRevision:1,grantRevision:3,
+          ownerOperationReceiptRef:controllerReceipt}}}};
   Object.assign(adapter.tasks, {
     get: async (selector: unknown) => {calls.push(['get',selector]);return null;},
     list: async (filter: unknown) => {calls.push(['list',filter]);return [];},
     create: async (input: unknown, options: unknown) => {calls.push(['create',input,options]);return {id:'task'};},
     update: async (id: string, patch: unknown, conditions: unknown) => {calls.push(['update',id,patch,conditions]);return null;},
+    bindDataController: async (input: unknown) => {calls.push(['bindDataController',input]);return {
+      disposition:'bound',receiptRef:controllerReceipt,bindingRevision:1,task:controlledTask};},
+    revokeDataController: async (input: unknown) => {calls.push(['revokeDataController',input]);return {
+      disposition:'revoked',receiptRef:revocationReceipt,bindingRevision:2,task:{...controlledTask,entrustedWork:{
+        ...controlledTask.entrustedWork,revision:3,dataController:{...controlledTask.entrustedWork.dataController,
+          bindingRevision:2,state:'revoked',currentForCaller:false,revocationReceiptRef:revocationReceipt}}}};},
   });
   const session = createFeatureContextSession(BINDING, adapter);
-  assert.deepEqual(Object.keys(session.context.tasks).sort(), ['create','get','list','update']);
+  assert.deepEqual(Object.keys(session.context.tasks).sort(),
+    ['bindDataController','create','get','list','revokeDataController','update']);
   await session.context.tasks.get({subjectKey:'work:one'});
   await session.context.tasks.list({threadId:'thread',kind:'work'});
   const input={threadId:'thread',title:'Work',subjectKey:'work:one'};
   await session.context.tasks.create(input,{onConflict:'update'});
   const wait={expectedGeneration:null,generation:1,active:null};
   await session.context.tasks.update('task',{wait},{expectedThreadId:'thread'});
+  const bindInput = {taskId:'task',expectedTaskRevision:4,operationId:'owner-operation:bind',expected:{
+    ownerCatId:'cat',threadId:'thread',subjectKey:'work:one',firstSourceRef:'message:first',
+    admissionAuthorityRef:'message:admission'}};
+  await session.context.tasks.bindDataController(bindInput);
+  const revokeInput = {taskId:'task',expectedTaskRevision:5,expectedBindingRevision:1,
+    expectedControllerReceiptRef:`task-data-controller:${'a'.repeat(64)}`,operationId:'owner-operation:revoke'};
+  await session.context.tasks.revokeDataController(revokeInput);
   assert.deepEqual(calls,[['get',{subjectKey:'work:one'}],['list',{threadId:'thread',kind:'work'}],
-    ['create',input,{onConflict:'update'}],['update','task',{wait},{expectedThreadId:'thread'}]]);
+    ['create',input,{onConflict:'update'}],['update','task',{wait},{expectedThreadId:'thread'}],
+    ['bindDataController',bindInput],['revokeDataController',revokeInput]]);
   await assert.rejects(session.context.tasks.update('task', {wait,title:'mixed'} as unknown as import('./module-host.js').PluginTaskUpdateInput), /wait.*mix/i);
-  assert.equal(calls.length,4,'mixed wait patch cannot enter a Host write');
+  assert.equal(calls.length,6,'mixed wait patch cannot enter a Host write');
   await session.revoke();
   await assert.rejects(session.context.tasks.list({}),FeatureContextRevokedError);
+});
+
+test('Task data-controller mutations fail closed when an older Host lacks the typed ports', async () => {
+  const adapter = new RecordingAdapter();
+  const legacyTasks = {
+    get: adapter.tasks.get,
+    list: adapter.tasks.list,
+    create: adapter.tasks.create,
+    update: adapter.tasks.update,
+  };
+  const session = createFeatureContextSession(BINDING, {
+    ...adapter,
+    tasks: legacyTasks,
+  } as unknown as FeatureHostAdapter);
+  await assert.rejects(
+    session.context.tasks.bindDataController({taskId:'task',expectedTaskRevision:4,
+      operationId:'owner-operation:bind',expected:{ownerCatId:'cat',threadId:'thread',subjectKey:'work:one',
+        firstSourceRef:'message:first',admissionAuthorityRef:'message:admission'}}),
+    /binding is unavailable/,
+  );
+  await assert.rejects(
+    session.context.tasks.revokeDataController({taskId:'task',expectedTaskRevision:5,expectedBindingRevision:1,
+      expectedControllerReceiptRef:`task-data-controller:${'a'.repeat(64)}`,operationId:'owner-operation:revoke'}),
+    /revocation is unavailable/,
+  );
 });

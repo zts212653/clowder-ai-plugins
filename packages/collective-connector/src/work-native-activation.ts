@@ -11,6 +11,8 @@ import {createCollectiveMessageWorkActions} from './collective-message-work-acti
 import {createCollectiveMessageWorkMaterials, WORK_MATERIAL_RECEIVER} from './collective-message-work-materials.js';
 import {createCollectiveMessageWorkArtifacts} from './collective-message-work-artifacts.js';
 import { collectiveOwnerOperationInput } from './owner-operation-input.js';
+import {adoptCollectiveTaskDataController, collectiveTaskControllerInput,listCollectiveTaskDataControllerRows,
+  revokeCollectiveTaskDataController} from './collective-task-data-controller.js';
 
 interface Backend {
   readonly connector: CollectiveConnector;
@@ -88,6 +90,13 @@ export async function activateCollectiveWork(context: FeatureContext, backend: B
       throw new Error('Authenticated owner Work operation required');
     return caller as PluginOwnerOperationContext;
   };
+  const confirmedOwnerOperation = async (caller: unknown, actionId: 'adopt-task'|'revoke-task') => {
+    const owner = ownerOperation(caller);
+    if (owner.pluginInstanceId !== context.pluginInstanceId || owner.operationKey !== 'work' ||
+      owner.actionId !== actionId || owner.confirmed !== true)
+      throw new Error('A confirmed owner Work operation is required');
+    owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();return owner;
+  };
   handlers['collective.work.owner.connections'] = async (unsafe, native, caller) => {
     assertActive();if (native) throw new Error('Owner Work operation required');const owner = ownerOperation(caller);
     z.object({input: z.object({}).strict()}).strict().parse(collectiveOwnerOperationInput(unsafe));
@@ -98,6 +107,9 @@ export async function activateCollectiveWork(context: FeatureContext, backend: B
         rows.push({key: connection.connectionId, label: connection.endpointLabel, detail: connection.authorityStatus,
           actions: [operationRowAction('sync', {connectionId: connection.connectionId})]});
     }
+    rows.push(...await listCollectiveTaskDataControllerRows(context,owner.userId,async()=>{
+      owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();
+    }));
     owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();return rowsResult(rows, {empty: 'No owner-paired Collective connections. Open Collective to finish account setup and pair a connection.'});
   };
   handlers['collective.work.owner.sync'] = async (unsafe, native, caller) => {
@@ -126,11 +138,39 @@ export async function activateCollectiveWork(context: FeatureContext, backend: B
         const sent = await messageCaller.send(input.connectionId, item.event.eventId, owner.userId, current);
         rows.push({key: item.event.eventId, label: 'Work sent', detail: `Message ${sent.messageId} sent to the original Cat thread.`});
       } catch (error) {
-        await current();rows.push({key: item.event.eventId, label: 'Private execution unavailable', detail: error instanceof Error ? error.message.slice(0, 500) : 'Current Work is unavailable'});
+        await current();const adoption = error && typeof error === 'object' && 'code' in error &&
+          error.code === 'OWNER_ADOPTION_REQUIRED' && 'adoption' in error
+          ? collectiveTaskControllerInput.safeParse(error.adoption) : undefined;
+        rows.push({key: item.event.eventId,
+          label: adoption?.success ? 'Owner Task adoption required' : 'Private execution unavailable',
+          detail: error instanceof Error ? error.message.slice(0, 500) : 'Current Work is unavailable',
+          ...(adoption?.success ? {actions:[operationRowAction('adopt-task',adoption.data)]} : {})});
       }
     }
     await connector.reconcileAcceptedWorkResultFiles(input.connectionId, (scope, publication) => messageArtifacts.sealAccepted(scope, publication, current));
     return rowsResult(rows, {empty: 'No committed Work sources or current execution notices'});
+  };
+  handlers['collective.work.owner.adopt-task'] = async (unsafe, native, caller) => {
+    assertActive();if (native) throw new Error('Owner Work operation required');
+    const owner = await confirmedOwnerOperation(caller,'adopt-task');
+    const input = collectiveTaskControllerInput.parse(z.object({input:collectiveTaskControllerInput}).strict()
+      .parse(collectiveOwnerOperationInput(unsafe)).input);
+    const current = async () => {assertActive();owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();};
+    const result = await adoptCollectiveTaskDataController(context,owner,input,current);await current();
+    return rowsResult([{key:result.task.id,label:'Original Task adopted',
+      detail:`Controller receipt ${result.receiptRef}; Task ${result.task.id} remains the canonical Work.`,
+      actions:[operationRowAction('revoke-task',input)]}]);
+  };
+  handlers['collective.work.owner.revoke-task'] = async (unsafe, native, caller) => {
+    assertActive();if (native) throw new Error('Owner Work operation required');
+    const owner = await confirmedOwnerOperation(caller,'revoke-task');
+    const input = collectiveTaskControllerInput.parse(z.object({input:collectiveTaskControllerInput}).strict()
+      .parse(collectiveOwnerOperationInput(unsafe)).input);
+    const current = async () => {assertActive();owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();};
+    const result = await revokeCollectiveTaskDataController(context,owner,input,current);await current();
+    return rowsResult([{key:result.task.id,label:'Task maintenance revoked',
+      detail:`Revocation receipt ${result.receiptRef}; the original Task and history were retained.`,
+      actions:[operationRowAction('adopt-task',input)]}]);
   };
   backend.startBackground(async (connectionId, current) => {
     assertActive();

@@ -1,4 +1,5 @@
 import {expect, test, vi} from 'vitest';
+import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import type {FeatureContext, PluginMessage} from '@clowder-ai/plugin-sdk';
@@ -35,11 +36,13 @@ async function setup(bytes = Buffer.from('# Actual document\n')) {
       extra:{causal:{kind:'invocation_reply',triggerMessageId:'trigger'},stream:{turnInvocationId:f.agent.sessionRef},
         rich:{v:1,blocks:[{id:'file',kind:'file',url:originalHref,mimeType:'text/markdown'}]}}};
     const messages = new Map([['trigger',trigger],['response',response]]);
-    const task = {id:'task',subjectKey:`collective-work:${source.connectionId}:${work.workId}`,kind:'work',
-      threadId:'private',ownerCatId:f.agent.catId,userId:'local-owner',entrustedWork:{revision:1,closure:{state:'open'}}};
+    const task = {id:'task',subjectKey:`collective-work:${source.connectionId}:${work.workId}`,kind:'work',status:'todo',
+      threadId:'private',ownerCatId:f.agent.catId,userId:'local-owner',entrustedWork:{revision:1,closure:{state:'open'},
+        admission:{sourceRefs:['message:trigger'],authorityRef:`plugin-task-data:${createHash('sha256')
+          .update(JSON.stringify(['installed-collective',`collective-work:${source.connectionId}:${work.workId}`])).digest('hex')}`}}};
     let denied=false, active=true;
-    const context = {storage:memoryStorage(),messaging:{get:async(id:string)=>structuredClone(messages.get(id)??null)},
-      tasks:{get:async()=>task},threads:{readMessages:async()=>[{id:'response',timestamp:2}]},
+    const context = {pluginInstanceId:'installed-collective',storage:memoryStorage(),messaging:{get:async(id:string)=>structuredClone(messages.get(id)??null)},
+      tasks:{get:async()=>task,list:async()=>[task]},threads:{readMessages:async()=>[{id:'response',timestamp:2}]},
       streams:{async *read(){if(denied)throw new Error('HMR revoked');yield bytes;}}} as unknown as FeatureContext;
     const materials = createCollectiveMessageWorkMaterials(f.connector,context,()=>{if(!active)throw new Error('stopped');});
     const artifacts = createCollectiveMessageWorkArtifacts(context,materials);

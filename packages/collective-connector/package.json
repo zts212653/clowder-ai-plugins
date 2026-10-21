@@ -36,7 +36,7 @@
     "test:source": "node --test test/source-continuity.test.mjs",
     "test": "pnpm test:lifecycle && pnpm test:control && pnpm test:transport && pnpm test:business",
     "prepack": "pnpm build",
-    "test:control": "node --import tsx --test test/owner-control.test.ts test/entry-control.test.ts test/participation-reconciler.test.ts test/context-refs.test.ts test/work-entry.test.ts test/accountability-attention.test.ts",
+    "test:control": "node --import tsx --test test/owner-control.test.ts test/entry-control.test.ts test/participation-reconciler.test.ts test/context-refs.test.ts test/work-entry.test.ts test/accountability-attention.test.ts src/collective-work-thread.test.ts src/collective-task-data-controller.test.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {

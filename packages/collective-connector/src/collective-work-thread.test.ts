@@ -14,21 +14,38 @@ function work(overrides: Partial<PluginTaskReadItem> = {}): PluginTaskReadItem {
     title: "Report",
     why: "Report",
     status: "todo",
-    subjectKey: null,
+    subjectKey: "entrusted:legacy",
     createdBy: "system",
     createdAt: 1,
     updatedAt: 1,
-    entrustedWork: { revision: 1, admission: { sourceRefs: ["message:assignment"] }, closure: { state: "open" } },
+    entrustedWork: { revision: 1, admission: { sourceRefs: ["message:assignment"], authorityRef: "message:admission" }, closure: { state: "open" } },
     ...overrides,
   };
 }
-test("original source/cat relation reuses the canonical Task execution site independently of createdBy or state", () => {
+function controlled(overrides: Partial<NonNullable<NonNullable<PluginTaskReadItem['entrustedWork']>['dataController']>> = {}) {
+  return {bindingRevision: 1, state: 'active' as const, currentForCaller:true, binding: {userId:'owner',catId:'cat',threadId:'existing',
+    subjectKey:'entrusted:legacy',firstSourceRef:'message:assignment',admissionAuthorityRef:'message:admission',
+    pluginId:'official.collective-connector',pluginInstanceId:'installed-collective',
+    moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,grantRevision:3,
+    ownerOperationReceiptRef:`task-data-controller:${'a'.repeat(64)}`}, ...overrides};
+}
+function owned(overrides: Partial<PluginTaskReadItem> = {}): PluginTaskReadItem {
+  const task = work(overrides);
+  return {...task, entrustedWork: {...task.entrustedWork!,
+    dataController: overrides.entrustedWork?.dataController ?? controlled()}};
+}
+
+test("a legacy source match without an active controller requires explicit owner adoption", () => {
   for (const createdBy of ["user", "cat", "system"]) {
-    assert.deepEqual(selectCollectiveWorkThread([work({ createdBy, status: "done" })], source, "cat"), {
-      kind: "existing",
-      threadId: "existing",
-    });
+    assert.throws(() => selectCollectiveWorkThread([work({createdBy})], source, "cat", "installed-collective"),
+      {code:'OWNER_ADOPTION_REQUIRED'});
   }
+});
+test("an active matching controller returns the exact Task locator", () => {
+  assert.deepEqual(selectCollectiveWorkThread([owned()], source, "cat", "installed-collective"), {
+    kind: "existing", taskId:"work", taskRef:"task:work:work", threadId:"existing",
+    subjectKey:"entrusted:legacy", dataControllerReceiptRef:`task-data-controller:${'a'.repeat(64)}`,
+  });
 });
 test("foreign owner/cat/source rows never win the original selection", () => {
   const rows = [
@@ -36,7 +53,7 @@ test("foreign owner/cat/source rows never win the original selection", () => {
     work({ ownerCatId: "foreign" }),
     work({ entrustedWork: { revision: 1, admission: { sourceRefs: ["message:other"] }, closure: { state: "open" } } }),
   ];
-  assert.deepEqual(selectCollectiveWorkThread(rows, source, "cat"), {
+  assert.deepEqual(selectCollectiveWorkThread(rows, source, "cat", "installed-collective"), {
     kind: "ensure",
     key: "collective-work:assignment:cat",
     input: { title: "原请求", parentThreadId: "public", participants: ["cat"] },
@@ -44,13 +61,29 @@ test("foreign owner/cat/source rows never win the original selection", () => {
 });
 test("multiple matching Works refuse instead of selecting the newest or an arbitrary thread", () => {
   assert.throws(
-    () => selectCollectiveWorkThread([work(), work({ id: "second", threadId: "second-thread" })], source, "cat"),
+    () => selectCollectiveWorkThread([work(), work({ id: "second", threadId: "second-thread" })], source, "cat", "installed-collective"),
     { code: "WORK_SOURCE_AMBIGUOUS" },
   );
 });
+test("closed, revoked, and foreign-controller matches fail closed instead of becoming ensure plans", () => {
+  assert.throws(() => selectCollectiveWorkThread([owned({status:'done'})], source, 'cat', 'installed-collective'),
+    {code:'OWNER_TASK_UNAVAILABLE'});
+  assert.throws(() => selectCollectiveWorkThread([owned({entrustedWork:{...owned().entrustedWork!,
+    dataController:controlled({state:'revoked',revocationReceiptRef:`task-data-controller:${'b'.repeat(64)}`})}})],
+    source, 'cat', 'installed-collective'), {code:'OWNER_ADOPTION_REQUIRED'});
+  assert.throws(() => selectCollectiveWorkThread([owned({entrustedWork:{...owned().entrustedWork!,dataController:controlled({
+    binding:{...controlled().binding,pluginId:'foreign.plugin',pluginInstanceId:'foreign-instance',moduleRef:'plugin:foreign.plugin'}})}})], source, 'cat', 'installed-collective'),
+    {code:'OWNER_DATA_CONTROLLER_CONFLICT'});
+  assert.throws(() => selectCollectiveWorkThread([owned({entrustedWork:{...owned().entrustedWork!,
+    dataController:controlled({currentForCaller:false})}})], source, 'cat', 'installed-collective'),
+    {code:'OWNER_ADOPTION_REQUIRED'});
+  assert.throws(() => selectCollectiveWorkThread([owned({entrustedWork:{...owned().entrustedWork!,
+    dataController:controlled({currentForCaller:false,binding:{...controlled().binding,pluginInstanceId:'previous-instance'}})}})],
+    source, 'cat', 'installed-collective'), {code:'OWNER_ADOPTION_REQUIRED'});
+});
 test("the first child keeps the original UTF16 slice, parent, sole participant and deterministic key", () => {
   const long = { ...source, content: "😀".repeat(81) };
-  const plan = selectCollectiveWorkThread([], long, "cat");
+  const plan = selectCollectiveWorkThread([], long, "cat", "installed-collective");
   assert.equal(plan.kind, "ensure");
   if (plan.kind !== "ensure") throw new Error("Expected child site");
   assert.equal(plan.input.title, long.content.slice(0, 160));
@@ -58,20 +91,20 @@ test("the first child keeps the original UTF16 slice, parent, sole participant a
   assert.equal(plan.input.parentThreadId, source.threadId);
   assert.deepEqual(plan.input.participants, ["cat"]);
   assert.equal(plan.key, "collective-work:assignment:cat");
-  assert.deepEqual(selectCollectiveWorkThread([], long, "cat"), plan);
+  assert.deepEqual(selectCollectiveWorkThread([], long, "cat", "installed-collective"), plan);
 });
 test("a selection is a detached plan and performs no Thread or Task mutation", () => {
-  const rows = [work()],
+  const rows = [owned()],
     before = structuredClone(rows);
-  const plan = selectCollectiveWorkThread(rows, source, "cat");
+  const plan = selectCollectiveWorkThread(rows, source, "cat", "installed-collective");
   assert.deepEqual(rows, before);
   assert.notEqual(plan, rows[0]);
-  const child = selectCollectiveWorkThread([], source, "cat");
+  const child = selectCollectiveWorkThread([], source, "cat", "installed-collective");
   assert.ok(Object.isFrozen(child));
   if (child.kind === "ensure") assert.ok(Object.isFrozen(child.input.participants));
 });
 
-test("the resolver consumes existing owner-filtered neutral ports and never creates a second site for an existing Work", async () => {
+test("the resolver consumes the stored exact locator first and never creates or scans for an adopted Work", async () => {
   const calls: unknown[] = [];
   const threads = {
     async get(id: string) {
@@ -91,19 +124,29 @@ test("the resolver consumes existing owner-filtered neutral ports and never crea
     },
   };
   const tasks = {
+    async get(selector: {id: string}) {calls.push(['task.get',selector.id]);return owned();},
     async list({kind}: {kind?: string}) {
       calls.push(["tasks", kind]);
-      return [work()];
+      return [owned()];
     },
   };
-  assert.equal(await resolveCollectiveWorkThread(threads, tasks, source, "cat", memoryStorage()), "existing");
+  const storage = memoryStorage({binding:{taskRef:'task:work:work',taskRevision:2,threadId:'existing',
+    admissionRef:'message:assignment',executionRef:'message:assignment',refScope:'scope',
+    dataControllerReceiptRef:`task-data-controller:${'a'.repeat(64)}`}});
+  assert.deepEqual(await resolveCollectiveWorkThread(threads, tasks, source, "cat", "installed-collective", storage), {
+    kind:'existing',taskId:'work',taskRef:'task:work:work',threadId:'existing',subjectKey:'entrusted:legacy',
+    dataControllerReceiptRef:`task-data-controller:${'a'.repeat(64)}`,
+  });
   assert.deepEqual(calls, [
-    ["tasks", "work"],
+    ['task.get','work'],
     ["get", "existing"],
   ]);
-  await assert.rejects(resolveCollectiveWorkThread({ ...threads, get: async () => null }, tasks, source, "cat", memoryStorage()), {
-    code: "OWNER_ADMISSION_UNAVAILABLE",
+  await assert.rejects(resolveCollectiveWorkThread(threads, {...tasks,get:async()=>null}, source, "cat",
+    "installed-collective", storage), {
+    code: "OWNER_TASK_LOCATOR_UNAVAILABLE",
   });
+  await assert.rejects(resolveCollectiveWorkThread(threads, {...tasks,get:async()=>owned({userId:'foreign'})}, source,
+    "cat", "installed-collective", storage), {code:"OWNER_TASK_UNAVAILABLE"});
 });
 
 test("the resolver forwards only original child intent to approved ensure and preserves ambiguity refusal before effects", async () => {
@@ -125,9 +168,10 @@ test("the resolver forwards only original child intent to approved ensure and pr
       };
     },
   };
-  assert.equal(
-    await resolveCollectiveWorkThread(threads, { list: async () => [] }, source, "cat", memoryStorage()),
-    "canonical-child",
+  assert.deepEqual(
+    await resolveCollectiveWorkThread(threads, { get:async()=>null,list: async () => [] }, source, "cat",
+      "installed-collective", memoryStorage()),
+    {kind:'ensure',threadId:"canonical-child",subjectKey:'collective-work:assignment:cat'},
   );
   assert.deepEqual(calls, [
     {
@@ -137,13 +181,20 @@ test("the resolver forwards only original child intent to approved ensure and pr
       },
   ]);
   await assert.rejects(
-    resolveCollectiveWorkThread(threads, { list: async () => [work(), work()] }, source, "cat", memoryStorage()),
+    resolveCollectiveWorkThread(threads, {get:async()=>null, list: async () => [work(), work()] }, source, "cat",
+      "installed-collective", memoryStorage()),
     { code: "WORK_SOURCE_AMBIGUOUS" },
   );
   assert.equal(calls.length, 1);
 });
 
-function memoryStorage(): Pick<import('@clowder-ai/plugin-sdk').PluginStorageHost,'get'|'compareAndSet'> {
- let entry: {revision:number;value:unknown}|undefined;
+function memoryStorage(value?: unknown): Pick<import('@clowder-ai/plugin-sdk').PluginStorageHost,'get'|'compareAndSet'> {
+ let entry: {revision:number;value:unknown}|undefined = value === undefined ? undefined : {revision:1,value:{v:1,
+  ownerUserId:'owner',source:{id:'assignment',revision:'revision',threadId:'public',bodyDigest:'a'.repeat(64),identity:{
+    serviceInstanceId:'svc_12345678',collectiveId:'col_12345678',connectionId:'con_12345678',eventId:'evt_12345678',catId:'cat',
+    participationRevision:1,location:{channelId:'channel'},actor:{kind:'human',humanId:'human_12345678',displayName:'Human'}}},
+  work:{workId:'work_12345678',assignmentEventId:'evt_12345678',resultRevision:1,executionRevision:1,intendedOutcomeDigest:'b'.repeat(64)},
+  basis:{kind:'standing_grant',producer:'standing_work',grantRef:'grant',grantRevision:1,scope:{requestingHumanIds:['human_12345678'],channelIds:['channel'],expiresAt:null}},
+  ...(value as object)}};
  return {async get(){return entry;},async compareAndSet(_key,expected,value){if((entry?.revision??null)!==expected)return {applied:false};entry={revision:(entry?.revision??0)+1,value:structuredClone(value)};return {applied:true,revision:entry.revision};}};
 }

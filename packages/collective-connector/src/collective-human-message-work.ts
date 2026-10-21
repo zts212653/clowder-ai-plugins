@@ -58,20 +58,26 @@ export async function resolveHumanMessageWork(connector: CollectiveConnector,
       work: {workId: work.workId, assignmentEventId: work.assignmentEventId!, resultRevision: 1,
         executionRevision: 1, intendedOutcomeDigest: workReceiptDigest(work.intendedOutcome)}};
     if (captured) {
-      if (captured.binding || !isDeepStrictEqual(captured.source, selected.source) ||
+      if (!isDeepStrictEqual(captured.source, selected.source) ||
         !isDeepStrictEqual(captured.work, selected.work)) return unavailable();
-    } else {
+    }
+    let retention: Awaited<ReturnType<typeof retainWorkFirstReceipt>> | undefined;
+    if (options.mode === 'send' && captured) {
+      const replay = {...captured};delete replay.binding;
+      retention = await retainWorkFirstReceipt(storage, replay, current, options.hasTask);
+    } else if (!captured) {
       if (options.mode !== 'send') return unavailable();
       if (basis.kind === 'manual_owner_write') {
         const request = manual?.requestIdentity;if (!request || !manual) return unavailable();
-        await retainWorkFirstReceipt(storage, {...selected, basis, pluginInstanceId: manual.pluginInstanceId,
+        retention = await retainWorkFirstReceipt(storage, {...selected, basis, pluginInstanceId: manual.pluginInstanceId,
           firstRequest: {requestId: request.requestId, contributionId: request.contributionId, method: request.method,
             path: request.path, bodyDigest: request.bodyDigest, queryDigest: request.queryDigest}}, current, options.hasTask);
-      } else await retainWorkFirstReceipt(storage, {...selected, basis}, current, options.hasTask);
+      } else retention = await retainWorkFirstReceipt(storage, {...selected, basis}, current, options.hasTask);
     }
     await current();
     const resultRevision = work.lifecycle === 'result_ready' ? work.resultRevision ?? 1
       : collectiveWorkContinuation(scope, source, message.id).resultRevision;
-    return {work, resultRevision};
+    return {work, resultRevision, binding: captured?.binding,
+      ...(retention ? {bindTask: retention.bind} : {})};
   });
 }

@@ -77,6 +77,18 @@ configuration:
         render: row
         resultRender: rows
         action: { method: collective.work.owner.sync }
+      - id: adopt-task
+        label: Let this Collective installation maintain the original Task
+        render: row
+        resultRender: rows
+        confirm: Keep the original Task and let this installed Collective maintain its data until you revoke it?
+        action: { method: collective.work.owner.adopt-task }
+      - id: revoke-task
+        label: Revoke Collective Task maintenance
+        render: row
+        resultRender: rows
+        confirm: Revoke this Collective installation's ability to maintain the original Task data?
+        action: { method: collective.work.owner.revoke-task }
   - key: accountability
     label: Collective accountability
     kind: operation

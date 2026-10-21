@@ -10,7 +10,7 @@ import {resolveMaterializedParticipation} from './business/connector/participati
 import {collectiveContextError} from './collective-context-refs.js';
 import {assertSettledCollectiveSource, collectiveSource, ingressIdempotencyKey} from './collective-ingress-routing.js';
 import {resolveHumanMessageWork} from './collective-human-message-work.js';
-import {resolveCollectiveWorkThread} from './collective-work-thread.js';
+import {locateCollectiveWorkTask, resolveCollectiveWorkThread} from './collective-work-thread.js';
 import {collectiveWorkArtifactRefsSchema} from './work-native-methods.js';
 import {readCollectiveWorkWake} from './collective-work-wake.js';
 
@@ -72,10 +72,6 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
       ? item.event.workExecutionNotice?.workId ?? item.event.workAcceptanceNotice?.workId
       : (await connector.readAssignedWorkByAssignment(source.connectionId, source.eventId)).workId;
     if (!workId) throw changed();
-    const task = await context.tasks.get({ subjectKey: subjectKey(source.connectionId, workId) });
-    await action.assertCurrent();
-    if (!task?.entrustedWork || task.entrustedWork.closure.state !== 'open' ||
-      (task.userId !== null && task.userId !== auth.userId) || task.ownerCatId !== auth.catId || task.threadId !== auth.threadId) throw changed();
     // The original inbox source stays in its participation thread; ordinary
     // Work send wakes the original private child thread. Neither message is a Task receipt.
     const route = await connector.getHostRoute(source.connectionId);
@@ -84,14 +80,32 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
     const original = await context.messaging.get(item.routeReceipt.messageId);await action.assertCurrent();
     assertSettledCollectiveSource(original, item.routeReceipt, item.event, source, auth.userId);
     if (!original) throw changed();
+    const preliminary = source.actor.kind === 'agent' ? await connector.resolveAcceptedWorkGrant(source) : undefined;
+    const observedWork = preliminary?.work ?? await connector.readAssignedWorkByAssignment(source.connectionId, source.eventId);
+    let taskSource = original;
+    if (observedWork.assignmentEventId !== source.eventId) {
+      const firstRows = (await connector.listInbox(source.connectionId)).filter(row => row.event.eventId === observedWork.assignmentEventId);
+      const first = firstRows[0], firstIdentity = first && collectiveEventSourceIdentity(first.event);
+      if (firstRows.length !== 1 || !first || !firstIdentity || firstIdentity.catId !== source.catId ||
+        first.routeReceipt?.kind !== 'thread_message') throw changed();
+      const firstMessage = await context.messaging.get(first.routeReceipt.messageId);await action.assertCurrent();
+      assertSettledCollectiveSource(firstMessage, first.routeReceipt, first.event, firstIdentity, auth.userId);
+      if (!firstMessage) throw changed();
+      taskSource = firstMessage;
+    }
+    const located = await locateCollectiveWorkTask(context.tasks, context.storage, taskSource, source.catId,
+      context.pluginInstanceId);await action.assertCurrent();
+    const task = located?.task;
+    if (!task?.entrustedWork || task.entrustedWork.closure.state !== 'open' ||
+      (task.userId !== null && task.userId !== auth.userId) || task.ownerCatId !== auth.catId || task.threadId !== auth.threadId) throw changed();
     const human = source.actor.kind === 'human' ? await resolveHumanMessageWork(connector, context.storage, source,
       original, auth.userId, action.assertCurrent, {mode: 'read', hasTask: true, time: task.entrustedWork.time}) : undefined;
-    const granted = source.actor.kind === 'agent' ? await connector.resolveAcceptedWorkGrant(source) : undefined;
+    const granted = source.actor.kind === 'agent' ? preliminary : undefined;
     await action.assertCurrent();
     const work = human?.work ?? granted!.work, authority = work.executionAuthority ?? work.acceptance;
     const executionRevision = work.executionAuthority?.revision ?? 1;
     const resultRevision = human?.resultRevision ?? work.executionAuthority?.resultRevision ?? 1;
-    if (work.workId !== workId || !work.assignmentEventId ||
+    if (work.workId !== workId || work.workId !== observedWork.workId || !work.assignmentEventId ||
       !['committed', 'in_progress', 'result_ready'].includes(work.lifecycle) ||
       (item.event.workRequest === 'continue'
         ? !collectiveWorkExecutionMatches(source, work, item.event.workExecutionNotice)
@@ -191,23 +205,43 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
         const original = await canonicalSource(route, item, source, projection.authorizedHumanId ?? '', ownerUserId, current);
         const projected = collectiveSource(item.event, source);
         const workId = grant?.work.workId ?? (await connector.readAssignedWorkByAssignment(connectionId, source.eventId)).workId;
-        const existing = await context.tasks.get({ subjectKey: subjectKey(connectionId, workId) });await current();
         const manual = delivery?.kind === 'manual' ? delivery : undefined;
         const resume = delivery?.kind === 'resume' ? delivery : undefined;
-        if (existing && (!existing.entrustedWork || existing.entrustedWork.closure.state !== 'open')) throw changed();
+        if (manual && (manual.sourceMessageId !== original.id || manual.owner.pluginInstanceId !== context.pluginInstanceId ||
+          manual.owner.userId !== ownerUserId || manual.owner.operation !== 'write')) throw changed();
+        let birth = original;
+        const authorizedWork = source.actor.kind === 'human'
+          ? await connector.readAssignedWorkByAssignment(connectionId, source.eventId)
+          : grant!.work;
+        if (!authorizedWork.assignmentEventId) throw changed();
+        if (authorizedWork.assignmentEventId !== source.eventId) {
+          const first = (await connector.listInbox(connectionId)).find(row => row.event.eventId === authorizedWork.assignmentEventId);
+          const firstIdentity = first && collectiveEventSourceIdentity(first.event);
+          if (!first || !firstIdentity || firstIdentity.catId !== source.catId || first.event.workRequest !== 'entrust') throw changed();
+          // The current Service grant authorizes this execution. Its first
+          // assignment only preserves the original private-thread site policy.
+          birth = await canonicalSource(route, first, firstIdentity, projection.authorizedHumanId ?? '', ownerUserId, current);
+        }
+        const site = await resolveCollectiveWorkThread(context.threads, context.tasks, birth, source.catId,
+          context.pluginInstanceId, context.storage, manual?.threadId ? {threadId:manual.threadId} : {});await current();
+        const locatedExisting = site.kind === 'existing'
+          ? await locateCollectiveWorkTask(context.tasks,context.storage,birth,source.catId,context.pluginInstanceId)
+          : undefined;await current();
+        const existing = locatedExisting?.task ?? null;
+        if (site.kind === 'existing' && locatedExisting?.site.taskId !== site.taskId) throw changed();
+        if (site.kind === 'existing' && (!existing?.entrustedWork || existing.entrustedWork.closure.state !== 'open')) throw changed();
         const time = existing?.entrustedWork?.time ?? (manual?.businessDeadline ? {
           businessDeadline: {value: manual.businessDeadline, sourceRef: `message:${original.id}`},
         } : undefined);
         if (existing && manual?.businessDeadline !== undefined &&
           time?.businessDeadline?.value !== manual.businessDeadline) throw changed();
-        if (manual && (manual.sourceMessageId !== original.id || manual.owner.pluginInstanceId !== context.pluginInstanceId ||
-          manual.owner.userId !== ownerUserId || manual.owner.operation !== 'write')) throw changed();
         const human = source.actor.kind === 'human' ? await resolveHumanMessageWork(connector, context.storage, source,
           original, ownerUserId, current, {mode: 'send', hasTask: !!existing, ...(manual ? {manual: manual.owner} : {}),
             resume: !!resume, time}) : undefined;
         const work = human?.work ?? grant!.work;
         const resultRevision = human?.resultRevision ?? work.executionAuthority?.resultRevision ?? 1;
-        if (!work.assignmentEventId || (existing && manual?.threadId && existing.threadId !== manual.threadId)) throw changed();
+        if (!work.assignmentEventId || work.workId !== authorizedWork.workId ||
+          (existing && manual?.threadId && existing.threadId !== manual.threadId)) throw changed();
         if (manual?.threadId) {
           const owned = await context.threads.get(manual.threadId);await current();
           if (!owned) throw changed();
@@ -215,26 +249,33 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
             await context.threads.addParticipants({threadId: owned.id, catIds: [source.catId]});await current();
           }
         }
-        let birth = original;
-        if (!existing && work.assignmentEventId !== source.eventId) {
-          const first = (await connector.listInbox(connectionId)).find(row => row.event.eventId === work.assignmentEventId);
-          const firstIdentity = first && collectiveEventSourceIdentity(first.event);
-          if (!first || !firstIdentity || firstIdentity.catId !== source.catId || first.event.workRequest !== 'entrust') throw changed();
-          // The current Service grant authorizes this execution. Its first
-          // assignment only preserves the original private-thread site policy.
-          birth = await canonicalSource(route, first, firstIdentity, projection.authorizedHumanId ?? '', ownerUserId, current);
-        }
-        const threadId = existing?.threadId ?? manual?.threadId ?? await resolveCollectiveWorkThread(context.threads, context.tasks, birth, source.catId, context.storage);
+        const threadId = site.threadId;
         const written = existing ?? await context.tasks.create({ subjectKey: subjectKey(connectionId, work.workId), kind: 'work',
     threadId, ownerCatId: source.catId, title: work.title, why: work.intendedOutcome,
     entrustedWork: { sourceMessageId: birth.id, intendedOutcome: work.intendedOutcome, closure: collectiveWorkClosure,
         ...(time ? { time } : {}) } }, { onConflict: "update" });
-        const task = await context.tasks.get({ id: written.id });
-        await current();
+        const locatedTask = await locateCollectiveWorkTask(context.tasks,context.storage,birth,source.catId,
+          context.pluginInstanceId);await current();
+        const task = locatedTask?.task;
         if (!task?.entrustedWork || task.entrustedWork.closure.state !== 'open' ||
-          (task.userId !== null && task.userId !== ownerUserId) || task.ownerCatId !== source.catId || task.threadId !== threadId) throw changed();
+          task.id !== written.id || (task.userId !== null && task.userId !== ownerUserId) ||
+          task.ownerCatId !== source.catId || task.threadId !== threadId) throw changed();
         if (resume && (task.id !== resume.taskId || task.status === 'done')) throw changed();
-        await options?.beforeWake(threadId);await current();
+        if (human?.bindTask && !human.binding) {
+          const controller = task.entrustedWork.dataController;
+          await human.bindTask({taskRef:`task:work:${task.id}`,taskRevision:task.entrustedWork.revision,
+            threadId:task.threadId,admissionRef:`message:${birth.id}`,executionRef:`message:${original.id}`,
+            refScope:`message:${original.id}:work:${work.workId}:result:${resultRevision}:execution:${work.executionAuthority?.revision ?? 1}`,
+            ...(controller?.state === 'active'
+              ? {dataControllerReceiptRef:controller.binding.ownerOperationReceiptRef} : {})});
+          await current();
+        }
+        const assertTaskCurrent = async () => {
+          const latest = await locateCollectiveWorkTask(context.tasks,context.storage,birth,source.catId,
+            context.pluginInstanceId);await current();
+          if (!latest || !isDeepStrictEqual(latest.task,task)) throw changed();
+        };
+        await options?.beforeWake(threadId);await current();await assertTaskCurrent();
         const sent = await context.messaging.send(threadId, {idempotencyKey: resume
           ? `collective-work-resume:${task.id}:${resume.requestId}`
           : `collective-work:${original.id}:${source.catId}${source.actor.kind === 'human' && resultRevision > 1 ? `:result:${resultRevision}` : ''}`,
@@ -242,7 +283,7 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
           payload: {provenance: {origin: {kind: 'plugin', instanceId: context.pluginInstanceId}, epistemicStatus: 'observation'},
             elements: [{elementId: 'collective-source', kind: 'text', payload: {text: item.event.body}}]}});
         if (sent.threadId !== threadId) throw changed();
-        await current();
+        await current();await assertTaskCurrent();
         if (source.actor.kind === 'human') {
           await resolveHumanMessageWork(connector, context.storage, source, original, ownerUserId, current,
             {mode: 'read', hasTask: true, time: task.entrustedWork.time});

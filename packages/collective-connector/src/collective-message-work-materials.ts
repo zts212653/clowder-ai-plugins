@@ -6,6 +6,7 @@ import type {CollectiveConnector} from './business/connector/connector.js';
 import {collectiveSourceIdentitySchema, collectiveWorkAssignmentMatches, collectiveWorkExecutionMatches} from './business/contracts/index.js';
 import {collectiveContextError} from './collective-context-refs.js';
 import {readCollectiveWorkWake} from './collective-work-wake.js';
+import {locateCollectiveWorkTask} from './collective-work-thread.js';
 
 export const WORK_MATERIAL_SUBSCRIPTION = 'collective-work-materials';
 export const WORK_MATERIAL_RECEIVER = 'collective.work.material.receive';
@@ -25,7 +26,7 @@ const object = (value: unknown): value is Record<string, unknown> => !!value && 
 /** Capture callback file bytes during the existing Host HMR grant. Receipt is
  * data only: arrival neither selects a result nor grants Work permission. */
 export function createCollectiveMessageWorkMaterials(connector: CollectiveConnector,
-  context: Pick<FeatureContext, 'messaging' | 'streams' | 'storage' | 'tasks'>, assertActive: () => void) {
+  context: Pick<FeatureContext, 'pluginInstanceId' | 'messaging' | 'streams' | 'storage' | 'tasks'>, assertActive: () => void) {
   const subscriptions = new Map<string, Promise<void>>();
   const subscribe = async (threadId: string) => {
     assertActive();let pending = subscriptions.get(threadId);
@@ -44,7 +45,18 @@ export function createCollectiveMessageWorkMaterials(connector: CollectiveConnec
     subscribe,
     async restore() {
       for (const task of await context.tasks.list({ kind: 'work' })) {
-        assertActive();if (task.subjectKey?.startsWith('collective-work:')) await subscribe(task.threadId);
+        assertActive();const work=task.entrustedWork,controller=work?.dataController,binding=controller?.binding;
+        // Subscription is a read-only compatibility listener for pre-rich Work
+        // projections. Every received material still resolves and fences the
+        // exact canonical Task before retaining bytes.
+        const legacySubject=task.subjectKey?.startsWith('collective-work:')===true;
+        const controllerCurrent=controller?.state==='active'&&controller.currentForCaller&&
+          binding?.pluginId==='official.collective-connector'&&binding.moduleRef==='plugin:official.collective-connector'&&
+          binding.pluginInstanceId===context.pluginInstanceId&&binding.userId===task.userId&&
+          binding.catId===task.ownerCatId&&binding.threadId===task.threadId&&binding.subjectKey===task.subjectKey&&
+          binding.firstSourceRef===work?.admission.sourceRefs[0]&&
+          binding.admissionAuthorityRef===work?.admission.authorityRef;
+        if(legacySubject||controllerCurrent)await subscribe(task.threadId);
       }
     },
     async receive(unsafe: unknown) {
@@ -84,7 +96,16 @@ export function createCollectiveMessageWorkMaterials(connector: CollectiveConnec
           ((wake?.item.event.workRequest ?? meta?.workRequest) === 'continue'
             ? !collectiveWorkExecutionMatches(source, work, notice)
             : !collectiveWorkAssignmentMatches(source, work, notice))) throw changed();
-      const task = await context.tasks.get({ subjectKey: `collective-work:${source.connectionId}:${work.workId}` });assertActive();
+      let taskSource = trigger;
+      if (wake) taskSource = wake.first;
+      else if (work.assignmentEventId !== source.eventId) {
+        const rows = (await connector.listInbox(source.connectionId)).filter(row => row.event.eventId === work.assignmentEventId);
+        const first = rows[0];
+        if (rows.length !== 1 || first?.routeReceipt?.kind !== 'thread_message') throw changed();
+        const message = await get(first.routeReceipt.messageId);if (!message) throw changed();taskSource = message;
+      }
+      const task = wake?.task ?? (await locateCollectiveWorkTask(context.tasks, context.storage, taskSource,
+        source.catId, context.pluginInstanceId))?.task;assertActive();
       if (!task || task.threadId !== message.threadId || task.ownerCatId !== message.catId ||
         (task.userId !== null && task.userId !== message.userId)) return;
       const existing = await context.storage.get(keyOf(message.id));assertActive();
@@ -113,7 +134,8 @@ export function createCollectiveMessageWorkMaterials(connector: CollectiveConnec
       if (!isDeepStrictEqual(await get(message.id), message) || !isDeepStrictEqual(await get(trigger.id), trigger)) throw changed();
       const latestWork = await connector.readAssignedWork(source.connectionId, work.workId);assertActive();
       const latestRoute = await connector.getHostRoute(source.connectionId);assertActive();
-      const latestTask = await context.tasks.get({id: task.id});assertActive();
+      const latestTask = (await locateCollectiveWorkTask(context.tasks, context.storage, taskSource,
+        source.catId, context.pluginInstanceId))?.task;assertActive();
       if (!isDeepStrictEqual(latestWork, work) || latestRoute?.localOwnerUserId !== message.userId ||
           latestRoute.revision !== route.revision || !latestTask || latestTask.threadId !== task.threadId ||
           latestTask.ownerCatId !== task.ownerCatId || latestTask.userId !== task.userId) throw changed();

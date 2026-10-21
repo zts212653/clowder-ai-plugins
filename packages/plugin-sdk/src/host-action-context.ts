@@ -5,6 +5,8 @@ export interface PluginOwnerOperationContext {
   readonly operationKey: string;
   readonly actionId: string;
   readonly requestId: string;
+  /** Host-authenticated confirmation for this exact declared action. */
+  readonly confirmed?: boolean;
   readonly signal: AbortSignal;
   assertCurrent(): Promise<void>;
 }

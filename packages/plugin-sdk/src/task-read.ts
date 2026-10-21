@@ -1,4 +1,14 @@
-import type { PluginTaskEntrustedWorkSummary, PluginTaskReadItem, PluginTaskWait, PluginTaskWorkTime } from './module-host.js';
+import type {
+  PluginTaskEntrustedWorkSummary,
+  PluginTaskReadItem,
+  PluginTaskWait,
+  PluginTaskWorkTime,
+} from './module-host.js';
+import type {
+  PluginTaskDataControllerBinding,
+  PluginTaskDataControllerMutationResult,
+  PluginTaskDataControllerSummary,
+} from './task-data-controller.js';
 
 function invalid(field: string): never { throw new TypeError(`Task read projection has invalid ${field}`); }
 function record(value: unknown, field: string): Record<string, unknown> {
@@ -14,6 +24,10 @@ function nullableText(value: unknown, field: string): string | null {
 }
 function number(value: unknown, field: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) invalid(field);
+  return value;
+}
+function boolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') invalid(field);
   return value;
 }
 function choice<T extends string>(value: unknown, choices: readonly T[], field: string): T {
@@ -45,11 +59,77 @@ function workSummary(value: unknown): PluginTaskEntrustedWorkSummary {
     }),
   );
   if (work.artifactRefs !== undefined && !Array.isArray(work.artifactRefs)) invalid('entrustedWork.artifactRefs');
+  const authorityRef = admission.authorityRef === undefined
+    ? undefined
+    : text(admission.authorityRef, 'entrustedWork.admission.authorityRef');
+  const dataController = work.dataController === undefined
+    ? undefined
+    : dataControllerSummary(work.dataController);
   return { revision, ...(time === undefined ? {} : {time: projectedTime}),
     ...(work.artifactRefs === undefined ? {} : {artifactRefs: (work.artifactRefs as unknown[]).map(ref => text(ref, 'entrustedWork.artifactRefs'))}),
     closure: { state }, admission: {
     sourceRefs: admission.sourceRefs.map(ref => text(ref, 'entrustedWork.admission.sourceRefs')),
-  } };
+    ...(authorityRef === undefined ? {} : {authorityRef}),
+  }, ...(dataController === undefined ? {} : {dataController}) };
+}
+
+function positiveRevision(value: unknown, field: string): number {
+  const result = number(value, field);
+  if (!Number.isSafeInteger(result) || result < 1) invalid(field);
+  return result;
+}
+
+function controllerReceipt(value: unknown, field: string): string {
+  const result = text(value, field);
+  if (!/^task-data-controller:[a-f0-9]{64}$/.test(result)) invalid(field);
+  return result;
+}
+
+function dataControllerBinding(value: unknown): PluginTaskDataControllerBinding {
+  const binding = record(value, 'entrustedWork.dataController.binding');
+  return {
+    userId: text(binding.userId, 'entrustedWork.dataController.binding.userId'),
+    catId: text(binding.catId, 'entrustedWork.dataController.binding.catId'),
+    threadId: text(binding.threadId, 'entrustedWork.dataController.binding.threadId'),
+    subjectKey: text(binding.subjectKey, 'entrustedWork.dataController.binding.subjectKey'),
+    firstSourceRef: text(binding.firstSourceRef, 'entrustedWork.dataController.binding.firstSourceRef'),
+    admissionAuthorityRef: text(
+      binding.admissionAuthorityRef,
+      'entrustedWork.dataController.binding.admissionAuthorityRef',
+    ),
+    pluginId: text(binding.pluginId, 'entrustedWork.dataController.binding.pluginId'),
+    pluginInstanceId: text(binding.pluginInstanceId, 'entrustedWork.dataController.binding.pluginInstanceId'),
+    moduleRef: text(binding.moduleRef, 'entrustedWork.dataController.binding.moduleRef'),
+    lifecycleRevision: positiveRevision(
+      binding.lifecycleRevision,
+      'entrustedWork.dataController.binding.lifecycleRevision',
+    ),
+    grantRevision: positiveRevision(binding.grantRevision, 'entrustedWork.dataController.binding.grantRevision'),
+    ownerOperationReceiptRef: controllerReceipt(
+      binding.ownerOperationReceiptRef,
+      'entrustedWork.dataController.binding.ownerOperationReceiptRef',
+    ),
+  };
+}
+
+function dataControllerSummary(value: unknown): PluginTaskDataControllerSummary {
+  const controller = record(value, 'entrustedWork.dataController');
+  const state = choice(controller.state, ['active', 'revoked'], 'entrustedWork.dataController.state');
+  const revocationReceiptRef = controller.revocationReceiptRef === undefined
+    ? undefined
+    : controllerReceipt(controller.revocationReceiptRef, 'entrustedWork.dataController.revocationReceiptRef');
+  const currentForCaller = boolean(controller.currentForCaller, 'entrustedWork.dataController.currentForCaller');
+  if ((state === 'revoked') !== (revocationReceiptRef !== undefined)) {
+    invalid('entrustedWork.dataController.revocationReceiptRef');
+  }
+  if (state === 'revoked' && currentForCaller) invalid('entrustedWork.dataController.currentForCaller');
+  return {
+    bindingRevision: positiveRevision(controller.bindingRevision, 'entrustedWork.dataController.bindingRevision'),
+    state,
+    currentForCaller,
+    binding: dataControllerBinding(controller.binding),
+    ...(revocationReceiptRef === undefined ? {} : {revocationReceiptRef}),
+  };
 }
 
 function generation(value: unknown, field: string): number {
@@ -99,6 +179,19 @@ export function projectTaskRead(value: unknown): PluginTaskReadItem | null {
     ...(task.pluginWait === undefined ? {} : { pluginWait: waitSummary(task.pluginWait) }),
     ...(task.entrustedWork === undefined ? {} : { entrustedWork: workSummary(task.entrustedWork) }),
   };
+  const work = result.entrustedWork, controller = work?.dataController;
+  if (controller?.currentForCaller && (!work ||
+    controller.state !== 'active' ||
+    result.userId === null ||
+    result.ownerCatId === null ||
+    result.subjectKey === null ||
+    controller.binding.userId !== result.userId ||
+    controller.binding.catId !== result.ownerCatId ||
+    controller.binding.threadId !== result.threadId ||
+    controller.binding.subjectKey !== result.subjectKey ||
+    controller.binding.firstSourceRef !== work.admission.sourceRefs[0] ||
+    controller.binding.admissionAuthorityRef !== work.admission.authorityRef
+  )) invalid('entrustedWork.dataController.currentForCaller');
   return freeze(result);
 }
 export function projectTaskReadList(value: unknown): readonly PluginTaskReadItem[] {
@@ -108,4 +201,33 @@ export function projectTaskReadList(value: unknown): readonly PluginTaskReadItem
     if (result === null) invalid('list item');
     return result;
   }));
+}
+
+export function projectTaskDataControllerMutationResult(value: unknown): PluginTaskDataControllerMutationResult {
+  const result = record(value, 'Task data-controller result');
+  const disposition = choice(
+    result.disposition,
+    ['bound', 'revoked', 'replayed'] as const,
+    'Task data-controller result.disposition',
+  );
+  const receiptRef = controllerReceipt(result.receiptRef, 'Task data-controller result.receiptRef');
+  const bindingRevision = positiveRevision(
+    result.bindingRevision,
+    'Task data-controller result.bindingRevision',
+  );
+  const task = projectTaskRead(result.task);
+  const controller = task?.entrustedWork?.dataController;
+  if (
+    !task ||
+    !controller ||
+    controller.bindingRevision !== bindingRevision ||
+    (disposition === 'bound' &&
+      (controller.state !== 'active' || !controller.currentForCaller ||
+        controller.binding.ownerOperationReceiptRef !== receiptRef)) ||
+    (disposition === 'revoked' &&
+      (controller.state !== 'revoked' || controller.currentForCaller || controller.revocationReceiptRef !== receiptRef))
+  ) {
+    invalid('Task data-controller result.task');
+  }
+  return freeze({ disposition, receiptRef, bindingRevision, task });
 }
