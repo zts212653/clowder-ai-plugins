@@ -94,11 +94,24 @@ test('independent authenticated subscribers never replace each other or consume 
       const who = { ...f.caller, ...change };
       const other = await runtime.registerPr(input, who);
       assert.notEqual(other.id, first.id);
-      await runtime.unregister({ subjectKey: first.subjectKey }, who);
+      const cancellation = await runtime.unregister({ subjectKey: first.subjectKey }, who);
+      assert.equal(cancellation.unregistered, true);
+      assert.equal(cancellation.scope, 'current_user_cat_thread');
+      assert.match(cancellation.message, /other subscribers are unchanged/);
       assert.deepEqual(await runtime.store.get(first.id), first);
     }
     assert.equal(first.ownerCatId, 'astra'); assert.equal(first.userId, 'owner');
     assert.equal(f.hostTaskCalls(), 0);
+  } finally { await runtime.stop(); }
+});
+
+test('unregister reports the caller scope even when this subscriber has no registration', async () => {
+  const f = fixture(); const runtime = new TypedWaitRuntime(f.options);
+  try {
+    const result = await runtime.unregister({ subjectKey: 'pr:owner/repo#1' }, f.caller);
+    assert.equal(result.unregistered, false);
+    assert.equal(result.scope, 'current_user_cat_thread');
+    assert.match(result.message, /other subscribers are unchanged/);
   } finally { await runtime.stop(); }
 });
 

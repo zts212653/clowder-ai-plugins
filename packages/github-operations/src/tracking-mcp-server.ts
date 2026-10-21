@@ -62,8 +62,9 @@ export function createTrackingMcpServer(handlers: TrackingMcpHandlers): McpServe
       'GOTCHA: `repoFullName` + `issueNumber` is the whole normal call — omit `when` and `nextStep`. The server then wakes you on every comment that is not your own. `when` is the advanced path: a bounded typed predicate set for a narrower wait. `nextStep` is display-only and never parsed. `expiresAt` is optional: omit it for no time-based termination; supply it for a visible deadline. It never deletes task history.',
     registerIssueTrackingInputSchema, respond((input, call) => handlers.registerIssue(input, call)));
   server.tool('cat_cafe_unregister_tracking',
-    'Unregister a PR or issue tracking task by subjectKey. Stops all automated notifications ' +
-      '(review feedback, CI/CD, conflict detection, issue comments) for this subject. ' +
+    'Cancel the PR or issue subscription for the current authenticated user, cat and thread by subjectKey. ' +
+      'Stops automated notifications only for this subscriber and retains its history. Other cats and threads remain subscribed. ' +
+      'Output: unregistered reports whether this caller had a subscription; scope is current_user_cat_thread. It never means all subscribers stopped. ' +
       'Format: "pr:{owner/repo}#{num}" or "issue:{owner/repo}#{num}".',
     unregisterTrackingInputSchema, respond((input, call) => handlers.unregister(input, call)));
   if (handlers.bindMigration) server.tool('github_bind_migrated_wait',

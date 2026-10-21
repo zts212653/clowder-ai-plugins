@@ -180,15 +180,17 @@ export class TypedWaitRuntime {
   async unregister(input: unknown, caller?: PluginActionContext) {
     const value = z.object(unregisterTrackingInputSchema).strict().parse(input);
     if (!caller) throw new TrackingRegistrationError(503, 'Authenticated MCP invocation required');
+    const scope = { scope: 'current_user_cat_thread' as const,
+      message: 'Cancellation is limited to the current authenticated user, cat and thread; other subscribers are unchanged.' };
     return this.run(value.subjectKey.toLowerCase(), async signal => {
       const check = async () => { this.assertRunning(); signal.throwIfAborted(); await caller.assertCurrent(); };
       await check();
       const task = await this.store.getBySubject(value.subjectKey.toLowerCase(), caller);
-      if (!task) return { unregistered: false };
+      if (!task) return { unregistered: false, ...scope };
       this.assertOwner(task, caller);
       const result = await this.lifecycle(task, check).cancel(task.id, { kind: 'cat', catId: caller.catId, invocationId: caller.invocationId });
       await this.projectImportedWait(task.id, check);
-      return { unregistered: true, result };
+      return { unregistered: true, result, ...scope };
     });
   }
 

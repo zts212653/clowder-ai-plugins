@@ -43,7 +43,7 @@ Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) �
 
 - `cat_cafe_register_pr_tracking`：登记 PR 跟踪。
 - `cat_cafe_register_issue_tracking`：登记 Issue 跟踪。
-- `cat_cafe_unregister_tracking`：停止指定跟踪，保留历史。
+- `cat_cafe_unregister_tracking`：仅取消当前认证用户、猫在当前线程的指定订阅，保留历史；不影响其他猫或线程。
 
 登记需要仓库、编号和唯一 `registrationId`。响应不明时，使用相同 ID 和相同参数重试，不要另建一份跟踪。当前猫、thread 和 invocation 身份由 Host 认证，不是工具参数。
 

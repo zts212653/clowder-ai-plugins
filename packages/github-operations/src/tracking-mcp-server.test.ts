@@ -20,6 +20,10 @@ test('native MCP exposes the three tracking tools and dispatches directly to pac
       'cat_cafe_register_issue_tracking', 'cat_cafe_register_pr_tracking', 'cat_cafe_unregister_tracking',
     ]);
     assert.ok(tools.every(t => !Object.hasOwn(t.inputSchema.properties ?? {}, 'threadId')));
+    const unregister = tools.find(t => t.name === 'cat_cafe_unregister_tracking')!;
+    assert.match(unregister.description!, /current authenticated user, cat and thread/);
+    assert.match(unregister.description!, /Other cats and threads remain subscribed/);
+    assert.match((unregister.inputSchema.properties!.subjectKey as { description: string }).description, /current caller/);
     const result = await client.callTool({ name: 'cat_cafe_register_pr_tracking',
       arguments: { registrationId: 'registration-1', repoFullName: 'owner/repo', prNumber: 1 } });
     assert.equal(result.isError, undefined);

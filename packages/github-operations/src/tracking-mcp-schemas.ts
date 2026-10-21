@@ -124,5 +124,5 @@ export const unregisterTrackingInputSchema = {
   subjectKey: z
     .string()
     .min(1)
-    .describe('Subject key to unregister. Format: "pr:{owner/repo}#{num}" or "issue:{owner/repo}#{num}"'),
+    .describe('Subject key whose subscription to cancel for the current caller only (authenticated user, cat and thread); other subscribers are unchanged. Format: "pr:{owner/repo}#{num}" or "issue:{owner/repo}#{num}"'),
 };

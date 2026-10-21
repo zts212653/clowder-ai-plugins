@@ -41,7 +41,7 @@ The native `github-tracking` MCP server exposes:
 
 - `cat_cafe_register_pr_tracking` to register a PR.
 - `cat_cafe_register_issue_tracking` to register an issue.
-- `cat_cafe_unregister_tracking` to stop tracking while retaining history.
+- `cat_cafe_unregister_tracking` to cancel only the current authenticated user/cat/thread subscription while retaining history; other cats and threads remain subscribed.
 
 Use their advertised schemas. A registration takes a repository, number and unique `registrationId`; reuse the same ID and arguments after an unknown response. The Host authenticates the cat, thread and invocation. Those identities are not tool arguments.
 
