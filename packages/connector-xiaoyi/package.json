@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/connector-xiaoyi",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "description": "XiaoYi OpenClaw messaging connector for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.23",
     "ws": "8.21.3",
     "@clowder-ai/plugin-contract": "0.1.0-beta.37"
   },

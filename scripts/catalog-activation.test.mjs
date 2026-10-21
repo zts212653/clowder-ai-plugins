@@ -32,7 +32,7 @@ async function fixture(t) {
   const previous = await archive('@clowder-ai/example', '0.1.0-alpha.1');
   const next = await archive('@clowder-ai/example', '0.1.0-alpha.2');
   const core = await archive('@clowder-ai/plugin-contract', '0.1.0-beta.37');
-  const sdk = await archive('@clowder-ai/plugin-sdk', '0.2.0-beta.22');
+  const sdk = await archive('@clowder-ai/plugin-sdk', '0.2.0-beta.23');
   const row = artifact => ({ version: artifact.version, contractVersion: '0.1.0', manifestPath: 'plugin.yaml', artifact });
   const entry = versions => ({ pluginId: 'official.example', name: 'Example', description: 'Example',
     icon: { type: 'svg', src: 'assets/icon.svg' }, publisher: { id: 'example', name: 'Example' }, versions: versions.map(row) });

@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/connector-feishu",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "description": "Feishu and Lark enterprise messaging connector for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.23",
     "@larksuiteoapi/node-sdk": "1.59.0",
     "qrcode": "1.5.4",
     "@clowder-ai/plugin-contract": "0.1.0-beta.37"

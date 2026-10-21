@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/connector-dingtalk",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "description": "DingTalk enterprise messaging connector for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.2.0-beta.22",
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.23",
     "dingtalk-stream": "2.1.6-beta.1",
     "@clowder-ai/plugin-contract": "0.1.0-beta.37"
   },
