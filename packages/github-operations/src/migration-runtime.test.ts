@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { createHmac } from 'node:crypto';
 import test from 'node:test';
 import { parse } from 'yaml';
 import type { ModulePluginHostShape, PluginTaskReadItem, PluginActionContext, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
@@ -272,17 +273,39 @@ test('owner revocation during stage retains an inert recoverable prefix and cann
   assert.equal(Object.keys(await f.storage.list()).some(k=>k.startsWith('github.typed-wait.')),false);
 });
 
-test('repository overlap dedup receipts skip old events without forging journal history or resetting the baseline',async t=>{
+test('repository import preserves separate notification and guard routes, old dedup and repeated ordinary deliveries',async t=>{
   const f=migrationFixture(),source=frozenSource();seed(f,source);
-  const snapshot:MigrationSource={...source,repositories:[{config:{repo:'example/project',guardThreadId:'thread',guardCatId:'cat',reviewMode:'observe_only',cloudReviewPolicy:'optional',createdAt:1,updatedAt:2},
+  const snapshot:MigrationSource={...source,tasks:[],repositories:[{config:{repo:'example/project',guardThreadId:'thread',guardCatId:'cat',reviewMode:'observe_only',cloudReviewPolicy:'optional',createdAt:1,updatedAt:2},
+    notificationRoute:{threadId:'original-inbox',userId:'owner'},
     progress:{'f141:baseline:example/project':'1','f141:notified:example/project#pr-12':'1','community:repo-comment:cursor:example/project':'2026-10-21T00:00:00.000Z'},
     commentOverlapEventIds:['comment:example/project#42:23']}]};
-  const active=await f.module.create(manifest).start(f.host);t.after(()=>active.stop({reason:'test'}));
+  f.host.secrets.get=async key=>key==='webhookSecret'?'isolated-webhook-secret':undefined;
+  const module=createGitHubPluginModule({now:()=>1000,createCommunityProvider:()=>({
+    listOpen:async()=>[{kind:'pr',number:13,title:'New fact',url:'https://github.com/example/project/pull/13',author:'external',authorAssociation:'CONTRIBUTOR',draft:false}],
+    repoComments:async()=>[],state:async()=>null,selfLogin:()=>undefined,
+  })});
+  const active=await module.create(manifest).start(f.host);t.after(()=>active.stop({reason:'test'}));
   const staged=await ownerCall(f,active,'stage',{snapshot,expectedDigest:sourceDigest(snapshot)});
   await ownerCall(f,active,'commit',{expectedDigest:staged.body.data.planDigest});
   const journal=new SdkCommunityEventLog(f.storage);
   const result=await journal.append({sourceEventId:'comment:example/project#42:23',subjectKey:'issue:example/project#42',kind:'issue.commented',classification:'informational',payload:{commentId:23},at:1});
   assert.equal(result.appended,false);assert.deepEqual(await journal.read('issue:example/project#42'),[]);
+  await ownerCall(f,active,'release',{expectedDigest:staged.body.data.planDigest});
+  await active.actions['github.repo-scan']!({});await active.actions['github.repo-scan']!({});
+  assert.equal(f.sent.length,1);
+  assert.equal((f.sent[0] as {threadId:string}).threadId,'original-inbox');
+  const {SdkCommunityRepoConfigStore}=await import('./business/domains/community/CommunityRepoConfigStore.js');
+  assert.equal((await new SdkCommunityRepoConfigStore(f.storage).getByRepo('example/project'))?.guardThreadId,'thread');
+  const body=Buffer.from(JSON.stringify({action:'opened',repository:{full_name:'example/project'},issue:{number:14,title:'Webhook fact',html_url:'https://github.com/example/project/issues/14',user:{login:'external'},author_association:'CONTRIBUTOR'}}));
+  const headers={'x-github-event':'issues','x-github-delivery':'isolated-new-webhook','x-hub-signature-256':'sha256='+createHmac('sha256','isolated-webhook-secret').update(body).digest('hex')};
+  const webhook={request:{method:'POST',headers,rawBody:body}};
+  await active.actions['github.webhook']!(webhook);await active.actions['github.webhook']!(webhook);
+  assert.equal(f.sent.length,2);assert.equal((f.sent[1] as {threadId:string}).threadId,'original-inbox');
+  const configs=new SdkCommunityRepoConfigStore(f.storage);
+  await configs.upsert({...snapshot.repositories[0]!.config,reviewMode:'maintainer_review'});
+  assert.equal((await configs.getByRepo('example/project'))?.notificationThreadId,'original-inbox');
+  await configs.upsert({...snapshot.repositories[0]!.config,guardThreadId:'new-owner-selected-thread'});
+  assert.equal((await configs.getByRepo('example/project'))?.notificationThreadId,undefined);
 });
 
 test('aborted stage admits an explicit new cut in the same instance but refuses delayed completion from the old plan',async t=>{

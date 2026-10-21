@@ -118,3 +118,25 @@ Architecture cell: github-operations. Map delta: module-owned recovery and legac
 issue continuation inside the existing cell. No Host GitHub API, second publisher
 or new business authority is added. Review focus: source completeness, original
 identity, CAS/recovery, cross-namespace delivery and import/release boundaries.
+
+## Original notification route and guard assignment
+
+The actual legacy repo scanner sends through `ConnectorThreadBinding.threadId`;
+it resolves the recipient cat separately from `CommunityRepoConfig.guardCatId`.
+`guardThreadId` is a community guard assignment and may legitimately differ.
+The production read stopped at this difference without writing a source snapshot.
+Do not make the two fields equal or infer that either original record is corrupt.
+
+The same repair branch now carries `notificationRoute` separately in the frozen
+repository row. Both destinations must be owner-readable, the route owner must
+equal the source owner, and both recipient checks run before staging. Imported
+private config retains the guard assignment and stores `notificationThreadId`
+for scan/webhook delivery. Ordinary policy changes preserve that route; an
+explicit guard-thread change replaces the notification destination as before.
+Old notified/cursor state still suppresses old facts.
+
+The alpha.19 bytes are an unadopted correction to this same migration, not a
+second consumer. The approved alpha.18 archive `88e0f1ca...` remains immutable.
+No production source write, installation, enablement, publication, or adoption
+authority is implied by source review or isolated tests. The final exact archive
+identity must return to the original Task117 owner before any replacement use.

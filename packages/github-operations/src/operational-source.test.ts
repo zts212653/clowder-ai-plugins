@@ -34,10 +34,11 @@ test('the operational reader freezes selected legacy Redis state without store m
   const hashes: Record<string, Record<string, string>> = {
     [prefix + 'task:old-pr']: task,
     [prefix + 'thread:thread']: { createdBy: 'owner' },
+    [prefix + 'thread:original-inbox']: { createdBy: 'owner' },
     [prefix + 'connector-binding:github-repo-event:example/project']: {
       connectorId: 'github-repo-event',
       externalChatId: 'example/project',
-      threadId: 'thread',
+      threadId: 'original-inbox',
       userId: 'owner',
     },
     [prefix + 'community:repo-config:example/project']: {
@@ -101,6 +102,8 @@ test('the operational reader freezes selected legacy Redis state without store m
   );
   assert.equal(result.tasks.length, 1);
   assert.equal(result.tasks[0]?.automationState?.await?.generation, 27);
+  assert.equal(result.repositories[0]?.config.guardThreadId, 'thread');
+  assert.deepEqual(result.repositories[0]?.notificationRoute, { threadId: 'original-inbox', userId: 'owner' });
   assert.deepEqual(result.repositories[0]?.commentOverlapEventIds, ['comment:example/project#42:23']);
   assert.equal(result.repositories[0]?.progress['f141:notified:example/project#pr-12'], '1');
   assert.ok(result.retainedAuthorityRefs.some((ref) => ref.includes('typedWaitRegistration')));
@@ -111,4 +114,9 @@ test('the operational reader freezes selected legacy Redis state without store m
       .filter(([c]) => c === 'HMGET' || c === 'HGET')
       .every((call) => !call.includes('content') && !call.includes('typedWaitRegistration')),
   );
+  hashes[prefix + 'thread:original-inbox']!.createdBy = 'another-owner';
+  await assert.rejects(collectLegacyGitHubSource(port, {
+    ownerUserId: 'owner', keyPrefix: prefix, repositories: ['example/project'], excludedTaskIds: ['parent-work'],
+    sourceRef: 'isolated:source', oldWriterProofRef: 'isolated:no-writer',
+  }, new AbortController().signal), /route binding.*owner scope/);
 });

@@ -122,13 +122,14 @@ export async function planMigration(value: unknown, expectedDigest: string, cont
     else await storage.set(mode === 'history' ? historyKey(task.id) : legacyIssueKey(task.id), { schemaVersion: 1, task, sourceUpdatedAt: task.updatedAt });
   }
   const repos: Record<string, Record<string, string>> = Object.create(null);
-  for (const { config, progress } of s.repositories) {
+  for (const { config, progress, notificationRoute } of s.repositories) {
     if (!/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/.test(config.repo) || repos[config.repo]
       || !config.guardThreadId || !config.guardCatId) throw new Error('Invalid repository destination');
     await destination(context, config.guardThreadId, config.guardCatId); repos[config.repo] = progress;
+    if (notificationRoute) await destination(context, notificationRoute.threadId, config.guardCatId);
   }
   await copyLegacyRepositoryProgress({ protocolVersion: 1, sourceDigest: migrationKey(legacyRepositorySnapshotBytes(repos)), snapshot: { repositories: repos } }, storage, new AbortController().signal);
-  for (const { config, commentOverlapEventIds } of s.repositories) {
+  for (const { config, commentOverlapEventIds, notificationRoute } of s.repositories) {
     if (!Array.isArray(commentOverlapEventIds) || commentOverlapEventIds.length > 1000) throw new Error('Exact cursor-overlap dedup evidence required');
     for (const id of commentOverlapEventIds) {
       if (typeof id !== 'string' || !/^comment:[a-z0-9_.-]+\/[a-z0-9_.-]+#[1-9]\d*:[1-9]\d*$/.test(id)
@@ -136,7 +137,9 @@ export async function planMigration(value: unknown, expectedDigest: string, cont
       await storage.set(`community.imported-comment.${migrationKey(id)}`, { sourceEventId: id, sourceRef: s.sourceRef });
     }
     await restoreLegacyRepositoryProgress(config.repo, storage, new AbortController().signal);
-    await storage.set(`community.repo.${migrationKey(config.repo)}`, config);
+    await storage.set(`community.repo.${migrationKey(config.repo)}`, {
+      ...config, ...(notificationRoute ? { notificationThreadId: notificationRoute.threadId } : {}),
+    });
   }
   const records = Object.fromEntries(Object.entries(await storage.list()).filter(([k]) => !k.startsWith('community.legacy-repo.')).map(([k,v]) => [k,v.value]));
   return { sourceDigest: expectedDigest, tasks: rows, records, digest: sourceDigest({ sourceDigest: expectedDigest, records, tasks: rows }) };

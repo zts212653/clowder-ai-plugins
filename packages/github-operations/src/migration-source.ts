@@ -23,6 +23,8 @@ export interface MigrationSource {
   readonly coverage: Readonly<Record<SourceFamily, 'complete' | 'unknown'>>;
   readonly tasks: readonly TaskItem[];
   readonly repositories: readonly { config: CommunityRepoConfig; progress: Record<string, string>;
+    /** Original connector Inbox, distinct from the community guard assignment. */
+    notificationRoute?: { readonly threadId: string; readonly userId: string };
     /** Only exact seen IDs in the cursor overlap, no provider bodies or old grants. */
     commentOverlapEventIds: readonly string[] }[];
   readonly receipts: readonly DeliveryReceipt[];
@@ -54,9 +56,12 @@ export function assertSourceEnvelope(value: unknown): asserts value is Migration
   if (new Set(cut.tasks.map(task => task.id)).size !== cut.tasks.length) throw new Error('Duplicate GitHub source task');
   if (cut.repositories.some(row => !exportedRepoSchema.safeParse(row.config).success)) throw new Error('Invalid GitHub repository source');
   for (const row of cut.repositories) {
-    if (Object.keys(row).some(key => !['config','progress','commentOverlapEventIds'].includes(key))
+    if (Object.keys(row).some(key => !['config','progress','commentOverlapEventIds','notificationRoute'].includes(key))
       || !row.progress || typeof row.progress !== 'object' || Array.isArray(row.progress) || !Array.isArray(row.commentOverlapEventIds))
       throw new Error('Only GitHub repository progress metadata may be exported');
+    if (row.notificationRoute && (Object.keys(row.notificationRoute).some(key => !['threadId','userId'].includes(key))
+      || typeof row.notificationRoute.threadId !== 'string' || !/^[A-Za-z0-9_.@-]{1,200}$/.test(row.notificationRoute.threadId)
+      || row.notificationRoute.userId !== cut.userId)) throw new Error('Original repository notification route ownership is invalid');
     const repo = row.config.repo, notified = `f141:notified:${repo}#`;
     if (Object.entries(row.progress).some(([key,value]) => typeof value !== 'string' || !(key === `f141:baseline:${repo}`
       || key === `community:repo-comment:cursor:${repo}` || key.startsWith(notified) && /^(pr|issue)-[1-9]\d*$/.test(key.slice(notified.length))))

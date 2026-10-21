@@ -34,10 +34,10 @@ export async function legacyRepositories(reader: LegacyReadPort, scope: LegacySo
     if (
       binding.connectorId !== 'github-repo-event' ||
       binding.externalChatId !== repo ||
-      binding.threadId !== raw.guardThreadId ||
+      !binding.threadId || !(await ownedThread(reader, scope, binding.threadId)) ||
       binding.userId !== scope.ownerUserId
     )
-      throw new Error('Repository route binding unavailable or differs from configuration');
+      throw new Error('Original repository route binding unavailable or outside owner scope');
     const config = {
       ...raw,
       createdAt: Number(raw.createdAt),
@@ -55,11 +55,12 @@ export async function legacyRepositories(reader: LegacyReadPort, scope: LegacySo
     const commentOverlapEventIds = await scan(reader, scope.keyPrefix, `comment:${repo}#*`, 'community:events:seen');
     if (commentOverlapEventIds.length > 1000)
       throw new Error('Source comment dedup exceeds the supported import bound');
-    repositories.push({ config, progress, commentOverlapEventIds });
+    repositories.push({ config, progress, commentOverlapEventIds,
+      notificationRoute: { threadId: binding.threadId, userId: binding.userId } });
     for (const kind of ['pr', 'issue']) {
       const pattern = `msg:idem:${scope.ownerUserId}:*:github-repo-event:reconciliation-${kind}-${repo}#*`;
       for (const key of await scan(reader, scope.keyPrefix, pattern)) {
-        const prefix = `msg:idem:${scope.ownerUserId}:${raw.guardThreadId}:github-repo-event:reconciliation-${kind}-${repo}#`;
+        const prefix = `msg:idem:${scope.ownerUserId}:${binding.threadId}:github-repo-event:reconciliation-${kind}-${repo}#`;
         if (!key.startsWith(prefix) || !/^\d+$/.test(key.slice(prefix.length)))
           throw new Error('Reconciliation route differs from approved configuration');
         const messageId = scalar(await reader.read('GET', scope.keyPrefix + key));
