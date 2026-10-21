@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { assertLegacyRead, assertLegacyScan, type OperatorConfig } from './operational-source-policy.js';
+import { assertLegacyRead, assertLegacyScan, operatorConfigSchema, type OperatorConfig } from './operational-source-policy.js';
 import type { LegacyReadPort } from './operational-source.js';
 const execute = promisify(execFile);
 
@@ -10,6 +10,7 @@ const execute = promisify(execFile);
  * Redis expression is used. Authorization for a production read remains an
  * external owner decision; matching a plan digest is only a configuration fence. */
 export async function openLegacyReadPort(config: OperatorConfig, signal: AbortSignal) {
+  operatorConfigSchema.parse(config);
   const path = await realpath(config.redisCli),
     info = await stat(path);
   if (!info.isFile() || (info.mode & 0o022) !== 0)

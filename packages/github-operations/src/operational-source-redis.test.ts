@@ -19,7 +19,7 @@ const serverPath =
   process.env.GITHUB_TEST_REDIS_SERVER ??
   (process.platform === 'darwin' ? '/opt/homebrew/bin/redis-server' : '/usr/bin/redis-server');
 
-test('independent read-only producer exports a real isolated legacy backend; refuses body reads, drift and ambiguous receipts', async (t) => {
+test('independent read-only producer exports an isolated legacy backend and preserves pending receipt ambiguity', async (t) => {
   // Optional system executable, never a production connection. CI has Redis
   // executables in PATH; local overrides are test-only, not operator discovery.
   try {
@@ -170,14 +170,13 @@ test('independent read-only producer exports a real isolated legacy backend; ref
       return Promise.all(keys.sort().map(async (k) => [k, await admin('DUMP', k)]));
     };
     const before = await snapshot();
+    const entrypoint=process.env.GITHUB_TEST_OPERATOR_ENTRYPOINT;
     const result = JSON.parse(
       (
         await run(
           process.execPath,
           [
-            '--import',
-            'tsx',
-            fileURLToPath(new URL('./operational-source-cli.ts', import.meta.url)),
+          ...(entrypoint?[entrypoint]:['--import','tsx',fileURLToPath(new URL('./operational-source-cli.ts', import.meta.url))]),
             '--config',
             configFile,
             '--execute-plan',
