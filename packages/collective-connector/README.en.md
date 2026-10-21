@@ -6,7 +6,7 @@ Connect a Collective service, pair participants, read authorized requests and su
 
 ## Getting started
 
-This package remains a private candidate, not a public catalog release. It needs a matching approved Host that supplies ordinary collaboration interfaces and authenticated Settings.
+This is a public prerelease package. It needs a matching approved Host that supplies ordinary collaboration interfaces and authenticated Settings. Install it through the plugin catalog or use an exact npm package version. Installation does not grant account, Task or execution authority.
 
 1. Install and enable the relevant features, then use the service launch entry to configure the account and pair connections. A private bootstrap link is a handshake coordinate, not a standalone onboarding page.
 2. Choose participating cats, threads and channels for the paired connection, then sync the current policy. Input cannot invent an unregistered cat.

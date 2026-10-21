@@ -39,6 +39,7 @@ assert.deepEqual(
     'dev.clowder.video-analysis',
     'dev.clowder.video-generation',
     'dev.clowder.xiangqi',
+    'official.collective-connector',
     'official.companion',
     'official.companion.personal-chrome',
     'official.connector.dingtalk',

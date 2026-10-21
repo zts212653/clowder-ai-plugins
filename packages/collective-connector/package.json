@@ -1,7 +1,6 @@
 {
   "name": "@clowder-ai/collective-connector",
-  "version": "0.1.0-alpha.4",
-  "private": true,
+  "version": "0.1.0-alpha.5",
   "description": "Collective backend business and Host-loadable module",
   "license": "MIT",
   "type": "module",
@@ -51,5 +50,13 @@
     "tsx": "^4.19.0",
     "vitest": "4.0.18",
     "yaml": "2.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zts212653/clowder-ai-plugins.git",
+    "directory": "packages/collective-connector"
   }
 }

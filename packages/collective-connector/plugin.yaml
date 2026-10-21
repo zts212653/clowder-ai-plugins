@@ -1,11 +1,14 @@
 pluginId: official.collective-connector
-version: 0.1.0-alpha.4
+version: 0.1.0-alpha.5
 contractVersion: 0.1.0
 name: Collective
 description:
   default: Collective service and web client managed by the plugin.
   translations:
     zh-CN: 插件管理的 Collective 服务与网页客户端。
+icon:
+  type: svg
+  src: assets/icon.svg
 configuration:
   - key: service
     label: Service status

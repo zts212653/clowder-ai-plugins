@@ -275,6 +275,48 @@
       ]
     },
     {
+      "pluginId": "official.collective-connector",
+      "name": "Collective",
+      "description": {
+        "default": "Collective service and web client managed by the plugin.",
+        "translations": {
+          "zh-CN": "插件管理的 Collective 服务与网页客户端。"
+        }
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "collaboration",
+        "collective",
+        "work"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.5",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/collective-connector",
+            "version": "0.1.0-alpha.5",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.5.tgz",
+            "integrity": "sha512-bzIOKw/6KlJcY+LaQfOc+InoEH5gf8ucHBCI5CBI30dp5lEloXj9GRFw5xgKDFpKGXd0y5+A9EQzSOiT3MFgGQ==",
+            "shasum": "c00b8aac16437bc387218945b42db20c683b7797",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/collective-connector"
+            }
+          }
+        }
+      ],
+      "icon": {
+        "type": "svg",
+        "src": "assets/icon.svg"
+      }
+    },
+    {
       "pluginId": "official.companion",
       "name": "猫猫球",
       "description": {

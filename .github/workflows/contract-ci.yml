@@ -13,6 +13,7 @@ on:
       - 'packages/plugin-contract/**'
       - 'packages/plugin-sdk/**'
       - 'packages/companion/**'
+      - 'packages/collective-connector/**'
       - 'packages/connector-dingtalk/**'
       - 'packages/connector-feishu/**'
       - 'packages/connector-telegram/**'
@@ -252,6 +253,9 @@ jobs:
             pnpm --filter "$package" build
           done
 
+      - name: Build Collective package
+        run: pnpm --filter @clowder-ai/collective-connector build
+
       - name: Build enterprise workflow package
         run: pnpm --filter @clowder-ai/enterprise-workflow build
 
@@ -294,6 +298,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/plugin-sdk
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Collective prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/collective-connector
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish enterprise workflow prerelease
