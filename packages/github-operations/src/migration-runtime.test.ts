@@ -142,6 +142,24 @@ test('pending old outcome needs a conclusive source receipt; definitive no-send 
   assert.equal(f.sent.length,1); assert.equal(f.reads(),0,'an already matched outcome needs no fresh GitHub baseline');
 });
 
+test('legacy pending wake requires the exact message receipt and cannot skip its old terminal obligation',async t=>{
+  const source=frozenSource(), old=source.tasks.find(task=>task.id==='old-issue')!;
+  const task:TaskItem={...old,automationState:{issue:{lastCommentCursor:24,lastDeliveredCursor:23,issueState:'open',
+    pendingWake:{messageId:'pending-message',threadId:old.threadId,catId:old.ownerCatId!,content:'Synthetic only',deliveredCursor:24}}}};
+  const receipt={taskId:task.id,sourceRef:'original:exact-message-receipt',disposition:'delivered' as const,messageAppended:true,wakeAccepted:true};
+  const f=migrationFixture(),active=await f.module.create(manifest).start(f.host);t.after(()=>active.stop({reason:'test'}));
+  const cut=(messageId?:string,close=false):MigrationSource=>({...source,tasks:[{...task,automationState:{issue:{...task.automationState!.issue!,
+    pendingWake:{...task.automationState!.issue!.pendingWake!,closeTaskAfterWake:close}}}}],
+    receipts:[{...receipt,...(messageId?{messageId}:{})} as MigrationSource['receipts'][number]]});
+  seed(f,cut('other-message'));
+  const stage=(snapshot:MigrationSource)=>ownerCall(f,active,'stage',{snapshot,expectedDigest:sourceDigest(snapshot)});
+  await assert.rejects(stage(cut()),/message receipt mismatch/);
+  await assert.rejects(stage(cut('other-message')),/message receipt mismatch/);
+  await assert.rejects(stage(cut('pending-message',true)),/terminal obligation/);
+  assert.equal(Object.keys(await f.storage.list()).length,0);
+  assert.equal((await stage(cut('pending-message'))).body.data.phase,'staged');
+});
+
 test('source inspection is read-only and reports hidden producer fields instead of calling reduced SDK Tasks a complete export',async t=>{
   const f=migrationFixture(),source=frozenSource();seed(f,source);
   const active=await f.module.create(manifest).start(f.host);t.after(()=>active.stop({reason:'test'}));

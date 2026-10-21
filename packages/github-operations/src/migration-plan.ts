@@ -49,6 +49,9 @@ function reconcileReceipt(task: TaskItem, source: MigrationSource): TaskItem {
     if (r.disposition === 'not-delivered' && !r.messageAppended && !r.wakeAccepted) return task;
   } else if (state.issue?.pendingWake && r.disposition === 'delivered' && r.messageAppended && r.wakeAccepted) {
     const issue = state.issue, wake = state.issue.pendingWake;
+    if (r.messageId !== wake.messageId || wake.threadId !== task.threadId || wake.catId !== task.ownerCatId)
+      throw new Error('Pending wake message receipt mismatch');
+    if (wake.closeTaskAfterWake) throw new Error('Settle the old terminal obligation at source before importing');
     if (wake.deliveredCursor > (issue.lastCommentCursor ?? 0)) throw new Error('Receipt cursor exceeds collected frontier');
     return { ...task, automationState: { ...state, issue: { ...issue, lastDeliveredCursor: wake.deliveredCursor, pendingWake: null } } };
   }

@@ -92,8 +92,9 @@ New source facts retain original GitHub IDs and go to the original current owner
 Pending old outcomes require an exact source receipt. Conclusive append+wake
 success marks delivered; conclusive no-append/no-wake permits that same matched
 outcome after a fresh native binding. Partial/ambiguous old sends stay at source.
-A pending legacy wake with an existing message cannot be sent again in a new
-instance namespace. Repository pending claims must be settled before importing.
+A pending legacy wake requires the exact original message receipt and destination;
+an unfinished terminal-close obligation must be settled at source. It cannot be
+sent again in a new instance namespace. Repository pending claims must be settled before importing.
 Only overlap seen IDs become dedup fences; no fake event history/body is appended.
 
 ## Scope, permissions and verification

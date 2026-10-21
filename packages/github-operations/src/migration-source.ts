@@ -7,6 +7,7 @@ export type SourceFamily = typeof sourceFamilies[number];
 export interface DeliveryReceipt {
   readonly taskId: string;
   readonly outcomeId?: string;
+  readonly messageId?: string;
   readonly sourceRef: string;
   readonly disposition: 'delivered' | 'not-delivered' | 'ambiguous';
   readonly messageAppended: boolean;

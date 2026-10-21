@@ -11,5 +11,5 @@ export const exportedTaskSchema = z.object({ id: identifier, kind: z.enum(['pr_t
 export const exportedRepoSchema = z.object({ repo: z.string().regex(/^[a-z0-9_.-]+\/[a-z0-9_.-]+$/),
   guardThreadId: identifier, guardCatId: identifier, reviewMode: z.enum(['observe_only','maintainer_review']),
   cloudReviewPolicy: z.enum(['optional','required']), createdAt: z.number().nonnegative().safe(), updatedAt: z.number().nonnegative().safe() }).strict();
-export const exportedReceiptSchema = z.object({ taskId: identifier, outcomeId: identifier.optional(), sourceRef: identifier,
+export const exportedReceiptSchema = z.object({ taskId: identifier, outcomeId: identifier.optional(), messageId: identifier.optional(), sourceRef: identifier,
   disposition: z.enum(['delivered','not-delivered','ambiguous']), messageAppended: z.boolean(), wakeAccepted: z.boolean() }).strict();
