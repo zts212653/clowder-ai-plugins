@@ -24,6 +24,9 @@ normal registration implementation is correct for its own purpose and is unchang
 The operator must establish a complete, frozen source and absence of both writers.
 The source digest detects changed bytes; it does not authenticate an export or
 authorize new destinations. Unknown coverage is a refusal, never an empty family.
+Current task owners and repository notification recipients require a separately
+resolved routability witness. An unavailable current recipient blocks preparation;
+an unavailable historical author is retained and does not become the new owner.
 
 | Source | Destination or treatment |
 | --- | --- |

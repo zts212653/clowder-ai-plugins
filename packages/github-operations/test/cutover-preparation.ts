@@ -84,7 +84,7 @@ function validateTask(task: TaskItem, current: TaskItem | undefined) {
  * original owner, not facts established by hashing client input. Unknown is a
  * hard refusal. The current live snapshot is NOT complete and must be refused. */
 export async function prepareCutover(snapshot: FrozenSnapshot, expectedSourceDigest: string,
-  currentBindings: readonly TaskItem[]): Promise<CutoverPlan> {
+  currentBindings: readonly TaskItem[], routableOwners: ReadonlySet<string>): Promise<CutoverPlan> {
   if (digest(snapshot) !== expectedSourceDigest) throw new Error('Frozen source digest mismatch');
   if (Buffer.byteLength(bytes(snapshot)) > 2 * 1024 * 1024 || snapshot.tasks.length > 1000
     || snapshot.repositories.length > 50) throw new Error('Snapshot exceeds bounded preparation limits');
@@ -95,6 +95,7 @@ export async function prepareCutover(snapshot: FrozenSnapshot, expectedSourceDig
   const subjects = new Set<string>(), ids = new Set<string>();
   for (const task of snapshot.tasks) {
     validateTask(task, currentBindings.find(row => row.id === task.id));
+    if (!routableOwners.has(task.ownerCatId!)) throw new Error('Current owner is not routable; do not silently replace historical custody');
     if (ids.has(task.id) || subjects.has(task.subjectKey!)) throw new Error('Duplicate task or subject');
     ids.add(task.id); subjects.add(task.subjectKey!);
   }
@@ -107,6 +108,7 @@ export async function prepareCutover(snapshot: FrozenSnapshot, expectedSourceDig
     const c = row.config;
     if (c.repo !== c.repo.toLowerCase() || !c.guardThreadId || !c.guardCatId || repositories[c.repo])
       throw new Error('Invalid or duplicate repository binding');
+    if (!routableOwners.has(c.guardCatId)) throw new Error('Repository destination is not routable');
     repositories[c.repo] = row.progress;
   }
   const sourceDigest = sha(legacyRepositorySnapshotBytes(repositories));

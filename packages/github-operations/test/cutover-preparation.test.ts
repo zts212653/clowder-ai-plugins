@@ -31,7 +31,8 @@ function source(): FrozenSnapshot {
         'community:repo-comment:cursor:owner/repo': '2026-10-20T01:22:24.000Z' },
     }] };
 }
-const prepare = (s: FrozenSnapshot) => prepareCutover(s, digest(s), structuredClone(s.tasks));
+const routable=new Set(['original-cat','guard-cat']);
+const prepare = (s: FrozenSnapshot) => prepareCutover(s, digest(s), structuredClone(s.tasks),routable);
 
 test('copy into real private readers preserves complete wait, original identities, policy and progress', async () => {
   const s = source(), before = bytes(s), plan = await prepare(s), shadow = await materializeRehearsal(plan);
@@ -53,8 +54,8 @@ test('unknown families, receipt gaps, live writers and stale bindings cannot bec
   }
   const s=source();s.unresolvedReceipts=1;await assert.rejects(prepare(s), /receipt namespace/);
   const stale=source(), bindings=stale.tasks.map(t=>({...t,ownerCatId:'replacement'}));
-  await assert.rejects(prepareCutover(stale,digest(stale),bindings),/ownership\/version/);
-  await assert.rejects(prepareCutover(stale,'0'.repeat(64),stale.tasks),/digest mismatch/);
+  await assert.rejects(prepareCutover(stale,digest(stale),bindings,routable),/ownership\/version/);
+  await assert.rejects(prepareCutover(stale,'0'.repeat(64),stale.tasks,routable),/digest mismatch/);
 });
 
 test('pending outcome is not automatically resent across Host and plugin receipt namespaces', async () => {
@@ -156,4 +157,10 @@ test('legacy single-cursor issue is refused rather than being assigned a fresh g
   const s=source();s.tasks=s.tasks.map(t=>({...t,kind:'issue_tracking',subjectKey:'issue:owner/repo#42',
     automationState:{issue:{lastCommentCursor:23,lastDeliveredCursor:23}}}));
   await assert.rejects(prepare(s),/original fenced wait\/baseline/);
+});
+
+test('a dead current recipient is refused while an unavailable historical author remains preserved',async()=>{
+  const s=source();await assert.rejects(prepareCutover(s,digest(s),s.tasks,new Set(['guard-cat'])),/not routable/);
+  const plan=await prepare(s),target=await materializeRehearsal(plan);
+  assert.equal((await new GitHubWaitStorage(target).get('legacy'))?.createdBy,'historical-cat');
 });
