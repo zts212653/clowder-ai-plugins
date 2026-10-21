@@ -118,7 +118,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.typed-wait.register-issue': (value: unknown, caller?: PluginActionContext) => tracking.registerIssue(value, caller),
       'github.typed-wait.unregister': (value: unknown, caller?: PluginActionContext) => tracking.unregister(value, caller),
       'github.tracking.list': async () => ({ data: { tracking: [
-        ...await tracking.store.listByKind('pr_tracking'), ...await tracking.store.listByKind('issue_tracking'),
+        ...await tracking.store.listByKind('pr_tracking'), ...await tracking.store.listByKind('issue_tracking'), ...await migratedIssues.list(),
       ] } }),
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),

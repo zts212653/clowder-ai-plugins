@@ -110,6 +110,9 @@ test('real owner stage/commit and original native bind preserve g27, retire expi
   await active.actions['github.pr-tracking']!({}); await active.actions['github.issue-tracking']!({});
   await active.actions['github.pr-tracking']!({}); await active.actions['github.issue-tracking']!({});
   assert.equal(f.sent.length, 2, 'one new PR fact and one new legacy comment, neither replayed');
+  const listed = await active.actions['github.tracking.list']!({}) as { data: { tracking: TaskItem[] } };
+  assert.equal(listed.data.tracking.find(task => task.id === 'old-issue')?.automationState?.issue?.lastDeliveredCursor, 24);
+  assert.ok(!listed.data.tracking.some(task => task.id === 'expired'));
   assert.equal(f.tasks.get('old-issue')?.pluginWait, undefined, 'continuous old issue does not acquire a fabricated wait generation');
   const records = Object.values(await f.storage.list()).map(r => r.value).filter(v => !!v && typeof v === 'object');
   const history = records.find(v => 'task' in v && (v.task as TaskItem)?.id === 'expired' && 'sourceUpdatedAt' in v) as { task: TaskItem };

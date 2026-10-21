@@ -106,7 +106,10 @@ export class GitHubMigrationRuntime {
   }
   private status(j?: Journal) {
     return { data: { phase: j?.phase ?? 'holding', planDigest: j?.planDigest ?? null,
-      tasks: j?.tasks.length ?? 0, records: j?.targets.length ?? 0, collectionReleased: j?.phase === 'released' } };
+      tasks: j?.tasks.length ?? 0, records: j?.targets.length ?? 0, collectionReleased: j?.phase === 'released',
+      counts: { typed: j?.tasks.filter(t => t.mode === 'typed').length ?? 0,
+        legacyIssues: j?.tasks.filter(t => t.mode === 'legacy-issue').length ?? 0,
+        historical: j?.tasks.filter(t => t.mode === 'history').length ?? 0 } } };
   }
   private async stage(snapshot: unknown, digest: string, userId: string, j: Journal | undefined, check: Check) {
     if (j && !['staging','staged','aborted'].includes(j.phase)) throw new Error('Existing import cannot be replaced');

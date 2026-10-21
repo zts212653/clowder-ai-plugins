@@ -18,6 +18,10 @@ export class MigratedIssueRuntime {
   private pending?: Promise<void>;
   constructor(private readonly context: FeatureContext, private readonly provider: GitHubTrackingProvider,
     private readonly selfLogin: () => string | undefined, private readonly now = Date.now) {}
+  async list(): Promise<readonly TaskItem[]> {
+    return Object.entries(await this.context.storage.list()).filter(([key]) => key.startsWith('github.migrated-issue.v1.'))
+      .map(([, entry]) => (entry.value as RecordV1).task);
+  }
   poll() {
     if (this.pending) return this.pending;
     const run = this.collect(); this.pending = run;
