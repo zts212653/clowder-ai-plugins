@@ -220,7 +220,7 @@ export class TypedWaitRuntime {
       // cleanup and Host RPC settlement inside the 90-second carrier deadline.
       const budget = gitHubPollBudget(signal, { now: this.now,
         pollBudgetMs: this.options.pollBudgetMs ?? 50_000,
-        objectTimeoutMs: this.options.objectTimeoutMs ?? 25_000 });
+        objectTimeoutMs: this.options.objectTimeoutMs ?? 40_000 });
       const tasks = (await this.store.listByKind(kind === 'pr' ? 'pr_tracking' : 'issue_tracking'))
         .filter(task => task.automationState?.await || task.automationState?.waitOutcome?.delivery === 'pending');
       if (!tasks.length) return;
@@ -287,7 +287,7 @@ export class TypedWaitRuntime {
           const notificationFilter = await readNotificationFilter(this.options.context, snapshot, observed.observation.facts.review?.reviewer);
           await lifecycle.observe({ ...observed.observation, notificationFilter });
           await this.projectImportedWait(task.id, check);
-        }, this.options.objectTimeoutMs ?? 25_000).catch(error => {
+        }, this.options.objectTimeoutMs ?? 40_000).catch(error => {
           deferred = !gitHubAdmissionCanContinue(budget);
           this.options.context.log(deferred ? 'info' : 'warn', deferred
             ? 'GitHub poll budget used; resume this subscription next tick'
