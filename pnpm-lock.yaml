@@ -589,7 +589,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-sdk':
         specifier: 0.2.0-beta.21
-        version: link:../plugin-sdk
+        version: 0.2.0-beta.21
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
         version: 1.26.0(zod@4.4.3)
@@ -637,6 +637,14 @@ packages:
   '@clack/prompts@1.7.0':
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
+
+  '@clowder-ai/plugin-contract@0.1.0-beta.37':
+    resolution: {integrity: sha512-6J4XPbWRWHRd7IkvZuITm/zGy8/ZxZfZiSGiEBXbeDDABhOzPcbHwxf7krcF5NIfDtUwdHNHA5kd6blb2apgbw==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.2.0-beta.21':
+    resolution: {integrity: sha512-acvi9BWJWXDgi0Ttk8BVQ54ZcPwds+MyHpOW0ohb9WFSfL92C3SFHD/ilfZcNp7lxx4euh8EEFhIABfVtyMSzA==}
+    engines: {node: '>=20.0.0'}
 
   '@csstools/color-helpers@6.1.2':
     resolution: {integrity: sha512-grhRy3OKmniaAEKXMjua5z/EODX0MSqBGjunw8+j/3HQjOnahs2AGhvEOIYVUWcU6ScApbhLhVrQTX8XqrMrow==}
@@ -2408,6 +2416,15 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
+
+  '@clowder-ai/plugin-contract@0.1.0-beta.37':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+
+  '@clowder-ai/plugin-sdk@0.2.0-beta.21':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.1.0-beta.37
 
   '@csstools/color-helpers@6.1.2': {}
 

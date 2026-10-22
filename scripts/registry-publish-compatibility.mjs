@@ -110,7 +110,7 @@ export async function readRegistryIntegrity(name, version, {
 } = {}) {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new RangeError('registry timeout must be positive');
   const url = new URL(
-    `${OFFICIAL_NPM_REGISTRY}/${encodeURIComponent(name)}/${encodeURIComponent(version)}`,
+    `${OFFICIAL_NPM_REGISTRY}/${encodeURIComponent(name)}`,
   );
   // Only transport failures can be transient. A server response, malformed
   // metadata, or exhausted retry budget must never masquerade as npm 404.
@@ -123,7 +123,18 @@ export async function readRegistryIntegrity(name, version, {
       if (!response.ok) {
         throw new Error(`npm registry lookup failed for ${name}@${version}: HTTP ${response.status}`);
       }
-      const metadata = await response.json();
+      // A version endpoint can hang for a gap in a package's published history.
+      // The official package document is authoritative for both presence and bytes.
+      const document = await response.json();
+      if (document?.name !== name || document.versions === null ||
+          typeof document.versions !== 'object' || Array.isArray(document.versions)) {
+        throw new Error(`invalid registry version list for ${name}`);
+      }
+      if (!Object.hasOwn(document.versions, version)) return undefined;
+      const metadata = document.versions[version];
+      if (metadata?.name !== name || metadata.version !== version) {
+        throw new Error(`registry version identity mismatch for ${name}@${version}`);
+      }
       const integrity = metadata?.dist?.integrity;
       if (typeof integrity !== 'string' || integrity.length === 0) {
         throw new Error(`registry returned no dist.integrity for ${name}@${version}`);

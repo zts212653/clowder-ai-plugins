@@ -83,7 +83,7 @@ test('registry lookup directly addresses the official npm registry', async () =>
         ok: true,
         status: 200,
         async json() {
-          return { dist: { integrity: 'sha512-published' } };
+          return { name: '@clowder-ai/example', versions: { '0.1.0-alpha.1': { name: '@clowder-ai/example', version: '0.1.0-alpha.1', dist: { integrity: 'sha512-published' } } } };
         },
       };
     },
@@ -91,10 +91,10 @@ test('registry lookup directly addresses the official npm registry', async () =>
   assert.equal(integrity, 'sha512-published');
   assert.equal(requestedUrl.origin, OFFICIAL_NPM_REGISTRY);
   assert.equal(requestedUrl.hostname, 'registry.npmjs.org');
-  assert.equal(requestedUrl.pathname, '/%40clowder-ai%2Fexample/0.1.0-alpha.1');
+  assert.equal(requestedUrl.pathname, '/%40clowder-ai%2Fexample');
 });
 
-test('registry lookup treats only HTTP 404 as an unpublished version', async () => {
+test('registry lookup treats package HTTP 404 as unpublished', async () => {
   const integrity = await readRegistryIntegrity('@clowder-ai/example', '0.1.0-alpha.2', {
     fetchFn: async () => ({ ok: false, status: 404 }),
   });
@@ -127,7 +127,7 @@ for (const code of ['ECONNRESET', 'ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT']) {
       fetchFn: async () => {
         calls += 1;
         if (calls < 3) throw new TypeError('fetch failed', { cause: Object.assign(new Error('transient'), { code }) });
-        return { ok: true, status: 200, json: async () => ({ dist: { integrity: 'sha512-real' } }) };
+        return { ok: true, status: 200, json: async () => ({ name: '@clowder-ai/example', versions: { '1.0.0': { name: '@clowder-ai/example', version: '1.0.0', dist: { integrity: 'sha512-real' } } } }) };
       },
     });
     assert.equal(result, 'sha512-real');
@@ -173,7 +173,7 @@ test('registry body transport failures retry, malformed metadata does not', asyn
         return {};
       } };
     },
-  }), /no dist.integrity/);
+  }), /invalid registry version list/);
   assert.equal(calls, 2);
 });
 
@@ -385,4 +385,24 @@ test('publication uses only current workspace packages in dependency order', asy
   assert.ok(index('packages/plugin-contract') >= 0);
   assert.ok(index('packages/plugin-contract') < index('packages/plugin-sdk'));
   for (const directory of collectPublishPackageDirectories(source).filter(value => !['packages/plugin-contract','packages/plugin-sdk'].includes(value))) assert.ok(index('packages/plugin-sdk') < index(directory));
+});
+
+test('registry package versions distinguish a historical gap from a published release', async () => {
+  const fetchFn = async () => ({ ok: true, status: 200, json: async () => ({
+    name: '@clowder-ai/example', versions: {
+      '0.1.0-alpha.3': { name: '@clowder-ai/example', version: '0.1.0-alpha.3', dist: { integrity: 'sha512-real' } },
+    },
+  }) });
+  assert.equal(await readRegistryIntegrity('@clowder-ai/example', '0.1.0-alpha.2', { fetchFn }), undefined);
+  assert.equal(await readRegistryIntegrity('@clowder-ai/example', '0.1.0-alpha.3', { fetchFn }), 'sha512-real');
+});
+
+for (const document of [null, {}, { name: 'wrong', versions: {} }, { name: 'example', versions: [] },
+  { name: 'example', versions: { '1.0.0': null } },
+  { name: 'example', versions: { '1.0.0': { name: 'example', version: '2.0.0', dist: { integrity: 'sha512-wrong' } } } },
+  { name: 'example', versions: { '1.0.0': { name: 'example', version: '1.0.0' } } },
+]) test(`registry rejects malformed version-list metadata: ${JSON.stringify(document)}`, async () => {
+  await assert.rejects(readRegistryIntegrity('example', '1.0.0', {
+    fetchFn: async () => ({ ok: true, status: 200, json: async () => document }),
+  }));
 });

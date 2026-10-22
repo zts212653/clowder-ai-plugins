@@ -40,8 +40,11 @@ test('manifest and package metadata remain one exact package truth', async () =>
     transport: 'builtin',
     entrypoint: 'dist/plugin-entrypoint.js',
   });
-  const sdkPackage = JSON.parse(await readFile(new URL('../../plugin-sdk/package.json', import.meta.url), 'utf8')) as { version: string };
-  assert.equal(packageJson.dependencies['@clowder-ai/plugin-sdk'], sdkPackage.version);
+  const lock = JSON.parse(await readFile(new URL('../npm-shrinkwrap.json', import.meta.url), 'utf8'));
+  const sdkDependency = packageJson.dependencies['@clowder-ai/plugin-sdk'];
+  assert.ok(sdkDependency, 'SDK dependency must be declared');
+  assert.equal(lock.packages[''].dependencies['@clowder-ai/plugin-sdk'], sdkDependency);
+  assert.equal(lock.packages['node_modules/@clowder-ai/plugin-sdk'].version, sdkDependency);
   for (const member of ['README.md', 'plugin.yaml', 'assets', 'limbs', 'skills']) {
     assert.ok(packageJson.files.includes(member), `package omits ${member}`);
   }

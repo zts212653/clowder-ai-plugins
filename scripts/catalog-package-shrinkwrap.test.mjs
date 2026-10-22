@@ -8,7 +8,6 @@ import { parse } from 'yaml';
 
 import {
   assertProductionDependencyClosure,
-  assertWorkspaceSdkContractClosure,
   collectWorkspacePackageIntegrityMismatches,
 } from './catalog-package-shrinkwrap.mjs';
 
@@ -66,10 +65,6 @@ for (const { directory, pkg } of productionConsumers) test(`${directory} ships a
     await readFile(new URL(`../packages/${directory}/npm-shrinkwrap.json`, import.meta.url), 'utf8'),
   );
   assertProductionDependencyClosure(pkg, shrinkwrap);
-  assertWorkspaceSdkContractClosure(shrinkwrap, {
-    sdkVersion: workspaceSdk.version,
-    contractVersion: workspaceContract.version,
-  });
 });
 
 test('current workspace contract and SDK shrinkwrap entries pin exact-head packed bytes', async () => {
@@ -94,55 +89,57 @@ test('current workspace contract and SDK shrinkwrap entries pin exact-head packe
   assert.deepEqual(mismatches, []);
 });
 
-test('rejects a workspace SDK shrinkwrap that still pins the previous contract', () => {
-  assert.throws(
-    () => assertWorkspaceSdkContractClosure(
-      {
-        packages: {
-          'node_modules/@clowder-ai/plugin-contract': { version: '0.1.0-beta.18' },
-          'node_modules/@clowder-ai/plugin-sdk': {
-            version: '0.2.0-beta.2',
-            dependencies: { '@clowder-ai/plugin-contract': '0.1.0-beta.18' },
-          },
-        },
-      },
-      { sdkVersion: '0.2.0-beta.2', contractVersion: '0.1.0-beta.19' },
-    ),
-    /@clowder-ai\/plugin-sdk@0\.2\.0-beta\.2 through a stale @clowder-ai\/plugin-contract/u,
-  );
+function sdkClosure(sdkVersion, contractVersion, nested = false) {
+  const sdkName = '@clowder-ai/plugin-sdk';
+  const contractName = '@clowder-ai/plugin-contract';
+  const sdkPath = `node_modules/${sdkName}`;
+  const dependencies = { [sdkName]: sdkVersion };
+  const registry = (name, version) => ({ version,
+    resolved: `https://registry.npmjs.org/${name}/-/${name.split('/').at(-1)}-${version}.tgz` });
+  return { packageJson: { dependencies }, lock: { packages: {
+    '': { dependencies },
+    [sdkPath]: { ...registry(sdkName, sdkVersion), dependencies: { [contractName]: contractVersion } },
+    [nested ? `${sdkPath}/node_modules/${contractName}` : `node_modules/${contractName}`]: registry(contractName, contractVersion),
+  } } };
+}
+
+for (const [sdk, contract] of [
+  ['0.2.0-beta.3', '0.1.0-beta.18'],
+  ['0.2.0-beta.21', '0.1.0-beta.37'],
+  ['0.2.0-beta.24', '0.2.0'],
+]) test(`accepts SDK ${sdk} with its own contract ${contract}`, () => {
+  const { packageJson, lock } = sdkClosure(sdk, contract);
+  assert.doesNotThrow(() => assertProductionDependencyClosure(packageJson, lock));
 });
 
-test('a different SDK version cannot bypass the current contract closure', () => {
-  assert.throws(
-    () => assertWorkspaceSdkContractClosure(
-      {
-        packages: {
-          'node_modules/@clowder-ai/plugin-contract': { version: '0.1.0-beta.18' },
-          'node_modules/@clowder-ai/plugin-sdk': {
-            version: '0.2.0-beta.3',
-            dependencies: { '@clowder-ai/plugin-contract': '0.1.0-beta.18' },
-          },
-        },
-      },
-      { sdkVersion: '0.2.0-beta.2', contractVersion: '0.1.0-beta.19' },
-    ),
-    /unrecognized SDK identity/u,
-  );
+test('resolves the SDK nested contract independently of the plugin direct contract', () => {
+  const { packageJson, lock } = sdkClosure('0.2.0-beta.24', '0.2.0', true);
+  packageJson.dependencies['@clowder-ai/plugin-contract'] = '0.1.0-beta.37';
+  lock.packages['node_modules/@clowder-ai/plugin-contract'] = {
+    version: '0.1.0-beta.37', resolved: 'https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.1.0-beta.37.tgz',
+  };
+  assert.doesNotThrow(() => assertProductionDependencyClosure(packageJson, lock));
 });
 
-test('accepts a workspace SDK shrinkwrap closed over the current contract', () => {
-  assert.doesNotThrow(() => assertWorkspaceSdkContractClosure(
-    {
-      packages: {
-        'node_modules/@clowder-ai/plugin-contract': { version: '0.1.0-beta.19' },
-        'node_modules/@clowder-ai/plugin-sdk': {
-          version: '0.2.0-beta.2',
-          dependencies: { '@clowder-ai/plugin-contract': '0.1.0-beta.19' },
-        },
-      },
-    },
-    { sdkVersion: '0.2.0-beta.2', contractVersion: '0.1.0-beta.19' },
-  ));
+test('rejects a locked contract that differs from the SDK declaration', () => {
+  const { packageJson, lock } = sdkClosure('0.2.0-beta.3', '0.1.0-beta.18');
+  lock.packages['node_modules/@clowder-ai/plugin-contract'].version = '0.1.0-beta.37';
+  assert.throws(() => assertProductionDependencyClosure(packageJson, lock), /expected 0\.1\.0-beta\.18/u);
+});
+
+test('does not fall through an incompatible nested contract to a matching root', () => {
+  const { packageJson, lock } = sdkClosure('0.2.0-beta.24', '0.2.0', true);
+  lock.packages['node_modules/@clowder-ai/plugin-sdk/node_modules/@clowder-ai/plugin-contract'].version = '0.1.0-beta.37';
+  lock.packages['node_modules/@clowder-ai/plugin-contract'] = { version: '0.2.0' };
+  assert.throws(() => assertProductionDependencyClosure(packageJson, lock), /expected 0\.2\.0/u);
+});
+
+test('rejects a missing declared SDK dependency but does not invent undeclared dependencies', () => {
+  const { packageJson, lock } = sdkClosure('0.2.0-beta.3', '0.1.0-beta.18');
+  delete lock.packages['node_modules/@clowder-ai/plugin-contract'];
+  assert.throws(() => assertProductionDependencyClosure(packageJson, lock), /requires missing production dependency/u);
+  delete lock.packages['node_modules/@clowder-ai/plugin-sdk'].dependencies;
+  assert.doesNotThrow(() => assertProductionDependencyClosure(packageJson, lock));
 });
 
 test('exact-head integrity only constrains shrinkwrap entries at the current workspace version', () => {

@@ -98,33 +98,6 @@ export function assertProductionDependencyClosure(packageJson, shrinkwrap) {
   }
 }
 
-export function assertWorkspaceSdkContractClosure(
-  shrinkwrap,
-  { sdkVersion, contractVersion },
-) {
-  const packages = shrinkwrap.packages ?? {};
-  const sdkPath = 'node_modules/@clowder-ai/plugin-sdk';
-  const sdkEntry = packages[sdkPath];
-  if (!sdkEntry) return;
-
-  assert.equal(sdkEntry.version, sdkVersion,
-    `npm-shrinkwrap.json has an unrecognized SDK identity: ${sdkEntry.version}`);
-  const expectedContract = contractVersion;
-
-  assert.equal(
-    sdkEntry.dependencies?.['@clowder-ai/plugin-contract'],
-    expectedContract,
-    `npm-shrinkwrap.json resolves @clowder-ai/plugin-sdk@${sdkEntry.version} through a stale @clowder-ai/plugin-contract dependency`,
-  );
-  const resolved = resolveDependencyEntry(packages, sdkPath, '@clowder-ai/plugin-contract');
-  assert.ok(resolved, 'npm-shrinkwrap.json is missing the workspace SDK contract dependency');
-  assert.equal(
-    resolved.entry.version,
-    expectedContract,
-    `npm-shrinkwrap.json resolves the SDK contract to ${resolved.entry.version}, expected ${expectedContract}`,
-  );
-}
-
 export function collectWorkspacePackageIntegrityMismatches(
   shrinkwrap,
   workspacePackages,

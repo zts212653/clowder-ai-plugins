@@ -16,12 +16,13 @@ import {
 
 const packageRoot = join(import.meta.dirname, '..');
 
-test('pins the current exact contract dependency for the packed consumer', async () => {
+test('pins the declared contract dependency in the packed consumer lock', async () => {
   const packageJson = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
-  // This unpublished candidate follows the current pair. Published alpha.1
-  // archives remain immutable; protocol compatibility is checked below.
-  const contractPackage = JSON.parse(await readFile(join(packageRoot, '..', 'plugin-contract', 'package.json'), 'utf8'));
-  assert.equal(packageJson.dependencies['@clowder-ai/plugin-contract'], contractPackage.version);
+  const lock = JSON.parse(await readFile(join(packageRoot, 'npm-shrinkwrap.json'), 'utf8'));
+  const dependency = packageJson.dependencies['@clowder-ai/plugin-contract'];
+  assert.ok(dependency, 'contract dependency must be declared');
+  assert.equal(lock.packages[''].dependencies['@clowder-ai/plugin-contract'], dependency);
+  assert.equal(lock.packages['node_modules/@clowder-ai/plugin-contract'].version, dependency);
 });
 
 test('freezes the exact public GenOffice source and a valid provider manifest', async () => {
