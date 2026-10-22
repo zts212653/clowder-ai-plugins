@@ -5,11 +5,11 @@ import { parse } from 'yaml';
 
 import { GITHUB_SCHEDULES } from './schedules.js';
 
-test('schedule inventory unifies PR observations and preserves issue/repository polling budgets', () => {
+test('schedule carrier deadlines leave settlement room around bounded PR/Issue polling', () => {
   assert.deepEqual(GITHUB_SCHEDULES, [
-    { id: 'pr-tracking', everyMs: 60_000, timeoutMs: 30_000 },
+    { id: 'pr-tracking', everyMs: 60_000, timeoutMs: 90_000 },
     { id: 'repo-scan', everyMs: 300_000, timeoutMs: 90_000 },
-    { id: 'issue-tracking', everyMs: 60_000, timeoutMs: 30_000 },
+    { id: 'issue-tracking', everyMs: 60_000, timeoutMs: 90_000 },
     { id: 'repo-comment-poll', everyMs: 60_000, timeoutMs: 30_000 },
     { id: 'community-reconciler', everyMs: 600_000, timeoutMs: 120_000 },
   ]);

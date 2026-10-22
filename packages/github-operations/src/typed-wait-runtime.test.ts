@@ -42,6 +42,42 @@ function fixture() {
 }
 const input = { registrationId: 'registration', repoFullName: 'owner/repo', prNumber: 1 };
 
+test('a typed poll yields within its budget and resumes the next subscription after restart', async () => {
+  const f = fixture(); let now = 1000;
+  const options = { ...f.options, now: () => now, pollBudgetMs: 2000 };
+  let runtime = new TypedWaitRuntime(options);
+  const first = await runtime.registerIssue({ registrationId: 'one', repoFullName: 'owner/repo', issueNumber: 1 }, f.caller);
+  const second = await runtime.registerIssue({ registrationId: 'two', repoFullName: 'owner/repo', issueNumber: 2 }, f.caller);
+  const originals = new Map([first, second].map(task => [task.id, structuredClone(task.automationState)]));
+  const visited: number[] = [];
+  const provider = { read: async (target: { number: number }) => {
+    visited.push(target.number); now += 2000; return f.snapshot();
+  } };
+  await runtime.stop(); runtime = new TypedWaitRuntime({ ...options, provider });
+  await runtime.poll('issue'); assert.equal(visited.length, 1, 'a tick must not admit the entire backlog after its deadline');
+  await runtime.stop(); runtime = new TypedWaitRuntime({ ...options, provider });
+  await runtime.poll('issue'); assert.equal(visited.length, 2);
+  assert.notEqual(visited[0], visited[1], 'restart preserves admission fairness rather than restarting at the first wait');
+  for (const task of [first, second]) {
+    const current = await runtime.store.get(task.id);
+    assert.deepEqual(current?.automationState?.await, originals.get(task.id)?.await, 'no new baseline or generation');
+  }
+  assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
+  await runtime.stop();
+});
+
+test('CI batching consumes the same typed poll budget before any per-PR observation', async () => {
+  const f = fixture(); let now = 1000, reads = 0;
+  let runtime = new TypedWaitRuntime(f.options);
+  const task = await runtime.registerPr(input, f.caller); await runtime.stop();
+  runtime = new TypedWaitRuntime({ ...f.options, now: () => now, pollBudgetMs: 2000,
+    provider: { read: async () => { throw new Error('Unscoped read'); },
+      forCiBatch: async () => { now += 2000; return { read: async () => { reads++; return f.snapshot(); } }; } } });
+  await runtime.poll('pr'); assert.equal(reads, 0, 'spent batch budget cannot admit another observation');
+  assert.deepEqual((await runtime.store.get(task.id))?.automationState, task.automationState);
+  await runtime.stop();
+});
+
 for (const authors of [['alice', 'bot[bot]'], ['bot[bot]', 'alice'], ['alice', 'bob', 'bot[bot]']]) {
   test(`mixed review authors are filtered independently before the poll is consumed (${authors.join(',')})`, async () => {
     const f = fixture();

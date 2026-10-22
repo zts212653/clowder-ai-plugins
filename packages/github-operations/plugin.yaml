@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.20
+version: 0.1.0-alpha.21
 contractVersion: 0.1.0
 name: GitHub Operations
 description:
@@ -294,7 +294,7 @@ contributions:
     id: pr-tracking
     schedule: { kind: interval, everyMs: 60000 }
     action: { method: github.pr-tracking }
-    policy: { overlap: skip, timeoutMs: 30000 }
+    policy: { overlap: skip, timeoutMs: 90000 }
   - type: tool
     id: inspect-subject
     name: github_inspect_subject
@@ -337,7 +337,7 @@ contributions:
     id: issue-tracking
     schedule: { kind: interval, everyMs: 60000 }
     action: { method: github.issue-tracking }
-    policy: { overlap: skip, timeoutMs: 30000 }
+    policy: { overlap: skip, timeoutMs: 90000 }
   - type: schedule
     id: repo-comment-poll
     schedule: { kind: interval, everyMs: 60000 }
