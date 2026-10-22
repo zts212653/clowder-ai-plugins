@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.21
+version: 0.1.0-alpha.22
 contractVersion: 0.1.0
 name: GitHub Operations
 description:
@@ -342,7 +342,7 @@ contributions:
     id: repo-comment-poll
     schedule: { kind: interval, everyMs: 60000 }
     action: { method: github.repo-comment-poll }
-    policy: { overlap: skip, timeoutMs: 30000 }
+    policy: { overlap: skip, timeoutMs: 120000 }
   - type: schedule
     id: community-reconciler
     schedule: { kind: interval, everyMs: 600000 }

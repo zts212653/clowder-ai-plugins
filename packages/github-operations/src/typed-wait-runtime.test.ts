@@ -78,6 +78,28 @@ test('CI batching consumes the same typed poll budget before any per-PR observat
   await runtime.stop();
 });
 
+test('the last subscription cut short by the poll budget gets a full slot next tick', async () => {
+  const f = fixture(); let now = 1000, truncated = false;
+  const visited: number[] = [];
+  let runtime = new TypedWaitRuntime(f.options);
+  await runtime.registerIssue({ registrationId: 'one', repoFullName: 'owner/repo', issueNumber: 1 }, f.caller);
+  await runtime.registerIssue({ registrationId: 'two', repoFullName: 'owner/repo', issueNumber: 2 }, f.caller);
+  await runtime.stop();
+  runtime = new TypedWaitRuntime({ ...f.options, now: () => now, pollBudgetMs: 10_000,
+    provider: { read: async target => {
+      visited.push(target.number);
+      if (target.number === 2 && !truncated) {
+        truncated = true; now += 4000; throw new DOMException('Tick budget exhausted', 'TimeoutError');
+      }
+      now += target.number === 1 ? 6000 : 1000;
+      return f.snapshot();
+    } } });
+  await runtime.poll('issue'); assert.deepEqual(visited, [1, 2]);
+  await runtime.poll('issue'); assert.equal(visited[2], 2, 'advancing past a truncated tail can starve that same position every cycle');
+  assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
+  await runtime.stop();
+});
+
 for (const authors of [['alice', 'bot[bot]'], ['bot[bot]', 'alice'], ['alice', 'bob', 'bot[bot]']]) {
   test(`mixed review authors are filtered independently before the poll is consumed (${authors.join(',')})`, async () => {
     const f = fixture();

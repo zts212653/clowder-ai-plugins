@@ -257,6 +257,7 @@ export class TypedWaitRuntime {
       for (let i = 0; i < selected.length && !signal.aborted && gitHubAdmissionCanContinue(budget); i++) {
         const task = selected[i]!;
         const objectSignal = gitHubObjectSignal(budget)!;
+        let deferred = false;
         await this.run(task.subjectKey!, async taskSignal => {
           const check = async () => { this.assertRunning(); signal.throwIfAborted(); taskSignal.throwIfAborted(); objectSignal.throwIfAborted(); };
           const current = await this.store.get(task.id); if (!current) return;
@@ -286,9 +287,14 @@ export class TypedWaitRuntime {
           const notificationFilter = await readNotificationFilter(this.options.context, snapshot, observed.observation.facts.review?.reviewer);
           await lifecycle.observe({ ...observed.observation, notificationFilter });
           await this.projectImportedWait(task.id, check);
-        }, this.options.objectTimeoutMs ?? 25_000).catch(error => this.options.context.log('warn', 'GitHub observation failed; wait and pending delivery remain recoverable',
-          { taskId: task.id, kind, errorName: error instanceof Error && ['AbortError', 'TimeoutError'].includes(error.name) ? error.name : 'Error' }));
-        if (signal.aborted) break;
+        }, this.options.objectTimeoutMs ?? 25_000).catch(error => {
+          deferred = !gitHubAdmissionCanContinue(budget);
+          this.options.context.log(deferred ? 'info' : 'warn', deferred
+            ? 'GitHub poll budget used; resume this subscription next tick'
+            : 'GitHub observation failed; wait and pending delivery remain recoverable',
+            { taskId: task.id, kind, errorName: error instanceof Error && ['AbortError', 'TimeoutError'].includes(error.name) ? error.name : 'Error' });
+        });
+        if (signal.aborted || deferred) break;
         // Failed observations advance admission fairness, never provider facts.
         // Preserve this position across module upgrades and process restarts.
         const cursor = await storage.get(progressKey);
