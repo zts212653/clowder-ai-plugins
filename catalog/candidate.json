@@ -494,7 +494,7 @@
           }
         },
         {
-          "version": "0.1.0-alpha.25",
+          "version": "0.1.0-alpha.24",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
@@ -1654,7 +1654,7 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.24",
+          "version": "0.1.0-alpha.25",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
