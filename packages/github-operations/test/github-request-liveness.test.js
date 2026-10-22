@@ -114,6 +114,7 @@ test('queued GitHub cancellation returns promptly without starting a subprocess 
   const controller = new AbortController();
   const second = budget.execute(['api', '/user'], {
     ghToken: 'queued-cancel',
+    interactive: true,
     execFileAsync,
     signal: controller.signal,
   });
@@ -152,7 +153,7 @@ test('request deadline includes time waiting behind another credential request',
   const keepAlive = setTimeout(() => {}, 100);
   try {
     await assert.rejects(
-      budget.execute(['api', '/user'], { ghToken: 'queued-deadline', execFileAsync, timeoutMs: 10 }),
+      budget.execute(['api', '/user'], { ghToken: 'queued-deadline', execFileAsync, timeoutMs: 10, interactive: true }),
       /timeout|timed out/i,
     );
     assert.equal(calls, 1);
@@ -161,4 +162,47 @@ test('request deadline includes time waiting behind another credential request',
     release();
     await first;
   }
+});
+
+test('interactive GitHub reads pass queued collection work without concurrent credential use or background starvation', async () => {
+  const { GitHubRequestBudget } = await import('../src/business/infrastructure/github/request-budget.js');
+  const budget = new GitHubRequestBudget();
+  let release, entered;
+  const running = new Promise(resolve => { entered = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  const order = []; let active = 0, maximum = 0;
+  const execFileAsync = async (_file, args) => {
+    maximum = Math.max(maximum, ++active); order.push(args[1]);
+    if (args[1] === 'running') { entered(); await blocked; }
+    active--; return { stdout: '{}' };
+  };
+  const options = { ghToken: 'foreground-admission-fixture', execFileAsync };
+  const first = budget.execute(['api', 'running'], options); await running;
+  const background = Array.from({ length: 6 }, (_, i) => budget.execute(['api', `poll-${i}`], options));
+  const foreground = Array.from({ length: 9 }, (_, i) => budget.execute(['api', `native-${i}`], { ...options, interactive: true }));
+  release(); await Promise.all([first, ...background, ...foreground]);
+  assert.equal(order[1], 'native-0', 'a native baseline must not wait behind the complete scheduled backlog');
+  assert.ok(order.indexOf('poll-0') <= 5, 'a stream of native calls must still admit a waiting collector within four requests');
+  assert.deepEqual(order.filter(id => id.startsWith('native-')), Array.from({ length: 9 }, (_, i) => `native-${i}`));
+  assert.deepEqual(order.filter(id => id.startsWith('poll-')), Array.from({ length: 6 }, (_, i) => `poll-${i}`));
+  assert.equal(maximum, 1, 'priority never adds concurrency for the same credential');
+});
+
+test('interactive admission cannot bypass the shared queue capacity or credential quota', async () => {
+  const { GitHubRequestBudget } = await import('../src/business/infrastructure/github/request-budget.js');
+  const budget = new GitHubRequestBudget();
+  let release, entered, calls = 0;
+  const started = new Promise(resolve => { entered = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  const options = { ghToken: 'interactive-capacity-quota', execFileAsync: async () => {
+    calls++; entered(); await blocked;
+    throw Object.assign(new Error('secondary rate limit'), { stderr: 'HTTP/2.0 429\nretry-after: 60\n\n' });
+  } };
+  const requests = [budget.execute(['api', '/user'], options)]; await started;
+  requests.push(...Array.from({ length: 63 }, () => budget.execute(['api', '/user'], options)));
+  await assert.rejects(budget.execute(['api', '/user'], { ...options, interactive: true }), /capacity/);
+  const settled = Promise.allSettled(requests);
+  release(); assert.ok((await settled).every(result => result.status === 'rejected'));
+  await assert.rejects(budget.execute(['api', '/user'], { ...options, interactive: true }), /quota/);
+  assert.equal(calls, 1, 'queued and later native reads must honor the same quota fence');
 });

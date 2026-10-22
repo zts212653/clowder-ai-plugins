@@ -15,6 +15,7 @@ import { readRegistrationDiagnostics, writeRegistrationDiagnostic, registrationF
 import { readNotificationFilter } from './notification-filter.js';
 import { assertMigratedWaitCurrent, projectMigratedWait } from './migration-host-wait.js';
 import { gitHubAdmissionCanContinue, gitHubObjectAdmission, gitHubObjectSignal, gitHubPollBudget } from './business/infrastructure/github/admission-budget.js';
+import { withInteractiveGitHubRequests } from './business/infrastructure/github/request-budget.js';
 
 export interface TypedWaitRuntimeOptions {
   readonly context: FeatureContext;
@@ -102,7 +103,7 @@ export class TypedWaitRuntime {
     const number = (kind === 'pr' ? value.prNumber : value.issueNumber)!;
     const subject = `${kind}:${value.repoFullName.toLowerCase()}#${number}`;
     const registrationId = (input as { registrationId: string }).registrationId;
-    return this.run(subject, async signal => {
+    return withInteractiveGitHubRequests(() => this.run(subject, async signal => {
       let phase: RegistrationDiagnostic['phase'] = 'load_subscription';
       const diagnostic = async (status: RegistrationDiagnostic['status'], code: RegistrationDiagnostic['code'], statusCode?: number, error?: DiagnosticError) => {
         try { await writeRegistrationDiagnostic(this.options.context.storage, caller, registrationId, subject,
@@ -160,7 +161,7 @@ export class TypedWaitRuntime {
         this.options.context.log('warn', `GitHub tracking registration failed (${code}, ${phase})`, { error: detail });
         throw error;
       }
-    });
+    }));
   }
 
   diagnostics() { return readRegistrationDiagnostics(this.options.context.storage); }

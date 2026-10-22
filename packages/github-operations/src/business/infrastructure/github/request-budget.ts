@@ -1,15 +1,24 @@
 import { createHash } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { awaitGitHubCaller } from './abortable-wait.js';
 import { buildGhCliEnv, withHiddenGhCliWindow } from './gh-cli-env.js';
 import { executeGitHubProcess, type GitHubProcessOptions } from './gh-process.js';
+import { GitHubRequestQueue } from './request-queue.js';
+
+const interactiveRequests = new AsyncLocalStorage<boolean>();
+/** Internal scheduling hint only; native identity still comes from the Host. */
+export const withInteractiveGitHubRequests = <T>(action: () => Promise<T>): Promise<T> =>
+  interactiveRequests.run(true, action);
 
 export interface GitHubRequestOptions {
   ghToken?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Internal admission hint; never accepted from an action's input. */
+  interactive?: boolean;
   log?: { warn(message: string, fields?: Readonly<Record<string, unknown>>): void };
   execFileAsync?: (file: string, args: string[], opts: GitHubProcessOptions) => Promise<{ stdout: string }>;
 }
@@ -68,7 +77,7 @@ export async function gitHubCredentialKey(token?: string): Promise<string> {
 
 export class GitHubRequestBudget {
   private readonly blocked = new Map<string, number>();
-  private readonly tails = new Map<string, Promise<unknown>>();
+  private readonly queues = new Map<string, GitHubRequestQueue>();
   private readonly queued = new Map<string, number>();
   constructor(private readonly now: () => number = Date.now) {}
 
@@ -84,20 +93,21 @@ export class GitHubRequestBudget {
     const queued = this.queued.get(key) ?? 0;
     if (queued >= 64) throw new Error('GitHub request queue capacity exceeded; retry later');
     this.queued.set(key, queued + 1);
-    const previous = this.tails.get(key) ?? Promise.resolve();
+    let queue = this.queues.get(key);
+    if (!queue) {
+      queue = new GitHubRequestQueue(() => this.queues.delete(key));
+      this.queues.set(key, queue);
+    }
     let started = false;
-    const pending = previous
-      .catch(() => {})
-      .then(() => {
+    const pending = queue.enqueue(
+      () => {
         started = true;
         return this.executeForCredential(key, args, boundedOptions);
-      });
-    this.tails.set(key, pending);
+      }, options.interactive ?? interactiveRequests.getStore() ?? false);
     const settled = () => {
       const remaining = (this.queued.get(key) ?? 1) - 1;
       if (remaining === 0) this.queued.delete(key);
       else this.queued.set(key, remaining);
-      if (this.tails.get(key) === pending) this.tails.delete(key);
     };
     void pending.then(settled, settled);
     try {

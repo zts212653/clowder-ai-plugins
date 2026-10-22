@@ -5,6 +5,7 @@ import type { FeatureContext, PluginActionContext, PluginTaskItem, PluginStorage
 import { TypedWaitRuntime } from './typed-wait-runtime.js';
 import type { GitHubSnapshot } from './tracking-runtime.js';
 import type { GitHubPrAwaitStateV1 } from './business/model/types/github-wait.js';
+import { executeGitHubRequest } from './business/infrastructure/github/request-budget.js';
 
 function fixture() {
   const rows = new Map<string, PluginStorageEntry>();
@@ -41,6 +42,40 @@ function fixture() {
     snapshot: () => snapshot };
 }
 const input = { registrationId: 'registration', repoFullName: 'owner/repo', prNumber: 1 };
+
+for (const kind of ['pr', 'issue'] as const) test(`${kind}: native registration admits its live baseline ahead of queued collection`, async () => {
+  const f = fixture(), runtime = new TypedWaitRuntime(f.options);
+  const order: string[] = [];
+  let release!: () => void, entered!: () => void, baselineEntered!: () => void;
+  const blocked = new Promise<void>(resolve => { release = resolve; });
+  const started = new Promise<void>(resolve => { entered = resolve; });
+  const baselineStarted = new Promise<void>(resolve => { baselineEntered = resolve; });
+  const options = { ghToken: `registration-queue-${kind}`, execFileAsync: async (_file: string, args: string[]) => {
+    order.push(args[1]!);
+    if (args[1] === 'running') { entered(); await blocked; }
+    return { stdout: '{}' };
+  } };
+  const first = executeGitHubRequest(['api', 'running'], options); await started;
+  const background = Array.from({ length: 6 }, (_, i) => executeGitHubRequest(['api', `poll-${i}`], options));
+  f.defer(async () => {
+    baselineEntered(); await executeGitHubRequest(['api', 'native-baseline'], options);
+    return f.snapshot();
+  });
+  const registration = kind === 'pr' ? runtime.registerPr(input, f.caller) :
+    runtime.registerIssue({ registrationId: 'registration', repoFullName: 'owner/repo', issueNumber: 1 }, f.caller);
+  await baselineStarted; await new Promise(resolve => setImmediate(resolve));
+  release();
+  try {
+    const task = await registration;
+    await Promise.all([first, ...background]);
+    assert.equal(order[1], 'native-baseline', 'registration must carry interactive admission through the real provider read');
+    assert.equal(task.automationState?.await?.generation, 1);
+    assert.deepEqual(await (kind === 'pr' ? runtime.registerPr(input, f.caller) :
+      runtime.registerIssue({ registrationId: 'registration', repoFullName: 'owner/repo', issueNumber: 1 }, f.caller)), task);
+    assert.equal(f.reads(), 1, 'stable replay does not freeze another baseline');
+    assert.equal(f.hostTaskCalls(), 0); assert.equal(f.sent.length, 0);
+  } finally { release(); await runtime.stop(); }
+});
 
 test('a typed poll yields within its budget and resumes the next subscription after restart', async () => {
   const f = fixture(); let now = 1000;
