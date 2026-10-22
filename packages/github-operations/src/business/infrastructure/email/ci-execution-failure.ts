@@ -24,17 +24,15 @@ interface GitHubActionsJobPayload {
   check_run_url?: string;
 }
 
+function isZeroStepFailure(evidence: Omit<GitHubExecutionFailureEvidence, 'annotationTexts'>): boolean {
+  return evidence.checkConclusion.toLowerCase() === 'failure' &&
+    evidence.jobConclusion.toLowerCase() === 'failure' && evidence.runnerId === 0 && evidence.steps.length === 0;
+}
+
 export function classifyGitHubExecutionFailure(
   evidence: GitHubExecutionFailureEvidence,
 ): CiExecutionFailure | undefined {
-  if (
-    evidence.checkConclusion.toLowerCase() !== 'failure' ||
-    evidence.jobConclusion.toLowerCase() !== 'failure' ||
-    evidence.runnerId !== 0 ||
-    evidence.steps.length !== 0
-  ) {
-    return undefined;
-  }
+  if (!isZeroStepFailure(evidence)) return undefined;
   return evidence.annotationTexts.some((text) =>
     /(?:billing|spending[ -]?limit|payment required|account billing)/i.test(text),
   )
@@ -94,6 +92,16 @@ export async function enrichGitHubExecutionFailures(input: {
         enriched.push(check);
         continue;
       }
+      const evidence = {
+        checkConclusion: checkRun.conclusion ?? '', jobConclusion: job.conclusion ?? '',
+        runnerId: job.runner_id, steps: Array.isArray(job.steps) ? job.steps : [],
+      };
+      // Started jobs already disprove the only annotation-dependent category.
+      // Keep the classification predicate shared with the pure classifier.
+      if (!isZeroStepFailure(evidence)) {
+        enriched.push(check);
+        continue;
+      }
       const annotations = await input.ghApiJson<Array<{ message?: string; title?: string }>>(
         `repos/${input.repoFullName}/check-runs/${checkRun.id}/annotations?per_page=100`,
       );
@@ -104,11 +112,7 @@ export async function enrichGitHubExecutionFailures(input: {
         checkRun.output?.text,
       ].filter((value): value is string => typeof value === 'string');
       const executionFailure = classifyGitHubExecutionFailure({
-        checkConclusion: checkRun.conclusion ?? '',
-        jobConclusion: job.conclusion ?? '',
-        runnerId: job.runner_id,
-        steps: Array.isArray(job.steps) ? job.steps : [],
-        annotationTexts,
+        ...evidence, annotationTexts,
       });
       enriched.push(executionFailure ? { ...check, executionFailure } : check);
     }

@@ -33,7 +33,7 @@ Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) �
 
 **已有 catalog/npm 安装请使用目录更新**：当前 Host 的 archive 更新要求新旧 provenance 同为 local-archive，直接上传可能返回已安装冲突。不要为绕过冲突卸载旧实例。目录方式可替换 catalog/npm 安装；若原实例启用，Host 会按既有生命周期暂停并恢复该插件。
 
-更新后核对版本 `0.1.0-alpha.23`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
+更新后核对版本 `0.1.0-alpha.24`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
 
 等待较多时，后台轮询分轮处理并保存续扫位置。慢请求或模块重启不会清除旧条件、基线和待投递回执；一次轮询完成不代表所有等待都已检查或已经产生通知。
 

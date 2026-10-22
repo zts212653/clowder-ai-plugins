@@ -93,7 +93,7 @@ describe('fetchPrCiStatuses', () => {
   });
 });
 
-function rawGitHubFixture(annotationTexts, jobCheckRunId = 91) {
+function rawGitHubFixture(annotationTexts, jobCheckRunId = 91, jobFields = {}) {
   const commands = [];
   return {
     commands,
@@ -145,6 +145,7 @@ function rawGitHubFixture(annotationTexts, jobCheckRunId = 91) {
                 runner_id: 0,
                 steps: [],
                 check_run_url: `https://api.github.com/repos/zts212653/cat-cafe/check-runs/${jobCheckRunId}`,
+                ...jobFields,
               },
             ],
           }),
@@ -191,6 +192,21 @@ describe('classifyGitHubExecutionFailure', () => {
     assert.ok(fixture.commands.some((args) => args[0] === 'api' && args[1].includes('/check-runs?')));
     assert.ok(fixture.commands.some((args) => args[0] === 'api' && args[1].includes('/jobs?')));
     assert.ok(fixture.commands.some((args) => args[0] === 'api' && args[1].includes('/annotations?')));
+  });
+
+  it('does not spend annotation requests on jobs that cannot be zero-step billing failures', async () => {
+    for (const jobFields of [
+      { runner_id: 7, steps: [] },
+      { runner_id: 0, steps: [{ name: 'tests', conclusion: 'failure' }] },
+      { runner_id: 0, steps: [], conclusion: 'cancelled' },
+    ]) {
+      const fixture = rawGitHubFixture(['Account spending limit reached.'], 91, jobFields);
+      const result = await fetchPrCiStatus('zts212653/cat-cafe', 3276, { warn() {} }, fixture);
+      assert.equal(result.aggregateBucket, 'fail');
+      assert.equal(result.checks[0].executionFailure, undefined);
+      assert.equal(fixture.commands.filter(args => args[0] === 'api' && args[1].includes('/annotations?')).length, 0,
+        'a known non-billing failure must not consume the observation deadline on irrelevant annotations');
+    }
   });
 
   it('marks an empty GitHub rollup as pending, never as pass', async () => {
