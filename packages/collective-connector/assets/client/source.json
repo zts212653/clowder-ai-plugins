@@ -1,6 +1,6 @@
 {
   "repository": "zts212653/cat-cafe",
-  "sourceBaseHead": "71a09dbf77bfd65fdd8d829890ef7bab9d83f521",
+  "sourceBaseHead": "e5ad108b13c29aae5c8304769cc1235e9a5d86ad",
   "sourceState": "exact-source-head",
   "package": "packages/collective-client",
   "buildEntrypoint": "packages/collective-client/scripts/build.mjs#buildRetainedClient",
