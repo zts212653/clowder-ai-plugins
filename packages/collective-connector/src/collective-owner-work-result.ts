@@ -42,7 +42,7 @@ export async function reconcileCollectiveMessageWorkResult(connector: Collective
     assertSettledCollectiveSource(message, item.routeReceipt, item.event, source, ownerUserId);
     if (!message) return refusal('COLLECTIVE_RESULT_SOURCE_UNAVAILABLE', 'Collective Work source is unavailable');
     const located = await locateCollectiveWorkTask(ports.tasks, ports.storage, message, work.assignment!.catId,
-      ports.pluginInstanceId,{allowTerminal:true});await current();
+      ports.pluginInstanceId,{allowTerminal:true,allowSatisfiedTerminalRead:true});await current();
     const task = located?.task;
     if (!task) return {result: 'not_admitted' as const};
     if ((task.userId !== null && task.userId !== ownerUserId) || task.ownerCatId !== work.assignment!.catId)

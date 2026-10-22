@@ -135,7 +135,7 @@ test('Service comment wakes the one existing private Task and its actual native 
   } finally {vi.restoreAllMocks();await f.close();}
 });
 
-test('browser acceptance closes only the same current Service result and repeats without another Task mutation', async () => {
+test('browser acceptance repeats read-only after the same installation lifecycle makes its satisfied Task controller stale', async () => {
   const f = await setup();
   try {
     const operation = await f.caller.withCurrentMessage(f.action, async binding => {
@@ -167,9 +167,33 @@ test('browser acceptance closes only the same current Service result and repeats
     await expect(reconcile({...input, workRevision: input.workRevision - 1})).rejects.toMatchObject({code: 'COLLECTIVE_RESULT_NOT_CURRENT'});
     await expect(reconcile(input, 'foreign-owner')).rejects.toMatchObject({code: 'CONNECTOR_OWNER_MISMATCH'});
     expect(f.updates()).toBe(0);
+    const controller = (currentForCaller: boolean) => ({
+      bindingRevision: 1, state: 'active' as const, currentForCaller,
+      binding: {userId: f.auth.userId, catId: f.auth.catId, threadId: f.task.threadId,
+        subjectKey: f.task.subjectKey!, firstSourceRef: 'message:canonical-source',
+        admissionAuthorityRef: f.task.entrustedWork!.admission.authorityRef!,
+        pluginId: 'official.collective-connector', pluginInstanceId: 'installed-collective',
+        moduleRef: 'plugin:official.collective-connector', lifecycleRevision: 1, grantRevision: 1,
+        ownerOperationReceiptRef: `task-data-controller:${'a'.repeat(64)}`},
+    });
+    Object.assign(f.task, {entrustedWork: {...f.task.entrustedWork!, dataController: controller(false)}});
+    await expect(reconcile()).rejects.toMatchObject({code: 'OWNER_ADOPTION_REQUIRED'});
+    expect(f.updates()).toBe(0);
+    Object.assign(f.task, {entrustedWork: {...f.task.entrustedWork!, dataController: controller(true)}});
     expect(await reconcile()).toEqual({result: 'closed', taskId: f.task.id, revision: 2});
     expect(f.task.status).toBe('done');
+    Object.assign(f.task, {entrustedWork: {...f.task.entrustedWork!, dataController: controller(false)}});
     expect(await reconcile()).toEqual({result: 'already_closed', taskId: f.task.id, revision: 2});
+    expect(f.updates()).toBe(1);
+    Object.assign(f.task, {entrustedWork: {...f.task.entrustedWork!, dataController: {
+      ...controller(false), state: 'revoked' as const,
+      revocationReceiptRef: `task-data-controller:${'b'.repeat(64)}`,
+    }}});
+    await expect(reconcile()).rejects.toMatchObject({code: 'OWNER_ADOPTION_REQUIRED'});
+    Object.assign(f.task, {entrustedWork: {...f.task.entrustedWork!, dataController: controller(false)}});
+    await expect(reconcileCollectiveMessageWorkResult(f.connector,
+      {...f.context, pluginInstanceId: 'replacement-collective'}, f.auth.userId, f.connection.connectionId,
+      input, async () => {})).rejects.toMatchObject({code: 'OWNER_ADOPTION_REQUIRED'});
     expect(f.updates()).toBe(1);
   } finally {await f.close();}
 });

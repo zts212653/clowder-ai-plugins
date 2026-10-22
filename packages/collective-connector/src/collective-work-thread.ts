@@ -5,6 +5,13 @@ import {readWorkFirstReceipt, type ManualWorkExecutionBinding} from './owner-wor
 
 type Source = Pick<PluginMessage, "id" | "userId" | "threadId" | "content">;
 type Work = Pick<PluginTaskReadItem, "id" | "kind" | "status" | "subjectKey" | "userId" | "ownerCatId" | "threadId" | "entrustedWork">;
+type CollectiveWorkTaskOptions = {
+  allowTerminal?: boolean;
+  allowStaleController?: boolean;
+  allowControllerReplacement?: boolean;
+  /** Identify an already satisfied Task for a read-only idempotent result. */
+  allowSatisfiedTerminalRead?: boolean;
+};
 export type CollectiveWorkTaskSite = Readonly<{
   kind: 'existing'; taskId: string; taskRef: string; threadId: string; subjectKey: string;
   dataControllerReceiptRef?: string;
@@ -42,8 +49,7 @@ export function selectCollectiveWorkThread(tasks: readonly Work[], source: Sourc
 }
 
 export function assertCollectiveWorkTask(task: Work, source: Source, catId: string, pluginInstanceId: string,
-  storedBinding?: ManualWorkExecutionBinding, options: {allowTerminal?:boolean;allowStaleController?:boolean;
-    allowControllerReplacement?:boolean} = {}): Extract<CollectiveWorkTaskSite,{kind:'existing'}> {
+  storedBinding?: ManualWorkExecutionBinding, options: CollectiveWorkTaskOptions = {}): Extract<CollectiveWorkTaskSite,{kind:'existing'}> {
   const work = task.entrustedWork;
   if (!work || task.kind !== 'work' || (!options.allowTerminal && (task.status === 'done' || work.closure.state !== 'open')) ||
     task.userId !== source.userId || task.ownerCatId !== catId ||
@@ -55,6 +61,8 @@ export function assertCollectiveWorkTask(task: Work, source: Source, catId: stri
   const controller = work.dataController;
   if (controller?.state === 'active') {
     const binding = controller.binding;
+    const satisfiedTerminalRead = options.allowSatisfiedTerminalRead === true && options.allowTerminal === true &&
+      task.status === 'done' && work.closure.state === 'satisfied';
     const sameSnapshot = binding.userId === source.userId && binding.catId === catId &&
       binding.threadId === task.threadId && binding.subjectKey === task.subjectKey &&
       binding.firstSourceRef === `message:${source.id}` && binding.admissionAuthorityRef === work.admission.authorityRef &&
@@ -69,7 +77,7 @@ export function assertCollectiveWorkTask(task: Work, source: Source, catId: stri
       !options.allowControllerReplacement)
       throw error('OWNER_ADOPTION_REQUIRED', 'The Host controller changed before its Task locator was retained',
         {adoption:Object.freeze({taskId:task.id,sourceMessageId:source.id,catId})});
-    if (!controller.currentForCaller && !options.allowStaleController)
+    if (!controller.currentForCaller && !options.allowStaleController && !satisfiedTerminalRead)
       throw error('OWNER_ADOPTION_REQUIRED', 'The original Task controller is no longer current and needs a new owner confirmation',
         {adoption:Object.freeze({taskId:task.id,sourceMessageId:source.id,catId})});
     return Object.freeze({kind:'existing',taskId:task.id,taskRef:`task:work:${task.id}`,threadId:task.threadId,
@@ -94,7 +102,7 @@ export async function locateCollectiveWorkTask(
   source: Source,
   catId: string,
   pluginInstanceId: string,
-  options: {allowTerminal?:boolean;allowStaleController?:boolean;allowControllerReplacement?:boolean} = {},
+  options: CollectiveWorkTaskOptions = {},
 ): Promise<Readonly<{site: Extract<CollectiveWorkTaskSite,{kind:'existing'}>; task: PluginTaskReadItem}> | undefined> {
   const receipt = await readWorkFirstReceipt(storage, source.userId, source.id, catId);
   const storedBinding = receipt?.binding;
