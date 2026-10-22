@@ -294,16 +294,16 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.7",
+          "version": "0.1.0-alpha.8",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/collective-connector",
-            "version": "0.1.0-alpha.7",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.7.tgz",
-            "integrity": "sha512-8bDJgLgGOEqwV9mAC6rGrUGmCbRVFPCGcXJS7Qn1Obup8A92llPkj+Z7tfPppVJiPIQ+id7SB9C9MiUel01ISg==",
-            "shasum": "d7971061ba95fd909e5af75dff150cce11022872",
+            "version": "0.1.0-alpha.8",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.8.tgz",
+            "integrity": "sha512-u5HkXPrZkXw6Ag3xFlPFdnlWQhJJ+fdQTSvAcwvEOI7unbpUnaDu9h+546LF+DWcvdiL6BQgzKSL0FiMzZK0VA==",
+            "shasum": "46f77253d6d24bc196fbd3c46ceedc29d65017fe",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/collective-connector"

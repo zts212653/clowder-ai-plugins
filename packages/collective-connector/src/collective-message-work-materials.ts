@@ -157,8 +157,11 @@ export function createCollectiveMessageWorkMaterials(connector: CollectiveConnec
       for (const file of captured.files) if (file.text !== undefined && file.contentDigest !== 'sha256:' + digest(file.text)) throw changed();
       return {...captured, message: message as PluginMessage};
     },
-    async dispose() {
-      await Promise.all([...subscriptions.keys()].map(threadId => context.messaging.unsubscribe(threadId)));subscriptions.clear();
+    dispose() {
+      // The Host subscription session owns runtime teardown and is already stopped before
+      // feature disposal. Forget only this activation's replay intents; retained clients must
+      // keep rejecting after the Host revokes the session.
+      subscriptions.clear();
     },
   };
 }
