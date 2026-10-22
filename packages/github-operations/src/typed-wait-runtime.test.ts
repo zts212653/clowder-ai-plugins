@@ -100,6 +100,62 @@ test('the last subscription cut short by the poll budget gets a full slot next t
   await runtime.stop();
 });
 
+test('a budget-clipped timer retains its target even before the clock reaches the soft deadline', async () => {
+  const f = fixture(); let now = 1000, truncated = false;
+  const visited: number[] = [];
+  let runtime = new TypedWaitRuntime(f.options);
+  await runtime.registerIssue({ registrationId: 'one', repoFullName: 'owner/repo', issueNumber: 1 }, f.caller);
+  await runtime.registerIssue({ registrationId: 'two', repoFullName: 'owner/repo', issueNumber: 2 }, f.caller);
+  await runtime.stop();
+  runtime = new TypedWaitRuntime({ ...f.options, now: () => now, pollBudgetMs: 5000, objectTimeoutMs: 1000,
+    provider: { read: async (target, signal) => {
+      visited.push(target.number);
+      if (!truncated && target.number === 1) now = 4499;
+      else if (!truncated) {
+        truncated = true;
+        await new Promise<void>((_resolve, reject) => {
+          const guard = setTimeout(() => reject(new Error('Expected clipped admission timer')), 100);
+          signal!.addEventListener('abort', () => { clearTimeout(guard); reject(signal!.reason); }, { once: true });
+        });
+      }
+      return f.snapshot();
+    } } });
+  await runtime.poll('issue'); assert.deepEqual(visited, [1, 2]);
+  assert.equal(now, 4499, 'the timer can fire one millisecond before the observed soft deadline');
+  await runtime.poll('issue');
+  assert.equal(visited[2], 2, 'a clipped timeout must not advance the durable cursor past its target');
+  assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
+  await runtime.stop();
+});
+
+test('a full object timeout still rotates after cleanup crosses the poll deadline', async () => {
+  const f = fixture(); let now = 1000, failed = false;
+  const visited: number[] = [];
+  let runtime = new TypedWaitRuntime(f.options);
+  await runtime.registerIssue({ registrationId: 'one', repoFullName: 'owner/repo', issueNumber: 1 }, f.caller);
+  await runtime.registerIssue({ registrationId: 'two', repoFullName: 'owner/repo', issueNumber: 2 }, f.caller);
+  await runtime.stop();
+  runtime = new TypedWaitRuntime({ ...f.options, now: () => now, pollBudgetMs: 3000, objectTimeoutMs: 20,
+    provider: { read: async (target, signal) => {
+      visited.push(target.number);
+      if (!failed) {
+        failed = true;
+        await new Promise<void>((_resolve, reject) => {
+          const guard = setTimeout(() => reject(new Error('Expected full object timer')), 100);
+          signal!.addEventListener('abort', () => {
+            clearTimeout(guard); now = 4000; reject(signal!.reason);
+          }, { once: true });
+        });
+      }
+      return f.snapshot();
+    } } });
+  await runtime.poll('issue');
+  await runtime.poll('issue');
+  assert.equal(visited[1], 2, 'cleanup cannot turn a complete failed slot into perpetual tail deferral');
+  assert.equal(f.sent.length, 0); assert.equal(f.hostTaskCalls(), 0);
+  await runtime.stop();
+});
+
 for (const authors of [['alice', 'bot[bot]'], ['bot[bot]', 'alice'], ['alice', 'bob', 'bot[bot]']]) {
   test(`mixed review authors are filtered independently before the poll is consumed (${authors.join(',')})`, async () => {
     const f = fixture();

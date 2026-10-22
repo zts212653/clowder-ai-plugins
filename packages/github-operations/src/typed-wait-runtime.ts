@@ -14,7 +14,7 @@ import { legacyIssueOperationInput } from './legacy-issue-observations.js';
 import { readRegistrationDiagnostics, writeRegistrationDiagnostic, registrationFailureCode, diagnosticError, type DiagnosticError, type RegistrationDiagnostic } from './tracking-diagnostics.js';
 import { readNotificationFilter } from './notification-filter.js';
 import { assertMigratedWaitCurrent, projectMigratedWait } from './migration-host-wait.js';
-import { gitHubAdmissionCanContinue, gitHubObjectSignal, gitHubPollBudget } from './business/infrastructure/github/admission-budget.js';
+import { gitHubAdmissionCanContinue, gitHubObjectAdmission, gitHubObjectSignal, gitHubPollBudget } from './business/infrastructure/github/admission-budget.js';
 
 export interface TypedWaitRuntimeOptions {
   readonly context: FeatureContext;
@@ -256,7 +256,7 @@ export class TypedWaitRuntime {
       }
       for (let i = 0; i < selected.length && !signal.aborted && gitHubAdmissionCanContinue(budget); i++) {
         const task = selected[i]!;
-        const objectSignal = gitHubObjectSignal(budget)!;
+        const admission = gitHubObjectAdmission(budget), objectSignal = admission.signal!;
         let deferred = false;
         await this.run(task.subjectKey!, async taskSignal => {
           const check = async () => { this.assertRunning(); signal.throwIfAborted(); taskSignal.throwIfAborted(); objectSignal.throwIfAborted(); };
@@ -288,7 +288,9 @@ export class TypedWaitRuntime {
           await lifecycle.observe({ ...observed.observation, notificationFilter });
           await this.projectImportedWait(task.id, check);
         }, this.options.objectTimeoutMs ?? 40_000).catch(error => {
-          deferred = !gitHubAdmissionCanContinue(budget);
+          // A clipped timer can fire before Date.now reaches its deadline.
+          // Preserve the admitted window's cause rather than inferring it later.
+          deferred = objectSignal.aborted ? admission.limitedByPoll : !gitHubAdmissionCanContinue(budget);
           this.options.context.log(deferred ? 'info' : 'warn', deferred
             ? 'GitHub poll budget used; resume this subscription next tick'
             : 'GitHub observation failed; wait and pending delivery remain recoverable',

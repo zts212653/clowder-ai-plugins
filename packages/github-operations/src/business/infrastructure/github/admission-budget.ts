@@ -31,11 +31,16 @@ export function gitHubAdmissionCanContinue(ctx: PollBudget | undefined): boolean
   return ctx?.deadlineMs === undefined || (ctx.now ?? Date.now)() + SETTLE_MS < ctx.deadlineMs;
 }
 
-export function gitHubObjectSignal(ctx: PollBudget | undefined): AbortSignal | undefined {
-  if (!ctx?.signal) return undefined;
+export function gitHubObjectAdmission(ctx: PollBudget | undefined): { signal?: AbortSignal; limitedByPoll: boolean } {
+  if (!ctx?.signal) return { limitedByPoll: false };
   const timeout = ctx.objectTimeoutMs ?? 10_000;
   const remaining = ctx.deadlineMs === undefined ? timeout : Math.max(1, ctx.deadlineMs - (ctx.now ?? Date.now)() - SETTLE_MS);
-  return AbortSignal.any([ctx.signal, AbortSignal.timeout(Math.min(timeout, remaining))]);
+  return { signal: AbortSignal.any([ctx.signal, AbortSignal.timeout(Math.min(timeout, remaining))]),
+    limitedByPoll: ctx.deadlineMs !== undefined && remaining < timeout };
+}
+
+export function gitHubObjectSignal(ctx: PollBudget | undefined): AbortSignal | undefined {
+  return gitHubObjectAdmission(ctx).signal;
 }
 
 /** Abort requests cancellation; completion still awaits the provider's actual
