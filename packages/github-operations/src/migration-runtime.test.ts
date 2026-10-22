@@ -8,7 +8,7 @@ import { createGitHubPluginModule } from './plugin-entrypoint.js';
 import { IsolatedStorage } from '../test/migration-host-storage.js';
 import type { TaskItem, GitHubIssueAwaitStateV1 } from './business/model/index.js';
 import type { MigrationSource } from './migration-source.js';
-import { sourceDigest, freezeGitHubSource } from './migration-source.js';
+import { sourceDigest, freezeGitHubSource, migrationKey } from './migration-source.js';
 import { SdkCommunityEventLog } from './business/domains/community/CommunityEventLog.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
@@ -168,6 +168,97 @@ test('fresh private subscriptions coexist with a retained Host wait without acqu
   await active.actions['github.pr-tracking']!({}); await active.actions['github.pr-tracking']!({});
   assert.equal(f.sent.length, 2, 'each established registration delivers its new fact exactly once');
   assert.equal(f.tasks.size, 1); assert.equal(f.tasks.get('old-pr')?.pluginWait?.waitOutcome?.delivery, 'delivered');
+});
+
+test('recover keeps a Host task closed during import inert without rebinding or discarding its frozen history', async t => {
+  const f = migrationFixture(), source = { ...frozenSource(), tasks: frozenSource().tasks.slice(0, 1) };
+  seed(f, source);
+  let active = await f.module.create(manifest).start(f.host);
+  t.after(() => active.stop({ reason: 'test' }));
+  const staged = await ownerCall(f, active, 'stage', { snapshot: source, expectedDigest: sourceDigest(source) });
+  const expectedDigest = staged.body.data.planDigest;
+  await ownerCall(f, active, 'commit', { expectedDigest });
+  const original = f.tasks.get('old-pr')!;
+  const closed = { ...original, status: 'done' as const, updatedAt: original.updatedAt + 10 };
+  f.tasks.set(closed.id, closed);
+  const hostSnapshot = structuredClone([...f.tasks]);
+  assert.equal((await ownerCall(f, active, 'recover', { expectedDigest })).body.data.phase, 'committed');
+  await active.stop({ reason: 'restart after forward settlement' });
+  active = await f.module.create(manifest).start(f.host);
+  await ownerCall(f, active, 'release', { expectedDigest });
+  await active.actions['github.pr-tracking']!({});
+  assert.equal(f.reads(), 0); assert.equal(f.sent.length, 0);
+  assert.deepEqual([...f.tasks], hostSnapshot, 'settlement never writes or reopens the canonical Host Task');
+  const rows = await f.storage.list();
+  const history = Object.entries(rows).filter(([key]) => key.startsWith('github.migration.history.'));
+  assert.equal(history.length, 1);
+  assert.deepEqual((history[0]![1].value as { task: TaskItem }).task, source.tasks[0], 'original generation, baseline and outcome stay intact');
+  assert.equal(Object.keys(rows).filter(key => key.startsWith('github.typed-wait.v1.')).length, 0, 'closed copies cannot enter provider collection');
+  const journal = rows['github.migration.control.v1']!.value as { planDigest: string };
+  assert.equal(journal.planDigest, expectedDigest, 'the original frozen plan identity is preserved');
+});
+
+test('terminal recovery rejects active drift, changed identity, existing first-binding intents and pending outcomes', async t => {
+  for (const drift of ['active', 'owner', 'thread', 'subject', 'user', 'version', 'projection', 'intent', 'pending'] as const) {
+    const f = migrationFixture();
+    let source: MigrationSource = { ...frozenSource(), tasks: frozenSource().tasks.slice(0, 1) };
+    if (drift === 'pending') {
+      const task = source.tasks[0]!;
+      source = { ...source, tasks: [{ ...task, automationState: { ...task.automationState, waitOutcome: { v: 1, generation: 26, subjectRef: 'pr:example/project#12',
+        ownerFence: { kind: 'containing_task', generation: 26 }, outcomeId: 'pending-original', at: 800,
+        reason: 'matched', delivery: 'pending' } } }],
+        receipts: [{ taskId: 'old-pr', outcomeId: 'pending-original', sourceRef: 'original:no-send',
+        disposition: 'not-delivered', messageAppended: false, wakeAccepted: false }] };
+    }
+    seed(f, source);
+    const active = await f.module.create(manifest).start(f.host); t.after(() => active.stop({ reason: 'test' }));
+    const staged = await ownerCall(f, active, 'stage', { snapshot: source, expectedDigest: sourceDigest(source) });
+    const expectedDigest = staged.body.data.planDigest;
+    await ownerCall(f, active, 'commit', { expectedDigest });
+    const original = f.tasks.get('old-pr')!;
+    const closed = { ...original, status: 'done' as const, updatedAt: original.updatedAt + 10 };
+    if (drift === 'active') f.tasks.set('old-pr', { ...closed, status: 'doing' });
+    else if (drift === 'owner') f.tasks.set('old-pr', { ...closed, ownerCatId: 'other' });
+    else if (drift === 'thread') f.tasks.set('old-pr', { ...closed, threadId: 'other' });
+    else if (drift === 'subject') f.tasks.set('old-pr', { ...closed, subjectKey: 'pr:example/project#99' });
+    else if (drift === 'user') f.tasks.set('old-pr', { ...closed, userId: 'other' });
+    else if (drift === 'version') f.tasks.set('old-pr', { ...closed, updatedAt: original.updatedAt });
+    else if (drift === 'projection') f.tasks.set('old-pr', { ...closed, pluginWait: { pluginInstanceId: 'other', generation: 27 } });
+    else {
+      f.tasks.set('old-pr', closed);
+      if (drift === 'intent') await f.storage.set(`github.migration.binding.${expectedDigest}.${migrationKey('old-pr')}`, { state: 'intent' });
+    }
+    const before = await f.storage.list();
+    if (drift === 'intent') {
+      const result = await ownerCall(f, active, 'recover', { expectedDigest });
+      assert.equal(result.body.data.phase, 'committing');
+      assert.deepEqual(result.body.needsOriginalOwnerBindings, ['old-pr']);
+    } else await assert.rejects(ownerCall(f, active, 'recover', { expectedDigest }), /binding|receipt|version/);
+    assert.deepEqual(await f.storage.list(), before, `${drift} cannot silently settle or discard an obligation`);
+    assert.equal(f.reads(), 0); assert.equal(f.sent.length, 0);
+  }
+});
+
+test('terminal settlement resumes a crash prefix and release rejects a reopened or changed canonical task', async t => {
+  const f = migrationFixture(), source = { ...frozenSource(), tasks: frozenSource().tasks.slice(0, 1) };
+  seed(f, source);
+  let active = await f.module.create(manifest).start(f.host); t.after(() => active.stop({ reason: 'test' }));
+  const staged = await ownerCall(f, active, 'stage', { snapshot: source, expectedDigest: sourceDigest(source) });
+  const expectedDigest = staged.body.data.planDigest;
+  await ownerCall(f, active, 'commit', { expectedDigest });
+  const closed = { ...f.tasks.get('old-pr')!, status: 'done' as const, updatedAt: 12 };
+  f.tasks.set('old-pr', closed);
+  const remove = f.storage.delete.bind(f.storage);
+  f.storage.delete = async () => { throw new Error('Synthetic interruption after durable history'); };
+  await assert.rejects(ownerCall(f, active, 'recover', { expectedDigest }), /Synthetic interruption/);
+  f.storage.delete = remove;
+  await active.stop({ reason: 'restart after interrupted retirement' });
+  active = await f.module.create(manifest).start(f.host);
+  assert.equal((await ownerCall(f, active, 'recover', { expectedDigest })).body.data.phase, 'committed');
+  f.tasks.set('old-pr', { ...closed, status: 'doing', updatedAt: 13 });
+  await assert.rejects(ownerCall(f, active, 'release', { expectedDigest }), /binding/);
+  assert.equal((await ownerCall(f, active, 'status')).body.data.phase, 'committed');
+  assert.equal(f.reads(), 0); assert.equal(f.sent.length, 0);
 });
 
 test('pending old outcome needs a conclusive source receipt; definitive no-send recovers only after native binding and release', async t => {

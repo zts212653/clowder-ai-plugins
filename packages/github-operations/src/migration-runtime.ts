@@ -4,6 +4,7 @@ import { assertBinding, isExpired, planMigration, type MigrationPlan, type Migra
 import { canonicalBytes, migrationKey, sourceDigest } from './migration-source.js';
 import { importedWait, importedProjectionMatches } from './migration-wait.js';
 import { inspectGitHubSource } from './migration-source-inspection.js';
+import { retireClosedImportedWait } from './migration-terminal.js';
 
 const CONTROL = 'github.migration.control.v1';
 type Phase = 'staging' | 'staged' | 'committing' | 'committed' | 'released' | 'aborted';
@@ -152,6 +153,8 @@ export class GitHubMigrationRuntime {
       await check();
       const ack = await this.context.storage.get(ackKey(j.planDigest, row.task.id));
       const receipt = ack?.value as BindingAck | undefined;
+      const target = j.tasks.find(task => task.id === row.task.id)!.target;
+      if (await retireClosedImportedWait(this.context, j, row, target, plan.records[target], !!ack, check)) continue;
       const version = row.mode === 'typed' && receipt?.state === 'bound' ? receipt.updatedAt : row.task.updatedAt;
       // An in-flight first binding may already have committed at the Host. It
       // needs an authenticated bind replay, never background reconstruction.
@@ -172,6 +175,9 @@ export class GitHubMigrationRuntime {
     if (j.phase === 'staged') { await this.change(j, 'committing', check); j = (await this.journal())!; }
     for (const [target, record] of Object.entries(plan.records)) {
       await check();
+      const row = plan.tasks.find(row => row.task.id === j.tasks.find(task => task.target === target)?.id);
+      if (row && await retireClosedImportedWait(this.context, j, row, target, record,
+        !!await this.context.storage.get(ackKey(j.planDigest, row.task.id)), check)) continue;
       if (!(await this.context.storage.compareAndSet(target, null, record)).applied
         && canonicalBytes((await this.context.storage.get(target))?.value) !== canonicalBytes(record)) throw new Error('Active import target changed');
     }

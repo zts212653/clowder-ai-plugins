@@ -33,7 +33,9 @@ Use the delivered exact archive with its SHA256 and SHA512 SRI. Extract it and s
 
 For an existing catalog/npm installation, use the directory update: the current Host's archive replacement requires matching local-archive provenance and may reject a direct upload as already installed. Do not work around that by uninstalling.
 
-After updating, confirm `0.1.0-alpha.19`, the hidden internal fields, and optional visible fields. Save, test the account, and confirm runtime health. Read existing registrations with `github_list_tracking` and local observations with `github_inspect_subject`. Register an explicitly authorized PR if needed, reusing its registrationId after an ambiguous response. `github_refresh_pull_requests` followed by `github_repository_observations` checks the provider read path. Initial registration is silent; verify delivery on a subsequent real review or CI change. Isolated package tests do not establish that the live installation has recovered. To roll back, install the extracted previous verified package without clearing the instance or history.
+After updating, confirm `0.1.0-alpha.20`, the hidden internal fields, and optional visible fields. Save, test the account, and confirm runtime health. Read existing registrations with `github_list_tracking` and local observations with `github_inspect_subject`. Register an explicitly authorized PR if needed, reusing its registrationId after an ambiguous response. `github_refresh_pull_requests` followed by `github_repository_observations` checks the provider read path. Initial registration is silent; verify delivery on a subsequent real review or CI change. Isolated package tests do not establish that the live installation has recovered. To roll back, install the extracted previous verified package without clearing the instance or history.
+
+During an import hold, owner recovery preserves a never-bound Host wait as inert history if its original Task has since closed normally. It does not reopen that Task or replace the frozen source or plan digest. Changed identity, active drift, an existing binding intent or unresolved delivery continues to block release.
 
 ## Track PRs and issues
 

@@ -33,9 +33,11 @@ Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) �
 
 **已有 catalog/npm 安装请使用目录更新**：当前 Host 的 archive 更新要求新旧 provenance 同为 local-archive，直接上传可能返回已安装冲突。不要为绕过冲突卸载旧实例。目录方式可替换 catalog/npm 安装；若原实例启用，Host 会按既有生命周期暂停并恢复该插件。
 
-更新后核对版本 `0.1.0-alpha.19`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
+更新后核对版本 `0.1.0-alpha.20`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
 
 回滚时选择原验证包的解包目录更新，不清除实例、配置或历史。真实账号的登记与通知仍须在实际安装后验收，包内隔离测试不等同于运行实例已经恢复。
+
+恢复暂停期间，若一个尚未原生绑定的 Host 等待已经由原任务正常关闭，owner 的 recover 会将冻结副本保留为惰性历史，不重新激活该任务。旧快照与计划摘要保留；身份或活跃状态漂移、已有绑定意图、未结投递仍会阻止放行。
 
 ## 跟踪 PR 和 Issue
 
