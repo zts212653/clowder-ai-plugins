@@ -1,5 +1,5 @@
 pluginId: official.collective-connector
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 contractVersion: 0.1.0
 name: Collective
 description:
@@ -80,6 +80,11 @@ configuration:
         render: row
         resultRender: rows
         action: { method: collective.work.owner.sync }
+      - id: result-attention
+        label: Current returned results
+        render: button
+        resultRender: status
+        action: { method: collective.work.owner.result-attention }
       - id: adopt-task
         label: Let this Collective installation maintain the original Task
         render: row

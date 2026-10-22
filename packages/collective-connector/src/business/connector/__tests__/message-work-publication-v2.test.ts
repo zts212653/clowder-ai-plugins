@@ -2,12 +2,13 @@ import {expect, test, vi} from 'vitest';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import type {FeatureContext, PluginMessage} from '@clowder-ai/plugin-sdk';
+import type {FeatureContext, PluginMessage, PluginTaskReadItem} from '@clowder-ai/plugin-sdk';
 import {fixture} from './communication-work-custody.fixture.js';
-import {collectiveEventSourceIdentity} from '../../contracts/index.js';
+import {collectiveEventSourceIdentity, parseCollectiveWorkResultFilePath} from '../../contracts/index.js';
 import {collectiveSource} from '../../../collective-ingress-routing.js';
 import {createCollectiveMessageWorkMaterials} from '../../../collective-message-work-materials.js';
 import {createCollectiveMessageWorkArtifacts} from '../../../collective-message-work-artifacts.js';
+import {readCollectiveWorkResultAttentionSource} from '../../../work-result-attention.js';
 import {prepareWorkResultFilePublication} from '../work-result-publication.js';
 import {memoryStorage} from '../../../../test/runtime-fixture.js';
 
@@ -36,7 +37,8 @@ async function setup(bytes = Buffer.from('# Actual document\n')) {
       extra:{causal:{kind:'invocation_reply',triggerMessageId:'trigger'},stream:{turnInvocationId:f.agent.sessionRef},
         rich:{v:1,blocks:[{id:'file',kind:'file',url:originalHref,mimeType:'text/markdown'}]}}};
     const messages = new Map([['trigger',trigger],['response',response]]);
-    const task = {id:'task',subjectKey:`collective-work:${source.connectionId}:${work.workId}`,kind:'work',status:'todo',
+    const task:PluginTaskReadItem = {id:'task',subjectKey:`collective-work:${source.connectionId}:${work.workId}`,kind:'work',status:'todo',
+      title:'Collective Work',why:'Current Collective result',createdBy:'local-owner',createdAt:1,updatedAt:1,
       threadId:'private',ownerCatId:f.agent.catId,userId:'local-owner',entrustedWork:{revision:1,closure:{state:'open'},
         admission:{sourceRefs:['message:trigger'],authorityRef:`plugin-task-data:${createHash('sha256')
           .update(JSON.stringify(['installed-collective',`collective-work:${source.connectionId}:${work.workId}`])).digest('hex')}`}}};
@@ -164,5 +166,102 @@ test('accepted legacy metadata is recovered from its original doc capture withou
     const events=await f.store.listEventsForHuman(f.owner.sessionToken,f.connection.collectiveId);
     const body=events.find(row=>row.eventId===before.resultEventId)!.body;
     expect(body).not.toContain(f.originalHref);expect(body).toContain('/cwork-');
+  }finally{await f.close();}
+});
+
+test('result attention is owned by the installed Work feature and retires on artifact drift or public acceptance',async()=>{
+  const f=await setup();try{
+    await f.capture();const selected=(await f.artifacts.readSelected(f.binding))!;
+    Object.assign(f.task,{entrustedWork:{...f.task.entrustedWork!,artifactRefs:[f.originalHref]}});
+    const operation=await f.connector.prepareReply(f.source,'message:trigger','work:task',1,1,
+      {revision:1,assignmentEventId:f.work.assignmentEventId!});
+    await f.connector.submitReply(f.source,'message:trigger','work:task',operation.outboxId,
+      `[document](${f.originalHref})`,f.agent,selected.snapshot,1,
+      {revision:1,assignmentEventId:f.work.assignmentEventId!},selected.file);
+    await f.connector.sync(f.source.connectionId);
+
+    const current=async()=>{};
+    const ready=await f.connector.readAssignedWork(f.source.connectionId,f.work.workId);
+    const attention=await readCollectiveWorkResultAttentionSource(
+      f.connector,f.context,f.artifacts,'local-owner',current);
+    expect(attention.state).toMatchObject({coverage:'current_f290_collective_work_results',status:'available',exhaustiveness:'complete'});
+    expect(attention.items).toHaveLength(1);
+    expect(attention.items[0]).toMatchObject({eligible:true,
+      producer:{producerId:'f290.collective_work_result',revision:ready.revision},
+      taskRef:{subjectRef:'task:work:task',observedRevision:1},kind:'judgment',reasonCode:'collective_result_ready',
+      action:{actionRef:expect.stringContaining(`workId=${f.work.workId}`),expectedProducerRevision:ready.revision}});
+
+    Object.assign(f.task,{entrustedWork:{...f.task.entrustedWork!,artifactRefs:['/uploads/doc-changed.md']}});
+    expect((await readCollectiveWorkResultAttentionSource(
+      f.connector,f.context,f.artifacts,'local-owner',current)).items).toEqual([]);
+    Object.assign(f.task,{entrustedWork:{...f.task.entrustedWork!,artifactRefs:[f.originalHref]}});
+    await f.store.acceptCollectiveWorkResult(f.owner.sessionToken,{
+      serviceInstanceId:f.connection.serviceInstanceId,collectiveId:f.connection.collectiveId,
+      requestId:'accept-attention-result',workId:ready.workId,expectedRevision:ready.revision,
+      resultEventId:ready.resultEventId!,resultRevision:ready.resultRevision??1});
+    expect((await readCollectiveWorkResultAttentionSource(
+      f.connector,f.context,f.artifacts,'local-owner',current)).items).toEqual([]);
+  }finally{await f.close();}
+});
+
+test('a completed Work result promotes its existing bytes through the canonical owner without another result or acceptance',async()=>{
+  const f=await setup(Buffer.from('# Original result\n\nKeep these exact bytes.\n'));try{
+    await f.capture();const selected=(await f.artifacts.readSelected(f.binding))!;
+    const operation=await f.connector.prepareReply(f.source,'message:trigger','work:task',1,1,
+      {revision:1,assignmentEventId:f.work.assignmentEventId!});
+    await f.connector.submitReply(f.source,'message:trigger','work:task',operation.outboxId,
+      `[document](${f.originalHref})`,f.agent,selected.snapshot,1,
+      {revision:1,assignmentEventId:f.work.assignmentEventId!},selected.file);
+    await f.connector.sync(f.source.connectionId);
+    const ready=await f.connector.readAssignedWork(f.source.connectionId,f.work.workId);
+    const completed=await f.store.acceptCollectiveWorkResult(f.owner.sessionToken,{
+      serviceInstanceId:f.connection.serviceInstanceId,collectiveId:f.connection.collectiveId,
+      requestId:'accept-original-result',workId:ready.workId,expectedRevision:ready.revision,
+      resultEventId:ready.resultEventId!,resultRevision:ready.resultRevision??1});
+    expect(completed).toMatchObject({lifecycle:'completed',status:'completed'});
+    const result=(await f.store.listEventsForHuman(f.owner.sessionToken,f.connection.collectiveId))
+      .find(row=>row.eventId===ready.resultEventId)!;
+    const href=/\]\((https?:[^)]+)\)/.exec(result.body)?.[1];
+    const address=href?parseCollectiveWorkResultFilePath(new URL(href).pathname):undefined;
+    expect(address).toBeTruthy();
+
+    const seen: unknown[]=[];
+    f.connector.setArtifactOwner({
+      async execute(){return {status:'error',error:{code:'unsupported_operation'}};},
+      async publish(ownerOperation,authority){
+        expect(await authority.reauthorize()).toEqual(ownerOperation.publication);
+        seen.push(ownerOperation);
+        const publication=ownerOperation.publication;
+        const scope={kind:'collective-artifact',serviceInstanceId:publication.serviceInstanceId,
+          collectiveId:publication.collectiveId,artifactId:publication.artifactId,contentRef:publication.contentRef,
+          sourceEventId:publication.sourceEventId,publishedByHumanId:publication.humanId};
+        const scopeRef=`collective-owner:${createHash('sha256').update(JSON.stringify(scope)).digest('hex')}`;
+        return {status:'ok',ownerDecisionRef:publication.publicationId,value:{receipt:{
+          receiptId:`receipt:${publication.publicationId}`,contentRef:publication.contentRef,
+          previousOwnerRevision:0,ownerRevision:1,blobDigest:publication.blobDigest,
+          actor:{kind:'human',actorId:publication.humanId},operationId:publication.publicationId,outboxSequence:1,
+          operationContext:{kind:'collective-artifact:publish',requestDigest:publication.requestDigest,
+            actorHumanId:publication.humanId,scopeRef,custodyRevision:1,dispositionId:publication.publicationId}}}};
+      },
+    });
+    let settled=false;
+    const promotion=f.store.promoteWorkResultArtifact(f.owner.sessionToken,{
+      serviceInstanceId:f.connection.serviceInstanceId,collectiveId:f.connection.collectiveId,fileId:address!.fileId,
+    }).finally(()=>{settled=true;});
+    for(let tick=0;tick<40&&!settled;tick+=1){await f.connector.sync(f.source.connectionId);if(!settled)await new Promise(resolve=>setTimeout(resolve,5));}
+    const published=await promotion;
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({bytesBase64:f.bytes.toString('base64'),publication:{
+      sourceEventId:ready.sourceEventId,workId:ready.workId,title:f.input.title,blobDigest:selected.file!.contentDigest}});
+    expect(published).toMatchObject({status:'published',artifact:{workId:ready.workId,
+      sourceEventId:ready.sourceEventId,title:f.input.title,versions:[{blobDigest:selected.file!.contentDigest}]}});
+    expect(await f.store.promoteWorkResultArtifact(f.owner.sessionToken,{
+      serviceInstanceId:f.connection.serviceInstanceId,collectiveId:f.connection.collectiveId,fileId:address!.fileId,
+    })).toEqual(published);
+    expect(seen).toHaveLength(1);
+    expect(await f.connector.readAssignedWork(f.source.connectionId,f.work.workId)).toMatchObject({
+      lifecycle:'completed',revision:completed.revision,resultEventId:ready.resultEventId,resultRevision:ready.resultRevision});
+    expect((await f.store.listEventsForHuman(f.owner.sessionToken,f.connection.collectiveId))
+      .filter(row=>row.eventId===ready.resultEventId)).toHaveLength(1);
   }finally{await f.close();}
 });

@@ -474,14 +474,14 @@ var require_react_development = __commonJS({
             }
           }
         }
-        var ReactElement = function(type, key, ref8, self2, source3, owner3, props) {
+        var ReactElement = function(type, key, ref10, self2, source3, owner3, props) {
           var element3 = {
             // This tag allows us to uniquely identify this as a React Element
             $$typeof: REACT_ELEMENT_TYPE,
             // Built-in properties that belong on the element
             type,
             key,
-            ref: ref8,
+            ref: ref10,
             props,
             // Record the component responsible for creating this element.
             _owner: owner3
@@ -517,12 +517,12 @@ var require_react_development = __commonJS({
           var propName;
           var props = {};
           var key = null;
-          var ref8 = null;
+          var ref10 = null;
           var self2 = null;
           var source3 = null;
           if (config != null) {
             if (hasValidRef(config)) {
-              ref8 = config.ref;
+              ref10 = config.ref;
               {
                 warnIfStringRefCannotBeAutoConverted(config);
               }
@@ -565,17 +565,17 @@ var require_react_development = __commonJS({
             }
           }
           {
-            if (key || ref8) {
+            if (key || ref10) {
               var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
               if (key) {
                 defineKeyPropWarningGetter(props, displayName);
               }
-              if (ref8) {
+              if (ref10) {
                 defineRefPropWarningGetter(props, displayName);
               }
             }
           }
-          return ReactElement(type, key, ref8, self2, source3, ReactCurrentOwner.current, props);
+          return ReactElement(type, key, ref10, self2, source3, ReactCurrentOwner.current, props);
         }
         function cloneAndReplaceKey(oldElement, newKey) {
           var newElement = ReactElement(oldElement.type, newKey, oldElement.ref, oldElement._self, oldElement._source, oldElement._owner, oldElement.props);
@@ -588,13 +588,13 @@ var require_react_development = __commonJS({
           var propName;
           var props = assign({}, element3.props);
           var key = element3.key;
-          var ref8 = element3.ref;
+          var ref10 = element3.ref;
           var self2 = element3._self;
           var source3 = element3._source;
           var owner3 = element3._owner;
           if (config != null) {
             if (hasValidRef(config)) {
-              ref8 = config.ref;
+              ref10 = config.ref;
               owner3 = ReactCurrentOwner.current;
             }
             if (hasValidKey(config)) {
@@ -627,7 +627,7 @@ var require_react_development = __commonJS({
             }
             props.children = childArray;
           }
-          return ReactElement(element3.type, key, ref8, self2, source3, owner3, props);
+          return ReactElement(element3.type, key, ref10, self2, source3, owner3, props);
         }
         function isValidElement(object) {
           return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
@@ -647,8 +647,8 @@ var require_react_development = __commonJS({
         }
         var didWarnAboutMaps = false;
         var userProvidedKeyEscapeRegex = /\/+/g;
-        function escapeUserProvidedKey(text9) {
-          return text9.replace(userProvidedKeyEscapeRegex, "$&/");
+        function escapeUserProvidedKey(text10) {
+          return text10.replace(userProvidedKeyEscapeRegex, "$&/");
         }
         function getElementKey(element3, index4) {
           if (typeof element3 === "object" && element3 !== null && element3.key != null) {
@@ -1119,9 +1119,9 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useMemo(create2, deps);
         }
-        function useImperativeHandle(ref8, create2, deps) {
+        function useImperativeHandle(ref10, create2, deps) {
           var dispatcher = resolveDispatcher();
-          return dispatcher.useImperativeHandle(ref8, create2, deps);
+          return dispatcher.useImperativeHandle(ref10, create2, deps);
         }
         function useDebugValue(value, formatterFn) {
           {
@@ -2310,10 +2310,10 @@ var require_scheduler_development = __commonJS({
           };
         } else if (typeof MessageChannel !== "undefined") {
           var channel2 = new MessageChannel();
-          var port = channel2.port2;
+          var port2 = channel2.port2;
           channel2.port1.onmessage = performWorkUntilDeadline;
           schedulePerformWorkUntilDeadline = function() {
-            port.postMessage(null);
+            port2.postMessage(null);
           };
         } else {
           schedulePerformWorkUntilDeadline = function() {
@@ -4283,15 +4283,15 @@ var require_react_dom_development = __commonJS({
         var COMMENT_NODE = 8;
         var DOCUMENT_NODE = 9;
         var DOCUMENT_FRAGMENT_NODE = 11;
-        var setTextContent = function(node2, text9) {
-          if (text9) {
+        var setTextContent = function(node2, text10) {
+          if (text10) {
             var firstChild = node2.firstChild;
             if (firstChild && firstChild === node2.lastChild && firstChild.nodeType === TEXT_NODE) {
-              firstChild.nodeValue = text9;
+              firstChild.nodeValue = text10;
               return;
             }
           }
-          node2.textContent = text9;
+          node2.textContent = text10;
         };
         var shorthandToLonghand = {
           animation: ["animationDelay", "animationDirection", "animationDuration", "animationFillMode", "animationIterationCount", "animationName", "animationPlayState", "animationTimingFunction"],
@@ -9467,8 +9467,8 @@ var require_react_dom_development = __commonJS({
           }
           return domElement;
         }
-        function createTextNode(text9, rootContainerElement) {
-          return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text9);
+        function createTextNode(text10, rootContainerElement) {
+          return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text10);
         }
         function setInitialProperties(domElement, tag, rawProps, rootContainerElement) {
           var isCustomComponentTag = isCustomComponent(tag, rawProps);
@@ -9912,8 +9912,8 @@ var require_react_dom_development = __commonJS({
           }
           return updatePayload;
         }
-        function diffHydratedText(textNode, text9, isConcurrentMode) {
-          var isDifferent = textNode.nodeValue !== text9;
+        function diffHydratedText(textNode, text10, isConcurrentMode) {
+          var isDifferent = textNode.nodeValue !== text10;
           return isDifferent;
         }
         function warnForDeletedHydratableElement(parentNode, child) {
@@ -9943,16 +9943,16 @@ var require_react_dom_development = __commonJS({
             error("Expected server HTML to contain a matching <%s> in <%s>.", tag, parentNode.nodeName.toLowerCase());
           }
         }
-        function warnForInsertedHydratedText(parentNode, text9) {
+        function warnForInsertedHydratedText(parentNode, text10) {
           {
-            if (text9 === "") {
+            if (text10 === "") {
               return;
             }
             if (didWarnInvalidHydration) {
               return;
             }
             didWarnInvalidHydration = true;
-            error('Expected server HTML to contain a matching text node for "%s" in <%s>.', text9, parentNode.nodeName.toLowerCase());
+            error('Expected server HTML to contain a matching text node for "%s" in <%s>.', text10, parentNode.nodeName.toLowerCase());
           }
         }
         function restoreControlledState$3(domElement, tag, props) {
@@ -10325,12 +10325,12 @@ var require_react_dom_development = __commonJS({
         function shouldSetTextContent(type, props) {
           return type === "textarea" || type === "noscript" || typeof props.children === "string" || typeof props.children === "number" || typeof props.dangerouslySetInnerHTML === "object" && props.dangerouslySetInnerHTML !== null && props.dangerouslySetInnerHTML.__html != null;
         }
-        function createTextInstance(text9, rootContainerInstance, hostContext, internalInstanceHandle) {
+        function createTextInstance(text10, rootContainerInstance, hostContext, internalInstanceHandle) {
           {
             var hostContextDev = hostContext;
-            validateDOMNesting(null, text9, hostContextDev.ancestorInfo);
+            validateDOMNesting(null, text10, hostContextDev.ancestorInfo);
           }
-          var textNode = createTextNode(text9, rootContainerInstance);
+          var textNode = createTextNode(text10, rootContainerInstance);
           precacheFiberNode(internalInstanceHandle, textNode);
           return textNode;
         }
@@ -10468,8 +10468,8 @@ var require_react_dom_development = __commonJS({
           var display = styleProp !== void 0 && styleProp !== null && styleProp.hasOwnProperty("display") ? styleProp.display : null;
           instance.style.display = dangerousStyleValue("display", display);
         }
-        function unhideTextInstance(textInstance, text9) {
-          textInstance.nodeValue = text9;
+        function unhideTextInstance(textInstance, text10) {
+          textInstance.nodeValue = text10;
         }
         function clearContainer(container) {
           if (container.nodeType === ELEMENT_NODE) {
@@ -10486,8 +10486,8 @@ var require_react_dom_development = __commonJS({
           }
           return instance;
         }
-        function canHydrateTextInstance(instance, text9) {
-          if (text9 === "" || instance.nodeType !== TEXT_NODE) {
+        function canHydrateTextInstance(instance, text10) {
+          if (text10 === "" || instance.nodeType !== TEXT_NODE) {
             return null;
           }
           return instance;
@@ -10506,9 +10506,9 @@ var require_react_dom_development = __commonJS({
         }
         function getSuspenseInstanceFallbackErrorDetails(instance) {
           var dataset = instance.nextSibling && instance.nextSibling.dataset;
-          var digest6, message, stack;
+          var digest8, message, stack;
           if (dataset) {
-            digest6 = dataset.dgst;
+            digest8 = dataset.dgst;
             {
               message = dataset.msg;
               stack = dataset.stck;
@@ -10517,7 +10517,7 @@ var require_react_dom_development = __commonJS({
           {
             return {
               message,
-              digest: digest6,
+              digest: digest8,
               stack
             };
           }
@@ -10566,10 +10566,10 @@ var require_react_dom_development = __commonJS({
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
           return diffHydratedProperties(instance, type, props, parentNamespace, rootContainerInstance, isConcurrentMode, shouldWarnDev);
         }
-        function hydrateTextInstance(textInstance, text9, internalInstanceHandle, shouldWarnDev) {
+        function hydrateTextInstance(textInstance, text10, internalInstanceHandle, shouldWarnDev) {
           precacheFiberNode(internalInstanceHandle, textInstance);
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
-          return diffHydratedText(textInstance, text9);
+          return diffHydratedText(textInstance, text10);
         }
         function hydrateSuspenseInstance(suspenseInstance, internalInstanceHandle) {
           precacheFiberNode(internalInstanceHandle, suspenseInstance);
@@ -10623,14 +10623,14 @@ var require_react_dom_development = __commonJS({
         function shouldDeleteUnhydratedTailInstances(parentType) {
           return parentType !== "head" && parentType !== "body";
         }
-        function didNotMatchHydratedContainerTextInstance(parentContainer, textInstance, text9, isConcurrentMode) {
+        function didNotMatchHydratedContainerTextInstance(parentContainer, textInstance, text10, isConcurrentMode) {
           var shouldWarnDev = true;
-          checkForUnmatchedText(textInstance.nodeValue, text9, isConcurrentMode, shouldWarnDev);
+          checkForUnmatchedText(textInstance.nodeValue, text10, isConcurrentMode, shouldWarnDev);
         }
-        function didNotMatchHydratedTextInstance(parentType, parentProps, parentInstance, textInstance, text9, isConcurrentMode) {
+        function didNotMatchHydratedTextInstance(parentType, parentProps, parentInstance, textInstance, text10, isConcurrentMode) {
           if (parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
             var shouldWarnDev = true;
-            checkForUnmatchedText(textInstance.nodeValue, text9, isConcurrentMode, shouldWarnDev);
+            checkForUnmatchedText(textInstance.nodeValue, text10, isConcurrentMode, shouldWarnDev);
           }
         }
         function didNotHydrateInstanceWithinContainer(parentContainer, instance) {
@@ -10673,9 +10673,9 @@ var require_react_dom_development = __commonJS({
             warnForInsertedHydratedElement(parentContainer, type);
           }
         }
-        function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text9) {
+        function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text10) {
           {
-            warnForInsertedHydratedText(parentContainer, text9);
+            warnForInsertedHydratedText(parentContainer, text10);
           }
         }
         function didNotFindHydratableInstanceWithinSuspenseInstance(parentInstance, type, props) {
@@ -10684,10 +10684,10 @@ var require_react_dom_development = __commonJS({
             if (parentNode !== null) warnForInsertedHydratedElement(parentNode, type);
           }
         }
-        function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text9) {
+        function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text10) {
           {
             var parentNode = parentInstance.parentNode;
-            if (parentNode !== null) warnForInsertedHydratedText(parentNode, text9);
+            if (parentNode !== null) warnForInsertedHydratedText(parentNode, text10);
           }
         }
         function didNotFindHydratableInstance(parentType, parentProps, parentInstance, type, props, isConcurrentMode) {
@@ -10697,10 +10697,10 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function didNotFindHydratableTextInstance(parentType, parentProps, parentInstance, text9, isConcurrentMode) {
+        function didNotFindHydratableTextInstance(parentType, parentProps, parentInstance, text10, isConcurrentMode) {
           {
             if (isConcurrentMode || parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
-              warnForInsertedHydratedText(parentInstance, text9);
+              warnForInsertedHydratedText(parentInstance, text10);
             }
           }
         }
@@ -11110,8 +11110,8 @@ var require_react_dom_development = __commonJS({
         function getTreeId() {
           var overflow = treeContextOverflow;
           var idWithLeadingBit = treeContextId;
-          var id27 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
-          return id27.toString(32) + overflow;
+          var id28 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
+          return id28.toString(32) + overflow;
         }
         function pushTreeFork(workInProgress2, totalChildren) {
           warnIfNotHydrating();
@@ -11140,9 +11140,9 @@ var require_react_dom_development = __commonJS({
             var restOfBaseLength = baseLength - numberOfOverflowBits;
             var restOfLength = getBitLength(totalChildren) + restOfBaseLength;
             var restOfNewBits = slot << restOfBaseLength;
-            var id27 = restOfNewBits | restOfBaseId;
+            var id28 = restOfNewBits | restOfBaseId;
             var overflow = newOverflow + baseOverflow;
-            treeContextId = 1 << restOfLength | id27;
+            treeContextId = 1 << restOfLength | id28;
             treeContextOverflow = overflow;
           } else {
             var newBits = slot << baseLength;
@@ -11165,8 +11165,8 @@ var require_react_dom_development = __commonJS({
         function getBitLength(number2) {
           return 32 - clz32(number2);
         }
-        function getLeadingBit(id27) {
-          return 1 << getBitLength(id27) - 1;
+        function getLeadingBit(id28) {
+          return 1 << getBitLength(id28) - 1;
         }
         function popTreeContext(workInProgress2) {
           while (workInProgress2 === treeForkProvider) {
@@ -11308,8 +11308,8 @@ var require_react_dom_development = __commonJS({
                     didNotFindHydratableInstanceWithinContainer(parentContainer, type);
                     break;
                   case HostText:
-                    var text9 = fiber.pendingProps;
-                    didNotFindHydratableTextInstanceWithinContainer(parentContainer, text9);
+                    var text10 = fiber.pendingProps;
+                    didNotFindHydratableTextInstanceWithinContainer(parentContainer, text10);
                     break;
                 }
                 break;
@@ -11390,8 +11390,8 @@ var require_react_dom_development = __commonJS({
               return false;
             }
             case HostText: {
-              var text9 = fiber.pendingProps;
-              var textInstance = canHydrateTextInstance(nextInstance, text9);
+              var text10 = fiber.pendingProps;
+              var textInstance = canHydrateTextInstance(nextInstance, text10);
               if (textInstance !== null) {
                 fiber.stateNode = textInstance;
                 hydrationParentFiber = fiber;
@@ -11864,7 +11864,7 @@ var require_react_dom_development = __commonJS({
               if (current3 !== null && current3.ref !== null && typeof current3.ref === "function" && current3.ref._stringRef === stringRef) {
                 return current3.ref;
               }
-              var ref8 = function(value) {
+              var ref10 = function(value) {
                 var refs2 = resolvedInst.refs;
                 if (value === null) {
                   delete refs2[stringRef];
@@ -11872,8 +11872,8 @@ var require_react_dom_development = __commonJS({
                   refs2[stringRef] = value;
                 }
               };
-              ref8._stringRef = stringRef;
-              return ref8;
+              ref10._stringRef = stringRef;
+              return ref10;
             } else {
               if (typeof mixedRef !== "string") {
                 throw new Error("Expected ref to be a function, a string, an object returned by React.createRef(), or null.");
@@ -14074,16 +14074,16 @@ var require_react_dom_development = __commonJS({
         function updateLayoutEffect(create2, deps) {
           return updateEffectImpl(Update, Layout, create2, deps);
         }
-        function imperativeHandleEffect(create2, ref8) {
-          if (typeof ref8 === "function") {
-            var refCallback = ref8;
+        function imperativeHandleEffect(create2, ref10) {
+          if (typeof ref10 === "function") {
+            var refCallback = ref10;
             var _inst = create2();
             refCallback(_inst);
             return function() {
               refCallback(null);
             };
-          } else if (ref8 !== null && ref8 !== void 0) {
-            var refObject = ref8;
+          } else if (ref10 !== null && ref10 !== void 0) {
+            var refObject = ref10;
             {
               if (!refObject.hasOwnProperty("current")) {
                 error("Expected useImperativeHandle() first argument to either be a ref callback or React.createRef() object. Instead received: %s.", "an object with keys {" + Object.keys(refObject).join(", ") + "}");
@@ -14096,13 +14096,13 @@ var require_react_dom_development = __commonJS({
             };
           }
         }
-        function mountImperativeHandle(ref8, create2, deps) {
+        function mountImperativeHandle(ref10, create2, deps) {
           {
             if (typeof create2 !== "function") {
               error("Expected useImperativeHandle() second argument to be a function that creates a handle. Instead received: %s.", create2 !== null ? typeof create2 : "null");
             }
           }
-          var effectDeps = deps !== null && deps !== void 0 ? deps.concat([ref8]) : null;
+          var effectDeps = deps !== null && deps !== void 0 ? deps.concat([ref10]) : null;
           var fiberFlags = Update;
           {
             fiberFlags |= LayoutStatic;
@@ -14110,16 +14110,16 @@ var require_react_dom_development = __commonJS({
           if ((currentlyRenderingFiber$1.mode & StrictEffectsMode) !== NoMode) {
             fiberFlags |= MountLayoutDev;
           }
-          return mountEffectImpl(fiberFlags, Layout, imperativeHandleEffect.bind(null, create2, ref8), effectDeps);
+          return mountEffectImpl(fiberFlags, Layout, imperativeHandleEffect.bind(null, create2, ref10), effectDeps);
         }
-        function updateImperativeHandle(ref8, create2, deps) {
+        function updateImperativeHandle(ref10, create2, deps) {
           {
             if (typeof create2 !== "function") {
               error("Expected useImperativeHandle() second argument to be a function that creates a handle. Instead received: %s.", create2 !== null ? typeof create2 : "null");
             }
           }
-          var effectDeps = deps !== null && deps !== void 0 ? deps.concat([ref8]) : null;
-          return updateEffectImpl(Update, Layout, imperativeHandleEffect.bind(null, create2, ref8), effectDeps);
+          var effectDeps = deps !== null && deps !== void 0 ? deps.concat([ref10]) : null;
+          return updateEffectImpl(Update, Layout, imperativeHandleEffect.bind(null, create2, ref10), effectDeps);
         }
         function mountDebugValue(value, formatterFn) {
         }
@@ -14264,26 +14264,26 @@ var require_react_dom_development = __commonJS({
           var hook = mountWorkInProgressHook();
           var root6 = getWorkInProgressRoot();
           var identifierPrefix = root6.identifierPrefix;
-          var id27;
+          var id28;
           if (getIsHydrating()) {
             var treeId = getTreeId();
-            id27 = ":" + identifierPrefix + "R" + treeId;
+            id28 = ":" + identifierPrefix + "R" + treeId;
             var localId = localIdCounter++;
             if (localId > 0) {
-              id27 += "H" + localId.toString(32);
+              id28 += "H" + localId.toString(32);
             }
-            id27 += ":";
+            id28 += ":";
           } else {
             var globalClientId = globalClientIdCounter++;
-            id27 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
+            id28 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
           }
-          hook.memoizedState = id27;
-          return id27;
+          hook.memoizedState = id28;
+          return id28;
         }
         function updateId() {
           var hook = updateWorkInProgressHook();
-          var id27 = hook.memoizedState;
-          return id27;
+          var id28 = hook.memoizedState;
+          return id28;
         }
         function dispatchReducerAction(fiber, queue, action) {
           {
@@ -14447,11 +14447,11 @@ var require_react_dom_development = __commonJS({
               checkDepsAreArrayDev(deps);
               return mountEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               mountHookTypesDev();
               checkDepsAreArrayDev(deps);
-              return mountImperativeHandle(ref8, create2, deps);
+              return mountImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -14555,10 +14555,10 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return mountEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               updateHookTypesDev();
-              return mountImperativeHandle(ref8, create2, deps);
+              return mountImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -14659,10 +14659,10 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               updateHookTypesDev();
-              return updateImperativeHandle(ref8, create2, deps);
+              return updateImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -14763,10 +14763,10 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               updateHookTypesDev();
-              return updateImperativeHandle(ref8, create2, deps);
+              return updateImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -14871,11 +14871,11 @@ var require_react_dom_development = __commonJS({
               mountHookTypesDev();
               return mountEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               warnInvalidHookAccess();
               mountHookTypesDev();
-              return mountImperativeHandle(ref8, create2, deps);
+              return mountImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -14992,11 +14992,11 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               warnInvalidHookAccess();
               updateHookTypesDev();
-              return updateImperativeHandle(ref8, create2, deps);
+              return updateImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -15113,11 +15113,11 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateEffect(create2, deps);
             },
-            useImperativeHandle: function(ref8, create2, deps) {
+            useImperativeHandle: function(ref10, create2, deps) {
               currentHookNameInDev = "useImperativeHandle";
               warnInvalidHookAccess();
               updateHookTypesDev();
-              return updateImperativeHandle(ref8, create2, deps);
+              return updateImperativeHandle(ref10, create2, deps);
             },
             useInsertionEffect: function(create2, deps) {
               currentHookNameInDev = "useInsertionEffect";
@@ -15948,12 +15948,12 @@ var require_react_dom_development = __commonJS({
             digest: null
           };
         }
-        function createCapturedValue(value, digest6, stack) {
+        function createCapturedValue(value, digest8, stack) {
           return {
             value,
             source: null,
             stack: stack != null ? stack : null,
-            digest: digest6 != null ? digest6 : null
+            digest: digest8 != null ? digest8 : null
           };
         }
         function showErrorDialog(boundary, errorInfo) {
@@ -16269,7 +16269,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           var render2 = Component.render;
-          var ref8 = workInProgress2.ref;
+          var ref10 = workInProgress2.ref;
           var nextChildren;
           var hasId;
           prepareToReadContext(workInProgress2, renderLanes2);
@@ -16279,12 +16279,12 @@ var require_react_dom_development = __commonJS({
           {
             ReactCurrentOwner$1.current = workInProgress2;
             setIsRendering(true);
-            nextChildren = renderWithHooks(current3, workInProgress2, render2, nextProps, ref8, renderLanes2);
+            nextChildren = renderWithHooks(current3, workInProgress2, render2, nextProps, ref10, renderLanes2);
             hasId = checkDidRenderIdHook();
             if (workInProgress2.mode & StrictLegacyMode) {
               setIsStrictModeForDevtools(true);
               try {
-                nextChildren = renderWithHooks(current3, workInProgress2, render2, nextProps, ref8, renderLanes2);
+                nextChildren = renderWithHooks(current3, workInProgress2, render2, nextProps, ref10, renderLanes2);
                 hasId = checkDidRenderIdHook();
               } finally {
                 setIsStrictModeForDevtools(false);
@@ -16499,8 +16499,8 @@ var require_react_dom_development = __commonJS({
           return workInProgress2.child;
         }
         function markRef(current3, workInProgress2) {
-          var ref8 = workInProgress2.ref;
-          if (current3 === null && ref8 !== null || current3 !== null && current3.ref !== ref8) {
+          var ref10 = workInProgress2.ref;
+          if (current3 === null && ref10 !== null || current3 !== null && current3.ref !== ref10) {
             workInProgress2.flags |= Ref;
             {
               workInProgress2.flags |= RefStatic;
@@ -17270,10 +17270,10 @@ var require_react_dom_development = __commonJS({
               );
             }
             if (isSuspenseInstanceFallback(suspenseInstance)) {
-              var digest6, message, stack;
+              var digest8, message, stack;
               {
                 var _getSuspenseInstanceF = getSuspenseInstanceFallbackErrorDetails(suspenseInstance);
-                digest6 = _getSuspenseInstanceF.digest;
+                digest8 = _getSuspenseInstanceF.digest;
                 message = _getSuspenseInstanceF.message;
                 stack = _getSuspenseInstanceF.stack;
               }
@@ -17283,7 +17283,7 @@ var require_react_dom_development = __commonJS({
               } else {
                 error2 = new Error("The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.");
               }
-              var capturedValue = createCapturedValue(error2, digest6, stack);
+              var capturedValue = createCapturedValue(error2, digest8, stack);
               return retrySuspenseComponentWithoutHydrating(current3, workInProgress2, renderLanes2, capturedValue);
             }
             var hasContextChanged2 = includesSomeLane(renderLanes2, current3.childLanes);
@@ -18672,20 +18672,20 @@ var require_react_dom_development = __commonJS({
           }
         }
         function safelyDetachRef(current3, nearestMountedAncestor) {
-          var ref8 = current3.ref;
-          if (ref8 !== null) {
-            if (typeof ref8 === "function") {
+          var ref10 = current3.ref;
+          if (ref10 !== null) {
+            if (typeof ref10 === "function") {
               var retVal;
               try {
                 if (enableProfilerTimer && enableProfilerCommitHooks && current3.mode & ProfileMode) {
                   try {
                     startLayoutEffectTimer();
-                    retVal = ref8(null);
+                    retVal = ref10(null);
                   } finally {
                     recordLayoutEffectDuration(current3);
                   }
                 } else {
-                  retVal = ref8(null);
+                  retVal = ref10(null);
                 }
               } catch (error2) {
                 captureCommitPhaseError(current3, nearestMountedAncestor, error2);
@@ -18696,7 +18696,7 @@ var require_react_dom_development = __commonJS({
                 }
               }
             } else {
-              ref8.current = null;
+              ref10.current = null;
             }
           }
         }
@@ -18915,7 +18915,7 @@ var require_react_dom_development = __commonJS({
               switch (finishedWork.tag) {
                 case Profiler: {
                   var passiveEffectDuration = finishedWork.stateNode.passiveEffectDuration;
-                  var _finishedWork$memoize = finishedWork.memoizedProps, id27 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
+                  var _finishedWork$memoize = finishedWork.memoizedProps, id28 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
                   var commitTime2 = getCommitTime();
                   var phase = finishedWork.alternate === null ? "mount" : "update";
                   {
@@ -18924,7 +18924,7 @@ var require_react_dom_development = __commonJS({
                     }
                   }
                   if (typeof onPostCommit === "function") {
-                    onPostCommit(id27, phase, passiveEffectDuration, commitTime2);
+                    onPostCommit(id28, phase, passiveEffectDuration, commitTime2);
                   }
                   var parentFiber = finishedWork.return;
                   outer: while (parentFiber !== null) {
@@ -19217,8 +19217,8 @@ var require_react_dom_development = __commonJS({
           }
         }
         function commitAttachRef(finishedWork) {
-          var ref8 = finishedWork.ref;
-          if (ref8 !== null) {
+          var ref10 = finishedWork.ref;
+          if (ref10 !== null) {
             var instance = finishedWork.stateNode;
             var instanceToUse;
             switch (finishedWork.tag) {
@@ -19228,17 +19228,17 @@ var require_react_dom_development = __commonJS({
               default:
                 instanceToUse = instance;
             }
-            if (typeof ref8 === "function") {
+            if (typeof ref10 === "function") {
               var retVal;
               if (finishedWork.mode & ProfileMode) {
                 try {
                   startLayoutEffectTimer();
-                  retVal = ref8(instanceToUse);
+                  retVal = ref10(instanceToUse);
                 } finally {
                   recordLayoutEffectDuration(finishedWork);
                 }
               } else {
-                retVal = ref8(instanceToUse);
+                retVal = ref10(instanceToUse);
               }
               {
                 if (typeof retVal === "function") {
@@ -19247,11 +19247,11 @@ var require_react_dom_development = __commonJS({
               }
             } else {
               {
-                if (!ref8.hasOwnProperty("current")) {
+                if (!ref10.hasOwnProperty("current")) {
                   error("Unexpected ref object provided for %s. Use either a ref-setter function or React.createRef().", getComponentNameFromFiber(finishedWork));
                 }
               }
-              ref8.current = instanceToUse;
+              ref10.current = instanceToUse;
             }
           }
         }
@@ -21361,10 +21361,10 @@ var require_react_dom_development = __commonJS({
             for (var i = 0; i < recoverableErrors.length; i++) {
               var recoverableError = recoverableErrors[i];
               var componentStack = recoverableError.stack;
-              var digest6 = recoverableError.digest;
+              var digest8 = recoverableError.digest;
               onRecoverableError(recoverableError.value, {
                 componentStack,
-                digest: digest6
+                digest: digest8
               });
             }
           }
@@ -22912,16 +22912,16 @@ var require_react_dom_development = __commonJS({
           var copyWithSet = function(obj, path2, value) {
             return copyWithSetImpl(obj, path2, 0, value);
           };
-          var findHook = function(fiber, id27) {
+          var findHook = function(fiber, id28) {
             var currentHook2 = fiber.memoizedState;
-            while (currentHook2 !== null && id27 > 0) {
+            while (currentHook2 !== null && id28 > 0) {
               currentHook2 = currentHook2.next;
-              id27--;
+              id28--;
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id27, path2, value) {
-            var hook = findHook(fiber, id27);
+          overrideHookState = function(fiber, id28, path2, value) {
+            var hook = findHook(fiber, id28);
             if (hook !== null) {
               var newState = copyWithSet(hook.memoizedState, path2, value);
               hook.memoizedState = newState;
@@ -22933,8 +22933,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id27, path2) {
-            var hook = findHook(fiber, id27);
+          overrideHookStateDeletePath = function(fiber, id28, path2) {
+            var hook = findHook(fiber, id28);
             if (hook !== null) {
               var newState = copyWithDelete(hook.memoizedState, path2);
               hook.memoizedState = newState;
@@ -22946,8 +22946,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateRenamePath = function(fiber, id27, oldPath, newPath) {
-            var hook = findHook(fiber, id27);
+          overrideHookStateRenamePath = function(fiber, id28, oldPath, newPath) {
+            var hook = findHook(fiber, id28);
             if (hook !== null) {
               var newState = copyWithRename(hook.memoizedState, oldPath, newPath);
               hook.memoizedState = newState;
@@ -24233,14 +24233,14 @@ var require_react_jsx_runtime_development = __commonJS({
             });
           }
         }
-        var ReactElement = function(type, key, ref8, self2, source3, owner3, props) {
+        var ReactElement = function(type, key, ref10, self2, source3, owner3, props) {
           var element3 = {
             // This tag allows us to uniquely identify this as a React Element
             $$typeof: REACT_ELEMENT_TYPE,
             // Built-in properties that belong on the element
             type,
             key,
-            ref: ref8,
+            ref: ref10,
             props,
             // Record the component responsible for creating this element.
             _owner: owner3
@@ -24277,7 +24277,7 @@ var require_react_jsx_runtime_development = __commonJS({
             var propName;
             var props = {};
             var key = null;
-            var ref8 = null;
+            var ref10 = null;
             if (maybeKey !== void 0) {
               {
                 checkKeyStringCoercion(maybeKey);
@@ -24291,7 +24291,7 @@ var require_react_jsx_runtime_development = __commonJS({
               key = "" + config.key;
             }
             if (hasValidRef(config)) {
-              ref8 = config.ref;
+              ref10 = config.ref;
               warnIfStringRefCannotBeAutoConverted(config, self2);
             }
             for (propName in config) {
@@ -24307,16 +24307,16 @@ var require_react_jsx_runtime_development = __commonJS({
                 }
               }
             }
-            if (key || ref8) {
+            if (key || ref10) {
               var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
               if (key) {
                 defineKeyPropWarningGetter(props, displayName);
               }
-              if (ref8) {
+              if (ref10) {
                 defineRefPropWarningGetter(props, displayName);
               }
             }
-            return ReactElement(type, key, ref8, self2, source3, ReactCurrentOwner.current, props);
+            return ReactElement(type, key, ref10, self2, source3, ReactCurrentOwner.current, props);
           }
         }
         var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
@@ -24558,10 +24558,10 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx88 = jsxWithValidationDynamic;
+        var jsx89 = jsxWithValidationDynamic;
         var jsxs79 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx88;
+        exports.jsx = jsx89;
         exports.jsxs = jsxs79;
       })();
     }
@@ -29172,6 +29172,204 @@ var conversationViewPreferenceSnapshotSchema = external_exports.object({
   source: conversationViewPreferenceSourceSchema
 }).strict();
 
+// ../shared/src/deployment-profiles.json
+var deployment_profiles_default = {
+  schemaVersion: 1,
+  activeProfile: "home",
+  profiles: {
+    home: {
+      apiPort: 3002,
+      webPort: 3001,
+      envRegistryFrontendPort: 3e3,
+      corsOrigins: ["http://localhost:3000", "http://localhost:3001", "https://cafe.clowder-ai.com"],
+      roadmapPath: "docs/BACKLOG.md",
+      brand: {
+        name: "Cat Cafe",
+        displayName: "Cat Caf\xE9",
+        shortName: "\u732B\u732B",
+        hubName: "Cat Caf\xE9 Hub",
+        tagline: "\u4E09\u53EA AI \u732B\u732B\u7684\u534F\u4F5C\u7A7A\u95F4"
+      },
+      repositoryFullName: "zts212653/cat-cafe"
+    },
+    opensource: {
+      apiPort: 3004,
+      webPort: 3003,
+      envRegistryFrontendPort: 3003,
+      corsOrigins: ["http://localhost:3000", "http://localhost:3003", "https://cafe.clowder-ai.com"],
+      roadmapPath: "docs/ROADMAP.md",
+      brand: {
+        name: "Clowder AI",
+        displayName: "Clowder AI",
+        shortName: "Clowder AI",
+        hubName: "Clowder AI Hub",
+        tagline: "Your AI team collaboration space"
+      },
+      repositoryFullName: "zts212653/clowder-ai"
+    }
+  },
+  startupProfiles: {
+    dev: {
+      common: {
+        ANTHROPIC_PROXY_ENABLED: "1",
+        ASR_ENABLED: "0",
+        TTS_ENABLED: "0",
+        LLM_POSTPROCESS_ENABLED: "0",
+        MESSAGE_TTL_SECONDS: "0",
+        THREAD_TTL_SECONDS: "0",
+        TASK_TTL_SECONDS: "0",
+        SUMMARY_TTL_SECONDS: "0",
+        REDIS_PROFILE: "dev"
+      },
+      posix: {
+        AUDIO_SERVICE_ENABLED: "0"
+      },
+      win32: {
+        ASR_ENABLED: "1",
+        TTS_ENABLED: "1",
+        LLM_POSTPROCESS_ENABLED: "1"
+      }
+    },
+    production: {
+      common: {
+        ANTHROPIC_PROXY_ENABLED: "0",
+        ASR_ENABLED: "0",
+        TTS_ENABLED: "0",
+        LLM_POSTPROCESS_ENABLED: "0",
+        MESSAGE_TTL_SECONDS: "0",
+        THREAD_TTL_SECONDS: "0",
+        TASK_TTL_SECONDS: "0",
+        SUMMARY_TTL_SECONDS: "0",
+        REDIS_PROFILE: "opensource"
+      },
+      posix: {
+        AUDIO_SERVICE_ENABLED: "0"
+      },
+      win32: {}
+    },
+    opensource: {
+      common: {
+        ANTHROPIC_PROXY_ENABLED: "0",
+        ASR_ENABLED: "0",
+        TTS_ENABLED: "0",
+        LLM_POSTPROCESS_ENABLED: "0",
+        MESSAGE_TTL_SECONDS: "0",
+        THREAD_TTL_SECONDS: "0",
+        TASK_TTL_SECONDS: "0",
+        SUMMARY_TTL_SECONDS: "0",
+        REDIS_PROFILE: "opensource"
+      },
+      posix: {
+        AUDIO_SERVICE_ENABLED: "0"
+      },
+      win32: {}
+    },
+    unprofiled: {
+      common: {},
+      posix: {
+        ANTHROPIC_PROXY_ENABLED: "0",
+        ASR_ENABLED: "0",
+        TTS_ENABLED: "0",
+        LLM_POSTPROCESS_ENABLED: "0",
+        MESSAGE_TTL_SECONDS: "0",
+        THREAD_TTL_SECONDS: "0",
+        TASK_TTL_SECONDS: "0",
+        SUMMARY_TTL_SECONDS: "0",
+        REDIS_PROFILE: "dev",
+        AUDIO_SERVICE_ENABLED: "0"
+      },
+      win32: {}
+    }
+  }
+};
+
+// ../shared/src/deployment-defaults.ts
+function record(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`Invalid deployment configuration: ${label} must be an object`);
+  }
+  return value;
+}
+function port(value, label) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 65535) {
+    throw new Error(`Invalid deployment configuration: ${label} must be a valid port`);
+  }
+  return value;
+}
+function repository(value) {
+  if (typeof value !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(value)) {
+    throw new Error("Invalid deployment configuration: repositoryFullName must be owner/repo");
+  }
+  return value;
+}
+function roadmapPath(value) {
+  if (typeof value !== "string" || !value.startsWith("docs/") || !value.endsWith(".md") || // biome-ignore lint/suspicious/noControlCharactersInRegex: configuration paths must reject control bytes.
+  /[\\\u0000-\u001f\u007f]/.test(value) || value.split("/").some((segment) => !segment || segment === "." || segment === "..")) {
+    throw new Error("Invalid deployment configuration: roadmapPath must be a relative Markdown path under docs/");
+  }
+  return value;
+}
+function brand(value) {
+  const input = record(value, "brand");
+  const text10 = (key) => {
+    const item = input[key];
+    if (typeof item !== "string" || !item.trim() || item.length > 512 || // biome-ignore lint/suspicious/noControlCharactersInRegex: configuration labels must stay single-line.
+    /[\u0000-\u001f\u007f]/.test(item))
+      throw new Error(`Invalid deployment configuration: brand.${key} must be nonempty single-line text`);
+    return item;
+  };
+  return {
+    name: text10("name"),
+    displayName: text10("displayName"),
+    shortName: text10("shortName"),
+    hubName: text10("hubName"),
+    tagline: text10("tagline")
+  };
+}
+function selectProfile(input, requested) {
+  const file = record(input, "file");
+  if (file.schemaVersion !== 1) throw new Error("Unsupported deployment configuration schemaVersion");
+  const name2 = requested ?? file.activeProfile;
+  if (typeof name2 !== "string" || !name2.trim()) throw new Error("Missing active deployment profile");
+  const available = record(file.profiles, "profiles");
+  const selected = record(available[name2], `profile ${name2}`);
+  const corsOrigins = selected.corsOrigins;
+  if (!Array.isArray(corsOrigins) || !corsOrigins.every((origin) => {
+    if (typeof origin !== "string") return false;
+    try {
+      const url = new URL(origin);
+      return (url.protocol === "http:" || url.protocol === "https:") && url.origin === origin;
+    } catch {
+      return false;
+    }
+  })) {
+    throw new Error("Invalid deployment configuration: corsOrigins must contain HTTP(S) origins");
+  }
+  return {
+    name: name2,
+    profile: {
+      apiPort: port(selected.apiPort, "apiPort"),
+      webPort: port(selected.webPort, "webPort"),
+      envRegistryFrontendPort: port(selected.envRegistryFrontendPort, "envRegistryFrontendPort"),
+      corsOrigins: [...corsOrigins],
+      roadmapPath: roadmapPath(selected.roadmapPath),
+      brand: brand(selected.brand),
+      repositoryFullName: repository(selected.repositoryFullName)
+    }
+  };
+}
+function resolveDeploymentDefaults(input = deployment_profiles_default) {
+  const { profile } = selectProfile(input);
+  return {
+    ...profile,
+    apiBaseUrl: `http://localhost:${profile.apiPort}`,
+    apiLoopbackUrl: `http://127.0.0.1:${profile.apiPort}`,
+    frontendBaseUrl: `http://localhost:${profile.webPort}`,
+    repositoryUrl: `https://github.com/${profile.repositoryFullName}`
+  };
+}
+var deploymentDefaults = resolveDeploymentDefaults();
+
 // ../shared/src/dot-mcp.ts
 var dotEventRefSchema = external_exports.object({ event_id: external_exports.string().regex(/^dot_evt_[a-f0-9]{64}$/) }).strict();
 var dotSubscriptionArguments = external_exports.object({ attempt_id: external_exports.string().min(1).max(512), pairing_code: external_exports.string().min(16).max(128) }).strict();
@@ -29197,6 +29395,94 @@ var dotAskArguments = external_exports.object({
   content: external_exports.string().trim().min(1).max(5e4),
   client_message_id: external_exports.string().min(1).max(128)
 }).strict();
+var eventRef = { type: "string", pattern: "^dot_evt_[a-f0-9]{64}$" };
+var DOT_TOOLS = [
+  {
+    name: "cat_cafe_dot_read_source",
+    description: `Use when: a dot.summoned event asks you to join a ${deploymentDefaults.brand.displayName} conversation. NOT for: arbitrary threads or another cat\u2019s identity. Output: the exact original message, recent visible context, query scope and observation time. GOTCHA: call separately for every event; batching never changes its source.`,
+    inputSchema: {
+      type: "object",
+      properties: { event_id: eventRef },
+      required: ["event_id"],
+      additionalProperties: false
+    },
+    annotations: { readOnlyHint: true }
+  },
+  {
+    name: "cat_cafe_dot_reply",
+    description: "Use when: you have read this summon and are ready to answer in its original conversation. NOT for: selecting a different author, thread or user approval. Output: the durable source-bound reply message ID. GOTCHA: retries recover the same reply; a webhook acknowledgement alone does not authorize an unread-source reply.",
+    inputSchema: {
+      type: "object",
+      properties: { event_id: eventRef, content: { type: "string", minLength: 1, maxLength: 5e4 } },
+      required: ["event_id", "content"],
+      additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, idempotentHint: true }
+  },
+  {
+    name: "cat_cafe_dot_publish_image",
+    description: `Use when: delivering a generated original PNG to the exact conversation that summoned you. NOT for: Library IDs, private download links, local server paths, SVG or user impersonation. Output: a durable image publication and its original reply message. GOTCHA: obtain actual file bytes through authorized file tools; send at most 10 MiB per PNG and 8 images per event. Reuse each image\u2019s stable publication_key for retries; failed writes keep that slot. ${deploymentDefaults.brand.displayName} renders and retains the original without user download/upload.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        event_id: eventRef,
+        publication_key: { type: "string", minLength: 1, maxLength: 128 },
+        png_base64: { type: "string", maxLength: 13981016 },
+        alt: { type: "string", maxLength: 500 }
+      },
+      required: ["event_id", "publication_key", "png_base64"],
+      additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, idempotentHint: true }
+  },
+  {
+    name: "cat_cafe_dot_ask",
+    description: `Ask authorized house cats as the paired dot through the existing ${deploymentDefaults.brand.displayName} connection. Use when: initiating a question or collaboration, \u4E3B\u52A8\u95EE\u5BB6\u732B. NOT for: answering a dot.summoned event (use dot_reply), impersonating the owner, changing work authority or choosing an author. Output: a durable gpt-dot message and routing receipt; actual replies return to the same subscription. GOTCHA: generic post_message uses Pro identity, not dot. Prepare the current dot subscription once; reuse client_message_id for retries without changing thread, recipients or text.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        attempt_id: { type: "string", minLength: 1, maxLength: 512 },
+        thread_id: { type: "string", minLength: 1, maxLength: 512 },
+        target_cat_ids: {
+          type: "array",
+          items: { type: "string", minLength: 1, maxLength: 128 },
+          minItems: 1,
+          maxItems: 8
+        },
+        content: { type: "string", minLength: 1, maxLength: 5e4 },
+        client_message_id: { type: "string", minLength: 1, maxLength: 128 }
+      },
+      required: ["attempt_id", "thread_id", "target_cat_ids", "content", "client_message_id"],
+      additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, idempotentHint: true }
+  }
+];
+var DOT_EVENT_DEFINITION = {
+  name: "dot.summoned",
+  description: `An admitted ${deploymentDefaults.brand.displayName} summon for this connected dot. Read the referenced original message; reply to that same source.`,
+  delivery: ["webhook"],
+  inputSchema: {
+    type: "object",
+    properties: {
+      attempt_id: { type: "string" },
+      pairing_code: { type: "string" }
+    },
+    required: ["attempt_id", "pairing_code"],
+    additionalProperties: false
+  },
+  payloadSchema: {
+    type: "object",
+    properties: {
+      event_id: eventRef,
+      thread_id: { type: "string" },
+      source_message_id: { type: "string" },
+      dispatch_invocation_id: { type: "string" }
+    },
+    required: ["event_id", "thread_id", "source_message_id", "dispatch_invocation_id"],
+    additionalProperties: false
+  }
+};
 
 // ../shared/src/ignored-item-preference.ts
 var ignoredItemCoordinateSchema = external_exports.discriminatedUnion("kind", [
@@ -30715,12 +31001,12 @@ function linkReference(node2, _, state, info) {
   let subexit = state.enter("label");
   const tracker = state.createTracker(info);
   let value = tracker.move("[");
-  const text9 = state.containerPhrasing(node2, {
+  const text10 = state.containerPhrasing(node2, {
     before: value,
     after: "]",
     ...tracker.current()
   });
-  value += tracker.move(text9 + "][");
+  value += tracker.move(text10 + "][");
   subexit();
   const stack = state.stack;
   state.stack = [];
@@ -30733,7 +31019,7 @@ function linkReference(node2, _, state, info) {
   subexit();
   state.stack = stack;
   exit3();
-  if (type === "full" || !text9 || text9 !== reference) {
+  if (type === "full" || !text10 || text10 !== reference) {
     value += tracker.move(reference + "]");
   } else if (type === "shortcut") {
     value = value.slice(0, -1);
@@ -31798,7 +32084,7 @@ function resolveAllAttention(events, context2) {
   let index4 = -1;
   let open;
   let group;
-  let text9;
+  let text10;
   let openingSequence;
   let closingSequence;
   let use;
@@ -31836,7 +32122,7 @@ function resolveAllAttention(events, context2) {
             },
             end
           };
-          text9 = {
+          text10 = {
             type: use > 1 ? "strongText" : "emphasisText",
             start: {
               ...events[open][1].end
@@ -31864,9 +32150,9 @@ function resolveAllAttention(events, context2) {
           if (events[open][1].end.offset - events[open][1].start.offset) {
             nextEvents = push(nextEvents, [["enter", events[open][1], context2], ["exit", events[open][1], context2]]);
           }
-          nextEvents = push(nextEvents, [["enter", group, context2], ["enter", openingSequence, context2], ["exit", openingSequence, context2], ["enter", text9, context2]]);
+          nextEvents = push(nextEvents, [["enter", group, context2], ["enter", openingSequence, context2], ["exit", openingSequence, context2], ["enter", text10, context2]]);
           nextEvents = push(nextEvents, resolveAll(context2.parser.constructs.insideSpan.null, events.slice(open + 1, index4), context2));
-          nextEvents = push(nextEvents, [["exit", text9, context2], ["enter", closingSequence, context2], ["exit", closingSequence, context2], ["exit", group, context2]]);
+          nextEvents = push(nextEvents, [["exit", text10, context2], ["enter", closingSequence, context2], ["exit", closingSequence, context2], ["exit", group, context2]]);
           if (events[index4][1].end.offset - events[index4][1].start.offset) {
             offset2 = 2;
             nextEvents = push(nextEvents, [["enter", events[index4][1], context2], ["exit", events[index4][1], context2]]);
@@ -33336,7 +33622,7 @@ function resolveHeadingAtx(events, context2) {
   let contentEnd = events.length - 2;
   let contentStart = 3;
   let content3;
-  let text9;
+  let text10;
   if (events[contentStart][1].type === "whitespace") {
     contentStart += 2;
   }
@@ -33352,13 +33638,13 @@ function resolveHeadingAtx(events, context2) {
       start: events[contentStart][1].start,
       end: events[contentEnd][1].end
     };
-    text9 = {
+    text10 = {
       type: "chunkText",
       start: events[contentStart][1].start,
       end: events[contentEnd][1].end,
       contentType: "text"
     };
-    splice(events, contentStart, contentEnd - contentStart + 1, [["enter", content3, context2], ["enter", text9, context2], ["exit", text9, context2], ["exit", content3, context2]]);
+    splice(events, contentStart, contentEnd - contentStart + 1, [["enter", content3, context2], ["enter", text10, context2], ["exit", text10, context2], ["exit", content3, context2]]);
   }
   return events;
 }
@@ -34248,7 +34534,7 @@ function resolveToLabelEnd(events, context2) {
       ...events[close][1].end
     }
   };
-  const text9 = {
+  const text10 = {
     type: "labelText",
     start: {
       ...events[open + offset2 + 2][1].end
@@ -34259,9 +34545,9 @@ function resolveToLabelEnd(events, context2) {
   };
   media = [["enter", group, context2], ["enter", label, context2]];
   media = push(media, events.slice(open + 1, open + offset2 + 3));
-  media = push(media, [["enter", text9, context2]]);
+  media = push(media, [["enter", text10, context2]]);
   media = push(media, resolveAll(context2.parser.constructs.insideSpan.null, events.slice(open + offset2 + 4, close - 3), context2));
-  media = push(media, [["exit", text9, context2], events[close - 2], events[close - 1], ["exit", label, context2]]);
+  media = push(media, [["exit", text10, context2], events[close - 2], events[close - 1], ["exit", label, context2]]);
   media = push(media, events.slice(close + 1));
   media = push(media, [["exit", group, context2]]);
   splice(events, open, events.length, media);
@@ -34641,7 +34927,7 @@ var setextUnderline = {
 function resolveToSetextUnderline(events, context2) {
   let index4 = events.length;
   let content3;
-  let text9;
+  let text10;
   let definition3;
   while (index4--) {
     if (events[index4][0] === "enter") {
@@ -34650,7 +34936,7 @@ function resolveToSetextUnderline(events, context2) {
         break;
       }
       if (events[index4][1].type === "paragraph") {
-        text9 = index4;
+        text10 = index4;
       }
     } else {
       if (events[index4][1].type === "content") {
@@ -34670,9 +34956,9 @@ function resolveToSetextUnderline(events, context2) {
       ...events[events.length - 1][1].end
     }
   };
-  events[text9][1].type = "setextHeadingText";
+  events[text10][1].type = "setextHeadingText";
   if (definition3) {
-    events.splice(text9, 0, ["enter", heading3, context2]);
+    events.splice(text10, 0, ["enter", heading3, context2]);
     events.splice(definition3 + 1, 0, ["exit", events[content3][1], context2]);
     events[content3][1].end = {
       ...events[definition3][1].end
@@ -34775,11 +35061,11 @@ function tokenizePotentialGfmFootnoteCall(effects, ok3, nok) {
     if (!labelStart || !labelStart._balanced) {
       return nok(code4);
     }
-    const id27 = normalizeIdentifier(self2.sliceSerialize({
+    const id28 = normalizeIdentifier(self2.sliceSerialize({
       start: labelStart.end,
       end: self2.now()
     }));
-    if (id27.codePointAt(0) !== 94 || !defined.includes(id27.slice(1))) {
+    if (id28.codePointAt(0) !== 94 || !defined.includes(id28.slice(1))) {
       return nok(code4);
     }
     effects.enter("gfmFootnoteCallLabelMarker");
@@ -35037,17 +35323,17 @@ function gfmStrikethrough(options) {
               start: Object.assign({}, events[open][1].start),
               end: Object.assign({}, events[index4][1].end)
             };
-            const text9 = {
+            const text10 = {
               type: "strikethroughText",
               start: Object.assign({}, events[open][1].end),
               end: Object.assign({}, events[index4][1].start)
             };
-            const nextEvents = [["enter", strikethrough2, context2], ["enter", events[open][1], context2], ["exit", events[open][1], context2], ["enter", text9, context2]];
+            const nextEvents = [["enter", strikethrough2, context2], ["enter", events[open][1], context2], ["exit", events[open][1], context2], ["enter", text10, context2]];
             const insideSpan2 = context2.parser.constructs.insideSpan.null;
             if (insideSpan2) {
               splice(nextEvents, nextEvents.length, 0, resolveAll(insideSpan2, events.slice(open + 1, index4), context2));
             }
-            splice(nextEvents, nextEvents.length, 0, [["exit", text9, context2], ["enter", events[index4][1], context2], ["exit", events[index4][1], context2], ["exit", strikethrough2, context2]]);
+            splice(nextEvents, nextEvents.length, 0, [["exit", text10, context2], ["enter", events[index4][1], context2], ["exit", events[index4][1], context2], ["exit", strikethrough2, context2]]);
             splice(events, open - 1, index4 - open + 3, nextEvents);
             index4 = open + nextEvents.length - 2;
             break;
@@ -35971,10 +36257,10 @@ function initializeFactory(field) {
   function initializeText(effects) {
     const self2 = this;
     const constructs2 = this.parser.constructs[field];
-    const text9 = effects.attempt(constructs2, start2, notText);
+    const text10 = effects.attempt(constructs2, start2, notText);
     return start2;
     function start2(code4) {
-      return atBreak(code4) ? text9(code4) : notText(code4);
+      return atBreak(code4) ? text10(code4) : notText(code4);
     }
     function notText(code4) {
       if (code4 === null) {
@@ -35988,7 +36274,7 @@ function initializeFactory(field) {
     function data(code4) {
       if (atBreak(code4)) {
         effects.exit("data");
-        return text9(code4);
+        return text10(code4);
       }
       effects.consume(code4);
       return data;
@@ -37018,7 +37304,7 @@ function compiler(options) {
     const siblings = node2.children;
     let tail = siblings[siblings.length - 1];
     if (!tail || tail.type !== "text") {
-      tail = text9();
+      tail = text10();
       tail.position = {
         start: point2(token.start),
         // @ts-expect-error: we’ll add `end` later.
@@ -37263,7 +37549,7 @@ function compiler(options) {
       children: []
     };
   }
-  function text9() {
+  function text10() {
     return {
       type: "text",
       value: ""
@@ -39489,7 +39775,7 @@ var TRANSPARENT_CONTAINERS = /* @__PURE__ */ new Set([
   "tableCell"
 ]);
 var unitNulls = (length) => Array.from({ length }, () => null);
-var nulls = (text9) => ({ text: text9, offsets: unitNulls(text9.length) });
+var nulls = (text10) => ({ text: text10, offsets: unitNulls(text10.length) });
 function sourceRange(node2) {
   const start2 = node2.position?.start?.offset;
   const end = node2.position?.end?.offset;
@@ -39594,15 +39880,15 @@ var sourceProjectionSha256 = external_exports.string().regex(/^[a-f0-9]{64}$/);
 var characterOffset = external_exports.number().int().nonnegative().max(1e7);
 var sourceMessageIds = external_exports.array(boundedId).min(1).max(MESSAGE_BUNDLE_MAX_ITEMS).superRefine((ids2, ctx) => {
   const seen = /* @__PURE__ */ new Set();
-  ids2.forEach((id27, index4) => {
-    if (seen.has(id27)) {
+  ids2.forEach((id28, index4) => {
+    if (seen.has(id28)) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: [index4],
         message: "Message Bundle sourceMessageIds must be unique"
       });
     }
-    seen.add(id27);
+    seen.add(id28);
   });
 });
 function requireAnchorInSourceRefs(value, ctx) {
@@ -39967,6 +40253,25 @@ var schema = external_exports.discriminatedUnion("status", [
   }).strict()
 ]);
 
+// ../shared/src/plugin-archive-replacement.ts
+var digest = external_exports.string().regex(/^sha512-[A-Za-z0-9+/]{85}[AQgw]==$/);
+var revision = external_exports.number().int().safe().min(1);
+var PluginArchiveReplacementConfirmationSchema = external_exports.object({
+  pluginId: external_exports.string().min(1).max(128).regex(/^[a-z0-9][a-z0-9._-]*$/),
+  pluginInstanceId: external_exports.string().min(1).max(256),
+  currentPackageDigest: digest,
+  candidatePackageDigest: digest,
+  expectedLifecycleRevision: revision,
+  expectedGrantRevision: revision,
+  candidateEffectiveGrants: external_exports.array(external_exports.string().min(1).max(128)).max(256)
+}).strict();
+var PluginArchiveReplacementOfferSchema = external_exports.object({
+  confirmation: PluginArchiveReplacementConfirmationSchema,
+  displayName: external_exports.string().min(1),
+  currentVersion: external_exports.string().min(1),
+  candidateVersion: external_exports.string().min(1)
+}).strict();
+
 // ../shared/src/preview-visible-page-admission.ts
 var fullGitRevisionSchema = external_exports.string().regex(/^[0-9a-f]{40}$/);
 var boundedTextSchema = external_exports.string().min(1).max(200);
@@ -40040,11 +40345,11 @@ var RECALL_META_OPEN_TAG = `<${RECALL_META_TAG}>`;
 var RECALL_META_CLOSE_TAG = `</${RECALL_META_TAG}>`;
 
 // ../shared/src/types/ids.ts
-function createCatId(id27) {
-  if (!id27 || typeof id27 !== "string") {
+function createCatId(id28) {
+  if (!id28 || typeof id28 !== "string") {
     throw new Error("Invalid cat ID: must be non-empty string");
   }
-  return id27;
+  return id28;
 }
 
 // ../shared/src/registry/CatRegistry.ts
@@ -40081,12 +40386,12 @@ var CatRegistry = class {
     return this.entries.get(catId2);
   }
   getAllIds() {
-    return Array.from(this.entries.keys()).map((id27) => createCatId(id27));
+    return Array.from(this.entries.keys()).map((id28) => createCatId(id28));
   }
   getAllConfigs() {
     const result = {};
-    for (const [id27, entry] of this.entries) {
-      result[id27] = entry.config;
+    for (const [id28, entry] of this.entries) {
+      result[id28] = entry.config;
     }
     return result;
   }
@@ -40115,9 +40420,9 @@ var catRegistry = new CatRegistry();
 // ../shared/src/registry/cat-id-schema.ts
 function catIdSchema() {
   return external_exports.string().refine(
-    (id27) => catRegistry.has(id27),
-    (id27) => ({
-      message: `Unknown cat ID: "${id27}". Valid: ${catRegistry.getAllIds().join(", ")}`
+    (id28) => catRegistry.has(id28),
+    (id28) => ({
+      message: `Unknown cat ID: "${id28}". Valid: ${catRegistry.getAllIds().join(", ")}`
     })
   );
 }
@@ -40188,6 +40493,12 @@ var artifactReviewAnchorSchema = external_exports.discriminatedUnion("kind", [
     streamId: id2,
     startTick: tick,
     endTick: tick,
+    /** A quoted paragraph belongs to this exact media version and retained metadata revision. */
+    storyEvidence: external_exports.object({
+      paragraphId: external_exports.string().min(1).max(256),
+      metadataRevision: positive,
+      quote: external_exports.string().min(1).max(12e3)
+    }).strict().optional(),
     frameRegion: external_exports.object({ tick, ...region }).strict().optional(),
     framePoint: external_exports.object({ tick, ...point3 }).strict().optional()
   }).strict()
@@ -40274,6 +40585,16 @@ var artifactReviewResponseSchema = external_exports.object({
   disposition: external_exports.enum(["addressed", "unchanged"]),
   explanation: text5
 }).strict();
+var artifactReviewResponseRecordSchema = artifactReviewResponseSchema.extend({
+  resultAnchor: artifactReviewAnchorSchema.optional(),
+  /** Direct Human judgment of this exact result response; the original operation audit retains earlier choices. */
+  judgment: external_exports.object({
+    outcome: external_exports.enum(["accepted", "reopened"]),
+    actor: external_exports.object({ kind: external_exports.literal("human"), actorId: id3 }).strict(),
+    decidedAt: timestamp,
+    receiptRef: ref4
+  }).strict().optional()
+});
 var artifactReviewVisualMarkSchema = external_exports.object({
   drawing: artifactReviewDrawingSchema,
   author: artifactReviewActorSchema,
@@ -40292,7 +40613,15 @@ var artifactReviewRoundSchema = external_exports.object({
   state: external_exports.enum(["draft", "awaiting_human", "approved", "changes_requested", "superseded"]),
   annotations: external_exports.array(artifactReviewAnnotationSchema).max(500),
   visualMarks: external_exports.array(artifactReviewVisualMarkSchema).max(500).optional(),
-  responses: external_exports.array(artifactReviewResponseSchema).max(500),
+  responses: external_exports.array(artifactReviewResponseRecordSchema).max(500),
+  responseSource: external_exports.object({
+    round: positive2,
+    ownerRevision: positive2,
+    reviewRevision: positive2,
+    requestId: id3.optional(),
+    ledgerRef: id3.optional(),
+    ledgerRevision: positive2.optional()
+  }).strict().optional(),
   responseAuthor: artifactReviewActorSchema.optional(),
   judgmentRequest: external_exports.object({ summary: text5, judgmentNeeded: text5, requestedBy: artifactReviewActorSchema, requestedAt: timestamp }).strict().optional(),
   decision: external_exports.object({
@@ -40327,6 +40656,14 @@ var artifactReviewSchema = external_exports.object({
 ).refine(
   (review) => review.version === 3 || review.rounds.every((round) => !round.ledgerRef),
   "Linked ledgers require record version 3"
+).refine(
+  (review) => review.rounds.every((round) => {
+    const reference = round.responseSource;
+    if (!reference) return true;
+    const source3 = review.rounds.find((item) => item.number === reference.round);
+    return source3 !== void 0 && source3.number < round.number && source3.asset.ownerRevision === reference.ownerRevision && source3.ledgerRef === reference.ledgerRef && reference.reviewRevision < review.revision;
+  }),
+  "Response source must name its retained original round"
 );
 var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
@@ -40362,6 +40699,13 @@ var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("reply"), annotationId: id3, replyId: id3, body: text5 }).strict(),
   external_exports.object({ kind: external_exports.literal("edit"), annotationId: id3, replyId: id3.optional(), body: text5 }).strict(),
   external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id3, state: external_exports.enum(["open", "resolved"]) }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("judge_response"),
+    sourceRound: positive2,
+    annotationId: id3,
+    resultOwnerRevision: positive2,
+    outcome: external_exports.enum(["accepted", "reopened"])
+  }).strict(),
   external_exports.object({ kind: external_exports.literal("request_judgment"), summary: text5, judgmentNeeded: text5 }).strict(),
   external_exports.object({ kind: external_exports.literal("submit_feedback"), explanation: text5 }).strict(),
   external_exports.object({
@@ -40423,7 +40767,7 @@ var publicationReviewContextSchema = external_exports.object({
 
 // ../shared/src/types/video-project-review.ts
 var id4 = external_exports.string().min(1).max(256).refine((value) => value.trim().length > 0);
-var revision = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var revision2 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var positive3 = external_exports.number().int().positive().safe();
 var tick2 = external_exports.number().int().nonnegative().safe();
 var body = external_exports.string().min(1).max(8e3).refine((value) => value.trim().length > 0);
@@ -40435,7 +40779,7 @@ var videoProjectReviewSourceSchema = external_exports.object({
   kind: external_exports.literal("video-project"),
   contentRef: id4,
   ownerRevision: positive3,
-  revision,
+  revision: revision2,
   mime: external_exports.literal("application/vnd.cat-cafe.video-project+json")
 }).strict();
 var regionBboxSchema = external_exports.object({
@@ -40492,12 +40836,12 @@ var videoProjectReviewTargetSchema = external_exports.discriminatedUnion("kind",
 });
 var videoProjectReviewAnchorSchema = external_exports.object({
   kind: external_exports.literal("video-project"),
-  baseRevision: revision,
+  baseRevision: revision2,
   baseOwnerRevision: positive3,
   target: videoProjectReviewTargetSchema
 }).strict();
 var videoProjectReviewResultSchema = external_exports.union([
-  external_exports.object({ contentRef: id4, ownerRevision: positive3, blobDigest: revision, operationId: id4 }).strict(),
+  external_exports.object({ contentRef: id4, ownerRevision: positive3, blobDigest: revision2, operationId: id4 }).strict(),
   external_exports.object({ assetVersionRef: id4, ownerRevision: positive3 }).strict(),
   external_exports.object({ kind: external_exports.literal("not-changed"), reason: body }).strict()
 ]);
@@ -40735,12 +41079,12 @@ var videoProjectScreeningsSchema = external_exports.array(videoProjectScreeningS
 
 // ../shared/src/types/content-modification-project.ts
 var id5 = external_exports.string().trim().min(1).max(256);
-var revision2 = external_exports.number().int().positive().safe();
+var revision3 = external_exports.number().int().positive().safe();
 var projectModificationSourceSchema = external_exports.object({
   kind: external_exports.literal("video-project"),
   contentRef: id5,
   reviewId: id5,
-  expectedReviewRevision: revision2,
+  expectedReviewRevision: revision3,
   screeningId: id5,
   input: videoProjectFrozenInputSchema,
   media: videoProjectFrozenInputSchema,
@@ -40796,11 +41140,11 @@ var strictEvent = (shape) => external_exports.object(shape).strict();
 var ownerTruthRefV1Schema = external_exports.object(refShape).strict();
 var assetVersionRefV1Schema = external_exports.object({ ...refShape, assetKind: bounded(120), assetId: bounded(240) }).strict();
 var exactAssetVersionRefV1Schema = external_exports.object({ ...refShape, version: bounded(240), assetKind: bounded(120), assetId: bounded(240) }).strict();
-var isAssetRef = (ref8) => typeof ref8.assetKind === "string" && typeof ref8.assetId === "string";
-var refIdentity = (ref8) => JSON.stringify(
-  isAssetRef(ref8) ? ["asset", ref8.ownerFeatureId, ref8.ownerStateRef, ref8.version ?? null, ref8.assetKind, ref8.assetId] : ["owner", ref8.ownerFeatureId, ref8.ownerStateRef, ref8.version ?? null]
+var isAssetRef = (ref10) => typeof ref10.assetKind === "string" && typeof ref10.assetId === "string";
+var refIdentity = (ref10) => JSON.stringify(
+  isAssetRef(ref10) ? ["asset", ref10.ownerFeatureId, ref10.ownerStateRef, ref10.version ?? null, ref10.assetKind, ref10.assetId] : ["owner", ref10.ownerFeatureId, ref10.ownerStateRef, ref10.version ?? null]
 );
-var assetOwnerIdentity = (ref8) => JSON.stringify(["asset-owner", ref8.ownerFeatureId, ref8.assetKind, ref8.assetId]);
+var assetOwnerIdentity = (ref10) => JSON.stringify(["asset-owner", ref10.ownerFeatureId, ref10.assetKind, ref10.assetId]);
 
 // ../shared/src/types/capability-evolution-asset-review.ts
 var exact = exactAssetVersionRefV1Schema;
@@ -40848,7 +41192,7 @@ var evidenceSchema = external_exports.object({
 var useSchema = external_exports.object({
   receiptRef: owner,
   assetVersionRef: exact,
-  invocationRef: owner.refine((ref8) => ref8.ownerFeatureId === "F299" && /^inv:\S+$/.test(ref8.ownerStateRef)),
+  invocationRef: owner.refine((ref10) => ref10.ownerFeatureId === "F299" && /^inv:\S+$/.test(ref10.ownerStateRef)),
   consumerRef: owner,
   taskRef: owner.optional(),
   use: external_exports.enum(["applied", "dismissed", "unconfirmed"]),
@@ -40896,7 +41240,7 @@ var evolutionAssetReviewV1Schema = external_exports.discriminatedUnion("status",
 ]).superRefine((value, context2) => {
   if (value.status !== "resolved") return;
   const versions = new Set(value.versions.map((item) => refIdentity(item.versionRef)));
-  if (versions.size !== value.versions.length || value.currentVersionRefs.some((ref8) => !versions.has(refIdentity(ref8))) || value.selected && !versions.has(refIdentity(value.selected.versionRef))) {
+  if (versions.size !== value.versions.length || value.currentVersionRefs.some((ref10) => !versions.has(refIdentity(ref10))) || value.selected && !versions.has(refIdentity(value.selected.versionRef))) {
     context2.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "current and selected versions must occur exactly in the owner catalog"
@@ -40906,7 +41250,7 @@ var evolutionAssetReviewV1Schema = external_exports.discriminatedUnion("status",
   if (new Set(owners).size !== owners.length)
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: "one live current version per owner asset" });
   const diff = value.selected?.diff;
-  if (value.selected && diff?.status === "available" && (assetOwnerIdentity(diff.comparedToVersionRef) !== assetOwnerIdentity(value.selected.versionRef) || !value.currentVersionRefs.some((ref8) => refIdentity(ref8) === refIdentity(diff.comparedToVersionRef))))
+  if (value.selected && diff?.status === "available" && (assetOwnerIdentity(diff.comparedToVersionRef) !== assetOwnerIdentity(value.selected.versionRef) || !value.currentVersionRefs.some((ref10) => refIdentity(ref10) === refIdentity(diff.comparedToVersionRef))))
     context2.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "diff comparison must bind the live current version of the selected owner asset"
@@ -40914,20 +41258,20 @@ var evolutionAssetReviewV1Schema = external_exports.discriminatedUnion("status",
 });
 
 // ../shared/src/types/capability-evolution-exploration-record.ts
-var evolutionExplorationRefSchema = ownerTruthRefV1Schema.refine((ref8) => Boolean(ref8.version), {
+var evolutionExplorationRefSchema = ownerTruthRefV1Schema.refine((ref10) => Boolean(ref10.version), {
   message: "exploration sources require an exact revision"
 });
 var exact2 = evolutionExplorationRefSchema;
 var evolutionExplorationNodeRefSchema = external_exports.union([exact2, exactAssetVersionRefV1Schema]);
 var evolutionExplorationReadOwnerRefSchema = external_exports.object({ ...refShape, assetKind: external_exports.never().optional(), assetId: external_exports.never().optional() }).strip().transform(
-  (ref8) => ({
-    ownerFeatureId: ref8.ownerFeatureId,
-    ownerStateRef: ref8.ownerStateRef,
-    ...ref8.version ? { version: ref8.version } : {}
+  (ref10) => ({
+    ownerFeatureId: ref10.ownerFeatureId,
+    ownerStateRef: ref10.ownerStateRef,
+    ...ref10.version ? { version: ref10.version } : {}
   })
 );
 var evolutionExplorationReadRefSchema = evolutionExplorationReadOwnerRefSchema.refine(
-  (ref8) => Boolean(ref8.version),
+  (ref10) => Boolean(ref10.version),
   {
     message: "exploration sources require an exact revision"
   }
@@ -40947,7 +41291,7 @@ var readNodeRef = evolutionExplorationReadNodeRefSchema;
 var fact = external_exports.object({ label: bounded(240), value: bounded(4e3) }).strip();
 var evolutionExplorationSourceSchema = external_exports.object({ label: bounded(240), ref: readExact, href: evolutionOwnerHrefSchema.optional() }).strip();
 var evolutionExplorationReadFailureSchema = external_exports.object({ status: external_exports.enum(["unavailable", "invalid"]), reason: bounded(2e3) }).strip();
-var mediaRef = readExact.refine((ref8) => /^[a-f0-9]{64}$/.test(ref8.version ?? ""), "media needs a SHA-256 revision");
+var mediaRef = readExact.refine((ref10) => /^[a-f0-9]{64}$/.test(ref10.version ?? ""), "media needs a SHA-256 revision");
 var mediaType = {
   kind: external_exports.enum(["image", "video"]),
   contentType: external_exports.enum(["image/png", "image/jpeg", "image/webp", "video/mp4", "video/webm"])
@@ -41023,14 +41367,14 @@ var evolutionExplorationRecordSchema = external_exports.object({
   media: external_exports.array(evolutionExplorationMediaSchema).max(8),
   mediaStatus: evolutionExplorationReadFailureSchema.optional(),
   sources: external_exports.array(evolutionExplorationSourceSchema).min(1).max(16)
-}).strip().superRefine((record, ctx) => {
-  if (record.mediaStatus && record.media.length)
+}).strip().superRefine((record2, ctx) => {
+  if (record2.mediaStatus && record2.media.length)
     ctx.addIssue({ code: "custom", message: "failed media inventory cannot publish verified media" });
-  if (record.trace && (refIdentity(record.trace.sourceRef) !== refIdentity(record.evidenceRef) || record.trace.points.some(
-    (point6, index4) => index4 > 0 && point6.seconds <= (record.trace?.points[index4 - 1]?.seconds ?? -1)
+  if (record2.trace && (refIdentity(record2.trace.sourceRef) !== refIdentity(record2.evidenceRef) || record2.trace.points.some(
+    (point6, index4) => index4 > 0 && point6.seconds <= (record2.trace?.points[index4 - 1]?.seconds ?? -1)
   )))
     ctx.addIssue({ code: "custom", message: "derived trace must retain exact evidence identity and chronology" });
-  if (record.media.some((media) => refIdentity(media.sourceRecordRef) !== refIdentity(record.evidenceRef)))
+  if (record2.media.some((media) => refIdentity(media.sourceRecordRef) !== refIdentity(record2.evidenceRef)))
     ctx.addIssue({
       code: "custom",
       message: "media must bind this record evidence, including identical-capture replays"
@@ -41065,7 +41409,7 @@ var evolutionMediaLocatorSchema = external_exports.object({
   programId: external_exports.string().regex(/^evolution-program:[a-f0-9]{32}$/),
   experimentRef: evolutionExplorationRefSchema,
   recordRef: evolutionExplorationRefSchema,
-  mediaRef: evolutionExplorationRefSchema.refine((ref8) => /^[a-f0-9]{64}$/.test(ref8.version ?? ""))
+  mediaRef: evolutionExplorationRefSchema.refine((ref10) => /^[a-f0-9]{64}$/.test(ref10.version ?? ""))
 }).strict();
 var evolutionMediaSnapshotSourceSchema = external_exports.object({
   kind: external_exports.literal("evolution-snapshot"),
@@ -41075,7 +41419,7 @@ var evolutionMediaSnapshotSourceSchema = external_exports.object({
 
 // ../shared/src/types/video-project-message.ts
 var id6 = external_exports.string().trim().min(1).max(256);
-var revision3 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var revision4 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var videoProjectMediaRangeSchema = external_exports.object({ startPts: external_exports.number().int().safe(), endPts: external_exports.number().int().safe() }).strict().refine(({ startPts, endPts }) => endPts > startPts, "Media selection must be a nonempty half-open range");
 var videoProjectScreeningSelectionSchema = external_exports.object({
   id: id6,
@@ -41102,7 +41446,7 @@ var projectScreeningContextAttachmentSchema = external_exports.object({
 var videoProjectMessageSourceSchema = external_exports.object({
   threadId: id6,
   messageId: id6,
-  messageRevision: revision3,
+  messageRevision: revision4,
   attachmentId: id6,
   selectionId: id6,
   visibility: external_exports.enum(["public", "whisper"]),
@@ -41121,7 +41465,7 @@ var videoProjectMessageContextSchema = external_exports.object({
 // ../shared/src/types/workspace-content-review.ts
 var id7 = external_exports.string().trim().min(1).max(256);
 var timestamp2 = external_exports.string().datetime();
-var revision4 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var revision5 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var positive4 = external_exports.number().int().positive().safe();
 var body2 = external_exports.string().trim().min(1).max(8e3);
 var rawSourceQuote = external_exports.string().min(1).max(8e3);
@@ -41138,15 +41482,15 @@ var workspaceContentSourceSchema = external_exports.discriminatedUnion("kind", [
     kind: external_exports.literal("collective-media"),
     contentRef: id7,
     ownerRevision: positive4,
-    blobDigest: revision4,
+    blobDigest: revision5,
     ownerReceiptRef: id7,
-    revision: revision4,
+    revision: revision5,
     mime: external_exports.enum(["image/png", "video/mp4"]),
     media: immutableMediaSchema
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("collective-artifact"),
-    revision: revision4,
+    revision: revision5,
     ownerRevision: positive4,
     mime: external_exports.literal("text/markdown"),
     byteLength: external_exports.number().int().nonnegative().max(65536)
@@ -41155,7 +41499,7 @@ var workspaceContentSourceSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
     kind: external_exports.literal("evolution"),
     locator: evolutionMediaLocatorSchema,
-    revision: revision4,
+    revision: revision5,
     mime: external_exports.enum(["image/png", "image/jpeg", "image/webp", "video/mp4", "video/webm"]),
     byteLength: positive4,
     media: immutableMediaSchema,
@@ -41164,21 +41508,21 @@ var workspaceContentSourceSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
     kind: external_exports.literal("text"),
     locator: workspaceContentLocatorSchema,
-    revision: revision4,
+    revision: revision5,
     mime: external_exports.string().trim().min(1).max(128),
     byteLength: external_exports.number().int().nonnegative().safe()
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("media"),
     locator: workspaceContentLocatorSchema,
-    revision: revision4,
+    revision: revision5,
     mime: reviewedMediaTypeSchema,
     byteLength: positive4,
     media: immutableMediaSchema
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("publication"),
-    revision: revision4,
+    revision: revision5,
     mime: reviewedMediaTypeSchema,
     media: immutableMediaSchema,
     publication: reviewedMediaAssetSchema.omit({ media: true, mediaType: true })
@@ -41186,15 +41530,15 @@ var workspaceContentSourceSchema = external_exports.discriminatedUnion("kind", [
 ]);
 var workspaceTextAnchorSchema = external_exports.object({
   kind: external_exports.literal("text_quote"),
-  baseRevision: revision4,
+  baseRevision: revision5,
   start: external_exports.number().int().nonnegative().safe(),
   end: external_exports.number().int().positive().safe(),
   /** Raw source evidence is never normalized like a human-authored comment body. */
   quote: rawSourceQuote,
-  quoteDigest: revision4,
-  contextDigest: revision4
+  quoteDigest: revision5,
+  contextDigest: revision5
 }).strict().refine((anchor) => anchor.end > anchor.start, "Text range must be nonempty");
-var workspaceMediaAnchorSchema = external_exports.object({ baseRevision: revision4, anchor: artifactReviewAnchorSchema }).strict();
+var workspaceMediaAnchorSchema = external_exports.object({ baseRevision: revision5, anchor: artifactReviewAnchorSchema }).strict();
 var workspaceContentAnchorSchema = external_exports.union([
   workspaceTextAnchorSchema,
   workspaceMediaAnchorSchema,
@@ -41209,7 +41553,7 @@ var workspaceContentReplySchema = external_exports.object({
 }).strict();
 var workspaceContentVisualMarkSchema = external_exports.object({
   drawing: artifactReviewDrawingSchema,
-  baseRevision: revision4,
+  baseRevision: revision5,
   author: workspaceContentActorSchema,
   createdAt: timestamp2,
   state: external_exports.enum(["active", "deleted"]),
@@ -41223,7 +41567,7 @@ var workspaceContentAnnotationSchema = external_exports.object({
     channelId: id7,
     rootEventId: id7,
     ownerRevision: positive4,
-    blobDigest: revision4
+    blobDigest: revision5
   }).strict().optional(),
   imageEdit: artifactReviewImageEditSchema.optional(),
   reanchoredFrom: external_exports.object({ round: positive4, annotationId: id7 }).strict().optional(),
@@ -41349,32 +41693,32 @@ var contentModificationReceiptV1Schema = external_exports.discriminatedUnion("st
 
 // ../shared/src/types/content-modification.ts
 var id8 = external_exports.string().trim().min(1).max(256);
-var revision5 = external_exports.number().int().positive().safe();
+var revision6 = external_exports.number().int().positive().safe();
 var sha = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var businessTime = external_exports.number().int().positive().safe();
 var contentModificationSourceSchema = external_exports.discriminatedUnion("kind", [
   projectModificationSourceSchema,
-  external_exports.object({ kind: external_exports.literal("artifact-review"), reviewId: id8, round: revision5, expectedReviewRevision: revision5 }).strict(),
+  external_exports.object({ kind: external_exports.literal("artifact-review"), reviewId: id8, round: revision6, expectedReviewRevision: revision6 }).strict(),
   external_exports.object({
     kind: external_exports.literal("evolution"),
     locator: evolutionMediaLocatorSchema,
     expectedSourceRevision: sha,
     reviewId: id8,
-    expectedReviewRevision: revision5
+    expectedReviewRevision: revision6
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("publication"),
     contentRef: id8,
-    ownerRevision: revision5,
+    ownerRevision: revision6,
     ledgerRef: id8,
-    expectedLedgerRevision: revision5
+    expectedLedgerRevision: revision6
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("workspace"),
     locator: workspaceContentLocatorSchema,
     expectedSourceRevision: sha,
     reviewId: id8,
-    expectedReviewRevision: revision5
+    expectedReviewRevision: revision6
   }).strict()
 ]);
 var contentModificationSelectionSchema = external_exports.union([
@@ -41440,12 +41784,12 @@ var contentModificationRequestSchema = external_exports.object({
     external_exports.object({
       kind: external_exports.literal("media").optional(),
       taskId: id8,
-      expectedTaskRevision: revision5,
+      expectedTaskRevision: revision6,
       reviewId: id8,
-      expectedReviewRevision: revision5,
-      round: revision5
+      expectedReviewRevision: revision6,
+      round: revision6
     }).strict(),
-    external_exports.object({ kind: external_exports.literal("text"), taskId: id8, expectedTaskRevision: revision5 }).strict()
+    external_exports.object({ kind: external_exports.literal("text"), taskId: id8, expectedTaskRevision: revision6 }).strict()
   ]).optional(),
   time: external_exports.object({ businessDeadline: businessTime.optional(), reviewBy: businessTime.optional() }).strict().optional()
 }).strict();
@@ -41473,13 +41817,13 @@ var contentModificationRequestContractSchema = contentModificationRequestSchema.
     return;
   }
   if (!selections) return;
-  const text9 = selections.filter((item) => item.selection.kind === "text_quote");
-  if (text9.length === 0) {
+  const text10 = selections.filter((item) => item.selection.kind === "text_quote");
+  if (text10.length === 0) {
     if (request.taskContext?.kind === "text")
       ctx.addIssue({ code: "custom", path: ["taskContext"], message: "Media selections require media context" });
     return;
   }
-  if (text9.length !== selections.length) {
+  if (text10.length !== selections.length) {
     ctx.addIssue({ code: "custom", path: ["intent", "selections"], message: "Do not mix text and media selections" });
     return;
   }
@@ -41522,7 +41866,7 @@ var contentTextEditSchema = external_exports.object({
 var respondContentTextSchema = external_exports.object({
   requestId: id8,
   operationId: external_exports.string().uuid(),
-  expectedTaskRevision: revision5,
+  expectedTaskRevision: revision6,
   expectedProposalRevision: external_exports.number().int().nonnegative().safe(),
   baseRevision: sha,
   edits: external_exports.array(contentTextEditSchema).min(1).max(500),
@@ -41567,7 +41911,7 @@ var mediaPublicationSourceSchema = external_exports.discriminatedUnion("kind", [
 // ../shared/src/types/media-context-attachment.ts
 var id10 = external_exports.string().trim().min(1).max(128);
 var ownerId = external_exports.string().trim().min(1).max(256);
-var revision6 = external_exports.number().int().positive().safe();
+var revision7 = external_exports.number().int().positive().safe();
 var mediaGalleryOriginSchema = messageMediaPublicationSourceSchema.pick({ threadId: true, messageId: true, messageRevision: true, item: true }).extend({ index: external_exports.number().int().min(0).max(1e4), count: external_exports.number().int().min(1).max(10001) }).strict().refine((value) => value.index < value.count, "Gallery position must be inside its original message group");
 var MediaContextAttachmentSchema = external_exports.object({
   v: external_exports.literal(1),
@@ -41581,10 +41925,10 @@ var MediaContextAttachmentSchema = external_exports.object({
   taskContext: external_exports.object({
     kind: external_exports.literal("media"),
     taskId: ownerId,
-    expectedTaskRevision: revision6,
+    expectedTaskRevision: revision7,
     reviewId: ownerId,
-    expectedReviewRevision: revision6,
-    round: revision6
+    expectedReviewRevision: revision7,
+    round: revision7
   }).strict().optional()
 }).strict().superRefine((value, ctx) => {
   if (new Set(value.selections.map((item) => item.id)).size !== value.selections.length)
@@ -41727,8 +42071,8 @@ var ContextAttachmentsSchema = external_exports.array(ContextAttachmentSchema).m
 });
 var VersionBoundContextAttachmentsSchema = ContextAttachmentsSchema.superRefine((attachments, ctx) => {
   for (const [index4, attachment] of attachments.entries()) {
-    const revision9 = attachment.kind === "workspace_file" ? attachment.revision : attachment.kind === "quote" && attachment.source.kind === "workspace_file" ? attachment.source.revision : "not-a-workspace-reference";
-    if (revision9 === void 0) {
+    const revision11 = attachment.kind === "workspace_file" ? attachment.revision : attachment.kind === "quote" && attachment.source.kind === "workspace_file" ? attachment.source.revision : "not-a-workspace-reference";
+    if (revision11 === void 0) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         message: "New workspace-file references require the exact F063 owner revision",
@@ -42941,16 +43285,16 @@ var collectiveHostShellAppearanceSchema = external_exports.object({
 // ../shared/src/types/collective-artifact-custody.ts
 var id11 = external_exports.string().trim().min(1).max(256);
 var positive5 = external_exports.number().int().positive().safe();
-var digest = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var digest2 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var COLLECTIVE_CUSTODY_PAGE_BYTES = 32768;
 var COLLECTIVE_CUSTODY_MAX_BYTES = 16 * 1024 * 1024;
 var COLLECTIVE_CUSTODY_MAX_PAGES = 512;
 var collectiveCustodyManifestSchema = external_exports.object({
-  digest,
+  digest: digest2,
   totalBytes: positive5.max(COLLECTIVE_CUSTODY_MAX_BYTES),
   pageCount: positive5.max(COLLECTIVE_CUSTODY_MAX_PAGES)
 }).strict().refine((value) => value.pageCount === Math.ceil(value.totalBytes / COLLECTIVE_CUSTODY_PAGE_BYTES));
-var collectiveCustodyVersionSchema = external_exports.object({ contentRef: id11, ownerRevision: positive5, blobDigest: digest, receiptRef: id11 }).strict();
+var collectiveCustodyVersionSchema = external_exports.object({ contentRef: id11, ownerRevision: positive5, blobDigest: digest2, receiptRef: id11 }).strict();
 var collectiveCustodyPreparedSchema = external_exports.object({
   preparedRef: id11,
   manifest: collectiveCustodyManifestSchema,
@@ -42960,7 +43304,7 @@ var collectiveCustodyPreparedSchema = external_exports.object({
 var collectiveCustodyReadySchema = external_exports.object({
   readyRef: id11,
   preparedRef: id11,
-  manifestDigest: digest,
+  manifestDigest: digest2,
   ownerScopeRef: id11
 }).strict();
 var collectiveCustodyTransferSchema = external_exports.object({
@@ -42995,7 +43339,7 @@ var collectiveCustodyTransferSchema = external_exports.object({
 var collectiveCustodyPageSchema = external_exports.object({
   transferId: id11,
   index: external_exports.number().int().nonnegative().max(COLLECTIVE_CUSTODY_MAX_PAGES - 1),
-  digest,
+  digest: digest2,
   base64: external_exports.string().min(1).max(Math.ceil(COLLECTIVE_CUSTODY_PAGE_BYTES / 3) * 4)
 }).strict();
 var collectiveCustodyEndpointSchema = external_exports.object({ serviceInstanceId: id11, collectiveId: id11, connectionId: id11 }).strict();
@@ -43009,7 +43353,7 @@ var authorizeCollectiveCustodySchema = collectiveCustodyTargetSchema.extend({ op
 // ../shared/src/types/collective-content-modification.ts
 var id12 = external_exports.string().trim().min(1).max(256);
 var positive6 = external_exports.number().int().positive().safe();
-var digest2 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var digest3 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var collectiveModificationReworkSchema = external_exports.object({ requestId: id12, proposalRef: id12 }).strict();
 var collectiveModificationResolutionSchema = external_exports.object({
   kind: external_exports.enum(["cancelled", "rejected"]),
@@ -43027,7 +43371,7 @@ var collectiveModificationSourceSchema = external_exports.object({
   artifactId: id12,
   contentRef: id12,
   ownerRevision: positive6,
-  blobDigest: digest2,
+  blobDigest: digest3,
   ledgerRef: id12,
   ledgerRevision: positive6,
   sourceEventId: id12,
@@ -43072,7 +43416,7 @@ var collectiveModificationProjectionSchema = collectiveModificationRecordSchema.
 }).extend({
   target: external_exports.object({ humanId: id12, catId: id12 }).strict(),
   ownerRevision: positive6,
-  blobDigest: digest2,
+  blobDigest: digest3,
   requestEventId: id12,
   sourceEventId: id12,
   location: collectiveLocationSchema,
@@ -43090,8 +43434,8 @@ var collectiveContentTextProposalReceiptSchema = external_exports.object({
   requestId: id12,
   revision: positive6,
   operationId: external_exports.string().uuid(),
-  baseRevision: digest2,
-  resultRevision: digest2,
+  baseRevision: digest3,
+  resultRevision: digest3,
   authorCatId: id12,
   createdAt: external_exports.number().int().nonnegative().safe(),
   receiptRef: id12
@@ -43101,12 +43445,12 @@ var collectiveContentTextProposalReceiptSchema = external_exports.object({
 var COLLECTIVE_ARTIFACT_VERSION_LIMIT = 1e4;
 var id13 = external_exports.string().trim().min(1).max(256);
 var positive7 = external_exports.number().int().positive().safe();
-var digest3 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var digest4 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var coordinates = { serviceInstanceId: id13, collectiveId: id13 };
 var collectiveArtifactSelectionSchema = external_exports.object({
   start: external_exports.number().int().nonnegative().max(65536),
   end: external_exports.number().int().positive().max(65536),
-  quoteDigest: digest3
+  quoteDigest: digest4
 }).strict().refine((selection) => selection.end > selection.start && selection.end - selection.start <= 8e3);
 var collectiveArtifactAdoptionLineageSchema = external_exports.object({
   requestId: id13,
@@ -43128,7 +43472,7 @@ var collectiveArtifactActionSchema = external_exports.enum([
 ]);
 var collectiveArtifactVersionSchema = external_exports.object({
   ownerRevision: positive7,
-  blobDigest: digest3,
+  blobDigest: digest4,
   receiptRef: id13,
   recordedAt: external_exports.string().datetime(),
   lineage: collectiveArtifactAdoptionLineageSchema.optional(),
@@ -43153,7 +43497,7 @@ var handoff = external_exports.object({
 var collectiveArtifactRequestSourceSchema = external_exports.object({
   requestEventId: id13,
   ownerRevision: positive7,
-  blobDigest: digest3,
+  blobDigest: digest4,
   annotationIds: external_exports.array(id13).max(12),
   selections: external_exports.array(collectiveArtifactSelectionSchema).min(1).max(12).optional(),
   rework: collectiveModificationReworkSchema.optional(),
@@ -43210,7 +43554,7 @@ var registerCollectiveArtifactSchema = external_exports.object({
   sourceEventId: id13,
   workId: id13.optional(),
   ownerRevision: positive7,
-  blobDigest: digest3,
+  blobDigest: digest4,
   receiptRef: id13,
   requestId: id13,
   expectedRevision: positive7.optional(),
@@ -43243,7 +43587,7 @@ var collectiveArtifactConstraintSchema = external_exports.object({
   ownerRevision: positive7,
   /** Service catalogue head, independent of the historical revision selected by the reader. */
   catalogueOwnerRevision: positive7.optional(),
-  blobDigest: digest3,
+  blobDigest: digest4,
   membershipRevision: positive7,
   revocationEpoch: positive7,
   decisionRef: id13,
@@ -43292,7 +43636,7 @@ var acceptCollectiveArtifactCustodySchema = external_exports.object({
   expectedCustodyRevision: positive7,
   contentRef: id13,
   ownerRevision: positive7,
-  blobDigest: digest3,
+  blobDigest: digest4,
   receiptRef: id13,
   ownerScopeRef: id13,
   preparedRef: id13.optional(),
@@ -43311,14 +43655,14 @@ var collectiveArtifactCatalogueHistoryRequestSchema = external_exports.object({
   offset: external_exports.number().int().nonnegative().max(COLLECTIVE_ARTIFACT_VERSION_LIMIT).default(0),
   limit: external_exports.number().int().min(1).max(30).default(30),
   snapshotOwnerRevision: positive7.optional(),
-  expectedSnapshot: digest3.optional()
+  expectedSnapshot: digest4.optional()
 }).strict();
 var collectiveArtifactCatalogueHistoryPageSchema = external_exports.object({
   artifactId: id13,
   contentRef: id13,
   sourceEventId: id13,
   snapshotOwnerRevision: positive7,
-  snapshot: digest3,
+  snapshot: digest4,
   total: positive7,
   offset: external_exports.number().int().nonnegative(),
   nextOffset: external_exports.number().int().positive().optional(),
@@ -43611,7 +43955,7 @@ var collectiveMediaBufferBytes = 64 * 1024;
 
 // ../shared/src/types/collective-artifact-publication.ts
 var id20 = external_exports.string().trim().min(1).max(256);
-var digest4 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var digest5 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var prepareCollectiveArtifactPublicationSchema = external_exports.object({
   serviceInstanceId: id20,
   collectiveId: id20,
@@ -43619,7 +43963,7 @@ var prepareCollectiveArtifactPublicationSchema = external_exports.object({
   sourceEventId: id20,
   requestId: id20,
   title: external_exports.string().trim().min(1).max(200),
-  blobDigest: digest4,
+  blobDigest: digest5,
   workId: id20.optional()
 }).strict();
 var collectiveArtifactPublicationRecordSchema = prepareCollectiveArtifactPublicationSchema.extend({
@@ -43630,7 +43974,7 @@ var collectiveArtifactPublicationRecordSchema = prepareCollectiveArtifactPublica
   membershipRevision: external_exports.number().int().positive().safe(),
   endpointId: id20,
   sourceLocation: collectiveLocationSchema,
-  requestDigest: digest4,
+  requestDigest: digest5,
   status: external_exports.enum(["pending", "published"]),
   effectPending: external_exports.boolean().optional(),
   receiptRef: id20.optional(),
@@ -43659,13 +44003,13 @@ var collectiveArtifactPublicationReceiptSchema = external_exports.object({
   contentRef: id20,
   previousOwnerRevision: external_exports.literal(0),
   ownerRevision: external_exports.literal(1),
-  blobDigest: digest4,
+  blobDigest: digest5,
   actor: external_exports.object({ kind: external_exports.literal("human"), actorId: id20 }).strict(),
   operationId: id20,
   outboxSequence: external_exports.literal(1),
   operationContext: external_exports.object({
     kind: external_exports.literal("collective-artifact:publish"),
-    requestDigest: digest4,
+    requestDigest: digest5,
     actorHumanId: id20,
     scopeRef: id20,
     custodyRevision: external_exports.literal(1),
@@ -44576,7 +44920,7 @@ var collectiveMediaSurfaceRefV1Schema = collectiveConnectionCoordinatesSchema.ex
   sourceEventId: collectiveEventIdSchema,
   ownerRevision: external_exports.number().int().positive().safe()
 }).strict();
-var collectiveMediaSurfaceRefKey = (ref8) => JSON.stringify(collectiveMediaSurfaceRefV1Schema.parse(ref8));
+var collectiveMediaSurfaceRefKey = (ref10) => JSON.stringify(collectiveMediaSurfaceRefV1Schema.parse(ref10));
 var collectiveMediaSurfaceOpenSchema = external_exports.object({
   type: external_exports.literal("collective:client-media-surface"),
   ref: collectiveMediaSurfaceRefV1Schema
@@ -44703,9 +45047,9 @@ var collectiveMediaSurfaceResultSchema = external_exports.object({
     }).strict()
   ])
 }).strict();
-async function assertCollectiveMediaReceipt(value, ref8, requestId2, reviewId) {
+async function assertCollectiveMediaReceipt(value, ref10, requestId2, reviewId) {
   const receipt2 = collectiveMediaReceiptSchema.parse(value);
-  if (receipt2.ownerRevision !== ref8.ownerRevision || receipt2.receipt.actor.actorId !== ref8.humanId || receipt2.receipt.operationId !== await collectiveMediaOperationId(ref8, "annotate", requestId2) || reviewId !== void 0 && receipt2.receipt.reviewId !== reviewId)
+  if (receipt2.ownerRevision !== ref10.ownerRevision || receipt2.receipt.actor.actorId !== ref10.humanId || receipt2.receipt.operationId !== await collectiveMediaOperationId(ref10, "annotate", requestId2) || reviewId !== void 0 && receipt2.receipt.reviewId !== reviewId)
     throw new Error("MEDIA_RECEIPT_MISMATCH");
   return receipt2;
 }
@@ -45108,6 +45452,89 @@ var developmentScopeQueryV1Schema = external_exports.object({
   { path: ["workUnitRef"], message: "Phase work must reference this exact Feature and Phase" }
 );
 
+// ../shared/src/types/task-data-controller.ts
+var ref7 = external_exports.string().trim().min(1).max(1e3);
+var revision8 = external_exports.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+var timestamp3 = external_exports.number().int().nonnegative().finite();
+var digest6 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var entrustedTaskDataControllerCoordinatesV1Schema = external_exports.object({
+  userId: ref7,
+  catId: ref7,
+  threadId: ref7,
+  subjectKey: ref7,
+  firstSourceRef: ref7,
+  admissionAuthorityRef: ref7,
+  pluginId: ref7,
+  pluginInstanceId: ref7,
+  moduleRef: ref7,
+  lifecycleRevision: revision8,
+  grantRevision: revision8
+}).strict();
+var receiptBase = {
+  receiptRef: ref7.regex(/^task-data-controller:[a-f0-9]{64}$/),
+  operationId: ref7,
+  payloadDigest: digest6,
+  actorRef: ref7,
+  operationKey: ref7,
+  actionId: ref7,
+  requestId: ref7,
+  confirmedAt: timestamp3,
+  recordedAt: timestamp3
+};
+var entrustedTaskDataControllerReceiptV1Schema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    ...receiptBase,
+    kind: external_exports.literal("bind"),
+    controller: entrustedTaskDataControllerCoordinatesV1Schema
+  }).strict(),
+  external_exports.object({
+    ...receiptBase,
+    kind: external_exports.literal("revoke"),
+    controllerReceiptRef: receiptBase.receiptRef
+  }).strict()
+]);
+var entrustedTaskDataControllerV1Schema = external_exports.object({
+  bindingRevision: revision8,
+  state: external_exports.enum(["active", "revoked"]),
+  binding: entrustedTaskDataControllerCoordinatesV1Schema.extend({
+    ownerOperationReceiptRef: receiptBase.receiptRef
+  }).strict(),
+  receipts: external_exports.array(entrustedTaskDataControllerReceiptV1Schema).min(1).max(256),
+  revocationReceiptRef: receiptBase.receiptRef.optional()
+}).strict().superRefine((value, context2) => {
+  if (value.bindingRevision !== value.receipts.length) {
+    context2.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["bindingRevision"],
+      message: "bindingRevision must identify the complete receipt history"
+    });
+  }
+  const bindingReceipt = value.receipts.find(
+    (receipt2) => receipt2.kind === "bind" && receipt2.receiptRef === value.binding.ownerOperationReceiptRef
+  );
+  if (!bindingReceipt || JSON.stringify(bindingReceipt.controller) !== JSON.stringify(stripBindingReceipt(value.binding))) {
+    context2.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["binding"],
+      message: "binding must be backed by its exact owner-operation receipt"
+    });
+  }
+  const revocationReceipt = value.revocationReceiptRef ? value.receipts.find(
+    (receipt2) => receipt2.kind === "revoke" && receipt2.receiptRef === value.revocationReceiptRef
+  ) : void 0;
+  if (value.state === "revoked" && (!revocationReceipt || revocationReceipt.controllerReceiptRef !== value.binding.ownerOperationReceiptRef) || value.state === "active" && value.revocationReceiptRef !== void 0) {
+    context2.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["revocationReceiptRef"],
+      message: "revocation state must be backed by the current binding receipt"
+    });
+  }
+});
+function stripBindingReceipt(binding) {
+  const { ownerOperationReceiptRef: _receiptRef, ...coordinates3 } = binding;
+  return coordinates3;
+}
+
 // ../shared/src/types/growing.ts
 var boundedRef2 = external_exports.string().trim().min(1).max(1e3);
 var boundedText = external_exports.string().trim().min(1).max(4e3);
@@ -45245,6 +45672,8 @@ var entrustedWorkV1Schema = external_exports.object({
   revision: revisionSchema2,
   /** Host-owned execution epoch. Absent on legacy contracts; never inferred from aggregate revision. */
   executionAuthorityRevision: external_exports.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+  /** Current data-maintenance authority. This never replaces immutable admission or business execution authority. */
+  dataController: entrustedTaskDataControllerV1Schema.optional(),
   admission: entrustedAdmissionSchema,
   developmentScope: developmentScopeV1Schema.optional(),
   parentTaskRef: developmentTaskRefSchema.optional(),
@@ -45628,7 +46057,7 @@ var deploymentWaitPredicateSchema = external_exports.discriminatedUnion("kind", 
 ]);
 
 // ../shared/src/types/action-subject-ref.ts
-var ACTION_SUBJECT_REF_DESCRIPTION = "subjectRef must use pr:<owner>/<repo>#<positive-number> (for example pr:zts212653/cat-cafe#2943) or subject:<namespace>:<opaque-id>. GitHub URL forms and SHA suffixes such as github:owner/repo#2943@abc123 are invalid.";
+var ACTION_SUBJECT_REF_DESCRIPTION = `subjectRef must use pr:<owner>/<repo>#<positive-number> (for example pr:${deploymentDefaults.repositoryFullName}#2943) or subject:<namespace>:<opaque-id>. GitHub URL forms and SHA suffixes such as github:owner/repo#2943@abc123 are invalid.`;
 var ACTION_SUBJECT_REF_MAX_LENGTH = 240;
 var ACTION_SUBJECT_REF_PATTERN = /^(?:pr:[^/\s\x1f]+\/[^#\s\x1f]+#[1-9]\d*|subject:[a-z][a-z0-9_-]{0,63}:[^\s\x1f]{1,200})$/i;
 var actionSubjectRefSchema = external_exports.string().trim().min(1).max(ACTION_SUBJECT_REF_MAX_LENGTH).regex(ACTION_SUBJECT_REF_PATTERN, ACTION_SUBJECT_REF_DESCRIPTION).describe(ACTION_SUBJECT_REF_DESCRIPTION);
@@ -45836,22 +46265,22 @@ var executableActionSuccessorMetadataSchema = executableActionSuccessorMetadataO
 function requireNonBlank(value, field) {
   if (value.trim().length === 0) throw new Error(`${field} must be non-empty`);
 }
-function validateApprovalOriginRef(ref8) {
-  if (ref8.kind === "message") {
-    requireNonBlank(ref8.threadId, "originRef.threadId");
-    requireNonBlank(ref8.messageId, "originRef.messageId");
+function validateApprovalOriginRef(ref10) {
+  if (ref10.kind === "message") {
+    requireNonBlank(ref10.threadId, "originRef.threadId");
+    requireNonBlank(ref10.messageId, "originRef.messageId");
     return;
   }
-  if (ref8.kind !== "event") {
+  if (ref10.kind !== "event") {
     throw new Error("originRef.kind must be message or event");
   }
-  requireNonBlank(ref8.anchor, "originRef.anchor");
-  requireNonBlank(ref8.summary, "originRef.summary");
-  if (ref8.threadId !== void 0) requireNonBlank(ref8.threadId, "originRef.threadId");
+  requireNonBlank(ref10.anchor, "originRef.anchor");
+  requireNonBlank(ref10.summary, "originRef.summary");
+  if (ref10.threadId !== void 0) requireNonBlank(ref10.threadId, "originRef.threadId");
 }
-function validateApprovalCardRef(ref8) {
-  requireNonBlank(ref8.threadId, "approvalCardRef.threadId");
-  requireNonBlank(ref8.messageId, "approvalCardRef.messageId");
+function validateApprovalCardRef(ref10) {
+  requireNonBlank(ref10.threadId, "approvalCardRef.threadId");
+  requireNonBlank(ref10.messageId, "approvalCardRef.messageId");
 }
 function validateApprovalNavigation(navigation) {
   if (navigation.state === "anchored") {
@@ -45903,8 +46332,8 @@ var approvalLifecycleEpochRecordSchema = external_exports.object({
   phase: approvalLifecycleEpochPhaseSchema,
   updatedAt: external_exports.string().datetime({ offset: true }),
   cutoverReceiptRef: external_exports.string().trim().min(1).optional()
-}).strict().superRefine((record, ctx) => {
-  if (record.phase === "v1_active" !== (record.cutoverReceiptRef !== void 0)) {
+}).strict().superRefine((record2, ctx) => {
+  if (record2.phase === "v1_active" !== (record2.cutoverReceiptRef !== void 0)) {
     ctx.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["cutoverReceiptRef"],
@@ -46568,8 +46997,8 @@ var evolutionProgramEventV1Schema = evolutionProgramEventV1Union.superRefine((ev
     }
   }
   if (event.type === "preparation_submission_committed") {
-    const submission = evolutionPreparationSubmissionRefCoordinates(event.submissionRef);
-    if (submission?.section !== event.section) {
+    const submission2 = evolutionPreparationSubmissionRefCoordinates(event.submissionRef);
+    if (submission2?.section !== event.section) {
       ctx.addIssue({ code: external_exports.ZodIssueCode.custom, message: "preparation submission ref must match its section" });
     }
     const sections = event.dependencies.map((dependency) => evolutionPreparationSubmissionRefCoordinates(dependency)?.section);
@@ -46599,7 +47028,7 @@ var evolutionProgramEventEnvelopeV1Schema = external_exports.object({
 }).strict().superRefine((envelope4, ctx) => {
   const event = envelope4.event;
   const refs2 = event.type === "preparation_work_registered" ? event.baseSubmissionRef ? [event.baseSubmissionRef] : [] : event.type === "preparation_submission_committed" ? [event.submissionRef, ...event.dependencies] : [];
-  if (refs2.some((ref8) => evolutionPreparationSubmissionRefCoordinates(ref8)?.programId !== envelope4.programId)) {
+  if (refs2.some((ref10) => evolutionPreparationSubmissionRefCoordinates(ref10)?.programId !== envelope4.programId)) {
     ctx.addIssue({ code: external_exports.ZodIssueCode.custom, message: "preparation refs must belong to the event Program" });
   }
 });
@@ -46645,8 +47074,8 @@ function validatePreviews(review, experiments, ctx) {
       issue(ctx, "cover must bind an image in this published node experiment");
   }
 }
-function recordEscapesExperiment(record, experiment, experimentKey, recordKeys, caseIds, metrics) {
-  return recordKeys.has(refIdentity(record.recordRef)) || caseIds.has(record.caseId) || refIdentity(record.experimentRef) !== experimentKey || refIdentity(record.nodeRef) !== refIdentity(experiment.nodeRef) || refIdentity(record.windowRef) !== refIdentity(experiment.conditions.window.sourceRef) || refIdentity(record.measurementRef) !== refIdentity(experiment.conditions.measurement.sourceRef) || Object.keys(record.values).some((metric) => !metrics.has(metric));
+function recordEscapesExperiment(record2, experiment, experimentKey, recordKeys, caseIds, metrics) {
+  return recordKeys.has(refIdentity(record2.recordRef)) || caseIds.has(record2.caseId) || refIdentity(record2.experimentRef) !== experimentKey || refIdentity(record2.nodeRef) !== refIdentity(experiment.nodeRef) || refIdentity(record2.windowRef) !== refIdentity(experiment.conditions.window.sourceRef) || refIdentity(record2.measurementRef) !== refIdentity(experiment.conditions.measurement.sourceRef) || Object.keys(record2.values).some((metric) => !metrics.has(metric));
 }
 function validateRecords(detail, experiment, experimentKey, ctx) {
   if (detail.records.length !== experiment.recordCount)
@@ -46654,12 +47083,12 @@ function validateRecords(detail, experiment, experimentKey, ctx) {
   const recordKeys = /* @__PURE__ */ new Set();
   const caseIds = /* @__PURE__ */ new Set();
   const metrics = new Set(experiment.metrics.map((metric) => metric.key));
-  for (const record of detail.records) {
-    const recordKey = refIdentity(record.recordRef);
-    if (recordEscapesExperiment(record, experiment, experimentKey, recordKeys, caseIds, metrics))
+  for (const record2 of detail.records) {
+    const recordKey = refIdentity(record2.recordRef);
+    if (recordEscapesExperiment(record2, experiment, experimentKey, recordKeys, caseIds, metrics))
       issue(ctx, "record identity, window or measurement escaped its experiment");
     recordKeys.add(recordKey);
-    caseIds.add(record.caseId);
+    caseIds.add(record2.caseId);
   }
 }
 function validateDetails(review, experiments, ctx) {
@@ -46936,6 +47365,7 @@ var CARRIERS_BY_CLIENT = Object.freeze({
   openai: ["cli", "app_server"],
   google: ["cli", "acp"],
   kimi: ["cli", "acp"],
+  pi: ["cli", "acp"],
   opencode: ["cli", "acp"],
   acp: ["acp"],
   antigravity: ["cli"],
@@ -46986,7 +47416,7 @@ var BUILTIN_ACCOUNT_IDS = {
 var BUILTIN_ACCOUNT_CLIENT_FOR_ID = Object.freeze(
   Object.fromEntries(
     Object.entries(BUILTIN_ACCOUNT_IDS).flatMap(
-      ([family, cliName]) => [.../* @__PURE__ */ new Set([cliName, family, `builtin_${family}`])].map((ref8) => [ref8, family])
+      ([family, cliName]) => [.../* @__PURE__ */ new Set([cliName, family, `builtin_${family}`])].map((ref10) => [ref10, family])
     )
   )
 );
@@ -47031,7 +47461,7 @@ var CONNECTOR_DEFINITIONS = [
   },
   {
     id: "system-command",
-    displayName: "Cat Caf\xE9",
+    displayName: `${deploymentDefaults.brand.displayName}`,
     icon: { type: "svg", iconId: "settings" },
     themeColor: "#6B7280",
     description: "\u7CFB\u7EDF\u547D\u4EE4\u54CD\u5E94"
@@ -47078,45 +47508,45 @@ var connectorMap = new Map(CONNECTOR_DEFINITIONS.map((d) => [d.id, d]));
 var staticConnectorIds = new Set(CONNECTOR_DEFINITIONS.map((d) => d.id));
 
 // ../shared/src/types/development-return.ts
-var ref7 = external_exports.string().min(1).max(300);
+var ref8 = external_exports.string().min(1).max(300);
 var sourceRevision = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var report = external_exports.object({
-  sourceMessageId: ref7,
+  sourceMessageId: ref8,
   outcome: external_exports.enum(["completed", "failed", "blocked"]),
-  evidenceRefs: external_exports.array(ref7).min(1).max(32)
+  evidenceRefs: external_exports.array(ref8).min(1).max(32)
 }).strict();
 var developmentReturnRegistrationV1Schema = external_exports.object({
   v: external_exports.literal(1),
-  registrationId: ref7,
-  ownerUserId: ref7,
-  ownerThreadId: ref7,
-  ownerCatId: ref7,
+  registrationId: ref8,
+  ownerUserId: ref8,
+  ownerThreadId: ref8,
+  ownerCatId: ref8,
   taskRef: developmentTaskRefSchema,
   observedRevision: external_exports.number().int().positive(),
   // Snapshot at delivery claim; immutable so Dispatch retries reuse the exact same carrier.
   deliveryRevision: external_exports.number().int().positive().optional(),
-  proposalId: ref7,
-  executionThreadId: ref7,
-  reporterCatIds: external_exports.array(ref7).min(1).max(16),
-  sourceActionRef: ref7,
+  proposalId: ref8,
+  executionThreadId: ref8,
+  reporterCatIds: external_exports.array(ref8).min(1).max(16),
+  sourceActionRef: ref8,
   sourceMessageRevision: sourceRevision,
-  predecessorRegistrationId: ref7.optional(),
+  predecessorRegistrationId: ref8.optional(),
   expectedSignal: external_exports.literal("terminal_report"),
   slaUntil: external_exports.number().int().positive(),
   registeredAt: external_exports.number().int().nonnegative(),
   status: external_exports.enum(["waiting", "ready", "delivering", "delivered", "retired"]),
   report: report.extend({ sourceMessageRevision: sourceRevision }).optional(),
   reason: external_exports.enum(["terminal_report", "deadline_review", "cancelled", "owner_changed", "delivery_failed", "superseded"]).optional(),
-  wakeMessageId: ref7.optional()
+  wakeMessageId: ref8.optional()
 }).strict();
 var developmentReturnActionV1Schema = external_exports.object({
   action: external_exports.enum(["register", "read", "report"]),
-  registrationId: ref7.optional(),
-  taskId: ref7.optional(),
+  registrationId: ref8.optional(),
+  taskId: ref8.optional(),
   expectedRevision: external_exports.number().int().positive().optional(),
-  executionThreadId: ref7.optional(),
-  predecessorRegistrationId: ref7.optional(),
-  sourceActionRef: ref7.optional(),
+  executionThreadId: ref8.optional(),
+  predecessorRegistrationId: ref8.optional(),
+  sourceActionRef: ref8.optional(),
   expectedSignal: external_exports.literal("terminal_report").optional(),
   slaUntil: external_exports.number().int().positive().optional(),
   report: report.optional()
@@ -47556,7 +47986,7 @@ var GITHUB_ISSUE_WAIT_PREDICATE_LIMIT = GITHUB_ISSUE_WAIT_PREDICATE_KINDS.length
 
 // ../shared/src/types/growing-opportunity.ts
 var boundedRef5 = external_exports.string().trim().min(1).max(1e3);
-var timestamp3 = external_exports.number().int().nonnegative().finite();
+var timestamp4 = external_exports.number().int().nonnegative().finite();
 var reasonCode = external_exports.string().regex(/^[a-z0-9][a-z0-9._:-]{0,127}$/u);
 var evidenceRefs = external_exports.array(boundedRef5).min(1).max(64);
 var CUSTODY_OPPORTUNITY_CONTRACT_VIOLATION_CODES = [
@@ -47578,13 +48008,13 @@ var sourceSchema = external_exports.object({
 }).strict();
 var actionWindowSchema = external_exports.object({
   kind: external_exports.literal("action"),
-  openedAt: timestamp3,
-  closedAt: timestamp3
+  openedAt: timestamp4,
+  closedAt: timestamp4
 }).strict();
 var sampledSilentWindowSchema = external_exports.object({
   kind: external_exports.literal("sampled_silent"),
-  openedAt: timestamp3,
-  closedAt: timestamp3,
+  openedAt: timestamp4,
+  closedAt: timestamp4,
   sampling: external_exports.object({
     bucket: external_exports.enum(["random", "risk_targeted"]),
     sampleRef: boundedRef5,
@@ -47594,7 +48024,7 @@ var sampledSilentWindowSchema = external_exports.object({
 var candidateSchema = external_exports.discriminatedUnion("state", [
   external_exports.object({
     state: external_exports.literal("exposed"),
-    exposedAt: timestamp3,
+    exposedAt: timestamp4,
     reasonCode
   }).strict(),
   external_exports.object({ state: external_exports.literal("not_exposed") }).strict()
@@ -47702,15 +48132,15 @@ var custodyOpportunityEpisodeV1Schema = external_exports.object({
 
 // ../shared/src/types/harness-history-publication.ts
 var harnessHistoryCommitSchema = external_exports.string().regex(/^[a-f0-9]{40}$/);
-var revision7 = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+var revision9 = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 var commonCommand = {
-  expectedRevision: revision7,
+  expectedRevision: revision9,
   clientMessageId: bounded(240),
   reason: bounded(1e3)
 };
 var harnessHistoryPublicationCommandSchema = external_exports.discriminatedUnion("action", [
   external_exports.object({ ...commonCommand, action: external_exports.literal("publish"), sourceRevision: harnessHistoryCommitSchema }).strict(),
-  external_exports.object({ ...commonCommand, action: external_exports.literal("restore"), restoreRevision: revision7 }).strict()
+  external_exports.object({ ...commonCommand, action: external_exports.literal("restore"), restoreRevision: revision9 }).strict()
 ]);
 var harnessHistoryFailureCodeSchema = external_exports.enum([
   "source_unavailable",
@@ -47720,12 +48150,12 @@ var harnessHistoryFailureCodeSchema = external_exports.enum([
   "restore_not_found"
 ]);
 var harnessHistoryPublicationAttemptSchema = external_exports.object({
-  revision: revision7.refine((value) => value > 0),
+  revision: revision9.refine((value) => value > 0),
   clientMessageId: bounded(240),
   action: external_exports.enum(["publish", "restore"]),
   status: external_exports.enum(["published", "failed"]),
   sourceRevision: harnessHistoryCommitSchema.optional(),
-  restoreRevision: revision7.optional(),
+  restoreRevision: revision9.optional(),
   actorRef: bounded(240),
   originRef: bounded(2e3),
   reason: bounded(1e3),
@@ -47745,7 +48175,7 @@ var harnessHistoryPublicationStatusSchema = evolutionArchivePublicationSchema.ex
   schemaVersion: external_exports.literal(1),
   programRef: ownerTruthRefV1Schema,
   objectRef: ownerTruthRefV1Schema,
-  revision: revision7,
+  revision: revision9,
   current: harnessHistoryPublicationVersionSchema,
   attempts: external_exports.array(harnessHistoryPublicationAttemptSchema).max(50),
   hasMore: external_exports.boolean(),
@@ -49908,6 +50338,7 @@ var FRESHNESS_CARRIERS = [
   "claude_stream_json",
   "kimi_stream_json",
   "agy_stream_json",
+  "agy_acp",
   "mcp_result_piggyback",
   "other"
 ];
@@ -50641,8 +51072,8 @@ var routingContextReadModelV1Schema = external_exports.object({
       });
     }
   });
-  model.preferenceRevisions.forEach((revision9, index4) => {
-    if (revision9.ownerId !== model.ownerId) {
+  model.preferenceRevisions.forEach((revision11, index4) => {
+    if (revision11.ownerId !== model.ownerId) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["preferenceRevisions", index4, "ownerId"],
@@ -50750,14 +51181,14 @@ function addResponseIssues(request, response, context2, path2) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selectedIds must be unique" });
   }
   const options = new Map(request.presentation.options.map((option) => [option.id, option]));
-  if (ids2.some((id27) => !options.has(id27))) {
+  if (ids2.some((id28) => !options.has(id28))) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection contains an unknown option" });
   }
   const limit = request.presentation.interactiveType === "multi-select" ? request.presentation.maxSelect ?? ids2.length : 1;
   if (ids2.length > limit || request.presentation.interactiveType !== "multi-select" && ids2.length !== 1) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection count exceeds the block contract" });
   }
-  if (response.customInput && !ids2.some((id27) => options.get(id27)?.customInput)) {
+  if (response.customInput && !ids2.some((id28) => options.get(id28)?.customInput)) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "custom input requires a selected custom option" });
   }
 }
@@ -50833,9 +51264,9 @@ var runtimeInteractionObjectSchema = external_exports.object({
   if (new Set(required).size !== required.length) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: "schema required ids must be unique" });
   }
-  for (const id27 of required) {
-    if (!propertyIds.has(id27)) {
-      context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id27} is missing` });
+  for (const id28 of required) {
+    if (!propertyIds.has(id28)) {
+      context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id28} is missing` });
     }
   }
 });
@@ -51480,7 +51911,7 @@ function coverageGraphHasCycle(edges) {
     if (!indegrees.has(source3)) indegrees.set(source3, 0);
     for (const target of targets) indegrees.set(target, (indegrees.get(target) ?? 0) + 1);
   }
-  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id27]) => id27);
+  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id28]) => id28);
   let visited = 0;
   for (const source3 of pending) {
     visited++;
@@ -51498,7 +51929,7 @@ var videoProjectDocumentSchema = videoProjectDocumentBaseSchema.superRefine(refi
 
 // ../shared/src/types/video-project-command.ts
 var id26 = external_exports.string().trim().min(1).max(256);
-var revision8 = external_exports.number().int().positive().safe();
+var revision10 = external_exports.number().int().positive().safe();
 var page2 = {
   cursor: external_exports.number().int().nonnegative().safe().default(0),
   expectedSnapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
@@ -51506,23 +51937,23 @@ var page2 = {
 var videoProjectCommandSchema = external_exports.object({
   requestId: id26,
   command: external_exports.discriminatedUnion("kind", [
-    external_exports.object({ kind: external_exports.literal("read"), ownerRevision: revision8.optional(), ...page2 }).strict(),
+    external_exports.object({ kind: external_exports.literal("read"), ownerRevision: revision10.optional(), ...page2 }).strict(),
     external_exports.object({ kind: external_exports.literal("review-read"), ...page2 }).strict(),
     external_exports.object({
       kind: external_exports.literal("save"),
-      expectedOwnerRevision: revision8,
+      expectedOwnerRevision: revision10,
       operationId: id26,
       document: external_exports.record(external_exports.unknown())
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("review-act"),
-      expectedRevision: revision8,
+      expectedRevision: revision10,
       operationId: id26,
       action: videoProjectReviewActionSchema
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("self-review"),
-      expectedOwnerRevision: revision8,
+      expectedOwnerRevision: revision10,
       operationId: id26,
       id: id26,
       input: videoProjectFrozenInputSchema,
@@ -51580,6 +52011,181 @@ var userCancelWaitTerminationEventSchema = external_exports.object({
     });
   }
 });
+
+// ../shared/src/types/work-video.ts
+var text7 = videoProjectTextSchema;
+var pts2 = external_exports.number().int().safe();
+var chapter = external_exports.object({
+  id: text7(256),
+  title: text7(1e3),
+  label: text7(256).optional(),
+  streamId: text7(128),
+  startPts: pts2,
+  endPts: pts2,
+  sourceId: text7(2048).optional()
+}).strict().refine((row) => row.startPts < row.endPts, "Chapter range must be nonempty");
+var workVideoContextSchema = external_exports.object({
+  format: external_exports.literal("video"),
+  extractorVersion: text7(128),
+  provenance: external_exports.array(external_exports.object({ ref: text7(2048), digest: videoProjectDigestSchema }).strict()).min(1).max(100),
+  /** Original production/file time, distinct from the owner's import/commit time. */
+  production: external_exports.object({ createdAt: external_exports.string().datetime(), sourceRef: text7(2048) }).strict().optional(),
+  chapters: external_exports.array(chapter).max(1e3).optional(),
+  story: external_exports.array(
+    external_exports.object({
+      id: text7(256),
+      chapterId: text7(256).optional(),
+      title: text7(1e3),
+      text: external_exports.string().max(12e3).optional(),
+      streamId: text7(128),
+      startPts: pts2,
+      endPts: pts2,
+      /** Only explicit source identity may relate this paragraph to another version. */
+      sourceId: text7(2048).optional(),
+      derived: external_exports.boolean().optional()
+    }).strict().refine((item) => item.startPts < item.endPts, "Story range must be nonempty")
+  ).max(1e4),
+  assets: external_exports.array(
+    external_exports.object({
+      asset: videoProjectAssetSchema,
+      versionId: text7(256),
+      uses: external_exports.array(text7(2e3)).min(1).max(1e3)
+    }).strict().refine(
+      (item) => item.asset.versions.some((version) => version.id === item.versionId),
+      "Selected asset version must exist"
+    )
+  ).max(1e4),
+  sourceBinding: external_exports.object({
+    sourceProjectContentRef: text7(2048),
+    sourceOwnerRevision: external_exports.number().int().positive().safe(),
+    sourceDigest: videoProjectDigestSchema,
+    screeningId: text7(256).optional(),
+    reviewId: text7(256).optional()
+  }).strict().optional()
+}).strict().superRefine((value, ctx) => {
+  for (const [field, ids2] of [
+    ["story", value.story.map((row) => row.id)],
+    ["assets", value.assets.map((row) => row.asset.id)],
+    ["chapters", (value.chapters ?? []).map((row) => row.id)]
+  ]) {
+    if (new Set(ids2).size !== ids2.length)
+      ctx.addIssue({ code: "custom", path: [field], message: "Duplicate stable identity" });
+  }
+  const chapterById = new Map(value.chapters?.map((row) => [row.id, row]));
+  for (const [index4, row] of value.story.entries()) {
+    if (!row.chapterId) continue;
+    const parent = chapterById.get(row.chapterId);
+    if (!parent || parent.streamId !== row.streamId || row.startPts < parent.startPts || row.endPts > parent.endPts)
+      ctx.addIssue({
+        code: "custom",
+        path: ["story", index4, "chapterId"],
+        message: "Line must belong to its chapter and clock"
+      });
+  }
+});
+
+// ../shared/src/types/living-work.ts
+var id27 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
+var ref9 = external_exports.string().min(1).max(2048);
+var workReferenceSchema = external_exports.object({ contentRef: ref9, ownerRevision: external_exports.number().int().positive().safe() }).strict();
+var workReferenceCardSchema = external_exports.object({
+  id: external_exports.string().min(1).max(128),
+  kind: external_exports.literal("card"),
+  v: external_exports.literal(1),
+  title: external_exports.string().min(1).max(240),
+  bodyMarkdown: external_exports.string().max(4e3),
+  meta: external_exports.object({ kind: external_exports.literal("work_reference"), reference: workReferenceSchema }).strict()
+}).strict();
+var workWorkspaceSourceSchema = external_exports.object({
+  worktreeId: id27,
+  path: external_exports.string().min(1).max(2048),
+  expectedSourceRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/)
+}).strict();
+var submission = {
+  operationId: id27,
+  title: external_exports.string().trim().min(1).max(240),
+  changeSummary: external_exports.string().trim().min(1).max(4e3),
+  versionLabel: external_exports.string().trim().min(1).max(128).optional(),
+  source: workWorkspaceSourceSchema
+};
+var workReviewResponseSchema = external_exports.object({
+  reviewId: id27,
+  sourceRound: external_exports.number().int().positive().safe(),
+  expectedReviewRevision: external_exports.number().int().positive().safe(),
+  expectedTaskRevision: external_exports.number().int().positive().safe(),
+  expectedLedgerRevision: external_exports.number().int().positive().safe().optional(),
+  requestId: id27.optional(),
+  responses: external_exports.array(artifactReviewResponseRecordSchema.omit({ judgment: true })).max(500)
+}).strict();
+var submitWorkSchema = external_exports.object({
+  action: external_exports.literal("submit"),
+  ...submission,
+  contentRef: ref9,
+  expectedOwnerRevision: external_exports.number().int().positive().safe(),
+  reviewResponse: workReviewResponseSchema.optional()
+}).strict();
+var commitWorkSchema = external_exports.discriminatedUnion("action", [
+  external_exports.object({ action: external_exports.literal("create"), ...submission }).strict(),
+  submitWorkSchema
+]);
+var setWorkContextSchema = external_exports.object({
+  action: external_exports.literal("set-context"),
+  reference: workReferenceSchema,
+  operationId: id27,
+  expectedMetadataRevision: external_exports.number().int().nonnegative().safe(),
+  context: workVideoContextSchema
+}).strict();
+var importWorkContextSchema = setWorkContextSchema.omit({ action: true, context: true }).extend({ action: external_exports.literal("import-context"), source: workWorkspaceSourceSchema }).strict();
+var workCommandSchema = external_exports.union([
+  commitWorkSchema,
+  setWorkContextSchema,
+  importWorkContextSchema,
+  external_exports.object({
+    action: external_exports.literal("resolve-review-submission"),
+    reviewId: id27,
+    sourceRound: external_exports.number().int().positive().safe(),
+    expectedReviewRevision: external_exports.number().int().positive().safe(),
+    pendingOperationId: id27,
+    operationId: id27
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("read-context"),
+    reference: workReferenceSchema,
+    metadataRevision: external_exports.number().int().positive().safe().optional()
+  }).strict(),
+  external_exports.object({ action: external_exports.literal("read"), reference: workReferenceSchema }).strict(),
+  external_exports.object({ action: external_exports.literal("publish-reference"), reference: workReferenceSchema }).strict(),
+  external_exports.object({
+    action: external_exports.literal("inspect-source"),
+    locator: workWorkspaceSourceSchema.omit({ expectedSourceRevision: true })
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("list"),
+    after: ref9.optional(),
+    catalogueSnapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
+  }).strict()
+]);
+var workVersionRecordSchema = workReferenceSchema.extend({
+  ownerUserId: id27,
+  threadId: id27,
+  title: submission.title,
+  changeSummary: submission.changeSummary,
+  versionLabel: submission.versionLabel,
+  source: workWorkspaceSourceSchema,
+  operationId: id27,
+  requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
+  receiptRef: ref9
+}).strict();
+var workContextRecordSchema = external_exports.object({
+  reference: workReferenceSchema,
+  metadataRevision: external_exports.number().int().positive().safe(),
+  ownerUserId: id27,
+  operationId: id27,
+  requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
+  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id27 }).strict(),
+  recordedAt: external_exports.string().datetime(),
+  context: workVideoContextSchema
+}).strict();
 
 // ../shared/src/types/local-review.ts
 var FULL_GIT_REVISION = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
@@ -51774,7 +52380,7 @@ function AppTooltip({
   children,
   useOwnership = usePlainSurface
 }) {
-  const id27 = (0, import_react2.useId)();
+  const id28 = (0, import_react2.useId)();
   const wrapperRef = (0, import_react2.useRef)(null);
   const tipRef = (0, import_react2.useRef)(null);
   const showTimer = (0, import_react2.useRef)(null);
@@ -51785,9 +52391,9 @@ function AppTooltip({
   const [open, setOpen] = (0, import_react2.useState)(false);
   const [position3, setPosition] = (0, import_react2.useState)(null);
   const clearTimers = (0, import_react2.useCallback)(() => {
-    for (const ref8 of [showTimer, longPressTimer, touchHideTimer]) {
-      if (ref8.current) clearTimeout(ref8.current);
-      ref8.current = null;
+    for (const ref10 of [showTimer, longPressTimer, touchHideTimer]) {
+      if (ref10.current) clearTimeout(ref10.current);
+      ref10.current = null;
     }
   }, []);
   const self2 = (0, import_react2.useRef)({ close: () => {
@@ -51957,7 +52563,7 @@ function AppTooltip({
             "div",
             {
               ref: ownedTipRef,
-              id: id27,
+              id: id28,
               role: "tooltip",
               "data-testid": "app-tooltip",
               "data-side": side,
@@ -52037,6 +52643,8 @@ var en = {
   \u5DF2\u53D6\u6D88: "Cancelled",
   "\u5DF2\u63A5\u4E0B\uFF0C\u5F85\u5BB6\u5185\u51C6\u5165": "Accepted; awaiting home admission",
   "\u5DF2\u51C6\u5165\uFF0C\u5F85\u5F00\u59CB": "Admitted; awaiting start",
+  \u65B0\u5EFA\u9879\u76EE: "Create project",
+  \u65B0\u5EFA\u53E6\u4E00\u4E2A\u9879\u76EE: "Create another project",
   \u4E3A\u6211\u6267\u884C\u7684\u516C\u5F00\u4EFB\u52A1: "Public tasks for me",
   "\u516C\u5F00\u8FDB\u5EA6\uFF1A\u63A8\u8FDB\u4E2D": "Public progress: in progress",
   \u516C\u5F00\u4EFB\u52A1\u8FDB\u884C\u4E2D: "public tasks in progress",
@@ -52045,6 +52653,10 @@ var en = {
   \u5173\u95ED\u6210\u5458\u8D44\u6599: "Close member profile",
   \u7EF4\u62A4\u8005: "Steward",
   \u6210\u5458: "Members",
+  "\u6210\u5458 \xB7 \u4EBA": "Member \xB7 Human",
+  \u9879\u76EE: "Projects",
+  \u4F5C\u54C1\u8D44\u6599\u5E93: "Works library",
+  \u5171\u540C\u5BB6\u56ED\u6210\u5458: "Collective members",
   \u5168\u90E8\u4F5C\u54C1: "All works",
   \u9891\u9053: "Channels",
   \u6211\u7684\u732B: "My cats",
@@ -52060,6 +52672,7 @@ var en = {
   \u5173\u95ED\u9891\u9053\u5BFC\u822A: "Close channel navigation",
   \u6536\u8D77\u9891\u9053\u5BFC\u822A: "Collapse channel navigation",
   \u5171\u540C\u5BB6\u56ED\u5BFC\u822A: "Collective navigation",
+  \u9009\u62E9\u5171\u540C\u5BB6\u56ED: "Choose collective",
   \u9891\u9053\u5BFC\u822A: "Channel navigation",
   "\u6211\u7684\u732B\u2026": "My cats\u2026",
   "\u5DF2\u5141\u8BB8\u7684\u5DE5\u4F5C\u2026": "Allowed work\u2026",
@@ -52074,12 +52687,38 @@ var en = {
   "\u8C01\u7559\u610F\u9891\u9053\u6D88\u606F\u2026": "Who listens to this channel\u2026",
   \u53D1\u9001: "Send",
   \u66F4\u591A\u8F93\u5165\u9009\u9879: "More input options",
+  \u6D88\u606F\u64CD\u4F5C: "Message actions",
+  \u6DFB\u52A0\u56DE\u5E94: "Add reaction",
+  \u66F4\u591A\u6D88\u606F\u52A8\u4F5C: "More message actions",
+  \u9009\u62E9\u56DE\u5E94: "Choose a reaction",
+  \u7528\u8868\u60C5\u56DE\u5E94: "React with emoji",
+  \u53D1\u8D77\u968F\u624B\u6295\u7968: "Start a quick poll",
+  \u5EFA\u6210\u4EFB\u52A1: "Create task",
+  "\u5206\u4EAB\u4F5C\u54C1\u2026": "Share work\u2026",
   \u56DE\u5E94\u72B6\u6001\u5F85\u786E\u8BA4: "Response status unconfirmed",
   \u5DF2\u56DE\u590D: "Replied",
   \u5DF2\u4EA4\u56DE\u7ED3\u679C: "Result returned",
   \u7B49\u5F85\u4F9D\u8D56: "Waiting for dependencies",
   \u5DF2\u63A5\u4E0B: "Accepted",
   \u67E5\u770B\u56DE\u590D: "View reply",
+  \u6700\u8FD1: "Latest",
+  \u8BDD\u9898: "Thread",
+  \u65E9\u671F\u8BB0\u5F55: "Earlier record",
+  "\u65E9\u671F\u8BB0\u5F55 \xB7 \u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4": "Earlier records \xB7 location unconfirmed",
+  \u5173\u95ED\u8BDD\u9898: "Close thread",
+  \u5728\u9891\u9053\u4E2D\u67E5\u770B: "View in channel",
+  \u56DE\u5E94: "Replies",
+  "\u6B63\u5728\u56DE\u590D\u7684\u6D88\u606F\u5F53\u524D\u4E0D\u53EF\u7528\u3002": "The message you were replying to is no longer available.",
+  "\u8FD9\u6761\u65E9\u671F\u8BB0\u5F55\u7684\u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4\uFF0C\u6682\u65F6\u65E0\u6CD5\u56DE\u590D\u3002": "This earlier record has no confirmed location yet, so replies are temporarily unavailable.",
+  \u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA: "No matching discussions",
+  \u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759: "It is quiet here",
+  "\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002": "Try another keyword or open a channel from the navigation.",
+  \u56DE\u590D\u6765\u6E90: "Reply source",
+  \u5DF2\u9009\u6210\u5458: "Selected member",
+  "\u79FB\u9664 @": "Remove @",
+  "\u53C2\u4E0E\u8BBE\u7F6E\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6210\u5458\uFF1B\u6D88\u606F\u5C1A\u672A\u53D1\u9001\u3002": "Participation changed. Select a member again; the message was not sent.",
+  "\u8BF7\u7528 @ \u9009\u62E9\u5F53\u524D\u9891\u9053\u7684\u6210\u5458\uFF0C\u6216\u79FB\u9664\u6CA1\u9009\u4E2D\u7684 @\u3002": "Use @ to select a current channel member, or remove the unresolved @.",
+  "\u6D4F\u89C8\u5668\u672A\u80FD\u4FDD\u5B58\u8349\u7A3F\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762\u3002": "The browser could not save this draft. Keep this page open.",
   "\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026": "Loading members\u2026",
   "\u6B63\u5728\u8BFB\u53D6\u6211\u7684\u732B\u2026": "Loading my cats\u2026",
   \u4F4D\u6210\u5458: "members",
@@ -52197,10 +52836,159 @@ var en = {
   "\u9001\u5230\u4E86\uFF0C\u5BB6\u91CC\u73B0\u5728\u6CA1\u6709\u732B\u7559\u610F\u8FD9\u7C7B\u56DE\u5E94\u8BF7\u6C42": "Delivered; no cat is listening for this request",
   "\u5DF2\u5728\u5BB6\u91CC\uFF0C\u6B63\u5728\u786E\u8BA4\u732B\u7684\u72B6\u6001": "At home; confirming cat status",
   \u6B63\u5728\u786E\u8BA4\u53BB\u5411: "Confirming delivery",
-  \u627E\u5230: "Found"
+  \u627E\u5230: "Found",
+  "\u6CA1\u6709\u540C\u540D\u9891\u9053\uFF1B\u4E3B\u533A\u663E\u793A\u5339\u914D\u7684\u6D88\u606F\u3002": "No channel has that name; matching messages appear in the main area.",
+  "\u8FDE\u63A5\u6B64 Caf\xE9": "Connect this Caf\xE9",
+  "\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5": "Offline \xB7 failed sends can be retried",
+  \u5E0C\u671B\u4F19\u4F34\u56DE\u5E94: "Response requested",
+  \u5C1A\u672A\u6709\u4EBA\u56DE\u5E94: "No one has replied yet",
+  \u5DF2\u6709\u56DE\u5E94: "Replied",
+  \u8BF7\u6C42\u6301\u7EED\u5904\u7406: "Ongoing work requested",
+  "\u6B63\u5728\u6253\u5F00\u4F5C\u54C1\u2026": "Opening shared work\u2026",
+  "\u7ED3\u679C\u4F5C\u54C1\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF1B\u539F\u7ED3\u679C\u4ECD\u5DF2\u4FDD\u7559\uFF0C\u53EF\u4EE5\u7A0D\u540E\u91CD\u8BD5\u3002": "The shared result cannot be opened yet. The original result is still retained; try again later.",
+  "\u6587\u4EF6\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002": "The file cannot be opened right now. Refresh and try again.",
+  "\u7ED3\u679C\u4F5C\u54C1\u4ECD\u5728\u540C\u6B65\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002": "The shared result is still syncing. Try again shortly.",
+  "\u4F5C\u54C1\u670D\u52A1\u5F53\u524D\u4E0D\u53EF\u7528\u3002": "Shared works are currently unavailable.",
+  "\u5171\u540C\u5BB6\u56ED\u5DF2\u7ECF\u5207\u6362\uFF0C\u8BF7\u4ECE\u5F53\u524D\u9875\u9762\u91CD\u65B0\u6253\u5F00\u7ED3\u679C\u3002": "The collective changed. Open the result again from the current page.",
+  "\u6B63\u5728\u66F4\u65B0\u2026": "Updating\u2026",
+  "\u5171\u540C\u72B6\u6001\u5C1A\u672A\u786E\u8BA4\uFF0C\u53EF\u4EE5\u91CD\u8BD5": "The collective state is not confirmed yet; you can retry.",
+  "\u7ED3\u679C\u5DF2\u786E\u8BA4\uFF0C\u4EFB\u52A1\u52A8\u6001\u4F1A\u7EE7\u7EED\u4FDD\u7559": "Result accepted; the task activity remains available",
+  "\u516C\u5171\u7ED3\u679C\u5DF2\u9A8C\u6536\uFF1B\u6211\u7684 Caf\xE9 \u5C1A\u672A\u540C\u6B65\u539F Task\u3002\u65E0\u9700\u91CD\u65B0\u9A8C\u6536\u3002": "The public result was accepted. My Caf\xE9 has not synced the original Task yet; you do not need to accept it again.",
+  "\u516C\u5171\u7ED3\u679C\u5DF2\u9A8C\u6536\uFF1B\u6211\u7684 Caf\xE9 \u8FD8\u5728\u7B49\u5F85\u539F Task \u5EFA\u7ACB\u540E\u540C\u6B65\u3002\u65E0\u9700\u91CD\u65B0\u9A8C\u6536\u3002": "The public result was accepted. My Caf\xE9 is waiting for the original Task before syncing; you do not need to accept it again.",
+  "\u516C\u5171\u7ED3\u679C\u5DF2\u9A8C\u6536\uFF1B\u539F Task \u4ECD\u5728\u7B49\u5F85\u6211\u7684 Caf\xE9 \u63A5\u7BA1\u3002\u65E0\u9700\u91CD\u65B0\u9A8C\u6536\u3002": "The public result was accepted. The original Task still needs this Caf\xE9 to take over its maintenance; you do not need to accept it again.",
+  "\u516C\u5171\u7ED3\u679C\u5DF2\u9A8C\u6536\uFF1B\u539F Task \u5DF2\u662F\u7EC8\u6001\uFF0C\u5BB6\u5185\u6CA1\u6709\u6539\u5199\u5B83\u3002\u65E0\u9700\u91CD\u65B0\u9A8C\u6536\u3002": "The public result was accepted. The original Task was already final and was left unchanged; you do not need to accept it again.",
+  \u8FD4\u56DE: "Return to",
+  "\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026": "Loading tasks\u2026",
+  "\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002": "This channel has no tasks yet.",
+  \u63D0\u5230\u6210\u5458: "Mention member",
+  "\u7531\u732B\u7684\u4E3B\u4EBA\u5B89\u6392\u79C1\u4EBA\u4EFB\u52A1\uFF0C\u7ED3\u679C\u56DE\u5230\u8FD9\u91CC\u3002": "The cat\u2019s owner arranges the private task, and the result returns here.",
+  "\u53EA\u901A\u77E5\u81EA\u613F\u503C\u5B88\u56DE\u5E94\u8BF7\u6C42\u7684\u4F19\u4F34\uFF1B\u666E\u901A\u6D88\u606F\u4ECD\u4F1A\u5B89\u9759\u9001\u8FBE\u3002": "Only partners who opted into response requests are notified; ordinary messages are still delivered quietly.",
+  \u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458: "Choose a member to mention",
+  "\u6CA1\u6709\u627E\u5230\u5728\u672C\u9891\u9053\u53C2\u4E0E\u7684\u6210\u5458\u3002": "No participating member was found in this channel.",
+  \u4F5C\u54C1\u6A21\u5F0F: "Work mode",
+  "\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002": "View the media and annotations in a connected Caf\xE9. From a standalone window, open the collective through your Caf\xE9.",
+  \u8FD4\u56DE\u539F\u8BA8\u8BBA: "Return to original discussion",
+  \u56DE\u5230\u539F\u8BA8\u8BBA: "Return to original discussion",
+  \u8FD4\u56DE\u9891\u9053: "Return to channel",
+  \u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1: "You no longer have access to this work",
+  "\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002": "The work and its references are closed to you. Your sign-in remains active.",
+  \u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1: "Unable to open this work",
+  "\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002": "The owning Caf\xE9 is temporarily unavailable. The discussion and drafts remain in place.",
+  "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002": "Reconnecting to the collective.",
+  \u56DE\u5230\u6700\u65B0\u7248: "Return to latest version",
+  \u5171\u540C\u4F5C\u54C1: "Shared work",
+  \u4F5C\u54C1\u4FE1\u606F: "Work information",
+  \u5173\u95ED\u4F5C\u54C1\u4FE1\u606F: "Close work information",
+  \u8BA8\u8BBA: "Discussion",
+  \u7248\u672C: "Version",
+  \u5173\u95ED\u4F5C\u54C1: "Close work",
+  \u8FD4\u56DE\u5168\u90E8\u4F5C\u54C1: "Return to all works",
+  \u8FD4\u56DE\u9891\u9053\u4F5C\u54C1: "Return to channel works",
+  \u6765\u81EA: "From",
+  \u539F\u8BA8\u8BBA: "Original discussion",
+  \u5C5E\u4E8E\u4EFB\u52A1: "Related task",
+  \u5DF2\u5173\u8054\u539F\u4EFB\u52A1: "Linked to the original task",
+  \u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1: "Shared work from this discussion",
+  \u67E5\u770B\u4E0E\u6279\u6CE8: "Viewing and annotations",
+  \u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458: "Collective members with access to this work",
+  \u91C7\u7528\u4FEE\u6539: "Adopting changes",
+  \u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539: "You can adopt changes",
+  "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A": "You can join the discussion; an authorized member decides adoption",
+  \u5173\u95ED\u7248\u672C\u8BB0\u5F55: "Close version history",
+  \u539F\u8BF7\u6C42\u4E2D\u7684\u5177\u540D\u732B: "The cat named in the original request",
+  \u6B63\u5728\u67E5\u770B: "Viewing",
+  \u8BB0\u5F55: "recorded",
+  \u5728\u8BA8\u8BBA\u4E2D\u67E5\u770B: "View in discussion",
+  \u91C7\u7528\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9: "Adoption receipt and version fingerprint",
+  \u5206\u4EAB\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9: "Publication receipt and version fingerprint",
+  "\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026": "Loading version history\u2026",
+  "\u7248\u672C\u8BB0\u5F55\u6B63\u5728\u66F4\u65B0\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002": "Version history is updating. Reload it.",
+  "\u8FD9\u5904\u9009\u6587\u65E0\u6CD5\u51C6\u786E\u5B9A\u4F4D\uFF0C\u8BF7\u7F29\u5C0F\u9009\u533A\u518D\u8BD5\u3002": "This selection cannot be located precisely. Select a smaller passage and try again.",
+  \u4F5C\u54C1\u6279\u6CE8: "Work annotations",
+  \u6279\u6CE8: "Annotations",
+  \u5DF2\u89E3\u51B3: "Resolved",
+  \u539F\u6587\u5DF2\u6539: "Original text changed",
+  \u5728\u539F\u8BA8\u8BBA\u67E5\u770B: "View in original discussion",
+  \u5728\u539F\u8BA8\u8BBA\u56DE\u590D: "Reply in original discussion",
+  "\u6B63\u5728\u8BFB\u53D6\u2026": "Loading\u2026",
+  "\u6279\u6CE8\u6B63\u5728\u66F4\u65B0\u6216\u6682\u65F6\u4E0D\u53EF\u8BFB\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u4F5C\u54C1\u3002": "Annotations are updating or temporarily unavailable. Reload the work.",
+  \u89E3\u51B3\u6279\u6CE8: "Resolve annotation",
+  \u91CD\u65B0\u6253\u5F00\u6279\u6CE8: "Reopen annotation",
+  "\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026": "Syncing annotation\u2026",
+  "\u6279\u6CE8\u56DE\u590D\u6B63\u5728\u66F4\u65B0\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002": "Annotation replies are updating. Reload them.",
+  "\u56DE\u590D\u6682\u65F6\u8BFB\u4E0D\u5230\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u4F5C\u54C1\u540E\u91CD\u8BD5\u3002": "Replies are temporarily unavailable. Reload the work and try again.",
+  "\u51B3\u5B9A\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u91CD\u8BD5\u539F\u64CD\u4F5C\u6216\u91CD\u65B0\u8BFB\u53D6\u4F5C\u54C1\u3002": "The decision is not confirmed. Retry the original action or reload the work.",
+  \u4F5C\u54C1\u4FEE\u6539: "Work changes",
+  \u4FEE\u6539\u8BF7\u6C42: "Change requests",
+  \u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55: "Earlier change requests",
+  \u67E5\u770B\u5BF9\u7167: "View comparison",
+  "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026": "Confirming decision\u2026",
+  \u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539: "Cancel this change request",
+  \u5DF2\u8BF7\u6C42\u4FEE\u6539: "Changes requested",
+  \u4FEE\u6539\u4E2D: "Changes in progress",
+  \u4FEE\u6539\u5DF2\u8FD4\u56DE: "Changes returned",
+  \u5DF2\u91C7\u7528\u5E76\u5199\u56DE: "Adopted and saved",
+  \u7248\u672C\u5DF2\u6539\u53D8: "Version changed",
+  \u6682\u65F6\u65E0\u6CD5\u7EE7\u7EED: "Temporarily unavailable",
+  \u672A\u91C7\u7528: "Not adopted",
+  "\u4FEE\u6539\u8BB0\u5F55\u6B63\u5728\u66F4\u65B0\u6216\u6682\u65F6\u4E0D\u53EF\u8BFB\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002": "Change history is updating or temporarily unavailable. Reload it.",
+  "\u51B3\u5B9A\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u6838\u5BF9\u540E\u91CD\u8BD5\u539F\u64CD\u4F5C\u3002": "The decision is not confirmed. Check it and retry the original action.",
+  \u4FEE\u6539\u524D\u540E\u5BF9\u6BD4: "Before and after",
+  \u8FD4\u56DE\u4F5C\u54C1: "Return to work",
+  "\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026": "Loading comparison\u2026",
+  \u539F\u6587: "Original",
+  \u4FEE\u6539\u540E: "Changed",
+  "\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09": "(No content here originally)",
+  "\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09": "(Delete this content)",
+  \u4E0D\u91C7\u7528: "Do not adopt",
+  "\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002": "An authorized member decides adoption. You can still join the discussion.",
+  "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026": "Confirming adoption receipt\u2026",
+  \u91C7\u7528: "Adopt",
+  "\u5BF9\u7167\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\uFF0C\u8BF7\u8FD4\u56DE\u4F5C\u54C1\u540E\u91CD\u8BD5\u3002": "The comparison is temporarily unavailable. Return to the work and try again.",
+  "\u7248\u672C\u6216\u51B3\u5B9A\u5DF2\u6539\u53D8\uFF0C\u6B63\u5728\u6838\u5BF9\u4F5C\u54C1\u8BB0\u5F55\u3002": "The version or decision changed. Confirming the work history.",
+  "\u91C7\u7528\u7ED3\u679C\u5C1A\u672A\u786E\u8BA4\uFF0C\u4FEE\u6539\u4ECD\u4FDD\u7559\u3002\u8BF7\u6838\u5BF9\u5E76\u91CD\u8BD5\u539F\u64CD\u4F5C\u3002": "Adoption is not confirmed. The changes are retained; verify and retry the original action.",
+  "\u5DF2\u91C7\u7528\uFF0C\u6B63\u5728\u6838\u5BF9\u7248\u672C\u8BB0\u5F55\u3002": "Adopted; confirming version history.",
+  "\u8FD9\u6B21\u4FEE\u6539\u6682\u65F6\u65E0\u6CD5\u7EE7\u7EED\uFF0C\u8BF7\u5728\u5F53\u524D\u4FDD\u7BA1\u65B9\u4E0B\u91CD\u65B0\u53D1\u8D77\u3002": "This change cannot continue. Start it again with the current custodian.",
+  "\u8FD9\u4EFD\u4FEE\u6539\u672A\u91C7\u7528\u3002": "These changes were not adopted.",
+  "\u8FD9\u6B21\u4FEE\u6539\u5DF2\u53D6\u6D88\u3002": "This change request was cancelled.",
+  \u4F5C\u54C1\u5F15\u7528: "Work references",
+  \u79FB\u9664\u6279\u6CE8\u5F15\u7528: "Remove annotation reference",
+  \u79FB\u9664\u4FEE\u6539\u5F15\u7528: "Remove change reference",
+  "\u5F15\u7528\u7684\u7248\u672C\u5DF2\u6539\u53D8\u6216\u65E0\u6CD5\u8BBF\u95EE\uFF0C\u8BF7\u91CD\u65B0\u9009\u53D6\uFF1B\u4F60\u5199\u7684\u8BDD\u4ECD\u5728\u3002": "The referenced version changed or is unavailable. Select it again; your draft is retained.",
+  \u4F5C\u54C1\u4E2D\u7684\u9009\u533A: "Selection in the work",
+  \u6709\u6743\u6210\u5458: "Authorized member",
+  \u6743\u9650\u4E0E\u4FDD\u7BA1: "Access and custody",
+  "\u6B63\u5728\u6838\u5BF9\u2026": "Checking\u2026",
+  "\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002": "The previous action is not confirmed.",
+  \u6838\u5BF9\u4E0A\u6B21\u64CD\u4F5C: "Check previous action",
+  \u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650: "Member access",
+  "\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002": "Changes apply only to this work. You explicitly grant adoption access.",
+  \u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1: "Reload access and custody",
+  "\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539": "View, annotate, and ask a cat to revise",
+  \u4E5F\u53EF\u91C7\u7528\u4FEE\u6539: "Can also adopt changes",
+  \u505C\u6B62\u8BBF\u95EE: "Revoke access",
+  "\u4F60\u5DF2\u65E0\u6CD5\u7BA1\u7406\u8FD9\u4EF6\u4F5C\u54C1\u3002": "You can no longer manage this work.",
+  "\u6682\u65F6\u65E0\u6CD5\u6838\u5BF9\u6743\u9650\u4E0E\u4FDD\u7BA1\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002": "Access and custody are temporarily unavailable. Reload them.",
+  "\u8BB0\u5F55\u5DF2\u53D8\u5316\uFF0C\u8BF7\u6838\u5BF9\u540E\u91CD\u65B0\u64CD\u4F5C\u3002": "The record changed. Check it before acting again.",
+  "\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u6838\u5BF9\u5E76\u91CD\u8BD5\u539F\u64CD\u4F5C\u3002": "The action is not confirmed. Check it and retry the original action.",
+  \u4FDD\u7BA1\u4F5C\u54C1: "Work custody",
+  "\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002": "The current custodian cannot be confirmed.",
+  \u672C\u6B21\u4EA4\u63A5\u76EE\u7684\u5730: "Transfer destination",
+  \u53D6\u6D88\u8FD9\u6B21\u4EA4\u63A5: "Cancel this transfer",
+  \u4EA4\u63A5\u7ED9: "Transfer to",
+  "\u4F5C\u54C1\u63A5\u6536 Caf\xE9": "Receiving Caf\xE9",
+  "\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9": "Choose a member and Caf\xE9",
+  \u4EA4\u63A5\u4F5C\u54C1\u4E0E\u8BB0\u5F55: "Transfer work and history",
+  "\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002": "The transfer preserves source and access. Custody changes only after the work and full history are verified.",
+  "\u5DF2\u53D1\u8D77\u4EA4\u63A5\uFF0C\u7B49\u5F85\u539F Caf\xE9 \u51C6\u5907\u3002": "Transfer started; waiting for the source Caf\xE9 to prepare.",
+  "\u539F Caf\xE9 \u5DF2\u51C6\u5907\u597D\uFF0C\u7B49\u5F85\u63A5\u6536\u4F5C\u54C1\u4E0E\u8BB0\u5F55\u3002": "The source Caf\xE9 is ready; waiting to receive the work and history.",
+  "\u63A5\u6536 Caf\xE9 \u5DF2\u6838\u5BF9\uFF0C\u7B49\u5F85\u786E\u8BA4\u4EA4\u63A5\u3002": "The receiving Caf\xE9 verified the work; waiting to confirm the transfer.",
+  "\u4F5C\u54C1\u4E0E\u8BB0\u5F55\u5DF2\u4EA4\u63A5\u3002": "The work and history were transferred.",
+  "\u5DF2\u786E\u8BA4\u4EA4\u63A5\uFF0C\u7B49\u5F85\u63A5\u6536 Caf\xE9 \u6062\u590D\u8BBF\u95EE\u3002": "Transfer confirmed; waiting for the receiving Caf\xE9 to restore access.",
+  "\u4EA4\u63A5\u5DF2\u53D6\u6D88\u3002": "The transfer was cancelled."
 };
-function collectiveText(text9, language) {
-  return language === "en" ? en[text9] ?? text9 : text9;
+function collectiveText(text10, language) {
+  return language === "en" ? en[text10] ?? text10 : text10;
 }
 
 // ../ui/src/MeowClubMark.tsx
@@ -52212,7 +53000,7 @@ function MeowClubMark({ className = "h-6 w-6" }) {
 // ../ui/src/Nameplate.tsx
 var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
 function Nameplate({
-  id: id27,
+  id: id28,
   name: name2,
   avatar,
   surface,
@@ -52224,7 +53012,7 @@ function Nameplate({
     "span",
     {
       "data-testid": kind === "cat" ? "cat-nameplate" : "human-nameplate",
-      "data-cat-id": kind === "cat" ? id27 : void 0,
+      "data-cat-id": kind === "cat" ? id28 : void 0,
       className: "cafe-nameplate",
       style: { backgroundImage: `linear-gradient(to bottom, ${surface}, transparent)` },
       children: [
@@ -52261,8 +53049,8 @@ function ComposerFrame({
 }) {
   return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { ...props, className: `${active ? "cafe-composer-surface " : ""}${className}`, children });
 }
-var ComposerControl = (0, import_react3.forwardRef)(function ComposerControl2({ className = "", active = true, type = "button", ...props }, ref8) {
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { ...props, ref: ref8, type, className: `${active ? "cafe-composer-control " : ""}${className}` });
+var ComposerControl = (0, import_react3.forwardRef)(function ComposerControl2({ className = "", active = true, type = "button", ...props }, ref10) {
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { ...props, ref: ref10, type, className: `${active ? "cafe-composer-control " : ""}${className}` });
 });
 
 // ../ui/src/ShellIcons.tsx
@@ -52497,7 +53285,7 @@ function createHostAppearance(input) {
   const listeners = /* @__PURE__ */ new Set();
   let state = DIRECT;
   let generation;
-  let revision9 = 0;
+  let revision11 = 0;
   let shellRevision = 0;
   const paint = (next) => {
     input.root.setAttribute("data-theme", next.scheme);
@@ -52551,8 +53339,8 @@ function createHostAppearance(input) {
     const parsed = collectiveHostAppearanceSchema.safeParse(event.data);
     if (!parsed.success) return false;
     const message = parsed.data;
-    if (message.bridgeId !== generation || message.appearanceRevision <= revision9) return false;
-    revision9 = message.appearanceRevision;
+    if (message.bridgeId !== generation || message.appearanceRevision <= revision11) return false;
+    revision11 = message.appearanceRevision;
     set({
       presentation: message.presentation,
       scheme: message.resolvedScheme,
@@ -52575,7 +53363,7 @@ function createHostAppearance(input) {
     observeGeneration(bridgeId) {
       if (bridgeId === generation) return;
       generation = bridgeId;
-      revision9 = 0;
+      revision11 = 0;
       shellRevision = 0;
     },
     receive,
@@ -52622,7 +53410,7 @@ function useCollectiveLanguage() {
 }
 function useCollectiveText() {
   const language = useCollectiveLanguage();
-  return (text9) => collectiveText(text9, language);
+  return (text10) => collectiveText(text10, language);
 }
 
 // src/ChannelNavigation.tsx
@@ -52687,22 +53475,22 @@ function ChannelNavigation({
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "destination-scroll", children: [
       /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "destination-global-entries", children: [
-        onRoadmap && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": "\u9879\u76EE", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        onRoadmap && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": t("\u9879\u76EE"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
           "button",
           {
             type: "button",
-            "aria-label": "\u9879\u76EE",
+            "aria-label": t("\u9879\u76EE"),
             className: `destination-item ${roadmapActive ? "destination-item-active" : ""}`,
             "aria-current": roadmapActive ? "page" : void 0,
             onClick: onRoadmap,
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ShellGlyph, { name: "checkSquare" }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: "\u9879\u76EE" }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: t("\u9879\u76EE") }) }),
               roadmapCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("small", { children: roadmapCount })
             ]
           }
         ) }),
-        onLibrary && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": "\u4F5C\u54C1\u8D44\u6599\u5E93", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        onLibrary && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": t("\u4F5C\u54C1\u8D44\u6599\u5E93"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
           "button",
           {
             type: "button",
@@ -52716,7 +53504,7 @@ function ChannelNavigation({
             ]
           }
         ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list member-destination", "aria-label": "\u5171\u540C\u5BB6\u56ED\u6210\u5458", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("button", { type: "button", className: "destination-item", onClick: onMembers, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list member-destination", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u6210\u5458"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("button", { type: "button", className: "destination-item", onClick: onMembers, children: [
           /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CollectiveIcon, { kind: "members" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: t("\u6210\u5458") }) }),
           memberCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("small", { children: memberCount })
@@ -52742,7 +53530,7 @@ function ChannelNavigation({
           },
           channel2.id
         )),
-        query && !visible.length && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { className: "navigation-empty", children: "\u6CA1\u6709\u540C\u540D\u9891\u9053\uFF1B\u4E3B\u533A\u663E\u793A\u5339\u914D\u7684\u6D88\u606F\u3002" })
+        query && !visible.length && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { className: "navigation-empty", children: t("\u6CA1\u6709\u540C\u540D\u9891\u9053\uFF1B\u4E3B\u533A\u663E\u793A\u5339\u914D\u7684\u6D88\u606F\u3002") })
       ] })
     ] })
   ] });
@@ -52788,15 +53576,16 @@ function MemberAvatar({
 var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
 function ComposerMentionMenu({
   options,
-  id: id27,
+  id: id28,
   active,
   onSelect
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "mention-list", id: id27, role: "listbox", "aria-label": "\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458", children: [
+  const t = useCollectiveText();
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "mention-list", id: id28, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
     options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
       "button",
       {
-        id: `${id27}-${index4}`,
+        id: `${id28}-${index4}`,
         type: "button",
         role: "option",
         "aria-selected": index4 === active,
@@ -52813,7 +53602,7 @@ function ComposerMentionMenu({
       },
       option.key
     )),
-    !options.length && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("p", { children: "\u6CA1\u6709\u627E\u5230\u5728\u672C\u9891\u9053\u53C2\u4E0E\u7684\u6210\u5458\u3002" })
+    !options.length && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("p", { children: t("\u6CA1\u6709\u627E\u5230\u5728\u672C\u9891\u9053\u53C2\u4E0E\u7684\u6210\u5458\u3002") })
   ] });
 }
 
@@ -52827,11 +53616,15 @@ function ComposerTray({
   onEntrust,
   onResponseRequested
 }) {
+  const t = useCollectiveText();
   return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "composer-tray", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", onClick: onMention, children: "@ \u63D0\u5230\u6210\u5458" }),
+    /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("button", { type: "button", onClick: onMention, children: [
+      "@ ",
+      t("\u63D0\u5230\u6210\u5458")
+    ] }),
     recipientKind === "agent" && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("label", { children: [
       /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("input", { type: "checkbox", checked: entrust, onChange: (event) => onEntrust(event.target.checked) }),
-      "\u8BF7\u6C42\u6301\u7EED\u5904\u7406"
+      t("\u8BF7\u6C42\u6301\u7EED\u5904\u7406")
     ] }),
     recipientKind === "channel" && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("label", { children: [
       /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
@@ -52842,10 +53635,10 @@ function ComposerTray({
           onChange: (event) => onResponseRequested(event.target.checked)
         }
       ),
-      "\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94"
+      t("\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94")
     ] }),
-    entrust && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("small", { children: "\u7531\u732B\u7684\u4E3B\u4EBA\u5B89\u6392\u79C1\u4EBA\u4EFB\u52A1\uFF0C\u7ED3\u679C\u56DE\u5230\u8FD9\u91CC\u3002" }),
-    responseRequested && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("small", { children: "\u53EA\u901A\u77E5\u81EA\u613F\u503C\u5B88\u56DE\u5E94\u8BF7\u6C42\u7684\u4F19\u4F34\uFF1B\u666E\u901A\u6D88\u606F\u4ECD\u4F1A\u5B89\u9759\u9001\u8FBE\u3002" })
+    entrust && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("small", { children: t("\u7531\u732B\u7684\u4E3B\u4EBA\u5B89\u6392\u79C1\u4EBA\u4EFB\u52A1\uFF0C\u7ED3\u679C\u56DE\u5230\u8FD9\u91CC\u3002") }),
+    responseRequested && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("small", { children: t("\u53EA\u901A\u77E5\u81EA\u613F\u503C\u5B88\u56DE\u5E94\u8BF7\u6C42\u7684\u4F19\u4F34\uFF1B\u666E\u901A\u6D88\u606F\u4ECD\u4F1A\u5B89\u9759\u9001\u8FBE\u3002") })
   ] });
 }
 
@@ -52878,8 +53671,8 @@ function groupChannelThreads(events) {
 function actorDisplayName(event) {
   return event.actor.kind === "human" ? event.actor.displayName : event.actor.agent.displayName;
 }
-function formatEventTime(acceptedAt) {
-  return new Intl.DateTimeFormat("zh-CN", {
+function formatEventTime(acceptedAt, language = "zh") {
+  return new Intl.DateTimeFormat(language === "en" ? "en-US" : "zh-CN", {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(acceptedAt));
@@ -53016,37 +53809,39 @@ var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactQuoteTags({
   attachment
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   if (!attachment.selections.length && !attachment.rework && !attachment.reply && !attachment.failure) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("fieldset", { className: "shared-artifact-quote-tags", "aria-label": "\u4F5C\u54C1\u5F15\u7528", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("fieldset", { className: "shared-artifact-quote-tags", "aria-label": t("\u4F5C\u54C1\u5F15\u7528"), children: [
     attachment.reply && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
-        "\u56DE\u590D\u7B2C ",
-        attachment.reply.ownerRevision,
-        " \u7248\u7684\u6279\u6CE8 \xB7 \u7559\u5728\u539F\u8BA8\u8BBA"
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": "\u79FB\u9664\u6279\u6CE8\u5F15\u7528", onClick: attachment.removeReply, children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: language === "en" ? `Reply to an annotation on version ${attachment.reply.ownerRevision} \xB7 keep in the original discussion` : `\u56DE\u590D\u7B2C ${attachment.reply.ownerRevision} \u7248\u7684\u6279\u6CE8 \xB7 \u7559\u5728\u539F\u8BA8\u8BBA` }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664\u6279\u6CE8\u5F15\u7528"), onClick: attachment.removeReply, children: "\xD7" })
     ] }),
     attachment.rework && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
-        "\u7B2C ",
-        attachment.rework.sourceOwnerRevision,
-        " \u7248\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ",
-        attachment.rework.ownerRevision,
-        " \u7248\u91CD\u505A"
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": "\u79FB\u9664\u4FEE\u6539\u5F15\u7528", onClick: attachment.removeRework, children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: language === "en" ? `Changes for version ${attachment.rework.sourceOwnerRevision} \xB7 redo from version ${attachment.rework.ownerRevision}` : `\u7B2C ${attachment.rework.sourceOwnerRevision} \u7248\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${attachment.rework.ownerRevision} \u7248\u91CD\u505A` }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664\u4FEE\u6539\u5F15\u7528"), onClick: attachment.removeRework, children: "\xD7" })
     ] }),
     attachment.selections.map((selection, index4) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
       /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
         index4 + 1,
-        " \xB7 \u7B2C ",
-        selection.ownerRevision,
-        " \u7248 \xB7 ",
+        " \xB7",
+        " ",
+        language === "en" ? `Version ${selection.ownerRevision}` : `\u7B2C ${selection.ownerRevision} \u7248`,
+        " \xB7",
+        " ",
         attachment.label(index4)
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": `\u79FB\u9664\u5F15\u7528 ${index4 + 1}`, onClick: () => attachment.remove(index4), children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
+        "button",
+        {
+          type: "button",
+          "aria-label": language === "en" ? `Remove reference ${index4 + 1}` : `\u79FB\u9664\u5F15\u7528 ${index4 + 1}`,
+          onClick: () => attachment.remove(index4),
+          children: "\xD7"
+        }
+      )
     ] }, `${selection.artifactId}:${selection.span.start}:${index4}`)),
-    (attachment.stale || attachment.failure) && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { role: "alert", children: attachment.stale ? "\u5F15\u7528\u7684\u7248\u672C\u5DF2\u6539\u53D8\u6216\u65E0\u6CD5\u8BBF\u95EE\uFF0C\u8BF7\u91CD\u65B0\u9009\u53D6\uFF1B\u4F60\u5199\u7684\u8BDD\u4ECD\u5728\u3002" : attachment.failure })
+    (attachment.stale || attachment.failure) && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { role: "alert", children: t(attachment.stale ? "\u5F15\u7528\u7684\u7248\u672C\u5DF2\u6539\u53D8\u6216\u65E0\u6CD5\u8BBF\u95EE\uFF0C\u8BF7\u91CD\u65B0\u9009\u53D6\uFF1B\u4F60\u5199\u7684\u8BDD\u4ECD\u5728\u3002" : attachment.failure ?? "") })
   ] });
 }
 
@@ -53312,13 +54107,13 @@ function batchedRequestReceipts(post2, coordinates3) {
 }
 async function readReceiptBatch(post2, coordinates3, batch) {
   try {
-    const requestEventIds = batch.map(([id27]) => id27);
+    const requestEventIds = batch.map(([id28]) => id28);
     const value = collectiveArtifactRequestReceiptPageSchema.parse(
       await post2("receipts/by-request", { ...coordinates3, requestEventIds })
     );
     assertReceiptBindings(value.receipts, coordinates3, requestEventIds);
-    for (const [id27, listeners] of batch) {
-      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id27);
+    for (const [id28, listeners] of batch) {
+      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id28);
       for (const listener of listeners) listener.resolve(receipts);
     }
   } catch (error) {
@@ -53328,10 +54123,10 @@ async function readReceiptBatch(post2, coordinates3, batch) {
 function assertReceiptBindings(receipts, coordinates3, requestEventIds) {
   const seen = /* @__PURE__ */ new Set();
   for (const receipt2 of receipts) {
-    const id27 = receipt2.version.lineage?.requestEventId;
-    if (!id27 || !requestEventIds.includes(id27) || seen.has(id27) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
+    const id28 = receipt2.version.lineage?.requestEventId;
+    if (!id28 || !requestEventIds.includes(id28) || seen.has(id28) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
       throw new Error("\u91C7\u7528\u56DE\u6267\u4E0E\u539F\u8BF7\u6C42\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
-    seen.add(id27);
+    seen.add(id28);
   }
 }
 
@@ -53433,17 +54228,17 @@ var previewSchema = external_exports.object({
   stale: external_exports.boolean(),
   currentOwnerRevision: external_exports.number().int().positive()
 });
-async function digest5(text9) {
-  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text9)));
+async function digest7(text10) {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text10)));
   return `sha256:${Array.from(bytes, (item) => item.toString(16).padStart(2, "0")).join("")}`;
 }
-async function previewSharedArtifactModification(operation, artifact, selection, resolveVersion = async (revision9) => artifact.versions.find((version) => version.ownerRevision === revision9)) {
+async function previewSharedArtifactModification(operation, artifact, selection, resolveVersion = async (revision11) => artifact.versions.find((version) => version.ownerRevision === revision11)) {
   const requestId2 = crypto.randomUUID();
   const value = previewSchema.parse(
     await readArtifactJsonPages((page3) => operation(artifact, "preview", { ...selection, ...page3 }, requestId2))
   );
   const version = artifact.versions.find((item) => item.ownerRevision === value.request.ownerRevision) ?? await resolveVersion(value.request.ownerRevision);
-  if (value.request.requestId !== selection.requestId || value.proposal.proposalRef !== selection.proposalRef || value.proposal.requestId !== selection.requestId || value.proposal.authorCatId !== value.request.target.catId || value.request.sourceEventId !== artifact.sourceEventId || value.request.location.channelId !== artifact.sourceLocation.channelId || !version || value.proposal.baseRevision !== version.blobDigest || await digest5(value.baseText) !== value.proposal.baseRevision || await digest5(value.proposedText) !== value.proposal.resultRevision)
+  if (value.request.requestId !== selection.requestId || value.proposal.proposalRef !== selection.proposalRef || value.proposal.requestId !== selection.requestId || value.proposal.authorCatId !== value.request.target.catId || value.request.sourceEventId !== artifact.sourceEventId || value.request.location.channelId !== artifact.sourceLocation.channelId || !version || value.proposal.baseRevision !== version.blobDigest || await digest7(value.baseText) !== value.proposal.baseRevision || await digest7(value.proposedText) !== value.proposal.resultRevision)
     throw new Error("\u4FEE\u6539\u4E0E\u8FD9\u4EF6\u4F5C\u54C1\u7684\u7248\u672C\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
   return value;
 }
@@ -53603,6 +54398,17 @@ function verifySharedAnnotationReplyPage(view, annotationId, offset2, page3) {
 }
 
 // src/collective-artifact-client.ts
+var workResultArtifactResolutionSchema = external_exports.discriminatedUnion("status", [
+  external_exports.object({
+    status: external_exports.literal("published"),
+    mayPromote: external_exports.literal(false),
+    artifact: collectiveArtifactProjectionSchema
+  }).strict(),
+  external_exports.object({
+    status: external_exports.enum(["unpublished", "pending"]),
+    mayPromote: external_exports.boolean()
+  }).strict()
+]);
 var sharedMarkdownViewSchema = external_exports.object({
   contentRef: external_exports.string(),
   ownerRevision: external_exports.number().int().positive(),
@@ -53708,13 +54514,32 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     }
     return collectiveArtifactProjectionSchema.parse(artifact);
   };
+  const promoteWorkResult = async (fileId) => {
+    const result = await post2("publications/promote-result", {
+      ...coordinates3,
+      fileId
+    });
+    if (result.publication.status !== "published" || !result.publication.artifact)
+      throw new Error("\u7ED3\u679C\u4F5C\u54C1\u4ECD\u5728\u540C\u6B65\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002");
+    return collectiveArtifactProjectionSchema.parse(result.publication.artifact);
+  };
+  const openWorkResult = async (fileId) => {
+    const result = await post2("publications/resolve-result", { ...coordinates3, fileId });
+    const resolution = workResultArtifactResolutionSchema.parse(result.resolution);
+    if (resolution.status === "published") return resolution.artifact;
+    if (!resolution.mayPromote)
+      throw new Error(
+        resolution.status === "pending" ? "\u7ED3\u679C\u4F5C\u54C1\u4ECD\u5728\u540C\u6B65\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002" : "\u7ED3\u679C\u4F5C\u54C1\u5C1A\u672A\u53D1\u5E03\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002"
+      );
+    return promoteWorkResult(fileId);
+  };
   const sendFeedback = (input) => sendSharedArtifactFeedback(request, namespace, operation, input);
-  const resolveModification = (artifact, record, action) => resolveSharedArtifactModification(operation, namespace, artifact, record, action);
+  const resolveModification = (artifact, record2, action) => resolveSharedArtifactModification(operation, namespace, artifact, record2, action);
   const previewModification = (artifact, selection) => previewSharedArtifactModification(
     operation,
     artifact,
     selection,
-    (revision9) => historyClient.version(artifact, revision9)
+    (revision11) => historyClient.version(artifact, revision11)
   );
   const adoptModification = (artifact, preview) => adoptSharedArtifactModification(operation, namespace, artifact, preview);
   const moreRequests = async (artifact, view) => {
@@ -53758,6 +54583,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     read,
     moreRequests,
     publish,
+    openWorkResult,
     operation,
     request,
     sendFeedback,
@@ -53872,6 +54698,18 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
   );
   const beginPublication = (0, import_react8.useCallback)((eventId2) => setPublicationSource(eventId2), []);
   const closePublication = (0, import_react8.useCallback)(() => setPublicationSource(void 0), []);
+  const resolveWorkResultFile = (0, import_react8.useCallback)(
+    async (address) => {
+      if (!api || namespace !== currentNamespace.current) throw new Error("\u4F5C\u54C1\u670D\u52A1\u5F53\u524D\u4E0D\u53EF\u7528\u3002");
+      const artifact = await api.openWorkResult(address.fileId);
+      if (namespace !== currentNamespace.current) throw new Error("\u5171\u540C\u5BB6\u56ED\u5DF2\u7ECF\u5207\u6362\uFF0C\u8BF7\u4ECE\u5F53\u524D\u9875\u9762\u91CD\u65B0\u6253\u5F00\u7ED3\u679C\u3002");
+      setCatalogue((current2) => [artifact, ...current2.filter((item) => item.artifactId !== artifact.artifactId)]);
+      setStatus("ready");
+      setError(void 0);
+      return artifact;
+    },
+    [api, namespace]
+  );
   return {
     api,
     catalogue,
@@ -53885,6 +54723,7 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
     compare,
     beginPublication,
     closePublication,
+    resolveWorkResultFile,
     refreshDiscussion,
     humanId: snapshot.me?.human.humanId,
     members: snapshot.members,
@@ -54175,6 +55014,7 @@ function Composer({
   replyEvents
 }) {
   const t = useCollectiveText();
+  const language = useCollectiveLanguage();
   const draftKey = `collective-draft:${namespace}:${channelId}:${rootEventId ?? "channel"}`;
   const [draft, setDraft] = (0, import_react12.useState)(() => readDraft(draftKey));
   const attachment = useSharedArtifactComposer(draft, setDraft, rootEventId);
@@ -54196,7 +55036,7 @@ function Composer({
   const replyEvent = replyEvents?.find((event) => event.eventId === draft.replyToEventId);
   const replyError = replyDraftError(draft, replyEvents, participants, channelId);
   const unresolved = /(^|\s)@/u.test(draft.body);
-  const inputPlaceholder = replyEvent ? `\u56DE\u590D ${actorDisplayName(replyEvent)} \u7684\u6D88\u606F` : placeholder;
+  const inputPlaceholder = replyEvent ? language === "en" ? `Reply to ${actorDisplayName(replyEvent)}` : `\u56DE\u590D ${actorDisplayName(replyEvent)} \u7684\u6D88\u606F` : placeholder;
   const query = (mentionQuery ?? "").toLocaleLowerCase();
   const options = [
     ...participants.filter((item) => item.availability === "declared" && item.channelIds.includes(channelId)).map((item) => ({
@@ -54210,7 +55050,7 @@ function Composer({
     ...humans.map((human) => ({
       key: human.humanId,
       label: human.displayName,
-      detail: "\u6210\u5458 \xB7 \u4EBA",
+      detail: t("\u6210\u5458 \xB7 \u4EBA"),
       recipient: { kind: "human", humanId: human.humanId },
       kind: "human",
       avatarUrl: human.avatarUrl
@@ -54318,22 +55158,23 @@ function Composer({
       children: [
         mentionQuery !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(ComposerMentionMenu, { options, id: listId, active: activeIndex, onSelect: select }),
         /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(SharedArtifactQuoteTags, { attachment }),
-        replyEvent && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "composer-recipient", role: "group", "aria-label": "\u56DE\u590D\u6765\u6E90", children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
-          "\u56DE\u590D ",
+        replyEvent && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "composer-recipient", role: "group", "aria-label": t("\u56DE\u590D\u6765\u6E90"), children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
+          language === "en" ? "Reply to" : "\u56DE\u590D",
+          " ",
           actorDisplayName(replyEvent),
-          "\uFF1A",
+          language === "en" ? ": " : "\uFF1A",
           replyEvent.body.replace(/\s+/gu, " ").slice(0, 60)
         ] }) }),
         draft.recipient.kind !== "channel" && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "composer-recipient", children: [
           /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
             "@",
-            draft.recipientLabel || "\u5DF2\u9009\u6210\u5458"
+            draft.recipientLabel || t("\u5DF2\u9009\u6210\u5458")
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
             "button",
             {
               type: "button",
-              "aria-label": "\u79FB\u9664 @",
+              "aria-label": t("\u79FB\u9664 @"),
               onClick: () => {
                 setDraft((current2) => ({
                   ...current2,
@@ -54348,8 +55189,8 @@ function Composer({
             }
           )
         ] }),
-        (replyError || !available) && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { role: "alert", className: "composer-warning", children: replyError ?? "\u53C2\u4E0E\u8BBE\u7F6E\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6210\u5458\uFF1B\u6D88\u606F\u5C1A\u672A\u53D1\u9001\u3002" }),
-        unresolved && mentionQuery === void 0 && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { role: "alert", className: "composer-warning", children: "\u8BF7\u7528 @ \u9009\u62E9\u5F53\u524D\u9891\u9053\u7684\u6210\u5458\uFF0C\u6216\u79FB\u9664\u6CA1\u9009\u4E2D\u7684 @\u3002" }),
+        (replyError || !available) && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { role: "alert", className: "composer-warning", children: replyError ? t(replyError) : t("\u53C2\u4E0E\u8BBE\u7F6E\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6210\u5458\uFF1B\u6D88\u606F\u5C1A\u672A\u53D1\u9001\u3002") }),
+        unresolved && mentionQuery === void 0 && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { role: "alert", className: "composer-warning", children: t("\u8BF7\u7528 @ \u9009\u62E9\u5F53\u524D\u9891\u9053\u7684\u6210\u5458\uFF0C\u6216\u79FB\u9664\u6CA1\u9009\u4E2D\u7684 @\u3002") }),
         expanded && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
           ComposerTray,
           {
@@ -54403,8 +55244,8 @@ function Composer({
           ),
           /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "submit", className: "composer-send", "aria-label": t("\u53D1\u9001"), disabled, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(CollectiveIcon, { kind: "send" }) })
         ] }),
-        storageNotice && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { className: "composer-warning", role: "status", children: storageNotice }),
-        delivery.kind !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { className: `delivery-state delivery-${delivery.kind}`, role: "status", children: delivery.label })
+        storageNotice && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { className: "composer-warning", role: "status", children: t(storageNotice) }),
+        delivery.kind !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { className: `delivery-state delivery-${delivery.kind}`, role: "status", children: t(delivery.label) })
       ]
     }
   );
@@ -55870,7 +56711,7 @@ function one2(state, node2, key) {
     return root2(state, node2, key);
   }
   if (node2.type === "text") {
-    return text7(state, node2);
+    return text8(state, node2);
   }
 }
 function element2(state, node2, key) {
@@ -55938,7 +56779,7 @@ function root2(state, node2, key) {
   addChildren(props, createChildren(state, node2));
   return state.create(node2, state.Fragment, props, key);
 }
-function text7(_, node2) {
+function text8(_, node2) {
   return node2.value;
 }
 function addNode(state, props, type, node2) {
@@ -55954,11 +56795,11 @@ function addChildren(props, children) {
     }
   }
 }
-function productionCreate(_, jsx88, jsxs79) {
+function productionCreate(_, jsx89, jsxs79) {
   return create2;
   function create2(_2, type, props, key) {
     const isStaticChildren = Array.isArray(props.children);
-    const fn = isStaticChildren ? jsxs79 : jsx88;
+    const fn = isStaticChildren ? jsxs79 : jsx89;
     return key ? fn(type, props, key) : fn(type, props);
   }
 }
@@ -56276,20 +57117,20 @@ function emphasis2(state, node2) {
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/footnote-reference.js
 function footnoteReference2(state, node2) {
   const clobberPrefix = typeof state.options.clobberPrefix === "string" ? state.options.clobberPrefix : "user-content-";
-  const id27 = String(node2.identifier).toUpperCase();
-  const safeId = normalizeUri(id27.toLowerCase());
-  const index4 = state.footnoteOrder.indexOf(id27);
+  const id28 = String(node2.identifier).toUpperCase();
+  const safeId = normalizeUri(id28.toLowerCase());
+  const index4 = state.footnoteOrder.indexOf(id28);
   let counter;
-  let reuseCounter = state.footnoteCounts.get(id27);
+  let reuseCounter = state.footnoteCounts.get(id28);
   if (reuseCounter === void 0) {
     reuseCounter = 0;
-    state.footnoteOrder.push(id27);
+    state.footnoteOrder.push(id28);
     counter = state.footnoteOrder.length;
   } else {
     counter = index4 + 1;
   }
   reuseCounter += 1;
-  state.footnoteCounts.set(id27, reuseCounter);
+  state.footnoteCounts.set(id28, reuseCounter);
   const link3 = {
     type: "element",
     tagName: "a",
@@ -56364,8 +57205,8 @@ function revert(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/image-reference.js
 function imageReference2(state, node2) {
-  const id27 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id27);
+  const id28 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id28);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -56394,13 +57235,13 @@ function image2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/inline-code.js
 function inlineCode2(state, node2) {
-  const text9 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
-  state.patch(node2, text9);
+  const text10 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
+  state.patch(node2, text10);
   const result = {
     type: "element",
     tagName: "code",
     properties: {},
-    children: [text9]
+    children: [text10]
   };
   state.patch(node2, result);
   return state.applyData(node2, result);
@@ -56408,8 +57249,8 @@ function inlineCode2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/link-reference.js
 function linkReference2(state, node2) {
-  const id27 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id27);
+  const id28 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id28);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -56687,7 +57528,7 @@ function trimLine(value, start2, end) {
 }
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/text.js
-function text8(state, node2) {
+function text9(state, node2) {
   const result = { type: "text", value: trimLines(String(node2.value)) };
   state.patch(node2, result);
   return state.applyData(node2, result);
@@ -56729,7 +57570,7 @@ var handlers = {
   table,
   tableCell,
   tableRow,
-  text: text8,
+  text: text9,
   thematicBreak: thematicBreak3,
   toml: ignore,
   yaml: ignore,
@@ -56992,11 +57833,11 @@ function footer(state) {
       continue;
     }
     const content3 = state.all(definition3);
-    const id27 = String(definition3.identifier).toUpperCase();
-    const safeId = normalizeUri(id27.toLowerCase());
+    const id28 = String(definition3.identifier).toUpperCase();
+    const safeId = normalizeUri(id28.toLowerCase());
     let rereferenceIndex = 0;
     const backReferences = [];
-    const counts = state.footnoteCounts.get(id27);
+    const counts = state.footnoteCounts.get(id28);
     while (counts !== void 0 && ++rereferenceIndex <= counts) {
       if (backReferences.length > 0) {
         backReferences.push({ type: "text", value: " " });
@@ -57092,9 +57933,9 @@ function createState(tree, options) {
   visit(tree, function(node2) {
     if (node2.type === "definition" || node2.type === "footnoteDefinition") {
       const map3 = node2.type === "definition" ? definitionById : footnoteById;
-      const id27 = String(node2.identifier).toUpperCase();
-      if (!map3.has(id27)) {
-        map3.set(id27, node2);
+      const id28 = String(node2.identifier).toUpperCase();
+      if (!map3.has(id28)) {
+        map3.set(id28, node2);
       }
     }
   });
@@ -57620,11 +58461,11 @@ function assertProviderSetupSupported(provider) {
   if (!provider?.setupSupported) throw new Error("\u6B64 Service \u4E0D\u652F\u6301\u5728\u9875\u9762\u4E2D\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528");
 }
 function submitGitHubAppManifest(openedWindow, result) {
-  const submission = prepareGitHubAppManifestSubmission(result);
+  const submission2 = prepareGitHubAppManifestSubmission(result);
   const form = openedWindow.document.createElement("form");
-  form.method = submission.method;
-  form.action = submission.action;
-  for (const field of submission.fields) {
+  form.method = submission2.method;
+  form.action = submission2.action;
+  for (const field of submission2.fields) {
     const input = openedWindow.document.createElement("input");
     input.type = "hidden";
     input.name = field.name;
@@ -57638,8 +58479,8 @@ function submitGitHubAppManifest(openedWindow, result) {
 // src/use-human-auth-session.ts
 var SESSION_KEY = "collective-session";
 function selectedCollective(me) {
-  const id27 = new URLSearchParams(location.search).get("collectiveId");
-  return id27 ? me?.collectives.find((item) => item.collectiveId === id27) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
+  const id28 = new URLSearchParams(location.search).get("collectiveId");
+  return id28 ? me?.collectives.find((item) => item.collectiveId === id28) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
 }
 async function finishAuthCompletion(context2) {
   const completed = await context2.request("/api/auth/completions/exchange", {
@@ -57908,27 +58749,20 @@ function collectiveWorkResultFileAddress(href) {
     const url = new URL(href);
     if (url.protocol !== "http:" && url.protocol !== "https:") return void 0;
     const address = parseCollectiveWorkResultFilePath(url.pathname);
-    return address ? { fileName: address.fileName, pathname: url.pathname } : void 0;
+    return address ? { ...address, pathname: url.pathname } : void 0;
   } catch {
     return void 0;
   }
 }
-function currentCollectiveWorkResultFile(href) {
-  if (typeof location === "undefined") return void 0;
-  const address = collectiveWorkResultFileAddress(href);
-  return address ? { fileName: address.fileName, href: new URL(address.pathname, location.origin).toString() } : void 0;
-}
 function currentCollectiveSessionToken() {
-  if (typeof location === "undefined") return void 0;
-  if (typeof sessionStorage === "undefined") return void 0;
-  const token = sessionStorage.getItem(`${SESSION_KEY}:${location.origin}`);
-  return token === null ? void 0 : token;
+  if (typeof location === "undefined" || typeof sessionStorage === "undefined") return void 0;
+  return sessionStorage.getItem(`${SESSION_KEY}:${location.origin}`) ?? void 0;
 }
-async function openCollectiveWorkResultFile(href, sessionToken, popup) {
-  const address = currentCollectiveWorkResultFile(href);
-  if (!address) throw new Error("Work result file belongs to another Service");
+async function openCollectiveWorkResultFile(address, sessionToken, popup) {
+  if (typeof location === "undefined") throw new Error("Work result file belongs to another Service");
+  const href = new URL(address.pathname, location.origin).toString();
   try {
-    const response = await fetch(address.href, {
+    const response = await fetch(href, {
       cache: "no-store",
       credentials: "same-origin",
       headers: { authorization: `Bearer ${sessionToken}` }
@@ -57974,17 +58808,38 @@ function InertLink({ children }) {
 function SafeLink({ href, children }) {
   return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("a", { href, target: "_blank", rel: "noreferrer noopener", children });
 }
-function AuthenticatedWorkResultFile({ href, children }) {
+function AuthenticatedWorkResultFile({
+  address,
+  children
+}) {
+  const shared = useSharedArtifacts();
+  const t = useCollectiveText();
+  const promotable = address.fileName.toLocaleLowerCase().endsWith(".md");
+  const [pending, setPending] = (0, import_react17.useState)(false);
   const [failed, setFailed] = (0, import_react17.useState)(false);
   const open = () => {
-    const sessionToken = currentCollectiveSessionToken();
-    if (!sessionToken) {
-      setFailed(true);
-      return;
-    }
+    if (pending) return;
     setFailed(false);
-    const popup = window.open("about:blank", "_blank");
-    void openCollectiveWorkResultFile(href, sessionToken, popup).catch(() => setFailed(true));
+    setPending(true);
+    let action;
+    if (promotable) {
+      const promote = shared?.openWorkResultFile;
+      if (!promote) {
+        setFailed(true);
+        setPending(false);
+        return;
+      }
+      action = promote(address);
+    } else {
+      const sessionToken = currentCollectiveSessionToken();
+      if (!sessionToken) {
+        setFailed(true);
+        setPending(false);
+        return;
+      }
+      action = openCollectiveWorkResultFile(address, sessionToken, window.open("about:blank", "_blank"));
+    }
+    void action.catch(() => setFailed(true)).finally(() => setPending(false));
   };
   return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(import_jsx_runtime18.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
@@ -57993,11 +58848,13 @@ function AuthenticatedWorkResultFile({ href, children }) {
         type: "button",
         className: "message-markdown-authenticated-file",
         "data-collective-work-result-file": "",
+        "aria-busy": pending,
+        disabled: pending,
         onClick: open,
-        children
+        children: pending ? t("\u6B63\u5728\u6253\u5F00\u4F5C\u54C1\u2026") : children
       }
     ),
-    failed && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("output", { children: "\u6587\u4EF6\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002" })
+    failed && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("output", { children: t(promotable ? "\u7ED3\u679C\u4F5C\u54C1\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF1B\u539F\u7ED3\u679C\u4ECD\u5DF2\u4FDD\u7559\uFF0C\u53EF\u4EE5\u7A0D\u540E\u91CD\u8BD5\u3002" : "\u6587\u4EF6\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002") })
   ] });
 }
 function MessageMarkdown({
@@ -58028,8 +58885,8 @@ function MessageMarkdown({
         components: {
           ...sourceComponents,
           a: ({ children, href }) => {
-            if (href && collectiveWorkResultFileAddress(href))
-              return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AuthenticatedWorkResultFile, { href, children });
+            const result = href ? collectiveWorkResultFileAddress(href) : void 0;
+            if (result) return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AuthenticatedWorkResultFile, { address: result, children });
             return isSafeWebLink(href) ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(SafeLink, { href, children }) : /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(InertLink, { children });
           },
           img: ({ alt }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "message-markdown-inert-image", children: alt ? `\u56FE\u7247\uFF1A${alt}` : "\u56FE\u7247" })
@@ -58050,10 +58907,10 @@ function channelDestinations(events, participants) {
     ...events.flatMap((event) => eventChannelId(event) ?? []),
     ...participants.flatMap((member) => member.channelIds)
   ]);
-  return [...ids2].map((id27) => {
-    const messages = events.filter((event) => eventChannelId(event) === id27);
-    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id27));
-    return { id: id27, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
+  return [...ids2].map((id28) => {
+    const messages = events.filter((event) => eventChannelId(event) === id28);
+    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id28));
+    return { id: id28, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
   });
 }
 function readChannelPosition(namespace) {
@@ -58098,10 +58955,10 @@ function saveChannelPosition(namespace, channelId) {
   } catch {
   }
 }
-function eventDayLabel(value) {
+function eventDayLabel(value, language = "zh") {
   const date = new Date(value);
   const now = /* @__PURE__ */ new Date();
-  return date.toDateString() === now.toDateString() ? "\u4ECA\u5929" : new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" }).format(date);
+  return date.toDateString() === now.toDateString() ? language === "en" ? "Today" : "\u4ECA\u5929" : new Intl.DateTimeFormat(language === "en" ? "en-US" : "zh-CN", { month: "long", day: "numeric" }).format(date);
 }
 
 // src/message-presentation.ts
@@ -58171,6 +59028,7 @@ function MessageBody({
   participants = [],
   responseState
 }) {
+  const t = useCollectiveText();
   const recipient = event.recipient?.kind === "agent" ? event.recipient : void 0;
   const namedCat = recipient ? participants.find(
     (participant) => participant.serviceInstanceId === event.serviceInstanceId && participant.collectiveId === event.collectiveId && participant.connectionId === recipient.connectionId && participant.humanId === recipient.humanId && participant.catId === recipient.agentId
@@ -58195,10 +59053,10 @@ function MessageBody({
       }
     ),
     event.attentionRequest && /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("p", { className: "request-kind", children: [
-      "\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94",
-      responseState === "waiting" ? " \xB7 \u5C1A\u672A\u6709\u4EBA\u56DE\u5E94" : responseState === "responded" ? " \xB7 \u5DF2\u6709\u56DE\u5E94" : ""
+      t("\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94"),
+      responseState === "waiting" ? ` \xB7 ${t("\u5C1A\u672A\u6709\u4EBA\u56DE\u5E94")}` : responseState === "responded" ? ` \xB7 ${t("\u5DF2\u6709\u56DE\u5E94")}` : ""
     ] }),
-    event.workRequest && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("p", { className: "request-kind", children: "\u8BF7\u6C42\u6301\u7EED\u5904\u7406" })
+    event.workRequest && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("p", { className: "request-kind", children: t("\u8BF7\u6C42\u6301\u7EED\u5904\u7406") })
   ] });
 }
 function TopicMessage({
@@ -58209,6 +59067,7 @@ function TopicMessage({
   presentation,
   showTime = true
 }) {
+  const language = useCollectiveLanguage();
   const v2 = useRoomPresentation(presentation) === "v2";
   const author2 = authorPresentation(event, currentHumanId);
   return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("article", { className: "topic-message", "data-author": v2 ? author2 : void 0, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("div", { children: [
@@ -58221,7 +59080,7 @@ function TopicMessage({
           onOpen: onOpenMember ? () => onOpenMember(event) : void 0
         }
       ),
-      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: event.acceptedAt, children: formatEventTime(event.acceptedAt) })
+      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: event.acceptedAt, children: formatEventTime(event.acceptedAt, language) })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MessageBody, { event, participants })
   ] }) });
@@ -58234,9 +59093,10 @@ function CollectiveNameplate({
   participants,
   onOpen
 }) {
+  const language = useCollectiveLanguage();
   const actor3 = event.actor;
-  const id27 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
-  const safeId = /^[a-zA-Z0-9_-]+$/.test(id27) ? id27 : "cocreator";
+  const id28 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
+  const safeId = /^[a-zA-Z0-9_-]+$/.test(id28) ? id28 : "cocreator";
   const participant = actor3.kind === "agent" ? participants.find(
     (p) => p.serviceInstanceId === event.serviceInstanceId && p.collectiveId === event.collectiveId && p.connectionId === actor3.provenance.connectionId && p.catId === actor3.provenance.catId && p.humanId === actor3.human.humanId
   ) : void 0;
@@ -58245,19 +59105,19 @@ function CollectiveNameplate({
   return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
     Nameplate,
     {
-      id: id27,
+      id: id28,
       name: label,
       kind: human ? "human" : "cat",
       surface: human ? "var(--human-surface)" : `var(--color-${safeId}-surface, var(--shell-selected))`,
       ink: human ? "var(--human-name)" : `var(--color-${safeId}-text, var(--shell-ink))`,
-      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id27}` : actorDisplayName(event),
+      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id28}` : actorDisplayName(event),
       avatar: onOpen ? /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
         "button",
         {
           type: "button",
           className: "avatar-button",
           onClick: onOpen,
-          "aria-label": `\u67E5\u770B ${actorDisplayName(event)}`,
+          "aria-label": language === "en" ? `View ${actorDisplayName(event)}` : `\u67E5\u770B ${actorDisplayName(event)}`,
           children: /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(MessageAvatar, { event, participants })
         }
       ) : /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(MessageAvatar, { event, participants })
@@ -58315,7 +59175,7 @@ function WorkActions({
     ),
     work2.status === "ready" && !work2.assignment && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "work-actions", children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", onClick: () => onComplete(work2), children: t("\u6807\u8BB0\u5B8C\u6210") }) }),
     work2.lifecycle === "result_ready" && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(WorkResultReview, { work: work2, onAcceptResult, onRequestRevision }),
-    roadmapActions.length > 0 && work2.lifecycle !== "proposed" && work2.lifecycle !== "declined" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "work-actions work-secondary-actions", children: roadmapActions.map((action) => /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", onClick: () => action.onInvoke(work2), children: action.label }, action.label)) })
+    roadmapActions.length > 0 && work2.lifecycle !== "proposed" && work2.lifecycle !== "declined" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "work-actions work-secondary-actions", children: roadmapActions.map((action) => /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", onClick: () => action.onInvoke(work2), children: t(action.label) }, action.label)) })
   ] });
 }
 function CommitActions({
@@ -58719,6 +59579,7 @@ function CollectiveWorkCard({
   roadmapActions = []
 }) {
   const home = (0, import_react21.useContext)(HostWorkPermissionContext);
+  const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const ownerProposal = work2.proposedBy.kind === "agent" && work2.proposedBy.humanId === currentHumanId && Boolean(work2.proposedRequestKind);
   const homeProposal = ownerProposal && work2.proposedBy.kind === "agent" && work2.proposedBy.connectionId === home.connectionId && home.request;
@@ -58755,7 +59616,7 @@ function CollectiveWorkCard({
         dependencies.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-dependencies", children: [
           t("\u524D\u7F6E\u4EFB\u52A1"),
           " \xB7 ",
-          dependencies.join("\u3001")
+          dependencies.join(language === "en" ? ", " : "\u3001")
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(WorkResultStatus, { work: work2 }),
         /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
@@ -58805,19 +59666,19 @@ function WorkOwnership({
   ] });
 }
 function WorkResultStatus({ work: work2 }) {
+  const language = useCollectiveLanguage();
   if (work2.lifecycle === "result_ready") {
-    return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-result", children: [
-      "\u7ED3\u679C v",
-      work2.resultRevision ?? 1,
-      " \u5DF2\u56DE\u5230\u539F\u8BA8\u8BBA\uFF0C\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4\u3002"
-    ] });
+    const resultRevision = work2.resultRevision ?? 1;
+    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("p", { className: "work-result", children: language === "en" ? `Result v${resultRevision} returned to the original discussion and awaits its owner.` : `\u7ED3\u679C v${resultRevision} \u5DF2\u56DE\u5230\u539F\u8BA8\u8BBA\uFF0C\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4\u3002` });
   }
   const latestRequest = work2.history.findLast((entry) => entry.action === "revision_requested");
   if (work2.lifecycle !== "in_progress" || !latestRequest?.note) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-result", children: [
-    "\u5DF2\u9000\u56DE\u7ED3\u679C v",
+    language === "en" ? "Revision requested for result" : "\u5DF2\u9000\u56DE\u7ED3\u679C",
+    " v",
     latestRequest.resultRevision ?? 1,
-    " \xB7 ",
+    " \xB7",
+    " ",
     latestRequest.note
   ] });
 }
@@ -58838,6 +59699,8 @@ function MessageActionBar({
   onProposeWork,
   onPublishArtifact
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const [open, setOpen] = (0, import_react22.useState)();
   const rootRef = (0, import_react22.useRef)(null);
   const panelRef = (0, import_react22.useRef)(null);
@@ -58907,14 +59770,14 @@ function MessageActionBar({
     setOpen(void 0);
     action?.();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: rootRef, className: "message-actions", role: "toolbar", "aria-label": "\u6D88\u606F\u64CD\u4F5C", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: rootRef, className: "message-actions", role: "toolbar", "aria-label": t("\u6D88\u606F\u64CD\u4F5C"), children: [
     canReact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
       "button",
       {
         ref: reactionTriggerRef,
         type: "button",
         className: "message-action-primary",
-        "aria-label": "\u6DFB\u52A0\u56DE\u5E94",
+        "aria-label": t("\u6DFB\u52A0\u56DE\u5E94"),
         "aria-expanded": open === "reactions",
         "aria-controls": open === "reactions" ? reactionId : void 0,
         disabled: pendingReaction !== void 0,
@@ -58927,7 +59790,7 @@ function MessageActionBar({
       {
         type: "button",
         className: "message-action-primary",
-        "aria-label": `\u56DE\u590D ${eventLabel}`,
+        "aria-label": language === "en" ? `Reply to ${eventLabel}` : `\u56DE\u590D ${eventLabel}`,
         onClick: () => run2(onReply),
         children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(CollectiveIcon, { kind: "reply" })
       }
@@ -58938,18 +59801,18 @@ function MessageActionBar({
         ref: moreTriggerRef,
         type: "button",
         className: "message-action-more",
-        "aria-label": "\u66F4\u591A\u6D88\u606F\u52A8\u4F5C",
+        "aria-label": t("\u66F4\u591A\u6D88\u606F\u52A8\u4F5C"),
         "aria-expanded": open === "menu",
         "aria-controls": open === "menu" ? menuId : void 0,
         onClick: () => setOpen((current2) => current2 === "menu" ? void 0 : "menu"),
         children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(CollectiveIcon, { kind: "more" })
       }
     ),
-    open === "reactions" && onSetReaction && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { ref: panelRef, id: reactionId, className: "reaction-picker", role: "toolbar", "aria-label": "\u9009\u62E9\u56DE\u5E94", children: COLLECTIVE_REACTION_EMOJIS.map((emoji) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+    open === "reactions" && onSetReaction && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { ref: panelRef, id: reactionId, className: "reaction-picker", role: "toolbar", "aria-label": t("\u9009\u62E9\u56DE\u5E94"), children: COLLECTIVE_REACTION_EMOJIS.map((emoji) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
       "button",
       {
         type: "button",
-        "aria-label": `\u7528 ${emoji} \u56DE\u5E94`,
+        "aria-label": language === "en" ? `React with ${emoji}` : `\u7528 ${emoji} \u56DE\u5E94`,
         "aria-pressed": activeReactions.has(emoji),
         disabled: pendingReaction !== void 0,
         onClick: () => {
@@ -58960,19 +59823,21 @@ function MessageActionBar({
       },
       emoji
     )) }),
-    open === "menu" && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: panelRef, id: menuId, className: "message-action-menu", role: "menu", "aria-label": "\u66F4\u591A\u6D88\u606F\u52A8\u4F5C", children: [
-      canReact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => setOpen("reactions"), children: "\u7528\u8868\u60C5\u56DE\u5E94" }),
+    open === "menu" && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: panelRef, id: menuId, className: "message-action-menu", role: "menu", "aria-label": t("\u66F4\u591A\u6D88\u606F\u52A8\u4F5C"), children: [
+      canReact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => setOpen("reactions"), children: t("\u7528\u8868\u60C5\u56DE\u5E94") }),
       onReply && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", role: "menuitem", onClick: () => run2(onReply), children: [
-        "\u56DE\u590D ",
+        language === "en" ? "Reply to" : "\u56DE\u590D",
+        " ",
         eventLabel
       ] }),
       onMention && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", role: "menuitem", onClick: () => run2(onMention), children: [
-        "\u63D0\u5230 ",
+        language === "en" ? "Mention" : "\u63D0\u5230",
+        " ",
         eventLabel
       ] }),
-      onStartVote && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onStartVote), children: "\u53D1\u8D77\u968F\u624B\u6295\u7968" }),
-      onProposeWork && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onProposeWork), children: "\u5EFA\u6210\u4EFB\u52A1" }),
-      onPublishArtifact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onPublishArtifact), children: "\u5206\u4EAB\u4F5C\u54C1\u2026" })
+      onStartVote && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onStartVote), children: t("\u53D1\u8D77\u968F\u624B\u6295\u7968") }),
+      onProposeWork && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onProposeWork), children: t("\u5EFA\u6210\u4EFB\u52A1") }),
+      onPublishArtifact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onPublishArtifact), children: t("\u5206\u4EAB\u4F5C\u54C1\u2026") })
     ] })
   ] });
 }
@@ -59107,6 +59972,8 @@ function SharedArtifactHistory({
   ownerRevision: ownerRevision2,
   onClose
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const history2 = useSharedArtifactVersionHistory(artifact);
   const close = (0, import_react24.useRef)(null);
@@ -59118,7 +59985,7 @@ function SharedArtifactHistory({
     {
       open: true,
       className: "shared-artifact-information shared-artifact-history",
-      "aria-label": "\u7248\u672C\u8BB0\u5F55",
+      "aria-label": t("\u7248\u672C\u8BB0\u5F55"),
       onKeyDown: (event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -59128,26 +59995,28 @@ function SharedArtifactHistory({
       },
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("h2", { children: "\u7248\u672C\u8BB0\u5F55" }),
-          /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("button", { ref: close, type: "button", "aria-label": "\u5173\u95ED\u7248\u672C\u8BB0\u5F55", onClick: onClose, children: "\xD7" })
+          /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("h2", { children: t("\u7248\u672C\u8BB0\u5F55") }),
+          /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u7248\u672C\u8BB0\u5F55"), onClick: onClose, children: "\xD7" })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("ol", { children: history2.page?.versions.map((version) => {
           const message = version.lineage && shared?.sourceMessage(version.lineage.requestEventId);
-          const author2 = message?.recipient?.kind === "agent" && message.recipient.agentId === version.authorCatId ? `${shared?.catName(message.recipient.humanId, message.recipient.agentId)} \xB7 ${shared?.humanName(message.recipient.humanId)}\u7684 Caf\xE9` : "\u539F\u8BF7\u6C42\u4E2D\u7684\u5177\u540D\u732B";
+          const author2 = message?.recipient?.kind === "agent" && message.recipient.agentId === version.authorCatId ? language === "en" ? `${shared?.catName(message.recipient.humanId, message.recipient.agentId)} \xB7 ${shared?.humanName(message.recipient.humanId)}'s Caf\xE9` : `${shared?.catName(message.recipient.humanId, message.recipient.agentId)} \xB7 ${shared?.humanName(message.recipient.humanId)}\u7684 Caf\xE9` : t("\u539F\u8BF7\u6C42\u4E2D\u7684\u5177\u540D\u732B");
           return /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("li", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("h3", { children: [
-              "\u7B2C ",
-              version.ownerRevision,
-              " \u7248",
-              version.ownerRevision === ownerRevision2 && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("small", { children: " \xB7 \u6B63\u5728\u67E5\u770B" })
+              language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248`,
+              version.ownerRevision === ownerRevision2 && /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("small", { children: [
+                " \xB7 ",
+                t("\u6B63\u5728\u67E5\u770B")
+              ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { children: version.adoptedByHumanId ? `${shared?.humanName(version.adoptedByHumanId)}\u91C7\u7528\u4E86${author2}\u7684\u4FEE\u6539\u3002` : `${shared?.humanName(artifact.publishedByHumanId)}\u5206\u4EAB\u7684\u7248\u672C\u3002` }),
+            /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { children: version.adoptedByHumanId ? language === "en" ? `${shared?.humanName(version.adoptedByHumanId)} adopted ${author2}'s changes.` : `${shared?.humanName(version.adoptedByHumanId)}\u91C7\u7528\u4E86${author2}\u7684\u4FEE\u6539\u3002` : language === "en" ? `Shared by ${shared?.humanName(artifact.publishedByHumanId)}.` : `${shared?.humanName(artifact.publishedByHumanId)}\u5206\u4EAB\u7684\u7248\u672C\u3002` }),
             /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("time", { dateTime: version.recordedAt, children: [
-              new Date(version.recordedAt).toLocaleString("zh-CN"),
-              " \u8BB0\u5F55"
+              new Date(version.recordedAt).toLocaleString(language === "en" ? "en-US" : "zh-CN"),
+              " ",
+              t("\u8BB0\u5F55")
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
                 "button",
                 {
                   type: "button",
@@ -59155,43 +60024,33 @@ function SharedArtifactHistory({
                     shared?.open(artifact, version.ownerRevision);
                     onClose();
                   },
-                  children: [
-                    "\u67E5\u770B\u7B2C ",
-                    version.ownerRevision,
-                    " \u7248"
-                  ]
+                  children: language === "en" ? `View version ${version.ownerRevision}` : `\u67E5\u770B\u7B2C ${version.ownerRevision} \u7248`
                 }
               ),
               version.lineage && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
                 "button",
                 {
                   type: "button",
-                  "aria-label": `\u5728\u8BA8\u8BBA\u4E2D\u67E5\u770B\u7B2C ${version.ownerRevision} \u7248\u7684\u8BF7\u6C42`,
+                  "aria-label": language === "en" ? `View the request for version ${version.ownerRevision} in the discussion` : `\u5728\u8BA8\u8BBA\u4E2D\u67E5\u770B\u7B2C ${version.ownerRevision} \u7248\u7684\u8BF7\u6C42`,
                   onClick: () => {
                     if (!version.lineage) return;
                     shared?.close();
                     shared?.returnToSource?.(version.lineage.location.channelId, version.lineage.requestEventId);
                   },
-                  children: "\u5728\u8BA8\u8BBA\u4E2D\u67E5\u770B"
+                  children: t("\u5728\u8BA8\u8BBA\u4E2D\u67E5\u770B")
                 }
               )
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("details", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("summary", { children: version.adoptedByHumanId ? "\u91C7\u7528\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9" : "\u5206\u4EAB\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9" }),
+              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("summary", { children: t(version.adoptedByHumanId ? "\u91C7\u7528\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9" : "\u5206\u4EAB\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9") }),
               /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("code", { children: version.receiptRef }),
               /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("code", { children: version.blobDigest })
             ] })
           ] }, version.ownerRevision);
         }) }),
-        history2.pending && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("output", { children: "\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026" }),
-        history2.error && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { role: "alert", children: history2.error }),
-        history2.page?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: [
-          "\u66F4\u65E9\u7684\u7248\u672C\uFF08\u5DF2\u8BFB ",
-          history2.page.versions.length,
-          "/",
-          history2.page.total,
-          "\uFF09"
-        ] })
+        history2.pending && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026") }),
+        history2.error && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { role: "alert", children: t(history2.error) }),
+        history2.page?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: language === "en" ? `Earlier versions (${history2.page.versions.length}/${history2.page.total} read)` : `\u66F4\u65E9\u7684\u7248\u672C\uFF08\u5DF2\u8BFB ${history2.page.versions.length}/${history2.page.total}\uFF09` })
       ]
     }
   );
@@ -59344,10 +60203,10 @@ function SharedArtifactLibraryFilters({
               onChange: (event) => update("channel", event.target.value),
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("option", { value: "", children: t("\u5168\u90E8\u9891\u9053") }),
-                channels.map((id27) => /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("option", { value: id27, children: [
+                channels.map((id28) => /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("option", { value: id28, children: [
                   "#",
-                  id27
-                ] }, id27))
+                  id28
+                ] }, id28))
               ]
             }
           )
@@ -59409,7 +60268,7 @@ function SharedArtifactLibrary({
     if (active && scroll.current) scroll.current.scrollTop = position3.current;
   }, [active]);
   if (!shared) return null;
-  if (!active) return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("section", { ref: scroll, hidden: true, className: "shared-artifact-library", "aria-label": title });
+  if (!active) return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("section", { ref: scroll, hidden: true, className: "shared-artifact-library", "aria-label": t(title) });
   if (presentation === "channel")
     return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("section", { className: "channel-artifact-list", "aria-label": t("\u9891\u9053\u4F5C\u54C1"), children: [
       /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("p", { className: "channel-artifact-heading", children: [
@@ -59434,7 +60293,7 @@ function SharedArtifactLibrary({
         if (active) position3.current = event.currentTarget.scrollTop;
       },
       className: "shared-artifact-library",
-      "aria-label": title,
+      "aria-label": t(title),
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("header", { children: [
           onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": t("\u9891\u9053\u5BFC\u822A"), onClick: onOpenNavigation, children: "\u2630" }),
@@ -59552,6 +60411,8 @@ function useSharedArtifactRequestReceipt(requestEventId, enabled = true) {
 // src/SharedArtifactMessageFeedback.tsx
 var import_jsx_runtime29 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const reading = useSharedArtifactReading();
   const annotations = reading?.view?.view.review.annotations.filter((annotation) => annotation.collectiveMessage?.eventId === eventId2) ?? [];
@@ -59564,13 +60425,8 @@ function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
   if (!annotations.length && !requests.length && !receipts.length) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "shared-artifact-message-feedback", children: [
     annotations.map((annotation, index4) => /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { children: [
-      "\u5F15\u7528 ",
-      index4 + 1,
-      " \xB7 \u7B2C ",
-      annotation.collectiveMessage?.ownerRevision,
-      " \u7248 \xB7",
-      " ",
-      "quote" in annotation.anchor ? annotation.anchor.quote : "\u4F5C\u54C1\u4E2D\u7684\u9009\u533A"
+      language === "en" ? `Reference ${index4 + 1} \xB7 version ${annotation.collectiveMessage?.ownerRevision} \xB7 ` : `\u5F15\u7528 ${index4 + 1} \xB7 \u7B2C ${annotation.collectiveMessage?.ownerRevision} \u7248 \xB7 `,
+      "quote" in annotation.anchor ? annotation.anchor.quote : t("\u4F5C\u54C1\u4E2D\u7684\u9009\u533A")
     ] }, annotation.id)),
     requests.filter((request) => request.state !== "accepted").map((request) => /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)(
       "button",
@@ -59581,25 +60437,19 @@ function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
         children: [
           shared?.catName(request.target.humanId, request.target.catId),
           " \xB7 ",
-          sharedArtifactRequestState(request),
-          request.latestProposalRef ? " \xB7 \u67E5\u770B\u5BF9\u7167" : ""
+          t(sharedArtifactRequestState(request)),
+          request.latestProposalRef ? ` \xB7 ${t("\u67E5\u770B\u5BF9\u7167")}` : ""
         ]
       },
       request.requestId
     )),
     receipts.map(({ artifact, version }) => /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("output", { "data-source-kind": "content-owner-receipt", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("span", { children: [
-        version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : "\u6709\u6743\u6210\u5458",
-        "\u91C7\u7528\u4E86",
-        version.authorCatId ? ` ${version.authorCatId} ` : "",
-        "\u7684\u4FEE\u6539 \xB7",
-        " "
-      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("span", { children: language === "en" ? `${version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : t("\u6709\u6743\u6210\u5458")} adopted${version.authorCatId ? ` ${version.authorCatId}'s ` : " "}changes \xB7 ` : `${version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : "\u6709\u6743\u6210\u5458"}\u91C7\u7528\u4E86${version.authorCatId ? ` ${version.authorCatId} ` : ""}\u7684\u4FEE\u6539 \xB7 ` }),
       /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, version.ownerRevision), children: [
         artifact.title,
-        " \xB7 \u7B2C ",
-        version.ownerRevision,
-        " \u7248"
+        " \xB7",
+        " ",
+        language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248`
       ] })
     ] }, version.receiptRef))
   ] });
@@ -59701,9 +60551,9 @@ function VoteDraftForm({
               type: "button",
               className: "quiet-action",
               onClick: () => {
-                const id27 = nextOptionId.current;
+                const id28 = nextOptionId.current;
                 nextOptionId.current += 1;
-                setOptions((current2) => [...current2, { id: id27, value: "" }]);
+                setOptions((current2) => [...current2, { id: id28, value: "" }]);
               },
               children: "\u589E\u52A0\u9009\u9879"
             }
@@ -59990,6 +60840,8 @@ function ChannelMessage({
   showTime = true
 }) {
   const v2 = useRoomPresentation(presentation) === "v2";
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const author2 = authorPresentation(thread.root, currentHumanId);
   const { root: root5, replies } = thread;
   const body4 = /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(MessageBody, { event: root5, participants, responseState: replies.length ? "responded" : "waiting" });
@@ -60022,13 +60874,11 @@ function ChannelMessage({
   );
   const replyVitals = replies.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("button", { type: "button", className: "reply-vitals", onClick: () => onOpenTopic(root5.eventId), children: [
     /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { className: "reply-summary", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("strong", { children: [
-        replies.length,
-        " \u6761\u56DE\u590D"
-      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("strong", { children: language === "en" ? `${replies.length} ${replies.length === 1 ? "reply" : "replies"}` : `${replies.length} \u6761\u56DE\u590D` }),
       /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("small", { children: [
-        "\u6700\u8FD1 ",
-        formatEventTime(replies.at(-1)?.acceptedAt ?? root5.acceptedAt)
+        t("\u6700\u8FD1"),
+        " ",
+        formatEventTime(replies.at(-1)?.acceptedAt ?? root5.acceptedAt, language)
       ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { className: "reply-preview", children: replies.slice(-2).map((reply) => /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { className: "reply-preview-item", children: [
@@ -60049,7 +60899,7 @@ function ChannelMessage({
   return /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("article", { ...frame, className: "message", "data-author": v2 ? author2 : void 0, children: /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { className: "message-content", children: [
     /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("header", { className: "message-meta", children: [
       /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(CollectiveNameplate, { event: root5, participants, onOpen: () => onOpenMember(root5) }),
-      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: root5.acceptedAt, children: formatEventTime(root5.acceptedAt) })
+      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: root5.acceptedAt, children: formatEventTime(root5.acceptedAt, language) })
     ] }),
     body4,
     /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
@@ -60347,16 +61197,19 @@ function ChannelConversationFlow({
   presentation,
   children
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { ref: flowRef, className: "channel-flow", "aria-live": "polite", children: [
     threads.length === 0 && !children ? /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { className: "channel-empty", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("h2", { children: search2 ? "\u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA" : "\u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759" }),
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("p", { children: search2 ? "\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002" : `${humanName}\uFF0C\u4ECE\u4E00\u53E5\u8BDD\u5F00\u59CB\u5427\u3002` })
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("h2", { children: t(search2 ? "\u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA" : "\u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759") }),
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("p", { children: search2 ? t("\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002") : language === "en" ? `${humanName}, start with a message.` : `${humanName}\uFF0C\u4ECE\u4E00\u53E5\u8BDD\u5F00\u59CB\u5427\u3002` })
     ] }) : threads.map((thread, index4) => /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { children: [
-      (!index4 || eventDayLabel(threads[index4 - 1]?.root.acceptedAt) !== eventDayLabel(thread.root.acceptedAt)) && /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { className: "day-divider", children: /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { children: eventDayLabel(thread.root.acceptedAt) }) }),
+      (!index4 || eventDayLabel(threads[index4 - 1]?.root.acceptedAt, language) !== eventDayLabel(thread.root.acceptedAt, language)) && /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { className: "day-divider", children: /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { children: eventDayLabel(thread.root.acceptedAt, language) }) }),
       search2 && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("button", { type: "button", className: "search-source", onClick: () => actions.returnToRoot(thread.root), children: [
         "# ",
         eventChannelId(thread.root),
-        " \xB7 \u5728\u9891\u9053\u4E2D\u67E5\u770B"
+        " \xB7 ",
+        t("\u5728\u9891\u9053\u4E2D\u67E5\u770B")
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
         ChannelMessage,
@@ -60392,7 +61245,7 @@ function ChannelConversationFlow({
     ] }, thread.root.eventId)),
     children,
     legacy.length > 0 && !search2 && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("details", { className: "legacy-history", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("summary", { children: "\u65E9\u671F\u8BB0\u5F55 \xB7 \u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4" }),
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("summary", { children: t("\u65E9\u671F\u8BB0\u5F55 \xB7 \u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4") }),
       legacy.map((event, index4) => /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
         TopicMessage,
         {
@@ -60436,7 +61289,8 @@ function ChannelHeader({
   return /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(HeaderFrame, { className: "scene-header", children: [
     /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": t("\u9891\u9053\u5BFC\u822A"), onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(ShellGlyph, { name: "panelLeft" }) }),
     /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("div", { className: "channel-heading", children: destinationTitle ? /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("h1", { children: destinationTitle }) : searchCount !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("h1", { children: [
-      "\u641C\u7D22\u7ED3\u679C \xB7 ",
+      t("\u641C\u7D22\u7ED3\u679C"),
+      " \xB7 ",
       searchCount
     ] }) : /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("details", { className: "channel-menu", children: [
       /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("summary", { children: [
@@ -60556,6 +61410,8 @@ function TopicPanel({
   highlightedId
 }) {
   const composerInputId = (0, import_react32.useId)();
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const [reply, setReply] = (0, import_react32.useState)();
   const consumedReplyRequest = (0, import_react32.useRef)();
   const location2 = thread.root.location ?? (thread.root.target.kind === "channel" ? { channelId: thread.root.target.channelId } : void 0);
@@ -60570,9 +61426,9 @@ function TopicPanel({
     const event = [thread.root, ...thread.replies].find((item) => item.eventId === replyRequest.eventId);
     setReply({
       eventId: replyRequest.eventId,
-      ...event ? replySelectionForEvent(event, participants, location2?.channelId ?? "", currentHumanId) : { error: "\u6B63\u5728\u56DE\u590D\u7684\u6D88\u606F\u5F53\u524D\u4E0D\u53EF\u7528\u3002" }
+      ...event ? replySelectionForEvent(event, participants, location2?.channelId ?? "", currentHumanId) : { error: t("\u6B63\u5728\u56DE\u590D\u7684\u6D88\u606F\u5F53\u524D\u4E0D\u53EF\u7528\u3002") }
     });
-  }, [replyRequest, thread, participants, location2?.channelId, currentHumanId]);
+  }, [replyRequest, thread, participants, location2?.channelId, currentHumanId, t]);
   const eventWithInteractions = (event, index4) => {
     const linkedWorks = works.filter((work2) => work2.sourceEventId === event.eventId);
     const linkedVotes = votes.filter((vote) => vote.sourceEventId === event.eventId);
@@ -60626,24 +61482,22 @@ function TopicPanel({
       event.eventId
     );
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("aside", { className: "context-panel", "data-spatial-role": "context-panel", "aria-label": "\u8BDD\u9898", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("aside", { className: "context-panel", "data-spatial-role": "context-panel", "aria-label": t("\u8BDD\u9898"), children: [
     /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("header", { className: "context-header", children: [
       /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { children: [
         /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("span", { children: [
-          "\u8BDD\u9898 \xB7 ",
-          location2 ? `# ${location2.channelId}` : "\u65E9\u671F\u8BB0\u5F55"
+          t("\u8BDD\u9898"),
+          " \xB7 ",
+          location2 ? `# ${location2.channelId}` : t("\u65E9\u671F\u8BB0\u5F55")
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("h2", { children: [
-          thread.replies.length,
-          " \u6761\u56DE\u590D"
-        ] })
+        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("h2", { children: language === "en" ? `${thread.replies.length} ${thread.replies.length === 1 ? "reply" : "replies"}` : `${thread.replies.length} \u6761\u56DE\u590D` })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", onClick: onClose, "aria-label": "\u5173\u95ED\u8BDD\u9898", children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", onClick: onClose, "aria-label": t("\u5173\u95ED\u8BDD\u9898"), children: "\xD7" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", className: "topic-return", onClick: onReturnToSource, children: "\u5728\u9891\u9053\u4E2D\u67E5\u770B" }),
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", className: "topic-return", onClick: onReturnToSource, children: t("\u5728\u9891\u9053\u4E2D\u67E5\u770B") }),
     /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { className: "topic-flow", children: [
       eventWithInteractions(thread.root, 0),
-      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { className: "topic-divider", children: /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: "\u56DE\u5E94" }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { className: "topic-divider", children: /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: t("\u56DE\u5E94") }) }),
       thread.replies.map((reply2, index4) => eventWithInteractions(reply2, index4 + 1))
     ] }),
     location2 ? /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
@@ -60658,7 +61512,7 @@ function TopicPanel({
         humans,
         reply,
         replyEvents: topicEvents,
-        placeholder: `\u56DE\u590D ${actorDisplayName(thread.root)}`,
+        placeholder: language === "en" ? `Reply to ${actorDisplayName(thread.root)}` : `\u56DE\u590D ${actorDisplayName(thread.root)}`,
         delivery,
         onSend: (body4, recipient, entrust, responseRequested, replyToEventId) => onSend(body4, {
           location: { ...location2, rootEventId: location2.rootEventId ?? thread.root.eventId },
@@ -60668,7 +61522,7 @@ function TopicPanel({
           ...entrust && recipient.kind === "agent" ? { workRequest: "entrust" } : {}
         })
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { children: "\u8FD9\u6761\u65E9\u671F\u8BB0\u5F55\u7684\u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4\uFF0C\u6682\u65F6\u65E0\u6CD5\u56DE\u590D\u3002" })
+    ) : /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { children: t("\u8FD9\u6761\u65E9\u671F\u8BB0\u5F55\u7684\u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4\uFF0C\u6682\u65F6\u65E0\u6CD5\u56DE\u590D\u3002") })
   ] });
 }
 
@@ -60706,7 +61560,7 @@ function ChannelTopicContext({
       onClose,
       onReturnToSource,
       onSend: scene.onSend,
-      onProposeWork: (id27) => void scene.onProposeWork(id27).catch(() => void 0),
+      onProposeWork: (id28) => void scene.onProposeWork(id28).catch(() => void 0),
       onCommitWork: (work2, participant, accountability) => void scene.onCommitWork(work2, participant, accountability).catch(() => void 0),
       onDeclineWork: (work2) => void scene.onDeclineWork(work2).catch(() => void 0),
       onAcceptWorkResult: (work2) => void scene.onAcceptWorkResult(work2).catch(() => void 0),
@@ -63542,6 +64396,8 @@ function SharedArtifactAnnotationThread({
   view,
   annotation
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const key = JSON.stringify([
     artifact.serviceInstanceId,
@@ -63604,16 +64460,10 @@ function SharedArtifactAnnotationThread({
       /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("strong", { children: shared?.humanName(reply.author.actorId) }),
       /* @__PURE__ */ (0, import_jsx_runtime62.jsx)(MessageMarkdown, { source: reply.body })
     ] }, reply.id)),
-    offset2 !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("button", { type: "button", disabled: blocked, onClick: () => void more(), children: [
-      "\u8BFB\u53D6\u56DE\u590D\uFF08",
-      replies.length,
-      "/",
-      total,
-      "\uFF09"
-    ] }),
-    view.view.canWrite && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("button", { type: "button", disabled: blocked, onClick: () => void decide(), children: annotation.state === "open" ? "\u89E3\u51B3\u6279\u6CE8" : "\u91CD\u65B0\u6253\u5F00\u6279\u6CE8" }),
-    settled === key && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("output", { children: "\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026" }),
-    failure?.key === key && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("p", { role: "alert", children: failure.message })
+    offset2 !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("button", { type: "button", disabled: blocked, onClick: () => void more(), children: language === "en" ? `Load replies (${replies.length}/${total})` : `\u8BFB\u53D6\u56DE\u590D\uFF08${replies.length}/${total}\uFF09` }),
+    view.view.canWrite && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("button", { type: "button", disabled: blocked, onClick: () => void decide(), children: t(annotation.state === "open" ? "\u89E3\u51B3\u6279\u6CE8" : "\u91CD\u65B0\u6253\u5F00\u6279\u6CE8") }),
+    settled === key && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("output", { children: t("\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026") }),
+    failure?.key === key && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("p", { role: "alert", children: t(failure.message) })
   ] });
 }
 
@@ -63673,15 +64523,18 @@ function SharedArtifactAnnotations({
   view: initial,
   onOpenDiscussion
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const reading = useSharedArtifactReading();
   const artifact = shared?.catalogue.find((item) => item.contentRef === initial.contentRef);
   const pages = useSharedArtifactAnnotationPages(artifact, initial);
   const view = pages.view;
   if (!view.view.review.annotations.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("aside", { className: "shared-artifact-annotations", "aria-label": "\u4F5C\u54C1\u6279\u6CE8", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("aside", { className: "shared-artifact-annotations", "aria-label": t("\u4F5C\u54C1\u6279\u6CE8"), children: [
     /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("h2", { children: [
-      "\u6279\u6CE8 \xB7 ",
+      t("\u6279\u6CE8"),
+      " \xB7 ",
       view.view.annotationPage?.total ?? view.view.review.annotations.length
     ] }),
     view.view.review.annotations.map((annotation, index4) => {
@@ -63694,18 +64547,16 @@ function SharedArtifactAnnotations({
           /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("strong", { children: [
             index4 + 1,
             " \xB7 ",
-            shared?.humanName(annotation.author.actorId) ?? "\u5171\u540C\u4F53\u6210\u5458"
+            shared?.humanName(annotation.author.actorId) ?? t("\u5171\u540C\u4F53\u6210\u5458")
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("span", { children: annotation.state === "resolved" ? "\u5DF2\u89E3\u51B3" : "\u6279\u6CE8" })
+          /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("span", { children: t(annotation.state === "resolved" ? "\u5DF2\u89E3\u51B3" : "\u6279\u6CE8") })
         ] }),
         "quote" in annotation.anchor && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("blockquote", { children: annotation.anchor.quote }),
         /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(MessageMarkdown, { source: annotation.body }),
         /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("div", { className: "shared-artifact-annotation-links", children: [
           original && artifact && /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, original), children: [
-            orphaned ? "\u539F\u6587\u5DF2\u6539 \xB7 " : "",
-            "\u5728\u7B2C ",
-            original,
-            " \u7248\u67E5\u770B"
+            orphaned ? `${t("\u539F\u6587\u5DF2\u6539")} \xB7 ` : "",
+            language === "en" ? `View in version ${original}` : `\u5728\u7B2C ${original} \u7248\u67E5\u770B`
           ] }),
           artifact && source3 && /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)(import_jsx_runtime63.Fragment, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(
@@ -63716,7 +64567,7 @@ function SharedArtifactAnnotations({
                   shared?.close();
                   shared?.returnToSource?.(source3.channelId, source3.eventId);
                 },
-                children: "\u5728\u539F\u8BA8\u8BBA\u67E5\u770B"
+                children: t("\u5728\u539F\u8BA8\u8BBA\u67E5\u770B")
               }
             ),
             view.view.canReply && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(
@@ -63735,7 +64586,7 @@ function SharedArtifactAnnotations({
                   });
                   onOpenDiscussion();
                 },
-                children: "\u5728\u539F\u8BA8\u8BBA\u56DE\u590D"
+                children: t("\u5728\u539F\u8BA8\u8BBA\u56DE\u590D")
               }
             )
           ] })
@@ -63743,8 +64594,8 @@ function SharedArtifactAnnotations({
         artifact && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(SharedArtifactAnnotationThread, { artifact, view, annotation })
       ] }, annotation.id);
     }),
-    view.view.annotationPage?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("button", { type: "button", disabled: pages.pending, onClick: () => void pages.more(), children: pages.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : `\u66F4\u591A\u6279\u6CE8\uFF08${view.view.review.annotations.length}/${view.view.annotationPage.total}\uFF09` }),
-    pages.error && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("p", { role: "alert", children: pages.error })
+    view.view.annotationPage?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("button", { type: "button", disabled: pages.pending, onClick: () => void pages.more(), children: pages.pending ? t("\u6B63\u5728\u8BFB\u53D6\u2026") : language === "en" ? `More annotations (${view.view.review.annotations.length}/${view.view.annotationPage.total})` : `\u66F4\u591A\u6279\u6CE8\uFF08${view.view.review.annotations.length}/${view.view.annotationPage.total}\uFF09` }),
+    pages.error && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("p", { role: "alert", children: t(pages.error) })
   ] });
 }
 
@@ -63793,6 +64644,7 @@ function resolveSharedMarkdownSelection(source3, selectedText, bounds = { start:
 // src/SharedArtifactDocument.tsx
 var import_jsx_runtime64 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactDocument({ view }) {
+  const t = useCollectiveText();
   const paper = (0, import_react46.useRef)(null);
   const reading = useSharedArtifactReading();
   const [notice, setNotice] = (0, import_react46.useState)();
@@ -63834,7 +64686,7 @@ function SharedArtifactDocument({ view }) {
   }, [reading?.artifact, reading?.setQuote, version, view]);
   return /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)(import_jsx_runtime64.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("div", { ref: paper, className: "shared-artifact-document", children: /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(MessageMarkdown, { source: view.text, sourceCoordinates: true }) }),
-    notice && /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("output", { className: "composer-warning", children: notice })
+    notice && /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("output", { className: "composer-warning", children: t(notice) })
   ] });
 }
 
@@ -63888,6 +64740,8 @@ function SharedArtifactModificationCompare({
   onClose,
   onRework
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const reading = useSharedArtifactReading();
   const control = useSharedArtifactControl(artifact, request);
@@ -63959,27 +64813,22 @@ function SharedArtifactModificationCompare({
       if (current2.current === fence) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("section", { className: "shared-artifact-compare", "aria-label": "\u4FEE\u6539\u524D\u540E\u5BF9\u6BD4", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("section", { className: "shared-artifact-compare", "aria-label": t("\u4FEE\u6539\u524D\u540E\u5BF9\u6BD4"), children: [
     /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("strong", { children: [
-        shared?.catName(request.target.humanId, request.target.catId),
-        "\u63D0\u4EA4\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ",
-        request.ownerRevision,
-        " \u7248"
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("button", { type: "button", onClick: onClose, children: "\u8FD4\u56DE\u4F5C\u54C1" })
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("strong", { children: language === "en" ? `${shared?.catName(request.target.humanId, request.target.catId)}'s changes \xB7 based on version ${request.ownerRevision}` : `${shared?.catName(request.target.humanId, request.target.catId)}\u63D0\u4EA4\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248` }),
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("button", { type: "button", onClick: onClose, children: t("\u8FD4\u56DE\u4F5C\u54C1") })
     ] }),
-    !preview && !error && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: "\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026" }),
+    !preview && !error && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026") }),
     preview && /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(import_jsx_runtime65.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: preview.proposal.response }),
       preview.proposal.edits.map((edit, index4) => /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { className: "shared-artifact-edit", children: [
         /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("h3", { children: "\u539F\u6587" }),
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("del", { children: edit.expectedText || "\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09" }) })
+          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("h3", { children: t("\u539F\u6587") }),
+          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("del", { children: edit.expectedText || t("\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09") }) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("h3", { children: "\u4FEE\u6539\u540E" }),
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("ins", { children: edit.replacement || "\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09" }) })
+          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("h3", { children: t("\u4FEE\u6539\u540E") }),
+          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("ins", { children: edit.replacement || t("\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09") }) })
         ] })
       ] }, `${edit.start}:${edit.end}:${index4}`))
     ] }),
@@ -63990,39 +64839,23 @@ function SharedArtifactModificationCompare({
           type: "button",
           disabled: !preview || pending || control.pending,
           onClick: () => void control.resolve("reject"),
-          children: control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u4E0D\u91C7\u7528"
+          children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u4E0D\u91C7\u7528")
         }
       ),
-      adopted ? /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("output", { children: [
-        "\u5DF2\u91C7\u7528\u4E3A\u7B2C ",
-        adopted,
-        " \u7248"
-      ] }) : control.closed ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: closedRequestLabel(control.request) }) : stale ? /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("p", { children: [
-          "\u8FD9\u4EFD\u4FEE\u6539\u57FA\u4E8E\u7B2C ",
-          request.ownerRevision,
-          " \u7248\uFF0C\u73B0\u5728\u5DF2\u662F\u7B2C ",
-          latest,
-          " \u7248"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(
+      adopted ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted} \u7248` }) : control.closed ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: t(closedRequestLabel(control.request)) }) : stale ? /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: language === "en" ? `These changes are based on version ${request.ownerRevision}; the work is now version ${latest}.` : `\u8FD9\u4EFD\u4FEE\u6539\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248\uFF0C\u73B0\u5728\u5DF2\u662F\u7B2C ${latest} \u7248` }),
+        /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
           "button",
           {
             type: "button",
             disabled: !preview || !reading || latestVersion?.ownerRevision !== latest,
             onClick: rework,
-            children: [
-              "\u8BF7",
-              shared?.catName(request.target.humanId, request.target.catId),
-              "\u57FA\u4E8E\u7B2C ",
-              latest,
-              " \u7248\u91CD\u505A\u2026"
-            ]
+            children: language === "en" ? `Ask ${shared?.catName(request.target.humanId, request.target.catId)} to redo this from version ${latest}\u2026` : `\u8BF7${shared?.catName(request.target.humanId, request.target.catId)}\u57FA\u4E8E\u7B2C ${latest} \u7248\u91CD\u505A\u2026`
           }
         )
-      ] }) : !artifact.canApply ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: "\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("button", { type: "button", disabled: !preview || pending || control.pending, onClick: () => void adopt(), children: pending ? "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026" : "\u91C7\u7528" }),
-      control.error && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { role: "alert", children: control.error }),
-      error && !adopted && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { role: "alert", children: error })
+      ] }) : !artifact.canApply ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: t("\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002") }) : /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("button", { type: "button", disabled: !preview || pending || control.pending, onClick: () => void adopt(), children: t(pending ? "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026" : "\u91C7\u7528") }),
+      control.error && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { role: "alert", children: t(control.error) }),
+      error && !adopted && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { role: "alert", children: t(error) })
     ] })
   ] });
 }
@@ -64077,24 +64910,27 @@ function SharedArtifactRequestCards({
   view,
   hidden = false
 }) {
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const artifact = shared?.catalogue.find((item) => item.contentRef === view.contentRef);
   const history2 = useSharedArtifactRequestHistory(artifact, view);
   const requests = history2.view.modifications?.requests ?? [];
   if (!requests.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("section", { className: "shared-artifact-requests", "aria-label": "\u4F5C\u54C1\u4FEE\u6539", hidden, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("h2", { children: "\u4FEE\u6539\u8BF7\u6C42" }),
+  return /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("section", { className: "shared-artifact-requests", "aria-label": t("\u4F5C\u54C1\u4FEE\u6539"), hidden, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("h2", { children: t("\u4FEE\u6539\u8BF7\u6C42") }),
     requests.map((request) => /* @__PURE__ */ (0, import_jsx_runtime66.jsx)(SharedArtifactRequestCard, { artifact, record: request }, request.requestId)),
-    history2.view.modifications?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: history2.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : "\u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55" }),
-    history2.error && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { role: "alert", children: history2.error })
+    history2.view.modifications?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: t(history2.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : "\u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55") }),
+    history2.error && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { role: "alert", children: t(history2.error) })
   ] });
 }
 function SharedArtifactRequestCard({
   artifact,
-  record
+  record: record2
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const control = useSharedArtifactControl(artifact, record);
+  const control = useSharedArtifactControl(artifact, record2);
   const request = control.request;
   const receipts = useSharedArtifactRequestReceipt(request.requestEventId, request.state === "accepted");
   const adopted = receipts.find(
@@ -64105,24 +64941,14 @@ function SharedArtifactRequestCard({
       shared?.catName(request.target.humanId, request.target.catId) ?? request.target.catId,
       " \xB7",
       " ",
-      sharedArtifactRequestState(request)
+      t(sharedArtifactRequestState(request))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("span", { children: [
-      "\u57FA\u4E8E\u7B2C ",
-      request.ownerRevision,
-      " \u7248 \xB7 ",
-      request.annotationIds.length,
-      " \u5904\u5F15\u7528"
-    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("span", { children: language === "en" ? `Based on version ${request.ownerRevision} \xB7 ${request.annotationIds.length} ${request.annotationIds.length === 1 ? "reference" : "references"}` : `\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248 \xB7 ${request.annotationIds.length} \u5904\u5F15\u7528` }),
     /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { children: shared?.sourceMessage(request.requestEventId)?.body }),
-    request.latestProposalRef && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", onClick: () => shared?.compare(request.requestId, request), children: "\u67E5\u770B\u5BF9\u7167" }),
-    !control.closed && control.canCancel && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", disabled: control.pending, onClick: () => void control.resolve("cancel"), children: control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539" }),
-    adopted && /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("output", { children: [
-      "\u5DF2\u91C7\u7528\u4E3A\u7B2C ",
-      adopted.ownerRevision,
-      " \u7248"
-    ] }),
-    control.error && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { role: "alert", children: control.error })
+    request.latestProposalRef && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", onClick: () => shared?.compare(request.requestId, request), children: t("\u67E5\u770B\u5BF9\u7167") }),
+    !control.closed && control.canCancel && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", disabled: control.pending, onClick: () => void control.resolve("cancel"), children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539") }),
+    adopted && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted.ownerRevision}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted.ownerRevision} \u7248` }),
+    control.error && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { role: "alert", children: t(control.error) })
   ] });
 }
 
@@ -64162,6 +64988,8 @@ function SharedArtifactCustody({
   artifact,
   management
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const [target, setTarget] = (0, import_react50.useState)("");
   const { api, value, pending, unconfirmed } = management;
@@ -64175,13 +65003,14 @@ function SharedArtifactCustody({
     (cafe) => eligible.has(cafe.humanId) && cafe.connectionId !== value.custodianCafe?.connectionId
   ) ?? [];
   const destination = cafes.find((cafe) => cafe.connectionId === target);
-  const custodianLabel = !value.custodianHumanId ? void 0 : value.custodianCafe && directory ? artifactCafeLabel({ ...value.custodianCafe, humanId: value.custodianHumanId }, directory) : `${shared?.humanName(value.custodianHumanId) ?? "\u6210\u5458"}\u7684 Caf\xE9`;
+  const custodianLabel = !value.custodianHumanId ? void 0 : value.custodianCafe && directory ? artifactCafeLabel({ ...value.custodianCafe, humanId: value.custodianHumanId }, directory) : language === "en" ? `${shared?.humanName(value.custodianHumanId) ?? t("\u6210\u5458")}'s Caf\xE9` : `${shared?.humanName(value.custodianHumanId) ?? "\u6210\u5458"}\u7684 Caf\xE9`;
   return /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("div", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("h3", { children: "\u4FDD\u7BA1\u4F5C\u54C1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: value.custodianHumanId ? `${custodianLabel} \u4FDD\u7BA1\u6B63\u6587\u3001\u7248\u672C\u548C\u534F\u4F5C\u8BB0\u5F55\u3002` : "\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002" }),
-    transfer && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("output", { children: transferLabel(transfer) }),
+    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("h3", { children: t("\u4FDD\u7BA1\u4F5C\u54C1") }),
+    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: value.custodianHumanId ? language === "en" ? `${custodianLabel} keeps the document, versions, and collaboration history.` : `${custodianLabel} \u4FDD\u7BA1\u6B63\u6587\u3001\u7248\u672C\u548C\u534F\u4F5C\u8BB0\u5F55\u3002` : t("\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002") }),
+    transfer && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("output", { children: t(transferLabel(transfer)) }),
     transfer?.targetCafe && directory && /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("p", { children: [
-      "\u672C\u6B21\u4EA4\u63A5\u76EE\u7684\u5730\uFF1A",
+      t("\u672C\u6B21\u4EA4\u63A5\u76EE\u7684\u5730"),
+      "\uFF1A",
       artifactCafeLabel({ ...transfer.targetCafe, humanId: transfer.targetHumanId }, directory)
     ] }),
     active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
@@ -64190,21 +65019,21 @@ function SharedArtifactCustody({
         type: "button",
         disabled: blocked,
         onClick: () => void management.run(async () => api?.cancel(artifact, transfer.transferId)),
-        children: "\u53D6\u6D88\u8FD9\u6B21\u4EA4\u63A5"
+        children: t("\u53D6\u6D88\u8FD9\u6B21\u4EA4\u63A5")
       }
     ),
     !active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)(import_jsx_runtime67.Fragment, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("label", { children: [
-        "\u4EA4\u63A5\u7ED9",
+        t("\u4EA4\u63A5\u7ED9"),
         /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)(
           "select",
           {
-            "aria-label": "\u4F5C\u54C1\u63A5\u6536 Caf\xE9",
+            "aria-label": t("\u4F5C\u54C1\u63A5\u6536 Caf\xE9"),
             value: target,
             onChange: (event) => setTarget(event.target.value),
             disabled: blocked,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("option", { value: "", children: "\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9" }),
+              /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("option", { value: "", children: t("\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9") }),
               cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("option", { value: cafe.connectionId, children: directory ? artifactCafeLabel(cafe, directory) : cafe.endpointLabel }, cafe.connectionId))
             ]
           }
@@ -64220,10 +65049,10 @@ function SharedArtifactCustody({
             await shared?.api?.read(artifact);
             await api?.offer(artifact, destination.humanId, value.custodyRevision, destination.connectionId);
           }),
-          children: "\u4EA4\u63A5\u4F5C\u54C1\u4E0E\u8BB0\u5F55"
+          children: t("\u4EA4\u63A5\u4F5C\u54C1\u4E0E\u8BB0\u5F55")
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: "\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002" })
+      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: t("\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002") })
     ] })
   ] });
 }
@@ -64353,30 +65182,32 @@ function appendManagerPage(previous4, next) {
 // src/SharedArtifactManagement.tsx
 var import_jsx_runtime68 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactManagement({ artifact }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const management = useSharedArtifactManagement(artifact);
   const { api, value, pending, unconfirmed } = management;
   const blocked = pending || unconfirmed;
-  return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("section", { className: "shared-artifact-management", "aria-label": "\u6743\u9650\u4E0E\u4FDD\u7BA1", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h2", { children: "\u6743\u9650\u4E0E\u4FDD\u7BA1" }),
-    !value && !management.error && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("output", { children: "\u6B63\u5728\u6838\u5BF9\u2026" }),
-    management.error && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { role: "alert", children: management.error }),
+  return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("section", { className: "shared-artifact-management", "aria-label": t("\u6743\u9650\u4E0E\u4FDD\u7BA1"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h2", { children: t("\u6743\u9650\u4E0E\u4FDD\u7BA1") }),
+    !value && !management.error && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("output", { children: t("\u6B63\u5728\u6838\u5BF9\u2026") }),
+    management.error && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { role: "alert", children: t(management.error) }),
     unconfirmed && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { role: "status", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { children: "\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { children: t("\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002") }),
       /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
         "button",
         {
           type: "button",
           disabled: pending,
           onClick: () => void management.run(async () => api?.recover(artifact)),
-          children: "\u6838\u5BF9\u4E0A\u6B21\u64CD\u4F5C"
+          children: t("\u6838\u5BF9\u4E0A\u6B21\u64CD\u4F5C")
         }
       )
     ] }),
     value && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)(import_jsx_runtime68.Fragment, { children: [
       value.canManageAccess && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h3", { children: "\u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650" }),
-        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { children: "\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002" }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h3", { children: t("\u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650") }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { children: t("\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002") }),
         value.members.map(
           (member) => member.access && member.accessRevision !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
             ArtifactMemberPermission,
@@ -64393,15 +65224,9 @@ function SharedArtifactManagement({ artifact }) {
         )
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(SharedArtifactCustody, { artifact, management }),
-      value.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("button", { type: "button", disabled: blocked, onClick: () => void management.more(), children: [
-        "\u66F4\u591A\u6210\u5458\uFF08\u5DF2\u8BFB ",
-        value.members.length,
-        "/",
-        value.total,
-        "\uFF09"
-      ] })
+      value.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: blocked, onClick: () => void management.more(), children: language === "en" ? `More members (${value.members.length}/${value.total} read)` : `\u66F4\u591A\u6210\u5458\uFF08\u5DF2\u8BFB ${value.members.length}/${value.total}\uFF09` })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: pending, onClick: () => void management.refresh(), children: "\u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1" })
+    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: pending, onClick: () => void management.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1") })
   ] });
 }
 function ArtifactMemberPermission({
@@ -64410,6 +65235,8 @@ function ArtifactMemberPermission({
   disabled,
   onSave
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const [access2, setAccess] = (0, import_react52.useState)(member.access ?? "read");
   return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { className: "shared-artifact-member-permission", children: [
     /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("label", { children: [
@@ -64417,23 +65244,19 @@ function ArtifactMemberPermission({
       /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)(
         "select",
         {
-          "aria-label": `${label}\u7684\u4F5C\u54C1\u6743\u9650`,
+          "aria-label": language === "en" ? `${label}'s work access` : `${label}\u7684\u4F5C\u54C1\u6743\u9650`,
           value: access2,
           disabled,
           onChange: (event) => setAccess(event.target.value),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "read", children: "\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539" }),
-            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "apply", children: "\u4E5F\u53EF\u91C7\u7528\u4FEE\u6539" }),
-            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "revoked", children: "\u505C\u6B62\u8BBF\u95EE" })
+            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "read", children: t("\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539") }),
+            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "apply", children: t("\u4E5F\u53EF\u91C7\u7528\u4FEE\u6539") }),
+            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "revoked", children: t("\u505C\u6B62\u8BBF\u95EE") })
           ]
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("button", { type: "button", disabled: disabled || access2 === member.access, onClick: () => onSave(access2), children: [
-      "\u66F4\u65B0",
-      label,
-      "\u7684\u6743\u9650"
-    ] })
+    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: disabled || access2 === member.access, onClick: () => onSave(access2), children: language === "en" ? `Update ${label}'s access` : `\u66F4\u65B0${label}\u7684\u6743\u9650` })
   ] });
 }
 
@@ -64446,6 +65269,8 @@ function SharedArtifactInformation({
   onClose,
   onReturnToSource
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const close = (0, import_react53.useRef)(null);
   (0, import_react53.useEffect)(() => {
@@ -64456,7 +65281,7 @@ function SharedArtifactInformation({
     {
       open: true,
       className: "shared-artifact-information",
-      "aria-label": "\u4F5C\u54C1\u4FE1\u606F",
+      "aria-label": t("\u4F5C\u54C1\u4FE1\u606F"),
       onKeyDown: (event) => {
         if (event.key === "Escape") {
           event.preventDefault();
@@ -64466,28 +65291,25 @@ function SharedArtifactInformation({
       },
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("h2", { children: "\u4F5C\u54C1\u4FE1\u606F" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("button", { ref: close, type: "button", "aria-label": "\u5173\u95ED\u4F5C\u54C1\u4FE1\u606F", onClick: onClose, children: "\xD7" })
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("h2", { children: t("\u4F5C\u54C1\u4FE1\u606F") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u4F5C\u54C1\u4FE1\u606F"), onClick: onClose, children: "\xD7" })
         ] }),
         artifact && /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("dl", { className: "shared-artifact-info", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: "\u7248\u672C" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("dd", { children: [
-            "\u7B2C ",
-            ownerRevision2,
-            " \u7248"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: "\u6765\u81EA" }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u7248\u672C") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u6765\u81EA") }),
           /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("button", { type: "button", onClick: onReturnToSource, children: [
             "#",
             artifact.sourceLocation.channelId,
-            " \xB7 \u539F\u8BA8\u8BBA"
+            " \xB7 ",
+            t("\u539F\u8BA8\u8BBA")
           ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: "\u5C5E\u4E8E\u4EFB\u52A1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: artifact.workId ? "\u5DF2\u5173\u8054\u539F\u4EFB\u52A1" : "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: "\u67E5\u770B\u4E0E\u6279\u6CE8" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: "\u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: "\u91C7\u7528\u4FEE\u6539" }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: artifact.canApply ? "\u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539" : "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A" })
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u5C5E\u4E8E\u4EFB\u52A1") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: t(artifact.workId ? "\u5DF2\u5173\u8054\u539F\u4EFB\u52A1" : "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u67E5\u770B\u4E0E\u6279\u6CE8") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: t("\u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u91C7\u7528\u4FEE\u6539") }),
+          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: t(artifact.canApply ? "\u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539" : "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A") })
         ] }),
         shared?.status === "ready" && managementArtifact && (managementArtifact.canManageAccess || managementArtifact.canManageCustody) && /* @__PURE__ */ (0, import_jsx_runtime69.jsx)(
           SharedArtifactManagement,
@@ -64510,6 +65332,8 @@ function SharedArtifactToolbar({
   onReturnToSource,
   onOpenDiscussion
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const [panel, setPanel] = (0, import_react54.useState)();
   const infoToggle = (0, import_react54.useRef)(null);
@@ -64527,8 +65351,11 @@ function SharedArtifactToolbar({
           },
           "aria-expanded": infoOpen,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("strong", { children: artifact?.title ?? "\u5171\u540C\u4F5C\u54C1" }),
-            /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("span", { children: "\u4F5C\u54C1\u4FE1\u606F \u2304" })
+            /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("strong", { children: artifact?.title ?? t("\u5171\u540C\u4F5C\u54C1") }),
+            /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("span", { children: [
+              t("\u4F5C\u54C1\u4FE1\u606F"),
+              " \u2304"
+            ] })
           ]
         }
       ),
@@ -64542,26 +65369,18 @@ function SharedArtifactToolbar({
               setPanel(panel === "history" ? void 0 : "history");
             },
             "aria-expanded": panel === "history",
-            children: "\u7248\u672C\u8BB0\u5F55"
+            children: t("\u7248\u672C\u8BB0\u5F55")
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", className: "shared-discussion-toggle", onClick: onOpenDiscussion, children: "\u8BA8\u8BBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", className: "shared-discussion-toggle", onClick: onOpenDiscussion, children: t("\u8BA8\u8BBA") }),
         artifact && /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("label", { children: [
-          "\u7248\u672C",
+          t("\u7248\u672C"),
           /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("select", { value: ownerRevision2, onChange: (event) => shared?.open(artifact, Number(event.target.value)), children: [
-            ownerRevision2 !== void 0 && ownerRevision2 !== artifact.versions.at(-1)?.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("option", { value: ownerRevision2, children: [
-              "\u7B2C ",
-              ownerRevision2,
-              " \u7248"
-            ] }),
-            artifact.versions.slice(-1).map((version) => /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("option", { value: version.ownerRevision, children: [
-              "\u7B2C ",
-              version.ownerRevision,
-              " \u7248"
-            ] }, version.ownerRevision))
+            ownerRevision2 !== void 0 && ownerRevision2 !== artifact.versions.at(-1)?.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("option", { value: ownerRevision2, children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
+            artifact.versions.slice(-1).map((version) => /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("option", { value: version.ownerRevision, children: language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248` }, version.ownerRevision))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", "aria-label": shared?.returnLabel ?? "\u5173\u95ED\u4F5C\u54C1", onClick: shared?.close, children: shared?.returnLabel && shared?.returnLabel !== "\u5173\u95ED\u4F5C\u54C1" ? "\u2190" : "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", "aria-label": t(shared?.returnLabel ?? "\u5173\u95ED\u4F5C\u54C1"), onClick: shared?.close, children: shared?.returnLabel && shared?.returnLabel !== "\u5173\u95ED\u4F5C\u54C1" ? "\u2190" : "\xD7" })
       ] })
     ] }),
     infoOpen && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(
@@ -64597,6 +65416,8 @@ function SharedArtifactSurface({
   onReturnToSource,
   onOpenDiscussion
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const artifact = shared?.catalogue.find((item) => item.artifactId === shared.selected?.artifactId);
   const selectedRevision = shared?.selected?.ownerRevision;
@@ -64614,12 +65435,12 @@ function SharedArtifactSurface({
     if (artifact) onReturnToSource(artifact.sourceLocation.channelId, artifact.sourceEventId);
   };
   if (artifact && (artifact.mediaType === "image/png" || artifact.mediaType === "video/mp4"))
-    return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("section", { className: "shared-artifact-state", "aria-label": "\u4F5C\u54C1\u6A21\u5F0F", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("section", { className: "shared-artifact-state", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
       /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: artifact.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: "\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: returnToSource, children: "\u8FD4\u56DE\u539F\u8BA8\u8BBA" })
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: t("\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA") })
     ] });
-  return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("section", { className: "shared-artifact-surface", "aria-label": "\u4F5C\u54C1\u6A21\u5F0F", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("section", { className: "shared-artifact-surface", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
     /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(
       SharedArtifactToolbar,
       {
@@ -64632,21 +65453,18 @@ function SharedArtifactSurface({
       infoKey
     ),
     inaccessible ? /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: "\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: "\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: shared.close, children: "\u8FD4\u56DE\u9891\u9053" })
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: t("\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: t("\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: shared.close, children: t("\u8FD4\u56DE\u9891\u9053") })
     ] }) : unavailable || error ? /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: "\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: artifact?.availability === "owner_unavailable" ? "\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002" : error?.message ?? "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: "\u91CD\u65B0\u8BFB\u53D6" })
-    ] }) : !view ? /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("output", { className: "shared-artifact-state", children: "\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026" }) : null,
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: t("\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: artifact?.availability === "owner_unavailable" ? t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002") : t(error?.message ?? "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
+    ] }) : !view ? /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("output", { className: "shared-artifact-state", children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") }) : null,
     view && artifact && /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)(import_jsx_runtime71.Fragment, { children: [
       view.view.historyReadOnly && /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("p", { className: "shared-artifact-history-banner", children: [
-        "\u7B2C ",
-        view.ownerRevision,
-        " \u7248 \xB7 \u5386\u53F2\u7248\u672C\uFF0C\u53EA\u8BFB\u67E5\u770B",
-        " ",
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: () => shared.open(artifact), children: "\u56DE\u5230\u6700\u65B0\u7248" })
+        language === "en" ? `Version ${view.ownerRevision} \xB7 historical version, read only ` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u5386\u53F2\u7248\u672C\uFF0C\u53EA\u8BFB\u67E5\u770B `,
+        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: () => shared.open(artifact), children: t("\u56DE\u5230\u6700\u65B0\u7248") })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(SharedArtifactRequestCards, { view, hidden: Boolean(comparing) }),
       comparing ? /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(
@@ -64662,12 +65480,8 @@ function SharedArtifactSurface({
         /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(SharedArtifactAnnotations, { view, onOpenDiscussion })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("footer", { className: "shared-artifact-footer", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("span", { children: [
-          "\u7B2C ",
-          view.ownerRevision,
-          " \u7248 \xB7 \u4E0E\u6210\u5458\u9605\u8BFB\u540C\u4E00\u4EFD\u6B63\u6587"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: returnToSource, children: "\u56DE\u5230\u539F\u8BA8\u8BBA" })
+        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("span", { children: language === "en" ? `Version ${view.ownerRevision} \xB7 reading the same document as other members` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u4E0E\u6210\u5458\u9605\u8BFB\u540C\u4E00\u4EFD\u6B63\u6587` }),
+        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u56DE\u5230\u539F\u8BA8\u8BBA") })
       ] })
     ] })
   ] });
@@ -64676,6 +65490,7 @@ function SharedArtifactSurface({
 // src/ChannelScene.tsx
 var import_jsx_runtime72 = __toESM(require_jsx_runtime(), 1);
 function ChannelScene(props) {
+  const t = useCollectiveText();
   const {
     collective,
     humanId,
@@ -64778,10 +65593,10 @@ function ChannelScene(props) {
     (reaction) => threads.some((thread) => [thread.root, ...thread.replies].some((event) => event.eventId === reaction.eventId))
   );
   const legacy = events.filter((event) => !eventChannelId(event));
-  const openTopic = (id27, focusComposer = false) => {
+  const openTopic = (id28, focusComposer = false) => {
     setRightPanel(void 0);
-    setTopicRootId(id27);
-    setReplyRequest(focusComposer ? { eventId: id27 } : void 0);
+    setTopicRootId(id28);
+    setReplyRequest(focusComposer ? { eventId: id28 } : void 0);
     onOpenTopic();
   };
   const returnToRoot = (0, import_react56.useCallback)(
@@ -64888,7 +65703,7 @@ function ChannelScene(props) {
           {
             className: "channel-scene",
             hidden: Boolean(shared?.selected) || props.contextFullPage,
-            "aria-label": search2 ? "\u641C\u7D22\u7ED3\u679C" : `# ${channelId}`,
+            "aria-label": search2 ? t("\u641C\u7D22\u7ED3\u679C") : `# ${channelId}`,
             children: [
               content3 !== "roadmap" && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
                 ChannelHeader,
@@ -64920,7 +65735,9 @@ function ChannelScene(props) {
                 }
               ),
               content3 === "conversation" && roadmapReturnLabel && onReturnToRoadmap && /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("button", { type: "button", className: "roadmap-return", onClick: onReturnToRoadmap, children: [
-                "\u2190 \u8FD4\u56DE ",
+                "\u2190 ",
+                t("\u8FD4\u56DE"),
+                " ",
                 roadmapReturnLabel
               ] }),
               content3 === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(SharedArtifactLibrary, { channelId, filterable: true }, namespace) : content3 === "roadmap" ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
@@ -65031,7 +65848,7 @@ function ChannelScene(props) {
         rightPanel && !context2 && !topic && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
           ChannelRightPanel,
           {
-            title: rightPanel === "artifacts" ? "\u9891\u9053\u4F5C\u54C1" : "\u9891\u9053\u4EFB\u52A1",
+            title: t(rightPanel === "artifacts" ? "\u9891\u9053\u4F5C\u54C1" : "\u9891\u9053\u4EFB\u52A1"),
             onClose: () => setRightPanel(void 0),
             children: rightPanel === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
               SharedArtifactLibrary,
@@ -65041,7 +65858,7 @@ function ChannelScene(props) {
                 onOpenChannelLibrary: () => props.onOpenLibrary?.(channelId)
               },
               namespace
-            ) : !collaboration ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: "\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026" }) : !channelWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: "\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002" }) : channelWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+            ) : !collaboration ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026") }) : !channelWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: t("\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002") }) : channelWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
               CollectiveWorkCard,
               {
                 work: work2,
@@ -65183,7 +66000,7 @@ function PublicCatRow({
           " ",
           index4 + 1,
           /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("small", { children: [
-            session.channelIds.map((id27) => `#${id27}`).join(" \xB7 "),
+            session.channelIds.map((id28) => `#${id28}`).join(" \xB7 "),
             " \xB7 ",
             session.connectionId
           ] })
@@ -65282,7 +66099,7 @@ function MemberProfile({
       /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u7531\u8C01\u8D1F\u8D23" }),
       /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: participant?.humanDisplayName ?? previous4?.human.displayName }),
       /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u516C\u5F00\u53C2\u4E0E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id27) => `#${id27}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id28) => `#${id28}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
       /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u53D1\u8A00\u8EAB\u4EFD" }),
       /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: "\u4EE5\u81EA\u8EAB\u5177\u540D\u8EAB\u4EFD\u56DE\u5E94\uFF0C\u79C1\u4EBA\u6388\u6743\u7531\u4E3B\u4EBA\u7BA1\u7406\u3002" })
     ] })
@@ -66275,8 +67092,9 @@ function CollectiveWorldRail({
   onSelectCollective,
   visible
 }) {
+  const t = useCollectiveText();
   if (!visible || !collectives?.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": "\u9009\u62E9\u5171\u540C\u5BB6\u56ED", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u5BB6\u56ED"), children: [
     /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(MeowClubMark, {}) }),
     /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("nav", { children: collectives.map((item) => {
       const active = item.collectiveId === activeCollective?.collectiveId;
@@ -66314,6 +67132,7 @@ function DestinationTitle({
   onReconnect,
   onLeave
 }) {
+  const language = useCollectiveLanguage();
   const t = useCollectiveText();
   if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: t("\u5171\u540C\u5BB6\u56ED") });
   const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || onLeave);
@@ -66323,7 +67142,7 @@ function DestinationTitle({
     callback();
   };
   return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("details", { className: "collective-menu", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("summary", { "aria-label": `${collective.name}\u83DC\u5355`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: collective.name }),
       /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
     ] }),
@@ -66333,7 +67152,7 @@ function DestinationTitle({
         {
           type: "button",
           className: "collective-menu-heading",
-          "aria-label": onHome ? `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
+          "aria-label": onHome ? language === "en" ? `Open ${collective.name} home` : `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
           onClick: onHome ? action(onHome) : void 0,
           children: [
             /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: collective.name }),
@@ -66424,9 +67243,9 @@ function ProductShell({
           ] }),
           destinations,
           /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("footer", { className: "destination-footer", children: [
-            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: "\u8FDE\u63A5\u6B64 Caf\xE9" }) }),
+            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
             notice && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "destination-notice", children: t(notice) }),
-            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "connection-line", children: "\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5" })
+            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
@@ -66733,7 +67552,7 @@ function useHostMediaShare(options) {
     const { context: context2, bridge, hostOrigin, channelId } = latest.current;
     if (!bridge || bridge.authorityStatus === "revoked" || !hostOrigin || context2.current.bridge?.bridgeId !== bridge.bridgeId || context2.current.revision < 1)
       return;
-    const ref8 = collectiveMediaShareRefSchema.parse({
+    const ref10 = collectiveMediaShareRefSchema.parse({
       bridgeId: bridge.bridgeId,
       serviceInstanceId: bridge.serviceInstanceId,
       collectiveId: bridge.collectiveId,
@@ -66745,8 +67564,8 @@ function useHostMediaShare(options) {
       channelId,
       sourceEventId
     });
-    pending.current = ref8;
-    window.parent.postMessage({ type: "collective:client-media-share", ref: ref8 }, hostOrigin);
+    pending.current = ref10;
+    window.parent.postMessage({ type: "collective:client-media-share", ref: ref10 }, hostOrigin);
   }, []);
 }
 
@@ -66755,17 +67574,17 @@ var import_react65 = __toESM(require_react(), 1);
 
 // src/collective-media-surface-client.ts
 async function serveCollectiveMediaRequest(message, api, artifact, humanName) {
-  const { ref: ref8, operation } = message;
-  if (artifact.artifactId !== ref8.artifactId || artifact.sourceEventId !== ref8.sourceEventId || artifact.serviceInstanceId !== ref8.serviceInstanceId || artifact.collectiveId !== ref8.collectiveId || artifact.sourceLocation.channelId !== ref8.channelId || artifact.mediaType !== "image/png" && artifact.mediaType !== "video/mp4")
+  const { ref: ref10, operation } = message;
+  if (artifact.artifactId !== ref10.artifactId || artifact.sourceEventId !== ref10.sourceEventId || artifact.serviceInstanceId !== ref10.serviceInstanceId || artifact.collectiveId !== ref10.collectiveId || artifact.sourceLocation.channelId !== ref10.channelId || artifact.mediaType !== "image/png" && artifact.mediaType !== "video/mp4")
     return { kind: "error", code: "access_denied" };
   try {
-    const version = artifact.versions.find((item) => item.ownerRevision === ref8.ownerRevision) ?? await api.version(artifact, ref8.ownerRevision);
+    const version = artifact.versions.find((item) => item.ownerRevision === ref10.ownerRevision) ?? await api.version(artifact, ref10.ownerRevision);
     if (operation.kind === "read") {
       const value2 = await readArtifactJsonPages(
-        (cursor) => api.operation(artifact, "read", { ...operation.page, ...cursor }, message.requestId, ref8.ownerRevision)
+        (cursor) => api.operation(artifact, "read", { ...operation.page, ...cursor }, message.requestId, ref10.ownerRevision)
       );
       const selected = assertCollectiveMediaView(value2, {
-        ...ref8,
+        ...ref10,
         contentRef: artifact.contentRef,
         mediaType: artifact.mediaType,
         blobDigest: version.blobDigest
@@ -66786,8 +67605,8 @@ async function serveCollectiveMediaRequest(message, api, artifact, humanName) {
       };
     }
     const value = await assertCollectiveMediaReceipt(
-      await api.operation(artifact, "annotate", operation.command, operation.operationId, ref8.ownerRevision),
-      ref8,
+      await api.operation(artifact, "annotate", operation.command, operation.operationId, ref10.ownerRevision),
+      ref10,
       operation.operationId
     );
     return { kind: "annotated", value };
@@ -66817,14 +67636,14 @@ function useHostMediaSurface(options) {
   (0, import_react65.useEffect)(() => {
     const { context: context2, bridge, hostOrigin, channelId, selection } = latest.current;
     active.current = void 0;
-    const { contextId, revision: revision9 } = context2.current;
-    if (!selection || !bridge || context2.current.bridge?.bridgeId !== bridge.bridgeId || bridge.authorityStatus === "revoked" || !hostOrigin || revision9 < 1 || selection.artifact.sourceLocation.channelId !== channelId || !selectedRevision || selection.artifact.mediaType !== "image/png" && selection.artifact.mediaType !== "video/mp4")
+    const { contextId, revision: revision11 } = context2.current;
+    if (!selection || !bridge || context2.current.bridge?.bridgeId !== bridge.bridgeId || bridge.authorityStatus === "revoked" || !hostOrigin || revision11 < 1 || selection.artifact.sourceLocation.channelId !== channelId || !selectedRevision || selection.artifact.mediaType !== "image/png" && selection.artifact.mediaType !== "video/mp4")
       return;
-    const ref8 = {
+    const ref10 = {
       v: 1,
       bridgeId: bridge.bridgeId,
       contextId,
-      contextRevision: revision9,
+      contextRevision: revision11,
       serviceInstanceId: bridge.serviceInstanceId,
       collectiveId: bridge.collectiveId,
       humanId: bridge.humanId,
@@ -66834,14 +67653,14 @@ function useHostMediaSurface(options) {
       sourceEventId: selection.artifact.sourceEventId,
       ownerRevision: selectedRevision
     };
-    active.current = ref8;
-    window.parent.postMessage({ type: "collective:client-media-surface", ref: ref8 }, hostOrigin);
+    active.current = ref10;
+    window.parent.postMessage({ type: "collective:client-media-surface", ref: ref10 }, hostOrigin);
   }, [options.generation, options.channelId, selectionKey, selectedRevision]);
   (0, import_react65.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
-    const current2 = (ref8) => {
+    const current2 = (ref10) => {
       const value = latest.current, context2 = value.context.current;
-      return Boolean(active.current && collectiveMediaSurfaceRefKey(active.current) === collectiveMediaSurfaceRefKey(ref8)) && value.bridge?.bridgeId === ref8.bridgeId && context2.bridge?.authorityStatus !== "revoked" && context2.bridge?.bridgeId === ref8.bridgeId && context2.contextId === ref8.contextId && context2.revision === ref8.contextRevision;
+      return Boolean(active.current && collectiveMediaSurfaceRefKey(active.current) === collectiveMediaSurfaceRefKey(ref10)) && value.bridge?.bridgeId === ref10.bridgeId && context2.bridge?.authorityStatus !== "revoked" && context2.bridge?.bridgeId === ref10.bridgeId && context2.contextId === ref10.contextId && context2.revision === ref10.contextRevision;
     };
     const listener = async (event) => {
       if (event.source !== window.parent || event.origin !== latest.current.hostOrigin) return;
@@ -66963,7 +67782,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
   const [cafeSection, setCafeSection] = (0, import_react67.useState)("cats");
   const [focusWork, setFocusWork] = (0, import_react67.useState)();
   const [contextId] = (0, import_react67.useState)(() => crypto.randomUUID());
-  const revision9 = (0, import_react67.useRef)(0);
+  const revision11 = (0, import_react67.useRef)(0);
   const opener = (0, import_react67.useRef)();
   const reconciledWorks = (0, import_react67.useRef)(/* @__PURE__ */ new Set());
   const pendingWorkFocus = (0, import_react67.useRef)();
@@ -67077,7 +67896,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
   const channelKey = JSON.stringify([.../* @__PURE__ */ new Set([channelId, ...channelIds])].slice(0, 100));
   (0, import_react67.useEffect)(() => {
     if (!bridge || !hostOrigin || !projectionReady) return;
-    const nextRevision = ++revision9.current;
+    const nextRevision = ++revision11.current;
     publicContext.current = { bridge, contextId, revision: nextRevision };
     window.parent.postMessage(
       {
@@ -67236,6 +68055,8 @@ function CollectiveWorkspace({
   embedded,
   client
 }) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
   const { snapshot } = client;
   const namespace = collectiveClientNamespace(snapshot) ?? "";
   const previousNamespace = (0, import_react69.useRef)(namespace);
@@ -67298,7 +68119,7 @@ function CollectiveWorkspace({
     namespace,
     artifacts: client.artifacts,
     place: { destination, channelId, content: content3, query, focusEventId, roadmapReturn },
-    onOpenSource: (id27, eventId2) => selectChannel(id27, eventId2),
+    onOpenSource: (id28, eventId2) => selectChannel(id28, eventId2),
     onRestore: (place) => {
       setDestination(place.destination);
       setChannelId(place.channelId);
@@ -67382,15 +68203,15 @@ function CollectiveWorkspace({
     firstEntry.beginPair();
     void client.pairHost();
   };
-  const selectChannel = (id27, eventId2) => {
+  const selectChannel = (id28, eventId2) => {
     artifactNavigation.discard();
     setDestination("channel");
     setFocusEventId(eventId2);
     setContent("conversation");
     setRoadmapReturn(void 0);
     host.hide();
-    setChannelId(id27);
-    writeChannelTarget(id27);
+    setChannelId(id28);
+    writeChannelTarget(id28);
     setQuery("");
     setSelectedMember(void 0);
     setNavigationOpen(false);
@@ -67454,7 +68275,7 @@ function CollectiveWorkspace({
     artifactNavigation.discard();
     const roadmap = snapshot.collaboration?.roadmaps.find((candidate) => candidate.roadmapId === view.roadmapId);
     setRoadmapViews((current2) => ({ ...current2, [channelId]: view }));
-    setRoadmapReturn({ channelId, label: roadmap?.title ?? "\u9879\u76EE", view });
+    setRoadmapReturn({ channelId, label: roadmap?.title ?? t("\u9879\u76EE"), view });
     setFocusEventId(eventId2);
     setDestination("channel");
     setContent("conversation");
@@ -67532,6 +68353,10 @@ function CollectiveWorkspace({
         ...client.artifacts,
         open: artifactNavigation.open,
         close: artifactNavigation.close,
+        openWorkResultFile: async (address) => {
+          const artifact = await client.artifacts?.resolveWorkResultFile(address);
+          if (artifact) artifactNavigation.open(artifact);
+        },
         returnLabel: artifactNavigation.returnLabel,
         returnToSource: selectChannel
       },
@@ -67553,7 +68378,7 @@ function CollectiveWorkspace({
                   canSteward: snapshot.collective.role === "steward",
                   canPair: Boolean(snapshot.me.auth) && !host.paired,
                   pairNudge: firstEntry.phase === "browsing",
-                  headerMeta: members ? `${members.cafes.length} \u4E2A Caf\xE9 \xB7 ${members.humans.length + visibleCats.length} \u4F4D\u6210\u5458` : "\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026",
+                  headerMeta: members ? language === "en" ? `${members.cafes.length} ${members.cafes.length === 1 ? "Caf\xE9" : "Caf\xE9s"} \xB7 ${members.humans.length + visibleCats.length} ${members.humans.length + visibleCats.length === 1 ? "member" : "members"}` : `${members.cafes.length} \u4E2A Caf\xE9 \xB7 ${members.humans.length + visibleCats.length} \u4F4D\u6210\u5458` : t("\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026"),
                   notice: snapshot.notice,
                   onInvite: () => void client.createInvite(),
                   onPair: beginPair,
@@ -67603,7 +68428,7 @@ function CollectiveWorkspace({
                     /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
                       SharedArtifactLibrary,
                       {
-                        title: "\u5168\u90E8\u4F5C\u54C1",
+                        title: t("\u5168\u90E8\u4F5C\u54C1"),
                         active: destination === "library",
                         filterable: true,
                         requestedChannel: libraryChannel,
@@ -68283,11 +69108,11 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
       const target = currentCollectiveScope(latest.current);
       if (!target || !token.current) return;
       const credential = token.current;
-      const revision9 = ++generation.current;
+      const revision11 = ++generation.current;
       pending.current?.abort();
       const abort = new AbortController();
       pending.current = abort;
-      const fresh = () => !abort.signal.aborted && revision9 === generation.current && key === currentKey.current && credential === token.current;
+      const fresh = () => !abort.signal.aborted && revision11 === generation.current && key === currentKey.current && credential === token.current;
       const close = (reason, me) => {
         if (fresh()) setSnapshot((current2) => closeCollectiveScope(current2, target, reason, me ?? current2.me));
       };
@@ -68605,11 +69430,11 @@ function useCollectiveClient() {
 var import_react75 = __toESM(require_react(), 1);
 
 // src/world-directory-bridge.ts
-function projectWorldDirectory(snapshot, bridgeId, revision9) {
+function projectWorldDirectory(snapshot, bridgeId, revision11) {
   const base = {
     type: "collective:client-world-directory",
     bridgeId,
-    revision: revision9
+    revision: revision11
   };
   if (snapshot.phase === "loading") return void 0;
   if (snapshot.phase === "unavailable") {
@@ -68677,7 +69502,7 @@ function useHostWorldDirectory(input) {
     ]
   );
   const [bridge, setBridge] = (0, import_react75.useState)();
-  const revision9 = (0, import_react75.useRef)(0);
+  const revision11 = (0, import_react75.useRef)(0);
   const current2 = (0, import_react75.useRef)();
   const selectCollective = (0, import_react75.useRef)(input.selectCollective);
   selectCollective.current = input.selectCollective;
@@ -68688,7 +69513,7 @@ function useHostWorldDirectory(input) {
       const message = trustedWorldDirectoryHostMessage(event, hostOrigin, parent);
       if (!message) return;
       if (message.type === "collective:host-world-directory-init") {
-        revision9.current = 0;
+        revision11.current = 0;
         current2.current = void 0;
         observeHostAppearanceGeneration(message.bridgeId);
         setBridge({ bridgeId: message.bridgeId, authorityKey });
@@ -68711,9 +69536,9 @@ function useHostWorldDirectory(input) {
   }, [authorityKey, hostOrigin]);
   (0, import_react75.useEffect)(() => {
     if (!bridge || bridge.authorityKey !== authorityKey || !hostOrigin || window.parent === window) return;
-    const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision9.current + 1);
+    const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision11.current + 1);
     if (!projection) return;
-    revision9.current = projection.revision;
+    revision11.current = projection.revision;
     current2.current = projection.state === "ready" ? projection : void 0;
     window.parent.postMessage(projection, hostOrigin);
   }, [authorityKey, bridge, hostOrigin, projectionSource]);
