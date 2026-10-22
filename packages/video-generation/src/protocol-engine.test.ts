@@ -78,11 +78,40 @@ test('all package-owned provider templates validate with bounded async polling',
   }
 });
 
-test('provider origins fail closed except HTTPS and isolated loopback fixtures', () => {
+test('provider endpoints accept HTTP and HTTPS without a loopback-only restriction', () => {
   assert.equal(requireSafeProviderBaseUrl('https://api.example.com/v1'), 'https://api.example.com/v1');
   assert.equal(requireSafeProviderBaseUrl('http://127.0.0.1:43210'), 'http://127.0.0.1:43210/');
-  assert.throws(() => requireSafeProviderBaseUrl('http://api.example.com'), /must use HTTPS/);
+  assert.equal(requireSafeProviderBaseUrl('http://api.example.com/v1'), 'http://api.example.com/v1');
+  assert.equal(requireSafeProviderBaseUrl('http://192.168.1.20:8080'), 'http://192.168.1.20:8080/');
+  assert.throws(() => requireSafeProviderBaseUrl('file:///tmp/provider'), /HTTP or HTTPS/);
   assert.throws(() => requireSafeProviderBaseUrl('https://user:pass@api.example.com'), /must not contain credentials/);
+});
+
+test('configured HTTP and HTTPS endpoints reach submit and poll with provider authentication', async (t) => {
+  const requests: { url: string; method: string | undefined; authorization: string | null }[] = [];
+  // Isolate transport while exercising real URL construction, signing and parsing.
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+    requests.push({ url, method: init?.method, authorization: new Headers(init?.headers).get('authorization') });
+    return Response.json(url.endsWith('/submit')
+      ? { id: 'task-1', status: 'queued' }
+      : { status: 'done', result: 'https://cdn.example/result.mp4' });
+  });
+  for (const scheme of ['http', 'https']) {
+    const baseUrl = `${scheme}://provider.example.com`;
+    const params = {
+      provider: { id: 'fixture', name: 'fixture', protocol: 'fixture', baseUrl, authType: 'apikey' as const },
+      capability: 'text2video', credentials: { apiKey: 'fixture-secret-key' }, vars: { prompt: 'hello' },
+    };
+    assert.deepEqual(await submit(fixtureTemplate(baseUrl), params), { taskId: 'task-1', status: 'queued' });
+    assert.deepEqual(await poll(fixtureTemplate(baseUrl), params, 'task-1'), {
+      status: 'succeeded', resultUrl: 'https://cdn.example/result.mp4',
+    });
+  }
+  assert.deepEqual(requests, ['http', 'https'].flatMap(scheme => [
+    { url: `${scheme}://provider.example.com/submit`, method: 'POST', authorization: 'Bearer fixture-secret-key' },
+    { url: `${scheme}://provider.example.com/poll/task-1`, method: 'GET', authorization: 'Bearer fixture-secret-key' },
+  ]));
 });
 
 test('every authentication strategy rejects missing required credentials', () => {

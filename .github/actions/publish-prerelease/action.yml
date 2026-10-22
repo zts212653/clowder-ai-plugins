@@ -8,6 +8,10 @@ inputs:
   npm-token:
     description: npm automation token
     required: true
+  allowed-stable-version:
+    description: Exact stable version authorized by this workflow (empty = prerelease versions only)
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -18,6 +22,7 @@ runs:
       env:
         PACKAGE_DIRECTORY: ${{ inputs.package-directory }}
         PACK_JSON_PATH: ${{ runner.temp }}/prerelease-pack.json
+        ALLOWED_STABLE_VERSION: ${{ inputs.allowed-stable-version }}
       run: |
         set -euo pipefail
         if [[ ! "$PACKAGE_DIRECTORY" =~ ^packages/[a-z0-9-]+$ ]]; then
@@ -45,7 +50,7 @@ runs:
             `packed identity mismatch: ${artifact.name}@${artifact.version} != ${packageJson.name}@${packageJson.version}`,
           );
         }
-        if (!artifact.version.includes('-')) {
+        if (!artifact.version.includes('-') && artifact.version !== process.env.ALLOWED_STABLE_VERSION) {
           throw new Error(`stable publication is not authorized: ${artifact.version}`);
         }
 
@@ -74,7 +79,22 @@ runs:
       run: |
         set -euo pipefail
         if npm view "$PACKAGE_NAME" dist-tags --json > "$PACKAGE_TAGS_PATH" 2> "$PACKAGE_TAGS_ERROR_PATH"; then
-          PREVIOUS_LATEST=$(node packages/plugin-contract/scripts/classify-prerelease-latest.mjs)
+          if [[ "$PACKAGE_VERSION" == *-* ]]; then
+            PREVIOUS_LATEST=$(node packages/plugin-contract/scripts/classify-prerelease-latest.mjs)
+          else
+            PREVIOUS_LATEST=$(node --input-type=module <<'NODE'
+        import { readFileSync } from 'node:fs';
+        const tags = JSON.parse(readFileSync(process.env.PACKAGE_TAGS_PATH, 'utf8'));
+        if (tags === null || typeof tags !== 'object' || Array.isArray(tags)) {
+          throw new Error('registry dist-tags must be an object');
+        }
+        if (tags.latest !== undefined && (typeof tags.latest !== 'string' || !/^[a-zA-Z0-9.+-]+$/.test(tags.latest))) {
+          throw new Error('invalid registry latest tag');
+        }
+        process.stdout.write(tags.latest ?? '');
+        NODE
+            )
+          fi
           printf 'had_previous_latest=%s\n' "$([[ -n "$PREVIOUS_LATEST" ]] && printf true || printf false)" >> "$GITHUB_OUTPUT"
           printf 'previous_latest=%s\n' "$PREVIOUS_LATEST" >> "$GITHUB_OUTPUT"
           node --input-type=module <<'NODE'
@@ -128,6 +148,7 @@ runs:
         PACKAGE_NAME: ${{ steps.pack.outputs.name }}
         PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
         EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        ALLOWED_STABLE_VERSION: ${{ inputs.allowed-stable-version }}
         HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         PREVIOUS_NEXT: ${{ steps.registry.outputs.previous_next }}
@@ -166,7 +187,10 @@ runs:
           distTags.latest !== process.env.PACKAGE_VERSION
         ) {
           throw new Error(`unexpected registry latest tag: ${distTags.latest}`);
-        } else if (!process.env.PACKAGE_VERSION.includes('-')) {
+        } else if (
+          !process.env.PACKAGE_VERSION.includes('-') &&
+          process.env.PACKAGE_VERSION !== process.env.ALLOWED_STABLE_VERSION
+        ) {
           throw new Error(`stable publication is not authorized: ${process.env.PACKAGE_VERSION}`);
         }
         NODE
@@ -187,6 +211,7 @@ runs:
         PACKAGE_NAME: ${{ steps.pack.outputs.name }}
         PACKAGE_VERSION: ${{ steps.pack.outputs.version }}
         EXPECTED_INTEGRITY: ${{ steps.pack.outputs.integrity }}
+        ALLOWED_STABLE_VERSION: ${{ inputs.allowed-stable-version }}
         HAD_PREVIOUS_LATEST: ${{ steps.registry.outputs.had_previous_latest }}
         PREVIOUS_LATEST: ${{ steps.registry.outputs.previous_latest }}
         PREVIOUS_NEXT: ${{ steps.registry.outputs.previous_next }}
@@ -222,7 +247,10 @@ runs:
           distTags.latest !== process.env.PACKAGE_VERSION
         ) {
           throw new Error(`unexpected registry latest tag: ${distTags.latest}`);
-        } else if (!process.env.PACKAGE_VERSION.includes('-')) {
+        } else if (
+          !process.env.PACKAGE_VERSION.includes('-') &&
+          process.env.PACKAGE_VERSION !== process.env.ALLOWED_STABLE_VERSION
+        ) {
           throw new Error(`stable publication is not authorized: ${process.env.PACKAGE_VERSION}`);
         }
         NODE

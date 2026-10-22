@@ -13,6 +13,7 @@ import {createCollectiveMessageWorkArtifacts} from './collective-message-work-ar
 import { collectiveOwnerOperationInput } from './owner-operation-input.js';
 import {adoptCollectiveTaskDataController, collectiveTaskControllerInput,listCollectiveTaskDataControllerRows,
   revokeCollectiveTaskDataController} from './collective-task-data-controller.js';
+import {readCollectiveWorkResultAttentionSource} from './work-result-attention.js';
 
 interface Backend {
   readonly connector: CollectiveConnector;
@@ -96,6 +97,17 @@ export async function activateCollectiveWork(context: FeatureContext, backend: B
       owner.actionId !== actionId || owner.confirmed !== true)
       throw new Error('A confirmed owner Work operation is required');
     owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();return owner;
+  };
+  handlers['collective.work.owner.result-attention'] = async (unsafe, native, caller) => {
+    assertActive();if (native) throw new Error('Owner Work operation required');
+    const owner=ownerOperation(caller);
+    if (owner.pluginInstanceId!==context.pluginInstanceId || owner.operationKey!=='work' ||
+      owner.actionId!=='result-attention') throw new Error('Authenticated result attention operation required');
+    z.object({input:z.object({}).strict()}).strict().parse(collectiveOwnerOperationInput(unsafe));
+    const current=async()=>{assertActive();owner.signal.throwIfAborted();await owner.assertCurrent();assertActive();};
+    await current();
+    const data=await readCollectiveWorkResultAttentionSource(connector,context,messageArtifacts,owner.userId,current);
+    await current();return {render:'status',data};
   };
   handlers['collective.work.owner.connections'] = async (unsafe, native, caller) => {
     assertActive();if (native) throw new Error('Owner Work operation required');const owner = ownerOperation(caller);

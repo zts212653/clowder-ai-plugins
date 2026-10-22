@@ -82,6 +82,15 @@ export type RequiredWhen = {
   readonly key: string;
   readonly value: string | number | boolean | readonly (string | number | boolean)[];
 };
+export type ConfigurationVariantBranch = {
+  readonly id: string;
+  readonly when: Readonly<Record<string, unknown>>;
+  readonly fields: readonly string[];
+};
+export type ConfigurationVariants = {
+  readonly discriminator: string;
+  readonly branches: readonly ConfigurationVariantBranch[];
+};
 export type ConfigurationField = {
   readonly key: string;
   readonly label: string;
@@ -512,6 +521,7 @@ export type PluginManifest = {
   readonly description?: LocalizedDescription;
   readonly icon?: PluginIcon;
   readonly configuration?: readonly ConfigurationField[];
+  readonly configurationVariants?: ConfigurationVariants;
   readonly contributions?: readonly StaticContribution[];
   readonly features: readonly PluginFeature[];
   readonly data?: readonly DataDeclaration[];

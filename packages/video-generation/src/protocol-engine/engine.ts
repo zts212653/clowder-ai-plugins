@@ -98,9 +98,8 @@ interface RequestResult {
 
 export function requireSafeProviderBaseUrl(raw: string): string {
   const url = new URL(raw);
-  const loopback = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]';
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
-    throw new Error('provider base URL must use HTTPS or isolated loopback HTTP');
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error('provider base URL must use HTTP or HTTPS');
   }
   if (url.username || url.password) throw new Error('provider base URL must not contain credentials');
   return url.toString();

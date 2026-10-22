@@ -13,7 +13,7 @@ test('manifest keeps credentials secret and binding authority Host-owned', async
     runtime: Record<string, unknown>;
   };
   assert.equal(manifest.pluginId, 'official.connector.feishu');
-  assert.equal(manifest.contractVersion, '0.1.0');
+  assert.equal(manifest.contractVersion, '0.2.0');
   assert.deepEqual(manifest.configuration.filter(item => item.kind === 'secret').map(item => item.key), [
     'appSecret',
     'verificationToken',

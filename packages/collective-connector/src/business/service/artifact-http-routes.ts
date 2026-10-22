@@ -42,6 +42,14 @@ async function dispatchArtifactPost(
       201,
       async () => ({ publication: await store.sendArtifactPublication(credential, body) }),
     ],
+    '/api/artifacts/publications/promote-result': [
+      201,
+      async () => ({ publication: await store.promoteWorkResultArtifact(credential, body) }),
+    ],
+    '/api/artifacts/publications/resolve-result': [
+      200,
+      () => ({ resolution: store.resolveWorkResultArtifact(credential, body) }),
+    ],
     '/api/artifacts/publications/poll': [
       200,
       async () => ({ operations: await store.pollArtifactPublications(credential, body) }),

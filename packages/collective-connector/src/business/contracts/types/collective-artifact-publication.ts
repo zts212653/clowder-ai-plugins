@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { collectiveLocationSchema } from './collective.js';
+import { collectiveWorkResultFileIdSchema } from './collective-work-return.js';
 
 const id = z.string().trim().min(1).max(256);
 const digest = z.string().regex(/^sha256:[a-f0-9]{64}$/);
@@ -15,6 +16,16 @@ export const prepareCollectiveArtifactPublicationSchema = z
     workId: id.optional(),
   })
   .strict();
+/** Human intent names only the authenticated public result sidecar; Work, source, owner and bytes are server-derived. */
+export const promoteCollectiveWorkResultArtifactSchema = z
+  .object({
+    serviceInstanceId: id,
+    collectiveId: id,
+    fileId: collectiveWorkResultFileIdSchema,
+  })
+  .strict();
+/** Any current member may resolve an existing shared work; this input never authorizes first publication. */
+export const resolveCollectiveWorkResultArtifactSchema = promoteCollectiveWorkResultArtifactSchema;
 /** Durable content-free publication intent. Endpoint coordinates never project into the work Client. */
 export const collectiveArtifactPublicationRecordSchema = prepareCollectiveArtifactPublicationSchema
   .extend({

@@ -324,6 +324,57 @@
       ],
       "additionalProperties": false
     },
+    "ConfigurationVariantBranch": {
+      "type": "object",
+      "description": "One branch of a configurationVariants discriminator. `when` is a constrained JSON Schema fragment (only the discriminator key, const/enum over declared option values); `fields` references keys declared in the top-level configuration and decides applicability, never requiredness.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "when": {
+          "type": "object"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "when",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "ConfigurationVariants": {
+      "type": "object",
+      "description": "Mode-branched configuration (contractVersion 0.2.0+). The discriminator is a plain non-operation select field; each declared option value must be matched by exactly one branch (completeness + exclusivity, checked semantically).",
+      "properties": {
+        "discriminator": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9._-]*$"
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationVariantBranch"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "discriminator",
+        "branches"
+      ],
+      "additionalProperties": false
+    },
     "ConfigurationField": {
       "type": "object",
       "properties": {
@@ -2269,6 +2320,9 @@
       "items": {
         "$ref": "#/$defs/ConfigurationField"
       }
+    },
+    "configurationVariants": {
+      "$ref": "#/$defs/ConfigurationVariants"
     },
     "contributions": {
       "type": "array",

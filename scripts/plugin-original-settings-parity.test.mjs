@@ -19,8 +19,15 @@ test('video generation preserves credential requirements for each original authe
   const value = await manifest('video-generation');
   for (const key of ['apiKey', 'accessKey', 'secretKey']) {
     const field = value.configuration.find((field) => field.key === key);
-    assert.deepEqual(field.requiredWhen, { key: 'authType', value: key === 'apiKey' ? 'apikey' : ['jwt-hs256', 'hmac-sha256-v4'] });
+    assert.equal(field.required, true);
+    assert.equal(field.requiredWhen, undefined);
   }
+  const variants = value.configurationVariants;
+  assert.equal(variants.discriminator, 'authType');
+  const branchFields = Object.fromEntries(variants.branches.map((branch) => [branch.id, branch.fields]));
+  assert.deepEqual(branchFields.apikey, ['apiKey']);
+  assert.deepEqual(branchFields.jwt, ['accessKey', 'secretKey']);
+  assert.deepEqual(branchFields.hmac, ['accessKey', 'secretKey']);
 });
 
 for (const [name, texts] of [

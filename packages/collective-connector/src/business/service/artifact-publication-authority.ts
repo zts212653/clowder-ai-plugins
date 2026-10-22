@@ -7,7 +7,8 @@ import { assertServiceCoordinates } from './connection-authority.js';
 import { CollectiveServiceError } from './errors.js';
 import { requireHumanAuthBinding, requireMembership } from './identity-store.js';
 import type { PersistentServiceState } from './persistence.js';
-import type { ServiceState } from './state.js';
+import type { MutableServiceState, ServiceState } from './state.js';
+import { assertPendingWorkResultPublicationCurrent } from './work-result-artifact-authority.js';
 
 export const publicationHash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
@@ -27,6 +28,7 @@ export function requirePublication(state: ServiceState, publicationId: string) {
   )
     denyArtifact();
   requireWorkSource(state, record.collectiveId, record.sourceEventId);
+  assertPendingWorkResultPublicationCurrent(state, record);
   return record;
 }
 
@@ -60,7 +62,15 @@ export async function prepareArtifactPublication(
   unsafe: unknown,
 ) {
   const input = prepareCollectiveArtifactPublicationSchema.parse(unsafe);
-  return persistence.transaction((state) => {
+  return persistence.transaction((state) => prepareArtifactPublicationInState(state, now, session, input));
+}
+
+export function prepareArtifactPublicationInState(
+  state: MutableServiceState,
+  now: () => number,
+  session: string,
+  input: ReturnType<typeof prepareCollectiveArtifactPublicationSchema.parse>,
+) {
     assertServiceCoordinates(state, input.serviceInstanceId, input.collectiveId);
     const human = requireArtifactHuman(state, session, input.collectiveId);
     const connection = state.connections[input.connectionId];
@@ -105,5 +115,4 @@ export async function prepareArtifactPublication(
     };
     state.artifactPublications[publicationId] = record;
     return projectPublication(state, record);
-  });
 }

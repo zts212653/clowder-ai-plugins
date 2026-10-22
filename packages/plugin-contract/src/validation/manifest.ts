@@ -208,6 +208,179 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       }
     }
 
+    const variants = manifest.configurationVariants;
+    if (variants !== undefined) {
+      if (manifest.contractVersion !== '0.2.0') {
+        return semanticError(
+          '/configurationVariants',
+          '#/$defs/ConfigurationVariants/contractVersion',
+          'contractVersion',
+          'configurationVariants requires contractVersion 0.2.0',
+        );
+      }
+
+      const discriminator = configByKey.get(variants.discriminator);
+      if (discriminator === undefined) {
+        return semanticError(
+          '/configurationVariants/discriminator',
+          '#/$defs/ConfigurationVariants/discriminatorDeclaredKey',
+          'discriminatorDeclaredKey',
+          'configurationVariants discriminator must reference a declared configuration field',
+        );
+      }
+      if (discriminator.kind !== 'select') {
+        return semanticError(
+          '/configurationVariants/discriminator',
+          '#/$defs/ConfigurationVariants/discriminatorSelectKey',
+          'discriminatorSelectKey',
+          'configurationVariants discriminator must reference a select configuration field',
+        );
+      }
+
+      const optionValues = (discriminator.options ?? []).map((option) => option.value);
+      const optionSet = new Set(optionValues);
+      const branchIds = new Set<string>();
+
+      for (const [branchIndex, branch] of variants.branches.entries()) {
+        if (branchIds.has(branch.id)) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/id`,
+            '#/$defs/ConfigurationVariantBranch/uniqueBranchIds',
+            'uniqueBranchIds',
+            'configurationVariants branch id must be declared at most once per manifest',
+          );
+        }
+        branchIds.add(branch.id);
+
+        const whenKeys =
+          typeof branch.when === 'object' && branch.when !== null
+            ? Object.keys(branch.when)
+            : [];
+        if (whenKeys.length !== 1 || whenKeys[0] !== 'properties') {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when`,
+            '#/$defs/ConfigurationVariantBranch/whenConstrainedKeywords',
+            'whenConstrainedKeywords',
+            'configurationVariants branch when must contain only a properties object (unsupported JSON Schema keywords such as not/anyOf are rejected)',
+          );
+        }
+
+        const properties = branch.when['properties'];
+        if (typeof properties !== 'object' || properties === null) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when/properties`,
+            '#/$defs/ConfigurationVariantBranch/whenProperties',
+            'whenProperties',
+            'configurationVariants branch when must declare a properties object',
+          );
+        }
+        const propertyKeys = Object.keys(properties as Record<string, unknown>);
+        if (
+          propertyKeys.length !== 1 ||
+          propertyKeys[0] !== variants.discriminator
+        ) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when/properties`,
+            '#/$defs/ConfigurationVariantBranch/whenSingleDiscriminator',
+            'whenSingleDiscriminator',
+            'configurationVariants branch when.properties may only constrain the discriminator key',
+          );
+        }
+
+        const constraint = (properties as Record<string, unknown>)[variants.discriminator];
+        if (typeof constraint !== 'object' || constraint === null) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when/properties/${variants.discriminator}`,
+            '#/$defs/ConfigurationVariantBranch/whenConstraint',
+            'whenConstraint',
+            'configurationVariants branch discriminator constraint must be an object',
+          );
+        }
+        const constraintRecord = constraint as Record<string, unknown>;
+        const constraintKeys = Object.keys(constraintRecord);
+        const usesConst = constraintKeys.includes('const');
+        const usesEnum = constraintKeys.includes('enum');
+        if (
+          (usesConst === usesEnum) ||
+          constraintKeys.some((key) => key !== 'const' && key !== 'enum')
+        ) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when/properties/${variants.discriminator}`,
+            '#/$defs/ConfigurationVariantBranch/whenConstOrEnum',
+            'whenConstOrEnum',
+            'configurationVariants branch discriminator constraint must use exactly one of const or enum',
+          );
+        }
+        const declaredValues = usesConst
+          ? [constraintRecord['const']]
+          : (constraintRecord['enum'] as unknown[]);
+        if (
+          !Array.isArray(declaredValues) ||
+          declaredValues.length === 0 ||
+          !declaredValues.every(
+            (value) => typeof value === 'string' && optionSet.has(value),
+          )
+        ) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when/properties/${variants.discriminator}`,
+            '#/$defs/ConfigurationVariantBranch/whenDeclaredOption',
+            'whenDeclaredOption',
+            'configurationVariants branch constraint values must be declared option values of the discriminator select field',
+          );
+        }
+
+        if (new Set(declaredValues).size !== declaredValues.length) {
+          return semanticError(
+            `/configurationVariants/branches/${branchIndex}/when/properties/${variants.discriminator}`,
+            '#/$defs/ConfigurationVariantBranch/whenUniqueOptions',
+            'whenUniqueOptions',
+            'configurationVariants branch enum values must be unique',
+          );
+        }
+
+        for (const [fieldIndex, key] of branch.fields.entries()) {
+          if (key === variants.discriminator) {
+            return semanticError(
+              `/configurationVariants/branches/${branchIndex}/fields/${fieldIndex}`,
+              '#/$defs/ConfigurationVariantBranch/discriminatorNotBranchField',
+              'discriminatorNotBranchField',
+              'configurationVariants branch fields must not include the discriminator itself',
+            );
+          }
+          if (!configByKey.has(key)) {
+            return semanticError(
+              `/configurationVariants/branches/${branchIndex}/fields/${fieldIndex}`,
+              '#/$defs/ConfigurationVariantBranch/declaredBranchField',
+              'declaredBranchField',
+              'configurationVariants branch fields must reference declared configuration keys',
+            );
+          }
+        }
+      }
+
+      const branchValidators = variants.branches.map((branch) => ajv.compile({
+        type: 'object',
+        properties: structuredClone(
+          branch.when['properties'] as Record<string, unknown>,
+        ),
+        required: [variants.discriminator],
+      }));
+      for (const optionValue of optionValues) {
+        let matched = 0;
+        for (const trial of branchValidators) {
+          if (trial({ [variants.discriminator]: optionValue })) matched += 1;
+        }
+        if (matched !== 1) {
+          return semanticError(
+            '/configurationVariants/branches',
+            '#/$defs/ConfigurationVariants/completeExclusiveBranches',
+            'completeExclusiveBranches',
+            `each discriminator option value must be matched by exactly one branch; option ${JSON.stringify(optionValue)} matched ${matched}`,
+          );
+        }
+      }
+    }
+
     for (const [index, field] of configuration.entries()) {
       if (field.kind !== 'operation') continue;
 

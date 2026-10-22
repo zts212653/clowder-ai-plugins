@@ -85,6 +85,31 @@ test('only authenticated owner requests admit Host origins; stop closes listener
   } finally {if(!stopped)await active.stop({reason:'test'});await rm(directory,{recursive:true,force:true});}
 });
 
+test('managed stop owns an established Work-material subscription and restart restores it',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'collective-managed-stop-'));const port=await freePort();
+  const subscriptions=new Set<string>();let sessionStopped=false,subscribeCalls=0,unsubscribeCalls=0;
+  const source:ModulePluginHostShape={...host(directory,port),tasks:{async list(){return [{
+    id:'completed-work',kind:'work',title:'Completed Work',subjectKey:'collective-work:connection:work',
+    threadId:'original-thread',ownerCatId:'codex-sol',userId:'owner',createdBy:'system',status:'done',why:'',createdAt:1,updatedAt:2,
+  }];}} as never,messaging:{async get(){return null;},async send(){throw new Error('Unused');},
+    async subscribe({threadId}:{threadId:string}){if(sessionStopped)throw new Error('Plugin subscription session is stopped');subscribeCalls++;subscriptions.add(threadId);},
+    async unsubscribe({threadId}:{threadId:string}){unsubscribeCalls++;if(sessionStopped)throw new Error('Plugin subscription session is stopped');subscriptions.delete(threadId);}} as never};
+  const definition=entrypoint.create(manifest);let active:PluginModuleActivationShape|undefined;
+  const stopHostSession=()=>{sessionStopped=true;subscriptions.clear();};
+  try {
+    active=await definition.start(source);assert.deepEqual([...subscriptions],['original-thread']);assert.equal(subscribeCalls,1);
+    await active.preStop?.({reason:'owner_disabled',deadline:Date.now()+1000});stopHostSession();
+    await active.stop({reason:'owner_disabled'});
+    assert.equal(unsubscribeCalls,0,'the stopped Host session is the sole subscription cleanup owner');
+
+    sessionStopped=false;active=await definition.start(source);
+    assert.deepEqual([...subscriptions],['original-thread']);assert.equal(subscribeCalls,2);
+    await active.preStop?.({reason:'host_shutdown',deadline:Date.now()+1000});stopHostSession();
+    await active.stop({reason:'host_shutdown'});
+    assert.equal(unsubscribeCalls,0);
+  } finally {try {await active?.stop({reason:'test'});} catch {}await rm(directory,{recursive:true,force:true});}
+});
+
 test('missing instance data and reserved service port are rejected without opening a listener',async()=>{
   await assert.rejects(entrypoint.create(manifest).start(host('',3001)),/data|port/i);
   const directory=await mkdtemp(join(tmpdir(),'collective-reserved-'));

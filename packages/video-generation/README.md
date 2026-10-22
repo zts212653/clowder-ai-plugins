@@ -7,7 +7,7 @@
 ## 开始使用
 
 1. 在插件设置选择 `zhipu`、`kling` 或 `jimeng`。
-2. 选择认证方式：`apikey` 需要 `apiKey`；`jwt-hs256` 和 `hmac-sha256-v4` 需要 `accessKey`、`secretKey`。按需设置可信的 HTTPS `baseUrl` 和 `model`。
+2. 选择认证方式：`apikey` 需要 `apiKey`；`jwt-hs256` 和 `hmac-sha256-v4` 需要 `accessKey`、`secretKey`。按需设置 HTTP 或 HTTPS `baseUrl` 和 `model`。
 3. 保存并启用后，让猫使用 `video_gen_submit` 提交能力及模板变量；取得任务 ID 后用 `video_gen_poll` 查询同一个任务。
 
 认证方式缺少必要凭据时，运行会拒绝启动。平台支持的模型、额度、费用、内容规则与保留政策由提供方决定。

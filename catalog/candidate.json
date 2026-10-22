@@ -196,6 +196,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.2",
+          "contractVersion": "0.2.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/video-generation",
+            "version": "0.1.0-alpha.2",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/video-generation/-/video-generation-0.1.0-alpha.2.tgz",
+            "integrity": "sha512-YzEMEKsNFWatYyjDV4WEj/VjpXeaef1bYX4SqjL+Xc8o3OaKvReTzmTVqYUjOZ9+esI6OPPGTi8qGmQOdi48yQ==",
+            "shasum": "170a6a1ba279776e09f38efac228e72bb1f0a814",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/video-generation"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.1",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
@@ -294,16 +311,16 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.5",
+          "version": "0.1.0-alpha.8",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/collective-connector",
-            "version": "0.1.0-alpha.5",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.5.tgz",
-            "integrity": "sha512-ePH6YIQ25IYGwNwUesc0wVrlStlvEgHJIK74BFQMZ35eaZzRkWDMMa6B1J+DKNBezO1xMz9Mk1Bv81+63oYx8w==",
-            "shasum": "163984bf452c75da79336cec57b30a161924d019",
+            "version": "0.1.0-alpha.8",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.8.tgz",
+            "integrity": "sha512-812loQN1v4JKCjsEPbEWFaOH9kLnCEWAuWEYriM5EsALL0jMBD7nB194G6B1exXj1ykHesWkGnBn7wHtIJ6xhA==",
+            "shasum": "0c8ca7b0ec2de52ae87309af56b8cbad9bdb263f",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/collective-connector"
@@ -928,6 +945,23 @@
         "messaging"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.8",
+          "contractVersion": "0.2.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/connector-feishu",
+            "version": "0.1.0-alpha.8",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/connector-feishu/-/connector-feishu-0.1.0-alpha.8.tgz",
+            "integrity": "sha512-9t9SQrgqFxYJtD8sywja2lSdPP/c/JbxOV0JOZZPY+EgpdmAMYNjtfqsBp3OdcXeaOrNBgB+07rGnYWf/dvD9A==",
+            "shasum": "42ce0f56a2648310dc9edf760f8bea57c5b17287",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/connector-feishu"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.7",
           "contractVersion": "0.1.0",

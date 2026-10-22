@@ -491,7 +491,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.deepEqual(videoPackage.bin, {
       'clowder-video-analysis-mcp': './dist/mcp-entrypoint.js',
     });
-    assert.equal(videoGenerationPackage.version, '0.1.0-alpha.1');
+    assert.equal(videoGenerationPackage.version, '0.1.0-alpha.2');
     assert.deepEqual(videoGenerationPackage.bin, {
       'clowder-video-generation-mcp': './dist/mcp-entrypoint.js',
     });

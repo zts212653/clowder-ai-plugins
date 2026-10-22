@@ -1,6 +1,6 @@
 pluginId: dev.clowder.video-generation
-version: 0.1.0-alpha.1
-contractVersion: 0.1.0
+version: 0.1.0-alpha.2
+contractVersion: 0.2.0
 name: Video Generation
 description:
   default: Submit and track image or video generation jobs through a configured provider.
@@ -41,18 +41,15 @@ configuration:
   - key: apiKey
     label: API Key
     kind: secret
-    required: false
-    requiredWhen: { key: authType, value: apikey }
+    required: true
   - key: accessKey
     label: Access Key
     kind: secret
-    required: false
-    requiredWhen: { key: authType, value: ["jwt-hs256", "hmac-sha256-v4"] }
+    required: true
   - key: secretKey
     label: Secret Key
     kind: secret
-    required: false
-    requiredWhen: { key: authType, value: ["jwt-hs256", "hmac-sha256-v4"] }
+    required: true
   - key: baseUrl
     label: Base URL
     kind: url
@@ -61,6 +58,24 @@ configuration:
     label: 模型名称
     kind: string
     required: false
+configurationVariants:
+  discriminator: authType
+  branches:
+    - id: apikey
+      when:
+        properties:
+          authType: { const: apikey }
+      fields: [apiKey]
+    - id: jwt
+      when:
+        properties:
+          authType: { enum: [jwt-hs256] }
+      fields: [accessKey, secretKey]
+    - id: hmac
+      when:
+        properties:
+          authType: { enum: [hmac-sha256-v4] }
+      fields: [accessKey, secretKey]
 contributions:
   - type: mcp
     id: video-generation-toolset

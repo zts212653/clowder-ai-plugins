@@ -1,8 +1,8 @@
 {
   "name": "@clowder-ai/plugin-contract",
-  "version": "0.1.0-beta.37",
+  "version": "0.2.0",
   "private": false,
-  "description": "Clowder AI plugin contract \u2014 the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
+  "description": "Clowder AI plugin contract — the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -17,6 +17,10 @@
     "./docx-materialization": {
       "types": "./dist/docx-materialization.d.ts",
       "import": "./dist/docx-materialization.js"
+    },
+    "./variant": {
+      "types": "./dist/variant.d.ts",
+      "import": "./dist/variant.js"
     },
     "./schemas/messaging": "./src/schemas/messaging.schema.json",
     "./schemas/manifest": "./src/schemas/manifest.schema.json",
@@ -44,7 +48,7 @@
     "generate:check": "node --import tsx src/codegen/generate-contract.ts --check",
     "build": "pnpm clean && tsc -p tsconfig.build.json && node --test scripts/conformance-public-boundary.test.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts src/**/**/*.test.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "conformance": "node --import tsx src/conformance/runner.ts",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",

@@ -30,6 +30,10 @@ import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
 import type { ServiceState } from './state.js';
 import { CollectiveWorkPolicyStore } from './work-policy-store.js';
 import { readCollectiveWorkResultFile } from './work-result-files.js';
+import {
+  prepareWorkResultArtifactPublication,
+  resolveWorkResultArtifactPublication,
+} from './work-result-artifact-publication.js';
 
 export interface OpenCollectiveServiceStoreOptions {
   readonly dataDirectory: string;
@@ -153,6 +157,17 @@ export class CollectiveServiceStore {
   }
   sendArtifactPublication(session: string, input: unknown) {
     return this.#artifacts.publications.send(session, input);
+  }
+  async promoteWorkResultArtifact(session: string, input: unknown) {
+    const prepared = await prepareWorkResultArtifactPublication(this.persistence, this.now, session, input);
+    if (prepared.publication.status === 'published') return prepared.publication;
+    return this.#artifacts.publications.send(session, {
+      publicationId: prepared.publication.publicationId,
+      bytesBase64: prepared.bytesBase64,
+    });
+  }
+  resolveWorkResultArtifact(session: string, input: unknown) {
+    return resolveWorkResultArtifactPublication(this.persistence, session, input);
   }
   pollArtifactPublications(credential: string, input: unknown) {
     return this.#artifacts.publications.poll(credential, input);

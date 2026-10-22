@@ -1,6 +1,6 @@
 pluginId: official.connector.feishu
-version: 0.1.0-alpha.7
-contractVersion: 0.1.0
+version: 0.1.0-alpha.8
+contractVersion: 0.2.0
 name: Feishu / Lark Connector
 description:
   default: Receive and send Feishu or Lark messages through a Host-owned connector binding.
@@ -21,7 +21,7 @@ configuration:
   - key: connectionMode
     label: 连接模式
     kind: select
-    required: false
+    required: true
     default: webhook
     options:
       - value: webhook
@@ -31,10 +31,7 @@ configuration:
   - key: verificationToken
     label: Verification Token
     kind: secret
-    required: false
-    requiredWhen:
-      key: connectionMode
-      value: webhook
+    required: true
   - key: groupBotMentionsJson
     label: Group Bot Mentions (JSON, .env-only)
     kind: string
@@ -67,6 +64,19 @@ configuration:
         action:
           method: feishu.disconnect
         next: qr-generate
+configurationVariants:
+  discriminator: connectionMode
+  branches:
+    - id: webhook
+      when:
+        properties:
+          connectionMode: { const: webhook }
+      fields: [verificationToken]
+    - id: websocket
+      when:
+        properties:
+          connectionMode: { const: websocket }
+      fields: []
 test:
   action:
     method: feishu.test

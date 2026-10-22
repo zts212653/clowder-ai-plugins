@@ -12,7 +12,7 @@ test('manifest and package metadata remain one exact package truth', async () =>
   };
 
   assert.equal(manifest['version'], packageJson.version);
-  assert.equal(manifest['contractVersion'], '0.1.0');
+  assert.equal(manifest['contractVersion'], '0.2.0');
   assert.deepEqual(manifest['description'], {
     default: 'Submit and track image or video generation jobs through a configured provider.',
     translations: { 'zh-CN': '通过已配置的提供商提交并跟踪图片或视频生成任务。' },

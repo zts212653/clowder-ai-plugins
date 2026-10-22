@@ -267,7 +267,7 @@ test('unpublished current versions and matching published history pass together'
 });
 
 
-async function runPublicationAction(t, { published, tags, integrity = 'sha512-exact', registryIntegrity = integrity, restoreRaceNext, packageExists = true }) {
+async function runPublicationAction(t, { published, tags, integrity = 'sha512-exact', registryIntegrity = integrity, restoreRaceNext, packageExists = true, version = '0.1.0-beta.12' }) {
   const root = await mkdtemp(join(tmpdir(), 'clowder-publication-action-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = join(root, 'bin');
@@ -309,8 +309,8 @@ if (args[0] === 'view') {
   await writeFile(join(bin, 'sleep'), '#!/bin/sh\nexit 0\n');
   for (const name of ['npm', 'seq', 'sleep']) await chmod(join(bin, name), 0o755);
   const action = parse(await readFile(new URL('../.github/actions/publish-prerelease/action.yml', import.meta.url), 'utf8'));
-  const outputs = { pack: { name: '@clowder-ai/plugin-sdk', version: '0.1.0-beta.12', integrity, filename: 'exact.tgz' }, registry: {} };
-  const inputs = { 'npm-token': '' };
+  const outputs = { pack: { name: '@clowder-ai/plugin-sdk', version, integrity, filename: 'exact.tgz' }, registry: {} };
+  const inputs = { 'npm-token': '', 'allowed-stable-version': '0.2.0' };
   const interpolate = value => value.replace(/\$\{\{\s*(.*?)\s*\}\}/g, (_, key) => {
     if (key === 'runner.temp') return root;
     if (key.startsWith('inputs.')) return inputs[key.slice(7)];
@@ -385,6 +385,14 @@ test('publication uses only current workspace packages in dependency order', asy
   assert.ok(index('packages/plugin-contract') >= 0);
   assert.ok(index('packages/plugin-contract') < index('packages/plugin-sdk'));
   for (const directory of collectPublishPackageDirectories(source).filter(value => !['packages/plugin-contract','packages/plugin-sdk'].includes(value))) assert.ok(index('packages/plugin-sdk') < index(directory));
+});
+
+test('authorized stable contract publication preserves an existing latest tag', async t => {
+  const result = await runPublicationAction(t, { published: false, version: '0.2.0',
+    tags: { latest: '0.1.0-beta.37', next: '0.1.0-beta.37' } });
+  assert.equal(result.failure, undefined, JSON.stringify(result.failure));
+  assert.deepEqual(result.state.tags, { latest: '0.1.0-beta.37', next: '0.2.0' });
+  assert.equal(result.state.mutations.length, 1);
 });
 
 test('registry package versions distinguish a historical gap from a published release', async () => {

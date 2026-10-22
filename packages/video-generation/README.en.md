@@ -28,12 +28,11 @@ Configure the package through the Clowder AI Manager.
 | `apiKey` | Conditional | Required by `apikey`. |
 | `accessKey` | Conditional | Required by JWT and HMAC authentication. |
 | `secretKey` | Conditional | Required by JWT and HMAC authentication. |
-| `baseUrl` | No | HTTPS provider-compatible API origin; defaults to the selected template. |
+| `baseUrl` | No | HTTP or HTTPS provider-compatible API endpoint; defaults to the selected template. |
 | `model` | No | Provider model override. |
 
-The manifest keeps credential fields optional because its v0.1 configuration schema cannot express
-cross-field conditional requiredness. Runtime startup fails closed when the selected authentication strategy
-lacks its required credentials.
+The manifest selects required credential fields through the `authType` configuration branch.
+Runtime startup also rejects missing credentials for the selected authentication strategy.
 
 ## Providers and capabilities
 
@@ -45,9 +44,9 @@ Provider model availability, quotas, billing, content policy, and retention are 
 
 ## Security and data flow
 
-Prompts, input image URLs, and generation options are sent only to the configured provider. Base URLs must
-use HTTPS; loopback HTTP is accepted only for isolated local fixtures, and embedded URL credentials are
-rejected. API keys, access keys, secret keys, derived JWTs, HMAC signatures, and signed-query artifacts are
+Prompts, input image URLs, and generation options are sent only to the configured provider. Base URLs accept
+HTTP and HTTPS, including custom network endpoints; embedded URL credentials are rejected.
+API keys, access keys, secret keys, derived JWTs, HMAC signatures, and signed-query artifacts are
 scrubbed from surfaced errors.
 
 The plugin uses the configured provider credentials for generation requests. It does not read Clowder AI

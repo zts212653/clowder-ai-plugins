@@ -1,12 +1,12 @@
 {
   "repository": "zts212653/cat-cafe",
-  "sourceBaseHead": "bdc8d5ff472bdcad55a79e6a6f696963eb8167e7",
+  "sourceBaseHead": "e5ad108b13c29aae5c8304769cc1235e9a5d86ad",
   "sourceState": "exact-source-head",
   "package": "packages/collective-client",
   "buildEntrypoint": "packages/collective-client/scripts/build.mjs#buildRetainedClient",
-  "assetDigest": "5f82e4dd3c7f1e73466d7e63e194c8f9fec78560195239ac86ebe9e5d50c3fca",
-  "buildInputsSha256": "b099456e1ae44036dee45b9e7db0bcbb3c6755749fb2452f4c2ab8f53b4b688e",
-  "manifestSha256": "4ea2ecd48324223c4547700358c44a83e9226786259090d0e4c011b60de91469",
+  "assetDigest": "799b21bf112dead87a8aefa661d5b64c86139d8404bf6fb3265361911824ea0a",
+  "buildInputsSha256": "7e790700047a28bf11967c9dbb7d4f3086c1040029d9af00a86ed976d2b0f7e4",
+  "manifestSha256": "3028da2d0376591d44166f312b322c0ca72ac46ccaac80d3d61d9dded0bc2754",
   "inputOverrides": [],
   "dependencyInputs": "build-inputs.json"
 }

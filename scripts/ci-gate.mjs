@@ -59,8 +59,16 @@ export function buildGateSteps() {
       command: 'pnpm --filter @clowder-ai/plugin-contract generate:check',
     },
     { name: 'Typecheck', command: 'pnpm --filter @clowder-ai/plugin-contract typecheck' },
+    {
+      // The artifact-consistency test packs packages/plugin-contract and
+      // compares it against the published pin, so the contract build must
+      // complete before any test step: a clean checkout has no dist yet and
+      // packing the unbuilt package would produce bytes that can never match
+      // the pin.
+      name: 'Build',
+      command: 'pnpm --filter @clowder-ai/plugin-contract build',
+    },
     { name: 'Unit tests', command: 'pnpm --filter @clowder-ai/plugin-contract test' },
-    { name: 'Build', command: 'pnpm --filter @clowder-ai/plugin-contract build' },
     { name: 'SDK typecheck', command: 'pnpm --filter @clowder-ai/plugin-sdk typecheck' },
     { name: 'SDK unit tests', command: 'pnpm --filter @clowder-ai/plugin-sdk test' },
     { name: 'SDK build', command: 'pnpm --filter @clowder-ai/plugin-sdk build' },
