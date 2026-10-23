@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "sourceRepository": "https://github.com/zts212653/clowder-ai",
+  "sourceCommit": "031244712b8b62d1dc017ed379efd09b15dd4fc6",
+  "files": [
+    {
+      "source": "packages/shared/src/issue-coordination.ts",
+      "target": "src/model/issue-coordination.ts",
+      "sourceHash": "fc52e6d793f40ab5d2c5a5a37f595e756cbd2c40f08721fe6a4948137fcb30ce",
+      "targetHash": "feee59f4e9afa10c8cc55a6f2fd8103ee53c285fda6369415b6aa86fa856447f"
+    },
+    {
+      "source": "packages/api/src/domains/community/IssueCoordinationStore.ts",
+      "target": "src/source/IssueCoordinationStore.ts",
+      "sourceHash": "fd54fe47cbc7b8a39d3eb9e214fa59d8fd1f55e03ba9c8da19d48d5cfb74b880",
+      "targetHash": "4880db710a3adaa2184515d65a08e0e7a54b52b64fe157be221d0593aa3ab22f"
+    },
+    {
+      "source": "packages/api/src/domains/community/IssueCoordinationService.ts",
+      "target": "src/source/IssueCoordinationService.ts",
+      "sourceHash": "4693cf2fd3869433ebfed0af1c1f77d17ceb13271af5bb233ddb2ce60e571739",
+      "targetHash": "8a8cc5a38650be4eb888e393b97154697a6c42e80a39356e8694da5f82b6c42e"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueSourceState.tsx",
+      "target": "src/ui/IssueSourceState.tsx",
+      "sourceHash": "6c7b6b4d499b288594778b8746ff270116007369da1659929a11c4ba96f0f0b8",
+      "targetHash": "c068247ae9f369f62b1d32550fd12728602bf49920e643346b61f4b50d656ca2"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/issue-source-state.module.css",
+      "target": "src/ui/issue-source-state.module.css",
+      "sourceHash": "123e18d824720de084ad55156d44b0271aea9bd437e53d01cca578a3b57e156a",
+      "targetHash": "123e18d824720de084ad55156d44b0271aea9bd437e53d01cca578a3b57e156a"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueClassifications.tsx",
+      "target": "src/ui/IssueClassifications.tsx",
+      "sourceHash": "6885d3b30a47a4eae4909e95251ff4c658a452596a749c42d0a1874e6712df42",
+      "targetHash": "90b4fc468d679b7bd98a0d4e3e265ab9bae5b77c0752199c18d71300dffa430c"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/classifications.module.css",
+      "target": "src/ui/classifications.module.css",
+      "sourceHash": "a3405ed184b26cc62b9c36f99c784534b236224cdf86b42b9a9569f564ae3e78",
+      "targetHash": "a3405ed184b26cc62b9c36f99c784534b236224cdf86b42b9a9569f564ae3e78"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/CoordinationWorkbench.tsx",
+      "target": "src/ui/CoordinationWorkbench.tsx",
+      "sourceHash": "0c636f7e0290cac61105d66e4a228843f28ffea4903b37ca2700940dc7a3cc89",
+      "targetHash": "10b5fddd120937cf04f1843aba867462e850ffd154408a874a7c1769ca7ca932"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/CoordinationSources.tsx",
+      "target": "src/ui/CoordinationSources.tsx",
+      "sourceHash": "23feece65428ea180561c4c8249e37cf5431370d97b01dffebf0708431e704b9",
+      "targetHash": "64f1eeaad26786eecde3cd89a9cdad12acbbdcfcc4d913ee39622cdd6caef408"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/CoordinationEditor.tsx",
+      "target": "src/ui/CoordinationEditor.tsx",
+      "sourceHash": "dceb7d324a9a6f2ef393ccddfe4162006e5bfb727242be3b09ea1ba437b9ab25",
+      "targetHash": "049fcc546c829b5ff51ecb4e6a0dfe54c299f69b120808c7ed8f408147f9d759"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/CoordinationLinks.tsx",
+      "target": "src/ui/CoordinationLinks.tsx",
+      "sourceHash": "20e005acfbf310d54e125c8105f68ebb5749cc8833904a2d86b26bba27ee868c",
+      "targetHash": "e764b00c25bc38e7ba5900c543956a46432b9ee499c8ffca1c61d446efb9422f"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueRelationPicker.tsx",
+      "target": "src/ui/IssueRelationPicker.tsx",
+      "sourceHash": "7956f81ac9deb0744622aa0508d9ddc16141a0cebf306a580d6c4f3365e5dc38",
+      "targetHash": "322e275328dbca90e241d18f50e3504dda88e2436ef9b343c3a984006274253d"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/CoordinationReading.tsx",
+      "target": "src/ui/CoordinationReading.tsx",
+      "sourceHash": "4983e2171702075614a395035567bc8396a6d72c54b9dc1f7578f0e50420ca08",
+      "targetHash": "4f98675fe8e130676b3c643c10c427f200426ccc18f1f3fb0d2454d6b8d14012"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/coordination.module.css",
+      "target": "src/ui/coordination.module.css",
+      "sourceHash": "9a8216b10d652f1271365af7534ceacb4626155d786f6c69f62cc6eb03ed6f78",
+      "targetHash": "d025c06151c53943a1d4a37b4b4fad00af9444d525d7ac03fa5a5c033a907d5d"
+    },
+    {
+      "source": "packages/api/test/issue-coordination.test.ts",
+      "target": "test/source/issue-coordination.test.ts",
+      "sourceHash": "be73f3078a6cd8cf3b8938810b38b0cd3e2f7814e7dd947e14d9ddd0370eec44",
+      "targetHash": "23318705bd498114b1b13167f45be7cdd36e784466bfb5edd47f5b02369e14b9"
+    },
+    {
+      "source": "packages/shared/src/issue-source.ts",
+      "target": "src/model/issue-source.ts",
+      "sourceHash": "97eaae80a30f9e93e7f59c66a5d5e133b12dcb4a6642a1a990d4f291b278c078",
+      "targetHash": "c2f22cd4f83ed26b785a9d876b3689d4034c034577a82e4464eacf1cf3687b34"
+    },
+    {
+      "source": "packages/api/src/domains/community/FileIssueSourceStore.ts",
+      "target": "src/source/FileIssueSourceStore.ts",
+      "sourceHash": "ff3e23eb9ce9415c80f36a2002be3093f47a8c31bd9e64d44b8eebd063c06383",
+      "targetHash": "458b2c1ebc965f153d47cb4cd5c7d79932ae02849aea594ef516c011c574df1f"
+    },
+    {
+      "source": "packages/api/src/domains/community/IssueSourceService.ts",
+      "target": "src/source/IssueSourceService.ts",
+      "sourceHash": "aa127cbe08554759e212f5d253b9bb7a3f529cab66f0fd9977e1ac5ea2d2d0f3",
+      "targetHash": "d0081f871c86025f57424752a633a8f461079a817f0fa4e493c5781362a1eb2f"
+    },
+    {
+      "source": "packages/api/src/domains/community/GhIssueSourceReader.ts",
+      "target": "src/source/GhIssueSourceReader.ts",
+      "sourceHash": "3554baf669d2b6c75838fcbcbbf015e0378f735303d5136865337f5e468c3db9",
+      "targetHash": "a9c7ed01616220467785779396e3eb69fa14b9d4ea3eeb64d6b9b256f8ee3f27"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueWorkbenchPreview.tsx",
+      "target": "src/ui/IssueWorkbenchPreview.tsx",
+      "sourceHash": "c5c2997bc3194db07a3bacefba719d6190d74335daf1ea6057d36159ae4e5367",
+      "targetHash": "3bbf7745e35635221f80aba4f742638477b2f06a7654865ea86d2d68df897b7b"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueDetail.tsx",
+      "target": "src/ui/IssueDetail.tsx",
+      "sourceHash": "7864f32c39ef790aa170598b572328015ef2d9e3e00c11a409388134c85e29db",
+      "targetHash": "9748dcab2c8d90ea062ca9a30cb58f5718c836e112d71cc5087fae32bfa342c0"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueDiscussion.tsx",
+      "target": "src/ui/IssueDiscussion.tsx",
+      "sourceHash": "eaddc32324d9942c6312c254518614b9c4b77521294c37266f4543134c58fd19",
+      "targetHash": "eaddc32324d9942c6312c254518614b9c4b77521294c37266f4543134c58fd19"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueList.tsx",
+      "target": "src/ui/IssueList.tsx",
+      "sourceHash": "32c257029a87cdd27a407213300055d48658b76f5e7ba63decc96fdf395dfa91",
+      "targetHash": "32c257029a87cdd27a407213300055d48658b76f5e7ba63decc96fdf395dfa91"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/IssueStageFlow.tsx",
+      "target": "src/ui/IssueStageFlow.tsx",
+      "sourceHash": "d6cd101d921179264ed1fad69d233e560710bd1b4d9e8d8e79fad18927c36d91",
+      "targetHash": "d6cd101d921179264ed1fad69d233e560710bd1b4d9e8d8e79fad18927c36d91"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/LabelBatchPreview.tsx",
+      "target": "src/ui/LabelBatchPreview.tsx",
+      "sourceHash": "f90ef0190d83e52d8df2e134d3a9e2c7fd05ae92d3cfcf88f9fc155c22808a9c",
+      "targetHash": "f90ef0190d83e52d8df2e134d3a9e2c7fd05ae92d3cfcf88f9fc155c22808a9c"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/SourceEvidence.tsx",
+      "target": "src/ui/SourceEvidence.tsx",
+      "sourceHash": "3f3671033b28b39bdacc56e35b05b45a799affc7c7ef90968c97a0424c682098",
+      "targetHash": "3f3671033b28b39bdacc56e35b05b45a799affc7c7ef90968c97a0424c682098"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/workbench-model.ts",
+      "target": "src/ui/workbench-model.ts",
+      "sourceHash": "5010b8a4a603aeb44f9668dd7311a51db5f4d28303d9684ece4eb3964e08988e",
+      "targetHash": "f910ffc9295ce8d4f2c2004491390a15744db30a2ed07e5c36b8dce203807b2f"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/workbench.module.css",
+      "target": "src/ui/workbench.module.css",
+      "sourceHash": "2283a7ea9b3efb80f24be70a9a7403e5e4d7a6ffeb0a61ae1d864edb2a7e4392",
+      "targetHash": "2283a7ea9b3efb80f24be70a9a7403e5e4d7a6ffeb0a61ae1d864edb2a7e4392"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/useIssueSource.ts",
+      "target": "src/ui/useIssueSource.ts",
+      "sourceHash": "43846a41c806956be2c7caa421f96546c9669e257abb83b2dd49dc2a03a5ce81",
+      "targetHash": "f81de1ab3e9201e75396ade25988949a9ba51c3fb777385619945d157b426d3e"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/useIssueDetail.ts",
+      "target": "src/ui/useIssueDetail.ts",
+      "sourceHash": "a3c282485be3691614b6ba09359520b8352bb9bd3788dd0761449290380236ef",
+      "targetHash": "ee96da21af548841d47208472d906d9f8f0b8336cf7da387e87d838840b94206"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/source-client.ts",
+      "target": "src/ui/source-client.ts",
+      "sourceHash": "2e13e262102b4c4f6ca19affbe185d151290a39e7883627639eb4c75b8b57960",
+      "targetHash": "c9d66600925c6ede7259d70387e9ee5ac302676fc2695e74da5738e2d9808776"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/__tests__/workbench-model.test.ts",
+      "target": "test/ui/workbench-model.test.ts",
+      "sourceHash": "df2779a96449d388fd20d88eae73ab7f2275fca45f3ceb25109fa7b19f32aa80",
+      "targetHash": "b9143fa95dbd5a2971a7ec9a8ef9f1c354e9a2c47f7252f88d7b474416f99412"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/__tests__/issue-discussion.test.tsx",
+      "target": "test/ui/issue-discussion.test.tsx",
+      "sourceHash": "ea421fcc70e07c8382ba3bbbec8a3370782e6f756a0b2bdfdfda45f885603f26",
+      "targetHash": "2e2ad8acb3249e11ea77611e5e67cdc3779fa2b371b2198b87aea94a1bd706fe"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/__tests__/source-loading.test.tsx",
+      "target": "test/ui/source-loading.test.tsx",
+      "sourceHash": "431dc988209f167d173091877c5f5ff591a8deaa571e908529d9bf722d10081c",
+      "targetHash": "b51887026bd348eb8624fd81b5ab6f23e21417b6d4cce2dd94029d9facfbe332"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/__tests__/issue-source-refresh.test.tsx",
+      "target": "test/ui/issue-source-refresh.test.tsx",
+      "sourceHash": "9786532fae2c9f727bc6a71dc035a0cdc4acca3f7638418de6732672d812b1d2",
+      "targetHash": "45f57546fdde183addb32f36d1117d9345db4a7fbb89020e8d5598e04f0ddbe1"
+    },
+    {
+      "source": "packages/web/src/components/settings/issue-workbench/__tests__/detail-races.test.tsx",
+      "target": "test/ui/detail-races.test.tsx",
+      "sourceHash": "185de0743b4ee882e3f8ed5944566ed4f99623c716d4cd7ef8b1505784fd4372",
+      "targetHash": "de43400d1b7322cd6cc364a59449378e6c3761f9ac30f87e25ebf5abdbaebd7c"
+    },
+    {
+      "source": "packages/api/test/issue-source.test.ts",
+      "target": "test/source/issue-source.test.ts",
+      "sourceHash": "4267f8a22c16c6bad365871f4475a6aac3ebefd2198ddd8b95418db0eec70312",
+      "targetHash": "341bffd44a32016b5abd326676d589334b789f1c1cc46c312e7ba95d455f1cbb"
+    },
+    {
+      "source": "packages/api/test/issue-source-loading.test.ts",
+      "target": "test/source/issue-source-loading.test.ts",
+      "sourceHash": "73611526f4bc3396148d8dabafae2d123c3e94ed3f9fa78b22fad7474a4b9808",
+      "targetHash": "7db9144ce17edc713bf68cd4b1a3abdefb3b119d8b55b12a15c64c3d0480ecde"
+    },
+    {
+      "source": "packages/api/test/issue-source-reader.test.ts",
+      "target": "test/source/issue-source-reader.test.ts",
+      "sourceHash": "668fa9e2a64204d926762115d415dc50ebbfce7e2a40ea8dbd8df5cfba4e34b8",
+      "targetHash": "851dcf0d967005e72fe794632a02886f77d93d1dcd79e1e7240febb372432805"
+    }
+  ]
+}

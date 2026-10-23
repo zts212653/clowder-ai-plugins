@@ -31,6 +31,7 @@ on:
       - 'packages/weixin-mp/**'
       - 'packages/xiangqi/**'
       - 'packages/genoffice-docx/**'
+      - 'packages/issue-workbench/**'
       - 'packages/github-operations/**'
       - 'packages/stackchan/**'
       - 'catalog/**'
@@ -92,6 +93,9 @@ jobs:
       # local pre-push runs and CI cannot drift apart; edit steps there.
       - name: Local gate (toolchain to pack:gate)
         run: pnpm gate:ci
+
+      - name: Issue workbench packed browser journey
+        run: pnpm --filter @clowder-ai/issue-workbench exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/issue-workbench test:browser
 
       - name: Companion browser layout contract
         run: pnpm --filter @clowder-ai/companion exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/companion test:browser

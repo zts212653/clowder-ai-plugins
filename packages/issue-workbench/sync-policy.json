@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "mode": "core-export",
+  "sourceBranch": "feat/issue-workbench",
+  "retirement": "Switch to plugin-native after exact SDK + Host paired installation and data migration acceptance; a release number alone is insufficient."
+}

@@ -129,6 +129,10 @@ export function buildGateSteps() {
       command: chain('@clowder-ai/genoffice-docx', ['typecheck', 'test']),
     },
     {
+      name: 'Issue workbench independent package',
+      command: chain('@clowder-ai/issue-workbench', ['check:manifest', 'lint', 'test', 'build', 'test:artifact']),
+    },
+    {
       name: 'GitHub operations gates',
       command: chain('@clowder-ai/github-operations', ['typecheck', 'build', 'test', 'lint']),
     },

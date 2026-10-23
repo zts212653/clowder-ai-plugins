@@ -1,0 +1,58 @@
+.badge {
+  --issue-open: #28613b;
+  --issue-closed: #5c5fac;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 999px;
+  color: var(--cafe-text-muted);
+  background: color-mix(in srgb, currentColor 8%, var(--cafe-surface));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.badge svg {
+  flex-shrink: 0;
+}
+.badge[data-source-state="OPEN"] {
+  color: var(--issue-open);
+}
+.badge[data-source-state="CLOSED"] {
+  color: var(--issue-closed);
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.filters[role="group"] button {
+  flex: 1 0 auto;
+  font-size: 12px;
+  padding: 6px 3px;
+  white-space: nowrap;
+}
+.filters button[aria-pressed="true"] {
+  border-color: var(--cafe-accent);
+  color: var(--cafe-accent);
+  background: var(--cafe-surface);
+  font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  .badge {
+    --issue-open: #6fbf80;
+    --issue-closed: #aaa9f0;
+  }
+}
+:global([data-theme="dark"]) .badge {
+  --issue-open: #6fbf80;
+  --issue-closed: #aaa9f0;
+}
+:global([data-theme="light"]) .badge {
+  --issue-open: #28613b;
+  --issue-closed: #5c5fac;
+}

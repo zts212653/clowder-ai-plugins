@@ -1,0 +1,85 @@
+.panel, .dialog {
+  color: var(--cafe-text);
+  background: var(--cafe-surface);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.panel {
+  flex: 0 0 auto;
+  padding: 16px;
+  border-bottom: 1px solid var(--cafe-border);
+  min-height: 100px;
+}
+.panel header, .dialog header, .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.panel h3 { font-size: 14px; margin: 0; }
+.modes { display: flex; gap: 8px; margin-block: 12px; }
+.modes button { flex: 1; text-align: center; }
+.modes button[aria-pressed="true"] { background: var(--cafe-surface-sunken); border-color: var(--cafe-accent); }
+.panel p, .dialog p { margin: 8px 0; }
+.panel label, .dialog label { display: grid; gap: 6px; margin: 8px 0; }
+.panel textarea { min-height: 64px; }
+.panel select, .dialog select {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 8px;
+  color: var(--cafe-text);
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 8px;
+}
+.panel a, .dialog a { color: var(--cafe-accent-hover); }
+.panel button, .dialog button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--cafe-border);
+  background: var(--cafe-surface);
+  color: var(--cafe-text);
+  border-radius: 8px;
+  text-align: left;
+}
+.panel button:hover, .dialog button:hover { background: var(--cafe-surface-sunken); }
+.panel button:disabled, .dialog button:disabled { opacity: .55; }
+.panel button:focus-visible, .dialog button:focus-visible {
+  outline: 2px solid var(--cafe-accent); outline-offset: 2px;
+}
+.panel .primary { background: var(--cafe-accent); color: var(--cafe-accent-foreground); margin-top: 10px; }
+.panel .primary:hover { background: var(--cafe-accent-hover); }
+.muted { color: var(--cafe-text-muted); font-size: 12px; }
+.notice { border-left: 2px solid var(--cafe-accent); padding-left: 10px; }
+.result { margin-top: 12px; }
+.result dl { margin: 0; }
+.result dl > div { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 12px; margin-block: 4px; }
+.result dt { color: var(--cafe-text-muted); }
+.result dd { margin: 0; }
+.result blockquote { margin: 10px 0; padding-left: 10px; border-left: 2px solid var(--cafe-border); }
+.report { border-top: 1px solid var(--cafe-border-subtle); padding-block: 8px; }
+.dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 20px;
+  border: 1px solid var(--cafe-border);
+  border-radius: 12px;
+  overflow-y: auto;
+}
+.dialog::backdrop { background: #14141366; }
+.dialog h2 { font-family: Georgia, 'Songti SC', serif; font-size: 24px; font-weight: 400; margin: 0; }
+.dialog nav { justify-content: flex-start; padding-block: 16px; }
+.dialog button[aria-pressed="true"] { background: var(--cafe-surface-sunken); border-color: var(--cafe-accent); }
+.dialog table { width: 100%; border-collapse: collapse; }
+.dialog td, .dialog th { border-bottom: 1px solid var(--cafe-border-subtle); padding: 8px; text-align: left; }
+.records { display: grid; gap: 4px; margin-bottom: 16px; }
+.records button { display: grid; gap: 4px; }
+.records span { color: var(--cafe-text-muted); font-size: 12px; }
+.members { display: flex; flex-wrap: wrap; gap: 8px 16px; list-style: none; padding: 0; max-height: 160px; overflow-y: auto; }
+@media (max-width: 700px) {
+  .panel { padding: 12px; }
+  .dialog { padding: 14px; }
+}
