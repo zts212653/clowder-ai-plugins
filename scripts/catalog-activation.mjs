@@ -28,6 +28,24 @@ function validate(catalog) {
   assert.equal(result.valid, true, JSON.stringify(result.errors));
 }
 
+export function assertInitialPluginSelectionAvailable(selection, catalog) {
+  validate(catalog);
+  assert.equal(selection?.schemaVersion, 1, 'Invalid initial plugin selection schema');
+  assert.ok(Array.isArray(selection.plugins) && selection.plugins.length <= 64,
+    'Invalid initial plugin selection list');
+  const seen = new Set();
+  for (const plugin of selection.plugins) {
+    assert.ok(plugin && typeof plugin.pluginId === 'string' && plugin.pluginId.length > 0
+      && typeof plugin.enabled === 'boolean', 'Invalid initial plugin selection entry');
+    assert.ok(!seen.has(plugin.pluginId), `Duplicate initial plugin: ${plugin.pluginId}`);
+    seen.add(plugin.pluginId);
+    // A disabled selection is installed too; enabled only controls activation.
+    assert.ok(getCatalogPlugin(catalog, plugin.pluginId),
+      `Initial plugin is absent from catalog: ${plugin.pluginId}`);
+  }
+  return seen.size;
+}
+
 function archiveUrl(name, version) {
   return `${OFFICIAL_NPM_REGISTRY}/${name}/-/${name.split('/').at(-1)}-${version}.tgz`;
 }
@@ -92,10 +110,13 @@ export async function activateCatalog({
 } = {}) {
   const candidatePath = join(root, 'catalog/candidate.json');
   const livePath = join(root, 'catalog/catalog.json');
+  const selectionPath = join(root, 'catalog/initial-plugins.json');
   const candidateBytes = await readFile(candidatePath, 'utf8');
   const liveBytes = await readFile(livePath, 'utf8');
+  const selectionBytes = await readFile(selectionPath, 'utf8');
   const candidate = JSON.parse(candidateBytes), live = JSON.parse(liveBytes);
   validate(candidate); validate(live);
+  assertInitialPluginSelectionAvailable(JSON.parse(selectionBytes), candidate);
   for (const plugin of live.plugins) for (const version of plugin.versions) {
     const retained = candidate.plugins.find(p => p.pluginId === plugin.pluginId)?.versions
       .find(v => v.version === version.version);
@@ -130,6 +151,7 @@ export async function activateCatalog({
   }
   assert.equal(await readFile(candidatePath, 'utf8'), candidateBytes, 'Candidate changed during verification');
   assert.equal(await readFile(livePath, 'utf8'), liveBytes, 'Live catalog changed during verification');
+  assert.equal(await readFile(selectionPath, 'utf8'), selectionBytes, 'Initial selection changed during verification');
   const temporary = `${livePath}.${randomUUID()}.tmp`;
   try { await writeFile(temporary, candidateBytes, { flag: 'wx' }); await rename(temporary, livePath); }
   finally { await rm(temporary, { force: true }); }
@@ -144,13 +166,18 @@ async function main() {
   } else if (process.argv[2] === '--check-activation') {
     const candidate = JSON.parse(await readFile(join(repoRoot, 'catalog/candidate.json'), 'utf8'));
     const live = JSON.parse(await readFile(join(repoRoot, 'catalog/catalog.json'), 'utf8'));
+    assertInitialPluginSelectionAvailable(
+      JSON.parse(await readFile(join(repoRoot, 'catalog/initial-plugins.json'), 'utf8')), live);
     assertCatalogActivated(candidate, live);
     const count = await assertCatalogAvailable(candidate);
     console.log(`Catalog activation complete: ${count} current plugin identities are live and their published archives verified.`);
   } else {
     assert.equal(process.argv[2], undefined, 'Use no argument, --check-activation, or --activate');
     const path = 'catalog/catalog.json';
-    const count = await assertCatalogAvailable(JSON.parse(await readFile(join(repoRoot, path), 'utf8')));
+    const live = JSON.parse(await readFile(join(repoRoot, path), 'utf8'));
+    assertInitialPluginSelectionAvailable(
+      JSON.parse(await readFile(join(repoRoot, 'catalog/initial-plugins.json'), 'utf8')), live);
+    const count = await assertCatalogAvailable(live);
     console.log(`${path}: ${count} published archive identities and bytes verified`);
   }
 }

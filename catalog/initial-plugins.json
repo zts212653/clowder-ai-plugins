@@ -54,10 +54,6 @@
       "enabled": true
     },
     {
-      "pluginId": "official.feishu-meeting-intake",
-      "enabled": true
-    },
-    {
       "pluginId": "official.github-operations",
       "enabled": true
     },

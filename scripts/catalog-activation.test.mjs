@@ -7,7 +7,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
-import { activateCatalog, assertCatalogActivated, assertCatalogAvailable, assertPublishedArchive } from './catalog-activation.mjs';
+import { activateCatalog, assertCatalogActivated, assertCatalogAvailable, assertInitialPluginSelectionAvailable, assertPublishedArchive } from './catalog-activation.mjs';
+
+test('the default initial selection contains only installable live catalog identities', async () => {
+  const selection = JSON.parse(await readFile(new URL('../catalog/initial-plugins.json', import.meta.url), 'utf8'));
+  const live = JSON.parse(await readFile(new URL('../catalog/catalog.json', import.meta.url), 'utf8'));
+  assert.equal(assertInitialPluginSelectionAvailable(selection, live), selection.plugins.length);
+});
 
 test('repository candidate retains live release identities before any activation provider work', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -56,6 +62,9 @@ async function fixture(t) {
   const livePath = join(directory, 'catalog/catalog.json');
   await writeFile(livePath, JSON.stringify(live));
   await writeFile(join(directory, 'catalog/candidate.json'), JSON.stringify(candidate));
+  await writeFile(join(directory, 'catalog/initial-plugins.json'), JSON.stringify({
+    schemaVersion: 1, plugins: [{ pluginId: 'official.example', enabled: true }],
+  }));
   await writeFile(join(directory, '.github/workflows/contract-ci.yml'), `jobs:
   publish:
     steps:
@@ -96,6 +105,44 @@ test('metadata without a retrievable archive cannot activate the catalog', async
   const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
   f.archives.delete(f.next.tarballUrl);
   await assert.rejects(activateCatalog(f.options), /archive unavailable/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('activation refuses a default identity absent from its candidate without writing discovery', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  await writeFile(join(f.directory, 'catalog/initial-plugins.json'), JSON.stringify({
+    schemaVersion: 1, plugins: [{ pluginId: 'official.unpublished-meeting', enabled: true }],
+  }));
+  await assert.rejects(activateCatalog(f.options), /Initial plugin is absent from catalog: official.unpublished-meeting/);
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('disabled defaults still require a release and duplicate identities are rejected', async t => {
+  const f = await fixture(t);
+  const selection = plugins => ({ schemaVersion: 1, plugins });
+  assert.equal(assertInitialPluginSelectionAvailable(selection([
+    { pluginId: 'official.example', enabled: false },
+  ]), f.live), 1);
+  assert.throws(() => assertInitialPluginSelectionAvailable(selection([
+    { pluginId: 'official.unpublished-meeting', enabled: false },
+  ]), f.live), /Initial plugin is absent from catalog/);
+  assert.throws(() => assertInitialPluginSelectionAvailable(selection([
+    { pluginId: 'official.example', enabled: true }, { pluginId: 'official.example', enabled: false },
+  ]), f.live), /Duplicate initial plugin/);
+});
+
+test('a concurrent initial selection edit does not activate stale admission evidence', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  let edited = false;
+  await assert.rejects(activateCatalog({ ...f.options, readArchive: async url => {
+    if (!edited) {
+      edited = true;
+      await writeFile(join(f.directory, 'catalog/initial-plugins.json'), JSON.stringify({
+        schemaVersion: 1, plugins: [{ pluginId: 'official.unpublished-meeting', enabled: true }],
+      }));
+    }
+    return f.options.readArchive(url);
+  } }), /Initial selection changed/);
   assert.equal(await readFile(f.livePath, 'utf8'), before);
 });
 
