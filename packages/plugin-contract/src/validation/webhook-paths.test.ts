@@ -6,7 +6,7 @@ function fixture(routes: { path: string; methods: string[] }[]) {
   return { pluginId: 'dev.clowder.http-fixture', version: '1.0.0', contractVersion: '0.1.0-beta.33', name: 'HTTP fixture',
     runtime: { transport: 'builtin', entrypoint: 'dist/index.js' },
     contributions: routes.map((route, index) => ({ type: 'webhook', id: `route-${index}`, ...route, action: { method: `http.${index}` } })),
-    features: [{ id: 'http', name: 'HTTP', resources: [], capabilities: [], contributions: routes.map((_, index) => ({ type: 'webhook', id: `route-${index}` })) }],
+    features: [{ id: 'http', name: 'HTTP', resources: [],  contributions: routes.map((_, index) => ({ type: 'webhook', id: `route-${index}` })) }],
   };
 }
 

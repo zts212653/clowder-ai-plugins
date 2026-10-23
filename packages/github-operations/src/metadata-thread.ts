@@ -1,6 +1,6 @@
 import type { PluginThreadHost, PluginThreadSummary } from '@clowder-ai/plugin-sdk';
 
-/** Resolve an owner-visible summary through metadata grants; never request thread contents. */
+/** Resolve an owner-visible summary without requesting thread contents. */
 export async function findThreadMetadata(threads: Pick<PluginThreadHost, 'list'>,
   id: string): Promise<PluginThreadSummary | null> {
   let before: { lastActiveAt: number; id: string } | undefined;

@@ -74,4 +74,4 @@ Host owns process supervision and any user-visible records around the tool call.
 This package is an alpha release. Verify provider compatibility and data policy
 in an isolated environment before relying on it for sensitive workloads.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

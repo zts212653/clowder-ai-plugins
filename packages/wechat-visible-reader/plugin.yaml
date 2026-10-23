@@ -1,5 +1,5 @@
 pluginId: official.wechat-visible-reader
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 contractVersion: 0.1.0
 name: WeChat Visible Reader
 description:
@@ -50,9 +50,6 @@ features:
     contributions:
       - type: limb
         id: wechat-visible-reader-limb
-    capabilities:
-      - plugin.state.get
-      - plugin.state.set
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

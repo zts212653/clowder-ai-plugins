@@ -47,7 +47,7 @@ export interface PluginStorageHost {
 
 export interface PluginThreadSummary {
   readonly id: string;
-  /** Host-authored navigation after owner/grant/deleted filtering. Never
+  /** Host-authored navigation after owner/visibility/deleted filtering. Never
    * reconstruct this URL from plugin configuration, payloads or thread IDs. */
   readonly deepLinkUrl: string;
   readonly title: string | null;

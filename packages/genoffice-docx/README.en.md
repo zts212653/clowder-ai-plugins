@@ -20,9 +20,9 @@ materializer worker.
 
 ## Authority boundary
 
-The Host owns installation, grants, configuration and secrets, document
+The Host owns installation, caller context, configuration and secrets, document
 access policy, and lifecycle supervision. The package declares a renderer
 surface and ships only renderer/worker assets; it never mints handles, never
 reads ambient Host state, and never reaches outside its dedicated origin.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

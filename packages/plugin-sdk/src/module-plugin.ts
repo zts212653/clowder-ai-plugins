@@ -126,8 +126,6 @@ function featureBinding(
     packageRevision: plugin.manifest.version,
     integrityEpoch: 0,
     activationRevision: 0,
-    grantRevision: 0,
-    grantedCapabilities: feature.capabilities,
     dataPath: host.dataPath,
     executionLease: 'module-host-bound',
   };

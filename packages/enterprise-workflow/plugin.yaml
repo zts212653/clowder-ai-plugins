@@ -1,5 +1,5 @@
 pluginId: official.enterprise-workflow
-version: 0.1.0-alpha.4
+version: 0.1.0-alpha.5
 contractVersion: 0.1.0
 name: Enterprise Workflow
 description:
@@ -213,8 +213,6 @@ features:
         id: lark-actions
       - type: skill
         id: enterprise-workflow-skill
-    capabilities:
-      - plugin.config.read
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

@@ -1,5 +1,5 @@
 pluginId: official.collective-connector
-version: 0.1.0-alpha.8
+version: 0.1.0-alpha.9
 contractVersion: 0.1.0
 name: Collective
 description:
@@ -167,16 +167,6 @@ features:
         id: collective-owner-native
       - type: mcp
         id: collective-native
-    capabilities:
-
-      - plugin.state.get
-      - thread.readContent
-      - thread.listMetadata
-      - thread.write
-      - messaging.send
-      - task.read
-      - plugin.config.read
-      - plugin.state.set
   - id: collective-work
     name: Private Collective Work
     resources: []
@@ -186,19 +176,6 @@ features:
       - { type: webhook, id: collective-work-admit }
       - { type: webhook, id: collective-work-resume }
       - { type: webhook, id: collective-work-result-accepted }
-    capabilities:
-
-      - plugin.state.get
-      - plugin.state.set
-      - task.write
-      - task.admitEntrusted
-      - task.read
-      - thread.readContent
-      - thread.listMetadata
-      - thread.write
-      - messaging.send
-      - message.event.subscribe
-      - streams.read
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

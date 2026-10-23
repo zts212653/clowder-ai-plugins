@@ -18,7 +18,6 @@ export type OutboundMessagingMethod = Exclude<
 
 export type MessagingClientErrorCode =
   | 'SESSION_NOT_ACTIVATED'
-  | 'GRANT_MISSING'
   | 'SESSION_NOT_LIVE'
   | 'INVALID_INPUT'
   | 'INVALID_RESULT';
@@ -57,16 +56,6 @@ export interface MessagingClient {
   readStreamChunk(input: MessagingRowInputByMethod['streams.read']): Promise<MessagingRowResultByMethod['streams.read']>;
 }
 
-const GRANT_BY_METHOD = {
-  'messaging.send': 'messaging.send',
-  'messaging.appendElements': 'messaging.appendElements',
-  'messaging.subscribe': 'message.event.subscribe',
-  'messaging.read': 'message.event.subscribe',
-  'messaging.ack': 'message.event.subscribe',
-  'messaging.snapshot': 'message.event.subscribe',
-  'streams.read': 'streams.read',
-} as const satisfies Readonly<Record<OutboundMessagingMethod, string>>;
-
 function validationMessage(
   prefix: string,
   errors: readonly { readonly instancePath: string; readonly message: string }[],
@@ -82,14 +71,6 @@ function requireUsableSession(options: MessagingClientOptions, method: OutboundM
     throw new MessagingClientError(
       'SESSION_NOT_ACTIVATED',
       `${method} requires an activated Host-bound session`,
-    );
-  }
-
-  const grant = GRANT_BY_METHOD[method];
-  if (!state.binding.effectiveGrants.includes(grant)) {
-    throw new MessagingClientError(
-      'GRANT_MISSING',
-      `the active Host grant snapshot does not include ${grant}`,
     );
   }
 

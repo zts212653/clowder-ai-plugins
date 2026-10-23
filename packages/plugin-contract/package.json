@@ -1,8 +1,8 @@
 {
   "name": "@clowder-ai/plugin-contract",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": false,
-  "description": "Clowder AI plugin contract — the single machine-readable truth source for plugin schema, types, capability table, and conformance fixtures (P15)",
+  "description": "Clowder AI plugin schemas, bidirectional protocol and conformance fixtures",
   "license": "MIT",
   "type": "module",
   "exports": {

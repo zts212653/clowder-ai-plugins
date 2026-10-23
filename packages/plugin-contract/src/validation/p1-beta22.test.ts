@@ -132,7 +132,7 @@ test('beta.22 manifest admits v2 message subscriptions and keeps the lifecycle r
     contractVersion: '0.1.0-beta.22',
     name: 'Beta 22',
     features: [{
-      id: 'messages', name: 'Messages', resources: [], capabilities: [],
+      id: 'messages', name: 'Messages', resources: [],
       contributions: [{ type: 'message-subscription', id: 'outbound' }],
     }],
     contributions: [{

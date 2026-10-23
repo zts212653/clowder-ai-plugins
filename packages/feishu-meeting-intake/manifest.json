@@ -251,12 +251,6 @@
           "type": "mcp",
           "id": "meeting-records"
         }
-      ],
-      "capabilities": [
-        "plugin.config.read",
-        "secret.read",
-        "thread.readContent",
-        "messaging.send"
       ]
     }
   ],

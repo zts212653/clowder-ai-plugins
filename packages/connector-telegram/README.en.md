@@ -45,4 +45,4 @@ This adapter supports direct conversations only. Configure the original account/
 there is no group-permission page, permission initialization or legacy-import step. Group management commands
 do not grant a direct-message sender administrator authority. Existing stored data is not deleted.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

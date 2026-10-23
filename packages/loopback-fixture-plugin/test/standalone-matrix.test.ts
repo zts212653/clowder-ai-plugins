@@ -153,7 +153,6 @@ for (const vector of executableFixtureVectors) {
 
 test('records every pre-state vector as an explicit non-black-box seam', () => {
   const legacyExpected = [
-      { id: 'T-C-2', coveredBy: 'S1 unit layer' },
       { id: 'T-I-1', coveredBy: 'S1 unit layer' },
       { id: 'T-H-2', coveredBy: 'S1 unit layer' },
       { id: 'T-H-5', coveredBy: 'S1 unit layer' },

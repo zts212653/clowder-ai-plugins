@@ -17,7 +17,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.send"],
         "handles": {},
         "state": { "threads": [{ "threadId": "thread-1" }] }
       },
@@ -52,7 +51,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.send"],
         "handles": {
           "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
         },
@@ -90,7 +88,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.appendElements"],
         "handles": {
           "foreignMessage": { "kind": "message_handle", "token": "message-handle-b", "ownerPluginInstanceId": "plugin-b", "threadId": "thread-1", "messageId": "message-1" }
         },
@@ -125,7 +122,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.send"],
         "handles": {
           "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
         },
@@ -162,7 +158,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.appendElements"],
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
@@ -197,7 +192,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["message.event.subscribe"],
         "handles": {
           "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
         },
@@ -226,7 +220,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["message.event.subscribe"],
         "handles": {
           "subscriptionA": { "kind": "subscription", "token": "ack-from-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" },
           "subscriptionB": { "kind": "subscription", "token": "subscription-token-b", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-2", "subscriptionId": "subscription-b" }
@@ -256,7 +249,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.send"],
         "handles": {
           "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
         },
@@ -294,7 +286,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.appendElements"],
         "handles": {
           "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
         },
@@ -319,131 +310,11 @@
         ]
       }
     },
+
+
     {
-      "id": "preset-l2-rejected",
-      "invariant": "First-party presets are derived from L1 and cannot silently grant L2 capabilities.",
-      "execution": {
-        "plane": "host-control",
-        "verdictOracle": { "kind": "behavior-expectation" }
-      },
-      "given": {
-        "caller": { "pluginInstanceId": "first-party-plugin" },
-        "grants": ["messaging.send"],
-        "handles": {},
-        "state": { "grantState": { "presetCapabilities": ["messaging.send"] } }
-      },
-      "when": {
-        "operation": "applyGrantPreset",
-        "input": { "presetKind": "first_party", "capabilities": ["onMessage"] }
-      },
-      "expect": {
-        "status": "error",
-        "errorCode": "PERMISSION",
-        "sideEffects": [
-          { "target": "grant_state", "assertion": "unchanged" }
-        ]
-      }
-    },
-    {
-      "id": "preset-visible-revocable",
-      "invariant": "A first-party L1 preset remains visible and independently revocable.",
-      "execution": {
-        "plane": "host-control",
-        "verdictOracle": { "kind": "behavior-expectation" }
-      },
-      "given": {
-        "caller": { "pluginInstanceId": "first-party-plugin" },
-        "grants": ["messaging.send"],
-        "handles": {},
-        "state": { "grantState": { "messaging.send": { "visible": true, "granted": true } } }
-      },
-      "when": {
-        "operation": "revokeGrant",
-        "input": { "capability": "messaging.send" }
-      },
-      "expect": {
-        "status": "success",
-        "sideEffects": [
-          { "target": "grant_state", "assertion": "state_equals", "value": { "capability": "messaging.send", "visible": true, "granted": false } }
-        ]
-      }
-    },
-    {
-      "id": "whisper-target-beyond-default-empty-grant-rejected",
-      "invariant": "The default whisper target grant is empty; messaging.send alone cannot add a target.",
-      "execution": {
-        "plane": "plugin-to-host-wire",
-        "method": "messaging.send",
-        "verdictOracle": { "kind": "behavior-expectation" }
-      },
-      "given": {
-        "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": ["messaging.send"],
-        "handles": {
-          "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
-        },
-        "state": { "whisperGrantTargets": [] }
-      },
-      "when": {
-        "operation": "send",
-        "input": {
-          "address": { "kind": "thread_handle", "handle": "thread-handle-a" },
-          "draftAudience": { "kind": "whisper", "targets": ["cat-b"] },
-          "idempotencyKey": "whisper-without-target-grant-1",
-          "payload": {
-            "provenance": { "epistemicStatus": "inference" },
-            "elements": [{ "elementId": "text-1", "kind": "text", "payload": { "text": "blocked" } }]
-          }
-        }
-      },
-      "expect": {
-        "status": "error",
-        "errorCode": "PERMISSION",
-        "sideEffects": [
-          { "target": "messages", "assertion": "unchanged" },
-          { "target": "output_events", "assertion": "none" },
-          { "target": "idempotency_ledger", "assertion": "unchanged" }
-        ]
-      }
-    },
-    {
-      "id": "append-without-grant-rejected",
-      "invariant": "A valid message handle does not bypass the messaging.appendElements grant.",
-      "execution": {
-        "plane": "plugin-to-host-wire",
-        "method": "messaging.appendElements",
-        "verdictOracle": { "kind": "behavior-expectation" }
-      },
-      "given": {
-        "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": [],
-        "handles": {
-          "message": { "kind": "message_handle", "token": "message-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "messageId": "message-1" }
-        },
-        "state": { "messages": [{ "messageId": "message-1", "threadId": "thread-1", "revision": 1 }] }
-      },
-      "when": {
-        "operation": "appendElements",
-        "input": {
-          "handle": { "kind": "message", "token": "message-handle-a" },
-          "operationId": "append-without-grant-1",
-          "baseRevision": 1,
-          "elements": [{ "elementId": "text-2", "kind": "text", "payload": { "text": "blocked" } }]
-        }
-      },
-      "expect": {
-        "status": "error",
-        "errorCode": "PERMISSION",
-        "sideEffects": [
-          { "target": "messages", "assertion": "unchanged" },
-          { "target": "output_events", "assertion": "none" },
-          { "target": "idempotency_ledger", "assertion": "unchanged" }
-        ]
-      }
-    },
-    {
-      "id": "denied-on-message-rejected",
-      "invariant": "The Host cannot deliver an onMessage envelope without an explicit scoped L2 grant.",
+      "id": "on-message-delivery",
+      "invariant": "A live instance receives its scoped message through the declared handler",
       "execution": {
         "plane": "host-to-plugin-delivery",
         "method": "host.messaging.deliver",
@@ -451,7 +322,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": [],
         "handles": {
           "target": { "kind": "thread_handle", "token": "thread-handle-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1" }
         },
@@ -465,60 +335,10 @@
         }
       },
       "expect": {
-        "status": "error",
-        "errorCode": "PERMISSION",
+        "status": "success",
         "sideEffects": [
           { "target": "messages", "assertion": "unchanged" },
           { "target": "output_events", "assertion": "none" }
-        ]
-      }
-    },
-    {
-      "id": "permission-matrix-complete",
-      "invariant": "The loopback policy matrix covers every signed capability and presets only L1 for first-party plugins.",
-      "execution": {
-        "plane": "host-control",
-        "verdictOracle": { "kind": "behavior-expectation" }
-      },
-      "given": {
-        "caller": { "pluginInstanceId": "policy-auditor" },
-        "grants": [],
-        "handles": {},
-        "state": {}
-      },
-      "when": {
-        "operation": "checkPermissionMatrix",
-        "input": {
-          "entries": [
-            { "capability": "plugin.config.read", "layer": "L0", "firstPartyPreset": false },
-            { "capability": "plugin.state.get", "layer": "L0", "firstPartyPreset": false },
-            { "capability": "plugin.state.set", "layer": "L0", "firstPartyPreset": false },
-            { "capability": "messaging.send", "layer": "L1", "firstPartyPreset": true },
-            { "capability": "schedule.register", "layer": "L1", "firstPartyPreset": true },
-            { "capability": "messaging.appendElements", "layer": "L1", "firstPartyPreset": true },
-            { "capability": "streams.read", "layer": "L1", "firstPartyPreset": true },
-            { "capability": "onMessage", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "message.event.subscribe", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "secret.read", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "thread.listMetadata", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "thread.readContent", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "thread.write", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "task.read", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "task.write", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "task.admitEntrusted", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "memory.query", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "memory.append", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "memory.retrieve", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "windows.create", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "whisper.extend", "layer": "L2", "firstPartyPreset": false },
-            { "capability": "cloud.conversation.host", "layer": "L2", "firstPartyPreset": false }
-          ]
-        }
-      },
-      "expect": {
-        "status": "success",
-        "sideEffects": [
-          { "target": "permission_matrix", "assertion": "matches", "value": { "complete": true, "firstPartyPresetLayers": ["L1"], "defaultWhisperTargets": [] } }
         ]
       }
     },
@@ -531,7 +351,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "host-retention" },
-        "grants": ["message.event.subscribe"],
         "handles": {
           "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "host-retention", "threadId": "thread-1", "subscriptionId": "subscription-a" }
         },
@@ -553,35 +372,6 @@
       }
     },
     {
-      "id": "snapshot-without-grant-rejected",
-      "invariant": "A subscription identifier cannot bypass the message.event.subscribe grant for snapshots.",
-      "execution": {
-        "plane": "wire-admission",
-        "method": "messaging.snapshot",
-        "verdictOracle": { "kind": "json-rpc-error", "code": -32602, "sideEffects": "behavior-expectation" }
-      },
-      "given": {
-        "caller": { "pluginInstanceId": "plugin-a" },
-        "grants": [],
-        "handles": {
-          "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
-        },
-        "state": { "subscription": { "cursorSequence": 4 } }
-      },
-      "when": {
-        "operation": "snapshot",
-        "input": { "subscriptionId": "subscription-a" }
-      },
-      "expect": {
-        "status": "error",
-        "errorCode": "PERMISSION",
-        "sideEffects": [
-          { "target": "snapshot", "assertion": "none" },
-          { "target": "subscription", "assertion": "unchanged" }
-        ]
-      }
-    },
-    {
       "id": "foreign-replay-delete-rejected",
       "invariant": "A caller cannot delete another plugin instance's subscription replay buffer.",
       "execution": {
@@ -590,7 +380,6 @@
       },
       "given": {
         "caller": { "pluginInstanceId": "plugin-b" },
-        "grants": ["message.event.subscribe"],
         "handles": {
           "subscription": { "kind": "subscription", "token": "subscription-token-a", "ownerPluginInstanceId": "plugin-a", "threadId": "thread-1", "subscriptionId": "subscription-a" }
         },

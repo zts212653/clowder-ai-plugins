@@ -16,14 +16,8 @@
  */
 
 import type { ByteProofInput, ClosedStringLeafProfile, JsonValue } from './encoded-byte-proof.js';
-import {
-  L0_CAPABILITIES,
-  L1_CAPABILITIES,
-  L2_CAPABILITIES,
-} from '../generated/contract.generated.js';
 import { WIRE_UINT53_MAX } from '../wire/wire-uint53.js';
 import { MAX_FRAME_BYTES } from '../wire/constants.js';
-import { MAX_GRANT_ITEMS } from '../wire/grants.js';
 import {
   REQUEST_ID_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
@@ -149,8 +143,6 @@ export function helloResponseTemplate(): ByteProofInput {
       wireVersion: MAX_HANDSHAKE_SEMVER,
       pluginInstanceId: '',
       brokerSessionId: '',
-      grantRevision: WIRE_UINT53_MAX,
-      effectiveGrants: ALL_CAPABILITY_VALUES,
       bindingNonce: '',
     },
   };
@@ -306,75 +298,6 @@ export function ackResponseTemplate(): ByteProofInput {
     leaves: [REQUEST_ID_LEAF],
     frameLimitBytes: MAX_FRAME_BYTES,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Row 10 — host.grants.changed (CLOSED, notification)
-//
-// No variable-length string leaves — all strings are fixed Capability
-// enum values. We compute the static maximum directly rather than using
-// the byte-proof engine (which requires at least one string leaf).
-// ---------------------------------------------------------------------------
-
-/**
- * Maximal legal distinct grant snapshot from the generated vocabulary.
- * New capability names do not enlarge the frozen wire array limit.
- */
-const ALL_CAPABILITY_VALUES = [
-  ...L0_CAPABILITIES,
-  ...L1_CAPABILITIES,
-  ...L2_CAPABILITIES,
-].sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
-  .slice(0, MAX_GRANT_ITEMS);
-
-/**
- * Compute the maximum encoded bytes for a host.grants.changed notification.
- *
- * Static computation because there are no variable-length string leaves.
- * The worst case has all capabilities in effectiveGrants and the maximum
- * grantRevision value.
- */
-export function grantsChangedMaxBytes(): number {
-  const template = {
-    jsonrpc: '2.0',
-    method: 'host.grants.changed',
-    params: {
-      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
-      input: {
-        grantRevision: WIRE_UINT53_MAX,
-        effectiveGrants: ALL_CAPABILITY_VALUES,
-      },
-    },
-  };
-
-  return Buffer.byteLength(JSON.stringify(template), 'utf8');
-}
-
-/**
- * N+1 cardinality proof for host.grants.changed.
- *
- * Computes the byte count with MAX_GRANT_ITEMS + 1 capabilities.
- * This exceeds the structural validity bound MAX_GRANT_ITEMS,
- * demonstrating the cardinality limit. The extra element uses the longest
- * capability value for worst-case measurement.
- */
-export function grantsChangedNPlusOneBytes(): number {
-  // Find the longest capability for worst-case N+1 element
-  const longestCap = longestValue(ALL_CAPABILITY_VALUES);
-
-  const template = {
-    jsonrpc: '2.0',
-    method: 'host.grants.changed',
-    params: {
-      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
-      input: {
-        grantRevision: WIRE_UINT53_MAX,
-        effectiveGrants: [...ALL_CAPABILITY_VALUES, longestCap],
-      },
-    },
-  };
-
-  return Buffer.byteLength(JSON.stringify(template), 'utf8');
 }
 
 // ---------------------------------------------------------------------------
@@ -666,19 +589,11 @@ export interface ClosedRowProofTemplates {
   readonly response: ByteProofInput;
 }
 
-export interface ClosedRowNotificationTemplate {
-  readonly notification: {
-    readonly maxBytes: number;
-    /** Byte count at MAX_GRANT_ITEMS + 1 (N+1 cardinality proof). */
-    readonly nPlusOneBytes: number;
-  };
-}
 
 /**
  * All closed row templates indexed by row number.
- * Row 10 is special — it's a notification with no variable-length leaves.
  */
-export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> & Record<10, ClosedRowNotificationTemplate> {
+export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedRowProofTemplates> {
   return {
     1: { request: helloRequestTemplate(), response: helloResponseTemplate() },
     2: { request: readyRequestTemplate(), response: {
@@ -688,7 +603,6 @@ export function getClosedRowTemplates(): Record<1 | 2 | 5 | 7 | 11 | 12, ClosedR
     } },
     5: { request: subscribeRequestTemplate(), response: subscribeResponseTemplate() },
     7: { request: ackRequestTemplate(), response: ackResponseTemplate() },
-    10: { notification: { maxBytes: grantsChangedMaxBytes(), nPlusOneBytes: grantsChangedNPlusOneBytes() } },
     11: { request: pingRequestTemplate(), response: pingResponseTemplate() },
     12: { request: drainRequestTemplate(), response: drainResponseTemplate() },
   };

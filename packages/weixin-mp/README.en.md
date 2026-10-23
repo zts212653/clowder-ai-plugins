@@ -49,4 +49,4 @@ The connection test is available independently of runtime enablement. It uses th
 same account status handler; missing credentials report `not_configured`. Testing
 does not activate the publishing limb.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

@@ -2,37 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://clowder-ai.dev/schemas/manifest/v0.1",
   "title": "Clowder AI Plugin Manifest (v0.1)",
-  "description": "Machine-readable truth source for the current static plugin.yaml access protocol: declarations, capabilities, operation row actions, runtime dataDirectory, and contribution schemas. Runtime data paths need no separate capability; attachment readers use streams.read.",
-  "x-clowder-capability-layers": {
-    "L0": [
-      "plugin.config.read",
-      "plugin.state.get",
-      "plugin.state.set"
-    ],
-    "L1": [
-      "messaging.send",
-      "schedule.register",
-      "messaging.appendElements",
-      "streams.read"
-    ],
-    "L2": [
-      "onMessage",
-      "message.event.subscribe",
-      "secret.read",
-      "thread.listMetadata",
-      "thread.readContent",
-      "thread.write",
-      "task.read",
-      "task.write",
-      "task.admitEntrusted",
-      "memory.query",
-      "memory.append",
-      "memory.retrieve",
-      "windows.create",
-      "whisper.extend",
-      "cloud.conversation.host"
-    ]
-  },
+  "description": "Machine-readable plugin declarations, configuration, runtime and contributions.",
   "x-clowder-data-class-strategies": {
     "cache": [
       "lifecycle",
@@ -123,33 +93,6 @@
         "ask-on-uninstall"
       ]
     },
-    "Capability": {
-      "type": "string",
-      "enum": [
-        "plugin.config.read",
-        "plugin.state.get",
-        "plugin.state.set",
-        "messaging.send",
-        "schedule.register",
-        "messaging.appendElements",
-        "streams.read",
-        "onMessage",
-        "message.event.subscribe",
-        "secret.read",
-        "thread.listMetadata",
-        "thread.readContent",
-        "thread.write",
-        "task.read",
-        "task.write",
-        "task.admitEntrusted",
-        "memory.query",
-        "memory.append",
-        "memory.retrieve",
-        "windows.create",
-        "whisper.extend",
-        "cloud.conversation.host"
-      ]
-    },
     "DataDeclaration": {
       "type": "object",
       "properties": {
@@ -197,7 +140,7 @@
                   "retained",
                   "ask-on-uninstall"
                 ],
-                "description": "User-visible/relationship data MUST be retained or ask-on-uninstall. lifecycle is structurally forbidden (\u94c1\u5f8b #5: user state defaults to persistent)."
+                "description": "User-visible/relationship data MUST be retained or ask-on-uninstall. lifecycle is structurally forbidden (铁律 #5: user state defaults to persistent)."
               }
             }
           }
@@ -1365,7 +1308,7 @@
     },
     "CloudConversationHostContribution": {
       "type": "object",
-      "description": "Declares that this package hosts one cloud conversation provider: the Host sends owner cloud-cat messages through appendMessage and pulls assistant returns through assistantReturns.list / ack. Method semantics come from the manifest only; runtime data can never introduce new methods. Error codes are data (external-process transports flatten thrown errors): NEEDS_BINDING / BOUND_CONVERSATION_MISMATCH -> needs-binding (incl. h4); HOST_UNAVAILABLE -> treated as no adapter (null); every other code (the STALE_* revisions, AMBIGUOUS_EFFECT, IDEMPOTENCY_CONFLICT, NEEDS_AUTHORIZATION, HOST_STOPPED, PAIRING_REJECTED, ...) and any unknown code -> host-append-failed. HOST_UNAVAILABLE must only describe failures before a request could have had any effect (no pairing record, missing socket, connection refused); any error after the request was written is AMBIGUOUS_EFFECT. The owning feature must be granted cloud.conversation.host; one provider accepts at most one enabled package.",
+      "description": "Declares that this package hosts one cloud conversation provider: the Host sends owner cloud-cat messages through appendMessage and pulls assistant returns through assistantReturns.list / ack. Method semantics come from the manifest only; runtime data can never introduce new methods. Error codes are data (external-process transports flatten thrown errors): NEEDS_BINDING / BOUND_CONVERSATION_MISMATCH -> needs-binding (incl. h4); HOST_UNAVAILABLE -> treated as no adapter (null); every other code (the STALE_* revisions, AMBIGUOUS_EFFECT, IDEMPOTENCY_CONFLICT, NEEDS_AUTHORIZATION, HOST_STOPPED, PAIRING_REJECTED, ...) and any unknown code -> host-append-failed. HOST_UNAVAILABLE must only describe failures before a request could have had any effect (no pairing record, missing socket, connection refused); any error after the request was written is AMBIGUOUS_EFFECT. One provider accepts at most one enabled package.",
       "properties": {
         "type": {
           "const": "cloud-conversation-host"
@@ -1778,14 +1721,6 @@
       "properties": {
         "featureEnabled": {
           "type": "boolean"
-        },
-        "requiresCapabilities": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Capability"
-          },
-          "minItems": 1,
-          "uniqueItems": true
         }
       },
       "minProperties": 1,
@@ -1973,7 +1908,7 @@
     },
     "DesktopWindowContribution": {
       "type": "object",
-      "description": "Host-created desktop surface under its owning feature's windows.create grant. surface.integrity verifies only the entry HTML bytes. The Host must separately verify the complete installed package and serve a verified snapshot of all referenced assets. This declares no executable, Host origin, identity, or capture permission. The Host owns window execution, media/session admission and the isolated receive-only provider channel.",
+      "description": "Host-created desktop surface owned by its declared feature. surface.integrity verifies only the entry HTML bytes. The Host must separately verify the complete installed package and serve a verified snapshot of all referenced assets. This declares no executable, Host origin, identity, or capture permission. The Host owns window execution, media/session admission and the isolated receive-only provider channel.",
       "properties": {
         "type": {
           "const": "desktop-window"
@@ -2211,20 +2146,12 @@
           "items": {
             "$ref": "#/$defs/ContributionReference"
           }
-        },
-        "capabilities": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/Capability"
-          },
-          "description": "@signed(G-0 2026-07-15) \u2014 capability vocabulary is contract-versioned (P15). Adding a new capability = new contract version. Unknown strings are structurally rejected at schema level; authorization is a separate host runtime layer. Lifecycle callbacks are protocol-intrinsic baseline behavior, so they are not grantable or revocable capability IDs."
         }
       },
       "required": [
         "id",
         "name",
-        "resources",
-        "capabilities"
+        "resources"
       ],
       "additionalProperties": false
     },
@@ -2299,11 +2226,11 @@
     },
     "version": {
       "$ref": "#/$defs/SemVer",
-      "description": "Plugin version \u2014 must be valid semver (\u00a79: numeric prerelease identifiers MUST NOT have leading zeroes)."
+      "description": "Plugin version — must be valid semver (§9: numeric prerelease identifiers MUST NOT have leading zeroes)."
     },
     "contractVersion": {
       "$ref": "#/$defs/SemVer",
-      "description": "Must be an exact published semver version \u2014 no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). \u00a79: numeric prerelease identifiers MUST NOT have leading zeroes."
+      "description": "Must be an exact published semver version — no ranges, wildcards, or operator prefixes (five-step freeze: pin exact version). §9: numeric prerelease identifiers MUST NOT have leading zeroes."
     },
     "name": {
       "type": "string",

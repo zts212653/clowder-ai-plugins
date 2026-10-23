@@ -2,7 +2,7 @@
  * @clowder-ai/plugin-contract
  *
  * The single machine-readable truth source for the Clowder AI plugin
- * ecosystem (P15).  Schema, types, capability table, and conformance
+ * ecosystem (P15).  Schema, types and conformance
  * utilities all ship from this package — the host (clowder-ai) and
  * plugin SDK both consume it; neither redefines structures.
  *
@@ -22,7 +22,6 @@
  * - **manifest**: PluginManifest, PluginFeature, DataDeclaration,
  *   RuntimeDeclaration plus C-2 SignalContribution
  * - **signals**: manifest signal declaration metadata
- * - **capability**: L0/L1/L2 capability table (`@signed(G-0 2026-07-15)`)
  * - **data-class**: DataClass × DataStrategy validation
  * - **generated projection**: all public structural types and contract tables
  *   are deterministically generated from the JSON Schemas

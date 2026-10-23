@@ -18,7 +18,7 @@ ambient Host configuration.
 
 ## Security and authority
 
-The Host owns installation, grants, secrets, connector bindings, wake policy, delivery, and durable state.
+The Host owns installation, caller context, secrets, connector bindings, wake policy, delivery, and durable state.
 Inbound provider messages target only an authenticated Host-issued `connector_binding`. Group `@bot` text
 may be normalized as provider syntax, but package text never decides Host admission or wake authority.
 
@@ -55,7 +55,7 @@ Use normal configuration controls; no permission JSON, separate initialization o
 The initial group whitelist and command restriction are off and the administrator list is empty.
 Group management commands still require an explicitly configured administrator; an empty list grants nobody administration.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
 
 ## Configuration and connection state
 

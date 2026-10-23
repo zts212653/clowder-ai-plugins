@@ -1,5 +1,5 @@
 pluginId: dev.clowder.genoffice-docx
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 contractVersion: 0.1.0
 name: GenOffice
 icon:
@@ -38,6 +38,5 @@ features:
     contributions:
       - type: content-editor-provider
         id: genoffice-docx
-    capabilities: []
 runtime:
   transport: builtin

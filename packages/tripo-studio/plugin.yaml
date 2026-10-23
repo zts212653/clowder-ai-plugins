@@ -24,7 +24,6 @@ features:
     contributions:
       - type: mcp
         id: tripo-studio
-    capabilities: []
 contributions:
   - type: mcp
     id: tripo-studio

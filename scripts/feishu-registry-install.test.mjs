@@ -114,7 +114,9 @@ async function feishuConsumer(root, registry, packs) {
   const shrinkwrap = JSON.parse(await readFile(join(packageRoot, 'npm-shrinkwrap.json'), 'utf8'));
   for (const [key, entry] of Object.entries(shrinkwrap.packages)) {
     const pack = packs.get(entry.name ?? key.replace(/^node_modules\//u, ''));
-    if (key.startsWith('node_modules/@clowder-ai/') && pack) {
+    // The shipped lock can retain an older immutable SDK than this workspace.
+    // Only redirect versions whose exact archive is served by this registry.
+    if (key.startsWith('node_modules/@clowder-ai/') && pack && entry.version === pack.version) {
       const resolved = new URL(entry.resolved);
       assert.equal(resolved.origin, 'https://registry.npmjs.org');
       // Preserve the shipped pathname: replacing it with npm pack's local
@@ -149,8 +151,8 @@ test('official feishu artifact installs its full dependency chain through a regi
 
   await npmCi(consumer, caches[0]);
 
-  assert.equal(await installedVersion(consumer, '@clowder-ai/plugin-contract'), '0.2.0');
-  assert.equal(await installedVersion(consumer, '@clowder-ai/plugin-sdk'), '0.2.0-beta.24');
+  assert.equal(await installedVersion(consumer, '@clowder-ai/plugin-contract'), '0.3.0');
+  assert.equal(await installedVersion(consumer, '@clowder-ai/plugin-sdk'), '0.3.0-beta.1');
   const contract = packs.get('@clowder-ai/plugin-contract');
   const shrinkwrap = JSON.parse(await readFile(join(consumer, 'npm-shrinkwrap.json'), 'utf8'));
   assert.equal(
@@ -220,7 +222,8 @@ test('official feishu artifact installs its full dependency chain through a regi
       try {
         await assert.rejects(npmCi(consumer, cache), (error) => {
           const output = `${error.stderr}\n${error.stdout}`;
-          assert.match(output, /E404/u, output);
+          // Public mirrors may reject an invalid tarball basename before lookup.
+          assert.match(output, /E(?:404|422)\b/u, output);
           assert.ok(output.includes(url.pathname), output);
           return true;
         });

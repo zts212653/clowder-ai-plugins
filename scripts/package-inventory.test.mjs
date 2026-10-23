@@ -73,16 +73,6 @@ test('every declared runtime entrypoint and static resource exists in the built 
   }
 });
 
-test('installer READMEs leave machine grants to manifests and consent to Manager', async () => {
-  const capabilities = new Set(plugins.flatMap(p => p.manifest.features.flatMap(f => f.capabilities)));
-  for (const plugin of plugins) for (const file of ['README.md', 'README.en.md']) {
-    const text = await readFile(new URL(file, plugin.root), 'utf8');
-    for (const capability of capabilities) assert.ok(!text.includes(`\`${capability}\``),
-      `${plugin.directory}/${file}: repeated machine grant ${capability}`);
-    assert.doesNotMatch(text, /^## (?:安装权限|Install permissions|Install consent|Exposed capabilit(?:y|ies))$/mu);
-    assert.doesNotMatch(text, /capabilities:\s*\[/u);
-  }
-});
 
 test('current packages provide a Chinese default and a separately packaged English guide', async () => {
   for (const plugin of plugins) {

@@ -17,9 +17,7 @@
     {
       "id": "main",
       "name": "Main",
-      "resources": [],
-      "capabilities": []
-    }
+      "resources": []}
   ],
   "runtime": {
     "transport": "builtin"

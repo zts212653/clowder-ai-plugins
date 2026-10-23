@@ -1,9 +1,5 @@
-import { isDeepStrictEqual } from 'node:util';
-
 import {
-  CAPABILITY_TABLE,
   type AppendOperationInput,
-  type Capability,
   type DeleteReplayEventsInput,
   type FixtureHandle,
   type FixtureOperation,
@@ -11,7 +7,6 @@ import {
   type MessageHandle,
   type MessagingErrorCode,
   type OnMessageDeliveryInput,
-  type PermissionMatrixEntry,
   type SendOperationInput,
 } from '../generated/contract.generated.js';
 import type {
@@ -87,14 +82,8 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
         return this.ack(operation.input.subscriptionId, operation.input.ackToken);
       case 'snapshot':
         return this.snapshot(operation.input.subscriptionId);
-      case 'applyGrantPreset':
-        return this.applyGrantPreset(operation.input.capabilities);
-      case 'revokeGrant':
-        return this.revokeGrant(operation.input.capability);
       case 'deliverOnMessage':
         return this.deliverOnMessage(operation.input);
-      case 'checkPermissionMatrix':
-        return this.checkPermissionMatrix(operation.input.entries);
       case 'deleteReplayEvents':
         return this.deleteReplayEvents(operation.input);
       default:
@@ -132,9 +121,6 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private accessSubscription(subscriptionId: string): SubscriptionAccess {
     const state = this.requireState();
-    if (!state.grants.has('message.event.subscribe')) {
-      return { ok: false, verdict: error('PERMISSION') };
-    }
     const subscription = state.subscriptions.get(subscriptionId);
     if (!subscription) {
       return { ok: false, verdict: error('NOT_FOUND') };
@@ -147,9 +133,6 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private send(input: SendOperationInput): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('messaging.send')) {
-      return error('PERMISSION');
-    }
 
     const rawInput = input as unknown as LoopbackRecord;
     const address = input.address;
@@ -171,17 +154,6 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     const audience = rawInput.draftAudience;
     if (isRecord(audience) && audience.kind === 'system') {
       return error('VALIDATION');
-    }
-    if (isRecord(audience) && audience.kind === 'whisper') {
-      const targets = audience.targets;
-      if (
-        !Array.isArray(targets) ||
-        targets.some(
-          (target) => typeof target !== 'string' || !state.whisperGrantTargets.has(target),
-        )
-      ) {
-        return error('PERMISSION');
-      }
     }
 
     const provenance = input.payload.provenance;
@@ -228,9 +200,6 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private appendElements(input: AppendOperationInput): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('messaging.appendElements')) {
-      return error('PERMISSION');
-    }
 
     const rawHandle = input.handle;
     if (!isMessageHandle(rawHandle)) {
@@ -296,9 +265,6 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
 
   private subscribe(handleId: string): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('message.event.subscribe')) {
-      return error('PERMISSION');
-    }
     const handleAccess = this.accessScopedHandle(handleId, 'thread_handle');
     if (!handleAccess.ok) {
       return handleAccess.verdict;
@@ -390,44 +356,8 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     return success;
   }
 
-  private applyGrantPreset(capabilities: readonly Capability[]): BehaviorVerdict {
-    const state = this.requireState();
-    const l1 = new Set<Capability>(CAPABILITY_TABLE.L1);
-    if (capabilities.some((capability) => !l1.has(capability))) {
-      return error('PERMISSION');
-    }
-    for (const capability of capabilities) {
-      state.grants.add(capability);
-      state.grantState.set(capability, { visible: true, granted: true });
-    }
-    state.observations.set(
-      'grant_state',
-      Object.fromEntries(state.grantState),
-    );
-    return success;
-  }
-
-  private revokeGrant(capability: Capability): BehaviorVerdict {
-    const state = this.requireState();
-    const current = state.grantState.get(capability);
-    if (!current) {
-      return error('NOT_FOUND');
-    }
-    state.grants.delete(capability);
-    state.grantState.set(capability, { visible: current.visible, granted: false });
-    state.observations.set('grant_state', {
-      capability,
-      visible: current.visible,
-      granted: false,
-    });
-    return success;
-  }
-
   private deliverOnMessage(input: OnMessageDeliveryInput): BehaviorVerdict {
     const state = this.requireState();
-    if (!state.grants.has('onMessage')) {
-      return error('PERMISSION');
-    }
     const handleAccess = this.accessScopedHandle(input.threadHandle, 'thread_handle');
     if (!handleAccess.ok) {
       return handleAccess.verdict;
@@ -440,32 +370,6 @@ export class MessagingLoopbackAdapter implements BehaviorAdapter {
     ) {
       return error('VALIDATION');
     }
-    return success;
-  }
-
-  private checkPermissionMatrix(entries: readonly PermissionMatrixEntry[]): BehaviorVerdict {
-    const expected = Object.entries(CAPABILITY_TABLE).flatMap(([layer, capabilities]) =>
-      capabilities.map((capability) => ({
-        capability,
-        layer,
-        firstPartyPreset: layer === 'L1',
-      })),
-    );
-    const uniqueCapabilities = new Set(entries.map(({ capability }) => capability));
-    if (
-      entries.length !== expected.length ||
-      uniqueCapabilities.size !== expected.length ||
-      !expected.every((expectedEntry) =>
-        entries.some((entry) => isDeepStrictEqual(entry, expectedEntry)),
-      )
-    ) {
-      return error('VALIDATION');
-    }
-    this.requireState().observations.set('permission_matrix', {
-      complete: true,
-      firstPartyPresetLayers: ['L1'],
-      defaultWhisperTargets: [],
-    });
     return success;
   }
 

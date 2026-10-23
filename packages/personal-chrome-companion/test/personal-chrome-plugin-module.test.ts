@@ -57,8 +57,6 @@ function makeBinding(overrides: Partial<FeatureBinding> = {}): FeatureBinding {
     packageRevision: '0.1.0-alpha.1',
     integrityEpoch: 0,
     activationRevision: 0,
-    grantRevision: 0,
-    grantedCapabilities: ['cloud.conversation.host'],
     executionLease: 'test-lease',
     ...overrides,
   };

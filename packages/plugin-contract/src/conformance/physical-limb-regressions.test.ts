@@ -35,14 +35,7 @@ function makeContribution(): Record<string, unknown> {
     contributionId: 'stackchan-body',
     nodeType: 'stackchan',
     displayName: 'StackChan',
-    grants: [
-      'limb.action.motion',
-      'limb.action.display',
-      'limb.action.light',
-      'limb.action.speaker',
-      'limb.observe.touch',
-      'limb.sensor.microphone',
-    ],
+
     safePose: {
       yawDeg: 0,
       pitchDeg: 10,
@@ -83,23 +76,6 @@ function makeTranscriptObservation(): Record<string, unknown> {
     },
   };
 }
-
-test('physical limb grants remain independently authorizable', () => {
-  assert.deepEqual(schema['x-clowder-physical-limb-grants'], [
-    'limb.action.motion',
-    'limb.action.display',
-    'limb.action.light',
-    'limb.action.speaker',
-    'limb.observe.touch',
-    'limb.sensor.microphone',
-    'limb.sensor.camera',
-  ]);
-  assert.equal(validate('PhysicalLimbContribution', makeContribution()), true);
-
-  const unknownGrant = makeContribution();
-  unknownGrant['grants'] = ['limb.everything'];
-  assert.equal(validate('PhysicalLimbContribution', unknownGrant), false);
-});
 
 test('typed touch and bounded transcript observations are admitted', () => {
   assert.equal(validate('PhysicalLimbObservation', makeTouchObservation()), true);

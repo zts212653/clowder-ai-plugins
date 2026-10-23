@@ -13,7 +13,7 @@ function manifest(semanticMaterializer?: unknown) {
   return {
     pluginId: 'test.document-editor', version: '0.1.0-alpha.0', contractVersion: '0.1.0', name: 'Document editor',
     runtime: { transport: 'builtin' },
-    features: [{ id: 'docx', name: 'DOCX', resources: [], capabilities: [], contributions: [{ type: 'content-editor-provider', id: 'docx' }] }],
+    features: [{ id: 'docx', name: 'DOCX', resources: [],  contributions: [{ type: 'content-editor-provider', id: 'docx' }] }],
     contributions: [{
       type: 'content-editor-provider', id: 'docx',
       mediaTypes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],

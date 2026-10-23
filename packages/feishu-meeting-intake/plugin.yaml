@@ -165,12 +165,6 @@ features:
         id: feishu-meeting
       - type: mcp
         id: meeting-records
-    capabilities:
-
-      - plugin.config.read
-      - secret.read
-      - thread.readContent
-      - messaging.send
 runtime:
   transport: builtin
   entrypoint: dist/index.js

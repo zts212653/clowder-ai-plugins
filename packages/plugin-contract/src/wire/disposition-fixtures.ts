@@ -35,7 +35,6 @@ import {
   BINDING_NONCE_MAX_LENGTH,
   PLUGIN_ID_MAX_LENGTH,
 } from './handshake.js';
-import { MAX_GRANT_ITEMS, VALID_CAPABILITIES } from './grants.js';
 import { PING_NONCE_MAX_LENGTH } from './row-shapes.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';
 import type { CandidateHello, SessionBinding } from './handshake.js';
@@ -146,16 +145,13 @@ const RAW_UTF8_BOUNDARY_CODE_POINTS = {
   escaping: '\u0000',
 } as const;
 
-const ALL_CAPABILITY_VALUES = [...VALID_CAPABILITIES]
-  .sort((a, b) => Buffer.byteLength(JSON.stringify(b)) - Buffer.byteLength(JSON.stringify(a)) || a.localeCompare(b))
-  .slice(0, MAX_GRANT_ITEMS);
 
 const BETA8_BINDING: SessionBinding = {
   ...BETA8_HELLO,
   pluginInstanceId: 'instance-1',
   brokerSessionId: 'session-1',
-  grantRevision: 0,
-  effectiveGrants: [],
+
+
   bindingNonce: 'nonce-1',
 };
 
@@ -204,18 +200,6 @@ function lifecycleRequestFrame(
   });
 }
 
-function grantsChangedNotificationFrame(
-  effectiveGrants: readonly string[],
-): string {
-  return JSON.stringify({
-    jsonrpc: '2.0',
-    method: 'host.grants.changed',
-    params: {
-      meta: { deadlineUnixMs: WIRE_UINT53_MAX },
-      input: { grantRevision: WIRE_UINT53_MAX, effectiveGrants },
-    },
-  });
-}
 
 type MessagingMethod =
   | 'messaging.send'
@@ -398,8 +382,6 @@ export const RESPONSE_CANDIDATE_CASES: Readonly<Record<string, PartitionCase>> =
  *  and the R8 row-10 value-failure fixture"
  */
 export const NOTIFICATION_PARTITION_CASES: Readonly<Record<string, PartitionCase>> = {
-  /** §3.8-1 NT #1: legal row-10 notification → T-J accept */
-  'nt-1-removed-callback': { vectorId: 'T-K-11', expectedClass: 'T-K' },
   /** §3.8-1 NT #2: request-only method without id → T-K close */
   'nt-2-request-method': { vectorId: 'T-K-1', expectedClass: 'T-K' },
   /** §3.8-1 NT #3: unknown method without id → T-K close */
@@ -408,7 +390,6 @@ export const NOTIFICATION_PARTITION_CASES: Readonly<Record<string, PartitionCase
   'nt-4-invalid-params': { vectorId: 'T-K-6', expectedClass: 'T-K' },
   /** §3.8-1 NT #5: idless notification extra/missing envelope member → T-K */
   'nt-5-envelope-violation': { vectorId: 'T-K-5', expectedClass: 'T-K' },
-  /** §3.8-1 NT #6: row-10 deadlineUnixMs:0 value failure (H7/H8) → T-K */
   'nt-6-value-failure': { vectorId: 'T-K-7', expectedClass: 'T-K' },
   /** §3.8-1 NT #7: structurally invalid idless object → T-D respond */
   'nt-7-structurally-invalid': { vectorId: 'T-D-1', expectedClass: 'T-D' },
@@ -465,22 +446,6 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     expectedErrorCode: null,
     expectedResponseFrame: null,
     description: 'frame-canonicality failure: whitespace in compact JSON',
-  },
-  {
-    id: 'T-C-2',
-    rawFrame: helloResultFrame('hello-h7-negative', {
-      ...BETA8_BINDING,
-      grantRevision: -1,
-    }),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [{ id: 'hello-h7-negative', method: 'broker.hello', requestSnapshot: { candidateHello: BETA8_HELLO } }] },
-    expectedClass: 'T-C',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[beta.8 H7 raw token] negative SessionBinding grantRevision is rejected at canonicality before correlation',
   },
   {
     id: 'T-C-3',
@@ -676,9 +641,7 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
   // no JSON-RPC Response is emitted for any downstream method/params/
   // profile rejection."
   //
-  // Frozen cases: T-J-1 (NT-1), T-K-1 (NT-2), T-K-3 (NT-3),
   //   T-K-6 (NT-4), T-K-5 (NT-5), T-K-7 (NT-6), T-D-1 (NT-7).
-  // Additional: T-J-2, T-K-2.
   // ═════════════════════════════════════════════════════════════════════════
 
 
@@ -1300,64 +1263,6 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
     description: '[beta.8 error] closed HANDSHAKE_REJECTED error settles the correlated hello',
   },
   {
-    id: 'T-K-11',
-    rawFrame: grantsChangedNotificationFrame(ALL_CAPABILITY_VALUES),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: 'removed grant callback closes without dispatch',
-  },
-  {
-    id: 'T-K-8',
-    rawFrame: grantsChangedNotificationFrame([
-      ...ALL_CAPABILITY_VALUES,
-      ALL_CAPABILITY_VALUES[0]!,
-    ]),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[beta.10 lifecycle] N+1 grant snapshot notification closes before dispatch',
-  },
-  {
-    id: 'T-K-9',
-    rawFrame: grantsChangedNotificationFrame([
-      ALL_CAPABILITY_VALUES[0]!,
-      ALL_CAPABILITY_VALUES[0]!,
-    ]),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[beta.10 lifecycle] duplicate grants within the cardinality bound close before dispatch',
-  },
-  {
-    id: 'T-K-10',
-    rawFrame: grantsChangedNotificationFrame(['unknown.capability']),
-    rawFrameEncoding: 'utf8',
-    preState: { inFlightRequests: [] },
-    expectedClass: 'T-K',
-    expectedOutcome: 'close',
-    expectedErrorArm: null,
-    expectedErrorCode: null,
-    expectedResponseFrame: null,
-    zeroSideEffects: true,
-    description: '[beta.10 lifecycle] unknown grant closes before dispatch',
-  },
-  {
     id: 'T-M-10',
     rawFrame: lifecycleRequestFrame('a', 'host.lifecycle.ping', {
       nonce: RAW_UTF8_BOUNDARY_CODE_POINTS.ascii.repeat(PING_NONCE_MAX_LENGTH),
@@ -1852,7 +1757,6 @@ export const DISPOSITION_FIXTURE_VECTORS: readonly DispositionFixtureVector[] = 
 
 /** Complete beta.8 handshake safety surface exported for downstream runners. */
 export const BETA8_HANDSHAKE_VECTOR_IDS = [
-  'T-C-2',
   'T-M-1', 'T-M-2', 'T-M-3', 'T-M-4', 'T-M-5', 'T-M-6', 'T-M-7', 'T-M-8',
   'T-G-2', 'T-G-3', 'T-G-4', 'T-G-5', 'T-G-6', 'T-G-7', 'T-G-8', 'T-G-9', 'T-G-10',
   'T-G-11', 'T-G-12', 'T-G-13', 'T-G-14',

@@ -117,8 +117,6 @@ function snapshotBinding(binding: SessionBinding): SessionBinding {
     wireVersion: binding.wireVersion,
     pluginInstanceId: binding.pluginInstanceId,
     brokerSessionId: binding.brokerSessionId,
-    grantRevision: binding.grantRevision,
-    effectiveGrants: [...binding.effectiveGrants],
     bindingNonce: binding.bindingNonce,
   };
 }

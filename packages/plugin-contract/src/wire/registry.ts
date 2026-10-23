@@ -1,24 +1,21 @@
 /**
  * Current 11-method standalone wire registry.
  * Module author hooks are invoked directly by the module carrier; they are
- * not additional stdio methods. Row metadata records direction, capability,
+ * not additional stdio methods. Row metadata records direction,
  * frame bounds, readiness and settlement keys for the current wire surface.
  */
 
-import type { Capability } from '../generated/contract.generated.js';
 import { HANDSHAKE_ROW_ENCODED_BYTE_BOUNDS } from './handshake-byte-bounds.js';
 import { LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS } from './lifecycle-byte-bounds.js';
 import { MESSAGING_ROW_ENCODED_BYTE_BOUNDS } from './messaging-byte-bounds.js';
 
 // ---------------------------------------------------------------------------
-// Direction + Grant types
+// Method direction
 // ---------------------------------------------------------------------------
 
 /** Message direction on the wire. */
 export type MethodDirection = 'plugin-to-host' | 'host-to-plugin';
 
-/** Grant required to invoke a method, or protocol-intrinsic for handshake/lifecycle. */
-export type GrantRequirement = Capability | 'protocol-intrinsic';
 
 /** Leaf closure status from the variable-width leaf matrix. */
 export type LeafClosureStatus = 'CLOSED' | 'RESERVED';
@@ -40,7 +37,6 @@ export interface RegistryRow {
   readonly rowNumber: number;
   readonly method: string;
   readonly direction: MethodDirection;
-  readonly grant: GrantRequirement;
   readonly isNotification: boolean;
   readonly ready: boolean;
   readonly leafClosure: LeafClosureStatus;
@@ -70,8 +66,7 @@ export interface UnreadyRegistryRow extends RegistryRow {
 
 /**
  * The exact 11 production method names, in registry order.
- * No production method exists for fixture setup/observe, grant presets,
- * revocation, permission-matrix inspection, or replay deletion.
+ * Fixture setup/observe and replay deletion are local adapter operations.
  */
 export const WIRE_METHOD_NAMES = [
   'broker.hello',
@@ -108,7 +103,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 1,
     method: 'broker.hello',
     direction: 'plugin-to-host',
-    grant: 'protocol-intrinsic',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -120,7 +114,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 2,
     method: 'broker.ready',
     direction: 'plugin-to-host',
-    grant: 'protocol-intrinsic',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -132,7 +125,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 3,
     method: 'messaging.send',
     direction: 'plugin-to-host',
-    grant: 'messaging.send',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -144,7 +136,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 4,
     method: 'messaging.appendElements',
     direction: 'plugin-to-host',
-    grant: 'messaging.appendElements',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -156,7 +147,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 5,
     method: 'messaging.subscribe',
     direction: 'plugin-to-host',
-    grant: 'message.event.subscribe',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -168,7 +158,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 6,
     method: 'messaging.read',
     direction: 'plugin-to-host',
-    grant: 'message.event.subscribe',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -180,7 +169,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 7,
     method: 'messaging.ack',
     direction: 'plugin-to-host',
-    grant: 'message.event.subscribe',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -192,7 +180,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 8,
     method: 'messaging.snapshot',
     direction: 'plugin-to-host',
-    grant: 'message.event.subscribe',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -204,7 +191,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 9,
     method: 'host.messaging.deliver',
     direction: 'host-to-plugin',
-    grant: 'onMessage',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -216,7 +202,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 10,
     method: 'host.lifecycle.ping',
     direction: 'host-to-plugin',
-    grant: 'protocol-intrinsic',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -228,7 +213,6 @@ export const WIRE_METHOD_REGISTRY = {
     rowNumber: 11,
     method: 'streams.read',
     direction: 'plugin-to-host',
-    grant: 'streams.read',
     isNotification: false,
     ready: true,
     leafClosure: 'CLOSED',
@@ -288,12 +272,4 @@ export function getRegistryRow(method: string): RegistryRow | undefined {
  */
 export function isWireMethod(method: string): method is WireMethodName {
   return (WIRE_METHOD_NAMES as readonly string[]).includes(method);
-}
-
-/**
- * Get the grant requirement for a method.
- * Returns undefined for unknown method names.
- */
-export function getMethodGrant(method: string): GrantRequirement | undefined {
-  return getRegistryRow(method)?.grant;
 }

@@ -84,7 +84,7 @@ test('current Service facts materialize the missing private receipt only after t
           currentForCaller:true,binding:{userId:'local-owner',catId:source.catId,threadId:'private',subjectKey:'entrusted:legacy',
             firstSourceRef:`message:${message.id}`,admissionAuthorityRef:'message:legacy-host-receipt',
             pluginId:'official.collective-connector',pluginInstanceId:'installed',moduleRef:'plugin:official.collective-connector',
-            lifecycleRevision:8,grantRevision:3,ownerOperationReceiptRef:controllerReceipt}}}};
+            lifecycleRevision:8,ownerOperationReceiptRef:controllerReceipt}}}};
     const result=await resolveHumanMessageWork(f.connector,storage,source,message,'local-owner',async()=>{},
       {mode:'send',hasTask:true,existingTask,pluginInstanceId:'installed'});
     expect(result.work.workId).toBe(work.workId);expect(result.binding?.taskRef).toBe('task:work:legacy-task');

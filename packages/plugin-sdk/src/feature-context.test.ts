@@ -5,7 +5,6 @@ import type { StaticContribution } from '@clowder-ai/plugin-contract';
 
 import {
   FeatureContextRevokedError,
-  FeaturePermissionError,
   activateDefinedFeature,
   createFeatureContextSession,
   definePlugin,
@@ -22,8 +21,8 @@ const BINDING: FeatureBinding = {
   packageRevision: 'package-1',
   integrityEpoch: 4,
   activationRevision: 7,
-  grantRevision: 3,
-  grantedCapabilities: [],
+
+
   executionLease: 'opaque-host-signed-lease',
 };
 
@@ -73,7 +72,7 @@ function manifest() {
         name: 'Feature one',
         resources: [],
         contributions: [{ type: 'identity', id: 'cat' }],
-        capabilities: [],
+
       },
     ],
     runtime: { transport: 'stdio', entrypoint: 'dist/entrypoint.js' },
@@ -274,7 +273,7 @@ test('native MCP methods are feature-owned handlers without publishing direct to
   candidate.contributions.push({ type: 'mcp', id: 'foreign', runtime: { transport: 'stdio', entrypoint: 'foreign.js' },
     actions: [{ method: 'foreign.run' }] } as never);
   candidate.features[0]!.contributions.push({ type: 'mcp', id: 'native' } as never);
-  candidate.features.push({ id: 'feature-2', name: 'Foreign feature', resources: [], capabilities: [],
+  candidate.features.push({ id: 'feature-2', name: 'Foreign feature', resources: [],
     contributions: [{ type: 'mcp', id: 'foreign' }] } as never);
   assert.deepEqual([...featureActionMethods(candidate as never, 'feature-1')], ['native.run']);
   const { context } = createFeatureContextSession(BINDING, new RecordingAdapter());
@@ -457,7 +456,7 @@ test('Task public surface forwards ordinary data and explicit data-controller mu
       authorityRef:'message:admission'},dataController:{bindingRevision:1,state:'active' as const,currentForCaller:true,
         binding:{userId:'owner',catId:'cat',threadId:'thread',subjectKey:'work:one',firstSourceRef:'message:first',
           admissionAuthorityRef:'message:admission',pluginId:'official.collective-connector',pluginInstanceId:'instance-1',
-          moduleRef:'plugin:official.collective-connector',lifecycleRevision:1,grantRevision:3,
+          moduleRef:'plugin:official.collective-connector',lifecycleRevision:1,
           ownerOperationReceiptRef:controllerReceipt}}}};
   Object.assign(adapter.tasks, {
     get: async (selector: unknown) => {calls.push(['get',selector]);return null;},

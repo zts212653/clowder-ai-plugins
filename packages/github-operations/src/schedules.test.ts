@@ -18,15 +18,11 @@ test('schedule carrier deadlines leave settlement room around bounded PR/Issue p
 test('manifest schedule contributions match package-owned inventory exactly', async () => {
   const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8')) as {
     contributions: Array<{ type: string; id: string; schedule?: { everyMs?: number }; policy?: { timeoutMs?: number } }>;
-    features: Array<{ capabilities: string[] }>;
   };
   const schedules = manifest.contributions
     .filter(item => item.type === 'schedule')
     .map(item => ({ id: item.id, everyMs: item.schedule?.everyMs, timeoutMs: item.policy?.timeoutMs }));
   assert.deepEqual(schedules, [...GITHUB_SCHEDULES]);
-  assert.ok(manifest.features[0]?.capabilities.includes('messaging.send'));
-  assert.ok(manifest.features[0]?.capabilities.includes('plugin.state.set'));
-  assert.ok(!manifest.features[0]?.capabilities.includes('events.publish'));
 });
 
 test('runtime source contains no ambient token, env, or persistence fallback', async () => {

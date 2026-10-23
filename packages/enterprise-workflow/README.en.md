@@ -35,4 +35,4 @@ resource handles. The Host owns installation, configuration, grants, invocation 
 audit, enable/disable, and uninstall. Disable or uninstall stops new tool calls; created
 vendor resources remain in the vendor tenant and are returned as explicit handles.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

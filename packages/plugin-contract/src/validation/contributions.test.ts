@@ -45,7 +45,7 @@ function videoManifest() {
           { type: 'skill', id: 'video-analysis-skill' },
           { type: 'limb', id: 'video-analysis-limb' },
         ],
-        capabilities: ['plugin.config.read', 'secret.read'],
+
       },
     ],
     runtime: { transport: 'builtin' },
@@ -79,7 +79,7 @@ function docxProviderManifest() {
         name: 'Edit DOCX',
         resources: [],
         contributions: [{ type: 'content-editor-provider', id: 'genoffice-docx' }],
-        capabilities: [],
+
       },
     ],
     runtime: { transport: 'builtin' },
@@ -285,7 +285,7 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       command: 'video.open',
       group: 'composer.actions',
       anchor: { position: 'after', target: 'attach' },
-      when: { featureEnabled: true, requiresCapabilities: ['plugin.config.read'] },
+      when: { featureEnabled: true },
     },
     {
       type: 'ui',
@@ -316,7 +316,6 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       name: string;
       resources: unknown[];
       contributions: Array<{ type: string; id: string }>;
-      capabilities: string[];
     }>;
     const targetIndex = features[0]!.contributions.findIndex(
       (reference) => reference.type === dependency.targetType && reference.id === dependency.targetId,
@@ -329,7 +328,7 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       name: 'Foreign dependency owner',
       resources: [],
       contributions: [target],
-      capabilities: [],
+
     });
 
     const result = validateManifest(crossFeature);

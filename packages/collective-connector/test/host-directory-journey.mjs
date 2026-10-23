@@ -87,9 +87,7 @@ try {
   async function close(probe) {
     await new Promise((resolve, reject) => probe.close(error => error ? reject(error) : resolve()));
   }
-  const admission = new LocalPluginPackageAdmission({ packagesRoot, inventory: control,
-    grantPolicy: manifest => [...new Set(manifest.features.flatMap(feature => feature.capabilities ?? []))],
-  });
+  const admission = new LocalPluginPackageAdmission({ packagesRoot, inventory: control });
   const installed = await admission.install({ kind: 'local-archive', path: archive }, { expectedDigest });
   instanceId = installed.pluginInstanceId;
   const snapshot = await new FilePluginInventoryStore(inventoryPath).snapshot();
@@ -101,19 +99,15 @@ try {
   assert.equal(snapshot.instances[0].pluginInstanceId, instanceId);
   assert.equal(record.pluginId, 'official.collective-connector');
   assert.equal(runtime.claims(record), true);
-  const grants = snapshot.grants[0].effectiveGrants;
-  const declaredGrants = [...new Set(record.manifest.features.flatMap(feature => feature.capabilities ?? []))];
-  assert.deepEqual([...grants].sort(), declaredGrants.sort(), 'fixture grants only declared capabilities');
-  assert.ok(grants.includes('plugin.config.read'));
   const probe = createServer(); port = await listen(probe); await close(probe);
   const dataRoot = join(temporary, 'data', requestedDataDirectoryName(record.manifest));
   const brokenLink = join(dataRoot, 'service/owner-bootstrap.url');
   await mkdir(brokenLink, { recursive: true });
-  await assert.rejects(runtime.start(instanceId, record, grants), /EISDIR|EEXIST|ENOTEMPTY/);
+  await assert.rejects(runtime.start(instanceId, record), /EISDIR|EEXIST|ENOTEMPTY/);
   assert.equal(runtime.actions(instanceId), undefined, 'failed Host activation publishes no actions');
   const released = createServer(); await listen(released, port); await close(released);
   await rm(brokenLink, { recursive: true });
-  await runtime.start(instanceId, record, grants);
+  await runtime.start(instanceId, record);
   const status = (await runtime.invoke(instanceId, 'collective.service.status', {})).data;
   assert.equal((await fetch(status.url + '/api/health', { signal: AbortSignal.timeout(5_000) })).status, 200);
   const bootstrapLink = new URL((await readFile(brokenLink, 'utf8')).trim());
@@ -125,7 +119,7 @@ try {
   await runtime.stop(instanceId, 'disabled');
   await assert.rejects(runtime.invoke(instanceId, 'collective.service.status', {}));
   const disabled = createServer(); await listen(disabled, port); await close(disabled);
-  await runtime.start(instanceId, record, grants);
+  await runtime.start(instanceId, record);
   const resumed = (await runtime.invoke(instanceId, 'collective.service.status', {})).data;
   assert.equal(resumed.serviceInstanceId, status.serviceInstanceId);
   assert.equal(resumed.bootstrapNeeded, false);
@@ -135,7 +129,7 @@ try {
   console.log(JSON.stringify({ result: 'PASS', hostHead: expectedHead, archiveAdmission: 'production', archiveSha256: expectedArchiveSha256,
     inventory: 'file/reloaded', provenance: 'local-archive', dependencyClosure: 'shipped',
     moduleCarrier: 'production', lifecycle: 'failed-start/retry/bootstrap/disable/re-enable',
-    statePreserved: true, hostBuildInputs, grants: 'declared capabilities only',
+    statePreserved: true, hostBuildInputs,
     taskPorts: 'real in-memory Host TaskStore, isolated owner and empty thread reader',
     buildProofLimit: 'Direct dist hashes identify this run; source hashes match frozen HEAD. This is not a fresh-build or transitive-build proof.',
     hostProductWrites: false, settingsUI: 'unverified', neutralPorts: 'isolated empty fixture', fullC1: false }));

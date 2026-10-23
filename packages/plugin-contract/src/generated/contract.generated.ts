@@ -31,7 +31,6 @@ export type PluginMember = {
 export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
 export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
-export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'messaging.appendElements' | 'streams.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'task.admitEntrusted' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend' | 'cloud.conversation.host';
 export type DataDeclaration = {
   readonly name: string;
   readonly dataClass: 'cache';
@@ -419,7 +418,6 @@ export type CloudConversationAckFailedResult = {
 export type CloudConversationAckResult = CloudConversationAcknowledgedResult | CloudConversationAckFailedResult;
 export type UiWhenClause = {
   readonly featureEnabled?: boolean;
-  readonly requiresCapabilities?: readonly Capability[];
 };
 export type UiAnchor = {
   readonly position: 'before' | 'after';
@@ -498,7 +496,6 @@ export type PluginFeature = {
   readonly name: string;
   readonly resources: readonly ResourceReference[];
   readonly contributions?: readonly ContributionReference[];
-  readonly capabilities: readonly Capability[];
 };
 export type RuntimeTransport = 'stdio' | 'ipc' | 'builtin';
 export type ExternalRuntimeTransport = 'stdio' | 'ipc';
@@ -1875,7 +1872,6 @@ export type FixtureHandle = {
 };
 export type FixtureSetup = {
   readonly caller: FixtureCaller;
-  readonly grants: readonly CapabilityName[];
   readonly handles: Readonly<Record<string, FixtureHandle>>;
   readonly state: Readonly<Record<string, unknown>>;
 };
@@ -1898,17 +1894,8 @@ export type FixtureOperation = {
   readonly operation: 'snapshot';
   readonly input: SnapshotOperationInput;
 } | {
-  readonly operation: 'applyGrantPreset';
-  readonly input: GrantPresetInput;
-} | {
-  readonly operation: 'revokeGrant';
-  readonly input: RevokeGrantInput;
-} | {
   readonly operation: 'deliverOnMessage';
   readonly input: OnMessageDeliveryInput;
-} | {
-  readonly operation: 'checkPermissionMatrix';
-  readonly input: PermissionMatrixInput;
 } | {
   readonly operation: 'deleteReplayEvents';
   readonly input: DeleteReplayEventsInput;
@@ -1962,48 +1949,32 @@ export type AckOperationInput = {
 export type SnapshotOperationInput = {
   readonly subscriptionId: string;
 };
-export type CapabilityName = Capability;
-export type GrantPresetInput = {
-  readonly presetKind: 'first_party';
-  readonly capabilities: readonly CapabilityName[];
-};
-export type RevokeGrantInput = {
-  readonly capability: CapabilityName;
-};
 export type OnMessageDeliveryInput = {
   readonly threadHandle: string;
   readonly envelope: Readonly<Record<string, unknown>>;
-};
-export type PermissionMatrixEntry = {
-  readonly capability: CapabilityName;
-  readonly layer: 'L0' | 'L1' | 'L2';
-  readonly firstPartyPreset: boolean;
-};
-export type PermissionMatrixInput = {
-  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;
   readonly throughSequence: number;
 };
 export type SideEffectAssertion = {
-  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'replay_events';
   readonly assertion: 'unchanged';
   readonly value?: never;
 } | {
-  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'replay_events';
   readonly assertion: 'none';
   readonly value?: never;
 } | {
-  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'replay_events';
   readonly assertion: 'state_equals';
   readonly value: unknown;
 } | {
-  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'replay_events';
   readonly assertion: 'round_trip';
   readonly value: unknown;
 } | {
-  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'grant_state' | 'permission_matrix' | 'replay_events';
+  readonly target: 'messages' | 'output_events' | 'idempotency_ledger' | 'subscription' | 'snapshot' | 'reply_preview' | 'provenance' | 'replay_events';
   readonly assertion: 'matches';
   readonly value: unknown;
 };
@@ -2070,7 +2041,7 @@ export type BehaviorCase = {
   readonly invariant: string;
   readonly execution: Extract<BehaviorExecution, { readonly plane: 'host-control' }>;
   readonly given: FixtureSetup;
-  readonly when: Extract<FixtureOperation, { readonly operation: 'applyGrantPreset' | 'revokeGrant' | 'checkPermissionMatrix' | 'deleteReplayEvents' }>;
+  readonly when: Extract<FixtureOperation, { readonly operation: 'deleteReplayEvents' }>;
   readonly expect: ExpectedVerdict;
 };
 
@@ -2079,18 +2050,6 @@ export type BehaviorFixture = {
   readonly cases: readonly BehaviorCase[];
 };
 
-export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugin.state.set'] as const;
-export type L0Capability = (typeof L0_CAPABILITIES)[number];
-export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'messaging.appendElements', 'streams.read'] as const;
-export type L1Capability = (typeof L1_CAPABILITIES)[number];
-export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'task.admitEntrusted', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend', 'cloud.conversation.host'] as const;
-export type L2Capability = (typeof L2_CAPABILITIES)[number];
-export const CAPABILITY_TABLE = {
-  L0: L0_CAPABILITIES,
-  L1: L1_CAPABILITIES,
-  L2: L2_CAPABILITIES,
-} as const;
-export type AuthorizationLayer = keyof typeof CAPABILITY_TABLE;
 
 export const DATA_CLASS_ALLOWED_STRATEGIES = {
   'cache': ['lifecycle', 'retained', 'ask-on-uninstall'],

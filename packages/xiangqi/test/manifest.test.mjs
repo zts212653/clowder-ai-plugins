@@ -12,7 +12,6 @@ test('manifest declares the executable module and its bounded authority, retaini
   assert.equal(manifest.version, pkg.version);
   assert.equal(manifest.runtime.transport, 'builtin');
   assert.deepEqual(manifest.features.map((feature) => feature.id), ['analyze-position']);
-  assert.deepEqual(manifest.features[0].capabilities, ['thread.readContent', 'thread.listMetadata', 'messaging.send']);
   assert.deepEqual(manifest.data.map((item) => item.strategy), ['retained', 'retained']);
   assert.equal(manifest.contributions.find(value => value.type === 'mcp').runtime.entrypoint, 'dist/mcp-entrypoint.mjs');
 });

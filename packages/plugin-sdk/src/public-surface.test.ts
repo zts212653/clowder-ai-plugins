@@ -6,7 +6,7 @@ import * as contract from '@clowder-ai/plugin-contract';
 test('author context has one storage/log shape and a required persistent-message reader', async () => {
  const seen:string[]=[];
  const adapter={getMessage:async(id:string)=>{seen.push(id);return null;}} as unknown as FeatureHostAdapter;
- const session=createFeatureContextSession({...binding,grantedCapabilities:['thread.readContent']},adapter);
+ const session=createFeatureContextSession(binding,adapter);
  assert.equal(Object.hasOwn(session.context,'state'),false);
  assert.equal(Object.hasOwn(session.context,'logger'),false);
  assert.equal(typeof session.context.messaging.get,'function');
@@ -26,10 +26,10 @@ test('Contract author exports contain no retired event-publication validators or
  assert.equal(generated.includes('export type EventsPublish'),false);
 });
 
-const binding = {pluginInstanceId:'instance',featureId:'feature',packageRevision:'1',integrityEpoch:0,activationRevision:0,grantRevision:0,
-  grantedCapabilities:['streams.read'],executionLease:'lease',dataPath:'/private/instance'} as FeatureBinding;
+const binding = {pluginInstanceId:'instance',featureId:'feature',packageRevision:'1',integrityEpoch:0,activationRevision:0,
+  executionLease:'lease',dataPath:'/private/instance'} as FeatureBinding;
 
-test('static declarations expose no dynamic registrars and dataPath needs no directory grant', async () => {
+test('static declarations expose no dynamic registrars and dataPath stays instance-scoped', async () => {
   const session = createFeatureContextSession(binding, {} as FeatureHostAdapter);
   const context = session.context as unknown as Record<string, unknown>;
   for (const name of ['identity','scheduler','tools','mcp','skills','limbs','webhooks','mediaSources','services','conversationHosts','ui','contentEditors','windows','media','dataDirectory'])
@@ -59,7 +59,7 @@ import type {ModulePluginHostShape, ModulePluginSettingsHost} from './module-hos
 function moduleManifest() {return {pluginId:'dev.surface.fixture',version:'1.0.0',contractVersion:'0.1.0',name:'Surface fixture',
   runtime:{transport:'builtin',entrypoint:'dist/index.js'},
   contributions:[{type:'tool',id:'read',name:'read',inputSchema:{type:'object'},action:{method:'read'}}],
-  features:[{id:'main',name:'Main',resources:[],capabilities:['plugin.config.read'],contributions:[{type:'tool',id:'read'}]}]};}
+  features:[{id:'main',name:'Main',resources:[],contributions:[{type:'tool',id:'read'}]}]};}
 
 test('no refresh hook does not restart a module, while an explicit refresh updates cached resources',async()=>{
  let config='one',starts=0,stops=0;let context!:FeatureContext;

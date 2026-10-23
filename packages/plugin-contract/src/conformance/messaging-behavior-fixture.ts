@@ -15,14 +15,8 @@ export const M0C_BEHAVIOR_CASE_IDS = [
   'cross-subscription-ack-rejection',
   'reply-to-cross-thread-leakage',
   'epistemic-status-upgrade-rejection',
-  'preset-l2-rejected',
-  'preset-visible-revocable',
-  'whisper-target-beyond-default-empty-grant-rejected',
-  'append-without-grant-rejected',
-  'denied-on-message-rejected',
-  'permission-matrix-complete',
+  'on-message-delivery',
   'delete-replay-events-preserves-canonical-messages',
-  'snapshot-without-grant-rejected',
   'foreign-replay-delete-rejected',
 ] as const;
 

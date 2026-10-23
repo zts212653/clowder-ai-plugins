@@ -6,7 +6,6 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import {
-  CAPABILITY_TABLE,
   type FixtureOperation,
   type FixtureSetup,
 } from '../generated/contract.generated.js';
@@ -49,9 +48,7 @@ const messagingSchema = JSON.parse(
 ) as object & { $id: string };
 const behaviorSchema = JSON.parse(
   readFileSync(new URL('../schemas/behavior-fixture.schema.json', import.meta.url), 'utf8'),
-) as {
-  $defs: { CapabilityName: unknown };
-};
+) as object;
 const behaviorFixture = JSON.parse(
   readFileSync(
     new URL('../../fixtures/behavior/messaging/adversarial-invariants.json', import.meta.url),
@@ -89,8 +86,8 @@ test('committed behavior fixture is structurally executable', () => {
   assert.equal(validate(behaviorFixture), true, JSON.stringify(validate.errors));
 });
 
-test('M0-C exports the canonical 18 behavior-case identities in fixture order', () => {
-  assert.equal(M0C_BEHAVIOR_CASE_IDS.length, 18);
+test('M0-C exports the canonical behavior-case identities in fixture order', () => {
+  assert.equal(M0C_BEHAVIOR_CASE_IDS.length, 12);
   assert.deepEqual(
     M0C_BEHAVIOR_CASE_IDS,
     behaviorFixture.cases.map(behaviorCase => behaviorCase['id']),
@@ -115,10 +112,10 @@ test('M0-D fixture signs one machine-readable execution plane and verdict oracle
         ]),
     ),
     {
-      'host-control': 5,
+      'host-control': 2,
       'host-to-plugin-delivery': 1,
-      'plugin-to-host-wire': 9,
-      'wire-admission': 3,
+      'plugin-to-host-wire': 7,
+      'wire-admission': 2,
     },
   );
 
@@ -207,11 +204,11 @@ test('behavior fixture schema rejects cross-plane methods and admission oracles'
   assert.equal(validate(wrongOperationMethod), false);
 
   const wrongHostControlPlane = structuredClone(behaviorFixture);
-  const presetCase = wrongHostControlPlane.cases.find(
-    behaviorCase => (behaviorCase['when'] as { operation?: string }).operation === 'applyGrantPreset',
+  const replayCase = wrongHostControlPlane.cases.find(
+    behaviorCase => (behaviorCase['when'] as { operation?: string }).operation === 'deleteReplayEvents',
   );
-  assert.ok(presetCase);
-  presetCase['execution'] = {
+  assert.ok(replayCase);
+  replayCase['execution'] = {
     plane: 'plugin-to-host-wire',
     method: 'messaging.send',
     verdictOracle: { kind: 'behavior-expectation' },
@@ -267,109 +264,6 @@ test('behavior fixture rejects an errorCode on a success verdict', () => {
   assert.equal(validate(malformed), false);
 });
 
-test('behavior capability names use the Manifest capability truth source', () => {
-  assert.deepEqual(behaviorSchema.$defs.CapabilityName, {
-    $ref: 'https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability',
-  });
-});
-
-test('behavior fixture rejects a capability absent from the Manifest schema', () => {
-  const malformed = structuredClone(behaviorFixture);
-  const preset = malformed.cases.find((candidate) => candidate['id'] === 'preset-l2-rejected');
-  assert.ok(preset);
-  (preset['when'] as { input: { capabilities: string[] } }).input.capabilities = [
-    'not.in.manifest',
-  ];
-
-  assert.equal(validate(malformed), false);
-});
-
-test('behavior fixture rejects a setup grant absent from the Manifest schema', () => {
-  const malformed = structuredClone(behaviorFixture);
-  (malformed.cases[0]!['given'] as { grants: string[] }).grants = ['not.in.manifest'];
-
-  assert.equal(validate(malformed), false);
-});
-
-test('behavior fixture covers signed first-party preset and empty whisper defaults', () => {
-  const rejectedPreset = caseById('preset-l2-rejected');
-  assert.deepEqual(
-    (rejectedPreset['when'] as { input: { capabilities: string[] } }).input.capabilities,
-    ['onMessage'],
-  );
-  assert.equal(
-    (rejectedPreset['expect'] as { errorCode?: string }).errorCode,
-    'PERMISSION',
-  );
-
-  const revocablePreset = caseById('preset-visible-revocable');
-  assert.deepEqual(
-    (revocablePreset['expect'] as { sideEffects: unknown[] }).sideEffects,
-    [
-      {
-        target: 'grant_state',
-        assertion: 'state_equals',
-        value: { capability: 'messaging.send', visible: true, granted: false },
-      },
-    ],
-  );
-
-  const whisper = caseById('whisper-target-beyond-default-empty-grant-rejected');
-  assert.deepEqual(
-    (whisper['given'] as { grants: string[] }).grants,
-    ['messaging.send'],
-  );
-  assert.deepEqual(
-    (whisper['given'] as { state: { whisperGrantTargets: string[] } }).state
-      .whisperGrantTargets,
-    [],
-  );
-  assert.equal((whisper['expect'] as { errorCode?: string }).errorCode, 'PERMISSION');
-});
-
-test('behavior fixture covers missing grants and the complete permission matrix', () => {
-  for (const id of ['append-without-grant-rejected', 'denied-on-message-rejected']) {
-    const denied = caseById(id);
-    assert.deepEqual((denied['given'] as { grants: string[] }).grants, []);
-    assert.equal((denied['expect'] as { errorCode?: string }).errorCode, 'PERMISSION');
-  }
-
-  const matrix = caseById('permission-matrix-complete');
-  const entries = (matrix['when'] as {
-    input: {
-      entries: Array<{
-        capability: string;
-        layer: keyof typeof CAPABILITY_TABLE;
-        firstPartyPreset: boolean;
-      }>;
-    };
-  }).input.entries;
-  const expectedEntries = Object.entries(CAPABILITY_TABLE).flatMap(
-    ([layer, capabilities]) =>
-      capabilities.map((capability) => ({
-        capability,
-        layer,
-        firstPartyPreset: layer === 'L1',
-      })),
-  );
-  assert.deepEqual(entries, expectedEntries);
-
-  const matrixOracle = (
-    matrix['expect'] as {
-      sideEffects: Array<{ target: string; assertion: string; value?: unknown }>;
-    }
-  ).sideEffects.find((sideEffect) => sideEffect.target === 'permission_matrix');
-  assert.deepEqual(matrixOracle, {
-    target: 'permission_matrix',
-    assertion: 'matches',
-    value: {
-      complete: true,
-      firstPartyPresetLayers: ['L1'],
-      defaultWhisperTargets: [],
-    },
-  });
-});
-
 test('deleting replay events cannot delete canonical messages', () => {
   const behaviorCase = caseById('delete-replay-events-preserves-canonical-messages');
   assert.deepEqual(
@@ -378,28 +272,6 @@ test('deleting replay events cannot delete canonical messages', () => {
       { target: 'replay_events', assertion: 'none' },
       { target: 'messages', assertion: 'unchanged' },
     ],
-  );
-});
-
-test('behavior fixture ships subscription authorization oracles', () => {
-  const missingGrant = caseById('snapshot-without-grant-rejected');
-  assert.deepEqual(missingGrant['when'], {
-    operation: 'snapshot',
-    input: { subscriptionId: 'subscription-a' },
-  });
-  assert.equal(
-    (missingGrant['expect'] as { errorCode?: string }).errorCode,
-    'PERMISSION',
-  );
-
-  const foreignDelete = caseById('foreign-replay-delete-rejected');
-  assert.deepEqual(
-    (foreignDelete['given'] as { caller: { pluginInstanceId: string } }).caller,
-    { pluginInstanceId: 'plugin-b' },
-  );
-  assert.equal(
-    (foreignDelete['expect'] as { errorCode?: string }).errorCode,
-    'PERMISSION',
   );
 });
 
@@ -427,7 +299,7 @@ class MutatedObservationAdapter implements BehaviorAdapter {
 
   async observe(target: BehaviorTarget): Promise<unknown> {
     const observation = await this.inner.observe(target);
-    if (this.executed && target === 'permission_matrix' && observation !== undefined) {
+    if (this.executed && target === 'messages' && observation !== undefined) {
       return { complete: false };
     }
     return observation;
@@ -448,9 +320,9 @@ test('conformance fails when an adapter observation violates the oracle', async 
     },
   });
 
-  assert.equal(report.behaviorCases.passed, 17);
-  assert.equal(report.behaviorCases.total, 18);
-  assert.match(report.failures.join('\n'), /permission-matrix-complete.*permission_matrix/);
+  assert.ok(report.behaviorCases.passed < report.behaviorCases.total);
+  assert.equal(report.behaviorCases.total, M0C_BEHAVIOR_CASE_IDS.length);
+  assert.match(report.failures.join('\n'), /messages/);
 });
 
 test('conformance rejects an empty fixture tree', async (context) => {

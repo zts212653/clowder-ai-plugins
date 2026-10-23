@@ -14,7 +14,7 @@ anymore: outbound media with a relative URL fails closed with a clear error inst
 
 ## Security and authority
 
-The Host owns installation, grants, credentials, connector bindings, wake policy, delivery, and durable
+The Host owns installation, caller context, credentials, connector bindings, wake policy, delivery, and durable
 checkpoint state. Ordinary message text, including `@`, cannot mint a binding or wake an Agent.
 
 ## Lifecycle and recovery
@@ -47,7 +47,7 @@ This adapter supports direct conversations only. Configure the original account/
 there is no group-permission page, permission initialization or legacy-import step. Group management commands
 do not grant a direct-message sender administrator authority. Existing stored data is not deleted.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
 
 ## Configuration and connection state
 

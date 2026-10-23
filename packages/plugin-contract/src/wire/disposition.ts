@@ -15,7 +15,7 @@
  * Derived subsets (exported):
  *   - CLOSE_CLASSES:   close with no response (T-A, T-C, T-E, T-H, T-I, T-K).
  *   - RESPOND_CLASSES: respond with an error  (T-B, T-D, T-F, T-G).
- *   - ACCEPT_CLASSES:  accept and process     (T-J, T-L, T-M).
+ *   - ACCEPT_CLASSES:  accept and process     (T-L, T-M).
  *
  * These subsets are used in byte-proof exclusion: close/accept classes
  * are excluded from error byte proofs because they never emit an error
@@ -27,12 +27,12 @@
 // ---------------------------------------------------------------------------
 
 /**
- * The 13 pre-dispatch disposition classes, T-A through T-M.
+ * The 12 pre-dispatch disposition classes, T-A through T-M.
  * Adding a class requires a reviewed contract revision.
  */
 export const DISPOSITION_CLASSES = [
   'T-A', 'T-B', 'T-C', 'T-D', 'T-E', 'T-F',
-  'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L', 'T-M',
+  'T-G', 'T-H', 'T-I', 'T-K', 'T-L', 'T-M',
 ] as const;
 
 /** Union of all disposition class identifiers. */
@@ -99,7 +99,6 @@ export interface DispositionEntry {
  * | T-G | valid id Request, value violation                       | respond error, id echoed          |
  * | T-H | response candidate validation/correlation failure       | close, no response                |
  * | T-I | in-flight id collision                                  | close, no response                |
- * | T-J | legal Notification (row 10)                             | accept, dispatch, no response     |
  * | T-K | valid Notification, v0 violation                        | close, no response, zero dispatch |
  * | T-L | valid correlated response                               | accept, settle, no response       |
  * | T-M | legal Request on a ready row                            | accept, dispatch, no response     |
@@ -195,16 +194,6 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     predicate: 'valid Request with id that collides with an in-flight request id',
     canonicalExample: '{"jsonrpc":"2.0","id":"dup","method":"broker.hello","params":{"meta":{"deadlineUnixMs":1},"input":{}}}',
   },
-  'T-J': {
-    class: 'T-J',
-    outcome: 'accept',
-    emitsResponse: false,
-    dispatches: true,
-    description: 'legal Notification (row 10)',
-    errorCodes: [],
-    predicate: 'legal Notification: no id, valid method=host.grants.changed (row 10 in v0)',
-    canonicalExample: '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}}}',
-  },
   'T-K': {
     class: 'T-K',
     outcome: 'close',
@@ -212,7 +201,7 @@ export const DISPOSITION_TABLE: Record<DispositionClass, DispositionEntry> = {
     dispatches: false,
     description: 'valid Notification, v0 violation',
     errorCodes: [],
-    predicate: 'valid Notification structure but method is not row 10 (v0 violation)',
+    predicate: 'the current wire registry declares no notifications',
     canonicalExample: '{"jsonrpc":"2.0","method":"host.lifecycle.ping","params":{"meta":{"deadlineUnixMs":1},"input":{"nonce":"x"}}}',
   },
   'T-L': {
@@ -265,5 +254,5 @@ export const RESPOND_CLASSES: readonly DispositionClass[] = [
  * Mechanized from #1165 R35.
  */
 export const ACCEPT_CLASSES: readonly DispositionClass[] = [
-  'T-J', 'T-L', 'T-M',
+  'T-L', 'T-M',
 ] as const;

@@ -8,7 +8,7 @@ import test from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-test('real stdio MCP process invokes module action over HTTP and refreshes turn credentials', async () => {
+for (const kind of ['registration', 'migration'] as const) test(`${kind}: real stdio MCP process invokes module action over HTTP and refreshes turn credentials`, async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tracking-stdio-'));
   const credentials = join(dir, 'credentials.json');
   const calls: { invocation: string | string[] | undefined; body: unknown }[] = [];
@@ -33,17 +33,19 @@ test('real stdio MCP process invokes module action over HTTP and refreshes turn 
     await writeFile(credentials, JSON.stringify({ invocationId: 'first', callbackToken: 'token1' }));
     await client.connect(transport);
     assert.equal((await client.listTools()).tools.length, 11);
-    const args = { registrationId: 'stable', repoFullName: 'owner/repo', prNumber: 1 };
-    assert.equal((await client.callTool({ name: 'cat_cafe_register_pr_tracking', arguments: args })).isError, undefined);
+    const name = kind === 'registration' ? 'cat_cafe_register_pr_tracking' : 'github_bind_migrated_wait';
+    const method = kind === 'registration' ? 'github.typed-wait.register-pr' : 'github.migration.bind-wait';
+    const args = kind === 'registration' ? { registrationId: 'stable', repoFullName: 'owner/repo', prNumber: 1 }
+      : { taskId: 'retained-original-task', expectedDigest: 'a'.repeat(64) };
+    assert.equal((await client.callTool({ name, arguments: args })).isError, undefined);
     await writeFile(credentials, JSON.stringify({ invocationId: 'next', callbackToken: 'token2' }));
-    assert.equal((await client.callTool({ name: 'cat_cafe_register_pr_tracking', arguments: args })).isError, undefined);
+    assert.equal((await client.callTool({ name, arguments: args })).isError, undefined);
     assert.deepEqual(calls, [
-      { invocation: 'first', body: { method: 'github.typed-wait.register-pr', input: args } },
-      { invocation: 'next', body: { method: 'github.typed-wait.register-pr', input: args } },
+      { invocation: 'first', body: { method, input: args } },
+      { invocation: 'next', body: { method, input: args } },
     ]);
     await writeFile(credentials, '{}');
-    assert.equal((await client.callTool({ name: 'cat_cafe_unregister_tracking',
-      arguments: { subjectKey: 'pr:owner/repo#1' } })).isError, true);
+    assert.equal((await client.callTool({ name, arguments: args })).isError, true);
     assert.equal(calls.length, 2);
   } finally {
     await client.close();

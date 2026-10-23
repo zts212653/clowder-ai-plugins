@@ -24,7 +24,7 @@ const feishuLike = {
   version: '0.1.0',
   contractVersion: '0.2.0',
   name: 'Variant fixture',
-  features: [{ id: 'echo', name: 'Echo', resources: [], capabilities: [] }],
+  features: [{ id: 'echo', name: 'Echo', resources: [], }],
   runtime: { transport: 'builtin' },
   configuration: [
     { key: 'appId', label: 'App ID', kind: 'string', required: true },
@@ -227,7 +227,7 @@ test('computeEffectiveConfiguration leaves legacy manifests fully common', () =>
     version: '0.1.0',
     contractVersion: '0.1.0',
     name: 'Legacy',
-    features: [{ id: 'echo', name: 'Echo', resources: [], capabilities: [] }],
+    features: [{ id: 'echo', name: 'Echo', resources: [], }],
     runtime: { transport: 'builtin' },
     configuration: [
       { key: 'appId', label: 'App ID', kind: 'string', required: true },
@@ -368,7 +368,7 @@ const enumBranchManifest = {
   version: '0.1.0',
   contractVersion: '0.2.0',
   name: 'Enum branch',
-  features: [{ id: 'echo', name: 'Echo', resources: [], capabilities: [] }],
+  features: [{ id: 'echo', name: 'Echo', resources: [], }],
   runtime: { transport: 'builtin' },
   configuration: [
     {

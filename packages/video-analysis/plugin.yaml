@@ -1,5 +1,5 @@
 pluginId: dev.clowder.video-analysis
-version: 0.1.0-alpha.3
+version: 0.1.0-alpha.4
 contractVersion: 0.1.0
 name: Video Analysis
 description:
@@ -73,8 +73,5 @@ features:
     contributions:
       - type: mcp
         id: video-analysis-toolset
-    capabilities:
-      - plugin.config.read
-      - secret.read
 runtime:
   transport: builtin

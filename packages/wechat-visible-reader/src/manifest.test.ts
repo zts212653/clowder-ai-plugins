@@ -12,7 +12,6 @@ test('manifest and package metadata remain one exact package truth', async () =>
     description: { default: string; translations: Record<string, string> };
     contributions: Array<{ type: string; id: string; manifestPath?: string }>;
     configuration: Array<{ key: string; kind: string; actions: Array<{ action: { method: string } }> }>;
-    features: Array<{ capabilities: string[] }>;
     runtime: { transport: string; entrypoint: string };
   };
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
@@ -29,7 +28,6 @@ test('manifest and package metadata remain one exact package truth', async () =>
     { type: 'limb', id: 'wechat-visible-reader-limb', manifestPath: 'limbs/wechat-visible-reader.yml' },
   ]);
   assert.deepEqual(manifest.runtime, { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' });
-  assert.deepEqual(manifest.features[0]?.capabilities, ['plugin.state.get', 'plugin.state.set']);
   assert.equal(manifest.configuration[0]?.kind, 'operation');
   assert.deepEqual(manifest.configuration[0]?.actions.map(({ action }) => action.method), [
     'wechat-visible-reader:arm',
@@ -52,13 +50,6 @@ test('manifest and package metadata remain one exact package truth', async () =>
   assert.match(chinese, /不可读或过期的记录不能授权/u);
   assert.match(readme, /short-lived authorization/i);
   assert.match(readme, /scope and expiry only/i);
-  for (const guide of [chinese, readme]) {
-    assert.doesNotMatch(guide, /^## (?:安装权限|Install permissions|Install consent|Exposed capabilit(?:y|ies))$/mu);
-    assert.doesNotMatch(guide, /^\|\s*(?:权限|Capability)\s*\|/mu);
-    for (const capability of manifest.features.flatMap(feature => feature.capabilities)) {
-      assert.ok(!guide.includes(`\`${capability}\``), `README repeats machine grant ${capability}`);
-    }
-  }
   assert.match(readme, /never an\s+operator identity, message text or screenshot/i);
   assert.match(readme, /expires after 1[–-]30 minutes/i);
   assert.match(readme, /expired or unreadable\s+record cannot authorize a read/i);

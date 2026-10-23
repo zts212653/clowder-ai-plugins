@@ -3,12 +3,11 @@ import test from 'node:test';
 import {PassThrough} from 'node:stream';
 import {startStandaloneHost} from './standalone-host.js';
 import {getRegistryRow,validateMessagingRowInput,validateMessagingRowResult,type PluginDeliveryInput} from '@clowder-ai/plugin-contract';
-const manifest={pluginId:'example.carrier',version:'1.0.0',contractVersion:'0.1.0',name:'Carrier',features:[{id:'carrier',name:'Carrier',resources:[],capabilities:[]}],runtime:{transport:'stdio',entrypoint:'dist/index.js'}};
+const manifest={pluginId:'example.carrier',version:'1.0.0',contractVersion:'0.1.0',name:'Carrier',features:[{id:'carrier',name:'Carrier',resources:[],}],runtime:{transport:'stdio',entrypoint:'dist/index.js'}};
 const status:PluginDeliveryInput={kind:'execution_status',deliveryId:'d1',executionId:'e1',threadId:'t1',state:'resumed'};
 test('carrier has one delivery row and one bounded stream row',()=>{
  assert.equal(getRegistryRow('host.messaging.lifecycle'),undefined);
  assert.equal(getRegistryRow('media.read'),undefined);
- assert.equal(getRegistryRow('streams.read')?.grant,'streams.read');
  assert.equal(validateMessagingRowInput('host.messaging.deliver',status).valid,true);
  assert.equal(validateMessagingRowResult('host.messaging.deliver',{deliveryId:'d1'}).valid,true);
 });

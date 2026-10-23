@@ -1,5 +1,5 @@
 pluginId: official.connector.telegram
-version: 0.1.0-alpha.7
+version: 0.1.0-alpha.8
 contractVersion: 0.1.0
 name: Telegram Connector
 description:
@@ -44,16 +44,6 @@ features:
         id: telegram
       - type: media-source
         id: telegram-media
-    capabilities:
-      - streams.read
-      - plugin.state.get
-      - plugin.state.set
-      - message.event.subscribe
-      - messaging.send
-      - secret.read
-      - thread.listMetadata
-      - thread.readContent
-      - thread.write
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

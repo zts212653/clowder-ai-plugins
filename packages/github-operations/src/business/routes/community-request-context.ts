@@ -72,7 +72,7 @@ export class CommunityRequestContext {
     if (principal.kind === 'native') await principal.context.assertCurrent();
     this.assertActive();
   }
-  /** SDK calls retain the Host's installation/grant filtering. The workflow's
+  /** SDK calls retain the Host's instance and resource visibility checks. The workflow's
    * historical userId argument is a consistency check, never an SDK identity. */
   threads(host: Pick<PluginThreadHost, 'get' | 'create'>, storage: PluginStorageHost): CommunityThreads {
     return {

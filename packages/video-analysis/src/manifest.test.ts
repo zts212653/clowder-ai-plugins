@@ -55,8 +55,8 @@ test('package ships human usage and configuration guides beside the short Agent 
     assert.ok(chinese.includes(heading), `Chinese README is missing ${heading}`);
   }
   for (const guide of [chinese, readme]) {
-    assert.doesNotMatch(guide, /^## (?:安装权限|Install permissions|Install consent|Exposed capabilit(?:y|ies))$/mu);
-    assert.doesNotMatch(guide, /^\|\s*(?:权限|Capability)\s*\|/mu);
+
+
     assert.doesNotMatch(guide, /`(?:plugin\.config\.read|secret\.read)`/u);
   }
   assert.match(readme, /^# Video Analysis\n/m);

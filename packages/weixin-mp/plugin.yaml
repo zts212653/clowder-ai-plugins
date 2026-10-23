@@ -1,5 +1,5 @@
 pluginId: official.weixin-mp
-version: 0.1.0-alpha.5
+version: 0.1.0-alpha.6
 contractVersion: 0.1.0
 name: WeChat Official Account
 description:
@@ -40,9 +40,6 @@ features:
         id: weixin-mp-limb
       - type: skill
         id: weixin-mp-skill
-    capabilities:
-      - plugin.config.read
-      - secret.read
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

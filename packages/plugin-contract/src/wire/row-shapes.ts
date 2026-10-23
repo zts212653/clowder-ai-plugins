@@ -13,7 +13,6 @@
 import type {
   AppendElementsRequest,
   AppendReceipt,
-  Capability,
   M0CAckInput,
   M0CAckResult,
   PluginDeliveryInput,
@@ -34,7 +33,6 @@ import type {
   MessageDraft,
   SendReceipt,
 } from '../generated/contract.generated.js';
-import type { GrantSnapshot } from './grants.js';
 import type {
   BrokerReadyParams,
   CandidateHello,
@@ -126,33 +124,6 @@ export const ACK_TOKEN_MAX_LENGTH = 512 as const;
  * 6 * 512 + 2 quotes = 3074 bytes.
  */
 export const ACK_TOKEN_MAX_ENCODED_BYTES = 3074 as const;
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Row 10 — host.grants.changed (CLOSED leaf shape, NOTIFICATION)
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Row 10 input: grant-change notification payload.
- *
- * This is a NOTIFICATION (no id, no response). In v0, row 10 is the
- * only legal notification — all other rows are request/response.
- *
- * The input shape is the GrantSnapshot defined in grants.ts:
- *   { grantRevision: WireUInt53, effectiveGrants: Capability[] 0..17 }
- *
- * additionalProperties: false. CLOSED.
- */
-
-
-/**
- * Runtime key set mirror of {@link GrantsChangedInput} (= GrantSnapshot).
- * additionalProperties: false — { grantRevision, effectiveGrants }.
- */
-
-
-// Re-export GrantSnapshot for downstream convenience — consumers of
-// row shapes should not need to import grants.ts separately.
-export type { GrantSnapshot } from './grants.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Row 11 — host.lifecycle.ping (CLOSED leaf shape)

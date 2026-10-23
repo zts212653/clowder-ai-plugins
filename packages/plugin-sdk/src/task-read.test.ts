@@ -51,7 +51,7 @@ test('Task read exposes only the typed current data-controller projection and im
           pluginInstanceId: 'pi-current',
           moduleRef: 'plugin:official.collective-connector',
           lifecycleRevision: 8,
-          grantRevision: 3,
+
           ownerOperationReceiptRef: `task-data-controller:${'a'.repeat(64)}`,
         },
         receipts: [{ private: 'not projected' }],
@@ -103,7 +103,7 @@ test('Task controller mutation results share the read projection and reject mism
       authorityRef:'message:admission'},dataController:{bindingRevision:1,state:'active',currentForCaller:true,binding:{
         userId:'owner',catId:'cat',threadId:'thread',subjectKey:'entrusted:legacy',firstSourceRef:'message:first',
         admissionAuthorityRef:'message:admission',pluginId:'official.collective-connector',pluginInstanceId:'pi-current',
-        moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,grantRevision:3,
+        moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,
         ownerOperationReceiptRef:bindReceipt},receipts:[{private:'not projected'}]}}};
   const projected=projectTaskDataControllerMutationResult({disposition:'bound',receiptRef:bindReceipt,
     bindingRevision:1,task,privateHostReceiptHistory:['hidden']});

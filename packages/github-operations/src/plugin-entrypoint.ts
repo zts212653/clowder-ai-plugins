@@ -43,8 +43,7 @@ export interface GitHubPluginOptions {
 }
 
 async function activate(context: FeatureContext, options: GitHubPluginOptions) {
-  // Host get() currently requires content access even for summaries. Package-owned
-  // Community mappings need only an owner-visible metadata lookup.
+  // Package-owned Community mappings use owner-visible summaries only.
   const threads = context.threads;
   context = { ...context, threads: { ...threads, get: id => findThreadMetadata(threads, id) } };
   const connectionSettings = createGitHubSettings(context, options.settingsExecFileAsync);

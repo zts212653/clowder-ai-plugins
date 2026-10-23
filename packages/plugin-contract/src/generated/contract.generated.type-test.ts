@@ -161,7 +161,7 @@ const staticOnlyManifest: PluginManifest = {
   version: '1.0.0',
   contractVersion: '0.1.0-beta.18',
   name: 'Static package',
-  features: [{ id: 'static', name: 'Static', resources: [], capabilities: [] }],
+  features: [{ id: 'static', name: 'Static', resources: [], }],
 };
 
 const svgIcon: PackageIcon = {
@@ -287,7 +287,7 @@ void [
   invalidSendBehaviorCase,
 ];
 
-// Original connector UI metadata is additive and separate from capabilities.
+// Original connector UI metadata is additive.
 const originalConnectorMetadata: Pick<import('./contract.generated.js').PluginManifest, 'permissions' | 'steps'> = {
   permissions: { label: '飞书' }, steps: [{ text: 'Webhook', mode: 'webhook' }, { text: 'Configure' }],
 };

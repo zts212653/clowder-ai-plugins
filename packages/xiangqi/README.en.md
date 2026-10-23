@@ -29,6 +29,6 @@ Normal shutdown/restart retains games and rechecks the original conversation, ca
 
 ## Maintenance and validation
 
-Source version `0.1.0-alpha.2` consumes public SDK `0.2.0-beta.21` / Contract `0.1.0-beta.37`. Source presence does not establish publication or catalog availability. See the PR for exact artifacts, tests and Host acceptance.
+Source version `0.1.0-alpha.3` consumes public SDK `0.3.0-beta.1` / Contract `0.3.0`. Source presence does not establish publication or catalog availability. See the PR for exact artifacts, tests and Host acceptance.
 
 Workspace commands: `pnpm --filter @clowder-ai/xiangqi test`, `test:browser`, `lint`, and `build`. Only explicit enablement starts the game process; discovery and installation do not start a game.

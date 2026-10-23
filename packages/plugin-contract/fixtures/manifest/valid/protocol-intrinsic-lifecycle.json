@@ -8,9 +8,7 @@
     {
       "id": "lifecycle-baseline",
       "name": "Lifecycle baseline",
-      "resources": [],
-      "capabilities": []
-    }
+      "resources": []}
   ],
   "runtime": {
     "transport": "builtin"

@@ -49,7 +49,7 @@ function harness(options:{activeBeforeReceipt?:boolean;foreign?:boolean;previous
     pluginId:foreign?'foreign.plugin':'official.collective-connector',pluginInstanceId:foreign?'foreign':
       options.previousInstance&&!currentForCaller?'previous-instance':'installed',
     moduleRef:foreign?'plugin:foreign.plugin':'plugin:official.collective-connector',
-    lifecycleRevision:currentForCaller?8:7,grantRevision:currentForCaller?3:2,ownerOperationReceiptRef:ref}});
+    lifecycleRevision:currentForCaller?8:7,ownerOperationReceiptRef:ref}});
   if(options.activeBeforeReceipt) currentTask={...currentTask,entrustedWork:{...currentTask.entrustedWork!,revision:4,
     dataController:active(options.foreign,1,!options.stale&&!options.foreign&&!options.previousInstance)}};
   if(options.rebindAfterCrash)currentTask={...currentTask,entrustedWork:{...currentTask.entrustedWork!,revision:5,

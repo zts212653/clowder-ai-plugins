@@ -137,7 +137,7 @@ export class CommunityRuntime {
   register(input: UpsertRepoConfigInput): Promise<unknown> {
     return this.serialize(async () => {
       if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(input.repo) || !input.guardCatId?.trim()) throw new TypeError('repo and notification cat are required');
-      // Host bind checks existence/deleted/access under the declared write grant.
+      // Host checks destination existence and access.
       // No thread content is needed to authorize this notification destination.
       if (!await this.context.threads.get(input.guardThreadId)) throw new Error('Repository guard thread unavailable');
       await restoreLegacyRepositoryProgress(input.repo, this.context.storage, this.lifetime.signal);

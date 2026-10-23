@@ -293,7 +293,7 @@ jobs:
         with:
           package-directory: packages/plugin-contract
           npm-token: ${{ secrets.NPM_TOKEN }}
-          allowed-stable-version: '0.2.0'
+          allowed-stable-version: '0.3.0'
 
       - name: Publish SDK prerelease
         uses: ./.github/actions/publish-prerelease

@@ -31,19 +31,19 @@ Host 文档拥有其实现与验收条件，不复制一套公共 schema。
    execution lease，不能退化为共享的 plugin-level authority；
 5. 在重启后恢复正确状态，并在禁用或卸载时完整撤销注册、停止执行和按声明
    保留或清理数据；
-6. 第一方与第三方插件走同一 SDK、Broker、grant、trace、ledger 和生命周期路径；
+6. 第一方与第三方插件走同一 SDK、Broker、trace、ledger 和生命周期路径；
 7. GitHub、IM、voice/service 等业务实现、thread routing 与外部回推都在插件侧；Host 中没有
    provider-specific factory/router/handler，Hub 普通消息入口与 SDK 消息写入共享一个
    canonical admission。
 8. Console 与 Agent 只投影同一份 Host inventory：catalog 真相源属于插件仓，已安装 artifact、
-   config/auth/intent/live 状态与 grants 属于本机 Host；插件或 Agent 不维护第二份 inventory。
+   config/auth/intent/live 状态属于本机 Host；插件或 Agent 不维护第二份 inventory。
 
 达到以上八条，才算“基础底座完成”。某个 package 发布、某组 wire row ready、
 Host merge 或 loopback 单测通过，都不能单独替代该完成线。
 
 ## Host 与插件的分工
 
-Host 拥有 Plugin Manager、安装 inventory、制品信任／摘要、配置与凭据、grants、普通资源权限、
+Host 拥有 Plugin Manager、安装 inventory、制品信任／摘要、配置与凭据、普通资源权限、
 消息 admission、调度、分型 resource registry、载体监督和持久化。
 Console 与 Agent 管理同一份 inventory，不维护第二安装状态。
 
@@ -72,9 +72,9 @@ Plugins 提供可复现的准确制品，Host 消费同一字节完成安装、�
 
 ## 必须保持的不变量
 
-- Contract 是 schema、生成类型、capability 表与 conformance 的单一机器真相；SDK 与 Host 消费同一份。
+- Contract 是 schema、生成类型、双向协议与 conformance 的单一机器真相；SDK 与 Host 消费同一份。
 - 公开 surface 与三部分接口基线一致；新增能力同步实现、类型、真实消费者和文档，不维护平行公共入口。
-- 每次 effect 绑定 Host 注入的实例／feature／实际 activation 与 grants；撤销后旧 client 不因 sibling 存活而继续执行。
+- 每次 effect 绑定 Host 注入的实例／feature／实际 activation 与调用上下文；撤销后旧 client 不因 sibling 存活而继续执行。
 - 消息的 actor/source 从 Host context 与 identity registry 派生；业务 metadata 不升级权限。
 - 每个迁移项的配置、凭据、消息、映射与业务 cursor 有清楚归属及恢复策略；用户数据默认持久保留，清除需显式选择。
 - 一个能力只有一条实际业务执行路径；失败、停用、卸载与回滚均不得产生双跑。

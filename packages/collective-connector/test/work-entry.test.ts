@@ -26,14 +26,13 @@ test('production Work module owns one private MCP and rejects untrusted calls be
     const work = manifest.features.find((feature: {id: string}) => feature.id === 'collective-work');
     assert.ok(work, 'Work must enter through an owned production feature');
     const taskMcp = manifest.contributions.filter((contribution: {type: string; id: string}) =>
-      contribution.type === 'mcp' && manifest.features.some((feature: {capabilities: string[]; contributions: {type: string; id: string}[]}) =>
-        feature.capabilities.includes('task.admitEntrusted') && feature.contributions.some(ref => ref.type === 'mcp' && ref.id === contribution.id)));
+      contribution.type === 'mcp' && work.contributions.some((ref: {type: string; id: string}) =>
+        ref.type === 'mcp' && ref.id === contribution.id));
     assert.equal(taskMcp.length, 1);
     assert.equal(taskMcp[0].id, 'collective-work-native');
     assert.deepEqual(taskMcp[0].actions.map((action: {method: string}) => action.method).sort(),
       ['collective.work.context.current', 'collective.work.context.read', 'collective.work.progress',
         'collective.work.artifact.read', 'collective.work.artifact.command', 'collective.work.artifact.register', 'collective.work.reply.submit'].sort());
-    assert.equal(manifest.features.find((feature: {id: string}) => feature.id === 'collective-backend').capabilities.includes('task.admitEntrusted'), false);
     for (const method of taskMcp[0].actions.map((action: {method: string}) => action.method)) {
       assert.equal(typeof active.actions[method], 'function');
       await assert.rejects(() => Promise.resolve(active.actions[method]!({})));

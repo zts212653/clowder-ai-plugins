@@ -11,14 +11,13 @@ export interface PluginTaskDataControllerBinding {
   readonly pluginInstanceId: string;
   readonly moduleRef: string;
   readonly lifecycleRevision: number;
-  readonly grantRevision: number;
   readonly ownerOperationReceiptRef: string;
 }
 
 export interface PluginTaskDataControllerSummary {
   readonly bindingRevision: number;
   readonly state: 'active' | 'revoked';
-  /** Live Host fence for this exact installation/lifecycle/grant; not persisted authority. */
+  /** Live Host fence for this exact installation/lifecycle; not persisted authority. */
   readonly currentForCaller: boolean;
   readonly binding: PluginTaskDataControllerBinding;
   readonly revocationReceiptRef?: string;

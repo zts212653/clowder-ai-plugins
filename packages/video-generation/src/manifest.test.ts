@@ -29,7 +29,7 @@ test('manifest and package metadata remain one exact package truth', async () =>
   assert.doesNotMatch(icon, /<script\b|<foreignObject\b|\bon[a-z]+\s*=|(?:href|src)\s*=\s*["']https?:/i);
 });
 
-test('manifest keeps provider credentials behind config/secret capabilities', async () => {
+test('manifest keeps provider credentials in config and secret fields', async () => {
   const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8')) as {
     contributions: Array<Record<string, unknown>>;
     features: Array<Record<string, unknown>>;
@@ -39,5 +39,4 @@ test('manifest keeps provider credentials behind config/secret capabilities', as
   for (const key of ['VIDEO_GEN_API_KEY', 'VIDEO_GEN_ACCESS_KEY', 'VIDEO_GEN_SECRET_KEY']) {
     assert.equal(contribution.environment[key]?.source, 'secret');
   }
-  assert.deepEqual(manifest.features[0]?.capabilities, ['plugin.config.read', 'secret.read']);
 });

@@ -7,8 +7,7 @@
     {
       "id": "echo",
       "name": "Schema-neutral echo",
-      "resources": [],
-      "capabilities": ["onMessage"]
+      "resources": []
     }
   ],
   "runtime": {

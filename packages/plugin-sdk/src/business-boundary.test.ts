@@ -4,8 +4,8 @@ import * as sdk from './index.js';
 import { createFeatureContextSession, type FeatureBinding, type FeatureHostAdapter } from './feature-context.js';
 
 const binding = {pluginInstanceId:'instance', pluginId:'dev.boundary', featureId:'main', packageRevision:'1',
-  integrityEpoch:0, activationRevision:0, grantRevision:0, executionLease:'lease', dataPath:'/isolated/instance',
-  grantedCapabilities:[]} as FeatureBinding;
+  integrityEpoch:0, activationRevision:0,  executionLease:'lease', dataPath:'/isolated/instance',
+  } as FeatureBinding;
 
 test('Host client does not expose plugin business policy or a Host-owned local server', async () => {
   const adapter = Object.fromEntries(['custody','deployment','frustration','browserServices'].map(key => [key, {}]));

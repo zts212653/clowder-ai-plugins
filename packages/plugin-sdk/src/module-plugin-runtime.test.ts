@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   definePlugin,
   FeatureContextRevokedError,
-  FeaturePermissionError,
   type FeatureContext,
 } from './feature-context.js';
 import { definePluginModule } from './module-plugin.js';
@@ -45,15 +44,7 @@ function manifest() {
           { type: 'message-subscription', id: 'outbound' },
           { type: 'tool', id: 'echo' },
         ],
-        capabilities: [
-          'messaging.send',
-          'message.event.subscribe',
-          'thread.write',
-          'plugin.state.get',
-          'plugin.state.set',
-          'task.read',
-          'task.write',
-        ],
+
       },
     ],
     runtime: { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' },
@@ -163,7 +154,6 @@ test('beta.24 rows, confirm, and cloud-conversation-host cross the real module c
   candidate.features[0]!.contributions.push(
     { type: 'cloud-conversation-host', id: cloudHost.id } as never,
   );
-  candidate.features[0]!.capabilities.push('cloud.conversation.host' as never);
 
   const entrypoint = definePluginModule((input) => definePlugin({
     manifest: input,
@@ -344,7 +334,7 @@ test('module entrypoint rejects a static-only manifest before start', () => {
     contributions: [{ type: 'skill', id: 'docs', path: 'skills/docs' }],
     features: [{
       id: 'feature-1', name: 'Feature one', resources: [],
-      contributions: [{ type: 'skill', id: 'docs' }], capabilities: [],
+      contributions: [{ type: 'skill', id: 'docs' }],
     }],
   };
   const entrypoint = definePluginModule((candidate) => definePlugin({ manifest: candidate }));
@@ -414,7 +404,7 @@ test('top-level callbacks are required once across a multi-feature module', asyn
   }];
   candidate.test = { action: { method: 'self.test' } };
   candidate.features.push({
-    id: 'aux', name: 'Auxiliary', resources: [], contributions: [], capabilities: [],
+    id: 'aux', name: 'Auxiliary', resources: [], contributions: [],
   } as never);
 
   const featureActions = {
@@ -516,7 +506,7 @@ test('limb handlers pass through while duplicate callback and limb names fail cl
   } as never);
   candidate.features.push({
     id: 'feature-2', name: 'Feature two', resources: [],
-    contributions: [{ type: 'tool', id: 'second-tool' }], capabilities: [],
+    contributions: [{ type: 'tool', id: 'second-tool' }],
   } as never);
   const collision = definePluginModule((input) => definePlugin({
     manifest: input,
@@ -663,7 +653,7 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('actual compiled Host rich wait c
     waitOutcome: { ...publicWait.waitOutcome, ownerFence: { ...publicWait.waitOutcome.ownerFence, source: 'private-fence' } } } };
   const taskHost: ModulePluginHostShape['tasks'] = createPluginTaskHost({ pluginId: 'dev.clowder.module-fixture',
     ownerUserId: 'owner', readThreadStore: { async get(id: string) { return { id, createdBy: 'owner' }; } },
-    effectiveGrants: ['task.read'], taskStore: { async get() { return raw; }, async getBySubject() { return raw; },
+     taskStore: { async get() { return raw; }, async getBySubject() { return raw; },
       async listByThread() { return [raw]; }, async listByKind() { return [raw]; } } });
   const { context, activation } = await taskReadFixture(undefined, taskHost);
   try {
@@ -693,10 +683,10 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('actual compiled Host controller 
       const result=transitionEntrustedTaskDataController(structuredClone(raw),input);
       if(result.kind==='bound'||result.kind==='revoked')raw=structuredClone(result.task);return result;}};
   const controller={pluginId:'official.collective-connector',pluginInstanceId:'installed-module-fixture',
-    moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,grantRevision:3,
-    effectiveGrants:['task.read','task.write','task.admitEntrusted']};
+    moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,
+    };
   const taskHost:ModulePluginHostShape['tasks']=createPluginTaskHost({pluginId:controller.pluginId,
-    pluginInstanceId:controller.pluginInstanceId,ownerUserId:'owner',effectiveGrants:controller.effectiveGrants,
+    pluginInstanceId:controller.pluginInstanceId,ownerUserId:'owner',
     taskStore,readThreadStore:{async get(id:string){return{id,createdBy:'owner',participants:['cat']};}},
     admission:{messageStore:{async getById(id:string){return id==='admission'?{id:'admission',userId:'owner',
       threadId:'private',catId:null,from:{kind:'user',userId:'owner'},content:'Host admission receipt',mentions:[],

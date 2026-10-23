@@ -89,9 +89,6 @@ import {
   LIFECYCLE_ROW_ENCODED_BYTE_BOUNDS,
   MESSAGING_ROW_ENCODED_BYTE_BOUNDS,
   // Grants
-  MAX_GRANT_ITEMS,
-  VALID_CAPABILITIES,
-  validateEffectiveGrants,
   // Registry
   WIRE_METHOD_NAMES,
   WIRE_METHOD_REGISTRY,
@@ -265,28 +262,28 @@ test('reject-reason taxonomies are frozen', () => {
 // §5 Disposition table regression locks
 // ═══════════════════════════════════════════════════════════════════════════
 
-test('disposition table has exactly 13 classes T-A through T-M', () => {
-  assert.equal(DISPOSITION_CLASSES.length, 13);
+test('disposition table has exactly 12 classes T-A through T-M', () => {
+  assert.equal(DISPOSITION_CLASSES.length, 12);
   assert.equal(DISPOSITION_CLASSES[0], 'T-A');
-  assert.equal(DISPOSITION_CLASSES[12], 'T-M');
-  assert.equal(Object.keys(DISPOSITION_TABLE).length, 13);
+  assert.equal(DISPOSITION_CLASSES[11], 'T-M');
+  assert.equal(Object.keys(DISPOSITION_TABLE).length, 12);
 });
 
 test('disposition subsets partition correctly', () => {
   assert.equal(CLOSE_CLASSES.length, 6, '6 close classes');
   assert.equal(RESPOND_CLASSES.length, 4, '4 respond classes');
-  assert.equal(ACCEPT_CLASSES.length, 3, '3 accept classes');
+  assert.equal(ACCEPT_CLASSES.length, 2, '2 accept classes');
   assert.equal(
     CLOSE_CLASSES.length + RESPOND_CLASSES.length + ACCEPT_CLASSES.length,
-    13,
-    'subsets cover all 13',
+    12,
+    'subsets cover all 12',
   );
 });
 
 test('every disposition class appears in exactly one subset', () => {
   const allInSubsets = [...CLOSE_CLASSES, ...RESPOND_CLASSES, ...ACCEPT_CLASSES];
   const unique = new Set(allInSubsets);
-  assert.equal(unique.size, 13, 'no duplicates');
+  assert.equal(unique.size, 12, 'no duplicates');
   for (const cls of DISPOSITION_CLASSES) {
     assert.ok(unique.has(cls), `${cls} must appear in exactly one subset`);
   }
@@ -310,7 +307,7 @@ test('canonical examples for T-C through T-M are valid JSON', () => {
   // T-A is not valid UTF-8, T-B is not valid JSON -- both intentionally.
   // All others (T-C through T-M) must parse as valid JSON.
   const jsonClasses: (typeof DISPOSITION_CLASSES)[number][] = [
-    'T-C', 'T-D', 'T-E', 'T-F', 'T-G', 'T-H', 'T-I', 'T-J', 'T-K', 'T-L', 'T-M',
+    'T-C', 'T-D', 'T-E', 'T-F', 'T-G', 'T-H', 'T-I', 'T-K', 'T-L', 'T-M',
   ];
   for (const cls of jsonClasses) {
     const entry = DISPOSITION_TABLE[cls];
@@ -463,20 +460,20 @@ test('beta.8 closes H1/H3/H4/H5/H6 bounded grammars', () => {
   };
   assert.ok(validateCandidateHello(hello));
   assert.equal(validateCandidateHello({ ...hello, pluginInstanceId: 'injected' }), false);
-  for (const field of ['pluginInstanceId', 'brokerSessionId', 'grantRevision', 'effectiveGrants']) {
+  for (const field of ['pluginInstanceId', 'brokerSessionId']) {
     assert.ok(hasHandshakeAuthorityInjection({ ...hello, [field]: 'injected' }));
     assert.ok(hasHandshakeAuthorityInjection({ bindingNonce: 'nonce-1', [field]: 'injected' }));
   }
   assert.equal(hasHandshakeAuthorityInjection(hello), false);
   assert.equal(hasHandshakeAuthorityInjection({ bindingNonce: 'nonce-1' }), false);
   assert.ok(validateBrokerReadyParams({ bindingNonce: 'nonce-1' }));
-  assert.equal(validateBrokerReadyParams({ bindingNonce: 'nonce-1', grantRevision: 1 }), false);
+  assert.equal(validateBrokerReadyParams({ bindingNonce: 'nonce-1', extra: true }), false);
   assert.ok(validateSessionBinding({
     ...hello,
     pluginInstanceId: 'instance-1',
     brokerSessionId: 'session-1',
-    grantRevision: 0,
-    effectiveGrants: [],
+
+
     bindingNonce: 'nonce-1',
   }));
 });
@@ -484,7 +481,6 @@ test('beta.8 closes H1/H3/H4/H5/H6 bounded grammars', () => {
 test('beta.8 exact-validation evidence covers every H field boundary and type', () => {
   const digest = `sha512-${'A'.repeat(86)}==`;
   const maxVersion = `0.0.0-${'a'.repeat(HANDSHAKE_VERSION_MAX_LENGTH - 6)}`;
-  const maxGrants = [...VALID_CAPABILITIES].slice(0, MAX_GRANT_ITEMS);
   const binding = {
     pluginId: 'a',
     packageDigest: digest,
@@ -492,8 +488,8 @@ test('beta.8 exact-validation evidence covers every H field boundary and type', 
     wireVersion: '0.0.0',
     pluginInstanceId: 'a',
     brokerSessionId: 'a',
-    grantRevision: 0,
-    effectiveGrants: [],
+
+
     bindingNonce: 'a',
   };
 
@@ -528,24 +524,6 @@ test('beta.8 exact-validation evidence covers every H field boundary and type', 
     assert.equal(validateIdentifier(1), false);
   }
 
-  // H7/H8 are closed SessionBinding values, including their numeric and set bounds.
-  assert.ok(validateSessionBinding({ ...binding, grantRevision: 0 }));
-  assert.ok(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX }));
-  assert.equal(validateSessionBinding({ ...binding, grantRevision: -1 }), false);
-  assert.equal(validateSessionBinding({ ...binding, grantRevision: WIRE_UINT53_MAX + 1 }), false);
-  assert.equal(validateSessionBinding({ ...binding, grantRevision: '0' }), false);
-  assert.ok(validateSessionBinding({ ...binding, effectiveGrants: [] }));
-  assert.equal(maxGrants.length, Math.min(VALID_CAPABILITIES.size, MAX_GRANT_ITEMS));
-  assert.ok(validateSessionBinding({ ...binding, effectiveGrants: maxGrants }));
-  assert.equal(
-    validateSessionBinding({
-      ...binding,
-      effectiveGrants: Array.from({ length: MAX_GRANT_ITEMS + 1 }, () => 'messaging.send'),
-    }),
-    false,
-  );
-  assert.equal(validateSessionBinding({ ...binding, effectiveGrants: 'messaging.send' }), false);
-
   // H9 is the activation nonce and follows the same code-point rule as H5/H6.
   assert.ok(validateBindingNonce('a'));
   assert.ok(validateBindingNonce('😀'.repeat(BINDING_NONCE_MAX_LENGTH)));
@@ -567,8 +545,8 @@ test('beta.8 raw UTF-8 proofs bind maximum and rejected N+1 handshake values', (
     ...hello,
     pluginInstanceId: 'instance-1',
     brokerSessionId: 'session-1',
-    grantRevision: 0,
-    effectiveGrants: [],
+
+
     bindingNonce: 'nonce-1',
   };
 
@@ -626,50 +604,6 @@ test('validateBindingNonce boundary cases', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// §7 Grant snapshot regression locks
-// ═══════════════════════════════════════════════════════════════════════════
-
-test('MAX_GRANT_ITEMS is frozen at the complete v0 capability cardinality', () => {
-  assert.equal(MAX_GRANT_ITEMS, 28);
-});
-
-test('validateEffectiveGrants accepts valid arrays', () => {
-  assert.ok(validateEffectiveGrants([]), 'empty');
-  assert.ok(validateEffectiveGrants(['messaging.send']), 'single');
-  assert.ok(validateEffectiveGrants(['messaging.send', 'onMessage']), 'two distinct');
-});
-
-test('validateEffectiveGrants rejects invalid arrays', () => {
-  assert.equal(
-    validateEffectiveGrants(['messaging.send', 'messaging.send']),
-    false,
-    'duplicates',
-  );
-  // One beyond the current closed capability cardinality
-  const tooMany = Array.from({ length: MAX_GRANT_ITEMS + 1 }, (_, i) => `cap-${i}`);
-  assert.equal(validateEffectiveGrants(tooMany), false, 'too many');
-});
-
-test('validateEffectiveGrants rejects unknown capabilities (FC-52-4: fail-closed)', () => {
-  // Non-existent capability — must be rejected, not silently accepted
-  assert.equal(
-    validateEffectiveGrants(['not.a.capability']),
-    false,
-    'unknown capability must fail closed',
-  );
-  assert.equal(
-    validateEffectiveGrants(['messaging.send', 'not.a.capability']),
-    false,
-    'valid + unknown must fail closed',
-  );
-  assert.equal(
-    validateEffectiveGrants(['MESSAGING.SEND']),
-    false,
-    'case-sensitive: wrong case must fail closed',
-  );
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
 // §8 Registry regression locks
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -701,12 +635,6 @@ test('current standalone registry contains exactly the implemented methods', () 
     const row = WIRE_METHOD_REGISTRY[method];
     assert.deepEqual({ maxEncodedRequestBytes:row.maxEncodedRequestBytes,maxEncodedResultBytes:row.maxEncodedResultBytes,maxEncodedErrorBytes:row.maxEncodedErrorBytes }, MESSAGING_ROW_ENCODED_BYTE_BOUNDS[method]);
   }
-});
-test('stdio directions have no grant or drain notification callbacks', () => {
-  assert.equal(PLUGIN_TO_HOST_METHODS.length,9);
-  assert.deepEqual([...HOST_TO_PLUGIN_METHODS], ['host.messaging.deliver','host.lifecycle.ping']);
-  assert.deepEqual([...NOTIFICATION_METHODS], []);
-  for(const removed of ['host.grants.changed','host.lifecycle.drain','events.publish','media.read','host.messaging.lifecycle']) assert.equal(isWireMethod(removed),false);
 });
 
 test('getRegistryRow returns row or undefined', () => {

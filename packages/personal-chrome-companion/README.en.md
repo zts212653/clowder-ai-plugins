@@ -126,4 +126,4 @@ Reading or revoking existing conversation authorizations is independent of runti
 enablement and uses the same data directory. These settings operations do not
 install a helper, copy extension files or register a conversation runtime.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

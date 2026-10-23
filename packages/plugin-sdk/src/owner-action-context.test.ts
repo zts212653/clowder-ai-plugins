@@ -12,7 +12,7 @@ const manifest = {
     { id: 'resume', label: 'Resume', render: 'button', action: { method: 'test.resume' } },
     { id: 'outbound', label: 'Outbound', render: 'button', action: { method: 'test.outbound' } },
   ] }],
-  features: [{ id: 'main', name: 'Main', resources: [], capabilities: [], contributions: [
+  features: [{ id: 'main', name: 'Main', resources: [],  contributions: [
     { type: 'message-subscription', id: 'outbound' },
   ] }],
   contributions: [

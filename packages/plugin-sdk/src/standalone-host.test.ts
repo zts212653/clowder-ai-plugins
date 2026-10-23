@@ -22,7 +22,7 @@ const validManifest = {
       id: 'loopback',
       name: 'Loopback',
       resources: [],
-      capabilities: [],
+
     },
   ],
   runtime: { transport: 'stdio', entrypoint: 'dist/index.js' },
@@ -109,7 +109,7 @@ test('fails closed on an invalid manifest before attaching a stdio transport', (
     features: [
       {
         ...validManifest.features[0],
-        capabilities: ['plugin.capability.that-does-not-exist'],
+        id: '',
       },
     ],
   };

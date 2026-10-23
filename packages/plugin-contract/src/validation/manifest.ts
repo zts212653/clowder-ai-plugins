@@ -103,6 +103,25 @@ function requiredWhenScalarType(
  * and the conformance suite share one manifest definition and Ajv policy.
  */
 export function validateManifest(value: unknown): ManifestValidationResult {
+  // Older manifests may carry the retired API list. It is not part of the parsed model.
+  if (value && typeof value === 'object' && 'features' in value && Array.isArray(value.features) && value.features.some(feature => feature && typeof feature === 'object' && 'capabilities' in feature)) {
+    value = { ...value, features: value.features.map(feature => {
+      if (!feature || typeof feature !== 'object') return feature;
+      const { capabilities: _legacy, ...declaration } = feature;
+      return declaration;
+    }) };
+  }
+  if (value && typeof value === 'object' && 'contributions' in value && Array.isArray(value.contributions)) {
+    const original = value.contributions;
+    const contributions = original.map(contribution => {
+      if (!contribution || typeof contribution !== 'object' || !contribution.when ||
+          typeof contribution.when !== 'object' || !('requiresCapabilities' in contribution.when)) return contribution;
+      const { when: originalWhen, ...declaration } = contribution;
+      const { requiresCapabilities: _legacy, ...when } = originalWhen;
+      return { ...declaration, ...(Object.keys(when).length ? { when } : {}) };
+    });
+    if (contributions.some((contribution, index) => contribution !== original[index])) value = { ...value, contributions };
+  }
   if (validateSchema(value)) {
     const manifest = value as PluginManifest;
     const declaredTypes = new Set<string>();
@@ -553,14 +572,6 @@ export function validateManifest(value: unknown): ManifestValidationResult {
           );
         }
         referenceOwners.set(key, feature.id);
-        if (reference.type === 'desktop-window' && !feature.capabilities.includes('windows.create')) {
-          return semanticError(
-            `/features/${featureIndex}/capabilities`,
-            '#/$defs/DesktopWindowContribution/windowCapabilityRequired',
-            'windowCapabilityRequired',
-            'a desktop window must be owned by a feature that requests windows.create',
-          );
-        }
       }
     }
 
@@ -613,30 +624,6 @@ export function validateManifest(value: unknown): ManifestValidationResult {
             '#/$defs/MediaSourceContribution/sameFeatureOwner',
             'sameFeatureOwner',
             'media-source binding must reference an identity owned by the same feature',
-          );
-        }
-        const feature = manifest.features.find((candidate) => candidate.id === owner);
-        if (
-          feature === undefined ||
-          !feature.capabilities.includes('plugin.state.get') ||
-          !feature.capabilities.includes('plugin.state.set')
-        ) {
-          return semanticError(
-            `/features/${manifest.features.indexOf(feature!)}/capabilities`,
-            '#/$defs/MediaSourceContribution/stateCapabilitiesRequired',
-            'stateCapabilitiesRequired',
-            'media-source requires plugin.state.get and plugin.state.set for durable PMR retention',
-          );
-        }
-      }
-      if (contribution.type === 'cloud-conversation-host') {
-        const feature = manifest.features.find((candidate) => candidate.id === owner);
-        if (feature === undefined || !feature.capabilities.includes('cloud.conversation.host')) {
-          return semanticError(
-            `/features/${manifest.features.indexOf(feature!)}/capabilities`,
-            '#/$defs/CloudConversationHostContribution/capabilityRequired',
-            'capabilityRequired',
-            'a cloud conversation host must be owned by a feature that requests cloud.conversation.host',
           );
         }
       }
