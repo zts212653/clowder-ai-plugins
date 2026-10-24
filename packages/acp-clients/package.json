@@ -1,0 +1,14 @@
+{
+  "name": "@clowder-ai/acp-clients",
+  "version": "0.1.0-beta.2",
+  "description": "通过本机 ACP client 配置快速绑定 Clowder AI 项目成员",
+  "type": "module",
+  "license": "MIT",
+  "files": ["manifest.json", "agent-provider.json", "README.md"],
+  "scripts": {
+    "build": "node --test test/package.test.mjs",
+    "test": "node --test test/package.test.mjs",
+    "typecheck": "node --test test/package.test.mjs",
+    "lint": "node --test test/package.test.mjs"
+  }
+}
