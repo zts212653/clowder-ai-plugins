@@ -12,6 +12,7 @@ import type {
   CollectiveWorkRevisionNotice,
   CollectiveWorkWakeNotice,
   CollectiveMessageAttachment,
+  CollectiveMessageQuote,
 } from '../contracts/index.js';
 
 import { CollectiveServiceError } from './errors.js';
@@ -20,6 +21,7 @@ import { requireMembership } from './identity-store.js';
 import { requireParticipant } from './participation-store.js';
 import { createStableId } from './persistence.js';
 import { validateMessageAttachments, bindMessageAttachments } from './message-attachment-authority.js';
+import { validateMessageQuotes } from './message-quote-authority.js';
 import type { MutableServiceState } from './state.js';
 
 export interface AppendEventInput {
@@ -41,6 +43,7 @@ export interface AppendEventInput {
     readonly workProgressReceipt?: CollectiveWorkProgressReceipt;
     readonly body: string;
     readonly attachments?: readonly CollectiveMessageAttachment[];
+    readonly contextAttachments?: readonly CollectiveMessageQuote[];
   };
   readonly actorScope: string;
   readonly actor: CollectiveEventEnvelope['actor'];
@@ -50,6 +53,7 @@ export interface AppendEventInput {
 export function appendEvent(state: MutableServiceState, input: AppendEventInput): CollectiveEventEnvelope {
   const events = state.events[input.coordinates.collectiveId] ?? [];
   const address = resolveEventAddress(events, input.coordinates);
+  validateMessageQuotes(state, input.coordinates);
   validateMessageAttachments(state, { collectiveId: input.coordinates.collectiveId,
     humanId: input.actor.kind === 'human' ? input.actor.humanId : input.actor.human.humanId,
     channelId: address.location.channelId, attachments: input.coordinates.attachments });
@@ -72,6 +76,7 @@ export function appendEvent(state: MutableServiceState, input: AppendEventInput)
     const matches =
       existing.body === input.coordinates.body &&
       isDeepStrictEqual(existing.attachments, input.coordinates.attachments) &&
+      isDeepStrictEqual(existing.contextAttachments, input.coordinates.contextAttachments) &&
       existing.replyToEventId === input.coordinates.replyToEventId &&
       existing.attentionRequest === input.coordinates.attentionRequest &&
       existing.workRequest === input.coordinates.workRequest &&
@@ -100,6 +105,7 @@ export function appendEvent(state: MutableServiceState, input: AppendEventInput)
     ...projectEventRelations(input.coordinates),
     body: input.coordinates.body,
     ...(input.coordinates.attachments ? { attachments: [...input.coordinates.attachments] } : {}),
+    ...(input.coordinates.contextAttachments ? { contextAttachments: [...input.coordinates.contextAttachments] } : {}),
     acceptedAt: new Date(input.now).toISOString(),
   };
   events.push(event);

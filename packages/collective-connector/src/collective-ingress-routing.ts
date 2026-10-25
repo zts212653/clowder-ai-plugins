@@ -63,10 +63,12 @@ export function ingressIdempotencyKey(event: CollectiveEventEnvelope): string {
 /** A source-only message must still tell the model what it can inspect.
  * These immutable references disclose no URL, private draft or attachment bytes. */
 export function collectivePublicSourceBody(event: CollectiveEventEnvelope): string {
-  if (!event.attachments?.length) return event.body;
+  const body = [event.body, ...(event.contextAttachments ?? []).map(quote =>
+    `[Collective public quote]\n${JSON.stringify(quote)}`)].filter(Boolean).join('\n\n');
+  if (!event.attachments?.length) return body;
   const attachments = event.attachments.map(({ attachmentId, fileName, mediaType }) =>
     JSON.stringify({ attachmentId, fileName, mediaType })).join('\n');
-  return `${event.body}${event.body ? '\n\n' : ''}[Collective public attachments: eventId=${event.eventId}]\n${attachments}\n` +
+  return `${body}${body ? '\n\n' : ''}[Collective public attachments: eventId=${event.eventId}]\n${attachments}\n` +
     'Read current context, then use cat_cafe_collective_read_context with contextRef and image={eventId,attachmentId} to inspect image pixels. Attachment references alone are not image contents.';
 }
 

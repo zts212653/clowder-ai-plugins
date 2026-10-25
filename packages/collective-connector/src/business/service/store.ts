@@ -435,7 +435,7 @@ export class CollectiveServiceStore {
     );
   }
 
-  pollEvents(endpointCredential: string, input: unknown, readerVersion = '1') {
+  pollEvents(endpointCredential: string, input: unknown, readerVersion = '2') {
     return this.#connections.pollEvents(endpointCredential, input, readerVersion);
   }
 
@@ -489,7 +489,7 @@ export class CollectiveServiceStore {
   listMembers(sessionToken: string, collectiveId: string) {
     return readMemberDirectory(this.persistence.snapshot(), sessionToken, collectiveId);
   }
-  readParticipationContext(endpointCredential: string, input: unknown, readerVersion = '1') {
+  readParticipationContext(endpointCredential: string, input: unknown, readerVersion = '2') {
     return this.#participation.readContext(endpointCredential, input, readerVersion);
   }
 

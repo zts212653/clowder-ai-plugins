@@ -5,6 +5,7 @@ import { collectiveHumanChannelCoordinatesSchema, collectiveSaveComposerDraftSch
 import { provenEventLocation } from './event-location.js';
 import { CollectiveServiceError } from './errors.js';
 import { attachmentHuman, denyAttachment, validateMessageAttachments } from './message-attachment-authority.js';
+import { validateMessageQuotes } from './message-quote-authority.js';
 import type { PersistentServiceState } from './persistence.js';
 import type { MutableServiceState, ServiceState } from './state.js';
 
@@ -40,6 +41,7 @@ export class CollectiveHumanChannelState {
       const { humanId } = attachmentHuman(state, token, input);
       requireChannel(state, input);
       validateMessageAttachments(state, { ...input, humanId, attachments: input.content.attachments });
+      validateMessageQuotes(state, { ...input, contextAttachments: input.content.contextAttachments });
       const key = draftKey(humanId, input), existing = state.composerDrafts[key];
       if (existing?.clientOperationId === input.clientOperationId) {
         if (!isDeepStrictEqual(existing.content, input.content))
@@ -81,6 +83,7 @@ export function consumeSentComposerDraft(state: MutableServiceState, humanId: st
   const draft = state.composerDrafts[key];
   if (!draft || draft.revision !== input.draftReceipt.revision || draft.content.body.trim() !== event.body ||
       !isDeepStrictEqual(draft.content.attachments?.length ? draft.content.attachments : undefined, event.attachments) ||
+      !isDeepStrictEqual(draft.content.contextAttachments?.length ? draft.content.contextAttachments : undefined, event.contextAttachments) ||
       !isDeepStrictEqual(draft.content.recipient, event.recipient) ||
       (draft.content.replyToEventId ?? input.draftReceipt.rootEventId) !== event.replyToEventId ||
       Boolean(draft.content.entrust) !== Boolean(event.workRequest) || Boolean(draft.content.responseRequested) !== Boolean(event.attentionRequest)) return;

@@ -114,7 +114,7 @@ export class CollectiveParticipationStore {
       });
   }
 
-  readContext(endpointCredential: string, unsafeInput: unknown, readerVersion = '1') {
+  readContext(endpointCredential: string, unsafeInput: unknown, readerVersion = '2') {
     const input = contextRequest.parse(unsafeInput);
     const state = this.persistence.snapshot();
     const events = state.events[input.collectiveId] ?? [];

@@ -278,7 +278,7 @@ export class CollectiveConnectionEventStore {
     return projectCollectiveWorkResultEvents(state, state.events[collectiveId] ?? [], serviceOrigin);
   }
 
-  async pollEvents(endpointCredential: string, unsafeInput: unknown, readerVersion = '1') {
+  async pollEvents(endpointCredential: string, unsafeInput: unknown, readerVersion = '2') {
     const input = collectivePollRequestSchema.parse(unsafeInput);
     const initial = readPollBatch(this.persistence.snapshot(), endpointCredential, input);
     assertMessageContentReader(initial.events, readerVersion);
