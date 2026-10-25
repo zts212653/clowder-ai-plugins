@@ -2,13 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fixture } from './communication-work-custody.fixture.js';
 import type { PluginActionContext, PluginMessage, PluginOwnerOperationContext, FeatureContext } from '@clowder-ai/plugin-sdk';
+import type { CollectiveMessageAttachmentOwnerPort } from '../../contracts/message-attachment-owner.js';
 
 type PluginSourceFact = Omit<Partial<PluginMessage>,'extra'> & {extra?:unknown};
 type DeliveredCallFixture = Omit<PluginActionContext,'source'> & {originTriggerMessageId:string;source:PluginMessage & {source:NonNullable<PluginMessage['source']>}};
-export async function publicSourceFixture(options: { methods?: readonly string[]; invocationId?: string } = {}) {
+export async function publicSourceFixture(options: { methods?: readonly string[]; invocationId?: string; messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort } = {}) {
   const module = await import(process.env.PUBLIC_SOURCE_ROUTING_COMPILED === '1'
     ? '../../../../dist/collective-public-source.js' : '../../../collective-public-source.js');
-  const f = await fixture(); await f.connector.sync(f.connection.connectionId);
+  const f = await fixture({ messageAttachmentOwner: options.messageAttachmentOwner }); await f.connector.sync(f.connection.connectionId);
   const calls: unknown[] = []; let expired = false, native: DeliveredCallFixture;
   let beforeThread: (() => Promise<void>) | undefined;
   let beforeSendReturns: (() => Promise<void>) | undefined, loseSend = false;

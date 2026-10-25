@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { collectiveAttachmentScopeSchema, collectiveMessageAttachmentSchema } from '../contracts/index.js';
 import { CollectiveServiceError } from './errors.js';
 import { attachmentHuman, authorizeAttachmentRead, denyAttachment } from './message-attachment-authority.js';
+import { collectiveModelImageSchema, collectiveParticipationImageReadRequestSchema } from '../contracts/index.js';
+import { authorizeModelImageRead } from './message-model-image-authority.js';
 import type { PersistentServiceState } from './persistence.js';
 
 const uploadSchema = collectiveAttachmentScopeSchema.omit({ humanId: true, attachmentId: true }).extend({
@@ -93,6 +95,28 @@ export class CollectiveMessageAttachments {
       ...(input.range ? { range: input.range } : {}) }, { reauthorize: authorize }, signal);
     try { await authorize(); if (!isDeepStrictEqual(result.attachment, attachment)) denyAttachment(); }
     catch (error) { result.body.destroy(); throw error; }
+    return result;
+  }
+
+  async modelImage(token: string, unsafe: unknown, signal: AbortSignal) {
+    const input = collectiveParticipationImageReadRequestSchema.parse(unsafe);
+    const initial = authorizeModelImageRead(this.persistence.snapshot(), token, input);
+    const owner = this.requireOwner();
+    if (!owner.modelImage) throw new CollectiveServiceError('ATTACHMENT_OWNER_UNAVAILABLE', 'Image reading requires an updated content custodian', 503);
+    const authorize = async () => {
+      signal.throwIfAborted();
+      const fresh = authorizeModelImageRead(this.persistence.snapshot(), token, input);
+      if (fresh.membershipRevision !== initial.membershipRevision ||
+          !isDeepStrictEqual(fresh.record.attachment, initial.record.attachment)) denyAttachment();
+      return fresh.record.scope;
+    };
+    await authorize();
+    const attachment = initial.record.attachment!;
+    const result = collectiveModelImageSchema.parse(await owner.modelImage({ scope: initial.record.scope, attachment },
+      { reauthorize: authorize }, signal));
+    await authorize();
+    if (result.attachmentId !== attachment.attachmentId || result.sourceDigest !== attachment.blobDigest)
+      throw new CollectiveServiceError('ATTACHMENT_OWNER_MISMATCH', 'Image pixels do not name the requested original', 502);
     return result;
   }
   private requireOwner() {

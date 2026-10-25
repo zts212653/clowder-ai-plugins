@@ -4,12 +4,14 @@ import { join } from 'node:path';
 import { collectiveEventSourceIdentity } from '../../contracts/index.js';
 import { CollectiveServiceStore, startCollectiveServer } from '../../service/index.js';
 import { CollectiveConnector } from '../connector.js';
+import type { CollectiveMessageAttachmentOwnerPort } from '../../contracts/message-attachment-owner.js';
 
 /** Production Service and Connector; OAuth and running-Cat attestations are explicit test fixtures. */
-export async function fixture(options: { body?: string; legacyArtifactContext?: boolean } = {}) {
+export async function fixture(options: { body?: string; legacyArtifactContext?: boolean; messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'f290-work-custody-'));
   const opened = await CollectiveServiceStore.open({
     dataDirectory: join(root, 'service'),
+    messageAttachmentOwner: options.messageAttachmentOwner,
     humanAuthProvider: {
       id: 'github',
       readiness: { ready: true },

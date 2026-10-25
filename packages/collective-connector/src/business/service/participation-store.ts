@@ -119,7 +119,7 @@ export class CollectiveParticipationStore {
     const state = this.persistence.snapshot();
     const events = state.events[input.collectiveId] ?? [];
     const source = requireParticipationSource(state, endpointCredential, input);
-    const permitted = events.filter((event) => inSourceScope(event, source) && event.sequence > input.afterSequence);
+    const permitted = events.filter((event) => inParticipationSourceScope(event, source) && event.sequence > input.afterSequence);
     const page = permitted.slice(0, input.limit);
     assertMessageContentReader([source, ...page], readerVersion);
     return {
@@ -263,7 +263,7 @@ export function requireParticipant(
   return agent;
 }
 
-function inSourceScope(event: CollectiveEventEnvelope, source: CollectiveEventEnvelope): boolean {
+export function inParticipationSourceScope(event: CollectiveEventEnvelope, source: CollectiveEventEnvelope): boolean {
   if (!event.location || !source.location || event.location.channelId !== source.location.channelId) return false;
   const root = source.location.rootEventId;
   return !root || event.eventId === root || event.location.rootEventId === root;

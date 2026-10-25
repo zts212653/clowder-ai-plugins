@@ -1,20 +1,23 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { pipeline } from 'node:stream/promises';
 import { collectiveMediaResponseHeaders } from '../contracts/index.js';
-import { requireBearer, writeJson } from './http-transport.js';
+import { readJsonBody, requireBearer, writeJson } from './http-transport.js';
 import type { CollectiveServiceStore } from './store.js';
 
 /** Authenticated binary traffic avoids JSON envelopes and never puts a bearer into a media URL. */
 export async function routeMessageAttachmentHttp(store: CollectiveServiceStore, url: URL,
   request: IncomingMessage, response: ServerResponse) {
-  if (request.method !== 'POST' || !['/api/message-attachments/upload', '/api/message-attachments/read'].includes(url.pathname)) return false;
+  if (request.method !== 'POST' || !['/api/message-attachments/upload', '/api/message-attachments/read', '/api/participation/image'].includes(url.pathname)) return false;
   const token = requireBearer(request);
   const controller = new AbortController();
   const abort = () => controller.abort();
   response.once('close', abort);
   try {
     const input = Object.fromEntries(url.searchParams);
-    if (url.pathname.endsWith('/upload')) {
+    if (url.pathname === '/api/participation/image') {
+      response.setHeader('cache-control', 'no-store');
+      writeJson(response, 200, await store.readParticipationImage(token, await readJsonBody(request), controller.signal));
+    } else if (url.pathname.endsWith('/upload')) {
       writeJson(response, 201, await store.uploadMessageAttachment(token, input, request, controller.signal));
     } else {
       const result = await store.openMessageAttachment(token, { ...input,

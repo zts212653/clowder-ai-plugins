@@ -624,6 +624,13 @@ export class CollectiveConnector {
     return context;
   }
 
+  async readParticipationImage(source: CollectiveSourceIdentity, image: { eventId: string; attachmentId: string }) {
+    const { connection, credential } = requireParticipation(this.persistence.snapshot(), source);
+    const result = await this.service.readParticipationImage(connection.serviceUrl, credential, source, image);
+    requireParticipation(this.persistence.snapshot(), source);
+    return result;
+  }
+
   async readArtifactContext(source: CollectiveSourceIdentity) {
     const { connection, credential } = requireParticipation(this.persistence.snapshot(), source);
     let context: CollectiveArtifactAgentContext;

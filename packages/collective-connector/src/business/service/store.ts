@@ -170,6 +170,9 @@ export class CollectiveServiceStore {
   openMessageAttachment(...input: Parameters<CollectiveMessageAttachments['open']>) {
     return this.#messageAttachments.open(...input);
   }
+  readParticipationImage(...input: Parameters<CollectiveMessageAttachments['modelImage']>) {
+    return this.#messageAttachments.modelImage(...input);
+  }
   readArtifactManagement(sessionToken: string, input: unknown) {
     return readArtifactManagement(this.persistence.snapshot(), sessionToken, input);
   }

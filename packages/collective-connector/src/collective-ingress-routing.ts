@@ -60,13 +60,28 @@ export function ingressIdempotencyKey(event: CollectiveEventEnvelope): string {
   return `collective-ingress:${event.serviceInstanceId}:${event.collectiveId}:${event.eventId}`;
 }
 
+/** A source-only message must still tell the model what it can inspect.
+ * These immutable references disclose no URL, private draft or attachment bytes. */
+export function collectivePublicSourceBody(event: CollectiveEventEnvelope): string {
+  if (!event.attachments?.length) return event.body;
+  const attachments = event.attachments.map(({ attachmentId, fileName, mediaType }) =>
+    JSON.stringify({ attachmentId, fileName, mediaType })).join('\n');
+  return `${event.body}${event.body ? '\n\n' : ''}[Collective public attachments: eventId=${event.eventId}]\n${attachments}\n` +
+    'Read current context, then use cat_cafe_collective_read_context with contextRef and image={eventId,attachmentId} to inspect image pixels. Attachment references alone are not image contents.';
+}
+
+export function matchesCollectivePublicSourceBody(content: string, event: CollectiveEventEnvelope) {
+  // Already delivered body-only sources retain their exact historical binding after an upgrade.
+  return content === event.body || content === collectivePublicSourceBody(event);
+}
+
 /** Reconcile an earlier pending send from actual owned Host storage.
  * The receipt comes from this instance's Host send ledger; message reading
  * checks content identity only, never callback identity or execution permission. */
 export function assertSettledCollectiveSource(message: PluginMessage | null, receipt: {messageId: string; threadId: string},
   event: CollectiveEventEnvelope, source: CollectiveSourceIdentity, ownerUserId: string): void {
   if (!message || message.id !== receipt.messageId || message.threadId !== receipt.threadId || message.catId !== null ||
-    message.userId !== ownerUserId || message.content !== event.body ||
+    message.userId !== ownerUserId || !matchesCollectivePublicSourceBody(message.content, event) ||
     message.source?.connector !== 'collective' || !isDeepStrictEqual(message.source.meta, collectiveSource(event, source).meta))
     throw ingressError('ROUTE_RECEIPT_CHANGED', 'Prior Host source receipt does not match this exact Collective event');
 }

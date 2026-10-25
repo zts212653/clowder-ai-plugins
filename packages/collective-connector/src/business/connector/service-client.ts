@@ -9,6 +9,7 @@ import {
   type CollectiveWorkResultFileBindingRequest,
   type CollectiveWorkResultFileBindingResponse,
   collectiveAccountabilityAttentionReadResponseSchema,
+  collectiveModelImageSchema,
   collectiveEventEnvelopeSchema,
   collectiveEventIdSchema,
   collectiveParticipationDeclarationSchema,
@@ -348,6 +349,15 @@ export class CollectiveServiceClient {
       })
       .strict()
       .parse(payload);
+  }
+
+  async readParticipationImage(serviceUrl: string, credential: string, source: CollectiveSourceIdentity,
+    image: { eventId: string; attachmentId: string }) {
+    return collectiveModelImageSchema.parse(await this.request(serviceUrl, '/api/participation/image', {
+      method: 'POST', credential, body: { serviceInstanceId: source.serviceInstanceId, collectiveId: source.collectiveId,
+        connectionId: source.connectionId, eventId: source.eventId, catId: source.catId,
+        participationRevision: source.participationRevision, image },
+    }));
   }
 
   async revoke(

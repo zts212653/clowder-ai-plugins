@@ -4,7 +4,7 @@ import type { CollectiveConnector } from './business/connector/connector.js';
 import { collectiveEventSourceIdentity, collectiveSourceIdentitySchema } from './business/contracts/index.js';
 import { resolveMaterializedParticipation, participationError } from './business/connector/participation-custody.js';
 import { isCollectiveLocalEcho } from './business/connector/public-source-custody.js';
-import { collectiveSource, ingressIdempotencyKey, assertSettledCollectiveSource } from './collective-ingress-routing.js';
+import { collectiveSource, collectivePublicSourceBody, matchesCollectivePublicSourceBody, ingressIdempotencyKey, assertSettledCollectiveSource } from './collective-ingress-routing.js';
 
 interface PublicSourceCallerOptions {
   readonly connector: Pick<CollectiveConnector, 'listInbox' | 'getHostRoute' | 'beginInboxRouting' | 'completeInboxRouting' |
@@ -77,7 +77,7 @@ export function createCollectivePublicSourceCaller(options: PublicSourceCallerOp
           idempotencyKey: ingressIdempotencyKey(item.event), identity: 'collective', sender: projected.sender, meta: projected.meta,
           wake: { catId: source.catId },
           payload: { provenance: { origin: { kind: 'plugin', instanceId: owner.pluginInstanceId }, epistemicStatus: 'observation' },
-            elements: [{ elementId: 'collective-source', kind: 'text', payload: { text: item.event.body } }] },
+            elements: [{ elementId: 'collective-source', kind: 'text', payload: { text: collectivePublicSourceBody(item.event) } }] },
         });
         // The builtin Host can return revision/handle/publication fields beyond the
         // SDK type. Only the original message/thread pair belongs in business custody.
@@ -126,7 +126,7 @@ export function createCollectivePublicSourceCaller(options: PublicSourceCallerOp
         if (!parsed.success || parsed.data.catId !== auth.catId) throw changed();
         const source = parsed.data;
         const item = (await options.connector.listInbox(source.connectionId)).find(item => item.event.eventId === source.eventId);
-        if (!item || !isDeepStrictEqual(collectiveEventSourceIdentity(item.event), source) || fact.content !== item.event.body)
+        if (!item || !isDeepStrictEqual(collectiveEventSourceIdentity(item.event), source) || !matchesCollectivePublicSourceBody(fact.content, item.event))
           throw changed();
         await options.connector.readParticipationContext(source, 0, 1); await action.assertCurrent();
         // send(wake) can start this authenticated native invocation before send
@@ -141,7 +141,7 @@ export function createCollectivePublicSourceCaller(options: PublicSourceCallerOp
           !isActiveNativeScope(binding.native) || !binding.native.methods.includes(method) ||
           fact.userId !== auth.userId || fact.threadId !== auth.threadId || fact.catId !== null ||
           options.pluginInstanceId !== binding.pluginInstanceId || fact.source.connector !== 'collective' ||
-          !isDeepStrictEqual(fact.source.meta?.participation, binding.source) || !event || fact.content !== event.body) throw changed();
+          !isDeepStrictEqual(fact.source.meta?.participation, binding.source) || !event || !matchesCollectivePublicSourceBody(fact.content, event)) throw changed();
         await action.assertCurrent();
         options.connector.readCurrentPublicSource(messageRef);
         return { auth, source: binding.source, sourceRef: messageRef, context, binding };

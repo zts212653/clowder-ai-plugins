@@ -1,11 +1,14 @@
 import type { Readable } from 'node:stream';
 
 import type { CollectiveAttachmentScope, CollectiveMessageAttachment } from './index.js';
+import type { CollectiveModelImage } from './types/collective-model-content.js';
 
 export interface CollectiveAttachmentAuthority {
   reauthorize(): Promise<CollectiveAttachmentScope>;
 }
 export interface CollectiveMessageAttachmentOwnerPort {
+  modelImage?(input: { scope: CollectiveAttachmentScope; attachment: CollectiveMessageAttachment },
+    authority: CollectiveAttachmentAuthority, signal: AbortSignal): Promise<CollectiveModelImage>;
   retain(input: {
     scope: CollectiveAttachmentScope;
     fileName: string;

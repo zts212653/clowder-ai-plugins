@@ -5,14 +5,12 @@ import { resolveMaterializedParticipation } from './business/connector/participa
 import { collectiveContextError, type CollectiveContextReferences } from './collective-context-refs.js';
 import { continueWorkFromSource, currentWorkSourceContext, suggestProjectWorkFromSource } from './collective-work-source-context.js';
 import { collectiveArtifactCallbackCommandSchema } from './business/contracts/index.js';
-import { collectivePublicNativeTools } from './public-native-methods.js';
+import { collectiveContextReadSchema, collectivePublicNativeTools } from './public-native-methods.js';
 import { executeCollectiveArtifactCommand } from './collective-artifact-command.js';
 import type { createCollectivePublicSourceCaller } from './collective-public-source.js';
 
 // These schemas preserve ca5 callback-collective-participation-routes.ts byte semantics.
 const currentSchema = z.object({}).strict();
-const readSchema = z.object({ contextRef: z.string().min(1).max(256),
-  afterSequence: z.number().int().nonnegative().default(0), limit: z.number().int().min(1).max(100).default(30) }).strict();
 const replySchema = z.object({ returnRef: z.string().min(1).max(256), replyOperationRef: z.string().min(1).max(256),
   body: z.string().trim().min(1).max(20000) }).strict();
 const proposeSchema = z.object({ contextRef: z.string().min(1).max(256),
@@ -28,7 +26,7 @@ const continueSchema = z.object({ contextRef: z.string().min(1).max(256), workRe
 const interestSchema = z.object({ contextRef: z.string().min(1).max(256), state: z.enum(['listen', 'withdraw']) }).strict();
 interface Options {
   readonly connector: Pick<CollectiveConnector, 'prepareReply' | 'submitReply' | 'sync' | 'getHostRoute' | 'getProjection' |
-    'readParticipationContext' | 'readArtifactContext' | 'requestArtifactForAgent' | 'setStandingInterest' | 'currentWorkDecision' | 'readWorkSourceContext' | 'proposeWork' | 'acceptWork' | 'continueWork'>;
+    'readParticipationContext' | 'readParticipationImage' | 'readArtifactContext' | 'requestArtifactForAgent' | 'setStandingInterest' | 'currentWorkDecision' | 'readWorkSourceContext' | 'proposeWork' | 'acceptWork' | 'continueWork'>;
   readonly sourceCaller: Pick<ReturnType<typeof createCollectivePublicSourceCaller>, 'resolveNative'>;
   readonly references: CollectiveContextReferences;
 }
@@ -106,9 +104,10 @@ export function createCollectivePublicNativeActions(options: Options): Readonly<
         return suggestProjectWorkFromSource(connector, refs, binding.identity, binding, input, binding.revalidate);
       }),
     'collective.context.current': handler('collective.context.current', currentSchema, binding => current(binding)),
-    'collective.context.read': handler('collective.context.read', readSchema, async (binding, input) => {
+    'collective.context.read': handler('collective.context.read', collectiveContextReadSchema, async (binding, input) => {
       refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope); await binding.revalidate();
-      return connector.readParticipationContext(binding.source, input.afterSequence, input.limit);
+      if (input.image) return connector.readParticipationImage(binding.source, input.image);
+      return connector.readParticipationContext(binding.source, input.afterSequence ?? 0, input.limit ?? 30);
     }),
     'collective.participation.set-interest': handler('collective.participation.set-interest', interestSchema, async (binding, input) => {
       refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);

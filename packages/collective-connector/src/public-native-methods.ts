@@ -1,14 +1,21 @@
 import { z } from 'zod';
-import { collectiveArtifactCallbackCommandSchema } from './business/contracts/index.js';
+import { collectiveArtifactCallbackCommandSchema, collectiveContextImageSelectionSchema } from './business/contracts/index.js';
+
+export const collectiveContextReadSchema = z.object({
+  contextRef: z.string().min(1).max(256).describe('Opaque contextRef returned by current context in this invocation'),
+  afterSequence: z.number().int().nonnegative().optional().describe('Exclusive event sequence for a context page'),
+  limit: z.number().int().min(1).max(100).optional().describe('Maximum events in a context page; default 30'),
+  image: collectiveContextImageSelectionSchema.optional().describe('Read actual pixels of this published attachment instead of a context page'),
+}).strict();
 
 export const COLLECTIVE_NATIVE_ID = 'collective-native';
 export const collectivePublicNativeTools = [
   { method: 'collective.context.current', name: 'cat_cafe_collective_current_context',
-    description: 'Read the current Collective request and its reply references from this authenticated native origin.',
+    description: 'Read the current authenticated Collective request, including public attachment references and reply handles. Use when: entering a Collective conversation or refreshing its source. NOT for: private Café history or starting private Work. Output: the original public request, contextRef, and reply references; attachment references alone do not deliver image pixels. Inspect images with read context and its image selector.',
     schema: z.object({}).strict() },
   { method: 'collective.context.read', name: 'cat_cafe_collective_read_context',
-    description: 'Read bounded original Collective context using the contextRef returned by current context.',
-    schema: z.object({ contextRef: z.string().min(1).max(256), afterSequence: z.number().int().nonnegative().optional(), limit: z.number().int().min(1).max(100).optional() }).strict() },
+    description: 'Read original public Channel context or inspect a published image with the current contextRef. Use when: catching up on this conversation or seeing what an attached picture contains. NOT for: private uploads, another Channel, arbitrary URLs or Work admission. Output: a bounded event page, or a native image block plus its original digest when image={eventId,attachmentId} is supplied. Large images use a bounded view and animations show the first frame; original bytes remain unchanged. GOTCHA: image links and attachment metadata are not pixels; use the image selector before claiming to have seen a picture.',
+    schema: collectiveContextReadSchema },
   { method: 'collective.artifact.command', name: 'cat_cafe_collective_artifact_command',
     description: 'Read or propose a response to the shared artifact request in this authenticated Collective source. Humans retain apply authority.',
     schema: collectiveArtifactCallbackCommandSchema },
