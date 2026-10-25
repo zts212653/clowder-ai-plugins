@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { numberQuery, requireBearer, requiredQuery, writeJson } from './http-transport.js';
 import type { CollectiveServiceStore } from './store.js';
+import { assertMessageContentReader, messageContentVersionHeader } from './message-content-compatibility.js';
 
 /** Read APIs retain their authentication and membership checks in the canonical Store. */
 export async function routeCollectiveRead(
@@ -9,6 +10,10 @@ export async function routeCollectiveRead(
   request: IncomingMessage,
   response: ServerResponse,
 ): Promise<boolean> {
+  if (url.pathname === '/api/channel-state') {
+    writeJson(response, 200, store.readHumanChannelState(requireBearer(request), Object.fromEntries(url.searchParams)));
+    return true;
+  }
   if (url.pathname === '/api/me') {
     writeJson(response, 200, await store.getHumanProjection(requireBearer(request)));
     return true;
@@ -23,10 +28,12 @@ export async function routeCollectiveRead(
   }
   if (url.pathname === '/api/events/human') {
     const collectiveId = requiredQuery(url, 'collectiveId');
+    const events = await store.listEventsForHuman(requireBearer(request), collectiveId);
+    assertMessageContentReader(events, String(request.headers[messageContentVersionHeader] ?? 'legacy'));
     writeJson(response, 200, {
       serviceInstanceId: store.serviceInstanceId,
       collectiveId,
-      events: await store.listEventsForHuman(requireBearer(request), collectiveId),
+      events,
     });
     return true;
   }
@@ -111,7 +118,7 @@ export async function routeCollectiveRead(
         connectionId: requiredQuery(url, 'connectionId'),
         afterSequence: numberQuery(url, 'afterSequence', 0),
         limit: numberQuery(url, 'limit', 100),
-      }),
+      }, String(request.headers[messageContentVersionHeader] ?? 'legacy')),
     );
     return true;
   }

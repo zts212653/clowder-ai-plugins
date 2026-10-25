@@ -129,6 +129,9 @@ export type WorkResultFileRecord = CollectiveWorkResultFile & {
 };
 
 export interface ServiceState {
+  readonly messageAttachments: Record<string, import('./message-attachment-state.js').MessageAttachmentRecord>;
+  readonly composerDrafts: Record<string, import('zod').z.infer<typeof import('../contracts/types/collective-message-state.js').collectiveDraftRecordSchema>>;
+  readonly readPositions: Record<string, { sequence: number; eventId?: string }>;
   readonly schemaVersion: 2;
   readonly serviceInstanceId: string;
   readonly createdAt: string;

@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { maxCollectiveArtifactProposalEnvelopeBytes } from '../contracts/index.js';
 import { routeArtifactPost } from './artifact-http-routes.js';
 import { routeArtifactMediaHttp } from './artifact-media-http.js';
+import { routeMessageAttachmentHttp } from './message-attachment-http.js';
 import { routeCollaborationPost } from './collaboration-http-routes.js';
 import { CollectiveServiceError } from './errors.js';
 import type { GitHubAppManifestSetup } from './github-app-manifest-setup.js';
@@ -51,7 +52,7 @@ export function createCollectiveHttpHandler(options: CollectiveHttpHandlerOption
       if (origin && allowedOrigins.has(origin)) response.setHeader('access-control-allow-origin', origin);
       if (request.method === 'OPTIONS') {
         response.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
-        response.setHeader('access-control-allow-headers', 'authorization,content-type');
+        response.setHeader('access-control-allow-headers', 'authorization,content-type,range,x-collective-message-content');
         response.writeHead(origin && allowedOrigins.has(origin) ? 204 : 403).end();
         return;
       }
@@ -87,6 +88,7 @@ async function routeRequest(
 ): Promise<void> {
   const url = new URL(request.url ?? '/', 'http://collective.local');
   const method = request.method ?? 'GET';
+  if (await routeMessageAttachmentHttp(store, url, request, response)) return;
   if (await routeArtifactMediaHttp(store, url, request, response)) return;
   if (method === 'GET') {
     await routeGet(store, githubAppSetup, url, request, response);
@@ -199,6 +201,12 @@ async function routeIdentityPost(
   response: ServerResponse,
   body: Record<string, unknown>,
 ): Promise<boolean> {
+  if (pathname === '/api/channel-state/draft') {
+    writeJson(response, 200, await store.saveHumanChannelDraft(requireBearer(request), body)); return true;
+  }
+  if (pathname === '/api/channel-state/read') {
+    writeJson(response, 200, await store.markHumanChannelRead(requireBearer(request), body)); return true;
+  }
   if (pathname === '/api/bootstrap') {
     const result = await store.consumeBootstrap(requireFields(body, ['secret', 'displayName']));
     if (bootstrapLinkPath) await rm(bootstrapLinkPath, { force: true }).catch(() => undefined);
@@ -321,7 +329,7 @@ async function routeEventPost(
   } else if (pathname === '/api/participation') {
     writeJson(response, 200, await store.publishParticipation(requireBearer(request), body));
   } else if (pathname === '/api/participation/context') {
-    writeJson(response, 200, store.readParticipationContext(requireBearer(request), body));
+    writeJson(response, 200, store.readParticipationContext(requireBearer(request), body, String(request.headers['x-collective-message-content'] ?? 'legacy')));
   } else {
     return false;
   }

@@ -1,4 +1,7 @@
 import { access } from 'node:fs/promises';
+import type { CollectiveMessageAttachmentOwnerPort } from '../contracts/message-attachment-owner.js';
+import { CollectiveMessageAttachments } from './message-attachments.js';
+import { CollectiveHumanChannelState } from './channel-human-state.js';
 import { join } from 'node:path';
 import { readArtifactRequestReceipt } from './artifact-history.js';
 import { readArtifactManagement } from './artifact-management.js';
@@ -36,6 +39,7 @@ import {
 } from './work-result-artifact-publication.js';
 
 export interface OpenCollectiveServiceStoreOptions {
+  readonly messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort;
   readonly dataDirectory: string;
   /** Retained C2 protocol label, not evidence that this backend serves Client assets. */
   readonly clientBuildId?: string;
@@ -61,6 +65,8 @@ export class CollectiveServiceStore {
   readonly #reactions: CollectiveReactionStore;
   readonly #workPolicy: CollectiveWorkPolicyStore;
   readonly #artifacts: CollectiveArtifactStore;
+  readonly #messageAttachments: CollectiveMessageAttachments;
+  readonly #humanChannelState: CollectiveHumanChannelState;
 
   private constructor(
     private readonly persistence: PersistentServiceState,
@@ -68,6 +74,7 @@ export class CollectiveServiceStore {
     humanAuthProvider?: HumanAuthProvider,
     humanAuthRedirectUri?: string,
     private readonly clientBuildId = 'collective-client-v2',
+    messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort,
   ) {
     this.#identity = new CollectiveIdentityStore(persistence, now, humanAuthProvider, humanAuthRedirectUri);
     this.#connections = new CollectiveConnectionEventStore(persistence, now);
@@ -77,6 +84,8 @@ export class CollectiveServiceStore {
     this.#reactions = new CollectiveReactionStore(persistence, now);
     this.#workPolicy = new CollectiveWorkPolicyStore(persistence, now);
     this.#artifacts = new CollectiveArtifactStore(persistence, now);
+    this.#messageAttachments = new CollectiveMessageAttachments(persistence, now, messageAttachmentOwner);
+    this.#humanChannelState = new CollectiveHumanChannelState(persistence);
   }
 
   static async open(options: OpenCollectiveServiceStoreOptions): Promise<OpenedCollectiveServiceStore> {
@@ -86,7 +95,7 @@ export class CollectiveServiceStore {
       await access(stateFile);
       const persistence = await PersistentServiceState.load(options.dataDirectory);
       return {
-        store: new CollectiveServiceStore(persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri, options.clientBuildId),
+        store: new CollectiveServiceStore(persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri, options.clientBuildId, options.messageAttachmentOwner),
       };
     } catch (error) {
       if (error instanceof CollectiveServiceError) throw error;
@@ -118,6 +127,9 @@ export class CollectiveServiceStore {
         pairingIntents: {},
         connections: {},
         events: {},
+        messageAttachments: {},
+        composerDrafts: {},
+        readPositions: {},
         participations: {},
         works: {},
         artifacts: {},
@@ -134,7 +146,7 @@ export class CollectiveServiceStore {
       };
       const persistence = await PersistentServiceState.create(options.dataDirectory, state);
       return {
-        store: new CollectiveServiceStore(persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri, options.clientBuildId),
+        store: new CollectiveServiceStore(persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri, options.clientBuildId, options.messageAttachmentOwner),
         bootstrapSecret,
       };
     }
@@ -142,6 +154,21 @@ export class CollectiveServiceStore {
 
   updateArtifactAccess(sessionToken: string, input: unknown) {
     return this.#artifacts.access.update(sessionToken, input);
+  }
+  uploadMessageAttachment(...input: Parameters<CollectiveMessageAttachments['upload']>) {
+    return this.#messageAttachments.upload(...input);
+  }
+  readHumanChannelState(...input: Parameters<CollectiveHumanChannelState['read']>) {
+    return this.#humanChannelState.read(...input);
+  }
+  saveHumanChannelDraft(...input: Parameters<CollectiveHumanChannelState['save']>) {
+    return this.#humanChannelState.save(...input);
+  }
+  markHumanChannelRead(...input: Parameters<CollectiveHumanChannelState['markRead']>) {
+    return this.#humanChannelState.markRead(...input);
+  }
+  openMessageAttachment(...input: Parameters<CollectiveMessageAttachments['open']>) {
+    return this.#messageAttachments.open(...input);
   }
   readArtifactManagement(sessionToken: string, input: unknown) {
     return readArtifactManagement(this.persistence.snapshot(), sessionToken, input);
@@ -405,8 +432,8 @@ export class CollectiveServiceStore {
     );
   }
 
-  pollEvents(endpointCredential: string, input: unknown) {
-    return this.#connections.pollEvents(endpointCredential, input);
+  pollEvents(endpointCredential: string, input: unknown, readerVersion = '1') {
+    return this.#connections.pollEvents(endpointCredential, input, readerVersion);
   }
 
   acknowledge(endpointCredential: string, input: unknown) {
@@ -459,8 +486,8 @@ export class CollectiveServiceStore {
   listMembers(sessionToken: string, collectiveId: string) {
     return readMemberDirectory(this.persistence.snapshot(), sessionToken, collectiveId);
   }
-  readParticipationContext(endpointCredential: string, input: unknown) {
-    return this.#participation.readContext(endpointCredential, input);
+  readParticipationContext(endpointCredential: string, input: unknown, readerVersion = '1') {
+    return this.#participation.readContext(endpointCredential, input, readerVersion);
   }
 
   proposeCollectiveWork(sessionToken: string, input: unknown) {

@@ -104,6 +104,9 @@ describe('CollectiveServiceStore', () => {
     const filePath = join(directory, 'collective-service.json');
     const persisted = JSON.parse(await readFile(filePath, 'utf8')) as {
       schemaVersion: number;
+      messageAttachments?: unknown;
+      composerDrafts?: unknown;
+      readPositions?: unknown;
       humanAuthBindings?: unknown;
       humanAuthAttempts?: unknown;
       humanAuthCompletions?: unknown;
@@ -122,6 +125,9 @@ describe('CollectiveServiceStore', () => {
       connections: Record<string, Record<string, unknown>>;
     };
     persisted.schemaVersion = 1;
+    delete persisted.messageAttachments;
+    delete persisted.composerDrafts;
+    delete persisted.readPositions;
     delete persisted.humanAuthBindings;
     delete persisted.humanAuthAttempts;
     delete persisted.humanAuthCompletions;
@@ -193,6 +199,9 @@ describe('CollectiveServiceStore', () => {
       connections: Record<string, Record<string, unknown>>;
     };
     persisted.schemaVersion = 1;
+    delete persisted.messageAttachments;
+    delete persisted.composerDrafts;
+    delete persisted.readPositions;
     delete persisted.humanAuthBindings;
     delete persisted.humanAuthAttempts;
     delete persisted.humanAuthCompletions;

@@ -383,6 +383,7 @@ export class CollectiveServiceClient {
         signal: AbortSignal.timeout(this.timeoutMs),
         headers: {
           accept: 'application/json',
+          'x-collective-message-content': '1',
           ...(options.body ? { 'content-type': 'application/json' } : {}),
           ...(options.credential ? { authorization: `Bearer ${options.credential}` } : {}),
           ...options.headers,

@@ -200,6 +200,7 @@ export type CollectiveArtifactOwnerResult = {
 };
 /** Only the owner receives this capability; it contains no endpoint credential or Human bearer. */
 export interface CollectiveArtifactOwnerPort {
+    readonly attachments?: import('./collective-message-attachments.js').CollectiveMessageAttachmentOwnerPort;
     readonly media?: CollectiveArtifactMediaReadPort;
     readonly custody?: CollectiveArtifactCustodyTransferPort;
     publish?(operation: CollectiveArtifactPublicationOperation, authority: {

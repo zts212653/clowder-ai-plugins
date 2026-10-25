@@ -65,7 +65,7 @@ interface WorkBackend {
 }
 async function activateService(context: FeatureContext,
   ready: (backend: WorkBackend) => void, expectsWork: boolean,
-  artifactOwner?: import('@clowder-ai/plugin-sdk').CollectiveArtifactOwnerPort): Promise<FeatureActivation> {
+  artifactOwner?: import('@clowder-ai/plugin-sdk').CollectiveArtifactOwnerPort & { readonly attachments?: import('./business/contracts/message-attachment-owner.js').CollectiveMessageAttachmentOwnerPort }): Promise<FeatureActivation> {
   let stopped = false;
   const assertActive = () => { if (stopped) throw new Error('Collective module is stopped'); void context.dataPath; };
   const portValue = await context.config.get('servicePort');
@@ -102,6 +102,7 @@ async function activateService(context: FeatureContext,
   const githubAppSetup = await GitHubAppManifestSetup.open({ dataDirectory, provider });
   const bootstrapSecretPath = join(dataDirectory, 'owner-bootstrap.secret');
   const opened = await CollectiveServiceStore.open({ dataDirectory, humanAuthProvider: provider,
+    messageAttachmentOwner: artifactOwner?.attachments,
     clientBuildId: client.clientBuildId, humanAuthRedirectUri: origin + '/api/auth/github/callback',
     createBootstrapSecret: () => escrowBootstrapSecret(bootstrapSecretPath),
   });

@@ -25,6 +25,8 @@ import {
 } from './connection-authority.js';
 import { CollectiveServiceError } from './errors.js';
 import { appendEvent } from './event-log.js';
+import { consumeSentComposerDraft } from './channel-human-state.js';
+import { assertMessageContentReader } from './message-content-compatibility.js';
 import { requireHumanAuthBinding, requireMembership, requireSteward, resolveSession } from './identity-store.js';
 import {
   createSecret,
@@ -166,6 +168,7 @@ export class CollectiveConnectionEventStore {
         actor,
         now,
       });
+      consumeSentComposerDraft(state, auth.human.humanId, input, event);
       if (!replayed) emitHumanCommentWake(state, input, event, auth.human, now);
       return event;
     });
@@ -275,9 +278,10 @@ export class CollectiveConnectionEventStore {
     return projectCollectiveWorkResultEvents(state, state.events[collectiveId] ?? [], serviceOrigin);
   }
 
-  async pollEvents(endpointCredential: string, unsafeInput: unknown) {
+  async pollEvents(endpointCredential: string, unsafeInput: unknown, readerVersion = '1') {
     const input = collectivePollRequestSchema.parse(unsafeInput);
     const initial = readPollBatch(this.persistence.snapshot(), endpointCredential, input);
+    assertMessageContentReader(initial.events, readerVersion);
     if (initial.events.length === 0) {
       return {
         serviceInstanceId: initial.state.serviceInstanceId,
@@ -289,6 +293,7 @@ export class CollectiveConnectionEventStore {
     }
     return this.persistence.transaction((state) => {
       const { connection, events } = readPollBatch(state, endpointCredential, input);
+      assertMessageContentReader(events, readerVersion);
       const deliveredSequence = events.at(-1)?.sequence ?? connection.lastDeliveredSequence;
       const mutableConnection = state.connections[connection.connectionId];
       if (!mutableConnection) {

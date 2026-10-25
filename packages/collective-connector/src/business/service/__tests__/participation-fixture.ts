@@ -1,14 +1,15 @@
 import type { HumanAuthProvider } from '../human-auth-provider.js';
 import { CollectiveServiceStore } from '../store.js';
 
-export async function participationFixture(dataDirectory: string) {
+export async function participationFixture(dataDirectory: string,
+  options: Pick<import('../store.js').OpenCollectiveServiceStoreOptions, 'messageAttachmentOwner'> = {}) {
   const humanAuthProvider: HumanAuthProvider = {
     id: 'github',
     readiness: { ready: true },
     authorizationUrl: ({ state }) => `https://github.test/authorize?state=${state}`,
     authenticate: async ({ code }) => ({ providerSubject: code, handle: code, displayName: code }),
   };
-  const { store, bootstrapSecret } = await CollectiveServiceStore.open({ dataDirectory, humanAuthProvider });
+  const { store, bootstrapSecret } = await CollectiveServiceStore.open({ dataDirectory, humanAuthProvider, ...options });
   if (!bootstrapSecret) throw new Error('Expected fresh fixture');
   const owner = await store.consumeBootstrap({ secret: bootstrapSecret, displayName: 'Owner' });
   const attempt = await store.beginHumanAuth({

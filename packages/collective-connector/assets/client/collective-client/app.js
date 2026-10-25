@@ -787,7 +787,7 @@ var require_react_development = __commonJS({
           }
           return children;
         }
-        function createContext4(defaultValue) {
+        function createContext5(defaultValue) {
           var context2 = {
             $$typeof: REACT_CONTEXT_TYPE,
             // As a workaround to support multiple concurrent renderers, we categorize
@@ -1073,7 +1073,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher;
         }
-        function useContext4(Context) {
+        function useContext5(Context) {
           var dispatcher = resolveDispatcher();
           {
             if (Context._context !== void 0) {
@@ -1087,7 +1087,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState54(initialState) {
+        function useState59(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1095,11 +1095,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef42(initialValue) {
+        function useRef47(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect38(create2, deps) {
+        function useEffect43(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create2, deps);
         }
@@ -1111,11 +1111,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create2, deps);
         }
-        function useCallback19(callback, deps) {
+        function useCallback22(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
-        function useMemo9(create2, deps) {
+        function useMemo11(create2, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useMemo(create2, deps);
         }
@@ -1868,7 +1868,7 @@ var require_react_development = __commonJS({
         exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = ReactSharedInternals;
         exports.act = act;
         exports.cloneElement = cloneElement$1;
-        exports.createContext = createContext4;
+        exports.createContext = createContext5;
         exports.createElement = createElement$1;
         exports.createFactory = createFactory;
         exports.createRef = createRef;
@@ -1878,19 +1878,19 @@ var require_react_development = __commonJS({
         exports.memo = memo;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback19;
-        exports.useContext = useContext4;
+        exports.useCallback = useCallback22;
+        exports.useContext = useContext5;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect38;
+        exports.useEffect = useEffect43;
         exports.useId = useId6;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect5;
-        exports.useMemo = useMemo9;
+        exports.useMemo = useMemo11;
         exports.useReducer = useReducer;
-        exports.useRef = useRef42;
-        exports.useState = useState54;
+        exports.useRef = useRef47;
+        exports.useState = useState59;
         exports.useSyncExternalStore = useSyncExternalStore3;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2437,7 +2437,7 @@ var require_react_dom_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment27 = 7;
+        var Fragment29 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -3594,7 +3594,7 @@ var require_react_dom_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment27:
+            case Fragment29:
               return "Fragment";
             case HostComponent:
               return type;
@@ -11110,8 +11110,8 @@ var require_react_dom_development = __commonJS({
         function getTreeId() {
           var overflow = treeContextOverflow;
           var idWithLeadingBit = treeContextId;
-          var id28 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
-          return id28.toString(32) + overflow;
+          var id30 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
+          return id30.toString(32) + overflow;
         }
         function pushTreeFork(workInProgress2, totalChildren) {
           warnIfNotHydrating();
@@ -11140,9 +11140,9 @@ var require_react_dom_development = __commonJS({
             var restOfBaseLength = baseLength - numberOfOverflowBits;
             var restOfLength = getBitLength(totalChildren) + restOfBaseLength;
             var restOfNewBits = slot << restOfBaseLength;
-            var id28 = restOfNewBits | restOfBaseId;
+            var id30 = restOfNewBits | restOfBaseId;
             var overflow = newOverflow + baseOverflow;
-            treeContextId = 1 << restOfLength | id28;
+            treeContextId = 1 << restOfLength | id30;
             treeContextOverflow = overflow;
           } else {
             var newBits = slot << baseLength;
@@ -11165,8 +11165,8 @@ var require_react_dom_development = __commonJS({
         function getBitLength(number2) {
           return 32 - clz32(number2);
         }
-        function getLeadingBit(id28) {
-          return 1 << getBitLength(id28) - 1;
+        function getLeadingBit(id30) {
+          return 1 << getBitLength(id30) - 1;
         }
         function popTreeContext(workInProgress2) {
           while (workInProgress2 === treeForkProvider) {
@@ -12023,7 +12023,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current3, fragment, lanes, key) {
-            if (current3 === null || current3.tag !== Fragment27) {
+            if (current3 === null || current3.tag !== Fragment29) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -12426,7 +12426,7 @@ var require_react_dom_development = __commonJS({
               if (child.key === key) {
                 var elementType = element3.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment27) {
+                  if (child.tag === Fragment29) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element3.props.children);
                     existing.return = returnFiber;
@@ -14264,26 +14264,26 @@ var require_react_dom_development = __commonJS({
           var hook = mountWorkInProgressHook();
           var root6 = getWorkInProgressRoot();
           var identifierPrefix = root6.identifierPrefix;
-          var id28;
+          var id30;
           if (getIsHydrating()) {
             var treeId = getTreeId();
-            id28 = ":" + identifierPrefix + "R" + treeId;
+            id30 = ":" + identifierPrefix + "R" + treeId;
             var localId = localIdCounter++;
             if (localId > 0) {
-              id28 += "H" + localId.toString(32);
+              id30 += "H" + localId.toString(32);
             }
-            id28 += ":";
+            id30 += ":";
           } else {
             var globalClientId = globalClientIdCounter++;
-            id28 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
+            id30 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
           }
-          hook.memoizedState = id28;
-          return id28;
+          hook.memoizedState = id30;
+          return id30;
         }
         function updateId() {
           var hook = updateWorkInProgressHook();
-          var id28 = hook.memoizedState;
-          return id28;
+          var id30 = hook.memoizedState;
+          return id30;
         }
         function dispatchReducerAction(fiber, queue, action) {
           {
@@ -17902,7 +17902,7 @@ var require_react_dom_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current3, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment27:
+            case Fragment29:
               return updateFragment(current3, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current3, workInProgress2, renderLanes2);
@@ -18174,7 +18174,7 @@ var require_react_dom_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment27:
+            case Fragment29:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -18915,7 +18915,7 @@ var require_react_dom_development = __commonJS({
               switch (finishedWork.tag) {
                 case Profiler: {
                   var passiveEffectDuration = finishedWork.stateNode.passiveEffectDuration;
-                  var _finishedWork$memoize = finishedWork.memoizedProps, id28 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
+                  var _finishedWork$memoize = finishedWork.memoizedProps, id30 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
                   var commitTime2 = getCommitTime();
                   var phase = finishedWork.alternate === null ? "mount" : "update";
                   {
@@ -18924,7 +18924,7 @@ var require_react_dom_development = __commonJS({
                     }
                   }
                   if (typeof onPostCommit === "function") {
-                    onPostCommit(id28, phase, passiveEffectDuration, commitTime2);
+                    onPostCommit(id30, phase, passiveEffectDuration, commitTime2);
                   }
                   var parentFiber = finishedWork.return;
                   outer: while (parentFiber !== null) {
@@ -22435,7 +22435,7 @@ var require_react_dom_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment27, elements, key, mode);
+          var fiber = createFiber(Fragment29, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -22612,7 +22612,7 @@ var require_react_dom_development = __commonJS({
           return root6;
         }
         var ReactVersion = "18.3.1";
-        function createPortal2(children, containerInfo, implementation) {
+        function createPortal3(children, containerInfo, implementation) {
           var key = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : null;
           {
             checkKeyStringCoercion(key);
@@ -22912,16 +22912,16 @@ var require_react_dom_development = __commonJS({
           var copyWithSet = function(obj, path2, value) {
             return copyWithSetImpl(obj, path2, 0, value);
           };
-          var findHook = function(fiber, id28) {
+          var findHook = function(fiber, id30) {
             var currentHook2 = fiber.memoizedState;
-            while (currentHook2 !== null && id28 > 0) {
+            while (currentHook2 !== null && id30 > 0) {
               currentHook2 = currentHook2.next;
-              id28--;
+              id30--;
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id28, path2, value) {
-            var hook = findHook(fiber, id28);
+          overrideHookState = function(fiber, id30, path2, value) {
+            var hook = findHook(fiber, id30);
             if (hook !== null) {
               var newState = copyWithSet(hook.memoizedState, path2, value);
               hook.memoizedState = newState;
@@ -22933,8 +22933,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id28, path2) {
-            var hook = findHook(fiber, id28);
+          overrideHookStateDeletePath = function(fiber, id30, path2) {
+            var hook = findHook(fiber, id30);
             if (hook !== null) {
               var newState = copyWithDelete(hook.memoizedState, path2);
               hook.memoizedState = newState;
@@ -22946,8 +22946,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateRenamePath = function(fiber, id28, oldPath, newPath) {
-            var hook = findHook(fiber, id28);
+          overrideHookStateRenamePath = function(fiber, id30, oldPath, newPath) {
+            var hook = findHook(fiber, id30);
             if (hook !== null) {
               var newState = copyWithRename(hook.memoizedState, oldPath, newPath);
               hook.memoizedState = newState;
@@ -23469,7 +23469,7 @@ var require_react_dom_development = __commonJS({
           if (!isValidContainer(container)) {
             throw new Error("Target container is not a DOM element.");
           }
-          return createPortal2(children, container, null, key);
+          return createPortal3(children, container, null, key);
         }
         function renderSubtreeIntoContainer(parentComponent, element3, containerNode, callback) {
           return unstable_renderSubtreeIntoContainer(parentComponent, element3, containerNode, callback);
@@ -24558,11 +24558,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx89 = jsxWithValidationDynamic;
-        var jsxs79 = jsxWithValidationStatic;
+        var jsx96 = jsxWithValidationDynamic;
+        var jsxs85 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx89;
-        exports.jsxs = jsxs79;
+        exports.jsx = jsx96;
+        exports.jsxs = jsxs85;
       })();
     }
   }
@@ -24819,7 +24819,7 @@ var require_cjs3 = __commonJS({
 });
 
 // src/main.tsx
-var import_react76 = __toESM(require_react(), 1);
+var import_react83 = __toESM(require_react(), 1);
 var import_client = __toESM(require_client(), 1);
 
 // src/CollectiveScopeRecovery.tsx
@@ -28474,23 +28474,23 @@ var ZodEffects = class extends ZodType {
     }
     if (effect.type === "transform") {
       if (ctx.common.async === false) {
-        const base = this._def.schema._parseSync({
+        const base2 = this._def.schema._parseSync({
           data: ctx.data,
           path: ctx.path,
           parent: ctx
         });
-        if (!isValid(base))
+        if (!isValid(base2))
           return INVALID;
-        const result = effect.transform(base.value, checkCtx);
+        const result = effect.transform(base2.value, checkCtx);
         if (result instanceof Promise) {
           throw new Error(`Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`);
         }
         return { status: status.value, value: result };
       } else {
-        return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base) => {
-          if (!isValid(base))
+        return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base2) => {
+          if (!isValid(base2))
             return INVALID;
-          return Promise.resolve(effect.transform(base.value, checkCtx)).then((result) => ({
+          return Promise.resolve(effect.transform(base2.value, checkCtx)).then((result) => ({
             status: status.value,
             value: result
           }));
@@ -29055,10 +29055,22 @@ var CapabilityTipSchema = external_exports.object({
   audience: external_exports.array(external_exports.enum(CAPABILITY_TIP_AUDIENCES)).min(1),
   body: external_exports.string().min(12).max(140),
   action: CapabilityTipActionSchema.optional(),
+  demoId: external_exports.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/).optional(),
   owner: external_exports.string().min(1)
 }).strict();
+var CAPABILITY_TIP_USAGE_EVENTS = [
+  "capability_tip_exposed",
+  "capability_tip_action",
+  "capability_tip_dismissed",
+  "capability_tip_demo_exposed",
+  "capability_tip_demo_opened",
+  "capability_tip_demo_started",
+  "capability_tip_demo_completed",
+  "capability_tip_demo_tried",
+  "capability_tip_demo_used"
+];
 var CapabilityTipUsageEventSchema = external_exports.object({
-  event: external_exports.enum(["capability_tip_exposed", "capability_tip_action", "capability_tip_dismissed"]),
+  event: external_exports.enum(CAPABILITY_TIP_USAGE_EVENTS),
   tipId: external_exports.string().max(64).regex(/^[a-z0-9][a-z0-9-]*$/),
   context: external_exports.enum(CAPABILITY_TIP_CONTEXTS),
   surface: external_exports.enum(CAPABILITY_TIP_SURFACES),
@@ -29095,6 +29107,62 @@ var TipEventBatchAckSchema = external_exports.object({
 }).strict();
 var TIP_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1e3;
 var TIP_QUEUE_FLUSH_INTERVAL_MS = 5 * 60 * 1e3;
+
+// ../shared/src/chat-references.ts
+var chatReferenceBatchSchema = external_exports.object({
+  groups: external_exports.array(
+    external_exports.object({
+      threadId: external_exports.string().min(1).max(200),
+      references: external_exports.array(external_exports.string().min(1).max(2048)).min(1).max(64)
+    }).strict()
+  ).min(1).max(8)
+}).strict().refine((value) => value.groups.reduce((n, group) => n + group.references.length, 0) <= 128);
+var chatFileReferenceSchema = external_exports.object({
+  kind: external_exports.literal("file"),
+  entryType: external_exports.enum(["file", "directory"]),
+  worktreeId: external_exports.string(),
+  path: external_exports.string(),
+  absolutePath: external_exports.string(),
+  line: external_exports.number().int().positive().nullable(),
+  mime: external_exports.string(),
+  size: external_exports.number().nonnegative(),
+  modifiedAt: external_exports.string(),
+  pageCount: external_exports.number().int().nonnegative().optional(),
+  pageUnit: external_exports.enum(["pages", "slides", "sheets"]).optional(),
+  width: external_exports.number().int().positive().optional(),
+  height: external_exports.number().int().positive().optional()
+});
+var chatGitHubReferenceSchema = external_exports.object({
+  kind: external_exports.literal("github"),
+  repo: external_exports.string(),
+  number: external_exports.number().int().positive(),
+  objectType: external_exports.enum(["pull", "issue"]),
+  title: external_exports.string().optional(),
+  state: external_exports.enum(["open", "closed", "merged"]).optional(),
+  worktreeId: external_exports.string().optional(),
+  url: external_exports.string(),
+  additions: external_exports.number().int().nonnegative().optional(),
+  deletions: external_exports.number().int().nonnegative().optional(),
+  changedFiles: external_exports.number().int().nonnegative().optional(),
+  author: external_exports.string().optional(),
+  updatedAt: external_exports.string().datetime().optional(),
+  checks: external_exports.enum(["checksPassed", "checksPending", "checksFailed"]).optional()
+});
+var chatReferenceTargetSchema = external_exports.discriminatedUnion("kind", [
+  chatFileReferenceSchema,
+  chatGitHubReferenceSchema,
+  external_exports.object({
+    kind: external_exports.literal("commit"),
+    worktreeId: external_exports.string(),
+    sha: external_exports.string().regex(/^[0-9a-f]{40}$/),
+    title: external_exports.string()
+  }),
+  external_exports.object({ kind: external_exports.literal("missing") })
+]);
+var chatReferenceGroupSchema = external_exports.object({
+  threadId: external_exports.string(),
+  results: external_exports.array(external_exports.object({ reference: external_exports.string(), target: chatReferenceTargetSchema.nullable() }))
+});
 
 // ../shared/src/cli-effort.ts
 var OPENAI_MAX_EFFORT_OPTIONS = ["low", "medium", "high", "xhigh", "max"];
@@ -29190,7 +29258,16 @@ var deployment_profiles_default = {
         hubName: "Cat Caf\xE9 Hub",
         tagline: "\u4E09\u53EA AI \u732B\u732B\u7684\u534F\u4F5C\u7A7A\u95F4"
       },
-      repositoryFullName: "zts212653/cat-cafe"
+      repositoryFullName: "zts212653/cat-cafe",
+      l0Projections: ["owner", "public", "collective-work"],
+      promptPolicy: {
+        coCreatorRole: "\u94F2\u5C4E\u5B98",
+        decisionRole: "CVO",
+        runtimeSafetyRule: "1. **Redis 6399 \u5723\u57DF** \u2014 Worktree \u5F00\u53D1\u53EA\u7528 6398\uFF0C\u8BEF\u89E6 6399 \u7ACB\u5373\u505C\u670D\u52A1\u901A\u77E5\u94F2\u5C4E\u5B98",
+        acceptanceRule: "4. **Alpha \u9A8C\u6536\u901A\u9053** \u2014 `pnpm alpha:start` \u62C9\u6700\u65B0 origin/main \u7684\u9694\u79BB\u6D4B\u8BD5\u73AF\u5883\uFF083011/3012/4111/6397\uFF09\uFF1B\u5F00\u53D1 Redis \u4ECD\u4E3A 6398\u3002\u5DF2\u5408\u5165 main \u7684\u6539\u52A8\u7528 alpha \u9A8C\u6536\uFF08\u613F\u666F\u5B88\u62A4 / \u94F2\u5C4E\u5B98\u6D4B\u8BD5\uFF09\uFF1B\u672A\u5408\u5165\u6539\u52A8\u7684\u81EA\u6D4B\u5728 feature worktree \u4E0A\u505A",
+        modifyDataBoundary: "\u6539 Redis \u5723\u57DF",
+        capabilityQualifier: "\u5BB6\u91CC\u72EC\u6709"
+      }
     },
     opensource: {
       apiPort: 3004,
@@ -29205,7 +29282,16 @@ var deployment_profiles_default = {
         hubName: "Clowder AI Hub",
         tagline: "Your AI team collaboration space"
       },
-      repositoryFullName: "zts212653/clowder-ai"
+      repositoryFullName: "zts212653/clowder-ai",
+      l0Projections: ["owner", "public"],
+      promptPolicy: {
+        coCreatorRole: "co-creator",
+        decisionRole: "operator",
+        runtimeSafetyRule: "1. **Runtime data safety** \u2014 Use isolated development/test data stores; never point local experiments at production user data",
+        acceptanceRule: "4. **Release acceptance channel** \u2014 Validate merged changes in an isolated acceptance environment; test unmerged work in a feature checkout",
+        modifyDataBoundary: "\u4FEE\u6539\u751F\u4EA7\u6570\u636E\u8FB9\u754C",
+        capabilityQualifier: ""
+      }
     }
   },
   startupProfiles: {
@@ -29354,9 +29440,15 @@ function selectProfile(input, requested) {
       corsOrigins: [...corsOrigins],
       roadmapPath: roadmapPath(selected.roadmapPath),
       brand: brand(selected.brand),
-      repositoryFullName: repository(selected.repositoryFullName)
+      repositoryFullName: repository(selected.repositoryFullName),
+      ...selected.l0Projections === void 0 ? {} : { l0Projections: l0Projections(selected.l0Projections) }
     }
   };
+}
+function l0Projections(value) {
+  if (!Array.isArray(value) || value.length !== new Set(value).size || !value.includes("owner") || !value.includes("public") || !value.every((item) => ["owner", "public", "collective-work"].includes(item)))
+    throw new Error("Invalid deployment configuration: l0Projections must be a unique supported projection set");
+  return [...value];
 }
 function resolveDeploymentDefaults(input = deployment_profiles_default) {
   const { profile } = selectProfile(input);
@@ -31322,8 +31414,8 @@ function decodeNamedCharacterReference(value) {
 }
 
 // ../../node_modules/.pnpm/micromark-util-decode-numeric-character-reference@2.0.2/node_modules/micromark-util-decode-numeric-character-reference/index.js
-function decodeNumericCharacterReference(value, base) {
-  const code4 = Number.parseInt(value, base);
+function decodeNumericCharacterReference(value, base2) {
+  const code4 = Number.parseInt(value, base2);
   if (
     // C0 except for HT, LF, FF, CR, space.
     code4 < 9 || code4 === 11 || code4 > 13 && code4 < 32 || // Control character (DEL) of C0, and C1 controls.
@@ -35061,11 +35153,11 @@ function tokenizePotentialGfmFootnoteCall(effects, ok3, nok) {
     if (!labelStart || !labelStart._balanced) {
       return nok(code4);
     }
-    const id28 = normalizeIdentifier(self2.sliceSerialize({
+    const id30 = normalizeIdentifier(self2.sliceSerialize({
       start: labelStart.end,
       end: self2.now()
     }));
-    if (id28.codePointAt(0) !== 94 || !defined.includes(id28.slice(1))) {
+    if (id30.codePointAt(0) !== 94 || !defined.includes(id30.slice(1))) {
       return nok(code4);
     }
     effects.enter("gfmFootnoteCallLabelMarker");
@@ -39880,15 +39972,15 @@ var sourceProjectionSha256 = external_exports.string().regex(/^[a-f0-9]{64}$/);
 var characterOffset = external_exports.number().int().nonnegative().max(1e7);
 var sourceMessageIds = external_exports.array(boundedId).min(1).max(MESSAGE_BUNDLE_MAX_ITEMS).superRefine((ids2, ctx) => {
   const seen = /* @__PURE__ */ new Set();
-  ids2.forEach((id28, index4) => {
-    if (seen.has(id28)) {
+  ids2.forEach((id30, index4) => {
+    if (seen.has(id30)) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: [index4],
         message: "Message Bundle sourceMessageIds must be unique"
       });
     }
-    seen.add(id28);
+    seen.add(id30);
   });
 });
 function requireAnchorInSourceRefs(value, ctx) {
@@ -40345,11 +40437,11 @@ var RECALL_META_OPEN_TAG = `<${RECALL_META_TAG}>`;
 var RECALL_META_CLOSE_TAG = `</${RECALL_META_TAG}>`;
 
 // ../shared/src/types/ids.ts
-function createCatId(id28) {
-  if (!id28 || typeof id28 !== "string") {
+function createCatId(id30) {
+  if (!id30 || typeof id30 !== "string") {
     throw new Error("Invalid cat ID: must be non-empty string");
   }
-  return id28;
+  return id30;
 }
 
 // ../shared/src/registry/CatRegistry.ts
@@ -40386,12 +40478,12 @@ var CatRegistry = class {
     return this.entries.get(catId2);
   }
   getAllIds() {
-    return Array.from(this.entries.keys()).map((id28) => createCatId(id28));
+    return Array.from(this.entries.keys()).map((id30) => createCatId(id30));
   }
   getAllConfigs() {
     const result = {};
-    for (const [id28, entry] of this.entries) {
-      result[id28] = entry.config;
+    for (const [id30, entry] of this.entries) {
+      result[id30] = entry.config;
     }
     return result;
   }
@@ -40420,9 +40512,9 @@ var catRegistry = new CatRegistry();
 // ../shared/src/registry/cat-id-schema.ts
 function catIdSchema() {
   return external_exports.string().refine(
-    (id28) => catRegistry.has(id28),
-    (id28) => ({
-      message: `Unknown cat ID: "${id28}". Valid: ${catRegistry.getAllIds().join(", ")}`
+    (id30) => catRegistry.has(id30),
+    (id30) => ({
+      message: `Unknown cat ID: "${id30}". Valid: ${catRegistry.getAllIds().join(", ")}`
     })
   );
 }
@@ -42586,6 +42678,20 @@ var SOURCE_CODE_EXTENSIONS = [
 ];
 var SOURCE_CODE_EXTENSION_SET = new Set(SOURCE_CODE_EXTENSIONS);
 
+// ../shared/src/types/approval-decision-receipt.ts
+var approvalDecisionReceiptV1Schema = external_exports.object({
+  v: external_exports.literal(1),
+  kind: external_exports.literal("approval_decision_receipt"),
+  producerId: external_exports.enum(APPROVAL_PRODUCER_IDS),
+  canonicalProposalId: external_exports.string().min(1),
+  resolution: external_exports.enum(["accepted", "rejected"]),
+  approvalCardRef: external_exports.object({ threadId: external_exports.string().min(1), messageId: external_exports.string().min(1) }).strict(),
+  requesterCatId: external_exports.string().min(1),
+  decidedAt: external_exports.number().finite().nonnegative(),
+  decidedBy: external_exports.string(),
+  rejectionReason: external_exports.string().max(500).optional()
+}).strict();
+
 // ../shared/src/types/auto-dream.ts
 var DREAM_EVIDENCE_KINDS = [
   "thread_message",
@@ -42786,6 +42892,40 @@ var diaryEngagementInputSchema = external_exports.discriminatedUnion("kind", [
   }).strict()
 ]);
 
+// ../shared/src/types/collective-message-content.ts
+var collectiveMessageAttachmentSchema = external_exports.object({
+  v: external_exports.literal(1),
+  attachmentId: external_exports.string().regex(/^att_[A-Za-z0-9_-]{8,120}$/),
+  contentRef: external_exports.string().startsWith("collective-attachment:").max(240),
+  ownerRevision: external_exports.literal(1),
+  ownerReceiptRef: external_exports.string().trim().min(1).max(240),
+  blobDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
+  byteLength: external_exports.number().int().positive().max(50 * 1024 * 1024),
+  mediaType: external_exports.string().regex(/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/).max(120),
+  fileName: external_exports.string().trim().min(1).max(240).refine((value) => !/[\u0000-\u001f\u007f/\\]/u.test(value))
+}).strict();
+var collectiveAttachmentScopeSchema = external_exports.object({
+  serviceInstanceId: external_exports.string().regex(/^svc_[A-Za-z0-9_-]{8,150}$/),
+  collectiveId: external_exports.string().regex(/^col_[A-Za-z0-9_-]{8,150}$/),
+  humanId: external_exports.string().regex(/^human_[A-Za-z0-9_-]{8,150}$/),
+  channelId: external_exports.string().trim().min(1).max(160),
+  attachmentId: collectiveMessageAttachmentSchema.shape.attachmentId
+}).strict();
+var collectiveDraftSendReceiptSchema = external_exports.object({
+  revision: external_exports.number().int().positive().safe(),
+  rootEventId: external_exports.string().trim().min(1).max(160).optional()
+}).strict();
+var collectiveMessageContentFields = {
+  body: external_exports.string().trim().max(32e3),
+  attachments: external_exports.array(collectiveMessageAttachmentSchema).min(1).max(12).optional()
+};
+function requireCollectiveMessageContent(content3, context2) {
+  if (!content3.body && !content3.attachments?.length)
+    context2.addIssue({ code: "custom", path: ["body"], message: "A message needs text or content" });
+  if (new Set(content3.attachments?.map((item) => item.attachmentId)).size !== (content3.attachments?.length ?? 0))
+    context2.addIssue({ code: "custom", path: ["attachments"], message: "Duplicate attachment reference" });
+}
+
 // ../shared/src/types/collective-work-return.ts
 var publicId = (prefix) => external_exports.string().min(prefix.length + 8).max(160).regex(new RegExp(`^${prefix}[A-Za-z0-9_-]+$`));
 var catId = external_exports.string().trim().min(1).max(120);
@@ -42854,9 +42994,9 @@ var collectiveWorkWakeNoticeSchema = external_exports.object({
   executionRevision: external_exports.number().int().positive(),
   dependencyWorkId: collectiveWorkIdSchema.optional(),
   dependencyWorkRevision: external_exports.number().int().positive().optional()
-}).strict().superRefine((notice, context2) => {
-  const hasDependency = Boolean(notice.dependencyWorkId && notice.dependencyWorkRevision);
-  if (notice.reason === "dependency_completed" !== hasDependency) {
+}).strict().superRefine((notice2, context2) => {
+  const hasDependency = Boolean(notice2.dependencyWorkId && notice2.dependencyWorkRevision);
+  if (notice2.reason === "dependency_completed" !== hasDependency) {
     context2.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Dependency completion wakes require exact dependency identity and revision"
@@ -42961,9 +43101,10 @@ var collectiveEventEnvelopeSchema = collectiveCoordinatesSchema.extend({
   workWakeNotice: collectiveWorkWakeNoticeSchema.optional(),
   workResultReceipt: collectiveWorkResultReceiptSchema.optional(),
   workProgressReceipt: collectiveWorkProgressReceiptSchema.optional(),
-  body: external_exports.string().trim().min(1).max(32e3),
+  ...collectiveMessageContentFields,
   acceptedAt: external_exports.string().datetime()
 }).strict().superRefine((event, context2) => {
+  requireCollectiveMessageContent(event, context2);
   if (event.workProgressReceipt && (event.actor.kind !== "agent" || event.workResultReceipt)) {
     context2.addIssue({
       code: "custom",
@@ -43061,8 +43202,9 @@ var collectiveHumanMessageRequestSchema = collectiveCoordinatesSchema.extend({
   replyToEventId: collectiveEventIdSchema.optional(),
   attentionRequest: collectiveAttentionRequestSchema.optional(),
   workRequest: external_exports.literal("entrust").optional(),
-  body: external_exports.string().trim().min(1).max(32e3)
-}).strict();
+  draftReceipt: collectiveDraftSendReceiptSchema.optional(),
+  ...collectiveMessageContentFields
+}).strict().superRefine(requireCollectiveMessageContent);
 var collectiveAgentMessageRequestSchema = collectiveConnectionCoordinatesSchema.extend({
   clientEventId: external_exports.string().trim().min(1).max(200),
   agent: external_exports.object({
@@ -43079,8 +43221,9 @@ var collectiveAgentMessageRequestSchema = collectiveConnectionCoordinatesSchema.
   workResultIntent: collectiveWorkResultIntentSchema.optional(),
   workResultFile: collectiveWorkResultFileSchema.optional(),
   workProgressIntent: collectiveWorkProgressIntentSchema.optional(),
-  body: external_exports.string().trim().min(1).max(32e3)
+  ...collectiveMessageContentFields
 }).strict().superRefine((input, context2) => {
+  requireCollectiveMessageContent(input, context2);
   if (input.workResultIntent && input.workProgressIntent)
     context2.addIssue({ code: "custom", message: "Choose result or progress, not both" });
   if (input.workResultFile && !input.workResultIntent)
@@ -45076,6 +45219,53 @@ var collectiveMemberDirectorySchema = external_exports.object({
   )
 }).strict();
 
+// ../shared/src/types/collective-message-state.ts
+var id24 = external_exports.string().trim().min(1).max(200);
+var artifactIdentity = external_exports.object({ artifactId: id24, ownerRevision: external_exports.number().int().positive(), blobDigest: id24 });
+var collectiveComposerDraftSchema = external_exports.object({
+  body: external_exports.string().max(32e3),
+  recipient: collectiveRecipientSchema,
+  recipientLabel: external_exports.string().max(240),
+  attachments: external_exports.array(collectiveMessageAttachmentSchema).max(12).optional(),
+  entrust: external_exports.boolean().optional(),
+  responseRequested: external_exports.boolean().optional(),
+  replyToEventId: id24.optional(),
+  replyNeedsSelection: external_exports.boolean().optional(),
+  artifactSelections: external_exports.array(artifactIdentity.extend({ span: collectiveArtifactSelectionSchema }).strict()).max(12).optional(),
+  artifactRework: artifactIdentity.extend({ sourceOwnerRevision: external_exports.number().int().positive(), rework: collectiveModificationReworkSchema }).strict().optional(),
+  artifactReply: artifactIdentity.extend({ annotationId: id24, messageEventId: id24, authorHumanId: id24 }).strict().optional()
+}).strict();
+var collectiveHumanChannelCoordinatesSchema = external_exports.object({
+  serviceInstanceId: id24,
+  collectiveId: id24,
+  channelId: id24,
+  rootEventId: id24.optional()
+}).strict();
+var collectiveSaveComposerDraftSchema = collectiveHumanChannelCoordinatesSchema.extend({
+  expectedRevision: external_exports.number().int().nonnegative().safe(),
+  clientOperationId: id24,
+  content: collectiveComposerDraftSchema
+}).strict();
+var collectiveDraftRecordSchema = collectiveHumanChannelCoordinatesSchema.extend({
+  humanId: id24,
+  revision: external_exports.number().int().nonnegative().safe(),
+  content: collectiveComposerDraftSchema,
+  clientOperationId: external_exports.string().trim().min(1).max(205).optional()
+}).strict();
+var collectiveReadPositionSchema = external_exports.object({
+  sequence: external_exports.number().int().nonnegative().safe(),
+  eventId: id24.optional()
+}).strict();
+var collectiveHumanChannelStateSchema = external_exports.object({
+  draft: collectiveDraftRecordSchema,
+  read: collectiveReadPositionSchema,
+  unreadCount: external_exports.number().int().nonnegative().safe()
+}).strict();
+var collectiveSaveDraftResultSchema = external_exports.object({
+  status: external_exports.enum(["stored", "conflict"]),
+  draft: collectiveDraftRecordSchema
+}).strict();
+
 // ../shared/src/types/collective-participation.ts
 var collectiveParticipantAgentSchema = external_exports.object({
   catId: external_exports.string().trim().min(1).max(120),
@@ -45705,6 +45895,31 @@ var NEEDS_ME_PRODUCER_IDS = [
   "f309.content_review",
   "f290.collective_work_result"
 ];
+var producerAttentionUnavailableSourceV1Schema = external_exports.object({
+  producerId: external_exports.enum(NEEDS_ME_PRODUCER_IDS),
+  status: external_exports.literal("unavailable"),
+  reason: external_exports.enum(["source_unavailable", "source_incomplete", "source_invalid", "source_read_failed"])
+}).strict();
+var producerAttentionCoverageV1Schema = external_exports.discriminatedUnion("state", [
+  external_exports.object({ state: external_exports.literal("complete") }).strict(),
+  external_exports.object({
+    state: external_exports.literal("partial"),
+    unavailableSources: external_exports.array(producerAttentionUnavailableSourceV1Schema).min(1).max(NEEDS_ME_PRODUCER_IDS.length)
+  }).strict()
+]).superRefine((coverage, context2) => {
+  if (coverage.state !== "partial") return;
+  const seen = /* @__PURE__ */ new Set();
+  coverage.unavailableSources.forEach((source3, index4) => {
+    if (seen.has(source3.producerId)) {
+      context2.addIssue({
+        code: external_exports.ZodIssueCode.custom,
+        path: ["unavailableSources", index4, "producerId"],
+        message: "producer attention coverage cannot repeat an unavailable source"
+      });
+    }
+    seen.add(source3.producerId);
+  });
+});
 var producerCoordinateSchema = external_exports.object({
   producerId: external_exports.enum(NEEDS_ME_PRODUCER_IDS),
   ownerRef: boundedRef2,
@@ -45974,17 +46189,86 @@ var collectiveWorkSourceContextSchema = external_exports.object({
   hasMore: external_exports.boolean()
 }).strict();
 
+// ../shared/src/types/connection-diagnostics.ts
+var CONNECTION_DIAGNOSTIC_UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+var id25 = external_exports.string().regex(CONNECTION_DIAGNOSTIC_UUID);
+var duration = external_exports.number().finite().min(0).max(864e5);
+var route = external_exports.enum([
+  "session",
+  "messages",
+  "threads",
+  "artifacts",
+  "paw_feel",
+  "needs_me",
+  "navigation_source",
+  "other"
+]);
+var errorKind = external_exports.enum(["timeout", "aborted", "network", "other"]);
+var notice = external_exports.enum(["not-saved", "unavailable", "interrupted", "clear-failed", "save-failed"]);
+var base = { eventId: id25, at: external_exports.number().int().nonnegative() };
+var connectionDiagnosticEventSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    ...base,
+    kind: external_exports.literal("http"),
+    clientRequestId: id25,
+    route,
+    method: external_exports.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "OTHER"]),
+    state: external_exports.enum(["start", "finish", "failed"]),
+    durationMs: duration.optional(),
+    deadlineMs: duration.optional(),
+    timerLagMs: duration.optional(),
+    errorKind: errorKind.optional(),
+    statusCode: external_exports.number().int().min(100).max(599).optional()
+  }).strict(),
+  external_exports.object({
+    ...base,
+    kind: external_exports.literal("connection_notice"),
+    clientRequestId: id25.optional(),
+    route: route.optional(),
+    state: external_exports.enum(["shown", "suppressed"]),
+    errorKind: external_exports.enum(["timeout", "network"])
+  }).strict(),
+  external_exports.object({
+    ...base,
+    kind: external_exports.literal("settings_return"),
+    bridgeId: id25,
+    phase: external_exports.enum(["created", "capture", "return", "cancel", "notice", "consumed", "presented", "disposed"]),
+    cause: external_exports.enum([
+      "route",
+      "reader_replaced",
+      "reader_unregistered",
+      "capture",
+      "admission",
+      "restore",
+      "storage",
+      "dispose",
+      "retire",
+      "return_mark"
+    ]).optional(),
+    notice: notice.nullable(),
+    noticeSeq: external_exports.number().int().nonnegative(),
+    returning: external_exports.boolean(),
+    hasSource: external_exports.boolean(),
+    hasReader: external_exports.boolean(),
+    admitted: external_exports.boolean()
+  }).strict()
+]);
+var connectionDiagnosticBatchSchema = external_exports.object({
+  v: external_exports.literal(1),
+  events: external_exports.array(connectionDiagnosticEventSchema).min(1).max(60)
+}).strict();
+
 // ../shared/src/types/content-modification-carrier.ts
-var id24 = external_exports.string().trim().min(1).max(256);
+var id26 = external_exports.string().trim().min(1).max(256);
 var requestId = external_exports.string().regex(/^f309-modification-[a-f0-9]{64}$/);
 var receiptRef = external_exports.string().min(1).max(2048);
 var contentModificationRequestCarrierV1Schema = external_exports.object({
   v: external_exports.literal(1),
   kind: external_exports.enum(["request_text_edit", "request_image_edit", "request_media_edit", "supersede_request"]),
   requestId,
-  sourceMessageId: id24,
-  targetCatId: id24,
-  taskId: id24,
+  sourceMessageId: id26,
+  targetCatId: id26,
+  taskId: id26,
   expectedTaskRevision: external_exports.number().int().positive().safe(),
   requestReceiptRef: receiptRef
 }).strict();
@@ -45993,29 +46277,29 @@ var contentModificationPublicationCarrierV1Schema = external_exports.object({
   kind: external_exports.literal("resume_media_publication"),
   returnRef: receiptRef,
   requestId,
-  sourceMessageId: id24,
+  sourceMessageId: id26,
   sourceMessageRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   requestReceiptRef: receiptRef,
-  taskId: id24,
-  targetCatId: id24,
+  taskId: id26,
+  targetCatId: id26,
   expectedTaskRevision: external_exports.number().int().positive().safe(),
-  reviewId: id24,
+  reviewId: id26,
   round: external_exports.number().int().positive().safe(),
-  contentRef: id24,
+  contentRef: id26,
   ownerRevision: external_exports.number().int().positive().safe(),
-  publicationMessageId: id24,
+  publicationMessageId: id26,
   publicationRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  publicationItemId: id24,
+  publicationItemId: id26,
   artifactRef: external_exports.string().startsWith("/uploads/").max(1e3),
   artifactRevision: external_exports.string().regex(/^\d+$/),
-  producingInvocationId: id24
+  producingInvocationId: id26
 }).strict();
 var contentModificationFollowUpCarrierV1Schema = external_exports.object({
   v: external_exports.literal(1),
   requestId,
-  sourceMessageId: id24,
-  targetCatId: id24,
-  taskId: id24,
+  sourceMessageId: id26,
+  targetCatId: id26,
+  taskId: id26,
   candidateRef: external_exports.string().min(1).max(1e3).optional(),
   receiptRef,
   state: external_exports.enum(["conflict", "unknown"])
@@ -46026,9 +46310,9 @@ var contentTextWritebackCompletionCarrierV1Schema = external_exports.object({
   returnRef: receiptRef,
   requestId,
   closureRequestId: requestId,
-  sourceMessageId: id24,
-  taskId: id24,
-  targetCatId: id24,
+  sourceMessageId: id26,
+  taskId: id26,
+  targetCatId: id26,
   observedTaskRevision: external_exports.number().int().positive().safe(),
   expectedSignal: external_exports.string().min(1).max(512),
   candidateRef: external_exports.string().min(1).max(1e3),
@@ -46040,11 +46324,11 @@ var contentTextWritebackCompletionCarrierV1Schema = external_exports.object({
 });
 
 // ../shared/src/types/content-modification-control.ts
-var id25 = external_exports.string().min(1).max(256);
+var id27 = external_exports.string().min(1).max(256);
 var contentRuntimeControlTargetSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("stop_execution"), executionId: id25, invocationId: id25 }).strict(),
-  external_exports.object({ kind: external_exports.literal("withdraw_single"), entryId: id25, messageId: id25 }).strict(),
-  external_exports.object({ kind: external_exports.literal("withdraw_queue"), entryId: id25, messageId: id25 }).strict()
+  external_exports.object({ kind: external_exports.literal("stop_execution"), executionId: id27, invocationId: id27 }).strict(),
+  external_exports.object({ kind: external_exports.literal("withdraw_single"), entryId: id27, messageId: id27 }).strict(),
+  external_exports.object({ kind: external_exports.literal("withdraw_queue"), entryId: id27, messageId: id27 }).strict()
 ]);
 
 // ../shared/src/types/deployment-wait.ts
@@ -46058,11 +46342,16 @@ var deploymentWaitPredicateSchema = external_exports.discriminatedUnion("kind", 
 
 // ../shared/src/types/action-subject-ref.ts
 var ACTION_SUBJECT_REF_DESCRIPTION = `subjectRef must use pr:<owner>/<repo>#<positive-number> (for example pr:${deploymentDefaults.repositoryFullName}#2943) or subject:<namespace>:<opaque-id>. GitHub URL forms and SHA suffixes such as github:owner/repo#2943@abc123 are invalid.`;
+var TASK_ACTION_SUBJECT_REF_DESCRIPTION = "Implementation needs subject:task:<taskId> from the existing Task.id covering this work and authorized target thread/cat. Asset/artifact IDs belong in content or artifact references; changing their prefix does not create Task authority.";
 var ACTION_SUBJECT_REF_MAX_LENGTH = 240;
 var ACTION_SUBJECT_REF_PATTERN = /^(?:pr:[^/\s\x1f]+\/[^#\s\x1f]+#[1-9]\d*|subject:[a-z][a-z0-9_-]{0,63}:[^\s\x1f]{1,200})$/i;
-var actionSubjectRefSchema = external_exports.string().trim().min(1).max(ACTION_SUBJECT_REF_MAX_LENGTH).regex(ACTION_SUBJECT_REF_PATTERN, ACTION_SUBJECT_REF_DESCRIPTION).describe(ACTION_SUBJECT_REF_DESCRIPTION);
+function createActionSubjectRefSchema(description) {
+  return external_exports.string().trim().min(1).max(ACTION_SUBJECT_REF_MAX_LENGTH).regex(ACTION_SUBJECT_REF_PATTERN, description).describe(description);
+}
+var actionSubjectRefSchema = createActionSubjectRefSchema(ACTION_SUBJECT_REF_DESCRIPTION);
 
 // ../shared/src/types/action-successor.ts
+var IMPLEMENT_TERMINAL_PREDICATE_DESCRIPTION = 'Required for new implement claims, including claimOrigin=existing_standing: terminalPredicate={kind:"task_done"}. May be omitted only for returnToPredecessor.';
 var ACTION_SUCCESSOR_ACTION_FAMILIES = [
   "review",
   "merge",
@@ -46094,7 +46383,7 @@ var proposedActionCommonShape = {
   claimOrigin: external_exports.literal("structured_transfer").optional().describe("Optional explicit default; approval proposals create only a new structured transfer.")
 };
 var implementDispatchProposedActionSchema = external_exports.object({
-  subjectRef: external_exports.string().regex(/^subject:task:[^\s\x1f]{1,200}$/).describe("Exact task subject: subject:task:<taskId>."),
+  subjectRef: external_exports.string().regex(/^subject:task:[^\s\x1f]{1,200}$/, TASK_ACTION_SUBJECT_REF_DESCRIPTION).describe(TASK_ACTION_SUBJECT_REF_DESCRIPTION),
   actionFamily: external_exports.literal(implementProposalCapability.actionFamily).describe("Executable family: implement."),
   successorSlot: external_exports.literal(implementProposalCapability.successorSlot).describe("Required slot for implementation: implementer."),
   ...proposedActionCommonShape,
@@ -46227,7 +46516,7 @@ function refineTerminalPredicate(value, ctx) {
     ctx.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["terminalPredicate"],
-      message: "new action custody requires a typed terminalPredicate"
+      message: "new action custody requires a typed terminalPredicate" + (value.actionFamily === "implement" ? `. ${IMPLEMENT_TERMINAL_PREDICATE_DESCRIPTION}` : "")
     });
   }
 }
@@ -46240,14 +46529,15 @@ function refineActionSuccessorMetadata(value, ctx) {
 var actionSuccessorMetadataSchema = actionSuccessorMetadataObjectSchema.superRefine(refineActionSuccessorMetadata);
 
 // ../shared/src/types/executable-action-successor.ts
-var EXECUTABLE_ACTION_SUCCESSOR_CONTRACT_DESCRIPTION = "Direct executable action custody is closed to implement + implementer + task_done. Local cat review uses an ordinary durable handoff with localReviewVerdict + reviewedHeadSha + accepted-source fields; external review enters through an approved proposedAction and records its verdict through the external-review contract. review/reviewer, merge/pr_merged, and every other reserved pair are unavailable on direct carriers.";
+var EXECUTABLE_ACTION_SUCCESSOR_CONTRACT_DESCRIPTION = "Direct executable action custody is closed to implement + implementer + task_done. " + TASK_ACTION_SUBJECT_REF_DESCRIPTION + " Local cat review uses an ordinary durable handoff with localReviewVerdict + reviewedHeadSha + accepted-source fields; external review enters through an approved proposedAction and records its verdict through the external-review contract. review/reviewer, merge/pr_merged, and every other reserved pair are unavailable on direct carriers.";
 var executableTerminalPredicateSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("task_done") }).strict()
 ]);
 var executableActionSuccessorMetadataObjectSchema = actionSuccessorMetadataObjectSchema.extend({
+  subjectRef: createActionSubjectRefSchema(TASK_ACTION_SUBJECT_REF_DESCRIPTION),
   actionFamily: external_exports.literal("implement"),
   successorSlot: external_exports.literal("implementer"),
-  terminalPredicate: executableTerminalPredicateSchema.optional()
+  terminalPredicate: executableTerminalPredicateSchema.optional().describe(IMPLEMENT_TERMINAL_PREDICATE_DESCRIPTION)
 });
 var executableActionSuccessorMetadataSchema = executableActionSuccessorMetadataObjectSchema.superRefine((value, ctx) => {
   refineActionSuccessorMetadata(value, ctx);
@@ -46314,8 +46604,16 @@ var approvalMaterializationSchema = external_exports.discriminatedUnion("state",
 ]);
 var approvalLifecycleProjectionSchema = external_exports.object({
   resolution: approvalResolutionSchema,
-  materialization: approvalMaterializationSchema
+  materialization: approvalMaterializationSchema,
+  closedReason: external_exports.enum(["expired", "withdrawn"]).optional()
 }).strict().superRefine((projection, ctx) => {
+  if (projection.closedReason && projection.resolution !== "closed_without_decision") {
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      path: ["closedReason"],
+      message: "only a closed Approval may carry its original closure reason"
+    });
+  }
   if (projection.resolution !== "accepted" && projection.materialization.state !== "not_started") {
     ctx.addIssue({
       code: external_exports.ZodIssueCode.custom,
@@ -46991,8 +47289,8 @@ var evolutionProgramEventV1Schema = evolutionProgramEventV1Union.superRefine((ev
   if (event.type === "intervention_receipt_linked") validateInterventionReceipt(event, ctx);
   if (event.type === "decision_recorded") validateDecisionEvent(event, ctx);
   if (event.type === "preparation_work_registered" && event.baseSubmissionRef) {
-    const base = evolutionPreparationSubmissionRefCoordinates(event.baseSubmissionRef);
-    if (base?.section !== event.section) {
+    const base2 = evolutionPreparationSubmissionRefCoordinates(event.baseSubmissionRef);
+    if (base2?.section !== event.section) {
       ctx.addIssue({ code: external_exports.ZodIssueCode.custom, message: "preparation work base must match its section" });
     }
   }
@@ -47701,6 +47999,16 @@ function validateBriefAttention(ownerRead, eligibleReceipts, context2) {
     }
     return;
   }
+  if (ownerRead.attentionCoverage?.state === "partial") {
+    if (ownerRead.brief.needsMe.state !== "unknown" || ownerRead.brief.needsMe.reason !== "attention_source_unavailable" || ownerRead.brief.nextOwner.kind !== "unknown") {
+      addBriefIssue(
+        context2,
+        "needsMe",
+        "partial attention coverage must fail closed when no healthy source needs action"
+      );
+    }
+    return;
+  }
   if (ownerRead.brief.needsMe.state !== "not_needed" || ownerRead.brief.needsMe.evidenceRef !== ownerRead.envelope.ownerRef || ownerRead.brief.needsMe.revision !== ownerRead.envelope.revision || ownerRead.brief.nextOwner.kind === "human") {
     addBriefIssue(
       context2,
@@ -47866,7 +48174,10 @@ var entrustedWorkBriefV1Schema = external_exports.object({
   needsMe: external_exports.discriminatedUnion("state", [
     external_exports.object({ state: external_exports.literal("needed"), evidence: producerEvidenceListV1Schema }).strict(),
     external_exports.object({ state: external_exports.literal("not_needed"), evidenceRef: boundedRef4, revision: revisionSchema4 }).strict(),
-    external_exports.object({ state: external_exports.literal("unknown"), reason: external_exports.literal("stale_owner_read") }).strict()
+    external_exports.object({
+      state: external_exports.literal("unknown"),
+      reason: external_exports.enum(["stale_owner_read", "attention_source_unavailable"])
+    }).strict()
   ])
 }).strict();
 var entrustedWorkOwnerReadV1Schema = external_exports.object({
@@ -47886,6 +48197,7 @@ var entrustedWorkOwnerReadV1Schema = external_exports.object({
   terminal: entrustedWorkTerminalV1Schema.optional(),
   execution: entrustedWorkTaskExecutionV1Schema.optional(),
   timeRefs: external_exports.array(entrustedWorkTimeRefV1Schema).max(64),
+  attentionCoverage: producerAttentionCoverageV1Schema.optional(),
   attentionReceipts: external_exports.array(producerAttentionReceiptV1Schema).max(NEEDS_ME_PRODUCER_IDS.length)
 }).strict().superRefine((ownerRead, context2) => {
   validateBriefTaskCoordinates(ownerRead, context2);
@@ -48591,8 +48903,43 @@ var lessonPromotionContractV1Schema = external_exports.object({
 var CURRENT_RELATIONSHIP_PROFILE_URI = "cat-cafe-profile://relationship/current";
 var CURRENT_CORPUS_PROFILE_URI = "cat-cafe-profile://corpus/current";
 
+// ../shared/src/types/memory-cue-context.ts
+var evidenceRef = external_exports.string().trim().min(1).max(500);
+var fresh = {
+  reason: external_exports.enum(["no_prior_session", "resume_rejected", "resume_failed"]),
+  evidenceRef,
+  runtimeSessionId: evidenceRef.optional()
+};
+var contextSourceEvidenceV1Schema = external_exports.discriminatedUnion("transition", [
+  external_exports.object({ transition: external_exports.literal("fresh"), ...fresh }).strict(),
+  external_exports.object({ transition: external_exports.literal("scope_first_seen"), ...fresh }).strict(),
+  external_exports.object({
+    transition: external_exports.literal("replaced"),
+    reason: external_exports.literal("runtime_replaced"),
+    evidenceRef,
+    runtimeSessionId: evidenceRef
+  }).strict(),
+  external_exports.object({
+    transition: external_exports.literal("context_compacted"),
+    evidenceRef,
+    eventId: evidenceRef,
+    runtimeSessionId: evidenceRef
+  }).strict()
+]);
+var contextSourcePayloadV1Schema = external_exports.object({
+  sourceMessageId: external_exports.string().trim().min(1).max(200),
+  contextEpoch: external_exports.number().int().positive(),
+  evidence: contextSourceEvidenceV1Schema
+}).strict();
+
 // ../shared/src/types/memory-cue.ts
-var RECALL_OPPORTUNITY_CATALOG_VERSION = 6;
+var RECALL_OPPORTUNITY_CATALOG_VERSION = 7;
+var memoryCueDocumentWindowRequestSchema = external_exports.object({
+  offset: external_exports.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional().describe("Zero-based UTF-16 code-unit offset; use nextOffset from the previous page."),
+  query: external_exports.string().trim().min(1).max(200).optional().describe("Case-insensitive literal phrase or heading to locate in this document (1\u2013200 characters).")
+}).strict().refine((value) => value.offset === void 0 || value.query === void 0, {
+  message: 'Use either offset (for example 4000) or query (for example "Release sequence"), not both.'
+});
 var RECALL_RESOLVER_FAMILIES = [
   "person_entity",
   "operational_precedent",
@@ -48635,7 +48982,9 @@ var RECALL_OPPORTUNITY_V1_PAIRS = Object.freeze([
     kind: "owned_seed_available",
     producer: "present_loop"
   }),
-  Object.freeze({ kind: "thread_opened", producer: "owner_message" })
+  Object.freeze({ kind: "thread_opened", producer: "owner_message" }),
+  Object.freeze({ kind: "fresh_context_sources", producer: "context_epoch" }),
+  Object.freeze({ kind: "authorized_task_sources", producer: "task_action_custody" })
 ]);
 var boundedIdentifier = (max) => external_exports.string().trim().min(1).max(max);
 var timestampSchema5 = external_exports.number().int().nonnegative().finite();
@@ -48776,6 +49125,18 @@ var threadOpenedOpportunityV1Schema = external_exports.object({
   producer: external_exports.literal("owner_message"),
   payload: external_exports.object({ sourceMessageId: boundedIdentifier(200) }).strict()
 }).strict();
+var freshContextSourcesOpportunityV1Schema = external_exports.object({
+  ...opportunityBaseShape,
+  kind: external_exports.literal("fresh_context_sources"),
+  producer: external_exports.literal("context_epoch"),
+  payload: contextSourcePayloadV1Schema
+}).strict();
+var authorizedTaskSourcesOpportunityV1Schema = external_exports.object({
+  ...opportunityBaseShape,
+  kind: external_exports.literal("authorized_task_sources"),
+  producer: external_exports.literal("task_action_custody"),
+  payload: contextSourcePayloadV1Schema
+}).strict();
 var recallOpportunityV1Schema = external_exports.discriminatedUnion("kind", [
   subjectSeenOpportunityV1Schema,
   deliveryDecisionOpportunityV1Schema,
@@ -48786,7 +49147,9 @@ var recallOpportunityV1Schema = external_exports.discriminatedUnion("kind", [
   acceptedDecisionRequiredOpportunityV1Schema,
   projectSourceRequiredOpportunityV1Schema,
   ownedSeedAvailableOpportunityV1Schema,
-  threadOpenedOpportunityV1Schema
+  threadOpenedOpportunityV1Schema,
+  freshContextSourcesOpportunityV1Schema,
+  authorizedTaskSourcesOpportunityV1Schema
 ]);
 var memoryCueInvalidatorsSchema = external_exports.tuple([
   external_exports.literal("source_corrected"),
@@ -50586,6 +50949,82 @@ function addRoutingDuplicateIssues(values, path2, ctx) {
   });
 }
 
+// ../shared/src/types/routing-capacity-facts.ts
+var routingCapacityWindowV1Schema = external_exports.object({
+  poolId: routingIdentifierSchema,
+  poolKind: external_exports.enum(["codex-main", "codex-spark", "codex-review", "codex-overflow", "unknown"]),
+  // Account-owned observations do not prove an execution/model → provider limitId edge.
+  // A future producer must supply exact frozen-binding evidence before this can become proven.
+  applicability: external_exports.literal("unknown"),
+  freshness: external_exports.enum(["fresh", "stale"]),
+  kind: external_exports.enum(["five_hour", "seven_day", "monthly", "credits", "unknown"]),
+  remainingPercent: external_exports.number().finite().min(0).max(100).optional(),
+  remainingAmount: external_exports.object({ value: external_exports.number().finite().nonnegative(), unit: external_exports.literal("credits") }).strict().optional(),
+  resetAt: routingEpochMsSchema.optional()
+}).strict().superRefine((window2, ctx) => {
+  if (window2.remainingPercent === void 0 === (window2.remainingAmount === void 0) || window2.kind === "credits" !== (window2.remainingAmount !== void 0))
+    ctx.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      message: "Exactly one quantity is required; credits are an amount, never a percentage"
+    });
+});
+var routingAccountCapacityV1Schema = external_exports.object({
+  state: external_exports.enum(["fresh", "stale", "unknown"]),
+  reason: external_exports.enum([
+    "binding_unknown",
+    "principal_unverified",
+    "provider_unverified",
+    "observation_missing",
+    "refresh_failed",
+    "observation_stale",
+    "reset_elapsed",
+    "execution_binding_changed",
+    "account_unavailable",
+    "source_unavailable",
+    "no_supported_pool"
+  ]).optional(),
+  accountLabel: external_exports.string().trim().min(1).max(80).optional(),
+  bindingRevision: routingReferenceSchema.optional(),
+  evidenceRef: routingReferenceSchema.optional(),
+  plan: external_exports.string().trim().min(1).max(40).optional(),
+  observedAt: routingEpochMsSchema.optional(),
+  validUntil: routingEpochMsSchema.optional(),
+  windows: external_exports.array(routingCapacityWindowV1Schema).max(16)
+}).strict();
+var routingCapacityFactsV1Schema = external_exports.object({
+  v: external_exports.literal(1),
+  current: routingAccountCapacityV1Schema,
+  switchRequired: external_exports.array(routingAccountCapacityV1Schema).max(8)
+}).strict();
+var routingQueueAdmissionReceiptV1Schema = external_exports.object({
+  v: external_exports.literal(1),
+  stage: external_exports.literal("queue_admitted"),
+  executionPreflight: external_exports.literal("pending"),
+  ownerId: routingOwnerIdSchema,
+  observedAt: routingEpochMsSchema,
+  snapshotRef: routingReferenceSchema.optional(),
+  targets: external_exports.array(
+    external_exports.object({
+      targetCatId: routingIdentifierSchema,
+      availabilityObservation: external_exports.enum(["available", "warned", "unavailable"]),
+      reasons: external_exports.array(
+        external_exports.object({
+          code: routingIdentifierSchema,
+          summary: external_exports.string().max(1e3),
+          sourceRefs: external_exports.array(routingReferenceSchema).max(32)
+        }).strict()
+      ).max(32),
+      capacityFacts: routingCapacityFactsV1Schema.optional()
+    }).strict()
+  ).max(64)
+}).strict();
+var routingAdmissionProvenanceV1Schema = external_exports.object({
+  stage: external_exports.literal("queue_admitted"),
+  observedAt: routingEpochMsSchema,
+  snapshotRef: routingReferenceSchema.optional(),
+  targets: external_exports.array(external_exports.object({ targetCatId: routingIdentifierSchema, factsRef: routingReferenceSchema }).strict()).max(64)
+}).strict();
+
 // ../shared/src/types/routing-context-inputs.ts
 var routingSubjectRefV1Schema = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("cat"), catId: routingOwnerIdSchema }).strict(),
@@ -50760,7 +51199,8 @@ var routingCandidateBindingV1Schema = external_exports.object({
   v: external_exports.literal(ROUTING_CONTEXT_VERSION),
   catId: routingOwnerIdSchema,
   providerId: routingIdentifierSchema,
-  provenQuotaPools: external_exports.array(routingQuotaPoolBindingV1Schema).max(32)
+  provenQuotaPools: external_exports.array(routingQuotaPoolBindingV1Schema).max(32),
+  capacityFacts: routingCapacityFactsV1Schema.optional()
 }).strict().superRefine((candidate, ctx) => {
   addRoutingDuplicateIssues(
     candidate.provenQuotaPools.map((pool) => pool.poolId),
@@ -50852,6 +51292,7 @@ var routingPreflightTargetV1Schema = external_exports.object({
   disposition: external_exports.enum(["allowed", "warned", "rejected"]),
   ownerAttempt: external_exports.literal(true).optional(),
   automaticRetryAt: routingEpochMsSchema.optional(),
+  capacityFacts: routingCapacityFactsV1Schema.optional(),
   /** Reasons that causally explain this target's disposition. */
   reasons: external_exports.array(routingReasonV1Schema).max(32),
   /**
@@ -50887,6 +51328,7 @@ var routingPreflightTargetV1Schema = external_exports.object({
 });
 var routingPreflightReceiptV1Schema = external_exports.object({
   type: external_exports.literal("routing_preflight"),
+  stage: external_exports.literal("execution_preflight").optional(),
   v: external_exports.literal(ROUTING_CONTEXT_VERSION),
   ownerId: routingOwnerIdSchema,
   observedAt: routingEpochMsSchema,
@@ -51181,14 +51623,14 @@ function addResponseIssues(request, response, context2, path2) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selectedIds must be unique" });
   }
   const options = new Map(request.presentation.options.map((option) => [option.id, option]));
-  if (ids2.some((id28) => !options.has(id28))) {
+  if (ids2.some((id30) => !options.has(id30))) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection contains an unknown option" });
   }
   const limit = request.presentation.interactiveType === "multi-select" ? request.presentation.maxSelect ?? ids2.length : 1;
   if (ids2.length > limit || request.presentation.interactiveType !== "multi-select" && ids2.length !== 1) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection count exceeds the block contract" });
   }
-  if (response.customInput && !ids2.some((id28) => options.get(id28)?.customInput)) {
+  if (response.customInput && !ids2.some((id30) => options.get(id30)?.customInput)) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "custom input requires a selected custom option" });
   }
 }
@@ -51226,7 +51668,16 @@ var runtimeQuestionSchema = external_exports.object({
   question: nonBlank2,
   isOther: external_exports.boolean().optional(),
   isSecret: external_exports.boolean().optional(),
-  options: external_exports.array(questionOptionSchema).min(1).optional()
+  options: external_exports.array(questionOptionSchema).min(1).optional(),
+  /**
+   * F306 Phase C (iCode parity): the human may select multiple option values.
+   * Additive optional field — legacy records still parse; records carrying it
+   * require readers from this revision onward (strict schemas reject it on
+   * pre-existing readers, which is the documented non-rollback-safe edge).
+   */
+  multiSelect: external_exports.boolean().optional(),
+  /** F306 Phase C (iCode parity): the human may leave this question unanswered. */
+  allowUnanswered: external_exports.boolean().optional()
 }).strict();
 var primitiveValueSchema = external_exports.union([external_exports.string(), external_exports.number(), external_exports.boolean()]);
 var runtimeInteractionPrimitivePropertySchema = external_exports.object({
@@ -51264,9 +51715,9 @@ var runtimeInteractionObjectSchema = external_exports.object({
   if (new Set(required).size !== required.length) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: "schema required ids must be unique" });
   }
-  for (const id28 of required) {
-    if (!propertyIds.has(id28)) {
-      context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id28} is missing` });
+  for (const id30 of required) {
+    if (!propertyIds.has(id30)) {
+      context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id30} is missing` });
     }
   }
 });
@@ -51337,7 +51788,10 @@ var decisionResponseSchema = external_exports.object({
 }).strict();
 var answersResponseSchema = external_exports.object({
   kind: external_exports.literal("answers"),
-  answers: external_exports.record(nonBlank2, external_exports.array(external_exports.string()).min(1))
+  // F306 Phase C: an empty array is the wire form of "left unanswered"; the
+  // per-question allowUnanswered guard in parseQuestionResponse decides
+  // whether that is admissible for a given question.
+  answers: external_exports.record(nonBlank2, external_exports.array(external_exports.string()))
 }).strict();
 var runtimeInteractionResponseSchema = external_exports.discriminatedUnion("kind", [
   decisionResponseSchema,
@@ -51516,7 +51970,7 @@ var unifiedAttentionApprovalsSourceSchema = external_exports.object({
   items: external_exports.array(approvalSourceItemSchema)
 });
 var unifiedAttentionWorkSourceSchema = external_exports.object({
-  coverage: sourceCoverageSchema.optional(),
+  coverage: producerAttentionCoverageV1Schema.optional(),
   ownerReads: external_exports.array(
     external_exports.object({
       envelope: external_exports.object({
@@ -51666,9 +52120,9 @@ var videoProjectDecisionSchema = external_exports.object({
 
 // ../shared/src/types/video-project-switching.ts
 function evenAssetSwitchStarts(durationTicks, count) {
-  const duration = BigInt(durationTicks);
+  const duration2 = BigInt(durationTicks);
   const divisor = BigInt(count);
-  return Array.from({ length: count }, (_, index4) => Number((BigInt(index4) * duration + divisor - 1n) / divisor));
+  return Array.from({ length: count }, (_, index4) => Number((BigInt(index4) * duration2 + divisor - 1n) / divisor));
 }
 function assetSwitchSequenceIssues(segment) {
   if (segment.switchMode === void 0 || !Number.isSafeInteger(segment.durationTicks) || segment.durationTicks <= 0)
@@ -51911,7 +52365,7 @@ function coverageGraphHasCycle(edges) {
     if (!indegrees.has(source3)) indegrees.set(source3, 0);
     for (const target of targets) indegrees.set(target, (indegrees.get(target) ?? 0) + 1);
   }
-  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id28]) => id28);
+  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id30]) => id30);
   let visited = 0;
   for (const source3 of pending) {
     visited++;
@@ -51928,38 +52382,38 @@ function coverageGraphHasCycle(edges) {
 var videoProjectDocumentSchema = videoProjectDocumentBaseSchema.superRefine(refineVideoProjectReferences);
 
 // ../shared/src/types/video-project-command.ts
-var id26 = external_exports.string().trim().min(1).max(256);
+var id28 = external_exports.string().trim().min(1).max(256);
 var revision10 = external_exports.number().int().positive().safe();
 var page2 = {
   cursor: external_exports.number().int().nonnegative().safe().default(0),
   expectedSnapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
 };
 var videoProjectCommandSchema = external_exports.object({
-  requestId: id26,
+  requestId: id28,
   command: external_exports.discriminatedUnion("kind", [
     external_exports.object({ kind: external_exports.literal("read"), ownerRevision: revision10.optional(), ...page2 }).strict(),
     external_exports.object({ kind: external_exports.literal("review-read"), ...page2 }).strict(),
     external_exports.object({
       kind: external_exports.literal("save"),
       expectedOwnerRevision: revision10,
-      operationId: id26,
+      operationId: id28,
       document: external_exports.record(external_exports.unknown())
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("review-act"),
       expectedRevision: revision10,
-      operationId: id26,
+      operationId: id28,
       action: videoProjectReviewActionSchema
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("self-review"),
       expectedOwnerRevision: revision10,
-      operationId: id26,
-      id: id26,
+      operationId: id28,
+      id: id28,
       input: videoProjectFrozenInputSchema,
-      segmentIds: external_exports.array(id26).min(1).max(1e4),
+      segmentIds: external_exports.array(id28).min(1).max(1e4),
       conclusion: external_exports.enum(["pass", "changes-requested"]),
-      refs: external_exports.array(id26).min(1).max(1e3)
+      refs: external_exports.array(id28).min(1).max(1e3)
     }).strict()
   ])
 }).strict();
@@ -52085,7 +52539,7 @@ var workVideoContextSchema = external_exports.object({
 });
 
 // ../shared/src/types/living-work.ts
-var id27 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
+var id29 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
 var ref9 = external_exports.string().min(1).max(2048);
 var workReferenceSchema = external_exports.object({ contentRef: ref9, ownerRevision: external_exports.number().int().positive().safe() }).strict();
 var workReferenceCardSchema = external_exports.object({
@@ -52097,24 +52551,24 @@ var workReferenceCardSchema = external_exports.object({
   meta: external_exports.object({ kind: external_exports.literal("work_reference"), reference: workReferenceSchema }).strict()
 }).strict();
 var workWorkspaceSourceSchema = external_exports.object({
-  worktreeId: id27,
+  worktreeId: id29,
   path: external_exports.string().min(1).max(2048),
   expectedSourceRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/)
 }).strict();
 var submission = {
-  operationId: id27,
+  operationId: id29,
   title: external_exports.string().trim().min(1).max(240),
   changeSummary: external_exports.string().trim().min(1).max(4e3),
   versionLabel: external_exports.string().trim().min(1).max(128).optional(),
   source: workWorkspaceSourceSchema
 };
 var workReviewResponseSchema = external_exports.object({
-  reviewId: id27,
+  reviewId: id29,
   sourceRound: external_exports.number().int().positive().safe(),
   expectedReviewRevision: external_exports.number().int().positive().safe(),
   expectedTaskRevision: external_exports.number().int().positive().safe(),
   expectedLedgerRevision: external_exports.number().int().positive().safe().optional(),
-  requestId: id27.optional(),
+  requestId: id29.optional(),
   responses: external_exports.array(artifactReviewResponseRecordSchema.omit({ judgment: true })).max(500)
 }).strict();
 var submitWorkSchema = external_exports.object({
@@ -52131,7 +52585,7 @@ var commitWorkSchema = external_exports.discriminatedUnion("action", [
 var setWorkContextSchema = external_exports.object({
   action: external_exports.literal("set-context"),
   reference: workReferenceSchema,
-  operationId: id27,
+  operationId: id29,
   expectedMetadataRevision: external_exports.number().int().nonnegative().safe(),
   context: workVideoContextSchema
 }).strict();
@@ -52142,11 +52596,11 @@ var workCommandSchema = external_exports.union([
   importWorkContextSchema,
   external_exports.object({
     action: external_exports.literal("resolve-review-submission"),
-    reviewId: id27,
+    reviewId: id29,
     sourceRound: external_exports.number().int().positive().safe(),
     expectedReviewRevision: external_exports.number().int().positive().safe(),
-    pendingOperationId: id27,
-    operationId: id27
+    pendingOperationId: id29,
+    operationId: id29
   }).strict(),
   external_exports.object({
     action: external_exports.literal("read-context"),
@@ -52166,23 +52620,23 @@ var workCommandSchema = external_exports.union([
   }).strict()
 ]);
 var workVersionRecordSchema = workReferenceSchema.extend({
-  ownerUserId: id27,
-  threadId: id27,
+  ownerUserId: id29,
+  threadId: id29,
   title: submission.title,
   changeSummary: submission.changeSummary,
   versionLabel: submission.versionLabel,
   source: workWorkspaceSourceSchema,
-  operationId: id27,
+  operationId: id29,
   requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   receiptRef: ref9
 }).strict();
 var workContextRecordSchema = external_exports.object({
   reference: workReferenceSchema,
   metadataRevision: external_exports.number().int().positive().safe(),
-  ownerUserId: id27,
-  operationId: id27,
+  ownerUserId: id29,
+  operationId: id29,
   requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id27 }).strict(),
+  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id29 }).strict(),
   recordedAt: external_exports.string().datetime(),
   context: workVideoContextSchema
 }).strict();
@@ -52280,7 +52734,7 @@ function CollectiveScopeRecovery({
 }) {
   const [drafts, setDrafts] = (0, import_react.useState)([]);
   const [busy, setBusy] = (0, import_react.useState)(false);
-  const [notice, setNotice] = (0, import_react.useState)();
+  const [notice2, setNotice] = (0, import_react.useState)();
   const [error, setError] = (0, import_react.useState)();
   const { serviceInstanceId, collectiveId, humanId } = scope;
   (0, import_react.useEffect)(() => {
@@ -52332,13 +52786,13 @@ function CollectiveScopeRecovery({
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { "aria-label": `\u672A\u53D1\u9001\u7684\u6587\u5B57 ${index4 + 1}`, readOnly: true, value: draft.body }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "\u4EC5\u4FDD\u7559\u4F60\u81EA\u5DF1\u5199\u4E0B\u7684\u6587\u5B57\uFF1B\u5F15\u7528\u539F\u6587\u3001\u6536\u4EF6\u4EBA\u4E0E\u56DE\u590D\u76EE\u6807\u5DF2\u79FB\u9664\u3002" })
     ] }, draft.key)),
-    notice && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("output", { children: notice }),
+    notice2 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("output", { children: notice2 }),
     error && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: "form-error", role: "alert", children: error })
   ] }) });
 }
 
 // src/CollectiveWorkspace.tsx
-var import_react69 = __toESM(require_react(), 1);
+var import_react76 = __toESM(require_react(), 1);
 
 // ../ui/src/AppTooltip.tsx
 var import_react2 = __toESM(require_react(), 1);
@@ -52380,7 +52834,7 @@ function AppTooltip({
   children,
   useOwnership = usePlainSurface
 }) {
-  const id28 = (0, import_react2.useId)();
+  const id30 = (0, import_react2.useId)();
   const wrapperRef = (0, import_react2.useRef)(null);
   const tipRef = (0, import_react2.useRef)(null);
   const showTimer = (0, import_react2.useRef)(null);
@@ -52563,7 +53017,7 @@ function AppTooltip({
             "div",
             {
               ref: ownedTipRef,
-              id: id28,
+              id: id30,
               role: "tooltip",
               "data-testid": "app-tooltip",
               "data-side": side,
@@ -52596,6 +53050,50 @@ function AppTooltip({
 }
 function usePlainSurface(_close, tip) {
   return tip;
+}
+
+// ../ui/src/AttachmentPreview.tsx
+var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+function formatAttachmentSize(bytes) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+function ComposerAttachmentPreview({
+  items,
+  onRemove,
+  onOpen,
+  onRetry,
+  labels: labels2
+}) {
+  if (!items.length) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "cafe-attachment-previews", role: "group", "aria-label": "Attachments", children: items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "cafe-attachment-preview", "data-status": item.status, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      "button",
+      {
+        type: "button",
+        className: "cafe-attachment-open",
+        onClick: () => onOpen?.(item.id),
+        disabled: !onOpen,
+        "aria-label": item.name,
+        children: item.mediaType.startsWith("image/") && item.url ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("img", { src: item.url, alt: item.name }) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "cafe-attachment-file", "aria-hidden": "true", children: item.mediaType.startsWith("audio/") ? "\u266B" : item.mediaType.startsWith("video/") ? "\u25B7" : "\u25A4" })
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+      "button",
+      {
+        type: "button",
+        className: "cafe-attachment-remove",
+        onClick: () => onRemove(item.id),
+        "aria-label": labels2?.remove(item.name) ?? `\u79FB\u9664 ${item.name}`,
+        children: "\xD7"
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "cafe-attachment-name", title: item.name, children: item.name }),
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("small", { children: item.status === "uploading" ? labels2?.uploading ?? "\u6B63\u5728\u4E0A\u4F20\u2026" : formatAttachmentSize(item.byteLength) }),
+    item.notice && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { role: "status", className: "cafe-attachment-error", children: item.notice }),
+    item.status === "failed" && onRetry && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("button", { type: "button", className: "cafe-attachment-retry", onClick: () => onRetry(item.id), children: labels2?.retry ?? "\u91CD\u8BD5" })
+  ] }, item.id)) });
 }
 
 // ../ui/src/collective-copy.ts
@@ -52991,47 +53489,137 @@ function collectiveText(text10, language) {
   return language === "en" ? en[text10] ?? text10 : text10;
 }
 
+// ../ui/src/MediaViewer.tsx
+var import_react3 = __toESM(require_react(), 1);
+var import_react_dom2 = __toESM(require_react_dom(), 1);
+var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+function MessageMediaViewer({
+  item,
+  title,
+  children,
+  onClose,
+  onReturn,
+  returnLabel = "\u56DE\u5230\u539F\u6D88\u606F",
+  closeLabel = "\u5173\u95ED",
+  items = [],
+  onSelect
+}) {
+  const dialog = (0, import_react3.useRef)(null);
+  (0, import_react3.useEffect)(() => {
+    const prior = document.activeElement instanceof HTMLElement ? document.activeElement : void 0;
+    dialog.current?.showModal();
+    return () => {
+      dialog.current?.close();
+      if (prior?.isConnected) prior.focus({ preventScroll: true });
+    };
+  }, []);
+  return (0, import_react_dom2.createPortal)(
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      "dialog",
+      {
+        ref: dialog,
+        className: "cafe-media-viewer",
+        "aria-label": item.title,
+        onCancel: (event) => {
+          event.preventDefault();
+          onClose();
+        },
+        onClick: (event) => {
+          if (event.target === dialog.current) onClose();
+        },
+        children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "cafe-media-window", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("header", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { children: title ?? item.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { children: [
+              onReturn && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", onClick: onReturn, children: returnLabel }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { type: "button", onClick: onClose, "aria-label": closeLabel, children: "\xD7" })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "cafe-media-stage", children: children ?? (item.mediaType.startsWith("image/") ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("img", { src: item.url, alt: item.title }) : item.mediaType.startsWith("video/") ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("video", { controls: true, preload: "metadata", src: item.url, "aria-label": item.title }) : item.mediaType.startsWith("audio/") ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("audio", { controls: true, preload: "metadata", src: item.url, "aria-label": item.title }) : /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("a", { href: item.url, download: item.title, children: item.title })) }),
+          items.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("nav", { className: "cafe-media-thumbnails", "aria-label": "Media", children: items.map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "button",
+            {
+              type: "button",
+              "aria-label": candidate.title,
+              "aria-current": candidate.id === item.id,
+              onClick: () => onSelect?.(candidate.id),
+              children: candidate.mediaType.startsWith("image/") ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("img", { src: candidate.url, alt: candidate.title }) : candidate.title
+            },
+            candidate.id
+          )) })
+        ] })
+      }
+    ),
+    document.body
+  );
+}
+
 // ../ui/src/MeowClubMark.tsx
-var import_jsx_runtime3 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
 function MeowClubMark({ className = "h-6 w-6" }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { viewBox: "0 0 1024 1024", className, "aria-hidden": "true", focusable: "false", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("g", { transform: "translate(0,1024) scale(0.100000,-0.100000)", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M4165 9859 c-247 -27 -602 -101 -855 -178 -169 -51 -385 -130 -475 -174 -27 -13 -66 -29 -86 -36 -20 -6 -85 -40 -146 -74 -60 -34 -125 -70 -145 -80 -120 -62 -385 -252 -543 -388 -494 -426 -854 -1010 -970 -1574 -23 -110 -47 -370 -36 -381 3 -2 4 -28 3 -57 -1 -28 7 -92 18 -142 11 -49 25 -109 30 -132 16 -73 112 -303 152 -364 21 -33 66 -87 101 -121 l63 -62 -104 -104 c-59 -60 -112 -123 -126 -150 -12 -26 -38 -72 -57 -102 -34 -53 -54 -92 -98 -193 -31 -71 -31 -71 73 -22 41 19 76 35 79 35 3 0 -10 -24 -30 -52 -35 -52 -93 -166 -97 -190 -1 -7 -5 -19 -9 -25 -5 -7 -6 -13 -2 -13 7 0 -34 -81 -52 -102 -40 -45 9 -41 114 9 35 17 63 28 63 25 0 -2 -22 -46 -50 -97 -58 -108 -58 -108 -24 -94 76 28 -2 -35 -98 -81 -79 -37 -129 -89 -170 -177 -33 -71 -31 -89 7 -53 29 27 31 24 10 -17 -38 -76 -74 -307 -51 -323 4 -3 14 6 22 20 15 24 15 24 9 -15 -3 -22 -15 -78 -26 -124 -17 -69 -18 -89 -8 -108 12 -22 9 -55 -16 -187 -9 -43 -29 -75 -85 -136 -87 -93 -104 -183 -70 -384 14 -88 18 -94 83 -144 113 -87 267 -46 385 103 43 55 100 152 107 181 2 11 15 48 30 84 41 104 99 309 109 393 11 86 66 204 99 212 12 3 81 7 153 9 86 3 144 10 168 20 21 9 36 11 36 5 0 -25 143 31 270 105 34 20 65 34 68 31 3 -3 0 -5 -6 -5 -7 0 -12 -5 -12 -11 0 -14 53 18 105 64 28 24 45 33 48 25 8 -23 257 239 321 337 84 127 102 156 120 190 28 54 17 11 -20 -75 -68 -162 -110 -223 -254 -370 -211 -214 -505 -347 -806 -366 -84 -5 -102 -9 -118 -27 -34 -39 -67 -125 -71 -184 -2 -32 -11 -83 -20 -113 -9 -30 -20 -78 -25 -106 -4 -28 -19 -83 -34 -122 -14 -40 -23 -72 -21 -72 12 0 -49 -105 -91 -158 -92 -117 -99 -131 -99 -191 2 -214 243 -242 409 -48 66 78 186 311 200 392 6 30 84 273 94 291 15 26 75 65 83 53 8 -14 139 53 200 102 35 27 37 28 31 7 -8 -32 72 26 159 115 43 45 68 64 72 55 14 -38 168 166 237 315 36 78 50 99 70 104 82 21 254 124 304 184 32 38 36 37 26 -8 -5 -21 -11 -49 -14 -63 -2 -14 -7 -33 -11 -42 -5 -13 -2 -18 11 -18 62 2 189 85 284 186 l62 67 -5 -59 c-2 -32 -8 -70 -12 -83 -8 -23 -5 -23 64 15 78 42 176 132 207 189 28 53 37 43 32 -35 -6 -82 -3 -83 64 -34 64 48 134 134 168 209 l28 60 11 -40 c6 -22 11 -57 11 -77 0 -20 4 -39 9 -42 28 -18 171 207 171 267 0 44 16 31 32 -25 20 -71 36 -67 78 16 43 86 51 212 15 231 -11 5 -35 20 -53 33 -30 22 -38 19 -33 -10 5 -31 -115 47 -169 111 -59 68 -49 74 18 10 98 -95 124 -113 134 -95 5 9 6 26 2 38 -5 17 6 11 47 -24 99 -84 299 -150 232 -76 -15 17 -14 18 42 18 46 0 56 -3 47 -12 -20 -20 -14 -38 13 -38 28 0 122 36 197 75 59 31 62 31 42 0 -9 -14 -14 -28 -12 -31 11 -11 125 38 214 91 97 58 130 70 99 35 -32 -35 -10 -32 131 20 90 33 140 47 144 40 5 -8 25 -8 71 -1 154 25 247 5 383 -81 76 -49 110 -57 204 -52 109 7 113 9 175 60 64 52 76 80 78 176 2 73 -5 89 -68 159 -47 52 -82 72 -194 112 -52 19 -120 46 -151 60 -32 15 -70 29 -85 33 -16 3 -57 15 -93 26 -49 15 -117 22 -275 29 -115 5 -248 15 -295 22 l-85 12 -6 40 c-13 73 -18 95 -24 116 -11 34 13 13 35 -31 11 -22 20 -48 20 -58 0 -41 30 -46 322 -58 149 -6 159 -5 192 15 98 61 224 88 339 71 71 -10 94 -9 143 4 33 8 71 17 85 20 64 14 139 111 139 183 0 115 -118 221 -247 223 -95 1 -385 -55 -476 -92 -88 -34 -310 -105 -356 -113 l-43 -7 4 -54 c3 -30 2 -57 -2 -59 -3 -2 -7 12 -8 31 -3 35 -39 145 -52 154 -3 3 -16 22 -29 42 -30 51 -6 41 42 -16 30 -36 43 -44 78 -48 52 -5 57 7 30 66 l-20 46 35 0 c46 0 43 11 -11 45 -24 16 -42 32 -39 37 3 5 -2 18 -11 28 -23 26 -32 95 -13 103 8 3 41 0 74 -6 122 -24 188 2 217 86 4 10 21 24 39 32 49 22 74 47 88 89 7 21 23 54 36 74 32 47 31 54 -26 145 -62 96 -66 117 -46 196 9 35 16 72 16 83 0 31 -61 146 -80 151 -10 3 -21 19 -25 36 -4 17 -10 31 -13 31 -4 0 -29 19 -55 43 l-48 42 16 90 c9 50 30 122 46 160 16 39 31 81 33 95 3 14 5 27 6 30 3 6 3 9 14 74 7 36 23 68 68 128 59 77 68 105 27 79 -31 -18 -33 -8 -9 39 30 59 17 61 -35 7 -50 -53 -55 -56 -48 -27 3 11 1 20 -5 20 -10 0 -52 -99 -52 -124 0 -22 -140 -147 -252 -226 l-106 -75 3 -40 c1 -22 1 -31 -2 -20 -2 11 -10 25 -16 30 -18 15 -22 149 -10 318 4 65 6 121 3 123 -14 15 7 84 51 164 27 50 49 93 49 96 0 13 -27 1 -52 -23 -33 -32 -38 -16 -13 44 34 82 -1 72 -52 -14 -28 -49 -37 -54 -31 -18 3 14 1 25 -3 25 -18 0 -41 -51 -52 -119 l-12 -71 -207 -207 c-114 -115 -217 -226 -230 -249 -26 -45 -88 -104 -110 -104 -8 0 -18 -4 -23 -8 -6 -5 -42 -21 -81 -35 -39 -15 -116 -57 -170 -93 -59 -38 -122 -71 -156 -81 -32 -9 -58 -20 -58 -24 0 -11 68 -29 109 -29 32 0 32 -1 -42 -54 -108 -78 -191 -109 -294 -110 -46 -1 -83 -3 -83 -6 0 -24 68 -82 120 -101 l59 -23 -66 -24 c-88 -32 -233 -122 -233 -144 0 -5 35 -8 78 -9 62 0 149 -16 106 -18 -24 -2 -118 -82 -161 -136 -24 -30 -48 -55 -53 -55 -6 0 -27 -11 -48 -25 -20 -13 -62 -30 -92 -38 -29 -8 -56 -19 -58 -25 -4 -14 97 -51 131 -46 15 1 27 0 27 -4 -1 -12 -237 -123 -275 -129 -19 -3 -35 -9 -35 -13 0 -10 75 -40 100 -40 38 0 20 -15 -68 -57 -151 -73 -249 -100 -452 -128 -69 -9 -152 -23 -185 -31 -33 -7 -78 -16 -100 -20 -100 -15 -370 -144 -510 -244 -113 -80 -112 -80 -139 14 -32 111 -39 177 -33 309 22 536 394 1136 977 1575 63 48 123 94 133 103 61 55 604 349 644 349 5 0 55 18 113 40 127 49 290 95 387 110 40 7 75 16 78 20 8 13 -73 40 -161 54 l-79 12 70 21 c88 27 136 39 255 63 137 28 140 29 140 40 0 5 -16 12 -36 16 -52 10 -33 17 153 63 207 52 300 68 460 81 225 18 532 -19 669 -79 26 -12 53 -21 61 -21 23 0 191 -88 221 -115 15 -14 34 -25 42 -25 24 0 177 -147 227 -219 26 -36 51 -68 55 -71 10 -8 47 -92 52 -121 3 -13 5 -24 6 -24 1 0 3 -13 5 -29 8 -61 28 -43 45 41 6 29 9 62 5 73 -13 41 6 18 39 -47 43 -86 48 -114 48 -235 -1 -54 1 -98 4 -98 65 0 171 151 209 300 24 93 17 280 -15 370 -110 310 -461 605 -880 738 -149 48 -457 116 -595 132 -106 12 -545 11 -660 -1z M7170 7640 c-6 -11 -15 -73 -21 -138 -10 -121 -15 -149 -25 -139 -12 12 -167 -55 -237 -102 -78 -53 -135 -109 -188 -184 -30 -44 -34 -58 -40 -139 l-6 -89 -87 -82 c-91 -87 -92 -89 -75 -164 28 -122 40 -152 74 -182 19 -17 35 -35 35 -42 0 -49 88 -108 176 -119 76 -10 78 -11 70 -43 -8 -32 -55 -78 -133 -128 -69 -45 -77 -59 -36 -59 27 0 26 -2 -24 -45 -53 -47 -116 -132 -107 -146 2 -4 23 -1 46 7 58 20 64 18 27 -13 -72 -61 -155 -242 -166 -361 l-5 -67 57 55 c52 50 56 52 41 22 -10 -18 -19 -45 -21 -60 -2 -15 -9 -49 -15 -75 -13 -49 -9 -246 5 -280 6 -14 12 -10 37 25 47 66 48 66 41 -4 -11 -118 21 -261 85 -385 22 -43 32 -42 33 5 1 20 4 48 8 62 7 22 9 20 24 -29 20 -65 127 -291 138 -291 11 0 16 -20 39 -149 30 -164 35 -239 35 -501 0 -345 -11 -393 -91 -405 -115 -17 -202 -118 -202 -237 0 -133 62 -173 268 -173 189 0 186 -1 186 82 -1 119 58 210 169 263 38 18 66 39 70 51 11 34 18 83 17 119 -1 19 -3 99 -6 176 -5 156 5 217 50 307 28 54 25 70 -6 42 -11 -10 -23 -15 -27 -12 -7 8 24 95 42 117 7 8 25 38 41 65 28 49 223 260 232 251 7 -8 -81 -127 -123 -166 -36 -35 -115 -158 -115 -180 0 -7 19 -1 45 14 25 15 45 22 45 17 0 -5 -5 -13 -10 -16 -18 -11 -87 -157 -111 -235 -27 -88 -35 -318 -11 -341 10 -11 12 -9 12 7 0 11 7 29 15 40 14 18 14 17 15 -13 0 -47 19 -126 45 -192 l23 -59 -72 1 c-110 1 -175 -23 -230 -84 -76 -84 -91 -170 -46 -259 40 -80 91 -100 247 -100 121 0 215 -11 433 -51 292 -52 636 -12 823 97 73 43 72 33 -5 -51 -76 -83 -146 -129 -275 -183 -208 -86 -212 -87 -618 -88 -198 0 -369 -3 -380 -6 -11 -3 -32 -9 -47 -13 -45 -12 -32 -25 25 -25 28 -1 79 -7 112 -14 l60 -12 -90 -8 c-107 -9 -228 -31 -287 -52 -24 -9 -51 -17 -60 -19 -72 -15 -327 -189 -307 -210 3 -2 40 7 82 20 105 34 110 32 41 -16 -162 -114 -256 -240 -316 -424 -41 -129 6 -329 104 -439 65 -73 86 -74 53 -3 -34 71 -31 89 5 39 107 -149 370 -264 634 -279 123 -7 140 6 50 38 -62 22 -45 23 78 4 152 -23 352 -36 436 -29 202 16 435 65 522 109 14 7 36 16 50 20 l25 7 -24 -25 c-13 -15 -39 -37 -57 -49 -105 -72 78 -26 301 75 262 118 454 286 599 521 33 53 61 94 63 92 2 -2 -1 -32 -7 -66 -14 -77 -9 -83 23 -28 14 24 35 54 47 68 45 51 149 290 189 435 74 267 56 594 -49 884 -37 103 -37 125 -3 209 42 106 73 231 80 320 l6 84 16 -34 16 -33 3 68 c4 98 -38 374 -73 472 -6 16 -3 15 14 -5 11 -14 21 -28 21 -32 0 -5 3 -8 8 -8 6 0 8 55 2 70 -1 3 -2 12 -1 21 5 52 -164 445 -216 504 -18 21 -52 67 -68 94 -10 17 -1 12 66 -36 60 -43 62 -42 39 15 -86 212 -227 419 -396 581 -70 66 -121 121 -113 121 8 0 39 -7 69 -15 30 -8 56 -15 58 -15 1 0 2 6 2 14 0 31 -185 168 -310 231 -114 56 -191 105 -234 146 l-38 36 44 7 c24 4 59 16 78 28 l35 20 -59 28 c-74 35 -96 62 -152 177 -54 114 -54 116 -3 98 23 -8 53 -15 67 -15 l26 0 -30 33 c-17 17 -44 55 -59 82 -42 74 -100 149 -137 179 l-33 26 32 0 c17 0 44 5 60 11 l28 11 -50 22 c-79 36 -159 116 -222 224 -142 240 -379 412 -620 448 -44 6 -47 6 -34 -9 35 -43 -13 -11 -54 36 -172 192 -322 288 -355 227z M6913 7484 c-6 -18 1 -162 10 -170 3 -3 22 6 44 20 21 14 53 28 72 31 78 13 87 32 33 67 -95 63 -148 81 -159 52z M4106 4024 c-21 -30 -17 -102 11 -196 8 -29 17 -64 19 -78 8 -43 44 -130 115 -270 73 -144 173 -274 260 -339 45 -32 55 -53 105 -201 131 -393 22 -799 -252 -931 -96 -47 -283 -50 -404 -7 -392 139 -527 168 -789 168 -164 0 -198 -3 -289 -25 -149 -36 -389 -137 -427 -180 -5 -6 -36 -31 -68 -55 -68 -51 -174 -163 -214 -226 -15 -24 -33 -46 -40 -48 -15 -6 -87 108 -114 181 -12 32 -25 63 -29 68 -4 6 -20 60 -36 120 -71 283 -16 613 159 960 185 366 418 613 723 766 133 67 186 145 149 222 -33 69 -108 90 -224 61 -209 -52 -529 -328 -732 -632 -29 -42 -55 -79 -59 -82 -22 -16 -216 -382 -218 -411 0 -8 -25 -84 -55 -170 -78 -228 -89 -302 -84 -599 4 -274 22 -375 103 -576 20 -49 38 -97 40 -107 3 -17 26 -61 147 -272 25 -44 55 -113 66 -153 24 -81 71 -190 94 -218 8 -11 35 -44 59 -74 24 -30 75 -79 114 -108 38 -28 74 -56 80 -61 87 -72 376 -144 679 -172 320 -29 1131 13 1296 67 74 24 87 44 55 90 -30 45 -27 53 11 26 170 -119 400 -143 898 -93 711 72 939 79 1293 44 281 -28 395 16 398 152 3 117 -86 183 -315 235 -69 16 -162 40 -206 54 -90 28 -262 72 -540 140 l-190 47 -18 -23 c-10 -13 -45 -51 -79 -85 l-62 -62 26 -10 c31 -12 192 -39 481 -83 120 -18 213 -34 208 -36 -27 -9 -751 77 -797 95 -8 3 16 32 58 71 86 82 140 157 206 287 128 253 138 518 29 800 -70 181 -95 242 -134 330 -40 89 -60 144 -67 181 -2 10 -11 54 -20 96 -18 87 -20 154 -6 213 5 22 11 53 14 68 15 84 111 207 210 269 105 65 135 107 148 203 22 172 22 172 1 212 -11 21 -23 54 -27 74 -13 71 -44 82 -195 67 l-118 -11 -64 32 c-146 73 -338 58 -529 -40 -96 -50 -161 -48 -255 7 -39 22 -122 67 -185 99 -63 32 -131 68 -150 80 -19 12 -44 24 -55 28 -11 3 -45 15 -75 26 -76 28 -111 26 -134 -5z" }) }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { viewBox: "0 0 1024 1024", className, "aria-hidden": "true", focusable: "false", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("g", { transform: "translate(0,1024) scale(0.100000,-0.100000)", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("path", { d: "M4165 9859 c-247 -27 -602 -101 -855 -178 -169 -51 -385 -130 -475 -174 -27 -13 -66 -29 -86 -36 -20 -6 -85 -40 -146 -74 -60 -34 -125 -70 -145 -80 -120 -62 -385 -252 -543 -388 -494 -426 -854 -1010 -970 -1574 -23 -110 -47 -370 -36 -381 3 -2 4 -28 3 -57 -1 -28 7 -92 18 -142 11 -49 25 -109 30 -132 16 -73 112 -303 152 -364 21 -33 66 -87 101 -121 l63 -62 -104 -104 c-59 -60 -112 -123 -126 -150 -12 -26 -38 -72 -57 -102 -34 -53 -54 -92 -98 -193 -31 -71 -31 -71 73 -22 41 19 76 35 79 35 3 0 -10 -24 -30 -52 -35 -52 -93 -166 -97 -190 -1 -7 -5 -19 -9 -25 -5 -7 -6 -13 -2 -13 7 0 -34 -81 -52 -102 -40 -45 9 -41 114 9 35 17 63 28 63 25 0 -2 -22 -46 -50 -97 -58 -108 -58 -108 -24 -94 76 28 -2 -35 -98 -81 -79 -37 -129 -89 -170 -177 -33 -71 -31 -89 7 -53 29 27 31 24 10 -17 -38 -76 -74 -307 -51 -323 4 -3 14 6 22 20 15 24 15 24 9 -15 -3 -22 -15 -78 -26 -124 -17 -69 -18 -89 -8 -108 12 -22 9 -55 -16 -187 -9 -43 -29 -75 -85 -136 -87 -93 -104 -183 -70 -384 14 -88 18 -94 83 -144 113 -87 267 -46 385 103 43 55 100 152 107 181 2 11 15 48 30 84 41 104 99 309 109 393 11 86 66 204 99 212 12 3 81 7 153 9 86 3 144 10 168 20 21 9 36 11 36 5 0 -25 143 31 270 105 34 20 65 34 68 31 3 -3 0 -5 -6 -5 -7 0 -12 -5 -12 -11 0 -14 53 18 105 64 28 24 45 33 48 25 8 -23 257 239 321 337 84 127 102 156 120 190 28 54 17 11 -20 -75 -68 -162 -110 -223 -254 -370 -211 -214 -505 -347 -806 -366 -84 -5 -102 -9 -118 -27 -34 -39 -67 -125 -71 -184 -2 -32 -11 -83 -20 -113 -9 -30 -20 -78 -25 -106 -4 -28 -19 -83 -34 -122 -14 -40 -23 -72 -21 -72 12 0 -49 -105 -91 -158 -92 -117 -99 -131 -99 -191 2 -214 243 -242 409 -48 66 78 186 311 200 392 6 30 84 273 94 291 15 26 75 65 83 53 8 -14 139 53 200 102 35 27 37 28 31 7 -8 -32 72 26 159 115 43 45 68 64 72 55 14 -38 168 166 237 315 36 78 50 99 70 104 82 21 254 124 304 184 32 38 36 37 26 -8 -5 -21 -11 -49 -14 -63 -2 -14 -7 -33 -11 -42 -5 -13 -2 -18 11 -18 62 2 189 85 284 186 l62 67 -5 -59 c-2 -32 -8 -70 -12 -83 -8 -23 -5 -23 64 15 78 42 176 132 207 189 28 53 37 43 32 -35 -6 -82 -3 -83 64 -34 64 48 134 134 168 209 l28 60 11 -40 c6 -22 11 -57 11 -77 0 -20 4 -39 9 -42 28 -18 171 207 171 267 0 44 16 31 32 -25 20 -71 36 -67 78 16 43 86 51 212 15 231 -11 5 -35 20 -53 33 -30 22 -38 19 -33 -10 5 -31 -115 47 -169 111 -59 68 -49 74 18 10 98 -95 124 -113 134 -95 5 9 6 26 2 38 -5 17 6 11 47 -24 99 -84 299 -150 232 -76 -15 17 -14 18 42 18 46 0 56 -3 47 -12 -20 -20 -14 -38 13 -38 28 0 122 36 197 75 59 31 62 31 42 0 -9 -14 -14 -28 -12 -31 11 -11 125 38 214 91 97 58 130 70 99 35 -32 -35 -10 -32 131 20 90 33 140 47 144 40 5 -8 25 -8 71 -1 154 25 247 5 383 -81 76 -49 110 -57 204 -52 109 7 113 9 175 60 64 52 76 80 78 176 2 73 -5 89 -68 159 -47 52 -82 72 -194 112 -52 19 -120 46 -151 60 -32 15 -70 29 -85 33 -16 3 -57 15 -93 26 -49 15 -117 22 -275 29 -115 5 -248 15 -295 22 l-85 12 -6 40 c-13 73 -18 95 -24 116 -11 34 13 13 35 -31 11 -22 20 -48 20 -58 0 -41 30 -46 322 -58 149 -6 159 -5 192 15 98 61 224 88 339 71 71 -10 94 -9 143 4 33 8 71 17 85 20 64 14 139 111 139 183 0 115 -118 221 -247 223 -95 1 -385 -55 -476 -92 -88 -34 -310 -105 -356 -113 l-43 -7 4 -54 c3 -30 2 -57 -2 -59 -3 -2 -7 12 -8 31 -3 35 -39 145 -52 154 -3 3 -16 22 -29 42 -30 51 -6 41 42 -16 30 -36 43 -44 78 -48 52 -5 57 7 30 66 l-20 46 35 0 c46 0 43 11 -11 45 -24 16 -42 32 -39 37 3 5 -2 18 -11 28 -23 26 -32 95 -13 103 8 3 41 0 74 -6 122 -24 188 2 217 86 4 10 21 24 39 32 49 22 74 47 88 89 7 21 23 54 36 74 32 47 31 54 -26 145 -62 96 -66 117 -46 196 9 35 16 72 16 83 0 31 -61 146 -80 151 -10 3 -21 19 -25 36 -4 17 -10 31 -13 31 -4 0 -29 19 -55 43 l-48 42 16 90 c9 50 30 122 46 160 16 39 31 81 33 95 3 14 5 27 6 30 3 6 3 9 14 74 7 36 23 68 68 128 59 77 68 105 27 79 -31 -18 -33 -8 -9 39 30 59 17 61 -35 7 -50 -53 -55 -56 -48 -27 3 11 1 20 -5 20 -10 0 -52 -99 -52 -124 0 -22 -140 -147 -252 -226 l-106 -75 3 -40 c1 -22 1 -31 -2 -20 -2 11 -10 25 -16 30 -18 15 -22 149 -10 318 4 65 6 121 3 123 -14 15 7 84 51 164 27 50 49 93 49 96 0 13 -27 1 -52 -23 -33 -32 -38 -16 -13 44 34 82 -1 72 -52 -14 -28 -49 -37 -54 -31 -18 3 14 1 25 -3 25 -18 0 -41 -51 -52 -119 l-12 -71 -207 -207 c-114 -115 -217 -226 -230 -249 -26 -45 -88 -104 -110 -104 -8 0 -18 -4 -23 -8 -6 -5 -42 -21 -81 -35 -39 -15 -116 -57 -170 -93 -59 -38 -122 -71 -156 -81 -32 -9 -58 -20 -58 -24 0 -11 68 -29 109 -29 32 0 32 -1 -42 -54 -108 -78 -191 -109 -294 -110 -46 -1 -83 -3 -83 -6 0 -24 68 -82 120 -101 l59 -23 -66 -24 c-88 -32 -233 -122 -233 -144 0 -5 35 -8 78 -9 62 0 149 -16 106 -18 -24 -2 -118 -82 -161 -136 -24 -30 -48 -55 -53 -55 -6 0 -27 -11 -48 -25 -20 -13 -62 -30 -92 -38 -29 -8 -56 -19 -58 -25 -4 -14 97 -51 131 -46 15 1 27 0 27 -4 -1 -12 -237 -123 -275 -129 -19 -3 -35 -9 -35 -13 0 -10 75 -40 100 -40 38 0 20 -15 -68 -57 -151 -73 -249 -100 -452 -128 -69 -9 -152 -23 -185 -31 -33 -7 -78 -16 -100 -20 -100 -15 -370 -144 -510 -244 -113 -80 -112 -80 -139 14 -32 111 -39 177 -33 309 22 536 394 1136 977 1575 63 48 123 94 133 103 61 55 604 349 644 349 5 0 55 18 113 40 127 49 290 95 387 110 40 7 75 16 78 20 8 13 -73 40 -161 54 l-79 12 70 21 c88 27 136 39 255 63 137 28 140 29 140 40 0 5 -16 12 -36 16 -52 10 -33 17 153 63 207 52 300 68 460 81 225 18 532 -19 669 -79 26 -12 53 -21 61 -21 23 0 191 -88 221 -115 15 -14 34 -25 42 -25 24 0 177 -147 227 -219 26 -36 51 -68 55 -71 10 -8 47 -92 52 -121 3 -13 5 -24 6 -24 1 0 3 -13 5 -29 8 -61 28 -43 45 41 6 29 9 62 5 73 -13 41 6 18 39 -47 43 -86 48 -114 48 -235 -1 -54 1 -98 4 -98 65 0 171 151 209 300 24 93 17 280 -15 370 -110 310 -461 605 -880 738 -149 48 -457 116 -595 132 -106 12 -545 11 -660 -1z M7170 7640 c-6 -11 -15 -73 -21 -138 -10 -121 -15 -149 -25 -139 -12 12 -167 -55 -237 -102 -78 -53 -135 -109 -188 -184 -30 -44 -34 -58 -40 -139 l-6 -89 -87 -82 c-91 -87 -92 -89 -75 -164 28 -122 40 -152 74 -182 19 -17 35 -35 35 -42 0 -49 88 -108 176 -119 76 -10 78 -11 70 -43 -8 -32 -55 -78 -133 -128 -69 -45 -77 -59 -36 -59 27 0 26 -2 -24 -45 -53 -47 -116 -132 -107 -146 2 -4 23 -1 46 7 58 20 64 18 27 -13 -72 -61 -155 -242 -166 -361 l-5 -67 57 55 c52 50 56 52 41 22 -10 -18 -19 -45 -21 -60 -2 -15 -9 -49 -15 -75 -13 -49 -9 -246 5 -280 6 -14 12 -10 37 25 47 66 48 66 41 -4 -11 -118 21 -261 85 -385 22 -43 32 -42 33 5 1 20 4 48 8 62 7 22 9 20 24 -29 20 -65 127 -291 138 -291 11 0 16 -20 39 -149 30 -164 35 -239 35 -501 0 -345 -11 -393 -91 -405 -115 -17 -202 -118 -202 -237 0 -133 62 -173 268 -173 189 0 186 -1 186 82 -1 119 58 210 169 263 38 18 66 39 70 51 11 34 18 83 17 119 -1 19 -3 99 -6 176 -5 156 5 217 50 307 28 54 25 70 -6 42 -11 -10 -23 -15 -27 -12 -7 8 24 95 42 117 7 8 25 38 41 65 28 49 223 260 232 251 7 -8 -81 -127 -123 -166 -36 -35 -115 -158 -115 -180 0 -7 19 -1 45 14 25 15 45 22 45 17 0 -5 -5 -13 -10 -16 -18 -11 -87 -157 -111 -235 -27 -88 -35 -318 -11 -341 10 -11 12 -9 12 7 0 11 7 29 15 40 14 18 14 17 15 -13 0 -47 19 -126 45 -192 l23 -59 -72 1 c-110 1 -175 -23 -230 -84 -76 -84 -91 -170 -46 -259 40 -80 91 -100 247 -100 121 0 215 -11 433 -51 292 -52 636 -12 823 97 73 43 72 33 -5 -51 -76 -83 -146 -129 -275 -183 -208 -86 -212 -87 -618 -88 -198 0 -369 -3 -380 -6 -11 -3 -32 -9 -47 -13 -45 -12 -32 -25 25 -25 28 -1 79 -7 112 -14 l60 -12 -90 -8 c-107 -9 -228 -31 -287 -52 -24 -9 -51 -17 -60 -19 -72 -15 -327 -189 -307 -210 3 -2 40 7 82 20 105 34 110 32 41 -16 -162 -114 -256 -240 -316 -424 -41 -129 6 -329 104 -439 65 -73 86 -74 53 -3 -34 71 -31 89 5 39 107 -149 370 -264 634 -279 123 -7 140 6 50 38 -62 22 -45 23 78 4 152 -23 352 -36 436 -29 202 16 435 65 522 109 14 7 36 16 50 20 l25 7 -24 -25 c-13 -15 -39 -37 -57 -49 -105 -72 78 -26 301 75 262 118 454 286 599 521 33 53 61 94 63 92 2 -2 -1 -32 -7 -66 -14 -77 -9 -83 23 -28 14 24 35 54 47 68 45 51 149 290 189 435 74 267 56 594 -49 884 -37 103 -37 125 -3 209 42 106 73 231 80 320 l6 84 16 -34 16 -33 3 68 c4 98 -38 374 -73 472 -6 16 -3 15 14 -5 11 -14 21 -28 21 -32 0 -5 3 -8 8 -8 6 0 8 55 2 70 -1 3 -2 12 -1 21 5 52 -164 445 -216 504 -18 21 -52 67 -68 94 -10 17 -1 12 66 -36 60 -43 62 -42 39 15 -86 212 -227 419 -396 581 -70 66 -121 121 -113 121 8 0 39 -7 69 -15 30 -8 56 -15 58 -15 1 0 2 6 2 14 0 31 -185 168 -310 231 -114 56 -191 105 -234 146 l-38 36 44 7 c24 4 59 16 78 28 l35 20 -59 28 c-74 35 -96 62 -152 177 -54 114 -54 116 -3 98 23 -8 53 -15 67 -15 l26 0 -30 33 c-17 17 -44 55 -59 82 -42 74 -100 149 -137 179 l-33 26 32 0 c17 0 44 5 60 11 l28 11 -50 22 c-79 36 -159 116 -222 224 -142 240 -379 412 -620 448 -44 6 -47 6 -34 -9 35 -43 -13 -11 -54 36 -172 192 -322 288 -355 227z M6913 7484 c-6 -18 1 -162 10 -170 3 -3 22 6 44 20 21 14 53 28 72 31 78 13 87 32 33 67 -95 63 -148 81 -159 52z M4106 4024 c-21 -30 -17 -102 11 -196 8 -29 17 -64 19 -78 8 -43 44 -130 115 -270 73 -144 173 -274 260 -339 45 -32 55 -53 105 -201 131 -393 22 -799 -252 -931 -96 -47 -283 -50 -404 -7 -392 139 -527 168 -789 168 -164 0 -198 -3 -289 -25 -149 -36 -389 -137 -427 -180 -5 -6 -36 -31 -68 -55 -68 -51 -174 -163 -214 -226 -15 -24 -33 -46 -40 -48 -15 -6 -87 108 -114 181 -12 32 -25 63 -29 68 -4 6 -20 60 -36 120 -71 283 -16 613 159 960 185 366 418 613 723 766 133 67 186 145 149 222 -33 69 -108 90 -224 61 -209 -52 -529 -328 -732 -632 -29 -42 -55 -79 -59 -82 -22 -16 -216 -382 -218 -411 0 -8 -25 -84 -55 -170 -78 -228 -89 -302 -84 -599 4 -274 22 -375 103 -576 20 -49 38 -97 40 -107 3 -17 26 -61 147 -272 25 -44 55 -113 66 -153 24 -81 71 -190 94 -218 8 -11 35 -44 59 -74 24 -30 75 -79 114 -108 38 -28 74 -56 80 -61 87 -72 376 -144 679 -172 320 -29 1131 13 1296 67 74 24 87 44 55 90 -30 45 -27 53 11 26 170 -119 400 -143 898 -93 711 72 939 79 1293 44 281 -28 395 16 398 152 3 117 -86 183 -315 235 -69 16 -162 40 -206 54 -90 28 -262 72 -540 140 l-190 47 -18 -23 c-10 -13 -45 -51 -79 -85 l-62 -62 26 -10 c31 -12 192 -39 481 -83 120 -18 213 -34 208 -36 -27 -9 -751 77 -797 95 -8 3 16 32 58 71 86 82 140 157 206 287 128 253 138 518 29 800 -70 181 -95 242 -134 330 -40 89 -60 144 -67 181 -2 10 -11 54 -20 96 -18 87 -20 154 -6 213 5 22 11 53 14 68 15 84 111 207 210 269 105 65 135 107 148 203 22 172 22 172 1 212 -11 21 -23 54 -27 74 -13 71 -44 82 -195 67 l-118 -11 -64 32 c-146 73 -338 58 -529 -40 -96 -50 -161 -48 -255 7 -39 22 -122 67 -185 99 -63 32 -131 68 -150 80 -19 12 -44 24 -55 28 -11 3 -45 15 -75 26 -76 28 -111 26 -134 -5z" }) }) });
 }
 
 // ../ui/src/Nameplate.tsx
-var import_jsx_runtime4 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
 function Nameplate({
-  id: id28,
+  id: id30,
   name: name2,
   avatar,
   surface,
   ink,
   title,
-  kind = "cat"
+  kind = "cat",
+  avatarShape = "round",
+  onClick,
+  anchorRef
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+  const Name = onClick ? "button" : "span";
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
     "span",
     {
-      "data-testid": kind === "cat" ? "cat-nameplate" : "human-nameplate",
-      "data-cat-id": kind === "cat" ? id28 : void 0,
+      ref: anchorRef,
+      "data-testid": `${kind}-nameplate`,
+      "data-cat-id": kind === "cat" ? id30 : void 0,
+      "data-avatar-shape": avatarShape,
       className: "cafe-nameplate",
       style: { backgroundImage: `linear-gradient(to bottom, ${surface}, transparent)` },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "data-testid": "cat-nameplate-avatar", className: "cafe-nameplate-avatar", children: avatar }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(AppTooltip, { label: title ?? name2, intent: "content", side: "top", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { "data-testid": "cat-nameplate-name", className: "cafe-nameplate-name", style: { color: ink }, tabIndex: 0, children: name2 }) })
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          "span",
+          {
+            "data-testid": "cat-nameplate-avatar",
+            className: `cafe-nameplate-avatar ${avatarShape === "rounded-square" ? "cafe-nameplate-avatar-square" : ""}`,
+            children: avatar
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(AppTooltip, { label: title ?? name2, intent: "content", side: "top", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          Name,
+          {
+            "data-testid": "cat-nameplate-name",
+            className: "cafe-nameplate-name",
+            style: { color: ink },
+            tabIndex: 0,
+            type: onClick ? "button" : void 0,
+            onClick,
+            "aria-haspopup": onClick ? "dialog" : void 0,
+            children: name2
+          }
+        ) })
       ]
     }
   );
 }
 
 // ../ui/src/ShellFrame.tsx
-var import_react3 = __toESM(require_react(), 1);
-var import_jsx_runtime5 = __toESM(require_jsx_runtime(), 1);
+var import_react4 = __toESM(require_react(), 1);
+var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
 function WorldRailFrame({
   children,
   className = "",
   ...props
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("nav", { ...props, className: `cafe-world-rail ${className}`, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("nav", { ...props, className: `cafe-world-rail ${className}`, children });
 }
 function HeaderFrame({
   children,
@@ -53039,7 +53627,7 @@ function HeaderFrame({
   as: Element2 = "header",
   ...props
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(Element2, { ...props, className: `cafe-header ${className}`, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)(Element2, { ...props, className: `cafe-header ${className}`, children });
 }
 function ComposerFrame({
   children,
@@ -53047,15 +53635,15 @@ function ComposerFrame({
   active = true,
   ...props
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { ...props, className: `${active ? "cafe-composer-surface " : ""}${className}`, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("div", { ...props, className: `${active ? "cafe-composer-surface " : ""}${className}`, children });
 }
-var ComposerControl = (0, import_react3.forwardRef)(function ComposerControl2({ className = "", active = true, type = "button", ...props }, ref10) {
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("button", { ...props, ref: ref10, type, className: `${active ? "cafe-composer-control " : ""}${className}` });
+var ComposerControl = (0, import_react4.forwardRef)(function ComposerControl2({ className = "", active = true, type = "button", ...props }, ref10) {
+  return /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("button", { ...props, ref: ref10, type, className: `${active ? "cafe-composer-control " : ""}${className}` });
 });
 
 // ../ui/src/ShellIcons.tsx
-var import_react4 = __toESM(require_react(), 1);
-var import_jsx_runtime6 = __toESM(require_jsx_runtime(), 1);
+var import_react5 = __toESM(require_react(), 1);
+var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
 var STROKE_PROPS = {
   viewBox: "0 0 24 24",
   fill: "none",
@@ -53065,11 +53653,11 @@ var STROKE_PROPS = {
   strokeLinejoin: "round"
 };
 function WorksIcon({ className = "h-4 w-4" }) {
-  const maskId = `${(0, import_react4.useId)().replace(/:/g, "")}-works-mask`;
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("svg", { ...STROKE_PROPS, className, "aria-hidden": "true", focusable: "false", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("mask", { id: maskId, maskUnits: "userSpaceOnUse", x: "0", y: "0", width: "24", height: "24", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "24", height: "24", fill: "#fff", stroke: "none" }),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+  const maskId = `${(0, import_react5.useId)().replace(/:/g, "")}-works-mask`;
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("svg", { ...STROKE_PROPS, className, "aria-hidden": "true", focusable: "false", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)("mask", { id: maskId, maskUnits: "userSpaceOnUse", x: "0", y: "0", width: "24", height: "24", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "24", height: "24", fill: "#fff", stroke: "none" }),
+      /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
         "rect",
         {
           x: "9.4",
@@ -53084,7 +53672,7 @@ function WorksIcon({ className = "h-4 w-4" }) {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)(
       "rect",
       {
         x: "4.2",
@@ -53096,133 +53684,133 @@ function WorksIcon({ className = "h-4 w-4" }) {
         mask: `url(#${maskId})`
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { x: "9.4", y: "5.2", width: "10.4", height: "13.4", rx: "2.6", transform: "rotate(9 14.6 11.9)" })
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { x: "9.4", y: "5.2", width: "10.4", height: "13.4", rx: "2.6", transform: "rotate(9 14.6 11.9)" })
   ] });
 }
 var GLYPHS = {
-  inbox: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" })
+  inbox: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" })
   ] }),
-  newchat: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" })
+  newchat: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z" })
   ] }),
-  search: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "11", cy: "11", r: "7" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m20 20-3.5-3.5" })
+  search: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "11", cy: "11", r: "7" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m20 20-3.5-3.5" })
   ] }),
-  checkSquare: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m9 11 3 3L22 4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" })
+  checkSquare: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m9 11 3 3L22 4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" })
   ] }),
-  check: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m5 12 4 4L19 6" }),
-  panelRight: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M15 3v18" })
+  check: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m5 12 4 4L19 6" }),
+  panelRight: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M15 3v18" })
   ] }),
-  panelLeft: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M9 3v18" })
+  panelLeft: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "18", height: "18", x: "3", y: "3", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M9 3v18" })
   ] }),
-  plus: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M5 12h14" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 5v14" })
+  plus: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M5 12h14" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12 5v14" })
   ] }),
-  more: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "12", cy: "12", r: "1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "19", cy: "12", r: "1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "5", cy: "12", r: "1" })
+  more: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "12", cy: "12", r: "1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "19", cy: "12", r: "1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "5", cy: "12", r: "1" })
   ] }),
-  chevronDown: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m6 9 6 6 6-6" }),
-  sparkles: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M19 3v4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M21 5h-4" })
+  chevronDown: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m6 9 6 6 6-6" }),
+  sparkles: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2Z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M19 3v4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M21 5h-4" })
   ] }),
-  grid: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "7", height: "7", x: "3", y: "3", rx: "1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "7", height: "7", x: "14", y: "3", rx: "1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "7", height: "7", x: "14", y: "14", rx: "1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { width: "7", height: "7", x: "3", y: "14", rx: "1" })
+  grid: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "7", height: "7", x: "3", y: "3", rx: "1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "7", height: "7", x: "14", y: "3", rx: "1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "7", height: "7", x: "14", y: "14", rx: "1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { width: "7", height: "7", x: "3", y: "14", rx: "1" })
   ] }),
-  users: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "9", cy: "7", r: "4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M22 21v-2a4 4 0 0 0-3-3.87" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M16 3.13a4 4 0 0 1 0 7.75" })
+  users: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "9", cy: "7", r: "4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M22 21v-2a4 4 0 0 0-3-3.87" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M16 3.13a4 4 0 0 1 0 7.75" })
   ] }),
-  cat: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M7 6 5 3v6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m17 6 2-3v6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 21c-4.42 0-8-2.69-8-6 0-4.42 3.58-8 8-8s8 3.58 8 8c0 3.31-3.58 6-8 6Z" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M9 14h.01M15 14h.01" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M10 17s1 1 2 1 2-1 2-1" })
+  cat: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M7 6 5 3v6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m17 6 2-3v6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12 21c-4.42 0-8-2.69-8-6 0-4.42 3.58-8 8-8s8 3.58 8 8c0 3.31-3.58 6-8 6Z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M9 14h.01M15 14h.01" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M10 17s1 1 2 1 2-1 2-1" })
   ] }),
-  alert: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "12", x2: "12", y1: "8", y2: "12" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "12", x2: "12.01", y1: "16", y2: "16" })
+  alert: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "12", x2: "12", y1: "8", y2: "12" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "12", x2: "12.01", y1: "16", y2: "16" })
   ] }),
-  settings: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "12", cy: "12", r: "3" })
+  settings: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "12", cy: "12", r: "3" })
   ] }),
   // Workspace home tool rows (home-northstar mock symbols i-folder / i-filepen / i-gitpr / i-hash / i-globe / i-activity /
   // i-hist / i-play / i-headphones / i-right, same 24-grid and stroke as the glyphs above).
-  folder: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" }),
-  filePen: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12.5 22H18a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v9.5" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M13.38 15.62a1 1 0 0 1 3 3L12 23l-4 1 1-4Z" })
+  folder: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" }),
+  filePen: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12.5 22H18a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v9.5" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M13.38 15.62a1 1 0 0 1 3 3L12 23l-4 1 1-4Z" })
   ] }),
-  gitPr: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "18", cy: "18", r: "3" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "6", cy: "6", r: "3" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M13 6h3a2 2 0 0 1 2 2v7" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "6", x2: "6", y1: "9", y2: "21" })
+  gitPr: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "18", cy: "18", r: "3" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "6", cy: "6", r: "3" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M13 6h3a2 2 0 0 1 2 2v7" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "6", x2: "6", y1: "9", y2: "21" })
   ] }),
-  hash: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "4", x2: "20", y1: "9", y2: "9" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "4", x2: "20", y1: "15", y2: "15" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "10", x2: "8", y1: "3", y2: "21" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("line", { x1: "16", x2: "14", y1: "3", y2: "21" })
+  hash: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "4", x2: "20", y1: "9", y2: "9" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "4", x2: "20", y1: "15", y2: "15" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "10", x2: "8", y1: "3", y2: "21" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("line", { x1: "16", x2: "14", y1: "3", y2: "21" })
   ] }),
-  globe: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M2 12h20" })
+  globe: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M2 12h20" })
   ] }),
-  activity: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" }),
-  running: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("circle", { cx: "12", cy: "12", r: "9" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m10 8 6 4-6 4Z" })
+  activity: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" }),
+  running: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("circle", { cx: "12", cy: "12", r: "9" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m10 8 6 4-6 4Z" })
   ] }),
-  film: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4" })
+  film: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4" })
   ] }),
-  history: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M3 3v5h5" }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M12 7v5l4 2" })
+  history: /* @__PURE__ */ (0, import_jsx_runtime8.jsxs)(import_jsx_runtime8.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M3 3v5h5" }),
+    /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M12 7v5l4 2" })
   ] }),
-  play: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("polygon", { points: "6 3 20 12 6 21 6 3" }),
-  headphones: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" }),
-  chevronRight: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("path", { d: "m9 18 6-6-6-6" })
+  play: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("polygon", { points: "6 3 20 12 6 21 6 3" }),
+  headphones: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" }),
+  chevronRight: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: "m9 18 6-6-6-6" })
 };
 function ShellGlyph({ name: name2, className = "h-4 w-4" }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("svg", { ...STROKE_PROPS, className, "aria-hidden": "true", focusable: "false", children: GLYPHS[name2] });
+  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("svg", { ...STROKE_PROPS, className, "aria-hidden": "true", focusable: "false", children: GLYPHS[name2] });
 }
 
 // ../ui/src/ToggleSwitch.tsx
-var import_jsx_runtime7 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
 
 // src/ChannelNavigation.tsx
-var import_react6 = __toESM(require_react(), 1);
+var import_react7 = __toESM(require_react(), 1);
 
 // src/CollectiveIcon.tsx
-var import_jsx_runtime8 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
 function CollectiveIcon({
   kind
 }) {
@@ -53236,11 +53824,11 @@ function CollectiveIcon({
     send: "M12 19V5m-6 6 6-6 6 6",
     cat: "M5 9 4 3l6 3h4l6-3-1 6a8 8 0 1 1-14 0Zm3 4h.01M16 13h.01m-6 3 2 1 2-1M2 14l4 1m12 0 4-1"
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: /* @__PURE__ */ (0, import_jsx_runtime8.jsx)("path", { d: path2[kind] }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("path", { d: path2[kind] }) });
 }
 
 // src/collective-copy.ts
-var import_react5 = __toESM(require_react(), 1);
+var import_react6 = __toESM(require_react(), 1);
 
 // src/readable-ink.ts
 var LIGHT_INK = "#ffffff";
@@ -53405,7 +53993,7 @@ var observeHostAppearanceGeneration = (bridgeId) => hostAppearance().observeGene
 function useCollectiveLanguage() {
   const store = hostAppearance();
   const read = () => store.getState().language;
-  const host = (0, import_react5.useSyncExternalStore)(store.subscribe, read, read);
+  const host = (0, import_react6.useSyncExternalStore)(store.subscribe, read, read);
   return host ?? (typeof location !== "undefined" && new URLSearchParams(location.search).get("lang") === "en" ? "en" : "zh");
 }
 function useCollectiveText() {
@@ -53414,7 +54002,7 @@ function useCollectiveText() {
 }
 
 // src/ChannelNavigation.tsx
-var import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
 function ChannelNavigation({
   channels,
   channelId,
@@ -53430,18 +54018,18 @@ function ChannelNavigation({
   memberCount
 }) {
   const t = useCollectiveText();
-  const [searchOpen, setSearchOpen] = (0, import_react6.useState)(false);
-  const search2 = (0, import_react6.useRef)(null);
-  const trigger = (0, import_react6.useRef)(null);
-  (0, import_react6.useEffect)(() => {
+  const [searchOpen, setSearchOpen] = (0, import_react7.useState)(false);
+  const search2 = (0, import_react7.useRef)(null);
+  const trigger = (0, import_react7.useRef)(null);
+  (0, import_react7.useEffect)(() => {
     if (searchOpen) search2.current?.focus();
   }, [searchOpen]);
   const visible = channels.filter(
     (channel2) => channel2.id.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(import_jsx_runtime9.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "destination-search", "data-open": searchOpen || Boolean(query), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(AppTooltip, { label: t("\u641C\u7D22\u9891\u9053\u4E0E\u8BDD\u9898"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(import_jsx_runtime11.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "destination-search", "data-open": searchOpen || Boolean(query), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(AppTooltip, { label: t("\u641C\u7D22\u9891\u9053\u4E0E\u8BDD\u9898"), children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         "button",
         {
           type: "button",
@@ -53449,10 +54037,10 @@ function ChannelNavigation({
           ref: trigger,
           "aria-label": t("\u641C\u7D22\u9891\u9053\u4E0E\u8BDD\u9898"),
           onClick: () => setSearchOpen((value) => !value),
-          children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CollectiveIcon, { kind: "search" })
+          children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CollectiveIcon, { kind: "search" })
         }
       ) }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("label", { className: "destination-search-field", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("label", { className: "destination-search-field", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(
         "input",
         {
           type: "search",
@@ -53473,9 +54061,9 @@ function ChannelNavigation({
         }
       ) })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "destination-scroll", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("div", { className: "destination-global-entries", children: [
-        onRoadmap && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": t("\u9879\u76EE"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "destination-scroll", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "destination-global-entries", children: [
+        onRoadmap && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": t("\u9879\u76EE"), children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
           "button",
           {
             type: "button",
@@ -53484,13 +54072,13 @@ function ChannelNavigation({
             "aria-current": roadmapActive ? "page" : void 0,
             onClick: onRoadmap,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(ShellGlyph, { name: "checkSquare" }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: t("\u9879\u76EE") }) }),
-              roadmapCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("small", { children: roadmapCount })
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ShellGlyph, { name: "checkSquare" }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("strong", { children: t("\u9879\u76EE") }) }),
+              roadmapCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("small", { children: roadmapCount })
             ]
           }
         ) }),
-        onLibrary && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": t("\u4F5C\u54C1\u8D44\u6599\u5E93"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        onLibrary && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("nav", { className: "destination-list destination-global-list", "aria-label": t("\u4F5C\u54C1\u8D44\u6599\u5E93"), children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
           "button",
           {
             type: "button",
@@ -53499,24 +54087,24 @@ function ChannelNavigation({
             "aria-current": libraryActive ? "page" : void 0,
             onClick: onLibrary,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "destination-symbol", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(WorksIcon, {}) }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: t("\u5168\u90E8\u4F5C\u54C1") }) })
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "destination-symbol", "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(WorksIcon, {}) }),
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("strong", { children: t("\u5168\u90E8\u4F5C\u54C1") }) })
             ]
           }
         ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("nav", { className: "destination-list destination-global-list member-destination", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u6210\u5458"), children: /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("button", { type: "button", className: "destination-item", onClick: onMembers, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)(CollectiveIcon, { kind: "members" }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: t("\u6210\u5458") }) }),
-          memberCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("small", { children: memberCount })
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("nav", { className: "destination-list destination-global-list member-destination", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u6210\u5458"), children: /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("button", { type: "button", className: "destination-item", onClick: onMembers, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(CollectiveIcon, { kind: "members" }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("strong", { children: t("\u6210\u5458") }) }),
+          memberCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("small", { children: memberCount })
         ] }) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("nav", { className: "destination-list", "aria-label": t("\u9891\u9053"), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)("p", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("nav", { className: "destination-list", "aria-label": t("\u9891\u9053"), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("p", { children: [
           t("\u9891\u9053"),
           " ",
           channels.length
         ] }),
-        (query ? visible : channels).map((channel2) => /* @__PURE__ */ (0, import_jsx_runtime9.jsxs)(
+        (query ? visible : channels).map((channel2) => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
           "button",
           {
             type: "button",
@@ -53524,123 +54112,26 @@ function ChannelNavigation({
             "aria-current": channel2.id === channelId ? "page" : void 0,
             onClick: () => onSelect(channel2.id),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { className: "destination-symbol", children: "#" }),
-              /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("strong", { children: channel2.id }) })
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { className: "destination-symbol", children: "#" }),
+              /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("strong", { children: channel2.id }) })
             ]
           },
           channel2.id
         )),
-        query && !visible.length && /* @__PURE__ */ (0, import_jsx_runtime9.jsx)("p", { className: "navigation-empty", children: t("\u6CA1\u6709\u540C\u540D\u9891\u9053\uFF1B\u4E3B\u533A\u663E\u793A\u5339\u914D\u7684\u6D88\u606F\u3002") })
+        query && !visible.length && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("p", { className: "navigation-empty", children: t("\u6CA1\u6709\u540C\u540D\u9891\u9053\uFF1B\u4E3B\u533A\u663E\u793A\u5339\u914D\u7684\u6D88\u606F\u3002") })
       ] })
     ] })
   ] });
 }
 
 // src/ChannelScene.tsx
-var import_react56 = __toESM(require_react(), 1);
+var import_react63 = __toESM(require_react(), 1);
 
 // src/ChannelComposer.tsx
-var import_react13 = __toESM(require_react(), 1);
+var import_react18 = __toESM(require_react(), 1);
 
 // src/Composer.tsx
-var import_react12 = __toESM(require_react(), 1);
-
-// src/MemberAvatar.tsx
-var import_react7 = __toESM(require_react(), 1);
-var import_jsx_runtime10 = __toESM(require_jsx_runtime(), 1);
-function publicAvatarUrl(value) {
-  if (!value) return void 0;
-  if (/^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length <= 1200) return value;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.href : void 0;
-  } catch {
-    return void 0;
-  }
-}
-function MemberAvatar({
-  name: name2,
-  kind,
-  avatarUrl,
-  compact = false
-}) {
-  const [failedUrl, setFailedUrl] = (0, import_react7.useState)();
-  const url = publicAvatarUrl(avatarUrl);
-  return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: compact ? "avatar avatar-compact" : "avatar", "data-actor-kind": kind, "aria-hidden": "true", children: [
-    kind === "agent" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CollectiveIcon, { kind: "cat" }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "avatar-fallback", children: name2.trim().slice(0, 1) }),
-    url && failedUrl !== url && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("img", { src: url, alt: "", referrerPolicy: "no-referrer", onError: () => setFailedUrl(url) })
-  ] });
-}
-
-// src/ComposerMentionMenu.tsx
-var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
-function ComposerMentionMenu({
-  options,
-  id: id28,
-  active,
-  onSelect
-}) {
-  const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("div", { className: "mention-list", id: id28, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
-    options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)(
-      "button",
-      {
-        id: `${id28}-${index4}`,
-        type: "button",
-        role: "option",
-        "aria-selected": index4 === active,
-        className: "mention-option",
-        onMouseDown: (event) => event.preventDefault(),
-        onClick: () => onSelect(index4),
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(MemberAvatar, { name: option.label, kind: option.kind, avatarUrl: option.avatarUrl, compact: true }),
-          /* @__PURE__ */ (0, import_jsx_runtime11.jsxs)("span", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("strong", { children: option.label }),
-            /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("small", { children: option.detail })
-          ] })
-        ]
-      },
-      option.key
-    )),
-    !options.length && /* @__PURE__ */ (0, import_jsx_runtime11.jsx)("p", { children: t("\u6CA1\u6709\u627E\u5230\u5728\u672C\u9891\u9053\u53C2\u4E0E\u7684\u6210\u5458\u3002") })
-  ] });
-}
-
-// src/ComposerTray.tsx
-var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
-function ComposerTray({
-  recipientKind,
-  entrust,
-  responseRequested,
-  onMention,
-  onEntrust,
-  onResponseRequested
-}) {
-  const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { className: "composer-tray", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("button", { type: "button", onClick: onMention, children: [
-      "@ ",
-      t("\u63D0\u5230\u6210\u5458")
-    ] }),
-    recipientKind === "agent" && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("input", { type: "checkbox", checked: entrust, onChange: (event) => onEntrust(event.target.checked) }),
-      t("\u8BF7\u6C42\u6301\u7EED\u5904\u7406")
-    ] }),
-    recipientKind === "channel" && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
-        "input",
-        {
-          type: "checkbox",
-          checked: responseRequested,
-          onChange: (event) => onResponseRequested(event.target.checked)
-        }
-      ),
-      t("\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94")
-    ] }),
-    entrust && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("small", { children: t("\u7531\u732B\u7684\u4E3B\u4EBA\u5B89\u6392\u79C1\u4EBA\u4EFB\u52A1\uFF0C\u7ED3\u679C\u56DE\u5230\u8FD9\u91CC\u3002") }),
-    responseRequested && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("small", { children: t("\u53EA\u901A\u77E5\u81EA\u613F\u503C\u5B88\u56DE\u5E94\u8BF7\u6C42\u7684\u4F19\u4F34\uFF1B\u666E\u901A\u6D88\u606F\u4ECD\u4F1A\u5B89\u9759\u9001\u8FBE\u3002") })
-  ] });
-}
+var import_react17 = __toESM(require_react(), 1);
 
 // src/channel-model.ts
 function groupChannelThreads(events) {
@@ -53676,6 +54167,292 @@ function formatEventTime(acceptedAt, language = "zh") {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(acceptedAt));
+}
+
+// src/SharedArtifactQuoteTags.tsx
+var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
+function SharedArtifactQuoteTags({
+  attachment
+}) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
+  if (!attachment.selections.length && !attachment.rework && !attachment.reply && !attachment.failure) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("fieldset", { className: "shared-artifact-quote-tags", "aria-label": t("\u4F5C\u54C1\u5F15\u7528"), children: [
+    attachment.reply && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { children: language === "en" ? `Reply to an annotation on version ${attachment.reply.ownerRevision} \xB7 keep in the original discussion` : `\u56DE\u590D\u7B2C ${attachment.reply.ownerRevision} \u7248\u7684\u6279\u6CE8 \xB7 \u7559\u5728\u539F\u8BA8\u8BBA` }),
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664\u6279\u6CE8\u5F15\u7528"), onClick: attachment.removeReply, children: "\xD7" })
+    ] }),
+    attachment.rework && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { children: language === "en" ? `Changes for version ${attachment.rework.sourceOwnerRevision} \xB7 redo from version ${attachment.rework.ownerRevision}` : `\u7B2C ${attachment.rework.sourceOwnerRevision} \u7248\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${attachment.rework.ownerRevision} \u7248\u91CD\u505A` }),
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664\u4FEE\u6539\u5F15\u7528"), onClick: attachment.removeRework, children: "\xD7" })
+    ] }),
+    attachment.selections.map((selection, index4) => /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { children: [
+        index4 + 1,
+        " \xB7",
+        " ",
+        language === "en" ? `Version ${selection.ownerRevision}` : `\u7B2C ${selection.ownerRevision} \u7248`,
+        " \xB7",
+        " ",
+        attachment.label(index4)
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime12.jsx)(
+        "button",
+        {
+          type: "button",
+          "aria-label": language === "en" ? `Remove reference ${index4 + 1}` : `\u79FB\u9664\u5F15\u7528 ${index4 + 1}`,
+          onClick: () => attachment.remove(index4),
+          children: "\xD7"
+        }
+      )
+    ] }, `${selection.artifactId}:${selection.span.start}:${index4}`)),
+    (attachment.stale || attachment.failure) && /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("p", { role: "alert", children: t(attachment.stale ? "\u5F15\u7528\u7684\u7248\u672C\u5DF2\u6539\u53D8\u6216\u65E0\u6CD5\u8BBF\u95EE\uFF0C\u8BF7\u91CD\u65B0\u9009\u53D6\uFF1B\u4F60\u5199\u7684\u8BDD\u4ECD\u5728\u3002" : attachment.failure ?? "") })
+  ] });
+}
+
+// src/ComposerContext.tsx
+var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
+function ComposerContext({
+  attachment,
+  draft,
+  replyEvent,
+  replyError,
+  available,
+  unresolved,
+  onRemoveRecipient
+}) {
+  const language = useCollectiveLanguage(), t = useCollectiveText();
+  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)(import_jsx_runtime13.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(SharedArtifactQuoteTags, { attachment }),
+    replyEvent && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("div", { className: "composer-recipient", role: "group", "aria-label": t("\u56DE\u590D\u6765\u6E90"), children: /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
+      language === "en" ? "Reply to" : "\u56DE\u590D",
+      " ",
+      actorDisplayName(replyEvent),
+      language === "en" ? ": " : "\uFF1A",
+      replyEvent.body.replace(/\s+/gu, " ").slice(0, 60)
+    ] }) }),
+    draft.recipient.kind !== "channel" && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { className: "composer-recipient", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
+        "@",
+        draft.recipientLabel || t("\u5DF2\u9009\u6210\u5458")
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664 @"), onClick: onRemoveRecipient, children: "\xD7" })
+    ] }),
+    (replyError || !available) && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { role: "alert", className: "composer-warning", children: replyError ? t(replyError) : t("\u53C2\u4E0E\u8BBE\u7F6E\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6210\u5458\uFF1B\u6D88\u606F\u5C1A\u672A\u53D1\u9001\u3002") }),
+    unresolved && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { role: "alert", className: "composer-warning", children: t("\u8BF7\u7528 @ \u9009\u62E9\u5F53\u524D\u9891\u9053\u7684\u6210\u5458\uFF0C\u6216\u79FB\u9664\u6CA1\u9009\u4E2D\u7684 @\u3002") })
+  ] });
+}
+
+// src/ComposerFeedback.tsx
+var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
+function ComposerFeedback({
+  durable,
+  fileNotice,
+  storageNotice,
+  mixedAttachmentAction,
+  delivery
+}) {
+  const language = useCollectiveLanguage(), t = useCollectiveText();
+  return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "composer-feedback", children: [
+    durable.conflict && /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "composer-warning", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { children: language === "en" ? "Another window saved a different draft. Both versions are kept." : "\u53E6\u4E00\u7A97\u53E3\u4FDD\u5B58\u4E86\u4E0D\u540C\u7684\u8349\u7A3F\uFF0C\u4E24\u4EFD\u5185\u5BB9\u90FD\u5DF2\u4FDD\u7559\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("blockquote", { children: durable.conflict.content.body }),
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", onClick: durable.useRemote, children: language === "en" ? "Load saved draft" : "\u8F7D\u5165\u4FDD\u5B58\u7684\u8349\u7A3F" }),
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("button", { type: "button", onClick: durable.keepLocal, children: language === "en" ? "Keep this draft" : "\u4FDD\u7559\u5F53\u524D\u8349\u7A3F" })
+    ] }),
+    durable.notice && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("output", { className: "composer-warning", children: durable.notice }),
+    fileNotice && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("output", { className: "composer-warning", children: fileNotice }),
+    mixedAttachmentAction && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("output", { className: "composer-warning", children: language === "en" ? "Keep this attachment in a separate message from the artwork action." : "\u4F5C\u54C1\u64CD\u4F5C\u4E0E\u666E\u901A\u9644\u4EF6\u8BF7\u5206\u5F00\u53D1\u9001\uFF0C\u8349\u7A3F\u5747\u5DF2\u4FDD\u7559\u3002" }),
+    storageNotice && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("output", { className: "composer-warning", children: t(storageNotice) }),
+    delivery.kind !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("output", { className: `delivery-state delivery-${delivery.kind}`, children: t(delivery.label) })
+  ] });
+}
+
+// src/ComposerInput.tsx
+var import_react8 = __toESM(require_react(), 1);
+var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
+function ComposerInput({
+  files,
+  input,
+  inputRef,
+  fileRef,
+  expanded,
+  onExpand,
+  disabled,
+  controls
+}) {
+  const language = useCollectiveLanguage(), t = useCollectiveText();
+  const [selected, setSelected] = (0, import_react8.useState)();
+  const item = files.items.find((value) => value.id === selected);
+  return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(import_jsx_runtime15.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+      "input",
+      {
+        ref: fileRef,
+        type: "file",
+        multiple: true,
+        hidden: true,
+        "aria-label": language === "en" ? "Add files" : "\u6DFB\u52A0\u6587\u4EF6",
+        onChange: (event) => {
+          void files.add([...event.currentTarget.files ?? []]);
+          event.currentTarget.value = "";
+        }
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(ComposerFrame, { className: "composer-box", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+        ComposerAttachmentPreview,
+        {
+          items: files.items,
+          onRemove: files.remove,
+          onRetry: files.retry,
+          onOpen: setSelected,
+          labels: {
+            remove: (name2) => language === "en" ? `Remove ${name2}` : `\u79FB\u9664 ${name2}`,
+            retry: language === "en" ? "Retry" : "\u91CD\u8BD5",
+            uploading: language === "en" ? "Uploading\u2026" : "\u6B63\u5728\u4E0A\u4F20\u2026"
+          }
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+        "textarea",
+        {
+          ...input,
+          ref: inputRef,
+          maxLength: 32e3,
+          rows: 1,
+          onPaste: (event) => {
+            const pasted = [...event.clipboardData.items].filter((value) => value.kind === "file").map((value) => value.getAsFile()).filter((file) => !!file);
+            if (pasted.length) {
+              event.preventDefault();
+              void files.add(pasted);
+            } else input.onPaste?.(event);
+          }
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+        ComposerControl,
+        {
+          type: "button",
+          className: "composer-expand",
+          "aria-label": t("\u66F4\u591A\u8F93\u5165\u9009\u9879"),
+          "aria-expanded": expanded,
+          onClick: onExpand,
+          children: "+"
+        }
+      ),
+      controls,
+      /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "submit", className: "composer-send", "aria-label": t("\u53D1\u9001"), disabled, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(CollectiveIcon, { kind: "send" }) })
+    ] }),
+    item?.url && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+      MessageMediaViewer,
+      {
+        item: { id: item.id, url: item.url, title: item.name, mediaType: item.mediaType },
+        onClose: () => setSelected(void 0),
+        closeLabel: language === "en" ? "Close" : "\u5173\u95ED"
+      }
+    )
+  ] });
+}
+
+// src/MemberAvatar.tsx
+var import_react9 = __toESM(require_react(), 1);
+var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
+function publicAvatarUrl(value) {
+  if (!value) return void 0;
+  if (/^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(value) && value.length <= 1200) return value;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : void 0;
+  } catch {
+    return void 0;
+  }
+}
+function MemberAvatar({
+  name: name2,
+  kind,
+  avatarUrl,
+  compact = false
+}) {
+  const [failedUrl, setFailedUrl] = (0, import_react9.useState)();
+  const url = publicAvatarUrl(avatarUrl);
+  return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("span", { className: compact ? "avatar avatar-compact" : "avatar", "data-actor-kind": kind, "aria-hidden": "true", children: [
+    kind === "agent" ? /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(CollectiveIcon, { kind: "cat" }) : /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("span", { className: "avatar-fallback", children: name2.trim().slice(0, 1) }),
+    url && failedUrl !== url && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("img", { src: url, alt: "", referrerPolicy: "no-referrer", onError: () => setFailedUrl(url) })
+  ] });
+}
+
+// src/ComposerMentionMenu.tsx
+var import_jsx_runtime17 = __toESM(require_jsx_runtime(), 1);
+function ComposerMentionMenu({
+  options,
+  id: id30,
+  active,
+  onSelect
+}) {
+  const t = useCollectiveText();
+  return /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("div", { className: "mention-list", id: id30, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
+    options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)(
+      "button",
+      {
+        id: `${id30}-${index4}`,
+        type: "button",
+        role: "option",
+        "aria-selected": index4 === active,
+        className: "mention-option",
+        onMouseDown: (event) => event.preventDefault(),
+        onClick: () => onSelect(index4),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime17.jsx)(MemberAvatar, { name: option.label, kind: option.kind, avatarUrl: option.avatarUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime17.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("strong", { children: option.label }),
+            /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("small", { children: option.detail })
+          ] })
+        ]
+      },
+      option.key
+    )),
+    !options.length && /* @__PURE__ */ (0, import_jsx_runtime17.jsx)("p", { children: t("\u6CA1\u6709\u627E\u5230\u5728\u672C\u9891\u9053\u53C2\u4E0E\u7684\u6210\u5458\u3002") })
+  ] });
+}
+
+// src/ComposerTray.tsx
+var import_jsx_runtime18 = __toESM(require_jsx_runtime(), 1);
+function ComposerTray({
+  recipientKind,
+  entrust,
+  responseRequested,
+  onMention,
+  onEntrust,
+  onResponseRequested,
+  onFiles
+}) {
+  const t = useCollectiveText();
+  const language = useCollectiveLanguage();
+  return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "composer-tray", children: [
+    onFiles && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("button", { type: "button", onClick: onFiles, children: language === "en" ? "Add files" : "\u6DFB\u52A0\u6587\u4EF6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("button", { type: "button", onClick: onMention, children: [
+      "@ ",
+      t("\u63D0\u5230\u6210\u5458")
+    ] }),
+    recipientKind === "agent" && /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("input", { type: "checkbox", checked: entrust, onChange: (event) => onEntrust(event.target.checked) }),
+      t("\u8BF7\u6C42\u6301\u7EED\u5904\u7406")
+    ] }),
+    recipientKind === "channel" && /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+        "input",
+        {
+          type: "checkbox",
+          checked: responseRequested,
+          onChange: (event) => onResponseRequested(event.target.checked)
+        }
+      ),
+      t("\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94")
+    ] }),
+    entrust && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("small", { children: t("\u7531\u732B\u7684\u4E3B\u4EBA\u5B89\u6392\u79C1\u4EBA\u4EFB\u52A1\uFF0C\u7ED3\u679C\u56DE\u5230\u8FD9\u91CC\u3002") }),
+    responseRequested && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("small", { children: t("\u53EA\u901A\u77E5\u81EA\u613F\u503C\u5B88\u56DE\u5E94\u8BF7\u6C42\u7684\u4F19\u4F34\uFF1B\u666E\u901A\u6D88\u606F\u4ECD\u4F1A\u5B89\u9759\u9001\u8FBE\u3002") })
+  ] });
 }
 
 // src/participant-label.ts
@@ -53772,6 +54549,7 @@ function readDraft(key) {
     const parsed = collectiveRecipientSchema.safeParse("recipient" in data ? data.recipient : void 0);
     const recipient = parsed.success ? parsed.data : { kind: "channel" };
     return {
+      attachments: collectiveMessageAttachmentSchema.array().safeParse("attachments" in data ? data.attachments : void 0).data,
       body: data.body,
       artifactReply: sharedArtifactDraftReplySchema.safeParse("artifactReply" in data ? data.artifactReply : void 0).data,
       artifactRework: sharedArtifactDraftReworkSchema.safeParse(
@@ -53799,60 +54577,606 @@ function replyDraftError(draft, events, participants, channelId) {
   if (draft.replyNeedsSelection) return mentionSelectionForEvent(event, participants, channelId).error ?? reselect;
 }
 function clearConfirmedComposerDraft(current2, draft) {
-  if (current2.body !== draft.body || current2.recipient !== draft.recipient || current2.replyToEventId !== draft.replyToEventId || current2.artifactReply && current2.artifactReply !== draft.artifactReply || current2.artifactRework && current2.artifactRework !== draft.artifactRework || current2.artifactSelections && current2.artifactSelections !== draft.artifactSelections)
+  if (current2.body !== draft.body || current2.recipient !== draft.recipient || current2.replyToEventId !== draft.replyToEventId || current2.attachments !== draft.attachments || current2.artifactReply && current2.artifactReply !== draft.artifactReply || current2.artifactRework && current2.artifactRework !== draft.artifactRework || current2.artifactSelections && current2.artifactSelections !== draft.artifactSelections)
     return current2;
-  return current2.replyToEventId ? { ...current2, body: "", artifactSelections: void 0, artifactRework: void 0, artifactReply: void 0 } : emptyDraft;
+  return current2.replyToEventId ? {
+    ...current2,
+    body: "",
+    attachments: void 0,
+    artifactSelections: void 0,
+    artifactRework: void 0,
+    artifactReply: void 0
+  } : emptyDraft;
 }
 
-// src/SharedArtifactQuoteTags.tsx
-var import_jsx_runtime13 = __toESM(require_jsx_runtime(), 1);
-function SharedArtifactQuoteTags({
-  attachment
+// src/use-composer-attachments.ts
+var import_react11 = __toESM(require_react(), 1);
+
+// src/message-expression-context.tsx
+var import_react10 = __toESM(require_react(), 1);
+var import_jsx_runtime19 = __toESM(require_jsx_runtime(), 1);
+var MessageExpressionContext = (0, import_react10.createContext)(void 0);
+function MessageExpressionProvider({
+  value,
+  children
 }) {
-  const language = useCollectiveLanguage();
-  const t = useCollectiveText();
-  if (!attachment.selections.length && !attachment.rework && !attachment.reply && !attachment.failure) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("fieldset", { className: "shared-artifact-quote-tags", "aria-label": t("\u4F5C\u54C1\u5F15\u7528"), children: [
-    attachment.reply && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: language === "en" ? `Reply to an annotation on version ${attachment.reply.ownerRevision} \xB7 keep in the original discussion` : `\u56DE\u590D\u7B2C ${attachment.reply.ownerRevision} \u7248\u7684\u6279\u6CE8 \xB7 \u7559\u5728\u539F\u8BA8\u8BBA` }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664\u6279\u6CE8\u5F15\u7528"), onClick: attachment.removeReply, children: "\xD7" })
-    ] }),
-    attachment.rework && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { children: language === "en" ? `Changes for version ${attachment.rework.sourceOwnerRevision} \xB7 redo from version ${attachment.rework.ownerRevision}` : `\u7B2C ${attachment.rework.sourceOwnerRevision} \u7248\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${attachment.rework.ownerRevision} \u7248\u91CD\u505A` }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("button", { type: "button", "aria-label": t("\u79FB\u9664\u4FEE\u6539\u5F15\u7528"), onClick: attachment.removeRework, children: "\xD7" })
-    ] }),
-    attachment.selections.map((selection, index4) => /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("span", { children: [
-        index4 + 1,
-        " \xB7",
-        " ",
-        language === "en" ? `Version ${selection.ownerRevision}` : `\u7B2C ${selection.ownerRevision} \u7248`,
-        " \xB7",
-        " ",
-        attachment.label(index4)
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime13.jsx)(
-        "button",
-        {
-          type: "button",
-          "aria-label": language === "en" ? `Remove reference ${index4 + 1}` : `\u79FB\u9664\u5F15\u7528 ${index4 + 1}`,
-          onClick: () => attachment.remove(index4),
-          children: "\xD7"
-        }
+  return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MessageExpressionContext.Provider, { value, children });
+}
+var useMessageExpression = () => (0, import_react10.useContext)(MessageExpressionContext);
+function createMessageExpressionPort(coordinates3, request) {
+  return {
+    async channelState(channelId, rootEventId) {
+      const query = new URLSearchParams({ ...coordinates3, channelId, ...rootEventId ? { rootEventId } : {} });
+      return collectiveHumanChannelStateSchema.parse(await (await request(`/api/channel-state?${query}`)).json());
+    },
+    async saveDraft(channelId, rootEventId, content3, expectedRevision, clientOperationId, keepalive) {
+      const response = await request("/api/channel-state/draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...coordinates3,
+          channelId,
+          ...rootEventId ? { rootEventId } : {},
+          content: content3,
+          expectedRevision,
+          clientOperationId
+        }),
+        keepalive
+      });
+      return collectiveSaveDraftResultSchema.parse(await response.json());
+    },
+    async markRead(channelId, eventId2) {
+      const response = await request("/api/channel-state/read", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...coordinates3, channelId, eventId: eventId2 })
+      });
+      const value = await response.json();
+      return collectiveReadPositionSchema.parse(value.read);
+    },
+    async upload(file, clientUploadId, channelId, signal) {
+      const digest8 = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      signal.throwIfAborted();
+      const blobDigest = `sha256:${[...new Uint8Array(digest8)].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+      const query = new URLSearchParams({
+        ...coordinates3,
+        channelId,
+        clientUploadId,
+        fileName: file.name,
+        mediaType: file.type || "application/octet-stream",
+        blobDigest
+      });
+      const result = await request(`/api/message-attachments/upload?${query}`, {
+        method: "POST",
+        body: file,
+        headers: { "content-type": "application/octet-stream" },
+        signal
+      });
+      return collectiveMessageAttachmentSchema.parse(await result.json());
+    },
+    async read(attachmentId, sourceEventId, signal) {
+      const query = new URLSearchParams({
+        ...coordinates3,
+        attachmentId,
+        ...sourceEventId ? { sourceEventId } : {}
+      });
+      const response = await request(`/api/message-attachments/read?${query}`, { method: "POST", signal });
+      const blob = await response.blob();
+      signal.throwIfAborted();
+      return blob;
+    }
+  };
+}
+
+// src/pending-attachment-files.ts
+var intentKey = (namespace) => `collective-file-intents:${namespace}`;
+function fileIntents(namespace) {
+  const value = JSON.parse(localStorage.getItem(intentKey(namespace)) ?? "[]");
+  return Array.isArray(value) ? value.filter(
+    (item) => item && typeof item === "object" && typeof item.id === "string" && (item.attachmentId === void 0 || typeof item.attachmentId === "string")
+  ) : [];
+}
+function beginPendingAttachmentFile(namespace, id30) {
+  const intents = fileIntents(namespace);
+  if (!intents.some((item) => item.id === id30))
+    localStorage.setItem(intentKey(namespace), JSON.stringify([...intents, { id: id30 }]));
+}
+async function openFiles() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("collective-private-attachment-files", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("files", { keyPath: "key" });
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+async function pendingAttachmentFiles(namespace) {
+  const db = await openFiles();
+  try {
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction("files").objectStore("files").getAll();
+      request.onsuccess = () => resolve(
+        request.result.filter(
+          (item) => item.namespace === namespace && fileIntents(namespace).some((intent) => intent.id === item.id)
+        ).map(({ id: id30, file, attachment }) => ({ id: id30, file, attachment }))
+      );
+      request.onerror = () => reject(request.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+async function discardPendingAttachmentFiles(namespace, attachmentIds) {
+  const ids2 = new Set(attachmentIds);
+  const intents = fileIntents(namespace);
+  const removed = intents.filter((item) => ids2.has(item.id) || item.attachmentId && ids2.has(item.attachmentId));
+  localStorage.setItem(intentKey(namespace), JSON.stringify(intents.filter((item) => !removed.includes(item))));
+  if (!removed.length) return;
+  const db = await openFiles();
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction("files", "readwrite");
+      for (const item of removed) transaction.objectStore("files").delete(`${namespace}:${item.id}`);
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = () => reject(transaction.error);
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+async function savePendingAttachmentFile(namespace, item) {
+  const intents = fileIntents(namespace);
+  if (!intents.some((intent) => intent.id === item.id)) return;
+  if (item.attachment)
+    localStorage.setItem(
+      intentKey(namespace),
+      JSON.stringify(
+        intents.map(
+          (intent) => intent.id === item.id ? { ...intent, attachmentId: item.attachment.attachmentId } : intent
+        )
       )
-    ] }, `${selection.artifactId}:${selection.span.start}:${index4}`)),
-    (attachment.stale || attachment.failure) && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { role: "alert", children: t(attachment.stale ? "\u5F15\u7528\u7684\u7248\u672C\u5DF2\u6539\u53D8\u6216\u65E0\u6CD5\u8BBF\u95EE\uFF0C\u8BF7\u91CD\u65B0\u9009\u53D6\uFF1B\u4F60\u5199\u7684\u8BDD\u4ECD\u5728\u3002" : attachment.failure ?? "") })
-  ] });
+    );
+  const db = await openFiles();
+  try {
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction("files", "readwrite");
+      transaction.objectStore("files").put({ key: `${namespace}:${item.id}`, namespace, ...item });
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = () => reject(transaction.error);
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+// src/use-composer-attachments.ts
+function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = true) {
+  const port2 = useMessageExpression();
+  const [uploads, setUploads] = (0, import_react11.useState)([]);
+  const [urls, setUrls] = (0, import_react11.useState)({});
+  const [notice2, setNotice] = (0, import_react11.useState)();
+  const controllers = (0, import_react11.useRef)(/* @__PURE__ */ new Map());
+  const active = (0, import_react11.useRef)(true);
+  const uploadUrls = (0, import_react11.useRef)(/* @__PURE__ */ new Set());
+  const present = (0, import_react11.useRef)(/* @__PURE__ */ new Set());
+  const currentDraft = (0, import_react11.useRef)(draft);
+  currentDraft.current = draft;
+  const upload = async (item) => {
+    if (!port2 || controllers.current.has(item.id)) return;
+    const controller = new AbortController();
+    controllers.current.set(item.id, controller);
+    setUploads(
+      (current2) => current2.map((value) => value.id === item.id ? { ...value, status: "uploading", notice: void 0 } : value)
+    );
+    try {
+      const attachment = await port2.upload(item.file, item.id, channelId, controller.signal);
+      if (!present.current.has(item.id)) return;
+      await savePendingAttachmentFile(draftKey, { id: item.id, file: item.file, attachment });
+      if (!present.current.has(item.id)) {
+        await discardPendingAttachmentFiles(draftKey, [item.id]);
+        return;
+      }
+      if (!active.current || !present.current.has(item.id)) return;
+      setDraft((current2) => ({ ...current2, attachments: [...current2.attachments ?? [], attachment] }));
+      setUploads((current2) => current2.filter((value) => value.id !== item.id));
+      present.current.delete(item.id);
+    } catch (error) {
+      if (controller.signal.aborted || !active.current) return;
+      setUploads(
+        (current2) => current2.map(
+          (value) => value.id === item.id ? { ...value, status: "failed", notice: error instanceof Error ? error.message : String(error) } : value
+        )
+      );
+    } finally {
+      controllers.current.delete(item.id);
+    }
+  };
+  const add = async (files) => {
+    if (!port2) {
+      setNotice("\u9644\u4EF6\u670D\u52A1\u5F53\u524D\u4E0D\u53EF\u7528\uFF1B\u6587\u4EF6\u5C1A\u672A\u53D1\u9001\u3002");
+      return;
+    }
+    const remaining = 12 - (currentDraft.current.attachments?.length ?? 0) - present.current.size;
+    if (files.length > remaining) {
+      setNotice("\u6BCF\u6761\u6D88\u606F\u6700\u591A 12 \u4E2A\u9644\u4EF6\u3002");
+      return;
+    }
+    for (const file of files) {
+      if (!file.size || file.size > 50 * 1024 * 1024) {
+        setNotice(`${file.name}\uFF1A\u8BF7\u9009\u62E9 50 MiB \u4EE5\u5185\u7684\u975E\u7A7A\u6587\u4EF6\u3002`);
+        continue;
+      }
+      const id30 = crypto.randomUUID();
+      const item = {
+        id: id30,
+        file,
+        name: file.name,
+        mediaType: file.type,
+        byteLength: file.size,
+        url: URL.createObjectURL(file),
+        status: "uploading"
+      };
+      uploadUrls.current.add(item.url);
+      present.current.add(id30);
+      setUploads((current2) => [...current2, item]);
+      try {
+        beginPendingAttachmentFile(draftKey, id30);
+        await savePendingAttachmentFile(draftKey, { id: id30, file });
+      } catch {
+        setNotice("\u6D4F\u89C8\u5668\u65E0\u6CD5\u4FDD\u5B58\u672A\u4E0A\u4F20\u7684\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762\u3002");
+      }
+      if (!active.current) return;
+      void upload(item);
+    }
+  };
+  (0, import_react11.useEffect)(() => {
+    active.current = true;
+    if (ready && port2 && typeof indexedDB !== "undefined")
+      void pendingAttachmentFiles(draftKey).then((saved) => {
+        if (!active.current) return;
+        for (const item of saved) {
+          if (item.attachment) {
+            const attachment = item.attachment;
+            setDraft(
+              (current2) => current2.attachments?.some((value) => value.attachmentId === attachment.attachmentId) ? current2 : { ...current2, attachments: [...current2.attachments ?? [], attachment] }
+            );
+            continue;
+          }
+          if (present.current.has(item.id)) continue;
+          const uploadItem = {
+            ...item,
+            name: item.file.name,
+            mediaType: item.file.type,
+            byteLength: item.file.size,
+            url: URL.createObjectURL(item.file),
+            status: "failed",
+            notice: "\u4E0A\u4F20\u672A\u5B8C\u6210\uFF0C\u91CD\u8BD5\u540E\u53EF\u7EE7\u7EED\u53D1\u9001\u3002"
+          };
+          uploadUrls.current.add(uploadItem.url);
+          present.current.add(item.id);
+          setUploads((current2) => [...current2, uploadItem]);
+        }
+      }).catch(() => setNotice("\u672A\u80FD\u8BFB\u53D6\u6D4F\u89C8\u5668\u4E2D\u7684\u5F85\u4E0A\u4F20\u6587\u4EF6\u3002"));
+    return () => {
+      active.current = false;
+      for (const controller of controllers.current.values()) controller.abort();
+    };
+  }, [draftKey, port2, ready, setDraft]);
+  (0, import_react11.useEffect)(() => {
+    const controller = new AbortController();
+    const created = [];
+    if (port2)
+      for (const item of draft.attachments ?? [])
+        void port2.read(item.attachmentId, void 0, controller.signal).then((blob) => {
+          if (controller.signal.aborted) return;
+          const url = URL.createObjectURL(blob);
+          created.push(url);
+          setUrls((current2) => ({ ...current2, [item.attachmentId]: url }));
+        }).catch(() => {
+          if (!controller.signal.aborted) setNotice("\u9644\u4EF6\u6682\u65F6\u65E0\u6CD5\u9884\u89C8\uFF0C\u5DF2\u4FDD\u7559\u539F\u5F15\u7528\u3002");
+        });
+    return () => {
+      controller.abort();
+      for (const url of created) URL.revokeObjectURL(url);
+    };
+  }, [draft.attachments, port2]);
+  (0, import_react11.useEffect)(
+    () => () => {
+      for (const url of uploadUrls.current) URL.revokeObjectURL(url);
+    },
+    []
+  );
+  const items = [
+    ...(draft.attachments ?? []).map((item) => ({
+      id: item.attachmentId,
+      name: item.fileName,
+      mediaType: item.mediaType,
+      byteLength: item.byteLength,
+      url: urls[item.attachmentId],
+      status: "ready"
+    })),
+    ...uploads
+  ];
+  return {
+    items,
+    notice: notice2,
+    pending: uploads.length > 0,
+    add,
+    remove(id30) {
+      controllers.current.get(id30)?.abort();
+      present.current.delete(id30);
+      setUploads((current2) => current2.filter((item) => item.id !== id30));
+      setDraft((current2) => ({
+        ...current2,
+        attachments: current2.attachments?.filter((item) => item.attachmentId !== id30)
+      }));
+      void discardPendingAttachmentFiles(draftKey, [id30]).catch(() => setNotice("\u672A\u80FD\u79FB\u9664\u672C\u5730\u6587\u4EF6\uFF0C\u8BF7\u91CD\u8BD5\u3002"));
+    },
+    retry(id30) {
+      const item = uploads.find((value) => value.id === id30);
+      if (item) void upload(item);
+    },
+    async confirm(attachments) {
+      try {
+        await discardPendingAttachmentFiles(
+          draftKey,
+          attachments.map((item) => item.attachmentId)
+        );
+      } catch {
+        setNotice("\u6D88\u606F\u5DF2\u53D1\u9001\uFF0C\u672C\u5730\u6587\u4EF6\u7F13\u5B58\u5C1A\u672A\u6E05\u7406\uFF1B\u8BF7\u52FF\u91CD\u590D\u53D1\u9001\u3002");
+      }
+    }
+  };
+}
+
+// src/use-service-composer-draft.ts
+var import_react12 = __toESM(require_react(), 1);
+
+// src/human-send-custody.ts
+function prepareHumanSend(storage, namespace, payload, createId = () => crypto.randomUUID()) {
+  const key = `collective-pending:${namespace}`;
+  const raw = storage.getItem(key);
+  const pending = raw ? collectiveHumanMessageRequestSchema.array().parse(JSON.parse(raw)) : [];
+  const normalized = collectiveHumanMessageRequestSchema.parse({ ...payload, clientEventId: "comparison" });
+  const previous4 = pending.find(
+    (item) => JSON.stringify({ ...item, clientEventId: "comparison" }) === JSON.stringify(normalized)
+  );
+  if (previous4) return previous4;
+  const next = collectiveHumanMessageRequestSchema.parse({ ...payload, clientEventId: createId() });
+  storage.setItem(key, JSON.stringify([...pending, next]));
+  return next;
+}
+function acknowledgeHumanSend(storage, namespace, clientEventId) {
+  const key = `collective-pending:${namespace}`;
+  const raw = storage.getItem(key);
+  if (!raw) return;
+  const pending = collectiveHumanMessageRequestSchema.array().parse(JSON.parse(raw)).filter((item) => item.clientEventId !== clientEventId);
+  if (pending.length) storage.setItem(key, JSON.stringify(pending));
+  else storage.removeItem(key);
+}
+function collectiveClientNamespace(snapshot) {
+  return !snapshot.restrictedScope && snapshot.meta && snapshot.collective && snapshot.me ? `${snapshot.meta.serviceInstanceId}:${snapshot.collective.collectiveId}:${snapshot.me.human.humanId}` : void 0;
+}
+
+// src/use-service-composer-draft.ts
+var fingerprint = (draft) => {
+  const parsed = collectiveComposerDraftSchema.safeParse(draft);
+  if (!parsed.success) return JSON.stringify(draft);
+  return JSON.stringify(
+    collectiveComposerDraftSchema.parse({
+      ...parsed.data,
+      attachments: parsed.data.attachments?.length ? parsed.data.attachments : void 0,
+      entrust: Boolean(parsed.data.entrust),
+      responseRequested: Boolean(parsed.data.responseRequested),
+      replyNeedsSelection: Boolean(parsed.data.replyNeedsSelection)
+    })
+  );
+};
+function useServiceComposerDraft(input) {
+  const port2 = useMessageExpression();
+  const [ready, setReady] = (0, import_react12.useState)(!port2);
+  const [notice2, setNotice] = (0, import_react12.useState)();
+  const [conflict, setConflict] = (0, import_react12.useState)();
+  const base2 = (0, import_react12.useRef)({ revision: 0, fingerprint: fingerprint(emptyDraft) });
+  const current2 = (0, import_react12.useRef)(input);
+  current2.current = input;
+  const currentConflict = (0, import_react12.useRef)(conflict);
+  currentConflict.current = conflict;
+  const pending = (0, import_react12.useRef)();
+  const timer = (0, import_react12.useRef)();
+  const active = (0, import_react12.useRef)(true);
+  const metadataKey = `${input.draftKey}:service-version`;
+  const remember = (0, import_react12.useCallback)(
+    (saved) => {
+      base2.current = saved;
+      try {
+        localStorage.setItem(metadataKey, JSON.stringify(saved));
+      } catch {
+        if (active.current) setNotice("\u6D4F\u89C8\u5668\u672A\u80FD\u4FDD\u5B58\u8349\u7A3F\u7248\u672C\uFF1B\u670D\u52A1\u5668\u8349\u7A3F\u4ECD\u5728\u3002");
+      }
+    },
+    [metadataKey]
+  );
+  (0, import_react12.useEffect)(() => {
+    active.current = true;
+    if (!port2) return;
+    let cancelled = false;
+    const baseline = fingerprint(current2.current.draft);
+    void port2.channelState(input.channelId, input.rootEventId).then(async (remote) => {
+      if (cancelled) return;
+      const fresh2 = fingerprint(current2.current.draft), remoteFingerprint = fingerprint(remote.draft.content);
+      let cached;
+      try {
+        cached = JSON.parse(localStorage.getItem(metadataKey) ?? "null") ?? void 0;
+      } catch {
+      }
+      const consumed = remote.draft.clientOperationId?.startsWith("sent:") && cached && (cached.fingerprint === fresh2 && remote.draft.revision === cached.revision + 1 || cached.consumedFingerprint === fresh2 && cached.clientOperationId === remote.draft.clientOperationId);
+      const consumedAttachmentIds = consumed ? current2.current.draft.attachments?.map((item) => item.attachmentId) ?? [] : remote.draft.clientOperationId === cached?.clientOperationId ? cached?.consumedAttachmentIds ?? [] : [];
+      if (consumedAttachmentIds.length) {
+        await discardPendingAttachmentFiles(input.draftKey, consumedAttachmentIds);
+        if (cancelled) return;
+      }
+      if (consumed) {
+        acknowledgeHumanSend(localStorage, input.namespace, remote.draft.clientOperationId.slice(5));
+        current2.current.setDraft(remote.draft.content);
+      } else if (fresh2 === baseline && fresh2 === fingerprint(emptyDraft)) {
+        current2.current.setDraft(remote.draft.content);
+      } else if (fresh2 !== remoteFingerprint && remote.draft.revision > 0 && cached?.revision !== remote.draft.revision) {
+        setConflict({ revision: remote.draft.revision, content: remote.draft.content });
+      }
+      remember({
+        revision: remote.draft.revision,
+        fingerprint: remoteFingerprint,
+        clientOperationId: remote.draft.clientOperationId,
+        ...consumed ? { consumedFingerprint: fresh2 } : {},
+        ...consumedAttachmentIds.length ? { consumedAttachmentIds } : {}
+      });
+      setReady(true);
+    }).catch((error) => {
+      if (!cancelled) {
+        setNotice(error instanceof Error ? error.message : String(error));
+        setReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+      active.current = false;
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [port2, input.draftKey, input.channelId, input.rootEventId, input.namespace, metadataKey, remember]);
+  const persist = async (draft, keepalive = false) => {
+    if (!port2) return base2.current;
+    while (pending.current) await pending.current;
+    if (currentConflict.current) throw new Error("\u53E6\u4E00\u7A97\u53E3\u5DF2\u66F4\u65B0\u8349\u7A3F\uFF0C\u8BF7\u5148\u9009\u62E9\u8981\u4FDD\u7559\u7684\u5185\u5BB9\u3002");
+    const content3 = collectiveComposerDraftSchema.parse(draft), serialized2 = fingerprint(content3);
+    if (serialized2 === base2.current.fingerprint && base2.current.revision > 0) return base2.current;
+    const clientOperationId = crypto.randomUUID(), expectedRevision = base2.current.revision;
+    const operation = (async () => {
+      const result = await port2.saveDraft(
+        input.channelId,
+        input.rootEventId,
+        content3,
+        expectedRevision,
+        clientOperationId,
+        keepalive
+      );
+      if (result.status === "conflict") {
+        currentConflict.current = { revision: result.draft.revision, content: result.draft.content };
+        if (active.current) setConflict(currentConflict.current);
+        throw new Error("\u53E6\u4E00\u7A97\u53E3\u5DF2\u66F4\u65B0\u8349\u7A3F\uFF1B\u4E24\u4EFD\u5185\u5BB9\u90FD\u5DF2\u4FDD\u7559\u3002");
+      }
+      const saved = { revision: result.draft.revision, fingerprint: serialized2, clientOperationId };
+      remember(saved);
+      if (active.current) setNotice(void 0);
+      return saved;
+    })();
+    pending.current = operation;
+    try {
+      return await operation;
+    } finally {
+      if (pending.current === operation) pending.current = void 0;
+    }
+  };
+  const persistRef = (0, import_react12.useRef)(persist);
+  persistRef.current = persist;
+  const serialized = fingerprint(input.draft);
+  (0, import_react12.useEffect)(() => {
+    if (!port2 || !ready || conflict || input.paused || serialized === base2.current.fingerprint) return;
+    timer.current = setTimeout(() => {
+      void persistRef.current(current2.current.draft).catch((error) => {
+        if (active.current) setNotice(error instanceof Error ? error.message : String(error));
+      });
+    }, 250);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [serialized, ready, conflict, input.paused, port2]);
+  (0, import_react12.useEffect)(() => {
+    const pageExit = () => {
+      if (!port2 || !ready || currentConflict.current || current2.current.paused || fingerprint(current2.current.draft) === base2.current.fingerprint)
+        return;
+      void persistRef.current(current2.current.draft, true).catch(() => {
+      });
+    };
+    window.addEventListener("pagehide", pageExit);
+    return () => {
+      window.removeEventListener("pagehide", pageExit);
+      pageExit();
+    };
+  }, [ready, port2]);
+  return {
+    ready,
+    conflict,
+    notice: notice2,
+    async flush(draft) {
+      if (timer.current) clearTimeout(timer.current);
+      const saved = await persistRef.current(draft);
+      return saved.revision ? { revision: saved.revision, ...input.rootEventId ? { rootEventId: input.rootEventId } : {} } : void 0;
+    },
+    async acknowledged(sent) {
+      if (!port2) return true;
+      let remote;
+      try {
+        remote = await port2.channelState(input.channelId, input.rootEventId);
+      } catch {
+        setNotice("\u6D88\u606F\u5DF2\u53D1\u9001\uFF0C\u8349\u7A3F\u540C\u6B65\u6682\u4E0D\u53EF\u7528\uFF1B\u8BF7\u52FF\u91CD\u590D\u53D1\u9001\u3002");
+        return true;
+      }
+      const remoteFingerprint = fingerprint(remote.draft.content);
+      if (!remote.draft.content.body && !remote.draft.content.attachments?.length) {
+        remember({
+          revision: remote.draft.revision,
+          fingerprint: remoteFingerprint,
+          clientOperationId: remote.draft.clientOperationId,
+          consumedFingerprint: fingerprint(sent),
+          consumedAttachmentIds: sent.attachments?.map((item) => item.attachmentId) ?? []
+        });
+        return true;
+      }
+      if (fingerprint(current2.current.draft) === fingerprint(sent)) {
+        currentConflict.current = { revision: remote.draft.revision, content: remote.draft.content };
+        setConflict(currentConflict.current);
+      }
+      return false;
+    },
+    async clearAfterAction(sent) {
+      if (fingerprint(current2.current.draft) !== fingerprint(sent)) return false;
+      try {
+        await persistRef.current(emptyDraft);
+        return true;
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : String(error));
+        return false;
+      }
+    },
+    useRemote() {
+      if (!conflict) return;
+      remember({ revision: conflict.revision, fingerprint: fingerprint(conflict.content) });
+      input.setDraft(conflict.content);
+      currentConflict.current = void 0;
+      setConflict(void 0);
+      setNotice(void 0);
+    },
+    keepLocal() {
+      if (!conflict) return;
+      remember({ revision: conflict.revision, fingerprint: fingerprint(conflict.content) });
+      currentConflict.current = void 0;
+      setConflict(void 0);
+      setNotice(void 0);
+      void persistRef.current(current2.current.draft).catch((error) => setNotice(String(error)));
+    }
+  };
 }
 
 // src/use-shared-artifact-composer.ts
-var import_react11 = __toESM(require_react(), 1);
+var import_react16 = __toESM(require_react(), 1);
 
 // src/SharedArtifactReading.tsx
-var import_react10 = __toESM(require_react(), 1);
+var import_react15 = __toESM(require_react(), 1);
 
 // src/use-collective-artifacts.ts
-var import_react8 = __toESM(require_react(), 1);
+var import_react13 = __toESM(require_react(), 1);
 
 // src/client-request.ts
 function collectiveClientErrorMessage(error) {
@@ -54107,13 +55431,13 @@ function batchedRequestReceipts(post2, coordinates3) {
 }
 async function readReceiptBatch(post2, coordinates3, batch) {
   try {
-    const requestEventIds = batch.map(([id28]) => id28);
+    const requestEventIds = batch.map(([id30]) => id30);
     const value = collectiveArtifactRequestReceiptPageSchema.parse(
       await post2("receipts/by-request", { ...coordinates3, requestEventIds })
     );
     assertReceiptBindings(value.receipts, coordinates3, requestEventIds);
-    for (const [id28, listeners] of batch) {
-      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id28);
+    for (const [id30, listeners] of batch) {
+      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id30);
       for (const listener of listeners) listener.resolve(receipts);
     }
   } catch (error) {
@@ -54123,10 +55447,10 @@ async function readReceiptBatch(post2, coordinates3, batch) {
 function assertReceiptBindings(receipts, coordinates3, requestEventIds) {
   const seen = /* @__PURE__ */ new Set();
   for (const receipt2 of receipts) {
-    const id28 = receipt2.version.lineage?.requestEventId;
-    if (!id28 || !requestEventIds.includes(id28) || seen.has(id28) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
+    const id30 = receipt2.version.lineage?.requestEventId;
+    if (!id30 || !requestEventIds.includes(id30) || seen.has(id30) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
       throw new Error("\u91C7\u7528\u56DE\u6267\u4E0E\u539F\u8BF7\u6C42\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
-    seen.add(id28);
+    seen.add(id30);
   }
 }
 
@@ -54613,50 +55937,24 @@ async function appendSharedRequestPage(view, read) {
     throw new Error("\u4FEE\u6539\u8BB0\u5F55\u5C1A\u672A\u8BFB\u5B8C\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
 }
 
-// src/human-send-custody.ts
-function prepareHumanSend(storage, namespace, payload, createId = () => crypto.randomUUID()) {
-  const key = `collective-pending:${namespace}`;
-  const raw = storage.getItem(key);
-  const pending = raw ? collectiveHumanMessageRequestSchema.array().parse(JSON.parse(raw)) : [];
-  const normalized = collectiveHumanMessageRequestSchema.parse({ ...payload, clientEventId: "comparison" });
-  const previous4 = pending.find(
-    (item) => JSON.stringify({ ...item, clientEventId: "comparison" }) === JSON.stringify(normalized)
-  );
-  if (previous4) return previous4;
-  const next = collectiveHumanMessageRequestSchema.parse({ ...payload, clientEventId: createId() });
-  storage.setItem(key, JSON.stringify([...pending, next]));
-  return next;
-}
-function acknowledgeHumanSend(storage, namespace, clientEventId) {
-  const key = `collective-pending:${namespace}`;
-  const raw = storage.getItem(key);
-  if (!raw) return;
-  const pending = collectiveHumanMessageRequestSchema.array().parse(JSON.parse(raw)).filter((item) => item.clientEventId !== clientEventId);
-  if (pending.length) storage.setItem(key, JSON.stringify(pending));
-  else storage.removeItem(key);
-}
-function collectiveClientNamespace(snapshot) {
-  return !snapshot.restrictedScope && snapshot.meta && snapshot.collective && snapshot.me ? `${snapshot.meta.serviceInstanceId}:${snapshot.collective.collectiveId}:${snapshot.me.human.humanId}` : void 0;
-}
-
 // src/use-collective-artifacts.ts
 function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
   const namespace = collectiveClientNamespace(snapshot);
-  const currentNamespace = (0, import_react8.useRef)(namespace);
+  const currentNamespace = (0, import_react13.useRef)(namespace);
   currentNamespace.current = namespace;
   const serviceInstanceId = snapshot.meta?.serviceInstanceId;
   const collectiveId = snapshot.collective?.collectiveId;
-  const api = (0, import_react8.useMemo)(
+  const api = (0, import_react13.useMemo)(
     () => namespace && serviceInstanceId && collectiveId ? collectiveArtifactClient(request, { serviceInstanceId, collectiveId }, namespace) : void 0,
     [namespace, serviceInstanceId, collectiveId, request]
   );
-  const [catalogue, setCatalogue] = (0, import_react8.useState)([]);
-  const [status, setStatus] = (0, import_react8.useState)("loading");
-  const [error, setError] = (0, import_react8.useState)();
-  const [selected, setSelected] = (0, import_react8.useState)();
-  const [publicationSource, setPublicationSource] = (0, import_react8.useState)();
-  const generation = (0, import_react8.useRef)(0);
-  const refresh = (0, import_react8.useCallback)(async () => {
+  const [catalogue, setCatalogue] = (0, import_react13.useState)([]);
+  const [status, setStatus] = (0, import_react13.useState)("loading");
+  const [error, setError] = (0, import_react13.useState)();
+  const [selected, setSelected] = (0, import_react13.useState)();
+  const [publicationSource, setPublicationSource] = (0, import_react13.useState)();
+  const generation = (0, import_react13.useRef)(0);
+  const refresh = (0, import_react13.useCallback)(async () => {
     if (!api || namespace !== currentNamespace.current) return;
     const current2 = ++generation.current;
     try {
@@ -54674,7 +55972,7 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
       setError(collectiveClientErrorMessage(failure));
     }
   }, [api, namespace]);
-  (0, import_react8.useEffect)(() => {
+  (0, import_react13.useEffect)(() => {
     setCatalogue([]);
     setSelected(void 0);
     setPublicationSource(void 0);
@@ -54687,18 +55985,18 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
       window.clearInterval(interval);
     };
   }, [api, refresh, snapshot.phase]);
-  const open = (0, import_react8.useCallback)(
+  const open = (0, import_react13.useCallback)(
     (artifact, ownerRevision2) => setSelected({ artifactId: artifact.artifactId, ...ownerRevision2 ? { ownerRevision: ownerRevision2 } : {} }),
     []
   );
-  const close = (0, import_react8.useCallback)(() => setSelected(void 0), []);
-  const compare = (0, import_react8.useCallback)(
+  const close = (0, import_react13.useCallback)(() => setSelected(void 0), []);
+  const compare = (0, import_react13.useCallback)(
     (requestId2, request2) => setSelected((current2) => current2 ? { ...current2, requestId: requestId2, request: request2 } : current2),
     []
   );
-  const beginPublication = (0, import_react8.useCallback)((eventId2) => setPublicationSource(eventId2), []);
-  const closePublication = (0, import_react8.useCallback)(() => setPublicationSource(void 0), []);
-  const resolveWorkResultFile = (0, import_react8.useCallback)(
+  const beginPublication = (0, import_react13.useCallback)((eventId2) => setPublicationSource(eventId2), []);
+  const closePublication = (0, import_react13.useCallback)(() => setPublicationSource(void 0), []);
+  const resolveWorkResultFile = (0, import_react13.useCallback)(
     async (address) => {
       if (!api || namespace !== currentNamespace.current) throw new Error("\u4F5C\u54C1\u670D\u52A1\u5F53\u524D\u4E0D\u53EF\u7528\u3002");
       const artifact = await api.openWorkResult(address.fileId);
@@ -54748,11 +56046,11 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
     sourceMessage: (eventId2) => snapshot.events.find((event) => event.eventId === eventId2)
   };
 }
-var CollectiveArtifactContext = (0, import_react8.createContext)(void 0);
-var useSharedArtifacts = () => (0, import_react8.useContext)(CollectiveArtifactContext);
+var CollectiveArtifactContext = (0, import_react13.createContext)(void 0);
+var useSharedArtifacts = () => (0, import_react13.useContext)(CollectiveArtifactContext);
 
 // src/use-shared-artifact-read.ts
-var import_react9 = __toESM(require_react(), 1);
+var import_react14 = __toESM(require_react(), 1);
 function useSharedArtifactRead(api, artifact, selectedRevision, status, refreshCatalogue) {
   const latestRevision = artifact?.versions.at(-1)?.ownerRevision;
   const authorityFence = JSON.stringify([
@@ -54764,16 +56062,16 @@ function useSharedArtifactRead(api, artifact, selectedRevision, status, refreshC
     selectedRevision,
     status
   ]);
-  const visit2 = (0, import_react9.useRef)({ authorityFence, generation: 0 });
+  const visit2 = (0, import_react14.useRef)({ authorityFence, generation: 0 });
   if (visit2.current.authorityFence !== authorityFence)
     visit2.current = { authorityFence, generation: visit2.current.generation + 1 };
   const fence = JSON.stringify([authorityFence, visit2.current.generation]);
-  const [loaded, setLoaded] = (0, import_react9.useState)();
-  const pinned = (0, import_react9.useRef)({ fence, artifact });
+  const [loaded, setLoaded] = (0, import_react14.useState)();
+  const pinned = (0, import_react14.useRef)({ fence, artifact });
   if (pinned.current.fence !== fence) pinned.current = { fence, artifact };
   const readTarget = pinned.current.artifact;
-  const [failure, setFailure] = (0, import_react9.useState)();
-  (0, import_react9.useEffect)(() => {
+  const [failure, setFailure] = (0, import_react14.useState)();
+  (0, import_react14.useEffect)(() => {
     if (!api || !readTarget || readTarget.mediaType !== "text/markdown" || status !== "ready" || readTarget.availability !== "available")
       return;
     let active = true;
@@ -54822,7 +56120,7 @@ function useSharedArtifactRead(api, artifact, selectedRevision, status, refreshC
 }
 
 // src/SharedArtifactReading.tsx
-var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime20 = __toESM(require_jsx_runtime(), 1);
 function useReading() {
   const shared = useSharedArtifacts();
   const artifact = shared?.catalogue.find((item) => item.artifactId === shared.selected?.artifactId);
@@ -54833,15 +56131,15 @@ function useReading() {
     shared?.status,
     shared?.refresh
   );
-  const [quote, setQuote] = (0, import_react10.useState)();
-  const [reply, setReply] = (0, import_react10.useState)();
-  const [rework, setRework] = (0, import_react10.useState)();
+  const [quote, setQuote] = (0, import_react15.useState)();
+  const [reply, setReply] = (0, import_react15.useState)();
+  const [rework, setRework] = (0, import_react15.useState)();
   return { ...reading, artifact, quote, setQuote, rework, setRework, reply, setReply };
 }
-var ReadingContext = (0, import_react10.createContext)(void 0);
-var useSharedArtifactReading = () => (0, import_react10.useContext)(ReadingContext);
+var ReadingContext = (0, import_react15.createContext)(void 0);
+var useSharedArtifactReading = () => (0, import_react15.useContext)(ReadingContext);
 function SharedArtifactReading({ children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(ReadingContext.Provider, { value: useReading(), children });
+  return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(ReadingContext.Provider, { value: useReading(), children });
 }
 
 // src/use-shared-artifact-composer.ts
@@ -54854,8 +56152,8 @@ function useSharedArtifactComposer(draft, setDraft, rootEventId) {
   const pendingRework = reading?.rework;
   const pendingReply = reading?.reply;
   const active = Boolean(artifact && rootEventId === (artifact.sourceLocation.rootEventId ?? artifact.sourceEventId));
-  const [failure, setFailure] = (0, import_react11.useState)();
-  (0, import_react11.useEffect)(() => {
+  const [failure, setFailure] = (0, import_react16.useState)();
+  (0, import_react16.useEffect)(() => {
     if (!active || !pendingReply || pendingReply.artifactId !== artifact?.artifactId) return;
     setDraft((current2) => ({
       ...current2,
@@ -54880,7 +56178,7 @@ function useSharedArtifactComposer(draft, setDraft, rootEventId) {
     setDraft,
     shared?.humanName
   ]);
-  (0, import_react11.useEffect)(() => {
+  (0, import_react16.useEffect)(() => {
     if (!active || !pendingRework || pendingRework.artifactId !== artifact?.artifactId) return;
     const { recipient, label, ...reference } = pendingRework;
     setDraft((current2) => ({
@@ -54897,7 +56195,7 @@ function useSharedArtifactComposer(draft, setDraft, rootEventId) {
     reading?.setRework(void 0);
     reading?.setQuote(void 0);
   }, [active, pendingRework, artifact?.artifactId, reading?.setRework, reading?.setQuote, setDraft]);
-  (0, import_react11.useEffect)(() => {
+  (0, import_react16.useEffect)(() => {
     if (!active || !quote || !view || quote.artifactId !== artifact?.artifactId || quote.blobDigest !== view.blobDigest)
       return;
     setDraft((current2) => {
@@ -54912,7 +56210,7 @@ function useSharedArtifactComposer(draft, setDraft, rootEventId) {
     });
     reading?.setQuote(void 0);
   }, [active, quote, view, artifact?.artifactId, reading?.setQuote, setDraft]);
-  (0, import_react11.useEffect)(() => {
+  (0, import_react16.useEffect)(() => {
     if (!reading?.inaccessible || !shared?.selected || !draft.artifactSelections?.some((selection) => selection.artifactId === shared.selected?.artifactId) && draft.artifactRework?.artifactId !== shared.selected?.artifactId && draft.artifactReply?.artifactId !== shared.selected?.artifactId)
       return;
     setDraft((current2) => ({
@@ -54991,7 +56289,7 @@ function useSharedArtifactComposer(draft, setDraft, rootEventId) {
 }
 
 // src/Composer.tsx
-var import_jsx_runtime15 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime21 = __toESM(require_jsx_runtime(), 1);
 function selectionAvailable(recipient, participants, humans, channelId) {
   if (recipient.kind === "human") return humans.some((human) => human.humanId === recipient.humanId);
   return recipient.kind !== "agent" || participants.some(
@@ -55016,20 +56314,36 @@ function Composer({
   const t = useCollectiveText();
   const language = useCollectiveLanguage();
   const draftKey = `collective-draft:${namespace}:${channelId}:${rootEventId ?? "channel"}`;
-  const [draft, setDraft] = (0, import_react12.useState)(() => readDraft(draftKey));
+  const [draft, setDraft] = (0, import_react17.useState)(() => readDraft(draftKey));
+  const fileInput = (0, import_react17.useRef)(null);
   const attachment = useSharedArtifactComposer(draft, setDraft, rootEventId);
-  const [mentionQuery, setMentionQuery] = (0, import_react12.useState)();
-  const [activeOption, setActiveOption] = (0, import_react12.useState)(0);
-  const [expanded, setExpanded] = (0, import_react12.useState)(false);
-  const [entrust, setEntrust] = (0, import_react12.useState)(draft.entrust ?? false);
-  const [responseRequested, setResponseRequested] = (0, import_react12.useState)(draft.responseRequested ?? false);
-  const [pending, setPending] = (0, import_react12.useState)(false);
-  const [storageNotice, setStorageNotice] = (0, import_react12.useState)();
-  const inputRef = (0, import_react12.useRef)(null);
-  const sending = (0, import_react12.useRef)(false);
-  const listId = (0, import_react12.useId)();
+  const [mentionQuery, setMentionQuery] = (0, import_react17.useState)();
+  const [activeOption, setActiveOption] = (0, import_react17.useState)(0);
+  const [expanded, setExpanded] = (0, import_react17.useState)(false);
+  const entrust = draft.entrust ?? false;
+  const setEntrust = (0, import_react17.useCallback)((entrust2) => setDraft((current2) => ({ ...current2, entrust: entrust2 })), []);
+  const responseRequested = draft.responseRequested ?? false;
+  const setResponseRequested = (0, import_react17.useCallback)(
+    (responseRequested2) => setDraft((current2) => ({ ...current2, responseRequested: responseRequested2 })),
+    []
+  );
+  const [pending, setPending] = (0, import_react17.useState)(false);
+  const durable = useServiceComposerDraft({
+    draftKey,
+    namespace,
+    channelId,
+    rootEventId,
+    draft,
+    setDraft,
+    paused: pending
+  });
+  const files = useComposerAttachments(draftKey, channelId, draft, setDraft, durable.ready);
+  const [storageNotice, setStorageNotice] = (0, import_react17.useState)();
+  const inputRef = (0, import_react17.useRef)(null);
+  const sending = (0, import_react17.useRef)(false);
+  const listId = (0, import_react17.useId)();
   const reworkFocus = draft.artifactReply?.annotationId ?? (draft.artifactRework && `${draft.artifactRework.rework.requestId}:${draft.artifactRework.ownerRevision}`);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react17.useEffect)(() => {
     if (reworkFocus) inputRef.current?.focus();
   }, [reworkFocus]);
   const available = selectionAvailable(draft.recipient, participants, humans, channelId);
@@ -55057,8 +56371,10 @@ function Composer({
     }))
   ].filter((item) => `${item.label} ${item.detail}`.toLocaleLowerCase().includes(query));
   const activeIndex = Math.min(activeOption, Math.max(0, options.length - 1));
-  const disabled = pending || delivery.kind === "requesting" || !draft.body.trim() || !available || unresolved || !!replyError || attachment.stale;
-  (0, import_react12.useEffect)(() => {
+  const artifactAction = Boolean(attachment.selections.length || attachment.rework || attachment.reply);
+  const mixedAttachmentAction = Boolean(draft.attachments?.length && artifactAction);
+  const disabled = pending || !durable.ready || !!durable.conflict || mixedAttachmentAction || delivery.kind === "requesting" || !draft.body.trim() && !draft.attachments?.length || files.pending || !available || unresolved || !!replyError || attachment.stale;
+  (0, import_react17.useEffect)(() => {
     try {
       window.localStorage.setItem(draftKey, JSON.stringify({ ...draft, entrust, responseRequested }));
       setStorageNotice(void 0);
@@ -55066,7 +56382,7 @@ function Composer({
       if (draft.body) setStorageNotice("\u6D4F\u89C8\u5668\u672A\u80FD\u4FDD\u5B58\u8349\u7A3F\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762\u3002");
     }
   }, [draftKey, draft, entrust, responseRequested]);
-  (0, import_react12.useEffect)(() => {
+  (0, import_react17.useEffect)(() => {
     if (!mention) return;
     setDraft((current2) => ({
       ...current2,
@@ -55077,14 +56393,14 @@ function Composer({
     setEntrust(false);
     setResponseRequested(false);
     inputRef.current?.focus();
-  }, [mention]);
-  (0, import_react12.useEffect)(() => {
+  }, [mention, setEntrust, setResponseRequested]);
+  (0, import_react17.useEffect)(() => {
     if (!reply) return;
     setDraft((current2) => selectReply(current2, reply));
     setEntrust(false);
     setResponseRequested(false);
     inputRef.current?.focus();
-  }, [reply]);
+  }, [reply, setEntrust, setResponseRequested]);
   const select = (index4) => {
     const selected = options[index4];
     if (!selected) return;
@@ -55107,16 +56423,24 @@ function Composer({
     sending.current = true;
     setPending(true);
     try {
-      if (attachment.selections.length || attachment.rework || attachment.reply) {
+      if (artifactAction) {
+        await durable.flush(draft);
         await attachment.send(draft.body.trim(), draft.recipient);
-      } else if (draft.replyToEventId) {
-        await onSend(draft.body.trim(), draft.recipient, entrust, responseRequested, draft.replyToEventId);
       } else {
-        await onSend(draft.body.trim(), draft.recipient, entrust, responseRequested);
+        const draftReceipt = await durable.flush(draft);
+        const content3 = {
+          ...draft.attachments?.length ? { attachments: [...draft.attachments] } : {},
+          ...draftReceipt ? { draftReceipt } : {}
+        };
+        if (Object.keys(content3).length)
+          await onSend(draft.body.trim(), draft.recipient, entrust, responseRequested, draft.replyToEventId, content3);
+        else if (draft.replyToEventId)
+          await onSend(draft.body.trim(), draft.recipient, entrust, responseRequested, draft.replyToEventId);
+        else await onSend(draft.body.trim(), draft.recipient, entrust, responseRequested);
       }
-      setDraft((current2) => clearConfirmedComposerDraft(current2, draft));
-      setEntrust(false);
-      setResponseRequested(false);
+      const consume = artifactAction ? await durable.clearAfterAction(draft) : await durable.acknowledged(draft);
+      if (consume) setDraft((current2) => clearConfirmedComposerDraft(current2, draft));
+      if (draft.attachments?.length) await files.confirm(draft.attachments);
       setExpanded(false);
       setMentionQuery(void 0);
     } finally {
@@ -55150,50 +56474,46 @@ function Composer({
       if (!disabled) event.currentTarget.form?.requestSubmit();
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(
     "form",
     {
       className: compact ? "composer composer-compact" : "composer",
       onSubmit: (event) => void submit2(event).catch(() => void 0),
+      onDragOver: (event) => {
+        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+      },
+      onDrop: (event) => {
+        if (!event.dataTransfer.files.length) return;
+        event.preventDefault();
+        void files.add([...event.dataTransfer.files]);
+      },
       children: [
-        mentionQuery !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(ComposerMentionMenu, { options, id: listId, active: activeIndex, onSelect: select }),
-        /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(SharedArtifactQuoteTags, { attachment }),
-        replyEvent && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("div", { className: "composer-recipient", role: "group", "aria-label": t("\u56DE\u590D\u6765\u6E90"), children: /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
-          language === "en" ? "Reply to" : "\u56DE\u590D",
-          " ",
-          actorDisplayName(replyEvent),
-          language === "en" ? ": " : "\uFF1A",
-          replyEvent.body.replace(/\s+/gu, " ").slice(0, 60)
-        ] }) }),
-        draft.recipient.kind !== "channel" && /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("div", { className: "composer-recipient", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)("span", { children: [
-            "@",
-            draft.recipientLabel || t("\u5DF2\u9009\u6210\u5458")
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
-            "button",
-            {
-              type: "button",
-              "aria-label": t("\u79FB\u9664 @"),
-              onClick: () => {
-                setDraft((current2) => ({
-                  ...current2,
-                  recipient: { kind: "channel" },
-                  recipientLabel: "",
-                  replyNeedsSelection: false
-                }));
-                setEntrust(false);
-                setResponseRequested(false);
-              },
-              children: "\xD7"
+        mentionQuery !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(ComposerMentionMenu, { options, id: listId, active: activeIndex, onSelect: select }),
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+          ComposerContext,
+          {
+            attachment,
+            draft,
+            replyEvent,
+            replyError,
+            available,
+            unresolved: unresolved && mentionQuery === void 0,
+            onRemoveRecipient: () => {
+              setDraft((current2) => ({
+                ...current2,
+                recipient: { kind: "channel" },
+                recipientLabel: "",
+                replyNeedsSelection: false
+              }));
+              setEntrust(false);
+              setResponseRequested(false);
             }
-          )
-        ] }),
-        (replyError || !available) && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { role: "alert", className: "composer-warning", children: replyError ? t(replyError) : t("\u53C2\u4E0E\u8BBE\u7F6E\u5DF2\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u9009\u62E9\u6210\u5458\uFF1B\u6D88\u606F\u5C1A\u672A\u53D1\u9001\u3002") }),
-        unresolved && mentionQuery === void 0 && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { role: "alert", className: "composer-warning", children: t("\u8BF7\u7528 @ \u9009\u62E9\u5F53\u524D\u9891\u9053\u7684\u6210\u5458\uFF0C\u6216\u79FB\u9664\u6CA1\u9009\u4E2D\u7684 @\u3002") }),
-        expanded && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
+          }
+        ),
+        expanded && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
           ComposerTray,
           {
+            onFiles: () => fileInput.current?.click(),
             recipientKind: draft.recipient.kind,
             entrust,
             responseRequested,
@@ -55206,34 +56526,26 @@ function Composer({
             onResponseRequested: setResponseRequested
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime15.jsxs)(ComposerFrame, { className: "composer-box", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
-            ComposerControl,
-            {
-              type: "button",
-              className: "composer-expand",
-              "aria-label": t("\u66F4\u591A\u8F93\u5165\u9009\u9879"),
-              "aria-expanded": expanded,
-              onClick: () => setExpanded((value) => !value),
-              children: "+"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(
-            "textarea",
-            {
-              ref: inputRef,
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+          ComposerInput,
+          {
+            files,
+            inputRef,
+            fileRef: fileInput,
+            expanded,
+            onExpand: () => setExpanded((value) => !value),
+            disabled,
+            input: {
               id: inputId,
               value: draft.body,
               placeholder: inputPlaceholder,
               "aria-label": inputPlaceholder,
               "aria-autocomplete": "list",
-              rows: 1,
-              required: true,
-              disabled: pending,
+              required: !draft.attachments?.length,
               "aria-controls": mentionQuery !== void 0 ? listId : void 0,
               "aria-activedescendant": mentionQuery !== void 0 && options.length ? `${listId}-${activeIndex}` : void 0,
               onKeyDown: keyDown,
-              onChange: (event) => {
+              onChange(event) {
                 const body4 = event.target.value;
                 setDraft((current2) => ({ ...current2, body: body4 }));
                 const match = body4.slice(0, event.target.selectionStart).match(/(?:^|\s)@([^\s@]*)$/u);
@@ -55241,18 +56553,25 @@ function Composer({
                 setActiveOption(0);
               }
             }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("button", { type: "submit", className: "composer-send", "aria-label": t("\u53D1\u9001"), disabled, children: /* @__PURE__ */ (0, import_jsx_runtime15.jsx)(CollectiveIcon, { kind: "send" }) })
-        ] }),
-        storageNotice && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { className: "composer-warning", role: "status", children: t(storageNotice) }),
-        delivery.kind !== "idle" && /* @__PURE__ */ (0, import_jsx_runtime15.jsx)("p", { className: `delivery-state delivery-${delivery.kind}`, role: "status", children: t(delivery.label) })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+          ComposerFeedback,
+          {
+            durable,
+            fileNotice: files.notice,
+            storageNotice,
+            mixedAttachmentAction,
+            delivery
+          }
+        )
       ]
     }
   );
 }
 
 // src/ChannelComposer.tsx
-var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime22 = __toESM(require_jsx_runtime(), 1);
 function ChannelComposer({
   namespace,
   channelId,
@@ -55265,7 +56584,7 @@ function ChannelComposer({
   firstEntry
 }) {
   const language = useCollectiveLanguage();
-  const host = (0, import_react13.useRef)(null);
+  const host = (0, import_react18.useRef)(null);
   const guidePhase = firstEntry?.phase;
   const guideCat = firstEntry?.narrator;
   const guideConnectionId = guideCat?.connectionId;
@@ -55285,7 +56604,7 @@ function ChannelComposer({
     } catch {
     }
   }
-  const guideMention = (0, import_react13.useMemo)(
+  const guideMention = (0, import_react18.useMemo)(
     () => guidePhase === "handoff" && !hasDraft && guideConnectionId && guideHumanId && guideCatId && guideRevision && guideName ? {
       recipient: {
         kind: "agent",
@@ -55298,21 +56617,21 @@ function ChannelComposer({
     } : void 0,
     [guidePhase, hasDraft, guideConnectionId, guideHumanId, guideCatId, guideRevision, guideName]
   );
-  (0, import_react13.useEffect)(() => {
+  (0, import_react18.useEffect)(() => {
     host.current?.toggleAttribute("inert", firstEntry?.phase === "playing");
   }, [firstEntry?.phase]);
-  return /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)(import_jsx_runtime16.Fragment, { children: [
-    firstEntry?.phase === "handoff" && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("p", { className: "first-entry-audience", children: "#general \u662F\u516C\u5F00\u9891\u9053 \xB7 \u8FD9\u4E2A Collective \u7684\u6210\u5458\u90FD\u770B\u5F97\u5230" }),
-    firstEntry?.phase === "empty" && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("output", { className: "first-entry-hint", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(import_jsx_runtime22.Fragment, { children: [
+    firstEntry?.phase === "handoff" && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("p", { className: "first-entry-audience", children: "#general \u662F\u516C\u5F00\u9891\u9053 \xB7 \u8FD9\u4E2A Collective \u7684\u6210\u5458\u90FD\u770B\u5F97\u5230" }),
+    firstEntry?.phase === "empty" && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("output", { className: "first-entry-hint", children: [
       "\u8FD9\u53F0 Caf\xE9 \u8FD8\u6CA1\u6709\u53EF\u53C2\u4E0E\u7684\u4F19\u4F34\u3002",
-      onCafe && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("button", { type: "button", onClick: onCafe, children: "\u53BB\u300C\u6211\u7684\u732B\u300D\u767B\u8BB0" })
+      onCafe && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: onCafe, children: "\u53BB\u300C\u6211\u7684\u732B\u300D\u767B\u8BB0" })
     ] }),
-    firstEntry?.phase === "loading" && firstEntry.pairStarted && /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("output", { className: "first-entry-hint", children: "\u6B63\u5728\u5E26\u5165\u4F19\u4F34\u2026" }),
-    firstEntry?.hintVisible && /* @__PURE__ */ (0, import_jsx_runtime16.jsxs)("output", { className: "first-entry-hint", children: [
+    firstEntry?.phase === "loading" && firstEntry.pairStarted && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("output", { className: "first-entry-hint", children: "\u6B63\u5728\u5E26\u5165\u4F19\u4F34\u2026" }),
+    firstEntry?.hintVisible && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("output", { className: "first-entry-hint", children: [
       "\u6210\u5458 \xB7 \u770B\u770B\u8C01\u5728\u8FD9\u91CC / \u6211\u7684\u732B \xB7 \u968F\u65F6\u589E\u51CF\u4F19\u4F34",
-      /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("button", { type: "button", onClick: firstEntry.dismissHint, children: "\u77E5\u9053\u4E86" })
+      /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: firstEntry.dismissHint, children: "\u77E5\u9053\u4E86" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime16.jsx)("div", { ref: host, className: "first-entry-composer-host", children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { ref: host, className: "first-entry-composer-host", children: /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
       Composer,
       {
         namespace,
@@ -55322,8 +56641,10 @@ function ChannelComposer({
         placeholder: language === "en" ? `Message #${channelId}\u2026` : `\u5728 #${channelId} \u91CC\u8BF4\u70B9\u4EC0\u4E48\u2026\u2026`,
         delivery,
         mention: guideMention ?? mention,
-        onSend: async (body4, recipient, entrust, responseRequested) => {
+        onSend: async (body4, recipient, entrust, responseRequested, replyToEventId, content3) => {
           await onSend(body4, {
+            ...content3,
+            ...replyToEventId ? { replyToEventId } : {},
             location: { channelId },
             recipient,
             ...responseRequested && recipient.kind === "channel" ? { attentionRequest: "response_requested" } : {},
@@ -55337,8 +56658,114 @@ function ChannelComposer({
   ] });
 }
 
+// src/MessageAttachments.tsx
+var import_react19 = __toESM(require_react(), 1);
+var import_jsx_runtime23 = __toESM(require_jsx_runtime(), 1);
+function MessageAttachment({
+  attachment,
+  event
+}) {
+  const port2 = useMessageExpression();
+  const language = useCollectiveLanguage();
+  const [url, setUrl] = (0, import_react19.useState)();
+  const [error, setError] = (0, import_react19.useState)();
+  const [loading, setLoading] = (0, import_react19.useState)(false);
+  const [requested, setRequested] = (0, import_react19.useState)(false);
+  const [attempt, setAttempt] = (0, import_react19.useState)(0);
+  const [open, setOpen] = (0, import_react19.useState)(false);
+  const host = (0, import_react19.useRef)(null);
+  const image3 = /^image\/(png|jpeg|gif|webp)$/u.test(attachment.mediaType);
+  const attachmentId = attachment.attachmentId;
+  (0, import_react19.useEffect)(() => {
+    if (!image3 || !host.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setRequested(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(host.current);
+    return () => observer.disconnect();
+  }, [image3]);
+  (0, import_react19.useEffect)(() => {
+    if (!requested || !port2) return;
+    const controller = new AbortController();
+    let created;
+    setLoading(true);
+    setError(void 0);
+    void port2.read(attachmentId, event.eventId, controller.signal).then((blob) => {
+      if (controller.signal.aborted) return;
+      created = URL.createObjectURL(blob);
+      setUrl(created);
+    }).catch((cause) => {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+    return () => {
+      controller.abort();
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [requested, attempt, port2, attachmentId, event.eventId]);
+  const label = language === "en" ? "Open original" : "\u6253\u5F00\u539F\u56FE";
+  const returnToSource = () => {
+    setOpen(false);
+    const source3 = document.getElementById(`collective-event-${event.eventId}`);
+    source3?.scrollIntoView({ block: "center" });
+    source3?.focus({ preventScroll: true });
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: host, className: image3 ? "message-image-attachment" : "message-file-attachment", children: [
+    image3 && url ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", "aria-label": `${label}\uFF1A${attachment.fileName}`, onClick: () => setOpen(true), children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("img", { src: url, alt: attachment.fileName, loading: "lazy" }) }) : attachment.mediaType.startsWith("audio/") && url ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("audio", { src: url, controls: true, preload: "metadata", "aria-label": attachment.fileName }) : attachment.mediaType.startsWith("video/") && url ? /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("video", { src: url, controls: true, preload: "metadata", "aria-label": attachment.fileName }) : /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(
+      "button",
+      {
+        type: "button",
+        disabled: loading || !port2,
+        onClick: () => {
+          setRequested(true);
+          setAttempt((value) => value + 1);
+        },
+        children: [
+          attachment.fileName,
+          " \xB7 ",
+          formatAttachmentSize(attachment.byteLength),
+          " ",
+          loading ? language === "en" ? "Loading\u2026" : "\u6B63\u5728\u8BFB\u53D6\u2026" : ""
+        ]
+      }
+    ),
+    !image3 && url && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("a", { href: url, download: attachment.fileName, children: [
+      language === "en" ? "Download" : "\u4E0B\u8F7D",
+      " ",
+      attachment.fileName
+    ] }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("p", { role: "status", children: [
+      error,
+      " ",
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", onClick: () => setAttempt((value) => value + 1), children: language === "en" ? "Retry" : "\u91CD\u8BD5" })
+    ] }),
+    open && url && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+      MessageMediaViewer,
+      {
+        item: { id: attachment.attachmentId, url, title: attachment.fileName, mediaType: attachment.mediaType },
+        title: `${actorDisplayName(event)} \xB7 #${event.location?.channelId ?? ""} \xB7 ${formatEventTime(event.acceptedAt, language)}`,
+        onClose: () => setOpen(false),
+        onReturn: returnToSource,
+        returnLabel: language === "en" ? "Back to message" : "\u56DE\u5230\u539F\u6D88\u606F",
+        closeLabel: language === "en" ? "Close" : "\u5173\u95ED"
+      }
+    )
+  ] });
+}
+function MessageAttachments({ event }) {
+  if (!event.attachments?.length) return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { className: "message-attachments", children: event.attachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(MessageAttachment, { attachment, event }, attachment.attachmentId)) });
+}
+
 // src/MessageMarkdown.tsx
-var import_react17 = __toESM(require_react(), 1);
+var import_react23 = __toESM(require_react(), 1);
 
 // ../../node_modules/.pnpm/comma-separated-tokens@2.0.3/node_modules/comma-separated-tokens/index.js
 function stringify(values, options) {
@@ -56795,11 +58222,11 @@ function addChildren(props, children) {
     }
   }
 }
-function productionCreate(_, jsx89, jsxs79) {
+function productionCreate(_, jsx96, jsxs85) {
   return create2;
   function create2(_2, type, props, key) {
     const isStaticChildren = Array.isArray(props.children);
-    const fn = isStaticChildren ? jsxs79 : jsx89;
+    const fn = isStaticChildren ? jsxs85 : jsx96;
     return key ? fn(type, props, key) : fn(type, props);
   }
 }
@@ -57044,8 +58471,8 @@ var urlAttributes = {
 };
 
 // ../../node_modules/.pnpm/react-markdown@10.1.0_@types+react@18.3.27_react@18.3.1/node_modules/react-markdown/lib/index.js
-var import_jsx_runtime17 = __toESM(require_jsx_runtime(), 1);
-var import_react14 = __toESM(require_react(), 1);
+var import_jsx_runtime24 = __toESM(require_jsx_runtime(), 1);
+var import_react20 = __toESM(require_react(), 1);
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/blockquote.js
 function blockquote2(state, node2) {
@@ -57117,20 +58544,20 @@ function emphasis2(state, node2) {
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/footnote-reference.js
 function footnoteReference2(state, node2) {
   const clobberPrefix = typeof state.options.clobberPrefix === "string" ? state.options.clobberPrefix : "user-content-";
-  const id28 = String(node2.identifier).toUpperCase();
-  const safeId = normalizeUri(id28.toLowerCase());
-  const index4 = state.footnoteOrder.indexOf(id28);
+  const id30 = String(node2.identifier).toUpperCase();
+  const safeId = normalizeUri(id30.toLowerCase());
+  const index4 = state.footnoteOrder.indexOf(id30);
   let counter;
-  let reuseCounter = state.footnoteCounts.get(id28);
+  let reuseCounter = state.footnoteCounts.get(id30);
   if (reuseCounter === void 0) {
     reuseCounter = 0;
-    state.footnoteOrder.push(id28);
+    state.footnoteOrder.push(id30);
     counter = state.footnoteOrder.length;
   } else {
     counter = index4 + 1;
   }
   reuseCounter += 1;
-  state.footnoteCounts.set(id28, reuseCounter);
+  state.footnoteCounts.set(id30, reuseCounter);
   const link3 = {
     type: "element",
     tagName: "a",
@@ -57205,8 +58632,8 @@ function revert(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/image-reference.js
 function imageReference2(state, node2) {
-  const id28 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id28);
+  const id30 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id30);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -57249,8 +58676,8 @@ function inlineCode2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/link-reference.js
 function linkReference2(state, node2) {
-  const id28 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id28);
+  const id30 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id30);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -57833,11 +59260,11 @@ function footer(state) {
       continue;
     }
     const content3 = state.all(definition3);
-    const id28 = String(definition3.identifier).toUpperCase();
-    const safeId = normalizeUri(id28.toLowerCase());
+    const id30 = String(definition3.identifier).toUpperCase();
+    const safeId = normalizeUri(id30.toLowerCase());
     let rereferenceIndex = 0;
     const backReferences = [];
-    const counts = state.footnoteCounts.get(id28);
+    const counts = state.footnoteCounts.get(id30);
     while (counts !== void 0 && ++rereferenceIndex <= counts) {
       if (backReferences.length > 0) {
         backReferences.push({ type: "text", value: " " });
@@ -57933,9 +59360,9 @@ function createState(tree, options) {
   visit(tree, function(node2) {
     if (node2.type === "definition" || node2.type === "footnoteDefinition") {
       const map3 = node2.type === "definition" ? definitionById : footnoteById;
-      const id28 = String(node2.identifier).toUpperCase();
-      if (!map3.has(id28)) {
-        map3.set(id28, node2);
+      const id30 = String(node2.identifier).toUpperCase();
+      if (!map3.has(id30)) {
+        map3.set(id30, node2);
       }
     }
   });
@@ -58167,11 +59594,11 @@ function post(tree, options) {
   }
   visit(tree, transform);
   return toJsxRuntime(tree, {
-    Fragment: import_jsx_runtime17.Fragment,
+    Fragment: import_jsx_runtime24.Fragment,
     components,
     ignoreInvalidStyle: true,
-    jsx: import_jsx_runtime17.jsx,
-    jsxs: import_jsx_runtime17.jsxs,
+    jsx: import_jsx_runtime24.jsx,
+    jsxs: import_jsx_runtime24.jsxs,
     passKeys: true,
     passNode: true
   });
@@ -58244,7 +59671,7 @@ function remarkBreaks() {
 }
 
 // src/use-human-auth-session.ts
-var import_react16 = __toESM(require_react(), 1);
+var import_react22 = __toESM(require_react(), 1);
 
 // src/github-app-manifest.ts
 function prepareGitHubAppManifestSubmission(value) {
@@ -58369,7 +59796,7 @@ function phaseForHuman(me) {
 }
 
 // src/use-provider-setup.ts
-var import_react15 = __toESM(require_react(), 1);
+var import_react21 = __toESM(require_react(), 1);
 function finishProviderSetupCallback(context2) {
   const callbackSearch = new URLSearchParams(location.search);
   const configured = callbackSearch.get("providerConfigured") === "1";
@@ -58403,8 +59830,8 @@ function useProviderSetup({
   request,
   setSnapshot
 }) {
-  const providerSetupWindow = (0, import_react15.useRef)(null);
-  (0, import_react15.useEffect)(() => {
+  const providerSetupWindow = (0, import_react21.useRef)(null);
+  (0, import_react21.useEffect)(() => {
     const onProviderSetupCompletion = async (event) => {
       const result = trustedProviderSetupResult(event, location.origin, providerSetupWindow.current);
       if (!result) return;
@@ -58435,7 +59862,7 @@ function useProviderSetup({
     window.addEventListener("message", onProviderSetupCompletion);
     return () => window.removeEventListener("message", onProviderSetupCompletion);
   }, [request, setSnapshot]);
-  return (0, import_react15.useCallback)(async () => {
+  return (0, import_react21.useCallback)(async () => {
     const provider = providers.find((candidate) => candidate.id === "github");
     if (provider?.ready) return;
     assertProviderSetupSupported(provider);
@@ -58479,8 +59906,8 @@ function submitGitHubAppManifest(openedWindow, result) {
 // src/use-human-auth-session.ts
 var SESSION_KEY = "collective-session";
 function selectedCollective(me) {
-  const id28 = new URLSearchParams(location.search).get("collectiveId");
-  return id28 ? me?.collectives.find((item) => item.collectiveId === id28) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
+  const id30 = new URLSearchParams(location.search).get("collectiveId");
+  return id30 ? me?.collectives.find((item) => item.collectiveId === id30) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
 }
 async function finishAuthCompletion(context2) {
   const completed = await context2.request("/api/auth/completions/exchange", {
@@ -58563,15 +59990,42 @@ function resolveHumanAuthIntent(phase, invitationMode) {
   return { intent: "accept_invite", inviteToken };
 }
 function useHumanAuthSession(snapshot, setSnapshot) {
-  const token = (0, import_react16.useRef)(null);
-  const authWindow = (0, import_react16.useRef)(null);
-  const requestTail = (0, import_react16.useRef)(Promise.resolve());
-  const request = (0, import_react16.useCallback)((path2, init) => {
+  const token = (0, import_react22.useRef)(null);
+  const authWindow = (0, import_react22.useRef)(null);
+  const requestTail = (0, import_react22.useRef)(Promise.resolve());
+  const binaryRequest = (0, import_react22.useCallback)(async (path2, init) => {
+    if (!path2.startsWith("/api/") || path2.startsWith("//")) throw new Error("Invalid Service path");
+    const credential = token.current;
+    if (!credential) throw new CollectiveClientRequestError(401, "\u8BF7\u5148\u767B\u5F55");
+    const response = await fetch(path2, {
+      ...init,
+      credentials: "same-origin",
+      headers: {
+        ...init?.headers,
+        authorization: `Bearer ${credential}`,
+        "x-collective-message-content": "1"
+      }
+    });
+    if (credential !== token.current) {
+      await response.body?.cancel();
+      throw new Error("\u8EAB\u4EFD\u5DF2\u53D8\u5316");
+    }
+    if (!response.ok) {
+      const result = await response.json();
+      throw new CollectiveClientRequestError(
+        response.status,
+        result.error?.message ?? `\u8BF7\u6C42\u5931\u8D25\uFF08${response.status}\uFF09`
+      );
+    }
+    return response;
+  }, []);
+  const request = (0, import_react22.useCallback)((path2, init) => {
     const options = {
       ...init,
       credentials: "same-origin",
       headers: {
         "content-type": "application/json",
+        "x-collective-message-content": "1",
         ...token.current ? { authorization: `Bearer ${token.current}` } : {},
         ...init?.headers
       }
@@ -58594,7 +60048,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
     );
     return result;
   }, []);
-  const loadMe = (0, import_react16.useCallback)(async () => {
+  const loadMe = (0, import_react22.useCallback)(async () => {
     const credential = token.current;
     try {
       return await request("/api/me");
@@ -58620,7 +60074,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       throw error;
     }
   }, [request, setSnapshot]);
-  const enterSession = (0, import_react16.useCallback)(
+  const enterSession = (0, import_react22.useCallback)(
     async (sessionToken) => {
       token.current = sessionToken;
       sessionStorage.setItem(`${SESSION_KEY}:${location.origin}`, sessionToken);
@@ -58645,8 +60099,8 @@ function useHumanAuthSession(snapshot, setSnapshot) {
     },
     [loadMe, setSnapshot]
   );
-  const invitationMode = (0, import_react16.useMemo)(() => entryModeFromHash(location.hash), []);
-  const restoreSavedSession = (0, import_react16.useCallback)(async () => {
+  const invitationMode = (0, import_react22.useMemo)(() => entryModeFromHash(location.hash), []);
+  const restoreSavedSession = (0, import_react22.useCallback)(async () => {
     token.current = sessionStorage.getItem(`${SESSION_KEY}:${location.origin}`);
     if (!token.current) return void 0;
     try {
@@ -58656,7 +60110,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       return void 0;
     }
   }, [loadMe]);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react22.useEffect)(() => {
     let cancelled = false;
     const boot = async () => {
       try {
@@ -58684,7 +60138,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       cancelled = true;
     };
   }, [enterSession, invitationMode, request, restoreSavedSession, setSnapshot]);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react22.useEffect)(() => {
     const onAuthCompletion = async (event) => {
       const result = trustedHumanAuthResult(event, location.origin, authWindow.current);
       if (!result) return;
@@ -58706,7 +60160,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
     return () => window.removeEventListener("message", onAuthCompletion);
   }, [enterSession, setSnapshot]);
   const configureProvider = useProviderSetup({ providers: snapshot.providers, request, setSnapshot });
-  const bootstrap = (0, import_react16.useCallback)(
+  const bootstrap = (0, import_react22.useCallback)(
     async (displayName) => {
       const secret = new URLSearchParams(location.hash.slice(1)).get("bootstrap");
       if (!secret) throw new Error("\u8FD9\u4E2A\u4E00\u6B21\u6027\u521D\u59CB\u5316\u94FE\u63A5\u4E0D\u5B8C\u6574");
@@ -58718,7 +60172,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
     },
     [enterSession, request]
   );
-  const authenticate = (0, import_react16.useCallback)(async () => {
+  const authenticate = (0, import_react22.useCallback)(async () => {
     const provider = snapshot.providers.find((candidate) => candidate.id === "github");
     if (!provider?.ready) throw new Error("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E");
     const intent = resolveHumanAuthIntent(snapshot.phase, invitationMode);
@@ -58740,7 +60194,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       throw error;
     }
   }, [invitationMode, request, snapshot.phase, snapshot.providers]);
-  return { token, request, loadMe, invitationMode, bootstrap, authenticate, configureProvider };
+  return { token, request, binaryRequest, loadMe, invitationMode, bootstrap, authenticate, configureProvider };
 }
 
 // src/work-result-file-link.ts
@@ -58792,7 +60246,7 @@ async function openCollectiveWorkResultFile(address, sessionToken, popup) {
 }
 
 // src/MessageMarkdown.tsx
-var import_jsx_runtime18 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime25 = __toESM(require_jsx_runtime(), 1);
 function isSafeWebLink(href) {
   if (!href) return false;
   try {
@@ -58803,10 +60257,10 @@ function isSafeWebLink(href) {
   }
 }
 function InertLink({ children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "message-markdown-inert-link", children });
+  return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("span", { className: "message-markdown-inert-link", children });
 }
 function SafeLink({ href, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("a", { href, target: "_blank", rel: "noreferrer noopener", children });
+  return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("a", { href, target: "_blank", rel: "noreferrer noopener", children });
 }
 function AuthenticatedWorkResultFile({
   address,
@@ -58815,8 +60269,8 @@ function AuthenticatedWorkResultFile({
   const shared = useSharedArtifacts();
   const t = useCollectiveText();
   const promotable = address.fileName.toLocaleLowerCase().endsWith(".md");
-  const [pending, setPending] = (0, import_react17.useState)(false);
-  const [failed, setFailed] = (0, import_react17.useState)(false);
+  const [pending, setPending] = (0, import_react23.useState)(false);
+  const [failed, setFailed] = (0, import_react23.useState)(false);
   const open = () => {
     if (pending) return;
     setFailed(false);
@@ -58841,8 +60295,8 @@ function AuthenticatedWorkResultFile({
     }
     void action.catch(() => setFailed(true)).finally(() => setPending(false));
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)(import_jsx_runtime18.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)(import_jsx_runtime25.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
       "button",
       {
         type: "button",
@@ -58854,7 +60308,7 @@ function AuthenticatedWorkResultFile({
         children: pending ? t("\u6B63\u5728\u6253\u5F00\u4F5C\u54C1\u2026") : children
       }
     ),
-    failed && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("output", { children: t(promotable ? "\u7ED3\u679C\u4F5C\u54C1\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF1B\u539F\u7ED3\u679C\u4ECD\u5DF2\u4FDD\u7559\uFF0C\u53EF\u4EE5\u7A0D\u540E\u91CD\u8BD5\u3002" : "\u6587\u4EF6\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002") })
+    failed && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("output", { children: t(promotable ? "\u7ED3\u679C\u4F5C\u54C1\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF1B\u539F\u7ED3\u679C\u4ECD\u5DF2\u4FDD\u7559\uFF0C\u53EF\u4EE5\u7A0D\u540E\u91CD\u8BD5\u3002" : "\u6587\u4EF6\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5\u3002") })
   ] });
 }
 function MessageMarkdown({
@@ -58867,17 +60321,17 @@ function MessageMarkdown({
     "data-source-end": node2?.position?.end.offset
   } : {};
   const sourceComponents = sourceCoordinates ? {
-    p: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("p", { ...props, ...position3(node2) }),
-    h1: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("h1", { ...props, ...position3(node2) }),
-    h2: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("h2", { ...props, ...position3(node2) }),
-    h3: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("h3", { ...props, ...position3(node2) }),
-    li: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("li", { ...props, ...position3(node2) }),
-    td: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("td", { ...props, ...position3(node2) }),
-    pre: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("pre", { ...props, ...position3(node2) })
+    p: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { ...props, ...position3(node2) }),
+    h1: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("h1", { ...props, ...position3(node2) }),
+    h2: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("h2", { ...props, ...position3(node2) }),
+    h3: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("h3", { ...props, ...position3(node2) }),
+    li: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("li", { ...props, ...position3(node2) }),
+    td: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("td", { ...props, ...position3(node2) }),
+    pre: ({ node: node2, ...props }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("pre", { ...props, ...position3(node2) })
   } : {};
-  return /* @__PURE__ */ (0, import_jsx_runtime18.jsxs)("div", { className: "message-body message-markdown", children: [
-    prefix && /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "message-prefix", children: prefix }),
-    /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("div", { className: "message-body message-markdown", children: [
+    prefix && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("span", { className: "message-prefix", children: prefix }),
+    /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
       Markdown,
       {
         remarkPlugins: [remarkGfm, remarkBreaks],
@@ -58886,10 +60340,10 @@ function MessageMarkdown({
           ...sourceComponents,
           a: ({ children, href }) => {
             const result = href ? collectiveWorkResultFileAddress(href) : void 0;
-            if (result) return /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(AuthenticatedWorkResultFile, { address: result, children });
-            return isSafeWebLink(href) ? /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(SafeLink, { href, children }) : /* @__PURE__ */ (0, import_jsx_runtime18.jsx)(InertLink, { children });
+            if (result) return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(AuthenticatedWorkResultFile, { address: result, children });
+            return isSafeWebLink(href) ? /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(SafeLink, { href, children }) : /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(InertLink, { children });
           },
-          img: ({ alt }) => /* @__PURE__ */ (0, import_jsx_runtime18.jsx)("span", { className: "message-markdown-inert-image", children: alt ? `\u56FE\u7247\uFF1A${alt}` : "\u56FE\u7247" })
+          img: ({ alt }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("span", { className: "message-markdown-inert-image", children: alt ? `\u56FE\u7247\uFF1A${alt}` : "\u56FE\u7247" })
         },
         children: source3
       }
@@ -58907,10 +60361,10 @@ function channelDestinations(events, participants) {
     ...events.flatMap((event) => eventChannelId(event) ?? []),
     ...participants.flatMap((member) => member.channelIds)
   ]);
-  return [...ids2].map((id28) => {
-    const messages = events.filter((event) => eventChannelId(event) === id28);
-    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id28));
-    return { id: id28, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
+  return [...ids2].map((id30) => {
+    const messages = events.filter((event) => eventChannelId(event) === id30);
+    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id30));
+    return { id: id30, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
   });
 }
 function readChannelPosition(namespace) {
@@ -58987,14 +60441,14 @@ function defaultPresentation(search2 = typeof location === "undefined" ? "" : lo
 }
 
 // src/use-room-presentation.ts
-var import_react18 = __toESM(require_react(), 1);
+var import_react24 = __toESM(require_react(), 1);
 function resolveRoomPresentation(input) {
   return input.explicit ?? input.host ?? defaultPresentation(input.search);
 }
 function useRoomPresentation(explicit) {
   const store = hostAppearance();
   const read = () => store.getState().presentation;
-  const host = (0, import_react18.useSyncExternalStore)(store.subscribe, read, read);
+  const host = (0, import_react24.useSyncExternalStore)(store.subscribe, read, read);
   return resolveRoomPresentation({
     explicit,
     host,
@@ -59003,7 +60457,7 @@ function useRoomPresentation(explicit) {
 }
 
 // src/TopicMessage.tsx
-var import_jsx_runtime19 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime26 = __toESM(require_jsx_runtime(), 1);
 function MessageAvatar({
   event,
   participants = [],
@@ -59013,7 +60467,7 @@ function MessageAvatar({
   const card = actor3.kind === "agent" ? participants.find(
     (participant) => participant.serviceInstanceId === event.serviceInstanceId && participant.collectiveId === event.collectiveId && participant.humanId === actor3.human.humanId && participant.connectionId === actor3.provenance.connectionId && participant.catId === actor3.provenance.catId
   ) : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(
     MemberAvatar,
     {
       name: actorDisplayName(event),
@@ -59033,18 +60487,19 @@ function MessageBody({
   const namedCat = recipient ? participants.find(
     (participant) => participant.serviceInstanceId === event.serviceInstanceId && participant.collectiveId === event.collectiveId && participant.connectionId === recipient.connectionId && participant.humanId === recipient.humanId && participant.catId === recipient.agentId
   ) : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(import_jsx_runtime19.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)(import_jsx_runtime26.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(MessageAttachments, { event }),
+    /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(
       MessageMarkdown,
       {
         source: event.body,
-        prefix: recipient ? /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
+        prefix: recipient ? /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(
           AppTooltip,
           {
             label: namedCat ? `${namedCat.displayName} \xB7 ${namedCat.humanDisplayName} \xB7 @${namedCat.catId}` : `@${recipient.agentId}`,
             intent: "content",
             side: "top",
-            children: /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("span", { className: "message-inline-mention", tabIndex: 0, children: [
+            children: /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("span", { className: "message-inline-mention", tabIndex: 0, children: [
               "@",
               namedCat ? participantLabel(namedCat, participants) : recipient.agentId
             ] })
@@ -59052,11 +60507,11 @@ function MessageBody({
         ) : void 0
       }
     ),
-    event.attentionRequest && /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("p", { className: "request-kind", children: [
+    event.attentionRequest && /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("p", { className: "request-kind", children: [
       t("\u5E0C\u671B\u4F19\u4F34\u56DE\u5E94"),
       responseState === "waiting" ? ` \xB7 ${t("\u5C1A\u672A\u6709\u4EBA\u56DE\u5E94")}` : responseState === "responded" ? ` \xB7 ${t("\u5DF2\u6709\u56DE\u5E94")}` : ""
     ] }),
-    event.workRequest && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("p", { className: "request-kind", children: t("\u8BF7\u6C42\u6301\u7EED\u5904\u7406") })
+    event.workRequest && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("p", { className: "request-kind", children: t("\u8BF7\u6C42\u6301\u7EED\u5904\u7406") })
   ] });
 }
 function TopicMessage({
@@ -59070,24 +60525,34 @@ function TopicMessage({
   const language = useCollectiveLanguage();
   const v2 = useRoomPresentation(presentation) === "v2";
   const author2 = authorPresentation(event, currentHumanId);
-  return /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("article", { className: "topic-message", "data-author": v2 ? author2 : void 0, children: /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("div", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("header", { className: "message-meta", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(
-        CollectiveNameplate,
-        {
-          event,
-          participants,
-          onOpen: onOpenMember ? () => onOpenMember(event) : void 0
-        }
-      ),
-      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: event.acceptedAt, children: formatEventTime(event.acceptedAt, language) })
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(MessageBody, { event, participants })
-  ] }) });
+  return /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(
+    "article",
+    {
+      id: `collective-event-${event.eventId}`,
+      "data-event-id": event.eventId,
+      tabIndex: -1,
+      className: "topic-message",
+      "data-author": v2 ? author2 : void 0,
+      children: /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("header", { className: "message-meta", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(
+            CollectiveNameplate,
+            {
+              event,
+              participants,
+              onOpen: onOpenMember ? () => onOpenMember(event) : void 0
+            }
+          ),
+          (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: event.acceptedAt, children: formatEventTime(event.acceptedAt, language) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(MessageBody, { event, participants })
+      ] })
+    }
+  );
 }
 
 // src/CollectiveNameplate.tsx
-var import_jsx_runtime20 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime27 = __toESM(require_jsx_runtime(), 1);
 function CollectiveNameplate({
   event,
   participants,
@@ -59095,45 +60560,45 @@ function CollectiveNameplate({
 }) {
   const language = useCollectiveLanguage();
   const actor3 = event.actor;
-  const id28 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
-  const safeId = /^[a-zA-Z0-9_-]+$/.test(id28) ? id28 : "cocreator";
+  const id30 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
+  const safeId = /^[a-zA-Z0-9_-]+$/.test(id30) ? id30 : "cocreator";
   const participant = actor3.kind === "agent" ? participants.find(
     (p) => p.serviceInstanceId === event.serviceInstanceId && p.collectiveId === event.collectiveId && p.connectionId === actor3.provenance.connectionId && p.catId === actor3.provenance.catId && p.humanId === actor3.human.humanId
   ) : void 0;
   const label = participant ? participantLabel(participant, participants) : actorDisplayName(event);
   const human = actor3.kind === "human";
-  return /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime27.jsx)(
     Nameplate,
     {
-      id: id28,
+      id: id30,
       name: label,
       kind: human ? "human" : "cat",
       surface: human ? "var(--human-surface)" : `var(--color-${safeId}-surface, var(--shell-selected))`,
       ink: human ? "var(--human-name)" : `var(--color-${safeId}-text, var(--shell-ink))`,
-      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id28}` : actorDisplayName(event),
-      avatar: onOpen ? /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(
+      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id30}` : actorDisplayName(event),
+      avatar: onOpen ? /* @__PURE__ */ (0, import_jsx_runtime27.jsx)(
         "button",
         {
           type: "button",
           className: "avatar-button",
           onClick: onOpen,
           "aria-label": language === "en" ? `View ${actorDisplayName(event)}` : `\u67E5\u770B ${actorDisplayName(event)}`,
-          children: /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(MessageAvatar, { event, participants })
+          children: /* @__PURE__ */ (0, import_jsx_runtime27.jsx)(MessageAvatar, { event, participants })
         }
-      ) : /* @__PURE__ */ (0, import_jsx_runtime20.jsx)(MessageAvatar, { event, participants })
+      ) : /* @__PURE__ */ (0, import_jsx_runtime27.jsx)(MessageAvatar, { event, participants })
     }
   );
 }
 
 // src/MessageInteraction.tsx
-var import_react31 = __toESM(require_react(), 1);
+var import_react37 = __toESM(require_react(), 1);
 
 // src/CollectiveWorkCard.tsx
-var import_react21 = __toESM(require_react(), 1);
+var import_react27 = __toESM(require_react(), 1);
 
 // src/CollectiveWorkActions.tsx
-var import_react19 = __toESM(require_react(), 1);
-var import_jsx_runtime21 = __toESM(require_jsx_runtime(), 1);
+var import_react25 = __toESM(require_react(), 1);
+var import_jsx_runtime28 = __toESM(require_jsx_runtime(), 1);
 function WorkActions({
   work: work2,
   currentHumanId,
@@ -59150,10 +60615,10 @@ function WorkActions({
 }) {
   const t = useCollectiveText();
   if (work2.lifecycle === "proposed" && ownerProposal) {
-    return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "work-actions", children: requestHome ? /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", onClick: requestHome, children: t("\u5F85\u4F60\u51B3\u5B9A\u2026") }) : /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("span", { children: t("\u8BF7\u5728\u63D0\u8BAE\u732B\u6240\u5C5E\u7684 Caf\xE9 \u4E2D\u51B3\u5B9A\u6388\u6743\u3002") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("div", { className: "work-actions", children: requestHome ? /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "quiet-action", onClick: requestHome, children: t("\u5F85\u4F60\u51B3\u5B9A\u2026") }) : /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("span", { children: t("\u8BF7\u5728\u63D0\u8BAE\u732B\u6240\u5C5E\u7684 Caf\xE9 \u4E2D\u51B3\u5B9A\u6388\u6743\u3002") }) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(import_jsx_runtime21.Fragment, { children: [
-    work2.lifecycle === "proposed" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(import_jsx_runtime28.Fragment, { children: [
+    work2.lifecycle === "proposed" && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
       CommitActions,
       {
         work: work2,
@@ -59163,7 +60628,7 @@ function WorkActions({
         ...{ onCommit, onDecline }
       }
     ),
-    work2.status === "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+    work2.status === "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
       CommitActions,
       {
         work: work2,
@@ -59173,9 +60638,9 @@ function WorkActions({
         ...{ onCommit, onDecline }
       }
     ),
-    work2.status === "ready" && !work2.assignment && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "work-actions", children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", onClick: () => onComplete(work2), children: t("\u6807\u8BB0\u5B8C\u6210") }) }),
-    work2.lifecycle === "result_ready" && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(WorkResultReview, { work: work2, onAcceptResult, onRequestRevision }),
-    roadmapActions.length > 0 && work2.lifecycle !== "proposed" && work2.lifecycle !== "declined" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "work-actions work-secondary-actions", children: roadmapActions.map((action) => /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", onClick: () => action.onInvoke(work2), children: t(action.label) }, action.label)) })
+    work2.status === "ready" && !work2.assignment && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("div", { className: "work-actions", children: /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", onClick: () => onComplete(work2), children: t("\u6807\u8BB0\u5B8C\u6210") }) }),
+    work2.lifecycle === "result_ready" && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(WorkResultReview, { work: work2, onAcceptResult, onRequestRevision }),
+    roadmapActions.length > 0 && work2.lifecycle !== "proposed" && work2.lifecycle !== "declined" && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("div", { className: "work-actions work-secondary-actions", children: roadmapActions.map((action) => /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "quiet-action", onClick: () => action.onInvoke(work2), children: t(action.label) }, action.label)) })
   ] });
 }
 function CommitActions({
@@ -59187,8 +60652,8 @@ function CommitActions({
   onDecline
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "work-actions", children: [
-    participants.map((participant) => /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "work-actions", children: [
+    participants.map((participant) => /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(
       "button",
       {
         type: "button",
@@ -59201,9 +60666,9 @@ function CommitActions({
       },
       `${participant.connectionId}:${participant.catId}`
     )),
-    /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", onClick: () => onCommit(work2), children: t("\u7531\u6211\u8D1F\u8D23") }),
-    canDefer && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", onClick: () => onCommit(work2, void 0, "unassigned"), children: t("\u63A5\u7EB3\uFF0C\u7A0D\u540E\u6307\u6D3E") }),
-    canDecline && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", onClick: () => onDecline(work2), children: t("\u5148\u4E0D\u8DDF\u8E2A") })
+    /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", onClick: () => onCommit(work2), children: t("\u7531\u6211\u8D1F\u8D23") }),
+    canDefer && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "quiet-action", onClick: () => onCommit(work2, void 0, "unassigned"), children: t("\u63A5\u7EB3\uFF0C\u7A0D\u540E\u6307\u6D3E") }),
+    canDecline && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "quiet-action", onClick: () => onDecline(work2), children: t("\u5148\u4E0D\u8DDF\u8E2A") })
   ] });
 }
 function WorkResultReview({
@@ -59212,16 +60677,16 @@ function WorkResultReview({
   onRequestRevision
 }) {
   const t = useCollectiveText();
-  const [feedback, setFeedback] = (0, import_react19.useState)("");
+  const [feedback, setFeedback] = (0, import_react25.useState)("");
   const submitRevision = () => {
     const exactFeedback = feedback.trim();
     if (!onRequestRevision || !exactFeedback) return;
     void onRequestRevision(work2, exactFeedback).then(() => setFeedback("")).catch(() => void 0);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "work-result-review", children: [
-    onRequestRevision && /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("span", { children: t("\u9700\u8981\u4FEE\u6539\u4EC0\u4E48") }),
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "work-result-review", children: [
+    onRequestRevision && /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("span", { children: t("\u9700\u8981\u4FEE\u6539\u4EC0\u4E48") }),
+      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
         "textarea",
         {
           "aria-label": t("\u4FEE\u8BA2\u53CD\u9988"),
@@ -59232,15 +60697,15 @@ function WorkResultReview({
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "work-actions", children: [
-      onRequestRevision && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", className: "quiet-action", disabled: !feedback.trim(), onClick: submitRevision, children: t("\u9000\u56DE\u4FEE\u6539") }),
-      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("button", { type: "button", onClick: () => onAcceptResult(work2), children: t("\u786E\u8BA4\u7ED3\u679C\u5E76\u5B8C\u6210") })
+    /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "work-actions", children: [
+      onRequestRevision && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "quiet-action", disabled: !feedback.trim(), onClick: submitRevision, children: t("\u9000\u56DE\u4FEE\u6539") }),
+      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", onClick: () => onAcceptResult(work2), children: t("\u786E\u8BA4\u7ED3\u679C\u5E76\u5B8C\u6210") })
     ] })
   ] });
 }
 
 // src/use-host-work-policy.ts
-var import_react20 = __toESM(require_react(), 1);
+var import_react26 = __toESM(require_react(), 1);
 
 // src/host-work-policy-command.ts
 async function executeHostWorkPolicyCommand(input) {
@@ -59248,12 +60713,12 @@ async function executeHostWorkPolicyCommand(input) {
   const { serviceInstanceId, collectiveId, connectionId } = command;
   const coordinates3 = { serviceInstanceId, collectiveId, connectionId };
   const key = `collective-owner-command:${serviceInstanceId}:${collectiveId}:${connectionId}:${command.humanId}:${command.commandId}`;
-  const fingerprint = JSON.stringify(command.action);
+  const fingerprint2 = JSON.stringify(command.action);
   const previous4 = input.storage.getItem(key);
   let operation;
   if (previous4) {
     operation = JSON.parse(previous4);
-    if (operation.fingerprint !== fingerprint) throw new Error("\u8FD9\u9879\u66F4\u6539\u7684\u5185\u5BB9\u5DF2\u7ECF\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u64CD\u4F5C\u3002");
+    if (operation.fingerprint !== fingerprint2) throw new Error("\u8FD9\u9879\u66F4\u6539\u7684\u5185\u5BB9\u5DF2\u7ECF\u53D8\u5316\uFF0C\u8BF7\u91CD\u65B0\u64CD\u4F5C\u3002");
   } else {
     const result = await input.request(
       "/api/participation/work-policy/read-owner",
@@ -59274,7 +60739,7 @@ async function executeHostWorkPolicyCommand(input) {
       const work2 = ownCurrentProposal(projection.works, command);
       if (command.action.kind === "decline_request") {
         operation = {
-          fingerprint,
+          fingerprint: fingerprint2,
           path: "/api/collaboration/work/decline",
           body: {
             serviceInstanceId,
@@ -59304,7 +60769,7 @@ async function executeHostWorkPolicyCommand(input) {
       ];
     }
     operation = {
-      fingerprint,
+      fingerprint: fingerprint2,
       path: "/api/participation/work-policy/register",
       body: {
         ...coordinates3,
@@ -59391,12 +60856,12 @@ async function submit(operation, request) {
 }
 
 // src/use-host-work-policy.ts
-var HostWorkPermissionContext = (0, import_react20.createContext)({});
+var HostWorkPermissionContext = (0, import_react26.createContext)({});
 function useHostWorkPolicy(input) {
-  const pending = (0, import_react20.useRef)(/* @__PURE__ */ new Map());
-  const live = (0, import_react20.useRef)(input);
+  const pending = (0, import_react26.useRef)(/* @__PURE__ */ new Map());
+  const live = (0, import_react26.useRef)(input);
   live.current = input;
-  (0, import_react20.useEffect)(() => {
+  (0, import_react26.useEffect)(() => {
     const listener = (event) => {
       const current2 = live.current;
       const active = current2.context.current;
@@ -59443,7 +60908,7 @@ function useHostWorkPolicy(input) {
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
   }, []);
-  return (0, import_react20.useCallback)((work2) => {
+  return (0, import_react26.useCallback)((work2) => {
     const current2 = live.current;
     const active = current2.context.current;
     const bridge = active.bridge;
@@ -59562,7 +61027,7 @@ function rejectedAdmissionMessage(reason) {
 }
 
 // src/CollectiveWorkCard.tsx
-var import_jsx_runtime22 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime29 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorkCard({
   work: work2,
   works,
@@ -59578,7 +61043,7 @@ function CollectiveWorkCard({
   onComplete,
   roadmapActions = []
 }) {
-  const home = (0, import_react21.useContext)(HostWorkPermissionContext);
+  const home = (0, import_react27.useContext)(HostWorkPermissionContext);
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const ownerProposal = work2.proposedBy.kind === "agent" && work2.proposedBy.humanId === currentHumanId && Boolean(work2.proposedRequestKind);
@@ -59590,7 +61055,7 @@ function CollectiveWorkCard({
   const dependencies = work2.dependencyWorkIds.map((dependencyId) => works.find((candidate) => candidate.workId === dependencyId)?.title).filter((title) => Boolean(title));
   const canDecline = canSteward || work2.proposedBy.humanId === currentHumanId || sourceOwnerHumanId === currentHumanId;
   const execution = workExecutionPresentation(work2);
-  return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)(
     "section",
     {
       className: "collective-work-card",
@@ -59598,13 +61063,13 @@ function CollectiveWorkCard({
       "data-work-status": work2.status,
       "data-work-lifecycle": work2.lifecycle,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { children: t(work2.lifecycle === "proposed" ? "\u4EFB\u52A1\u5EFA\u8BAE \xB7 \u6765\u81EA\u8FD9\u6761\u6D88\u606F" : "\u4EFB\u52A1 \xB7 \u6765\u81EA\u8FD9\u6761\u6D88\u606F") }),
-          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("strong", { children: ownerProposal && homeProposal && work2.lifecycle === "proposed" ? t("\u5F85\u4F60\u51B3\u5B9A") : t(execution.statusLabel) })
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("span", { children: t(work2.lifecycle === "proposed" ? "\u4EFB\u52A1\u5EFA\u8BAE \xB7 \u6765\u81EA\u8FD9\u6761\u6D88\u606F" : "\u4EFB\u52A1 \xB7 \u6765\u81EA\u8FD9\u6761\u6D88\u606F") }),
+          /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("strong", { children: ownerProposal && homeProposal && work2.lifecycle === "proposed" ? t("\u5F85\u4F60\u51B3\u5B9A") : t(execution.statusLabel) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("h3", { children: work2.title }),
-        work2.intendedOutcome !== work2.title && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("p", { children: work2.intendedOutcome }),
-        work2.lifecycle === "proposed" && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-proposal-origin", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("h3", { children: work2.title }),
+        work2.intendedOutcome !== work2.title && /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("p", { children: work2.intendedOutcome }),
+        work2.lifecycle === "proposed" && /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { className: "work-proposal-origin", children: [
           humanNames[work2.proposedBy.humanId] ?? t("\u5171\u540C\u4F53\u6210\u5458"),
           " ",
           t("\u63D0\u51FA"),
@@ -59612,14 +61077,14 @@ function CollectiveWorkCard({
           " ",
           ownerProposal ? `${t("\u7B49")} ${humanNames[work2.proposedBy.humanId] ?? t("\u5171\u540C\u4F53\u6210\u5458")} ${t("\u51B3\u5B9A")}` : t("\u5F85\u6210\u5458\u63A5\u4E0B")
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(WorkOwnership, { work: work2, accountable, execution }),
-        dependencies.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-dependencies", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(WorkOwnership, { work: work2, accountable, execution }),
+        dependencies.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { className: "work-dependencies", children: [
           t("\u524D\u7F6E\u4EFB\u52A1"),
           " \xB7 ",
           dependencies.join(language === "en" ? ", " : "\u3001")
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(WorkResultStatus, { work: work2 }),
-        /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(WorkResultStatus, { work: work2 }),
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(
           WorkActions,
           {
             work: work2,
@@ -59646,8 +61111,8 @@ function WorkOwnership({
   execution
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(import_jsx_runtime22.Fragment, { children: [
-    work2.assignment && accountable && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-ownership", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)(import_jsx_runtime29.Fragment, { children: [
+    work2.assignment && accountable && /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { className: "work-ownership", children: [
       work2.assignment.displayName,
       " ",
       t(execution.assignmentAction),
@@ -59656,24 +61121,24 @@ function WorkOwnership({
       " ",
       t("\u8D1F\u8D23")
     ] }),
-    !work2.assignment && accountable && /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-ownership", children: [
+    !work2.assignment && accountable && /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { className: "work-ownership", children: [
       accountable,
       " ",
       t("\u8D1F\u8D23")
     ] }),
-    !work2.assignment && !accountable && work2.status === "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("p", { className: "work-ownership", children: t("\u672A\u5206\u914D \xB7 \u7B49\u5F85\u8D1F\u8D23\u4EBA\u63A5\u4E0B") }),
-    execution.admissionMessage && /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("p", { className: "work-admission", children: t(execution.admissionMessage) })
+    !work2.assignment && !accountable && work2.status === "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("p", { className: "work-ownership", children: t("\u672A\u5206\u914D \xB7 \u7B49\u5F85\u8D1F\u8D23\u4EBA\u63A5\u4E0B") }),
+    execution.admissionMessage && /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("p", { className: "work-admission", children: t(execution.admissionMessage) })
   ] });
 }
 function WorkResultStatus({ work: work2 }) {
   const language = useCollectiveLanguage();
   if (work2.lifecycle === "result_ready") {
     const resultRevision = work2.resultRevision ?? 1;
-    return /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("p", { className: "work-result", children: language === "en" ? `Result v${resultRevision} returned to the original discussion and awaits its owner.` : `\u7ED3\u679C v${resultRevision} \u5DF2\u56DE\u5230\u539F\u8BA8\u8BBA\uFF0C\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4\u3002` });
+    return /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("p", { className: "work-result", children: language === "en" ? `Result v${resultRevision} returned to the original discussion and awaits its owner.` : `\u7ED3\u679C v${resultRevision} \u5DF2\u56DE\u5230\u539F\u8BA8\u8BBA\uFF0C\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4\u3002` });
   }
   const latestRequest = work2.history.findLast((entry) => entry.action === "revision_requested");
   if (work2.lifecycle !== "in_progress" || !latestRequest?.note) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("p", { className: "work-result", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { className: "work-result", children: [
     language === "en" ? "Revision requested for result" : "\u5DF2\u9000\u56DE\u7ED3\u679C",
     " v",
     latestRequest.resultRevision ?? 1,
@@ -59684,8 +61149,8 @@ function WorkResultStatus({ work: work2 }) {
 }
 
 // src/MessageActionBar.tsx
-var import_react22 = __toESM(require_react(), 1);
-var import_jsx_runtime23 = __toESM(require_jsx_runtime(), 1);
+var import_react28 = __toESM(require_react(), 1);
+var import_jsx_runtime30 = __toESM(require_jsx_runtime(), 1);
 function MessageActionBar({
   eventLabel,
   activeReactions,
@@ -59701,15 +61166,15 @@ function MessageActionBar({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  const [open, setOpen] = (0, import_react22.useState)();
-  const rootRef = (0, import_react22.useRef)(null);
-  const panelRef = (0, import_react22.useRef)(null);
-  const previousPendingReactionRef = (0, import_react22.useRef)(pendingReaction);
-  const menuId = (0, import_react22.useId)();
-  const reactionId = (0, import_react22.useId)();
+  const [open, setOpen] = (0, import_react28.useState)();
+  const rootRef = (0, import_react28.useRef)(null);
+  const panelRef = (0, import_react28.useRef)(null);
+  const previousPendingReactionRef = (0, import_react28.useRef)(pendingReaction);
+  const menuId = (0, import_react28.useId)();
+  const reactionId = (0, import_react28.useId)();
   const canReact = Boolean(onSetReaction);
   const hasMenu = canReact || Boolean(onReply || onMention || onStartVote || onProposeWork || onPublishArtifact);
-  (0, import_react22.useEffect)(() => {
+  (0, import_react28.useEffect)(() => {
     if (!open) return;
     const opener = moreTriggerRef.current;
     const close = () => {
@@ -59733,7 +61198,7 @@ function MessageActionBar({
       document.removeEventListener("pointerdown", onOutsidePress);
     };
   }, [moreTriggerRef, open]);
-  (0, import_react22.useLayoutEffect)(() => {
+  (0, import_react28.useLayoutEffect)(() => {
     if (!open) return;
     const root5 = rootRef.current;
     const panel = panelRef.current;
@@ -59760,7 +61225,7 @@ function MessageActionBar({
       window.removeEventListener("resize", positionPanel);
     };
   }, [open]);
-  (0, import_react22.useEffect)(() => {
+  (0, import_react28.useEffect)(() => {
     if (previousPendingReactionRef.current === pendingReaction) return;
     previousPendingReactionRef.current = pendingReaction;
     setOpen(void 0);
@@ -59770,8 +61235,8 @@ function MessageActionBar({
     setOpen(void 0);
     action?.();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: rootRef, className: "message-actions", role: "toolbar", "aria-label": t("\u6D88\u606F\u64CD\u4F5C"), children: [
-    canReact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { ref: rootRef, className: "message-actions", role: "toolbar", "aria-label": t("\u6D88\u606F\u64CD\u4F5C"), children: [
+    canReact && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
       "button",
       {
         ref: reactionTriggerRef,
@@ -59782,20 +61247,20 @@ function MessageActionBar({
         "aria-controls": open === "reactions" ? reactionId : void 0,
         disabled: pendingReaction !== void 0,
         onClick: () => setOpen((current2) => current2 === "reactions" ? void 0 : "reactions"),
-        children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(CollectiveIcon, { kind: "reaction" })
+        children: /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(CollectiveIcon, { kind: "reaction" })
       }
     ),
-    onReply && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+    onReply && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
       "button",
       {
         type: "button",
         className: "message-action-primary",
         "aria-label": language === "en" ? `Reply to ${eventLabel}` : `\u56DE\u590D ${eventLabel}`,
         onClick: () => run2(onReply),
-        children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(CollectiveIcon, { kind: "reply" })
+        children: /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(CollectiveIcon, { kind: "reply" })
       }
     ),
-    hasMenu && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+    hasMenu && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
       "button",
       {
         ref: moreTriggerRef,
@@ -59805,10 +61270,10 @@ function MessageActionBar({
         "aria-expanded": open === "menu",
         "aria-controls": open === "menu" ? menuId : void 0,
         onClick: () => setOpen((current2) => current2 === "menu" ? void 0 : "menu"),
-        children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(CollectiveIcon, { kind: "more" })
+        children: /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(CollectiveIcon, { kind: "more" })
       }
     ),
-    open === "reactions" && onSetReaction && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("div", { ref: panelRef, id: reactionId, className: "reaction-picker", role: "toolbar", "aria-label": t("\u9009\u62E9\u56DE\u5E94"), children: COLLECTIVE_REACTION_EMOJIS.map((emoji) => /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(
+    open === "reactions" && onSetReaction && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("div", { ref: panelRef, id: reactionId, className: "reaction-picker", role: "toolbar", "aria-label": t("\u9009\u62E9\u56DE\u5E94"), children: COLLECTIVE_REACTION_EMOJIS.map((emoji) => /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
       "button",
       {
         type: "button",
@@ -59823,27 +61288,27 @@ function MessageActionBar({
       },
       emoji
     )) }),
-    open === "menu" && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { ref: panelRef, id: menuId, className: "message-action-menu", role: "menu", "aria-label": t("\u66F4\u591A\u6D88\u606F\u52A8\u4F5C"), children: [
-      canReact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => setOpen("reactions"), children: t("\u7528\u8868\u60C5\u56DE\u5E94") }),
-      onReply && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", role: "menuitem", onClick: () => run2(onReply), children: [
+    open === "menu" && /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { ref: panelRef, id: menuId, className: "message-action-menu", role: "menu", "aria-label": t("\u66F4\u591A\u6D88\u606F\u52A8\u4F5C"), children: [
+      canReact && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "button", role: "menuitem", onClick: () => setOpen("reactions"), children: t("\u7528\u8868\u60C5\u56DE\u5E94") }),
+      onReply && /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("button", { type: "button", role: "menuitem", onClick: () => run2(onReply), children: [
         language === "en" ? "Reply to" : "\u56DE\u590D",
         " ",
         eventLabel
       ] }),
-      onMention && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", role: "menuitem", onClick: () => run2(onMention), children: [
+      onMention && /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("button", { type: "button", role: "menuitem", onClick: () => run2(onMention), children: [
         language === "en" ? "Mention" : "\u63D0\u5230",
         " ",
         eventLabel
       ] }),
-      onStartVote && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onStartVote), children: t("\u53D1\u8D77\u968F\u624B\u6295\u7968") }),
-      onProposeWork && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onProposeWork), children: t("\u5EFA\u6210\u4EFB\u52A1") }),
-      onPublishArtifact && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onPublishArtifact), children: t("\u5206\u4EAB\u4F5C\u54C1\u2026") })
+      onStartVote && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onStartVote), children: t("\u53D1\u8D77\u968F\u624B\u6295\u7968") }),
+      onProposeWork && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onProposeWork), children: t("\u5EFA\u6210\u4EFB\u52A1") }),
+      onPublishArtifact && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "button", role: "menuitem", onClick: () => run2(onPublishArtifact), children: t("\u5206\u4EAB\u4F5C\u54C1\u2026") })
     ] })
   ] });
 }
 
 // src/ReactionBar.tsx
-var import_jsx_runtime24 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime31 = __toESM(require_jsx_runtime(), 1);
 function reactionsForEvent(eventId2, reactions) {
   return reactions.filter((reaction) => reaction.eventId === eventId2 && reaction.humanIds.length > 0);
 }
@@ -59862,8 +61327,8 @@ function ReactionBar({
   );
   const names = (reaction) => reaction.humanIds.map((humanId) => humanNames[humanId] ?? `\u6210\u5458 ${humanId.slice(-6)}`).join("\u3001");
   if (existing.length === 0 && pending === void 0 && !error) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)("div", { className: "reaction-bar", "aria-busy": pending !== void 0, children: [
-    existing.map((reaction) => /* @__PURE__ */ (0, import_jsx_runtime24.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "reaction-bar", "aria-busy": pending !== void 0, children: [
+    existing.map((reaction) => /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
       "button",
       {
         type: "button",
@@ -59872,32 +61337,32 @@ function ReactionBar({
         "aria-pressed": active.has(reaction.emoji),
         disabled: pending !== void 0,
         onClick: () => onSetReaction(reaction.emoji, !active.has(reaction.emoji)),
-        children: /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)("span", { className: "reaction-chip-visual", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime24.jsx)("span", { "aria-hidden": "true", children: reaction.emoji }),
-          /* @__PURE__ */ (0, import_jsx_runtime24.jsx)("span", { children: reaction.humanIds.length })
+        children: /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "reaction-chip-visual", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { "aria-hidden": "true", children: reaction.emoji }),
+          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: reaction.humanIds.length })
         ] })
       },
       reaction.emoji
     )),
-    pending !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)("output", { className: "reaction-pending", children: [
+    pending !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("output", { className: "reaction-pending", children: [
       pending,
       " \u56DE\u5E94\u6B63\u5728\u4FDD\u5B58\u2026"
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime24.jsx)("p", { className: "reaction-error", role: "alert", children: error })
+    error && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("p", { className: "reaction-error", role: "alert", children: error })
   ] });
 }
 
 // src/SharedArtifactLibrary.tsx
-var import_react27 = __toESM(require_react(), 1);
+var import_react33 = __toESM(require_react(), 1);
 
 // src/SharedArtifactCard.tsx
-var import_react25 = __toESM(require_react(), 1);
+var import_react31 = __toESM(require_react(), 1);
 
 // src/SharedArtifactHistory.tsx
-var import_react24 = __toESM(require_react(), 1);
+var import_react30 = __toESM(require_react(), 1);
 
 // src/use-shared-artifact-version-history.ts
-var import_react23 = __toESM(require_react(), 1);
+var import_react29 = __toESM(require_react(), 1);
 function useSharedArtifactVersionHistory(artifact) {
   const shared = useSharedArtifacts();
   const api = shared?.api;
@@ -59909,15 +61374,15 @@ function useSharedArtifactVersionHistory(artifact) {
     shared?.humanId,
     shared?.status
   ]);
-  const current2 = (0, import_react23.useRef)(fence);
+  const current2 = (0, import_react29.useRef)(fence);
   current2.current = fence;
-  const [result, setResult] = (0, import_react23.useState)();
-  const [failure, setFailure] = (0, import_react23.useState)();
-  const [busy, setBusy] = (0, import_react23.useState)(false);
-  const pinned = (0, import_react23.useRef)({ fence, artifact });
+  const [result, setResult] = (0, import_react29.useState)();
+  const [failure, setFailure] = (0, import_react29.useState)();
+  const [busy, setBusy] = (0, import_react29.useState)(false);
+  const pinned = (0, import_react29.useRef)({ fence, artifact });
   if (pinned.current.fence !== fence) pinned.current = { fence, artifact };
   const readTarget = pinned.current.artifact;
-  (0, import_react23.useEffect)(() => {
+  (0, import_react29.useEffect)(() => {
     let active = true;
     setResult(void 0);
     setFailure(void 0);
@@ -59966,7 +61431,7 @@ function useSharedArtifactVersionHistory(artifact) {
 }
 
 // src/SharedArtifactHistory.tsx
-var import_jsx_runtime25 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime32 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactHistory({
   artifact,
   ownerRevision: ownerRevision2,
@@ -59976,11 +61441,11 @@ function SharedArtifactHistory({
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
   const history2 = useSharedArtifactVersionHistory(artifact);
-  const close = (0, import_react24.useRef)(null);
-  (0, import_react24.useEffect)(() => {
+  const close = (0, import_react30.useRef)(null);
+  (0, import_react30.useEffect)(() => {
     close.current?.focus();
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(
     "dialog",
     {
       open: true,
@@ -59994,29 +61459,29 @@ function SharedArtifactHistory({
         }
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("h2", { children: t("\u7248\u672C\u8BB0\u5F55") }),
-          /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u7248\u672C\u8BB0\u5F55"), onClick: onClose, children: "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("h2", { children: t("\u7248\u672C\u8BB0\u5F55") }),
+          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u7248\u672C\u8BB0\u5F55"), onClick: onClose, children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("ol", { children: history2.page?.versions.map((version) => {
+        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("ol", { children: history2.page?.versions.map((version) => {
           const message = version.lineage && shared?.sourceMessage(version.lineage.requestEventId);
           const author2 = message?.recipient?.kind === "agent" && message.recipient.agentId === version.authorCatId ? language === "en" ? `${shared?.catName(message.recipient.humanId, message.recipient.agentId)} \xB7 ${shared?.humanName(message.recipient.humanId)}'s Caf\xE9` : `${shared?.catName(message.recipient.humanId, message.recipient.agentId)} \xB7 ${shared?.humanName(message.recipient.humanId)}\u7684 Caf\xE9` : t("\u539F\u8BF7\u6C42\u4E2D\u7684\u5177\u540D\u732B");
-          return /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("li", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("h3", { children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("li", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("h3", { children: [
               language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248`,
-              version.ownerRevision === ownerRevision2 && /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("small", { children: [
+              version.ownerRevision === ownerRevision2 && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("small", { children: [
                 " \xB7 ",
                 t("\u6B63\u5728\u67E5\u770B")
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { children: version.adoptedByHumanId ? language === "en" ? `${shared?.humanName(version.adoptedByHumanId)} adopted ${author2}'s changes.` : `${shared?.humanName(version.adoptedByHumanId)}\u91C7\u7528\u4E86${author2}\u7684\u4FEE\u6539\u3002` : language === "en" ? `Shared by ${shared?.humanName(artifact.publishedByHumanId)}.` : `${shared?.humanName(artifact.publishedByHumanId)}\u5206\u4EAB\u7684\u7248\u672C\u3002` }),
-            /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("time", { dateTime: version.recordedAt, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { children: version.adoptedByHumanId ? language === "en" ? `${shared?.humanName(version.adoptedByHumanId)} adopted ${author2}'s changes.` : `${shared?.humanName(version.adoptedByHumanId)}\u91C7\u7528\u4E86${author2}\u7684\u4FEE\u6539\u3002` : language === "en" ? `Shared by ${shared?.humanName(artifact.publishedByHumanId)}.` : `${shared?.humanName(artifact.publishedByHumanId)}\u5206\u4EAB\u7684\u7248\u672C\u3002` }),
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("time", { dateTime: version.recordedAt, children: [
               new Date(version.recordedAt).toLocaleString(language === "en" ? "en-US" : "zh-CN"),
               " ",
               t("\u8BB0\u5F55")
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
                 "button",
                 {
                   type: "button",
@@ -60027,7 +61492,7 @@ function SharedArtifactHistory({
                   children: language === "en" ? `View version ${version.ownerRevision}` : `\u67E5\u770B\u7B2C ${version.ownerRevision} \u7248`
                 }
               ),
-              version.lineage && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
+              version.lineage && /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
                 "button",
                 {
                   type: "button",
@@ -60041,23 +61506,23 @@ function SharedArtifactHistory({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)("details", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("summary", { children: t(version.adoptedByHumanId ? "\u91C7\u7528\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9" : "\u5206\u4EAB\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9") }),
-              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("code", { children: version.receiptRef }),
-              /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("code", { children: version.blobDigest })
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("details", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("summary", { children: t(version.adoptedByHumanId ? "\u91C7\u7528\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9" : "\u5206\u4EAB\u56DE\u6267\u4E0E\u7248\u672C\u6307\u7EB9") }),
+              /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("code", { children: version.receiptRef }),
+              /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("code", { children: version.blobDigest })
             ] })
           ] }, version.ownerRevision);
         }) }),
-        history2.pending && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026") }),
-        history2.error && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("p", { role: "alert", children: t(history2.error) }),
-        history2.page?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: language === "en" ? `Earlier versions (${history2.page.versions.length}/${history2.page.total} read)` : `\u66F4\u65E9\u7684\u7248\u672C\uFF08\u5DF2\u8BFB ${history2.page.versions.length}/${history2.page.total}\uFF09` })
+        history2.pending && /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026") }),
+        history2.error && /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { role: "alert", children: t(history2.error) }),
+        history2.page?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: language === "en" ? `Earlier versions (${history2.page.versions.length}/${history2.page.total} read)` : `\u66F4\u65E9\u7684\u7248\u672C\uFF08\u5DF2\u8BFB ${history2.page.versions.length}/${history2.page.total}\uFF09` })
       ]
     }
   );
 }
 
 // src/SharedArtifactCard.tsx
-var import_jsx_runtime26 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime33 = __toESM(require_jsx_runtime(), 1);
 function artifactMediaLabel(artifact) {
   return artifact.mediaType === "text/markdown" ? "Markdown" : artifact.mediaType.startsWith("image/") ? "\u56FE\u7247" : "\u89C6\u9891";
 }
@@ -60068,33 +61533,33 @@ function SharedArtifactCard({
   const shared = useSharedArtifacts();
   const t = useCollectiveText();
   const language = useCollectiveLanguage();
-  const [historyOpen, setHistoryOpen] = (0, import_react25.useState)(false);
+  const [historyOpen, setHistoryOpen] = (0, import_react31.useState)(false);
   const mediaLabel = t(artifactMediaLabel(artifact));
   const latest = artifact.versions.at(-1);
   const author2 = shared?.humanName(latest?.adoptedByHumanId ?? artifact.publishedByHumanId);
   const media = artifact.mediaType.startsWith("image/") || artifact.mediaType.startsWith("video/");
-  return /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("article", { className: `shared-artifact-item shared-artifact-item-${presentation}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("article", { className: `shared-artifact-item shared-artifact-item-${presentation}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)(
       "button",
       {
         type: "button",
         className: `shared-artifact-card shared-artifact-card-${presentation}`,
         onClick: () => shared?.open(artifact),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)(
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)(
             "span",
             {
               className: presentation === "tile" ? "shared-artifact-preview" : "shared-artifact-page",
               "aria-hidden": "true",
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 32 36", fill: "none", stroke: "currentColor", strokeWidth: "1.3", children: /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("path", { d: "M8 3h12l6 6v24H6V3h2Zm12 0v7h6M10 17h12M10 22h12M10 27h8" }) }),
-                presentation === "tile" && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("span", { children: mediaLabel })
+                /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 32 36", fill: "none", stroke: "currentColor", strokeWidth: "1.3", children: /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("path", { d: "M8 3h12l6 6v24H6V3h2Zm12 0v7h6M10 17h12M10 22h12M10 27h8" }) }),
+                presentation === "tile" && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { children: mediaLabel })
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("span", { className: "shared-artifact-caption", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(AppTooltip, { label: artifact.title, intent: "content", children: /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("strong", { children: artifact.title }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("small", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("span", { className: "shared-artifact-caption", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(AppTooltip, { label: artifact.title, intent: "content", children: /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("strong", { children: artifact.title }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("small", { children: [
               presentation === "tile" ? author2 : mediaLabel,
               " \xB7 ",
               t("\u7B2C"),
@@ -60104,27 +61569,27 @@ function SharedArtifactCard({
               t("\u7248"),
               " \xB7",
               " ",
-              presentation === "row" ? author2 : latest && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("time", { dateTime: latest.recordedAt, children: new Date(latest.recordedAt).toLocaleDateString(language === "en" ? "en-US" : "zh-CN", {
+              presentation === "row" ? author2 : latest && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("time", { dateTime: latest.recordedAt, children: new Date(latest.recordedAt).toLocaleDateString(language === "en" ? "en-US" : "zh-CN", {
                 month: "short",
                 day: "numeric"
               }) })
             ] }),
-            artifact.availability === "owner_unavailable" && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("small", { children: t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528") }),
-            /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("small", { children: [
+            artifact.availability === "owner_unavailable" && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("small", { children: t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528") }),
+            /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("small", { children: [
               "#",
               artifact.sourceLocation.channelId,
               " \xB7 ",
               t("\u67E5\u770B\u6279\u6CE8")
             ] })
           ] }),
-          presentation === "row" && /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("span", { className: "shared-artifact-open", children: [
+          presentation === "row" && /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("span", { className: "shared-artifact-open", children: [
             t("\u6253\u5F00"),
             " \u203A"
           ] })
         ]
       }
     ),
-    presentation === "tile" && shared?.returnToSource && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(AppTooltip, { label: t("\u5728\u539F\u8BA8\u8BBA\u4E2D\u6253\u5F00"), children: /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(
+    presentation === "tile" && shared?.returnToSource && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(AppTooltip, { label: t("\u5728\u539F\u8BA8\u8BBA\u4E2D\u6253\u5F00"), children: /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(
       "button",
       {
         type: "button",
@@ -60134,21 +61599,21 @@ function SharedArtifactCard({
         children: "\u2197"
       }
     ) }),
-    (media || presentation === "tile") && /* @__PURE__ */ (0, import_jsx_runtime26.jsxs)("details", { className: "shared-artifact-card-menu", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("summary", { "aria-label": t("\u66F4\u591A\u4F5C\u54C1\u64CD\u4F5C"), children: "\u22EF" }),
-      /* @__PURE__ */ (0, import_jsx_runtime26.jsx)("button", { type: "button", onClick: () => setHistoryOpen(true), children: t("\u7248\u672C\u8BB0\u5F55") })
+    (media || presentation === "tile") && /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("details", { className: "shared-artifact-card-menu", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("summary", { "aria-label": t("\u66F4\u591A\u4F5C\u54C1\u64CD\u4F5C"), children: "\u22EF" }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: () => setHistoryOpen(true), children: t("\u7248\u672C\u8BB0\u5F55") })
     ] }),
-    historyOpen && /* @__PURE__ */ (0, import_jsx_runtime26.jsx)(SharedArtifactHistory, { artifact, onClose: () => setHistoryOpen(false) })
+    historyOpen && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(SharedArtifactHistory, { artifact, onClose: () => setHistoryOpen(false) })
   ] });
 }
 
 // src/SharedArtifactLibraryFilters.tsx
-var import_react26 = __toESM(require_react(), 1);
-var import_jsx_runtime27 = __toESM(require_jsx_runtime(), 1);
+var import_react32 = __toESM(require_react(), 1);
+var import_jsx_runtime34 = __toESM(require_jsx_runtime(), 1);
 var emptyFilters = { query: "", channel: "", media: "all", sort: "recent" };
 function useArtifactLibraryFilters(catalogue, channelId, requestedChannel) {
-  const [filters, setFilters] = (0, import_react26.useState)(emptyFilters);
-  (0, import_react26.useEffect)(() => {
+  const [filters, setFilters] = (0, import_react32.useState)(emptyFilters);
+  (0, import_react32.useEffect)(() => {
     if (requestedChannel) setFilters((current2) => ({ ...current2, channel: requestedChannel.channelId }));
   }, [requestedChannel]);
   const update = (key, value) => setFilters((current2) => ({ ...current2, [key]: value }));
@@ -60173,16 +61638,16 @@ function SharedArtifactLibraryFilters({
     { value: "image/", label: "\u56FE\u7247" },
     { value: "video/", label: "\u89C6\u9891" }
   ].map((type) => ({ ...type, count: channelWorks.filter((item) => item.mediaType.startsWith(type.value)).length })).filter((type) => type.count > 0);
-  return /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(
     "form",
     {
       className: "shared-artifact-library-filters",
       "aria-label": t("\u4F5C\u54C1\u7B5B\u9009"),
       onSubmit: (event) => event.preventDefault(),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("label", { className: "artifact-search", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { className: "sr-only", children: t("\u4F5C\u54C1\u540D\u79F0") }),
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("label", { className: "artifact-search", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { className: "sr-only", children: t("\u4F5C\u54C1\u540D\u79F0") }),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
             "input",
             {
               type: "search",
@@ -60193,46 +61658,46 @@ function SharedArtifactLibraryFilters({
             }
           )
         ] }),
-        !channelId && /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("label", { className: "artifact-channel-filter", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { className: "sr-only", children: t("\u6765\u81EA\u9891\u9053") }),
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)(
+        !channelId && /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("label", { className: "artifact-channel-filter", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { className: "sr-only", children: t("\u6765\u81EA\u9891\u9053") }),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(
             "select",
             {
               "aria-label": t("\u4F5C\u54C1\u6765\u6E90\u9891\u9053"),
               value: filters.channel,
               onChange: (event) => update("channel", event.target.value),
               children: [
-                /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("option", { value: "", children: t("\u5168\u90E8\u9891\u9053") }),
-                channels.map((id28) => /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("option", { value: id28, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("option", { value: "", children: t("\u5168\u90E8\u9891\u9053") }),
+                channels.map((id30) => /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("option", { value: id30, children: [
                   "#",
-                  id28
-                ] }, id28))
+                  id30
+                ] }, id30))
               ]
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("label", { className: "artifact-type-filter", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { className: "sr-only", children: t("\u7C7B\u578B") }),
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("select", { value: filters.media, onChange: (event) => update("media", event.target.value), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("option", { value: "all", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("label", { className: "artifact-type-filter", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { className: "sr-only", children: t("\u7C7B\u578B") }),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("select", { value: filters.media, onChange: (event) => update("media", event.target.value), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("option", { value: "all", children: [
               t("\u5168\u90E8\u7C7B\u578B"),
               " \xB7 ",
               channelWorks.length
             ] }),
-            types.map((type) => /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("option", { value: type.value, children: [
+            types.map((type) => /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("option", { value: type.value, children: [
               t(type.label),
               " \xB7 ",
               type.count
             ] }, type.value))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("details", { className: "artifact-sort-menu", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("summary", { children: t("\u6392\u5217") }),
-          /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("label", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { className: "sr-only", children: t("\u6392\u5217") }),
-            /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("select", { value: filters.sort, onChange: (event) => update("sort", event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("option", { value: "recent", children: t("\u6700\u8FD1\u8BB0\u5F55\u7684\u7248\u672C") }),
-              /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("option", { value: "name", children: t("\u4F5C\u54C1\u540D\u79F0") })
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("details", { className: "artifact-sort-menu", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("summary", { children: t("\u6392\u5217") }),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { className: "sr-only", children: t("\u6392\u5217") }),
+            /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("select", { value: filters.sort, onChange: (event) => update("sort", event.target.value), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("option", { value: "recent", children: t("\u6700\u8FD1\u8BB0\u5F55\u7684\u7248\u672C") }),
+              /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("option", { value: "name", children: t("\u4F5C\u54C1\u540D\u79F0") })
             ] })
           ] })
         ] })
@@ -60242,11 +61707,11 @@ function SharedArtifactLibraryFilters({
 }
 
 // src/SharedArtifactLibrary.tsx
-var import_jsx_runtime28 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime35 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactCards({ eventId: eventId2 }) {
   const shared = useSharedArtifacts();
   if (shared?.status !== "ready") return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(import_jsx_runtime28.Fragment, { children: shared.catalogue.filter((item) => item.sourceEventId === eventId2).map((item) => /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(SharedArtifactCard, { artifact: item }, item.artifactId)) });
+  return /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(import_jsx_runtime35.Fragment, { children: shared.catalogue.filter((item) => item.sourceEventId === eventId2).map((item) => /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(SharedArtifactCard, { artifact: item }, item.artifactId)) });
 }
 function SharedArtifactLibrary({
   channelId,
@@ -60261,30 +61726,30 @@ function SharedArtifactLibrary({
   const shared = useSharedArtifacts();
   const model = useArtifactLibraryFilters(shared?.catalogue ?? [], channelId, requestedChannel);
   const t = useCollectiveText();
-  const scroll = (0, import_react27.useRef)(null);
+  const scroll = (0, import_react33.useRef)(null);
   const workUnit = useWorkUnit();
-  const position3 = (0, import_react27.useRef)(0);
-  (0, import_react27.useEffect)(() => {
+  const position3 = (0, import_react33.useRef)(0);
+  (0, import_react33.useEffect)(() => {
     if (active && scroll.current) scroll.current.scrollTop = position3.current;
   }, [active]);
   if (!shared) return null;
-  if (!active) return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("section", { ref: scroll, hidden: true, className: "shared-artifact-library", "aria-label": t(title) });
+  if (!active) return /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("section", { ref: scroll, hidden: true, className: "shared-artifact-library", "aria-label": t(title) });
   if (presentation === "channel")
-    return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("section", { className: "channel-artifact-list", "aria-label": t("\u9891\u9053\u4F5C\u54C1"), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("p", { className: "channel-artifact-heading", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("section", { className: "channel-artifact-list", "aria-label": t("\u9891\u9053\u4F5C\u54C1"), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("p", { className: "channel-artifact-heading", children: [
         model.channelWorks.length,
         " ",
         workUnit(model.channelWorks.length),
         " \xB7 #",
         channelId
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(SharedArtifactLibraryContents, { model, filterable: false }),
-      onOpenChannelLibrary && /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("button", { type: "button", className: "channel-artifact-all", onClick: onOpenChannelLibrary, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(SharedArtifactLibraryContents, { model, filterable: false }),
+      onOpenChannelLibrary && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("button", { type: "button", className: "channel-artifact-all", onClick: onOpenChannelLibrary, children: [
         t("\u5728\u5168\u90E8\u4F5C\u54C1\u4E2D\u67E5\u770B\u672C\u9891\u9053"),
         " \u2192"
       ] })
     ] });
-  return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)(
     "section",
     {
       ref: scroll,
@@ -60295,12 +61760,12 @@ function SharedArtifactLibrary({
       className: "shared-artifact-library",
       "aria-label": t(title),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("header", { children: [
-          onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": t("\u9891\u9053\u5BFC\u822A"), onClick: onOpenNavigation, children: "\u2630" }),
-          /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("h2", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("header", { children: [
+          onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": t("\u9891\u9053\u5BFC\u822A"), onClick: onOpenNavigation, children: "\u2630" }),
+          /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("h2", { children: [
             t(title),
             " ",
-            /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("small", { children: [
               model.channelWorks.length,
               " ",
               workUnit(model.channelWorks.length),
@@ -60309,8 +61774,8 @@ function SharedArtifactLibrary({
             ] })
           ] })
         ] }),
-        filterable && /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(SharedArtifactLibraryFilters, { model, channelId }),
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(SharedArtifactLibraryContents, { model, filterable })
+        filterable && /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(SharedArtifactLibraryFilters, { model, channelId }),
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(SharedArtifactLibraryContents, { model, filterable })
       ]
     }
   );
@@ -60324,31 +61789,31 @@ function SharedArtifactLibraryContents({
   const workUnit = useWorkUnit();
   const filtered = Boolean(model.filters.query.trim() || model.filters.channel || model.filters.media !== "all");
   if (!shared) return null;
-  if (shared.status === "loading") return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") });
+  if (shared.status === "loading") return /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") });
   if (shared.status !== "ready")
-    return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("p", { children: t(shared.status === "access_denied" ? "\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u91CC\u7684\u4F5C\u54C1\u3002" : "\u6682\u65F6\u8BFB\u4E0D\u5230\u4F5C\u54C1\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
+    return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("p", { children: t(shared.status === "access_denied" ? "\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u91CC\u7684\u4F5C\u54C1\u3002" : "\u6682\u65F6\u8BFB\u4E0D\u5230\u4F5C\u54C1\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
     ] });
   if (model.artifacts.length)
-    return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(import_jsx_runtime28.Fragment, { children: [
-      filterable && filtered && /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("output", { className: "shared-artifact-library-count", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)(import_jsx_runtime35.Fragment, { children: [
+      filterable && filtered && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("output", { className: "shared-artifact-library-count", children: [
         t("\u627E\u5230"),
         " ",
         model.artifacts.length,
         " ",
         workUnit(model.artifacts.length)
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("div", { className: "shared-artifact-grid", children: model.artifacts.map((item) => /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(SharedArtifactCard, { artifact: item, presentation: filterable ? "tile" : "row" }, item.artifactId)) })
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { className: "shared-artifact-grid", children: model.artifacts.map((item) => /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(SharedArtifactCard, { artifact: item, presentation: filterable ? "tile" : "row" }, item.artifactId)) })
     ] });
   if (model.channelWorks.length)
-    return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "channel-empty", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("h3", { children: t("\u6CA1\u6709\u5339\u914D\u7684\u4F5C\u54C1") }),
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", onClick: model.clear, children: t("\u6E05\u9664\u4F5C\u54C1\u7B5B\u9009") })
+    return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { className: "channel-empty", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("h3", { children: t("\u6CA1\u6709\u5339\u914D\u7684\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("button", { type: "button", onClick: model.clear, children: t("\u6E05\u9664\u4F5C\u54C1\u7B5B\u9009") })
     ] });
-  return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "channel-empty", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("h3", { children: t("\u8FD8\u6CA1\u6709\u5171\u540C\u4F5C\u54C1") }),
-    /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("p", { children: t("\u5728\u4E00\u6761\u8BA8\u8BBA\u6D88\u606F\u7684\u300C\u66F4\u591A\u300D\u91CC\u5206\u4EAB\u4F5C\u54C1\uFF0C\u4F5C\u54C1\u548C\u6765\u6E90\u4F1A\u4E00\u8D77\u7559\u5728\u8FD9\u91CC\u3002") })
+  return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { className: "channel-empty", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("h3", { children: t("\u8FD8\u6CA1\u6709\u5171\u540C\u4F5C\u54C1") }),
+    /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("p", { children: t("\u5728\u4E00\u6761\u8BA8\u8BBA\u6D88\u606F\u7684\u300C\u66F4\u591A\u300D\u91CC\u5206\u4EAB\u4F5C\u54C1\uFF0C\u4F5C\u54C1\u548C\u6765\u6E90\u4F1A\u4E00\u8D77\u7559\u5728\u8FD9\u91CC\u3002") })
   ] });
 }
 function useWorkUnit() {
@@ -60371,7 +61836,7 @@ function sharedArtifactRequestState(request) {
 }
 
 // src/use-shared-artifact-request-receipt.ts
-var import_react28 = __toESM(require_react(), 1);
+var import_react34 = __toESM(require_react(), 1);
 function useSharedArtifactRequestReceipt(requestEventId, enabled = true) {
   const shared = useSharedArtifacts();
   const api = shared?.api;
@@ -60385,8 +61850,8 @@ function useSharedArtifactRequestReceipt(requestEventId, enabled = true) {
     ])
   );
   const fence = JSON.stringify([heads, requestEventId, shared?.humanId, shared?.status, enabled]);
-  const [loaded, setLoaded] = (0, import_react28.useState)();
-  (0, import_react28.useEffect)(() => {
+  const [loaded, setLoaded] = (0, import_react34.useState)();
+  (0, import_react34.useEffect)(() => {
     let active = true;
     if (!api?.receipts || !enabled || shared?.status !== "ready") return;
     void api.receipts(requestEventId).then(
@@ -60409,7 +61874,7 @@ function useSharedArtifactRequestReceipt(requestEventId, enabled = true) {
 }
 
 // src/SharedArtifactMessageFeedback.tsx
-var import_jsx_runtime29 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime36 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
@@ -60423,12 +61888,12 @@ function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
     source3?.actor.kind === "human" && source3.recipient?.kind === "agent"
   );
   if (!annotations.length && !requests.length && !receipts.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "shared-artifact-message-feedback", children: [
-    annotations.map((annotation, index4) => /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("p", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { className: "shared-artifact-message-feedback", children: [
+    annotations.map((annotation, index4) => /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("p", { children: [
       language === "en" ? `Reference ${index4 + 1} \xB7 version ${annotation.collectiveMessage?.ownerRevision} \xB7 ` : `\u5F15\u7528 ${index4 + 1} \xB7 \u7B2C ${annotation.collectiveMessage?.ownerRevision} \u7248 \xB7 `,
       "quote" in annotation.anchor ? annotation.anchor.quote : t("\u4F5C\u54C1\u4E2D\u7684\u9009\u533A")
     ] }, annotation.id)),
-    requests.filter((request) => request.state !== "accepted").map((request) => /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)(
+    requests.filter((request) => request.state !== "accepted").map((request) => /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(
       "button",
       {
         type: "button",
@@ -60443,9 +61908,9 @@ function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
       },
       request.requestId
     )),
-    receipts.map(({ artifact, version }) => /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("output", { "data-source-kind": "content-owner-receipt", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("span", { children: language === "en" ? `${version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : t("\u6709\u6743\u6210\u5458")} adopted${version.authorCatId ? ` ${version.authorCatId}'s ` : " "}changes \xB7 ` : `${version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : "\u6709\u6743\u6210\u5458"}\u91C7\u7528\u4E86${version.authorCatId ? ` ${version.authorCatId} ` : ""}\u7684\u4FEE\u6539 \xB7 ` }),
-      /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, version.ownerRevision), children: [
+    receipts.map(({ artifact, version }) => /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("output", { "data-source-kind": "content-owner-receipt", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { children: language === "en" ? `${version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : t("\u6709\u6743\u6210\u5458")} adopted${version.authorCatId ? ` ${version.authorCatId}'s ` : " "}changes \xB7 ` : `${version.adoptedByHumanId ? shared?.humanName(version.adoptedByHumanId) : "\u6709\u6743\u6210\u5458"}\u91C7\u7528\u4E86${version.authorCatId ? ` ${version.authorCatId} ` : ""}\u7684\u4FEE\u6539 \xB7 ` }),
+      /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, version.ownerRevision), children: [
         artifact.title,
         " \xB7",
         " ",
@@ -60456,11 +61921,11 @@ function SharedArtifactMessageFeedback({ eventId: eventId2 }) {
 }
 
 // src/VoteCard.tsx
-var import_react30 = __toESM(require_react(), 1);
+var import_react36 = __toESM(require_react(), 1);
 
 // src/VoteDraftForm.tsx
-var import_react29 = __toESM(require_react(), 1);
-var import_jsx_runtime30 = __toESM(require_jsx_runtime(), 1);
+var import_react35 = __toESM(require_react(), 1);
+var import_jsx_runtime37 = __toESM(require_jsx_runtime(), 1);
 function VoteDraftForm({
   initialQuestion,
   title,
@@ -60469,14 +61934,14 @@ function VoteDraftForm({
   onSubmit,
   onCancel
 }) {
-  const [question, setQuestion] = (0, import_react29.useState)(initialQuestion.slice(0, 500));
-  const [options, setOptions] = (0, import_react29.useState)([
+  const [question, setQuestion] = (0, import_react35.useState)(initialQuestion.slice(0, 500));
+  const [options, setOptions] = (0, import_react35.useState)([
     { id: 0, value: "" },
     { id: 1, value: "" }
   ]);
-  const nextOptionId = (0, import_react29.useRef)(2);
-  const [durationHours, setDurationHours] = (0, import_react29.useState)(24);
-  const [submitting, setSubmitting] = (0, import_react29.useState)(false);
+  const nextOptionId = (0, import_react35.useRef)(2);
+  const [durationHours, setDurationHours] = (0, import_react35.useState)(24);
+  const [submitting, setSubmitting] = (0, import_react35.useState)(false);
   const normalized = options.map((option) => option.value.trim());
   const valid2 = question.trim().length > 0 && normalized.every(Boolean) && new Set(normalized).size === normalized.length;
   const submit2 = async (event) => {
@@ -60493,20 +61958,20 @@ function VoteDraftForm({
       setSubmitting(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)(
     "form",
     {
       className: "vote-draft",
       "aria-label": `${title}\u8349\u7A3F`,
       onSubmit: (event) => void submit2(event).catch(() => void 0),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("strong", { children: title }),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: explanation })
+        /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("strong", { children: title }),
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { children: explanation })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("label", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: "\u95EE\u9898" }),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { children: "\u95EE\u9898" }),
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
             "input",
             {
               "aria-label": "\u6295\u7968\u95EE\u9898",
@@ -60516,12 +61981,12 @@ function VoteDraftForm({
             }
           )
         ] }),
-        options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("label", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("span", { children: [
+        options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("span", { children: [
             "\u9009\u9879 ",
             index4 + 1
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
             "input",
             {
               "aria-label": `\u6295\u7968\u9009\u9879 ${index4 + 1}`,
@@ -60534,7 +61999,7 @@ function VoteDraftForm({
               )
             }
           ),
-          options.length > 2 && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
+          options.length > 2 && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
             "button",
             {
               type: "button",
@@ -60544,30 +62009,30 @@ function VoteDraftForm({
             }
           )
         ] }, option.id)),
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "vote-draft-controls", children: [
-          options.length < 8 && /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("div", { className: "vote-draft-controls", children: [
+          options.length < 8 && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(
             "button",
             {
               type: "button",
               className: "quiet-action",
               onClick: () => {
-                const id28 = nextOptionId.current;
+                const id30 = nextOptionId.current;
                 nextOptionId.current += 1;
-                setOptions((current2) => [...current2, { id: id28, value: "" }]);
+                setOptions((current2) => [...current2, { id: id30, value: "" }]);
               },
               children: "\u589E\u52A0\u9009\u9879"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("label", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: "\u6536\u96C6\u591A\u4E45" }),
-            /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("select", { value: durationHours, onChange: (event) => setDurationHours(Number(event.target.value)), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("option", { value: 24, children: "1 \u5929" }),
-              /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("option", { value: 72, children: "3 \u5929" }),
-              /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("option", { value: 168, children: "7 \u5929" })
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("span", { children: "\u6536\u96C6\u591A\u4E45" }),
+            /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("select", { value: durationHours, onChange: (event) => setDurationHours(Number(event.target.value)), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: 24, children: "1 \u5929" }),
+              /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: 72, children: "3 \u5929" }),
+              /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("option", { value: 168, children: "7 \u5929" })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "submit", disabled: !valid2 || submitting, children: submitting ? "\u6B63\u5728\u53D1\u5E03\u2026" : submitLabel }),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "button", className: "quiet-action", onClick: onCancel, children: "\u53D6\u6D88" })
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("button", { type: "submit", disabled: !valid2 || submitting, children: submitting ? "\u6B63\u5728\u53D1\u5E03\u2026" : submitLabel }),
+          /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("button", { type: "button", className: "quiet-action", onClick: onCancel, children: "\u53D6\u6D88" })
         ] })
       ]
     }
@@ -60575,14 +62040,14 @@ function VoteDraftForm({
 }
 
 // src/VoteCard.tsx
-var import_jsx_runtime31 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime38 = __toESM(require_jsx_runtime(), 1);
 function InformalVoteComposer({
   sourceEventId,
   sourceBody,
   onCreate,
   onCancel
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
     VoteDraftForm,
     {
       initialQuestion: sourceBody,
@@ -60607,19 +62072,19 @@ function InformalVoteCard({
   const mine = vote.ballots.find((ballot) => ballot.humanId === currentHumanId)?.optionId;
   const open = vote.status === "open";
   const status = vote.status === "open" ? "\u4ECD\u5728\u6536\u96C6" : vote.status === "expired" ? "\u5DF2\u5230\u622A\u6B62\u65F6\u95F4" : "\u53D1\u8D77\u4EBA\u5DF2\u7ED3\u675F";
-  return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("section", { className: "informal-vote-card", "aria-label": `\u6295\u7968 \xB7 ${vote.question}`, "data-vote-status": vote.status, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: "\u968F\u624B\u95EE\u95EE \xB7 \u4E0D\u5F62\u6210\u51B3\u5B9A" }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("strong", { children: status })
+  return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("section", { className: "informal-vote-card", "aria-label": `\u6295\u7968 \xB7 ${vote.question}`, "data-vote-status": vote.status, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: "\u968F\u624B\u95EE\u95EE \xB7 \u4E0D\u5F62\u6210\u51B3\u5B9A" }),
+      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("strong", { children: status })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("h3", { children: vote.question }),
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("p", { className: "vote-meta", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("h3", { children: vote.question }),
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("p", { className: "vote-meta", children: [
       "\u5B9E\u540D \xB7 \u5F53\u524D\u6210\u5458\u53EF\u53C2\u4E0E \xB7 \u622A\u6B62 ",
       formatDeadline(vote.closesAt)
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("div", { className: "vote-options", children: vote.options.map((option) => {
+    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { className: "vote-options", children: vote.options.map((option) => {
       const ballots = vote.ballots.filter((ballot) => ballot.optionId === option.optionId);
-      return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(
+      return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(
         "button",
         {
           type: "button",
@@ -60627,18 +62092,18 @@ function InformalVoteCard({
           disabled: !open,
           onClick: () => onCast(vote, option.optionId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: option.label }),
-            /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("strong", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: option.label }),
+            /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("strong", { children: [
               ballots.length,
               " \u7968"
             ] }),
-            ballots.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("small", { children: ballots.map((ballot) => ballot.displayName).join("\u3001") })
+            ballots.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("small", { children: ballots.map((ballot) => ballot.displayName).join("\u3001") })
           ]
         },
         option.optionId
       );
     }) }),
-    open && (vote.createdBy.humanId === currentHumanId || canSteward) && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", className: "vote-close-action", onClick: () => onClose(vote), children: "\u7ED3\u675F\u6295\u7968" })
+    open && (vote.createdBy.humanId === currentHumanId || canSteward) && /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", className: "vote-close-action", onClick: () => onClose(vote), children: "\u7ED3\u675F\u6295\u7968" })
   ] });
 }
 function formatDeadline(value) {
@@ -60651,7 +62116,7 @@ function formatDeadline(value) {
 }
 
 // src/MessageInteraction.tsx
-var import_jsx_runtime32 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime39 = __toESM(require_jsx_runtime(), 1);
 function eventOwnerHumanId(event) {
   return event.actor.kind === "human" ? event.actor.humanId : event.actor.human.humanId;
 }
@@ -60680,12 +62145,12 @@ function MessageInteraction({
   onSetReaction
 }) {
   const shared = useSharedArtifacts();
-  const [pendingReaction, setPendingReaction] = (0, import_react31.useState)();
-  const [reactionError, setReactionError] = (0, import_react31.useState)();
-  const [voteDraftOpen, setVoteDraftOpen] = (0, import_react31.useState)(false);
-  const pendingRef = (0, import_react31.useRef)(false);
-  const reactionTriggerRef = (0, import_react31.useRef)(null);
-  const moreTriggerRef = (0, import_react31.useRef)(null);
+  const [pendingReaction, setPendingReaction] = (0, import_react37.useState)();
+  const [reactionError, setReactionError] = (0, import_react37.useState)();
+  const [voteDraftOpen, setVoteDraftOpen] = (0, import_react37.useState)(false);
+  const pendingRef = (0, import_react37.useRef)(false);
+  const reactionTriggerRef = (0, import_react37.useRef)(null);
+  const moreTriggerRef = (0, import_react37.useRef)(null);
   const eventReactions = reactionsForEvent(event.eventId, reactions);
   const activeReactions = new Set(
     currentHumanId ? eventReactions.filter((reaction) => reaction.humanIds.includes(currentHumanId)).map((item) => item.emoji) : []
@@ -60701,10 +62166,10 @@ function MessageInteraction({
       setPendingReaction(void 0);
     });
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "message-interaction", "data-message-interaction-event-id": event.eventId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(SharedArtifactCards, { eventId: event.eventId }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(SharedArtifactMessageFeedback, { eventId: event.eventId }),
-    currentHumanId && onSetReaction && /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)("div", { className: "message-interaction", "data-message-interaction-event-id": event.eventId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(SharedArtifactCards, { eventId: event.eventId }),
+    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(SharedArtifactMessageFeedback, { eventId: event.eventId }),
+    currentHumanId && onSetReaction && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
       ReactionBar,
       {
         eventId: event.eventId,
@@ -60716,7 +62181,7 @@ function MessageInteraction({
         onSetReaction: requestReaction
       }
     ),
-    currentHumanId && onCommitWork && onDeclineWork && onAcceptWorkResult && onCompleteWork && works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+    currentHumanId && onCommitWork && onDeclineWork && onAcceptWorkResult && onCompleteWork && works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
       CollectiveWorkCard,
       {
         work: work2,
@@ -60735,7 +62200,7 @@ function MessageInteraction({
       },
       work2.workId
     )),
-    currentHumanId && onCastVote && onCloseVote && votes.map((vote) => /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+    currentHumanId && onCastVote && onCloseVote && votes.map((vote) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
       InformalVoteCard,
       {
         vote,
@@ -60746,7 +62211,7 @@ function MessageInteraction({
       },
       vote.voteId
     )),
-    voteDraftOpen && onCreateVote && /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+    voteDraftOpen && onCreateVote && /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
       InformalVoteComposer,
       {
         sourceEventId: event.eventId,
@@ -60755,7 +62220,7 @@ function MessageInteraction({
         onCancel: () => setVoteDraftOpen(false)
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
       MessageActionBar,
       {
         eventLabel: actorDisplayName(event),
@@ -60775,7 +62240,7 @@ function MessageInteraction({
 }
 
 // src/MessageReceipt.tsx
-var import_jsx_runtime33 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime40 = __toESM(require_jsx_runtime(), 1);
 function MessageReceipt({
   event,
   replies,
@@ -60796,21 +62261,21 @@ function MessageReceipt({
     (w) => w.sourceEventId === event.eventId && w.assignment?.connectionId === recipient.connectionId && w.assignment.catId === recipient.agentId && w.assignment.humanId === recipient.humanId
   );
   const label = response ? "\u5DF2\u56DE\u590D" : work2?.status === "result_ready" ? "\u5DF2\u4EA4\u56DE\u7ED3\u679C" : work2?.status === "in_progress" ? "\u63A8\u8FDB\u4E2D" : work2?.status === "blocked" ? "\u7B49\u5F85\u4F9D\u8D56" : work2?.lifecycle === "committed" ? "\u5DF2\u63A5\u4E0B" : "\u56DE\u5E94\u72B6\u6001\u5F85\u786E\u8BA4";
-  return /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "message-receipt", role: "status", "data-recipient-id": recipient.agentId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("span", { className: "receipt-status", "data-host-ui-slot": "receipt", "data-source-event-id": event.eventId, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { className: "receipt-dot", "data-state": response ? "done" : work2?.status ?? "unknown", "aria-hidden": "true" }),
-      /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { className: "message-receipt", role: "status", "data-recipient-id": recipient.agentId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("span", { className: "receipt-status", "data-host-ui-slot": "receipt", "data-source-event-id": event.eventId, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { className: "receipt-dot", "data-state": response ? "done" : work2?.status ?? "unknown", "aria-hidden": "true" }),
+      /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("span", { children: [
         cat ? participantLabel(cat, participants) : recipient.agentId,
         " \xB7 ",
         t(label)
       ] })
     ] }),
-    (response || work2?.resultEventId) && /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: () => onOpen(response?.eventId ?? work2?.resultEventId ?? event.eventId), children: t("\u67E5\u770B\u56DE\u590D") })
+    (response || work2?.resultEventId) && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("button", { type: "button", onClick: () => onOpen(response?.eventId ?? work2?.resultEventId ?? event.eventId), children: t("\u67E5\u770B\u56DE\u590D") })
   ] });
 }
 
 // src/ChannelMessage.tsx
-var import_jsx_runtime34 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime41 = __toESM(require_jsx_runtime(), 1);
 function ChannelMessage({
   thread,
   onOpenTopic,
@@ -60844,8 +62309,8 @@ function ChannelMessage({
   const t = useCollectiveText();
   const author2 = authorPresentation(thread.root, currentHumanId);
   const { root: root5, replies } = thread;
-  const body4 = /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(MessageBody, { event: root5, participants, responseState: replies.length ? "responded" : "waiting" });
-  const interaction = /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
+  const body4 = /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MessageBody, { event: root5, participants, responseState: replies.length ? "responded" : "waiting" });
+  const interaction = /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(
     MessageInteraction,
     {
       event: root5,
@@ -60872,20 +62337,20 @@ function ChannelMessage({
       onSetReaction
     }
   );
-  const replyVitals = replies.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("button", { type: "button", className: "reply-vitals", onClick: () => onOpenTopic(root5.eventId), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { className: "reply-summary", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("strong", { children: language === "en" ? `${replies.length} ${replies.length === 1 ? "reply" : "replies"}` : `${replies.length} \u6761\u56DE\u590D` }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("small", { children: [
+  const replyVitals = replies.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("button", { type: "button", className: "reply-vitals", onClick: () => onOpenTopic(root5.eventId), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("span", { className: "reply-summary", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("strong", { children: language === "en" ? `${replies.length} ${replies.length === 1 ? "reply" : "replies"}` : `${replies.length} \u6761\u56DE\u590D` }),
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("small", { children: [
         t("\u6700\u8FD1"),
         " ",
         formatEventTime(replies.at(-1)?.acceptedAt ?? root5.acceptedAt, language)
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { className: "reply-preview", children: replies.slice(-2).map((reply) => /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { className: "reply-preview-item", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(MessageAvatar, { event: reply, participants, compact: true }),
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("span", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("b", { children: publicActorLabel(reply, participants) }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("span", { children: reply.body })
+    /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("span", { className: "reply-preview", children: replies.slice(-2).map((reply) => /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("span", { className: "reply-preview-item", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(MessageAvatar, { event: reply, participants, compact: true }),
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("b", { children: publicActorLabel(reply, participants) }),
+        /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("span", { children: reply.body })
       ] })
     ] }, reply.eventId)) })
   ] }) : null;
@@ -60896,13 +62361,13 @@ function ChannelMessage({
     "data-highlighted": highlighted,
     tabIndex: -1
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("article", { ...frame, className: "message", "data-author": v2 ? author2 : void 0, children: /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("div", { className: "message-content", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("header", { className: "message-meta", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(CollectiveNameplate, { event: root5, participants, onOpen: () => onOpenMember(root5) }),
-      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: root5.acceptedAt, children: formatEventTime(root5.acceptedAt, language) })
+  return /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("article", { ...frame, className: "message", "data-author": v2 ? author2 : void 0, children: /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("div", { className: "message-content", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("header", { className: "message-meta", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(CollectiveNameplate, { event: root5, participants, onOpen: () => onOpenMember(root5) }),
+      (!v2 || showTime) && /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("time", { className: v2 ? "message-time" : void 0, dateTime: root5.acceptedAt, children: formatEventTime(root5.acceptedAt, language) })
     ] }),
     body4,
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime41.jsx)(
       MessageReceipt,
       {
         event: root5,
@@ -61177,7 +62642,7 @@ function collaborationForChannel(collaboration, channelId) {
 }
 
 // src/ChannelConversationFlow.tsx
-var import_jsx_runtime35 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime42 = __toESM(require_jsx_runtime(), 1);
 function ChannelConversationFlow({
   flowRef,
   threads,
@@ -61199,19 +62664,19 @@ function ChannelConversationFlow({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { ref: flowRef, className: "channel-flow", "aria-live": "polite", children: [
-    threads.length === 0 && !children ? /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { className: "channel-empty", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("h2", { children: t(search2 ? "\u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA" : "\u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759") }),
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("p", { children: search2 ? t("\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002") : language === "en" ? `${humanName}, start with a message.` : `${humanName}\uFF0C\u4ECE\u4E00\u53E5\u8BDD\u5F00\u59CB\u5427\u3002` })
-    ] }) : threads.map((thread, index4) => /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("div", { children: [
-      (!index4 || eventDayLabel(threads[index4 - 1]?.root.acceptedAt, language) !== eventDayLabel(thread.root.acceptedAt, language)) && /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("div", { className: "day-divider", children: /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("span", { children: eventDayLabel(thread.root.acceptedAt, language) }) }),
-      search2 && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("button", { type: "button", className: "search-source", onClick: () => actions.returnToRoot(thread.root), children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { ref: flowRef, className: "channel-flow", "aria-live": "polite", children: [
+    threads.length === 0 && !children ? /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { className: "channel-empty", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("h2", { children: t(search2 ? "\u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA" : "\u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759") }),
+      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { children: search2 ? t("\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002") : language === "en" ? `${humanName}, start with a message.` : `${humanName}\uFF0C\u4ECE\u4E00\u53E5\u8BDD\u5F00\u59CB\u5427\u3002` })
+    ] }) : threads.map((thread, index4) => /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { children: [
+      (!index4 || eventDayLabel(threads[index4 - 1]?.root.acceptedAt, language) !== eventDayLabel(thread.root.acceptedAt, language)) && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("div", { className: "day-divider", children: /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("span", { children: eventDayLabel(thread.root.acceptedAt, language) }) }),
+      search2 && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("button", { type: "button", className: "search-source", onClick: () => actions.returnToRoot(thread.root), children: [
         "# ",
         eventChannelId(thread.root),
         " \xB7 ",
         t("\u5728\u9891\u9053\u4E2D\u67E5\u770B")
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
         ChannelMessage,
         {
           thread,
@@ -61244,9 +62709,9 @@ function ChannelConversationFlow({
       )
     ] }, thread.root.eventId)),
     children,
-    legacy.length > 0 && !search2 && /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)("details", { className: "legacy-history", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime35.jsx)("summary", { children: t("\u65E9\u671F\u8BB0\u5F55 \xB7 \u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4") }),
-      legacy.map((event, index4) => /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(
+    legacy.length > 0 && !search2 && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("details", { className: "legacy-history", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("summary", { children: t("\u65E9\u671F\u8BB0\u5F55 \xB7 \u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4") }),
+      legacy.map((event, index4) => /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
         TopicMessage,
         {
           event,
@@ -61263,7 +62728,7 @@ function ChannelConversationFlow({
 }
 
 // src/ChannelHeader.tsx
-var import_jsx_runtime36 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime43 = __toESM(require_jsx_runtime(), 1);
 function ChannelHeader({
   collectiveName,
   channelId,
@@ -61286,40 +62751,40 @@ function ChannelHeader({
     event.currentTarget.closest("details")?.removeAttribute("open");
     onChannelCafe?.();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(HeaderFrame, { className: "scene-header", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": t("\u9891\u9053\u5BFC\u822A"), onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(ShellGlyph, { name: "panelLeft" }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("div", { className: "channel-heading", children: destinationTitle ? /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("h1", { children: destinationTitle }) : searchCount !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("h1", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(HeaderFrame, { className: "scene-header", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": t("\u9891\u9053\u5BFC\u822A"), onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(ShellGlyph, { name: "panelLeft" }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("div", { className: "channel-heading", children: destinationTitle ? /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("h1", { children: destinationTitle }) : searchCount !== void 0 ? /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("h1", { children: [
       t("\u641C\u7D22\u7ED3\u679C"),
       " \xB7 ",
       searchCount
-    ] }) : /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("details", { className: "channel-menu", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("summary", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("h1", { children: [
+    ] }) : /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("details", { className: "channel-menu", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("summary", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("h1", { children: [
           "# ",
           channelId
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(ShellGlyph, { name: "chevronDown" })
+        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(ShellGlyph, { name: "chevronDown" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { className: "channel-menu-popover", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("span", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { className: "channel-menu-popover", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("span", { children: [
           collectiveName,
           " \xB7 # ",
           channelId
         ] }),
-        onChannelCafe && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("button", { type: "button", onClick: openChannelCafe, children: [
+        onChannelCafe && /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("button", { type: "button", onClick: openChannelCafe, children: [
           t("\u8C01\u7559\u610F\u9891\u9053\u6D88\u606F\u2026"),
           " ",
-          /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
+          /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
         ] })
       ] })
     ] }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("div", { className: "scene-header-actions", children: [
-      connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { className: "offline-label", children: t("\u6682\u65F6\u79BB\u7EBF") }),
-      onMembers && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("button", { type: "button", onClick: onMembers, "aria-label": t("\u67E5\u770B\u6210\u5458"), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(ShellGlyph, { name: "users" }),
-        /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("span", { children: memberCount === void 0 ? t("\u6210\u5458") : `${memberCount} ${t("\u6210\u5458")}` })
+    /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { className: "scene-header-actions", children: [
+      connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("span", { className: "offline-label", children: t("\u6682\u65F6\u79BB\u7EBF") }),
+      onMembers && /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("button", { type: "button", onClick: onMembers, "aria-label": t("\u67E5\u770B\u6210\u5458"), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(ShellGlyph, { name: "users" }),
+        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("span", { children: memberCount === void 0 ? t("\u6210\u5458") : `${memberCount} ${t("\u6210\u5458")}` })
       ] }),
-      onArtifacts && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(
+      onArtifacts && /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(
         "button",
         {
           type: "button",
@@ -61327,15 +62792,15 @@ function ChannelHeader({
           "aria-label": t("\u9891\u9053\u4F5C\u54C1"),
           "aria-pressed": activePanel === "artifacts",
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(WorksIcon, {}),
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(WorksIcon, {}),
+            /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("span", { children: [
               t("\u4F5C\u54C1"),
               artifactCount === void 0 ? "" : ` ${artifactCount}`
             ] })
           ]
         }
       ),
-      onWorks && /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)(
+      onWorks && /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(
         "button",
         {
           type: "button",
@@ -61343,21 +62808,21 @@ function ChannelHeader({
           "aria-label": `${t("\u4EFB\u52A1")}${workCount === void 0 ? "" : ` ${workCount}`}`,
           "aria-pressed": activePanel === "works",
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(ShellGlyph, { name: "checkSquare" }),
-            /* @__PURE__ */ (0, import_jsx_runtime36.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(ShellGlyph, { name: "checkSquare" }),
+            /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("span", { children: [
               t("\u4EFB\u52A1"),
               workCount === void 0 ? "" : ` ${workCount}`
             ] })
           ]
         }
       ),
-      onSearch && /* @__PURE__ */ (0, import_jsx_runtime36.jsx)("button", { type: "button", "aria-label": t("\u641C\u7D22\u9891\u9053\u4E0E\u8BDD\u9898"), onClick: onSearch, children: /* @__PURE__ */ (0, import_jsx_runtime36.jsx)(ShellGlyph, { name: "search" }) })
+      onSearch && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("button", { type: "button", "aria-label": t("\u641C\u7D22\u9891\u9053\u4E0E\u8BDD\u9898"), onClick: onSearch, children: /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(ShellGlyph, { name: "search" }) })
     ] })
   ] });
 }
 
 // src/ChannelRightPanel.tsx
-var import_jsx_runtime37 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime44 = __toESM(require_jsx_runtime(), 1);
 function ChannelRightPanel({
   title,
   onClose,
@@ -61366,18 +62831,18 @@ function ChannelRightPanel({
   const t = useCollectiveText();
   const language = useCollectiveLanguage();
   const label = t(title);
-  return /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("aside", { className: "context-panel channel-right-panel", "aria-label": label, "data-spatial-role": "context-panel", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)("header", { className: "context-header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("h2", { children: label }),
-      /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("button", { type: "button", "aria-label": language === "en" ? `Close ${label}` : `\u5173\u95ED${label}`, onClick: onClose, children: "\xD7" })
+  return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("aside", { className: "context-panel channel-right-panel", "aria-label": label, "data-spatial-role": "context-panel", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("header", { className: "context-header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("h2", { children: label }),
+      /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { type: "button", "aria-label": language === "en" ? `Close ${label}` : `\u5173\u95ED${label}`, onClick: onClose, children: "\xD7" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)("div", { className: "channel-right-content", children })
+    /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("div", { className: "channel-right-content", children })
   ] });
 }
 
 // src/TopicPanel.tsx
-var import_react32 = __toESM(require_react(), 1);
-var import_jsx_runtime38 = __toESM(require_jsx_runtime(), 1);
+var import_react38 = __toESM(require_react(), 1);
+var import_jsx_runtime45 = __toESM(require_jsx_runtime(), 1);
 function TopicPanel({
   thread,
   replyRequest,
@@ -61409,18 +62874,18 @@ function TopicPanel({
   onSetReaction,
   highlightedId
 }) {
-  const composerInputId = (0, import_react32.useId)();
+  const composerInputId = (0, import_react38.useId)();
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  const [reply, setReply] = (0, import_react32.useState)();
-  const consumedReplyRequest = (0, import_react32.useRef)();
+  const [reply, setReply] = (0, import_react38.useState)();
+  const consumedReplyRequest = (0, import_react38.useRef)();
   const location2 = thread.root.location ?? (thread.root.target.kind === "channel" ? { channelId: thread.root.target.channelId } : void 0);
   const topicEvents = [thread.root, ...thread.replies];
   const selectReply2 = (event) => ({
     eventId: event.eventId,
     ...replySelectionForEvent(event, participants, location2?.channelId ?? "", currentHumanId)
   });
-  (0, import_react32.useEffect)(() => {
+  (0, import_react38.useEffect)(() => {
     if (!replyRequest || consumedReplyRequest.current === replyRequest) return;
     consumedReplyRequest.current = replyRequest;
     const event = [thread.root, ...thread.replies].find((item) => item.eventId === replyRequest.eventId);
@@ -61432,7 +62897,7 @@ function TopicPanel({
   const eventWithInteractions = (event, index4) => {
     const linkedWorks = works.filter((work2) => work2.sourceEventId === event.eventId);
     const linkedVotes = votes.filter((vote) => vote.sourceEventId === event.eventId);
-    return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(
       "div",
       {
         id: `collective-event-${event.eventId}`,
@@ -61441,7 +62906,7 @@ function TopicPanel({
         "data-highlighted": highlightedId === event.eventId,
         tabIndex: -1,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
             TopicMessage,
             {
               event,
@@ -61451,7 +62916,7 @@ function TopicPanel({
               showTime: isLastOfSelfRunInTopic(topicEvents, index4, currentHumanId)
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
             MessageInteraction,
             {
               event,
@@ -61482,25 +62947,25 @@ function TopicPanel({
       event.eventId
     );
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("aside", { className: "context-panel", "data-spatial-role": "context-panel", "aria-label": t("\u8BDD\u9898"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("header", { className: "context-header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("aside", { className: "context-panel", "data-spatial-role": "context-panel", "aria-label": t("\u8BDD\u9898"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("header", { className: "context-header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("span", { children: [
           t("\u8BDD\u9898"),
           " \xB7 ",
           location2 ? `# ${location2.channelId}` : t("\u65E9\u671F\u8BB0\u5F55")
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("h2", { children: language === "en" ? `${thread.replies.length} ${thread.replies.length === 1 ? "reply" : "replies"}` : `${thread.replies.length} \u6761\u56DE\u590D` })
+        /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("h2", { children: language === "en" ? `${thread.replies.length} ${thread.replies.length === 1 ? "reply" : "replies"}` : `${thread.replies.length} \u6761\u56DE\u590D` })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", onClick: onClose, "aria-label": t("\u5173\u95ED\u8BDD\u9898"), children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("button", { type: "button", onClick: onClose, "aria-label": t("\u5173\u95ED\u8BDD\u9898"), children: "\xD7" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("button", { type: "button", className: "topic-return", onClick: onReturnToSource, children: t("\u5728\u9891\u9053\u4E2D\u67E5\u770B") }),
-    /* @__PURE__ */ (0, import_jsx_runtime38.jsxs)("div", { className: "topic-flow", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("button", { type: "button", className: "topic-return", onClick: onReturnToSource, children: t("\u5728\u9891\u9053\u4E2D\u67E5\u770B") }),
+    /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("div", { className: "topic-flow", children: [
       eventWithInteractions(thread.root, 0),
-      /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("div", { className: "topic-divider", children: /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("span", { children: t("\u56DE\u5E94") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("div", { className: "topic-divider", children: /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { children: t("\u56DE\u5E94") }) }),
       thread.replies.map((reply2, index4) => eventWithInteractions(reply2, index4 + 1))
     ] }),
-    location2 ? /* @__PURE__ */ (0, import_jsx_runtime38.jsx)(
+    location2 ? /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
       Composer,
       {
         compact: true,
@@ -61514,7 +62979,8 @@ function TopicPanel({
         replyEvents: topicEvents,
         placeholder: language === "en" ? `Reply to ${actorDisplayName(thread.root)}` : `\u56DE\u590D ${actorDisplayName(thread.root)}`,
         delivery,
-        onSend: (body4, recipient, entrust, responseRequested, replyToEventId) => onSend(body4, {
+        onSend: (body4, recipient, entrust, responseRequested, replyToEventId, content3) => onSend(body4, {
+          ...content3,
           location: { ...location2, rootEventId: location2.rootEventId ?? thread.root.eventId },
           recipient,
           replyToEventId: replyToEventId ?? thread.root.eventId,
@@ -61522,12 +62988,12 @@ function TopicPanel({
           ...entrust && recipient.kind === "agent" ? { workRequest: "entrust" } : {}
         })
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime38.jsx)("p", { children: t("\u8FD9\u6761\u65E9\u671F\u8BB0\u5F55\u7684\u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4\uFF0C\u6682\u65F6\u65E0\u6CD5\u56DE\u590D\u3002") })
+    ) : /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("p", { children: t("\u8FD9\u6761\u65E9\u671F\u8BB0\u5F55\u7684\u4F4D\u7F6E\u5C1A\u672A\u786E\u8BA4\uFF0C\u6682\u65F6\u65E0\u6CD5\u56DE\u590D\u3002") })
   ] });
 }
 
 // src/ChannelTopicContext.tsx
-var import_jsx_runtime39 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime46 = __toESM(require_jsx_runtime(), 1);
 function ChannelTopicContext({
   scene,
   topic,
@@ -61541,7 +63007,7 @@ function ChannelTopicContext({
   onClose,
   onReturnToSource
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
     TopicPanel,
     {
       namespace: scene.namespace,
@@ -61560,7 +63026,7 @@ function ChannelTopicContext({
       onClose,
       onReturnToSource,
       onSend: scene.onSend,
-      onProposeWork: (id28) => void scene.onProposeWork(id28).catch(() => void 0),
+      onProposeWork: (id30) => void scene.onProposeWork(id30).catch(() => void 0),
       onCommitWork: (work2, participant, accountability) => void scene.onCommitWork(work2, participant, accountability).catch(() => void 0),
       onDeclineWork: (work2) => void scene.onDeclineWork(work2).catch(() => void 0),
       onAcceptWorkResult: (work2) => void scene.onAcceptWorkResult(work2).catch(() => void 0),
@@ -61688,7 +63154,7 @@ function firstEntryDemo(narrator, humanName) {
 }
 
 // src/first-entry/DemoPlayback.tsx
-var import_jsx_runtime40 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime47 = __toESM(require_jsx_runtime(), 1);
 function DemoPlayback({
   beat,
   narrator,
@@ -61697,10 +63163,10 @@ function DemoPlayback({
 }) {
   if (beat === 0) return null;
   const demo = firstEntryDemo(narrator, humanName);
-  return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("section", { className: "journey-demo-thread", "data-demo": "conversation", "data-guide-thread": true, "aria-label": "\u6F14\u793A\u5BF9\u8BDD\uFF0C\u4E0D\u4F1A\u53D1\u9001", children: [
-    beat === 1 && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { className: "journey-demo-label", children: "\u6F14\u793A \xB7 \u4E0D\u4F1A\u53D1\u9001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("section", { className: "journey-demo-thread", "data-demo": "conversation", "data-guide-thread": true, "aria-label": "\u6F14\u793A\u5BF9\u8BDD\uFF0C\u4E0D\u4F1A\u53D1\u9001", children: [
+    beat === 1 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)(import_jsx_runtime47.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { className: "journey-demo-label", children: "\u6F14\u793A \xB7 \u4E0D\u4F1A\u53D1\u9001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
         ChannelMessage,
         {
           thread: { root: demo.root, replies: [] },
@@ -61712,7 +63178,7 @@ function DemoPlayback({
           onOpenMember: () => void 0
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { className: "journey-demo-replies", children: /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { className: "journey-demo-replies", children: /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
         TopicMessage,
         {
           event: demo.firstReply,
@@ -61722,11 +63188,11 @@ function DemoPlayback({
         }
       ) })
     ] }),
-    beat === 2 && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("div", { className: "journey-demo-replies", children: /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { className: "journey-demo-neighbor", "data-guide-neighbor": true, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { className: "journey-demo-label", children: "\u6F14\u793A \xB7 \u4E0D\u4F1A\u53D1\u9001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("p", { children: "\u793A\u4F8B \xB7 \u53E6\u4E00\u5BB6 Caf\xE9" }),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(TopicMessage, { event: demo.neighborAsk, currentHumanId: narrator.humanId, presentation }),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
+    beat === 2 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("div", { className: "journey-demo-replies", children: /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { className: "journey-demo-neighbor", "data-guide-neighbor": true, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { className: "journey-demo-label", children: "\u6F14\u793A \xB7 \u4E0D\u4F1A\u53D1\u9001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("p", { children: "\u793A\u4F8B \xB7 \u53E6\u4E00\u5BB6 Caf\xE9" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(TopicMessage, { event: demo.neighborAsk, currentHumanId: narrator.humanId, presentation }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
         TopicMessage,
         {
           event: demo.neighborReply,
@@ -61736,9 +63202,9 @@ function DemoPlayback({
         }
       )
     ] }) }),
-    beat === 3 && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("div", { "data-guide-work": true, className: "journey-demo-work", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("span", { className: "journey-demo-label", children: "\u6F14\u793A \xB7 \u4E0D\u4F1A\u53D1\u9001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime40.jsx)(
+    beat === 3 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("div", { "data-guide-work": true, className: "journey-demo-work", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { className: "journey-demo-label", children: "\u6F14\u793A \xB7 \u4E0D\u4F1A\u53D1\u9001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
         CollectiveWorkCard,
         {
           work: demo.work,
@@ -61760,7 +63226,7 @@ function DemoPlayback({
 }
 
 // src/PublicChannelActivity.tsx
-var import_jsx_runtime41 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime48 = __toESM(require_jsx_runtime(), 1);
 function PublicChannelActivity({
   works,
   humanId,
@@ -61780,7 +63246,7 @@ function PublicChannelActivity({
     const cat = participants.find(
       (p) => p.serviceInstanceId === work2.serviceInstanceId && p.collectiveId === work2.collectiveId && p.connectionId === assignment.connectionId && p.humanId === assignment.humanId && p.catId === assignment.catId
     );
-    return /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("button", { type: "button", onClick: () => onOpen(work2.sourceEventId), children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("button", { type: "button", onClick: () => onOpen(work2.sourceEventId), children: [
       cat ? participantLabel(cat, participants) : assignment.displayName,
       " \xB7 ",
       work2.title,
@@ -61788,22 +63254,22 @@ function PublicChannelActivity({
       t("\u516C\u5F00\u8FDB\u5EA6\uFF1A\u63A8\u8FDB\u4E2D")
     ] }, work2.workId);
   });
-  return /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("section", { className: "public-channel-activity", "aria-label": t("\u4E3A\u6211\u6267\u884C\u7684\u516C\u5F00\u4EFB\u52A1"), children: rows.length === 1 ? rows : /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("details", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime41.jsxs)("summary", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("section", { className: "public-channel-activity", "aria-label": t("\u4E3A\u6211\u6267\u884C\u7684\u516C\u5F00\u4EFB\u52A1"), children: rows.length === 1 ? rows : /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("details", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("summary", { children: [
       active.length,
       " \xB7 ",
       t("\u516C\u5F00\u4EFB\u52A1\u8FDB\u884C\u4E2D")
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime41.jsx)("div", { children: rows })
+    /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { children: rows })
   ] }) });
 }
 
 // src/RoadmapWorkspace.tsx
-var import_react43 = __toESM(require_react(), 1);
+var import_react49 = __toESM(require_react(), 1);
 
 // src/BindingVoteCard.tsx
-var import_react33 = __toESM(require_react(), 1);
-var import_jsx_runtime42 = __toESM(require_jsx_runtime(), 1);
+var import_react39 = __toESM(require_react(), 1);
+var import_jsx_runtime49 = __toESM(require_jsx_runtime(), 1);
 function BindingVoteSection({
   roadmap,
   votes,
@@ -61816,8 +63282,8 @@ function BindingVoteSection({
 }) {
   const relevant = votes.filter((vote) => vote.target.roadmapId === roadmap.roadmapId);
   const hasUnsettledRound = relevant.some((vote) => vote.lifecycle === "open");
-  return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("section", { className: "binding-vote-section", "aria-label": "\u9879\u76EE\u5224\u65AD", children: [
-    relevant.map((vote) => /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("section", { className: "binding-vote-section", "aria-label": "\u9879\u76EE\u5224\u65AD", children: [
+    relevant.map((vote) => /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(
       BindingVoteCard,
       {
         vote,
@@ -61829,18 +63295,18 @@ function BindingVoteSection({
       },
       vote.bindingVoteId
     )),
-    roadmap.accountableHumanId === currentHumanId && !hasUnsettledRound && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(BindingVoteCreator, { roadmap, onCreate })
+    roadmap.accountableHumanId === currentHumanId && !hasUnsettledRound && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(BindingVoteCreator, { roadmap, onCreate })
   ] });
 }
 function BindingVoteCreator({
   roadmap,
   onCreate
 }) {
-  const [open, setOpen] = (0, import_react33.useState)(false);
+  const [open, setOpen] = (0, import_react39.useState)(false);
   if (!open) {
-    return /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("button", { type: "button", className: "binding-vote-create", onClick: () => setOpen(true), children: "\u53D1\u8D77\u6709\u7EA6\u675F\u529B\u7684\u5224\u65AD" });
+    return /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", className: "binding-vote-create", onClick: () => setOpen(true), children: "\u53D1\u8D77\u6709\u7EA6\u675F\u529B\u7684\u5224\u65AD" });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(
     VoteDraftForm,
     {
       initialQuestion: `${roadmap.title}\u63A5\u4E0B\u6765\u91C7\u7528\u54EA\u4E00\u79CD\u65B9\u6848\uFF1F`,
@@ -61868,17 +63334,17 @@ function BindingVoteCard({
   const authority = vote.rules.eligibleVoters.find((voter) => voter.humanId === vote.authority.humanId);
   const canSettle = vote.authority.humanId === currentHumanId && vote.lifecycle === "open" && (vote.status === "expired" || vote.status === "open" && vote.ballots.length === vote.rules.eligibleVoters.length);
   const canConfirmInvalidation = vote.authority.humanId === currentHumanId && vote.lifecycle === "open" && vote.status === "invalidated";
-  return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("article", { className: "binding-vote-card", "aria-label": `\u6709\u7EA6\u675F\u529B\u7684\u5224\u65AD \xB7 ${vote.question}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("span", { children: "\u6709\u7EA6\u675F\u529B\u7684\u9879\u76EE\u5224\u65AD" }),
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("strong", { children: bindingVoteStatus(vote) })
+  return /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("article", { className: "binding-vote-card", "aria-label": `\u6709\u7EA6\u675F\u529B\u7684\u5224\u65AD \xB7 ${vote.question}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { children: "\u6709\u7EA6\u675F\u529B\u7684\u9879\u76EE\u5224\u65AD" }),
+      /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("strong", { children: bindingVoteStatus(vote) })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("h3", { children: vote.question }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("p", { className: "binding-authority", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("h3", { children: vote.question }),
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("p", { className: "binding-authority", children: [
       authority?.displayName ?? "\u9879\u76EE\u8D1F\u8D23\u4EBA",
       "\u4EE5\u9879\u76EE\u8D1F\u8D23\u4EBA\u6743\u9650\u5F00\u7968 \xB7 \u53EA\u751F\u6210 Decision\uFF0C\u4E0D\u81EA\u52A8\u6539\u53D8\u9879\u76EE"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("p", { className: "binding-rule", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("p", { className: "binding-rule", children: [
       vote.rules.eligibleVoters.length,
       " \u4F4D\u51BB\u7ED3\u6295\u7968\u4EBA \xB7 ",
       vote.rules.quorumCount,
@@ -61887,16 +63353,16 @@ function BindingVoteCard({
       vote.rules.passCount,
       " \u7968\u624D\u901A\u8FC7"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("p", { className: "binding-voters", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("p", { className: "binding-voters", children: [
       "\u6295\u7968\u4EBA \xB7 ",
       vote.rules.eligibleVoters.map((voter) => voter.displayName).join("\u3001")
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { className: "binding-options", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("div", { className: "binding-options", children: [
       vote.options.map((option) => {
         const ballots = vote.ballots.filter(
           (ballot) => ballot.choice.kind === "option" && ballot.choice.optionId === option.optionId
         );
-        return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(
+        return /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)(
           "button",
           {
             type: "button",
@@ -61904,18 +63370,18 @@ function BindingVoteCard({
             disabled: !acceptsBallots,
             onClick: () => onCast(vote, { kind: "option", optionId: option.optionId }),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("span", { children: option.label }),
-              /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("strong", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { children: option.label }),
+              /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("strong", { children: [
                 ballots.length,
                 " \u7968"
               ] }),
-              ballots.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("small", { children: ballots.map((ballot) => ballot.displayName).join("\u3001") })
+              ballots.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("small", { children: ballots.map((ballot) => ballot.displayName).join("\u3001") })
             ]
           },
           option.optionId
         );
       }),
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)(
         "button",
         {
           type: "button",
@@ -61923,8 +63389,8 @@ function BindingVoteCard({
           disabled: !acceptsBallots,
           onClick: () => onCast(vote, { kind: "abstain" }),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("span", { children: "\u5F03\u6743" }),
-            /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("strong", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { children: "\u5F03\u6743" }),
+            /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("strong", { children: [
               vote.ballots.filter((ballot) => ballot.choice.kind === "abstain").length,
               " \u7968"
             ] })
@@ -61932,20 +63398,20 @@ function BindingVoteCard({
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("div", { className: "binding-vote-actions", children: [
-      acceptsBallots && mine && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("button", { type: "button", className: "quiet-action", onClick: () => onWithdraw(vote), children: "\u64A4\u56DE\u6211\u7684\u7968" }),
-      canSettle && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("button", { type: "button", onClick: () => onSettle(vote), children: "\u7ED3\u7B97\u4E3A Decision" }),
-      canConfirmInvalidation && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("button", { type: "button", onClick: () => onSettle(vote), children: "\u786E\u8BA4\u672C\u8F6E\u5931\u6548" })
+    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("div", { className: "binding-vote-actions", children: [
+      acceptsBallots && mine && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", className: "quiet-action", onClick: () => onWithdraw(vote), children: "\u64A4\u56DE\u6211\u7684\u7968" }),
+      canSettle && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", onClick: () => onSettle(vote), children: "\u7ED3\u7B97\u4E3A Decision" }),
+      canConfirmInvalidation && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", onClick: () => onSettle(vote), children: "\u786E\u8BA4\u672C\u8F6E\u5931\u6548" })
     ] }),
-    vote.result?.outcome === "no_decision" && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { className: "decision-result", children: "\u672A\u8FBE\u5230\u51BB\u7ED3\u591A\u6570\uFF0C\u672C\u8F6E\u4E0D\u5F62\u6210\u51B3\u5B9A\u3002" }),
-    decision && /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("section", { className: "decision-card", "aria-label": `Decision \xB7 ${decision.statement}`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)("strong", { children: [
+    vote.result?.outcome === "no_decision" && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("p", { className: "decision-result", children: "\u672A\u8FBE\u5230\u51BB\u7ED3\u591A\u6570\uFF0C\u672C\u8F6E\u4E0D\u5F62\u6210\u51B3\u5B9A\u3002" }),
+    decision && /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("section", { className: "decision-card", "aria-label": `Decision \xB7 ${decision.statement}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("strong", { children: [
         "Decision \xB7 ",
         decision.statement
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("span", { children: "\u7968\u51B3\u4E0E\u6765\u6E90\u5DF2\u4FDD\u7559\uFF1B\u9879\u76EE\u672A\u88AB\u81EA\u52A8\u4FEE\u6539\u3002" })
+      /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { children: "\u7968\u51B3\u4E0E\u6765\u6E90\u5DF2\u4FDD\u7559\uFF1B\u9879\u76EE\u672A\u88AB\u81EA\u52A8\u4FEE\u6539\u3002" })
     ] }),
-    vote.status === "invalidated" && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)("p", { className: "decision-result", children: "\u8D44\u683C\u6216\u9879\u76EE\u8D1F\u8D23\u4EBA\u6743\u9650\u5DF2\u53D8\u5316\uFF0C\u672C\u8F6E\u5931\u6548\u4E14\u4E0D\u7F29\u5C0F\u5206\u6BCD\u3002" })
+    vote.status === "invalidated" && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("p", { className: "decision-result", children: "\u8D44\u683C\u6216\u9879\u76EE\u8D1F\u8D23\u4EBA\u6743\u9650\u5DF2\u53D8\u5316\uFF0C\u672C\u8F6E\u5931\u6548\u4E14\u4E0D\u7F29\u5C0F\u5206\u6BCD\u3002" })
   ] });
 }
 function bindingVoteStatus(vote) {
@@ -61956,8 +63422,8 @@ function bindingVoteStatus(vote) {
 }
 
 // src/ProjectAttentionPanel.tsx
-var import_react34 = __toESM(require_react(), 1);
-var import_jsx_runtime43 = __toESM(require_jsx_runtime(), 1);
+var import_react40 = __toESM(require_react(), 1);
+var import_jsx_runtime50 = __toESM(require_jsx_runtime(), 1);
 function ProjectAttentionPanel({
   roadmaps,
   works,
@@ -61967,13 +63433,13 @@ function ProjectAttentionPanel({
   hidden = false,
   onOpen
 }) {
-  const [selectedHumanId, setSelectedHumanId] = (0, import_react34.useState)(currentHumanId);
-  const [showAll, setShowAll] = (0, import_react34.useState)(false);
-  (0, import_react34.useEffect)(() => {
+  const [selectedHumanId, setSelectedHumanId] = (0, import_react40.useState)(currentHumanId);
+  const [showAll, setShowAll] = (0, import_react40.useState)(false);
+  (0, import_react40.useEffect)(() => {
     setSelectedHumanId(currentHumanId);
     setShowAll(false);
   }, [currentHumanId]);
-  const items = (0, import_react34.useMemo)(() => projectAttentionItems(roadmaps, works), [roadmaps, works]);
+  const items = (0, import_react40.useMemo)(() => projectAttentionItems(roadmaps, works), [roadmaps, works]);
   const selected = showAll ? items : items.filter((item) => item.targetHumanId === selectedHumanId);
   const people = humans.some((human) => human.humanId === currentHumanId) ? humans : [
     {
@@ -61984,17 +63450,17 @@ function ProjectAttentionPanel({
     },
     ...humans
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("section", { className: "project-attention", "aria-label": "\u9879\u76EE\u5F85\u529E", hidden, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("strong", { children: "\u5F85\u529E" }),
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("section", { className: "project-attention", "aria-label": "\u9879\u76EE\u5F85\u529E", hidden, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("strong", { children: "\u5F85\u529E" }),
+        /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("span", { children: [
           selected.length,
           " \u4EF6"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { className: "project-attention-controls", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("div", { className: "project-attention-controls", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
           "button",
           {
             type: "button",
@@ -62005,9 +63471,9 @@ function ProjectAttentionPanel({
             children: "\u5168\u90E8\u5F85\u529E"
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("label", { children: [
           "\u770B\u8C01\u7684\uFF1A",
-          /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
             "select",
             {
               "aria-label": "\u5F85\u529E\u6210\u5458",
@@ -62016,23 +63482,23 @@ function ProjectAttentionPanel({
                 setSelectedHumanId(event.currentTarget.value);
                 setShowAll(false);
               },
-              children: people.map((human) => /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("option", { value: human.humanId, children: human.humanId === currentHumanId ? "\u6211" : human.displayName }, human.humanId))
+              children: people.map((human) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("option", { value: human.humanId, children: human.humanId === currentHumanId ? "\u6211" : human.displayName }, human.humanId))
             }
           )
         ] })
       ] })
     ] }),
-    selected.length ? /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("ul", { children: selected.map((item) => /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("li", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("span", { className: `project-attention-status is-${item.kind}`, children: attentionStatus(item) }),
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("strong", { children: item.work.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)("span", { children: [
+    selected.length ? /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("ul", { children: selected.map((item) => /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("li", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { className: `project-attention-status is-${item.kind}`, children: attentionStatus(item) }),
+      /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("strong", { children: item.work.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("span", { children: [
           item.roadmap.title,
           waitingDays(item.sinceAt)
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("button", { type: "button", onClick: () => onOpen(item.roadmap, item.work), children: attentionAction(item, currentHumanId) })
-    ] }, item.key)) }) : /* @__PURE__ */ (0, import_jsx_runtime43.jsx)("p", { children: "\u5F53\u524D\u6CA1\u6709\u9700\u8981\u8FD9\u4F4D\u6210\u5458\u5904\u7406\u7684\u9879\u76EE\u4E8B\u9879\u3002" })
+      /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("button", { type: "button", onClick: () => onOpen(item.roadmap, item.work), children: attentionAction(item, currentHumanId) })
+    ] }, item.key)) }) : /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("p", { children: "\u5F53\u524D\u6CA1\u6709\u9700\u8981\u8FD9\u4F4D\u6210\u5458\u5904\u7406\u7684\u9879\u76EE\u4E8B\u9879\u3002" })
   ] });
 }
 function projectAttentionItems(roadmaps, works) {
@@ -62107,17 +63573,17 @@ function waitingDays(sinceAt) {
 }
 
 // src/ProjectAuthoringForms.tsx
-var import_react35 = __toESM(require_react(), 1);
-var import_jsx_runtime44 = __toESM(require_jsx_runtime(), 1);
+var import_react41 = __toESM(require_react(), 1);
+var import_jsx_runtime51 = __toESM(require_jsx_runtime(), 1);
 var idle2 = { submitting: false };
 function NewProjectControl({
   channelId,
   onCreate
 }) {
-  const [open, setOpen] = (0, import_react35.useState)(false);
-  const [title, setTitle] = (0, import_react35.useState)("");
-  const [purpose, setPurpose] = (0, import_react35.useState)("");
-  const [state, setState] = (0, import_react35.useState)(idle2);
+  const [open, setOpen] = (0, import_react41.useState)(false);
+  const [title, setTitle] = (0, import_react41.useState)("");
+  const [purpose, setPurpose] = (0, import_react41.useState)("");
+  const [state, setState] = (0, import_react41.useState)(idle2);
   if (!onCreate) return null;
   const submit2 = async (event) => {
     event.preventDefault();
@@ -62135,12 +63601,12 @@ function NewProjectControl({
       setState({ submitting: false, error: commandErrorMessage(error) });
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { className: "project-authoring-control", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { type: "button", className: "project-primary-action", "aria-expanded": open, onClick: () => setOpen(!open), children: "\u65B0\u5EFA\u9879\u76EE" }),
-    open && /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("form", { className: "project-authoring-form project-authoring-form-global", onSubmit: (event) => void submit2(event), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { children: "\u9879\u76EE\u540D\u79F0" }),
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("div", { className: "project-authoring-control", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", className: "project-primary-action", "aria-expanded": open, onClick: () => setOpen(!open), children: "\u65B0\u5EFA\u9879\u76EE" }),
+    open && /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("form", { className: "project-authoring-form project-authoring-form-global", onSubmit: (event) => void submit2(event), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("span", { children: "\u9879\u76EE\u540D\u79F0" }),
+        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
           "input",
           {
             "aria-label": "\u9879\u76EE\u540D\u79F0",
@@ -62150,9 +63616,9 @@ function NewProjectControl({
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
+        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
           "textarea",
           {
             "aria-label": "\u9879\u76EE\u5B8C\u6210\u6807\u51C6",
@@ -62163,10 +63629,10 @@ function NewProjectControl({
           }
         )
       ] }),
-      state.error && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("p", { role: "alert", children: state.error }),
-      /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("div", { className: "project-authoring-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { type: "button", onClick: () => setOpen(false), children: "\u53D6\u6D88" }),
-        /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { type: "submit", className: "project-primary-action", disabled: state.submitting, children: state.submitting ? "\u6B63\u5728\u521B\u5EFA\u2026" : "\u521B\u5EFA\u9879\u76EE" })
+      state.error && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { role: "alert", children: state.error }),
+      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("div", { className: "project-authoring-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", onClick: () => setOpen(false), children: "\u53D6\u6D88" }),
+        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "submit", className: "project-primary-action", disabled: state.submitting, children: state.submitting ? "\u6B63\u5728\u521B\u5EFA\u2026" : "\u521B\u5EFA\u9879\u76EE" })
       ] })
     ] })
   ] });
@@ -62176,10 +63642,10 @@ function commandErrorMessage(error) {
 }
 
 // src/ProjectBoard.tsx
-var import_react37 = __toESM(require_react(), 1);
+var import_react43 = __toESM(require_react(), 1);
 
 // src/ProjectIdentityChip.tsx
-var import_jsx_runtime45 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime52 = __toESM(require_jsx_runtime(), 1);
 function HumanIdentityChip({
   humanId,
   humans,
@@ -62188,10 +63654,10 @@ function HumanIdentityChip({
 }) {
   const human = humans.find((candidate) => candidate.humanId === humanId);
   const name2 = human?.displayName ?? fallbackName;
-  return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("span", { className: "project-identity-chip", "data-identity-kind": "human", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(MemberAvatar, { name: name2, kind: "human", avatarUrl: human?.avatarUrl, compact: true }),
-    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { children: name2 }),
-    suffix && /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("small", { children: suffix })
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("span", { className: "project-identity-chip", "data-identity-kind": "human", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(MemberAvatar, { name: name2, kind: "human", avatarUrl: human?.avatarUrl, compact: true }),
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: name2 }),
+    suffix && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("small", { children: suffix })
   ] });
 }
 function AgentIdentityChip({
@@ -62202,8 +63668,8 @@ function AgentIdentityChip({
   const participant = participants.find(
     (candidate) => candidate.connectionId === assignment.connectionId && candidate.catId === assignment.catId && candidate.humanId === assignment.humanId
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("span", { className: "project-identity-chip", "data-identity-kind": "agent", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("span", { className: "project-identity-chip", "data-identity-kind": "agent", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
       MemberAvatar,
       {
         name: participant?.displayLabel ?? assignment.displayName,
@@ -62212,8 +63678,8 @@ function AgentIdentityChip({
         compact: true
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { children: participant?.displayLabel ?? assignment.displayName }),
-    suffix && /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("small", { children: suffix })
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: participant?.displayLabel ?? assignment.displayName }),
+    suffix && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("small", { children: suffix })
   ] });
 }
 function WorkIdentityChips({
@@ -62222,8 +63688,8 @@ function WorkIdentityChips({
   participants,
   humanNames
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("span", { className: "project-work-identities", children: [
-    work2.accountableHumanId ? /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("span", { className: "project-work-identities", children: [
+    work2.accountableHumanId ? /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
       HumanIdentityChip,
       {
         humanId: work2.accountableHumanId,
@@ -62231,14 +63697,14 @@ function WorkIdentityChips({
         fallbackName: humanNames[work2.accountableHumanId] ?? "\u5171\u540C\u4F53\u6210\u5458",
         suffix: "\u8D1F\u8D23"
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("span", { className: "project-identity-empty", children: "\u672A\u5206\u914D" }),
-    work2.assignment && /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(AgentIdentityChip, { assignment: work2.assignment, participants, suffix: "\u6267\u884C" })
+    ) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { className: "project-identity-empty", children: "\u672A\u5206\u914D" }),
+    work2.assignment && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(AgentIdentityChip, { assignment: work2.assignment, participants, suffix: "\u6267\u884C" })
   ] });
 }
 
 // src/ProjectResponsibilityInline.tsx
-var import_react36 = __toESM(require_react(), 1);
-var import_jsx_runtime46 = __toESM(require_jsx_runtime(), 1);
+var import_react42 = __toESM(require_react(), 1);
+var import_jsx_runtime53 = __toESM(require_jsx_runtime(), 1);
 function ProjectResponsibilityInline({
   roadmap,
   roadmaps = [roadmap],
@@ -62249,41 +63715,41 @@ function ProjectResponsibilityInline({
   onRequest,
   onRespond
 }) {
-  const [selection, setSelection] = (0, import_react36.useState)("self");
+  const [selection, setSelection] = (0, import_react42.useState)("self");
   if (work2.accountableHumanId) return null;
   const requestState = workAccountabilityRequestState(work2, roadmaps);
   const pending = requestState.pending;
   if (pending) {
     if (!requestState.roadmap) return null;
     if (pending.targetHumanId !== currentHumanId) {
-      return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { className: "project-responsibility-pending", children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("span", { className: "project-responsibility-pending", children: [
         "\u5DF2\u9080\u8BF7 ",
         pending.targetDisplayName
       ] });
     }
     if (!onRespond) return null;
-    return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("fieldset", { className: "project-responsibility-inline", "aria-label": "\u5361\u5185\u6307\u5B9A\u8D1F\u8D23\u4EBA", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("span", { children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("fieldset", { className: "project-responsibility-inline", "aria-label": "\u5361\u5185\u6307\u5B9A\u8D1F\u8D23\u4EBA", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("span", { children: [
         pending.requestedByDisplayName,
         " \u9080\u8BF7\u4F60\u8D1F\u8D23"
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("button", { type: "button", onClick: () => void onRespond(work2, pending, "accept").catch(() => void 0), children: "\u63A5\u53D7" }),
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("button", { type: "button", onClick: () => void onRespond(work2, pending, "decline").catch(() => void 0), children: "\u6682\u4E0D\u63A5\u53D7" })
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { type: "button", onClick: () => void onRespond(work2, pending, "accept").catch(() => void 0), children: "\u63A5\u53D7" }),
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { type: "button", onClick: () => void onRespond(work2, pending, "decline").catch(() => void 0), children: "\u6682\u4E0D\u63A5\u53D7" })
       ] })
     ] });
   }
   if (!canChangeWorkResponsibility(roadmap, work2)) return null;
   if (roadmap.accountableHumanId !== currentHumanId || !onCommit && !onRequest) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("fieldset", { className: "project-responsibility-inline", "aria-label": "\u5361\u5185\u6307\u5B9A\u8D1F\u8D23\u4EBA", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("span", { className: "sr-only", children: "\u8D1F\u8D23\u4EBA" }),
-      /* @__PURE__ */ (0, import_jsx_runtime46.jsxs)("select", { value: selection, onChange: (event) => setSelection(event.currentTarget.value), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("option", { value: "self", children: "\u6211\u8D1F\u8D23" }),
-        humans.filter((human) => human.humanId !== currentHumanId).map((human) => /* @__PURE__ */ (0, import_jsx_runtime46.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
+  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("fieldset", { className: "project-responsibility-inline", "aria-label": "\u5361\u5185\u6307\u5B9A\u8D1F\u8D23\u4EBA", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { className: "sr-only", children: "\u8D1F\u8D23\u4EBA" }),
+      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("select", { value: selection, onChange: (event) => setSelection(event.currentTarget.value), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: "self", children: "\u6211\u8D1F\u8D23" }),
+        humans.filter((human) => human.humanId !== currentHumanId).map((human) => /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime46.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
       "button",
       {
         type: "button",
@@ -62352,7 +63818,7 @@ function workBlockingPresentation(work2, availableWorks) {
 }
 
 // src/ProjectBoardCard.tsx
-var import_jsx_runtime47 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime54 = __toESM(require_jsx_runtime(), 1);
 function ProjectBoardCard({
   work: work2,
   availableWorks,
@@ -62377,23 +63843,23 @@ function ProjectBoardCard({
   const targetedRequest = requestState.roadmap && requestState.pending?.targetHumanId === currentHumanId ? requestState.pending : void 0;
   const actionRoadmap = targetedRequest ? projects.find((roadmap) => roadmap.status === "active") ?? requestState.roadmap : requestState.pending ? void 0 : projects.find((roadmap) => roadmap.status === "active" && roadmap.accountableHumanId === currentHumanId);
   const accountable = work2.accountableHumanId ? humanNames[work2.accountableHumanId] ?? "\u5171\u540C\u4F53\u6210\u5458" : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("article", { className: "project-board-card", "data-roadmap-work-id": work2.workId, "data-work-status": work2.status, children: [
-    blockedBanner && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { className: "project-board-banner project-board-banner-critical", children: blockedBanner }),
-    work2.lifecycle === "result_ready" && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("span", { className: "project-board-banner project-board-banner-warning", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("article", { className: "project-board-card", "data-roadmap-work-id": work2.workId, "data-work-status": work2.status, children: [
+    blockedBanner && /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { className: "project-board-banner project-board-banner-critical", children: blockedBanner }),
+    work2.lifecycle === "result_ready" && /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("span", { className: "project-board-banner project-board-banner-warning", children: [
       "\u7B49 ",
       accountable ?? "\u8D1F\u8D23\u4EBA",
       " \u9A8C\u6536"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("button", { type: "button", className: "project-board-card-open", onClick: () => onSelect(work2), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("strong", { children: work2.title }),
-      projects.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)("span", { children: projects.map((project) => project.title).join(" \xB7 ") })
+    /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("button", { type: "button", className: "project-board-card-open", onClick: () => onSelect(work2), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: work2.title }),
+      projects.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: projects.map((project) => project.title).join(" \xB7 ") })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(WorkIdentityChips, { work: work2, humans, participants, humanNames }),
-    downstream.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime47.jsxs)("p", { className: "project-board-downstream", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(WorkIdentityChips, { work: work2, humans, participants, humanNames }),
+    downstream.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("p", { className: "project-board-downstream", children: [
       "\u6B63\u6321\u4F4F ",
       downstream.map((item) => item.title).join("\u3001")
     ] }),
-    actionRoadmap && /* @__PURE__ */ (0, import_jsx_runtime47.jsx)(
+    actionRoadmap && /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(
       ProjectResponsibilityInline,
       {
         roadmap: actionRoadmap,
@@ -62413,7 +63879,7 @@ function projectBoardBlockedLabel(work2, availableWorks) {
 }
 
 // src/ProjectBoard.tsx
-var import_jsx_runtime48 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime55 = __toESM(require_jsx_runtime(), 1);
 var columns = [
   { id: "queued", label: "\u5F85\u5F00\u59CB" },
   { id: "in_progress", label: "\u8FDB\u884C\u4E2D" },
@@ -62434,8 +63900,8 @@ function ProjectBoard({
   onRequestWorkAccountability,
   onRespondWorkAccountability
 }) {
-  const [grouping, setGrouping] = (0, import_react37.useState)("executor");
-  const [filter, setFilter] = (0, import_react37.useState)("all");
+  const [grouping, setGrouping] = (0, import_react43.useState)("executor");
+  const [filter, setFilter] = (0, import_react43.useState)("all");
   const projectWorks = worksForProjects(roadmaps, works);
   const mine = projectWorks.filter(
     (work2) => work2.accountableHumanId === currentHumanId || work2.assignment?.humanId === currentHumanId
@@ -62445,20 +63911,20 @@ function ProjectBoard({
   const filtered = filter === "mine" ? mine : filter === "blocked" ? blocked : filter === "result_ready" ? resultReady : projectWorks;
   const lanes = projectBoardLanes(grouping, roadmaps, filtered, humanNames);
   const projectsByWork = projectRecordsForWorks(roadmaps);
-  return /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("section", { className: "project-board", "aria-label": "\u9879\u76EE\u770B\u677F", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("div", { className: "project-board-toolbar", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("nav", { "aria-label": "\u770B\u677F\u7B5B\u9009", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(BoardFilterButton, { active: filter === "all", onClick: () => setFilter("all"), children: `\u5168\u90E8\u4EFB\u52A1 ${projectWorks.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(BoardFilterButton, { active: filter === "mine", onClick: () => setFilter("mine"), children: `\u4E0E\u6211\u76F8\u5173 ${mine.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(BoardFilterButton, { active: filter === "blocked", onClick: () => setFilter("blocked"), children: `\u88AB\u963B\u585E ${blocked.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(BoardFilterButton, { active: filter === "result_ready", onClick: () => setFilter("result_ready"), children: `\u5F85\u786E\u8BA4 ${resultReady.length}` })
+  return /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("section", { className: "project-board", "aria-label": "\u9879\u76EE\u770B\u677F", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("div", { className: "project-board-toolbar", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("nav", { "aria-label": "\u770B\u677F\u7B5B\u9009", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(BoardFilterButton, { active: filter === "all", onClick: () => setFilter("all"), children: `\u5168\u90E8\u4EFB\u52A1 ${projectWorks.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(BoardFilterButton, { active: filter === "mine", onClick: () => setFilter("mine"), children: `\u4E0E\u6211\u76F8\u5173 ${mine.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(BoardFilterButton, { active: filter === "blocked", onClick: () => setFilter("blocked"), children: `\u88AB\u963B\u585E ${blocked.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(BoardFilterButton, { active: filter === "result_ready", onClick: () => setFilter("result_ready"), children: `\u5F85\u786E\u8BA4 ${resultReady.length}` })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("details", { className: "project-board-grouping", "aria-label": "\u770B\u677F\u663E\u793A\u8BBE\u7F6E", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("summary", { "aria-label": "\u66F4\u6539\u770B\u677F\u5206\u7EC4", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("details", { className: "project-board-grouping", "aria-label": "\u770B\u677F\u663E\u793A\u8BBE\u7F6E", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("summary", { "aria-label": "\u66F4\u6539\u770B\u677F\u5206\u7EC4", children: [
           "\u663E\u793A\u8BBE\u7F6E \xB7 \u6CF3\u9053\u6309",
           groupingLabels[grouping]
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { children: ["executor", "accountable", "project"].map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("div", { children: ["executor", "accountable", "project"].map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)(
           "button",
           {
             type: "button",
@@ -62473,14 +63939,14 @@ function ProjectBoard({
         )) })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("header", { className: "project-board-columns", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", {}),
-      columns.map((column) => /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { "data-project-column": column.id, children: /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("header", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("strong", { children: column.label }),
-        /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("span", { children: filtered.filter((work2) => projectBoardColumn(work2) === column.id).length })
+    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("header", { className: "project-board-columns", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("span", {}),
+      columns.map((column) => /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("div", { "data-project-column": column.id, children: /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("header", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("strong", { children: column.label }),
+        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("span", { children: filtered.filter((work2) => projectBoardColumn(work2) === column.id).length })
       ] }) }, column.id))
     ] }),
-    lanes.length ? lanes.map((lane) => /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)(
+    lanes.length ? lanes.map((lane) => /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)(
       "section",
       {
         className: "project-board-lane",
@@ -62488,8 +63954,8 @@ function ProjectBoard({
         "data-unassigned": lane.unassigned || void 0,
         "aria-label": `${lane.label}\u7684\u4EFB\u52A1`,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("header", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("header", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
               LaneIdentity,
               {
                 grouping,
@@ -62500,16 +63966,16 @@ function ProjectBoard({
                 humanNames
               }
             ),
-            lane.accountableLabel && /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("span", { children: [
+            lane.accountableLabel && /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("span", { children: [
               "\u8D1F\u8D23\u4EBA ",
               lane.accountableLabel
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime48.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("small", { children: [
               lane.works.length,
               " \u9879"
             ] })
           ] }),
-          columns.map((column) => /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("div", { className: "project-board-cell", "data-project-column": column.id, children: lane.works.filter((work2) => projectBoardColumn(work2) === column.id).map((work2) => /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
+          columns.map((column) => /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("div", { className: "project-board-cell", "data-project-column": column.id, children: lane.works.filter((work2) => projectBoardColumn(work2) === column.id).map((work2) => /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
             ProjectBoardCard,
             {
               work: work2,
@@ -62531,7 +63997,7 @@ function ProjectBoard({
         ]
       },
       lane.id
-    )) : /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("p", { className: "project-board-empty", children: "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u4EFB\u52A1\u3002" })
+    )) : /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("p", { className: "project-board-empty", children: "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u4EFB\u52A1\u3002" })
   ] });
 }
 var groupingLabels = {
@@ -62544,7 +64010,7 @@ function BoardFilterButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
 }
 function LaneIdentity({
   grouping,
@@ -62556,10 +64022,10 @@ function LaneIdentity({
 }) {
   const work2 = works[0];
   if (grouping === "executor" && work2?.assignment) {
-    return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(AgentIdentityChip, { assignment: work2.assignment, participants });
+    return /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(AgentIdentityChip, { assignment: work2.assignment, participants });
   }
   if (grouping !== "project" && work2?.accountableHumanId) {
-    return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
       HumanIdentityChip,
       {
         humanId: work2.accountableHumanId,
@@ -62568,7 +64034,7 @@ function LaneIdentity({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)("strong", { children: label });
+  return /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("strong", { children: label });
 }
 function projectRecordsForWorks(roadmaps) {
   const result = /* @__PURE__ */ new Map();
@@ -62579,10 +64045,10 @@ function projectRecordsForWorks(roadmaps) {
 }
 
 // src/ProjectList.tsx
-var import_react38 = __toESM(require_react(), 1);
+var import_react44 = __toESM(require_react(), 1);
 
 // src/ProjectArtifactSurface.tsx
-var import_jsx_runtime49 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime56 = __toESM(require_jsx_runtime(), 1);
 function ProjectArtifactSurface({
   roadmap,
   works,
@@ -62592,38 +64058,38 @@ function ProjectArtifactSurface({
 }) {
   const projectArtifacts = artifactsForWorks(artifacts, new Set(works.map((work2) => work2.workId)));
   const workTitles = new Map(works.map((work2) => [work2.workId, work2.title]));
-  return /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("section", { className: "project-artifacts", "aria-label": "\u9879\u76EE\u4F5C\u54C1", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("strong", { children: "\u4F5C\u54C1" }),
-        /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { children: status === "ready" ? `${projectArtifacts.length} \u4EF6` : "\u8BFB\u53D6\u72B6\u6001\u672A\u786E\u8BA4" })
+  return /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("section", { className: "project-artifacts", "aria-label": "\u9879\u76EE\u4F5C\u54C1", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("strong", { children: "\u4F5C\u54C1" }),
+        /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("span", { children: status === "ready" ? `${projectArtifacts.length} \u4EF6` : "\u8BFB\u53D6\u72B6\u6001\u672A\u786E\u8BA4" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("small", { children: roadmap.title })
+      /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("small", { children: roadmap.title })
     ] }),
-    status !== "ready" ? /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(ProjectArtifactState, { status }) : projectArtifacts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("p", { className: "project-artifact-empty", children: "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4F5C\u54C1\u3002\u4EFB\u52A1\u4EA4\u56DE\u4F5C\u54C1\u540E\uFF0C\u4F1A\u6309\u540C\u4E00 Work \u81EA\u52A8\u51FA\u73B0\u5728\u8FD9\u91CC\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("div", { className: "project-artifact-grid", children: projectArtifacts.map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)(
+    status !== "ready" ? /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(ProjectArtifactState, { status }) : projectArtifacts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("p", { className: "project-artifact-empty", children: "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4F5C\u54C1\u3002\u4EFB\u52A1\u4EA4\u56DE\u4F5C\u54C1\u540E\uFF0C\u4F1A\u6309\u540C\u4E00 Work \u81EA\u52A8\u51FA\u73B0\u5728\u8FD9\u91CC\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("div", { className: "project-artifact-grid", children: projectArtifacts.map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)(
       "button",
       {
         type: "button",
         className: "project-artifact-card",
         onClick: () => onOpen?.(artifact),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { "aria-hidden": "true", className: "project-artifact-icon", children: /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 32 36", fill: "none", stroke: "currentColor", strokeWidth: "1.3", children: /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("path", { d: "M8 3h12l6 6v24H6V3h2Zm12 0v7h6M10 17h12M10 22h12M10 27h8" }) }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("span", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("strong", { children: artifact.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("small", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("span", { "aria-hidden": "true", className: "project-artifact-icon", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 32 36", fill: "none", stroke: "currentColor", strokeWidth: "1.3", children: /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("path", { d: "M8 3h12l6 6v24H6V3h2Zm12 0v7h6M10 17h12M10 22h12M10 27h8" }) }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("strong", { children: artifact.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("small", { children: [
               workTitles.get(artifact.workId ?? "") ?? "\u9879\u76EE\u4EFB\u52A1",
               " \xB7 \u7B2C",
               " ",
               artifact.versions.at(-1)?.ownerRevision ?? 1,
               " \u7248"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("small", { children: [
               "#",
               artifact.sourceLocation.channelId,
               artifact.availability === "owner_unavailable" ? " \xB7 \u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528" : ""
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { "aria-hidden": "true", children: "\u203A" })
+          /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("span", { "aria-hidden": "true", children: "\u203A" })
         ]
       },
       artifact.artifactId
@@ -62636,12 +64102,12 @@ function ProjectArtifactSummary({
   status,
   onOpen
 }) {
-  if (status !== "ready") return /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(ProjectArtifactState, { status, compact: true });
+  if (status !== "ready") return /* @__PURE__ */ (0, import_jsx_runtime56.jsx)(ProjectArtifactState, { status, compact: true });
   const latest = artifactsForWorks(artifacts, new Set(works.map((work2) => work2.workId)))[0];
-  if (!latest) return /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("span", { className: "project-list-artifact-empty", children: "\u8FD8\u6CA1\u6709\u4F5C\u54C1" });
-  return /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("button", { type: "button", className: "project-list-artifact", onClick: () => onOpen?.(latest), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("strong", { children: latest.title }),
-    /* @__PURE__ */ (0, import_jsx_runtime49.jsxs)("small", { children: [
+  if (!latest) return /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("span", { className: "project-list-artifact-empty", children: "\u8FD8\u6CA1\u6709\u4F5C\u54C1" });
+  return /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("button", { type: "button", className: "project-list-artifact", onClick: () => onOpen?.(latest), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("strong", { children: latest.title }),
+    /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)("small", { children: [
       "\u7B2C ",
       latest.versions.at(-1)?.ownerRevision ?? 1,
       " \u7248 \xB7 ",
@@ -62654,14 +64120,14 @@ function ProjectArtifactState({
   compact = false
 }) {
   const label = status === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026" : status === "access_denied" ? compact ? "\u65E0\u6743\u8BFB\u53D6\u4F5C\u54C1" : "\u4F60\u65E0\u6743\u8BFB\u53D6\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\u3002" : compact ? "\u4F5C\u54C1\u6682\u65F6\u4E0D\u53EF\u8BFB" : "\u6682\u65F6\u8BFB\u4E0D\u5230\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002";
-  return /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("p", { className: compact ? "project-list-artifact-empty" : "project-artifact-empty", children: label });
+  return /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("p", { className: compact ? "project-list-artifact-empty" : "project-artifact-empty", children: label });
 }
 function artifactsForWorks(artifacts, workIds) {
   return artifacts.filter((artifact) => Boolean(artifact.workId && workIds.has(artifact.workId))).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
 // src/ProjectList.tsx
-var import_jsx_runtime50 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime57 = __toESM(require_jsx_runtime(), 1);
 function ProjectList({
   roadmaps,
   works,
@@ -62674,34 +64140,34 @@ function ProjectList({
   onOpen,
   onOpenArtifact
 }) {
-  const [filter, setFilter] = (0, import_react38.useState)("active");
-  const [owner3, setOwner] = (0, import_react38.useState)("all");
-  const [showCompleted, setShowCompleted] = (0, import_react38.useState)(false);
+  const [filter, setFilter] = (0, import_react44.useState)("active");
+  const [owner3, setOwner] = (0, import_react44.useState)("all");
+  const [showCompleted, setShowCompleted] = (0, import_react44.useState)(false);
   const owned = roadmaps.filter((roadmap) => owner3 === "all" || roadmap.accountableHumanId === owner3);
   const active = owned.filter((roadmap) => roadmap.status === "active");
   const mine = active.filter((roadmap) => projectRelatesToHuman(roadmap, works, currentHumanId));
   const blocked = active.filter((roadmap) => worksForRoadmap(roadmap, works).some((work2) => work2.status === "blocked"));
   const displayed = filter === "mine" ? mine : filter === "blocked" ? blocked : active;
   const completed = owned.filter((roadmap) => roadmap.status === "completed");
-  return /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("section", { className: "project-list", "aria-label": "\u9879\u76EE\u5217\u8868", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("div", { className: "project-list-toolbar", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("nav", { "aria-label": "\u9879\u76EE\u5217\u8868\u7B5B\u9009", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(FilterButton, { active: filter === "active", onClick: () => setFilter("active"), children: `\u8FDB\u884C\u4E2D ${active.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(FilterButton, { active: filter === "mine", onClick: () => setFilter("mine"), children: `\u4E0E\u6211\u76F8\u5173 ${mine.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(FilterButton, { active: filter === "blocked", onClick: () => setFilter("blocked"), children: `\u6709\u963B\u585E ${blocked.length}` })
+  return /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("section", { className: "project-list", "aria-label": "\u9879\u76EE\u5217\u8868", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("div", { className: "project-list-toolbar", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("nav", { "aria-label": "\u9879\u76EE\u5217\u8868\u7B5B\u9009", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(FilterButton, { active: filter === "active", onClick: () => setFilter("active"), children: `\u8FDB\u884C\u4E2D ${active.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(FilterButton, { active: filter === "mine", onClick: () => setFilter("mine"), children: `\u4E0E\u6211\u76F8\u5173 ${mine.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(FilterButton, { active: filter === "blocked", onClick: () => setFilter("blocked"), children: `\u6709\u963B\u585E ${blocked.length}` })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("label", { className: "project-list-owner-filter", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("select", { "aria-label": "\u6309\u8D1F\u8D23\u4EBA\u7B5B\u9009", value: owner3, onChange: (event) => setOwner(event.currentTarget.value), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("option", { value: "all", children: "\u6240\u6709\u4EBA" }),
-            humans.map((human) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
+      /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("label", { className: "project-list-owner-filter", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("select", { "aria-label": "\u6309\u8D1F\u8D23\u4EBA\u7B5B\u9009", value: owner3, onChange: (event) => setOwner(event.currentTarget.value), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("option", { value: "all", children: "\u6240\u6709\u4EBA" }),
+            humans.map((human) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("details", { className: "project-list-display-settings", "aria-label": "\u9879\u76EE\u5217\u8868\u663E\u793A\u8BBE\u7F6E", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("summary", { children: "\u663E\u793A\u8BBE\u7F6E" }),
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("label", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("details", { className: "project-list-display-settings", "aria-label": "\u9879\u76EE\u5217\u8868\u663E\u793A\u8BBE\u7F6E", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("summary", { children: "\u663E\u793A\u8BBE\u7F6E" }),
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
               "input",
               {
                 type: "checkbox",
@@ -62715,9 +64181,9 @@ function ProjectList({
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(ProjectListColumns, {}),
-    displayed.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("p", { className: "project-list-empty", children: roadmaps.length === 0 ? "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u7528\u53F3\u4E0A\u89D2\u201C\u65B0\u5EFA\u9879\u76EE\u201D\u7559\u4E0B\u7B2C\u4E00\u9879\u76EE\u6807\u4E0E\u5B8C\u6210\u6807\u51C6\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u9879\u76EE\u3002" }),
-    displayed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(ProjectListColumns, {}),
+    displayed.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("p", { className: "project-list-empty", children: roadmaps.length === 0 ? "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u7528\u53F3\u4E0A\u89D2\u201C\u65B0\u5EFA\u9879\u76EE\u201D\u7559\u4E0B\u7B2C\u4E00\u9879\u76EE\u6807\u4E0E\u5B8C\u6210\u6807\u51C6\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u9879\u76EE\u3002" }),
+    displayed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
       ProjectListRow,
       {
         roadmap,
@@ -62732,13 +64198,13 @@ function ProjectList({
       },
       roadmap.roadmapId
     )),
-    showCompleted && completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("details", { className: "project-list-completed", "aria-label": "\u5DF2\u5B8C\u6210\u9879\u76EE", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("summary", { children: [
+    showCompleted && completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("details", { className: "project-list-completed", "aria-label": "\u5DF2\u5B8C\u6210\u9879\u76EE", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("summary", { children: [
         "\u5DF2\u5B8C\u6210\u9879\u76EE ",
         completed.length
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(ProjectListColumns, {}),
-      completed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(ProjectListColumns, {}),
+      completed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
         ProjectListRow,
         {
           roadmap,
@@ -62757,12 +64223,12 @@ function ProjectList({
   ] });
 }
 function ProjectListColumns() {
-  return /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("header", { className: "project-list-columns", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { children: "\u9879\u76EE\u4E0E\u5B8C\u6210\u6807\u51C6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { children: "\u8D1F\u8D23\u4EBA \xB7 \u6267\u884C" }),
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { children: "\u4EFB\u52A1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { children: "\u963B\u585E / \u4E0B\u4E00\u6B65" }),
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { children: "\u6700\u65B0\u4F5C\u54C1" })
+  return /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("header", { className: "project-list-columns", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: "\u9879\u76EE\u4E0E\u5B8C\u6210\u6807\u51C6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: "\u8D1F\u8D23\u4EBA \xB7 \u6267\u884C" }),
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: "\u4EFB\u52A1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: "\u963B\u585E / \u4E0B\u4E00\u6B65" }),
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: "\u6700\u65B0\u4F5C\u54C1" })
   ] });
 }
 function FilterButton({
@@ -62770,7 +64236,7 @@ function FilterButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
 }
 function ProjectListRow({
   roadmap,
@@ -62790,8 +64256,8 @@ function ProjectListRow({
   const humanExecutors = uniqueHumanExecutors(projectWorks);
   const assignments = uniqueAssignments(projectWorks);
   const hasExecutors = humanExecutors.length > 0 || assignments.length > 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("article", { className: "project-list-row", "data-project-id": roadmap.roadmapId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("article", { className: "project-list-row", "data-project-id": roadmap.roadmapId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)(
       "button",
       {
         type: "button",
@@ -62799,12 +64265,12 @@ function ProjectListRow({
         "aria-label": `\u6253\u5F00\u9879\u76EE \xB7 ${roadmap.title}`,
         onClick: () => onOpen(roadmap),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("span", { className: "project-list-identity", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("strong", { children: roadmap.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("small", { children: roadmap.purpose })
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("span", { className: "project-list-identity", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("strong", { children: roadmap.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("small", { children: roadmap.purpose })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("span", { className: "project-list-people", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("span", { className: "project-list-people", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
               HumanIdentityChip,
               {
                 humanId: roadmap.accountableHumanId,
@@ -62813,7 +64279,7 @@ function ProjectListRow({
                 suffix: "\u8D1F\u8D23"
               }
             ),
-            humanExecutors.map((humanId) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+            humanExecutors.map((humanId) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
               HumanIdentityChip,
               {
                 humanId,
@@ -62823,7 +64289,7 @@ function ProjectListRow({
               },
               `executor:${humanId}`
             )),
-            assignments.map((assignment) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+            assignments.map((assignment) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
               AgentIdentityChip,
               {
                 assignment,
@@ -62832,29 +64298,29 @@ function ProjectListRow({
               },
               `${assignment.connectionId}:${assignment.catId}`
             )),
-            !hasExecutors && /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("small", { children: projectWorks.length ? "\u7531\u8D1F\u8D23\u4EBA\u63A8\u8FDB\u6216\u5C1A\u672A\u5206\u914D" : "\u8FD8\u6CA1\u6709\u4EFB\u52A1" })
+            !hasExecutors && /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("small", { children: projectWorks.length ? "\u7531\u8D1F\u8D23\u4EBA\u63A8\u8FDB\u6216\u5C1A\u672A\u5206\u914D" : "\u8FD8\u6CA1\u6709\u4EFB\u52A1" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("span", { className: "project-list-progress", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("span", { className: "project-progress-segments", "aria-hidden": "true", children: projectWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("i", { "data-project-progress": projectBoardColumn(work2) }, work2.workId)) }),
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("strong", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("span", { className: "project-list-progress", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { className: "project-progress-segments", "aria-hidden": "true", children: projectWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("i", { "data-project-progress": projectBoardColumn(work2) }, work2.workId)) }),
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("strong", { children: [
               projectWorks.length,
               " \u9879"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("small", { children: [
               projectWorks.filter((work2) => work2.lifecycle === "completed").length,
               " \u5B8C\u6210",
               blocked ? ` \xB7 ${blocked} \u963B\u585E` : "",
               unassigned ? ` \xB7 ${unassigned} \u672A\u5206\u914D` : ""
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("span", { className: "project-list-next", "data-critical": next.critical || void 0, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("strong", { children: next.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("small", { children: next.detail })
+          /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("span", { className: "project-list-next", "data-critical": next.critical || void 0, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("strong", { children: next.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("small", { children: next.detail })
           ] })
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("div", { className: "project-list-artifact-cell", children: /* @__PURE__ */ (0, import_jsx_runtime50.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("div", { className: "project-list-artifact-cell", children: /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
       ProjectArtifactSummary,
       {
         works: projectWorks,
@@ -62924,8 +64390,8 @@ function projectNextCopy(roadmap, projectWorks, availableWorks, humanNames) {
 }
 
 // src/ProjectTaskAuthoring.tsx
-var import_react39 = __toESM(require_react(), 1);
-var import_jsx_runtime51 = __toESM(require_jsx_runtime(), 1);
+var import_react45 = __toESM(require_react(), 1);
+var import_jsx_runtime58 = __toESM(require_jsx_runtime(), 1);
 function NewProjectTaskControl({
   roadmap,
   channelId,
@@ -62933,7 +64399,7 @@ function NewProjectTaskControl({
   humans,
   onCreate
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
     ProjectTaskControl,
     {
       roadmaps: [roadmap],
@@ -62952,7 +64418,7 @@ function NewWorkspaceTaskControl({
   humans,
   onCreate
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
     ProjectTaskControl,
     {
       roadmaps,
@@ -62975,13 +64441,13 @@ function ProjectTaskControl({
   const eligible = roadmaps.filter(
     (roadmap2) => roadmap2.status === "active" && roadmap2.accountableHumanId === currentHumanId
   );
-  const [open, setOpen] = (0, import_react39.useState)(false);
-  const [roadmapId, setRoadmapId] = (0, import_react39.useState)(eligible[0]?.roadmapId ?? "");
-  const [title, setTitle] = (0, import_react39.useState)("");
-  const [outcome, setOutcome] = (0, import_react39.useState)("");
-  const [responsibility2, setResponsibility] = (0, import_react39.useState)("unassigned");
-  const [submitting, setSubmitting] = (0, import_react39.useState)(false);
-  const [error, setError] = (0, import_react39.useState)();
+  const [open, setOpen] = (0, import_react45.useState)(false);
+  const [roadmapId, setRoadmapId] = (0, import_react45.useState)(eligible[0]?.roadmapId ?? "");
+  const [title, setTitle] = (0, import_react45.useState)("");
+  const [outcome, setOutcome] = (0, import_react45.useState)("");
+  const [responsibility2, setResponsibility] = (0, import_react45.useState)("unassigned");
+  const [submitting, setSubmitting] = (0, import_react45.useState)(false);
+  const [error, setError] = (0, import_react45.useState)();
   const roadmap = eligible.find((candidate) => candidate.roadmapId === roadmapId) ?? eligible[0];
   if (!onCreate || !roadmap) return null;
   const submit2 = async (event) => {
@@ -63004,24 +64470,24 @@ function ProjectTaskControl({
       setSubmitting(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("div", { className: "project-authoring-control project-task-authoring-control", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", className: "project-primary-action", "aria-expanded": open, onClick: () => setOpen(!open), children: "\u65B0\u5EFA\u4EFB\u52A1" }),
-    open && /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("form", { className: "project-authoring-form project-task-authoring-form", onSubmit: (event) => void submit2(event), children: [
-      showProjectPicker && eligible.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("span", { children: "\u9879\u76EE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("div", { className: "project-authoring-control project-task-authoring-control", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("button", { type: "button", className: "project-primary-action", "aria-expanded": open, onClick: () => setOpen(!open), children: "\u65B0\u5EFA\u4EFB\u52A1" }),
+    open && /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("form", { className: "project-authoring-form project-task-authoring-form", onSubmit: (event) => void submit2(event), children: [
+      showProjectPicker && eligible.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("span", { children: "\u9879\u76EE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
           "select",
           {
             "aria-label": "\u4EFB\u52A1\u6240\u5C5E\u9879\u76EE",
             value: roadmap.roadmapId,
             onChange: (event) => setRoadmapId(event.currentTarget.value),
-            children: eligible.map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("option", { value: candidate.roadmapId, children: candidate.title }, candidate.roadmapId))
+            children: eligible.map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("option", { value: candidate.roadmapId, children: candidate.title }, candidate.roadmapId))
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
           "input",
           {
             "aria-label": "\u4EFB\u52A1\u540D\u79F0",
@@ -63031,9 +64497,9 @@ function ProjectTaskControl({
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
           "textarea",
           {
             "aria-label": "\u4EFB\u52A1\u5B8C\u6210\u6807\u51C6",
@@ -63044,18 +64510,18 @@ function ProjectTaskControl({
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)(
           "select",
           {
             "aria-label": "\u4EFB\u52A1\u8D1F\u8D23\u4EBA",
             value: responsibility2,
             onChange: (event) => setResponsibility(event.currentTarget.value),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("option", { value: "unassigned", children: "\u5F85\u6307\u6D3E" }),
-              /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("option", { value: "self", children: "\u6211\u8D1F\u8D23" }),
-              humans.filter((human) => human.humanId !== currentHumanId).map((human) => /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("option", { value: human.humanId, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("option", { value: "unassigned", children: "\u5F85\u6307\u6D3E" }),
+              /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("option", { value: "self", children: "\u6211\u8D1F\u8D23" }),
+              humans.filter((human) => human.humanId !== currentHumanId).map((human) => /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("option", { value: human.humanId, children: [
                 "\u9080\u8BF7 ",
                 human.displayName,
                 " \u8D1F\u8D23"
@@ -63064,21 +64530,21 @@ function ProjectTaskControl({
           }
         )
       ] }),
-      responsibility2 !== "self" && responsibility2 !== "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { className: "project-authoring-note", children: "\u4EFB\u52A1\u5148\u4FDD\u6301\u5F85\u6307\u6D3E\uFF1B\u5BF9\u65B9\u63A5\u53D7\u9080\u8BF7\u540E\u624D\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\u3002" }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { role: "alert", children: error }),
-      /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("div", { className: "project-authoring-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", onClick: () => setOpen(false), children: "\u53D6\u6D88" }),
-        /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "submit", className: "project-primary-action", disabled: submitting, children: submitting ? "\u6B63\u5728\u521B\u5EFA\u2026" : "\u521B\u5EFA\u4EFB\u52A1" })
+      responsibility2 !== "self" && responsibility2 !== "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("p", { className: "project-authoring-note", children: "\u4EFB\u52A1\u5148\u4FDD\u6301\u5F85\u6307\u6D3E\uFF1B\u5BF9\u65B9\u63A5\u53D7\u9080\u8BF7\u540E\u624D\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\u3002" }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("p", { role: "alert", children: error }),
+      /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("div", { className: "project-authoring-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("button", { type: "button", onClick: () => setOpen(false), children: "\u53D6\u6D88" }),
+        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("button", { type: "submit", className: "project-primary-action", disabled: submitting, children: submitting ? "\u6B63\u5728\u521B\u5EFA\u2026" : "\u521B\u5EFA\u4EFB\u52A1" })
       ] })
     ] })
   ] });
 }
 
 // src/RoadmapPanel.tsx
-var import_react42 = __toESM(require_react(), 1);
+var import_react48 = __toESM(require_react(), 1);
 
 // src/ProjectContextPanel.tsx
-var import_jsx_runtime52 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime59 = __toESM(require_jsx_runtime(), 1);
 function ProjectContextPanel({
   roadmap,
   works,
@@ -63089,52 +64555,52 @@ function ProjectContextPanel({
   const completed = works.filter((work2) => work2.lifecycle === "completed");
   const blocked = works.filter((work2) => work2.status === "blocked");
   const activity = projectActivity(roadmap, works).slice(0, 8);
-  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("aside", { className: "project-context", "aria-label": "\u9879\u76EE\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("strong", { children: "\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: "\u732B\u63A5\u624B\u8FD9\u4E2A\u9879\u76EE\u7684\u4EFB\u52A1\u65F6\uFF0C\u5148\u8BFB\u5230\u8FD9\u4E9B" })
+  return /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("aside", { className: "project-context", "aria-label": "\u9879\u76EE\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("strong", { children: "\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("span", { children: "\u732B\u63A5\u624B\u8FD9\u4E2A\u9879\u76EE\u7684\u4EFB\u52A1\u65F6\uFF0C\u5148\u8BFB\u5230\u8FD9\u4E9B" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("dl", { className: "project-context-facts", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dt", { children: "\u9879\u76EE\u76EE\u6807" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dd", { children: roadmap.purpose })
+    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("dl", { className: "project-context-facts", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u9879\u76EE\u76EE\u6807" }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dd", { children: roadmap.purpose })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dt", { children: "\u5DF2\u5B8C\u6210" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dd", { children: completed.length ? completed.map((work2) => work2.title).join("\u3001") : "\u8FD8\u6CA1\u6709\u5DF2\u5B8C\u6210\u4EFB\u52A1" })
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u5DF2\u5B8C\u6210" }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dd", { children: completed.length ? completed.map((work2) => work2.title).join("\u3001") : "\u8FD8\u6CA1\u6709\u5DF2\u5B8C\u6210\u4EFB\u52A1" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dt", { children: "\u5F53\u524D\u963B\u585E" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dd", { children: blocked.length ? blocked.map((work2) => blockingSummary(work2, availableWorks)).join("\uFF1B") : "\u5F53\u524D\u6CA1\u6709\u963B\u585E" })
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u5F53\u524D\u963B\u585E" }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dd", { children: blocked.length ? blocked.map((work2) => blockingSummary(work2, availableWorks)).join("\uFF1B") : "\u5F53\u524D\u6CA1\u6709\u963B\u585E" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dt", { children: "\u51FA\u5904" }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("dd", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u51FA\u5904" }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("dd", { children: [
           "\u6765\u81EA #",
           roadmap.sourceLocation.channelId
         ] })
       ] })
     ] }),
-    onOpenSource && works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("details", { className: "project-context-sources", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("summary", { children: "\u4EFB\u52A1\u51FA\u5904" }),
-      works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: work2.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("small", { children: [
+    onOpenSource && works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("details", { className: "project-context-sources", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("summary", { children: "\u4EFB\u52A1\u51FA\u5904" }),
+      works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("span", { children: work2.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("small", { children: [
           "#",
           work2.sourceLocation.channelId
         ] })
       ] }, work2.workId))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("section", { className: "project-context-activity", "aria-label": "\u9879\u76EE\u52A8\u6001", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("h3", { children: "\u52A8\u6001" }),
-      activity.length ? /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("ol", { children: activity.map((item) => /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("li", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: formatHistoryTime(item.at) }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("strong", { children: item.label }),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("p", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("section", { className: "project-context-activity", "aria-label": "\u9879\u76EE\u52A8\u6001", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("h3", { children: "\u52A8\u6001" }),
+      activity.length ? /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("ol", { children: activity.map((item) => /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("span", { children: formatHistoryTime(item.at) }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("strong", { children: item.label }),
+        /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("p", { children: [
           item.actor,
           item.note ? ` \xB7 ${item.note}` : ""
         ] })
-      ] }, item.key)) }) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u52A8\u6001\u3002" })
+      ] }, item.key)) }) : /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("p", { children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u52A8\u6001\u3002" })
     ] })
   ] });
 }
@@ -63165,7 +64631,7 @@ function projectActivity(roadmap, works) {
 }
 
 // src/ProjectPanelChrome.tsx
-var import_jsx_runtime53 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime60 = __toESM(require_jsx_runtime(), 1);
 function ProjectPageToolbar({
   roadmap,
   channelId,
@@ -63177,17 +64643,17 @@ function ProjectPageToolbar({
   onSetLens,
   onCreateTask
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("header", { className: "project-page-toolbar", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { className: "project-page-location", children: [
-      onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(ShellGlyph, { name: "panelLeft" }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("nav", { className: "project-breadcrumb", "aria-label": "\u9879\u76EE\u5C42\u7EA7", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { type: "button", onClick: onBack, children: "\u9879\u76EE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { "aria-hidden": "true", children: "\u203A" }),
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("strong", { children: roadmap.title })
+  return /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("header", { className: "project-page-toolbar", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("div", { className: "project-page-location", children: [
+      onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(ShellGlyph, { name: "panelLeft" }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("nav", { className: "project-breadcrumb", "aria-label": "\u9879\u76EE\u5C42\u7EA7", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("button", { type: "button", onClick: onBack, children: "\u9879\u76EE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("span", { "aria-hidden": "true", children: "\u203A" }),
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("strong", { children: roadmap.title })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(ProjectViewNavigation, { view, onSetLens }),
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(ProjectViewNavigation, { view, onSetLens }),
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
       NewProjectTaskControl,
       {
         roadmap,
@@ -63211,16 +64677,16 @@ function ProjectPanelSummary({
   const completed = works.filter((work2) => work2.lifecycle === "completed").length;
   const blocked = works.filter((work2) => work2.status === "blocked").length;
   const unassigned = works.filter((work2) => work2.status === "unassigned").length;
-  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("section", { className: "project-summary", "aria-label": `\u9879\u76EE \xB7 ${roadmap.title}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("span", { className: "project-summary-status", children: roadmap.status === "active" ? "\u8FDB\u884C\u4E2D" : "\u5DF2\u5B8C\u6210" }),
-      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("h1", { children: roadmap.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("p", { children: roadmap.purpose })
+  return /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("section", { className: "project-summary", "aria-label": `\u9879\u76EE \xB7 ${roadmap.title}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("span", { className: "project-summary-status", children: roadmap.status === "active" ? "\u8FDB\u884C\u4E2D" : "\u5DF2\u5B8C\u6210" }),
+      /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("h1", { children: roadmap.title }),
+      /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("p", { children: roadmap.purpose })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("dl", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("dl", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
           HumanIdentityChip,
           {
             humanId: roadmap.accountableHumanId,
@@ -63229,9 +64695,9 @@ function ProjectPanelSummary({
           }
         ) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("dt", { children: "\u8FDB\u5EA6" }),
-        /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("dd", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("dt", { children: "\u8FDB\u5EA6" }),
+        /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("dd", { children: [
           works.length,
           " \u9879 \xB7 ",
           completed,
@@ -63241,7 +64707,7 @@ function ProjectPanelSummary({
         ] })
       ] })
     ] }),
-    roadmap.accountableHumanId === currentHumanId && canChangeStatus && /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
+    roadmap.accountableHumanId === currentHumanId && canChangeStatus && /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
       "button",
       {
         type: "button",
@@ -63256,8 +64722,8 @@ function ProjectViewNavigation({
   view,
   onSetLens
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("nav", { className: "project-view-navigation", "aria-label": "\u9879\u76EE\u89C2\u5BDF\u65B9\u5F0F", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("nav", { className: "project-view-navigation", "aria-label": "\u9879\u76EE\u89C2\u5BDF\u65B9\u5F0F", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
       LensButton,
       {
         active: view.lens === "stage" && view.presentation === "graph",
@@ -63265,7 +64731,7 @@ function ProjectViewNavigation({
         children: "\u8BA1\u5212"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
       LensButton,
       {
         active: view.lens === "stage" && view.presentation === "board",
@@ -63273,8 +64739,8 @@ function ProjectViewNavigation({
         children: "\u770B\u677F"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(LensButton, { active: view.lens === "dependencies", onClick: () => onSetLens("dependencies"), children: "\u4F9D\u8D56\u56FE" }),
-    /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(LensButton, { active: view.lens === "artifacts", onClick: () => onSetLens("artifacts"), children: "\u4F5C\u54C1" })
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(LensButton, { active: view.lens === "dependencies", onClick: () => onSetLens("dependencies"), children: "\u4F9D\u8D56\u56FE" }),
+    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(LensButton, { active: view.lens === "artifacts", onClick: () => onSetLens("artifacts"), children: "\u4F5C\u54C1" })
   ] });
 }
 function LensButton({
@@ -63282,11 +64748,11 @@ function LensButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
 }
 
 // src/ProjectPlanTable.tsx
-var import_jsx_runtime54 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime61 = __toESM(require_jsx_runtime(), 1);
 function ProjectPlanTable(props) {
   const levels = dependencyLevels(props.works);
   const ordered = [...props.works].sort(
@@ -63294,32 +64760,32 @@ function ProjectPlanTable(props) {
   );
   const completed = ordered.filter((work2) => work2.lifecycle === "completed");
   const current2 = ordered.filter((work2) => work2.lifecycle !== "completed");
-  return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("section", { className: "project-plan", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u8BA1\u5212", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("header", { className: "project-plan-columns", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u4EFB\u52A1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u6267\u884C" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u963B\u585E / \u524D\u7F6E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u4E0B\u4E00\u6B21\u4EA4\u4ED8" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u6700\u8FD1" })
+  return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("section", { className: "project-plan", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u8BA1\u5212", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("header", { className: "project-plan-columns", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u4EFB\u52A1" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u6267\u884C" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u963B\u585E / \u524D\u7F6E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u4E0B\u4E00\u6B21\u4EA4\u4ED8" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u6700\u8FD1" })
     ] }),
-    completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("details", { className: "project-plan-completed", "aria-label": "\u5DF2\u5B8C\u6210\u4EFB\u52A1", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("summary", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("span", { children: [
+    completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("details", { className: "project-plan-completed", "aria-label": "\u5DF2\u5B8C\u6210\u4EFB\u52A1", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("summary", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("span", { children: [
           "\u5DF2\u5B8C\u6210 ",
           completed.length,
           " \u9879"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("small", { children: completed.map((work2) => work2.title).join(" \xB7 ") })
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("small", { children: completed.map((work2) => work2.title).join(" \xB7 ") })
       ] }),
-      completed.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId))
+      completed.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("div", { className: "project-plan-current", children: current2.length ? current2.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId)) : /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("p", { className: "project-plan-empty", children: "\u6CA1\u6709\u672A\u5B8C\u6210\u4EFB\u52A1\u3002" }) })
+    /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("div", { className: "project-plan-current", children: current2.length ? current2.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId)) : /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("p", { className: "project-plan-empty", children: "\u6CA1\u6709\u672A\u5B8C\u6210\u4EFB\u52A1\u3002" }) })
   ] });
 }
 function ProjectPlanRow({ work: work2, ...props }) {
   const recent = work2.history.at(-1);
   const execution = workExecutionPresentation(work2);
-  return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(
     "article",
     {
       className: "project-plan-row",
@@ -63327,12 +64793,12 @@ function ProjectPlanRow({ work: work2, ...props }) {
       "data-blocked": work2.status === "blocked" || void 0,
       "data-selected": props.selectedWorkId === work2.workId || void 0,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("button", { type: "button", className: "project-plan-task", onClick: () => props.onSelect(work2.workId), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { className: "project-plan-status", "data-work-status-label": work2.status, children: execution.statusLabel }),
-          /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: work2.title })
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("button", { type: "button", className: "project-plan-task", onClick: () => props.onSelect(work2.workId), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { className: "project-plan-status", "data-work-status-label": work2.status, children: execution.statusLabel }),
+          /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: work2.title })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("div", { className: "project-plan-execution", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("div", { className: "project-plan-execution", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
             WorkIdentityChips,
             {
               work: work2,
@@ -63341,7 +64807,7 @@ function ProjectPlanRow({ work: work2, ...props }) {
               humanNames: props.humanNames
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
             ProjectResponsibilityInline,
             {
               roadmap: props.roadmap,
@@ -63355,16 +64821,16 @@ function ProjectPlanRow({ work: work2, ...props }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("div", { className: "project-plan-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(ProjectDependencySummary, { work: work2, availableWorks: props.availableWorks }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("p", { className: "project-plan-delivery", children: work2.intendedOutcome || "\u672A\u586B\u5199" }),
-        /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("div", { className: "project-plan-recent", children: recent ? /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: workHistoryLabels[recent.action] }),
-          /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("div", { className: "project-plan-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ProjectDependencySummary, { work: work2, availableWorks: props.availableWorks }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("p", { className: "project-plan-delivery", children: work2.intendedOutcome || "\u672A\u586B\u5199" }),
+        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("div", { className: "project-plan-recent", children: recent ? /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: workHistoryLabels[recent.action] }),
+          /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("span", { children: [
             recent.actor.displayName,
             " \xB7 ",
             formatHistoryTime(recent.at)
           ] })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u6682\u65E0\u52A8\u6001" }) })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u6682\u65E0\u52A8\u6001" }) })
       ]
     }
   );
@@ -63376,59 +64842,59 @@ function ProjectDependencySummary({
   const blocking = workBlockingPresentation(work2, availableWorks);
   const dependencies = blocking ?? workDependencyPresentation(work2, availableWorks);
   if (blocking?.kind === "execution") {
-    return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: blocking.label }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: blocking.detail }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(DependencyHistory, { dependencies })
+    return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: blocking.label }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: blocking.detail }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(DependencyHistory, { dependencies })
     ] });
   }
   if (blocking?.kind === "dependencies") {
-    return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: "\u7B49\u5F85\u524D\u7F6E\u4EFB\u52A1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: blocking.incompleteLabels.join("\u3001") }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
+    return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: "\u7B49\u5F85\u524D\u7F6E\u4EFB\u52A1" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: blocking.incompleteLabels.join("\u3001") }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
     ] });
   }
   if (blocking) {
-    return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: "\u963B\u585E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: blocking.detail }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
+    return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: "\u963B\u585E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: blocking.detail }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
     ] });
   }
   if (dependencies.incompleteLabels.length) {
-    return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: [...dependencies.incompleteLabels, ...dependencies.completedLabels].join("\u3001") })
+    return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: [...dependencies.incompleteLabels, ...dependencies.completedLabels].join("\u3001") })
     ] });
   }
   if (dependencies.completedLabels.length) {
-    return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("strong", { children: "\u524D\u7F6E\u5DF2\u5B8C\u6210" }),
-      /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: dependencies.completedLabels.join("\u3001") })
+    return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("strong", { children: "\u524D\u7F6E\u5DF2\u5B8C\u6210" }),
+      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: dependencies.completedLabels.join("\u3001") })
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime54.jsx)("span", { children: "\u65E0\u524D\u7F6E\u4EFB\u52A1" });
+  return /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("span", { children: "\u65E0\u524D\u7F6E\u4EFB\u52A1" });
 }
 function DependencyHistory({ dependencies }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)(import_jsx_runtime54.Fragment, { children: [
-    dependencies.incompleteLabels.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("small", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)(import_jsx_runtime61.Fragment, { children: [
+    dependencies.incompleteLabels.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("small", { children: [
       "\u53E6\u6709\u672A\u5B8C\u6210\u524D\u7F6E\uFF1A",
       dependencies.incompleteLabels.join("\u3001")
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime54.jsx)(CompletedDependencyHistory, { labels: dependencies.completedLabels })
+    /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(CompletedDependencyHistory, { labels: dependencies.completedLabels })
   ] });
 }
 function CompletedDependencyHistory({ labels: labels2 }) {
-  return labels2.length ? /* @__PURE__ */ (0, import_jsx_runtime54.jsxs)("small", { children: [
+  return labels2.length ? /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("small", { children: [
     "\u5DF2\u5B8C\u6210\u524D\u7F6E\uFF1A",
     labels2.join("\u3001")
   ] }) : null;
 }
 
 // src/ProjectSuggestionActions.tsx
-var import_react40 = __toESM(require_react(), 1);
-var import_jsx_runtime55 = __toESM(require_jsx_runtime(), 1);
+var import_react46 = __toESM(require_react(), 1);
+var import_jsx_runtime62 = __toESM(require_jsx_runtime(), 1);
 function ProjectSuggestionActions({
   roadmap,
   works,
@@ -63441,18 +64907,18 @@ function ProjectSuggestionActions({
   );
   if (!suggestions.length) return null;
   const byId = new Map(works.map((work2) => [work2.workId, work2]));
-  return /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("section", { className: "project-suggestions", "aria-label": "\u9879\u76EE\u5EFA\u8BAE", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("strong", { children: "\u732B\u7684\u5EFA\u8BAE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("section", { className: "project-suggestions", "aria-label": "\u9879\u76EE\u5EFA\u8BAE", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("strong", { children: "\u732B\u7684\u5EFA\u8BAE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("span", { children: [
           suggestions.length,
           " \u9879\u5F85\u4F60\u5224\u65AD"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("small", { children: "\u63A5\u53D7\u540E\u624D\u4F1A\u6210\u4E3A\u672A\u5206\u914D\u4EFB\u52A1\uFF1B\u6B64\u5904\u4E0D\u4F1A\u66FF\u4EFB\u4F55\u4EBA\u63A5\u8D23\u3002" })
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("small", { children: "\u63A5\u53D7\u540E\u624D\u4F1A\u6210\u4E3A\u672A\u5206\u914D\u4EFB\u52A1\uFF1B\u6B64\u5904\u4E0D\u4F1A\u66FF\u4EFB\u4F55\u4EBA\u63A5\u8D23\u3002" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("div", { className: "project-suggestion-list", children: suggestions.map((suggestion) => /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("div", { className: "project-suggestion-list", children: suggestions.map((suggestion) => /* @__PURE__ */ (0, import_jsx_runtime62.jsx)(
       ProjectSuggestionCard,
       {
         roadmap,
@@ -63470,10 +64936,10 @@ function ProjectSuggestionCard({
   target,
   onDecide
 }) {
-  const [title, setTitle] = (0, import_react40.useState)(suggestion.title);
-  const [intendedOutcome, setIntendedOutcome] = (0, import_react40.useState)(suggestion.intendedOutcome);
-  const [busy, setBusy] = (0, import_react40.useState)(false);
-  const [error, setError] = (0, import_react40.useState)();
+  const [title, setTitle] = (0, import_react46.useState)(suggestion.title);
+  const [intendedOutcome, setIntendedOutcome] = (0, import_react46.useState)(suggestion.intendedOutcome);
+  const [busy, setBusy] = (0, import_react46.useState)(false);
+  const [error, setError] = (0, import_react46.useState)();
   const decide = async (decision) => {
     if (!onDecide || busy) return;
     setBusy(true);
@@ -63492,24 +64958,24 @@ function ProjectSuggestionCard({
     }
   };
   const agentName = suggestion.proposedBy.kind === "agent" ? suggestion.proposedBy.displayName : "\u5171\u540C\u4F53\u4F19\u4F34";
-  return /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("article", { className: "project-suggestion-card", "data-project-suggestion-id": suggestion.workId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("strong", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("article", { className: "project-suggestion-card", "data-project-suggestion-id": suggestion.workId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("strong", { children: [
           agentName,
           " \u7684\u5EFA\u8BAE"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("span", { children: [
           target ? `\u5EFA\u8BAE\u4F5C\u4E3A\u201C${target.title}\u201D\u7684\u524D\u7F6E\u4EFB\u52A1` : "\u5EFA\u8BAE\u52A0\u5165\u8FD9\u4E2A\u9879\u76EE",
           " \xB7 #",
           suggestion.sourceLocation.channelId
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("span", { className: "project-suggestion-state", children: "\u5F85\u5224\u65AD" })
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("span", { className: "project-suggestion-state", children: "\u5F85\u5224\u65AD" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)(
         "input",
         {
           "aria-label": `\u5EFA\u8BAE\u4EFB\u52A1\u540D\u79F0 \xB7 ${suggestion.title}`,
@@ -63520,9 +64986,9 @@ function ProjectSuggestionCard({
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)(
         "textarea",
         {
           "aria-label": `\u5EFA\u8BAE\u4EFB\u52A1\u5B8C\u6210\u6807\u51C6 \xB7 ${suggestion.title}`,
@@ -63534,10 +65000,10 @@ function ProjectSuggestionCard({
         }
       )
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("p", { role: "alert", children: error }),
-    /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("footer", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("button", { type: "button", disabled: busy, onClick: () => void decide("ignore"), children: "\u5FFD\u7565\u5EFA\u8BAE" }),
-      /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
+    error && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("p", { role: "alert", children: error }),
+    /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("footer", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("button", { type: "button", disabled: busy, onClick: () => void decide("ignore"), children: "\u5FFD\u7565\u5EFA\u8BAE" }),
+      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)(
         "button",
         {
           type: "button",
@@ -63552,7 +65018,7 @@ function ProjectSuggestionCard({
 }
 
 // src/RoadmapWorkNode.tsx
-var import_jsx_runtime56 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime63 = __toESM(require_jsx_runtime(), 1);
 function RoadmapWorkNode({
   work: work2,
   humanNames,
@@ -63563,7 +65029,7 @@ function RoadmapWorkNode({
   const accountable = work2.accountableHumanId ? humanNames[work2.accountableHumanId] ?? "\u5171\u540C\u4F53\u6210\u5458" : "\u672A\u5206\u914D";
   const execution = workExecutionPresentation(work2);
   const ownership = work2.assignment ? `${work2.assignment.displayName} ${execution.assignmentAction} \xB7 ${accountable} \u8D1F\u8D23` : work2.accountableHumanId ? `${accountable} \u8D1F\u8D23` : "\u672A\u5206\u914D \xB7 \u7B49\u5F85\u8D1F\u8D23\u4EBA\u63A5\u4E0B";
-  return /* @__PURE__ */ (0, import_jsx_runtime56.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)(
     "button",
     {
       type: "button",
@@ -63574,16 +65040,16 @@ function RoadmapWorkNode({
       "aria-current": selected ? "true" : void 0,
       onClick: () => onSelect(work2.workId),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("span", { className: "roadmap-work-node-status", children: execution.statusLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("strong", { children: work2.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime56.jsx)("small", { children: responsibility2 ?? ownership })
+        /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("span", { className: "roadmap-work-node-status", children: execution.statusLabel }),
+        /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("strong", { children: work2.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("small", { children: responsibility2 ?? ownership })
       ]
     }
   );
 }
 
 // src/RoadmapProjection.tsx
-var import_jsx_runtime57 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime64 = __toESM(require_jsx_runtime(), 1);
 function RoadmapProjection({
   works,
   allWorks,
@@ -63594,7 +65060,7 @@ function RoadmapProjection({
   onSelect
 }) {
   if (view.lens === "dependencies") {
-    return /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(
       DependencyGraph,
       {
         works,
@@ -63606,9 +65072,9 @@ function RoadmapProjection({
     );
   }
   if (view.lens === "mine") {
-    return /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("section", { className: "roadmap-mine", "aria-label": "\u4E0E\u6211\u76F8\u5173", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("p", { children: "\u53EA\u770B\u4F60\u8D1F\u8D23\u6216\u7531\u4F60\u5BB6\u4F19\u4F34\u6267\u884C\u7684\u4EFB\u52A1\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("div", { className: "roadmap-mine-track", children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)("section", { className: "roadmap-mine", "aria-label": "\u4E0E\u6211\u76F8\u5173", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("p", { children: "\u53EA\u770B\u4F60\u8D1F\u8D23\u6216\u7531\u4F60\u5BB6\u4F19\u4F34\u6267\u884C\u7684\u4EFB\u52A1\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("div", { className: "roadmap-mine-track", children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(
         RoadmapWorkNode,
         {
           work: work2,
@@ -63621,18 +65087,18 @@ function RoadmapProjection({
       )) })
     ] });
   }
-  return view.presentation === "board" ? /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(StatusBoard, { works, humanNames, selectedWorkId, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(StageRoute, { works, humanNames, selectedWorkId, onSelect });
+  return view.presentation === "board" ? /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(StatusBoard, { works, humanNames, selectedWorkId, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(StageRoute, { works, humanNames, selectedWorkId, onSelect });
 }
 function StageRoute({ works, humanNames, selectedWorkId, onSelect }) {
   const stages = ["queued", "active", "accepted"];
-  return /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("section", { className: "roadmap-stage-route", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u56FE", children: stages.map((stage) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("section", { className: "roadmap-stage-route", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u56FE", children: stages.map((stage) => {
     const stageWorks = works.filter((work2) => stageForWork(work2.status) === stage);
-    return /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("section", { className: "roadmap-stage", "data-stage": stage, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("header", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("strong", { children: stageLabels[stage] }),
-        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: stageWorks.length })
+    return /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)("section", { className: "roadmap-stage", "data-stage": stage, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)("header", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("strong", { children: stageLabels[stage] }),
+        /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("span", { children: stageWorks.length })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("div", { className: "roadmap-stage-items", children: stageWorks.length ? stageWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("div", { className: "roadmap-stage-items", children: stageWorks.length ? stageWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(
         RoadmapWorkNode,
         {
           work: work2,
@@ -63641,7 +65107,7 @@ function StageRoute({ works, humanNames, selectedWorkId, onSelect }) {
           onSelect
         },
         work2.workId
-      )) : /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("p", { children: "\u8FD9\u4E00\u6BB5\u6682\u65F6\u6CA1\u6709\u4EFB\u52A1\u3002" }) })
+      )) : /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("p", { children: "\u8FD9\u4E00\u6BB5\u6682\u65F6\u6CA1\u6709\u4EFB\u52A1\u3002" }) })
     ] }, stage);
   }) });
 }
@@ -63652,14 +65118,14 @@ function StatusBoard({ works, humanNames, selectedWorkId, onSelect }) {
     { tone: "queued", label: "\u7B49\u5F85" },
     { tone: "accepted", label: "\u5DF2\u5B8C\u6210" }
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("section", { className: "roadmap-status-board", "aria-label": "\u9879\u76EE\u72B6\u6001\u770B\u677F", children: lanes.map(({ tone, label }) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("section", { className: "roadmap-status-board", "aria-label": "\u9879\u76EE\u72B6\u6001\u770B\u677F", children: lanes.map(({ tone, label }) => {
     const laneWorks = works.filter((work2) => roadmapStatusTone(work2.status) === tone);
-    return /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("section", { className: "roadmap-board-lane", "data-status-tone": tone, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime57.jsxs)("header", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("strong", { children: label }),
-        /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("span", { children: laneWorks.length })
+    return /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)("section", { className: "roadmap-board-lane", "data-status-tone": tone, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)("header", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("strong", { children: label }),
+        /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("span", { children: laneWorks.length })
       ] }),
-      laneWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
+      laneWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(
         RoadmapWorkNode,
         {
           work: work2,
@@ -63681,13 +65147,13 @@ function DependencyGraph({
 }) {
   const levels = dependencyLevels(works);
   const levelValues = [...new Set(levels.values())].sort((left, right) => left - right);
-  return /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("section", { className: "roadmap-dependency-graph", "aria-label": "\u4EFB\u52A1\u4F9D\u8D56\u56FE", children: levelValues.map((level) => /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("section", { className: "roadmap-dependency-graph", "aria-label": "\u4EFB\u52A1\u4F9D\u8D56\u56FE", children: levelValues.map((level) => /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(
     "section",
     {
       className: "roadmap-dependency-level",
       "aria-label": `\u4F9D\u8D56\u5C42\u7EA7 ${level + 1}`,
       children: works.filter((work2) => levels.get(work2.workId) === level).map((work2) => {
-        return /* @__PURE__ */ (0, import_jsx_runtime57.jsx)("div", { "data-dependency-level": level, children: /* @__PURE__ */ (0, import_jsx_runtime57.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("div", { "data-dependency-level": level, children: /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(
           RoadmapWorkNode,
           {
             work: work2,
@@ -63716,8 +65182,8 @@ function dependencyResponsibility(work2, availableWorks) {
 }
 
 // src/WorkAccountabilityActions.tsx
-var import_react41 = __toESM(require_react(), 1);
-var import_jsx_runtime58 = __toESM(require_jsx_runtime(), 1);
+var import_react47 = __toESM(require_react(), 1);
+var import_jsx_runtime65 = __toESM(require_jsx_runtime(), 1);
 function WorkAccountabilityActions({
   roadmap,
   roadmaps = [roadmap],
@@ -63729,8 +65195,8 @@ function WorkAccountabilityActions({
   onRequest,
   onRespond
 }) {
-  const [targetHumanId, setTargetHumanId] = (0, import_react41.useState)("");
-  const [participantSelection, setParticipantSelection] = (0, import_react41.useState)("self");
+  const [targetHumanId, setTargetHumanId] = (0, import_react47.useState)("");
+  const [participantSelection, setParticipantSelection] = (0, import_react47.useState)("self");
   const canChangeResponsibility = canChangeWorkResponsibility(roadmap, work2);
   const requestState = workAccountabilityRequestState(work2, roadmaps);
   const pending = requestState.pending;
@@ -63743,23 +65209,23 @@ function WorkAccountabilityActions({
   const targetedRequest = pending?.targetHumanId === currentHumanId ? pending : void 0;
   if (pending && !requestState.roadmap) return null;
   if (!canTakeSelf && !canRequest && !pending) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("section", { className: "work-accountability-actions", "aria-label": "\u4EFB\u52A1\u8D1F\u8D23\u4EBA\u64CD\u4F5C", children: targetedRequest && onRespond ? /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)(import_jsx_runtime58.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("strong", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("section", { className: "work-accountability-actions", "aria-label": "\u4EFB\u52A1\u8D1F\u8D23\u4EBA\u64CD\u4F5C", children: targetedRequest && onRespond ? /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(import_jsx_runtime65.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("strong", { children: [
       targetedRequest.requestedByDisplayName,
       " \u9080\u8BF7\u4F60\u8D1F\u8D23"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("p", { children: "\u63A5\u53D7\u540E\u4F60\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\uFF1B\u4E5F\u53EF\u4EE5\u540C\u65F6\u9009\u62E9\u81EA\u5DF1 Caf\xE9 \u91CC\u7684\u732B\u6765\u63A8\u8FDB\u3002" }),
-    /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("span", { children: "\u63A5\u4E0B\u4EFB\u52A1\u540E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: "\u63A5\u53D7\u540E\u4F60\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\uFF1B\u4E5F\u53EF\u4EE5\u540C\u65F6\u9009\u62E9\u81EA\u5DF1 Caf\xE9 \u91CC\u7684\u732B\u6765\u63A8\u8FDB\u3002" }),
+    /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("span", { children: "\u63A5\u4E0B\u4EFB\u52A1\u540E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(
         "select",
         {
           "aria-label": "\u63A5\u4E0B\u4EFB\u52A1\u540E",
           value: participantSelection,
           onChange: (event) => setParticipantSelection(event.target.value),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("option", { value: "self", children: "\u6211\u81EA\u5DF1\u63A8\u8FDB" }),
-            ownParticipants.map((participant) => /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("option", { value: participantKey(participant), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("option", { value: "self", children: "\u6211\u81EA\u5DF1\u63A8\u8FDB" }),
+            ownParticipants.map((participant) => /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("option", { value: participantKey(participant), children: [
               "\u4EA4\u7ED9 ",
               participant.displayName
             ] }, participantKey(participant)))
@@ -63767,8 +65233,8 @@ function WorkAccountabilityActions({
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
         "button",
         {
           type: "button",
@@ -63782,7 +65248,7 @@ function WorkAccountabilityActions({
           children: "\u63A5\u53D7\u8D1F\u8D23"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
         "button",
         {
           type: "button",
@@ -63791,12 +65257,12 @@ function WorkAccountabilityActions({
         }
       )
     ] })
-  ] }) : pending ? /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("p", { children: [
+  ] }) : pending ? /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("p", { children: [
     "\u5DF2\u9080\u8BF7 ",
     pending.targetDisplayName,
     "\uFF0C\u7B49\u5F85\u56DE\u590D\u3002"
-  ] }) : /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)(import_jsx_runtime58.Fragment, { children: [
-    canTakeSelf && onCommit && /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
+  ] }) : /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(import_jsx_runtime65.Fragment, { children: [
+    canTakeSelf && onCommit && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
       "button",
       {
         type: "button",
@@ -63805,23 +65271,23 @@ function WorkAccountabilityActions({
         children: "\u6211\u6765\u8D1F\u8D23"
       }
     ),
-    canRequest && onRequest && availableTargets.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("div", { className: "work-accountability-invite", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("span", { children: "\u9080\u8BF7\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime58.jsxs)(
+    canRequest && onRequest && availableTargets.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { className: "work-accountability-invite", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("span", { children: "\u9080\u8BF7\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(
           "select",
           {
             "aria-label": "\u9080\u8BF7\u8D1F\u8D23\u4EBA",
             value: targetHumanId,
             onChange: (event) => setTargetHumanId(event.target.value),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("option", { value: "", children: "\u9009\u62E9\u5171\u540C\u4F53\u6210\u5458" }),
-              availableTargets.map((human) => /* @__PURE__ */ (0, import_jsx_runtime58.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
+              /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("option", { value: "", children: "\u9009\u62E9\u5171\u540C\u4F53\u6210\u5458" }),
+              availableTargets.map((human) => /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
             ]
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime58.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
         "button",
         {
           type: "button",
@@ -63835,7 +65301,7 @@ function WorkAccountabilityActions({
 }
 
 // src/RoadmapWorkDetails.tsx
-var import_jsx_runtime59 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime66 = __toESM(require_jsx_runtime(), 1);
 function RoadmapWorkDetails({
   work: work2,
   roadmap,
@@ -63866,40 +65332,40 @@ function RoadmapWorkDetails({
   const sourceKind = work2.sourceLocation.rootEventId ? "\u8BDD\u9898" : "\u9891\u9053\u6D88\u606F";
   const canEdit = canEditDependencies && canEditWorkDependencies(work2) && work2.accountableHumanId === currentHumanId;
   const execution = workExecutionPresentation(work2);
-  return /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("aside", { className: "roadmap-work-details", "aria-label": `\u4EFB\u52A1\u8BE6\u60C5 \xB7 ${work2.title}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("span", { children: execution.statusLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("h3", { children: work2.title })
+  return /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("aside", { className: "roadmap-work-details", "aria-label": `\u4EFB\u52A1\u8BE6\u60C5 \xB7 ${work2.title}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("span", { children: execution.statusLabel }),
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("h3", { children: work2.title })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("button", { type: "button", className: "roadmap-details-close", "aria-label": "\u5173\u95ED\u4EFB\u52A1\u8BE6\u60C5", onClick: onClose, children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", className: "roadmap-details-close", "aria-label": "\u5173\u95ED\u4EFB\u52A1\u8BE6\u60C5", onClick: onClose, children: "\xD7" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("p", { children: work2.intendedOutcome }),
-    execution.admissionMessage && /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("p", { className: "work-admission", children: execution.admissionMessage }),
-    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("dl", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dd", { children: work2.accountableHumanId ? `${accountable} \u8D1F\u8D23` : "\u672A\u5206\u914D" })
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { children: work2.intendedOutcome }),
+    execution.admissionMessage && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { className: "work-admission", children: execution.admissionMessage }),
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("dl", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dd", { children: work2.accountableHumanId ? `${accountable} \u8D1F\u8D23` : "\u672A\u5206\u914D" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u6267\u884C" }),
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dd", { children: work2.assignment ? `${work2.assignment.displayName} ${execution.assignmentAction}` : accountable })
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dt", { children: "\u6267\u884C" }),
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dd", { children: work2.assignment ? `${work2.assignment.displayName} ${execution.assignmentAction}` : accountable })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u6765\u6E90" }),
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("dd", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dt", { children: "\u6765\u6E90" }),
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("dd", { children: [
           "#",
           work2.sourceLocation.channelId,
           " \xB7 ",
           sourceKind
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dt", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("dd", { children: dependencyLabels.length ? dependencyLabels.join("\u3001") : "\u6CA1\u6709\u524D\u7F6E\u4EFB\u52A1" })
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dt", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("dd", { children: dependencyLabels.length ? dependencyLabels.join("\u3001") : "\u6CA1\u6709\u524D\u7F6E\u4EFB\u52A1" })
       ] })
     ] }),
-    roadmap && /* @__PURE__ */ (0, import_jsx_runtime59.jsx)(
+    roadmap && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)(
       WorkAccountabilityActions,
       {
         roadmap,
@@ -63913,15 +65379,15 @@ function RoadmapWorkDetails({
         onRespond: onRespondWorkAccountability
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("div", { className: "roadmap-details-actions", children: [
-      onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: "\u67E5\u770B\u6765\u6E90\u6D88\u606F" }),
-      work2.resultEventId && onOpenResult && /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("button", { type: "button", onClick: () => onOpenResult(work2, view), children: "\u67E5\u770B\u7ED3\u679C\u6D88\u606F" })
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("div", { className: "roadmap-details-actions", children: [
+      onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: "\u67E5\u770B\u6765\u6E90\u6D88\u606F" }),
+      work2.resultEventId && onOpenResult && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", onClick: () => onOpenResult(work2, view), children: "\u67E5\u770B\u7ED3\u679C\u6D88\u606F" })
     ] }),
-    canEdit && /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("details", { className: "roadmap-dependency-editor", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("summary", { children: "\u8C03\u6574\u524D\u7F6E\u4EFB\u52A1" }),
+    canEdit && /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("details", { className: "roadmap-dependency-editor", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("summary", { children: "\u8C03\u6574\u524D\u7F6E\u4EFB\u52A1" }),
       availableWorks.filter((candidate) => candidate.workId !== work2.workId && canTrackWorkInProject(candidate)).map((candidate) => {
         const selected = work2.dependencyWorkIds.includes(candidate.workId);
-        return /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)(
+        return /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)(
           "button",
           {
             type: "button",
@@ -63939,19 +65405,19 @@ function RoadmapWorkDetails({
         );
       })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("section", { className: "roadmap-work-history", "aria-label": "\u4EFB\u52A1\u52A8\u6001", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("h4", { children: "\u52A8\u6001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("ol", { children: [...work2.history].reverse().map((entry) => /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("li", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("strong", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("section", { className: "roadmap-work-history", "aria-label": "\u4EFB\u52A1\u52A8\u6001", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("h4", { children: "\u52A8\u6001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("ol", { children: [...work2.history].reverse().map((entry) => /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("strong", { children: [
           workHistoryLabels[entry.action],
           isResultHistoryAction(entry.action) ? ` \xB7 \u7ED3\u679C v${entry.resultRevision ?? 1}` : ""
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("span", { children: [
           actorName(entry.actor),
           " \xB7 ",
           formatHistoryTime(entry.at)
         ] }),
-        entry.note && /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("p", { children: entry.note })
+        entry.note && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { children: entry.note })
       ] }, `${entry.revision}:${entry.action}`)) })
     ] })
   ] });
@@ -63961,7 +65427,7 @@ function isResultHistoryAction(action) {
 }
 
 // src/RoadmapPanel.tsx
-var import_jsx_runtime60 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime67 = __toESM(require_jsx_runtime(), 1);
 function RoadmapPanel({
   roadmap,
   allRoadmaps = [roadmap],
@@ -63988,7 +65454,7 @@ function RoadmapPanel({
   onOpenResult,
   onOpenArtifact
 }) {
-  const [internalView, setInternalView] = (0, import_react42.useState)({
+  const [internalView, setInternalView] = (0, import_react48.useState)({
     lens: "stage",
     presentation: "graph",
     scope: "all",
@@ -64022,8 +65488,8 @@ function RoadmapPanel({
   ).length;
   const isPlan = activeView.lens === "stage" && activeView.presentation === "graph";
   const isBoard = activeView.lens === "stage" && activeView.presentation === "board";
-  return /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("section", { className: "roadmap-panel", "aria-label": `\u9879\u76EE\u9875\u9762 \xB7 ${roadmap.title}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("section", { className: "roadmap-panel", "aria-label": `\u9879\u76EE\u9875\u9762 \xB7 ${roadmap.title}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
       ProjectPageToolbar,
       {
         roadmap,
@@ -64037,9 +65503,9 @@ function RoadmapPanel({
         onCreateTask
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("div", { className: "project-page-body", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("main", { className: "project-page-main", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("div", { className: "project-page-body", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("main", { className: "project-page-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
           ProjectPanelSummary,
           {
             roadmap,
@@ -64051,7 +65517,7 @@ function RoadmapPanel({
             onSetStatus
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
           ProjectSuggestionActions,
           {
             roadmap,
@@ -64060,8 +65526,8 @@ function RoadmapPanel({
             onDecide: onDecideProjectSuggestion
           }
         ),
-        (isPlan || activeView.lens === "dependencies") && /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("div", { className: "roadmap-context-bar", children: /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)(ControlGroup, { label: "\u9879\u76EE\u7B5B\u9009", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+        (isPlan || activeView.lens === "dependencies") && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("div", { className: "roadmap-context-bar", children: /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)(ControlGroup, { label: "\u9879\u76EE\u7B5B\u9009", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
             ControlButton,
             {
               active: activeView.relation !== "mine" && activeView.scope === "all",
@@ -64069,7 +65535,7 @@ function RoadmapPanel({
               children: `\u5168\u90E8 ${routeWorks.length}`
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
             ControlButton,
             {
               active: activeView.relation !== "mine" && activeView.scope === "unfinished",
@@ -64077,7 +65543,7 @@ function RoadmapPanel({
               children: `\u672A\u5B8C\u6210 ${unfinishedCount}`
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
             ControlButton,
             {
               active: activeView.relation === "mine",
@@ -64086,7 +65552,7 @@ function RoadmapPanel({
             }
           )
         ] }) }),
-        activeView.lens === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+        activeView.lens === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
           ProjectArtifactSurface,
           {
             roadmap,
@@ -64095,7 +65561,7 @@ function RoadmapPanel({
             status: artifactStatus,
             onOpen: onOpenArtifact
           }
-        ) : isBoard ? /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+        ) : isBoard ? /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
           ProjectBoard,
           {
             roadmaps: [roadmap],
@@ -64111,7 +65577,7 @@ function RoadmapPanel({
             onRequestWorkAccountability,
             onRespondWorkAccountability
           }
-        ) : isPlan ? /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+        ) : isPlan ? /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
           ProjectPlanTable,
           {
             roadmap,
@@ -64128,7 +65594,7 @@ function RoadmapPanel({
             onRequestWorkAccountability,
             onRespondWorkAccountability
           }
-        ) : visibleWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("div", { className: "roadmap-canvas", "data-concierge-safe-zone": true, children: /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+        ) : visibleWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("div", { className: "roadmap-canvas", "data-concierge-safe-zone": true, children: /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
           RoadmapProjection,
           {
             works: visibleWorks,
@@ -64139,9 +65605,9 @@ function RoadmapPanel({
             selectedWorkId: selectedWork?.workId,
             onSelect: (workId) => updateView({ ...activeView, workId })
           }
-        ) }) : /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("p", { className: "roadmap-empty", children: activeView.relation === "mine" ? "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4E0E\u4F60\u76F8\u5173\u7684\u4EFB\u52A1\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u4EFB\u52A1\u3002" })
+        ) }) : /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { className: "roadmap-empty", children: activeView.relation === "mine" ? "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4E0E\u4F60\u76F8\u5173\u7684\u4EFB\u52A1\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u4EFB\u52A1\u3002" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
         ProjectContextPanel,
         {
           roadmap,
@@ -64152,7 +65618,7 @@ function RoadmapPanel({
         }
       )
     ] }),
-    selectedWork && /* @__PURE__ */ (0, import_jsx_runtime60.jsx)(
+    selectedWork && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
       RoadmapWorkDetails,
       {
         work: selectedWork,
@@ -64177,8 +65643,8 @@ function RoadmapPanel({
   ] });
 }
 function ControlGroup({ label, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime60.jsxs)("fieldset", { className: "roadmap-control-group", "aria-label": label, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("legend", { children: label }),
+  return /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("fieldset", { className: "roadmap-control-group", "aria-label": label, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("legend", { children: label }),
     children
   ] });
 }
@@ -64187,11 +65653,11 @@ function ControlButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime60.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
 }
 
 // src/RoadmapWorkspace.tsx
-var import_jsx_runtime61 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime68 = __toESM(require_jsx_runtime(), 1);
 function RoadmapWorkspace({
   roadmaps,
   works,
@@ -64223,7 +65689,7 @@ function RoadmapWorkspace({
   onWithdrawBindingVote,
   onSettleBindingVote
 }) {
-  const [internalView, setInternalView] = (0, import_react43.useState)(() => ({
+  const [internalView, setInternalView] = (0, import_react49.useState)(() => ({
     ...defaultRoadmapView,
     roadmapId: roadmaps[0]?.roadmapId
   }));
@@ -64250,8 +65716,8 @@ function RoadmapWorkspace({
   const switchWorkspace = (next) => updateView({ ...defaultRoadmapView, workspace: next, roadmapId: activeView.roadmapId });
   const projectWorks = worksForProjects(roadmaps, works);
   if (workspace === "project" && selected) {
-    return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("div", { className: "roadmap-workspace", "data-project-page": true, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { className: "roadmap-workspace", "data-project-page": true, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
         RoadmapPanel,
         {
           roadmap: selected,
@@ -64280,7 +65746,7 @@ function RoadmapWorkspace({
           onDecideProjectSuggestion
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
         BindingVoteSection,
         {
           roadmap: selected,
@@ -64295,22 +65761,22 @@ function RoadmapWorkspace({
       )
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("div", { className: "roadmap-workspace", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("section", { className: "project-workspace-heading", "aria-label": "\u9879\u76EE\u603B\u89C8\u5BFC\u822A", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("div", { className: "project-workspace-title", children: [
-        onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ShellGlyph, { name: "panelLeft" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("h1", { children: "\u9879\u76EE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { className: "roadmap-workspace", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("section", { className: "project-workspace-heading", "aria-label": "\u9879\u76EE\u603B\u89C8\u5BFC\u822A", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { className: "project-workspace-title", children: [
+        onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(ShellGlyph, { name: "panelLeft" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h1", { children: "\u9879\u76EE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("span", { children: [
           roadmaps.filter((roadmap) => roadmap.status === "active").length,
           " \u4E2A\u8FDB\u884C\u4E2D"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime61.jsxs)("nav", { "aria-label": "\u9879\u76EE\u89C6\u56FE", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ProjectViewButton, { active: workspace === "list", onClick: () => switchWorkspace("list"), children: "\u9879\u76EE\u5217\u8868" }),
-        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ProjectViewButton, { active: workspace === "dependencies", onClick: () => switchWorkspace("dependencies"), children: "\u8DE8\u9879\u76EE\u4F9D\u8D56" }),
-        /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(ProjectViewButton, { active: workspace === "board", onClick: () => switchWorkspace("board"), children: "\u770B\u677F" })
+      /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("nav", { "aria-label": "\u9879\u76EE\u89C6\u56FE", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(ProjectViewButton, { active: workspace === "list", onClick: () => switchWorkspace("list"), children: "\u9879\u76EE\u5217\u8868" }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(ProjectViewButton, { active: workspace === "dependencies", onClick: () => switchWorkspace("dependencies"), children: "\u8DE8\u9879\u76EE\u4F9D\u8D56" }),
+        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(ProjectViewButton, { active: workspace === "board", onClick: () => switchWorkspace("board"), children: "\u770B\u677F" })
       ] }),
-      workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(NewProjectControl, { channelId, onCreate: onCreateProject }) : /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+      workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(NewProjectControl, { channelId, onCreate: onCreateProject }) : /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
         NewWorkspaceTaskControl,
         {
           roadmaps,
@@ -64321,7 +65787,7 @@ function RoadmapWorkspace({
         }
       )
     ] }),
-    workspace === "list" && /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+    workspace === "list" && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
       ProjectAttentionPanel,
       {
         roadmaps,
@@ -64332,7 +65798,7 @@ function RoadmapWorkspace({
         onOpen: openProject
       }
     ),
-    workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+    workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
       ProjectList,
       {
         roadmaps,
@@ -64346,7 +65812,7 @@ function RoadmapWorkspace({
         onOpen: openProject,
         onOpenArtifact
       }
-    ) : workspace === "dependencies" ? /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("div", { className: "project-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+    ) : workspace === "dependencies" ? /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("div", { className: "project-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
       RoadmapProjection,
       {
         works: projectWorks,
@@ -64359,7 +65825,7 @@ function RoadmapWorkspace({
           if (work2) openProjectWork(work2);
         }
       }
-    ) }) : workspace === "board" ? /* @__PURE__ */ (0, import_jsx_runtime61.jsx)(
+    ) }) : workspace === "board" ? /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
       ProjectBoard,
       {
         roadmaps,
@@ -64374,7 +65840,7 @@ function RoadmapWorkspace({
         onRequestWorkAccountability,
         onRespondWorkAccountability
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("p", { className: "project-workspace-empty", children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u65B0\u5EFA\u9879\u76EE\u540E\uFF0C\u4EFB\u52A1\u3001\u8D1F\u8D23\u4EBA\u548C\u7ED3\u679C\u4F1A\u7559\u5728\u540C\u4E00\u6761\u8DEF\u5F84\u91CC\u3002" })
+    ) : /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { className: "project-workspace-empty", children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u65B0\u5EFA\u9879\u76EE\u540E\uFF0C\u4EFB\u52A1\u3001\u8D1F\u8D23\u4EBA\u548C\u7ED3\u679C\u4F1A\u7559\u5728\u540C\u4E00\u6761\u8DEF\u5F84\u91CC\u3002" })
   ] });
 }
 function ProjectViewButton({
@@ -64382,15 +65848,15 @@ function ProjectViewButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime61.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
 }
 
 // src/SharedArtifactSurface.tsx
-var import_react55 = __toESM(require_react(), 1);
+var import_react61 = __toESM(require_react(), 1);
 
 // src/SharedArtifactAnnotationThread.tsx
-var import_react44 = __toESM(require_react(), 1);
-var import_jsx_runtime62 = __toESM(require_jsx_runtime(), 1);
+var import_react50 = __toESM(require_react(), 1);
+var import_jsx_runtime69 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactAnnotationThread({
   artifact,
   view,
@@ -64408,12 +65874,12 @@ function SharedArtifactAnnotationThread({
     view.view.review.revision,
     annotation.id
   ]);
-  const current2 = (0, import_react44.useRef)(key);
+  const current2 = (0, import_react50.useRef)(key);
   current2.current = key;
-  const [loaded, setLoaded] = (0, import_react44.useState)();
-  const [pending, setPending] = (0, import_react44.useState)();
-  const [settled, setSettled] = (0, import_react44.useState)();
-  const [failure, setFailure] = (0, import_react44.useState)();
+  const [loaded, setLoaded] = (0, import_react50.useState)();
+  const [pending, setPending] = (0, import_react50.useState)();
+  const [settled, setSettled] = (0, import_react50.useState)();
+  const [failure, setFailure] = (0, import_react50.useState)();
   const page3 = view.view.replyPages?.find((item) => item.annotationId === annotation.id);
   const replies = loaded?.key === key ? loaded.replies : annotation.replies ?? [];
   const total = page3?.total ?? replies.length;
@@ -64455,20 +65921,20 @@ function SharedArtifactAnnotationThread({
       if (current2.current === key) setPending(void 0);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("div", { className: "shared-artifact-annotation-thread", children: [
-    replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime62.jsxs)("div", { className: "shared-artifact-annotation-reply", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("strong", { children: shared?.humanName(reply.author.actorId) }),
-      /* @__PURE__ */ (0, import_jsx_runtime62.jsx)(MessageMarkdown, { source: reply.body })
+  return /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("div", { className: "shared-artifact-annotation-thread", children: [
+    replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("div", { className: "shared-artifact-annotation-reply", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("strong", { children: shared?.humanName(reply.author.actorId) }),
+      /* @__PURE__ */ (0, import_jsx_runtime69.jsx)(MessageMarkdown, { source: reply.body })
     ] }, reply.id)),
-    offset2 !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("button", { type: "button", disabled: blocked, onClick: () => void more(), children: language === "en" ? `Load replies (${replies.length}/${total})` : `\u8BFB\u53D6\u56DE\u590D\uFF08${replies.length}/${total}\uFF09` }),
-    view.view.canWrite && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("button", { type: "button", disabled: blocked, onClick: () => void decide(), children: t(annotation.state === "open" ? "\u89E3\u51B3\u6279\u6CE8" : "\u91CD\u65B0\u6253\u5F00\u6279\u6CE8") }),
-    settled === key && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("output", { children: t("\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026") }),
-    failure?.key === key && /* @__PURE__ */ (0, import_jsx_runtime62.jsx)("p", { role: "alert", children: t(failure.message) })
+    offset2 !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("button", { type: "button", disabled: blocked, onClick: () => void more(), children: language === "en" ? `Load replies (${replies.length}/${total})` : `\u8BFB\u53D6\u56DE\u590D\uFF08${replies.length}/${total}\uFF09` }),
+    view.view.canWrite && /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("button", { type: "button", disabled: blocked, onClick: () => void decide(), children: t(annotation.state === "open" ? "\u89E3\u51B3\u6279\u6CE8" : "\u91CD\u65B0\u6253\u5F00\u6279\u6CE8") }),
+    settled === key && /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("output", { children: t("\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026") }),
+    failure?.key === key && /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("p", { role: "alert", children: t(failure.message) })
   ] });
 }
 
 // src/use-shared-artifact-annotation-pages.ts
-var import_react45 = __toESM(require_react(), 1);
+var import_react51 = __toESM(require_react(), 1);
 function useSharedArtifactAnnotationPages(artifact, view) {
   const shared = useSharedArtifacts();
   const fence = JSON.stringify([
@@ -64486,11 +65952,11 @@ function useSharedArtifactAnnotationPages(artifact, view) {
     view.view.canWrite,
     view.view.canReply
   ]);
-  const current2 = (0, import_react45.useRef)(fence);
+  const current2 = (0, import_react51.useRef)(fence);
   current2.current = fence;
-  const [expanded, setExpanded] = (0, import_react45.useState)();
-  const [pending, setPending] = (0, import_react45.useState)();
-  const [failure, setFailure] = (0, import_react45.useState)();
+  const [expanded, setExpanded] = (0, import_react51.useState)();
+  const [pending, setPending] = (0, import_react51.useState)();
+  const [failure, setFailure] = (0, import_react51.useState)();
   const selected = expanded?.fence === fence ? expanded.view : view;
   const more = async () => {
     if (!shared?.api || !artifact || pending === fence) return;
@@ -64518,7 +65984,7 @@ function useSharedArtifactAnnotationPages(artifact, view) {
 }
 
 // src/SharedArtifactAnnotations.tsx
-var import_jsx_runtime63 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime70 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactAnnotations({
   view: initial,
   onOpenDiscussion
@@ -64531,8 +65997,8 @@ function SharedArtifactAnnotations({
   const pages = useSharedArtifactAnnotationPages(artifact, initial);
   const view = pages.view;
   if (!view.view.review.annotations.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("aside", { className: "shared-artifact-annotations", "aria-label": t("\u4F5C\u54C1\u6279\u6CE8"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("h2", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("aside", { className: "shared-artifact-annotations", "aria-label": t("\u4F5C\u54C1\u6279\u6CE8"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("h2", { children: [
       t("\u6279\u6CE8"),
       " \xB7 ",
       view.view.annotationPage?.total ?? view.view.review.annotations.length
@@ -64542,24 +66008,24 @@ function SharedArtifactAnnotations({
       const source3 = annotation.collectiveMessage;
       const original = source3?.ownerRevision;
       const orphaned = status === "orphaned" || status === "ambiguous";
-      return /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("article", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("strong", { children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("article", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("strong", { children: [
             index4 + 1,
             " \xB7 ",
             shared?.humanName(annotation.author.actorId) ?? t("\u5171\u540C\u4F53\u6210\u5458")
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("span", { children: t(annotation.state === "resolved" ? "\u5DF2\u89E3\u51B3" : "\u6279\u6CE8") })
+          /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("span", { children: t(annotation.state === "resolved" ? "\u5DF2\u89E3\u51B3" : "\u6279\u6CE8") })
         ] }),
-        "quote" in annotation.anchor && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("blockquote", { children: annotation.anchor.quote }),
-        /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(MessageMarkdown, { source: annotation.body }),
-        /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("div", { className: "shared-artifact-annotation-links", children: [
-          original && artifact && /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, original), children: [
+        "quote" in annotation.anchor && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("blockquote", { children: annotation.anchor.quote }),
+        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(MessageMarkdown, { source: annotation.body }),
+        /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("div", { className: "shared-artifact-annotation-links", children: [
+          original && artifact && /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, original), children: [
             orphaned ? `${t("\u539F\u6587\u5DF2\u6539")} \xB7 ` : "",
             language === "en" ? `View in version ${original}` : `\u5728\u7B2C ${original} \u7248\u67E5\u770B`
           ] }),
-          artifact && source3 && /* @__PURE__ */ (0, import_jsx_runtime63.jsxs)(import_jsx_runtime63.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(
+          artifact && source3 && /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)(import_jsx_runtime70.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(
               "button",
               {
                 type: "button",
@@ -64570,7 +66036,7 @@ function SharedArtifactAnnotations({
                 children: t("\u5728\u539F\u8BA8\u8BBA\u67E5\u770B")
               }
             ),
-            view.view.canReply && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(
+            view.view.canReply && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(
               "button",
               {
                 type: "button",
@@ -64591,16 +66057,16 @@ function SharedArtifactAnnotations({
             )
           ] })
         ] }),
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)(SharedArtifactAnnotationThread, { artifact, view, annotation })
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(SharedArtifactAnnotationThread, { artifact, view, annotation })
       ] }, annotation.id);
     }),
-    view.view.annotationPage?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("button", { type: "button", disabled: pages.pending, onClick: () => void pages.more(), children: pages.pending ? t("\u6B63\u5728\u8BFB\u53D6\u2026") : language === "en" ? `More annotations (${view.view.review.annotations.length}/${view.view.annotationPage.total})` : `\u66F4\u591A\u6279\u6CE8\uFF08${view.view.review.annotations.length}/${view.view.annotationPage.total}\uFF09` }),
-    pages.error && /* @__PURE__ */ (0, import_jsx_runtime63.jsx)("p", { role: "alert", children: t(pages.error) })
+    view.view.annotationPage?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", disabled: pages.pending, onClick: () => void pages.more(), children: pages.pending ? t("\u6B63\u5728\u8BFB\u53D6\u2026") : language === "en" ? `More annotations (${view.view.review.annotations.length}/${view.view.annotationPage.total})` : `\u66F4\u591A\u6279\u6CE8\uFF08${view.view.review.annotations.length}/${view.view.annotationPage.total}\uFF09` }),
+    pages.error && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("p", { role: "alert", children: t(pages.error) })
   ] });
 }
 
 // src/SharedArtifactDocument.tsx
-var import_react46 = __toESM(require_react(), 1);
+var import_react52 = __toESM(require_react(), 1);
 
 // src/shared-markdown-selection.ts
 function sharedMarkdownDomSelection(paper, event, source3) {
@@ -64642,16 +66108,16 @@ function resolveSharedMarkdownSelection(source3, selectedText, bounds = { start:
 }
 
 // src/SharedArtifactDocument.tsx
-var import_jsx_runtime64 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime71 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactDocument({ view }) {
   const t = useCollectiveText();
-  const paper = (0, import_react46.useRef)(null);
+  const paper = (0, import_react52.useRef)(null);
   const reading = useSharedArtifactReading();
-  const [notice, setNotice] = (0, import_react46.useState)();
+  const [notice2, setNotice] = (0, import_react52.useState)();
   const version = `${view.contentRef}:${view.ownerRevision}:${view.blobDigest}`;
-  const currentVersion = (0, import_react46.useRef)(version);
+  const currentVersion = (0, import_react52.useRef)(version);
   currentVersion.current = version;
-  (0, import_react46.useEffect)(() => {
+  (0, import_react52.useEffect)(() => {
     let active = true;
     const select = async (event) => {
       if (!paper.current || !view.view.canWrite) return;
@@ -64684,23 +66150,23 @@ function SharedArtifactDocument({ view }) {
       document.removeEventListener("keyup", select);
     };
   }, [reading?.artifact, reading?.setQuote, version, view]);
-  return /* @__PURE__ */ (0, import_jsx_runtime64.jsxs)(import_jsx_runtime64.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("div", { ref: paper, className: "shared-artifact-document", children: /* @__PURE__ */ (0, import_jsx_runtime64.jsx)(MessageMarkdown, { source: view.text, sourceCoordinates: true }) }),
-    notice && /* @__PURE__ */ (0, import_jsx_runtime64.jsx)("output", { className: "composer-warning", children: t(notice) })
+  return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)(import_jsx_runtime71.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("div", { ref: paper, className: "shared-artifact-document", children: /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(MessageMarkdown, { source: view.text, sourceCoordinates: true }) }),
+    notice2 && /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("output", { className: "composer-warning", children: t(notice2) })
   ] });
 }
 
 // src/SharedArtifactModificationCompare.tsx
-var import_react48 = __toESM(require_react(), 1);
+var import_react54 = __toESM(require_react(), 1);
 
 // src/use-shared-artifact-control.ts
-var import_react47 = __toESM(require_react(), 1);
+var import_react53 = __toESM(require_react(), 1);
 function useSharedArtifactControl(artifact, request) {
   const shared = useSharedArtifacts();
-  const [attempt, setAttempt] = (0, import_react47.useState)();
-  const [result, setResult] = (0, import_react47.useState)();
+  const [attempt, setAttempt] = (0, import_react53.useState)();
+  const [result, setResult] = (0, import_react53.useState)();
   const fence = `${artifact?.serviceInstanceId}:${artifact?.collectiveId}:${artifact?.artifactId}:${artifact?.accessRevision}:${request.requestId}`;
-  const current2 = (0, import_react47.useRef)(fence);
+  const current2 = (0, import_react53.useRef)(fence);
   current2.current = fence;
   const pending = attempt?.fence === fence && attempt.pending;
   const resolve = async (action) => {
@@ -64733,7 +66199,7 @@ function useSharedArtifactControl(artifact, request) {
 }
 
 // src/SharedArtifactModificationCompare.tsx
-var import_jsx_runtime65 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime72 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactModificationCompare({
   artifact,
   request,
@@ -64746,14 +66212,14 @@ function SharedArtifactModificationCompare({
   const reading = useSharedArtifactReading();
   const control = useSharedArtifactControl(artifact, request);
   const api = shared?.api;
-  const [preview, setPreview] = (0, import_react48.useState)();
-  const [error, setError] = (0, import_react48.useState)();
-  const [pending, setPending] = (0, import_react48.useState)(false);
-  const [written, setWritten] = (0, import_react48.useState)();
+  const [preview, setPreview] = (0, import_react54.useState)();
+  const [error, setError] = (0, import_react54.useState)();
+  const [pending, setPending] = (0, import_react54.useState)(false);
+  const [written, setWritten] = (0, import_react54.useState)();
   const fence = `${artifact.serviceInstanceId}:${artifact.collectiveId}:${artifact.artifactId}:${artifact.accessRevision}:${request.requestId}:${request.latestProposalRef}`;
-  const current2 = (0, import_react48.useRef)(fence);
+  const current2 = (0, import_react54.useRef)(fence);
   current2.current = fence;
-  (0, import_react48.useEffect)(() => {
+  (0, import_react54.useEffect)(() => {
     let active = true;
     setPreview(void 0);
     setError(void 0);
@@ -64813,27 +66279,27 @@ function SharedArtifactModificationCompare({
       if (current2.current === fence) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("section", { className: "shared-artifact-compare", "aria-label": t("\u4FEE\u6539\u524D\u540E\u5BF9\u6BD4"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("strong", { children: language === "en" ? `${shared?.catName(request.target.humanId, request.target.catId)}'s changes \xB7 based on version ${request.ownerRevision}` : `${shared?.catName(request.target.humanId, request.target.catId)}\u63D0\u4EA4\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248` }),
-      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("button", { type: "button", onClick: onClose, children: t("\u8FD4\u56DE\u4F5C\u54C1") })
+  return /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("section", { className: "shared-artifact-compare", "aria-label": t("\u4FEE\u6539\u524D\u540E\u5BF9\u6BD4"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("strong", { children: language === "en" ? `${shared?.catName(request.target.humanId, request.target.catId)}'s changes \xB7 based on version ${request.ownerRevision}` : `${shared?.catName(request.target.humanId, request.target.catId)}\u63D0\u4EA4\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248` }),
+      /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("button", { type: "button", onClick: onClose, children: t("\u8FD4\u56DE\u4F5C\u54C1") })
     ] }),
-    !preview && !error && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026") }),
-    preview && /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)(import_jsx_runtime65.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: preview.proposal.response }),
-      preview.proposal.edits.map((edit, index4) => /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { className: "shared-artifact-edit", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("h3", { children: t("\u539F\u6587") }),
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("del", { children: edit.expectedText || t("\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09") }) })
+    !preview && !error && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026") }),
+    preview && /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)(import_jsx_runtime72.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: preview.proposal.response }),
+      preview.proposal.edits.map((edit, index4) => /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("div", { className: "shared-artifact-edit", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("h3", { children: t("\u539F\u6587") }),
+          /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("del", { children: edit.expectedText || t("\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09") }) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("h3", { children: t("\u4FEE\u6539\u540E") }),
-          /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("ins", { children: edit.replacement || t("\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09") }) })
+        /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("h3", { children: t("\u4FEE\u6539\u540E") }),
+          /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("ins", { children: edit.replacement || t("\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09") }) })
         ] })
       ] }, `${edit.start}:${edit.end}:${index4}`))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("footer", { children: [
-      !adopted && !control.closed && artifact.canApply && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("footer", { children: [
+      !adopted && !control.closed && artifact.canApply && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
         "button",
         {
           type: "button",
@@ -64842,9 +66308,9 @@ function SharedArtifactModificationCompare({
           children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u4E0D\u91C7\u7528")
         }
       ),
-      adopted ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted} \u7248` }) : control.closed ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("output", { children: t(closedRequestLabel(control.request)) }) : stale ? /* @__PURE__ */ (0, import_jsx_runtime65.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: language === "en" ? `These changes are based on version ${request.ownerRevision}; the work is now version ${latest}.` : `\u8FD9\u4EFD\u4FEE\u6539\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248\uFF0C\u73B0\u5728\u5DF2\u662F\u7B2C ${latest} \u7248` }),
-        /* @__PURE__ */ (0, import_jsx_runtime65.jsx)(
+      adopted ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted} \u7248` }) : control.closed ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("output", { children: t(closedRequestLabel(control.request)) }) : stale ? /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: language === "en" ? `These changes are based on version ${request.ownerRevision}; the work is now version ${latest}.` : `\u8FD9\u4EFD\u4FEE\u6539\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248\uFF0C\u73B0\u5728\u5DF2\u662F\u7B2C ${latest} \u7248` }),
+        /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
           "button",
           {
             type: "button",
@@ -64853,9 +66319,9 @@ function SharedArtifactModificationCompare({
             children: language === "en" ? `Ask ${shared?.catName(request.target.humanId, request.target.catId)} to redo this from version ${latest}\u2026` : `\u8BF7${shared?.catName(request.target.humanId, request.target.catId)}\u57FA\u4E8E\u7B2C ${latest} \u7248\u91CD\u505A\u2026`
           }
         )
-      ] }) : !artifact.canApply ? /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { children: t("\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002") }) : /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("button", { type: "button", disabled: !preview || pending || control.pending, onClick: () => void adopt(), children: t(pending ? "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026" : "\u91C7\u7528") }),
-      control.error && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { role: "alert", children: t(control.error) }),
-      error && !adopted && /* @__PURE__ */ (0, import_jsx_runtime65.jsx)("p", { role: "alert", children: t(error) })
+      ] }) : !artifact.canApply ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: t("\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002") }) : /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("button", { type: "button", disabled: !preview || pending || control.pending, onClick: () => void adopt(), children: t(pending ? "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026" : "\u91C7\u7528") }),
+      control.error && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { role: "alert", children: t(control.error) }),
+      error && !adopted && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { role: "alert", children: t(error) })
     ] })
   ] });
 }
@@ -64866,7 +66332,7 @@ function closedRequestLabel(request) {
 }
 
 // src/use-shared-artifact-request-history.ts
-var import_react49 = __toESM(require_react(), 1);
+var import_react55 = __toESM(require_react(), 1);
 function useSharedArtifactRequestHistory(artifact, view) {
   const shared = useSharedArtifacts();
   const fence = JSON.stringify([
@@ -64877,11 +66343,11 @@ function useSharedArtifactRequestHistory(artifact, view) {
     view.view.review.revision,
     view.modifications?.snapshot
   ]);
-  const current2 = (0, import_react49.useRef)(fence);
+  const current2 = (0, import_react55.useRef)(fence);
   current2.current = fence;
-  const [expanded, setExpanded] = (0, import_react49.useState)();
-  const [pending, setPending] = (0, import_react49.useState)();
-  const [failure, setFailure] = (0, import_react49.useState)();
+  const [expanded, setExpanded] = (0, import_react55.useState)();
+  const [pending, setPending] = (0, import_react55.useState)();
+  const [failure, setFailure] = (0, import_react55.useState)();
   const selected = expanded?.fence === fence ? expanded.view : view;
   const more = async () => {
     if (!shared?.api || !artifact || pending === fence) return;
@@ -64905,7 +66371,7 @@ function useSharedArtifactRequestHistory(artifact, view) {
 }
 
 // src/SharedArtifactRequestCards.tsx
-var import_jsx_runtime66 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime73 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactRequestCards({
   view,
   hidden = false
@@ -64916,11 +66382,11 @@ function SharedArtifactRequestCards({
   const history2 = useSharedArtifactRequestHistory(artifact, view);
   const requests = history2.view.modifications?.requests ?? [];
   if (!requests.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("section", { className: "shared-artifact-requests", "aria-label": t("\u4F5C\u54C1\u4FEE\u6539"), hidden, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("h2", { children: t("\u4FEE\u6539\u8BF7\u6C42") }),
-    requests.map((request) => /* @__PURE__ */ (0, import_jsx_runtime66.jsx)(SharedArtifactRequestCard, { artifact, record: request }, request.requestId)),
-    history2.view.modifications?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: t(history2.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : "\u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55") }),
-    history2.error && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { role: "alert", children: t(history2.error) })
+  return /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("section", { className: "shared-artifact-requests", "aria-label": t("\u4F5C\u54C1\u4FEE\u6539"), hidden, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("h2", { children: t("\u4FEE\u6539\u8BF7\u6C42") }),
+    requests.map((request) => /* @__PURE__ */ (0, import_jsx_runtime73.jsx)(SharedArtifactRequestCard, { artifact, record: request }, request.requestId)),
+    history2.view.modifications?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: t(history2.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : "\u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55") }),
+    history2.error && /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("p", { role: "alert", children: t(history2.error) })
   ] });
 }
 function SharedArtifactRequestCard({
@@ -64936,33 +66402,33 @@ function SharedArtifactRequestCard({
   const adopted = receipts.find(
     ({ artifact: work2, version }) => work2.artifactId === artifact?.artifactId && version.lineage?.requestId === request.requestId
   )?.version;
-  return /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("article", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime66.jsxs)("strong", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("article", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("strong", { children: [
       shared?.catName(request.target.humanId, request.target.catId) ?? request.target.catId,
       " \xB7",
       " ",
       t(sharedArtifactRequestState(request))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("span", { children: language === "en" ? `Based on version ${request.ownerRevision} \xB7 ${request.annotationIds.length} ${request.annotationIds.length === 1 ? "reference" : "references"}` : `\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248 \xB7 ${request.annotationIds.length} \u5904\u5F15\u7528` }),
-    /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { children: shared?.sourceMessage(request.requestEventId)?.body }),
-    request.latestProposalRef && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", onClick: () => shared?.compare(request.requestId, request), children: t("\u67E5\u770B\u5BF9\u7167") }),
-    !control.closed && control.canCancel && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("button", { type: "button", disabled: control.pending, onClick: () => void control.resolve("cancel"), children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539") }),
-    adopted && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted.ownerRevision}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted.ownerRevision} \u7248` }),
-    control.error && /* @__PURE__ */ (0, import_jsx_runtime66.jsx)("p", { role: "alert", children: t(control.error) })
+    /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("span", { children: language === "en" ? `Based on version ${request.ownerRevision} \xB7 ${request.annotationIds.length} ${request.annotationIds.length === 1 ? "reference" : "references"}` : `\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248 \xB7 ${request.annotationIds.length} \u5904\u5F15\u7528` }),
+    /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("p", { children: shared?.sourceMessage(request.requestEventId)?.body }),
+    request.latestProposalRef && /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("button", { type: "button", onClick: () => shared?.compare(request.requestId, request), children: t("\u67E5\u770B\u5BF9\u7167") }),
+    !control.closed && control.canCancel && /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("button", { type: "button", disabled: control.pending, onClick: () => void control.resolve("cancel"), children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539") }),
+    adopted && /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted.ownerRevision}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted.ownerRevision} \u7248` }),
+    control.error && /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("p", { role: "alert", children: t(control.error) })
   ] });
 }
 
 // src/SharedArtifactToolbar.tsx
-var import_react54 = __toESM(require_react(), 1);
+var import_react60 = __toESM(require_react(), 1);
 
 // src/SharedArtifactInformation.tsx
-var import_react53 = __toESM(require_react(), 1);
+var import_react59 = __toESM(require_react(), 1);
 
 // src/SharedArtifactManagement.tsx
-var import_react52 = __toESM(require_react(), 1);
+var import_react58 = __toESM(require_react(), 1);
 
 // src/SharedArtifactCustody.tsx
-var import_react50 = __toESM(require_react(), 1);
+var import_react56 = __toESM(require_react(), 1);
 
 // src/shared-artifact-member-label.ts
 function artifactMemberLabel(human, directory) {
@@ -64983,7 +66449,7 @@ function artifactCafeLabel(cafe, directory) {
 }
 
 // src/SharedArtifactCustody.tsx
-var import_jsx_runtime67 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime74 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactCustody({
   artifact,
   management
@@ -64991,7 +66457,7 @@ function SharedArtifactCustody({
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const [target, setTarget] = (0, import_react50.useState)("");
+  const [target, setTarget] = (0, import_react56.useState)("");
   const { api, value, pending, unconfirmed } = management;
   if (!value) return null;
   const transfer = value.transfer;
@@ -65004,16 +66470,16 @@ function SharedArtifactCustody({
   ) ?? [];
   const destination = cafes.find((cafe) => cafe.connectionId === target);
   const custodianLabel = !value.custodianHumanId ? void 0 : value.custodianCafe && directory ? artifactCafeLabel({ ...value.custodianCafe, humanId: value.custodianHumanId }, directory) : language === "en" ? `${shared?.humanName(value.custodianHumanId) ?? t("\u6210\u5458")}'s Caf\xE9` : `${shared?.humanName(value.custodianHumanId) ?? "\u6210\u5458"}\u7684 Caf\xE9`;
-  return /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("div", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("h3", { children: t("\u4FDD\u7BA1\u4F5C\u54C1") }),
-    /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: value.custodianHumanId ? language === "en" ? `${custodianLabel} keeps the document, versions, and collaboration history.` : `${custodianLabel} \u4FDD\u7BA1\u6B63\u6587\u3001\u7248\u672C\u548C\u534F\u4F5C\u8BB0\u5F55\u3002` : t("\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002") }),
-    transfer && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("output", { children: t(transferLabel(transfer)) }),
-    transfer?.targetCafe && directory && /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("p", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("div", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("h3", { children: t("\u4FDD\u7BA1\u4F5C\u54C1") }),
+    /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("p", { children: value.custodianHumanId ? language === "en" ? `${custodianLabel} keeps the document, versions, and collaboration history.` : `${custodianLabel} \u4FDD\u7BA1\u6B63\u6587\u3001\u7248\u672C\u548C\u534F\u4F5C\u8BB0\u5F55\u3002` : t("\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002") }),
+    transfer && /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("output", { children: t(transferLabel(transfer)) }),
+    transfer?.targetCafe && directory && /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("p", { children: [
       t("\u672C\u6B21\u4EA4\u63A5\u76EE\u7684\u5730"),
       "\uFF1A",
       artifactCafeLabel({ ...transfer.targetCafe, humanId: transfer.targetHumanId }, directory)
     ] }),
-    active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
+    active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime74.jsx)(
       "button",
       {
         type: "button",
@@ -65022,10 +66488,10 @@ function SharedArtifactCustody({
         children: t("\u53D6\u6D88\u8FD9\u6B21\u4EA4\u63A5")
       }
     ),
-    !active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)(import_jsx_runtime67.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("label", { children: [
+    !active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)(import_jsx_runtime74.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("label", { children: [
         t("\u4EA4\u63A5\u7ED9"),
-        /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)(
           "select",
           {
             "aria-label": t("\u4F5C\u54C1\u63A5\u6536 Caf\xE9"),
@@ -65033,13 +66499,13 @@ function SharedArtifactCustody({
             onChange: (event) => setTarget(event.target.value),
             disabled: blocked,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("option", { value: "", children: t("\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9") }),
-              cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("option", { value: cafe.connectionId, children: directory ? artifactCafeLabel(cafe, directory) : cafe.endpointLabel }, cafe.connectionId))
+              /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("option", { value: "", children: t("\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9") }),
+              cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("option", { value: cafe.connectionId, children: directory ? artifactCafeLabel(cafe, directory) : cafe.endpointLabel }, cafe.connectionId))
             ]
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)(
         "button",
         {
           type: "button",
@@ -65052,7 +66518,7 @@ function SharedArtifactCustody({
           children: t("\u4EA4\u63A5\u4F5C\u54C1\u4E0E\u8BB0\u5F55")
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: t("\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002") })
+      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("p", { children: t("\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002") })
     ] })
   ] });
 }
@@ -65072,20 +66538,20 @@ function transferLabel(transfer) {
 }
 
 // src/use-shared-artifact-management.ts
-var import_react51 = __toESM(require_react(), 1);
+var import_react57 = __toESM(require_react(), 1);
 function useSharedArtifactManagement(artifact) {
   const shared = useSharedArtifacts();
   const api = shared?.api?.management;
   const fence = `${artifact.serviceInstanceId}:${artifact.collectiveId}:${artifact.artifactId}:${artifact.accessRevision}:${shared?.humanId}`;
-  const current2 = (0, import_react51.useRef)({ fence, api });
+  const current2 = (0, import_react57.useRef)({ fence, api });
   current2.current = { fence, api };
-  const mounted = (0, import_react51.useRef)(true);
+  const mounted = (0, import_react57.useRef)(true);
   const matches2 = () => mounted.current && current2.current.fence === fence && current2.current.api === api;
-  const generation = (0, import_react51.useRef)(0);
-  const busy = (0, import_react51.useRef)(false);
-  const [state, setState] = (0, import_react51.useState)();
+  const generation = (0, import_react57.useRef)(0);
+  const busy = (0, import_react57.useRef)(false);
+  const [state, setState] = (0, import_react57.useState)();
   const value = state?.fence === fence ? state.value : void 0;
-  const refresh = (0, import_react51.useCallback)(async () => {
+  const refresh = (0, import_react57.useCallback)(async () => {
     if (!api || shared?.status !== "ready") return;
     const token = ++generation.current;
     try {
@@ -65102,7 +66568,7 @@ function useSharedArtifactManagement(artifact) {
       setState({ fence, error: denied ? "\u4F60\u5DF2\u65E0\u6CD5\u7BA1\u7406\u8FD9\u4EF6\u4F5C\u54C1\u3002" : "\u6682\u65F6\u65E0\u6CD5\u6838\u5BF9\u6743\u9650\u4E0E\u4FDD\u7BA1\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002" });
     }
   }, [api, fence, shared?.status]);
-  (0, import_react51.useEffect)(() => {
+  (0, import_react57.useEffect)(() => {
     mounted.current = true;
     busy.current = false;
     void refresh();
@@ -65180,7 +66646,7 @@ function appendManagerPage(previous4, next) {
 }
 
 // src/SharedArtifactManagement.tsx
-var import_jsx_runtime68 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime75 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactManagement({ artifact }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
@@ -65188,13 +66654,13 @@ function SharedArtifactManagement({ artifact }) {
   const management = useSharedArtifactManagement(artifact);
   const { api, value, pending, unconfirmed } = management;
   const blocked = pending || unconfirmed;
-  return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("section", { className: "shared-artifact-management", "aria-label": t("\u6743\u9650\u4E0E\u4FDD\u7BA1"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h2", { children: t("\u6743\u9650\u4E0E\u4FDD\u7BA1") }),
-    !value && !management.error && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("output", { children: t("\u6B63\u5728\u6838\u5BF9\u2026") }),
-    management.error && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { role: "alert", children: t(management.error) }),
-    unconfirmed && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { role: "status", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { children: t("\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)("section", { className: "shared-artifact-management", "aria-label": t("\u6743\u9650\u4E0E\u4FDD\u7BA1"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("h2", { children: t("\u6743\u9650\u4E0E\u4FDD\u7BA1") }),
+    !value && !management.error && /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("output", { children: t("\u6B63\u5728\u6838\u5BF9\u2026") }),
+    management.error && /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("p", { role: "alert", children: t(management.error) }),
+    unconfirmed && /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)("div", { role: "status", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("p", { children: t("\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(
         "button",
         {
           type: "button",
@@ -65204,12 +66670,12 @@ function SharedArtifactManagement({ artifact }) {
         }
       )
     ] }),
-    value && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)(import_jsx_runtime68.Fragment, { children: [
-      value.canManageAccess && /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("h3", { children: t("\u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650") }),
-        /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("p", { children: t("\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002") }),
+    value && /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)(import_jsx_runtime75.Fragment, { children: [
+      value.canManageAccess && /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("h3", { children: t("\u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650") }),
+        /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("p", { children: t("\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002") }),
         value.members.map(
-          (member) => member.access && member.accessRevision !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(
+          (member) => member.access && member.accessRevision !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(
             ArtifactMemberPermission,
             {
               member,
@@ -65223,10 +66689,10 @@ function SharedArtifactManagement({ artifact }) {
           )
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime68.jsx)(SharedArtifactCustody, { artifact, management }),
-      value.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: blocked, onClick: () => void management.more(), children: language === "en" ? `More members (${value.members.length}/${value.total} read)` : `\u66F4\u591A\u6210\u5458\uFF08\u5DF2\u8BFB ${value.members.length}/${value.total}\uFF09` })
+      /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(SharedArtifactCustody, { artifact, management }),
+      value.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("button", { type: "button", disabled: blocked, onClick: () => void management.more(), children: language === "en" ? `More members (${value.members.length}/${value.total} read)` : `\u66F4\u591A\u6210\u5458\uFF08\u5DF2\u8BFB ${value.members.length}/${value.total}\uFF09` })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: pending, onClick: () => void management.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1") })
+    /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("button", { type: "button", disabled: pending, onClick: () => void management.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1") })
   ] });
 }
 function ArtifactMemberPermission({
@@ -65237,11 +66703,11 @@ function ArtifactMemberPermission({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  const [access2, setAccess] = (0, import_react52.useState)(member.access ?? "read");
-  return /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("div", { className: "shared-artifact-member-permission", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)("label", { children: [
+  const [access2, setAccess] = (0, import_react58.useState)(member.access ?? "read");
+  return /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)("div", { className: "shared-artifact-member-permission", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)("label", { children: [
       label,
-      /* @__PURE__ */ (0, import_jsx_runtime68.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime75.jsxs)(
         "select",
         {
           "aria-label": language === "en" ? `${label}'s work access` : `${label}\u7684\u4F5C\u54C1\u6743\u9650`,
@@ -65249,19 +66715,19 @@ function ArtifactMemberPermission({
           disabled,
           onChange: (event) => setAccess(event.target.value),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "read", children: t("\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539") }),
-            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "apply", children: t("\u4E5F\u53EF\u91C7\u7528\u4FEE\u6539") }),
-            /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("option", { value: "revoked", children: t("\u505C\u6B62\u8BBF\u95EE") })
+            /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("option", { value: "read", children: t("\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539") }),
+            /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("option", { value: "apply", children: t("\u4E5F\u53EF\u91C7\u7528\u4FEE\u6539") }),
+            /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("option", { value: "revoked", children: t("\u505C\u6B62\u8BBF\u95EE") })
           ]
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime68.jsx)("button", { type: "button", disabled: disabled || access2 === member.access, onClick: () => onSave(access2), children: language === "en" ? `Update ${label}'s access` : `\u66F4\u65B0${label}\u7684\u6743\u9650` })
+    /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("button", { type: "button", disabled: disabled || access2 === member.access, onClick: () => onSave(access2), children: language === "en" ? `Update ${label}'s access` : `\u66F4\u65B0${label}\u7684\u6743\u9650` })
   ] });
 }
 
 // src/SharedArtifactInformation.tsx
-var import_jsx_runtime69 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime76 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactInformation({
   artifact,
   managementArtifact,
@@ -65272,11 +66738,11 @@ function SharedArtifactInformation({
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const close = (0, import_react53.useRef)(null);
-  (0, import_react53.useEffect)(() => {
+  const close = (0, import_react59.useRef)(null);
+  (0, import_react59.useEffect)(() => {
     close.current?.focus();
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)(
     "dialog",
     {
       open: true,
@@ -65290,28 +66756,28 @@ function SharedArtifactInformation({
         }
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("h2", { children: t("\u4F5C\u54C1\u4FE1\u606F") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u4F5C\u54C1\u4FE1\u606F"), onClick: onClose, children: "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("h2", { children: t("\u4F5C\u54C1\u4FE1\u606F") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u4F5C\u54C1\u4FE1\u606F"), onClick: onClose, children: "\xD7" })
         ] }),
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("dl", { className: "shared-artifact-info", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u7248\u672C") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u6765\u81EA") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime69.jsxs)("button", { type: "button", onClick: onReturnToSource, children: [
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("dl", { className: "shared-artifact-info", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dt", { children: t("\u7248\u672C") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dd", { children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dt", { children: t("\u6765\u81EA") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("button", { type: "button", onClick: onReturnToSource, children: [
             "#",
             artifact.sourceLocation.channelId,
             " \xB7 ",
             t("\u539F\u8BA8\u8BBA")
           ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u5C5E\u4E8E\u4EFB\u52A1") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: t(artifact.workId ? "\u5DF2\u5173\u8054\u539F\u4EFB\u52A1" : "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u67E5\u770B\u4E0E\u6279\u6CE8") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: t("\u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dt", { children: t("\u91C7\u7528\u4FEE\u6539") }),
-          /* @__PURE__ */ (0, import_jsx_runtime69.jsx)("dd", { children: t(artifact.canApply ? "\u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539" : "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A") })
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dt", { children: t("\u5C5E\u4E8E\u4EFB\u52A1") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dd", { children: t(artifact.workId ? "\u5DF2\u5173\u8054\u539F\u4EFB\u52A1" : "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dt", { children: t("\u67E5\u770B\u4E0E\u6279\u6CE8") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dd", { children: t("\u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dt", { children: t("\u91C7\u7528\u4FEE\u6539") }),
+          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("dd", { children: t(artifact.canApply ? "\u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539" : "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A") })
         ] }),
-        shared?.status === "ready" && managementArtifact && (managementArtifact.canManageAccess || managementArtifact.canManageCustody) && /* @__PURE__ */ (0, import_jsx_runtime69.jsx)(
+        shared?.status === "ready" && managementArtifact && (managementArtifact.canManageAccess || managementArtifact.canManageCustody) && /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(
           SharedArtifactManagement,
           {
             artifact: managementArtifact
@@ -65324,7 +66790,7 @@ function SharedArtifactInformation({
 }
 
 // src/SharedArtifactToolbar.tsx
-var import_jsx_runtime70 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime77 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactToolbar({
   artifact,
   managementArtifact,
@@ -65335,13 +66801,13 @@ function SharedArtifactToolbar({
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const [panel, setPanel] = (0, import_react54.useState)();
-  const infoToggle = (0, import_react54.useRef)(null);
-  const historyToggle = (0, import_react54.useRef)(null);
+  const [panel, setPanel] = (0, import_react60.useState)();
+  const infoToggle = (0, import_react60.useRef)(null);
+  const historyToggle = (0, import_react60.useRef)(null);
   const infoOpen = panel === "information";
-  return /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)(import_jsx_runtime70.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("header", { className: "shared-artifact-header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)(import_jsx_runtime77.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("header", { className: "shared-artifact-header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)(
         "button",
         {
           ref: infoToggle,
@@ -65351,16 +66817,16 @@ function SharedArtifactToolbar({
           },
           "aria-expanded": infoOpen,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("strong", { children: artifact?.title ?? t("\u5171\u540C\u4F5C\u54C1") }),
-            /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("strong", { children: artifact?.title ?? t("\u5171\u540C\u4F5C\u54C1") }),
+            /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("span", { children: [
               t("\u4F5C\u54C1\u4FE1\u606F"),
               " \u2304"
             ] })
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("div", { children: [
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("div", { children: [
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime77.jsx)(
           "button",
           {
             ref: historyToggle,
@@ -65372,18 +66838,18 @@ function SharedArtifactToolbar({
             children: t("\u7248\u672C\u8BB0\u5F55")
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", className: "shared-discussion-toggle", onClick: onOpenDiscussion, children: t("\u8BA8\u8BBA") }),
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("button", { type: "button", className: "shared-discussion-toggle", onClick: onOpenDiscussion, children: t("\u8BA8\u8BBA") }),
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("label", { children: [
           t("\u7248\u672C"),
-          /* @__PURE__ */ (0, import_jsx_runtime70.jsxs)("select", { value: ownerRevision2, onChange: (event) => shared?.open(artifact, Number(event.target.value)), children: [
-            ownerRevision2 !== void 0 && ownerRevision2 !== artifact.versions.at(-1)?.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("option", { value: ownerRevision2, children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
-            artifact.versions.slice(-1).map((version) => /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("option", { value: version.ownerRevision, children: language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248` }, version.ownerRevision))
+          /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("select", { value: ownerRevision2, onChange: (event) => shared?.open(artifact, Number(event.target.value)), children: [
+            ownerRevision2 !== void 0 && ownerRevision2 !== artifact.versions.at(-1)?.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("option", { value: ownerRevision2, children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
+            artifact.versions.slice(-1).map((version) => /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("option", { value: version.ownerRevision, children: language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248` }, version.ownerRevision))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime70.jsx)("button", { type: "button", "aria-label": t(shared?.returnLabel ?? "\u5173\u95ED\u4F5C\u54C1"), onClick: shared?.close, children: shared?.returnLabel && shared?.returnLabel !== "\u5173\u95ED\u4F5C\u54C1" ? "\u2190" : "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("button", { type: "button", "aria-label": t(shared?.returnLabel ?? "\u5173\u95ED\u4F5C\u54C1"), onClick: shared?.close, children: shared?.returnLabel && shared?.returnLabel !== "\u5173\u95ED\u4F5C\u54C1" ? "\u2190" : "\xD7" })
       ] })
     ] }),
-    infoOpen && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(
+    infoOpen && /* @__PURE__ */ (0, import_jsx_runtime77.jsx)(
       SharedArtifactInformation,
       {
         artifact,
@@ -65396,7 +66862,7 @@ function SharedArtifactToolbar({
         }
       }
     ),
-    artifact && panel === "history" && /* @__PURE__ */ (0, import_jsx_runtime70.jsx)(
+    artifact && panel === "history" && /* @__PURE__ */ (0, import_jsx_runtime77.jsx)(
       SharedArtifactHistory,
       {
         artifact,
@@ -65411,7 +66877,7 @@ function SharedArtifactToolbar({
 }
 
 // src/SharedArtifactSurface.tsx
-var import_jsx_runtime71 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime78 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactSurface({
   onReturnToSource,
   onOpenDiscussion
@@ -65422,7 +66888,7 @@ function SharedArtifactSurface({
   const artifact = shared?.catalogue.find((item) => item.artifactId === shared.selected?.artifactId);
   const selectedRevision = shared?.selected?.ownerRevision;
   const { view, inaccessible, unavailable, error } = useSharedArtifactReading() ?? {};
-  const managed = (0, import_react55.useRef)();
+  const managed = (0, import_react61.useRef)();
   if (artifact) managed.current = artifact;
   if (!shared?.selected) managed.current = void 0;
   if (!shared?.selected) return null;
@@ -65435,13 +66901,13 @@ function SharedArtifactSurface({
     if (artifact) onReturnToSource(artifact.sourceLocation.channelId, artifact.sourceEventId);
   };
   if (artifact && (artifact.mediaType === "image/png" || artifact.mediaType === "video/mp4"))
-    return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("section", { className: "shared-artifact-state", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: artifact.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: t("\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA") })
+    return /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("section", { className: "shared-artifact-state", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("h2", { children: artifact.title }),
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("p", { children: t("\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA") })
     ] });
-  return /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("section", { className: "shared-artifact-surface", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("section", { className: "shared-artifact-surface", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime78.jsx)(
       SharedArtifactToolbar,
       {
         artifact,
@@ -65452,22 +66918,22 @@ function SharedArtifactSurface({
       },
       infoKey
     ),
-    inaccessible ? /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: t("\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1") }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: t("\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: shared.close, children: t("\u8FD4\u56DE\u9891\u9053") })
-    ] }) : unavailable || error ? /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("h2", { children: t("\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1") }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("p", { children: artifact?.availability === "owner_unavailable" ? t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002") : t(error?.message ?? "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
-    ] }) : !view ? /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("output", { className: "shared-artifact-state", children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") }) : null,
-    view && artifact && /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)(import_jsx_runtime71.Fragment, { children: [
-      view.view.historyReadOnly && /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("p", { className: "shared-artifact-history-banner", children: [
+    inaccessible ? /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("h2", { children: t("\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("p", { children: t("\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: shared.close, children: t("\u8FD4\u56DE\u9891\u9053") })
+    ] }) : unavailable || error ? /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("h2", { children: t("\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("p", { children: artifact?.availability === "owner_unavailable" ? t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002") : t(error?.message ?? "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
+    ] }) : !view ? /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("output", { className: "shared-artifact-state", children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") }) : null,
+    view && artifact && /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)(import_jsx_runtime78.Fragment, { children: [
+      view.view.historyReadOnly && /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("p", { className: "shared-artifact-history-banner", children: [
         language === "en" ? `Version ${view.ownerRevision} \xB7 historical version, read only ` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u5386\u53F2\u7248\u672C\uFF0C\u53EA\u8BFB\u67E5\u770B `,
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: () => shared.open(artifact), children: t("\u56DE\u5230\u6700\u65B0\u7248") })
+        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: () => shared.open(artifact), children: t("\u56DE\u5230\u6700\u65B0\u7248") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(SharedArtifactRequestCards, { view, hidden: Boolean(comparing) }),
-      comparing ? /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)(SharedArtifactRequestCards, { view, hidden: Boolean(comparing) }),
+      comparing ? /* @__PURE__ */ (0, import_jsx_runtime78.jsx)(
         SharedArtifactModificationCompare,
         {
           artifact,
@@ -65475,20 +66941,116 @@ function SharedArtifactSurface({
           onClose: () => shared.compare(void 0),
           onRework: onOpenDiscussion
         }
-      ) : /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("div", { className: "shared-artifact-reading-area", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(SharedArtifactDocument, { view }),
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)(SharedArtifactAnnotations, { view, onOpenDiscussion })
+      ) : /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("div", { className: "shared-artifact-reading-area", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)(SharedArtifactDocument, { view }),
+        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)(SharedArtifactAnnotations, { view, onOpenDiscussion })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime71.jsxs)("footer", { className: "shared-artifact-footer", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("span", { children: language === "en" ? `Version ${view.ownerRevision} \xB7 reading the same document as other members` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u4E0E\u6210\u5458\u9605\u8BFB\u540C\u4E00\u4EFD\u6B63\u6587` }),
-        /* @__PURE__ */ (0, import_jsx_runtime71.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u56DE\u5230\u539F\u8BA8\u8BBA") })
+      /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("footer", { className: "shared-artifact-footer", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("span", { children: language === "en" ? `Version ${view.ownerRevision} \xB7 reading the same document as other members` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u4E0E\u6210\u5458\u9605\u8BFB\u540C\u4E00\u4EFD\u6B63\u6587` }),
+        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u56DE\u5230\u539F\u8BA8\u8BBA") })
       ] })
     ] })
   ] });
 }
 
+// src/use-channel-read-position.ts
+var import_react62 = __toESM(require_react(), 1);
+function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEventId) {
+  const port2 = useMessageExpression();
+  const [read, setRead] = (0, import_react62.useState)();
+  const [notice2, setNotice] = (0, import_react62.useState)();
+  const [armed, setArmed] = (0, import_react62.useState)(false);
+  const [attempt, setAttempt] = (0, import_react62.useState)(0);
+  const restored = (0, import_react62.useRef)(false);
+  const requested = (0, import_react62.useRef)(0);
+  const channelEvents = (0, import_react62.useMemo)(
+    () => events.filter((event) => eventChannelId(event) === channelId),
+    [events, channelId]
+  );
+  const jump = (0, import_react62.useCallback)((event) => {
+    if (!event) return;
+    const sourceId = event.location?.rootEventId ?? event.replyToEventId ?? event.eventId;
+    const source3 = document.getElementById(`collective-event-${sourceId}`);
+    source3?.scrollIntoView({ block: "start" });
+  }, []);
+  (0, import_react62.useEffect)(() => {
+    if (!port2 || !enabled) return;
+    let active = true;
+    void port2.channelState(channelId).then((value) => {
+      if (!active) return;
+      requested.current = value.read.sequence;
+      setRead(value.read);
+      setNotice(void 0);
+    }).catch((error) => {
+      if (active) setNotice(error instanceof Error ? error.message : String(error));
+    });
+    return () => {
+      active = false;
+    };
+  }, [port2, channelId, enabled, attempt]);
+  (0, import_react62.useEffect)(() => {
+    if (!read || !enabled || restored.current || !flowRef.current || !channelEvents.length) return;
+    if (!focusedEventId)
+      jump(
+        channelEvents.find((event) => event.sequence > read.sequence) ?? channelEvents.find((event) => event.eventId === read.eventId)
+      );
+    restored.current = true;
+    const frame = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(frame);
+  }, [read, channelEvents, enabled, focusedEventId, flowRef, jump]);
+  (0, import_react62.useEffect)(() => {
+    const flow3 = flowRef.current;
+    if (!port2 || !flow3 || !enabled || !armed) return;
+    const visible = /* @__PURE__ */ new Set();
+    let active = true;
+    let timer;
+    const advance = () => {
+      if (document.visibilityState !== "visible") return;
+      const last = channelEvents.filter((event) => visible.has(event.eventId) && event.sequence > requested.current).at(-1);
+      if (!last) return;
+      const previous4 = requested.current;
+      requested.current = last.sequence;
+      void port2.markRead(channelId, last.eventId).then((value) => {
+        if (active) setRead((current2) => !current2 || value.sequence > current2.sequence ? value : current2);
+      }).catch((error) => {
+        requested.current = previous4;
+        if (active) setNotice(error instanceof Error ? error.message : String(error));
+      });
+    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id30 = entry.target.dataset.eventId;
+          if (!id30) continue;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) visible.add(id30);
+          else visible.delete(id30);
+        }
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(advance, 400);
+      },
+      { root: flow3, threshold: [0, 0.5, 1] }
+    );
+    for (const node2 of flow3.querySelectorAll("[data-event-id]")) observer.observe(node2);
+    document.addEventListener("visibilitychange", advance);
+    return () => {
+      active = false;
+      observer.disconnect();
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", advance);
+    };
+  }, [port2, channelId, channelEvents, enabled, armed, flowRef]);
+  const unread = read ? channelEvents.filter((event) => event.sequence > read.sequence) : [];
+  return {
+    read,
+    unreadCount: unread.length,
+    notice: notice2,
+    jumpToUnread: () => jump(unread[0]),
+    retry: () => setAttempt((value) => value + 1)
+  };
+}
+
 // src/ChannelScene.tsx
-var import_jsx_runtime72 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime79 = __toESM(require_jsx_runtime(), 1);
 function ChannelScene(props) {
   const t = useCollectiveText();
   const {
@@ -65549,20 +67111,25 @@ function ChannelScene(props) {
   } = props;
   const shared = useSharedArtifacts();
   const selectedArtifact = shared?.catalogue.find((item) => item.artifactId === shared.selected?.artifactId);
-  const sharedOpenSource = (0, import_react56.useRef)(onOpenTopic);
+  const sharedOpenSource = (0, import_react63.useRef)(onOpenTopic);
   sharedOpenSource.current = onOpenTopic;
-  const [rightPanel, setRightPanel] = (0, import_react56.useState)();
-  const [topicRootId, setTopicRootId] = (0, import_react56.useState)();
-  const [sharedDiscussionOpen, setSharedDiscussionOpen] = (0, import_react56.useState)(false);
-  const [replyRequest, setReplyRequest] = (0, import_react56.useState)();
-  const [mention, setMention] = (0, import_react56.useState)();
-  const [selectionError, setSelectionError] = (0, import_react56.useState)();
-  const [highlightedId, setHighlightedId] = (0, import_react56.useState)(focusEventId);
-  const restoredScroll = (0, import_react56.useRef)(false);
-  const focusedHostEvent = (0, import_react56.useRef)();
-  const searching = (0, import_react56.useRef)(Boolean(query));
-  searching.current = Boolean(query);
-  const flowRef = (0, import_react56.useRef)(null);
+  const [rightPanel, setRightPanel] = (0, import_react63.useState)();
+  const [topicRootId, setTopicRootId] = (0, import_react63.useState)();
+  const [sharedDiscussionOpen, setSharedDiscussionOpen] = (0, import_react63.useState)(false);
+  const [replyRequest, setReplyRequest] = (0, import_react63.useState)();
+  const [mention, setMention] = (0, import_react63.useState)();
+  const [selectionError, setSelectionError] = (0, import_react63.useState)();
+  const [highlightedId, setHighlightedId] = (0, import_react63.useState)(focusEventId);
+  const focusedHostEvent = (0, import_react63.useRef)();
+  const flowRef = (0, import_react63.useRef)(null);
+  const language = useCollectiveLanguage();
+  const readPosition = useChannelReadPosition(
+    flowRef,
+    channelId,
+    events,
+    content3 === "conversation" && !query && !shared?.selected,
+    focusEventId
+  );
   const allThreads = groupChannelThreads(events);
   const search2 = query.trim().toLocaleLowerCase();
   const threads = allThreads.filter(
@@ -65572,7 +67139,7 @@ function ChannelScene(props) {
   );
   const topic = allThreads.find((thread) => thread.root.eventId === topicRootId);
   const artifactTopicId = selectedArtifact?.sourceLocation.rootEventId ?? selectedArtifact?.sourceEventId;
-  (0, import_react56.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     if (!artifactTopicId) return;
     setTopicRootId(artifactTopicId);
     setReplyRequest(void 0);
@@ -65593,13 +67160,13 @@ function ChannelScene(props) {
     (reaction) => threads.some((thread) => [thread.root, ...thread.replies].some((event) => event.eventId === reaction.eventId))
   );
   const legacy = events.filter((event) => !eventChannelId(event));
-  const openTopic = (id28, focusComposer = false) => {
+  const openTopic = (id30, focusComposer = false) => {
     setRightPanel(void 0);
-    setTopicRootId(id28);
-    setReplyRequest(focusComposer ? { eventId: id28 } : void 0);
+    setTopicRootId(id30);
+    setReplyRequest(focusComposer ? { eventId: id30 } : void 0);
     onOpenTopic();
   };
-  const returnToRoot = (0, import_react56.useCallback)(
+  const returnToRoot = (0, import_react63.useCallback)(
     (event) => {
       shared?.close();
       setTopicRootId(void 0);
@@ -65615,33 +67182,7 @@ function ChannelScene(props) {
     },
     [channelId, onOpenChannel, shared?.close]
   );
-  (0, import_react56.useEffect)(() => {
-    const key = `collective-scroll:${namespace}:${channelId}`;
-    const flow3 = flowRef.current;
-    if (!flow3) return;
-    const save = () => {
-      if (!restoredScroll.current || searching.current) return;
-      try {
-        window.localStorage.setItem(key, String(flow3.scrollTop));
-      } catch {
-      }
-    };
-    flow3.addEventListener("scroll", save, { passive: true });
-    return () => {
-      save();
-      flow3.removeEventListener("scroll", save);
-    };
-  }, [namespace, channelId]);
-  (0, import_react56.useEffect)(() => {
-    const flow3 = flowRef.current;
-    if (!flow3 || restoredScroll.current || !events.length || query) return;
-    try {
-      flow3.scrollTop = Number(window.localStorage.getItem(`collective-scroll:${namespace}:${channelId}`) ?? "0");
-    } catch {
-    }
-    restoredScroll.current = true;
-  }, [namespace, channelId, events.length, query]);
-  (0, import_react56.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     if (shared?.selected) return;
     if (!focusEventId) {
       focusedHostEvent.current = void 0;
@@ -65666,12 +67207,12 @@ function ChannelScene(props) {
     });
     return () => cancelAnimationFrame(frame);
   }, [events, focusEventId, shared?.selected]);
-  (0, import_react56.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     if (content3 !== "roadmap") return;
     setTopicRootId(void 0);
     setReplyRequest(void 0);
   }, [content3]);
-  (0, import_react56.useEffect)(() => {
+  (0, import_react63.useEffect)(() => {
     if (!context2 && !topic) return;
     const close = (event) => {
       if (event.key === "Escape") {
@@ -65689,7 +67230,7 @@ function ChannelScene(props) {
     setSelectionError(result.error);
     if (result.selection) setMention(result.selection);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)(
     "div",
     {
       className: "scene-layout",
@@ -65698,14 +67239,14 @@ function ChannelScene(props) {
       "data-shared-discussion-open": Boolean(shared?.selected && sharedDiscussionOpen),
       "data-entry-browsing": firstEntry?.phase === "browsing",
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)(
           "section",
           {
             className: "channel-scene",
             hidden: Boolean(shared?.selected) || props.contextFullPage,
             "aria-label": search2 ? t("\u641C\u7D22\u7ED3\u679C") : `# ${channelId}`,
             children: [
-              content3 !== "roadmap" && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+              content3 !== "roadmap" && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
                 ChannelHeader,
                 {
                   collectiveName: collective.name,
@@ -65734,13 +67275,18 @@ function ChannelScene(props) {
                   guideCatCount: firstEntry?.phase === "playing" && firstEntry.beat === 0 && firstEntry.arrivalComplete ? firstEntry.ownCats.length : void 0
                 }
               ),
-              content3 === "conversation" && roadmapReturnLabel && onReturnToRoadmap && /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("button", { type: "button", className: "roadmap-return", onClick: onReturnToRoadmap, children: [
+              content3 === "conversation" && roadmapReturnLabel && onReturnToRoadmap && /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)("button", { type: "button", className: "roadmap-return", onClick: onReturnToRoadmap, children: [
                 "\u2190 ",
                 t("\u8FD4\u56DE"),
                 " ",
                 roadmapReturnLabel
               ] }),
-              content3 === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(SharedArtifactLibrary, { channelId, filterable: true }, namespace) : content3 === "roadmap" ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+              content3 === "conversation" && !search2 && readPosition.unreadCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("button", { type: "button", className: "channel-unread-return", onClick: readPosition.jumpToUnread, children: language === "en" ? `Continue reading \xB7 ${readPosition.unreadCount} unread` : `\u56DE\u6765\u63A5\u7740\u8BFB \xB7 ${readPosition.unreadCount} \u6761\u672A\u8BFB` }),
+              readPosition.notice && /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)("p", { role: "status", className: "delivery-state", children: [
+                readPosition.notice,
+                /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("button", { type: "button", onClick: readPosition.retry, children: language === "en" ? "Retry" : "\u91CD\u8BD5" })
+              ] }),
+              content3 === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(SharedArtifactLibrary, { channelId, filterable: true }, namespace) : content3 === "roadmap" ? /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
                 RoadmapWorkspace,
                 {
                   roadmaps,
@@ -65773,7 +67319,7 @@ function ChannelScene(props) {
                   onWithdrawBindingVote: (vote) => void onWithdrawBindingVote(vote).catch(() => void 0),
                   onSettleBindingVote: (vote) => void onSettleBindingVote(vote).catch(() => void 0)
                 }
-              ) : /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+              ) : /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
                 ChannelConversationFlow,
                 {
                   flowRef,
@@ -65808,12 +67354,12 @@ function ChannelScene(props) {
                     setRoadmapWorks: onSetRoadmapWorks,
                     setReaction: onSetReaction
                   },
-                  children: firstEntry?.phase === "playing" && firstEntry.narrator && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(DemoPlayback, { beat: firstEntry.beat, narrator: firstEntry.narrator, humanName })
+                  children: firstEntry?.phase === "playing" && firstEntry.narrator && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(DemoPlayback, { beat: firstEntry.beat, narrator: firstEntry.narrator, humanName })
                 }
               ),
-              (error || selectionError) && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { role: "alert", className: "delivery-state delivery-failed", children: selectionError ?? error }),
-              !search2 && content3 === "conversation" && /* @__PURE__ */ (0, import_jsx_runtime72.jsxs)("div", { className: "channel-composer-placement", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+              (error || selectionError) && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("p", { role: "alert", className: "delivery-state delivery-failed", children: selectionError ?? error }),
+              !search2 && content3 === "conversation" && /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)("div", { className: "channel-composer-placement", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
                   PublicChannelActivity,
                   {
                     works: channelWorks,
@@ -65826,8 +67372,8 @@ function ChannelScene(props) {
                     onOpen: openTopic
                   }
                 ),
-                props.hostActivity && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("div", { className: "private-activity-slot", "data-host-ui-slot": "activity" }),
-                /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+                props.hostActivity && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("div", { className: "private-activity-slot", "data-host-ui-slot": "activity" }),
+                /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
                   ChannelComposer,
                   {
                     namespace,
@@ -65845,12 +67391,12 @@ function ChannelScene(props) {
             ]
           }
         ),
-        rightPanel && !context2 && !topic && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+        rightPanel && !context2 && !topic && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
           ChannelRightPanel,
           {
             title: t(rightPanel === "artifacts" ? "\u9891\u9053\u4F5C\u54C1" : "\u9891\u9053\u4EFB\u52A1"),
             onClose: () => setRightPanel(void 0),
-            children: rightPanel === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+            children: rightPanel === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
               SharedArtifactLibrary,
               {
                 channelId,
@@ -65858,7 +67404,7 @@ function ChannelScene(props) {
                 onOpenChannelLibrary: () => props.onOpenLibrary?.(channelId)
               },
               namespace
-            ) : !collaboration ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026") }) : !channelWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime72.jsx)("p", { children: t("\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002") }) : channelWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+            ) : !collaboration ? /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026") }) : !channelWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("p", { children: t("\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002") }) : channelWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
               CollectiveWorkCard,
               {
                 work: work2,
@@ -65881,7 +67427,7 @@ function ChannelScene(props) {
             ))
           }
         ),
-        context2 || topic && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+        context2 || topic && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
           ChannelTopicContext,
           {
             scene: props,
@@ -65898,7 +67444,7 @@ function ChannelScene(props) {
           },
           topic.root.eventId
         ),
-        shared?.selected && /* @__PURE__ */ (0, import_jsx_runtime72.jsx)(
+        shared?.selected && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
           SharedArtifactSurface,
           {
             onOpenDiscussion: () => setSharedDiscussionOpen(true),
@@ -65911,7 +67457,7 @@ function ChannelScene(props) {
 }
 
 // src/MemberFamilies.tsx
-var import_jsx_runtime73 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime80 = __toESM(require_jsx_runtime(), 1);
 function MemberFamilies({
   members,
   participants,
@@ -65935,31 +67481,31 @@ function MemberFamilies({
         const key = JSON.stringify([cat.serviceInstanceId, cat.collectiveId, cat.endpointId, cat.humanId, cat.catId]);
         cats.set(key, [...cats.get(key) ?? [], cat]);
       }
-      return /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("details", { open: true, className: "member-family", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("summary", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("strong", { children: home?.endpointLabel ?? human.displayName }),
-          /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("small", { children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("details", { open: true, className: "member-family", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("summary", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { children: home?.endpointLabel ?? human.displayName }),
+          /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
             cats.size + 1,
             " ",
             language === "en" && cats.size === 0 ? "member" : t("\u4F4D\u6210\u5458")
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(
           "button",
           {
             type: "button",
             className: "member-row",
             onClick: () => onSelect({ kind: "human", humanId: human.humanId }),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime73.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
-              /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("span", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("strong", { children: human.displayName }),
-                /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("small", { children: t(human.role === "steward" ? "\u7EF4\u62A4\u8005" : "\u666E\u901A\u6210\u5458") })
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
+              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { children: human.displayName }),
+                /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: t(human.role === "steward" ? "\u7EF4\u62A4\u8005" : "\u666E\u901A\u6210\u5458") })
               ] })
             ]
           }
         ),
-        [...cats].map(([key, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime73.jsx)(PublicCatRow, { sessions, onSelect }, key))
+        [...cats].map(([key, sessions]) => /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(PublicCatRow, { sessions, onSelect }, key))
       ] }, `${human.humanId}:${home?.endpointId ?? "human"}`);
     });
   });
@@ -65973,11 +67519,11 @@ function PublicCatRow({
   const cat = ordered[0];
   const label = cat.displayLabel ?? cat.displayName;
   const identity2 = `${cat.displayName} \xB7 @${cat.catId} \xB7 ${cat.humanDisplayName} \xB7 ${cat.endpointLabel}`;
-  const name2 = /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)(import_jsx_runtime73.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime73.jsx)(MemberAvatar, { name: label, kind: "agent", avatarUrl: cat.avatarDataUrl }),
-    /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("span", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime73.jsx)(AppTooltip, { label: identity2, intent: "content", children: /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("strong", { children: label }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("small", { children: [
+  const name2 = /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(import_jsx_runtime80.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(MemberAvatar, { name: label, kind: "agent", avatarUrl: cat.avatarDataUrl }),
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(AppTooltip, { label: identity2, intent: "content", children: /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { children: label }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
         "@",
         cat.catId,
         ordered.length > 1 ? ` \xB7 ${ordered.length} ${t("\u4E2A\u516C\u5F00\u8FDE\u63A5")}` : ""
@@ -65986,10 +67532,10 @@ function PublicCatRow({
   ] });
   const select = (session) => onSelect({ kind: "agent", connectionId: session.connectionId, catId: session.catId });
   if (ordered.length === 1)
-    return /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("button", { type: "button", className: "member-row member-row-agent", "aria-label": identity2, onClick: () => select(cat), children: name2 });
-  return /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("details", { className: "member-sessions", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("summary", { className: "member-row member-row-agent", children: name2 }),
-    /* @__PURE__ */ (0, import_jsx_runtime73.jsx)("div", { className: "member-connection-choices", children: ordered.map((session, index4) => /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", className: "member-row member-row-agent", "aria-label": identity2, onClick: () => select(cat), children: name2 });
+  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("details", { className: "member-sessions", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("summary", { className: "member-row member-row-agent", children: name2 }),
+    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("div", { className: "member-connection-choices", children: ordered.map((session, index4) => /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(
       "button",
       {
         type: "button",
@@ -65999,8 +67545,8 @@ function PublicCatRow({
           t("\u516C\u5F00\u8FDE\u63A5"),
           " ",
           index4 + 1,
-          /* @__PURE__ */ (0, import_jsx_runtime73.jsxs)("small", { children: [
-            session.channelIds.map((id28) => `#${id28}`).join(" \xB7 "),
+          /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+            session.channelIds.map((id30) => `#${id30}`).join(" \xB7 "),
             " \xB7 ",
             session.connectionId
           ] })
@@ -66012,7 +67558,7 @@ function PublicCatRow({
 }
 
 // src/MemberPanel.tsx
-var import_jsx_runtime74 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime81 = __toESM(require_jsx_runtime(), 1);
 function MemberPanel({
   member,
   members,
@@ -66025,25 +67571,25 @@ function MemberPanel({
   privateRoster = false
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(
     "aside",
     {
       className: member === "members" ? "members-page" : "context-panel member-panel",
       "data-spatial-role": "context-panel",
       "aria-label": t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599"),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("header", { className: "context-header", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("span", { children: t("\u5171\u540C\u5BB6\u56ED") }),
-            /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("h2", { children: t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599") })
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("header", { className: "context-header", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("span", { children: t("\u5171\u540C\u5BB6\u56ED") }),
+            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h2", { children: t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599") })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("button", { type: "button", "aria-label": t("\u5173\u95ED\u6210\u5458\u8D44\u6599"), onClick: onClose, children: "\xD7" })
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", "aria-label": t("\u5173\u95ED\u6210\u5458\u8D44\u6599"), onClick: onClose, children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("div", { className: "member-content", children: [
-          member === "members" && privateRoster && /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("div", { "data-host-ui-slot": "roster", className: "private-roster-slot" }),
-          member === "members" ? !members ? /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("p", { className: "empty-copy", children: t("\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026") }) : /* @__PURE__ */ (0, import_jsx_runtime74.jsx)(MemberFamilies, { members, participants, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime74.jsx)(MemberProfile, { member, members, participants, events }),
-          onCafe && !privateRoster && /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("button", { type: "button", className: "cafe-window-button", onClick: onCafe, children: "\u7BA1\u7406\u2026" }),
-          member === "members" && onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("button", { type: "button", className: "first-entry-replay", onClick: onReplayGuide, children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") })
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "member-content", children: [
+          member === "members" && privateRoster && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("div", { "data-host-ui-slot": "roster", className: "private-roster-slot" }),
+          member === "members" ? !members ? /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { className: "empty-copy", children: t("\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026") }) : /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(MemberFamilies, { members, participants, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(MemberProfile, { member, members, participants, events }),
+          onCafe && !privateRoster && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "cafe-window-button", onClick: onCafe, children: "\u7BA1\u7406\u2026" }),
+          member === "members" && onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "first-entry-replay", onClick: onReplayGuide, children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") })
         ] })
       ]
     }
@@ -66059,19 +67605,19 @@ function MemberProfile({
     const current2 = members?.humans.find((human2) => human2.humanId === member.humanId);
     const previous5 = events.map((event) => event.actor.kind === "human" ? event.actor : event.actor.human).find((human2) => human2.humanId === member.humanId);
     const human = current2 ?? previous5;
-    if (!human) return /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
+    if (!human) return /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
     const cafes = members?.cafes.filter((cafe) => cafe.humanId === human.humanId) ?? [];
-    return /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)(import_jsx_runtime74.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("div", { className: "member-profile", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime74.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
-        /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("h3", { children: human.displayName })
+    return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(import_jsx_runtime81.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "member-profile", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h3", { children: human.displayName })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("dl", { className: "member-facts", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u5728\u5171\u540C\u5BB6\u56ED\u7684\u8EAB\u4EFD" }),
-        /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: current2?.role === "steward" ? "\u7EF4\u62A4\u8005" : current2 ? "\u6210\u5458" : "\u5386\u53F2\u6D88\u606F\u4E2D\u7684\u7F72\u540D" }),
-        cafes.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)(import_jsx_runtime74.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "Caf\xE9" }),
-          /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("div", { children: cafe.endpointLabel }, cafe.connectionId)) })
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("dl", { className: "member-facts", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dt", { children: "\u5728\u5171\u540C\u5BB6\u56ED\u7684\u8EAB\u4EFD" }),
+        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dd", { children: current2?.role === "steward" ? "\u7EF4\u62A4\u8005" : current2 ? "\u6210\u5458" : "\u5386\u53F2\u6D88\u606F\u4E2D\u7684\u7F72\u540D" }),
+        cafes.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(import_jsx_runtime81.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dt", { children: "Caf\xE9" }),
+          /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dd", { children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("div", { children: cafe.endpointLabel }, cafe.connectionId)) })
         ] })
       ] })
     ] });
@@ -66084,30 +67630,30 @@ function MemberProfile({
   )?.actor;
   const previous4 = actor3?.kind === "agent" ? actor3 : void 0;
   const name2 = participant?.displayName ?? previous4?.agent.displayName;
-  if (!name2) return /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
-  return /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)(import_jsx_runtime74.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("div", { className: "member-profile", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)(MemberAvatar, { name: name2, kind: "agent", avatarUrl: participant?.avatarDataUrl }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("h3", { children: name2 }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("p", { children: [
+  if (!name2) return /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
+  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(import_jsx_runtime81.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "member-profile", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(MemberAvatar, { name: name2, kind: "agent", avatarUrl: participant?.avatarDataUrl }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h3", { children: name2 }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("p", { children: [
         participant?.endpointLabel ?? previous4?.provenance.endpointLabel,
         " \xB7 \u732B"
       ] }),
-      participant?.description && /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("p", { children: participant.description })
+      participant?.description && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: participant.description })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime74.jsxs)("dl", { className: "member-facts", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u7531\u8C01\u8D1F\u8D23" }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: participant?.humanDisplayName ?? previous4?.human.displayName }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u516C\u5F00\u53C2\u4E0E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id28) => `#${id28}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dt", { children: "\u53D1\u8A00\u8EAB\u4EFD" }),
-      /* @__PURE__ */ (0, import_jsx_runtime74.jsx)("dd", { children: "\u4EE5\u81EA\u8EAB\u5177\u540D\u8EAB\u4EFD\u56DE\u5E94\uFF0C\u79C1\u4EBA\u6388\u6743\u7531\u4E3B\u4EBA\u7BA1\u7406\u3002" })
+    /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("dl", { className: "member-facts", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dt", { children: "\u7531\u8C01\u8D1F\u8D23" }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dd", { children: participant?.humanDisplayName ?? previous4?.human.displayName }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dt", { children: "\u516C\u5F00\u53C2\u4E0E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id30) => `#${id30}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dt", { children: "\u53D1\u8A00\u8EAB\u4EFD" }),
+      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("dd", { children: "\u4EE5\u81EA\u8EAB\u5177\u540D\u8EAB\u4EFD\u56DE\u5E94\uFF0C\u79C1\u4EBA\u6388\u6743\u7531\u4E3B\u4EBA\u7BA1\u7406\u3002" })
     ] })
   ] });
 }
 
 // src/CollectiveChannelWorkspace.tsx
-var import_jsx_runtime75 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime82 = __toESM(require_jsx_runtime(), 1);
 function CollectiveChannelWorkspace({
   channelId,
   client,
@@ -66137,7 +67683,7 @@ function CollectiveChannelWorkspace({
   const members = snapshot.members;
   const showCafe = host.available ? () => host.show("cats") : void 0;
   const showChannelCafe = host.available ? () => host.show("channel") : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(
     ChannelScene,
     {
       collective: snapshot.collective,
@@ -66213,7 +67759,7 @@ function CollectiveChannelWorkspace({
       },
       onOpenChannel: onSelectChannel,
       contextFullPage: selectedMember === "members" || host.open,
-      context: host.open ? /* @__PURE__ */ (0, import_jsx_runtime75.jsx)("div", { className: "context-panel", "aria-hidden": "true" }) : selectedMember && /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(
+      context: host.open ? /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("div", { className: "context-panel", "aria-hidden": "true" }) : selectedMember && /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(
         MemberPanel,
         {
           member: selectedMember,
@@ -66233,7 +67779,7 @@ function CollectiveChannelWorkspace({
 }
 
 // src/CollectiveHome.tsx
-var import_react57 = __toESM(require_react(), 1);
+var import_react64 = __toESM(require_react(), 1);
 
 // src/collective-home-model.ts
 var activityLabels = {
@@ -66284,7 +67830,7 @@ function visibleHistoryEvent(work2, entryEventId, events) {
 }
 
 // src/CollectiveHome.tsx
-var import_jsx_runtime76 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime83 = __toESM(require_jsx_runtime(), 1);
 function CollectiveHome({
   collective,
   events,
@@ -66295,20 +67841,20 @@ function CollectiveHome({
   onOpenEvent
 }) {
   const shared = useSharedArtifacts();
-  const projection = (0, import_react57.useMemo)(() => projectCollectiveHome(events, collaboration), [collaboration, events]);
+  const projection = (0, import_react64.useMemo)(() => projectCollectiveHome(events, collaboration), [collaboration, events]);
   const loading = collaboration === void 0 && !error;
   const unavailable = Boolean(error || connection === "offline");
   const activityState = unavailable ? "error" : loading ? "loading" : projection.activities.length ? "ready" : "empty";
   const worksState = unavailable ? "error" : loading ? "loading" : "unavailable";
-  return /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("section", { className: "collective-home", "data-testid": "collective-home", "aria-label": `${collective.name}\u9996\u9875`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("section", { className: "collective-home", "data-testid": "collective-home", "aria-label": `${collective.name}\u9996\u9875`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
       "div",
       {
         className: "collective-home-hero",
         role: "img",
         "aria-label": "\u51E0\u5BB6\u4EBA\u548C\u732B\u5728\u957F\u684C\u65C1\u5171\u540C\u521B\u4F5C\uFF0C\u58A8\u58A8\u628A\u6BDB\u7B14\u9012\u7ED9\u65B0\u6765\u7684\u5C0F\u732B",
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
             "button",
             {
               type: "button",
@@ -66319,17 +67865,17 @@ function CollectiveHome({
               children: "\u2630"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { className: "collective-home-title", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("h1", { children: collective.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("p", { children: "\u4EBA\u548C\u732B\u5728\u8FD9\u91CC\u4E00\u8D77\u8BA8\u8BBA\u3001\u534F\u4F5C\u548C\u4EA4\u4ED8\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("div", { className: "collective-home-title", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: collective.name }),
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { children: "\u4EBA\u548C\u732B\u5728\u8FD9\u91CC\u4E00\u8D77\u8BA8\u8BBA\u3001\u534F\u4F5C\u548C\u4EA4\u4ED8\u3002" })
           ] })
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { className: "collective-home-content", children: [
-      unavailable && /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("output", { className: "collective-home-notice", children: "\u6682\u65F6\u65E0\u6CD5\u66F4\u65B0\u5171\u540C\u4F53\u9996\u9875\u3002\u9891\u9053\u4ECD\u53EF\u6253\u5F00\uFF1B\u8FDE\u63A5\u6062\u590D\u540E\u4F1A\u81EA\u52A8\u91CD\u8BD5\u3002" }),
-      projection.partial && /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("output", { className: "collective-home-notice", children: "\u90E8\u5206\u5185\u5BB9\u6682\u4E0D\u53EF\u8BFB\uFF0C\u53EA\u663E\u793A\u5F53\u524D\u6709\u6743\u6253\u5F00\u7684\u516C\u5171\u8BB0\u5F55\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(HomeSection, { title: "\u6700\u8FD1\u52A8\u6001", state: activityState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5171\u4EFB\u52A1\u52A8\u6001\u3002", children: projection.activities.map((activity) => /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("div", { className: "collective-home-content", children: [
+      unavailable && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("output", { className: "collective-home-notice", children: "\u6682\u65F6\u65E0\u6CD5\u66F4\u65B0\u5171\u540C\u4F53\u9996\u9875\u3002\u9891\u9053\u4ECD\u53EF\u6253\u5F00\uFF1B\u8FDE\u63A5\u6062\u590D\u540E\u4F1A\u81EA\u52A8\u91CD\u8BD5\u3002" }),
+      projection.partial && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("output", { className: "collective-home-notice", children: "\u90E8\u5206\u5185\u5BB9\u6682\u4E0D\u53EF\u8BFB\uFF0C\u53EA\u663E\u793A\u5F53\u524D\u6709\u6743\u6253\u5F00\u7684\u516C\u5171\u8BB0\u5F55\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(HomeSection, { title: "\u6700\u8FD1\u52A8\u6001", state: activityState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5171\u4EFB\u52A1\u52A8\u6001\u3002", children: projection.activities.map((activity) => /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
         "button",
         {
           type: "button",
@@ -66337,13 +67883,13 @@ function CollectiveHome({
           "data-testid": "collective-home-activity",
           onClick: () => onOpenEvent(activity.channelId, activity.eventId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("span", { className: "collective-home-actor", children: activity.actorName }),
-            /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { className: "collective-home-actor", children: activity.actorName }),
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("span", { children: [
               activity.actionLabel,
               " ",
-              /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("strong", { children: activity.title })
+              /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: activity.title })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("small", { children: [
               "# ",
               activity.channelId,
               " \xB7 ",
@@ -66353,7 +67899,7 @@ function CollectiveHome({
         },
         activity.id
       )) }),
-      shared?.api ? /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(SharedArtifactLibrary, { title: "\u6700\u8FD1\u4F5C\u54C1" }) : /* @__PURE__ */ (0, import_jsx_runtime76.jsx)(HomeSection, { title: "\u6700\u8FD1\u4F5C\u54C1", state: worksState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5F00\u4F5C\u54C1\u3002" })
+      shared?.api ? /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(SharedArtifactLibrary, { title: "\u6700\u8FD1\u4F5C\u54C1" }) : /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(HomeSection, { title: "\u6700\u8FD1\u4F5C\u54C1", state: worksState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5F00\u4F5C\u54C1\u3002" })
     ] })
   ] });
 }
@@ -66369,9 +67915,9 @@ function HomeSection({
     error: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\uFF1B\u8FDE\u63A5\u6062\u590D\u540E\u4F1A\u81EA\u52A8\u91CD\u8BD5\u3002",
     unavailable: "\u4F5C\u54C1\u5217\u8868\u8FD8\u6CA1\u6709\u53EF\u9760\u7684\u516C\u5F00\u6765\u6E90\u3002"
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("section", { className: "collective-home-section", "aria-label": title, "aria-busy": state === "loading" || void 0, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("h2", { children: title }),
-    state === "ready" ? children : /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("p", { className: "collective-home-empty", children: fallback[state] })
+  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("section", { className: "collective-home-section", "aria-label": title, "aria-busy": state === "loading" || void 0, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h2", { children: title }),
+    state === "ready" ? children : /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "collective-home-empty", children: fallback[state] })
   ] });
 }
 function formatHomeTime(value) {
@@ -66386,8 +67932,8 @@ function visibleCollectiveCats(participants, members) {
 }
 
 // src/first-entry/DemoSpotlight.tsx
-var import_react58 = __toESM(require_react(), 1);
-var import_jsx_runtime77 = __toESM(require_jsx_runtime(), 1);
+var import_react65 = __toESM(require_react(), 1);
+var import_jsx_runtime84 = __toESM(require_jsx_runtime(), 1);
 function targetForBeat(beat, arrivalComplete) {
   if (beat > 0) {
     const selector = beat === 1 ? "[data-guide-thread]" : beat === 2 ? "[data-guide-neighbor]" : "[data-guide-work]";
@@ -66405,9 +67951,9 @@ function DemoSpotlight({
   onNext,
   onSkip
 }) {
-  const [spotlight, setSpotlight] = (0, import_react58.useState)(null);
-  const [arrivals, setArrivals] = (0, import_react58.useState)([]);
-  (0, import_react58.useLayoutEffect)(() => {
+  const [spotlight, setSpotlight] = (0, import_react65.useState)(null);
+  const [arrivals, setArrivals] = (0, import_react65.useState)([]);
+  (0, import_react65.useLayoutEffect)(() => {
     const target = targetForBeat(beat, arrivalComplete);
     if (!target) return;
     if (beat > 0) {
@@ -66457,9 +68003,9 @@ function DemoSpotlight({
     selectedCats.length === 1 ? "\u7B49\u522B\u5BB6 Caf\xE9 \u52A0\u5165\uFF0C\u5C31\u80FD @ \u5B83\u4EEC\u7684\u732B" : "\u5404\u56DE\u5404\u5BB6\u5E72\u6D3B\uFF0C\u5728\u540C\u4E00\u5904\u78B0\u5934",
     "\u8981\u4F60\u70B9\u5934\u624D\u7B97\u6570"
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)(import_jsx_runtime77.Fragment, { children: [
-    spotlight && /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("div", { className: "demo-spotlight", "data-demo": "spotlight", style: spotlight, "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime77.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(import_jsx_runtime84.Fragment, { children: [
+    spotlight && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "demo-spotlight", "data-demo": "spotlight", style: spotlight, "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
       "button",
       {
         type: "button",
@@ -66469,38 +68015,38 @@ function DemoSpotlight({
         onClick: onNext
       }
     ),
-    beat === 0 && /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("div", { className: "demo-arrivals", "data-demo": "arrival", "aria-hidden": "true", children: arrivals.map(({ cat, startX, startY, dx, dy }) => /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)(
+    beat === 0 && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "demo-arrivals", "data-demo": "arrival", "aria-hidden": "true", children: arrivals.map(({ cat, startX, startY, dx, dy }) => /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(
       "span",
       {
         className: "demo-arrival",
         style: { left: startX, top: startY, "--arrival-x": `${dx}px`, "--arrival-y": `${dy}px` },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime77.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl }),
-          /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("strong", { children: cat.displayName })
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl }),
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("strong", { children: cat.displayName })
         ]
       },
       `${cat.connectionId}:${cat.catId}`
     )) }),
-    /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("section", { className: "demo-caption", "data-demo": "caption", "data-demo-beat": beat, "aria-label": "\u5165\u573A\u6F14\u793A", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("div", { className: "demo-caption-copy", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("h2", { children: titles[beat] }),
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("p", { children: details[beat] })
+    /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("section", { className: "demo-caption", "data-demo": "caption", "data-demo-beat": beat, "aria-label": "\u5165\u573A\u6F14\u793A", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("div", { className: "demo-caption-copy", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: titles[beat] }),
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: details[beat] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("div", { className: "demo-caption-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("span", { role: "img", "aria-label": `\u7B2C ${beat + 1} / 4 \u6B65`, children: titles.map((title, index4) => /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("span", { children: index4 === beat ? "\u25CF" : "\u25CB" }, title)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("button", { type: "button", onClick: onSkip, children: "\u8DF3\u8FC7" }),
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("button", { type: "button", onClick: onNext, children: beat === 3 ? "\u6211\u6765\u8BD5\u8BD5" : "\u4E0B\u4E00\u6B65" })
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("div", { className: "demo-caption-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { role: "img", "aria-label": `\u7B2C ${beat + 1} / 4 \u6B65`, children: titles.map((title, index4) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: index4 === beat ? "\u25CF" : "\u25CB" }, title)) }),
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", onClick: onSkip, children: "\u8DF3\u8FC7" }),
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", onClick: onNext, children: beat === 3 ? "\u6211\u6765\u8BD5\u8BD5" : "\u4E0B\u4E00\u6B65" })
       ] })
     ] })
   ] });
 }
 
 // src/first-entry/EntrySpotlight.tsx
-var import_react59 = __toESM(require_react(), 1);
-var import_jsx_runtime78 = __toESM(require_jsx_runtime(), 1);
+var import_react66 = __toESM(require_react(), 1);
+var import_jsx_runtime85 = __toESM(require_jsx_runtime(), 1);
 function EntrySpotlight({ onPair, onBrowse }) {
-  const [spotlight, setSpotlight] = (0, import_react59.useState)();
-  (0, import_react59.useLayoutEffect)(() => {
+  const [spotlight, setSpotlight] = (0, import_react66.useState)();
+  (0, import_react66.useLayoutEffect)(() => {
     const target = document.querySelector("[data-guide-pair]");
     if (!target) return;
     const measure = () => {
@@ -66521,30 +68067,30 @@ function EntrySpotlight({ onPair, onBrowse }) {
       window.removeEventListener("resize", measure);
     };
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)(import_jsx_runtime78.Fragment, { children: [
-    spotlight && /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("div", { className: "demo-spotlight", "data-demo": "entry-spotlight", style: spotlight, "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("section", { className: "demo-caption entry-caption", "data-demo": "entry-caption", "aria-label": "\u5E26\u5165\u4F19\u4F34\u5F15\u5BFC", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("h2", { children: "\u5148\u628A\u4F60\u7684\u732B\u5E26\u8FDB\u6765" }),
-      /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("p", { children: "\u5B83\u4EEC\u4F1A\u5728\u9891\u9053\u91CC\u966A\u4F60\u5E72\u6D3B\uFF0C\u5BB6\u91CC\u7684\u79C1\u4EBA\u5BF9\u8BDD\u4E0D\u4F1A\u88AB\u5E26\u51FA\u6765\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime78.jsxs)("div", { className: "demo-caption-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: onBrowse, children: "\u5148\u901B\u901B" }),
-        /* @__PURE__ */ (0, import_jsx_runtime78.jsx)("button", { type: "button", onClick: onPair, children: "\u5E26\u732B\u8FDB\u6765" })
+  return /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(import_jsx_runtime85.Fragment, { children: [
+    spotlight && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("div", { className: "demo-spotlight", "data-demo": "entry-spotlight", style: spotlight, "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("section", { className: "demo-caption entry-caption", "data-demo": "entry-caption", "aria-label": "\u5E26\u5165\u4F19\u4F34\u5F15\u5BFC", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("h2", { children: "\u5148\u628A\u4F60\u7684\u732B\u5E26\u8FDB\u6765" }),
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("p", { children: "\u5B83\u4EEC\u4F1A\u5728\u9891\u9053\u91CC\u966A\u4F60\u5E72\u6D3B\uFF0C\u5BB6\u91CC\u7684\u79C1\u4EBA\u5BF9\u8BDD\u4E0D\u4F1A\u88AB\u5E26\u51FA\u6765\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("div", { className: "demo-caption-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", onClick: onBrowse, children: "\u5148\u901B\u901B" }),
+        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", onClick: onPair, children: "\u5E26\u732B\u8FDB\u6765" })
       ] })
     ] })
   ] });
 }
 
 // src/first-entry/FirstEntryOverlays.tsx
-var import_jsx_runtime79 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime86 = __toESM(require_jsx_runtime(), 1);
 function FirstEntryOverlays({
   firstEntry,
   destination,
   channelId,
   onPair
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)(import_jsx_runtime79.Fragment, { children: [
-    firstEntry.phase === "entry" && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(EntrySpotlight, { onPair, onBrowse: firstEntry.browse }),
-    firstEntry.phase === "playing" && destination === "channel" && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime79.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(import_jsx_runtime86.Fragment, { children: [
+    firstEntry.phase === "entry" && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(EntrySpotlight, { onPair, onBrowse: firstEntry.browse }),
+    firstEntry.phase === "playing" && destination === "channel" && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
       DemoSpotlight,
       {
         beat: firstEntry.beat,
@@ -66554,9 +68100,9 @@ function FirstEntryOverlays({
         onSkip: firstEntry.finish
       }
     ),
-    firstEntry.phase === "handoff" && firstEntry.handoffCaptionVisible && firstEntry.narrator && /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)("section", { className: "demo-caption demo-handoff-caption", "data-handoff-caption": true, "aria-label": "\u8F6E\u5230\u4F60", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime79.jsx)("h2", { children: "\u6362\u4F60\u6765" }),
-      /* @__PURE__ */ (0, import_jsx_runtime79.jsxs)("p", { children: [
+    firstEntry.phase === "handoff" && firstEntry.handoffCaptionVisible && firstEntry.narrator && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "demo-caption demo-handoff-caption", "data-handoff-caption": true, "aria-label": "\u8F6E\u5230\u4F60", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: "\u6362\u4F60\u6765" }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("p", { children: [
         "@ ",
         firstEntry.narrator.displayName,
         " \u8BD5\u8BD5"
@@ -66566,7 +68112,7 @@ function FirstEntryOverlays({
 }
 
 // src/first-entry/use-first-entry-guide.ts
-var import_react60 = __toESM(require_react(), 1);
+var import_react67 = __toESM(require_react(), 1);
 
 // src/first-entry/first-entry-model.ts
 function firstEntryPhase(conditions) {
@@ -66627,34 +68173,34 @@ function hasRealFirstReply(events, baseline, humanId, connectionId) {
   );
 }
 function useFirstEntryGuide(input) {
-  const [, setRevision] = (0, import_react60.useState)(0);
-  const ephemeral = (0, import_react60.useRef)(/* @__PURE__ */ new Map());
-  const [beat, setBeat] = (0, import_react60.useState)(0);
-  const [arrivalComplete, setArrivalComplete] = (0, import_react60.useState)(false);
-  const [replayKey, setReplayKey] = (0, import_react60.useState)();
-  const [handoffKey, setHandoffKey] = (0, import_react60.useState)();
-  const [handoffCaptionVisible, setHandoffCaptionVisible] = (0, import_react60.useState)(false);
-  const [hintVisible, setHintVisible] = (0, import_react60.useState)(false);
-  const eventsRef = (0, import_react60.useRef)(input.events);
+  const [, setRevision] = (0, import_react67.useState)(0);
+  const ephemeral = (0, import_react67.useRef)(/* @__PURE__ */ new Map());
+  const [beat, setBeat] = (0, import_react67.useState)(0);
+  const [arrivalComplete, setArrivalComplete] = (0, import_react67.useState)(false);
+  const [replayKey, setReplayKey] = (0, import_react67.useState)();
+  const [handoffKey, setHandoffKey] = (0, import_react67.useState)();
+  const [handoffCaptionVisible, setHandoffCaptionVisible] = (0, import_react67.useState)(false);
+  const [hintVisible, setHintVisible] = (0, import_react67.useState)(false);
+  const eventsRef = (0, import_react67.useRef)(input.events);
   eventsRef.current = input.events;
   const { serviceInstanceId, collectiveId, humanId, connectionId } = input;
-  const entryKey = (0, import_react60.useMemo)(
+  const entryKey = (0, import_react67.useMemo)(
     () => firstEntryBrowseKey({ serviceInstanceId, collectiveId, humanId }),
     [serviceInstanceId, collectiveId, humanId]
   );
   const pairStartedKey = entryKey ? `${entryKey}:pair-started` : void 0;
-  const keys2 = (0, import_react60.useMemo)(
+  const keys2 = (0, import_react67.useMemo)(
     () => firstEntryKeys({ serviceInstanceId, collectiveId, humanId, connectionId }),
     [serviceInstanceId, collectiveId, humanId, connectionId]
   );
-  const read = (0, import_react60.useCallback)((key) => key ? ephemeral.current.get(key) ?? stored(key) : null, []);
-  const persist = (0, import_react60.useCallback)((key, value) => {
+  const read = (0, import_react67.useCallback)((key) => key ? ephemeral.current.get(key) ?? stored(key) : null, []);
+  const persist = (0, import_react67.useCallback)((key, value) => {
     if (!key) return;
     ephemeral.current.set(key, value);
     write(key, value);
     setRevision((current2) => current2 + 1);
   }, []);
-  const ownCats = (0, import_react60.useMemo)(
+  const ownCats = (0, import_react67.useMemo)(
     () => input.participants?.filter(
       (cat) => cat.connectionId === input.connectionId && cat.availability === "declared" && cat.channelIds.includes("general")
     ) ?? [],
@@ -66674,12 +68220,12 @@ function useFirstEntryGuide(input) {
     replaying: replayKey === keys2?.viewed,
     handoff: handoffKey === keys2?.viewed
   });
-  const browse = (0, import_react60.useCallback)(() => persist(entryKey, "yes"), [entryKey, persist]);
-  const beginPair = (0, import_react60.useCallback)(() => {
+  const browse = (0, import_react67.useCallback)(() => persist(entryKey, "yes"), [entryKey, persist]);
+  const beginPair = (0, import_react67.useCallback)(() => {
     persist(entryKey, "yes");
     persist(pairStartedKey, "yes");
   }, [entryKey, pairStartedKey, persist]);
-  const finish = (0, import_react60.useCallback)(() => {
+  const finish = (0, import_react67.useCallback)(() => {
     if (!keys2) return;
     const wasReplay = replayKey === keys2.viewed;
     persist(keys2.viewed, "yes");
@@ -66691,12 +68237,12 @@ function useFirstEntryGuide(input) {
     setHandoffCaptionVisible(!wasReplay);
     setArrivalComplete(true);
   }, [keys2, pairStartedKey, persist, read, replayKey]);
-  const next = (0, import_react60.useCallback)(() => {
+  const next = (0, import_react67.useCallback)(() => {
     setArrivalComplete(true);
     if (beat === 3) finish();
     else setBeat((current2) => current2 + 1);
   }, [beat, finish]);
-  const replay = (0, import_react60.useCallback)(() => {
+  const replay = (0, import_react67.useCallback)(() => {
     if (!keys2 || !narrator) return;
     setBeat(0);
     setArrivalComplete(false);
@@ -66704,22 +68250,22 @@ function useFirstEntryGuide(input) {
     setHandoffCaptionVisible(false);
     setReplayKey(keys2.viewed);
   }, [keys2, narrator]);
-  (0, import_react60.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (phase !== "playing") return;
     const timer = window.setTimeout(next, firstEntryBeatMs);
     return () => window.clearTimeout(timer);
   }, [next, phase]);
-  (0, import_react60.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (phase !== "playing" || beat !== 0) return;
     const timer = window.setTimeout(() => setArrivalComplete(true), 1250);
     return () => window.clearTimeout(timer);
   }, [beat, phase]);
-  (0, import_react60.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (!handoffCaptionVisible) return;
     const timer = window.setTimeout(() => setHandoffCaptionVisible(false), 1200);
     return () => window.clearTimeout(timer);
   }, [handoffCaptionVisible]);
-  (0, import_react60.useEffect)(() => {
+  (0, import_react67.useEffect)(() => {
     if (!keys2 || !input.humanId || !input.connectionId || read(keys2.hint) === "yes" || read(keys2.viewed) !== "yes")
       return;
     const storedBaseline = read(keys2.baseline);
@@ -66753,10 +68299,10 @@ function useFirstEntryGuide(input) {
 }
 
 // src/LeaveCollectiveDialog.tsx
-var import_react61 = __toESM(require_react(), 1);
+var import_react68 = __toESM(require_react(), 1);
 
 // src/LeaveResponsibilityGroups.tsx
-var import_jsx_runtime80 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime87 = __toESM(require_jsx_runtime(), 1);
 function LeaveResponsibilityGroups({
   readiness,
   onOpenWork,
@@ -66766,21 +68312,21 @@ function LeaveResponsibilityGroups({
 }) {
   const { works, roadmaps, artifacts } = readiness.responsibilities;
   const knownCount = Number(readiness.governanceHandoffRequired) + works.length + roadmaps.length + artifacts.items.length + artifacts.inaccessibleCount;
-  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-groups", children: [
-    readiness.governanceHandoffRequired && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(ResponsibilityGroup, { title: "\u7BA1\u7406\u5458", children: /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-static", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { children: "\u4F60\u662F\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u7BA1\u7406\u5458" }),
-      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: "\u8981\u5148\u628A\u7BA1\u7406\u5458\u4EA4\u7ED9\u522B\u4EBA\u624D\u80FD\u79BB\u5F00\u3002\u4EA4\u63A5\u7BA1\u7406\u5458\u73B0\u5728\u8FD8\u6CA1\u6709\u5165\u53E3\u3002" })
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-groups", children: [
+    readiness.governanceHandoffRequired && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(ResponsibilityGroup, { title: "\u7BA1\u7406\u5458", children: /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-static", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("strong", { children: "\u4F60\u662F\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u7BA1\u7406\u5458" }),
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: "\u8981\u5148\u628A\u7BA1\u7406\u5458\u4EA4\u7ED9\u522B\u4EBA\u624D\u80FD\u79BB\u5F00\u3002\u4EA4\u63A5\u7BA1\u7406\u5458\u73B0\u5728\u8FD8\u6CA1\u6709\u5165\u53E3\u3002" })
     ] }) }),
-    works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(
+    works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
       ResponsibilityGroup,
       {
         title: `\u4F60\u8D1F\u8D23\u7684\u4EFB\u52A1 ${works.length}`,
         description: "\u53EF\u4EE5\u5B8C\u6210\u3001\u53D6\u6D88\uFF0C\u6216\u5728\u90A3\u91CC\u8BF7\u522B\u4EBA\u63A5\u624B\u8D1F\u8D23\u3002",
-        children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-row", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("span", { className: "leave-status-dot", "data-tone": workStatusTone(work2.status), "aria-hidden": "true" }),
-          /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { className: "leave-responsibility-copy", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { title: work2.title, children: work2.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+        children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-row", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { className: "leave-status-dot", "data-tone": workStatusTone(work2.status), "aria-hidden": "true" }),
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "leave-responsibility-copy", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("strong", { title: work2.title, children: work2.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("small", { children: [
               workProjectLabel(work2),
               " \xB7 # ",
               work2.source.location.channelId,
@@ -66788,69 +68334,69 @@ function LeaveResponsibilityGroups({
               workStatusLabel2(work2.status)
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: () => onOpenWork(work2), children: "\u53BB\u5904\u7406 \u203A" })
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("button", { type: "button", onClick: () => onOpenWork(work2), children: "\u53BB\u5904\u7406 \u203A" })
         ] }, work2.workId))
       }
     ),
-    roadmaps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(ResponsibilityGroup, { title: `\u4F60\u8D1F\u8D23\u7684\u9879\u76EE ${roadmaps.length}`, children: roadmaps.map((project) => /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-row", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("span", { className: "leave-status-dot", "data-tone": "info", "aria-hidden": "true" }),
-      /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { className: "leave-responsibility-copy", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("strong", { title: project.title, children: project.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+    roadmaps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(ResponsibilityGroup, { title: `\u4F60\u8D1F\u8D23\u7684\u9879\u76EE ${roadmaps.length}`, children: roadmaps.map((project) => /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-row", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { className: "leave-status-dot", "data-tone": "info", "aria-hidden": "true" }),
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "leave-responsibility-copy", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("strong", { title: project.title, children: project.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("small", { children: [
           "# ",
           project.source.location.channelId,
           " \xB7 \u8FDB\u884C\u4E2D"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: () => onOpenProject(project), children: "\u53BB\u9879\u76EE \u203A" })
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("button", { type: "button", onClick: () => onOpenProject(project), children: "\u53BB\u9879\u76EE \u203A" })
     ] }, project.roadmapId)) }),
-    (artifacts.items.length > 0 || artifacts.inaccessibleCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)(
+    (artifacts.items.length > 0 || artifacts.inaccessibleCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)(
       ResponsibilityGroup,
       {
         title: `\u4F60\u5BB6\u4FDD\u7BA1\u7684\u4F5C\u54C1 ${artifacts.items.length + artifacts.inaccessibleCount}`,
         description: artifacts.items.some((item) => item.kind === "artifact") ? "\u6253\u5F00\u4F5C\u54C1\u540E\uFF0C\u53EF\u5728\u300C\u6743\u9650\u4E0E\u4FDD\u7BA1\u300D\u91CC\u4EA4\u63A5\u7ED9\u522B\u4EBA\u7684 Caf\xE9\u3002" : void 0,
         children: [
           artifacts.items.map(
-            (item) => item.kind === "artifact" ? /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-row leave-responsibility-row-no-status", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { className: "leave-responsibility-copy", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("strong", { title: item.title, children: [
+            (item) => item.kind === "artifact" ? /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-row leave-responsibility-row-no-status", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "leave-responsibility-copy", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("strong", { title: item.title, children: [
                   item.title,
                   " \xB7 \u7B2C ",
                   item.ownerRevision,
                   " \u7248"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("small", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("small", { children: [
                   "\u5728 # ",
                   item.source.location.channelId,
                   " \xB7 \u539F\u4EF6\u5728\u4F60\u7684 Caf\xE9"
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: () => onOpenArtifact(item), children: "\u53BB\u4F5C\u54C1 \u203A" })
-            ] }, item.artifactId) : /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-static", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("strong", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("button", { type: "button", onClick: () => onOpenArtifact(item), children: "\u53BB\u4F5C\u54C1 \u203A" })
+            ] }, item.artifactId) : /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-static", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("strong", { children: [
                 "\u300A",
                 item.title,
                 "\u300B\u6B63\u5728\u53D1\u5E03"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: "\u53D1\u5E03\u7ED3\u675F\u540E\u91CD\u65B0\u68C0\u67E5\uFF1B\u82E5\u539F\u4EF6\u4ECD\u5728\u4F60\u7684 Caf\xE9\uFF0C\u8FD8\u9700\u5904\u7406\u4FDD\u7BA1\u8D23\u4EFB\u3002" })
+              /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: "\u53D1\u5E03\u7ED3\u675F\u540E\u91CD\u65B0\u68C0\u67E5\uFF1B\u82E5\u539F\u4EF6\u4ECD\u5728\u4F60\u7684 Caf\xE9\uFF0C\u8FD8\u9700\u5904\u7406\u4FDD\u7BA1\u8D23\u4EFB\u3002" })
             ] }, item.publicationId)
           ),
-          artifacts.inaccessibleCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("div", { className: "leave-responsibility-hidden", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)(LockIcon, {}),
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("span", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("strong", { children: [
+          artifacts.inaccessibleCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "leave-responsibility-hidden", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(LockIcon, {}),
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("strong", { children: [
                 "\u8FD8\u6709 ",
                 artifacts.inaccessibleCount,
                 " \u4EF6\u4F60\u73B0\u5728\u6253\u4E0D\u5F00"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("small", { children: "\u5B83\u4EEC\u4E5F\u8981\u5148\u5904\u7406\uFF1B\u53EF\u4EE5\u8BF7\u7BA1\u7406\u5458\u770B\u770B\u3002" })
+              /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: "\u5B83\u4EEC\u4E5F\u8981\u5148\u5904\u7406\uFF1B\u53EF\u4EE5\u8BF7\u7BA1\u7406\u5458\u770B\u770B\u3002" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("button", { type: "button", onClick: onOpenMembers, children: "\u67E5\u770B\u7BA1\u7406\u5458" })
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("button", { type: "button", onClick: onOpenMembers, children: "\u67E5\u770B\u7BA1\u7406\u5458" })
           ] })
         ]
       }
     ),
-    knownCount === 0 && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("output", { className: "leave-dialog-unknown", children: "\u8FD8\u6709\u8D23\u4EFB\u6CA1\u6709\u5B8C\u6574\u663E\u793A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\uFF0C\u786E\u8BA4\u5B8C\u6574\u7ED3\u679C\u540E\u624D\u80FD\u79BB\u5F00\u3002" })
+    knownCount === 0 && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("output", { className: "leave-dialog-unknown", children: "\u8FD8\u6709\u8D23\u4EFB\u6CA1\u6709\u5B8C\u6574\u663E\u793A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\uFF0C\u786E\u8BA4\u5B8C\u6574\u7ED3\u679C\u540E\u624D\u80FD\u79BB\u5F00\u3002" })
   ] });
 }
 function ResponsibilityGroup({
@@ -66858,10 +68404,10 @@ function ResponsibilityGroup({
   description,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("section", { className: "leave-responsibility-group", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("h3", { children: title }),
-    description && /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("p", { children: description }),
-    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("div", { children })
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("section", { className: "leave-responsibility-group", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("h3", { children: title }),
+    description && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("p", { children: description }),
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("div", { children })
   ] });
 }
 function workProjectLabel(work2) {
@@ -66890,21 +68436,21 @@ function workStatusTone(status) {
   return "info";
 }
 function LockIcon() {
-  return /* @__PURE__ */ (0, import_jsx_runtime80.jsxs)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("rect", { x: "5", y: "10", width: "14", height: "10", rx: "2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime80.jsx)("path", { d: "M8 10V7a4 4 0 0 1 8 0v3" })
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("rect", { x: "5", y: "10", width: "14", height: "10", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("path", { d: "M8 10V7a4 4 0 0 1 8 0v3" })
   ] });
 }
 
 // src/LeaveCollectiveDialog.tsx
-var import_jsx_runtime81 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime88 = __toESM(require_jsx_runtime(), 1);
 function LeaveCollectiveDialog(props) {
-  const [state, setState] = (0, import_react61.useState)({ kind: "loading" });
-  const generation = (0, import_react61.useRef)(0);
-  const dialog = (0, import_react61.useRef)(null);
-  const closeButton = (0, import_react61.useRef)(null);
+  const [state, setState] = (0, import_react68.useState)({ kind: "loading" });
+  const generation = (0, import_react68.useRef)(0);
+  const dialog = (0, import_react68.useRef)(null);
+  const closeButton = (0, import_react68.useRef)(null);
   const busy = state.kind === "leaving";
-  const check = (0, import_react61.useCallback)(async () => {
+  const check = (0, import_react68.useCallback)(async () => {
     const current2 = ++generation.current;
     setState({ kind: "loading" });
     try {
@@ -66914,14 +68460,14 @@ function LeaveCollectiveDialog(props) {
       if (current2 === generation.current) setState({ kind: "read-failed" });
     }
   }, [props.read]);
-  (0, import_react61.useEffect)(() => {
+  (0, import_react68.useEffect)(() => {
     void check();
     return () => {
       ++generation.current;
     };
   }, [check]);
-  (0, import_react61.useEffect)(() => closeButton.current?.focus(), []);
-  (0, import_react61.useEffect)(() => {
+  (0, import_react68.useEffect)(() => closeButton.current?.focus(), []);
+  (0, import_react68.useEffect)(() => {
     const closeOnEscape = (event) => {
       if (event.key !== "Escape" || busy) return;
       event.preventDefault();
@@ -66969,8 +68515,8 @@ function LeaveCollectiveDialog(props) {
       first.focus();
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-layer", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { className: "leave-dialog-layer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
       "button",
       {
         type: "button",
@@ -66980,7 +68526,7 @@ function LeaveCollectiveDialog(props) {
         onClick: close
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)(
       "dialog",
       {
         ref: dialog,
@@ -66990,19 +68536,19 @@ function LeaveCollectiveDialog(props) {
         "aria-busy": busy || void 0,
         onKeyDown: trapFocus,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("header", { className: "leave-dialog-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("h2", { id: "leave-dialog-title", children: leaveDialogTitle(props.collectiveName) }),
-            /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { ref: closeButton, type: "button", "aria-label": "\u5173\u95ED\u79BB\u5F00\u5171\u540C\u4F53\u5BF9\u8BDD\u6846", disabled: busy, onClick: close, children: "\xD7" })
+          /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("header", { className: "leave-dialog-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("h2", { id: "leave-dialog-title", children: leaveDialogTitle(props.collectiveName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { ref: closeButton, type: "button", "aria-label": "\u5173\u95ED\u79BB\u5F00\u5171\u540C\u4F53\u5BF9\u8BDD\u6846", disabled: busy, onClick: close, children: "\xD7" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-body", "aria-live": "polite", children: [
-            state.kind === "loading" && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { className: "leave-dialog-state", children: "\u6B63\u5728\u770B\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406\u2026" }),
-            state.kind === "read-failed" && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-state", role: "alert", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("strong", { children: "\u6CA1\u80FD\u68C0\u67E5\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406" }),
-              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u6CA1\u6709\u5B8C\u6574\u7ED3\u679C\u65F6\u4E0D\u4F1A\u628A\u6E05\u5355\u5F53\u6210\u7A7A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { className: "leave-dialog-body", "aria-live": "polite", children: [
+            state.kind === "loading" && /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { className: "leave-dialog-state", children: "\u6B63\u5728\u770B\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406\u2026" }),
+            state.kind === "read-failed" && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { className: "leave-dialog-state", role: "alert", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("strong", { children: "\u6CA1\u80FD\u68C0\u67E5\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406" }),
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { children: "\u6CA1\u6709\u5B8C\u6574\u7ED3\u679C\u65F6\u4E0D\u4F1A\u628A\u6E05\u5355\u5F53\u6210\u7A7A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\u3002" })
             ] }),
-            readiness && !readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)(import_jsx_runtime81.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u4E0B\u9762\u8FD9\u4E9B\u5904\u7406\u5B8C\u624D\u80FD\u79BB\u5F00\u3002\u70B9\u4E00\u4EF6\uFF0C\u56DE\u5230\u5B83\u539F\u6765\u7684\u5730\u65B9\u3002" }),
-              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+            readiness && !readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)(import_jsx_runtime88.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { children: "\u4E0B\u9762\u8FD9\u4E9B\u5904\u7406\u5B8C\u624D\u80FD\u79BB\u5F00\u3002\u70B9\u4E00\u4EF6\uFF0C\u56DE\u5230\u5B83\u539F\u6765\u7684\u5730\u65B9\u3002" }),
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
                 LeaveResponsibilityGroups,
                 {
                   readiness,
@@ -67016,13 +68562,13 @@ function LeaveCollectiveDialog(props) {
                 }
               )
             ] }),
-            readiness && readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("p", { children: "\u79BB\u5F00\u4EE5\u540E\uFF0C\u4F60\u7684 Caf\xE9 \u9A6C\u4E0A\u505C\u6B62\u5728\u8FD9\u91CC\u8BFB\u53D6\u548C\u53D1\u9001\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4F1A\u4FDD\u7559\u3002" }),
-            state.kind === "leave-failed" && /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("div", { className: "leave-dialog-error", role: "alert", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("strong", { children: "\u6CA1\u80FD\u79BB\u5F00" }),
-              /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("span", { children: state.message })
+            readiness && readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { children: "\u79BB\u5F00\u4EE5\u540E\uFF0C\u4F60\u7684 Caf\xE9 \u9A6C\u4E0A\u505C\u6B62\u5728\u8FD9\u91CC\u8BFB\u53D6\u548C\u53D1\u9001\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4F1A\u4FDD\u7559\u3002" }),
+            state.kind === "leave-failed" && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { className: "leave-dialog-error", role: "alert", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("strong", { children: "\u6CA1\u80FD\u79BB\u5F00" }),
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: state.message })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime81.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
             DialogFooter,
             {
               state,
@@ -67045,27 +68591,27 @@ function DialogFooter({
   onLeave
 }) {
   if (state.kind === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("footer", { className: "leave-dialog-footer", children: /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onClose, children: "\u53D6\u6D88" }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("footer", { className: "leave-dialog-footer", children: /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", onClick: onClose, children: "\u53D6\u6D88" }) });
   }
   if (state.kind === "read-failed") {
-    return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "leave-dialog-footer", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u8BD5" }),
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
+    return /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("footer", { className: "leave-dialog-footer", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u8BD5" }),
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
     ] });
   }
   if (!readyToLeave) {
-    return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "leave-dialog-footer leave-dialog-footer-split", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("small", { children: "\u5904\u7406\u5B8C\u56DE\u6765\u70B9\u300C\u91CD\u65B0\u68C0\u67E5\u300D" }),
-      /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("span", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u65B0\u68C0\u67E5" }),
-        /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
+    return /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("footer", { className: "leave-dialog-footer leave-dialog-footer-split", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("small", { children: "\u5904\u7406\u5B8C\u56DE\u6765\u70B9\u300C\u91CD\u65B0\u68C0\u67E5\u300D" }),
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u65B0\u68C0\u67E5" }),
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
       ] })
     ] });
   }
   const leaving = state.kind === "leaving";
-  return /* @__PURE__ */ (0, import_jsx_runtime81.jsxs)("footer", { className: "leave-dialog-footer", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", disabled: leaving, onClick: onClose, children: "\u53D6\u6D88" }),
-    /* @__PURE__ */ (0, import_jsx_runtime81.jsx)("button", { type: "button", className: "leave-dialog-danger", disabled: leaving, onClick: onLeave, children: leaving ? "\u6B63\u5728\u79BB\u5F00\u2026" : state.kind === "leave-failed" ? "\u91CD\u8BD5" : "\u79BB\u5F00\u5171\u540C\u4F53" })
+  return /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("footer", { className: "leave-dialog-footer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", disabled: leaving, onClick: onClose, children: "\u53D6\u6D88" }),
+    /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", className: "leave-dialog-danger", disabled: leaving, onClick: onLeave, children: leaving ? "\u6B63\u5728\u79BB\u5F00\u2026" : state.kind === "leave-failed" ? "\u91CD\u8BD5" : "\u79BB\u5F00\u5171\u540C\u4F53" })
   ] });
 }
 function leaveFailureMessage(error) {
@@ -67084,7 +68630,7 @@ function readinessIsCompleteAndEmpty(readiness) {
 }
 
 // src/CollectiveWorldRail.tsx
-var import_jsx_runtime82 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime89 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorldRail({
   activeCollective,
   collectives,
@@ -67094,11 +68640,11 @@ function CollectiveWorldRail({
 }) {
   const t = useCollectiveText();
   if (!visible || !collectives?.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u5BB6\u56ED"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime82.jsx)(MeowClubMark, {}) }),
-    /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("nav", { children: collectives.map((item) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u5BB6\u56ED"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(MeowClubMark, {}) }),
+    /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("nav", { children: collectives.map((item) => {
       const active = item.collectiveId === activeCollective?.collectiveId;
-      return /* @__PURE__ */ (0, import_jsx_runtime82.jsxs)(
+      return /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)(
         "button",
         {
           type: "button",
@@ -67107,8 +68653,8 @@ function CollectiveWorldRail({
           "aria-current": active ? "page" : void 0,
           onClick: () => active ? onHome?.() : onSelectCollective?.(item.collectiveId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
-            /* @__PURE__ */ (0, import_jsx_runtime82.jsx)("span", { children: item.name })
+            /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
+            /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("span", { children: item.name })
           ]
         },
         item.collectiveId
@@ -67118,7 +68664,7 @@ function CollectiveWorldRail({
 }
 
 // src/ProductShell.tsx
-var import_jsx_runtime83 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime90 = __toESM(require_jsx_runtime(), 1);
 function DestinationTitle({
   collective,
   onHome,
@@ -67134,20 +68680,20 @@ function DestinationTitle({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: t("\u5171\u540C\u5BB6\u56ED") });
+  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("h1", { children: t("\u5171\u540C\u5BB6\u56ED") });
   const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || onLeave);
-  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: collective.name });
+  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("h1", { children: collective.name });
   const action = (callback) => (event) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("details", { className: "collective-menu", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("h1", { children: collective.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
+  return /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("details", { className: "collective-menu", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("h1", { children: collective.name }),
+      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("div", { className: "collective-menu-popover", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("div", { className: "collective-menu-popover", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)(
         "button",
         {
           type: "button",
@@ -67155,22 +68701,22 @@ function DestinationTitle({
           "aria-label": onHome ? language === "en" ? `Open ${collective.name} home` : `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
           onClick: onHome ? action(onHome) : void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: collective.name }),
-            meta && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { children: meta })
+            /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("strong", { children: collective.name }),
+            meta && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("span", { children: meta })
           ]
         }
       ),
-      canSteward && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
-      onCafe && /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
+      canSteward && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
+      onCafe && /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
         t("\u6211\u7684\u732B\u2026"),
         " ",
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
+        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
       ] }),
-      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
-      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
-      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
-      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
-      onLeave && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
+      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
+      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
+      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
+      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
+      onLeave && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
     ] })
   ] });
 }
@@ -67184,7 +68730,7 @@ function ProductShell({
   canSteward,
   canPair,
   pairNudge = false,
-  notice,
+  notice: notice2,
   onInvite,
   onPair,
   onLeave,
@@ -67201,7 +68747,7 @@ function ProductShell({
 }) {
   const t = useCollectiveText();
   const hasWorldRail = !embedded && Boolean(collectives?.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)(
     "main",
     {
       className: "collective-shell",
@@ -67210,7 +68756,7 @@ function ProductShell({
       "data-world-rail": hasWorldRail,
       "data-navigation-open": navigationOpen,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
           CollectiveWorldRail,
           {
             activeCollective: collective,
@@ -67220,10 +68766,10 @@ function ProductShell({
             visible: !embedded
           }
         ),
-        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u5BFC\u822A"), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("header", { className: "destination-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
+        /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u5BFC\u822A"), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("header", { className: "destination-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
               DestinationTitle,
               {
                 collective,
@@ -67239,24 +68785,24 @@ function ProductShell({
                 onLeave
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
+            /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
           ] }),
           destinations,
-          /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("footer", { className: "destination-footer", children: [
-            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
-            notice && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "destination-notice", children: t(notice) }),
-            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
+          /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("footer", { className: "destination-footer", children: [
+            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
+            notice2 && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("p", { className: "destination-notice", children: t(notice2) }),
+            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
+        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
       ]
     }
   );
 }
 
 // src/SharedArtifactPublication.tsx
-var import_react62 = __toESM(require_react(), 1);
-var import_jsx_runtime84 = __toESM(require_jsx_runtime(), 1);
+var import_react69 = __toESM(require_react(), 1);
+var import_jsx_runtime91 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactPublication({
   snapshot,
   onPair,
@@ -67265,23 +68811,23 @@ function SharedArtifactPublication({
   const shared = useSharedArtifacts();
   const source3 = snapshot.events.find((event) => event.eventId === shared?.publicationSource);
   const cafes = snapshot.members?.cafes.filter((cafe) => cafe.humanId === snapshot.me?.human.humanId) ?? [];
-  const [file, setFile] = (0, import_react62.useState)();
-  const [title, setTitle] = (0, import_react62.useState)("");
-  const [connectionId, setConnectionId] = (0, import_react62.useState)("");
-  const [workId, setWorkId] = (0, import_react62.useState)("");
+  const [file, setFile] = (0, import_react69.useState)();
+  const [title, setTitle] = (0, import_react69.useState)("");
+  const [connectionId, setConnectionId] = (0, import_react69.useState)("");
+  const [workId, setWorkId] = (0, import_react69.useState)("");
   const sourceWorks = snapshot.collaboration?.works.filter((work2) => work2.sourceEventId === source3?.eventId) ?? [];
-  const [pending, setPending] = (0, import_react62.useState)(false);
-  const [error, setError] = (0, import_react62.useState)();
-  const dialog = (0, import_react62.useRef)(null);
-  const mounted = (0, import_react62.useRef)(true);
-  (0, import_react62.useEffect)(() => {
+  const [pending, setPending] = (0, import_react69.useState)(false);
+  const [error, setError] = (0, import_react69.useState)();
+  const dialog = (0, import_react69.useRef)(null);
+  const mounted = (0, import_react69.useRef)(true);
+  (0, import_react69.useEffect)(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
   const sourceId = source3?.eventId;
-  (0, import_react62.useEffect)(() => {
+  (0, import_react69.useEffect)(() => {
     if (!sourceId) {
       dialog.current?.close();
       return;
@@ -67319,21 +68865,21 @@ function SharedArtifactPublication({
       if (mounted.current) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(
     "dialog",
     {
       ref: dialog,
       className: "shared-publication-dialog",
       onCancel: () => shared?.closePublication(),
       onClose: () => shared?.closePublication(),
-      children: /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
+      children: /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("blockquote", { children: source3?.body }),
-        onShareMedia && source3 && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("blockquote", { children: source3?.body }),
+        onShareMedia && source3 && /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(
           "button",
           {
             type: "button",
@@ -67344,13 +68890,13 @@ function SharedArtifactPublication({
             children: "\u4ECE\u6B64 Caf\xE9 \u9009\u62E9\u56FE\u7247\u6216\u89C6\u9891"
           }
         ),
-        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("p", { children: [
+        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("p", { children: [
           "\u5148\u8FDE\u63A5\u81EA\u5DF1\u7684 Caf\xE9\uFF0C\u518D\u5206\u4EAB\u4F5C\u54C1\u3002",
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(import_jsx_runtime84.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("label", { children: [
             "Markdown \u6587\u4EF6",
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(
               "input",
               {
                 type: "file",
@@ -67365,37 +68911,37 @@ function SharedArtifactPublication({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("label", { children: [
             "\u4F5C\u54C1\u540D\u79F0",
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
+            /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("label", { children: [
             "\u4F5C\u54C1\u5B58\u653E\u5728",
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(
               "select",
               {
                 value: connectionId || cafes[0]?.connectionId,
                 onChange: (event) => setConnectionId(event.target.value),
-                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
+                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
               }
             )
           ] }),
-          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
+          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("label", { children: [
             "\u5C5E\u4E8E\u4EFB\u52A1",
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
-              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
+            /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
+              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
         ] }),
-        error && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("p", { role: "alert", children: [
+        error && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("p", { role: "alert", children: [
           error,
           " \u8BF7\u4FDD\u7559\u6587\u4EF6\uFF0C\u91CD\u8BD5\u4F1A\u63A5\u7740\u540C\u4E00\u6B21\u53D1\u5E03\u3002"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("footer", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("footer", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
+          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
         ] })
       ] })
     }
@@ -67403,10 +68949,10 @@ function SharedArtifactPublication({
 }
 
 // src/use-host-context.ts
-var import_react67 = __toESM(require_react(), 1);
+var import_react74 = __toESM(require_react(), 1);
 
 // src/use-host-accountability-context.ts
-var import_react63 = __toESM(require_react(), 1);
+var import_react70 = __toESM(require_react(), 1);
 
 // src/collective-accountability-events.ts
 var COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT = "collective:accountability-changed";
@@ -67420,13 +68966,13 @@ function publishCollectiveAccountabilityChanged(detail) {
 
 // src/use-host-accountability-context.ts
 function useHostAccountabilityContext(input) {
-  const currentWorks = (0, import_react63.useRef)(input.works);
+  const currentWorks = (0, import_react70.useRef)(input.works);
   currentWorks.current = input.works;
-  const currentRoadmaps = (0, import_react63.useRef)(input.roadmaps);
+  const currentRoadmaps = (0, import_react70.useRef)(input.roadmaps);
   currentRoadmaps.current = input.roadmaps;
-  const pendingFocus = (0, import_react63.useRef)();
-  const pendingChange = (0, import_react63.useRef)();
-  const applyFocus = (0, import_react63.useCallback)(
+  const pendingFocus = (0, import_react70.useRef)();
+  const pendingChange = (0, import_react70.useRef)();
+  const applyFocus = (0, import_react70.useCallback)(
     (value) => {
       if (!generationMatches(value, input.context.current)) return false;
       const activeHumanId = input.context.current.bridge?.humanId;
@@ -67449,7 +68995,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.onFocus]
   );
-  const postChange = (0, import_react63.useCallback)(
+  const postChange = (0, import_react70.useCallback)(
     (detail) => {
       const active = input.context.current;
       const activeBridge = active.bridge;
@@ -67476,7 +69022,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.hostOrigin]
   );
-  const handleFocus = (0, import_react63.useCallback)(
+  const handleFocus = (0, import_react70.useCallback)(
     (data) => {
       const parsed = collectiveHostProjectWorkFocusSchema.safeParse(data);
       if (!parsed.success) return false;
@@ -67488,11 +69034,11 @@ function useHostAccountabilityContext(input) {
     },
     [applyFocus, input.context]
   );
-  const reset = (0, import_react63.useCallback)(() => {
+  const reset = (0, import_react70.useCallback)(() => {
     pendingFocus.current = void 0;
     pendingChange.current = void 0;
   }, []);
-  (0, import_react63.useEffect)(() => {
+  (0, import_react70.useEffect)(() => {
     const handleChange = (event) => {
       const detail = event.detail;
       if (!detail) return;
@@ -67502,7 +69048,7 @@ function useHostAccountabilityContext(input) {
     window.addEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
     return () => window.removeEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
   }, [postChange]);
-  (0, import_react63.useEffect)(() => {
+  (0, import_react70.useEffect)(() => {
     const pending = pendingFocus.current;
     if (!pending || !input.works || !input.roadmaps) return;
     if (!generationMatches(pending, input.context.current)) {
@@ -67511,7 +69057,7 @@ function useHostAccountabilityContext(input) {
     }
     if (applyFocus(pending)) pendingFocus.current = void 0;
   }, [applyFocus, input.context, input.roadmaps, input.works]);
-  (0, import_react63.useEffect)(() => {
+  (0, import_react70.useEffect)(() => {
     if (!input.works) return;
     const pending = pendingChange.current;
     if (pending && postChange(pending)) pendingChange.current = void 0;
@@ -67523,12 +69069,12 @@ function generationMatches(value, active) {
 }
 
 // src/use-host-media-share.ts
-var import_react64 = __toESM(require_react(), 1);
+var import_react71 = __toESM(require_react(), 1);
 function useHostMediaShare(options) {
-  const latest = (0, import_react64.useRef)(options);
+  const latest = (0, import_react71.useRef)(options);
   latest.current = options;
-  const pending = (0, import_react64.useRef)();
-  (0, import_react64.useEffect)(() => {
+  const pending = (0, import_react71.useRef)();
+  (0, import_react71.useEffect)(() => {
     const listener = async (event) => {
       const { context: context2, hostOrigin, bridge, onShared } = latest.current;
       if (event.source !== window.parent || event.origin !== hostOrigin) return;
@@ -67548,7 +69094,7 @@ function useHostMediaShare(options) {
       window.removeEventListener("message", listener);
     };
   }, []);
-  return (0, import_react64.useCallback)((sourceEventId) => {
+  return (0, import_react71.useCallback)((sourceEventId) => {
     const { context: context2, bridge, hostOrigin, channelId } = latest.current;
     if (!bridge || bridge.authorityStatus === "revoked" || !hostOrigin || context2.current.bridge?.bridgeId !== bridge.bridgeId || context2.current.revision < 1)
       return;
@@ -67570,7 +69116,7 @@ function useHostMediaShare(options) {
 }
 
 // src/use-host-media-surface.ts
-var import_react65 = __toESM(require_react(), 1);
+var import_react72 = __toESM(require_react(), 1);
 
 // src/collective-media-surface-client.ts
 async function serveCollectiveMediaRequest(message, api, artifact, humanName) {
@@ -67627,13 +69173,13 @@ function mediaFailureCode(error) {
 
 // src/use-host-media-surface.ts
 function useHostMediaSurface(options) {
-  const latest = (0, import_react65.useRef)(options);
+  const latest = (0, import_react72.useRef)(options);
   latest.current = options;
-  const active = (0, import_react65.useRef)();
+  const active = (0, import_react72.useRef)();
   const { artifact, ownerRevision: ownerRevision2 } = options.selection ?? {};
   const selectedRevision = ownerRevision2 ?? artifact?.versions.at(-1)?.ownerRevision;
   const selectionKey = JSON.stringify([artifact?.artifactId, selectedRevision, artifact?.sourceEventId]);
-  (0, import_react65.useEffect)(() => {
+  (0, import_react72.useEffect)(() => {
     const { context: context2, bridge, hostOrigin, channelId, selection } = latest.current;
     active.current = void 0;
     const { contextId, revision: revision11 } = context2.current;
@@ -67656,7 +69202,7 @@ function useHostMediaSurface(options) {
     active.current = ref10;
     window.parent.postMessage({ type: "collective:client-media-surface", ref: ref10 }, hostOrigin);
   }, [options.generation, options.channelId, selectionKey, selectedRevision]);
-  (0, import_react65.useEffect)(() => {
+  (0, import_react72.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
     const current2 = (ref10) => {
       const value = latest.current, context2 = value.context.current;
@@ -67704,9 +69250,9 @@ function useHostMediaSurface(options) {
 }
 
 // src/use-host-ui-placement.ts
-var import_react66 = __toESM(require_react(), 1);
+var import_react73 = __toESM(require_react(), 1);
 function useHostUiPlacement(origin, active, channelId, generation) {
-  (0, import_react66.useEffect)(() => {
+  (0, import_react73.useEffect)(() => {
     if (!origin) return;
     let frame = 0;
     const publish = () => {
@@ -67773,29 +69319,29 @@ function useHostUiPlacement(origin, active, channelId, generation) {
 
 // src/use-host-context.ts
 function useHostContext(embedded, snapshot, channelId, channelIds, humanSession, media, onOpenMembers) {
-  const openMembersAction = (0, import_react67.useRef)(onOpenMembers);
+  const openMembersAction = (0, import_react74.useRef)(onOpenMembers);
   openMembersAction.current = onOpenMembers;
-  const [bridge, setBridge] = (0, import_react67.useState)();
-  const liveBridge = (0, import_react67.useRef)();
-  const [participationReady, setParticipationReady] = (0, import_react67.useState)();
-  const [open, setOpen] = (0, import_react67.useState)(false);
-  const [cafeSection, setCafeSection] = (0, import_react67.useState)("cats");
-  const [focusWork, setFocusWork] = (0, import_react67.useState)();
-  const [contextId] = (0, import_react67.useState)(() => crypto.randomUUID());
-  const revision11 = (0, import_react67.useRef)(0);
-  const opener = (0, import_react67.useRef)();
-  const reconciledWorks = (0, import_react67.useRef)(/* @__PURE__ */ new Set());
-  const pendingWorkFocus = (0, import_react67.useRef)();
+  const [bridge, setBridge] = (0, import_react74.useState)();
+  const liveBridge = (0, import_react74.useRef)();
+  const [participationReady, setParticipationReady] = (0, import_react74.useState)();
+  const [open, setOpen] = (0, import_react74.useState)(false);
+  const [cafeSection, setCafeSection] = (0, import_react74.useState)("cats");
+  const [focusWork, setFocusWork] = (0, import_react74.useState)();
+  const [contextId] = (0, import_react74.useState)(() => crypto.randomUUID());
+  const revision11 = (0, import_react74.useRef)(0);
+  const opener = (0, import_react74.useRef)();
+  const reconciledWorks = (0, import_react74.useRef)(/* @__PURE__ */ new Set());
+  const pendingWorkFocus = (0, import_react74.useRef)();
   const hostOrigin = embedded ? new URLSearchParams(location.search).get("hostOrigin") : null;
-  const publicContext = (0, import_react67.useRef)({ bridge, contextId, revision: 0 });
+  const publicContext = (0, import_react74.useRef)({ bridge, contextId, revision: 0 });
   const requestWorkPermission = useHostWorkPolicy({ hostOrigin, context: publicContext, ...humanSession });
-  const currentWorks = (0, import_react67.useRef)(snapshot.collaboration?.works);
+  const currentWorks = (0, import_react74.useRef)(snapshot.collaboration?.works);
   currentWorks.current = snapshot.collaboration?.works;
   const serviceInstanceId = snapshot.meta?.serviceInstanceId;
   const collectiveId = snapshot.collective?.collectiveId;
   const humanId = snapshot.me?.human.humanId;
   const projectionReady = snapshot.participants !== void 0 && snapshot.members !== void 0 && snapshot.collaboration !== void 0;
-  const applyWorkFocus = (0, import_react67.useCallback)((value) => {
+  const applyWorkFocus = (0, import_react74.useCallback)((value) => {
     if (!reconciliationMatches(value, publicContext.current)) return false;
     const work2 = currentWorks.current?.find(
       (candidate) => candidate.workId === value.workId && candidate.revision === value.workRevision && candidate.lifecycle === "result_ready" && candidate.status === "result_ready" && candidate.sourceLocation.channelId === value.channelId && candidate.resultEventId === value.resultEventId && (candidate.resultRevision ?? 1) === value.resultRevision && candidate.assignment?.connectionId === publicContext.current.bridge?.connectionId
@@ -67811,7 +69357,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     roadmaps: snapshot.collaboration?.roadmaps,
     onFocus: setFocusWork
   });
-  (0, import_react67.useEffect)(() => {
+  (0, import_react74.useEffect)(() => {
     if (!hostOrigin || !serviceInstanceId || !collectiveId || !humanId) return;
     const handleInit = (data) => {
       const parsed = collectiveHostContextInitSchema.safeParse(data);
@@ -67884,7 +69430,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     resetAccountabilityContext,
     serviceInstanceId
   ]);
-  (0, import_react67.useEffect)(() => {
+  (0, import_react74.useEffect)(() => {
     const pending = pendingWorkFocus.current;
     if (!pending || !snapshot.collaboration?.works) return;
     if (!reconciliationMatches(pending, publicContext.current)) {
@@ -67894,7 +69440,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     if (applyWorkFocus(pending)) pendingWorkFocus.current = void 0;
   }, [applyWorkFocus, snapshot.collaboration?.works]);
   const channelKey = JSON.stringify([.../* @__PURE__ */ new Set([channelId, ...channelIds])].slice(0, 100));
-  (0, import_react67.useEffect)(() => {
+  (0, import_react74.useEffect)(() => {
     if (!bridge || !hostOrigin || !projectionReady) return;
     const nextRevision = ++revision11.current;
     publicContext.current = { bridge, contextId, revision: nextRevision };
@@ -67934,7 +69480,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     channelId,
     JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady])
   );
-  const completedWorks = (0, import_react67.useMemo)(
+  const completedWorks = (0, import_react74.useMemo)(
     () => (snapshot.collaboration?.works ?? []).filter(
       (work2) => work2.lifecycle === "completed" && work2.status === "completed" && work2.assignment?.connectionId === bridge?.connectionId && work2.assignmentEventId !== void 0 && work2.resultEventId !== void 0
     ),
@@ -67955,7 +69501,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     generation: JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady]),
     ...media
   });
-  (0, import_react67.useEffect)(() => {
+  (0, import_react74.useEffect)(() => {
     if (!bridge || !hostOrigin || completedWorks.length === 0) return;
     const postPending = () => {
       const active = publicContext.current;
@@ -67986,12 +69532,12 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     const retry = window.setInterval(postPending, 5e3);
     return () => window.clearInterval(retry);
   }, [bridge, completedWorks, hostOrigin]);
-  const show = (0, import_react67.useCallback)((section = "cats") => {
+  const show = (0, import_react74.useCallback)((section = "cats") => {
     if (document.activeElement instanceof HTMLElement) opener.current = document.activeElement;
     setCafeSection(section);
     setOpen(true);
   }, []);
-  const hide = (0, import_react67.useCallback)(() => setOpen(false), []);
+  const hide = (0, import_react74.useCallback)(() => setOpen(false), []);
   return {
     shareMedia: bridge && bridge.authorityStatus !== "revoked" ? shareMedia : void 0,
     requestWorkPermission: humanSession ? requestWorkPermission : void 0,
@@ -68020,17 +69566,17 @@ function workRevisionKey(value) {
 }
 
 // src/use-shared-artifact-navigation.ts
-var import_react68 = __toESM(require_react(), 1);
+var import_react75 = __toESM(require_react(), 1);
 function useSharedArtifactNavigation(options) {
-  const current2 = (0, import_react68.useRef)(options);
+  const current2 = (0, import_react75.useRef)(options);
   current2.current = options;
-  const origin = (0, import_react68.useRef)();
+  const origin = (0, import_react75.useRef)();
   if (origin.current && origin.current.namespace !== options.namespace) origin.current = void 0;
-  const discard = (0, import_react68.useCallback)(() => {
+  const discard = (0, import_react75.useCallback)(() => {
     origin.current = void 0;
     current2.current.artifacts?.close();
   }, []);
-  const open = (0, import_react68.useCallback)((artifact, ownerRevision2) => {
+  const open = (0, import_react75.useCallback)((artifact, ownerRevision2) => {
     const { namespace, place, artifacts, onOpenSource } = current2.current;
     const previous4 = origin.current ?? { namespace, place };
     if (place.destination !== "channel" || place.channelId !== artifact.sourceLocation.channelId)
@@ -68038,7 +69584,7 @@ function useSharedArtifactNavigation(options) {
     origin.current = previous4;
     artifacts?.open(artifact, ownerRevision2);
   }, []);
-  const close = (0, import_react68.useCallback)(() => {
+  const close = (0, import_react75.useCallback)(() => {
     const previous4 = origin.current;
     origin.current = void 0;
     const { namespace, artifacts, onRestore } = current2.current;
@@ -68050,7 +69596,7 @@ function useSharedArtifactNavigation(options) {
 }
 
 // src/CollectiveWorkspace.tsx
-var import_jsx_runtime85 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime92 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorkspace({
   embedded,
   client
@@ -68059,19 +69605,19 @@ function CollectiveWorkspace({
   const t = useCollectiveText();
   const { snapshot } = client;
   const namespace = collectiveClientNamespace(snapshot) ?? "";
-  const previousNamespace = (0, import_react69.useRef)(namespace);
+  const previousNamespace = (0, import_react76.useRef)(namespace);
   const initialEntry = readChannelEntry(namespace);
-  const [channelId, setChannelId] = (0, import_react69.useState)(initialEntry.channelId);
-  const [destination, setDestination] = (0, import_react69.useState)(initialEntry.destination);
-  const [focusEventId, setFocusEventId] = (0, import_react69.useState)();
-  const [content3, setContent] = (0, import_react69.useState)("conversation");
-  const [roadmapViews, setRoadmapViews] = (0, import_react69.useState)({});
-  const [roadmapReturn, setRoadmapReturn] = (0, import_react69.useState)();
-  const [query, setQuery] = (0, import_react69.useState)("");
-  const [libraryChannel, setLibraryChannel] = (0, import_react69.useState)();
-  const [navigationOpen, setNavigationOpen] = (0, import_react69.useState)(false);
-  const [selectedMember, setSelectedMember] = (0, import_react69.useState)();
-  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react69.useState)(false);
+  const [channelId, setChannelId] = (0, import_react76.useState)(initialEntry.channelId);
+  const [destination, setDestination] = (0, import_react76.useState)(initialEntry.destination);
+  const [focusEventId, setFocusEventId] = (0, import_react76.useState)();
+  const [content3, setContent] = (0, import_react76.useState)("conversation");
+  const [roadmapViews, setRoadmapViews] = (0, import_react76.useState)({});
+  const [roadmapReturn, setRoadmapReturn] = (0, import_react76.useState)();
+  const [query, setQuery] = (0, import_react76.useState)("");
+  const [libraryChannel, setLibraryChannel] = (0, import_react76.useState)();
+  const [navigationOpen, setNavigationOpen] = (0, import_react76.useState)(false);
+  const [selectedMember, setSelectedMember] = (0, import_react76.useState)();
+  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react76.useState)(false);
   const participants = snapshot.participants ?? [];
   const channels = channelDestinations(snapshot.events, participants);
   const mediaArtifact = client.artifacts?.catalogue.find(
@@ -68114,12 +69660,12 @@ function CollectiveWorkspace({
     participants: snapshot.participants,
     events: snapshot.events
   });
-  const previousFirstEntryPhase = (0, import_react69.useRef)();
+  const previousFirstEntryPhase = (0, import_react76.useRef)();
   const artifactNavigation = useSharedArtifactNavigation({
     namespace,
     artifacts: client.artifacts,
     place: { destination, channelId, content: content3, query, focusEventId, roadmapReturn },
-    onOpenSource: (id28, eventId2) => selectChannel(id28, eventId2),
+    onOpenSource: (id30, eventId2) => selectChannel(id30, eventId2),
     onRestore: (place) => {
       setDestination(place.destination);
       setChannelId(place.channelId);
@@ -68134,7 +69680,7 @@ function CollectiveWorkspace({
       else writeChannelTarget(place.destination === "channel" ? place.channelId : void 0);
     }
   });
-  const enterFirstEntryChannel = (0, import_react69.useCallback)(() => {
+  const enterFirstEntryChannel = (0, import_react76.useCallback)(() => {
     setDestination("channel");
     setChannelId("general");
     writeChannelTarget("general");
@@ -68143,12 +69689,12 @@ function CollectiveWorkspace({
     setNavigationOpen(false);
     host.hide();
   }, [host.hide]);
-  (0, import_react69.useEffect)(() => {
+  (0, import_react76.useEffect)(() => {
     const guideStarted = firstEntry.phase === "playing" && previousFirstEntryPhase.current !== "playing";
     previousFirstEntryPhase.current = firstEntry.phase;
     if (guideStarted && destination === "home") enterFirstEntryChannel();
   }, [destination, enterFirstEntryChannel, firstEntry.phase]);
-  (0, import_react69.useEffect)(() => {
+  (0, import_react76.useEffect)(() => {
     const focus = host.focusWork;
     if (!focus) return;
     if ("roadmapId" in focus) {
@@ -68203,15 +69749,15 @@ function CollectiveWorkspace({
     firstEntry.beginPair();
     void client.pairHost();
   };
-  const selectChannel = (id28, eventId2) => {
+  const selectChannel = (id30, eventId2) => {
     artifactNavigation.discard();
     setDestination("channel");
     setFocusEventId(eventId2);
     setContent("conversation");
     setRoadmapReturn(void 0);
     host.hide();
-    setChannelId(id28);
-    writeChannelTarget(id28);
+    setChannelId(id30);
+    writeChannelTarget(id30);
     setQuery("");
     setSelectedMember(void 0);
     setNavigationOpen(false);
@@ -68238,11 +69784,11 @@ function CollectiveWorkspace({
     host.hide();
     writeLibraryTarget();
   };
-  (0, import_react69.useEffect)(() => {
+  (0, import_react76.useEffect)(() => {
     if (previousNamespace.current !== namespace) return;
     saveChannelPosition(namespace, channelId);
   }, [namespace, channelId]);
-  (0, import_react69.useEffect)(() => {
+  (0, import_react76.useEffect)(() => {
     const worldChanged = previousNamespace.current !== namespace;
     previousNamespace.current = namespace;
     setContent("conversation");
@@ -68346,7 +69892,7 @@ function CollectiveWorkspace({
     }
     selectChannel(item.source.location.channelId, item.source.eventId);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
     CollectiveArtifactContext.Provider,
     {
       value: client.artifacts && {
@@ -68360,13 +69906,13 @@ function CollectiveWorkspace({
         returnLabel: artifactNavigation.returnLabel,
         returnToSource: selectChannel
       },
-      children: /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(SharedArtifactReading, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)(SharedArtifactReading, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)(
           HostWorkPermissionContext.Provider,
           {
             value: { connectionId: host.connectionId, request: host.requestWorkPermission },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)(
                 ProductShell,
                 {
                   embedded,
@@ -68393,7 +69939,7 @@ function CollectiveWorkspace({
                   onReplayGuide: firstEntry.narrator ? replayGuide : void 0,
                   navigationOpen: navigationOpen || firstEntry.phase === "entry",
                   onCloseNavigation: () => setNavigationOpen(false),
-                  destinations: /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+                  destinations: /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                     ChannelNavigation,
                     {
                       channels,
@@ -68425,7 +69971,7 @@ function CollectiveWorkspace({
                     }
                   ),
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                       SharedArtifactLibrary,
                       {
                         title: t("\u5168\u90E8\u4F5C\u54C1"),
@@ -68436,7 +69982,7 @@ function CollectiveWorkspace({
                       },
                       namespace
                     ),
-                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                       CollectiveHome,
                       {
                         collective: snapshot.collective,
@@ -68447,7 +69993,7 @@ function CollectiveWorkspace({
                         onOpenNavigation: () => setNavigationOpen((value) => !value),
                         onOpenEvent: selectChannel
                       }
-                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                       CollectiveChannelWorkspace,
                       {
                         channelId,
@@ -68479,7 +70025,7 @@ function CollectiveWorkspace({
                   ]
                 }
               ),
-              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                 LeaveCollectiveDialog,
                 {
                   collectiveName: snapshot.collective.name,
@@ -68492,7 +70038,7 @@ function CollectiveWorkspace({
                   onOpenMembers: showMembers
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                 FirstEntryOverlays,
                 {
                   firstEntry,
@@ -68504,15 +70050,15 @@ function CollectiveWorkspace({
             ]
           }
         ),
-        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
+        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
       ] })
     }
   );
 }
 
 // src/OnboardingScene.tsx
-var import_react70 = __toESM(require_react(), 1);
-var import_jsx_runtime86 = __toESM(require_jsx_runtime(), 1);
+var import_react77 = __toESM(require_react(), 1);
+var import_jsx_runtime93 = __toESM(require_jsx_runtime(), 1);
 function OnboardingScene({
   phase,
   mode,
@@ -68525,17 +70071,17 @@ function OnboardingScene({
   onCreateCollective
 }) {
   const t = useCollectiveText();
-  const [busy, setBusy] = (0, import_react70.useState)(false);
-  const [localError, setLocalError] = (0, import_react70.useState)();
+  const [busy, setBusy] = (0, import_react77.useState)(false);
+  const [localError, setLocalError] = (0, import_react77.useState)();
   const github = providers.find((provider) => provider.id === "github");
   if (phase === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u5BB6\u56ED\u2026") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u5BB6\u56ED\u2026") }) });
   }
   if (phase === "unavailable") {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("small", { children: error })
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("small", { children: error })
     ] });
   }
   const run2 = async (action) => {
@@ -68556,16 +70102,16 @@ function OnboardingScene({
   };
   const canConfigureProvider = shouldConfigureProvider(github, mode, phase);
   if (canConfigureProvider) {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "entry-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
-      localError && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "form-error", children: localError })
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("section", { className: "entry-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
+      localError && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "form-error", children: localError })
     ] }) });
   }
   if (phase === "create-collective") {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       EntryCard,
       {
         eyebrow: hasAuthenticatedHuman ? "\u9009\u62E9\u4E0B\u4E00\u6B65" : "\u7B2C\u4E00\u6B21\u5EFA\u7ACB Collective",
@@ -68581,7 +70127,7 @@ function OnboardingScene({
     );
   }
   if (phase === "bind-identity") {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       AuthCard,
       {
         eyebrow: "Human \u8EAB\u4EFD",
@@ -68596,7 +70142,7 @@ function OnboardingScene({
     );
   }
   if (mode === "bootstrap") {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       EntryCard,
       {
         eyebrow: "\u4E00\u6B21\u6027\u521D\u59CB\u5316",
@@ -68611,7 +70157,7 @@ function OnboardingScene({
     );
   }
   if (mode === "invite") {
-    return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       AuthCard,
       {
         eyebrow: "Collective \u9080\u8BF7",
@@ -68625,7 +70171,7 @@ function OnboardingScene({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
     AuthCard,
     {
       eyebrow: "\u6B22\u8FCE\u56DE\u6765",
@@ -68653,13 +70199,13 @@ function AuthCard({
   onAuthenticate
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
-    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "form-error", children: error })
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
+    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 function EntryCard({
@@ -68674,23 +70220,23 @@ function EntryCard({
   onSubmit
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("label", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("label", { children: [
         t(label),
-        /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "form-error", children: error })
+    error && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 
 // src/use-collective-client.ts
-var import_react74 = __toESM(require_react(), 1);
+var import_react81 = __toESM(require_react(), 1);
 
 // src/leave-readiness.ts
 var sourceSchema3 = external_exports.object({
@@ -68804,7 +70350,7 @@ async function respondToPairingRequest(options) {
 }
 
 // src/use-collective-collaboration.ts
-var import_react71 = __toESM(require_react(), 1);
+var import_react78 = __toESM(require_react(), 1);
 
 // src/collaboration-command-custody.ts
 var pendingCommandSchema = external_exports.object({
@@ -68815,10 +70361,10 @@ function prepareCollaborationCommand(storage, namespace, payload, createId = () 
   const key = `collective-collaboration-pending:${namespace}`;
   const raw = storage.getItem(key);
   const pending = raw ? pendingCommandSchema.array().parse(JSON.parse(raw)) : [];
-  const fingerprint = JSON.stringify(payload);
-  const existing = pending.find((item) => item.fingerprint === fingerprint);
+  const fingerprint2 = JSON.stringify(payload);
+  const existing = pending.find((item) => item.fingerprint === fingerprint2);
   if (existing) return existing.requestId;
-  const next = pendingCommandSchema.parse({ fingerprint, requestId: createId() });
+  const next = pendingCommandSchema.parse({ fingerprint: fingerprint2, requestId: createId() });
   storage.setItem(key, JSON.stringify([...pending, next]));
   return next.requestId;
 }
@@ -68833,8 +70379,8 @@ function acknowledgeCollaborationCommand(storage, namespace, requestId2) {
 
 // src/use-collective-collaboration.ts
 function useCollectiveCollaboration(input) {
-  const running = (0, import_react71.useRef)();
-  const command = (0, import_react71.useCallback)(
+  const running = (0, import_react78.useRef)();
+  const command = (0, import_react78.useCallback)(
     (path2, payload, acceptedLabel, onAccepted) => {
       const { snapshot } = input;
       const namespace = collectiveClientNamespace(snapshot);
@@ -68842,8 +70388,8 @@ function useCollectiveCollaboration(input) {
         return Promise.reject(new Error("\u8BF7\u5148\u767B\u5F55\u5E76\u9009\u62E9 Collective"));
       }
       if (running.current) return Promise.reject(new Error("\u4E0A\u4E00\u9879\u5171\u540C\u64CD\u4F5C\u4ECD\u5728\u786E\u8BA4\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002"));
-      const fingerprint = { path: path2, ...payload };
-      const requestId2 = prepareCollaborationCommand(localStorage, namespace, fingerprint);
+      const fingerprint2 = { path: path2, ...payload };
+      const requestId2 = prepareCollaborationCommand(localStorage, namespace, fingerprint2);
       const run2 = async () => {
         input.setSnapshot((current2) => ({
           ...current2,
@@ -69068,7 +70614,7 @@ function prepareProjectSuggestionDecision(roadmap, work2, works, decision, edits
 }
 
 // src/use-collective-refresh.ts
-var import_react72 = __toESM(require_react(), 1);
+var import_react79 = __toESM(require_react(), 1);
 async function readCollectiveProjection(request, collectiveId, signal) {
   const query = `?collectiveId=${encodeURIComponent(collectiveId)}`;
   const [result, declared, members, collaboration] = await Promise.all([
@@ -69093,17 +70639,17 @@ async function reconcileDeniedScope(loadMe, collectiveId, close) {
 function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
   const scope = currentCollectiveScope(snapshot);
   const key = scope && `${scope.serviceInstanceId}:${scope.collectiveId}:${scope.humanId}`;
-  const currentKey = (0, import_react72.useRef)(key);
+  const currentKey = (0, import_react79.useRef)(key);
   currentKey.current = key;
-  const latest = (0, import_react72.useRef)(snapshot);
+  const latest = (0, import_react79.useRef)(snapshot);
   latest.current = snapshot;
-  const generation = (0, import_react72.useRef)(0);
-  const pending = (0, import_react72.useRef)();
-  const cancelRefresh = (0, import_react72.useCallback)(() => {
+  const generation = (0, import_react79.useRef)(0);
+  const pending = (0, import_react79.useRef)();
+  const cancelRefresh = (0, import_react79.useCallback)(() => {
     ++generation.current;
     pending.current?.abort();
   }, []);
-  const run2 = (0, import_react72.useCallback)(
+  const run2 = (0, import_react79.useCallback)(
     async (verifyMembership = false) => {
       const target = currentCollectiveScope(latest.current);
       if (!target || !token.current) return;
@@ -69112,21 +70658,21 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
       pending.current?.abort();
       const abort = new AbortController();
       pending.current = abort;
-      const fresh = () => !abort.signal.aborted && revision11 === generation.current && key === currentKey.current && credential === token.current;
+      const fresh2 = () => !abort.signal.aborted && revision11 === generation.current && key === currentKey.current && credential === token.current;
       const close = (reason, me) => {
-        if (fresh()) setSnapshot((current2) => closeCollectiveScope(current2, target, reason, me ?? current2.me));
+        if (fresh2()) setSnapshot((current2) => closeCollectiveScope(current2, target, reason, me ?? current2.me));
       };
       try {
         let me;
         if (verifyMembership || latest.current.restrictedScope) {
           close("checking");
           me = await loadMe();
-          if (!fresh()) return;
+          if (!fresh2()) return;
           if (!me.collectives.some((item) => item.collectiveId === target.collectiveId))
             return close("membership_lost", me);
         }
         const projection = await readCollectiveProjection(request, target.collectiveId, abort.signal);
-        if (!fresh()) return;
+        if (!fresh2()) return;
         setSnapshot((current2) => ({
           ...current2,
           ...me ? {
@@ -69140,7 +70686,7 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
           error: void 0
         }));
       } catch (error) {
-        if (!fresh()) return;
+        if (!fresh2()) return;
         if (error instanceof CollectiveClientRequestError && (error.status === 401 || error.status === 403)) {
           await reconcileDeniedScope(loadMe, target.collectiveId, close);
         } else {
@@ -69155,7 +70701,7 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     },
     [key, loadMe, request, setSnapshot, token]
   );
-  (0, import_react72.useEffect)(() => {
+  (0, import_react79.useEffect)(() => {
     if (snapshot.phase !== "ready" || !key) return;
     if (!latest.current.restrictedScope) void run2();
     const interval = window.setInterval(() => {
@@ -69167,14 +70713,14 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     };
   }, [cancelRefresh, key, run2, snapshot.phase]);
   return {
-    refreshEvents: (0, import_react72.useCallback)(() => run2(), [run2]),
-    recheckScope: (0, import_react72.useCallback)(() => run2(true), [run2]),
+    refreshEvents: (0, import_react79.useCallback)(() => run2(), [run2]),
+    recheckScope: (0, import_react79.useCallback)(() => run2(true), [run2]),
     cancelRefresh
   };
 }
 
 // src/use-collective-send.ts
-var import_react73 = __toESM(require_react(), 1);
+var import_react80 = __toESM(require_react(), 1);
 function humanSendPayload(snapshot, body4, destination) {
   const { collective, meta } = snapshot;
   if (!collective || !meta) return void 0;
@@ -69186,15 +70732,15 @@ function humanSendPayload(snapshot, body4, destination) {
   };
 }
 function useCollectiveSend(input) {
-  const sending = (0, import_react73.useRef)();
-  return (0, import_react73.useCallback)(
+  const sending = (0, import_react80.useRef)();
+  return (0, import_react80.useCallback)(
     (body4, destination) => {
       const namespace = collectiveClientNamespace(input.snapshot);
       const payload = humanSendPayload(input.snapshot, body4, destination);
       if (!payload || !namespace) return Promise.reject(new Error("\u8BF7\u5148\u767B\u5F55\u5E76\u9009\u62E9 Collective"));
-      const fingerprint = JSON.stringify([namespace, body4, destination]);
+      const fingerprint2 = JSON.stringify([namespace, body4, destination]);
       if (sending.current) {
-        return sending.current.fingerprint === fingerprint ? sending.current.promise : Promise.reject(new Error("\u4E0A\u4E00\u6761\u6D88\u606F\u4ECD\u5728\u9001\u8FBE\uFF0C\u8BF7\u7A0D\u540E\u518D\u53D1\u3002"));
+        return sending.current.fingerprint === fingerprint2 ? sending.current.promise : Promise.reject(new Error("\u4E0A\u4E00\u6761\u6D88\u606F\u4ECD\u5728\u9001\u8FBE\uFF0C\u8BF7\u7A0D\u540E\u518D\u53D1\u3002"));
       }
       const operation = prepareHumanSend(localStorage, namespace, payload);
       const send = async () => {
@@ -69224,7 +70770,7 @@ function useCollectiveSend(input) {
       const promise = send().finally(() => {
         sending.current = void 0;
       });
-      sending.current = { fingerprint, promise };
+      sending.current = { fingerprint: fingerprint2, promise };
       return promise;
     },
     [input]
@@ -69240,16 +70786,13 @@ var initialSnapshot = {
   delivery: { kind: "idle" }
 };
 function useCollectiveClient() {
-  const [snapshot, setSnapshot] = (0, import_react74.useState)(initialSnapshot);
+  const [snapshot, setSnapshot] = (0, import_react81.useState)(initialSnapshot);
   const activeCollectiveId = snapshot.collective?.collectiveId;
   const activeCollectiveName = snapshot.collective?.name;
   const activeCollectiveRole = snapshot.collective?.role;
-  const currentNamespace = (0, import_react74.useRef)();
+  const currentNamespace = (0, import_react81.useRef)();
   currentNamespace.current = collectiveClientNamespace(snapshot);
-  const { token, request, loadMe, invitationMode, bootstrap, authenticate, configureProvider } = useHumanAuthSession(
-    snapshot,
-    setSnapshot
-  );
+  const { token, request, binaryRequest, loadMe, invitationMode, bootstrap, authenticate, configureProvider } = useHumanAuthSession(snapshot, setSnapshot);
   const { refreshEvents, recheckScope, cancelRefresh } = useCollectiveRefresh(
     snapshot,
     setSnapshot,
@@ -69257,7 +70800,7 @@ function useCollectiveClient() {
     loadMe,
     token
   );
-  const createCollective = (0, import_react74.useCallback)(
+  const createCollective = (0, import_react81.useCallback)(
     async (name2) => {
       const created = await request("/api/collectives", {
         method: "POST",
@@ -69285,7 +70828,7 @@ function useCollectiveClient() {
     [loadMe, request]
   );
   const sendMessage = useCollectiveSend({ snapshot, setSnapshot, currentNamespace, request, refresh: refreshEvents });
-  const createInvite = (0, import_react74.useCallback)(async () => {
+  const createInvite = (0, import_react81.useCallback)(async () => {
     if (!snapshot.collective) return;
     const result = await request("/api/invites", {
       method: "POST",
@@ -69294,11 +70837,11 @@ function useCollectiveClient() {
     const inviteUrl = `${location.origin}/#invite=${encodeURIComponent(result.inviteToken)}`;
     setSnapshot((current2) => ({ ...current2, notice: inviteUrl }));
   }, [request, snapshot.collective]);
-  const readLeaveReadiness = (0, import_react74.useCallback)(async () => {
+  const readLeaveReadiness = (0, import_react81.useCallback)(async () => {
     if (!activeCollectiveId) throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u68C0\u67E5\u7684\u5171\u540C\u4F53");
     return readMembershipLeaveReadiness(request, activeCollectiveId);
   }, [activeCollectiveId, request]);
-  const leaveCollective = (0, import_react74.useCallback)(async () => {
+  const leaveCollective = (0, import_react81.useCallback)(async () => {
     if (!activeCollectiveId || activeCollectiveRole !== "member") return;
     await request("/api/memberships/self-leave", {
       method: "POST",
@@ -69310,7 +70853,7 @@ function useCollectiveClient() {
       notice: `\u5DF2\u79BB\u5F00${activeCollectiveName ?? "\u5171\u540C\u4F53"}\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002`
     }));
   }, [activeCollectiveId, activeCollectiveName, activeCollectiveRole, recheckScope, request]);
-  const selectCollective = (0, import_react74.useCallback)(
+  const selectCollective = (0, import_react81.useCallback)(
     (collectiveId) => {
       const collective = snapshot.me?.collectives.find((item) => item.collectiveId === collectiveId);
       if (!collective) return;
@@ -69335,7 +70878,7 @@ function useCollectiveClient() {
     },
     [snapshot, cancelRefresh]
   );
-  const pairHost = (0, import_react74.useCallback)(async () => {
+  const pairHost = (0, import_react81.useCallback)(async () => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const authority = resolvePairingAuthority({
@@ -69372,7 +70915,7 @@ function useCollectiveClient() {
       (current2) => result === "paired" ? { ...current2, notice: "Cat Caf\xE9 \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026", error: void 0 } : { ...current2, error: "\u6682\u65F6\u65E0\u6CD5\u521B\u5EFA\u65B0\u7684\u914D\u5BF9\u9080\u8BF7" }
     );
   }, [loadMe, request, snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope, token]);
-  const announcePairingState = (0, import_react74.useCallback)(() => {
+  const announcePairingState = (0, import_react81.useCallback)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window || snapshot.phase === "loading") return;
     const authority = resolvePairingAuthority({
@@ -69387,8 +70930,8 @@ function useCollectiveClient() {
       postToHost: (message, targetOrigin) => window.parent.postMessage(message, targetOrigin)
     });
   }, [snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope]);
-  (0, import_react74.useEffect)(() => announcePairingState(), [announcePairingState]);
-  (0, import_react74.useEffect)(() => {
+  (0, import_react81.useEffect)(() => announcePairingState(), [announcePairingState]);
+  (0, import_react81.useEffect)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const onMessage = (event) => {
@@ -69407,9 +70950,19 @@ function useCollectiveClient() {
     refresh: refreshEvents
   });
   const artifacts = useCollectiveArtifacts(snapshot, request, refreshEvents);
+  const expressionServiceId = snapshot.meta?.serviceInstanceId;
+  const expressionCollectiveId = snapshot.collective?.collectiveId;
+  const expression = (0, import_react81.useMemo)(
+    () => expressionServiceId && expressionCollectiveId ? createMessageExpressionPort(
+      { serviceInstanceId: expressionServiceId, collectiveId: expressionCollectiveId },
+      binaryRequest
+    ) : void 0,
+    [expressionServiceId, expressionCollectiveId, binaryRequest]
+  );
   return {
     snapshot,
     artifacts,
+    expression,
     hostHumanSession: { request, refresh: refreshEvents },
     invitationMode,
     bootstrap,
@@ -69427,11 +70980,11 @@ function useCollectiveClient() {
 }
 
 // src/use-host-world-directory.ts
-var import_react75 = __toESM(require_react(), 1);
+var import_react82 = __toESM(require_react(), 1);
 
 // src/world-directory-bridge.ts
 function projectWorldDirectory(snapshot, bridgeId, revision11) {
-  const base = {
+  const base2 = {
     type: "collective:client-world-directory",
     bridgeId,
     revision: revision11
@@ -69439,16 +70992,16 @@ function projectWorldDirectory(snapshot, bridgeId, revision11) {
   if (snapshot.phase === "loading") return void 0;
   if (snapshot.phase === "unavailable") {
     return {
-      ...base,
+      ...base2,
       state: "unavailable",
       code: "client_unavailable",
       ...snapshot.meta ? { serviceInstanceId: snapshot.meta.serviceInstanceId } : {}
     };
   }
-  if (!snapshot.meta) return { ...base, state: "unavailable", code: "service_unavailable" };
+  if (!snapshot.meta) return { ...base2, state: "unavailable", code: "service_unavailable" };
   if (snapshot.connection === "offline") {
     return {
-      ...base,
+      ...base2,
       state: "unavailable",
       code: "service_unavailable",
       serviceInstanceId: snapshot.meta.serviceInstanceId
@@ -69456,13 +71009,13 @@ function projectWorldDirectory(snapshot, bridgeId, revision11) {
   }
   if (!snapshot.me) {
     return {
-      ...base,
+      ...base2,
       state: "session_required",
       serviceInstanceId: snapshot.meta.serviceInstanceId
     };
   }
   return {
-    ...base,
+    ...base2,
     state: "ready",
     serviceInstanceId: snapshot.meta.serviceInstanceId,
     humanId: snapshot.me.human.humanId,
@@ -69485,7 +71038,7 @@ function trustedWorldDirectoryHostMessage(event, hostOrigin, parent) {
 function useHostWorldDirectory(input) {
   const hostOrigin = resolveHostOrigin2(input.embedded);
   const authorityKey = `${input.snapshot.meta?.serviceInstanceId ?? "unknown"}:${input.snapshot.me?.human.humanId ?? "anonymous"}`;
-  const projectionSource = (0, import_react75.useMemo)(
+  const projectionSource = (0, import_react82.useMemo)(
     () => ({
       phase: input.snapshot.phase,
       meta: input.snapshot.meta,
@@ -69501,12 +71054,12 @@ function useHostWorldDirectory(input) {
       input.snapshot.phase
     ]
   );
-  const [bridge, setBridge] = (0, import_react75.useState)();
-  const revision11 = (0, import_react75.useRef)(0);
-  const current2 = (0, import_react75.useRef)();
-  const selectCollective = (0, import_react75.useRef)(input.selectCollective);
+  const [bridge, setBridge] = (0, import_react82.useState)();
+  const revision11 = (0, import_react82.useRef)(0);
+  const current2 = (0, import_react82.useRef)();
+  const selectCollective = (0, import_react82.useRef)(input.selectCollective);
   selectCollective.current = input.selectCollective;
-  (0, import_react75.useEffect)(() => {
+  (0, import_react82.useEffect)(() => {
     if (!hostOrigin || window.parent === window) return;
     const parent = window.parent;
     const onMessage = (event) => {
@@ -69534,7 +71087,7 @@ function useHostWorldDirectory(input) {
       window.removeEventListener("message", onMessage);
     };
   }, [authorityKey, hostOrigin]);
-  (0, import_react75.useEffect)(() => {
+  (0, import_react82.useEffect)(() => {
     if (!bridge || bridge.authorityKey !== authorityKey || !hostOrigin || window.parent === window) return;
     const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision11.current + 1);
     if (!projection) return;
@@ -69556,11 +71109,11 @@ function resolveHostOrigin2(embedded) {
 }
 
 // src/CollectiveClient.tsx
-var import_jsx_runtime87 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime94 = __toESM(require_jsx_runtime(), 1);
 function CollectiveClient() {
   const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
   const embedded = window.parent !== window && hostOrigin !== null;
-  return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(LiveCollectiveClient, { embedded });
+  return /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(LiveCollectiveClient, { embedded });
 }
 function LiveCollectiveClient({ embedded }) {
   const client = useCollectiveClient();
@@ -69569,9 +71122,9 @@ function LiveCollectiveClient({ embedded }) {
   const canSteward = !snapshot.restrictedScope && snapshot.collective?.role === "steward";
   const canPair = !snapshot.restrictedScope && snapshot.phase === "ready" && Boolean(snapshot.me?.auth && snapshot.collective);
   if (!snapshot.restrictedScope && snapshot.phase === "ready" && snapshot.collective && snapshot.me) {
-    return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot));
+    return /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
     ProductShell,
     {
       embedded,
@@ -69584,7 +71137,7 @@ function LiveCollectiveClient({ embedded }) {
       notice: snapshot.notice,
       onInvite: () => void client.createInvite(),
       onPair: () => void client.pairHost(),
-      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
+      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
         CollectiveScopeRecovery,
         {
           scope: snapshot.restrictedScope,
@@ -69592,7 +71145,7 @@ function LiveCollectiveClient({ embedded }) {
           onAuthenticate: client.authenticate
         },
         `${snapshot.restrictedScope.serviceInstanceId}:${snapshot.restrictedScope.collectiveId}:${snapshot.restrictedScope.humanId}`
-      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u5BB6\u56ED\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
+      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u5BB6\u56ED\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
         OnboardingScene,
         {
           phase: snapshot.phase,
@@ -69611,10 +71164,10 @@ function LiveCollectiveClient({ embedded }) {
 }
 
 // src/main.tsx
-var import_jsx_runtime88 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime95 = __toESM(require_jsx_runtime(), 1);
 var root4 = document.getElementById("collective-root");
 if (!root4) throw new Error("Collective client root is missing");
 startHostAppearance();
 (0, import_client.createRoot)(root4).render(
-  /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(import_react76.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(CollectiveClient, {}) })
+  /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(import_react83.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(CollectiveClient, {}) })
 );

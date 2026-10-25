@@ -12,10 +12,10 @@ afterEach(async () => {
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true })));
 });
 
-export async function artifactFixture() {
+export async function artifactFixture(options: Pick<import('../store.js').OpenCollectiveServiceStoreOptions, 'messageAttachmentOwner'> = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'collective-artifact-authority-'));
   directories.push(directory);
-  const current = await participationFixture(directory);
+  const current = await participationFixture(directory, options);
   const invite = await current.store.createInvite({
     sessionToken: current.owner.sessionToken,
     collectiveId: current.coordinates.collectiveId,

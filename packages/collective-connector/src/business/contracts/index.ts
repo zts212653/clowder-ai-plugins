@@ -36,3 +36,4 @@ export * from './types/collective-ui-placement.js';
 export * from './types/collective-work-policy-bridge.js';
 export * from './types/collective-work-wake.js';
 export * from './utils/media-byte-range.js';
+export * from './types/collective-message-state.js';

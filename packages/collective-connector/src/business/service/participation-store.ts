@@ -114,13 +114,14 @@ export class CollectiveParticipationStore {
       });
   }
 
-  readContext(endpointCredential: string, unsafeInput: unknown) {
+  readContext(endpointCredential: string, unsafeInput: unknown, readerVersion = '1') {
     const input = contextRequest.parse(unsafeInput);
     const state = this.persistence.snapshot();
     const events = state.events[input.collectiveId] ?? [];
     const source = requireParticipationSource(state, endpointCredential, input);
     const permitted = events.filter((event) => inSourceScope(event, source) && event.sequence > input.afterSequence);
     const page = permitted.slice(0, input.limit);
+    assertMessageContentReader([source, ...page], readerVersion);
     return {
       source: structuredClone(source),
       events: structuredClone(page),
@@ -267,3 +268,4 @@ function inSourceScope(event: CollectiveEventEnvelope, source: CollectiveEventEn
   const root = source.location.rootEventId;
   return !root || event.eventId === root || event.location.rootEventId === root;
 }
+import { assertMessageContentReader } from './message-content-compatibility.js';

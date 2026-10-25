@@ -202,3 +202,4 @@ export { createStreamsClient, type PluginStreams, type PluginStreamReadOptions }
 export type { PluginStopContext, PluginPreStopContext } from './module-host.js';
 
 export * from './delivery.js';
+export type { CollectiveAttachmentScope, CollectiveMessageAttachment, CollectiveAttachmentAuthority, CollectiveMessageAttachmentOwnerPort } from './collective-message-attachments.js';

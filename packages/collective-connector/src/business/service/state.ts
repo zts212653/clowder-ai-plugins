@@ -15,6 +15,8 @@ import {
   collectiveWorkResultMediaTypeForFileName,
 } from '../contracts/index.js';
 import { z } from 'zod';
+import { messageAttachmentRecordSchema } from './message-attachment-state.js';
+import { collectiveDraftRecordSchema, collectiveReadPositionSchema } from '../contracts/types/collective-message-state.js';
 
 import { CollectiveServiceError } from './errors.js';
 import { provenEventLocation } from './event-location.js';
@@ -174,6 +176,9 @@ const serviceStateV2Schema = z
     pairingIntents: z.record(z.string(), pairingIntentSchema),
     connections: z.record(z.string(), connectionSchema),
     events: z.record(z.string(), z.array(collectiveEventEnvelopeSchema)),
+    messageAttachments: z.record(z.string(), messageAttachmentRecordSchema).default({}),
+    composerDrafts: z.record(z.string(), collectiveDraftRecordSchema).default({}),
+    readPositions: z.record(z.string(), collectiveReadPositionSchema).default({}),
     participations: z
       .record(
         z.string(),
@@ -285,6 +290,9 @@ export function migrateServiceState(value: unknown): { readonly state: ServiceSt
       ]),
     ),
     events: migratedEvents,
+    messageAttachments: {},
+    composerDrafts: {},
+    readPositions: {},
     participations: {},
     works: {},
     artifacts: {},

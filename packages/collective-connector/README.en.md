@@ -25,6 +25,16 @@ Opening material, returning a result and sealing completion verify current publi
 
 ## Recovery and privacy
 
+Ordinary Channel attachments require a matching Host content custodian. An older Host returns an explicit
+unavailable response; an unsent file is never presented as published. Members can paste or choose images/files,
+preview, remove, send and open authenticated original bytes. Draft versions and read positions belong to the
+Human and Channel; concurrent edits require an explicit choice. Private drafts never become public history.
+The packaged Client source commit, build inputs, manifest and byte digests are in `assets/client/source.json`.
+Keep a pre-upgrade business-directory snapshot. After new structured messages or private state have been
+written, the old strict reader cannot directly downgrade; preserve new writes and repair forward.
+This is the first attachment slice of the active expression batch. Voice, stickers, quotes, applicable rich
+content and authorized image model input still require their same-source integration and real journey checks.
+
 Disable stops sync and retains business state and credentials. Outbox, acknowledgement, participation and revoke attempts are saved before effects. Unknown outcomes remain recovery holds; ordinary sync or reconnect cannot clear them. Settings recovery can reconcile the same operation and resume it only when evidence permits.
 
 After response loss, reuse the same event ID, payload and invocation. Changing IDs does not bypass a conflict. A timeout or cancellation after a business write is not rollback. Private bootstrap fragments appear only in authenticated launch responses, never public status or logs.

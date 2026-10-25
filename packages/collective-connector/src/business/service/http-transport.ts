@@ -160,7 +160,7 @@ export function applySecurityHeaders(response: ServerResponse, allowedOrigins: R
   const frameAncestors = ["'self'", ...allowedOrigins].join(' ');
   response.setHeader(
     'content-security-policy',
-    `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; frame-ancestors ${frameAncestors}`,
+    `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data: blob:; media-src 'self' blob:; frame-ancestors ${frameAncestors}`,
   );
   response.setHeader('cache-control', 'no-store');
 }
