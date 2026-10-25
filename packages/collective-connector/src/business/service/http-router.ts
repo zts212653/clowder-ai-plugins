@@ -52,9 +52,15 @@ export function createCollectiveHttpHandler(options: CollectiveHttpHandlerOption
       if (origin && allowedOrigins.has(origin)) response.setHeader('access-control-allow-origin', origin);
       if (request.method === 'OPTIONS') {
         response.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
-        response.setHeader('access-control-allow-headers', 'authorization,content-type,range,x-collective-message-content');
+        response.setHeader('access-control-allow-headers', 'authorization,content-type,range,x-collective-message-content,x-collective-human-id');
         response.writeHead(origin && allowedOrigins.has(origin) ? 204 : 403).end();
         return;
+      }
+      const intendedHuman = request.headers['x-collective-human-id'];
+      if (intendedHuman !== undefined) {
+        const current = await options.store.requireSession(requireBearer(request));
+        if (typeof intendedHuman !== 'string' || current.human.humanId !== intendedHuman)
+          throw new CollectiveServiceError('HUMAN_CONTEXT_CHANGED', 'This private expression belongs to a different signed-in person', 409);
       }
       const assetPath = new URL(request.url ?? '/', 'http://collective.local').pathname;
       const asset = options.clientAssets?.get(assetPath === '/' ? '/index.html' : assetPath);
