@@ -35,6 +35,11 @@ written, the old strict reader cannot directly downgrade; preserve new writes an
 This is the first attachment slice of the active expression batch. Voice, stickers, quotes, applicable rich
 content and authorized image model input still require their same-source integration and real journey checks.
 
+The paired Core source is `193bd7ffef21e1a4b4ba1f6cee7e6331276ec373`; the actual journey evidence is in
+[Core PR6122](https://github.com/zts212653/cat-cafe/pull/6122). Four source/integrity checks and one isolated
+installed-directory check passed. The latter verifies the real SDK lifecycle, restored state, physical
+dependencies and packaged Client bytes; it does not replace actual Host installation or real OAuth acceptance.
+
 Disable stops sync and retains business state and credentials. Outbox, acknowledgement, participation and revoke attempts are saved before effects. Unknown outcomes remain recovery holds; ordinary sync or reconnect cannot clear them. Settings recovery can reconcile the same operation and resume it only when evidence permits.
 
 After response loss, reuse the same event ID, payload and invocation. Changing IDs does not bypass a conflict. A timeout or cancellation after a business write is not rollback. Private bootstrap fragments appear only in authenticated launch responses, never public status or logs.
