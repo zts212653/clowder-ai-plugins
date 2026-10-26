@@ -6,6 +6,16 @@ import { collectiveMessageAttachmentSchema, collectiveMessageQuoteSchema } from 
 
 const id = z.string().trim().min(1).max(200);
 const artifactIdentity = z.object({ artifactId: id, ownerRevision: z.number().int().positive(), blobDigest: id });
+/** Private state only. Original recording bytes stay in this person's durable device cache. */
+export const collectiveComposerVoiceDraftSchema = z
+  .object({
+    captureId: id,
+    state: z.enum(['recording', 'transcribing', 'failed', 'ready']),
+    transcript: z.string().max(32_000).optional(),
+    applied: z.boolean(),
+  })
+  .strict();
+export type CollectiveComposerVoiceDraft = z.infer<typeof collectiveComposerVoiceDraftSchema>;
 export const collectiveComposerDraftSchema = z
   .object({
     body: z.string().max(32_000),
@@ -13,6 +23,7 @@ export const collectiveComposerDraftSchema = z
     recipientLabel: z.string().max(240),
     attachments: z.array(collectiveMessageAttachmentSchema).max(12).optional(),
     contextAttachments: z.array(collectiveMessageQuoteSchema).max(12).optional(),
+    voiceDraft: collectiveComposerVoiceDraftSchema.optional(),
     entrust: z.boolean().optional(),
     responseRequested: z.boolean().optional(),
     replyToEventId: id.optional(),

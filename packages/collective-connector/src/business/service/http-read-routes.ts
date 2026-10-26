@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { numberQuery, requireBearer, requiredQuery, writeJson } from './http-transport.js';
 import type { CollectiveServiceStore } from './store.js';
-import { assertMessageContentReader, messageContentVersionHeader } from './message-content-compatibility.js';
+import { assertComposerContentReader, assertMessageContentReader, messageContentVersionHeader } from './message-content-compatibility.js';
 
 /** Read APIs retain their authentication and membership checks in the canonical Store. */
 export async function routeCollectiveRead(
@@ -11,7 +11,9 @@ export async function routeCollectiveRead(
   response: ServerResponse,
 ): Promise<boolean> {
   if (url.pathname === '/api/channel-state') {
-    writeJson(response, 200, store.readHumanChannelState(requireBearer(request), Object.fromEntries(url.searchParams)));
+    const result = store.readHumanChannelState(requireBearer(request), Object.fromEntries(url.searchParams));
+    assertComposerContentReader(result.draft.content, String(request.headers[messageContentVersionHeader] ?? 'legacy'));
+    writeJson(response, 200, result);
     return true;
   }
   if (url.pathname === '/api/me') {
