@@ -13,6 +13,7 @@ import type {
   CollectiveWorkWakeNotice,
   CollectiveMessageAttachment,
   CollectiveMessageQuote,
+  CollectiveMessageRichBlock,
 } from '../contracts/index.js';
 
 import { CollectiveServiceError } from './errors.js';
@@ -44,6 +45,7 @@ export interface AppendEventInput {
     readonly body: string;
     readonly attachments?: readonly CollectiveMessageAttachment[];
     readonly contextAttachments?: readonly CollectiveMessageQuote[];
+    readonly richBlocks?: readonly CollectiveMessageRichBlock[];
   };
   readonly actorScope: string;
   readonly actor: CollectiveEventEnvelope['actor'];
@@ -77,6 +79,7 @@ export function appendEvent(state: MutableServiceState, input: AppendEventInput)
       existing.body === input.coordinates.body &&
       isDeepStrictEqual(existing.attachments, input.coordinates.attachments) &&
       isDeepStrictEqual(existing.contextAttachments, input.coordinates.contextAttachments) &&
+      isDeepStrictEqual(existing.richBlocks, input.coordinates.richBlocks) &&
       existing.replyToEventId === input.coordinates.replyToEventId &&
       existing.attentionRequest === input.coordinates.attentionRequest &&
       existing.workRequest === input.coordinates.workRequest &&
@@ -106,6 +109,7 @@ export function appendEvent(state: MutableServiceState, input: AppendEventInput)
     body: input.coordinates.body,
     ...(input.coordinates.attachments ? { attachments: [...input.coordinates.attachments] } : {}),
     ...(input.coordinates.contextAttachments ? { contextAttachments: [...input.coordinates.contextAttachments] } : {}),
+    ...(input.coordinates.richBlocks ? { richBlocks: [...input.coordinates.richBlocks] } : {}),
     acceptedAt: new Date(input.now).toISOString(),
   };
   events.push(event);

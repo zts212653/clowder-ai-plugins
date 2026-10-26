@@ -2,7 +2,12 @@ import { z } from 'zod';
 import { collectiveRecipientSchema } from './collective.js';
 import { collectiveArtifactSelectionSchema } from './collective-artifact.js';
 import { collectiveModificationReworkSchema } from './collective-content-modification.js';
-import { collectiveMessageAttachmentSchema, collectiveMessageQuoteSchema } from './collective-message-content.js';
+import {
+  collectiveMessageAttachmentSchema,
+  collectiveMessageQuoteSchema,
+  validateCollectiveRichContent,
+} from './collective-message-content.js';
+import { collectiveMessageRichBlockSchema } from './collective-message-rich.js';
 
 const id = z.string().trim().min(1).max(200);
 const artifactIdentity = z.object({ artifactId: id, ownerRevision: z.number().int().positive(), blobDigest: id });
@@ -16,6 +21,15 @@ export const collectiveComposerVoiceDraftSchema = z
   })
   .strict();
 export type CollectiveComposerVoiceDraft = z.infer<typeof collectiveComposerVoiceDraftSchema>;
+/** Incomplete authoring belongs to this private draft, never to a public event. */
+export const collectiveComposerRichEditorSchema = z
+  .object({
+    kind: z.enum(['checklist', 'interactive', 'html_widget', 'diff']),
+    title: z.string().max(240),
+    source: z.string().max(48_000),
+  })
+  .strict();
+export type CollectiveComposerRichEditor = z.infer<typeof collectiveComposerRichEditorSchema>;
 export const collectiveComposerDraftSchema = z
   .object({
     body: z.string().max(32_000),
@@ -23,6 +37,8 @@ export const collectiveComposerDraftSchema = z
     recipientLabel: z.string().max(240),
     attachments: z.array(collectiveMessageAttachmentSchema).max(12).optional(),
     contextAttachments: z.array(collectiveMessageQuoteSchema).max(12).optional(),
+    richBlocks: z.array(collectiveMessageRichBlockSchema).max(12).optional(),
+    richEditor: collectiveComposerRichEditorSchema.optional(),
     voiceDraft: collectiveComposerVoiceDraftSchema.optional(),
     entrust: z.boolean().optional(),
     responseRequested: z.boolean().optional(),
@@ -41,7 +57,12 @@ export const collectiveComposerDraftSchema = z
       .strict()
       .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((content, context) => {
+    validateCollectiveRichContent(content, context);
+    if (new TextEncoder().encode(JSON.stringify(content)).length > 192 * 1024)
+      context.addIssue({ code: 'custom', message: 'Private draft exceeds 192 KiB' });
+  });
 export type CollectiveComposerDraft = z.infer<typeof collectiveComposerDraftSchema>;
 export const collectiveHumanChannelCoordinatesSchema = z
   .object({

@@ -63,8 +63,14 @@ export function ingressIdempotencyKey(event: CollectiveEventEnvelope): string {
 /** A source-only message must still tell the model what it can inspect.
  * These immutable references disclose no URL, private draft or attachment bytes. */
 export function collectivePublicSourceBody(event: CollectiveEventEnvelope): string {
+  const rich = event.richBlocks?.length
+    ? `[Collective public rich content preview: eventId=${event.eventId}]\n` +
+      event.richBlocks.map(block => JSON.stringify({ kind: block.kind, id: block.id.slice(0, 200),
+        ...('title' in block && block.title ? { title: block.title.slice(0, 240) } : {}) })).join('\n') +
+      '\nUse cat_cafe_collective_read_context with the current contextRef to read the original public rich content. This preview is not the full content.'
+    : undefined;
   const body = [event.body, ...(event.contextAttachments ?? []).map(quote =>
-    `[Collective public quote]\n${JSON.stringify(quote)}`)].filter(Boolean).join('\n\n');
+    `[Collective public quote]\n${JSON.stringify(quote)}`), rich].filter(Boolean).join('\n\n');
   if (!event.attachments?.length) return body;
   const attachments = event.attachments.map(({ attachmentId, fileName, mediaType }) =>
     JSON.stringify({ attachmentId, fileName, mediaType })).join('\n');

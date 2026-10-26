@@ -81,9 +81,11 @@ export function consumeSentComposerDraft(state: MutableServiceState, humanId: st
   const key = draftKey(humanId, { collectiveId: event.collectiveId, channelId: event.location.channelId,
     rootEventId: input.draftReceipt.rootEventId });
   const draft = state.composerDrafts[key];
-  if (!draft || draft.revision !== input.draftReceipt.revision || draft.content.body.trim() !== event.body ||
+  if (!draft || draft.content.richEditor || (draft.content.voiceDraft && !draft.content.voiceDraft.applied) ||
+      draft.revision !== input.draftReceipt.revision || draft.content.body.trim() !== event.body ||
       !isDeepStrictEqual(draft.content.attachments?.length ? draft.content.attachments : undefined, event.attachments) ||
       !isDeepStrictEqual(draft.content.contextAttachments?.length ? draft.content.contextAttachments : undefined, event.contextAttachments) ||
+      !isDeepStrictEqual(draft.content.richBlocks?.length ? draft.content.richBlocks : undefined, event.richBlocks) ||
       !isDeepStrictEqual(draft.content.recipient, event.recipient) ||
       (draft.content.replyToEventId ?? input.draftReceipt.rootEventId) !== event.replyToEventId ||
       Boolean(draft.content.entrust) !== Boolean(event.workRequest) || Boolean(draft.content.responseRequested) !== Boolean(event.attentionRequest)) return;

@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { QuoteContextAttachmentSchema } from '../schemas/quote-context-attachment.schema.js';
+import {
+  type CollectiveMessageRichBlock,
+  collectiveMessageRichBlockSchema,
+  collectiveRichMediaReferences,
+  requireDistinctRichBlocks,
+} from './collective-message-rich.js';
 import { messageStickerSchema } from './message-stickers.js';
 
 /** Same F063 quote object; Channel publication cannot borrow private Thread/file authority. */
@@ -61,6 +67,7 @@ export const collectiveMessageContentFields = {
   body: z.string().trim().max(32_000),
   attachments: z.array(collectiveMessageAttachmentSchema).min(1).max(12).optional(),
   contextAttachments: z.array(collectiveMessageQuoteSchema).min(1).max(12).optional(),
+  richBlocks: z.array(collectiveMessageRichBlockSchema).min(1).max(12).optional(),
 };
 
 export function requireCollectiveMessageContent(
@@ -68,15 +75,64 @@ export function requireCollectiveMessageContent(
     body: string;
     attachments?: readonly CollectiveMessageAttachment[];
     contextAttachments?: readonly CollectiveMessageQuote[];
+    richBlocks?: readonly CollectiveMessageRichBlock[];
   },
   context: z.RefinementCtx,
 ) {
-  if (!content.body && !content.attachments?.length && !content.contextAttachments?.length)
+  if (
+    !content.body &&
+    !content.attachments?.length &&
+    !content.contextAttachments?.length &&
+    !content.richBlocks?.length
+  )
     context.addIssue({ code: 'custom', path: ['body'], message: 'A message needs text or content' });
   if (new Set(content.attachments?.map((item) => item.attachmentId)).size !== (content.attachments?.length ?? 0))
     context.addIssue({ code: 'custom', path: ['attachments'], message: 'Duplicate attachment reference' });
   if (new Set(content.contextAttachments?.map((item) => item.id)).size !== (content.contextAttachments?.length ?? 0))
     context.addIssue({ code: 'custom', path: ['contextAttachments'], message: 'Duplicate quote reference' });
-  if (new TextEncoder().encode(JSON.stringify(content)).length > 192 * 1024)
-    context.addIssue({ code: 'custom', message: 'Message content exceeds 192 KiB' });
+  validateCollectiveRichContent(content, context);
+  const bytes = new TextEncoder().encode(
+    JSON.stringify({
+      body: content.body,
+      attachments: content.attachments,
+      contextAttachments: content.contextAttachments,
+      richBlocks: content.richBlocks,
+    }),
+  ).length;
+  if (bytes > 192 * 1024) context.addIssue({ code: 'custom', message: 'Message content exceeds 192 KiB' });
+}
+
+/** Rich presentation may describe only the immutable attachments published with this exact message. */
+export function validateCollectiveRichContent(
+  content: {
+    attachments?: readonly CollectiveMessageAttachment[];
+    richBlocks?: readonly CollectiveMessageRichBlock[];
+  },
+  context: z.RefinementCtx,
+) {
+  requireDistinctRichBlocks(content.richBlocks, context);
+  for (const ref of collectiveRichMediaReferences(content.richBlocks ?? [])) {
+    const attachment = content.attachments?.find((item) => item.contentRef === ref.url);
+    if (!attachment || (ref.kind !== 'file' && !attachment.mediaType.startsWith(`${ref.kind}/`)))
+      context.addIssue({
+        code: 'custom',
+        path: ['richBlocks'],
+        message: 'Rich media requires a matching message attachment',
+      });
+  }
+  for (const block of content.richBlocks ?? []) {
+    if (block.kind !== 'file') continue;
+    const attachment = content.attachments?.find((item) => item.contentRef === block.url);
+    if (
+      attachment &&
+      (block.fileName !== attachment.fileName ||
+        (block.fileSize !== undefined && block.fileSize !== attachment.byteLength) ||
+        (block.mimeType !== undefined && block.mimeType !== attachment.mediaType))
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['richBlocks'],
+        message: 'File description must match retained original metadata',
+      });
+  }
 }

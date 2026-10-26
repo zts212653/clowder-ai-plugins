@@ -39,3 +39,4 @@ export * from './utils/media-byte-range.js';
 export * from './types/collective-message-state.js';
 export * from './types/collective-model-content.js';
 export * from './types/message-stickers.js';
+export * from './types/collective-message-rich.js';

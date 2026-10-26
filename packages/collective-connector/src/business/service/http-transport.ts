@@ -154,13 +154,13 @@ export function writeError(response: ServerResponse, error: unknown): void {
   });
 }
 
-export function applySecurityHeaders(response: ServerResponse, allowedOrigins: ReadonlySet<string>): void {
+export function applySecurityHeaders(response: ServerResponse, allowedOrigins: ReadonlySet<string>, documentNonce?: string): void {
   response.setHeader('x-content-type-options', 'nosniff');
   response.setHeader('referrer-policy', 'no-referrer');
   const frameAncestors = ["'self'", ...allowedOrigins].join(' ');
   response.setHeader(
     'content-security-policy',
-    `default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; img-src 'self' https: data: blob:; media-src 'self' blob:; frame-ancestors ${frameAncestors}`,
+    `default-src 'self'; script-src 'self'${documentNonce ? ` 'nonce-${documentNonce}'` : ''}; style-src 'self'${documentNonce ? ` 'nonce-${documentNonce}'` : ''}; connect-src 'self' http://127.0.0.1:* https://127.0.0.1:* http://localhost:* https://localhost:*; img-src 'self' https: data: blob:; media-src 'self' blob:; frame-ancestors ${frameAncestors}`,
   );
   response.setHeader('cache-control', 'no-store');
 }

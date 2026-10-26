@@ -2,6 +2,21 @@ import { expect, it } from 'vitest';
 import { artifactFixture } from './artifact.fixture.js';
 import { CollectiveServiceStore } from '../store.js';
 
+it.each(['recording', 'rich-editor'])('keeps unfinished private %s when a text-only send does not include that content', async kind => {
+  const f = await artifactFixture();
+  const privateContent = kind === 'recording' ? { voiceDraft: { captureId: 'unfinished-recording', state: 'failed', applied: false } } :
+    { richEditor: { kind: 'html_widget', title: '还没写完', source: '<p>private unfinished content</p>' } };
+  const content = { body: '已经写好的正文', recipient: { kind: 'channel' }, recipientLabel: '', ...privateContent };
+  const saved = await f.store.saveHumanChannelDraft(f.member.sessionToken, { ...f.coordinates, channelId: 'general',
+    expectedRevision: 0, clientOperationId: 'private-incomplete', content });
+  const sent = await f.store.postHumanMessage(f.member.sessionToken, { ...f.coordinates, clientEventId: 'only-text',
+    location: { channelId: 'general' }, recipient: { kind: 'channel' }, body: content.body, draftReceipt: { revision: saved.draft.revision } });
+  expect(sent).not.toHaveProperty('richEditor');
+  expect(sent).not.toHaveProperty('voiceDraft');
+  expect(f.store.readHumanChannelState(f.member.sessionToken, { ...f.coordinates, channelId: 'general' }).draft.content)
+    .toEqual(content);
+});
+
 it('persists private voice state for its person/channel and excludes it from the explicitly sent public event', async () => {
   const f = await artifactFixture();
   const coordinates = { ...f.coordinates, channelId: 'general' };
