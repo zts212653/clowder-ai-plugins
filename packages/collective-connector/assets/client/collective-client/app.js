@@ -647,8 +647,8 @@ var require_react_development = __commonJS({
         }
         var didWarnAboutMaps = false;
         var userProvidedKeyEscapeRegex = /\/+/g;
-        function escapeUserProvidedKey(text11) {
-          return text11.replace(userProvidedKeyEscapeRegex, "$&/");
+        function escapeUserProvidedKey(text12) {
+          return text12.replace(userProvidedKeyEscapeRegex, "$&/");
         }
         function getElementKey(element3, index4) {
           if (typeof element3 === "object" && element3 !== null && element3.key != null) {
@@ -758,9 +758,9 @@ var require_react_development = __commonJS({
             return children;
           }
           var result = [];
-          var count = 0;
+          var count2 = 0;
           mapIntoArray(children, result, "", "", function(child) {
-            return func.call(context2, child, count++);
+            return func.call(context2, child, count2++);
           });
           return result;
         }
@@ -4283,15 +4283,15 @@ var require_react_dom_development = __commonJS({
         var COMMENT_NODE = 8;
         var DOCUMENT_NODE = 9;
         var DOCUMENT_FRAGMENT_NODE = 11;
-        var setTextContent = function(node2, text11) {
-          if (text11) {
+        var setTextContent = function(node2, text12) {
+          if (text12) {
             var firstChild = node2.firstChild;
             if (firstChild && firstChild === node2.lastChild && firstChild.nodeType === TEXT_NODE) {
-              firstChild.nodeValue = text11;
+              firstChild.nodeValue = text12;
               return;
             }
           }
-          node2.textContent = text11;
+          node2.textContent = text12;
         };
         var shorthandToLonghand = {
           animation: ["animationDelay", "animationDirection", "animationDuration", "animationFillMode", "animationIterationCount", "animationName", "animationPlayState", "animationTimingFunction"],
@@ -9467,8 +9467,8 @@ var require_react_dom_development = __commonJS({
           }
           return domElement;
         }
-        function createTextNode(text11, rootContainerElement) {
-          return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text11);
+        function createTextNode(text12, rootContainerElement) {
+          return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text12);
         }
         function setInitialProperties(domElement, tag, rawProps, rootContainerElement) {
           var isCustomComponentTag = isCustomComponent(tag, rawProps);
@@ -9912,8 +9912,8 @@ var require_react_dom_development = __commonJS({
           }
           return updatePayload;
         }
-        function diffHydratedText(textNode, text11, isConcurrentMode) {
-          var isDifferent = textNode.nodeValue !== text11;
+        function diffHydratedText(textNode, text12, isConcurrentMode) {
+          var isDifferent = textNode.nodeValue !== text12;
           return isDifferent;
         }
         function warnForDeletedHydratableElement(parentNode, child) {
@@ -9943,16 +9943,16 @@ var require_react_dom_development = __commonJS({
             error("Expected server HTML to contain a matching <%s> in <%s>.", tag, parentNode.nodeName.toLowerCase());
           }
         }
-        function warnForInsertedHydratedText(parentNode, text11) {
+        function warnForInsertedHydratedText(parentNode, text12) {
           {
-            if (text11 === "") {
+            if (text12 === "") {
               return;
             }
             if (didWarnInvalidHydration) {
               return;
             }
             didWarnInvalidHydration = true;
-            error('Expected server HTML to contain a matching text node for "%s" in <%s>.', text11, parentNode.nodeName.toLowerCase());
+            error('Expected server HTML to contain a matching text node for "%s" in <%s>.', text12, parentNode.nodeName.toLowerCase());
           }
         }
         function restoreControlledState$3(domElement, tag, props) {
@@ -10325,12 +10325,12 @@ var require_react_dom_development = __commonJS({
         function shouldSetTextContent(type, props) {
           return type === "textarea" || type === "noscript" || typeof props.children === "string" || typeof props.children === "number" || typeof props.dangerouslySetInnerHTML === "object" && props.dangerouslySetInnerHTML !== null && props.dangerouslySetInnerHTML.__html != null;
         }
-        function createTextInstance(text11, rootContainerInstance, hostContext, internalInstanceHandle) {
+        function createTextInstance(text12, rootContainerInstance, hostContext, internalInstanceHandle) {
           {
             var hostContextDev = hostContext;
-            validateDOMNesting(null, text11, hostContextDev.ancestorInfo);
+            validateDOMNesting(null, text12, hostContextDev.ancestorInfo);
           }
-          var textNode = createTextNode(text11, rootContainerInstance);
+          var textNode = createTextNode(text12, rootContainerInstance);
           precacheFiberNode(internalInstanceHandle, textNode);
           return textNode;
         }
@@ -10468,8 +10468,8 @@ var require_react_dom_development = __commonJS({
           var display = styleProp !== void 0 && styleProp !== null && styleProp.hasOwnProperty("display") ? styleProp.display : null;
           instance.style.display = dangerousStyleValue("display", display);
         }
-        function unhideTextInstance(textInstance, text11) {
-          textInstance.nodeValue = text11;
+        function unhideTextInstance(textInstance, text12) {
+          textInstance.nodeValue = text12;
         }
         function clearContainer(container) {
           if (container.nodeType === ELEMENT_NODE) {
@@ -10486,8 +10486,8 @@ var require_react_dom_development = __commonJS({
           }
           return instance;
         }
-        function canHydrateTextInstance(instance, text11) {
-          if (text11 === "" || instance.nodeType !== TEXT_NODE) {
+        function canHydrateTextInstance(instance, text12) {
+          if (text12 === "" || instance.nodeType !== TEXT_NODE) {
             return null;
           }
           return instance;
@@ -10566,10 +10566,10 @@ var require_react_dom_development = __commonJS({
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
           return diffHydratedProperties(instance, type, props, parentNamespace, rootContainerInstance, isConcurrentMode, shouldWarnDev);
         }
-        function hydrateTextInstance(textInstance, text11, internalInstanceHandle, shouldWarnDev) {
+        function hydrateTextInstance(textInstance, text12, internalInstanceHandle, shouldWarnDev) {
           precacheFiberNode(internalInstanceHandle, textInstance);
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
-          return diffHydratedText(textInstance, text11);
+          return diffHydratedText(textInstance, text12);
         }
         function hydrateSuspenseInstance(suspenseInstance, internalInstanceHandle) {
           precacheFiberNode(internalInstanceHandle, suspenseInstance);
@@ -10623,14 +10623,14 @@ var require_react_dom_development = __commonJS({
         function shouldDeleteUnhydratedTailInstances(parentType) {
           return parentType !== "head" && parentType !== "body";
         }
-        function didNotMatchHydratedContainerTextInstance(parentContainer, textInstance, text11, isConcurrentMode) {
+        function didNotMatchHydratedContainerTextInstance(parentContainer, textInstance, text12, isConcurrentMode) {
           var shouldWarnDev = true;
-          checkForUnmatchedText(textInstance.nodeValue, text11, isConcurrentMode, shouldWarnDev);
+          checkForUnmatchedText(textInstance.nodeValue, text12, isConcurrentMode, shouldWarnDev);
         }
-        function didNotMatchHydratedTextInstance(parentType, parentProps, parentInstance, textInstance, text11, isConcurrentMode) {
+        function didNotMatchHydratedTextInstance(parentType, parentProps, parentInstance, textInstance, text12, isConcurrentMode) {
           if (parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
             var shouldWarnDev = true;
-            checkForUnmatchedText(textInstance.nodeValue, text11, isConcurrentMode, shouldWarnDev);
+            checkForUnmatchedText(textInstance.nodeValue, text12, isConcurrentMode, shouldWarnDev);
           }
         }
         function didNotHydrateInstanceWithinContainer(parentContainer, instance) {
@@ -10673,9 +10673,9 @@ var require_react_dom_development = __commonJS({
             warnForInsertedHydratedElement(parentContainer, type);
           }
         }
-        function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text11) {
+        function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text12) {
           {
-            warnForInsertedHydratedText(parentContainer, text11);
+            warnForInsertedHydratedText(parentContainer, text12);
           }
         }
         function didNotFindHydratableInstanceWithinSuspenseInstance(parentInstance, type, props) {
@@ -10684,10 +10684,10 @@ var require_react_dom_development = __commonJS({
             if (parentNode !== null) warnForInsertedHydratedElement(parentNode, type);
           }
         }
-        function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text11) {
+        function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text12) {
           {
             var parentNode = parentInstance.parentNode;
-            if (parentNode !== null) warnForInsertedHydratedText(parentNode, text11);
+            if (parentNode !== null) warnForInsertedHydratedText(parentNode, text12);
           }
         }
         function didNotFindHydratableInstance(parentType, parentProps, parentInstance, type, props, isConcurrentMode) {
@@ -10697,10 +10697,10 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function didNotFindHydratableTextInstance(parentType, parentProps, parentInstance, text11, isConcurrentMode) {
+        function didNotFindHydratableTextInstance(parentType, parentProps, parentInstance, text12, isConcurrentMode) {
           {
             if (isConcurrentMode || parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
-              warnForInsertedHydratedText(parentInstance, text11);
+              warnForInsertedHydratedText(parentInstance, text12);
             }
           }
         }
@@ -11110,8 +11110,8 @@ var require_react_dom_development = __commonJS({
         function getTreeId() {
           var overflow = treeContextOverflow;
           var idWithLeadingBit = treeContextId;
-          var id31 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
-          return id31.toString(32) + overflow;
+          var id32 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
+          return id32.toString(32) + overflow;
         }
         function pushTreeFork(workInProgress2, totalChildren) {
           warnIfNotHydrating();
@@ -11140,9 +11140,9 @@ var require_react_dom_development = __commonJS({
             var restOfBaseLength = baseLength - numberOfOverflowBits;
             var restOfLength = getBitLength(totalChildren) + restOfBaseLength;
             var restOfNewBits = slot << restOfBaseLength;
-            var id31 = restOfNewBits | restOfBaseId;
+            var id32 = restOfNewBits | restOfBaseId;
             var overflow = newOverflow + baseOverflow;
-            treeContextId = 1 << restOfLength | id31;
+            treeContextId = 1 << restOfLength | id32;
             treeContextOverflow = overflow;
           } else {
             var newBits = slot << baseLength;
@@ -11165,8 +11165,8 @@ var require_react_dom_development = __commonJS({
         function getBitLength(number2) {
           return 32 - clz32(number2);
         }
-        function getLeadingBit(id31) {
-          return 1 << getBitLength(id31) - 1;
+        function getLeadingBit(id32) {
+          return 1 << getBitLength(id32) - 1;
         }
         function popTreeContext(workInProgress2) {
           while (workInProgress2 === treeForkProvider) {
@@ -11308,8 +11308,8 @@ var require_react_dom_development = __commonJS({
                     didNotFindHydratableInstanceWithinContainer(parentContainer, type);
                     break;
                   case HostText:
-                    var text11 = fiber.pendingProps;
-                    didNotFindHydratableTextInstanceWithinContainer(parentContainer, text11);
+                    var text12 = fiber.pendingProps;
+                    didNotFindHydratableTextInstanceWithinContainer(parentContainer, text12);
                     break;
                 }
                 break;
@@ -11390,8 +11390,8 @@ var require_react_dom_development = __commonJS({
               return false;
             }
             case HostText: {
-              var text11 = fiber.pendingProps;
-              var textInstance = canHydrateTextInstance(nextInstance, text11);
+              var text12 = fiber.pendingProps;
+              var textInstance = canHydrateTextInstance(nextInstance, text12);
               if (textInstance !== null) {
                 fiber.stateNode = textInstance;
                 hydrationParentFiber = fiber;
@@ -14264,26 +14264,26 @@ var require_react_dom_development = __commonJS({
           var hook = mountWorkInProgressHook();
           var root6 = getWorkInProgressRoot();
           var identifierPrefix = root6.identifierPrefix;
-          var id31;
+          var id32;
           if (getIsHydrating()) {
             var treeId = getTreeId();
-            id31 = ":" + identifierPrefix + "R" + treeId;
+            id32 = ":" + identifierPrefix + "R" + treeId;
             var localId = localIdCounter++;
             if (localId > 0) {
-              id31 += "H" + localId.toString(32);
+              id32 += "H" + localId.toString(32);
             }
-            id31 += ":";
+            id32 += ":";
           } else {
             var globalClientId = globalClientIdCounter++;
-            id31 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
+            id32 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
           }
-          hook.memoizedState = id31;
-          return id31;
+          hook.memoizedState = id32;
+          return id32;
         }
         function updateId() {
           var hook = updateWorkInProgressHook();
-          var id31 = hook.memoizedState;
-          return id31;
+          var id32 = hook.memoizedState;
+          return id32;
         }
         function dispatchReducerAction(fiber, queue, action) {
           {
@@ -17094,18 +17094,18 @@ var require_react_dom_development = __commonJS({
           }
         }
         function mountSuspensePrimaryChildren(workInProgress2, primaryChildren, renderLanes2) {
-          var mode = workInProgress2.mode;
+          var mode2 = workInProgress2.mode;
           var primaryChildProps = {
             mode: "visible",
             children: primaryChildren
           };
-          var primaryChildFragment = mountWorkInProgressOffscreenFiber(primaryChildProps, mode);
+          var primaryChildFragment = mountWorkInProgressOffscreenFiber(primaryChildProps, mode2);
           primaryChildFragment.return = workInProgress2;
           workInProgress2.child = primaryChildFragment;
           return primaryChildFragment;
         }
         function mountSuspenseFallbackChildren(workInProgress2, primaryChildren, fallbackChildren, renderLanes2) {
-          var mode = workInProgress2.mode;
+          var mode2 = workInProgress2.mode;
           var progressedPrimaryFragment = workInProgress2.child;
           var primaryChildProps = {
             mode: "hidden",
@@ -17113,7 +17113,7 @@ var require_react_dom_development = __commonJS({
           };
           var primaryChildFragment;
           var fallbackChildFragment;
-          if ((mode & ConcurrentMode) === NoMode && progressedPrimaryFragment !== null) {
+          if ((mode2 & ConcurrentMode) === NoMode && progressedPrimaryFragment !== null) {
             primaryChildFragment = progressedPrimaryFragment;
             primaryChildFragment.childLanes = NoLanes;
             primaryChildFragment.pendingProps = primaryChildProps;
@@ -17123,10 +17123,10 @@ var require_react_dom_development = __commonJS({
               primaryChildFragment.selfBaseDuration = 0;
               primaryChildFragment.treeBaseDuration = 0;
             }
-            fallbackChildFragment = createFiberFromFragment(fallbackChildren, mode, renderLanes2, null);
+            fallbackChildFragment = createFiberFromFragment(fallbackChildren, mode2, renderLanes2, null);
           } else {
-            primaryChildFragment = mountWorkInProgressOffscreenFiber(primaryChildProps, mode);
-            fallbackChildFragment = createFiberFromFragment(fallbackChildren, mode, renderLanes2, null);
+            primaryChildFragment = mountWorkInProgressOffscreenFiber(primaryChildProps, mode2);
+            fallbackChildFragment = createFiberFromFragment(fallbackChildren, mode2, renderLanes2, null);
           }
           primaryChildFragment.return = workInProgress2;
           fallbackChildFragment.return = workInProgress2;
@@ -17134,8 +17134,8 @@ var require_react_dom_development = __commonJS({
           workInProgress2.child = primaryChildFragment;
           return fallbackChildFragment;
         }
-        function mountWorkInProgressOffscreenFiber(offscreenProps, mode, renderLanes2) {
-          return createFiberFromOffscreen(offscreenProps, mode, NoLanes, null);
+        function mountWorkInProgressOffscreenFiber(offscreenProps, mode2, renderLanes2) {
+          return createFiberFromOffscreen(offscreenProps, mode2, NoLanes, null);
         }
         function updateWorkInProgressOffscreenFiber(current3, offscreenProps) {
           return createWorkInProgress(current3, offscreenProps);
@@ -17165,7 +17165,7 @@ var require_react_dom_development = __commonJS({
           return primaryChildFragment;
         }
         function updateSuspenseFallbackChildren(current3, workInProgress2, primaryChildren, fallbackChildren, renderLanes2) {
-          var mode = workInProgress2.mode;
+          var mode2 = workInProgress2.mode;
           var currentPrimaryChildFragment = current3.child;
           var currentFallbackChildFragment = currentPrimaryChildFragment.sibling;
           var primaryChildProps = {
@@ -17176,7 +17176,7 @@ var require_react_dom_development = __commonJS({
           if (
             // In legacy mode, we commit the primary tree as if it successfully
             // completed, even though it's in an inconsistent state.
-            (mode & ConcurrentMode) === NoMode && // Make sure we're on the second pass, i.e. the primary child fragment was
+            (mode2 & ConcurrentMode) === NoMode && // Make sure we're on the second pass, i.e. the primary child fragment was
             // already cloned. In legacy mode, the only case where this isn't true is
             // when DevTools forces us to display a fallback; we skip the first render
             // pass entirely and go straight to rendering the fallback. (In Concurrent
@@ -17203,7 +17203,7 @@ var require_react_dom_development = __commonJS({
           if (currentFallbackChildFragment !== null) {
             fallbackChildFragment = createWorkInProgress(currentFallbackChildFragment, fallbackChildren);
           } else {
-            fallbackChildFragment = createFiberFromFragment(fallbackChildren, mode, renderLanes2, null);
+            fallbackChildFragment = createFiberFromFragment(fallbackChildren, mode2, renderLanes2, null);
             fallbackChildFragment.flags |= Placement;
           }
           fallbackChildFragment.return = workInProgress2;
@@ -18915,7 +18915,7 @@ var require_react_dom_development = __commonJS({
               switch (finishedWork.tag) {
                 case Profiler: {
                   var passiveEffectDuration = finishedWork.stateNode.passiveEffectDuration;
-                  var _finishedWork$memoize = finishedWork.memoizedProps, id31 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
+                  var _finishedWork$memoize = finishedWork.memoizedProps, id32 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
                   var commitTime2 = getCommitTime();
                   var phase = finishedWork.alternate === null ? "mount" : "update";
                   {
@@ -18924,7 +18924,7 @@ var require_react_dom_development = __commonJS({
                     }
                   }
                   if (typeof onPostCommit === "function") {
-                    onPostCommit(id31, phase, passiveEffectDuration, commitTime2);
+                    onPostCommit(id32, phase, passiveEffectDuration, commitTime2);
                   }
                   var parentFiber = finishedWork.return;
                   outer: while (parentFiber !== null) {
@@ -20454,8 +20454,8 @@ var require_react_dom_development = __commonJS({
           return currentEventTime;
         }
         function requestUpdateLane(fiber) {
-          var mode = fiber.mode;
-          if ((mode & ConcurrentMode) === NoMode) {
+          var mode2 = fiber.mode;
+          if ((mode2 & ConcurrentMode) === NoMode) {
             return SyncLane;
           } else if ((executionContext & RenderContext) !== NoContext && workInProgressRootRenderLanes !== NoLanes) {
             return pickArbitraryLane(workInProgressRootRenderLanes);
@@ -20482,8 +20482,8 @@ var require_react_dom_development = __commonJS({
           return eventLane;
         }
         function requestRetryLane(fiber) {
-          var mode = fiber.mode;
-          if ((mode & ConcurrentMode) === NoMode) {
+          var mode2 = fiber.mode;
+          if ((mode2 & ConcurrentMode) === NoMode) {
             return SyncLane;
           }
           return claimNextRetryLane();
@@ -22141,7 +22141,7 @@ var require_react_dom_development = __commonJS({
             hasBadMapPolyfill = true;
           }
         }
-        function FiberNode(tag, pendingProps, key, mode) {
+        function FiberNode(tag, pendingProps, key, mode2) {
           this.tag = tag;
           this.key = key;
           this.elementType = null;
@@ -22157,7 +22157,7 @@ var require_react_dom_development = __commonJS({
           this.updateQueue = null;
           this.memoizedState = null;
           this.dependencies = null;
-          this.mode = mode;
+          this.mode = mode2;
           this.flags = NoFlags;
           this.subtreeFlags = NoFlags;
           this.deletions = null;
@@ -22184,8 +22184,8 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        var createFiber = function(tag, pendingProps, key, mode) {
-          return new FiberNode(tag, pendingProps, key, mode);
+        var createFiber = function(tag, pendingProps, key, mode2) {
+          return new FiberNode(tag, pendingProps, key, mode2);
         };
         function shouldConstruct$1(Component) {
           var prototype = Component.prototype;
@@ -22310,24 +22310,24 @@ var require_react_dom_development = __commonJS({
           return workInProgress2;
         }
         function createHostRootFiber(tag, isStrictMode, concurrentUpdatesByDefaultOverride) {
-          var mode;
+          var mode2;
           if (tag === ConcurrentRoot) {
-            mode = ConcurrentMode;
+            mode2 = ConcurrentMode;
             if (isStrictMode === true) {
-              mode |= StrictLegacyMode;
+              mode2 |= StrictLegacyMode;
               {
-                mode |= StrictEffectsMode;
+                mode2 |= StrictEffectsMode;
               }
             }
           } else {
-            mode = NoMode;
+            mode2 = NoMode;
           }
           if (isDevToolsPresent) {
-            mode |= ProfileMode;
+            mode2 |= ProfileMode;
           }
-          return createFiber(HostRoot, null, null, mode);
+          return createFiber(HostRoot, null, null, mode2);
         }
-        function createFiberFromTypeAndProps(type, key, pendingProps, owner3, mode, lanes) {
+        function createFiberFromTypeAndProps(type, key, pendingProps, owner3, mode2, lanes) {
           var fiberTag = IndeterminateComponent;
           var resolvedType = type;
           if (typeof type === "function") {
@@ -22346,22 +22346,22 @@ var require_react_dom_development = __commonJS({
           } else {
             getTag: switch (type) {
               case REACT_FRAGMENT_TYPE:
-                return createFiberFromFragment(pendingProps.children, mode, lanes, key);
+                return createFiberFromFragment(pendingProps.children, mode2, lanes, key);
               case REACT_STRICT_MODE_TYPE:
                 fiberTag = Mode;
-                mode |= StrictLegacyMode;
-                if ((mode & ConcurrentMode) !== NoMode) {
-                  mode |= StrictEffectsMode;
+                mode2 |= StrictLegacyMode;
+                if ((mode2 & ConcurrentMode) !== NoMode) {
+                  mode2 |= StrictEffectsMode;
                 }
                 break;
               case REACT_PROFILER_TYPE:
-                return createFiberFromProfiler(pendingProps, mode, lanes, key);
+                return createFiberFromProfiler(pendingProps, mode2, lanes, key);
               case REACT_SUSPENSE_TYPE:
-                return createFiberFromSuspense(pendingProps, mode, lanes, key);
+                return createFiberFromSuspense(pendingProps, mode2, lanes, key);
               case REACT_SUSPENSE_LIST_TYPE:
-                return createFiberFromSuspenseList(pendingProps, mode, lanes, key);
+                return createFiberFromSuspenseList(pendingProps, mode2, lanes, key);
               case REACT_OFFSCREEN_TYPE:
-                return createFiberFromOffscreen(pendingProps, mode, lanes, key);
+                return createFiberFromOffscreen(pendingProps, mode2, lanes, key);
               case REACT_LEGACY_HIDDEN_TYPE:
               // eslint-disable-next-line no-fallthrough
               case REACT_SCOPE_TYPE:
@@ -22410,7 +22410,7 @@ var require_react_dom_development = __commonJS({
               }
             }
           }
-          var fiber = createFiber(fiberTag, pendingProps, key, mode);
+          var fiber = createFiber(fiberTag, pendingProps, key, mode2);
           fiber.elementType = type;
           fiber.type = resolvedType;
           fiber.lanes = lanes;
@@ -22419,7 +22419,7 @@ var require_react_dom_development = __commonJS({
           }
           return fiber;
         }
-        function createFiberFromElement(element3, mode, lanes) {
+        function createFiberFromElement(element3, mode2, lanes) {
           var owner3 = null;
           {
             owner3 = element3._owner;
@@ -22427,25 +22427,25 @@ var require_react_dom_development = __commonJS({
           var type = element3.type;
           var key = element3.key;
           var pendingProps = element3.props;
-          var fiber = createFiberFromTypeAndProps(type, key, pendingProps, owner3, mode, lanes);
+          var fiber = createFiberFromTypeAndProps(type, key, pendingProps, owner3, mode2, lanes);
           {
             fiber._debugSource = element3._source;
             fiber._debugOwner = element3._owner;
           }
           return fiber;
         }
-        function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment33, elements, key, mode);
+        function createFiberFromFragment(elements, mode2, lanes, key) {
+          var fiber = createFiber(Fragment33, elements, key, mode2);
           fiber.lanes = lanes;
           return fiber;
         }
-        function createFiberFromProfiler(pendingProps, mode, lanes, key) {
+        function createFiberFromProfiler(pendingProps, mode2, lanes, key) {
           {
             if (typeof pendingProps.id !== "string") {
               error('Profiler must specify an "id" of type `string` as a prop. Received the type `%s` instead.', typeof pendingProps.id);
             }
           }
-          var fiber = createFiber(Profiler, pendingProps, key, mode | ProfileMode);
+          var fiber = createFiber(Profiler, pendingProps, key, mode2 | ProfileMode);
           fiber.elementType = REACT_PROFILER_TYPE;
           fiber.lanes = lanes;
           {
@@ -22456,20 +22456,20 @@ var require_react_dom_development = __commonJS({
           }
           return fiber;
         }
-        function createFiberFromSuspense(pendingProps, mode, lanes, key) {
-          var fiber = createFiber(SuspenseComponent, pendingProps, key, mode);
+        function createFiberFromSuspense(pendingProps, mode2, lanes, key) {
+          var fiber = createFiber(SuspenseComponent, pendingProps, key, mode2);
           fiber.elementType = REACT_SUSPENSE_TYPE;
           fiber.lanes = lanes;
           return fiber;
         }
-        function createFiberFromSuspenseList(pendingProps, mode, lanes, key) {
-          var fiber = createFiber(SuspenseListComponent, pendingProps, key, mode);
+        function createFiberFromSuspenseList(pendingProps, mode2, lanes, key) {
+          var fiber = createFiber(SuspenseListComponent, pendingProps, key, mode2);
           fiber.elementType = REACT_SUSPENSE_LIST_TYPE;
           fiber.lanes = lanes;
           return fiber;
         }
-        function createFiberFromOffscreen(pendingProps, mode, lanes, key) {
-          var fiber = createFiber(OffscreenComponent, pendingProps, key, mode);
+        function createFiberFromOffscreen(pendingProps, mode2, lanes, key) {
+          var fiber = createFiber(OffscreenComponent, pendingProps, key, mode2);
           fiber.elementType = REACT_OFFSCREEN_TYPE;
           fiber.lanes = lanes;
           var primaryChildInstance = {
@@ -22478,8 +22478,8 @@ var require_react_dom_development = __commonJS({
           fiber.stateNode = primaryChildInstance;
           return fiber;
         }
-        function createFiberFromText(content3, mode, lanes) {
-          var fiber = createFiber(HostText, content3, null, mode);
+        function createFiberFromText(content3, mode2, lanes) {
+          var fiber = createFiber(HostText, content3, null, mode2);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -22493,9 +22493,9 @@ var require_react_dom_development = __commonJS({
           fiber.stateNode = dehydratedNode;
           return fiber;
         }
-        function createFiberFromPortal(portal, mode, lanes) {
+        function createFiberFromPortal(portal, mode2, lanes) {
           var pendingProps = portal.children !== null ? portal.children : [];
-          var fiber = createFiber(HostPortal, pendingProps, portal.key, mode);
+          var fiber = createFiber(HostPortal, pendingProps, portal.key, mode2);
           fiber.lanes = lanes;
           fiber.stateNode = {
             containerInfo: portal.containerInfo,
@@ -22912,16 +22912,16 @@ var require_react_dom_development = __commonJS({
           var copyWithSet = function(obj, path2, value) {
             return copyWithSetImpl(obj, path2, 0, value);
           };
-          var findHook = function(fiber, id31) {
+          var findHook = function(fiber, id32) {
             var currentHook2 = fiber.memoizedState;
-            while (currentHook2 !== null && id31 > 0) {
+            while (currentHook2 !== null && id32 > 0) {
               currentHook2 = currentHook2.next;
-              id31--;
+              id32--;
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id31, path2, value) {
-            var hook = findHook(fiber, id31);
+          overrideHookState = function(fiber, id32, path2, value) {
+            var hook = findHook(fiber, id32);
             if (hook !== null) {
               var newState = copyWithSet(hook.memoizedState, path2, value);
               hook.memoizedState = newState;
@@ -22933,8 +22933,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id31, path2) {
-            var hook = findHook(fiber, id31);
+          overrideHookStateDeletePath = function(fiber, id32, path2) {
+            var hook = findHook(fiber, id32);
             if (hook !== null) {
               var newState = copyWithDelete(hook.memoizedState, path2);
               hook.memoizedState = newState;
@@ -22946,8 +22946,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateRenamePath = function(fiber, id31, oldPath, newPath) {
-            var hook = findHook(fiber, id31);
+          overrideHookStateRenamePath = function(fiber, id32, oldPath, newPath) {
+            var hook = findHook(fiber, id32);
             if (hook !== null) {
               var newState = copyWithRename(hook.memoizedState, oldPath, newPath);
               hook.memoizedState = newState;
@@ -24558,11 +24558,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx117 = jsxWithValidationDynamic;
-        var jsxs98 = jsxWithValidationStatic;
+        var jsx118 = jsxWithValidationDynamic;
+        var jsxs99 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx117;
-        exports.jsxs = jsxs98;
+        exports.jsx = jsx118;
+        exports.jsxs = jsxs99;
       })();
     }
   }
@@ -29396,7 +29396,7 @@ function roadmapPath(value) {
 }
 function brand(value) {
   const input = record(value, "brand");
-  const text11 = (key) => {
+  const text12 = (key) => {
     const item = input[key];
     if (typeof item !== "string" || !item.trim() || item.length > 512 || // biome-ignore lint/suspicious/noControlCharactersInRegex: configuration labels must stay single-line.
     /[\u0000-\u001f\u007f]/.test(item))
@@ -29404,11 +29404,11 @@ function brand(value) {
     return item;
   };
   return {
-    name: text11("name"),
-    displayName: text11("displayName"),
-    shortName: text11("shortName"),
-    hubName: text11("hubName"),
-    tagline: text11("tagline")
+    name: text12("name"),
+    displayName: text12("displayName"),
+    shortName: text12("shortName"),
+    hubName: text12("hubName"),
+    tagline: text12("tagline")
   };
 }
 function selectProfile(input, requested) {
@@ -29636,7 +29636,7 @@ var feature_demos_default = {
 
 // ../shared/src/feature-demos.ts
 var FEATURE_DEMO_ASSET_DIR = "site/assets/demos";
-function publish(id31, entry) {
+function publish(id32, entry) {
   return {
     tipId: entry.tipId,
     title: entry.title,
@@ -29646,14 +29646,14 @@ function publish(id31, entry) {
     sha256: entry.sha256 ?? "",
     assetSource: `${FEATURE_DEMO_ASSET_DIR}/${entry.video}`,
     posterAssetSource: `${FEATURE_DEMO_ASSET_DIR}/${entry.poster}`,
-    src: `/vendor/demos/${id31}${entry.video.slice(entry.video.indexOf("."))}`,
-    poster: `/vendor/demos/${id31}${entry.poster.slice(entry.poster.lastIndexOf("."))}`
+    src: `/vendor/demos/${id32}${entry.video.slice(entry.video.indexOf("."))}`,
+    poster: `/vendor/demos/${id32}${entry.poster.slice(entry.poster.lastIndexOf("."))}`
   };
 }
 var FEATURE_DEMOS = Object.fromEntries(
-  Object.entries(feature_demos_default).map(([id31, entry]) => [id31, publish(id31, entry)])
+  Object.entries(feature_demos_default).map(([id32, entry]) => [id32, publish(id32, entry)])
 );
-var DEMO_BY_TIP = new Map(Object.entries(FEATURE_DEMOS).map(([id31, demo]) => [demo.tipId, id31]));
+var DEMO_BY_TIP = new Map(Object.entries(FEATURE_DEMOS).map(([id32, demo]) => [demo.tipId, id32]));
 
 // ../shared/src/ignored-item-preference.ts
 var ignoredItemCoordinateSchema = external_exports.discriminatedUnion("kind", [
@@ -29696,13 +29696,13 @@ function ccount(value, character) {
   if (typeof character !== "string") {
     throw new TypeError("Expected character");
   }
-  let count = 0;
+  let count2 = 0;
   let index4 = source3.indexOf(character);
   while (index4 !== -1) {
-    count++;
+    count2++;
     index4 = source3.indexOf(character, index4 + character.length);
   }
-  return count;
+  return count2;
 }
 
 // ../../node_modules/.pnpm/devlop@1.1.0/node_modules/devlop/lib/default.js
@@ -30551,18 +30551,18 @@ function longestStreak(value, substring) {
   const source3 = String(value);
   let index4 = source3.indexOf(substring);
   let expected = index4;
-  let count = 0;
+  let count2 = 0;
   let max = 0;
   if (typeof substring !== "string") {
     throw new TypeError("Expected substring");
   }
   while (index4 !== -1) {
     if (index4 === expected) {
-      if (++count > max) {
-        max = count;
+      if (++count2 > max) {
+        max = count2;
       }
     } else {
-      count = 1;
+      count2 = 1;
     }
     expected = index4 + substring.length;
     index4 = source3.indexOf(substring, expected);
@@ -31172,12 +31172,12 @@ function linkReference(node2, _, state, info) {
   let subexit = state.enter("label");
   const tracker = state.createTracker(info);
   let value = tracker.move("[");
-  const text11 = state.containerPhrasing(node2, {
+  const text12 = state.containerPhrasing(node2, {
     before: value,
     after: "]",
     ...tracker.current()
   });
-  value += tracker.move(text11 + "][");
+  value += tracker.move(text12 + "][");
   subexit();
   const stack = state.stack;
   state.stack = [];
@@ -31190,7 +31190,7 @@ function linkReference(node2, _, state, info) {
   subexit();
   state.stack = stack;
   exit3();
-  if (type === "full" || !text11 || text11 !== reference) {
+  if (type === "full" || !text12 || text12 !== reference) {
     value += tracker.move(reference + "]");
   } else if (type === "shortcut") {
     value = value.slice(0, -1);
@@ -32255,7 +32255,7 @@ function resolveAllAttention(events, context2) {
   let index4 = -1;
   let open;
   let group;
-  let text11;
+  let text12;
   let openingSequence;
   let closingSequence;
   let use;
@@ -32293,7 +32293,7 @@ function resolveAllAttention(events, context2) {
             },
             end
           };
-          text11 = {
+          text12 = {
             type: use > 1 ? "strongText" : "emphasisText",
             start: {
               ...events[open][1].end
@@ -32321,9 +32321,9 @@ function resolveAllAttention(events, context2) {
           if (events[open][1].end.offset - events[open][1].start.offset) {
             nextEvents = push(nextEvents, [["enter", events[open][1], context2], ["exit", events[open][1], context2]]);
           }
-          nextEvents = push(nextEvents, [["enter", group, context2], ["enter", openingSequence, context2], ["exit", openingSequence, context2], ["enter", text11, context2]]);
+          nextEvents = push(nextEvents, [["enter", group, context2], ["enter", openingSequence, context2], ["exit", openingSequence, context2], ["enter", text12, context2]]);
           nextEvents = push(nextEvents, resolveAll(context2.parser.constructs.insideSpan.null, events.slice(open + 1, index4), context2));
-          nextEvents = push(nextEvents, [["exit", text11, context2], ["enter", closingSequence, context2], ["exit", closingSequence, context2], ["exit", group, context2]]);
+          nextEvents = push(nextEvents, [["exit", text12, context2], ["enter", closingSequence, context2], ["exit", closingSequence, context2], ["exit", group, context2]]);
           if (events[index4][1].end.offset - events[index4][1].start.offset) {
             offset2 = 2;
             nextEvents = push(nextEvents, [["enter", events[index4][1], context2], ["exit", events[index4][1], context2]]);
@@ -33113,9 +33113,9 @@ var SpliceBuffer = class {
    *   Any removed items.
    */
   splice(start2, deleteCount, items) {
-    const count = deleteCount || 0;
+    const count2 = deleteCount || 0;
     this.setCursor(Math.trunc(start2));
-    const removed = this.right.splice(this.right.length - count, Number.POSITIVE_INFINITY);
+    const removed = this.right.splice(this.right.length - count2, Number.POSITIVE_INFINITY);
     if (items) chunkedPush(this.left, items);
     return removed.reverse();
   }
@@ -33793,7 +33793,7 @@ function resolveHeadingAtx(events, context2) {
   let contentEnd = events.length - 2;
   let contentStart = 3;
   let content3;
-  let text11;
+  let text12;
   if (events[contentStart][1].type === "whitespace") {
     contentStart += 2;
   }
@@ -33809,13 +33809,13 @@ function resolveHeadingAtx(events, context2) {
       start: events[contentStart][1].start,
       end: events[contentEnd][1].end
     };
-    text11 = {
+    text12 = {
       type: "chunkText",
       start: events[contentStart][1].start,
       end: events[contentEnd][1].end,
       contentType: "text"
     };
-    splice(events, contentStart, contentEnd - contentStart + 1, [["enter", content3, context2], ["enter", text11, context2], ["exit", text11, context2], ["exit", content3, context2]]);
+    splice(events, contentStart, contentEnd - contentStart + 1, [["enter", content3, context2], ["enter", text12, context2], ["exit", text12, context2], ["exit", content3, context2]]);
   }
   return events;
 }
@@ -34705,7 +34705,7 @@ function resolveToLabelEnd(events, context2) {
       ...events[close][1].end
     }
   };
-  const text11 = {
+  const text12 = {
     type: "labelText",
     start: {
       ...events[open + offset2 + 2][1].end
@@ -34716,9 +34716,9 @@ function resolveToLabelEnd(events, context2) {
   };
   media = [["enter", group, context2], ["enter", label, context2]];
   media = push(media, events.slice(open + 1, open + offset2 + 3));
-  media = push(media, [["enter", text11, context2]]);
+  media = push(media, [["enter", text12, context2]]);
   media = push(media, resolveAll(context2.parser.constructs.insideSpan.null, events.slice(open + offset2 + 4, close - 3), context2));
-  media = push(media, [["exit", text11, context2], events[close - 2], events[close - 1], ["exit", label, context2]]);
+  media = push(media, [["exit", text12, context2], events[close - 2], events[close - 1], ["exit", label, context2]]);
   media = push(media, events.slice(close + 1));
   media = push(media, [["exit", group, context2]]);
   splice(events, open, events.length, media);
@@ -35098,7 +35098,7 @@ var setextUnderline = {
 function resolveToSetextUnderline(events, context2) {
   let index4 = events.length;
   let content3;
-  let text11;
+  let text12;
   let definition3;
   while (index4--) {
     if (events[index4][0] === "enter") {
@@ -35107,7 +35107,7 @@ function resolveToSetextUnderline(events, context2) {
         break;
       }
       if (events[index4][1].type === "paragraph") {
-        text11 = index4;
+        text12 = index4;
       }
     } else {
       if (events[index4][1].type === "content") {
@@ -35127,9 +35127,9 @@ function resolveToSetextUnderline(events, context2) {
       ...events[events.length - 1][1].end
     }
   };
-  events[text11][1].type = "setextHeadingText";
+  events[text12][1].type = "setextHeadingText";
   if (definition3) {
-    events.splice(text11, 0, ["enter", heading3, context2]);
+    events.splice(text12, 0, ["enter", heading3, context2]);
     events.splice(definition3 + 1, 0, ["exit", events[content3][1], context2]);
     events[content3][1].end = {
       ...events[definition3][1].end
@@ -35232,11 +35232,11 @@ function tokenizePotentialGfmFootnoteCall(effects, ok3, nok) {
     if (!labelStart || !labelStart._balanced) {
       return nok(code4);
     }
-    const id31 = normalizeIdentifier(self2.sliceSerialize({
+    const id32 = normalizeIdentifier(self2.sliceSerialize({
       start: labelStart.end,
       end: self2.now()
     }));
-    if (id31.codePointAt(0) !== 94 || !defined.includes(id31.slice(1))) {
+    if (id32.codePointAt(0) !== 94 || !defined.includes(id32.slice(1))) {
       return nok(code4);
     }
     effects.enter("gfmFootnoteCallLabelMarker");
@@ -35494,17 +35494,17 @@ function gfmStrikethrough(options) {
               start: Object.assign({}, events[open][1].start),
               end: Object.assign({}, events[index4][1].end)
             };
-            const text11 = {
+            const text12 = {
               type: "strikethroughText",
               start: Object.assign({}, events[open][1].end),
               end: Object.assign({}, events[index4][1].start)
             };
-            const nextEvents = [["enter", strikethrough2, context2], ["enter", events[open][1], context2], ["exit", events[open][1], context2], ["enter", text11, context2]];
+            const nextEvents = [["enter", strikethrough2, context2], ["enter", events[open][1], context2], ["exit", events[open][1], context2], ["enter", text12, context2]];
             const insideSpan2 = context2.parser.constructs.insideSpan.null;
             if (insideSpan2) {
               splice(nextEvents, nextEvents.length, 0, resolveAll(insideSpan2, events.slice(open + 1, index4), context2));
             }
-            splice(nextEvents, nextEvents.length, 0, [["exit", text11, context2], ["enter", events[index4][1], context2], ["exit", events[index4][1], context2], ["exit", strikethrough2, context2]]);
+            splice(nextEvents, nextEvents.length, 0, [["exit", text12, context2], ["enter", events[index4][1], context2], ["exit", events[index4][1], context2], ["exit", strikethrough2, context2]]);
             splice(events, open - 1, index4 - open + 3, nextEvents);
             index4 = open + nextEvents.length - 2;
             break;
@@ -36428,10 +36428,10 @@ function initializeFactory(field) {
   function initializeText(effects) {
     const self2 = this;
     const constructs2 = this.parser.constructs[field];
-    const text11 = effects.attempt(constructs2, start2, notText);
+    const text12 = effects.attempt(constructs2, start2, notText);
     return start2;
     function start2(code4) {
-      return atBreak(code4) ? text11(code4) : notText(code4);
+      return atBreak(code4) ? text12(code4) : notText(code4);
     }
     function notText(code4) {
       if (code4 === null) {
@@ -36445,7 +36445,7 @@ function initializeFactory(field) {
     function data(code4) {
       if (atBreak(code4)) {
         effects.exit("data");
-        return text11(code4);
+        return text12(code4);
       }
       effects.consume(code4);
       return data;
@@ -37475,7 +37475,7 @@ function compiler(options) {
     const siblings = node2.children;
     let tail = siblings[siblings.length - 1];
     if (!tail || tail.type !== "text") {
-      tail = text11();
+      tail = text12();
       tail.position = {
         start: point2(token.start),
         // @ts-expect-error: we’ll add `end` later.
@@ -37720,7 +37720,7 @@ function compiler(options) {
       children: []
     };
   }
-  function text11() {
+  function text12() {
     return {
       type: "text",
       value: ""
@@ -39946,7 +39946,7 @@ var TRANSPARENT_CONTAINERS = /* @__PURE__ */ new Set([
   "tableCell"
 ]);
 var unitNulls = (length) => Array.from({ length }, () => null);
-var nulls = (text11) => ({ text: text11, offsets: unitNulls(text11.length) });
+var nulls = (text12) => ({ text: text12, offsets: unitNulls(text12.length) });
 function sourceRange(node2) {
   const start2 = node2.position?.start?.offset;
   const end = node2.position?.end?.offset;
@@ -40053,15 +40053,15 @@ var sourceProjectionSha256 = external_exports.string().regex(/^[a-f0-9]{64}$/);
 var characterOffset = external_exports.number().int().nonnegative().max(1e7);
 var sourceMessageIds = external_exports.array(boundedId).min(1).max(MESSAGE_BUNDLE_MAX_ITEMS).superRefine((ids2, ctx) => {
   const seen = /* @__PURE__ */ new Set();
-  ids2.forEach((id31, index4) => {
-    if (seen.has(id31)) {
+  ids2.forEach((id32, index4) => {
+    if (seen.has(id32)) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: [index4],
         message: "Message Bundle sourceMessageIds must be unique"
       });
     }
-    seen.add(id31);
+    seen.add(id32);
   });
 });
 function requireAnchorInSourceRefs(value, ctx) {
@@ -40433,6 +40433,88 @@ var schema = external_exports.union([
   }).strict()
 ]);
 
+// ../shared/src/message-search-answer.ts
+var text5 = external_exports.string().max(24e3);
+var id2 = external_exports.string().min(1).max(2048);
+var count = external_exports.number().int().nonnegative();
+var mode = external_exports.enum(["lexical", "semantic", "hybrid"]);
+var messageSearchResponseSchema = external_exports.object({
+  searchId: id2,
+  query: external_exports.string().max(2e3),
+  results: external_exports.array(
+    external_exports.object({
+      threadId: id2,
+      messageId: id2,
+      threadTitle: text5,
+      speaker: id2,
+      speakerLabel: text5.optional(),
+      timestamp: external_exports.number().finite(),
+      timelineOrderAt: external_exports.number().finite(),
+      snippet: external_exports.object({ text: text5, start: count, end: count, source: external_exports.enum(["body", "attachment-text"]) }),
+      highlights: external_exports.array(external_exports.object({ start: count, end: count })).max(200),
+      match: mode,
+      contentRevision: id2,
+      publiclyQuotable: external_exports.boolean(),
+      decisionSources: external_exports.array(
+        external_exports.object({
+          status: external_exports.enum(["decided", "not-adopted", "superseded"]),
+          conclusion: text5,
+          featureId: id2,
+          documentPath: id2,
+          documentRevision: id2,
+          line: count,
+          decidedBy: text5.optional(),
+          decidedAt: text5.optional(),
+          historical: external_exports.boolean().optional()
+        })
+      ).max(200).optional()
+    })
+  ).max(20),
+  meta: external_exports.object({
+    scope: external_exports.enum(["thread", "global"]),
+    threadId: id2.optional(),
+    sort: external_exports.enum(["time", "relevance"]),
+    requestedMode: mode,
+    effectiveMode: mode,
+    degraded: external_exports.boolean(),
+    degradeReason: text5.optional(),
+    partial: external_exports.boolean(),
+    hasMore: external_exports.boolean(),
+    candidateLimit: count,
+    semanticCandidatesLimited: external_exports.boolean(),
+    sourceCoverage: external_exports.literal("unknown"),
+    freshness: external_exports.literal("unknown"),
+    decisionIndex: external_exports.object({ status: external_exports.enum(["ready", "unavailable"]), revision: id2.optional() }).optional(),
+    qualification: external_exports.object({
+      status: external_exports.enum(["complete", "partial"]),
+      examined: count,
+      supported: count,
+      rejected: count,
+      indeterminate: count,
+      unassessed: count
+    }).optional(),
+    response: external_exports.object({
+      budgetChars: count,
+      serializedChars: count,
+      truncated: external_exports.boolean(),
+      continuation: external_exports.literal("unavailable")
+    })
+  })
+});
+var messageSearchAnswerRefSchema = external_exports.string().regex(/^message-search-answer:[a-f0-9]{64}$/);
+var messageSearchAnswerBindingSchema = external_exports.object({
+  v: external_exports.literal(1),
+  publicationRef: messageSearchAnswerRefSchema,
+  blockId: external_exports.string().min(1).max(128),
+  responseDigest: external_exports.string().regex(/^[a-f0-9]{64}$/),
+  forwardedFromMessageId: external_exports.string().min(1).max(256).optional()
+});
+var messageSearchAnswerAttachmentSchema = external_exports.object({
+  publicationRef: messageSearchAnswerRefSchema,
+  /** Explicit forward of an actual server-bound card, never a copied permission grant. */
+  source: external_exports.object({ messageId: external_exports.string().min(1).max(256), blockId: external_exports.string().min(1).max(128) }).optional()
+});
+
 // ../shared/src/plugin-archive-replacement.ts
 var digest = external_exports.string().regex(/^sha512-[A-Za-z0-9+/]{85}[AQgw]==$/);
 var revision = external_exports.number().int().safe().min(1);
@@ -40536,11 +40618,11 @@ var RECALL_META_OPEN_TAG = `<${RECALL_META_TAG}>`;
 var RECALL_META_CLOSE_TAG = `</${RECALL_META_TAG}>`;
 
 // ../shared/src/types/ids.ts
-function createCatId(id31) {
-  if (!id31 || typeof id31 !== "string") {
+function createCatId(id32) {
+  if (!id32 || typeof id32 !== "string") {
     throw new Error("Invalid cat ID: must be non-empty string");
   }
-  return id31;
+  return id32;
 }
 
 // ../shared/src/registry/CatRegistry.ts
@@ -40577,12 +40659,12 @@ var CatRegistry = class {
     return this.entries.get(catId2);
   }
   getAllIds() {
-    return Array.from(this.entries.keys()).map((id31) => createCatId(id31));
+    return Array.from(this.entries.keys()).map((id32) => createCatId(id32));
   }
   getAllConfigs() {
     const result = {};
-    for (const [id31, entry] of this.entries) {
-      result[id31] = entry.config;
+    for (const [id32, entry] of this.entries) {
+      result[id32] = entry.config;
     }
     return result;
   }
@@ -40611,9 +40693,9 @@ var catRegistry = new CatRegistry();
 // ../shared/src/registry/cat-id-schema.ts
 function catIdSchema() {
   return external_exports.string().refine(
-    (id31) => catRegistry.has(id31),
-    (id31) => ({
-      message: `Unknown cat ID: "${id31}". Valid: ${catRegistry.getAllIds().join(", ")}`
+    (id32) => catRegistry.has(id32),
+    (id32) => ({
+      message: `Unknown cat ID: "${id32}". Valid: ${catRegistry.getAllIds().join(", ")}`
     })
   );
 }
@@ -40635,7 +40717,7 @@ var ManifestSlashCommandsSchema = external_exports.array(ManifestSlashCommandSch
 
 // ../shared/src/types/artifact-review-media.ts
 var ref3 = external_exports.string().trim().min(1).max(2048);
-var id2 = external_exports.string().trim().min(1).max(128);
+var id3 = external_exports.string().trim().min(1).max(128);
 var positive = external_exports.number().int().positive().safe();
 var tick = external_exports.number().int().safe();
 var rational = external_exports.object({ numerator: positive, denominator: positive }).strict();
@@ -40649,7 +40731,7 @@ var immutableMediaSchema = external_exports.discriminatedUnion("kind", [
     codedHeight: positive.max(32768),
     rotation: external_exports.union([external_exports.literal(0), external_exports.literal(90), external_exports.literal(180), external_exports.literal(270)]),
     pixelAspectRatio: rational,
-    streamId: id2,
+    streamId: id3,
     streamIndex: external_exports.number().int().min(0).max(64),
     timebase: rational,
     startTick: tick,
@@ -40681,7 +40763,7 @@ var artifactReviewAnchorSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("image-point"), ...point3 }).strict(),
   external_exports.object({
     kind: external_exports.literal("video-range"),
-    streamId: id2,
+    streamId: id3,
     startTick: tick,
     endTick: tick,
     /** A quoted paragraph belongs to this exact media version and retained metadata revision. */
@@ -40706,7 +40788,7 @@ var artifactReviewAnchorSchema = external_exports.discriminatedUnion("kind", [
     context2.addIssue({ code: "custom", message: "Choose one spatial target per video anchor" });
 });
 var mediaModificationSelectionItemSchema = external_exports.object({
-  id: id2,
+  id: id3,
   selection: artifactReviewAnchorSchema,
   instruction: external_exports.string().trim().min(1).max(4e3).optional()
 }).strict();
@@ -40744,44 +40826,44 @@ var artifactReviewImageEditSchema = external_exports.discriminatedUnion("kind", 
 
 // ../shared/src/types/artifact-review.ts
 var ref4 = external_exports.string().trim().min(1).max(2048);
-var id3 = external_exports.string().trim().min(1).max(128);
+var id4 = external_exports.string().trim().min(1).max(128);
 var positive2 = external_exports.number().int().positive().safe();
-var text5 = external_exports.string().trim().min(1).max(8e3);
+var text6 = external_exports.string().trim().min(1).max(8e3);
 var timestamp = external_exports.string().datetime();
 var artifactReviewActorSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("human"), actorId: id3 }).strict(),
-  external_exports.object({ kind: external_exports.literal("cat"), actorId: id3 }).strict()
+  external_exports.object({ kind: external_exports.literal("human"), actorId: id4 }).strict(),
+  external_exports.object({ kind: external_exports.literal("cat"), actorId: id4 }).strict()
 ]);
 var artifactReviewReplySchema = external_exports.object({
-  id: id3,
-  body: text5,
+  id: id4,
+  body: text6,
   author: artifactReviewActorSchema,
   createdAt: timestamp,
   updatedAt: timestamp
 }).strict();
 var artifactReviewAnnotationSchema = external_exports.object({
-  id: id3,
+  id: id4,
   anchor: artifactReviewAnchorSchema,
-  body: text5,
+  body: text6,
   author: artifactReviewActorSchema,
   createdAt: timestamp,
   updatedAt: timestamp,
   state: external_exports.enum(["open", "resolved"]),
   replies: external_exports.array(artifactReviewReplySchema).max(100),
-  reanchoredFrom: external_exports.object({ round: positive2, annotationId: id3 }).strict().optional(),
+  reanchoredFrom: external_exports.object({ round: positive2, annotationId: id4 }).strict().optional(),
   imageEdit: artifactReviewImageEditSchema.optional()
 }).strict();
 var artifactReviewResponseSchema = external_exports.object({
-  annotationId: id3,
+  annotationId: id4,
   disposition: external_exports.enum(["addressed", "unchanged"]),
-  explanation: text5
+  explanation: text6
 }).strict();
 var artifactReviewResponseRecordSchema = artifactReviewResponseSchema.extend({
   resultAnchor: artifactReviewAnchorSchema.optional(),
   /** Direct Human judgment of this exact result response; the original operation audit retains earlier choices. */
   judgment: external_exports.object({
     outcome: external_exports.enum(["accepted", "reopened"]),
-    actor: external_exports.object({ kind: external_exports.literal("human"), actorId: id3 }).strict(),
+    actor: external_exports.object({ kind: external_exports.literal("human"), actorId: id4 }).strict(),
     decidedAt: timestamp,
     receiptRef: ref4
   }).strict().optional()
@@ -40795,7 +40877,7 @@ var artifactReviewVisualMarkSchema = external_exports.object({
 }).strict();
 var artifactReviewRoundSchema = external_exports.object({
   /** Version 3 rounds retain only this canonical F309 ledger coordinate. */
-  ledgerRef: id3.optional(),
+  ledgerRef: id4.optional(),
   /** Read projection only; never persisted with the round. */
   ledgerRevision: positive2.optional(),
   number: positive2,
@@ -40809,12 +40891,12 @@ var artifactReviewRoundSchema = external_exports.object({
     round: positive2,
     ownerRevision: positive2,
     reviewRevision: positive2,
-    requestId: id3.optional(),
-    ledgerRef: id3.optional(),
+    requestId: id4.optional(),
+    ledgerRef: id4.optional(),
     ledgerRevision: positive2.optional()
   }).strict().optional(),
   responseAuthor: artifactReviewActorSchema.optional(),
-  judgmentRequest: external_exports.object({ summary: text5, judgmentNeeded: text5, requestedBy: artifactReviewActorSchema, requestedAt: timestamp }).strict().optional(),
+  judgmentRequest: external_exports.object({ summary: text6, judgmentNeeded: text6, requestedBy: artifactReviewActorSchema, requestedAt: timestamp }).strict().optional(),
   decision: external_exports.object({
     outcome: external_exports.enum(["approved", "changes_requested"]),
     explanation: external_exports.string().trim().max(8e3),
@@ -40829,10 +40911,10 @@ var artifactReviewRoundSchema = external_exports.object({
 }).strict();
 var artifactReviewSchema = external_exports.object({
   version: external_exports.union([external_exports.literal(1), external_exports.literal(2), external_exports.literal(3)]),
-  reviewId: id3,
+  reviewId: id4,
   revision: positive2,
   title: external_exports.string().trim().min(1).max(300),
-  task: external_exports.object({ taskId: id3, threadId: id3, ownerUserId: id3, observedRevision: positive2 }).strict(),
+  task: external_exports.object({ taskId: id4, threadId: id4, ownerUserId: id4, observedRevision: positive2 }).strict(),
   contentRef: ref4,
   rounds: external_exports.array(artifactReviewRoundSchema).min(1).max(200),
   createdAt: timestamp,
@@ -40860,51 +40942,51 @@ var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
     kind: external_exports.literal("request_media_edit"),
     mediaType: reviewedMediaTypeSchema,
-    annotationId: id3,
-    body: text5,
+    annotationId: id4,
+    body: text6,
     anchor: artifactReviewAnchorSchema.optional(),
     /** Multiple ranges belong to this one request and immutable source round. */
     selections: external_exports.array(
       external_exports.object({
-        id: id3,
+        id: id4,
         selection: artifactReviewAnchorSchema,
-        instruction: text5.optional()
+        instruction: text6.optional()
       }).strict()
     ).min(1).max(12).optional()
   }).strict(),
   external_exports.object({ kind: external_exports.literal("add_visual_marks"), marks: external_exports.array(artifactReviewDrawingSchema).min(1).max(100) }).strict(),
-  external_exports.object({ kind: external_exports.literal("delete_visual_mark"), markId: id3 }).strict(),
+  external_exports.object({ kind: external_exports.literal("delete_visual_mark"), markId: id4 }).strict(),
   external_exports.object({
     kind: external_exports.literal("request_image_edit"),
-    annotationId: id3,
+    annotationId: id4,
     edit: artifactReviewImageEditSchema,
     note: external_exports.string().trim().max(7600).optional()
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("annotate"),
-    annotationId: id3,
+    annotationId: id4,
     anchor: artifactReviewAnchorSchema,
-    body: text5,
-    reanchoredFrom: external_exports.object({ round: positive2, annotationId: id3 }).strict().optional()
+    body: text6,
+    reanchoredFrom: external_exports.object({ round: positive2, annotationId: id4 }).strict().optional()
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("reply"), annotationId: id3, replyId: id3, body: text5 }).strict(),
-  external_exports.object({ kind: external_exports.literal("edit"), annotationId: id3, replyId: id3.optional(), body: text5 }).strict(),
-  external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id3, state: external_exports.enum(["open", "resolved"]) }).strict(),
+  external_exports.object({ kind: external_exports.literal("reply"), annotationId: id4, replyId: id4, body: text6 }).strict(),
+  external_exports.object({ kind: external_exports.literal("edit"), annotationId: id4, replyId: id4.optional(), body: text6 }).strict(),
+  external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id4, state: external_exports.enum(["open", "resolved"]) }).strict(),
   external_exports.object({
     kind: external_exports.literal("judge_response"),
     sourceRound: positive2,
-    annotationId: id3,
+    annotationId: id4,
     resultOwnerRevision: positive2,
     outcome: external_exports.enum(["accepted", "reopened"])
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("request_judgment"), summary: text5, judgmentNeeded: text5 }).strict(),
-  external_exports.object({ kind: external_exports.literal("submit_feedback"), explanation: text5 }).strict(),
+  external_exports.object({ kind: external_exports.literal("request_judgment"), summary: text6, judgmentNeeded: text6 }).strict(),
+  external_exports.object({ kind: external_exports.literal("submit_feedback"), explanation: text6 }).strict(),
   external_exports.object({
     kind: external_exports.literal("decide"),
     outcome: external_exports.enum(["approved", "changes_requested"]),
     explanation: external_exports.string().trim().max(8e3)
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("reopen"), explanation: text5 }).strict()
+  external_exports.object({ kind: external_exports.literal("reopen"), explanation: text6 }).strict()
 ]).superRefine((action, ctx) => {
   if (action.kind === "decide" && action.outcome === "changes_requested" && !action.explanation)
     ctx.addIssue({ code: "custom", path: ["explanation"], message: "Changes require human feedback" });
@@ -40915,60 +40997,60 @@ var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
 });
 var artifactReviewCommandSchema = external_exports.object({
   expectedLedgerRevision: positive2.optional(),
-  reviewId: id3,
+  reviewId: id4,
   expectedRevision: positive2,
   expectedTaskRevision: positive2,
   round: positive2,
-  operationId: id3,
+  operationId: id4,
   action: artifactReviewActionSchema
 }).strict();
 var prepareArtifactReviewSchema = external_exports.object({
-  taskId: id3,
+  taskId: id4,
   expectedTaskRevision: positive2,
   artifactRef: ref4,
   expectedArtifactRevision: ref4,
-  operationId: id3
+  operationId: id4
 }).strict();
 var respondWithMediaVersionSchema = external_exports.object({
-  requestId: id3.optional(),
+  requestId: id4.optional(),
   expectedLedgerRevision: positive2.optional(),
-  reviewId: id3,
+  reviewId: id4,
   expectedRevision: positive2,
   expectedTaskRevision: positive2,
-  operationId: id3,
+  operationId: id4,
   expectedOwnerRevision: positive2,
   artifactRef: ref4,
   expectedArtifactRevision: ref4,
   responses: external_exports.array(artifactReviewResponseSchema).max(500)
 }).strict();
 var publicationReviewContextSchema = external_exports.object({
-  reviewId: id3,
+  reviewId: id4,
   round: positive2,
-  taskId: id3,
-  threadId: id3,
-  title: text5,
-  taskTitle: text5,
-  threadTitle: text5,
-  targetCatId: id3.nullable(),
-  targetName: text5,
-  ledgerRef: id3.optional(),
+  taskId: id4,
+  threadId: id4,
+  title: text6,
+  taskTitle: text6,
+  threadTitle: text6,
+  targetCatId: id4.nullable(),
+  targetName: text6,
+  ledgerRef: id4.optional(),
   state: external_exports.enum(["draft", "awaiting_human", "approved", "changes_requested", "superseded"]).optional(),
   taskState: external_exports.enum(["active", "closed"]).optional()
 }).strict();
 
 // ../shared/src/types/video-project-review.ts
-var id4 = external_exports.string().min(1).max(256).refine((value) => value.trim().length > 0);
+var id5 = external_exports.string().min(1).max(256).refine((value) => value.trim().length > 0);
 var revision2 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var positive3 = external_exports.number().int().positive().safe();
 var tick2 = external_exports.number().int().nonnegative().safe();
 var body = external_exports.string().min(1).max(8e3).refine((value) => value.trim().length > 0);
 var actor2 = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("human"), actorId: id4 }).strict(),
-  external_exports.object({ kind: external_exports.literal("cat"), actorId: id4 }).strict()
+  external_exports.object({ kind: external_exports.literal("human"), actorId: id5 }).strict(),
+  external_exports.object({ kind: external_exports.literal("cat"), actorId: id5 }).strict()
 ]);
 var videoProjectReviewSourceSchema = external_exports.object({
   kind: external_exports.literal("video-project"),
-  contentRef: id4,
+  contentRef: id5,
   ownerRevision: positive3,
   revision: revision2,
   mime: external_exports.literal("application/vnd.cat-cafe.video-project+json")
@@ -41005,20 +41087,20 @@ var videoProjectReviewMomentRegionSchema = external_exports.union([
 ]);
 var videoProjectReviewTargetSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("project") }).strict(),
-  external_exports.object({ kind: external_exports.literal("segment"), segmentId: id4 }).strict(),
+  external_exports.object({ kind: external_exports.literal("segment"), segmentId: id5 }).strict(),
   external_exports.object({
     kind: external_exports.literal("moment"),
     tick: tick2,
     endTick: positive3.optional(),
     timebase: external_exports.object({ numerator: positive3, denominator: positive3 }).strict(),
-    segmentId: id4.optional(),
-    visualUseId: id4.optional(),
+    segmentId: id5.optional(),
+    visualUseId: id5.optional(),
     region: videoProjectReviewMomentRegionSchema.optional()
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("artwork"),
-    assetVersionRef: id4,
-    visualUseId: id4.optional(),
+    assetVersionRef: id5,
+    visualUseId: id5.optional(),
     region: videoProjectReviewRegionSchema.optional()
   }).strict()
 ]).superRefine((target, ctx) => {
@@ -41032,36 +41114,36 @@ var videoProjectReviewAnchorSchema = external_exports.object({
   target: videoProjectReviewTargetSchema
 }).strict();
 var videoProjectReviewResultSchema = external_exports.union([
-  external_exports.object({ contentRef: id4, ownerRevision: positive3, blobDigest: revision2, operationId: id4 }).strict(),
-  external_exports.object({ assetVersionRef: id4, ownerRevision: positive3 }).strict(),
+  external_exports.object({ contentRef: id5, ownerRevision: positive3, blobDigest: revision2, operationId: id5 }).strict(),
+  external_exports.object({ assetVersionRef: id5, ownerRevision: positive3 }).strict(),
   external_exports.object({ kind: external_exports.literal("not-changed"), reason: body }).strict()
 ]);
 var videoProjectReviewHistorySchema = external_exports.object({
   kind: external_exports.enum(["created", "located", "replied", "addressed", "reopened", "resolved"]),
   actor: actor2,
   at: external_exports.string().datetime(),
-  operationId: id4,
+  operationId: id5,
   reason: body.optional(),
   targets: external_exports.array(videoProjectReviewAnchorSchema).min(1).max(100).optional(),
   result: videoProjectReviewResultSchema.optional(),
-  replyId: id4.optional()
+  replyId: id5.optional()
 }).strict();
 var videoProjectReviewActionSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
     kind: external_exports.literal("located"),
-    annotationId: id4,
+    annotationId: id5,
     targets: external_exports.array(videoProjectReviewAnchorSchema).min(1).max(100),
     reason: body.optional()
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("replied"), annotationId: id4, replyId: id4, body }).strict(),
+  external_exports.object({ kind: external_exports.literal("replied"), annotationId: id5, replyId: id5, body }).strict(),
   external_exports.object({
     kind: external_exports.literal("addressed"),
-    annotationId: id4,
+    annotationId: id5,
     result: videoProjectReviewResultSchema,
     reason: body.optional()
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("reopened"), annotationId: id4, reason: body }).strict(),
-  external_exports.object({ kind: external_exports.literal("resolved"), annotationId: id4, reason: body.optional() }).strict()
+  external_exports.object({ kind: external_exports.literal("reopened"), annotationId: id5, reason: body }).strict(),
+  external_exports.object({ kind: external_exports.literal("resolved"), annotationId: id5, reason: body.optional() }).strict()
 ]);
 
 // ../shared/src/types/video-project-json.ts
@@ -41269,20 +41351,20 @@ var videoProjectScreeningsSchema = external_exports.array(videoProjectScreeningS
 });
 
 // ../shared/src/types/content-modification-project.ts
-var id5 = external_exports.string().trim().min(1).max(256);
+var id6 = external_exports.string().trim().min(1).max(256);
 var revision3 = external_exports.number().int().positive().safe();
 var projectModificationSourceSchema = external_exports.object({
   kind: external_exports.literal("video-project"),
-  contentRef: id5,
-  reviewId: id5,
+  contentRef: id6,
+  reviewId: id6,
   expectedReviewRevision: revision3,
-  screeningId: id5,
+  screeningId: id6,
   input: videoProjectFrozenInputSchema,
   media: videoProjectFrozenInputSchema,
-  annotationIds: external_exports.array(id5).min(1).max(12)
+  annotationIds: external_exports.array(id6).min(1).max(12)
 }).strict();
 var projectModificationSelectionItemSchema = external_exports.object({
-  id: id5,
+  id: id6,
   selection: videoProjectReviewAnchorSchema,
   instruction: external_exports.string().trim().min(1).max(8e3).optional()
 }).strict();
@@ -41609,11 +41691,11 @@ var evolutionMediaSnapshotSourceSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/video-project-message.ts
-var id6 = external_exports.string().trim().min(1).max(256);
+var id7 = external_exports.string().trim().min(1).max(256);
 var revision4 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var videoProjectMediaRangeSchema = external_exports.object({ startPts: external_exports.number().int().safe(), endPts: external_exports.number().int().safe() }).strict().refine(({ startPts, endPts }) => endPts > startPts, "Media selection must be a nonempty half-open range");
 var videoProjectScreeningSelectionSchema = external_exports.object({
-  id: id6,
+  id: id7,
   mediaRange: videoProjectMediaRangeSchema,
   target: videoProjectReviewTargetSchema,
   displayRegion: videoProjectReviewRegionSchema.optional(),
@@ -41623,10 +41705,10 @@ var videoProjectScreeningSelectionSchema = external_exports.object({
 var projectScreeningContextAttachmentSchema = external_exports.object({
   v: external_exports.literal(1),
   kind: external_exports.literal("project-screening"),
-  id: id6,
+  id: id7,
   title: external_exports.string().trim().min(1).max(1e3),
-  contentRef: id6,
-  screeningId: id6,
+  contentRef: id7,
+  screeningId: id7,
   input: videoProjectFrozenInputSchema,
   media: videoProjectFrozenInputSchema,
   selections: external_exports.array(videoProjectScreeningSelectionSchema).min(1).max(12)
@@ -41635,17 +41717,17 @@ var projectScreeningContextAttachmentSchema = external_exports.object({
   "Selection IDs must be unique"
 );
 var videoProjectMessageSourceSchema = external_exports.object({
-  threadId: id6,
-  messageId: id6,
+  threadId: id7,
+  messageId: id7,
   messageRevision: revision4,
-  attachmentId: id6,
-  selectionId: id6,
+  attachmentId: id7,
+  selectionId: id7,
   visibility: external_exports.enum(["public", "whisper"]),
-  whisperTo: external_exports.array(id6).max(100)
+  whisperTo: external_exports.array(id7).max(100)
 }).strict();
 var videoProjectMessageContextSchema = external_exports.object({
   source: videoProjectMessageSourceSchema,
-  screeningId: id6,
+  screeningId: id7,
   input: videoProjectFrozenInputSchema,
   media: videoProjectFrozenInputSchema,
   selection: videoProjectScreeningSelectionSchema,
@@ -41654,7 +41736,7 @@ var videoProjectMessageContextSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/workspace-content-review.ts
-var id7 = external_exports.string().trim().min(1).max(256);
+var id8 = external_exports.string().trim().min(1).max(256);
 var timestamp2 = external_exports.string().datetime();
 var revision5 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var positive4 = external_exports.number().int().positive().safe();
@@ -41663,18 +41745,18 @@ var rawSourceQuote = external_exports.string().min(1).max(8e3);
 var maxWorkspaceContentAnnotations = 500;
 var maxWorkspaceContentVisualMarks = 500;
 var maxWorkspaceContentSourceHistory = 1 + maxWorkspaceContentAnnotations + maxWorkspaceContentVisualMarks;
-var workspaceContentLocatorSchema = external_exports.object({ worktreeId: id7, path: external_exports.string().trim().min(1).max(2048) }).strict();
+var workspaceContentLocatorSchema = external_exports.object({ worktreeId: id8, path: external_exports.string().trim().min(1).max(2048) }).strict();
 var workspaceContentActorSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("human"), actorId: id7 }).strict(),
-  external_exports.object({ kind: external_exports.literal("cat"), actorId: id7 }).strict()
+  external_exports.object({ kind: external_exports.literal("human"), actorId: id8 }).strict(),
+  external_exports.object({ kind: external_exports.literal("cat"), actorId: id8 }).strict()
 ]);
 var workspaceContentSourceSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
     kind: external_exports.literal("collective-media"),
-    contentRef: id7,
+    contentRef: id8,
     ownerRevision: positive4,
     blobDigest: revision5,
-    ownerReceiptRef: id7,
+    ownerReceiptRef: id8,
     revision: revision5,
     mime: external_exports.enum(["image/png", "video/mp4"]),
     media: immutableMediaSchema
@@ -41736,7 +41818,7 @@ var workspaceContentAnchorSchema = external_exports.union([
   videoProjectReviewAnchorSchema
 ]);
 var workspaceContentReplySchema = external_exports.object({
-  id: id7,
+  id: id8,
   body: body2,
   author: workspaceContentActorSchema,
   createdAt: timestamp2,
@@ -41752,19 +41834,19 @@ var workspaceContentVisualMarkSchema = external_exports.object({
 }).strict();
 var workspaceContentAnnotationSchema = external_exports.object({
   collectiveMessage: external_exports.object({
-    serviceInstanceId: id7,
-    collectiveId: id7,
-    eventId: id7,
-    channelId: id7,
-    rootEventId: id7,
+    serviceInstanceId: id8,
+    collectiveId: id8,
+    eventId: id8,
+    channelId: id8,
+    rootEventId: id8,
     ownerRevision: positive4,
     blobDigest: revision5
   }).strict().optional(),
   imageEdit: artifactReviewImageEditSchema.optional(),
-  reanchoredFrom: external_exports.object({ round: positive4, annotationId: id7 }).strict().optional(),
-  id: id7,
+  reanchoredFrom: external_exports.object({ round: positive4, annotationId: id8 }).strict().optional(),
+  id: id8,
   /** Stable operation identity allows a client to reconcile an unknown write result. */
-  operationId: id7.optional(),
+  operationId: id8.optional(),
   anchor: workspaceContentAnchorSchema,
   body: body2,
   author: workspaceContentActorSchema,
@@ -41781,17 +41863,17 @@ var workspaceContentAnnotationSchema = external_exports.object({
 var workspaceContentReviewSchema = external_exports.object({
   collaborationScope: external_exports.object({
     kind: external_exports.literal("collective-artifact"),
-    scopeRef: id7,
-    serviceInstanceId: id7,
-    collectiveId: id7,
-    artifactId: id7,
-    sourceEventId: id7.optional(),
+    scopeRef: id8,
+    serviceInstanceId: id8,
+    collectiveId: id8,
+    artifactId: id8,
+    sourceEventId: id8.optional(),
     custodyRevision: positive4.optional()
   }).strict().optional(),
   version: external_exports.literal(1),
-  reviewId: id7,
-  ownerUserId: id7,
-  contentRef: id7,
+  reviewId: id8,
+  ownerUserId: id8,
+  contentRef: id8,
   source: workspaceContentSourceSchema,
   /** Bounded immutable owner metadata snapshots; never source bytes or projection URLs. */
   sourceHistory: external_exports.array(workspaceContentSourceSchema).min(1).max(maxWorkspaceContentSourceHistory).optional(),
@@ -41811,9 +41893,9 @@ var workspaceContentReviewSchema = external_exports.object({
 });
 var workspaceContentReviewActionSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("add_visual_marks"), marks: external_exports.array(artifactReviewDrawingSchema).min(1).max(100) }).strict(),
-  external_exports.object({ kind: external_exports.literal("delete_visual_mark"), markId: id7 }).strict(),
-  external_exports.object({ kind: external_exports.literal("reply"), annotationId: id7, replyId: id7, body: body2 }).strict(),
-  external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id7, state: external_exports.enum(["open", "resolved"]) }).strict()
+  external_exports.object({ kind: external_exports.literal("delete_visual_mark"), markId: id8 }).strict(),
+  external_exports.object({ kind: external_exports.literal("reply"), annotationId: id8, replyId: id8, body: body2 }).strict(),
+  external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id8, state: external_exports.enum(["open", "resolved"]) }).strict()
 ]);
 
 // ../shared/src/types/content-modification-receipt.ts
@@ -41883,32 +41965,32 @@ var contentModificationReceiptV1Schema = external_exports.discriminatedUnion("st
 });
 
 // ../shared/src/types/content-modification.ts
-var id8 = external_exports.string().trim().min(1).max(256);
+var id9 = external_exports.string().trim().min(1).max(256);
 var revision6 = external_exports.number().int().positive().safe();
 var sha = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var businessTime = external_exports.number().int().positive().safe();
 var contentModificationSourceSchema = external_exports.discriminatedUnion("kind", [
   projectModificationSourceSchema,
-  external_exports.object({ kind: external_exports.literal("artifact-review"), reviewId: id8, round: revision6, expectedReviewRevision: revision6 }).strict(),
+  external_exports.object({ kind: external_exports.literal("artifact-review"), reviewId: id9, round: revision6, expectedReviewRevision: revision6 }).strict(),
   external_exports.object({
     kind: external_exports.literal("evolution"),
     locator: evolutionMediaLocatorSchema,
     expectedSourceRevision: sha,
-    reviewId: id8,
+    reviewId: id9,
     expectedReviewRevision: revision6
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("publication"),
-    contentRef: id8,
+    contentRef: id9,
     ownerRevision: revision6,
-    ledgerRef: id8,
+    ledgerRef: id9,
     expectedLedgerRevision: revision6
   }).strict(),
   external_exports.object({
     kind: external_exports.literal("workspace"),
     locator: workspaceContentLocatorSchema,
     expectedSourceRevision: sha,
-    reviewId: id8,
+    reviewId: id9,
     expectedReviewRevision: revision6
   }).strict()
 ]);
@@ -41918,7 +42000,7 @@ var contentModificationSelectionSchema = external_exports.union([
   videoProjectReviewAnchorSchema
 ]);
 var textModificationSelectionItemSchema = external_exports.object({
-  id: id8,
+  id: id9,
   selection: workspaceTextAnchorSchema,
   instruction: external_exports.string().trim().min(1).max(4e3).optional()
 }).strict();
@@ -41928,15 +42010,15 @@ var contentModificationSelectionItemSchema = external_exports.union([
   projectModificationSelectionItemSchema
 ]);
 var contentModificationTakeoverSchema = external_exports.object({
-  sourceMessageId: id8,
+  sourceMessageId: id9,
   operationId: external_exports.string().uuid(),
   attachmentId: external_exports.string().trim().min(1).max(128).optional()
 }).strict();
 var contentModificationRequestSchema = external_exports.object({
   operationId: external_exports.string().uuid(),
   source: contentModificationSourceSchema,
-  targetCatId: id8,
-  threadId: id8,
+  targetCatId: id9,
+  threadId: id9,
   intent: external_exports.object({
     body: external_exports.string().max(8e3),
     imageEdit: artifactReviewImageEditSchema.optional(),
@@ -41974,13 +42056,13 @@ var contentModificationRequestSchema = external_exports.object({
   taskContext: external_exports.union([
     external_exports.object({
       kind: external_exports.literal("media").optional(),
-      taskId: id8,
+      taskId: id9,
       expectedTaskRevision: revision6,
-      reviewId: id8,
+      reviewId: id9,
       expectedReviewRevision: revision6,
       round: revision6
     }).strict(),
-    external_exports.object({ kind: external_exports.literal("text"), taskId: id8, expectedTaskRevision: revision6 }).strict()
+    external_exports.object({ kind: external_exports.literal("text"), taskId: id9, expectedTaskRevision: revision6 }).strict()
   ]).optional(),
   time: external_exports.object({ businessDeadline: businessTime.optional(), reviewBy: businessTime.optional() }).strict().optional()
 }).strict();
@@ -42008,13 +42090,13 @@ var contentModificationRequestContractSchema = contentModificationRequestSchema.
     return;
   }
   if (!selections) return;
-  const text11 = selections.filter((item) => item.selection.kind === "text_quote");
-  if (text11.length === 0) {
+  const text12 = selections.filter((item) => item.selection.kind === "text_quote");
+  if (text12.length === 0) {
     if (request.taskContext?.kind === "text")
       ctx.addIssue({ code: "custom", path: ["taskContext"], message: "Media selections require media context" });
     return;
   }
-  if (text11.length !== selections.length) {
+  if (text12.length !== selections.length) {
     ctx.addIssue({ code: "custom", path: ["intent", "selections"], message: "Do not mix text and media selections" });
     return;
   }
@@ -42041,21 +42123,21 @@ var contentModificationSourceMessageV1Schema = external_exports.object({
   requestId: external_exports.string().regex(/^f309-modification-[a-f0-9]{64}$/),
   requestFingerprint: sha,
   contentTitle: external_exports.string().min(1).max(300),
-  targetCatId: id8,
+  targetCatId: id9,
   targetName: external_exports.string().min(1).max(200),
   executionThreadTitle: external_exports.string().min(1).max(300),
   completionRule: external_exports.enum(["published-result-ready", "file-writeback-applied"])
 }).strict();
 var contentTextEditSchema = external_exports.object({
   /** Explicit request-selection relation; absence means an additional unscoped change. */
-  selectionId: id8.optional(),
+  selectionId: id9.optional(),
   start: external_exports.number().int().nonnegative().safe(),
   end: external_exports.number().int().nonnegative().safe(),
   expectedText: external_exports.string().max(1024 * 1024),
   replacement: external_exports.string().max(1024 * 1024)
 }).strict().refine((edit) => edit.end >= edit.start, "Invalid patch range");
 var respondContentTextSchema = external_exports.object({
-  requestId: id8,
+  requestId: id9,
   operationId: external_exports.string().uuid(),
   expectedTaskRevision: revision6,
   expectedProposalRevision: external_exports.number().int().nonnegative().safe(),
@@ -42064,36 +42146,36 @@ var respondContentTextSchema = external_exports.object({
   response: external_exports.string().trim().min(1).max(8e3)
 }).strict();
 var inspectContentModificationSchema = external_exports.object({
-  requestId: id8,
+  requestId: id9,
   view: external_exports.enum(["overview", "source", "proposals", "control"]).default("overview"),
-  reviewId: id8.optional(),
+  reviewId: id9.optional(),
   cursor: external_exports.number().int().min(0).max(1e7).default(0),
   expectedSnapshot: sha.optional()
 }).strict();
 
 // ../shared/src/types/message-media-item-selector.ts
-var id9 = external_exports.string().min(1).max(256).refine((value) => value.trim() === value && !value.includes("\0"));
+var id10 = external_exports.string().min(1).max(256).refine((value) => value.trim() === value && !value.includes("\0"));
 var index2 = external_exports.number().int().min(0).max(1e4);
 var messageMediaItemSelectorSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("media-gallery"), blockId: id9, itemIndex: index2 }).strict(),
-  external_exports.object({ kind: external_exports.literal("rich-file"), blockId: id9 }).strict(),
+  external_exports.object({ kind: external_exports.literal("media-gallery"), blockId: id10, itemIndex: index2 }).strict(),
+  external_exports.object({ kind: external_exports.literal("rich-file"), blockId: id10 }).strict(),
   external_exports.object({ kind: external_exports.literal("content-block"), index: index2 }).strict()
 ]);
 
 // ../shared/src/types/media-publication-source.ts
-var id10 = external_exports.string().min(1).max(256).refine((value) => value.trim() === value && !value.includes("\0"));
+var id11 = external_exports.string().min(1).max(256).refine((value) => value.trim() === value && !value.includes("\0"));
 var messageMediaPublicationSourceSchema = external_exports.object({
   kind: external_exports.literal("message"),
-  threadId: id10,
-  messageId: id10,
+  threadId: id11,
+  messageId: id11,
   messageRevision: external_exports.string().max(64).regex(/^\d+$/),
   item: messageMediaItemSelectorSchema,
   expectedUrl: external_exports.string().min(1).max(2048)
 }).strict();
 var workspaceMediaSnapshotSourceSchema = external_exports.object({
   kind: external_exports.literal("workspace-snapshot"),
-  threadId: id10,
-  locator: external_exports.object({ worktreeId: id10, path: external_exports.string().min(1).max(2048) }).strict(),
+  threadId: id11,
+  locator: external_exports.object({ worktreeId: id11, path: external_exports.string().min(1).max(2048) }).strict(),
   expectedSourceRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/)
 }).strict();
 var mediaPublicationSourceSchema = external_exports.discriminatedUnion("kind", [
@@ -42103,13 +42185,13 @@ var mediaPublicationSourceSchema = external_exports.discriminatedUnion("kind", [
 ]);
 
 // ../shared/src/types/media-context-attachment.ts
-var id11 = external_exports.string().trim().min(1).max(128);
+var id12 = external_exports.string().trim().min(1).max(128);
 var ownerId = external_exports.string().trim().min(1).max(256);
 var revision7 = external_exports.number().int().positive().safe();
 var mediaGalleryOriginSchema = messageMediaPublicationSourceSchema.pick({ threadId: true, messageId: true, messageRevision: true, item: true }).extend({ index: external_exports.number().int().min(0).max(1e4), count: external_exports.number().int().min(1).max(10001) }).strict().refine((value) => value.index < value.count, "Gallery position must be inside its original message group");
 var MediaContextAttachmentSchema = external_exports.object({
   v: external_exports.literal(1),
-  id: id11,
+  id: id12,
   kind: external_exports.literal("media"),
   title: external_exports.string().trim().min(1).max(300),
   mediaType: reviewedMediaTypeSchema,
@@ -42476,8 +42558,8 @@ var MESSAGE_STICKER_CATALOG = [
 // ../shared/src/types/message-stickers.ts
 var MESSAGE_STICKER_PACK_ID = "cafe-expressions";
 var MESSAGE_STICKER_PACK_REVISION = 1;
-function findMessageSticker(id31) {
-  return MESSAGE_STICKER_CATALOG.find((entry) => entry.id === id31);
+function findMessageSticker(id32) {
+  return MESSAGE_STICKER_CATALOG.find((entry) => entry.id === id32);
 }
 var messageStickerSchema = external_exports.object({
   v: external_exports.literal(1),
@@ -42489,8 +42571,8 @@ var messageStickerSchema = external_exports.object({
   (value) => findMessageSticker(value.stickerId)?.blobDigest === value.blobDigest,
   "Sticker must name an immutable catalogue image"
 );
-function messageStickerReference(id31) {
-  const entry = findMessageSticker(id31);
+function messageStickerReference(id32) {
+  const entry = findMessageSticker(id32);
   if (!entry) throw new Error("Unknown sticker catalogue image");
   return {
     v: 1,
@@ -43353,7 +43435,7 @@ function requireDistinctRichBlocks(blocks, context2) {
   for (const block of blocks ?? []) {
     if (block.kind !== "interactive") continue;
     const ids2 = new Set(block.options.map((option) => option.id));
-    if (ids2.size !== block.options.length || block.selectedIds?.some((id31) => !ids2.has(id31)))
+    if (ids2.size !== block.options.length || block.selectedIds?.some((id32) => !ids2.has(id32)))
       context2.addIssue({
         code: "custom",
         path: ["richBlocks"],
@@ -43938,7 +44020,7 @@ var collectiveHostShellAppearanceSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-artifact-custody.ts
-var id12 = external_exports.string().trim().min(1).max(256);
+var id13 = external_exports.string().trim().min(1).max(256);
 var positive5 = external_exports.number().int().positive().safe();
 var digest2 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var COLLECTIVE_CUSTODY_PAGE_BYTES = 32768;
@@ -43949,40 +44031,40 @@ var collectiveCustodyManifestSchema = external_exports.object({
   totalBytes: positive5.max(COLLECTIVE_CUSTODY_MAX_BYTES),
   pageCount: positive5.max(COLLECTIVE_CUSTODY_MAX_PAGES)
 }).strict().refine((value) => value.pageCount === Math.ceil(value.totalBytes / COLLECTIVE_CUSTODY_PAGE_BYTES));
-var collectiveCustodyVersionSchema = external_exports.object({ contentRef: id12, ownerRevision: positive5, blobDigest: digest2, receiptRef: id12 }).strict();
+var collectiveCustodyVersionSchema = external_exports.object({ contentRef: id13, ownerRevision: positive5, blobDigest: digest2, receiptRef: id13 }).strict();
 var collectiveCustodyPreparedSchema = external_exports.object({
-  preparedRef: id12,
+  preparedRef: id13,
   manifest: collectiveCustodyManifestSchema,
   version: collectiveCustodyVersionSchema,
-  ownerScopeRef: id12
+  ownerScopeRef: id13
 }).strict();
 var collectiveCustodyReadySchema = external_exports.object({
-  readyRef: id12,
-  preparedRef: id12,
+  readyRef: id13,
+  preparedRef: id13,
   manifestDigest: digest2,
-  ownerScopeRef: id12
+  ownerScopeRef: id13
 }).strict();
 var collectiveCustodyTransferSchema = external_exports.object({
   v: external_exports.literal(1),
-  transferId: id12,
-  serviceInstanceId: id12,
-  collectiveId: id12,
-  artifactId: id12,
-  sourceEventId: id12,
-  publishedByHumanId: id12,
-  sourceConnectionId: id12,
-  sourceEndpointId: id12,
-  sourceHumanId: id12,
-  targetConnectionId: id12,
-  targetEndpointId: id12,
-  targetHumanId: id12,
+  transferId: id13,
+  serviceInstanceId: id13,
+  collectiveId: id13,
+  artifactId: id13,
+  sourceEventId: id13,
+  publishedByHumanId: id13,
+  sourceConnectionId: id13,
+  sourceEndpointId: id13,
+  sourceHumanId: id13,
+  targetConnectionId: id13,
+  targetEndpointId: id13,
+  targetHumanId: id13,
   expectedCustodyRevision: positive5,
   state: external_exports.enum(["offered", "source_prepared", "target_ready", "committed", "cancelled"]),
   version: collectiveCustodyVersionSchema,
   prepared: collectiveCustodyPreparedSchema.optional(),
   ready: collectiveCustodyReadySchema.optional(),
-  offeredByHumanId: id12,
-  offerRequestId: id12,
+  offeredByHumanId: id13,
+  offerRequestId: id13,
   createdAt: external_exports.string().datetime(),
   updatedAt: external_exports.string().datetime(),
   sourceFinalized: external_exports.boolean().default(false),
@@ -43992,13 +44074,13 @@ var collectiveCustodyTransferSchema = external_exports.object({
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Transfer phase requires exact owner proofs" });
 });
 var collectiveCustodyPageSchema = external_exports.object({
-  transferId: id12,
+  transferId: id13,
   index: external_exports.number().int().nonnegative().max(COLLECTIVE_CUSTODY_MAX_PAGES - 1),
   digest: digest2,
   base64: external_exports.string().min(1).max(Math.ceil(COLLECTIVE_CUSTODY_PAGE_BYTES / 3) * 4)
 }).strict();
-var collectiveCustodyEndpointSchema = external_exports.object({ serviceInstanceId: id12, collectiveId: id12, connectionId: id12 }).strict();
-var collectiveCustodyTargetSchema = collectiveCustodyEndpointSchema.extend({ artifactId: id12, transferId: id12 }).strict();
+var collectiveCustodyEndpointSchema = external_exports.object({ serviceInstanceId: id13, collectiveId: id13, connectionId: id13 }).strict();
+var collectiveCustodyTargetSchema = collectiveCustodyEndpointSchema.extend({ artifactId: id13, transferId: id13 }).strict();
 var prepareCollectiveCustodySchema = collectiveCustodyTargetSchema.extend({ proof: collectiveCustodyPreparedSchema }).strict();
 var readyCollectiveCustodySchema = collectiveCustodyTargetSchema.extend({ proof: collectiveCustodyReadySchema }).strict();
 var cancelCollectiveCustodySchema = collectiveCustodyTargetSchema.omit({ connectionId: true }).strict();
@@ -44006,47 +44088,47 @@ var finalizeCollectiveCustodySchema = collectiveCustodyTargetSchema.extend({ out
 var authorizeCollectiveCustodySchema = collectiveCustodyTargetSchema.extend({ operation: external_exports.enum(["prepareSource", "readPage", "stageTarget", "attestReady", "finalize"]) }).strict();
 
 // ../shared/src/types/collective-content-modification.ts
-var id13 = external_exports.string().trim().min(1).max(256);
+var id14 = external_exports.string().trim().min(1).max(256);
 var positive6 = external_exports.number().int().positive().safe();
 var digest3 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
-var collectiveModificationReworkSchema = external_exports.object({ requestId: id13, proposalRef: id13 }).strict();
+var collectiveModificationReworkSchema = external_exports.object({ requestId: id14, proposalRef: id14 }).strict();
 var collectiveModificationResolutionSchema = external_exports.object({
   kind: external_exports.enum(["cancelled", "rejected"]),
-  operationId: id13,
-  actorHumanId: id13,
+  operationId: id14,
+  actorHumanId: id14,
   expectedRequestRevision: positive6,
-  proposalRef: id13.optional(),
-  receiptRef: id13,
+  proposalRef: id14.optional(),
+  receiptRef: id14,
   resolvedAt: external_exports.number().int().nonnegative().safe()
 }).strict();
 var collectiveModificationSourceSchema = external_exports.object({
-  scopeRef: id13,
-  serviceInstanceId: id13,
-  collectiveId: id13,
-  artifactId: id13,
-  contentRef: id13,
+  scopeRef: id14,
+  serviceInstanceId: id14,
+  collectiveId: id14,
+  artifactId: id14,
+  contentRef: id14,
   ownerRevision: positive6,
   blobDigest: digest3,
-  ledgerRef: id13,
+  ledgerRef: id14,
   ledgerRevision: positive6,
-  sourceEventId: id13,
-  requestEventId: id13,
+  sourceEventId: id14,
+  requestEventId: id14,
   location: collectiveLocationSchema,
   rework: collectiveModificationReworkSchema.optional()
 }).strict();
 var collectiveModificationTargetSchema = external_exports.object({
-  humanId: id13,
-  catId: id13,
-  connectionId: id13,
+  humanId: id14,
+  catId: id14,
+  connectionId: id14,
   participationRevision: positive6
 }).strict();
 var collectiveModificationIntentSchema = external_exports.object({
-  ownerUserId: id13,
-  requestingHumanId: id13,
+  ownerUserId: id14,
+  requestingHumanId: id14,
   source: collectiveModificationSourceSchema,
   target: collectiveModificationTargetSchema,
   instruction: external_exports.string().trim().min(1).max(8e3),
-  annotationIds: external_exports.array(id13).min(1).max(12)
+  annotationIds: external_exports.array(id14).min(1).max(12)
 }).strict();
 var collectiveModificationRecordSchema = collectiveModificationIntentSchema.extend({
   v: external_exports.literal(1),
@@ -44055,8 +44137,8 @@ var collectiveModificationRecordSchema = collectiveModificationIntentSchema.exte
   revision: positive6,
   state: external_exports.enum(["requested", "running", "proposal_ready", "cancelled", "accepted", "conflict", "unavailable"]),
   resolution: collectiveModificationResolutionSchema.optional(),
-  transferOutcome: external_exports.object({ reason: external_exports.literal("custody_transferred"), transferId: id13, sourceCustodyRevision: positive6 }).strict().optional(),
-  execution: external_exports.object({ invocationId: id13, threadId: id13 }).strict().optional(),
+  transferOutcome: external_exports.object({ reason: external_exports.literal("custody_transferred"), transferId: id14, sourceCustodyRevision: positive6 }).strict().optional(),
+  execution: external_exports.object({ invocationId: id14, threadId: id14 }).strict().optional(),
   createdAt: external_exports.number().int().nonnegative().safe(),
   updatedAt: external_exports.number().int().nonnegative().safe()
 }).strict();
@@ -44069,14 +44151,14 @@ var collectiveModificationProjectionSchema = collectiveModificationRecordSchema.
   createdAt: true,
   updatedAt: true
 }).extend({
-  target: external_exports.object({ humanId: id13, catId: id13 }).strict(),
+  target: external_exports.object({ humanId: id14, catId: id14 }).strict(),
   ownerRevision: positive6,
   blobDigest: digest3,
-  requestEventId: id13,
-  sourceEventId: id13,
+  requestEventId: id14,
+  sourceEventId: id14,
   location: collectiveLocationSchema,
   latestProposalRevision: external_exports.number().int().nonnegative().optional(),
-  latestProposalRef: id13.optional(),
+  latestProposalRef: id14.optional(),
   unavailableReason: external_exports.literal("custody_transferred").optional(),
   resolution: collectiveModificationResolutionSchema.omit({ operationId: true, expectedRequestRevision: true }).optional(),
   rework: collectiveModificationReworkSchema.optional()
@@ -44085,33 +44167,33 @@ var respondCollectiveContentTextSchema = respondContentTextSchema.omit({ expecte
   expectedOwnerRevision: positive6
 }).strict();
 var collectiveContentTextProposalReceiptSchema = external_exports.object({
-  proposalRef: id13,
-  requestId: id13,
+  proposalRef: id14,
+  requestId: id14,
   revision: positive6,
   operationId: external_exports.string().uuid(),
   baseRevision: digest3,
   resultRevision: digest3,
-  authorCatId: id13,
+  authorCatId: id14,
   createdAt: external_exports.number().int().nonnegative().safe(),
-  receiptRef: id13
+  receiptRef: id14
 }).strict();
 
 // ../shared/src/types/collective-artifact.ts
 var COLLECTIVE_ARTIFACT_VERSION_LIMIT = 1e4;
-var id14 = external_exports.string().trim().min(1).max(256);
+var id15 = external_exports.string().trim().min(1).max(256);
 var positive7 = external_exports.number().int().positive().safe();
 var digest4 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
-var coordinates = { serviceInstanceId: id14, collectiveId: id14 };
+var coordinates = { serviceInstanceId: id15, collectiveId: id15 };
 var collectiveArtifactSelectionSchema = external_exports.object({
   start: external_exports.number().int().nonnegative().max(65536),
   end: external_exports.number().int().positive().max(65536),
   quoteDigest: digest4
 }).strict().refine((selection) => selection.end > selection.start && selection.end - selection.start <= 8e3);
 var collectiveArtifactAdoptionLineageSchema = external_exports.object({
-  requestId: id14,
-  requestEventId: id14,
-  proposalRef: id14,
-  sourceEventId: id14,
+  requestId: id15,
+  requestEventId: id15,
+  proposalRef: id15,
+  sourceEventId: id15,
   sourceOwnerRevision: positive7,
   location: collectiveLocationSchema
 }).strict();
@@ -44128,36 +44210,36 @@ var collectiveArtifactActionSchema = external_exports.enum([
 var collectiveArtifactVersionSchema = external_exports.object({
   ownerRevision: positive7,
   blobDigest: digest4,
-  receiptRef: id14,
+  receiptRef: id15,
   recordedAt: external_exports.string().datetime(),
   lineage: collectiveArtifactAdoptionLineageSchema.optional(),
-  adoptedByHumanId: id14.optional(),
-  authorCatId: id14.optional()
+  adoptedByHumanId: id15.optional(),
+  authorCatId: id15.optional()
 }).strict();
 var access = external_exports.object({ revision: positive7, status: external_exports.enum(["active", "revoked"]), mayApply: external_exports.boolean() }).strict();
 var custody = external_exports.object({
-  connectionId: id14,
-  endpointId: id14,
+  connectionId: id15,
+  endpointId: id15,
   revision: positive7,
   status: external_exports.enum(["active", "suspended"]),
-  ownerScopeRef: id14.optional()
+  ownerScopeRef: id15.optional()
 }).strict();
 var handoff = external_exports.object({
-  handoffRef: id14,
-  targetConnectionId: id14,
+  handoffRef: id15,
+  targetConnectionId: id15,
   expectedCustodyRevision: positive7,
-  offeredByHumanId: id14,
+  offeredByHumanId: id15,
   createdAt: external_exports.string().datetime()
 }).strict();
 var collectiveArtifactRequestSourceSchema = external_exports.object({
-  requestEventId: id14,
+  requestEventId: id15,
   ownerRevision: positive7,
   blobDigest: digest4,
-  annotationIds: external_exports.array(id14).max(12),
+  annotationIds: external_exports.array(id15).max(12),
   selections: external_exports.array(collectiveArtifactSelectionSchema).min(1).max(12).optional(),
   rework: collectiveModificationReworkSchema.optional(),
   expectedReviewRevision: positive7,
-  requestingHumanId: id14,
+  requestingHumanId: id15,
   requesterMembershipRevision: positive7,
   requesterAccessRevision: positive7,
   targetMembershipRevision: positive7,
@@ -44165,22 +44247,22 @@ var collectiveArtifactRequestSourceSchema = external_exports.object({
 }).strict();
 var collectiveArtifactRecordSchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  contentRef: id14,
-  publishedByHumanId: id14,
+  artifactId: id15,
+  contentRef: id15,
+  publishedByHumanId: id15,
   custody,
-  access: external_exports.record(id14, access),
+  access: external_exports.record(id15, access),
   pendingHandoff: handoff.optional(),
-  custodyTransfers: external_exports.record(id14, collectiveCustodyTransferSchema).default({}),
+  custodyTransfers: external_exports.record(id15, collectiveCustodyTransferSchema).default({}),
   custodyHistory: external_exports.array(custody).max(1e4),
   title: external_exports.string().trim().min(1).max(200),
   mediaType: external_exports.enum(["text/markdown", "image/png", "image/jpeg", "image/webp", "video/mp4", "video/webm"]),
-  sourceEventId: id14,
+  sourceEventId: id15,
   sourceLocation: collectiveLocationSchema,
-  workId: id14.optional(),
+  workId: id15.optional(),
   revision: positive7,
   versions: external_exports.array(collectiveArtifactVersionSchema).min(1).max(COLLECTIVE_ARTIFACT_VERSION_LIMIT),
-  requestSources: external_exports.record(id14, collectiveArtifactRequestSourceSchema).default({}),
+  requestSources: external_exports.record(id15, collectiveArtifactRequestSourceSchema).default({}),
   createdAt: external_exports.string().datetime(),
   updatedAt: external_exports.string().datetime()
 }).strict();
@@ -44202,42 +44284,42 @@ var collectiveArtifactProjectionSchema = collectiveArtifactRecordSchema.omit({
 }).strict();
 var registerCollectiveArtifactSchema = external_exports.object({
   ...coordinates,
-  connectionId: id14,
-  contentRef: id14,
+  connectionId: id15,
+  contentRef: id15,
   title: external_exports.string().trim().min(1).max(200),
   mediaType: collectiveArtifactRecordSchema.shape.mediaType,
-  sourceEventId: id14,
-  workId: id14.optional(),
+  sourceEventId: id15,
+  workId: id15.optional(),
   ownerRevision: positive7,
   blobDigest: digest4,
-  receiptRef: id14,
-  requestId: id14,
+  receiptRef: id15,
+  requestId: id15,
   expectedRevision: positive7.optional(),
   expectedCustodyRevision: positive7.optional()
 }).strict();
 var collectiveArtifactConstraintRequestSchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  sourceEventId: id14,
+  artifactId: id15,
+  sourceEventId: id15,
   action: collectiveArtifactActionSchema,
   ownerRevision: positive7.optional()
 }).strict();
 var artifactAgentContextSchema = external_exports.object({
-  requestEventId: id14,
-  catId: id14,
-  humanId: id14,
-  connectionId: id14,
+  requestEventId: id15,
+  catId: id15,
+  humanId: id15,
+  connectionId: id15,
   participationRevision: positive7,
   membershipRevision: positive7,
   revocationEpoch: positive7
 }).strict();
 var collectiveArtifactConstraintSchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  contentRef: id14,
-  humanId: id14,
+  artifactId: id15,
+  contentRef: id15,
+  humanId: id15,
   action: collectiveArtifactActionSchema,
-  sourceEventId: id14,
+  sourceEventId: id15,
   custodyRevision: positive7,
   ownerRevision: positive7,
   /** Service catalogue head, independent of the historical revision selected by the reader. */
@@ -44245,77 +44327,77 @@ var collectiveArtifactConstraintSchema = external_exports.object({
   blobDigest: digest4,
   membershipRevision: positive7,
   revocationEpoch: positive7,
-  decisionRef: id14,
+  decisionRef: id15,
   expiresAt: external_exports.number().int().positive().safe(),
   effectMode: external_exports.literal("replay_only").optional(),
   agent: artifactAgentContextSchema.optional(),
   requestTarget: artifactAgentContextSchema.optional(),
   /** Internally issued only for a verified public reply; never accepted in browser constraint requests. */
-  reviewReply: external_exports.object({ annotationId: id14, messageEventId: id14 }).strict().optional(),
+  reviewReply: external_exports.object({ annotationId: id15, messageEventId: id15 }).strict().optional(),
   /** Internal reply-only subject for the retained PNG/MP4 review surface; never a browser constraint input. */
-  mediaReviewReply: external_exports.object({ annotationId: id14 }).strict().optional()
+  mediaReviewReply: external_exports.object({ annotationId: id15 }).strict().optional()
 }).strict();
 var collectiveArtifactAgentConstraintRequestSchema = collectiveArtifactConstraintRequestSchema.extend({
-  connectionId: id14,
-  requestEventId: id14,
-  catId: id14,
+  connectionId: id15,
+  requestEventId: id15,
+  catId: id15,
   participationRevision: positive7
 }).strict();
 var validateCollectiveArtifactConstraintSchema = collectiveArtifactConstraintRequestSchema.extend({
-  connectionId: id14,
-  decisionRef: id14
+  connectionId: id15,
+  decisionRef: id15
 }).strict();
 var revokeCollectiveArtifactAccessSchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  humanId: id14,
+  artifactId: id15,
+  humanId: id15,
   expectedAccessRevision: positive7,
-  requestId: id14
+  requestId: id15
 }).strict();
 var updateCollectiveArtifactAccessSchema = revokeCollectiveArtifactAccessSchema.extend({
   access: external_exports.enum(["read", "apply", "revoked"])
 }).strict();
 var offerCollectiveArtifactCustodySchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  targetHumanId: id14,
-  targetConnectionId: id14.optional(),
+  artifactId: id15,
+  targetHumanId: id15,
+  targetConnectionId: id15.optional(),
   expectedCustodyRevision: positive7,
-  requestId: id14
+  requestId: id15
 }).strict();
 var acceptCollectiveArtifactCustodySchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  connectionId: id14,
-  handoffRef: id14,
+  artifactId: id15,
+  connectionId: id15,
+  handoffRef: id15,
   expectedCustodyRevision: positive7,
-  contentRef: id14,
+  contentRef: id15,
   ownerRevision: positive7,
   blobDigest: digest4,
-  receiptRef: id14,
-  ownerScopeRef: id14,
-  preparedRef: id14.optional(),
-  readyRef: id14.optional(),
-  requestId: id14
+  receiptRef: id15,
+  ownerScopeRef: id15,
+  preparedRef: id15.optional(),
+  readyRef: id15.optional(),
+  requestId: id15
 }).strict();
-var listCollectiveArtifactsSchema = external_exports.object({ ...coordinates, channelId: id14.optional() }).strict();
+var listCollectiveArtifactsSchema = external_exports.object({ ...coordinates, channelId: id15.optional() }).strict();
 var recoverCollectiveMediaCustodySchema = registerCollectiveArtifactSchema.extend({
-  previousConnectionId: id14.optional(),
+  previousConnectionId: id15.optional(),
   previousCustodyProof: external_exports.string().regex(/^[a-f0-9]{64}$/).optional()
 }).strict();
 var collectiveArtifactCatalogueHistoryRequestSchema = external_exports.object({
   ...coordinates,
-  artifactId: id14,
-  sourceEventId: id14,
+  artifactId: id15,
+  sourceEventId: id15,
   offset: external_exports.number().int().nonnegative().max(COLLECTIVE_ARTIFACT_VERSION_LIMIT).default(0),
   limit: external_exports.number().int().min(1).max(30).default(30),
   snapshotOwnerRevision: positive7.optional(),
   expectedSnapshot: digest4.optional()
 }).strict();
 var collectiveArtifactCatalogueHistoryPageSchema = external_exports.object({
-  artifactId: id14,
-  contentRef: id14,
-  sourceEventId: id14,
+  artifactId: id15,
+  contentRef: id15,
+  sourceEventId: id15,
   snapshotOwnerRevision: positive7,
   snapshot: digest4,
   total: positive7,
@@ -44323,7 +44405,7 @@ var collectiveArtifactCatalogueHistoryPageSchema = external_exports.object({
   nextOffset: external_exports.number().int().positive().optional(),
   versions: external_exports.array(collectiveArtifactVersionSchema).max(30)
 }).strict();
-var collectiveArtifactRequestReceiptQuerySchema = external_exports.object({ ...coordinates, requestEventIds: external_exports.array(id14).min(1).max(30) }).strict();
+var collectiveArtifactRequestReceiptQuerySchema = external_exports.object({ ...coordinates, requestEventIds: external_exports.array(id15).min(1).max(30) }).strict();
 var collectiveArtifactRequestReceiptPageSchema = external_exports.object({
   receipts: external_exports.array(
     external_exports.object({
@@ -44334,13 +44416,13 @@ var collectiveArtifactRequestReceiptPageSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-artifact-operations.ts
-var id15 = external_exports.string().trim().min(1).max(256);
+var id16 = external_exports.string().trim().min(1).max(256);
 var maxCollectiveArtifactProposalPayloadBytes = 2 * 1024 * 1024;
 var maxCollectiveArtifactProposalEnvelopeBytes = maxCollectiveArtifactProposalPayloadBytes + 16 * 1024;
 var collectiveArtifactReadPageSchema = external_exports.object({
   annotationOffset: external_exports.number().int().nonnegative().max(500).default(0),
   annotationLimit: external_exports.number().int().min(1).max(2).default(2),
-  annotationId: id15.optional(),
+  annotationId: id16.optional(),
   replyOffset: external_exports.number().int().nonnegative().max(100).default(0),
   requestOffset: external_exports.number().int().nonnegative().max(1e4).default(0),
   requestLimit: external_exports.number().int().min(1).max(30).default(30),
@@ -44353,7 +44435,7 @@ var collectiveArtifactHistoryPageSchema = external_exports.object({
 }).strict();
 var collectiveArtifactAnnotationInputSchema = external_exports.object({
   kind: external_exports.literal("annotate"),
-  messageEventId: id15,
+  messageEventId: id16,
   quote: external_exports.string().min(1).max(8e3),
   selection: collectiveArtifactSelectionSchema.optional(),
   expectedReviewRevision: external_exports.number().int().positive().safe()
@@ -44364,13 +44446,13 @@ var collectiveArtifactAnnotationCommandSchema = collectiveArtifactAnnotationInpu
 }).strict();
 var reviewStateAction = external_exports.object({
   kind: external_exports.literal("set_annotation_state"),
-  annotationId: id15,
+  annotationId: id16,
   state: external_exports.enum(["open", "resolved"])
 }).strict();
 var reviewReplyInput = external_exports.object({
   kind: external_exports.literal("reply"),
-  annotationId: id15,
-  messageEventId: id15
+  annotationId: id16,
+  messageEventId: id16
 }).strict();
 var reviewActionFields = {
   kind: external_exports.literal("review-action"),
@@ -44387,18 +44469,18 @@ var collectiveArtifactReviewActionCommandSchema = external_exports.object({
     reviewReplyInput.extend({
       body: external_exports.string().trim().min(1).max(8e3),
       location: collectiveLocationSchema,
-      replyToEventId: id15
+      replyToEventId: id16
     }).strict()
   ])
 }).strict();
 var collectiveArtifactPublishedSelectionInputSchema = external_exports.object({
   kind: external_exports.literal("annotate-published-selections"),
-  messageEventId: id15
+  messageEventId: id16
 }).strict();
 var collectiveArtifactModificationRequestInputSchema = external_exports.object({
   kind: external_exports.literal("request-modification"),
-  messageEventId: id15,
-  annotationIds: external_exports.array(id15).max(12),
+  messageEventId: id16,
+  annotationIds: external_exports.array(id16).max(12),
   selections: external_exports.array(collectiveArtifactSelectionSchema).min(1).max(12).optional(),
   rework: collectiveModificationReworkSchema.optional(),
   expectedReviewRevision: external_exports.number().int().positive().safe()
@@ -44409,21 +44491,21 @@ var collectiveArtifactModificationRequestCommandSchema = collectiveArtifactModif
   target: collectiveModificationTargetSchema
 }).strict();
 var collectiveArtifactProposalSelectionSchema = external_exports.object({
-  requestId: id15,
-  proposalRef: id15
+  requestId: id16,
+  proposalRef: id16
 }).strict();
 var collectiveArtifactControlSchema = external_exports.object({
-  requestId: id15,
+  requestId: id16,
   expectedRequestRevision: external_exports.number().int().positive().safe(),
-  proposalRef: id15.optional()
+  proposalRef: id16.optional()
 }).strict();
 var publishCollectiveArtifactRequestSchema = external_exports.object({
-  serviceInstanceId: id15,
-  collectiveId: id15,
-  artifactId: id15,
-  sourceEventId: id15,
+  serviceInstanceId: id16,
+  collectiveId: id16,
+  artifactId: id16,
+  sourceEventId: id16,
   ownerRevision: external_exports.number().int().positive().safe(),
-  annotationIds: external_exports.array(id15).max(12),
+  annotationIds: external_exports.array(id16).max(12),
   selections: external_exports.array(collectiveArtifactSelectionSchema).min(1).max(12).optional(),
   rework: collectiveModificationReworkSchema.optional(),
   expectedReviewRevision: external_exports.number().int().positive().safe(),
@@ -44446,10 +44528,10 @@ var collectiveArtifactCallbackCommandSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-artifact-context.ts
-var id16 = external_exports.string().trim().min(1).max(256);
+var id17 = external_exports.string().trim().min(1).max(256);
 var collectiveArtifactAgentContextRequestSchema = collectiveConnectionCoordinatesSchema.extend({
   eventId: collectiveEventIdSchema,
-  catId: id16,
+  catId: id17,
   participationRevision: external_exports.number().int().positive().safe()
 }).strict();
 var collectiveArtifactAgentContextSchema = external_exports.object({
@@ -44462,9 +44544,9 @@ var collectiveArtifactAgentContextSchema = external_exports.object({
       targetMembershipRevision: true,
       targetAccessRevision: true
     }).extend({
-      artifactId: id16,
-      contentRef: id16,
-      sourceEventId: id16,
+      artifactId: id17,
+      contentRef: id17,
+      sourceEventId: id17,
       title: external_exports.string().min(1).max(200),
       adoption: collectiveArtifactVersionSchema.optional()
     }).strict()
@@ -44472,44 +44554,44 @@ var collectiveArtifactAgentContextSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-artifact-custody-relay.ts
-var id17 = external_exports.string().min(1).max(256);
+var id18 = external_exports.string().min(1).max(256);
 var index3 = external_exports.number().int().nonnegative().max(COLLECTIVE_CUSTODY_MAX_PAGES - 1);
 var collectiveCustodyPageRequestSchema = collectiveCustodyTargetSchema.extend({ index: index3 }).strict();
 var collectiveCustodyPageOperationSchema = external_exports.object({
-  relayRef: id17,
+  relayRef: id18,
   transfer: collectiveCustodyTransferSchema,
   index: index3,
   expiresAt: external_exports.number().int().positive().safe()
 }).strict();
 var collectiveCustodyPageResponseSchema = external_exports.discriminatedUnion("status", [
-  collectiveCustodyEndpointSchema.extend({ relayRef: id17, status: external_exports.literal("ok"), page: collectiveCustodyPageSchema }).strict(),
+  collectiveCustodyEndpointSchema.extend({ relayRef: id18, status: external_exports.literal("ok"), page: collectiveCustodyPageSchema }).strict(),
   collectiveCustodyEndpointSchema.extend({
-    relayRef: id17,
+    relayRef: id18,
     status: external_exports.literal("error"),
     error: external_exports.enum(["access_denied", "owner_unavailable", "invalid_request"])
   }).strict()
 ]);
 
 // ../shared/src/types/collective-artifact-management.ts
-var id18 = external_exports.string().trim().min(1).max(256);
+var id19 = external_exports.string().trim().min(1).max(256);
 var positive8 = external_exports.number().int().positive().safe();
 var readCollectiveArtifactManagementSchema = external_exports.object({
-  serviceInstanceId: id18,
-  collectiveId: id18,
-  artifactId: id18,
+  serviceInstanceId: id19,
+  collectiveId: id19,
+  artifactId: id19,
   offset: external_exports.number().int().nonnegative().safe().default(0),
   limit: external_exports.number().int().min(1).max(50).default(30),
   snapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
 }).strict();
 var collectiveArtifactManagementSchema = external_exports.object({
-  serviceInstanceId: id18,
-  collectiveId: id18,
-  artifactId: id18,
+  serviceInstanceId: id19,
+  collectiveId: id19,
+  artifactId: id19,
   canManageAccess: external_exports.boolean(),
   canManageCustody: external_exports.boolean(),
   custodyRevision: positive8,
-  custodianHumanId: id18.optional(),
-  custodianCafe: external_exports.object({ connectionId: id18, endpointLabel: external_exports.string().min(1).max(160) }).strict().optional(),
+  custodianHumanId: id19.optional(),
+  custodianCafe: external_exports.object({ connectionId: id19, endpointLabel: external_exports.string().min(1).max(160) }).strict().optional(),
   custodyAvailable: external_exports.boolean(),
   snapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   offset: external_exports.number().int().nonnegative().safe(),
@@ -44517,7 +44599,7 @@ var collectiveArtifactManagementSchema = external_exports.object({
   nextOffset: external_exports.number().int().positive().safe().optional(),
   members: external_exports.array(
     external_exports.object({
-      humanId: id18,
+      humanId: id19,
       displayName: external_exports.string().min(1),
       access: external_exports.enum(["read", "apply", "revoked"]).optional(),
       accessRevision: positive8.optional(),
@@ -44525,11 +44607,11 @@ var collectiveArtifactManagementSchema = external_exports.object({
     }).strict()
   ).max(50),
   transfer: external_exports.object({
-    transferId: id18,
+    transferId: id19,
     state: external_exports.enum(["offered", "source_prepared", "target_ready", "committed", "cancelled"]),
-    sourceHumanId: id18,
-    targetHumanId: id18,
-    targetCafe: external_exports.object({ connectionId: id18, endpointLabel: external_exports.string().min(1).max(160) }).strict().optional(),
+    sourceHumanId: id19,
+    targetHumanId: id19,
+    targetCafe: external_exports.object({ connectionId: id19, endpointLabel: external_exports.string().min(1).max(160) }).strict().optional(),
     sourceFinalized: external_exports.boolean(),
     targetFinalized: external_exports.boolean(),
     updatedAt: external_exports.string().datetime()
@@ -44537,13 +44619,13 @@ var collectiveArtifactManagementSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-artifact-media.ts
-var id19 = external_exports.string().trim().min(1).max(256);
+var id20 = external_exports.string().trim().min(1).max(256);
 var body3 = external_exports.string().trim().min(1).max(8e3);
 var collectiveMediaShareScopeSchema = external_exports.object({
-  serviceInstanceId: id19,
-  collectiveId: id19,
-  artifactId: id19,
-  sourceEventId: id19,
+  serviceInstanceId: id20,
+  collectiveId: id20,
+  artifactId: id20,
+  sourceEventId: id20,
   custodyRevision: external_exports.number().int().positive().safe()
 }).strict();
 var collectiveMediaReviewCommandSchema = external_exports.object({
@@ -44551,10 +44633,10 @@ var collectiveMediaReviewCommandSchema = external_exports.object({
   expectedReviewRevision: external_exports.number().int().positive().safe(),
   action: external_exports.discriminatedUnion("kind", [
     external_exports.object({ kind: external_exports.literal("annotate"), anchor: artifactReviewAnchorSchema, body: body3 }).strict(),
-    external_exports.object({ kind: external_exports.literal("reply"), annotationId: id19, body: body3 }).strict(),
-    external_exports.object({ kind: external_exports.literal("edit_annotation"), annotationId: id19, body: body3 }).strict(),
-    external_exports.object({ kind: external_exports.literal("edit_reply"), annotationId: id19, replyId: id19, body: body3 }).strict(),
-    external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id19, state: external_exports.enum(["open", "resolved"]) }).strict()
+    external_exports.object({ kind: external_exports.literal("reply"), annotationId: id20, body: body3 }).strict(),
+    external_exports.object({ kind: external_exports.literal("edit_annotation"), annotationId: id20, body: body3 }).strict(),
+    external_exports.object({ kind: external_exports.literal("edit_reply"), annotationId: id20, replyId: id20, body: body3 }).strict(),
+    external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id20, state: external_exports.enum(["open", "resolved"]) }).strict()
   ])
 }).strict();
 async function collectiveMediaOperationId(scope, action, requestId2) {
@@ -44566,29 +44648,29 @@ async function collectiveMediaOperationId(scope, action, requestId2) {
 }
 
 // ../shared/src/types/collective-artifact-media-read.ts
-var id20 = external_exports.string().trim().min(1).max(256);
+var id21 = external_exports.string().trim().min(1).max(256);
 var positive9 = external_exports.number().int().positive().safe();
-var collectiveMediaCoordinatesSchema = external_exports.object({ serviceInstanceId: id20, collectiveId: id20, connectionId: id20 }).strict();
+var collectiveMediaCoordinatesSchema = external_exports.object({ serviceInstanceId: id21, collectiveId: id21, connectionId: id21 }).strict();
 var collectiveMediaReadRequestSchema = collectiveMediaCoordinatesSchema.extend({
-  artifactId: id20,
-  sourceEventId: id20,
+  artifactId: id21,
+  sourceEventId: id21,
   ownerRevision: positive9,
   range: external_exports.string().max(256).optional()
 }).strict();
 var collectiveMediaOperationSchema = external_exports.object({
-  relayRef: id20,
+  relayRef: id21,
   constraint: collectiveArtifactConstraintSchema,
   range: external_exports.string().max(256).optional(),
   expiresAt: positive9
 }).strict().refine(
   (op) => op.constraint.action === "read" && !op.constraint.agent && !op.constraint.reviewReply && !op.constraint.mediaReviewReply
 );
-var collectiveMediaResponseCoordinatesSchema = collectiveMediaCoordinatesSchema.extend({ relayRef: id20 }).strict();
+var collectiveMediaResponseCoordinatesSchema = collectiveMediaCoordinatesSchema.extend({ relayRef: id21 }).strict();
 var collectiveMediaDescriptorSchema = external_exports.object({
-  contentRef: id20,
+  contentRef: id21,
   ownerRevision: positive9,
   blobDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  ownerReceiptRef: id20,
+  ownerReceiptRef: id21,
   mediaType: external_exports.enum(["image/png", "video/mp4"]),
   byteLength: positive9,
   status: external_exports.union([external_exports.literal(200), external_exports.literal(206), external_exports.literal(416)]),
@@ -44609,73 +44691,73 @@ var collectiveMediaErrorSchema = external_exports.enum([
 var collectiveMediaBufferBytes = 64 * 1024;
 
 // ../shared/src/types/collective-artifact-publication.ts
-var id21 = external_exports.string().trim().min(1).max(256);
+var id22 = external_exports.string().trim().min(1).max(256);
 var digest5 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var prepareCollectiveArtifactPublicationSchema = external_exports.object({
-  serviceInstanceId: id21,
-  collectiveId: id21,
-  connectionId: id21,
-  sourceEventId: id21,
-  requestId: id21,
+  serviceInstanceId: id22,
+  collectiveId: id22,
+  connectionId: id22,
+  sourceEventId: id22,
+  requestId: id22,
   title: external_exports.string().trim().min(1).max(200),
   blobDigest: digest5,
-  workId: id21.optional()
+  workId: id22.optional()
 }).strict();
 var collectiveArtifactPublicationRecordSchema = prepareCollectiveArtifactPublicationSchema.extend({
-  publicationId: id21,
-  contentRef: id21,
-  artifactId: id21,
-  humanId: id21,
+  publicationId: id22,
+  contentRef: id22,
+  artifactId: id22,
+  humanId: id22,
   membershipRevision: external_exports.number().int().positive().safe(),
-  endpointId: id21,
+  endpointId: id22,
   sourceLocation: collectiveLocationSchema,
   requestDigest: digest5,
   status: external_exports.enum(["pending", "published"]),
   effectPending: external_exports.boolean().optional(),
-  receiptRef: id21.optional(),
+  receiptRef: id22.optional(),
   createdAt: external_exports.string().datetime()
 }).strict();
 var collectiveArtifactPublicationUploadSchema = external_exports.object({
-  publicationId: id21,
+  publicationId: id22,
   // Base64 keeps even 64KiB of control-character Markdown inside the fixed HTTP envelope.
   bytesBase64: external_exports.string().max(87384).regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/)
 }).strict();
 var collectiveArtifactPublicationOperationSchema = external_exports.object({
-  relayRef: id21,
+  relayRef: id22,
   publication: collectiveArtifactPublicationRecordSchema,
   bytesBase64: collectiveArtifactPublicationUploadSchema.shape.bytesBase64,
   expiresAt: external_exports.number().int().positive().safe()
 }).strict();
 var collectiveArtifactPublicationValidationSchema = external_exports.object({
-  serviceInstanceId: id21,
-  collectiveId: id21,
-  connectionId: id21,
-  publicationId: id21,
-  relayRef: id21
+  serviceInstanceId: id22,
+  collectiveId: id22,
+  connectionId: id22,
+  publicationId: id22,
+  relayRef: id22
 }).strict();
 var collectiveArtifactPublicationReceiptSchema = external_exports.object({
-  receiptId: id21,
-  contentRef: id21,
+  receiptId: id22,
+  contentRef: id22,
   previousOwnerRevision: external_exports.literal(0),
   ownerRevision: external_exports.literal(1),
   blobDigest: digest5,
-  actor: external_exports.object({ kind: external_exports.literal("human"), actorId: id21 }).strict(),
-  operationId: id21,
+  actor: external_exports.object({ kind: external_exports.literal("human"), actorId: id22 }).strict(),
+  operationId: id22,
   outboxSequence: external_exports.literal(1),
   operationContext: external_exports.object({
     kind: external_exports.literal("collective-artifact:publish"),
     requestDigest: digest5,
-    actorHumanId: id21,
-    scopeRef: id21,
+    actorHumanId: id22,
+    scopeRef: id22,
     custodyRevision: external_exports.literal(1),
-    dispositionId: id21
+    dispositionId: id22
   }).strict()
 }).strict();
 var collectiveArtifactPublicationRecoverySchema = external_exports.object({
-  serviceInstanceId: id21,
-  collectiveId: id21,
-  connectionId: id21,
-  publicationId: id21,
+  serviceInstanceId: id22,
+  collectiveId: id22,
+  connectionId: id22,
+  publicationId: id22,
   outcome: external_exports.discriminatedUnion("status", [
     external_exports.object({ status: external_exports.literal("committed"), receipt: collectiveArtifactPublicationReceiptSchema }).strict(),
     external_exports.object({ status: external_exports.literal("absent") }).strict()
@@ -44683,20 +44765,20 @@ var collectiveArtifactPublicationRecoverySchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-artifact-relay.ts
-var id22 = external_exports.string().trim().min(1).max(256);
-var coordinates2 = { serviceInstanceId: id22, collectiveId: id22, connectionId: id22 };
+var id23 = external_exports.string().trim().min(1).max(256);
+var coordinates2 = { serviceInstanceId: id23, collectiveId: id23, connectionId: id23 };
 var collectiveArtifactRelayRequestSchema = collectiveArtifactConstraintRequestSchema.extend({
-  requestId: id22,
+  requestId: id23,
   payload: external_exports.record(external_exports.unknown())
 }).strict();
 var collectiveArtifactAgentRelayRequestSchema = collectiveArtifactAgentConstraintRequestSchema.extend({
-  requestId: id22,
+  requestId: id23,
   payload: external_exports.record(external_exports.unknown())
 }).strict();
 var collectiveArtifactRelayPollSchema = external_exports.object(coordinates2).strict();
 var collectiveArtifactRelayOperationSchema = external_exports.object({
-  relayRef: id22,
-  requestId: id22,
+  relayRef: id23,
+  requestId: id23,
   constraint: collectiveArtifactConstraintSchema,
   payload: external_exports.record(external_exports.unknown()),
   expiresAt: external_exports.number().int().positive().safe()
@@ -44704,14 +44786,14 @@ var collectiveArtifactRelayOperationSchema = external_exports.object({
 var collectiveArtifactRelayResponseSchema = external_exports.discriminatedUnion("status", [
   external_exports.object({
     ...coordinates2,
-    relayRef: id22,
+    relayRef: id23,
     status: external_exports.literal("ok"),
-    ownerDecisionRef: id22,
+    ownerDecisionRef: id23,
     value: external_exports.record(external_exports.unknown())
   }).strict(),
   external_exports.object({
     ...coordinates2,
-    relayRef: id22,
+    relayRef: id23,
     status: external_exports.literal("error"),
     error: external_exports.object({
       code: external_exports.enum([
@@ -45377,10 +45459,10 @@ var collectiveContinueWorkRequestSchema = collectiveAcceptWorkRequestSchema.omit
 }).strict();
 
 // ../shared/src/types/collective-work-policy-bridge.ts
-var id23 = external_exports.string().min(8).max(120);
+var id24 = external_exports.string().min(8).max(120);
 var context = collectiveConnectionCoordinatesSchema.extend({
-  bridgeId: id23,
-  contextId: id23,
+  bridgeId: id24,
+  contextId: id24,
   contextRevision: external_exports.number().int().positive(),
   humanId: collectiveHumanIdSchema
 });
@@ -45396,7 +45478,7 @@ var collectiveHostWorkPolicyActionSchema = external_exports.discriminatedUnion("
 ]);
 var collectiveHostWorkPolicyCommandSchema = context.extend({
   type: external_exports.literal("collective:host-work-policy-command"),
-  commandId: id23,
+  commandId: id24,
   action: collectiveHostWorkPolicyActionSchema
 }).strict();
 var receipt = external_exports.object({
@@ -45407,7 +45489,7 @@ var receipt = external_exports.object({
 }).strict();
 var collectiveClientWorkPolicyReplySchema = context.extend({
   type: external_exports.literal("collective:client-work-policy-reply"),
-  commandId: id23,
+  commandId: id24,
   result: external_exports.discriminatedUnion("state", [
     external_exports.object({ state: external_exports.literal("registered"), receipt }).strict(),
     external_exports.object({
@@ -45586,28 +45668,28 @@ var collectiveMediaSurfaceReturnSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-media-share-surface.ts
-var id24 = external_exports.string().trim().min(1).max(256);
+var id25 = external_exports.string().trim().min(1).max(256);
 var positive10 = external_exports.number().int().positive().safe();
 var collectiveRetainedMediaShareSchema = external_exports.object({
-  contentRef: id24,
+  contentRef: id25,
   ownerRevision: positive10,
   title: external_exports.string().trim().min(1).max(200),
-  sourceEventId: id24,
-  requestId: id24,
-  workId: id24.optional(),
+  sourceEventId: id25,
+  requestId: id25,
+  workId: id25.optional(),
   expectedRevision: positive10.optional(),
   expectedCustodyRevision: positive10.optional()
 }).strict();
 var collectiveRetainedMediaRegistrationRequestSchema = external_exports.object({
-  serviceInstanceId: id24,
-  collectiveId: id24,
-  connectionId: id24,
-  contentRef: id24,
-  sourceEventId: id24,
+  serviceInstanceId: id25,
+  collectiveId: id25,
+  connectionId: id25,
+  contentRef: id25,
+  sourceEventId: id25,
   mediaType: external_exports.enum(["image/png", "video/mp4"])
 }).strict();
 var collectiveRetainedMediaRegistrationSchema = collectiveRetainedMediaRegistrationRequestSchema.extend({
-  current: external_exports.object({ revision: positive10, custodyRevision: positive10, workId: id24.optional() }).strict().nullable()
+  current: external_exports.object({ revision: positive10, custodyRevision: positive10, workId: id25.optional() }).strict().nullable()
 });
 var collectiveMediaShareRefSchema = collectiveMediaSurfaceRefV1Schema.omit({
   artifactId: true,
@@ -45732,10 +45814,10 @@ var collectiveMemberDirectorySchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-message-state.ts
-var id25 = external_exports.string().trim().min(1).max(200);
-var artifactIdentity = external_exports.object({ artifactId: id25, ownerRevision: external_exports.number().int().positive(), blobDigest: id25 });
+var id26 = external_exports.string().trim().min(1).max(200);
+var artifactIdentity = external_exports.object({ artifactId: id26, ownerRevision: external_exports.number().int().positive(), blobDigest: id26 });
 var collectiveComposerVoiceDraftSchema = external_exports.object({
-  captureId: id25,
+  captureId: id26,
   state: external_exports.enum(["recording", "transcribing", "failed", "ready"]),
   transcript: external_exports.string().max(32e3).optional(),
   applied: external_exports.boolean()
@@ -45756,36 +45838,36 @@ var collectiveComposerDraftSchema = external_exports.object({
   voiceDraft: collectiveComposerVoiceDraftSchema.optional(),
   entrust: external_exports.boolean().optional(),
   responseRequested: external_exports.boolean().optional(),
-  replyToEventId: id25.optional(),
+  replyToEventId: id26.optional(),
   replyNeedsSelection: external_exports.boolean().optional(),
   artifactSelections: external_exports.array(artifactIdentity.extend({ span: collectiveArtifactSelectionSchema }).strict()).max(12).optional(),
   artifactRework: artifactIdentity.extend({ sourceOwnerRevision: external_exports.number().int().positive(), rework: collectiveModificationReworkSchema }).strict().optional(),
-  artifactReply: artifactIdentity.extend({ annotationId: id25, messageEventId: id25, authorHumanId: id25 }).strict().optional()
+  artifactReply: artifactIdentity.extend({ annotationId: id26, messageEventId: id26, authorHumanId: id26 }).strict().optional()
 }).strict().superRefine((content3, context2) => {
   validateCollectiveRichContent(content3, context2);
   if (new TextEncoder().encode(JSON.stringify(content3)).length > 192 * 1024)
     context2.addIssue({ code: "custom", message: "Private draft exceeds 192 KiB" });
 });
 var collectiveHumanChannelCoordinatesSchema = external_exports.object({
-  serviceInstanceId: id25,
-  collectiveId: id25,
-  channelId: id25,
-  rootEventId: id25.optional()
+  serviceInstanceId: id26,
+  collectiveId: id26,
+  channelId: id26,
+  rootEventId: id26.optional()
 }).strict();
 var collectiveSaveComposerDraftSchema = collectiveHumanChannelCoordinatesSchema.extend({
   expectedRevision: external_exports.number().int().nonnegative().safe(),
-  clientOperationId: id25,
+  clientOperationId: id26,
   content: collectiveComposerDraftSchema
 }).strict();
 var collectiveDraftRecordSchema = collectiveHumanChannelCoordinatesSchema.extend({
-  humanId: id25,
+  humanId: id26,
   revision: external_exports.number().int().nonnegative().safe(),
   content: collectiveComposerDraftSchema,
   clientOperationId: external_exports.string().trim().min(1).max(205).optional()
 }).strict();
 var collectiveReadPositionSchema = external_exports.object({
   sequence: external_exports.number().int().nonnegative().safe(),
-  eventId: id25.optional()
+  eventId: id26.optional()
 }).strict();
 var collectiveHumanChannelStateSchema = external_exports.object({
   draft: collectiveDraftRecordSchema,
@@ -46811,7 +46893,7 @@ var collectiveWorkSourceContextSchema = external_exports.object({
 
 // ../shared/src/types/connection-diagnostics.ts
 var CONNECTION_DIAGNOSTIC_UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-var id26 = external_exports.string().regex(CONNECTION_DIAGNOSTIC_UUID);
+var id27 = external_exports.string().regex(CONNECTION_DIAGNOSTIC_UUID);
 var duration = external_exports.number().finite().min(0).max(864e5);
 var route = external_exports.enum([
   "session",
@@ -46825,12 +46907,12 @@ var route = external_exports.enum([
 ]);
 var errorKind = external_exports.enum(["timeout", "aborted", "network", "other"]);
 var notice = external_exports.enum(["not-saved", "unavailable", "interrupted", "clear-failed", "save-failed"]);
-var base2 = { eventId: id26, at: external_exports.number().int().nonnegative() };
+var base2 = { eventId: id27, at: external_exports.number().int().nonnegative() };
 var connectionDiagnosticEventSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
     ...base2,
     kind: external_exports.literal("http"),
-    clientRequestId: id26,
+    clientRequestId: id27,
     route,
     method: external_exports.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "OTHER"]),
     state: external_exports.enum(["start", "finish", "failed"]),
@@ -46843,7 +46925,7 @@ var connectionDiagnosticEventSchema = external_exports.discriminatedUnion("kind"
   external_exports.object({
     ...base2,
     kind: external_exports.literal("connection_notice"),
-    clientRequestId: id26.optional(),
+    clientRequestId: id27.optional(),
     route: route.optional(),
     state: external_exports.enum(["shown", "suppressed"]),
     errorKind: external_exports.enum(["timeout", "network"])
@@ -46851,7 +46933,7 @@ var connectionDiagnosticEventSchema = external_exports.discriminatedUnion("kind"
   external_exports.object({
     ...base2,
     kind: external_exports.literal("settings_return"),
-    bridgeId: id26,
+    bridgeId: id27,
     phase: external_exports.enum(["created", "capture", "return", "cancel", "notice", "consumed", "presented", "disposed"]),
     cause: external_exports.enum([
       "route",
@@ -46879,16 +46961,16 @@ var connectionDiagnosticBatchSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/content-modification-carrier.ts
-var id27 = external_exports.string().trim().min(1).max(256);
+var id28 = external_exports.string().trim().min(1).max(256);
 var requestId = external_exports.string().regex(/^f309-modification-[a-f0-9]{64}$/);
 var receiptRef = external_exports.string().min(1).max(2048);
 var contentModificationRequestCarrierV1Schema = external_exports.object({
   v: external_exports.literal(1),
   kind: external_exports.enum(["request_text_edit", "request_image_edit", "request_media_edit", "supersede_request"]),
   requestId,
-  sourceMessageId: id27,
-  targetCatId: id27,
-  taskId: id27,
+  sourceMessageId: id28,
+  targetCatId: id28,
+  taskId: id28,
   expectedTaskRevision: external_exports.number().int().positive().safe(),
   requestReceiptRef: receiptRef
 }).strict();
@@ -46897,29 +46979,29 @@ var contentModificationPublicationCarrierV1Schema = external_exports.object({
   kind: external_exports.literal("resume_media_publication"),
   returnRef: receiptRef,
   requestId,
-  sourceMessageId: id27,
+  sourceMessageId: id28,
   sourceMessageRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   requestReceiptRef: receiptRef,
-  taskId: id27,
-  targetCatId: id27,
+  taskId: id28,
+  targetCatId: id28,
   expectedTaskRevision: external_exports.number().int().positive().safe(),
-  reviewId: id27,
+  reviewId: id28,
   round: external_exports.number().int().positive().safe(),
-  contentRef: id27,
+  contentRef: id28,
   ownerRevision: external_exports.number().int().positive().safe(),
-  publicationMessageId: id27,
+  publicationMessageId: id28,
   publicationRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  publicationItemId: id27,
+  publicationItemId: id28,
   artifactRef: external_exports.string().startsWith("/uploads/").max(1e3),
   artifactRevision: external_exports.string().regex(/^\d+$/),
-  producingInvocationId: id27
+  producingInvocationId: id28
 }).strict();
 var contentModificationFollowUpCarrierV1Schema = external_exports.object({
   v: external_exports.literal(1),
   requestId,
-  sourceMessageId: id27,
-  targetCatId: id27,
-  taskId: id27,
+  sourceMessageId: id28,
+  targetCatId: id28,
+  taskId: id28,
   candidateRef: external_exports.string().min(1).max(1e3).optional(),
   receiptRef,
   state: external_exports.enum(["conflict", "unknown"])
@@ -46930,9 +47012,9 @@ var contentTextWritebackCompletionCarrierV1Schema = external_exports.object({
   returnRef: receiptRef,
   requestId,
   closureRequestId: requestId,
-  sourceMessageId: id27,
-  taskId: id27,
-  targetCatId: id27,
+  sourceMessageId: id28,
+  taskId: id28,
+  targetCatId: id28,
   observedTaskRevision: external_exports.number().int().positive().safe(),
   expectedSignal: external_exports.string().min(1).max(512),
   candidateRef: external_exports.string().min(1).max(1e3),
@@ -46944,11 +47026,11 @@ var contentTextWritebackCompletionCarrierV1Schema = external_exports.object({
 });
 
 // ../shared/src/types/content-modification-control.ts
-var id28 = external_exports.string().min(1).max(256);
+var id29 = external_exports.string().min(1).max(256);
 var contentRuntimeControlTargetSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("stop_execution"), executionId: id28, invocationId: id28 }).strict(),
-  external_exports.object({ kind: external_exports.literal("withdraw_single"), entryId: id28, messageId: id28 }).strict(),
-  external_exports.object({ kind: external_exports.literal("withdraw_queue"), entryId: id28, messageId: id28 }).strict()
+  external_exports.object({ kind: external_exports.literal("stop_execution"), executionId: id29, invocationId: id29 }).strict(),
+  external_exports.object({ kind: external_exports.literal("withdraw_single"), entryId: id29, messageId: id29 }).strict(),
+  external_exports.object({ kind: external_exports.literal("withdraw_queue"), entryId: id29, messageId: id29 }).strict()
 ]);
 
 // ../shared/src/types/deployment-wait.ts
@@ -47489,8 +47571,8 @@ var evolutionPreparationSectionSchema = external_exports.enum(EVOLUTION_PREPARAT
 var programIdSchema = external_exports.string().regex(/^evolution-program:[0-9a-f]{32}$/);
 var revisionSchema3 = external_exports.string().regex(/^sha256:[0-9a-f]{64}$/);
 var identifierSchema = external_exports.string().trim().min(1).max(120).regex(/^[a-z0-9][a-z0-9._-]*$/);
-var text6 = (max = 2e3) => bounded(max);
-var textList = (max = 32) => external_exports.array(text6()).max(max);
+var text7 = (max = 2e3) => bounded(max);
+var textList = (max = 32) => external_exports.array(text7()).max(max);
 var PREPARATION_REF_PATTERN = new RegExp(
   `^preparation-submission:(evolution-program:[0-9a-f]{32}):(${EVOLUTION_PREPARATION_SECTIONS.join("|")})$`
 );
@@ -47520,7 +47602,7 @@ var evolutionPreparationActivityRefV1Schema = ownerTruthRefV1Schema.superRefine(
 });
 var evolutionPreparationModifiabilityV1Schema = external_exports.object({
   state: external_exports.enum(["unknown", "modifiable", "partially_modifiable", "not_modifiable_this_round", "not_applicable"]),
-  reason: text6(1e3),
+  reason: text7(1e3),
   basisRefs: external_exports.array(ownerTruthRefV1Schema).max(16)
 }).strict().superRefine((value, ctx) => {
   if (value.state !== "unknown" && value.basisRefs.length === 0) {
@@ -47533,16 +47615,16 @@ var evolutionPreparationModifiabilityV1Schema = external_exports.object({
 });
 var evolutionPreparationItemV1Schema = external_exports.object({
   itemId: identifierSchema,
-  label: text6(240),
-  category: text6(120).optional(),
+  label: text7(240),
+  category: text7(120).optional(),
   recommendation: preparationRecommendationSchema.optional(),
-  existingWork: external_exports.object({ summary: text6(), sourceRefs: external_exports.array(ownerTruthRefV1Schema).min(1).max(16) }).strict().optional(),
+  existingWork: external_exports.object({ summary: text7(), sourceRefs: external_exports.array(ownerTruthRefV1Schema).min(1).max(16) }).strict().optional(),
   decision: preparationDecisionSchema.optional(),
-  scope: text6(),
-  why: text6(),
+  scope: text7(),
+  why: text7(),
   modifiability: evolutionPreparationModifiabilityV1Schema,
   sourceRefs: external_exports.array(ownerTruthRefV1Schema).max(32),
-  nextAction: text6()
+  nextAction: text7()
 }).strict().superRefine((value, ctx) => {
   if (value.decision?.state === "explore" && !["modifiable", "partially_modifiable"].includes(value.modifiability.state)) {
     ctx.addIssue({
@@ -47554,89 +47636,89 @@ var evolutionPreparationItemV1Schema = external_exports.object({
 });
 var objectMapBodySchema = external_exports.object({
   kind: external_exports.literal("object_map"),
-  goalStatement: text6(4e3),
-  summary: text6(4e3),
+  goalStatement: text7(4e3),
+  summary: text7(4e3),
   items: external_exports.array(evolutionPreparationItemV1Schema).min(1).max(32),
   unknowns: textList(),
-  nextAction: text6()
+  nextAction: text7()
 }).strict();
 var payerSchema = external_exports.object({
   kind: external_exports.enum(["engineering_maintenance", "judge_runway", "human_attention", "mixed"]),
-  detail: text6()
+  detail: text7()
 }).strict();
 var evolutionPreparationCriterionV1Schema = external_exports.object({
   criterionId: identifierSchema,
-  label: text6(240),
-  utilityClaim: text6(4e3),
-  observationUnit: text6(),
-  estimator: text6(4e3),
-  counterexample: text6(),
+  label: text7(240),
+  utilityClaim: text7(4e3),
+  observationUnit: text7(),
+  estimator: text7(4e3),
+  counterexample: text7(),
   gtDomain: external_exports.enum(["verifiable", "semi_verifiable", "open_value"]),
   judge: external_exports.enum(["verifier", "calibrated_judge", "value_owner", "mixed"]),
   payer: payerSchema,
   gtSourceKeys: external_exports.array(identifierSchema).min(1).max(16),
   validityBounds: textList(16).min(1),
   unknowns: textList(16),
-  nextAction: text6()
+  nextAction: text7()
 }).strict();
 var successContractBodySchema = external_exports.object({
   kind: external_exports.literal("success_contract"),
-  summary: text6(4e3),
+  summary: text7(4e3),
   criteria: external_exports.array(evolutionPreparationCriterionV1Schema).min(1).max(12),
   unknowns: textList(),
-  nextAction: text6()
+  nextAction: text7()
 }).strict();
 var gtCollectionSchema = external_exports.discriminatedUnion("state", [
-  external_exports.object({ state: external_exports.literal("not_connected"), method: text6() }).strict(),
-  external_exports.object({ state: external_exports.literal("collecting"), method: text6(), sourceRef: ownerTruthRefV1Schema.optional() }).strict(),
-  external_exports.object({ state: external_exports.literal("collected"), method: text6(), sourceRef: ownerTruthRefV1Schema }).strict()
+  external_exports.object({ state: external_exports.literal("not_connected"), method: text7() }).strict(),
+  external_exports.object({ state: external_exports.literal("collecting"), method: text7(), sourceRef: ownerTruthRefV1Schema.optional() }).strict(),
+  external_exports.object({ state: external_exports.literal("collected"), method: text7(), sourceRef: ownerTruthRefV1Schema }).strict()
 ]);
 var gtValiditySchema = external_exports.discriminatedUnion("state", [
-  external_exports.object({ state: external_exports.literal("unknown"), detail: text6() }).strict(),
+  external_exports.object({ state: external_exports.literal("unknown"), detail: text7() }).strict(),
   external_exports.object({
     state: external_exports.literal("needs_review"),
-    detail: text6(),
+    detail: text7(),
     proofRefs: external_exports.array(ownerTruthRefV1Schema).max(16).optional()
   }).strict(),
   external_exports.object({
     state: external_exports.literal("bounded"),
-    detail: text6(),
-    validFor: text6(),
+    detail: text7(),
+    validFor: text7(),
     proofRefs: external_exports.array(ownerTruthRefV1Schema).min(1).max(16)
   }).strict()
 ]);
 var evolutionPreparationGtSourceV1Schema = external_exports.object({
   sourceKey: identifierSchema,
   category: external_exports.enum(["business_fact", "domain_precedent", "real_world_outcome"]),
-  label: text6(240),
+  label: text7(240),
   collection: gtCollectionSchema,
   validity: gtValiditySchema,
   missingOrDisputed: textList(32),
-  cost: external_exports.object({ payer: text6(240), detail: text6() }).strict()
+  cost: external_exports.object({ payer: text7(240), detail: text7() }).strict()
 }).strict();
 var comparisonSchema = external_exports.object({
-  unit: text6(),
-  primaryVariable: text6(),
+  unit: text7(),
+  primaryVariable: text7(),
   controls: textList(32),
-  developmentEvidence: text6(),
-  independentHoldout: text6(),
-  repeatability: text6()
+  developmentEvidence: text7(),
+  independentHoldout: text7(),
+  repeatability: text7()
 }).strict();
 var measurementPlanBodySchema = external_exports.object({
   kind: external_exports.literal("measurement_plan"),
-  summary: text6(4e3),
+  summary: text7(4e3),
   gtSources: external_exports.array(evolutionPreparationGtSourceV1Schema).min(1).max(32),
   conditions: external_exports.array(evolutionPreparationItemV1Schema).max(32),
   comparison: comparisonSchema,
   unknowns: textList(),
-  nextAction: text6()
+  nextAction: text7()
 }).strict();
 var baselineFactSchema = external_exports.object({
   factId: identifierSchema,
-  label: text6(240),
+  label: text7(240),
   state: external_exports.enum(["unknown", "reported", "owner_verified"]),
   sourceRefs: external_exports.array(ownerTruthRefV1Schema).max(32),
-  limitation: text6()
+  limitation: text7()
 }).strict().superRefine((value, ctx) => {
   if (value.state === "owner_verified" && value.sourceRefs.length === 0) {
     ctx.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["sourceRefs"], message: "verified facts require owner refs" });
@@ -47644,20 +47726,20 @@ var baselineFactSchema = external_exports.object({
 });
 var competingExplanationSchema = external_exports.object({
   explanationId: identifierSchema,
-  hypothesis: text6(),
+  hypothesis: text7(),
   evidenceFor: external_exports.array(ownerTruthRefV1Schema).max(32),
   evidenceAgainst: external_exports.array(ownerTruthRefV1Schema).max(32),
-  discriminatingNextStep: text6()
+  discriminatingNextStep: text7()
 }).strict();
 var baselineDiagnosisBodySchema = external_exports.object({
   kind: external_exports.literal("baseline_diagnosis"),
-  summary: text6(4e3),
+  summary: text7(4e3),
   baselineState: external_exports.enum(["unknown", "draft", "owner_verified"]),
-  observationUnit: text6(),
+  observationUnit: text7(),
   facts: external_exports.array(baselineFactSchema).max(64),
   competingExplanations: external_exports.array(competingExplanationSchema).min(2).max(16),
   unknowns: textList(),
-  nextAction: text6()
+  nextAction: text7()
 }).strict().superRefine((value, ctx) => {
   if (value.baselineState === "owner_verified" && !value.facts.some((fact2) => fact2.state === "owner_verified")) {
     ctx.addIssue({
@@ -47677,7 +47759,7 @@ var evolutionPreparationSubmissionV1Schema = external_exports.object({
   schemaVersion: external_exports.literal(1),
   programId: programIdSchema,
   section: evolutionPreparationSectionSchema,
-  title: text6(240),
+  title: text7(240),
   authorCatId: identifierSchema,
   revision: revisionSchema3,
   dependsOn: external_exports.array(evolutionPreparationSubmissionRefV1Schema).max(3),
@@ -52243,14 +52325,14 @@ function addResponseIssues(request, response, context2, path2) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selectedIds must be unique" });
   }
   const options = new Map(request.presentation.options.map((option) => [option.id, option]));
-  if (ids2.some((id31) => !options.has(id31))) {
+  if (ids2.some((id32) => !options.has(id32))) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection contains an unknown option" });
   }
   const limit = request.presentation.interactiveType === "multi-select" ? request.presentation.maxSelect ?? ids2.length : 1;
   if (ids2.length > limit || request.presentation.interactiveType !== "multi-select" && ids2.length !== 1) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection count exceeds the block contract" });
   }
-  if (response.customInput && !ids2.some((id31) => options.get(id31)?.customInput)) {
+  if (response.customInput && !ids2.some((id32) => options.get(id32)?.customInput)) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "custom input requires a selected custom option" });
   }
 }
@@ -52335,9 +52417,9 @@ var runtimeInteractionObjectSchema = external_exports.object({
   if (new Set(required).size !== required.length) {
     context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: "schema required ids must be unique" });
   }
-  for (const id31 of required) {
-    if (!propertyIds.has(id31)) {
-      context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id31} is missing` });
+  for (const id32 of required) {
+    if (!propertyIds.has(id32)) {
+      context2.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id32} is missing` });
     }
   }
 });
@@ -52739,10 +52821,10 @@ var videoProjectDecisionSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/video-project-switching.ts
-function evenAssetSwitchStarts(durationTicks, count) {
+function evenAssetSwitchStarts(durationTicks, count2) {
   const duration2 = BigInt(durationTicks);
-  const divisor = BigInt(count);
-  return Array.from({ length: count }, (_, index4) => Number((BigInt(index4) * duration2 + divisor - 1n) / divisor));
+  const divisor = BigInt(count2);
+  return Array.from({ length: count2 }, (_, index4) => Number((BigInt(index4) * duration2 + divisor - 1n) / divisor));
 }
 function assetSwitchSequenceIssues(segment) {
   if (segment.switchMode === void 0 || !Number.isSafeInteger(segment.durationTicks) || segment.durationTicks <= 0)
@@ -52985,7 +53067,7 @@ function coverageGraphHasCycle(edges) {
     if (!indegrees.has(source3)) indegrees.set(source3, 0);
     for (const target of targets) indegrees.set(target, (indegrees.get(target) ?? 0) + 1);
   }
-  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id31]) => id31);
+  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id32]) => id32);
   let visited = 0;
   for (const source3 of pending) {
     visited++;
@@ -53002,38 +53084,38 @@ function coverageGraphHasCycle(edges) {
 var videoProjectDocumentSchema = videoProjectDocumentBaseSchema.superRefine(refineVideoProjectReferences);
 
 // ../shared/src/types/video-project-command.ts
-var id29 = external_exports.string().trim().min(1).max(256);
+var id30 = external_exports.string().trim().min(1).max(256);
 var revision10 = external_exports.number().int().positive().safe();
 var page2 = {
   cursor: external_exports.number().int().nonnegative().safe().default(0),
   expectedSnapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
 };
 var videoProjectCommandSchema = external_exports.object({
-  requestId: id29,
+  requestId: id30,
   command: external_exports.discriminatedUnion("kind", [
     external_exports.object({ kind: external_exports.literal("read"), ownerRevision: revision10.optional(), ...page2 }).strict(),
     external_exports.object({ kind: external_exports.literal("review-read"), ...page2 }).strict(),
     external_exports.object({
       kind: external_exports.literal("save"),
       expectedOwnerRevision: revision10,
-      operationId: id29,
+      operationId: id30,
       document: external_exports.record(external_exports.unknown())
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("review-act"),
       expectedRevision: revision10,
-      operationId: id29,
+      operationId: id30,
       action: videoProjectReviewActionSchema
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("self-review"),
       expectedOwnerRevision: revision10,
-      operationId: id29,
-      id: id29,
+      operationId: id30,
+      id: id30,
       input: videoProjectFrozenInputSchema,
-      segmentIds: external_exports.array(id29).min(1).max(1e4),
+      segmentIds: external_exports.array(id30).min(1).max(1e4),
       conclusion: external_exports.enum(["pass", "changes-requested"]),
-      refs: external_exports.array(id29).min(1).max(1e3)
+      refs: external_exports.array(id30).min(1).max(1e3)
     }).strict()
   ])
 }).strict();
@@ -53087,54 +53169,54 @@ var userCancelWaitTerminationEventSchema = external_exports.object({
 });
 
 // ../shared/src/types/work-video.ts
-var text7 = videoProjectTextSchema;
+var text8 = videoProjectTextSchema;
 var pts2 = external_exports.number().int().safe();
 var chapter = external_exports.object({
-  id: text7(256),
-  title: text7(1e3),
-  label: text7(256).optional(),
-  streamId: text7(128),
+  id: text8(256),
+  title: text8(1e3),
+  label: text8(256).optional(),
+  streamId: text8(128),
   startPts: pts2,
   endPts: pts2,
-  sourceId: text7(2048).optional()
+  sourceId: text8(2048).optional()
 }).strict().refine((row) => row.startPts < row.endPts, "Chapter range must be nonempty");
 var workVideoContextSchema = external_exports.object({
   format: external_exports.literal("video"),
-  extractorVersion: text7(128),
-  provenance: external_exports.array(external_exports.object({ ref: text7(2048), digest: videoProjectDigestSchema }).strict()).min(1).max(100),
+  extractorVersion: text8(128),
+  provenance: external_exports.array(external_exports.object({ ref: text8(2048), digest: videoProjectDigestSchema }).strict()).min(1).max(100),
   /** Original production/file time, distinct from the owner's import/commit time. */
-  production: external_exports.object({ createdAt: external_exports.string().datetime(), sourceRef: text7(2048) }).strict().optional(),
+  production: external_exports.object({ createdAt: external_exports.string().datetime(), sourceRef: text8(2048) }).strict().optional(),
   chapters: external_exports.array(chapter).max(1e3).optional(),
   story: external_exports.array(
     external_exports.object({
-      id: text7(256),
-      chapterId: text7(256).optional(),
-      title: text7(1e3),
+      id: text8(256),
+      chapterId: text8(256).optional(),
+      title: text8(1e3),
       text: external_exports.string().max(12e3).optional(),
-      streamId: text7(128),
+      streamId: text8(128),
       startPts: pts2,
       endPts: pts2,
       /** Only explicit source identity may relate this paragraph to another version. */
-      sourceId: text7(2048).optional(),
+      sourceId: text8(2048).optional(),
       derived: external_exports.boolean().optional()
     }).strict().refine((item) => item.startPts < item.endPts, "Story range must be nonempty")
   ).max(1e4),
   assets: external_exports.array(
     external_exports.object({
       asset: videoProjectAssetSchema,
-      versionId: text7(256),
-      uses: external_exports.array(text7(2e3)).min(1).max(1e3)
+      versionId: text8(256),
+      uses: external_exports.array(text8(2e3)).min(1).max(1e3)
     }).strict().refine(
       (item) => item.asset.versions.some((version) => version.id === item.versionId),
       "Selected asset version must exist"
     )
   ).max(1e4),
   sourceBinding: external_exports.object({
-    sourceProjectContentRef: text7(2048),
+    sourceProjectContentRef: text8(2048),
     sourceOwnerRevision: external_exports.number().int().positive().safe(),
     sourceDigest: videoProjectDigestSchema,
-    screeningId: text7(256).optional(),
-    reviewId: text7(256).optional()
+    screeningId: text8(256).optional(),
+    reviewId: text8(256).optional()
   }).strict().optional()
 }).strict().superRefine((value, ctx) => {
   for (const [field, ids2] of [
@@ -53159,7 +53241,7 @@ var workVideoContextSchema = external_exports.object({
 });
 
 // ../shared/src/types/living-work.ts
-var id30 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
+var id31 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
 var ref9 = external_exports.string().min(1).max(2048);
 var workReferenceSchema = external_exports.object({ contentRef: ref9, ownerRevision: external_exports.number().int().positive().safe() }).strict();
 var workReferenceCardSchema = external_exports.object({
@@ -53171,24 +53253,24 @@ var workReferenceCardSchema = external_exports.object({
   meta: external_exports.object({ kind: external_exports.literal("work_reference"), reference: workReferenceSchema }).strict()
 }).strict();
 var workWorkspaceSourceSchema = external_exports.object({
-  worktreeId: id30,
+  worktreeId: id31,
   path: external_exports.string().min(1).max(2048),
   expectedSourceRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/)
 }).strict();
 var submission = {
-  operationId: id30,
+  operationId: id31,
   title: external_exports.string().trim().min(1).max(240),
   changeSummary: external_exports.string().trim().min(1).max(4e3),
   versionLabel: external_exports.string().trim().min(1).max(128).optional(),
   source: workWorkspaceSourceSchema
 };
 var workReviewResponseSchema = external_exports.object({
-  reviewId: id30,
+  reviewId: id31,
   sourceRound: external_exports.number().int().positive().safe(),
   expectedReviewRevision: external_exports.number().int().positive().safe(),
   expectedTaskRevision: external_exports.number().int().positive().safe(),
   expectedLedgerRevision: external_exports.number().int().positive().safe().optional(),
-  requestId: id30.optional(),
+  requestId: id31.optional(),
   responses: external_exports.array(artifactReviewResponseRecordSchema.omit({ judgment: true })).max(500)
 }).strict();
 var submitWorkSchema = external_exports.object({
@@ -53205,7 +53287,7 @@ var commitWorkSchema = external_exports.discriminatedUnion("action", [
 var setWorkContextSchema = external_exports.object({
   action: external_exports.literal("set-context"),
   reference: workReferenceSchema,
-  operationId: id30,
+  operationId: id31,
   expectedMetadataRevision: external_exports.number().int().nonnegative().safe(),
   context: workVideoContextSchema
 }).strict();
@@ -53216,11 +53298,11 @@ var workCommandSchema = external_exports.union([
   importWorkContextSchema,
   external_exports.object({
     action: external_exports.literal("resolve-review-submission"),
-    reviewId: id30,
+    reviewId: id31,
     sourceRound: external_exports.number().int().positive().safe(),
     expectedReviewRevision: external_exports.number().int().positive().safe(),
-    pendingOperationId: id30,
-    operationId: id30
+    pendingOperationId: id31,
+    operationId: id31
   }).strict(),
   external_exports.object({
     action: external_exports.literal("read-context"),
@@ -53240,23 +53322,23 @@ var workCommandSchema = external_exports.union([
   }).strict()
 ]);
 var workVersionRecordSchema = workReferenceSchema.extend({
-  ownerUserId: id30,
-  threadId: id30,
+  ownerUserId: id31,
+  threadId: id31,
   title: submission.title,
   changeSummary: submission.changeSummary,
   versionLabel: submission.versionLabel,
   source: workWorkspaceSourceSchema,
-  operationId: id30,
+  operationId: id31,
   requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   receiptRef: ref9
 }).strict();
 var workContextRecordSchema = external_exports.object({
   reference: workReferenceSchema,
   metadataRevision: external_exports.number().int().positive().safe(),
-  ownerUserId: id30,
-  operationId: id30,
+  ownerUserId: id31,
+  operationId: id31,
   requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id30 }).strict(),
+  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id31 }).strict(),
   recordedAt: external_exports.string().datetime(),
   context: workVideoContextSchema
 }).strict();
@@ -53454,7 +53536,7 @@ function AppTooltip({
   children,
   useOwnership = usePlainSurface
 }) {
-  const id31 = (0, import_react2.useId)();
+  const id32 = (0, import_react2.useId)();
   const wrapperRef = (0, import_react2.useRef)(null);
   const tipRef = (0, import_react2.useRef)(null);
   const showTimer = (0, import_react2.useRef)(null);
@@ -53637,7 +53719,7 @@ function AppTooltip({
             "div",
             {
               ref: ownedTipRef,
-              id: id31,
+              id: id32,
               role: "tooltip",
               "data-testid": "app-tooltip",
               "data-side": side,
@@ -53823,6 +53905,13 @@ var en = {
   \u53EA: "cats",
   \u6211\u5BB6\u7684\u732B\u5728\u8FD9\u4E2A\u9891\u9053: "My cats in this channel",
   "\u76EE\u6807\u5171\u540C\u5BB6\u56ED\u9700\u8981\u91CD\u65B0\u767B\u5F55\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u5207\u6362\u5230\u5176\u4ED6\u5171\u540C\u5BB6\u56ED\u3002": "Sign in again to open this collective. Your selected collective stays unchanged.",
+  "\u76EE\u6807\u5171\u540C\u4F53\u9700\u8981\u91CD\u65B0\u767B\u5F55\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u5207\u6362\u5230\u5176\u4ED6\u5171\u540C\u4F53\u3002": "Sign in again to open this collective. Your selected collective stays unchanged.",
+  "\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u5165\u53E3\u4E0D\u5B8C\u6574\uFF1B\u8BF7\u4ECE\u4E16\u754C\u680F\u91CD\u65B0\u8FDB\u5165\u3002": "This collective link is incomplete. Open it again from the world rail.",
+  "\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u670D\u52A1\uFF1B\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E0E\u7BA1\u7406\u91CC\u786E\u8BA4\u8FDE\u63A5\u3002": "This collective service is temporarily unreachable. Check its connection in Settings & Management.",
+  "\u73B0\u5728\u8FDB\u4E0D\u53BB\u8FD9\u4E2A\u5171\u540C\u4F53\uFF1B\u5B83\u7684\u670D\u52A1\u5DF2\u7ECF\u53D8\u5316\uFF0C\u8BF7\u4ECE\u4E16\u754C\u680F\u91CD\u65B0\u8FDB\u5165\u3002": "This collective is unavailable because its service changed. Open it again from the world rail.",
+  "\u5F53\u524D\u8D26\u53F7\u73B0\u5728\u8FDB\u4E0D\u53BB\u8FD9\u4E2A\u5171\u540C\u4F53\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u5207\u6362\u5230\u522B\u5904\u3002": "This account cannot open the collective. Your selected destination stays unchanged.",
+  "\u5F53\u524D\u8D26\u53F7\u73B0\u5728\u8FDB\u4E0D\u53BB\u8FD9\u4E2A\u5171\u540C\u4F53\uFF1B\u8BF7\u6362\u8D26\u53F7\u6216\u91CD\u65B0\u767B\u5F55\u3002\u4E0D\u4F1A\u81EA\u52A8\u5207\u6362\u5230\u522B\u5904\u3002": "This account cannot open the collective. Switch accounts or sign in again; your destination stays unchanged.",
+  "\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u670D\u52A1\uFF1B\u4E0D\u4F1A\u81EA\u52A8\u5207\u6362\u5230\u522B\u5904\u3002": "This collective service is temporarily unreachable. Your selected destination stays unchanged.",
   "Cat Caf\xE9 \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026": "Cat Caf\xE9 is securely saving connection credentials\u2026",
   \u63A8\u8FDB: "is progressing",
   \u5173\u6389: "Turn off",
@@ -53865,6 +53954,7 @@ var en = {
   "\u516C\u5F00\u8FDB\u5EA6\uFF1A\u63A8\u8FDB\u4E2D": "Public progress: in progress",
   \u516C\u5F00\u4EFB\u52A1\u8FDB\u884C\u4E2D: "public tasks in progress",
   \u5171\u540C\u5BB6\u56ED: "Collective",
+  \u5171\u540C\u4F53: "Collective",
   \u6210\u5458\u8D44\u6599: "Member profile",
   \u5173\u95ED\u6210\u5458\u8D44\u6599: "Close member profile",
   \u7EF4\u62A4\u8005: "Steward",
@@ -53873,9 +53963,14 @@ var en = {
   \u9879\u76EE: "Projects",
   \u4F5C\u54C1\u8D44\u6599\u5E93: "Works library",
   \u5171\u540C\u5BB6\u56ED\u6210\u5458: "Collective members",
+  \u5171\u540C\u4F53\u6210\u5458\u5217\u8868: "Collective members",
   \u5168\u90E8\u4F5C\u54C1: "All works",
   \u9891\u9053: "Channels",
   \u6211\u7684\u732B: "My cats",
+  \u4F60\u7684\u732B\u5728\u8FD9\u91CC: "Your cats here",
+  \u770B\u6211\u7684\u6210\u5458\u8D44\u6599: "View my member profile",
+  "\u6362\u8D26\u53F7\u2026": "Switch account\u2026",
+  "\u5F53\u524D\u6CA1\u6709\u767B\u8BB0\u5230\u8FD9\u91CC\u7684\u732B\u3002": "No cats are registered here yet.",
   "\u641C\u7D22\u9891\u9053\u3001\u8BDD\u9898\u6216\u6D88\u606F": "Search channels, topics or messages",
   \u641C\u7D22\u9891\u9053\u4E0E\u8BDD\u9898: "Search channels and topics",
   \u641C\u7D22\u7ED3\u679C: "Search results",
@@ -53888,7 +53983,9 @@ var en = {
   \u5173\u95ED\u9891\u9053\u5BFC\u822A: "Close channel navigation",
   \u6536\u8D77\u9891\u9053\u5BFC\u822A: "Collapse channel navigation",
   \u5171\u540C\u5BB6\u56ED\u5BFC\u822A: "Collective navigation",
+  \u5171\u540C\u4F53\u5BFC\u822A: "Collective navigation",
   \u9009\u62E9\u5171\u540C\u5BB6\u56ED: "Choose collective",
+  \u9009\u62E9\u5171\u540C\u4F53: "Choose collective",
   \u9891\u9053\u5BFC\u822A: "Channel navigation",
   "\u6211\u7684\u732B\u2026": "My cats\u2026",
   "\u5DF2\u5141\u8BB8\u7684\u5DE5\u4F5C\u2026": "Allowed work\u2026",
@@ -53975,6 +54072,7 @@ var en = {
   "\u4EFB\u52A1\u5EFA\u8BAE \xB7 \u6765\u81EA\u8FD9\u6761\u6D88\u606F": "Task suggestion \xB7 from this message",
   "\u4EFB\u52A1 \xB7 \u6765\u81EA\u8FD9\u6761\u6D88\u606F": "Task \xB7 from this message",
   "\u6B63\u5728\u6253\u5F00\u5171\u540C\u5BB6\u56ED\u2026": "Opening the collective\u2026",
+  "\u6B63\u5728\u6253\u5F00\u5171\u540C\u4F53\u2026": "Opening the collective\u2026",
   \u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB: "Unable to open this collective",
   "\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002": "This collective is temporarily unavailable. You can continue when it reconnects.",
   "Human \u767B\u5F55": "GitHub sign-in",
@@ -54002,10 +54100,14 @@ var en = {
   \u9009\u62E9\u4E0B\u4E00\u6B65: "Choose your next step",
   "\u7B2C\u4E00\u6B21\u5EFA\u7ACB Collective": "Create your first collective",
   \u5EFA\u7ACB\u65B0\u7684\u5171\u540C\u5BB6\u56ED: "Create a collective",
+  \u5EFA\u7ACB\u65B0\u7684\u5171\u540C\u4F53: "Create a collective",
+  \u65B0\u5EFA\u5171\u540C\u4F53: "Create a collective",
   \u7ED9\u5171\u540C\u5BB6\u56ED\u8D77\u4E2A\u540D\u5B57: "Name your collective",
+  \u7ED9\u5171\u540C\u4F53\u8D77\u4E2A\u540D\u5B57: "Name your collective",
   "Collective \u540D\u79F0": "Collective name",
   "\u5EFA\u7ACB Collective": "Create collective",
   "\u4F60\u5DF2\u79BB\u5F00\u539F\u5171\u540C\u5BB6\u56ED\u3002\u53EF\u4EE5\u5728\u8FD9\u91CC\u65B0\u5EFA\uFF0C\u4E5F\u53EF\u4EE5\u4ECE\u65B0\u7684\u9080\u8BF7\u94FE\u63A5\u52A0\u5165\uFF1B\u539F\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002": "You have left the previous collective. Create one here or open a new invitation. Public history and attribution remain.",
+  "\u4F60\u5DF2\u79BB\u5F00\u539F\u5171\u540C\u4F53\u3002\u53EF\u4EE5\u5728\u8FD9\u91CC\u65B0\u5EFA\uFF0C\u4E5F\u53EF\u4EE5\u4ECE\u65B0\u7684\u9080\u8BF7\u94FE\u63A5\u52A0\u5165\uFF1B\u539F\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002": "You have left the previous collective. Create one here or open a new invitation. Public history and attribution remain.",
   "\u4F60\u4F1A\u6210\u4E3A\u7B2C\u4E00\u4F4D\u7BA1\u7406\u8005\u3002\u9996\u542F\u5B8C\u6210\u540E\u8FD8\u9700\u7ED1\u5B9A Human \u8EAB\u4EFD\uFF0C\u624D\u80FD\u9080\u8BF7\u6210\u5458\u3001\u8FDE\u63A5 Caf\xE9 \u6216\u8FDB\u5165\u65E5\u5E38\u534F\u4F5C\u3002": "You will be the first steward. Link your GitHub identity before inviting members, connecting Caf\xE9s or collaborating.",
   "\u8FD9\u6761\u94FE\u63A5\u53EA\u5EFA\u7ACB\u9996\u4F4D\u7BA1\u7406\u8005\u3002\u63A5\u7740\u521B\u5EFA\u7B2C\u4E00\u4E2A Collective\uFF0C\u518D\u5355\u72EC\u7ED1\u5B9A Human \u8EAB\u4EFD\uFF1B\u65E5\u5E38\u8FDB\u5165\u4E0D\u4F1A\u518D\u4F7F\u7528\u8FD9\u4E2A secret\u3002": "This link creates the first steward. Create a collective, then link your GitHub identity. This setup secret is not used for everyday sign-in.",
   "Human \u8EAB\u4EFD": "Your identity",
@@ -54013,6 +54115,7 @@ var en = {
   "\u7EE7\u7EED\u4F7F\u7528 GitHub \u9A8C\u8BC1": "Continue with GitHub",
   "\u4E00\u6B21\u6027\u521D\u59CB\u5316\u5DF2\u7ECF\u5EFA\u7ACB\u9996\u4E2A Collective\u3002\u5B8C\u6210\u8EAB\u4EFD\u9A8C\u8BC1\u540E\uFF0C\u624D\u80FD\u9080\u8BF7\u6210\u5458\u3001\u8FDE\u63A5 Caf\xE9 \u6216\u8FDB\u5165\u65E5\u5E38\u534F\u4F5C\u3002": "The first collective is ready. Verify your identity before inviting members, connecting Caf\xE9s or collaborating.",
   \u76EE\u6807\u5171\u540C\u5BB6\u56ED\u9700\u8981\u91CD\u65B0\u767B\u5F55: "Sign in again to open this collective",
+  \u76EE\u6807\u5171\u540C\u4F53\u9700\u8981\u91CD\u65B0\u767B\u5F55: "Sign in again to open this collective",
   \u5728\u5BB6\u91CC\u67E5\u770B: "Open in my Caf\xE9",
   \u505C\u6B62: "Stop",
   \u6211\u7684\u732B\u5728\u8FD9\u4E2A\u9891\u9053: "My cats in this channel",
@@ -54066,6 +54169,7 @@ var en = {
   "\u7ED3\u679C\u4F5C\u54C1\u4ECD\u5728\u540C\u6B65\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002": "The shared result is still syncing. Try again shortly.",
   "\u4F5C\u54C1\u670D\u52A1\u5F53\u524D\u4E0D\u53EF\u7528\u3002": "Shared works are currently unavailable.",
   "\u5171\u540C\u5BB6\u56ED\u5DF2\u7ECF\u5207\u6362\uFF0C\u8BF7\u4ECE\u5F53\u524D\u9875\u9762\u91CD\u65B0\u6253\u5F00\u7ED3\u679C\u3002": "The collective changed. Open the result again from the current page.",
+  "\u5171\u540C\u4F53\u5DF2\u7ECF\u5207\u6362\uFF0C\u8BF7\u4ECE\u5F53\u524D\u9875\u9762\u91CD\u65B0\u6253\u5F00\u7ED3\u679C\u3002": "The collective changed. Open the result again from the current page.",
   "\u6B63\u5728\u66F4\u65B0\u2026": "Updating\u2026",
   "\u5171\u540C\u72B6\u6001\u5C1A\u672A\u786E\u8BA4\uFF0C\u53EF\u4EE5\u91CD\u8BD5": "The collective state is not confirmed yet; you can retry.",
   "\u7ED3\u679C\u5DF2\u786E\u8BA4\uFF0C\u4EFB\u52A1\u52A8\u6001\u4F1A\u7EE7\u7EED\u4FDD\u7559": "Result accepted; the task activity remains available",
@@ -54203,8 +54307,8 @@ var en = {
   "\u5DF2\u786E\u8BA4\u4EA4\u63A5\uFF0C\u7B49\u5F85\u63A5\u6536 Caf\xE9 \u6062\u590D\u8BBF\u95EE\u3002": "Transfer confirmed; waiting for the receiving Caf\xE9 to restore access.",
   "\u4EA4\u63A5\u5DF2\u53D6\u6D88\u3002": "The transfer was cancelled."
 };
-function collectiveText(text11, language) {
-  return language === "en" ? en[text11] ?? text11 : text11;
+function collectiveText(text12, language) {
+  return language === "en" ? en[text12] ?? text12 : text12;
 }
 
 // ../ui/src/DiffViewer.tsx
@@ -54365,7 +54469,7 @@ function DiffViewer({
   onOpenFile,
   openFileLabel
 }) {
-  const [mode, setMode] = (0, import_react3.useState)("unified");
+  const [mode2, setMode] = (0, import_react3.useState)("unified");
   const files = (0, import_react3.useMemo)(() => parseUnifiedDiff(diff, fallbackFilePath), [diff, fallbackFilePath]);
   const filtered = filePath ? files.filter((f) => f.path === filePath) : files;
   if (filtered.length === 0) {
@@ -54378,7 +54482,7 @@ function DiffViewer({
         {
           type: "button",
           onClick: () => setMode("unified"),
-          className: `px-2 py-0.5 rounded text-micro font-medium transition-colors ${mode === "unified" ? "bg-cafe-accent/80 text-[var(--cafe-surface)]" : "text-cafe-secondary hover:text-cafe-muted hover:bg-cafe-surface/10"}`,
+          className: `px-2 py-0.5 rounded text-micro font-medium transition-colors ${mode2 === "unified" ? "bg-cafe-accent/80 text-[var(--cafe-surface)]" : "text-cafe-secondary hover:text-cafe-muted hover:bg-cafe-surface/10"}`,
           children: labels2?.unified ?? "Unified"
         }
       ),
@@ -54387,7 +54491,7 @@ function DiffViewer({
         {
           type: "button",
           onClick: () => setMode("split"),
-          className: `px-2 py-0.5 rounded text-micro font-medium transition-colors ${mode === "split" ? "bg-cafe-accent/80 text-[var(--cafe-surface)]" : "text-cafe-secondary hover:text-cafe-muted hover:bg-cafe-surface/10"}`,
+          className: `px-2 py-0.5 rounded text-micro font-medium transition-colors ${mode2 === "split" ? "bg-cafe-accent/80 text-[var(--cafe-surface)]" : "text-cafe-secondary hover:text-cafe-muted hover:bg-cafe-surface/10"}`,
           children: labels2?.sideBySide ?? "Side-by-side"
         }
       ),
@@ -54406,7 +54510,7 @@ function DiffViewer({
           }
         )
       ] }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "bg-[var(--ws-editor-bg)] px-3 py-1.5 text-xs font-mono text-cafe-muted console-divider-b truncate", children: file.path })),
-      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "overflow-x-auto bg-[var(--ws-editor-deep)]", children: mode === "unified" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(UnifiedView, { hunks: file.hunks }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SideBySideView, { hunks: file.hunks }) })
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "overflow-x-auto bg-[var(--ws-editor-deep)]", children: mode2 === "unified" ? /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(UnifiedView, { hunks: file.hunks }) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(SideBySideView, { hunks: file.hunks }) })
     ] }, file.path))
   ] });
 }
@@ -55782,7 +55886,7 @@ function one2(state, node2, key) {
     return root2(state, node2, key);
   }
   if (node2.type === "text") {
-    return text8(state, node2);
+    return text9(state, node2);
   }
 }
 function element2(state, node2, key) {
@@ -55850,7 +55954,7 @@ function root2(state, node2, key) {
   addChildren(props, createChildren(state, node2));
   return state.create(node2, state.Fragment, props, key);
 }
-function text8(_, node2) {
+function text9(_, node2) {
   return node2.value;
 }
 function addNode(state, props, type, node2) {
@@ -55866,11 +55970,11 @@ function addChildren(props, children) {
     }
   }
 }
-function productionCreate(_, jsx117, jsxs98) {
+function productionCreate(_, jsx118, jsxs99) {
   return create3;
   function create3(_2, type, props, key) {
     const isStaticChildren = Array.isArray(props.children);
-    const fn = isStaticChildren ? jsxs98 : jsx117;
+    const fn = isStaticChildren ? jsxs99 : jsx118;
     return key ? fn(type, props, key) : fn(type, props);
   }
 }
@@ -55969,9 +56073,9 @@ function createChildren(state, node2) {
     if (state.passKeys) {
       const name2 = child.type === "element" ? child.tagName : child.type === "mdxJsxFlowElement" || child.type === "mdxJsxTextElement" ? child.name : void 0;
       if (name2) {
-        const count = countsByName.get(name2) || 0;
-        key = name2 + "-" + count;
-        countsByName.set(name2, count + 1);
+        const count2 = countsByName.get(name2) || 0;
+        key = name2 + "-" + count2;
+        countsByName.set(name2, count2 + 1);
       }
     }
     const result = one2(state, child, key);
@@ -56188,20 +56292,20 @@ function emphasis2(state, node2) {
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/footnote-reference.js
 function footnoteReference2(state, node2) {
   const clobberPrefix = typeof state.options.clobberPrefix === "string" ? state.options.clobberPrefix : "user-content-";
-  const id31 = String(node2.identifier).toUpperCase();
-  const safeId = normalizeUri(id31.toLowerCase());
-  const index4 = state.footnoteOrder.indexOf(id31);
+  const id32 = String(node2.identifier).toUpperCase();
+  const safeId = normalizeUri(id32.toLowerCase());
+  const index4 = state.footnoteOrder.indexOf(id32);
   let counter;
-  let reuseCounter = state.footnoteCounts.get(id31);
+  let reuseCounter = state.footnoteCounts.get(id32);
   if (reuseCounter === void 0) {
     reuseCounter = 0;
-    state.footnoteOrder.push(id31);
+    state.footnoteOrder.push(id32);
     counter = state.footnoteOrder.length;
   } else {
     counter = index4 + 1;
   }
   reuseCounter += 1;
-  state.footnoteCounts.set(id31, reuseCounter);
+  state.footnoteCounts.set(id32, reuseCounter);
   const link3 = {
     type: "element",
     tagName: "a",
@@ -56276,8 +56380,8 @@ function revert(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/image-reference.js
 function imageReference2(state, node2) {
-  const id31 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id31);
+  const id32 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id32);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -56306,13 +56410,13 @@ function image2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/inline-code.js
 function inlineCode2(state, node2) {
-  const text11 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
-  state.patch(node2, text11);
+  const text12 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
+  state.patch(node2, text12);
   const result = {
     type: "element",
     tagName: "code",
     properties: {},
-    children: [text11]
+    children: [text12]
   };
   state.patch(node2, result);
   return state.applyData(node2, result);
@@ -56320,8 +56424,8 @@ function inlineCode2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/link-reference.js
 function linkReference2(state, node2) {
-  const id31 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id31);
+  const id32 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id32);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -56599,7 +56703,7 @@ function trimLine(value, start2, end) {
 }
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/text.js
-function text9(state, node2) {
+function text10(state, node2) {
   const result = { type: "text", value: trimLines(String(node2.value)) };
   state.patch(node2, result);
   return state.applyData(node2, result);
@@ -56641,7 +56745,7 @@ var handlers = {
   table,
   tableCell,
   tableRow,
-  text: text9,
+  text: text10,
   thematicBreak: thematicBreak3,
   toml: ignore,
   yaml: ignore,
@@ -56904,11 +57008,11 @@ function footer(state) {
       continue;
     }
     const content3 = state.all(definition3);
-    const id31 = String(definition3.identifier).toUpperCase();
-    const safeId = normalizeUri(id31.toLowerCase());
+    const id32 = String(definition3.identifier).toUpperCase();
+    const safeId = normalizeUri(id32.toLowerCase());
     let rereferenceIndex = 0;
     const backReferences = [];
-    const counts = state.footnoteCounts.get(id31);
+    const counts = state.footnoteCounts.get(id32);
     while (counts !== void 0 && ++rereferenceIndex <= counts) {
       if (backReferences.length > 0) {
         backReferences.push({ type: "text", value: " " });
@@ -57004,9 +57108,9 @@ function createState(tree, options) {
   visit(tree, function(node2) {
     if (node2.type === "definition" || node2.type === "footnoteDefinition") {
       const map3 = node2.type === "definition" ? definitionById : footnoteById;
-      const id31 = String(node2.identifier).toUpperCase();
-      if (!map3.has(id31)) {
-        map3.set(id31, node2);
+      const id32 = String(node2.identifier).toUpperCase();
+      if (!map3.has(id32)) {
+        map3.set(id32, node2);
       }
     }
   });
@@ -57445,7 +57549,7 @@ function MeowClubMark({ className = "h-6 w-6" }) {
 // ../ui/src/Nameplate.tsx
 var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
 function Nameplate({
-  id: id31,
+  id: id32,
   name: name2,
   avatar,
   surface,
@@ -57462,7 +57566,7 @@ function Nameplate({
     {
       ref: anchorRef,
       "data-testid": `${kind}-nameplate`,
-      "data-cat-id": kind === "cat" ? id31 : void 0,
+      "data-cat-id": kind === "cat" ? id32 : void 0,
       "data-avatar-shape": avatarShape,
       className: "cafe-nameplate",
       style: { backgroundImage: `linear-gradient(to bottom, ${surface}, transparent)` },
@@ -57639,7 +57743,7 @@ var svgFilters = freeze(["feBlend", "feColorMatrix", "feComponentTransfer", "feC
 var svgDisallowed = freeze(["animate", "color-profile", "cursor", "discard", "font-face", "font-face-format", "font-face-name", "font-face-src", "font-face-uri", "foreignobject", "hatch", "hatchpath", "mesh", "meshgradient", "meshpatch", "meshrow", "missing-glyph", "script", "set", "solidcolor", "unknown", "use"]);
 var mathMl$1 = freeze(["math", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "mprescripts"]);
 var mathMlDisallowed = freeze(["maction", "maligngroup", "malignmark", "mlongdiv", "mscarries", "mscarry", "msgroup", "mstack", "msline", "msrow", "semantics", "annotation", "annotation-xml", "mprescripts", "none"]);
-var text10 = freeze(["#text"]);
+var text11 = freeze(["#text"]);
 var html5 = freeze(["accept", "action", "align", "alt", "autocapitalize", "autocomplete", "autopictureinpicture", "autoplay", "background", "bgcolor", "border", "capture", "cellpadding", "cellspacing", "checked", "cite", "class", "clear", "color", "cols", "colspan", "controls", "controlslist", "coords", "crossorigin", "datetime", "decoding", "default", "dir", "disabled", "disablepictureinpicture", "disableremoteplayback", "download", "draggable", "enctype", "enterkeyhint", "exportparts", "face", "for", "headers", "height", "hidden", "high", "href", "hreflang", "id", "inert", "inputmode", "integrity", "ismap", "kind", "label", "lang", "list", "loading", "loop", "low", "max", "maxlength", "media", "method", "min", "minlength", "multiple", "muted", "name", "nonce", "noshade", "novalidate", "nowrap", "open", "optimum", "part", "pattern", "placeholder", "playsinline", "popover", "popovertarget", "popovertargetaction", "poster", "preload", "pubdate", "radiogroup", "readonly", "rel", "required", "rev", "reversed", "role", "rows", "rowspan", "spellcheck", "scope", "selected", "shape", "size", "sizes", "slot", "span", "srclang", "start", "src", "srcset", "step", "style", "summary", "tabindex", "title", "translate", "type", "usemap", "valign", "value", "width", "wrap", "xmlns", "slot"]);
 var svg3 = freeze(["accent-height", "accumulate", "additive", "alignment-baseline", "amplitude", "ascent", "attributename", "attributetype", "azimuth", "basefrequency", "baseline-shift", "begin", "bias", "by", "class", "clip", "clippathunits", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-profile", "color-rendering", "cx", "cy", "d", "dx", "dy", "diffuseconstant", "direction", "display", "divisor", "dur", "edgemode", "elevation", "end", "exponent", "fill", "fill-opacity", "fill-rule", "filter", "filterunits", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "fx", "fy", "g1", "g2", "glyph-name", "glyphref", "gradientunits", "gradienttransform", "height", "href", "id", "image-rendering", "in", "in2", "intercept", "k", "k1", "k2", "k3", "k4", "kerning", "keypoints", "keysplines", "keytimes", "lang", "lengthadjust", "letter-spacing", "kernelmatrix", "kernelunitlength", "lighting-color", "local", "marker-end", "marker-mid", "marker-start", "markerheight", "markerunits", "markerwidth", "maskcontentunits", "maskunits", "max", "mask", "mask-type", "media", "method", "mode", "min", "name", "numoctaves", "offset", "operator", "opacity", "order", "orient", "orientation", "origin", "overflow", "paint-order", "path", "pathlength", "patterncontentunits", "patterntransform", "patternunits", "points", "preservealpha", "preserveaspectratio", "primitiveunits", "r", "rx", "ry", "radius", "refx", "refy", "repeatcount", "repeatdur", "restart", "result", "rotate", "scale", "seed", "shape-rendering", "slope", "specularconstant", "specularexponent", "spreadmethod", "startoffset", "stddeviation", "stitchtiles", "stop-color", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "stroke-width", "style", "surfacescale", "systemlanguage", "tabindex", "tablevalues", "targetx", "targety", "transform", "transform-origin", "text-anchor", "text-decoration", "text-rendering", "textlength", "type", "u1", "u2", "unicode", "values", "viewbox", "visibility", "version", "vert-adv-y", "vert-origin-x", "vert-origin-y", "width", "word-spacing", "wrap", "writing-mode", "xchannelselector", "ychannelselector", "x", "x1", "x2", "xmlns", "y", "y1", "y2", "z", "zoomandpan"]);
 var mathMl = freeze(["accent", "accentunder", "align", "bevelled", "close", "columnsalign", "columnlines", "columnspan", "denomalign", "depth", "dir", "display", "displaystyle", "encoding", "fence", "frame", "height", "href", "id", "largeop", "length", "linethickness", "lspace", "lquote", "mathbackground", "mathcolor", "mathsize", "mathvariant", "maxsize", "minsize", "movablelimits", "notation", "numalign", "open", "rowalign", "rowlines", "rowspacing", "rowspan", "rspace", "rquote", "scriptlevel", "scriptminsize", "scriptsizemultiplier", "selection", "separator", "separators", "stretchy", "subscriptshift", "supscriptshift", "symmetric", "voffset", "width", "xmlns"]);
@@ -57794,7 +57898,7 @@ function createDOMPurify() {
     IS_ALLOWED_URI: IS_ALLOWED_URI$1
   } = EXPRESSIONS;
   let ALLOWED_TAGS = null;
-  const DEFAULT_ALLOWED_TAGS = addToSet({}, [...html$1, ...svg$1, ...svgFilters, ...mathMl$1, ...text10]);
+  const DEFAULT_ALLOWED_TAGS = addToSet({}, [...html$1, ...svg$1, ...svgFilters, ...mathMl$1, ...text11]);
   let ALLOWED_ATTR = null;
   const DEFAULT_ALLOWED_ATTR = addToSet({}, [...html5, ...svg3, ...mathMl, ...xml2]);
   let CUSTOM_ELEMENT_HANDLING = Object.seal(create2(null, {
@@ -57933,7 +58037,7 @@ function createDOMPurify() {
       RETURN_DOM = true;
     }
     if (USE_PROFILES) {
-      ALLOWED_TAGS = addToSet({}, text10);
+      ALLOWED_TAGS = addToSet({}, text11);
       ALLOWED_ATTR = create2(null);
       if (USE_PROFILES.html === true) {
         addToSet(ALLOWED_TAGS, html$1);
@@ -58532,8 +58636,8 @@ function sanitizeWidgetHtml(html6) {
     node2.textContent = "";
   });
   purifier.addHook("afterSanitizeAttributes", (node2) => {
-    const text11 = scriptText.get(node2);
-    if (text11 !== void 0) node2.textContent = text11;
+    const text12 = scriptText.get(node2);
+    if (text12 !== void 0) node2.textContent = text12;
   });
   return purifier.sanitize(html6, {
     // Widgets are complete HTML documents — preserve <html>/<head>/<style>
@@ -58559,9 +58663,9 @@ function publicWidgetDocument(html6, nonce) {
   for (const style2 of document4.querySelectorAll("style")) style2.setAttribute("nonce", nonce);
   const rules = [];
   for (const [index4, element3] of [...document4.querySelectorAll("[style]")].entries()) {
-    const id31 = `cafe-widget-inline-${index4}`;
-    rules.push(`[data-cafe-widget-style="${id31}"]{${element3.style.cssText}}`);
-    element3.setAttribute("data-cafe-widget-style", id31);
+    const id32 = `cafe-widget-inline-${index4}`;
+    rules.push(`[data-cafe-widget-style="${id32}"]{${element3.style.cssText}}`);
+    element3.setAttribute("data-cafe-widget-style", id32);
     element3.removeAttribute("style");
   }
   if (rules.length) {
@@ -58580,13 +58684,13 @@ function publicWidgetDocument(html6, nonce) {
 // ../ui/src/QuoteExcerpt.tsx
 var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
 function QuoteExcerpt({
-  text: text11,
+  text: text12,
   comment,
   commentLabel,
   compact = false
 }) {
   return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "cafe-quote-excerpt", "data-compact": compact || void 0, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "cafe-quote-text", children: text11 }),
+    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "cafe-quote-text", children: text12 }),
     comment && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "cafe-quote-comment", children: [
       commentLabel && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("strong", { children: [
         commentLabel,
@@ -58674,11 +58778,11 @@ var AudioElement = (0, import_react6.forwardRef)(function AudioElement2(props, r
 // ../ui/src/SandboxedWidgetFrame.tsx
 var import_react7 = __toESM(require_react(), 1);
 var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
-var SandboxedWidgetFrame = (0, import_react7.forwardRef)(function SandboxedWidgetFrame2({ id: id31, html: html6, title, height, scrolling = "no" }, ref10) {
+var SandboxedWidgetFrame = (0, import_react7.forwardRef)(function SandboxedWidgetFrame2({ id: id32, html: html6, title, height, scrolling = "no" }, ref10) {
   return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
     "iframe",
     {
-      id: id31,
+      id: id32,
       ref: ref10,
       srcDoc: html6,
       sandbox: "allow-scripts",
@@ -59149,10 +59253,10 @@ function crossesExcludedChrome(range2, root5) {
   ];
   return excluded.some((candidate) => rangeSelectsTextWithin(range2, candidate));
 }
-function countRenderedOccurrences(root5, text11) {
-  if (!text11) return 0;
+function countRenderedOccurrences(root5, text12) {
+  if (!text12) return 0;
   const rendered = root5 instanceof HTMLElement && typeof root5.innerText === "string" ? root5.innerText : root5.textContent ?? "";
-  return rendered.split(text11).length - 1;
+  return rendered.split(text12).length - 1;
 }
 function matchingSubtree(root5, selector) {
   return [...root5.matches(selector) ? [root5] : [], ...Array.from(root5.querySelectorAll(selector))];
@@ -59262,8 +59366,8 @@ function selectionBelongsToContainer(selection, container) {
 function projectSelectionAction(selection, container, coordinateSpace, projection) {
   if (!selectionBelongsToContainer(selection, container)) return null;
   const rawText = selection.toString();
-  const text11 = rawText.trim();
-  if (!text11) return null;
+  const text12 = rawText.trim();
+  if (!text12) return null;
   const viewport = selectionViewport(container, coordinateSpace);
   const position4 = positionSelectionActionForAnchors(selectionAnchorRects(selection), viewport);
   const source3 = selectionSource(selection, container, projection);
@@ -59273,10 +59377,10 @@ function projectSelectionAction(selection, container, coordinateSpace, projectio
   if (projection?.isUnmapped(source3.coordinateRoot, trimmedOffsets)) return null;
   const renderedRoot = source3.coordinateRoot ?? container;
   return {
-    text: text11,
+    text: text12,
     position: position4,
     sourceKind: source3.kind,
-    renderedOccurrences: countRenderedOccurrences(renderedRoot, text11),
+    renderedOccurrences: countRenderedOccurrences(renderedRoot, text12),
     sourceProjectionVersion: source3.projectionVersion ?? void 0,
     ...trimmedOffsets && source3.segmentId ? { sourceSegmentId: source3.segmentId } : {},
     ...trimmedOffsets ? { selectionStart: trimmedOffsets.start, selectionEnd: trimmedOffsets.end } : {}
@@ -59608,7 +59712,7 @@ function useCollectiveLanguage() {
 }
 function useCollectiveText() {
   const language = useCollectiveLanguage();
-  return (text11) => collectiveText(text11, language);
+  return (text12) => collectiveText(text12, language);
 }
 
 // src/ChannelNavigation.tsx
@@ -59702,7 +59806,7 @@ function ChannelNavigation({
             ]
           }
         ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("nav", { className: "destination-list destination-global-list member-destination", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u6210\u5458"), children: /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", className: "destination-item", onClick: onMembers, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("nav", { className: "destination-list destination-global-list member-destination", "aria-label": t("\u6210\u5458"), children: /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("button", { type: "button", className: "destination-item", onClick: onMembers, children: [
           /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { className: "destination-symbol", children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(CollectiveIcon, { kind: "members" }) }),
           /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("span", { children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("strong", { children: t("\u6210\u5458") }) }),
           memberCount !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("small", { children: memberCount })
@@ -60041,16 +60145,16 @@ function MemberAvatar({
 var import_jsx_runtime30 = __toESM(require_jsx_runtime(), 1);
 function ComposerMentionMenu({
   options,
-  id: id31,
+  id: id32,
   active,
   onSelect
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "mention-list", id: id31, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "mention-list", id: id32, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
     options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)(
       "button",
       {
-        id: `${id31}-${index4}`,
+        id: `${id32}-${index4}`,
         type: "button",
         role: "option",
         "aria-selected": index4 === active,
@@ -60098,7 +60202,7 @@ function ComposerRichContent({
     const value = editor.kind === "checklist" ? {
       ...base3,
       title: editor.title || void 0,
-      items: lines.map((text11, index4) => ({ id: `item-${index4}`, text: text11 }))
+      items: lines.map((text12, index4) => ({ id: `item-${index4}`, text: text12 }))
     } : editor.kind === "interactive" ? {
       ...base3,
       title: editor.title || void 0,
@@ -60316,9 +60420,9 @@ function ComposerStickers({
   const port2 = useMessageExpression();
   const language = useCollectiveLanguage();
   const readImage = (0, import_react18.useCallback)(
-    async (id31, signal) => {
+    async (id32, signal) => {
       if (!port2?.catalogImage) throw new Error("Sticker images are unavailable");
-      return port2.catalogImage(id31, channelId, signal);
+      return port2.catalogImage(id32, channelId, signal);
     },
     [port2, channelId]
   );
@@ -60333,8 +60437,8 @@ function ComposerStickers({
       })),
       readImage,
       onClose,
-      onSelect: async (id31, blob) => {
-        await files.add([new File([blob], `${id31}.png`, { type: "image/png" })], messageStickerReference(id31));
+      onSelect: async (id32, blob) => {
+        await files.add([new File([blob], `${id32}.png`, { type: "image/png" })], messageStickerReference(id32));
         onClose();
       }
     }
@@ -60635,8 +60739,8 @@ function MessageQuoteProvider({
     [storageNamespace]
   );
   const consumed = (0, import_react21.useCallback)(
-    (id31) => setRequests((current2) => {
-      if (current2.get(storageNamespace)?.id !== id31) return current2;
+    (id32) => setRequests((current2) => {
+      if (current2.get(storageNamespace)?.id !== id32) return current2;
       const next = new Map(current2);
       next.delete(storageNamespace);
       return next;
@@ -60660,9 +60764,9 @@ function ComposerMessageQuotes({
     MessageQuotes,
     {
       quotes: draft.contextAttachments,
-      onRemove: (id31) => setDraft((current2) => ({
+      onRemove: (id32) => setDraft((current2) => ({
         ...current2,
-        contextAttachments: current2.contextAttachments?.filter((quote) => quote.id !== id31)
+        contextAttachments: current2.contextAttachments?.filter((quote) => quote.id !== id32)
       }))
     }
   );
@@ -60771,13 +60875,13 @@ function fileIntents(namespace) {
     (item) => item && typeof item === "object" && typeof item.id === "string" && (item.attachmentId === void 0 || typeof item.attachmentId === "string")
   ) : [];
 }
-function beginPendingAttachmentFile(namespace, id31) {
+function beginPendingAttachmentFile(namespace, id32) {
   const intents = fileIntents(namespace);
-  if (!intents.some((item) => item.id === id31))
-    localStorage.setItem(intentKey(namespace), JSON.stringify([...intents, { id: id31 }]));
+  if (!intents.some((item) => item.id === id32))
+    localStorage.setItem(intentKey(namespace), JSON.stringify([...intents, { id: id32 }]));
 }
-function hasPendingAttachmentFile(namespace, id31) {
-  return fileIntents(namespace).some((item) => item.id === id31);
+function hasPendingAttachmentFile(namespace, id32) {
+  return fileIntents(namespace).some((item) => item.id === id32);
 }
 async function openFiles() {
   return new Promise((resolve, reject) => {
@@ -60795,7 +60899,7 @@ async function pendingAttachmentFiles(namespace) {
       request.onsuccess = () => resolve(
         request.result.filter(
           (item) => item.namespace === namespace && fileIntents(namespace).some((intent) => intent.id === item.id)
-        ).map(({ id: id31, file, attachment, sticker }) => ({ id: id31, file, attachment, sticker }))
+        ).map(({ id: id32, file, attachment, sticker }) => ({ id: id32, file, attachment, sticker }))
       );
       request.onerror = () => reject(request.error);
     });
@@ -60917,9 +61021,9 @@ function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = tr
         setNotice(`${file.name}\uFF1A\u8BF7\u9009\u62E9 50 MiB \u4EE5\u5185\u7684\u975E\u7A7A\u6587\u4EF6\u3002`);
         continue;
       }
-      const id31 = crypto.randomUUID();
+      const id32 = crypto.randomUUID();
       const item = {
-        id: id31,
+        id: id32,
         file,
         name: file.name,
         mediaType: file.type,
@@ -60929,11 +61033,11 @@ function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = tr
         ...sticker ? { sticker } : {}
       };
       uploadUrls.current.add(item.url);
-      present.current.add(id31);
+      present.current.add(id32);
       setUploads((current2) => [...current2, item]);
       try {
-        beginPendingAttachmentFile(draftKey, id31);
-        await savePendingAttachmentFile(draftKey, { id: id31, file, ...sticker ? { sticker } : {} });
+        beginPendingAttachmentFile(draftKey, id32);
+        await savePendingAttachmentFile(draftKey, { id: id32, file, ...sticker ? { sticker } : {} });
       } catch {
         setNotice("\u6D4F\u89C8\u5668\u65E0\u6CD5\u4FDD\u5B58\u672A\u4E0A\u4F20\u7684\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762\u3002");
       }
@@ -61014,18 +61118,18 @@ function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = tr
     notice: notice2,
     pending: uploads.length > 0,
     add,
-    remove(id31) {
-      controllers.current.get(id31)?.abort();
-      present.current.delete(id31);
-      setUploads((current2) => current2.filter((item) => item.id !== id31));
+    remove(id32) {
+      controllers.current.get(id32)?.abort();
+      present.current.delete(id32);
+      setUploads((current2) => current2.filter((item) => item.id !== id32));
       setDraft((current2) => ({
         ...current2,
-        attachments: current2.attachments?.filter((item) => item.attachmentId !== id31)
+        attachments: current2.attachments?.filter((item) => item.attachmentId !== id32)
       }));
-      void discardPendingAttachmentFiles(draftKey, [id31]).catch(() => setNotice("\u672A\u80FD\u79FB\u9664\u672C\u5730\u6587\u4EF6\uFF0C\u8BF7\u91CD\u8BD5\u3002"));
+      void discardPendingAttachmentFiles(draftKey, [id32]).catch(() => setNotice("\u672A\u80FD\u79FB\u9664\u672C\u5730\u6587\u4EF6\uFF0C\u8BF7\u91CD\u8BD5\u3002"));
     },
-    retry(id31) {
-      const item = uploads.find((value) => value.id === id31);
+    retry(id32) {
+      const item = uploads.find((value) => value.id === id32);
       if (item) enqueueUpload(item);
     },
     async confirm(attachments) {
@@ -61396,10 +61500,10 @@ function useComposerVoice(input) {
       if (url) URL.revokeObjectURL(url);
     };
   }, [scope, captureId, state, host]);
-  const makeSession = (id31, service) => new ComposerVoiceSession(
+  const makeSession = (id32, service) => new ComposerVoiceSession(
     {
       draftKey: input.draftKey,
-      captureId: id31,
+      captureId: id32,
       channelId: input.channelId,
       rootEventId: input.rootEventId,
       port: port2,
@@ -61424,12 +61528,12 @@ function useComposerVoice(input) {
     async start() {
       if (!device.service || !port2 || input.draft.voiceDraft || !input.durable.ready || input.durable.conflict || transition.current)
         return;
-      const id31 = crypto.randomUUID();
-      transition.current = id31;
+      const id32 = crypto.randomUUID();
+      transition.current = id32;
       setTransitioning(true);
-      const voiceDraft = { captureId: id31, state: "recording", applied: false };
+      const voiceDraft = { captureId: id32, state: "recording", applied: false };
       const draft = { ...input.draft, voiceDraft };
-      const session = makeSession(id31, device.service);
+      const session = makeSession(id32, device.service);
       input.setDraft(draft);
       setDuration(0);
       setNotice(void 0);
@@ -61439,10 +61543,10 @@ function useComposerVoice(input) {
         await session.start();
       } catch (error) {
         session.cancel();
-        host.edit((draft2) => updateComposerVoice(draft2, id31, { state: "failed" }));
+        host.edit((draft2) => updateComposerVoice(draft2, id32, { state: "failed" }));
         host.notice(error instanceof Error ? error.message : String(error));
       } finally {
-        if (transition.current === id31) {
+        if (transition.current === id32) {
           transition.current = void 0;
           if (currentScope.current === scope) setTransitioning(false);
         }
@@ -61817,11 +61921,11 @@ async function readArtifactJsonPages(read) {
 var changed = () => new Error("\u6279\u6CE8\u6B63\u5728\u66F4\u65B0\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u4F5C\u54C1\u3002");
 function assertSharedAnnotationPage(view, offset2) {
   const page3 = view.view.annotationPage;
-  const count = view.view.review.annotations.length;
-  const end = offset2 + count;
-  if (page3.offset !== offset2 || !Number.isSafeInteger(page3.total) || page3.total < 0 || end > page3.total || count === 0 && page3.total !== 0 || (page3.nextOffset === void 0 ? end !== page3.total : page3.nextOffset !== end || end >= page3.total))
+  const count2 = view.view.review.annotations.length;
+  const end = offset2 + count2;
+  if (page3.offset !== offset2 || !Number.isSafeInteger(page3.total) || page3.total < 0 || end > page3.total || count2 === 0 && page3.total !== 0 || (page3.nextOffset === void 0 ? end !== page3.total : page3.nextOffset !== end || end >= page3.total))
     throw changed();
-  if (new Set(view.view.review.annotations.map((item) => item.id)).size !== count) throw changed();
+  if (new Set(view.view.review.annotations.map((item) => item.id)).size !== count2) throw changed();
 }
 function appendSharedAnnotationPage(view, page3) {
   const offset2 = view.view.annotationPage.nextOffset;
@@ -62022,13 +62126,13 @@ function batchedRequestReceipts(post2, coordinates3) {
 }
 async function readReceiptBatch(post2, coordinates3, batch) {
   try {
-    const requestEventIds = batch.map(([id31]) => id31);
+    const requestEventIds = batch.map(([id32]) => id32);
     const value = collectiveArtifactRequestReceiptPageSchema.parse(
       await post2("receipts/by-request", { ...coordinates3, requestEventIds })
     );
     assertReceiptBindings(value.receipts, coordinates3, requestEventIds);
-    for (const [id31, listeners] of batch) {
-      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id31);
+    for (const [id32, listeners] of batch) {
+      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id32);
       for (const listener of listeners) listener.resolve(receipts);
     }
   } catch (error) {
@@ -62038,10 +62142,10 @@ async function readReceiptBatch(post2, coordinates3, batch) {
 function assertReceiptBindings(receipts, coordinates3, requestEventIds) {
   const seen = /* @__PURE__ */ new Set();
   for (const receipt2 of receipts) {
-    const id31 = receipt2.version.lineage?.requestEventId;
-    if (!id31 || !requestEventIds.includes(id31) || seen.has(id31) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
+    const id32 = receipt2.version.lineage?.requestEventId;
+    if (!id32 || !requestEventIds.includes(id32) || seen.has(id32) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
       throw new Error("\u91C7\u7528\u56DE\u6267\u4E0E\u539F\u8BF7\u6C42\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
-    seen.add(id31);
+    seen.add(id32);
   }
 }
 
@@ -62143,8 +62247,8 @@ var previewSchema = external_exports.object({
   stale: external_exports.boolean(),
   currentOwnerRevision: external_exports.number().int().positive()
 });
-async function digest7(text11) {
-  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text11)));
+async function digest7(text12) {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text12)));
   return `sha256:${Array.from(bytes, (item) => item.toString(16).padStart(2, "0")).join("")}`;
 }
 async function previewSharedArtifactModification(operation, artifact, selection, resolveVersion = async (revision11) => artifact.versions.find((version) => version.ownerRevision === revision11)) {
@@ -62591,7 +62695,7 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
     async (address) => {
       if (!api || namespace !== currentNamespace.current) throw new Error("\u4F5C\u54C1\u670D\u52A1\u5F53\u524D\u4E0D\u53EF\u7528\u3002");
       const artifact = await api.openWorkResult(address.fileId);
-      if (namespace !== currentNamespace.current) throw new Error("\u5171\u540C\u5BB6\u56ED\u5DF2\u7ECF\u5207\u6362\uFF0C\u8BF7\u4ECE\u5F53\u524D\u9875\u9762\u91CD\u65B0\u6253\u5F00\u7ED3\u679C\u3002");
+      if (namespace !== currentNamespace.current) throw new Error("\u5171\u540C\u4F53\u5DF2\u7ECF\u5207\u6362\uFF0C\u8BF7\u4ECE\u5F53\u524D\u9875\u9762\u91CD\u65B0\u6253\u5F00\u7ED3\u679C\u3002");
       setCatalogue((current2) => [artifact, ...current2.filter((item) => item.artifactId !== artifact.artifactId)]);
       setStatus("ready");
       setError(void 0);
@@ -63176,6 +63280,7 @@ function Composer({
 var import_jsx_runtime40 = __toESM(require_jsx_runtime(), 1);
 function ChannelComposer({
   namespace,
+  collectiveName,
   channelId,
   participants,
   humans,
@@ -63223,7 +63328,7 @@ function ChannelComposer({
     host.current?.toggleAttribute("inert", firstEntry?.phase === "playing");
   }, [firstEntry?.phase]);
   return /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)(import_jsx_runtime40.Fragment, { children: [
-    firstEntry?.phase === "handoff" && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("p", { className: "first-entry-audience", children: "#general \u662F\u516C\u5F00\u9891\u9053 \xB7 \u8FD9\u4E2A Collective \u7684\u6210\u5458\u90FD\u770B\u5F97\u5230" }),
+    firstEntry?.phase === "handoff" && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("p", { className: "first-entry-audience", children: language === "en" ? `#general is public \xB7 visible to all ${collectiveName} members` : `#general \u662F\u516C\u5F00\u9891\u9053 \xB7 ${collectiveName}\u7684\u6210\u5458\u90FD\u770B\u5F97\u5230` }),
     firstEntry?.phase === "empty" && /* @__PURE__ */ (0, import_jsx_runtime40.jsxs)("output", { className: "first-entry-hint", children: [
       "\u8FD9\u53F0 Caf\xE9 \u8FD8\u6CA1\u6709\u53EF\u53C2\u4E0E\u7684\u4F19\u4F34\u3002",
       onCafe && /* @__PURE__ */ (0, import_jsx_runtime40.jsx)("button", { type: "button", onClick: onCafe, children: "\u53BB\u300C\u6211\u7684\u732B\u300D\u767B\u8BB0" })
@@ -63240,7 +63345,7 @@ function ChannelComposer({
         channelId,
         participants,
         humans,
-        placeholder: language === "en" ? `Message #${channelId}\u2026` : `\u5728 #${channelId} \u91CC\u8BF4\u70B9\u4EC0\u4E48\u2026\u2026`,
+        placeholder: language === "en" ? `Post to # ${channelId} \xB7 visible to all ${collectiveName} members` : `\u53D1\u5230 # ${channelId} \xB7 ${collectiveName}\u7684\u6210\u5458\u90FD\u770B\u5F97\u5230`,
         delivery,
         mention: guideMention ?? mention,
         onSend: async (body4, recipient, entrust, responseRequested, replyToEventId, content3) => {
@@ -63642,8 +63747,8 @@ function submitGitHubAppManifest(openedWindow, result) {
 // src/use-human-auth-session.ts
 var SESSION_KEY = "collective-session";
 function selectedCollective(me) {
-  const id31 = new URLSearchParams(location.search).get("collectiveId");
-  return id31 ? me?.collectives.find((item) => item.collectiveId === id31) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
+  const id32 = new URLSearchParams(location.search).get("collectiveId");
+  return id32 ? me?.collectives.find((item) => item.collectiveId === id32) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
 }
 async function finishAuthCompletion(context2) {
   const completed = await context2.request("/api/auth/completions/exchange", {
@@ -63728,10 +63833,12 @@ function resolveHumanAuthIntent(phase, invitationMode) {
 function useHumanAuthSession(snapshot, setSnapshot) {
   const token = (0, import_react36.useRef)(null);
   const authWindow = (0, import_react36.useRef)(null);
+  const sessionGeneration = (0, import_react36.useRef)(0);
   const requestTail = (0, import_react36.useRef)(Promise.resolve());
   const binaryRequest = (0, import_react36.useCallback)(async (path2, init) => {
     if (!path2.startsWith("/api/") || path2.startsWith("//")) throw new Error("Invalid Service path");
     const credential = token.current;
+    const generation = sessionGeneration.current;
     if (!credential) throw new CollectiveClientRequestError(401, "\u8BF7\u5148\u767B\u5F55");
     const response = await fetch(path2, {
       ...init,
@@ -63742,7 +63849,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
         "x-collective-message-content": "2"
       }
     });
-    if (credential !== token.current) {
+    if (credential !== token.current || generation !== sessionGeneration.current) {
       await response.body?.cancel();
       throw new Error("\u8EAB\u4EFD\u5DF2\u53D8\u5316");
     }
@@ -63756,6 +63863,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
     return response;
   }, []);
   const request = (0, import_react36.useCallback)((path2, init) => {
+    const generation = sessionGeneration.current;
     const options = {
       ...init,
       credentials: "same-origin",
@@ -63768,8 +63876,10 @@ function useHumanAuthSession(snapshot, setSnapshot) {
     };
     const result = requestTail.current.then(async () => {
       options.signal?.throwIfAborted();
+      if (generation !== sessionGeneration.current) throw new Error("\u8EAB\u4EFD\u5DF2\u53D8\u5316");
       const response = await fetch(path2, options);
       const payload = await response.json();
+      if (generation !== sessionGeneration.current) throw new Error("\u8EAB\u4EFD\u5DF2\u53D8\u5316");
       if (!response.ok) {
         throw new CollectiveClientRequestError(
           response.status,
@@ -63790,6 +63900,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       return await request("/api/me");
     } catch (error) {
       if (error instanceof CollectiveClientRequestError && error.status === 401 && credential === token.current) {
+        ++sessionGeneration.current;
         token.current = null;
         sessionStorage.removeItem(`${SESSION_KEY}:${location.origin}`);
         setSnapshot((current2) => {
@@ -63812,6 +63923,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
   }, [request, setSnapshot]);
   const enterSession = (0, import_react36.useCallback)(
     async (sessionToken) => {
+      ++sessionGeneration.current;
       token.current = sessionToken;
       sessionStorage.setItem(`${SESSION_KEY}:${location.origin}`, sessionToken);
       const cleanUrl = new URL(location.href);
@@ -63930,7 +64042,38 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       throw error;
     }
   }, [invitationMode, request, snapshot.phase, snapshot.providers]);
-  return { token, request, binaryRequest, loadMe, invitationMode, bootstrap, authenticate, configureProvider };
+  const switchAccount = (0, import_react36.useCallback)(() => {
+    ++sessionGeneration.current;
+    token.current = null;
+    authWindow.current?.close();
+    authWindow.current = null;
+    sessionStorage.removeItem(`${SESSION_KEY}:${location.origin}`);
+    setSnapshot((current2) => ({
+      ...current2,
+      phase: "entry",
+      me: void 0,
+      collective: void 0,
+      restrictedScope: void 0,
+      events: [],
+      collaboration: void 0,
+      participants: void 0,
+      members: void 0,
+      notice: void 0,
+      error: void 0,
+      delivery: { kind: "idle" }
+    }));
+  }, [setSnapshot]);
+  return {
+    token,
+    request,
+    binaryRequest,
+    loadMe,
+    invitationMode,
+    bootstrap,
+    authenticate,
+    configureProvider,
+    switchAccount
+  };
 }
 
 // src/work-result-file-link.ts
@@ -64100,7 +64243,7 @@ function MessageChoiceForm({ block, event }) {
   const [selection, setSelection] = (0, import_react38.useState)(() => {
     try {
       const saved = key && JSON.parse(localStorage.getItem(key) ?? "null");
-      if (saved && typeof saved === "object" && "ids" in saved && Array.isArray(saved.ids) && saved.ids.every((id31) => typeof id31 === "string" && block.options.some((option) => option.id === id31)) && "text" in saved && typeof saved.text === "string")
+      if (saved && typeof saved === "object" && "ids" in saved && Array.isArray(saved.ids) && saved.ids.every((id32) => typeof id32 === "string" && block.options.some((option) => option.id === id32)) && "text" in saved && typeof saved.text === "string")
         return { ids: saved.ids, text: saved.text };
     } catch {
     }
@@ -64156,7 +64299,7 @@ function MessageChoiceForm({ block, event }) {
           disabled: !actions || block.disabled || many && !selection.ids.includes(option.id) && selection.ids.length >= (block.maxSelect ?? block.options.length),
           onClick: () => edit({
             ...selection,
-            ids: many ? selection.ids.includes(option.id) ? selection.ids.filter((id31) => id31 !== option.id) : [...selection.ids, option.id] : [option.id]
+            ids: many ? selection.ids.includes(option.id) ? selection.ids.filter((id32) => id32 !== option.id) : [...selection.ids, option.id] : [option.id]
           }),
           children: [
             option.icon ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(CafeIcon, { name: option.icon }) : option.emoji && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { "aria-hidden": "true", children: option.emoji }),
@@ -64257,10 +64400,10 @@ function channelDestinations(events, participants) {
     ...events.flatMap((event) => eventChannelId(event) ?? []),
     ...participants.flatMap((member) => member.channelIds)
   ]);
-  return [...ids2].map((id31) => {
-    const messages = events.filter((event) => eventChannelId(event) === id31);
-    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id31));
-    return { id: id31, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
+  return [...ids2].map((id32) => {
+    const messages = events.filter((event) => eventChannelId(event) === id32);
+    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id32));
+    return { id: id32, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
   });
 }
 function readChannelPosition(namespace) {
@@ -64460,8 +64603,8 @@ function CollectiveNameplate({
 }) {
   const language = useCollectiveLanguage();
   const actor3 = event.actor;
-  const id31 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
-  const safeId = /^[a-zA-Z0-9_-]+$/.test(id31) ? id31 : "cocreator";
+  const id32 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
+  const safeId = /^[a-zA-Z0-9_-]+$/.test(id32) ? id32 : "cocreator";
   const participant = actor3.kind === "agent" ? participants.find(
     (p) => p.serviceInstanceId === event.serviceInstanceId && p.collectiveId === event.collectiveId && p.connectionId === actor3.provenance.connectionId && p.catId === actor3.provenance.catId && p.humanId === actor3.human.humanId
   ) : void 0;
@@ -64470,12 +64613,12 @@ function CollectiveNameplate({
   return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
     Nameplate,
     {
-      id: id31,
+      id: id32,
       name: label,
       kind: human ? "human" : "cat",
       surface: human ? "var(--human-surface)" : `var(--color-${safeId}-surface, var(--shell-selected))`,
       ink: human ? "var(--human-name)" : `var(--color-${safeId}-text, var(--shell-ink))`,
-      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id31}` : actorDisplayName(event),
+      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id32}` : actorDisplayName(event),
       avatar: onOpen ? /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
         "button",
         {
@@ -65568,10 +65711,10 @@ function SharedArtifactLibraryFilters({
               onChange: (event) => update("channel", event.target.value),
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime55.jsx)("option", { value: "", children: t("\u5168\u90E8\u9891\u9053") }),
-                channels.map((id31) => /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("option", { value: id31, children: [
+                channels.map((id32) => /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("option", { value: id32, children: [
                   "#",
-                  id31
-                ] }, id31))
+                  id32
+                ] }, id32))
               ]
             }
           )
@@ -65718,7 +65861,7 @@ function SharedArtifactLibraryContents({
 }
 function useWorkUnit() {
   const language = useCollectiveLanguage();
-  return (count) => language === "en" ? count === 1 ? "work" : "works" : "\u4EF6\u4F5C\u54C1";
+  return (count2) => language === "en" ? count2 === 1 ? "work" : "works" : "\u4EF6\u4F5C\u54C1";
 }
 
 // src/shared-artifact-request-state.ts
@@ -65916,9 +66059,9 @@ function VoteDraftForm({
               type: "button",
               className: "quiet-action",
               onClick: () => {
-                const id31 = nextOptionId.current;
+                const id32 = nextOptionId.current;
                 nextOptionId.current += 1;
-                setOptions((current2) => [...current2, { id: id31, value: "" }]);
+                setOptions((current2) => [...current2, { id: id32, value: "" }]);
               },
               children: "\u589E\u52A0\u9009\u9879"
             }
@@ -66928,7 +67071,7 @@ function ChannelTopicContext({
       onClose,
       onReturnToSource,
       onSend: scene.onSend,
-      onProposeWork: (id31) => void scene.onProposeWork(id31).catch(() => void 0),
+      onProposeWork: (id32) => void scene.onProposeWork(id32).catch(() => void 0),
       onCommitWork: (work2, participant, accountability) => void scene.onCommitWork(work2, participant, accountability).catch(() => void 0),
       onDeclineWork: (work2) => void scene.onDeclineWork(work2).catch(() => void 0),
       onAcceptWorkResult: (work2) => void scene.onAcceptWorkResult(work2).catch(() => void 0),
@@ -67677,8 +67820,8 @@ function resolveWorkDependencies(work2, availableWorks) {
   }
   return { resolved, unresolvedCount };
 }
-function unreadableDependencyLabel(count) {
-  return `${count} \u9879\u524D\u7F6E\u4EFB\u52A1\u5F53\u524D\u4E0D\u53EF\u8BFB`;
+function unreadableDependencyLabel(count2) {
+  return `${count2} \u9879\u524D\u7F6E\u4EFB\u52A1\u5F53\u524D\u4E0D\u53EF\u8BFB`;
 }
 
 // src/work-blocking-presentation.ts
@@ -70932,9 +71075,9 @@ function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEven
     const observer = new IntersectionObserver(
       (entries2) => {
         for (const entry of entries2) {
-          const id31 = entry.target.dataset.eventReadEnd;
-          if (!id31) continue;
-          if (entry.isIntersecting && entry.intersectionRatio >= 1) visible.set(entry.target, id31);
+          const id32 = entry.target.dataset.eventReadEnd;
+          if (!id32) continue;
+          if (entry.isIntersecting && entry.intersectionRatio >= 1) visible.set(entry.target, id32);
           else visible.delete(entry.target);
         }
         if (timer) clearTimeout(timer);
@@ -71074,10 +71217,10 @@ function ChannelScene(props) {
     (reaction) => threads.some((thread) => [thread.root, ...thread.replies].some((event) => event.eventId === reaction.eventId))
   );
   const legacy = events.filter((event) => !eventChannelId(event));
-  const openTopic = (id31, focusComposer = false) => {
+  const openTopic = (id32, focusComposer = false) => {
     setRightPanel(void 0);
-    setTopicRootId(id31);
-    setReplyRequest(focusComposer ? { eventId: id31 } : void 0);
+    setTopicRootId(id32);
+    setReplyRequest(focusComposer ? { eventId: id32 } : void 0);
     onOpenTopic();
   };
   const returnToRoot = (0, import_react79.useCallback)(
@@ -71299,6 +71442,7 @@ function ChannelScene(props) {
                       ChannelComposer,
                       {
                         namespace,
+                        collectiveName: collective.name,
                         channelId,
                         participants,
                         humans,
@@ -71471,7 +71615,7 @@ function PublicCatRow({
           " ",
           index4 + 1,
           /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("small", { children: [
-            session.channelIds.map((id31) => `#${id31}`).join(" \xB7 "),
+            session.channelIds.map((id32) => `#${id32}`).join(" \xB7 "),
             " \xB7 ",
             session.connectionId
           ] })
@@ -71505,7 +71649,7 @@ function MemberPanel({
       children: [
         /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("header", { className: "context-header", children: [
           /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("span", { children: t("\u5171\u540C\u5BB6\u56ED") }),
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("span", { children: t("\u5171\u540C\u4F53") }),
             /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("h2", { children: t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599") })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("button", { type: "button", "aria-label": t("\u5173\u95ED\u6210\u5458\u8D44\u6599"), onClick: onClose, children: "\xD7" })
@@ -71538,7 +71682,7 @@ function MemberProfile({
         /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("h3", { children: human.displayName })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("dl", { className: "member-facts", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dt", { children: "\u5728\u5171\u540C\u5BB6\u56ED\u7684\u8EAB\u4EFD" }),
+        /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dt", { children: "\u4F60\u5728\u8FD9\u91CC\u662F" }),
         /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dd", { children: current2?.role === "steward" ? "\u7EF4\u62A4\u8005" : current2 ? "\u6210\u5458" : "\u5386\u53F2\u6D88\u606F\u4E2D\u7684\u7F72\u540D" }),
         cafes.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)(import_jsx_runtime102.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dt", { children: "Caf\xE9" }),
@@ -71570,7 +71714,7 @@ function MemberProfile({
       /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dt", { children: "\u7531\u8C01\u8D1F\u8D23" }),
       /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dd", { children: participant?.humanDisplayName ?? previous4?.human.displayName }),
       /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dt", { children: "\u516C\u5F00\u53C2\u4E0E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id31) => `#${id31}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id32) => `#${id32}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
       /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dt", { children: "\u53D1\u8A00\u8EAB\u4EFD" }),
       /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("dd", { children: "\u4EE5\u81EA\u8EAB\u5177\u540D\u8EAB\u4EFD\u56DE\u5E94\uFF0C\u79C1\u4EBA\u6388\u6743\u7531\u4E3B\u4EBA\u7BA1\u7406\u3002" })
     ] })
@@ -72554,8 +72698,60 @@ function readinessIsCompleteAndEmpty(readiness) {
   return readiness.role === "member" && readiness.canLeave && !readiness.governanceHandoffRequired && readiness.responsibilities.works.length === 0 && readiness.responsibilities.roadmaps.length === 0 && readiness.responsibilities.artifacts.items.length === 0 && readiness.responsibilities.artifacts.inaccessibleCount === 0;
 }
 
-// src/CollectiveWorldRail.tsx
+// src/CollectiveIdentitySummary.tsx
 var import_jsx_runtime110 = __toESM(require_jsx_runtime(), 1);
+function CollectiveIdentitySummary({
+  collectiveName,
+  identity: identity2,
+  onOpenSelf,
+  onSwitchAccount
+}) {
+  const language = useCollectiveLanguage();
+  const t = useCollectiveText();
+  const act = (callback) => (event) => {
+    event.currentTarget.closest("details")?.removeAttribute("open");
+    callback();
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("details", { className: "collective-identity", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)(
+      "summary",
+      {
+        "aria-label": language === "en" ? `Current identity: ${identity2.human.displayName}` : `\u5F53\u524D\u8EAB\u4EFD\uFF1A${identity2.human.displayName}`,
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("span", { children: identity2.human.displayName })
+        ]
+      }
+    ),
+    /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("div", { className: "collective-identity-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("div", { className: "collective-identity-who", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
+        /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("p", { children: [
+            language === "en" ? `You are ` : `\u4F60\u5728${collectiveName}\u91CC\u662F`,
+            /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("strong", { children: identity2.human.displayName }),
+            language === "en" ? ` in ${collectiveName}` : ""
+          ] }),
+          identity2.auth && /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("small", { children: language === "en" ? `Signed in with GitHub as @${identity2.auth.handle}` : `\u7528 GitHub \u8D26\u53F7 @${identity2.auth.handle} \u767B\u5F55` })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("section", { className: "collective-identity-cats", "aria-label": t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC"), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("h2", { children: t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC") }),
+        identity2.cats === void 0 ? /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u6211\u7684\u732B\u2026") }) : identity2.cats.length ? /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("ul", { children: identity2.cats.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("li", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("span", { children: cat.displayName })
+        ] }, `${cat.connectionId}:${cat.catId}`)) }) : /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("p", { children: t("\u5F53\u524D\u6CA1\u6709\u767B\u8BB0\u5230\u8FD9\u91CC\u7684\u732B\u3002") })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("div", { className: "collective-identity-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("button", { type: "button", onClick: act(onOpenSelf), children: t("\u770B\u6211\u7684\u6210\u5458\u8D44\u6599") }),
+        /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("button", { type: "button", onClick: act(onSwitchAccount), children: t("\u6362\u8D26\u53F7\u2026") })
+      ] })
+    ] })
+  ] });
+}
+
+// src/CollectiveWorldRail.tsx
+var import_jsx_runtime111 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorldRail({
   activeCollective,
   collectives,
@@ -72565,11 +72761,11 @@ function CollectiveWorldRail({
 }) {
   const t = useCollectiveText();
   if (!visible || !collectives?.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u5BB6\u56ED"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(MeowClubMark, {}) }),
-    /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("nav", { children: collectives.map((item) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u4F53"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(MeowClubMark, {}) }),
+    /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("nav", { children: collectives.map((item) => {
       const active = item.collectiveId === activeCollective?.collectiveId;
-      return /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)(
+      return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(
         "button",
         {
           type: "button",
@@ -72578,8 +72774,8 @@ function CollectiveWorldRail({
           "aria-current": active ? "page" : void 0,
           onClick: () => active ? onHome?.() : onSelectCollective?.(item.collectiveId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
-            /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("span", { children: item.name })
+            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
+            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("span", { children: item.name })
           ]
         },
         item.collectiveId
@@ -72589,7 +72785,7 @@ function CollectiveWorldRail({
 }
 
 // src/ProductShell.tsx
-var import_jsx_runtime111 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime112 = __toESM(require_jsx_runtime(), 1);
 function DestinationTitle({
   collective,
   onHome,
@@ -72605,20 +72801,20 @@ function DestinationTitle({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("h1", { children: t("\u5171\u540C\u5BB6\u56ED") });
+  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h1", { children: t("\u5171\u540C\u4F53") });
   const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || onLeave);
-  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("h1", { children: collective.name });
+  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h1", { children: collective.name });
   const action = (callback) => (event) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("details", { className: "collective-menu", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("h1", { children: collective.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
+  return /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("details", { className: "collective-menu", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h1", { children: collective.name }),
+      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("div", { className: "collective-menu-popover", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("div", { className: "collective-menu-popover", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)(
         "button",
         {
           type: "button",
@@ -72626,22 +72822,22 @@ function DestinationTitle({
           "aria-label": onHome ? language === "en" ? `Open ${collective.name} home` : `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
           onClick: onHome ? action(onHome) : void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("strong", { children: collective.name }),
-            meta && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("span", { children: meta })
+            /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("strong", { children: collective.name }),
+            meta && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("span", { children: meta })
           ]
         }
       ),
-      canSteward && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
-      onCafe && /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
+      canSteward && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
+      onCafe && /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
         t("\u6211\u7684\u732B\u2026"),
         " ",
-        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
+        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
       ] }),
-      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
-      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
-      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
-      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
-      onLeave && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
+      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
+      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
+      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
+      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
+      onLeave && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
     ] })
   ] });
 }
@@ -72666,13 +72862,16 @@ function ProductShell({
   onReconnect,
   destinations,
   headerMeta,
+  identity: identity2,
+  onOpenSelf,
+  onSwitchAccount,
   children,
   navigationOpen = false,
   onCloseNavigation
 }) {
   const t = useCollectiveText();
   const hasWorldRail = !embedded && Boolean(collectives?.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)(
     "main",
     {
       className: "collective-shell",
@@ -72681,7 +72880,7 @@ function ProductShell({
       "data-world-rail": hasWorldRail,
       "data-navigation-open": navigationOpen,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
           CollectiveWorldRail,
           {
             activeCollective: collective,
@@ -72691,35 +72890,46 @@ function ProductShell({
             visible: !embedded
           }
         ),
-        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
-        /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u5BB6\u56ED\u5BFC\u822A"), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("header", { className: "destination-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
-              DestinationTitle,
-              {
-                collective,
-                onHome,
-                meta: headerMeta,
-                canSteward,
-                onInvite,
-                onCafe,
-                onReplayGuide,
-                onPermissions,
-                onCalendar,
-                onReconnect,
-                onLeave
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
+        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
+        /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u4F53\u5BFC\u822A"), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("header", { className: "destination-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("div", { className: "destination-heading", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+                DestinationTitle,
+                {
+                  collective,
+                  onHome,
+                  meta: headerMeta,
+                  canSteward,
+                  onInvite,
+                  onCafe,
+                  onReplayGuide,
+                  onPermissions,
+                  onCalendar,
+                  onReconnect,
+                  onLeave
+                }
+              ),
+              collective && identity2 && onOpenSelf && onSwitchAccount && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+                CollectiveIdentitySummary,
+                {
+                  collectiveName: collective.name,
+                  identity: identity2,
+                  onOpenSelf,
+                  onSwitchAccount
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
           ] }),
           destinations,
-          /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("footer", { className: "destination-footer", children: [
-            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
-            notice2 && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("p", { className: "destination-notice", children: t(notice2) }),
-            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("footer", { className: "destination-footer", children: [
+            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
+            notice2 && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("p", { className: "destination-notice", children: t(notice2) }),
+            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
+        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
       ]
     }
   );
@@ -72727,7 +72937,7 @@ function ProductShell({
 
 // src/SharedArtifactPublication.tsx
 var import_react85 = __toESM(require_react(), 1);
-var import_jsx_runtime112 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime113 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactPublication({
   snapshot,
   onPair,
@@ -72790,21 +73000,21 @@ function SharedArtifactPublication({
       if (mounted.current) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
     "dialog",
     {
       ref: dialog,
       className: "shared-publication-dialog",
       onCancel: () => shared?.closePublication(),
       onClose: () => shared?.closePublication(),
-      children: /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
+      children: /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("blockquote", { children: source3?.body }),
-        onShareMedia && source3 && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
+        /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("blockquote", { children: source3?.body }),
+        onShareMedia && source3 && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
           "button",
           {
             type: "button",
@@ -72815,13 +73025,13 @@ function SharedArtifactPublication({
             children: "\u4ECE\u6B64 Caf\xE9 \u9009\u62E9\u56FE\u7247\u6216\u89C6\u9891"
           }
         ),
-        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("p", { children: [
+        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("p", { children: [
           "\u5148\u8FDE\u63A5\u81EA\u5DF1\u7684 Caf\xE9\uFF0C\u518D\u5206\u4EAB\u4F5C\u54C1\u3002",
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)(import_jsx_runtime112.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(import_jsx_runtime113.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("label", { children: [
             "Markdown \u6587\u4EF6",
-            /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
               "input",
               {
                 type: "file",
@@ -72836,37 +73046,37 @@ function SharedArtifactPublication({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("label", { children: [
             "\u4F5C\u54C1\u540D\u79F0",
-            /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
+            /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("label", { children: [
             "\u4F5C\u54C1\u5B58\u653E\u5728",
-            /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
               "select",
               {
                 value: connectionId || cafes[0]?.connectionId,
                 onChange: (event) => setConnectionId(event.target.value),
-                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
+                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
               }
             )
           ] }),
-          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("label", { children: [
+          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("label", { children: [
             "\u5C5E\u4E8E\u4EFB\u52A1",
-            /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
-              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
+            /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
+              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
         ] }),
-        error && /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("p", { role: "alert", children: [
+        error && /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("p", { role: "alert", children: [
           error,
           " \u8BF7\u4FDD\u7559\u6587\u4EF6\uFF0C\u91CD\u8BD5\u4F1A\u63A5\u7740\u540C\u4E00\u6B21\u53D1\u5E03\u3002"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("footer", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
+        /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("footer", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
         ] })
       ] })
     }
@@ -73521,7 +73731,7 @@ function useSharedArtifactNavigation(options) {
 }
 
 // src/CollectiveWorkspace.tsx
-var import_jsx_runtime113 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime114 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorkspace({
   embedded,
   client
@@ -73590,7 +73800,7 @@ function CollectiveWorkspace({
     namespace,
     artifacts: client.artifacts,
     place: { destination, channelId, content: content3, query, focusEventId, roadmapReturn },
-    onOpenSource: (id31, eventId2) => selectChannel(id31, eventId2),
+    onOpenSource: (id32, eventId2) => selectChannel(id32, eventId2),
     onRestore: (place) => {
       setDestination(place.destination);
       setChannelId(place.channelId);
@@ -73674,15 +73884,15 @@ function CollectiveWorkspace({
     firstEntry.beginPair();
     void client.pairHost();
   };
-  const selectChannel = (id31, eventId2) => {
+  const selectChannel = (id32, eventId2) => {
     artifactNavigation.discard();
     setDestination("channel");
     setFocusEventId(eventId2);
     setContent("conversation");
     setRoadmapReturn(void 0);
     host.hide();
-    setChannelId(id31);
-    writeChannelTarget(id31);
+    setChannelId(id32);
+    writeChannelTarget(id32);
     setQuery("");
     setSelectedMember(void 0);
     setNavigationOpen(false);
@@ -73739,7 +73949,19 @@ function CollectiveWorkspace({
     );
   };
   const members = snapshot.members;
+  const currentHumanId = snapshot.me.human.humanId;
   const visibleCats = visibleCollectiveCats(participants, members);
+  const ownCats = snapshot.participants?.filter(
+    (participant) => participant.availability === "declared" && participant.humanId === currentHumanId
+  );
+  const showCurrentHuman = () => {
+    artifactNavigation.discard();
+    setDestination("channel");
+    writeChannelTarget(channelId);
+    setSelectedMember({ kind: "human", humanId: currentHumanId });
+    setNavigationOpen(false);
+    host.hide();
+  };
   const roadmapView = roadmapViews[channelId];
   const updateRoadmapView = (view) => setRoadmapViews((current2) => ({ ...current2, [channelId]: view }));
   const openRoadmapMessage = (work2, view, eventId2) => {
@@ -73817,7 +74039,7 @@ function CollectiveWorkspace({
     }
     selectChannel(item.source.location.channelId, item.source.eventId);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
     CollectiveArtifactContext.Provider,
     {
       value: client.artifacts && {
@@ -73831,13 +74053,13 @@ function CollectiveWorkspace({
         returnLabel: artifactNavigation.returnLabel,
         returnToSource: selectChannel
       },
-      children: /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(SharedArtifactReading, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(SharedArtifactReading, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(
           HostWorkPermissionContext.Provider,
           {
             value: { connectionId: host.connectionId, request: host.requestWorkPermission },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(
                 ProductShell,
                 {
                   embedded,
@@ -73850,6 +74072,9 @@ function CollectiveWorkspace({
                   canPair: Boolean(snapshot.me.auth) && !host.paired,
                   pairNudge: firstEntry.phase === "browsing",
                   headerMeta: members ? language === "en" ? `${members.cafes.length} ${members.cafes.length === 1 ? "Caf\xE9" : "Caf\xE9s"} \xB7 ${members.humans.length + visibleCats.length} ${members.humans.length + visibleCats.length === 1 ? "member" : "members"}` : `${members.cafes.length} \u4E2A Caf\xE9 \xB7 ${members.humans.length + visibleCats.length} \u4F4D\u6210\u5458` : t("\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026"),
+                  identity: { human: snapshot.me.human, auth: snapshot.me.auth, cats: ownCats },
+                  onOpenSelf: showCurrentHuman,
+                  onSwitchAccount: client.switchAccount,
                   notice: snapshot.notice,
                   onInvite: () => void client.createInvite(),
                   onPair: beginPair,
@@ -73864,7 +74089,7 @@ function CollectiveWorkspace({
                   onReplayGuide: firstEntry.narrator ? replayGuide : void 0,
                   navigationOpen: navigationOpen || firstEntry.phase === "entry",
                   onCloseNavigation: () => setNavigationOpen(false),
-                  destinations: /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                  destinations: /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
                     ChannelNavigation,
                     {
                       channels,
@@ -73896,7 +74121,7 @@ function CollectiveWorkspace({
                     }
                   ),
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
                       SharedArtifactLibrary,
                       {
                         title: t("\u5168\u90E8\u4F5C\u54C1"),
@@ -73907,7 +74132,7 @@ function CollectiveWorkspace({
                       },
                       namespace
                     ),
-                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
                       CollectiveHome,
                       {
                         collective: snapshot.collective,
@@ -73918,7 +74143,7 @@ function CollectiveWorkspace({
                         onOpenNavigation: () => setNavigationOpen((value) => !value),
                         onOpenEvent: selectChannel
                       }
-                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
                       CollectiveChannelWorkspace,
                       {
                         channelId,
@@ -73950,7 +74175,7 @@ function CollectiveWorkspace({
                   ]
                 }
               ),
-              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
                 LeaveCollectiveDialog,
                 {
                   collectiveName: snapshot.collective.name,
@@ -73963,7 +74188,7 @@ function CollectiveWorkspace({
                   onOpenMembers: showMembers
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
                 FirstEntryOverlays,
                 {
                   firstEntry,
@@ -73975,7 +74200,7 @@ function CollectiveWorkspace({
             ]
           }
         ),
-        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
+        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
       ] })
     }
   );
@@ -73983,10 +74208,10 @@ function CollectiveWorkspace({
 
 // src/OnboardingScene.tsx
 var import_react93 = __toESM(require_react(), 1);
-var import_jsx_runtime114 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime115 = __toESM(require_jsx_runtime(), 1);
 function OnboardingScene({
   phase,
-  mode,
+  mode: mode2,
   providers,
   hasAuthenticatedHuman = false,
   error,
@@ -74000,13 +74225,13 @@ function OnboardingScene({
   const [localError, setLocalError] = (0, import_react93.useState)();
   const github = providers.find((provider) => provider.id === "github");
   if (phase === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u5BB6\u56ED\u2026") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u4F53\u2026") }) });
   }
   if (phase === "unavailable") {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("small", { children: error })
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("small", { children: error })
     ] });
   }
   const run2 = async (action) => {
@@ -74025,23 +74250,23 @@ function OnboardingScene({
     const value = String(new FormData(event.currentTarget).get("value") ?? "").trim();
     if (value) await run2(() => action(value));
   };
-  const canConfigureProvider = shouldConfigureProvider(github, mode, phase);
+  const canConfigureProvider = shouldConfigureProvider(github, mode2, phase);
   if (canConfigureProvider) {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("section", { className: "entry-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
-      localError && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "form-error", children: localError })
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("section", { className: "entry-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
+      localError && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "form-error", children: localError })
     ] }) });
   }
   if (phase === "create-collective") {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
       EntryCard,
       {
         eyebrow: hasAuthenticatedHuman ? "\u9009\u62E9\u4E0B\u4E00\u6B65" : "\u7B2C\u4E00\u6B21\u5EFA\u7ACB Collective",
-        title: hasAuthenticatedHuman ? "\u5EFA\u7ACB\u65B0\u7684\u5171\u540C\u5BB6\u56ED" : "\u7ED9\u5171\u540C\u5BB6\u56ED\u8D77\u4E2A\u540D\u5B57",
-        description: hasAuthenticatedHuman ? "\u4F60\u5DF2\u79BB\u5F00\u539F\u5171\u540C\u5BB6\u56ED\u3002\u53EF\u4EE5\u5728\u8FD9\u91CC\u65B0\u5EFA\uFF0C\u4E5F\u53EF\u4EE5\u4ECE\u65B0\u7684\u9080\u8BF7\u94FE\u63A5\u52A0\u5165\uFF1B\u539F\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002" : "\u4F60\u4F1A\u6210\u4E3A\u7B2C\u4E00\u4F4D\u7BA1\u7406\u8005\u3002\u9996\u542F\u5B8C\u6210\u540E\u8FD8\u9700\u7ED1\u5B9A Human \u8EAB\u4EFD\uFF0C\u624D\u80FD\u9080\u8BF7\u6210\u5458\u3001\u8FDE\u63A5 Caf\xE9 \u6216\u8FDB\u5165\u65E5\u5E38\u534F\u4F5C\u3002",
+        title: hasAuthenticatedHuman ? "\u65B0\u5EFA\u5171\u540C\u4F53" : "\u7ED9\u5171\u540C\u4F53\u8D77\u4E2A\u540D\u5B57",
+        description: hasAuthenticatedHuman ? "\u4F60\u5DF2\u79BB\u5F00\u539F\u5171\u540C\u4F53\u3002\u53EF\u4EE5\u5728\u8FD9\u91CC\u65B0\u5EFA\uFF0C\u4E5F\u53EF\u4EE5\u4ECE\u65B0\u7684\u9080\u8BF7\u94FE\u63A5\u52A0\u5165\uFF1B\u539F\u516C\u5F00\u5386\u53F2\u4E0E\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002" : "\u4F60\u4F1A\u6210\u4E3A\u7B2C\u4E00\u4F4D\u7BA1\u7406\u8005\u3002\u9996\u542F\u5B8C\u6210\u540E\u8FD8\u9700\u7ED1\u5B9A Human \u8EAB\u4EFD\uFF0C\u624D\u80FD\u9080\u8BF7\u6210\u5458\u3001\u8FDE\u63A5 Caf\xE9 \u6216\u8FDB\u5165\u65E5\u5E38\u534F\u4F5C\u3002",
         label: "Collective \u540D\u79F0",
         defaultValue: "Cat Caf\xE9 Collective",
         button: "\u5EFA\u7ACB Collective",
@@ -74052,7 +74277,7 @@ function OnboardingScene({
     );
   }
   if (phase === "bind-identity") {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
       AuthCard,
       {
         eyebrow: "Human \u8EAB\u4EFD",
@@ -74066,8 +74291,8 @@ function OnboardingScene({
       }
     );
   }
-  if (mode === "bootstrap") {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
+  if (mode2 === "bootstrap") {
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
       EntryCard,
       {
         eyebrow: "\u4E00\u6B21\u6027\u521D\u59CB\u5316",
@@ -74081,8 +74306,8 @@ function OnboardingScene({
       }
     );
   }
-  if (mode === "invite") {
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
+  if (mode2 === "invite") {
+    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
       AuthCard,
       {
         eyebrow: "Collective \u9080\u8BF7",
@@ -74096,7 +74321,7 @@ function OnboardingScene({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
     AuthCard,
     {
       eyebrow: "\u6B22\u8FCE\u56DE\u6765",
@@ -74110,8 +74335,8 @@ function OnboardingScene({
     }
   );
 }
-function shouldConfigureProvider(github, mode, phase) {
-  return github?.ready === false && github.setupSupported === true && (mode === "bootstrap" || phase === "create-collective" || phase === "bind-identity");
+function shouldConfigureProvider(github, mode2, phase) {
+  return github?.ready === false && github.setupSupported === true && (mode2 === "bootstrap" || phase === "create-collective" || phase === "bind-identity");
 }
 function AuthCard({
   eyebrow,
@@ -74124,13 +74349,13 @@ function AuthCard({
   onAuthenticate
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
-    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "form-error", children: error })
+  return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
+    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 function EntryCard({
@@ -74145,18 +74370,18 @@ function EntryCard({
   onSubmit
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("label", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("label", { children: [
         t(label),
-        /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
+        /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
+      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "form-error", children: error })
+    error && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 
@@ -74717,7 +74942,17 @@ function useCollectiveClient() {
   const activeCollectiveRole = snapshot.collective?.role;
   const currentNamespace = (0, import_react97.useRef)();
   currentNamespace.current = collectiveClientNamespace(snapshot);
-  const { token, request, binaryRequest, loadMe, invitationMode, bootstrap, authenticate, configureProvider } = useHumanAuthSession(snapshot, setSnapshot);
+  const {
+    token,
+    request,
+    binaryRequest,
+    loadMe,
+    invitationMode,
+    bootstrap,
+    authenticate,
+    configureProvider,
+    switchAccount: leaveHumanSession
+  } = useHumanAuthSession(snapshot, setSnapshot);
   const { refreshEvents, recheckScope, cancelRefresh } = useCollectiveRefresh(
     snapshot,
     setSnapshot,
@@ -74725,6 +74960,11 @@ function useCollectiveClient() {
     loadMe,
     token
   );
+  const switchAccount = (0, import_react97.useCallback)(() => {
+    cancelRefresh();
+    currentNamespace.current = void 0;
+    leaveHumanSession();
+  }, [cancelRefresh, leaveHumanSession]);
   const createCollective = (0, import_react97.useCallback)(
     async (name2) => {
       const created = await request("/api/collectives", {
@@ -74898,6 +75138,7 @@ function useCollectiveClient() {
     bootstrap,
     authenticate,
     configureProvider,
+    switchAccount,
     createCollective,
     sendMessage,
     createInvite,
@@ -75039,11 +75280,11 @@ function resolveHostOrigin2(embedded) {
 }
 
 // src/CollectiveClient.tsx
-var import_jsx_runtime115 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime116 = __toESM(require_jsx_runtime(), 1);
 function CollectiveClient() {
   const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
   const embedded = window.parent !== window && hostOrigin !== null;
-  return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(LiveCollectiveClient, { embedded });
+  return /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(LiveCollectiveClient, { embedded });
 }
 function LiveCollectiveClient({ embedded }) {
   const client = useCollectiveClient();
@@ -75052,9 +75293,9 @@ function LiveCollectiveClient({ embedded }) {
   const canSteward = !snapshot.restrictedScope && snapshot.collective?.role === "steward";
   const canPair = !snapshot.restrictedScope && snapshot.phase === "ready" && Boolean(snapshot.me?.auth && snapshot.collective);
   if (!snapshot.restrictedScope && snapshot.phase === "ready" && snapshot.collective && snapshot.me) {
-    return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
+    return /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(
     ProductShell,
     {
       embedded,
@@ -75067,7 +75308,7 @@ function LiveCollectiveClient({ embedded }) {
       notice: snapshot.notice,
       onInvite: () => void client.createInvite(),
       onPair: () => void client.pairHost(),
-      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
+      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(
         CollectiveScopeRecovery,
         {
           scope: snapshot.restrictedScope,
@@ -75075,7 +75316,7 @@ function LiveCollectiveClient({ embedded }) {
           onAuthenticate: client.authenticate
         },
         `${snapshot.restrictedScope.serviceInstanceId}:${snapshot.restrictedScope.collectiveId}:${snapshot.restrictedScope.humanId}`
-      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u5BB6\u56ED\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
+      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u4F53\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(
         OnboardingScene,
         {
           phase: snapshot.phase,
@@ -75094,10 +75335,10 @@ function LiveCollectiveClient({ embedded }) {
 }
 
 // src/main.tsx
-var import_jsx_runtime116 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime117 = __toESM(require_jsx_runtime(), 1);
 var root4 = document.getElementById("collective-root");
 if (!root4) throw new Error("Collective client root is missing");
 startHostAppearance();
 (0, import_client.createRoot)(root4).render(
-  /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(import_react99.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(CollectiveClient, {}) })
+  /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(import_react99.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(CollectiveClient, {}) })
 );

@@ -35,8 +35,13 @@ Work 评论和前置完成通知沿用已有 Task，不另外建立任务。Work
 获准猫通过同一公开来源读取原图、UTF-8 原文、明确可用 Host 服务的转写或视频样帧。长文可按返回游标续读，
 音频窗口最多120秒；不支持的格式或服务明确返回不可用，视频样帧不代表完整观看或精确 Work 引用。
 
-随包 Client 的配套 Core 源码为 `2a1f7b22a8b11b06c8875a1bc24b16b078fb54bd`，实物与验证边界见
-[第一批证据](https://github.com/zts212653/cat-cafe/tree/2a1f7b22a8b11b06c8875a1bc24b16b078fb54bd/docs/evidence/2026-10-25-f290-expression-content)。
+alpha.11 的随包 Client 会在共同体标题下持续显示当前 Human；身份卡明确列出 GitHub 账号和属于该 Human
+且仍公开参与的猫。多个已连接世界按在线、有效连接和稳定坐标确定进入目标，不再每日弹出技术连接选择器。
+换账号会终止旧身份请求并回到既有登录入口，同时保留当前共同体、频道与各 Human 自己的私人草稿。
+
+随包 Client 的配套 Core 源码为 `7d8b575a1adb8765e295fd71fb5919b654f3a4df`；频道表达边界见
+[第一批证据](https://github.com/zts212653/cat-cafe/tree/7d8b575a1adb8765e295fd71fb5919b654f3a4df/docs/evidence/2026-10-25-f290-expression-content)，
+Human/世界切换的真实 Host journey 见[同源浏览器检查](https://github.com/zts212653/cat-cafe/blob/7d8b575a1adb8765e295fd71fb5919b654f3a4df/packages/web/test/browser/f290-world-identity.journey.mjs)。
 源码工作区和独立测试会话验证不能代替正式 Host 安装到版、真人 OAuth 或实体音频质量验收。
 
 停用停止同步并保留业务状态和凭据。出站、确认、参与变更及撤销先记录尝试；结果不明会保留为待核实，普通同步或重连不会清除。设置里的恢复列表可核对同一操作，只有证据允许时才能恢复。
