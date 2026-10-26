@@ -1,9 +1,11 @@
 import { z } from 'zod';
 import { QuoteContextAttachmentSchema } from '../schemas/quote-context-attachment.schema.js';
+import { messageStickerSchema } from './message-stickers.js';
 
 /** Same F063 quote object; Channel publication cannot borrow private Thread/file authority. */
 export const collectiveMessageQuoteSchema = QuoteContextAttachmentSchema.refine(
-  quote => quote.source.kind === 'collective_message', 'Channel quotes require a public Channel source',
+  (quote) => quote.source.kind === 'collective_message',
+  'Channel quotes require a public Channel source',
 );
 export type CollectiveMessageQuote = z.infer<typeof collectiveMessageQuoteSchema>;
 
@@ -11,6 +13,7 @@ export type CollectiveMessageQuote = z.infer<typeof collectiveMessageQuoteSchema
 export const collectiveMessageAttachmentSchema = z
   .object({
     v: z.literal(1),
+    sticker: messageStickerSchema.optional(),
     attachmentId: z.string().regex(/^att_[A-Za-z0-9_-]{8,120}$/),
     contentRef: z.string().startsWith('collective-attachment:').max(240),
     ownerRevision: z.literal(1),
@@ -45,6 +48,8 @@ export const collectiveAttachmentScopeSchema = z
   })
   .strict();
 export type CollectiveAttachmentScope = z.infer<typeof collectiveAttachmentScopeSchema>;
+export const collectiveStickerScopeSchema = collectiveAttachmentScopeSchema.omit({ attachmentId: true });
+export type CollectiveStickerScope = z.infer<typeof collectiveStickerScopeSchema>;
 export const collectiveDraftSendReceiptSchema = z
   .object({
     revision: z.number().int().positive().safe(),
@@ -59,14 +64,18 @@ export const collectiveMessageContentFields = {
 };
 
 export function requireCollectiveMessageContent(
-  content: { body: string; attachments?: readonly CollectiveMessageAttachment[]; contextAttachments?: readonly CollectiveMessageQuote[] },
+  content: {
+    body: string;
+    attachments?: readonly CollectiveMessageAttachment[];
+    contextAttachments?: readonly CollectiveMessageQuote[];
+  },
   context: z.RefinementCtx,
 ) {
   if (!content.body && !content.attachments?.length && !content.contextAttachments?.length)
     context.addIssue({ code: 'custom', path: ['body'], message: 'A message needs text or content' });
   if (new Set(content.attachments?.map((item) => item.attachmentId)).size !== (content.attachments?.length ?? 0))
     context.addIssue({ code: 'custom', path: ['attachments'], message: 'Duplicate attachment reference' });
-  if (new Set(content.contextAttachments?.map(item => item.id)).size !== (content.contextAttachments?.length ?? 0))
+  if (new Set(content.contextAttachments?.map((item) => item.id)).size !== (content.contextAttachments?.length ?? 0))
     context.addIssue({ code: 'custom', path: ['contextAttachments'], message: 'Duplicate quote reference' });
   if (new TextEncoder().encode(JSON.stringify(content)).length > 192 * 1024)
     context.addIssue({ code: 'custom', message: 'Message content exceeds 192 KiB' });

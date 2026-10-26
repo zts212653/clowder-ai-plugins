@@ -1,12 +1,14 @@
 import type { Readable } from 'node:stream';
 
-import type { CollectiveAttachmentScope, CollectiveMessageAttachment } from './index.js';
+import type { CollectiveAttachmentScope, CollectiveMessageAttachment, CollectiveStickerScope, MessageSticker } from './index.js';
 import type { CollectiveModelImage } from './types/collective-model-content.js';
 
 export interface CollectiveAttachmentAuthority {
   reauthorize(): Promise<CollectiveAttachmentScope>;
 }
 export interface CollectiveMessageAttachmentOwnerPort {
+  catalogImage?(input: { scope: CollectiveStickerScope; stickerId: string },
+    authority: { reauthorize(): Promise<CollectiveStickerScope> }, signal: AbortSignal): Promise<{ sticker: MessageSticker; body: Readable }>;
   modelImage?(input: { scope: CollectiveAttachmentScope; attachment: CollectiveMessageAttachment },
     authority: CollectiveAttachmentAuthority, signal: AbortSignal): Promise<CollectiveModelImage>;
   retain(input: {
@@ -15,6 +17,7 @@ export interface CollectiveMessageAttachmentOwnerPort {
     mediaType: string;
     blobDigest: string;
     bytes: Uint8Array;
+    sticker?: MessageSticker;
   }, authority: CollectiveAttachmentAuthority, signal: AbortSignal): Promise<CollectiveMessageAttachment>;
   open(input: {
     scope: CollectiveAttachmentScope;

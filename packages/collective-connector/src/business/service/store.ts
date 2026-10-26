@@ -170,6 +170,9 @@ export class CollectiveServiceStore {
   openMessageAttachment(...input: Parameters<CollectiveMessageAttachments['open']>) {
     return this.#messageAttachments.open(...input);
   }
+  openMessageSticker(...input: Parameters<CollectiveMessageAttachments['catalogImage']>) {
+    return this.#messageAttachments.catalogImage(...input);
+  }
   readParticipationImage(...input: Parameters<CollectiveMessageAttachments['modelImage']>) {
     return this.#messageAttachments.modelImage(...input);
   }

@@ -9,6 +9,7 @@ export const messageAttachmentRecordSchema = z.object({
   mediaType: collectiveMessageAttachmentSchema.shape.mediaType,
   blobDigest: collectiveMessageAttachmentSchema.shape.blobDigest,
   byteLength: collectiveMessageAttachmentSchema.shape.byteLength,
+  sticker: collectiveMessageAttachmentSchema.shape.sticker,
   attachment: collectiveMessageAttachmentSchema.optional(),
   publishedEventIds: z.array(z.string()),
   createdAt: z.string().datetime(),

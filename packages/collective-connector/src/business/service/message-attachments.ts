@@ -8,12 +8,14 @@ import { attachmentHuman, authorizeAttachmentRead, denyAttachment } from './mess
 import { collectiveModelImageSchema, collectiveParticipationImageReadRequestSchema } from '../contracts/index.js';
 import { authorizeModelImageRead } from './message-model-image-authority.js';
 import type { PersistentServiceState } from './persistence.js';
+import { readMessageStickerCatalog, stickerForUpload } from './message-sticker-catalog.js';
 
 const uploadSchema = collectiveAttachmentScopeSchema.omit({ humanId: true, attachmentId: true }).extend({
   clientUploadId: z.string().trim().min(1).max(200),
   fileName: collectiveMessageAttachmentSchema.shape.fileName,
   mediaType: collectiveMessageAttachmentSchema.shape.mediaType,
   blobDigest: collectiveMessageAttachmentSchema.shape.blobDigest,
+  stickerId: z.string().min(1).max(80).optional(),
 }).strict();
 const readSchema = collectiveAttachmentScopeSchema.omit({ humanId: true, channelId: true }).extend({
   sourceEventId: z.string().min(1).max(160).optional(), range: z.string().max(256).optional(),
@@ -28,6 +30,7 @@ export class CollectiveMessageAttachments {
   async upload(token: string, unsafe: unknown, stream: AsyncIterable<Uint8Array>, signal: AbortSignal) {
     const input = uploadSchema.parse(unsafe);
     const actor = attachmentHuman(this.persistence.snapshot(), token, input);
+    const sticker = stickerForUpload(input);
     const owner = this.requireOwner();
     if (this.uploads >= 2) throw new CollectiveServiceError('ATTACHMENT_BUSY', 'Two uploads are already in progress', 429);
     this.uploads++;
@@ -48,7 +51,8 @@ export class CollectiveMessageAttachments {
       const scope = { serviceInstanceId: input.serviceInstanceId, collectiveId: input.collectiveId,
         humanId: actor.humanId, channelId: input.channelId, attachmentId };
       const expected = { scope, clientUploadId: input.clientUploadId, membershipRevision: actor.revision,
-        fileName: input.fileName, mediaType: input.mediaType, blobDigest: input.blobDigest, byteLength };
+        fileName: input.fileName, mediaType: input.mediaType, blobDigest: input.blobDigest, byteLength,
+        ...(sticker ? { sticker } : {}) };
       const authorize = async () => {
         signal.throwIfAborted();
         if (!isDeepStrictEqual(attachmentHuman(this.persistence.snapshot(), token, input), actor)) denyAttachment();
@@ -67,9 +71,10 @@ export class CollectiveMessageAttachments {
         };
       });
       const attachment = collectiveMessageAttachmentSchema.parse(await owner.retain({ scope, fileName: input.fileName,
-        mediaType: input.mediaType, blobDigest: input.blobDigest, bytes }, { reauthorize: authorize }, signal));
+        mediaType: input.mediaType, blobDigest: input.blobDigest, bytes, ...(sticker ? { sticker } : {}) }, { reauthorize: authorize }, signal));
       if (attachment.attachmentId !== attachmentId || attachment.blobDigest !== input.blobDigest ||
-          attachment.byteLength !== byteLength || attachment.fileName !== input.fileName || attachment.mediaType !== input.mediaType)
+          attachment.byteLength !== byteLength || attachment.fileName !== input.fileName || attachment.mediaType !== input.mediaType ||
+          !isDeepStrictEqual(attachment.sticker, sticker))
         throw new CollectiveServiceError('ATTACHMENT_OWNER_MISMATCH', 'Owner receipt does not match this upload', 502);
       return this.persistence.transaction(state => {
         if (!isDeepStrictEqual(attachmentHuman(state, token, input), actor)) denyAttachment();
@@ -96,6 +101,10 @@ export class CollectiveMessageAttachments {
     try { await authorize(); if (!isDeepStrictEqual(result.attachment, attachment)) denyAttachment(); }
     catch (error) { result.body.destroy(); throw error; }
     return result;
+  }
+
+  catalogImage(token: string, input: unknown, signal: AbortSignal) {
+    return readMessageStickerCatalog(this.persistence, this.owner, token, input, signal);
   }
 
   async modelImage(token: string, unsafe: unknown, signal: AbortSignal) {
