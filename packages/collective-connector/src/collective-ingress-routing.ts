@@ -1,13 +1,17 @@
-import { ConnectorTransportError } from './business/connector/service-client.js';
 import { isDeepStrictEqual } from 'node:util';
 import type { PluginMessage } from '@clowder-ai/plugin-sdk';
+import { ConnectorTransportError } from './business/connector/service-client.js';
 import type { HostRouteConfig } from './business/connector/state.js';
 import type { CollectiveEventEnvelope, CollectiveSourceIdentity } from './business/contracts/index.js';
+
 interface ConnectorSource {
-  readonly connector: string; readonly label: string; readonly icon: string;
+  readonly connector: string;
+  readonly label: string;
+  readonly icon: string;
   readonly sender: { readonly id: string; readonly name: string };
   readonly meta: Readonly<Record<string, unknown>>;
 }
+
 import { collectiveEventSourceIdentity } from './business/contracts/index.js';
 
 interface CollectiveIngressSocketManager {
@@ -65,17 +69,32 @@ export function ingressIdempotencyKey(event: CollectiveEventEnvelope): string {
 export function collectivePublicSourceBody(event: CollectiveEventEnvelope): string {
   const rich = event.richBlocks?.length
     ? `[Collective public rich content preview: eventId=${event.eventId}]\n` +
-      event.richBlocks.map(block => JSON.stringify({ kind: block.kind, id: block.id.slice(0, 200),
-        ...('title' in block && block.title ? { title: block.title.slice(0, 240) } : {}) })).join('\n') +
+      event.richBlocks
+        .map((block) =>
+          JSON.stringify({
+            kind: block.kind,
+            id: block.id.slice(0, 200),
+            ...('title' in block && block.title ? { title: block.title.slice(0, 240) } : {}),
+          }),
+        )
+        .join('\n') +
       '\nUse cat_cafe_collective_read_context with the current contextRef to read the original public rich content. This preview is not the full content.'
     : undefined;
-  const body = [event.body, ...(event.contextAttachments ?? []).map(quote =>
-    `[Collective public quote]\n${JSON.stringify(quote)}`), rich].filter(Boolean).join('\n\n');
+  const body = [
+    event.body,
+    ...(event.contextAttachments ?? []).map((quote) => `[Collective public quote]\n${JSON.stringify(quote)}`),
+    rich,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
   if (!event.attachments?.length) return body;
-  const attachments = event.attachments.map(({ attachmentId, fileName, mediaType }) =>
-    JSON.stringify({ attachmentId, fileName, mediaType })).join('\n');
-  return `${body}${body ? '\n\n' : ''}[Collective public attachments: eventId=${event.eventId}]\n${attachments}\n` +
-    'Read current context, then use cat_cafe_collective_read_context with contextRef and image={eventId,attachmentId} to inspect image pixels. Attachment references alone are not image contents.';
+  const attachments = event.attachments
+    .map(({ attachmentId, fileName, mediaType }) => JSON.stringify({ attachmentId, fileName, mediaType }))
+    .join('\n');
+  return (
+    `${body}${body ? '\n\n' : ''}[Collective public attachments: eventId=${event.eventId}]\n${attachments}\n` +
+    'Read current context, then use cat_cafe_collective_read_context with contextRef and image={eventId,attachmentId} for pixels, or attachment={eventId,attachmentId,startSeconds?,durationSeconds?} for supported original text/audio/video. Inspect the returned content and any truncation/unavailable status; references alone do not prove that content was read.'
+  );
 }
 
 export function matchesCollectivePublicSourceBody(content: string, event: CollectiveEventEnvelope) {
@@ -86,15 +105,30 @@ export function matchesCollectivePublicSourceBody(content: string, event: Collec
 /** Reconcile an earlier pending send from actual owned Host storage.
  * The receipt comes from this instance's Host send ledger; message reading
  * checks content identity only, never callback identity or execution permission. */
-export function assertSettledCollectiveSource(message: PluginMessage | null, receipt: {messageId: string; threadId: string},
-  event: CollectiveEventEnvelope, source: CollectiveSourceIdentity, ownerUserId: string): void {
-  if (!message || message.id !== receipt.messageId || message.threadId !== receipt.threadId || message.catId !== null ||
-    message.userId !== ownerUserId || !matchesCollectivePublicSourceBody(message.content, event) ||
-    message.source?.connector !== 'collective' || !isDeepStrictEqual(message.source.meta, collectiveSource(event, source).meta))
+export function assertSettledCollectiveSource(
+  message: PluginMessage | null,
+  receipt: { messageId: string; threadId: string },
+  event: CollectiveEventEnvelope,
+  source: CollectiveSourceIdentity,
+  ownerUserId: string,
+): void {
+  if (
+    !message ||
+    message.id !== receipt.messageId ||
+    message.threadId !== receipt.threadId ||
+    message.catId !== null ||
+    message.userId !== ownerUserId ||
+    !matchesCollectivePublicSourceBody(message.content, event) ||
+    message.source?.connector !== 'collective' ||
+    !isDeepStrictEqual(message.source.meta, collectiveSource(event, source).meta)
+  )
     throw ingressError('ROUTE_RECEIPT_CHANGED', 'Prior Host source receipt does not match this exact Collective event');
 }
 
-export function collectiveSender(event: CollectiveEventEnvelope): { id: string; name: string } {
+export function collectiveSender(event: CollectiveEventEnvelope): {
+  id: string;
+  name: string;
+} {
   if (event.actor.kind === 'human') return { id: event.actor.humanId, name: event.actor.displayName };
   return {
     id: `${event.actor.human.humanId}:${event.actor.agent.agentId}`,
@@ -143,7 +177,11 @@ export function emitConnectorMessage(
     threadId,
     message: {
       id: messageId,
-      from: { kind: 'external', connectorId: source.connector, sender: collectiveSender(event) },
+      from: {
+        kind: 'external',
+        connectorId: source.connector,
+        sender: collectiveSender(event),
+      },
       type: 'connector',
       content: event.body,
       source,
@@ -156,14 +194,26 @@ export function ingressError(code: string, message: string): Error & { code: str
   return Object.assign(new Error(message), { code });
 }
 
-export function routeFailure(error: unknown): { code: string; message: string } {
+export function routeFailure(error: unknown): {
+  code: string;
+  message: string;
+} {
   if (error instanceof ConnectorTransportError && error.retryable)
-    return { code: 'COLLECTIVE_SERVICE_UNAVAILABLE', message: error.message.slice(0, 500) };
+    return {
+      code: 'COLLECTIVE_SERVICE_UNAVAILABLE',
+      message: error.message.slice(0, 500),
+    };
   if (error instanceof Error) {
     const candidate = 'code' in error ? error.code : undefined;
     const code =
       typeof candidate === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(candidate) ? candidate : 'ROUTE_DELIVERY_FAILED';
-    return { code, message: error.message.slice(0, 500) || 'Collective ingress routing failed' };
+    return {
+      code,
+      message: error.message.slice(0, 500) || 'Collective ingress routing failed',
+    };
   }
-  return { code: 'ROUTE_DELIVERY_FAILED', message: 'Collective ingress routing failed' };
+  return {
+    code: 'ROUTE_DELIVERY_FAILED',
+    message: 'Collective ingress routing failed',
+  };
 }

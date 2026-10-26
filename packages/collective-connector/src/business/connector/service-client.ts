@@ -1,7 +1,9 @@
+import { z } from 'zod';
 import {
   type CollectiveAccountabilityAttentionReadRequest,
   type CollectiveAgentMessageRequest,
   type CollectiveAgentWorkProposalRequest,
+  type CollectiveContextAttachmentSelection,
   type CollectiveEventEnvelope,
   type CollectivePairingIntent,
   type CollectiveParticipationDeclaration,
@@ -9,21 +11,21 @@ import {
   type CollectiveWorkResultFileBindingRequest,
   type CollectiveWorkResultFileBindingResponse,
   collectiveAccountabilityAttentionReadResponseSchema,
-  collectiveModelImageSchema,
-  collectiveMessageAttachmentSchema,
   collectiveEventEnvelopeSchema,
   collectiveEventIdSchema,
+  collectiveMessageAttachmentSchema,
+  collectiveModelContentSchema,
+  collectiveModelImageSchema,
   collectiveParticipationDeclarationSchema,
   collectiveWorkIdSchema,
   collectiveWorkProjectionSchema,
   collectiveWorkResultFileBindingResponseSchema,
 } from '../contracts/index.js';
-import { z } from 'zod';
-import type { ConnectorConnectionState } from './state.js';
-import type { LocalRecoverySnapshot } from './recovery-proof.js';
 import { CollectiveArtifactCustodyClient } from './artifact-custody-client.js';
 import { CollectiveArtifactMediaClient } from './artifact-media-client.js';
 import { CollectiveArtifactOwnerClient } from './artifact-owner-client.js';
+import type { LocalRecoverySnapshot } from './recovery-proof.js';
+import type { ConnectorConnectionState } from './state.js';
 import { CollectiveWorkAuthorityClient } from './work-authority-client.js';
 
 const connectionResponseSchema = z
@@ -75,8 +77,12 @@ export interface CollectiveLocalTransport {
 }
 
 export class ConnectorTransportError extends Error {
-  get automaticRetry(): false | undefined { return this.localFailure?.automaticRetry; }
-  get effect(): 'not_started' | 'unknown' | undefined { return this.localFailure?.effect; }
+  get automaticRetry(): false | undefined {
+    return this.localFailure?.automaticRetry;
+  }
+  get effect(): 'not_started' | 'unknown' | undefined {
+    return this.localFailure?.effect;
+  }
   get retryable(): boolean {
     if (this.automaticRetry === false) return false;
     return (
@@ -110,18 +116,31 @@ export class CollectiveServiceClient {
     this.media = new CollectiveArtifactMediaClient((url, path, options) => this.request(url, path, options), fetchImpl);
   }
 
-  usesLocalTransport(serviceUrl: string): boolean { return this.localTransport?.matches(serviceUrl) ?? false; }
-  async readLocalRecovery(connection: ConnectorConnectionState, clientEventId?: string): Promise<LocalRecoverySnapshot> {
-    if (!this.localTransport || !this.usesLocalTransport(connection.serviceUrl)) throw new Error('Local recovery is unavailable');
+  usesLocalTransport(serviceUrl: string): boolean {
+    return this.localTransport?.matches(serviceUrl) ?? false;
+  }
+  async readLocalRecovery(
+    connection: ConnectorConnectionState,
+    clientEventId?: string,
+  ): Promise<LocalRecoverySnapshot> {
+    if (!this.localTransport || !this.usesLocalTransport(connection.serviceUrl))
+      throw new Error('Local recovery is unavailable');
     await this.localTransport.assertCurrent();
     const result = await this.localTransport.readRecovery(connection, clientEventId);
     await this.localTransport.assertCurrent();
-    if (result.serviceInstanceId !== connection.serviceInstanceId || result.collectiveId !== connection.collectiveId ||
-      result.connectionId !== connection.connectionId || result.endpointId !== connection.endpointId ||
-      result.authorizedHumanId !== connection.authorizedHumanId) throw new Error('Local recovery coordinates changed');
+    if (
+      result.serviceInstanceId !== connection.serviceInstanceId ||
+      result.collectiveId !== connection.collectiveId ||
+      result.connectionId !== connection.connectionId ||
+      result.endpointId !== connection.endpointId ||
+      result.authorizedHumanId !== connection.authorizedHumanId
+    )
+      throw new Error('Local recovery coordinates changed');
     return result;
   }
-  async assertLocalCurrent(): Promise<void> { await this.localTransport?.assertCurrent(); }
+  async assertLocalCurrent(): Promise<void> {
+    await this.localTransport?.assertCurrent();
+  }
 
   async readMetadata(serviceUrl: string): Promise<{
     serviceInstanceId: string;
@@ -317,8 +336,12 @@ export class CollectiveServiceClient {
     const payload = await this.request(serviceUrl, `/api/participation?${new URLSearchParams(coordinates)}`, {
       credential,
     });
-    return z.object({ declaration: collectiveParticipationDeclarationSchema.nullable() }).strict().parse(payload)
-      .declaration;
+    return z
+      .object({
+        declaration: collectiveParticipationDeclarationSchema.nullable(),
+      })
+      .strict()
+      .parse(payload).declaration;
   }
 
   async readParticipationContext(
@@ -352,22 +375,76 @@ export class CollectiveServiceClient {
       .parse(payload);
   }
 
-  async readParticipationImage(serviceUrl: string, credential: string, source: CollectiveSourceIdentity,
-    image: { eventId: string; attachmentId: string }) {
-    return collectiveModelImageSchema.parse(await this.request(serviceUrl, '/api/participation/image', {
-      method: 'POST', credential, body: { serviceInstanceId: source.serviceInstanceId, collectiveId: source.collectiveId,
-        connectionId: source.connectionId, eventId: source.eventId, catId: source.catId,
-        participationRevision: source.participationRevision, image },
-    }));
+  async readParticipationImage(
+    serviceUrl: string,
+    credential: string,
+    source: CollectiveSourceIdentity,
+    image: { eventId: string; attachmentId: string },
+  ) {
+    return collectiveModelImageSchema.parse(
+      await this.request(serviceUrl, '/api/participation/image', {
+        method: 'POST',
+        credential,
+        body: {
+          serviceInstanceId: source.serviceInstanceId,
+          collectiveId: source.collectiveId,
+          connectionId: source.connectionId,
+          eventId: source.eventId,
+          catId: source.catId,
+          participationRevision: source.participationRevision,
+          image,
+        },
+      }),
+    );
   }
 
-  async prepareParticipationSticker(serviceUrl: string, credential: string, source: CollectiveSourceIdentity,
-    stickerId: string, clientUploadId: string) {
-    return collectiveMessageAttachmentSchema.parse(await this.request(serviceUrl, '/api/participation/sticker', {
-      method: 'POST', credential, body: { serviceInstanceId: source.serviceInstanceId, collectiveId: source.collectiveId,
-        connectionId: source.connectionId, eventId: source.eventId, catId: source.catId,
-        participationRevision: source.participationRevision, stickerId, clientUploadId },
-    }));
+  async prepareParticipationSticker(
+    serviceUrl: string,
+    credential: string,
+    source: CollectiveSourceIdentity,
+    stickerId: string,
+    clientUploadId: string,
+  ) {
+    return collectiveMessageAttachmentSchema.parse(
+      await this.request(serviceUrl, '/api/participation/sticker', {
+        method: 'POST',
+        credential,
+        body: {
+          serviceInstanceId: source.serviceInstanceId,
+          collectiveId: source.collectiveId,
+          connectionId: source.connectionId,
+          eventId: source.eventId,
+          catId: source.catId,
+          participationRevision: source.participationRevision,
+          stickerId,
+          clientUploadId,
+        },
+      }),
+    );
+  }
+
+  async readParticipationMedia(
+    serviceUrl: string,
+    credential: string,
+    source: CollectiveSourceIdentity,
+    attachment: CollectiveContextAttachmentSelection,
+  ) {
+    return collectiveModelContentSchema.parse(
+      await this.request(serviceUrl, '/api/participation/media', {
+        method: 'POST',
+        credential,
+        timeoutMs: 25_000,
+        body: {
+          serviceInstanceId: source.serviceInstanceId,
+          collectiveId: source.collectiveId,
+          connectionId: source.connectionId,
+          eventId: source.eventId,
+          catId: source.catId,
+          participationRevision: source.participationRevision,
+          attachment,
+        },
+      }),
+    );
   }
 
   async revoke(
@@ -394,22 +471,26 @@ export class CollectiveServiceClient {
       credential?: string;
       headers?: Record<string, string>;
       body?: unknown;
+      timeoutMs?: number;
     } = {},
   ): Promise<Record<string, unknown>> {
     let response: Response;
     try {
-      response = await (this.usesLocalTransport(serviceUrl) ? this.localTransport!.fetch : this.fetchImpl)(`${new URL(serviceUrl).origin}${path}`, {
-        method: options.method ?? 'GET',
-        signal: AbortSignal.timeout(this.timeoutMs),
-        headers: {
-          accept: 'application/json',
-          'x-collective-message-content': '2',
-          ...(options.body ? { 'content-type': 'application/json' } : {}),
-          ...(options.credential ? { authorization: `Bearer ${options.credential}` } : {}),
-          ...options.headers,
+      response = await (this.usesLocalTransport(serviceUrl) ? this.localTransport!.fetch : this.fetchImpl)(
+        `${new URL(serviceUrl).origin}${path}`,
+        {
+          method: options.method ?? 'GET',
+          signal: AbortSignal.timeout(options.timeoutMs ?? this.timeoutMs),
+          headers: {
+            accept: 'application/json',
+            'x-collective-message-content': '2',
+            ...(options.body ? { 'content-type': 'application/json' } : {}),
+            ...(options.credential ? { authorization: `Bearer ${options.credential}` } : {}),
+            ...options.headers,
+          },
+          ...(options.body ? { body: JSON.stringify(options.body) } : {}),
         },
-        ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-      });
+      );
     } catch (cause) {
       if (cause instanceof ConnectorTransportError && cause.automaticRetry === false) throw cause;
       throw new ConnectorTransportError('Collective Service is unreachable', undefined, transportErrorCode(cause));

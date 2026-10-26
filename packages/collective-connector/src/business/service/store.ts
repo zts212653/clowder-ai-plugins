@@ -1,42 +1,42 @@
 import { access } from 'node:fs/promises';
-import type { CollectiveMessageAttachmentOwnerPort } from '../contracts/message-attachment-owner.js';
-import { CollectiveMessageAttachments } from './message-attachments.js';
-import { CollectiveHumanChannelState } from './channel-human-state.js';
 import { join } from 'node:path';
+import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
+import type { CollectiveMessageAttachmentOwnerPort } from '../contracts/message-attachment-owner.js';
 import { readArtifactRequestReceipt } from './artifact-history.js';
 import { readArtifactManagement } from './artifact-management.js';
 import { recoverMediaCustody } from './artifact-media-continuity.js';
 import { prepareArtifactPublication } from './artifact-publication-authority.js';
 import { readArtifactAgentContext } from './artifact-request-sources.js';
 import { CollectiveArtifactStore } from './artifact-store.js';
+import { CollectiveHumanChannelState } from './channel-human-state.js';
 import { CollectiveBindingVoteStore } from './collaboration-binding-vote-store.js';
 import { CollectiveReactionStore } from './collaboration-reaction-store.js';
 import { CollectiveCollaborationStore } from './collaboration-store.js';
+import { assertConnectionCoordinates, requireAuthorizedHuman } from './connection-authority.js';
 import { CollectiveConnectionEventStore, type PairingExchangeInput } from './connection-event-store.js';
 import { CollectiveServiceError } from './errors.js';
 import type { HumanAuthProvider, HumanAuthProviderId } from './human-auth-provider.js';
 import { CollectiveIdentityStore } from './identity-store.js';
 import { readMemberDirectory } from './member-directory.js';
-import { leaveCollectiveMembership } from './membership-lifecycle.js';
 import { readMembershipLeaveReadiness } from './membership-leave-readiness.js';
+import { leaveCollectiveMembership } from './membership-lifecycle.js';
+import { CollectiveMessageAttachments } from './message-attachments.js';
 import { CollectiveParticipationStore } from './participation-store.js';
 import {
   createSecret,
   createStableId,
   digestSecret,
-  secretMatches,
   PersistentServiceState,
   SERVICE_STATE_FILE,
+  secretMatches,
 } from './persistence.js';
-import { assertConnectionCoordinates, requireAuthorizedHuman } from './connection-authority.js';
-import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
 import type { ServiceState } from './state.js';
 import { CollectiveWorkPolicyStore } from './work-policy-store.js';
-import { readCollectiveWorkResultFile } from './work-result-files.js';
 import {
   prepareWorkResultArtifactPublication,
   resolveWorkResultArtifactPublication,
 } from './work-result-artifact-publication.js';
+import { readCollectiveWorkResultFile } from './work-result-files.js';
 
 export interface OpenCollectiveServiceStoreOptions {
   readonly messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort;
@@ -95,7 +95,14 @@ export class CollectiveServiceStore {
       await access(stateFile);
       const persistence = await PersistentServiceState.load(options.dataDirectory);
       return {
-        store: new CollectiveServiceStore(persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri, options.clientBuildId, options.messageAttachmentOwner),
+        store: new CollectiveServiceStore(
+          persistence,
+          now,
+          options.humanAuthProvider,
+          options.humanAuthRedirectUri,
+          options.clientBuildId,
+          options.messageAttachmentOwner,
+        ),
       };
     } catch (error) {
       if (error instanceof CollectiveServiceError) throw error;
@@ -146,7 +153,14 @@ export class CollectiveServiceStore {
       };
       const persistence = await PersistentServiceState.create(options.dataDirectory, state);
       return {
-        store: new CollectiveServiceStore(persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri, options.clientBuildId, options.messageAttachmentOwner),
+        store: new CollectiveServiceStore(
+          persistence,
+          now,
+          options.humanAuthProvider,
+          options.humanAuthRedirectUri,
+          options.clientBuildId,
+          options.messageAttachmentOwner,
+        ),
         bootstrapSecret,
       };
     }
@@ -175,6 +189,9 @@ export class CollectiveServiceStore {
   }
   readParticipationImage(...input: Parameters<CollectiveMessageAttachments['modelImage']>) {
     return this.#messageAttachments.modelImage(...input);
+  }
+  readParticipationMedia(...input: Parameters<CollectiveMessageAttachments['modelMedia']>) {
+    return this.#messageAttachments.modelMedia(...input);
   }
   prepareParticipationSticker(...input: Parameters<CollectiveMessageAttachments['prepareSticker']>) {
     return this.#messageAttachments.prepareSticker(...input);
@@ -458,24 +475,51 @@ export class CollectiveServiceStore {
   }
 
   /** Package-owned recovery evidence: exact credential and coordinates, including revoked records. */
-  readLocalRecoverySnapshot(credential: string, coordinates: {
-    serviceInstanceId: string; collectiveId: string; connectionId: string; endpointId: string; authorizedHumanId: string;
-  }, clientEventId?: string): LocalRecoverySnapshot {
+  readLocalRecoverySnapshot(
+    credential: string,
+    coordinates: {
+      serviceInstanceId: string;
+      collectiveId: string;
+      connectionId: string;
+      endpointId: string;
+      authorizedHumanId: string;
+    },
+    clientEventId?: string,
+  ): LocalRecoverySnapshot {
     const state = this.persistence.snapshot();
     const connection = state.connections[coordinates.connectionId];
-    if (!connection || !secretMatches(credential, connection.credentialDigest) ||
-      connection.endpointId !== coordinates.endpointId || connection.authorizedHumanId !== coordinates.authorizedHumanId)
+    if (
+      !connection ||
+      !secretMatches(credential, connection.credentialDigest) ||
+      connection.endpointId !== coordinates.endpointId ||
+      connection.authorizedHumanId !== coordinates.authorizedHumanId
+    )
       throw new CollectiveServiceError('CONNECTION_NOT_FOUND', 'Recovery credential is invalid', 401);
     assertConnectionCoordinates(state, connection, coordinates);
     if (connection.status === 'connected') requireAuthorizedHuman(state, connection);
     const published = state.participations[connection.connectionId];
-    const eventId = clientEventId ? state.clientEventIndex[`${coordinates.collectiveId}:connection:${coordinates.connectionId}:${clientEventId}`] : undefined;
-    const event = eventId ? state.events[coordinates.collectiveId]?.find(item => item.eventId === eventId) : undefined;
-    return structuredClone({ ...coordinates, status: connection.status,
-      lastAckedSequence: connection.lastAckedSequence, lastDeliveredSequence: connection.lastDeliveredSequence,
-      declaration: published ? { serviceInstanceId: published.serviceInstanceId, collectiveId: published.collectiveId,
-        connectionId: published.connectionId, revision: published.revision, agents: published.agents } : null,
-      ...(event ? { event } : {}) });
+    const eventId = clientEventId
+      ? state.clientEventIndex[`${coordinates.collectiveId}:connection:${coordinates.connectionId}:${clientEventId}`]
+      : undefined;
+    const event = eventId
+      ? state.events[coordinates.collectiveId]?.find((item) => item.eventId === eventId)
+      : undefined;
+    return structuredClone({
+      ...coordinates,
+      status: connection.status,
+      lastAckedSequence: connection.lastAckedSequence,
+      lastDeliveredSequence: connection.lastDeliveredSequence,
+      declaration: published
+        ? {
+            serviceInstanceId: published.serviceInstanceId,
+            collectiveId: published.collectiveId,
+            connectionId: published.connectionId,
+            revision: published.revision,
+            agents: published.agents,
+          }
+        : null,
+      ...(event ? { event } : {}),
+    });
   }
 
   getConnectionProjection(connectionId: string) {

@@ -1,10 +1,9 @@
-import { semanticDigest } from './local-operation-recovery.js';
-import { recordPublicSource, readCurrentPublicSource, type RecordPublicSourceInput } from './public-source-custody.js';
 import { isDeepStrictEqual } from 'node:util';
 import {
-  type CollectiveArtifactAction,
   type CollectiveAgentMessageRequest,
+  type CollectiveArtifactAction,
   type CollectiveArtifactAgentContext,
+  type CollectiveContextAttachmentSelection,
   type CollectiveMediaReadRequest,
   type CollectivePairingIntent,
   type CollectiveProjectWorkSuggestionTarget,
@@ -27,16 +26,18 @@ import { type ChannelListeningInput, setChannelListening } from './channel-liste
 import type { CollectiveConnectorOptions } from './connector-options.js';
 import { type ConnectorSyncHooks, ConnectorSynchronization } from './connector-synchronization.js';
 import { desiredParticipationSchema } from './host-route-state.js';
+import { semanticDigest } from './local-operation-recovery.js';
 import {
   prepareReplyOperation,
-  stageReplyArtifactOperation,
   queueVerifiedAgentMessage,
   readPublicReplyOperation,
+  stageReplyArtifactOperation,
   submitReplyOperation,
 } from './outbox-custody.js';
 import { participationDeclaration, participationError, requireParticipation } from './participation-custody.js';
 import { ConnectorPersistence } from './persistence.js';
 import { type ConnectorProjection, projectConnection, recoveryChoices } from './projection.js';
+import { type RecordPublicSourceInput, readCurrentPublicSource, recordPublicSource } from './public-source-custody.js';
 import {
   beginInboxRouting,
   completeInboxRouting,
@@ -165,7 +166,11 @@ export class CollectiveConnector {
         authorizedHumanId: paired.authorizedHumanId,
         endpointLabel: input.endpointLabel.trim(),
         endpointCredential: paired.endpointCredential,
-        ...(initialExcludedCatIds.length ? { initialExcludedCatIds: [...new Set(initialExcludedCatIds)].sort() } : {}),
+        ...(initialExcludedCatIds.length
+          ? {
+              initialExcludedCatIds: [...new Set(initialExcludedCatIds)].sort(),
+            }
+          : {}),
         authorityStatus: 'connected',
         liveStatus: 'online',
         lastAckedSequence: 0,
@@ -369,10 +374,17 @@ export class CollectiveConnector {
     return this.withAuthority(connectionId, () => this.synchronization.revoke(connectionId));
   }
 
-  async recover(connectionId: string, operationId: string, expectedRevision: number,
-    mode: 'reconcile' | 'resume', owner: import('./recovery-proof.js').RecoveryOwnerContext): Promise<ConnectorProjection> {
+  async recover(
+    connectionId: string,
+    operationId: string,
+    expectedRevision: number,
+    mode: 'reconcile' | 'resume',
+    owner: import('./recovery-proof.js').RecoveryOwnerContext,
+  ): Promise<ConnectorProjection> {
     // Serialize only this active call with existing authority edits; a durable hold owns no mutex.
-    return this.withAuthority(connectionId, () => this.synchronization.recover(connectionId, operationId, expectedRevision, mode, owner));
+    return this.withAuthority(connectionId, () =>
+      this.synchronization.recover(connectionId, operationId, expectedRevision, mode, owner),
+    );
   }
 
   /** A fresh endpoint read proves remote authority without acknowledging or routing events. */
@@ -386,19 +398,25 @@ export class CollectiveConnector {
         throw new ConnectorTransportError('The local Human does not own this Cafe', 403, 'ARTIFACT_ACCESS_DENIED');
       const coordinates = workCoordinates(connection);
       const read = await this.service.poll(connection.serviceUrl, credential, {
-        ...coordinates, afterSequence: connection.lastAckedSequence, limit: 1,
+        ...coordinates,
+        afterSequence: connection.lastAckedSequence,
+        limit: 1,
       });
       const after = this.persistence.snapshot();
       const fresh = requireConnection(after.connections[connectionId]);
-      if (fresh.authorityStatus !== 'connected' || fresh.endpointCredential !== credential ||
+      if (
+        fresh.authorityStatus !== 'connected' ||
+        fresh.endpointCredential !== credential ||
         fresh.authorizedHumanId !== connection.authorizedHumanId ||
         !isDeepStrictEqual(workCoordinates(fresh), coordinates) ||
         after.hostRoutes[connectionId]?.revision !== route.revision ||
         after.hostRoutes[connectionId]?.localOwnerUserId !== ownerUserId ||
         read.serviceInstanceId !== coordinates.serviceInstanceId ||
-        read.collectiveId !== coordinates.collectiveId || read.connectionId !== coordinates.connectionId)
+        read.collectiveId !== coordinates.collectiveId ||
+        read.connectionId !== coordinates.connectionId
+      )
         throw new ConnectorTransportError('Collective owner authority changed', 403, 'ARTIFACT_ACCESS_DENIED');
-      return {...coordinates, authorizedHumanId: fresh.authorizedHumanId!};
+      return { ...coordinates, authorizedHumanId: fresh.authorizedHumanId! };
     });
   }
 
@@ -409,16 +427,32 @@ export class CollectiveConnector {
 
   listRecoveryRows(userId: string, after?: string) {
     const state = this.persistence.snapshot();
-    const pending = Object.values(state.connections).filter(connection =>
-      state.hostRoutes[connection.connectionId]?.localOwnerUserId === userId,
-    ).flatMap(connection => (connection.localAttempts ?? []).filter(item => item.status !== 'settled').map(item => ({
-      key: semanticDigest([connection.connectionId, item.operationId]), connectionId: connection.connectionId,
-      endpointLabel: connection.endpointLabel, operation: { operationId: item.operationId, kind: item.kind,
-        revision: item.revision, effect: item.effect, reason: item.reason,
-        choices: recoveryChoices(connection, item) },
-    }))).sort((left, right) => left.key.localeCompare(right.key)).filter(row => !after || row.key > after);
+    const pending = Object.values(state.connections)
+      .filter((connection) => state.hostRoutes[connection.connectionId]?.localOwnerUserId === userId)
+      .flatMap((connection) =>
+        (connection.localAttempts ?? [])
+          .filter((item) => item.status !== 'settled')
+          .map((item) => ({
+            key: semanticDigest([connection.connectionId, item.operationId]),
+            connectionId: connection.connectionId,
+            endpointLabel: connection.endpointLabel,
+            operation: {
+              operationId: item.operationId,
+              kind: item.kind,
+              revision: item.revision,
+              effect: item.effect,
+              reason: item.reason,
+              choices: recoveryChoices(connection, item),
+            },
+          })),
+      )
+      .sort((left, right) => left.key.localeCompare(right.key))
+      .filter((row) => !after || row.key > after);
     const rows = pending.slice(0, 99);
-    return { rows, ...(pending.length > rows.length ? { next: rows.at(-1)!.key } : {}) };
+    return {
+      rows,
+      ...(pending.length > rows.length ? { next: rows.at(-1)!.key } : {}),
+    };
   }
 
   async listConnections(): Promise<ConnectorProjection[]> {
@@ -431,7 +465,11 @@ export class CollectiveConnector {
   async readPendingAccountabilityRequests(
     connectionId: string,
     ownerUserId: string,
-    page: { readonly offset: number; readonly limit: number; readonly snapshot?: string },
+    page: {
+      readonly offset: number;
+      readonly limit: number;
+      readonly snapshot?: string;
+    },
   ) {
     return this.withAuthority(connectionId, async () => {
       const before = this.persistence.snapshot();
@@ -529,15 +567,17 @@ export class CollectiveConnector {
     unsafeInput: SetHostRouteInput,
     expectedRevision?: number,
   ): Promise<HostRouteConfig> {
-    return this.withAuthority(`routing:${connectionId}`, () => this.withAuthority(connectionId, () =>
-      setHostRoute({
-        persistence: this.persistence,
-        now: this.now,
-        connectionId,
-        unsafeInput,
-        ...(expectedRevision !== undefined ? { expectedRevision } : {}),
-      }),
-    ));
+    return this.withAuthority(`routing:${connectionId}`, () =>
+      this.withAuthority(connectionId, () =>
+        setHostRoute({
+          persistence: this.persistence,
+          now: this.now,
+          connectionId,
+          unsafeInput,
+          ...(expectedRevision !== undefined ? { expectedRevision } : {}),
+        }),
+      ),
+    );
   }
 
   async setStandingInterest(
@@ -634,7 +674,20 @@ export class CollectiveConnector {
 
   async prepareParticipationSticker(source: CollectiveSourceIdentity, stickerId: string, clientUploadId: string) {
     const { connection, credential } = requireParticipation(this.persistence.snapshot(), source);
-    const result = await this.service.prepareParticipationSticker(connection.serviceUrl, credential, source, stickerId, clientUploadId);
+    const result = await this.service.prepareParticipationSticker(
+      connection.serviceUrl,
+      credential,
+      source,
+      stickerId,
+      clientUploadId,
+    );
+    requireParticipation(this.persistence.snapshot(), source);
+    return result;
+  }
+
+  async readParticipationMedia(source: CollectiveSourceIdentity, attachment: CollectiveContextAttachmentSelection) {
+    const { connection, credential } = requireParticipation(this.persistence.snapshot(), source);
+    const result = await this.service.readParticipationMedia(connection.serviceUrl, credential, source, attachment);
     requireParticipation(this.persistence.snapshot(), source);
     return result;
   }
@@ -667,7 +720,10 @@ export class CollectiveConnector {
     resultKey: string,
     workRevision?: number,
     resultRevision?: number,
-    execution?: { readonly revision: number; readonly assignmentEventId: string },
+    execution?: {
+      readonly revision: number;
+      readonly assignmentEventId: string;
+    },
   ) {
     return prepareReplyOperation({
       persistence: this.persistence,
@@ -682,13 +738,34 @@ export class CollectiveConnector {
   }
 
   async stageReplyArtifact(
-    source: CollectiveSourceIdentity, sourceRef: string, resultKey: string, operationId: string,
-    agent: VerifiedAgent, artifactSnapshot: WorkResultArtifactSnapshot, workRevision: number,
-    resultRevision: number, execution: {readonly revision: number; readonly assignmentEventId: string},
+    source: CollectiveSourceIdentity,
+    sourceRef: string,
+    resultKey: string,
+    operationId: string,
+    agent: VerifiedAgent,
+    artifactSnapshot: WorkResultArtifactSnapshot,
+    workRevision: number,
+    resultRevision: number,
+    execution: {
+      readonly revision: number;
+      readonly assignmentEventId: string;
+    },
   ) {
     await this.readParticipationContext(source, 0, 1);
-    return stageReplyArtifactOperation({persistence: this.persistence, now: this.now, source, sourceRef, resultKey,
-      operationId, agent, artifactSnapshot, workRevision, resultRevision, execution, verifyAgent: this.verifyAgent});
+    return stageReplyArtifactOperation({
+      persistence: this.persistence,
+      now: this.now,
+      source,
+      sourceRef,
+      resultKey,
+      operationId,
+      agent,
+      artifactSnapshot,
+      workRevision,
+      resultRevision,
+      execution,
+      verifyAgent: this.verifyAgent,
+    });
   }
 
   readPublicReply(source: CollectiveSourceIdentity, sourceRef: string) {
@@ -700,11 +777,16 @@ export class CollectiveConnector {
     sourceRef: string,
     resultKey: string,
     operationId: string,
-    bodyOrContent: string | Pick<CollectiveAgentMessageRequest, 'body' | 'attachments' | 'contextAttachments' | 'richBlocks'>,
+    bodyOrContent:
+      | string
+      | Pick<CollectiveAgentMessageRequest, 'body' | 'attachments' | 'contextAttachments' | 'richBlocks'>,
     agent: VerifiedAgent,
     artifactSnapshot?: WorkResultArtifactSnapshot,
     resultRevision?: number,
-    execution?: { readonly revision: number; readonly assignmentEventId: string },
+    execution?: {
+      readonly revision: number;
+      readonly assignmentEventId: string;
+    },
     resultFileSource?: CollectiveWorkResultTextSource,
   ) {
     const content = typeof bodyOrContent === 'string' ? { body: bodyOrContent } : bodyOrContent;
@@ -840,7 +922,7 @@ export class CollectiveConnector {
   ): Promise<T> {
     return this.withAuthority(`routing:${connectionId}`, async () => {
       const route = await this.getHostRoute(connectionId);
-      const item = (await this.listInbox(connectionId)).find(item => item.event.eventId === eventId);
+      const item = (await this.listInbox(connectionId)).find((item) => item.event.eventId === eventId);
       if (!route || !item) throw new Error('Collective inbox route is unavailable');
       return consume(route, item);
     });
@@ -942,8 +1024,11 @@ export class CollectiveConnector {
     return work;
   }
 
-  private async consumeAssignedWorkScope<T>(connectionId: string, work: CollectiveWorkProjection,
-    consume: (scope: AssignedWorkAuthorityScope) => Promise<T>): Promise<T> {
+  private async consumeAssignedWorkScope<T>(
+    connectionId: string,
+    work: CollectiveWorkProjection,
+    consume: (scope: AssignedWorkAuthorityScope) => Promise<T>,
+  ): Promise<T> {
     let live = true;
     const readCurrentWork = async () => {
       if (!live) throw new Error('Assigned Work consumer scope has ended');
@@ -951,12 +1036,18 @@ export class CollectiveConnector {
       if (!live) throw new Error('Assigned Work consumer scope has ended');
       return current;
     };
-    try { return await consume(this.assignedWorkAuthorityScope(connectionId, work, readCurrentWork)); }
-    finally { live = false; }
+    try {
+      return await consume(this.assignedWorkAuthorityScope(connectionId, work, readCurrentWork));
+    } finally {
+      live = false;
+    }
   }
 
-  private assignedWorkAuthorityScope(connectionId: string, work: CollectiveWorkProjection,
-    readCurrentWork: AssignedWorkAuthorityScope['readCurrentWork']): AssignedWorkAuthorityScope {
+  private assignedWorkAuthorityScope(
+    connectionId: string,
+    work: CollectiveWorkProjection,
+    readCurrentWork: AssignedWorkAuthorityScope['readCurrentWork'],
+  ): AssignedWorkAuthorityScope {
     const snapshot = this.persistence.snapshot();
     const connection = requireConnection(snapshot.connections[connectionId]);
     const hostRoute = snapshot.hostRoutes[connectionId];
