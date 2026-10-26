@@ -5,6 +5,12 @@ import {
   restoreAfterNoSend,
 } from './chatgpt-composer-transaction.mjs';
 import {
+  assertCurrentSendButton,
+  FORM_SEND_BUTTON_SELECTORS,
+  SEND_BUTTON_SELECTORS,
+  waitForSendButton,
+} from './chatgpt-send-controls.mjs';
+import {
   ChatGptPageAdapterError,
   composerDomFingerprint,
   contentEditableText,
@@ -20,11 +26,6 @@ const COMPOSER_SELECTORS = [
   '#prompt-textarea[contenteditable="true"]',
   'div[contenteditable="true"][data-virtualkeyboard="true"]',
   'textarea[data-id="root"]',
-];
-const SEND_BUTTON_SELECTORS = [
-  'button[data-testid="send-button"]',
-  'button[aria-label="Send prompt"]',
-  'button[aria-label="发送提示"]',
 ];
 const USER_MESSAGE_SELECTOR = '[data-message-author-role="user"]';
 const ASSISTANT_MESSAGE_SELECTOR = '[data-message-author-role="assistant"]';
@@ -76,57 +77,6 @@ function renderedMessageHasExactText(message, expectedText) {
 }
 
 export { ChatGptPageAdapterError };
-
-function sendButtonIsDisabled(button) {
-  return button.disabled === true || button.getAttribute('aria-disabled') === 'true';
-}
-
-function waitForSendButton({ document, MutationObserver, timeoutMs }) {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    let sawDisabledButton = false;
-    const finish = (callback) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      observer.disconnect();
-      callback();
-    };
-    const scan = () => {
-      const button = firstMatch(document, SEND_BUTTON_SELECTORS);
-      if (!button) return;
-      if (typeof button.click !== 'function' || !button.isConnected) {
-        finish(() =>
-          reject(new ChatGptPageAdapterError('SEND_BUTTON_INVALID', 'ChatGPT send button is not safely clickable')),
-        );
-        return;
-      }
-      if (sendButtonIsDisabled(button)) {
-        sawDisabledButton = true;
-        return;
-      }
-      finish(() => resolve(button));
-    };
-    const observer = new MutationObserver(scan);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['disabled', 'aria-disabled'],
-    });
-    const timer = setTimeout(() => {
-      finish(() =>
-        reject(
-          new ChatGptPageAdapterError(
-            sawDisabledButton ? 'SEND_BUTTON_DISABLED' : 'SEND_BUTTON_NOT_FOUND',
-            sawDisabledButton ? 'ChatGPT send button remained disabled' : 'ChatGPT send button was not found',
-          ),
-        ),
-      );
-    }, timeoutMs);
-    scan();
-  });
-}
 
 function observeHostMessage({ document, MutationObserver, existingIds, text, timeoutMs }) {
   return new Promise((resolve, reject) => {
@@ -432,12 +382,7 @@ function requireSafeSubmissionState({
   if (current.text !== text) {
     throw new ChatGptPageAdapterError('COMPOSER_CHANGED_BEFORE_SUBMIT', 'ChatGPT composer changed before submission');
   }
-  if (!sendButton.isConnected || sendButtonIsDisabled(sendButton)) {
-    throw new ChatGptPageAdapterError(
-      sendButtonIsDisabled(sendButton) ? 'SEND_BUTTON_DISABLED' : 'SEND_BUTTON_INVALID',
-      'ChatGPT send button changed before submission',
-    );
-  }
+  assertCurrentSendButton({ document, composer, sendButton });
 }
 
 async function submitPageMessage({
@@ -469,7 +414,7 @@ async function submitPageMessage({
       mutated = true;
     });
     await onProgress('inserted', { requestId, conversationId, idempotencyKey });
-    const sendButton = await waitForSendButton({ document, MutationObserver, timeoutMs: sendButtonTimeoutMs });
+    const sendButton = await waitForSendButton({ document, composer, MutationObserver, timeoutMs: sendButtonTimeoutMs });
     requireSafeSubmissionState({
       document,
       location,
@@ -620,6 +565,7 @@ export function createChatGptPageAdapter({
 export const CHATGPT_PAGE_ADAPTER_SELECTORS = Object.freeze({
   composer: [...COMPOSER_SELECTORS],
   sendButton: [...SEND_BUTTON_SELECTORS],
+  formSendButton: [...FORM_SEND_BUTTON_SELECTORS],
   userMessage: USER_MESSAGE_SELECTOR,
   assistantMessage: ASSISTANT_MESSAGE_SELECTOR,
 });

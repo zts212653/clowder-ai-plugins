@@ -40,7 +40,7 @@ test('pins the MV3 host scope, permissions, and icon mapping', async () => {
   });
 });
 
-test('keeps extension revision 0.2.11 aligned across every protocol surface', async () => {
+test('keeps extension revision 0.2.12 aligned across every protocol surface', async () => {
   const manifest = JSON.parse(await extensionSource('manifest.json'));
   const [worker, contentScriptEntry, contentScript, protocol] = await Promise.all([
     extensionSource('service-worker.js'),
@@ -49,9 +49,9 @@ test('keeps extension revision 0.2.11 aligned across every protocol surface', as
     readFile(new URL('src/protocol.ts', packageRoot), 'utf8'),
   ]);
 
-  assert.equal(manifest.version, '0.2.11');
+  assert.equal(manifest.version, '0.2.12');
   for (const source of [worker, contentScriptEntry, contentScript, protocol]) {
-    assert.match(source, /0\.2\.11/);
+    assert.match(source, /0\.2\.12/);
   }
 });
 

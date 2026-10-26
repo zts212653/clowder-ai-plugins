@@ -5,8 +5,8 @@ import { createAssistantReturnInbox } from '../native-host/assistant-return-inbo
 
 const revisions = {
   helper: `sha512:${'0'.repeat(128)}`,
-  extension: '0.2.11',
-  pageAdapter: '2026-09-02.1',
+  extension: '0.2.12',
+  pageAdapter: '2026-10-26.1',
 };
 
 function observed(overrides = {}) {
