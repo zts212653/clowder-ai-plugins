@@ -102,12 +102,26 @@ try {
   for (const tool of tools) declaredToolNames.add(tool.name);
   assert.deepEqual(tools.map(tool => tool.name).sort(), ['cat_cafe_collective_current_context', 'cat_cafe_collective_read_context',
     'cat_cafe_collective_set_interest', 'cat_cafe_collective_submit_reply', 'cat_cafe_collective_propose_work', 'cat_cafe_collective_accept_work', 'cat_cafe_collective_continue_work',
-    'cat_cafe_collective_artifact_command', 'cat_cafe_collective_suggest_project_work'].sort());
+    'cat_cafe_collective_artifact_command', 'cat_cafe_collective_suggest_project_work', 'cat_cafe_collective_prepare_sticker'].sort());
   for (const tool of tools) {
     assert.equal(tool.inputSchema.additionalProperties, false);
     assert.equal(Object.hasOwn(tool.inputSchema.properties ?? {}, 'userId'), false);
     assert.equal(Object.hasOwn(tool.inputSchema.properties ?? {}, 'invocationId'), false);
   }
+  const readTool = tools.find(tool => tool.name === 'cat_cafe_collective_read_context');
+  assert.ok(readTool.inputSchema.properties.attachment);
+  const ambiguous = await nativeClient.callTool({ name: readTool.name, arguments: {
+    contextRef: 'explicit-context-fixture',
+    image: { eventId: 'evt_abcdefghijk', attachmentId: 'att_abcdefghijk' },
+    attachment: { eventId: 'evt_abcdefghijk', attachmentId: 'att_abcdefghijk' },
+  } });
+  assert.equal(ambiguous.isError, true);
+  assert.match(JSON.stringify(ambiguous.content), /Choose one attachment selector/);
+  const emptyReply = await nativeClient.callTool({ name: 'cat_cafe_collective_submit_reply', arguments: {
+    returnRef: 'explicit-return-fixture', replyOperationRef: 'explicit-reply-fixture', body: '',
+  } });
+  assert.equal(emptyReply.isError, true);
+  assert.match(JSON.stringify(emptyReply.content), /A message needs text or content/);
 } finally { await nativeClient.close(); }
 
 const ownerNative = manifest.contributions.find(item => item.type === 'mcp' && item.id === 'collective-owner-native');
@@ -238,8 +252,29 @@ try {
     assert.equal(response.status, 200, file.path);
     assert.equal(response.headers.get('content-type'), file.contentType);
     const bytes = Buffer.from(await response.arrayBuffer());
-    assert.equal(bytes.length, file.size);
-    assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256);
+    assert.equal(Number(response.headers.get('content-length')), bytes.length);
+    if (file.path === '/index.html') {
+      const retained = await readFile(join(packageRoot, 'assets/client/index.html'));
+      assert.equal(retained.length, file.size);
+      assert.equal(createHash('sha256').update(retained).digest('hex'), file.sha256);
+      const html = bytes.toString('utf8');
+      const nonceTag = /<meta name="collective-widget-nonce" content="([A-Za-z0-9_-]+)">/gu;
+      const matches = [...html.matchAll(nonceTag)];
+      assert.equal(matches.length, 1);
+      assert.equal(html.replace(matches[0][0], ''), retained.toString('utf8'));
+      assert.ok(response.headers.get('content-security-policy').includes(`'nonce-${matches[0][1]}'`));
+      assert.equal(response.headers.get('content-security-policy').includes("'unsafe-inline'"), false);
+      const reopened = await request('/');
+      assert.equal(reopened.status, 200);
+      const reopenedTags = [...(await reopened.text()).matchAll(nonceTag)];
+      assert.equal(reopenedTags.length, 1);
+      assert.notEqual(reopenedTags[0][1], matches[0][1]);
+      assert.ok(reopened.headers.get('content-security-policy').includes(`'nonce-${reopenedTags[0][1]}'`));
+      assert.equal(createHash('sha256').update(await readFile(join(packageRoot, 'assets/client/index.html'))).digest('hex'), file.sha256);
+    } else {
+      assert.equal(bytes.length, file.size);
+      assert.equal(createHash('sha256').update(bytes).digest('hex'), file.sha256);
+    }
   }
   assert.equal((await request('/owner-bootstrap.secret')).status, 404);
   assert.notEqual((await request('/api/auth/github/callback')).status, 404, 'OAuth callback remains mounted');

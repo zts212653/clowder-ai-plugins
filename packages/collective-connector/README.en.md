@@ -32,13 +32,17 @@ Human and Channel; concurrent edits require an explicit choice. Private drafts n
 The packaged Client source commit, build inputs, manifest and byte digests are in `assets/client/source.json`.
 Keep a pre-upgrade business-directory snapshot. After new structured messages or private state have been
 written, the old strict reader cannot directly downgrade; preserve new writes and repair forward.
-This is the first attachment slice of the active expression batch. Voice, stickers, quotes, applicable rich
-content and authorized image model input still require their same-source integration and real journey checks.
+This candidate also carries original catalogue stickers, sourced quotes, applicable rich content and speech-to-text.
+Recording uses the current member's explicitly selected local service. Editable words remain private until Send;
+changing Channel ends capture immediately and preserves its audio in the original draft for retry.
+Authorized cats read the same public original images, UTF-8 text, explicitly available Host speech or video samples.
+Text continues with the returned offset; audio windows are at most120 seconds. Unsupported readers are explicit.
+A sampled video frame is not proof of watching the whole video or a frame-accurate private Work citation.
 
-The paired Core source is `193bd7ffef21e1a4b4ba1f6cee7e6331276ec373`; the actual journey evidence is in
-[Core PR6122](https://github.com/zts212653/cat-cafe/pull/6122). Four source/integrity checks and one isolated
-installed-directory check passed. The latter verifies the real SDK lifecycle, restored state, physical
-dependencies and packaged Client bytes; it does not replace actual Host installation or real OAuth acceptance.
+The packaged Client's paired Core source is `fbb0ff5784a073c183ee8bff7327263de2f774ec`; see the
+[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/fbb0ff5784a073c183ee8bff7327263de2f774ec/docs/evidence/2026-10-25-f290-expression-content).
+Source-workspace and independent test-session checks do not replace a loaded Host installation, real OAuth
+or physical audio-quality acceptance.
 
 Disable stops sync and retains business state and credentials. Outbox, acknowledgement, participation and revoke attempts are saved before effects. Unknown outcomes remain recovery holds; ordinary sync or reconnect cannot clear them. Settings recovery can reconcile the same operation and resume it only when evidence permits.
 
