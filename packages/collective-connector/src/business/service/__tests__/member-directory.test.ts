@@ -79,6 +79,15 @@ it('removes a revoked Café from the current directory while retaining its Human
 it('allows public HTTPS profile images while keeping script and style sources restricted', async () => {
   const { server } = await fixture();
   const page = await fetch(server.url);
-  expect(page.headers.get('content-security-policy')).toContain("img-src 'self' https:");
-  expect(page.headers.get('content-security-policy')).toContain("script-src 'self'; style-src 'self';");
+  const policy = page.headers.get('content-security-policy') ?? '';
+  const directives = new Map(policy.split(';').map(part => {
+    const [name, ...sources] = part.trim().split(/\s+/u);
+    return [name, sources];
+  }));
+  expect(directives.get('img-src')).toEqual(["'self'", 'https:', 'data:', 'blob:']);
+  const scripts = directives.get('script-src');
+  expect(scripts).toHaveLength(2);
+  expect(scripts?.[0]).toBe("'self'");
+  expect(scripts?.[1]).toMatch(/^'nonce-[A-Za-z0-9_-]+'$/u);
+  expect(directives.get('style-src')).toEqual(scripts);
 });
