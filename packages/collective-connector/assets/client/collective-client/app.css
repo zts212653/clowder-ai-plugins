@@ -579,6 +579,36 @@ html[data-shell=v2] {
   gap: 6px;
   margin: 6px 0;
 }
+.composer-rich-tools button,
+.composer-rich-editor button,
+.composer-rich-preview button {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--shell-hairline, var(--cafe-border-subtle));
+  border-radius: 8px;
+  background: var(--shell-work, var(--cafe-surface-elevated));
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+.composer-rich-tools button:hover,
+.composer-rich-editor button:hover,
+.composer-rich-preview button:hover {
+  background: var(--shell-selected, var(--cafe-surface-sunken));
+}
+.composer-rich-tools button:focus-visible,
+.composer-rich-editor button:focus-visible,
+.composer-rich-preview button:focus-visible {
+  outline: 2px solid var(--shell-primary, var(--cafe-accent));
+  outline-offset: 2px;
+}
+.composer-rich-tools button:disabled,
+.composer-rich-editor button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
 .composer-rich-editor {
   display: grid;
   gap: 8px;
@@ -586,6 +616,12 @@ html[data-shell=v2] {
   border: 1px solid var(--shell-hairline);
   border-radius: 8px;
   margin: 8px 0;
+  padding: 12px;
+}
+.composer-rich-editor legend {
+  padding-inline: 4px;
+  font-size: 12px;
+  font-weight: 600;
 }
 .composer-rich-editor label {
   display: grid;
@@ -602,6 +638,7 @@ html[data-shell=v2] {
   border: 1px solid var(--shell-hairline);
   border-radius: 6px;
   padding: 8px;
+  font: inherit;
 }
 .composer-rich-preview {
   display: flex;

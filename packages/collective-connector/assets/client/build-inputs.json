@@ -2320,7 +2320,7 @@
     },
     {
       "path": "../ui/src/styles.css",
-      "sha256": "abacc8eb694cf0315f396d6fbf62f237f5d483f1579cca4327db9c8bad4b298a"
+      "sha256": "2e110e0592f4aecde32d2cd731ed5712769215afe52439e8c8a299d9b520c3cb"
     },
     {
       "path": "../ui/src/text-selection-offsets.ts",

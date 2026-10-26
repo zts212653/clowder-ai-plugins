@@ -35,8 +35,8 @@ Work 评论和前置完成通知沿用已有 Task，不另外建立任务。Work
 获准猫通过同一公开来源读取原图、UTF-8 原文、明确可用 Host 服务的转写或视频样帧。长文可按返回游标续读，
 音频窗口最多120秒；不支持的格式或服务明确返回不可用，视频样帧不代表完整观看或精确 Work 引用。
 
-随包 Client 的配套 Core 源码为 `fbb0ff5784a073c183ee8bff7327263de2f774ec`，实物与验证边界见
-[第一批证据](https://github.com/zts212653/cat-cafe/tree/fbb0ff5784a073c183ee8bff7327263de2f774ec/docs/evidence/2026-10-25-f290-expression-content)。
+随包 Client 的配套 Core 源码为 `80c57b6ef1dd9cb2a33a24ee130212bab485c166`，实物与验证边界见
+[第一批证据](https://github.com/zts212653/cat-cafe/tree/80c57b6ef1dd9cb2a33a24ee130212bab485c166/docs/evidence/2026-10-25-f290-expression-content)。
 源码工作区和独立测试会话验证不能代替正式 Host 安装到版、真人 OAuth 或实体音频质量验收。
 
 停用停止同步并保留业务状态和凭据。出站、确认、参与变更及撤销先记录尝试；结果不明会保留为待核实，普通同步或重连不会清除。设置里的恢复列表可核对同一操作，只有证据允许时才能恢复。
