@@ -1,7 +1,10 @@
 import { Readable } from "node:stream";
-import { validateManifest } from "@clowder-ai/plugin-contract";
 import {
-	defineCallDelivery,
+	validateManifest,
+	type PluginDeliveryInput,
+	type PluginDeliveryReceipt,
+} from "@clowder-ai/plugin-contract";
+import {
 	defineWebhookHandler,
 	type ModulePluginHostShape,
 	type ModulePluginSettingsHost,
@@ -10,7 +13,7 @@ import {
 	type PluginModuleDefinition,
 } from "@clowder-ai/plugin-sdk";
 import { z } from "zod";
-import { DotConnection } from "./connection.js";
+import { DotConnection, type DotSettingsHost } from "./connection.js";
 import { createDotWebhookSender, type DotWebhookSend } from "./dot-webhook.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
 import { DotRuntime, imageReference } from "./runtime.js";
@@ -24,7 +27,7 @@ export function createDotPlugin(
 ): PluginModuleDefinition {
 	let running: DotRuntime | undefined;
 	async function connection(
-		host: ModulePluginSettingsHost,
+		host: DotSettingsHost,
 		controller: AbortController,
 	) {
 		let transport = new AbortController();
@@ -69,7 +72,7 @@ export function createDotPlugin(
 	const definition: PluginModuleDefinition = {
 		async settings(host) {
 			const controller = new AbortController(),
-				[current] = await connection(host, controller);
+				[current] = await connection(host as DotSettingsHost, controller);
 			const actions: Record<string, PluginActionHandler> = {
 				"dot.begin": async (input, _native, context) => ({
 					render: "text",
@@ -137,19 +140,34 @@ export function createDotPlugin(
 		async start(host: ModulePluginHostShape) {
 			if (running) throw new Error("dot_already_running");
 			const controller = new AbortController(),
-				[current, refresh] = await connection(host, controller),
+				dotHost = host as ModulePluginHostShape & DotSettingsHost,
+				[current, refresh] = await connection(dotHost, controller),
 				runtime = new DotRuntime(host, current);
 			running = runtime;
 			let disposeSettings: (() => void | Promise<void>) | undefined;
 			try {
 				await runtime.restoreSubscriptions();
 				let stop: Promise<void> | undefined;
-				const call = defineCallDelivery(async (input) => {
+				const admitted = new Set<Promise<unknown>>();
+				const deliver = async (input: PluginDeliveryInput): Promise<PluginDeliveryReceipt> => {
 					current.assertLive();
-					return input.reason === "subscription"
-						? runtime.followup(input)
-						: runtime.deliver(input);
-				});
+					if (input.kind !== "message") return { deliveryId: input.deliveryId };
+					if (input.reason === "subscription") {
+						return (await runtime.followup(input)) ?? { deliveryId: input.deliveryId };
+					}
+					return runtime.deliver(input);
+				};
+				const handle = async (request: Readonly<Record<string, unknown>>) => {
+					current.assertLive();
+					const task = current.within(undefined, async () => {
+						await current.assertCurrent();
+						const result = await rpc(runtime, request);
+						await current.assertCurrent();
+						return result;
+					});
+					admitted.add(task);
+					try { return await task; } finally { admitted.delete(task); }
+				};
 				const actions: Record<string, PluginActionHandler> = {
 					"dot.test": async (_input, _native, context) => {
 						await current.owner(context);
@@ -177,24 +195,21 @@ export function createDotPlugin(
 						if (!state) throw new Error("dot_connection_missing");
 						return {
 							render: "text",
-							data: await runtime.testRoundtrip(state.credentialSecret),
+							data: await runtime.testRoundtrip(),
 						};
 					},
 				};
 				// Settings actions exist in the stopped Manager path and the active action table.
-				const settings = await definition.settings!(host);
+				const settings = await definition.settings!(dotHost);
 				disposeSettings = () => settings.dispose?.();
 				Object.assign(actions, settings.actions);
-				const admitted = new Set<Promise<unknown>>();
 				const webhook = defineWebhookHandler(
 					async ({ contributionId, request: raw }, context) => {
 						current.assertLive();
 						const task = current.within(context, async () => {
 							await current.assertCurrent();
 							let result: unknown;
-							if (contributionId === "dot-mcp") {
-								result = await rpc(runtime, { request: raw }, context);
-							} else if (contributionId === "dot-original") {
+							if (contributionId === "dot-original") {
 								const { request } = httpRequestSchema.parse({ request: raw });
 								if (
 									request.method !== "GET" ||
@@ -258,7 +273,8 @@ export function createDotPlugin(
 				);
 				return {
 					actions: guarded,
-					call,
+					deliver,
+					handle,
 					webhook,
 					streams: runtime.streams,
 					configRefresh: refresh,

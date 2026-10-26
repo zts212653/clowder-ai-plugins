@@ -109,6 +109,7 @@ const sent = [];
 function host(pluginInstanceId) {
 	return {
 		pluginInstanceId,
+		external: { endpoint: "https://plugins.example/plugin/mcp", token: secret },
 		dataPath,
 		config: { get: async () => undefined },
 		secrets: { get: async () => undefined },
@@ -162,14 +163,10 @@ function owner(h) {
 	};
 }
 function rpc(active, method, params) {
-	return active.webhook.handle({
-		contributionId: "dot-mcp",
-		request: {
+	return active.handle({
 			method: "POST",
-			path: "mcp",
-			headers: { "x-dot-credential": secret },
+			headers: {},
 			body: { jsonrpc: "2.0", id: 1, method, ...(params ? { params } : {}) },
-		},
 	});
 }
 assert.notEqual(firstRoot, secondRoot);

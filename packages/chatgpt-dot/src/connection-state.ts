@@ -22,7 +22,8 @@ export const dotConnectionStateSchema = z
     ownerUserId: ref,
     pluginInstanceId: ref,
     agentKeyId: ref,
-    credentialSecret: z.string().length(64),
+    // Retained only when decoding an imported pre-fixed-port connection.
+    credentialSecret: z.string().length(64).optional(),
     attemptId: ref,
     pairingCode: z.string().min(16).max(128),
     pairingExpiresAt: z.number(),
@@ -42,4 +43,3 @@ export const dotConnectionStateSchema = z
 
 export type DotConnectionState = z.infer<typeof dotConnectionStateSchema>;
 export type DotSubscription = z.infer<typeof dotSubscriptionSchema>;
-

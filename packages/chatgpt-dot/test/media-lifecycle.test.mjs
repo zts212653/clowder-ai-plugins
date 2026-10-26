@@ -5,7 +5,7 @@ import { delivery, mcp, paired, rpc } from "./fixture.mjs";
 
 test("original PNG uses ordinary media_ref streams, stable publication keys, and retained bytes across restart", async (t) => {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const id = f.webhooks.at(-1).data.eventId;
 	await rpc(f, "cat_cafe_dot_read_source", { event_id: id });
 	const png = await sharp({
@@ -65,7 +65,7 @@ test("original PNG uses ordinary media_ref streams, stable publication keys, and
 
 test("bad PNG and unread-source image calls do not publish a message or consume an image slot", async (t) => {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const id = f.webhooks.at(-1).data.eventId;
 	const args = {
 		event_id: id,
@@ -78,43 +78,26 @@ test("bad PNG and unread-source image calls do not publish a message or consume 
 	assert.equal(f.sent.length, 0);
 });
 
-test("shared relay accepts only Host owner context and rejects body/principal impersonation", async (t) => {
+test("fixed handler accepts only the Host transport shape and no caller identity selector", async (t) => {
 	const f = await paired(t),
 		input = {
 			request: {
 				method: "POST",
-				path: "mcp",
 				headers: {},
 				body: { jsonrpc: "2.0", id: 1, method: "tools/list" },
 			},
 		};
-	assert.equal((await mcp(f.active, input)).status, 403);
-	const context = {
-		...f.owner,
-		kind: "owner-http-request",
-		operation: "write",
-	};
-	assert.equal((await mcp(f.active, input, context)).status, 200);
-	assert.equal(
-		(
-			await mcp(f.active, {
+	assert.equal((await mcp(f.active, input)).status, 200);
+	await assert.rejects(
+		() =>
+			mcp(f.active, {
 				...input,
 				request: {
 					...input.request,
 					principal: { kind: "owner", id: "owner" },
 				},
-			})
-		).status,
-		403,
-	);
-	assert.equal(
-		(await mcp(f.active, input, { ...context, pluginInstanceId: "other" }))
-			.status,
-		403,
-	);
-	assert.equal(
-		(await mcp(f.active, input, { ...context, userId: "other" })).status,
-		403,
+			}),
+		/unrecognized_keys/,
 	);
 });
 
@@ -139,7 +122,7 @@ test("disable aborts an in-flight webhook and rejects its late receipt", async (
 		},
 	});
 	f.active = await f.module.start(f.host);
-	const sending = f.active.call.deliver(delivery(f));
+	const sending = f.active.deliver(delivery(f));
 	const rejected = assert.rejects(sending, /stopped|revoked/);
 	await started;
 	await f.active.stop({ reason: "disabled" });
@@ -147,16 +130,15 @@ test("disable aborts an in-flight webhook and rejects its late receipt", async (
 	assert.equal(f.sent.length, 0);
 });
 
-test("shared relay rejects a read-only Host descriptor for mutating MCP requests", async (t) => {
+test("fixed handler does not expose a second owner-context authorization protocol", async (t) => {
 	const f = await paired(t),
 		input = {
 			request: {
 				method: "POST",
-				path: "mcp",
 				headers: {},
 				body: { jsonrpc: "2.0", id: 1, method: "tools/list" },
 			},
 		};
 	const context = { ...f.owner, kind: "owner-http-request", operation: "read" };
-	assert.equal((await mcp(f.active, input, context)).status, 403);
+	assert.equal((await mcp(f.active, input, context)).status, 200);
 });

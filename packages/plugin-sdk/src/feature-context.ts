@@ -380,14 +380,16 @@ interface PluginDefinitionHooks {
 export interface PluginDefinitionInput extends PluginDefinitionHooks {
   readonly manifest: unknown;
   readonly activate?: Readonly<Record<string, FeatureActivator>>;
-  readonly call?: import('./delivery.js').PluginCallHandler;
+  readonly deliver?: import('./delivery.js').PluginDeliverHandler;
+  readonly handle?: (request: Readonly<Record<string, unknown>>) => unknown | Promise<unknown>;
   readonly webhook?: import('./webhook.js').PluginWebhookHandler;
 }
 
 export interface DefinedPlugin extends PluginDefinitionHooks {
   readonly manifest: PluginManifest;
   readonly activate: Readonly<Record<string, FeatureActivator>>;
-  readonly call?: import('./delivery.js').PluginCallHandler;
+  readonly deliver?: import('./delivery.js').PluginDeliverHandler;
+  readonly handle?: (request: Readonly<Record<string, unknown>>) => unknown | Promise<unknown>;
   readonly webhook?: import('./webhook.js').PluginWebhookHandler;
 }
 
@@ -530,7 +532,8 @@ export function definePlugin(input: PluginDefinitionInput): DefinedPlugin {
   }
   const manifest = deepFreeze(structuredClone(validation.manifest));
   return Object.freeze({ manifest, activate: Object.freeze({ ...activate }),
-    ...(input.call ? {call: input.call} : {}),
+    ...(input.deliver ? {deliver: input.deliver} : {}),
+    ...(input.handle ? {handle: input.handle} : {}),
     ...(input.webhook ? {webhook: input.webhook} : {}),
     ...(input.preStart ? {preStart: input.preStart} : {}),
     ...(input.preUninstall ? {preUninstall: input.preUninstall} : {}),

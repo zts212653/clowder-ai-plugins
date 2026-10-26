@@ -3,7 +3,7 @@ import type {
   PluginManifest,
   StaticContribution,
 } from '@clowder-ai/plugin-contract';
-import { defineCallDelivery } from './delivery.js';
+import { defineDeliveryAction } from './delivery.js';
 
 import {
   activateDefinedFeature,
@@ -156,11 +156,8 @@ async function startDefinedPluginModule(
   plugin: DefinedPlugin,
   host: ModulePluginHostShape,
 ): Promise<PluginModuleActivationShape> {
-  if (plugin.manifest.call !== undefined && plugin.call === undefined) {
-    throw new TypeError('manifest call declaration has no plugin delivery implementation');
-  }
-  if (plugin.manifest.call === undefined && plugin.call !== undefined) {
-    throw new TypeError('plugin call delivery is not declared by the manifest');
+  if (plugin.manifest.call !== undefined && plugin.deliver === undefined) {
+    throw new TypeError('manifest message delivery has no plugin deliver implementation');
   }
   const fixedWebhooks = (plugin.manifest.contributions ?? []).filter(
     (contribution) => contribution.type === 'webhook' && contribution.action === undefined,
@@ -225,12 +222,18 @@ async function startDefinedPluginModule(
   }
 
   let stopPromise: Promise<void> | undefined;
-  const call = plugin.call === undefined ? undefined : defineCallDelivery(async (input) => {
+  const deliver = plugin.deliver === undefined ? undefined : defineDeliveryAction(async (input) => {
     if (stopPromise) throw new FeatureContextRevokedError();
-    const result = await plugin.call!(input);
+    const result = await plugin.deliver!(input);
     if (stopPromise) throw new FeatureContextRevokedError();
     return result;
   });
+  const handle = plugin.handle === undefined ? undefined : async (request: Readonly<Record<string, unknown>>) => {
+    if (stopPromise) throw new FeatureContextRevokedError();
+    const result = await plugin.handle!(structuredClone(request));
+    if (stopPromise) throw new FeatureContextRevokedError();
+    return result;
+  };
   const webhook = plugin.webhook === undefined ? undefined : defineWebhookHandler(async (input, context) => {
     if (stopPromise) throw new FeatureContextRevokedError();
     if (!fixedWebhooks.some((contribution) => contribution.id === input.contributionId)) {
@@ -242,7 +245,8 @@ async function startDefinedPluginModule(
   });
   return Object.freeze({
     actions: Object.freeze({ ...actions }),
-    ...(call ? {call} : {}),
+    ...(deliver ? {deliver} : {}),
+    ...(handle ? {handle} : {}),
     ...(webhook ? {webhook} : {}),
     ...(active.some(feature => feature.configRefresh) ? {configRefresh: async () => {
       try { for (const feature of active) await feature.configRefresh?.(); }

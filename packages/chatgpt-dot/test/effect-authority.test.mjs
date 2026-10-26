@@ -32,8 +32,7 @@ for (const change of ["reconnect", "disconnect"])
 		});
 		f.active = await f.module.start(f.host);
 		const before = f.webhooks.length;
-		const pending = f.active.call
-			.deliver(delivery(f))
+		const pending = f.active.deliver(delivery(f))
 			.catch((error) => ({ error }));
 		await entered.promise;
 		await f.settings.actions[`dot.${change}`]({}, undefined, f.owner);
@@ -50,7 +49,7 @@ for (const change of ["reconnect", "disconnect"])
 for (const change of ["reconnect", "disconnect"])
 	test(`${change} during temporary PNG creation cannot retain a canonical original or metadata`, async (t) => {
 		const f = await paired(t);
-		await f.active.call.deliver(delivery(f));
+		await f.active.deliver(delivery(f));
 		const eventId = f.webhooks.at(-1).data.eventId;
 		await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 		const png = await sharp({
@@ -122,8 +121,7 @@ test("verification transport also carries the original unpaired attempt fence", 
 	const pending = mcp(f.active, {
 		request: {
 			method: "POST",
-			path: "mcp",
-			headers: { "x-dot-credential": old.credentialSecret },
+			headers: {},
 			body: {
 				jsonrpc: "2.0",
 				id: 1,
@@ -158,7 +156,7 @@ test("verification transport also carries the original unpaired attempt fence", 
 for (const change of ["reconnect", "disconnect"])
 	test(`${change} after PNG publication prevents the later metadata CAS`, async (t) => {
 		const f = await paired(t);
-		await f.active.call.deliver(delivery(f));
+		await f.active.deliver(delivery(f));
 		const eventId = f.webhooks.at(-1).data.eventId;
 		await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 		const png = await sharp({

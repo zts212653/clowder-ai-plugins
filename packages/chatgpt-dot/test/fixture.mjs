@@ -38,6 +38,10 @@ export function fixture(t) {
 	};
 	const host = {
 		pluginInstanceId: "installed-dot-1",
+		external: {
+			endpoint: "https://plugins.example/plugin/mcp",
+			token: `cpa_${"a".repeat(43)}`,
+		},
 		storage,
 		config: { get: async () => undefined },
 		secrets: { get: async () => undefined },
@@ -142,6 +146,7 @@ export function fixture(t) {
 export function delivery(f, id = "delivery-1") {
 	return {
 		kind: "message",
+		reason: "addressed",
 		deliveryId: id,
 		threadId: "thread-1",
 		envelope: {
@@ -164,10 +169,7 @@ export function delivery(f, id = "delivery-1") {
 	};
 }
 export function mcp(active, input, context) {
-	return active.webhook.handle(
-		{ contributionId: "dot-mcp", request: input.request },
-		context,
-	);
+	return active.handle(input.request, context);
 }
 export async function paired(t) {
 	const f = fixture(t);
@@ -182,8 +184,7 @@ export async function paired(t) {
 	await mcp(f.active, {
 		request: {
 			method: "POST",
-			path: "mcp",
-			headers: { "x-dot-credential": f.credentials.credentialSecret },
+			headers: {},
 			body: {
 				jsonrpc: "2.0",
 				id: 1,
@@ -210,8 +211,7 @@ export async function rpc(f, name, args) {
 	const r = await mcp(f.active, {
 		request: {
 			method: "POST",
-			path: "mcp",
-			headers: { "x-dot-credential": f.credentials.credentialSecret },
+			headers: {},
 			body: {
 				jsonrpc: "2.0",
 				id: 2,

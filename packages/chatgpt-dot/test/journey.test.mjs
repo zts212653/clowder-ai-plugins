@@ -4,7 +4,13 @@ import { delivery, paired, rpc } from "./fixture.mjs";
 
 test("pair, addressed receive, read and source-bound reply survive restart without a global subscription", async (t) => {
 	const f = await paired(t);
-	assert.deepEqual(await f.active.call.deliver(delivery(f)), {
+	assert.equal(typeof f.active.deliver, "function");
+	assert.equal(typeof f.active.handle, "function");
+	assert.equal(f.active.call, undefined);
+	assert.equal(f.active.delivery, undefined);
+	assert.equal(f.credentials.credentialSecret, undefined);
+	assert.deepEqual(f.credentials.external, f.host.external);
+	assert.deepEqual(await f.active.deliver(delivery(f)), {
 		deliveryId: "delivery-1",
 	});
 	const event = f.webhooks.find((x) => x.data.name === "dot.summoned").data;
@@ -31,11 +37,11 @@ test("pair, addressed receive, read and source-bound reply survive restart witho
 	assert.equal(f.sent[0].input.identity, "dot");
 	await f.active.stop({ reason: "disabled" });
 	await assert.rejects(
-		() => f.active.call.deliver(delivery(f)),
+		() => f.active.deliver(delivery(f)),
 		/stopped|revoked/,
 	);
 	f.active = await f.module.start(f.host);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	assert.equal(
 		f.webhooks.filter((x) => x.data.name === "dot.summoned").length,
 		1,
@@ -49,7 +55,7 @@ test("pair, addressed receive, read and source-bound reply survive restart witho
 
 test("forged callback targets, changed source and stale pairing cannot grant a reply", async (t) => {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const event = f.webhooks.at(-1).data;
 	assert.ok(
 		(
@@ -158,11 +164,11 @@ test("proactive questions subscribe only to their thread and forward only exact 
 		reason: "subscription",
 		envelope: { ...delivery(f).envelope, messageId: reply.id },
 	};
-	await f.active.call.deliver(input);
+	await f.active.deliver(input);
 	assert.equal(f.webhooks.at(-1).data.data.source_message_id, reply.id);
 	const count = f.webhooks.length;
 	f.messages.set(reply.id, { ...reply, replyTo: "unrelated" });
-	await f.active.call.deliver({ ...input, deliveryId: "unrelated" });
+	await f.active.deliver({ ...input, deliveryId: "unrelated" });
 	assert.equal(f.webhooks.length, count);
 	assert.ok(
 		(
@@ -182,11 +188,11 @@ test("proactive questions subscribe only to their thread and forward only exact 
 test("stable delivery identity deduplicates retries even when execution diagnostics change", async (t) => {
 	const f = await paired(t),
 		input = delivery(f);
-	await f.active.call.deliver({
+	await f.active.deliver({
 		...input,
 		executionId: "execution-before-restart",
 	});
-	await f.active.call.deliver({
+	await f.active.deliver({
 		...input,
 		executionId: "execution-after-restart",
 	});
@@ -198,7 +204,7 @@ test("stable delivery identity deduplicates retries even when execution diagnost
 
 test("a source-bound reply never treats cloud text as a new recipient selector", async (t) => {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const eventId = f.webhooks.at(-1).data.eventId;
 	await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 	await rpc(f, "cat_cafe_dot_reply", {
@@ -211,7 +217,7 @@ test("a source-bound reply never treats cloud text as a new recipient selector",
 test("a reply to a member wakes only the member proven by the original source", async (t) => {
 	const f = await paired(t);
 	f.messages.set(f.source.id, { ...f.source, catId: "cat-1" });
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const eventId = f.webhooks.at(-1).data.eventId;
 	await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 	await rpc(f, "cat_cafe_dot_reply", {

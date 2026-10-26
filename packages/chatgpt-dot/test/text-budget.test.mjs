@@ -9,7 +9,7 @@ import { delivery, mcp, paired, rpc } from "./fixture.mjs";
 
 async function textFixture(t) {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	f.eventId = f.webhooks.at(-1).data.eventId;
 	await rpc(f, "cat_cafe_dot_read_source", { event_id: f.eventId });
 	f.host.messaging.subscribe = async () => {};
@@ -102,8 +102,7 @@ test("advertised text schemas expose the canonical UTF-8 JSON budget and ask men
 		await mcp(f.active, {
 			request: {
 				method: "POST",
-				path: "mcp",
-				headers: { "x-dot-credential": f.credentials.credentialSecret },
+				headers: {},
 				body: { jsonrpc: "2.0", id: 1, method: "tools/list" },
 			},
 		})

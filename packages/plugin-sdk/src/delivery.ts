@@ -13,18 +13,13 @@ export type {
 	PluginMessageDelivery,
 } from "@clowder-ai/plugin-contract";
 
-export type PluginCallHandler = (
-	input: PluginMessageDelivery,
+export type PluginDeliverHandler = (
+	input: PluginDeliveryInput,
 ) => PluginDeliveryReceipt | Promise<PluginDeliveryReceipt>;
-export interface PluginCallSurface {
-	deliver(input: PluginMessageDelivery): Promise<PluginDeliveryReceipt>;
-}
 
 /** Receipt acknowledges this input only, never the execution outcome. */
 export function defineDeliveryAction(
-	handler: (
-		input: PluginDeliveryInput,
-	) => PluginDeliveryReceipt | Promise<PluginDeliveryReceipt>,
+	handler: PluginDeliverHandler,
 ) {
 	return async (input: unknown): Promise<PluginDeliveryReceipt> => {
 		if (!isPluginDeliveryInput(input))
@@ -38,18 +33,4 @@ export function defineDeliveryAction(
 			throw new TypeError("invalid delivery receipt");
 		return structuredClone(result);
 	};
-}
-
-/** Fixed Host-owned call boundary for conversation-addressable plugin instances. */
-export function defineCallDelivery(
-	handler: PluginCallHandler,
-): PluginCallSurface {
-	const deliver = defineDeliveryAction((input) => {
-		if (input.kind !== "message")
-			throw new TypeError("plugin call accepts message delivery only");
-		return handler(input);
-	});
-	return Object.freeze({
-		deliver: (input: PluginMessageDelivery) => deliver(input),
-	});
 }

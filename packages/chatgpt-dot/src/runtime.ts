@@ -102,7 +102,7 @@ export class DotRuntime {
 		record: Dispatch,
 		state: Awaited<ReturnType<DotConnection["ready"]>>,
 	) {
-		const current = await this.connection.ready(state.credentialSecret);
+		const current = await this.connection.ready();
 		if (
 			current.attemptId !== record.attemptId ||
 			current.ownerUserId !== record.ownerUserId
@@ -124,8 +124,8 @@ export class DotRuntime {
 		await this.connection.sameAttempt(state);
 		return source;
 	}
-	async authorize(secret: string, id: string, read = false) {
-		const state = await this.connection.ready(secret),
+	async authorize(id: string, read = false) {
+		const state = await this.connection.ready(),
 			record = await this.connection.store.dispatch(id);
 		if (!record) throw new Error("dot_dispatch_unavailable");
 		const source = await this.source(record, state);
@@ -187,13 +187,13 @@ export class DotRuntime {
 			});
 			await this.source(record, state);
 			if (record.webhookAcknowledgedAt !== null) return;
-			await this.sendEvent(record, state.credentialSecret);
+			await this.sendEvent(record);
 		});
 		return { deliveryId: input.deliveryId };
 	}
-	private async sendEvent(record: Dispatch, secret: string) {
+	private async sendEvent(record: Dispatch) {
 		for (let attempt = 0; attempt < 3; attempt++) {
-			const { state } = await this.authorize(secret, record.eventId),
+			const { state } = await this.authorize(record.eventId),
 				subscription = state.subscription!;
 			const body = JSON.stringify({
 				eventId: record.eventId,
@@ -226,7 +226,7 @@ export class DotRuntime {
 					this.connection.pairingFence(state),
 				);
 				this.connection.assertLive();
-				await this.authorize(secret, record.eventId);
+				await this.authorize(record.eventId);
 				if (result.status >= 200 && result.status < 300) {
 					await this.connection.store.updateDispatch(
 						record.eventId,
@@ -246,13 +246,13 @@ export class DotRuntime {
 		}
 		throw new Error("dot_webhook_unacknowledged");
 	}
-	async read(secret: string, id: string) {
-		const { state, record, source } = await this.authorize(secret, id);
+	async read(id: string) {
+		const { state, record, source } = await this.authorize(id);
 		const context = await this.host.threads.readMessages(record.threadId, {
 			before: { timestamp: source.timestamp, id: source.id },
 			limit: 30,
 		});
-		await this.authorize(secret, id);
+		await this.authorize(id);
 		await this.connection.store.updateDispatch(id, (current) => {
 			this.connection.assertLive();
 			if (!current) throw new Error("dot_dispatch_unavailable");
@@ -270,9 +270,9 @@ export class DotRuntime {
 			observedAt: Date.now(),
 		};
 	}
-	async reply(secret: string, id: string, content: string) {
+	async reply(id: string, content: string) {
 		return this.serial(id, async () => {
-			const { state, record, source } = await this.authorize(secret, id, true);
+			const { state, record, source } = await this.authorize(id, true);
 			if (record.expectedNonce && !content.includes(record.expectedNonce))
 				throw new Error("dot_test_nonce_mismatch");
 			const payload = textPayload(content);
@@ -288,7 +288,7 @@ export class DotRuntime {
 					throw new Error("dot_reply_conflict");
 				return { ...current, replyDigest: contentDigest };
 			});
-			await this.authorize(secret, id, true);
+			await this.authorize(id, true);
 			const posted = await this.host.messaging.send({
 				threadId: record.threadId,
 				identity: "dot",
@@ -300,7 +300,7 @@ export class DotRuntime {
 				...(source.catId ? { wake: { catId: source.catId } } : {}),
 			});
 			this.connection.assertLive();
-			await this.authorize(secret, id, true);
+			await this.authorize(id, true);
 			await this.connection.store.updateDispatch(id, (current) => {
 				this.connection.assertLive();
 				if (!current) throw new Error("dot_dispatch_unavailable");
@@ -310,14 +310,10 @@ export class DotRuntime {
 			return posted;
 		});
 	}
-	async image(secret: string, raw: z.infer<typeof dotImageArguments>) {
+	async image(raw: z.infer<typeof dotImageArguments>) {
 		const input = dotImageArguments.parse(raw);
 		return this.serial(input.event_id, async () => {
-			const { state, record } = await this.authorize(
-				secret,
-				input.event_id,
-				true,
-			);
+			const { state, record } = await this.authorize(input.event_id, true);
 			const checked = await validatePng(input.png_base64),
 				id = `dot_img_${digest([state.ownerUserId, record.eventId, input.publication_key])}`;
 			const sha256 = createHash("sha256").update(checked.bytes).digest("hex"),
@@ -343,7 +339,7 @@ export class DotRuntime {
 				reserved.add(id);
 				return { ...current, imageReservationIds: [...reserved] };
 			});
-			await this.authorize(secret, record.eventId, true);
+			await this.authorize(record.eventId, true);
 			if (!asset) {
 				asset = {
 					id,
@@ -383,7 +379,7 @@ export class DotRuntime {
 			}
 			await this.imageBytes(asset);
 			if (!asset.messageId) {
-				await this.authorize(secret, record.eventId, true);
+				await this.authorize(record.eventId, true);
 				const posted = await this.host.messaging.send({
 					threadId: record.threadId,
 					identity: "dot",
@@ -470,7 +466,7 @@ export class DotRuntime {
 					const state = await runtime.connection.store.connection();
 					if (!state || asset.ownerUserId !== state.ownerUserId)
 						throw new Error("dot_image_access_denied");
-					await runtime.authorize(state.credentialSecret, asset.eventId, true);
+					await runtime.authorize(asset.eventId, true);
 					const bytes = await runtime.imageBytes(asset);
 					for (let offset = 0; offset < bytes.length; offset += 64 * 1024) {
 						await fence();
@@ -483,9 +479,9 @@ export class DotRuntime {
 			};
 		},
 	};
-	async ask(secret: string, raw: z.infer<typeof dotAskArguments>) {
+	async ask(raw: z.infer<typeof dotAskArguments>) {
 		const input = dotAskArguments.parse(raw),
-			state = await this.connection.ready(secret);
+			state = await this.connection.ready();
 		if (input.attempt_id !== state.attemptId)
 			throw new Error("dot_attempt_mismatch");
 		if (!(await this.host.threads.get(input.thread_id)))
@@ -579,9 +575,9 @@ export class DotRuntime {
 	async followup(input: PluginMessageDelivery) {
 		const source = await this.host.messaging.get(input.envelope.messageId);
 		const replyTo = source?.replyTo ?? source?.extra?.causal?.triggerMessageId;
-		if (!source?.catId || !replyTo) return { deliveryId: input.deliveryId };
+		if (!source?.catId || !replyTo) return null;
 		const state = await this.connection.store.connection();
-		if (!state) return { deliveryId: input.deliveryId };
+		if (!state) return null;
 		for (const [key, entry] of Object.entries(await this.host.storage.list())) {
 			if (!key.startsWith("dot/ask/")) continue;
 			const ask = entry.value as {
@@ -598,10 +594,10 @@ export class DotRuntime {
 			)
 				return this.deliver(input, ask.attemptId);
 		}
-		return { deliveryId: input.deliveryId };
+		return null;
 	}
-	async testRoundtrip(secret: string) {
-		const state = await this.connection.ready(secret),
+	async testRoundtrip() {
+		const state = await this.connection.ready(),
 			nonce = randomBytes(8).toString("hex");
 		const thread = await this.host.threads.create({
 			title: "Dot connection test",
@@ -635,7 +631,7 @@ export class DotRuntime {
 			connectionTest: true,
 			expectedNonce: nonce,
 		}));
-		await this.sendEvent((await this.connection.store.dispatch(id))!, secret);
+		await this.sendEvent((await this.connection.store.dispatch(id))!);
 		await this.connection.store.updateConnection((current) => {
 			this.connection.assertLive();
 			if (!current || current.attemptId !== state.attemptId)

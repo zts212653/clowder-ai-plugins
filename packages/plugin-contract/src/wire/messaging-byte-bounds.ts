@@ -312,6 +312,7 @@ export function messagingMaximumRequestInput(
       return {
         deliveryId: maximumString(family, 128, 1),
         kind: 'message',
+        reason: 'addressed',
         executionId: maximumString(family, 128, 2),
         threadId: maximumEnvelope(family).threadId,
         envelope: maximumEnvelope(family),

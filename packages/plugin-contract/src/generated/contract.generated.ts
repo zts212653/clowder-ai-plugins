@@ -872,10 +872,10 @@ export type MediaReadResult = {
 };
 export type PluginMessageDelivery = {
   readonly kind: 'message';
+  readonly reason: 'addressed' | 'subscription';
   readonly deliveryId: string;
   readonly threadId: ThreadId;
   readonly executionId?: string;
-  readonly reason?: 'addressed' | 'subscription';
   readonly envelope: MessageEnvelope;
   readonly presentation?: DeliveryPresentationContext;
 };
@@ -1018,7 +1018,7 @@ export const DELIVERY_PRESENTATION_THREAD_KEYS = ['shortId', 'title', 'featId'] 
 export const DELIVERY_PRESENTATION_CONTEXT_KEYS = ['actor', 'thread', 'deepLinkUrl'] as const;
 export const MEDIA_READ_INPUT_KEYS = ['reference', 'offset', 'limit'] as const;
 export const MEDIA_READ_RESULT_KEYS = ['offset', 'dataBase64', 'nextOffset', 'done'] as const;
-export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
+export const PLUGIN_MESSAGE_DELIVERY_KEYS = ['kind', 'reason', 'deliveryId', 'threadId', 'executionId', 'envelope', 'presentation'] as const;
 export const PLUGIN_EXECUTION_STARTED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'presentation', 'placeholderLine', 'replyTo', 'executionId', 'kind'] as const;
 export const PLUGIN_EXECUTION_CATCHING_UP_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'executionId', 'kind'] as const;
 export const PLUGIN_EXECUTION_BLOCKED_DELIVERY_KEYS = ['deliveryId', 'threadId', 'state', 'reason', 'recoveryUrl', 'executionId', 'kind'] as const;

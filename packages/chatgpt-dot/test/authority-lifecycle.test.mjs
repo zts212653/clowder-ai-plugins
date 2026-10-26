@@ -13,13 +13,12 @@ function deferred() {
 	});
 	return { promise, resolve };
 }
-function call(f, name, args, context) {
+function call(f, name, args) {
 	return mcp(
 		f.active,
 		{
 			request: {
 				method: "POST",
-				path: "mcp",
 				headers: {},
 				body: {
 					jsonrpc: "2.0",
@@ -29,30 +28,18 @@ function call(f, name, args, context) {
 				},
 			},
 		},
-		context,
 	);
 }
 
 for (const operation of ["read", "reply", "image", "ask"])
-	test(`shared ${operation} retains its owner fence across awaited Host work`, async (t) => {
+	test(`fixed-port ${operation} retains its connection fence across awaited Host work`, async (t) => {
 		const f = await paired(t);
-		await f.active.call.deliver(delivery(f));
+		await f.active.deliver(delivery(f));
 		const id = f.webhooks.at(-1).data.eventId;
 		if (operation !== "read")
 			await rpc(f, "cat_cafe_dot_read_source", { event_id: id });
 		const entered = deferred(),
-			release = deferred(),
-			controller = new AbortController();
-		let current = true;
-		const context = {
-			...f.owner,
-			kind: "owner-http-request",
-			operation: "write",
-			signal: controller.signal,
-			assertCurrent: async () => {
-				if (!current) throw new Error("owner_fence_revoked");
-			},
-		};
+			release = deferred();
 		let name, args;
 		if (operation === "read") {
 			f.host.threads.readMessages = async () => {
@@ -112,11 +99,9 @@ for (const operation of ["read", "reply", "image", "ask"])
 				client_message_id: "fenced",
 			};
 		}
-		const pending = call(f, name, args, context);
+		const pending = call(f, name, args);
 		await entered.promise;
-		current = false;
-		if (operation === "read")
-			controller.abort(new Error("owner_request_aborted"));
+		await f.settings.actions["dot.reconnect"]({}, undefined, f.owner);
 		release.resolve();
 		const outcome = await pending.catch((error) => ({ error }));
 		assert.ok(
@@ -141,16 +126,10 @@ for (const operation of ["read", "reply", "image", "ask"])
 					.length,
 				0,
 			);
-		assert.equal(
-			(await rpc(f, "cat_cafe_dot_read_source", { event_id: id })).error,
-			undefined,
-			"another request keeps its independent authority",
-		);
 	});
 
-test("configured credential reuse cannot keep an old ask alive across reconnect", async (t) => {
+test("stable Host access cannot keep an old ask alive across reconnect", async (t) => {
 	const f = await paired(t);
-	f.host.secrets.get = async () => f.credentials.credentialSecret;
 	const entered = deferred(),
 		release = deferred(),
 		getCats = f.host.threads.getCats;
@@ -170,7 +149,7 @@ test("configured credential reuse cannot keep an old ask alive across reconnect"
 	const next = (
 		await f.settings.actions["dot.reconnect"]({}, undefined, f.owner)
 	).data;
-	assert.equal(next.credentialSecret, f.credentials.credentialSecret);
+	assert.deepEqual(next.external, f.host.external);
 	assert.notEqual(next.attemptId, f.credentials.attemptId);
 	const state = (await f.host.storage.get(CONNECTION_KEY)).value;
 	await f.host.storage.set(CONNECTION_KEY, {
@@ -238,12 +217,9 @@ test("repeated owner disconnect preserves the first imported revocation timestam
 	assert.equal((await f.host.storage.get(CONNECTION_KEY)).value.revokedAt, 123);
 });
 
-for (const reuseCredential of [false, true])
-	test(`follow-up cannot cross a pairing generation while ask lookup waits (credential reuse=${reuseCredential})`, async (t) => {
+	test("follow-up cannot cross a pairing generation while ask lookup waits", async (t) => {
 		const f = await paired(t);
 		f.host.messaging.subscribe = async () => {};
-		if (reuseCredential)
-			f.host.secrets.get = async () => f.credentials.credentialSecret;
 		const question = (
 			await rpc(f, "cat_cafe_dot_ask", {
 				attempt_id: f.credentials.attemptId,
@@ -269,8 +245,7 @@ for (const reuseCredential of [false, true])
 			await release.promise;
 			return result;
 		};
-		const pending = f.active.call
-			.deliver({
+		const pending = f.active.deliver({
 				...delivery(f, "stale-followup"),
 				reason: "subscription",
 				envelope: { ...delivery(f).envelope, messageId: reply.id },
@@ -329,7 +304,7 @@ for (const failure of ["read rejection", "invalid proxy"])
 		t.after(() => active.stop({ reason: "test" }));
 		await active.stop({ reason: "disabled" });
 		await assert.rejects(
-			() => active.call.deliver(delivery(f)),
+			() => active.deliver(delivery(f)),
 			/stopped|revoked/,
 		);
 	});
@@ -338,8 +313,7 @@ for (const transition of ["reconnect", "disconnect"])
 	for (const operation of ["reply", "image", "callback", "stream"])
 		test(`${transition} during the final ${operation} source read prevents any later publication`, async (t) => {
 			const f = await paired(t);
-			f.host.secrets.get = async () => f.credentials.credentialSecret;
-			await f.active.call.deliver(delivery(f));
+			await f.active.deliver(delivery(f));
 			const eventId = f.webhooks.at(-1).data.eventId;
 			await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 			const imageArgs = {
@@ -384,7 +358,7 @@ for (const transition of ["reconnect", "disconnect"])
 					: operation === "image"
 						? rpc(f, "cat_cafe_dot_publish_image", imageArgs)
 						: operation === "callback"
-							? f.active.call.deliver(delivery(f, "new-delivery"))
+							? f.active.deliver(delivery(f, "new-delivery"))
 							: (async () => {
 									for await (const chunk of f.active.streams.read(reference))
 										chunks.push(chunk);
@@ -430,7 +404,7 @@ for (const transition of ["reconnect", "disconnect"])
 
 test("disconnect during the final thread source lookup prevents a reply", async (t) => {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const eventId = f.webhooks.at(-1).data.eventId;
 	await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 	const entered = deferred(),
@@ -459,7 +433,7 @@ test("disconnect during the final thread source lookup prevents a reply", async 
 
 test("original stream rechecks its pairing before each subsequent chunk", async (t) => {
 	const f = await paired(t);
-	await f.active.call.deliver(delivery(f));
+	await f.active.deliver(delivery(f));
 	const eventId = f.webhooks.at(-1).data.eventId;
 	await rpc(f, "cat_cafe_dot_read_source", { event_id: eventId });
 	const png = await sharp(randomBytes(256 * 256 * 4), {
@@ -482,6 +456,6 @@ test("original stream rechecks its pairing before each subsequent chunk", async 
 	await f.settings.actions["dot.disconnect"]({}, undefined, f.owner);
 	await assert.rejects(
 		() => iterator.next(),
-		/stale|credential|revoked|subscription/,
+		/stale|connection|revoked|subscription/,
 	);
 });

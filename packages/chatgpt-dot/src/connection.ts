@@ -9,10 +9,13 @@ export const equalSecret = (a: string, b: string) => {
     const left = Buffer.from(a), right = Buffer.from(b);
     return left.length === right.length && timingSafeEqual(left, right);
 };
+export type DotSettingsHost = ModulePluginSettingsHost & {
+    readonly external: { readonly endpoint: string; readonly token: string };
+};
 export class DotConnection {
     readonly store: DotStore;
     private readonly operations = new AsyncLocalStorage<PluginHostActionContext | undefined>();
-    constructor(readonly host: ModulePluginSettingsHost, readonly send: DotWebhookSend, readonly signal: AbortSignal, readonly now = Date.now) {
+    constructor(readonly host: DotSettingsHost, readonly send: DotWebhookSend, readonly signal: AbortSignal, readonly now = Date.now) {
         this.store = new DotStore(fenceAsyncPort(host.storage, () => this.assertCurrent()));
     }
     within<T>(context: PluginHostActionContext | undefined, run: () => Promise<T>): Promise<T> {
@@ -36,7 +39,7 @@ export class DotConnection {
         return context ? AbortSignal.any([this.signal, context.signal]) : this.signal;
     }
     async sameAttempt(state: DotConnectionState, requireReady = true) {
-        const current = await (requireReady ? this.ready(state.credentialSecret) : this.authenticate(state.credentialSecret));
+        const current = await (requireReady ? this.ready() : this.current());
         if (current.attemptId !== state.attemptId || current.ownerUserId !== state.ownerUserId || current.agentKeyId !== state.agentKeyId || current.pluginInstanceId !== state.pluginInstanceId)
             throw new Error('dot_stale_connection');
         if (!requireReady && current.pairedAt === null && current.pairingExpiresAt <= this.now())
@@ -62,25 +65,22 @@ export class DotConnection {
             throw new Error('dot_owner_mismatch');
         return context.userId;
     }
-    async authenticate(secret: string) {
+    async current() {
         this.assertLive();
         const state = await this.store.connection();
         this.assertLive();
-        if (!state || state.revokedAt !== null || state.pluginInstanceId !== this.host.pluginInstanceId || !equalSecret(secret, state.credentialSecret))
-            throw new Error('dot_credential_rejected');
+        if (!state || state.revokedAt !== null || state.pluginInstanceId !== this.host.pluginInstanceId)
+            throw new Error('dot_connection_unavailable');
         return state;
     }
-    async ready(secret: string) {
-        const state = await this.authenticate(secret);
+    async ready() {
+        const state = await this.current();
         if (state.pairedAt === null || !state.subscription || state.subscription.expiresAt !== null && state.subscription.expiresAt <= this.now())
             throw new Error('dot_subscription_required');
         return state;
     }
     async begin(context: PluginHostActionContext | undefined, reconnect = false) {
         const owner = await this.owner(context);
-        const configured = await this.host.secrets.get('dotCredential');
-        if (configured !== undefined && !/^[a-f0-9]{64}$/.test(configured))
-            throw new Error('dot_invalid_credential');
         const state = await this.store.updateConnection(previous => {
             this.assertLive();
             if (previous && previous.ownerUserId !== owner)
@@ -88,21 +88,21 @@ export class DotConnection {
             if (!reconnect && previous?.revokedAt === null && previous.pluginInstanceId === this.host.pluginInstanceId && (previous.pairedAt !== null || previous.pairingExpiresAt > this.now()))
                 return previous;
             return { v: 1, revision: (previous?.revision ?? 0) + 1, ownerUserId: owner, pluginInstanceId: this.host.pluginInstanceId,
-                agentKeyId: `plugin:${randomUUID()}`, credentialSecret: configured ?? randomBytes(32).toString('hex'), attemptId: randomUUID(),
+                agentKeyId: `plugin:${randomUUID()}`, attemptId: randomUUID(),
                 pairingCode: randomBytes(16).toString('hex'), pairingExpiresAt: this.now() + 30 * 60000, pairedAt: null, pairedCallbackUrl: null,
                 subscription: null, lastSourceReadAt: null, lastReplyAt: null, lastImageAt: null, revokedAt: null, testEventIds: [] };
         });
-        return { ...this.project(state), credentialSecret: state.credentialSecret, pairingCode: state.pairingCode,
+        return { ...this.project(state), pairingCode: state.pairingCode, external: this.host.external,
             instructions: `启用本插件后，订阅 dot.summoned，attempt_id=${state.attemptId}，pairing_code=${state.pairingCode}。每次先读取原消息，再在原对话回复。` };
     }
-    async subscribe(secret: string, input: {
+    async subscribe(input: {
         attemptId: string;
         pairingCode: string;
         url: string;
         secret: string;
         ttlMs?: number | null;
     }) {
-        const state = await this.authenticate(secret);
+        const state = await this.current();
         if (state.attemptId !== input.attemptId)
             throw new Error('dot_attempt_mismatch');
         const pinned = state.pairedCallbackUrl ?? state.subscription?.url;
@@ -116,7 +116,7 @@ export class DotConnection {
         const id = `dot_${digest([state.ownerUserId, state.agentKeyId, state.attemptId, input.url])}`;
         await verifyDotWebhook(input.url, id, input.secret, this.send, this.operationSignal, this.pairingFence(state, false));
         this.assertLive();
-        await this.authenticate(secret);
+        await this.current();
         const expiresAt = ttl === null ? null : this.now() + ttl;
         await this.store.updateConnection(current => {
             this.assertLive();
@@ -129,12 +129,12 @@ export class DotConnection {
         });
         return { id, refreshBefore: expiresAt === null ? null : new Date(expiresAt).toISOString(), cursor: null, truncated: false };
     }
-    async unsubscribe(secret: string, input: {
+    async unsubscribe(input: {
         attemptId: string;
         pairingCode: string;
         url: string;
     }) {
-        const state = await this.authenticate(secret);
+        const state = await this.current();
         if (state.attemptId !== input.attemptId || !equalSecret(state.pairingCode, input.pairingCode) || state.subscription && state.subscription.url !== input.url)
             throw new Error('dot_subscription_mismatch');
         await this.store.updateConnection(current => {
@@ -156,7 +156,7 @@ export class DotConnection {
         return {};
     }
     async evidence(state: DotConnectionState, kind: 'read' | 'reply' | 'image') {
-        await this.authenticate(state.credentialSecret);
+        await this.sameAttempt(state, false);
         await this.store.updateConnection(current => {
             this.assertLive();
             if (!current || current.attemptId !== state.attemptId || current.revokedAt !== null)

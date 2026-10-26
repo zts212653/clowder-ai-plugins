@@ -80,12 +80,11 @@ async function imported(t) {
 		};
 	return { f, batch, png, module, receipt, host, owner };
 }
-const tools = (active, secret) =>
+const tools = (active, _secret) =>
 	mcp(active, {
 		request: {
 			method: "POST",
-			path: "mcp",
-			headers: { "x-dot-credential": secret },
+			headers: {},
 			body: { jsonrpc: "2.0", id: 1, method: "tools/list" },
 		},
 	});
@@ -224,7 +223,7 @@ test("reinstall cannot revive a disconnected retained credential from an active 
 	t.after(() => active.stop());
 	assert.equal(
 		(await tools(active, batch.connection.credentialSecret)).status,
-		403,
+		409,
 	);
 });
 

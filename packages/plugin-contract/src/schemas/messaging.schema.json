@@ -1456,6 +1456,12 @@
         "kind": {
           "const": "message"
         },
+        "reason": {
+          "enum": [
+            "addressed",
+            "subscription"
+          ]
+        },
         "deliveryId": {
           "type": "string",
           "minLength": 1,
@@ -1469,12 +1475,6 @@
           "minLength": 1,
           "maxLength": 128
         },
-        "reason": {
-          "enum": [
-            "addressed",
-            "subscription"
-          ]
-        },
         "envelope": {
           "$ref": "#/$defs/MessageEnvelope"
         },
@@ -1484,6 +1484,7 @@
       },
       "required": [
         "kind",
+        "reason",
         "deliveryId",
         "threadId",
         "envelope"

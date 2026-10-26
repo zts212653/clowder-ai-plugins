@@ -369,7 +369,10 @@ export interface PluginPreStopContext extends PluginStopContext { /** Absolute U
 
 export interface PluginModuleActivationShape {
   readonly streams?: import('./streams.js').PluginStreams;
-  readonly call?: import('./delivery.js').PluginCallSurface;
+  /** Single Host-to-plugin port for addressed and subscribed delivery. */
+  deliver?(input: import('./delivery.js').PluginDeliveryInput): Promise<import('./delivery.js').PluginDeliveryReceipt>;
+  /** Host-authenticated external request port selected by the installation token. */
+  handle?(request: Readonly<Record<string, unknown>>): unknown | Promise<unknown>;
   readonly webhook?: import('./webhook.js').PluginWebhookSurface;
   configRefresh?(): void | Promise<void>;
   preStop?(context: PluginPreStopContext): void | Promise<void>;
