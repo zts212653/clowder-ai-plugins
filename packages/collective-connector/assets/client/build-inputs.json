@@ -1244,7 +1244,7 @@
     },
     {
       "path": "../shared/src/index.ts",
-      "sha256": "8d4407231217ec825201ab1bf2ef8849a82b51853b7ebd9b5524856ee7a3f447"
+      "sha256": "9521610bad9eba517b8332c6dfa4b5c448d80dbf2766bae97c2d02d0032856d6"
     },
     {
       "path": "../shared/src/markdown-link-safety.ts",
@@ -1260,7 +1260,7 @@
     },
     {
       "path": "../shared/src/message-output-layout.ts",
-      "sha256": "d8e5f08191c2560660536ce8e13fc38feca939e9294ec92d4b2893ed76543ce0"
+      "sha256": "abdc6295eda5bebc6b448e41711ac68cb8ae6d630bac1cb8ad59025848941875"
     },
     {
       "path": "../shared/src/native-tool-identities.ts",
@@ -1281,6 +1281,10 @@
     {
       "path": "../shared/src/preview-visible-page-admission.ts",
       "sha256": "65c145951a814c94c66fd5d89eff731bfd61270ddfef72710c21d6040a81a22c"
+    },
+    {
+      "path": "../shared/src/process-talk-preference.ts",
+      "sha256": "50bb209ad9dd7232a6ce75590b4bfacdbe0979fa0745271c712353933cf5f414"
     },
     {
       "path": "../shared/src/profile-contract.ts",
@@ -1356,7 +1360,7 @@
     },
     {
       "path": "../shared/src/schemas/quote-context-attachment.schema.ts",
-      "sha256": "c91542964613e8aeb03fc253a61561e9341d7213e3f2e10dcf681ae9f9b054e0"
+      "sha256": "3c116c3b021f0b887771ef05b83e13d26c5a8def270b0d6a488d49e431dce6ad"
     },
     {
       "path": "../shared/src/schemas/rich-block.schema.ts",
@@ -1748,7 +1752,7 @@
     },
     {
       "path": "../shared/src/types/context-attachment.ts",
-      "sha256": "7ec6ec87c635c17a5de4a350b6c1d5db232c08832f58aeaa10d66912ae823dc3"
+      "sha256": "ad9877215f718a656ae2106e5630d668cbc11dddc533a0aecaab4bc0be04c6c3"
     },
     {
       "path": "../shared/src/types/cross-thread-affordance.ts",
@@ -1948,7 +1952,7 @@
     },
     {
       "path": "../shared/src/types/message-output-layout.ts",
-      "sha256": "a9d5cf1f8d146e529f08a643ddf679ace02be0dcfddd6e4a6675ac6fe87a9547"
+      "sha256": "14edc26fcc37c18aa0b1f23f5b5f6807c1494abfb1df98a2f9438733df61376e"
     },
     {
       "path": "../shared/src/types/message-publication-landing.ts",

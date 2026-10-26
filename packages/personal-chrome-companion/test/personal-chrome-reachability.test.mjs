@@ -23,7 +23,7 @@ for (const name of ['plugin-metadata', 'signals', 'messaging', 'manifest']) {
 const manifestSchema = JSON.parse(readFileSync(require.resolve('@clowder-ai/plugin-contract/schemas/manifest'), 'utf8'));
 const validateStatus = ajv.getSchema(`${manifestSchema.$id}#/$defs/OperationActionResult`);
 const secret = 'a'.repeat(64);
-const revisions = { helper: `sha512:${'0'.repeat(128)}`, extension: '0.2.11', pageAdapter: '2026-09-02.1' };
+const revisions = { helper: `sha512:${'0'.repeat(128)}`, extension: '0.2.12', pageAdapter: '2026-10-26.1' };
 const appendInput = { conversationId: 'conv-1', text: 'hello', idempotencyKey: 'delivery-1' };
 const ackInput = { conversationId: 'conv-1', sourceMessageId: 'delivery-1', assistantMessageId: 'turn-2' };
 

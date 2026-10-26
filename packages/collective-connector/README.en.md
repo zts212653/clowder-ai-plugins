@@ -39,8 +39,8 @@ Authorized cats read the same public original images, UTF-8 text, explicitly ava
 Text continues with the returned offset; audio windows are at most120 seconds. Unsupported readers are explicit.
 A sampled video frame is not proof of watching the whole video or a frame-accurate private Work citation.
 
-The packaged Client's paired Core source is `80c57b6ef1dd9cb2a33a24ee130212bab485c166`; see the
-[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/80c57b6ef1dd9cb2a33a24ee130212bab485c166/docs/evidence/2026-10-25-f290-expression-content).
+The packaged Client's paired Core source is `2a1f7b22a8b11b06c8875a1bc24b16b078fb54bd`; see the
+[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/2a1f7b22a8b11b06c8875a1bc24b16b078fb54bd/docs/evidence/2026-10-25-f290-expression-content).
 Source-workspace and independent test-session checks do not replace a loaded Host installation, real OAuth
 or physical audio-quality acceptance.
 

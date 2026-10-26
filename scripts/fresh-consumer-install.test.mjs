@@ -478,10 +478,13 @@ test('packed public packages install and import in a fresh npm consumer', async 
       join(consumer, 'node_modules/@clowder-ai/feishu-meeting-intake', feishuManifest.runtime.entrypoint),
       'utf8',
     );
-    assert.equal(companionPackage.version, '0.1.0-alpha.6');
+    const declaredCompanionPackage = JSON.parse(
+      await readFile(join(repoRoot, 'packages/personal-chrome-companion/package.json'), 'utf8'),
+    );
+    assert.equal(companionPackage.version, declaredCompanionPackage.version);
     assert.equal(companionPackage.private, undefined);
     assert.equal(companionPackage.dependencies['@clowder-ai/plugin-sdk'],
-      JSON.parse(await readFile(join(repoRoot, 'packages/personal-chrome-companion/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
+      declaredCompanionPackage.dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(companionPackage), /"workspace:/u);
     assert.deepEqual(companionPackage.bin, {
       'clowder-personal-chrome-host': 'native-host/native-host-cli.mjs',

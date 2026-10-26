@@ -8542,15 +8542,15 @@ var require_react_dom_development = __commonJS({
             if (selection.rangeCount === 1 && selection.anchorNode === startMarker.node && selection.anchorOffset === startMarker.offset && selection.focusNode === endMarker.node && selection.focusOffset === endMarker.offset) {
               return;
             }
-            var range = doc.createRange();
-            range.setStart(startMarker.node, startMarker.offset);
+            var range2 = doc.createRange();
+            range2.setStart(startMarker.node, startMarker.offset);
             selection.removeAllRanges();
             if (start2 > end) {
-              selection.addRange(range);
+              selection.addRange(range2);
               selection.extend(endMarker.node, endMarker.offset);
             } else {
-              range.setEnd(endMarker.node, endMarker.offset);
-              selection.addRange(range);
+              range2.setEnd(endMarker.node, endMarker.offset);
+              selection.addRange(range2);
             }
           }
         }
@@ -35980,43 +35980,43 @@ function resolveTable(events, context2) {
   }
   return events;
 }
-function flushCell(map3, context2, range, rowKind, rowEnd, previousCell) {
+function flushCell(map3, context2, range2, rowKind, rowEnd, previousCell) {
   const groupName = rowKind === 1 ? "tableHeader" : rowKind === 2 ? "tableDelimiter" : "tableData";
   const valueName = "tableContent";
-  if (range[0] !== 0) {
-    previousCell.end = Object.assign({}, getPoint(context2.events, range[0]));
-    map3.add(range[0], 0, [["exit", previousCell, context2]]);
+  if (range2[0] !== 0) {
+    previousCell.end = Object.assign({}, getPoint(context2.events, range2[0]));
+    map3.add(range2[0], 0, [["exit", previousCell, context2]]);
   }
-  const now = getPoint(context2.events, range[1]);
+  const now = getPoint(context2.events, range2[1]);
   previousCell = {
     type: groupName,
     start: Object.assign({}, now),
     // Note: correct end is set later.
     end: Object.assign({}, now)
   };
-  map3.add(range[1], 0, [["enter", previousCell, context2]]);
-  if (range[2] !== 0) {
-    const relatedStart = getPoint(context2.events, range[2]);
-    const relatedEnd = getPoint(context2.events, range[3]);
+  map3.add(range2[1], 0, [["enter", previousCell, context2]]);
+  if (range2[2] !== 0) {
+    const relatedStart = getPoint(context2.events, range2[2]);
+    const relatedEnd = getPoint(context2.events, range2[3]);
     const valueToken = {
       type: valueName,
       start: Object.assign({}, relatedStart),
       end: Object.assign({}, relatedEnd)
     };
-    map3.add(range[2], 0, [["enter", valueToken, context2]]);
+    map3.add(range2[2], 0, [["enter", valueToken, context2]]);
     if (rowKind !== 2) {
-      const start2 = context2.events[range[2]];
-      const end = context2.events[range[3]];
+      const start2 = context2.events[range2[2]];
+      const end = context2.events[range2[3]];
       start2[1].end = Object.assign({}, end[1].end);
       start2[1].type = "chunkText";
       start2[1].contentType = "text";
-      if (range[3] > range[2] + 1) {
-        const a = range[2] + 1;
-        const b = range[3] - range[2] - 1;
+      if (range2[3] > range2[2] + 1) {
+        const a = range2[2] + 1;
+        const b = range2[3] - range2[2] - 1;
         map3.add(a, b, []);
       }
     }
-    map3.add(range[3] + 1, 0, [["exit", valueToken, context2]]);
+    map3.add(range2[3] + 1, 0, [["exit", valueToken, context2]]);
   }
   if (rowEnd !== void 0) {
     previousCell.end = Object.assign({}, getPoint(context2.events, rowEnd));
@@ -39981,11 +39981,11 @@ function alignVerbatim(value, source3, start2, end) {
   return Array.from({ length: value.length }, (_unused, index4) => start2 + at + index4);
 }
 function projectNode(node2, source3) {
-  const range = sourceRange(node2);
+  const range2 = sourceRange(node2);
   if (TEXT_VALUE_NODES.has(node2.type)) {
     const value = node2.value ?? "";
-    if (!range) return nulls(value);
-    const offsets = node2.type === "text" ? alignText(value, source3, range.start, range.end) : alignVerbatim(value, source3, range.start, range.end);
+    if (!range2) return nulls(value);
+    const offsets = node2.type === "text" ? alignText(value, source3, range2.start, range2.end) : alignVerbatim(value, source3, range2.start, range2.end);
     return { text: value, offsets };
   }
   if (node2.type === "break") return nulls("\n");
@@ -40003,10 +40003,10 @@ function projectNode(node2, source3) {
     });
     return joined;
   }
-  if (!range) return nulls("");
+  if (!range2) return nulls("");
   return {
-    text: source3.slice(range.start, range.end),
-    offsets: Array.from({ length: range.end - range.start }, (_unused, index4) => range.start + index4)
+    text: source3.slice(range2.start, range2.end),
+    offsets: Array.from({ length: range2.end - range2.start }, (_unused, index4) => range2.start + index4)
   };
 }
 function collectGeneratedTextNodes(node2, found) {
@@ -40369,15 +40369,15 @@ var MAX_MESSAGE_OUTPUT_REFS = 512;
 // ../shared/src/message-output-layout.ts
 var id = external_exports.string().min(1).max(256).refine((value) => value.trim() === value);
 var identity = external_exports.object({ provider: id, runtimeSessionId: id, turnId: id, nativeId: id }).strict();
-var run = external_exports.object({
+var range = {
   id,
-  identity,
   channel: external_exports.enum(["commentary", "final"]),
-  complete: external_exports.literal(true),
   start: external_exports.number().int().nonnegative(),
   end: external_exports.number().int().positive(),
   gluePrefixLength: external_exports.union([external_exports.literal(0), external_exports.literal(1), external_exports.literal(2)])
-}).strict();
+};
+var run = external_exports.object({ ...range, identity, complete: external_exports.literal(true) }).strict();
+var boundaryRun = external_exports.object(range).strict();
 var ref2 = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("run"), runId: id }).strict(),
   external_exports.object({ kind: external_exports.literal("tool"), toolEventId: id, executionRef: id }).strict()
@@ -40402,13 +40402,20 @@ var common = {
   owner: external_exports.object({ threadId: id, catId: id, turnInvocationId: id }).strict(),
   contentRevision: external_exports.object({ length: external_exports.number().int().nonnegative(), sha256: external_exports.string().regex(/^[a-f0-9]{64}$/) }).strict()
 };
-var schema = external_exports.discriminatedUnion("status", [
+var schema = external_exports.union([
   external_exports.object({
     ...common,
     status: external_exports.literal("available"),
     runs: external_exports.array(run).min(1).max(MAX_MESSAGE_OUTPUT_RUNS),
     order: external_exports.array(ref2).min(1).max(MAX_MESSAGE_OUTPUT_REFS),
     hostTail: hostTail.optional()
+  }).strict(),
+  external_exports.object({
+    ...common,
+    status: external_exports.literal("available"),
+    basis: external_exports.literal("successful_turn_last_tool"),
+    runs: external_exports.array(boundaryRun).min(1).max(MAX_MESSAGE_OUTPUT_RUNS),
+    order: external_exports.array(ref2).min(1).max(MAX_MESSAGE_OUTPUT_REFS)
   }).strict(),
   external_exports.object({
     ...common,
@@ -40482,6 +40489,17 @@ var previewVisiblePageAttestationSchema = external_exports.object({
     }).strict()
   ).max(8),
   forbiddenTextMatches: external_exports.array(external_exports.boolean()).max(8)
+}).strict();
+
+// ../shared/src/process-talk-preference.ts
+var processTalkModeSchema = external_exports.enum(["whole", "record"]);
+var processTalkPreferenceSchema = external_exports.object({
+  ownerUserId: external_exports.string().min(1).max(256),
+  mode: processTalkModeSchema
+}).strict();
+var processTalkChangeSchema = external_exports.object({
+  expectedOwnerUserId: external_exports.string().min(1).max(256),
+  mode: processTalkModeSchema
 }).strict();
 
 // ../shared/src/types/provider-semantic-event.ts
@@ -42140,6 +42158,7 @@ var MessageQuoteSourceSchema = external_exports.object({
   threadId: boundedId2,
   messageId: boundedId2,
   senderCatId: boundedId2.optional(),
+  displayLabel: boundedMetadata.optional(),
   artifactFile: external_exports.object({
     item: messageMediaItemSelectorSchema,
     url: external_exports.string().min(1).max(2048),
@@ -59055,14 +59074,14 @@ function positionSelectionActionForAnchors(anchors, viewport) {
 var import_jsx_runtime20 = __toESM(require_jsx_runtime(), 1);
 
 // ../ui/src/text-selection-offsets.ts
-function selectionOffsets(range, container) {
-  if (typeof range.cloneRange !== "function") return null;
+function selectionOffsets(range2, container) {
+  if (typeof range2.cloneRange !== "function") return null;
   try {
-    const prefix = range.cloneRange();
+    const prefix = range2.cloneRange();
     prefix.selectNodeContents(container);
-    prefix.setEnd(range.startContainer, range.startOffset);
+    prefix.setEnd(range2.startContainer, range2.startOffset);
     const start2 = prefix.toString().length;
-    const end = start2 + range.toString().length;
+    const end = start2 + range2.toString().length;
     return end > start2 ? { start: start2, end } : null;
   } catch {
     return null;
@@ -59097,18 +59116,18 @@ function rectLike(rect) {
 }
 function selectionAnchorRects(selection) {
   if (selection.rangeCount === 0 || typeof selection.getRangeAt !== "function") return [];
-  const range = selection.getRangeAt(0);
-  const fragments = Array.from(range.getClientRects());
+  const range2 = selection.getRangeAt(0);
+  const fragments = Array.from(range2.getClientRects());
   if (fragments.length > 0) return fragments.reverse().map(rectLike);
-  const rect = range.getBoundingClientRect();
+  const rect = range2.getBoundingClientRect();
   return rect.width || rect.height ? [rectLike(rect)] : [];
 }
-function clippedRangeWithin(range, candidate) {
+function clippedRangeWithin(range2, candidate) {
   try {
-    if (typeof range.intersectsNode !== "function" || !range.intersectsNode(candidate)) return null;
+    if (typeof range2.intersectsNode !== "function" || !range2.intersectsNode(candidate)) return null;
     const candidateRange = document.createRange();
     candidateRange.selectNodeContents(candidate);
-    const overlap = range.cloneRange();
+    const overlap = range2.cloneRange();
     if (overlap.compareBoundaryPoints(Range.START_TO_START, candidateRange) < 0) {
       overlap.setStart(candidateRange.startContainer, candidateRange.startOffset);
     }
@@ -59120,15 +59139,15 @@ function clippedRangeWithin(range, candidate) {
     return null;
   }
 }
-function rangeSelectsTextWithin(range, candidate) {
-  return Boolean(clippedRangeWithin(range, candidate)?.toString().trim());
+function rangeSelectsTextWithin(range2, candidate) {
+  return Boolean(clippedRangeWithin(range2, candidate)?.toString().trim());
 }
-function crossesExcludedChrome(range, root5) {
+function crossesExcludedChrome(range2, root5) {
   const excluded = [
     ...root5.matches("[data-quote-exclude]") ? [root5] : [],
     ...Array.from(root5.querySelectorAll("[data-quote-exclude]"))
   ];
-  return excluded.some((candidate) => rangeSelectsTextWithin(range, candidate));
+  return excluded.some((candidate) => rangeSelectsTextWithin(range2, candidate));
 }
 function countRenderedOccurrences(root5, text11) {
   if (!text11) return 0;
@@ -59138,8 +59157,8 @@ function countRenderedOccurrences(root5, text11) {
 function matchingSubtree(root5, selector) {
   return [...root5.matches(selector) ? [root5] : [], ...Array.from(root5.querySelectorAll(selector))];
 }
-function rangeLocalCandidates(range, root5, selector) {
-  const commonNode = range.commonAncestorContainer;
+function rangeLocalCandidates(range2, root5, selector) {
+  const commonNode = range2.commonAncestorContainer;
   const common2 = commonNode.nodeType === Node.ELEMENT_NODE ? commonNode : commonNode.parentElement;
   if (!common2) return [];
   if (common2.contains(root5)) return matchingSubtree(root5, selector);
@@ -59151,9 +59170,9 @@ function rangeLocalCandidates(range, root5, selector) {
   }
   return Array.from(candidates);
 }
-function selectedLeaves(range, root5, selector) {
-  const selected = rangeLocalCandidates(range, root5, selector).filter(
-    (candidate) => rangeSelectsTextWithin(range, candidate)
+function selectedLeaves(range2, root5, selector) {
+  const selected = rangeLocalCandidates(range2, root5, selector).filter(
+    (candidate) => rangeSelectsTextWithin(range2, candidate)
   );
   return selected.filter((candidate) => !selected.some((other) => candidate !== other && candidate.contains(other)));
 }
@@ -59168,8 +59187,8 @@ var MIXED_SELECTION_SOURCE = {
   segmentId: null,
   projectionVersion: null
 };
-function cliSelectionSource(range, source3, rawText, projection) {
-  const segments = selectedLeaves(range, source3, "[data-context-quote-segment-id]");
+function cliSelectionSource(range2, source3, rawText, projection) {
+  const segments = selectedLeaves(range2, source3, "[data-context-quote-segment-id]");
   if (segments.length === 0) {
     return {
       kind: "cli_output",
@@ -59181,7 +59200,7 @@ function cliSelectionSource(range, source3, rawText, projection) {
     };
   }
   const segment = segments.length === 1 ? segments[0] : null;
-  const segmentRange = segment ? clippedRangeWithin(range, segment) : null;
+  const segmentRange = segment ? clippedRangeWithin(range2, segment) : null;
   if (!segment || !segmentRange || !sameSelectedContent(segmentRange.toString(), rawText)) {
     return MIXED_SELECTION_SOURCE;
   }
@@ -59195,26 +59214,26 @@ function cliSelectionSource(range, source3, rawText, projection) {
   };
 }
 function selectionSource(selection, container, projection) {
-  const range = selection.getRangeAt(0);
+  const range2 = selection.getRangeAt(0);
   const rawText = selection.toString().trim();
-  const sources = selectedLeaves(range, container, "[data-context-quote-source]");
+  const sources = selectedLeaves(range2, container, "[data-context-quote-source]");
   if (sources.length === 0) {
     return {
       kind: null,
       mixed: false,
       coordinateRoot: null,
-      coordinateRange: clippedRangeWithin(range, container),
+      coordinateRange: clippedRangeWithin(range2, container),
       segmentId: null,
       projectionVersion: null
     };
   }
   const source3 = sources.length === 1 ? sources[0] : null;
-  const sourceRange2 = source3 ? clippedRangeWithin(range, source3) : null;
+  const sourceRange2 = source3 ? clippedRangeWithin(range2, source3) : null;
   if (!source3 || !sourceRange2 || !sameSelectedContent(sourceRange2.toString(), rawText)) {
     return MIXED_SELECTION_SOURCE;
   }
   const kind = source3.getAttribute("data-context-quote-source");
-  if (kind === "cli_output") return cliSelectionSource(range, source3, rawText, projection);
+  if (kind === "cli_output") return cliSelectionSource(range2, source3, rawText, projection);
   return {
     kind,
     mixed: false,
@@ -69956,9 +69975,9 @@ function sharedMarkdownDomSelection(paper, event, source3) {
   if (!(event.target instanceof Node) || !paper.contains(event.target)) return void 0;
   const selection = window.getSelection();
   if (!selection || !selection.rangeCount || selection.isCollapsed) return void 0;
-  const range = selection.getRangeAt(0);
-  if (!paper.contains(range.commonAncestorContainer)) return void 0;
-  const node2 = range.commonAncestorContainer;
+  const range2 = selection.getRangeAt(0);
+  if (!paper.contains(range2.commonAncestorContainer)) return void 0;
+  const node2 = range2.commonAncestorContainer;
   const element3 = node2 instanceof Element ? node2 : node2.parentElement;
   const block = element3?.closest("[data-source-start]");
   const bounds = block ? { start: Number(block.dataset.sourceStart), end: Number(block.dataset.sourceEnd) } : void 0;

@@ -1,6 +1,6 @@
 // v2 protocol grammar tests for p2b. The package switched from the upstream v1
 // grammar (c95fd14) to the Host's frozen v2 grammar (Host 16443158ca); this is
-// the only grammar the package's own helper (extension 0.2.11) speaks.
+// the only grammar the package's own helper (extension 0.2.12) speaks.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -18,8 +18,8 @@ import {
 
 const REVISIONS = {
   helper: `sha512:${'a'.repeat(128)}`,
-  extension: '0.2.11',
-  pageAdapter: '2026-09-02.1',
+  extension: '0.2.12',
+  pageAdapter: '2026-10-26.1',
 } as const;
 
 const appendRequest = {
@@ -59,7 +59,7 @@ test('rejects malformed, oversized, or v1 append messages before side effects', 
     { ...appendRequest, expectedRevisions: undefined },
     { ...appendRequest, expectedRevisions: { ...REVISIONS, helper: 'not-a-digest' } },
     { ...appendRequest, expectedRevisions: { ...REVISIONS, extension: '0.2' } },
-    { ...appendRequest, expectedRevisions: { helper: REVISIONS.helper, extension: '0.2.11' } },
+    { ...appendRequest, expectedRevisions: { helper: REVISIONS.helper, extension: '0.2.12' } },
   ];
   for (const value of invalidRequests) {
     assert.throws(() => parsePersonalChromeAppendRequest(value));
