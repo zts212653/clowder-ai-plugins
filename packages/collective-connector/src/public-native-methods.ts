@@ -1,5 +1,18 @@
 import { z } from 'zod';
-import { collectiveArtifactCallbackCommandSchema, collectiveContextImageSelectionSchema } from './business/contracts/index.js';
+import { collectiveArtifactCallbackCommandSchema, collectiveContextImageSelectionSchema,
+  collectiveMessageContentFields, requireCollectiveMessageContent } from './business/contracts/index.js';
+
+export const collectiveReplySubmitSchema = z.object({
+  returnRef: z.string().min(1).max(256),
+  replyOperationRef: z.string().min(1).max(256),
+  ...collectiveMessageContentFields,
+  body: z.string().trim().max(20000),
+}).strict().superRefine(requireCollectiveMessageContent);
+
+export const collectiveStickerPrepareSchema = z.object({
+  contextRef: z.string().min(1).max(256),
+  stickerId: z.string().min(1).max(80).describe('Stable id from current context stickerCatalog'),
+}).strict();
 
 export const collectiveContextReadSchema = z.object({
   contextRef: z.string().min(1).max(256).describe('Opaque contextRef returned by current context in this invocation'),
@@ -16,6 +29,9 @@ export const collectivePublicNativeTools = [
   { method: 'collective.context.read', name: 'cat_cafe_collective_read_context',
     description: 'Read original public Channel context or inspect a published image with the current contextRef. Use when: catching up on this conversation or seeing what an attached picture contains. NOT for: private uploads, another Channel, arbitrary URLs or Work admission. Output: a bounded event page, or a native image block plus its original digest when image={eventId,attachmentId} is supplied. Large images use a bounded view and animations show the first frame; original bytes remain unchanged. GOTCHA: image links and attachment metadata are not pixels; use the image selector before claiming to have seen a picture.',
     schema: collectiveContextReadSchema },
+  { method: 'collective.sticker.prepare', name: 'cat_cafe_collective_prepare_sticker',
+    description: 'Prepare an original catalogue sticker for this named participant’s current public reply. Use when: replying with a stickerId from current context stickerCatalog. NOT for: arbitrary file uploads, private Human drafts, changing Work status or publishing by itself. Output: an immutable retained attachment to include in submit reply attachments; the original bytes stay with their content custodian. Repeating preparation for the same reply and sticker returns the same reference.',
+    schema: collectiveStickerPrepareSchema },
   { method: 'collective.artifact.command', name: 'cat_cafe_collective_artifact_command',
     description: 'Read or propose a response to the shared artifact request in this authenticated Collective source. Humans retain apply authority.',
     schema: collectiveArtifactCallbackCommandSchema },
@@ -41,7 +57,7 @@ export const collectivePublicNativeTools = [
     schema: z.object({ contextRef: z.string().min(1).max(256), workRef: z.string().min(1).max(2000), kind: z.enum(['resume', 'revision']),
       grantRef: z.string().trim().min(1).max(240), grantRevision: z.number().int().positive(), requestKind: z.string().trim().min(1).max(240) }).strict() },
   { method: 'collective.reply.submit', name: 'cat_cafe_collective_submit_reply',
-    description: 'Return the original reply to the current Collective request. Reuse its returnRef and replyOperationRef after response loss.',
-    schema: z.object({ returnRef: z.string().min(1).max(256), replyOperationRef: z.string().min(1).max(256), body: z.string().trim().min(1).max(20000) }).strict() },
+    description: 'Publish this named participant’s original reply to the current Collective request. Use when: returning text, public quotes or applicable rich content with its current returnRef and replyOperationRef. NOT for: private approval callbacks, Work admission or publishing another person’s private uploads. Output: the durable public reply and its original event receipt; a rich-only reply may have an empty body. Reuse the same references and exact content after response loss; changed content conflicts with the original operation.',
+    schema: collectiveReplySubmitSchema },
 ] as const;
 export const COLLECTIVE_PUBLIC_METHODS = Object.freeze(collectivePublicNativeTools.map(tool => tool.method));

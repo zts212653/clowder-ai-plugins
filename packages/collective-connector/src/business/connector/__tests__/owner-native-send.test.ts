@@ -40,7 +40,7 @@ test('owner send stays separate from the exact public context, Work and Artifact
   expect(manifest.features[0].contributions).toContainEqual({ type: 'mcp', id: owner.id });
   expect(manifest.contributions.find((c: { id: string }) => c.id === 'collective-native').actions
     .map((action: {method:string}) => action.method).sort()).toEqual([
-      'collective.context.current', 'collective.context.read', 'collective.artifact.command',
+      'collective.context.current', 'collective.context.read', 'collective.sticker.prepare', 'collective.artifact.command',
       'collective.work.suggest-project', 'collective.participation.set-interest', 'collective.reply.submit',
       'collective.work.propose', 'collective.work.accept', 'collective.work.continue',
     ].sort());

@@ -11,7 +11,11 @@ export function outboxInput(connection: ConnectorConnectionState, pending: Conne
     connectionId: connection.connectionId, clientEventId: pending.clientEventId, agent: pending.agent, target: pending.target,
     ...(pending.location ? { location: pending.location, recipient: { kind: 'channel' as const } } : {}),
     ...(pending.replySource ? { participationRevision: pending.replySource.participationRevision } : {}),
-    ...(pending.replyToEventId ? { replyToEventId: pending.replyToEventId } : {}), ...workOutboundIntent(pending), body: pending.body };
+    ...(pending.replyToEventId ? { replyToEventId: pending.replyToEventId } : {}),
+    ...(pending.attachments ? { attachments: pending.attachments } : {}),
+    ...(pending.contextAttachments ? { contextAttachments: pending.contextAttachments } : {}),
+    ...(pending.richBlocks ? { richBlocks: pending.richBlocks } : {}),
+    ...workOutboundIntent(pending), body: pending.body };
 }
 export function outboxPayload(connection: ConnectorConnectionState, pending: ConnectorOutboxItem) {
   return { input: outboxInput(connection, pending), workPurpose: pending.workPurpose, replySource: pending.replySource,
@@ -69,6 +73,9 @@ export function recoveryIntent(state: ConnectorState, connectionId: string, atte
         event.workResultReceipt || event.workProgressReceipt || event.actor.kind !== 'agent') return { outcome: 'unresolved' };
       const actor = event.actor;
       if (event.body !== pending.body || event.clientEventId !== pending.clientEventId ||
+        semanticDigest(event.attachments ?? []) !== semanticDigest(pending.attachments ?? []) ||
+        semanticDigest(event.contextAttachments ?? []) !== semanticDigest(pending.contextAttachments ?? []) ||
+        semanticDigest(event.richBlocks ?? []) !== semanticDigest(pending.richBlocks ?? []) ||
         event.replyToEventId !== pending.replyToEventId || actor.human.humanId !== connection.authorizedHumanId ||
         actor.provenance.connectionId !== connectionId || actor.provenance.endpointId !== connection.endpointId ||
         actor.provenance.catId !== pending.agent?.catId || actor.provenance.sessionRef !== pending.agent?.sessionRef ||

@@ -7,7 +7,7 @@ import type { CollectiveServiceStore } from './store.js';
 /** Authenticated binary traffic avoids JSON envelopes and never puts a bearer into a media URL. */
 export async function routeMessageAttachmentHttp(store: CollectiveServiceStore, url: URL,
   request: IncomingMessage, response: ServerResponse) {
-  if (request.method !== 'POST' || !['/api/message-attachments/upload', '/api/message-attachments/read', '/api/message-attachments/catalog', '/api/participation/image'].includes(url.pathname)) return false;
+  if (request.method !== 'POST' || !['/api/message-attachments/upload', '/api/message-attachments/read', '/api/message-attachments/catalog', '/api/participation/image', '/api/participation/sticker'].includes(url.pathname)) return false;
   const token = requireBearer(request);
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -22,6 +22,9 @@ export async function routeMessageAttachmentHttp(store: CollectiveServiceStore, 
     } else if (url.pathname === '/api/participation/image') {
       response.setHeader('cache-control', 'no-store');
       writeJson(response, 200, await store.readParticipationImage(token, await readJsonBody(request), controller.signal));
+    } else if (url.pathname === '/api/participation/sticker') {
+      response.setHeader('cache-control', 'no-store');
+      writeJson(response, 200, await store.prepareParticipationSticker(token, await readJsonBody(request), controller.signal));
     } else if (url.pathname.endsWith('/upload')) {
       writeJson(response, 201, await store.uploadMessageAttachment(token, input, request, controller.signal));
     } else {

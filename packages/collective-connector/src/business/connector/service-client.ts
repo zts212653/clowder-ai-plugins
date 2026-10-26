@@ -10,6 +10,7 @@ import {
   type CollectiveWorkResultFileBindingResponse,
   collectiveAccountabilityAttentionReadResponseSchema,
   collectiveModelImageSchema,
+  collectiveMessageAttachmentSchema,
   collectiveEventEnvelopeSchema,
   collectiveEventIdSchema,
   collectiveParticipationDeclarationSchema,
@@ -357,6 +358,15 @@ export class CollectiveServiceClient {
       method: 'POST', credential, body: { serviceInstanceId: source.serviceInstanceId, collectiveId: source.collectiveId,
         connectionId: source.connectionId, eventId: source.eventId, catId: source.catId,
         participationRevision: source.participationRevision, image },
+    }));
+  }
+
+  async prepareParticipationSticker(serviceUrl: string, credential: string, source: CollectiveSourceIdentity,
+    stickerId: string, clientUploadId: string) {
+    return collectiveMessageAttachmentSchema.parse(await this.request(serviceUrl, '/api/participation/sticker', {
+      method: 'POST', credential, body: { serviceInstanceId: source.serviceInstanceId, collectiveId: source.collectiveId,
+        connectionId: source.connectionId, eventId: source.eventId, catId: source.catId,
+        participationRevision: source.participationRevision, stickerId, clientUploadId },
     }));
   }
 

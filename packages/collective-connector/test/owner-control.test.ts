@@ -75,7 +75,7 @@ test('implemented owner method/path pairs and ordinary native methods are advert
   assert.deepEqual(webhooks.flatMap((item: { path: string; methods: string[] }) => item.methods.map(method => method + ' ' + item.path)).sort(), expected.sort());
   for (const item of webhooks) { assert.equal(item.verificationSecretRef, undefined); assert.equal(item.action.method, item.id.startsWith('collective-media-') ? 'collective.media.http' : 'collective.control.http'); }
   assert.deepEqual(manifest.contributions.find((item: { type: string; id: string }) => item.type === 'mcp' && item.id === 'collective-native').actions.map((item: { method: string }) => item.method).sort(),
-    ['collective.context.current', 'collective.context.read', 'collective.artifact.command', 'collective.work.suggest-project',
+    ['collective.context.current', 'collective.context.read', 'collective.sticker.prepare', 'collective.artifact.command', 'collective.work.suggest-project',
       'collective.participation.set-interest', 'collective.reply.submit', 'collective.work.propose', 'collective.work.accept', 'collective.work.continue'].sort());
 });
 function controlledPort() {

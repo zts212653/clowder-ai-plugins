@@ -6,6 +6,9 @@ import {
   type CollectiveWorkResultFile,
   type CollectiveWorkResultTextSource,
   collectiveTargetSchema,
+  collectiveMessageContentFields,
+  requireCollectiveMessageContent,
+  type CollectiveAgentMessageRequest,
 } from '../contracts/index.js';
 import { z } from 'zod';
 import { participationError, requireParticipation, resolveMaterializedParticipation } from './participation-custody.js';
@@ -26,9 +29,17 @@ const queuedMessageSchema = z
     agent: verifiedAgentSchema,
     target: collectiveTargetSchema,
     replyToEventId: z.string().optional(),
-    body: z.string().trim().min(1).max(32_000),
+    ...collectiveMessageContentFields,
   })
-  .strict();
+  .strict().superRefine(requireCollectiveMessageContent);
+
+type ReplyContent = Pick<CollectiveAgentMessageRequest, 'body' | 'attachments' | 'contextAttachments' | 'richBlocks'>;
+const replyContentSchema = z.object(collectiveMessageContentFields).strict().superRefine(requireCollectiveMessageContent);
+
+function sameStructuredContent(left: Partial<ReplyContent>, right: Partial<ReplyContent>): boolean {
+  return isDeepStrictEqual(left.attachments, right.attachments) &&
+    isDeepStrictEqual(left.contextAttachments, right.contextAttachments) && isDeepStrictEqual(left.richBlocks, right.richBlocks);
+}
 
 export async function queueVerifiedAgentMessage(input: {
   persistence: ConnectorPersistence;
@@ -51,6 +62,7 @@ export async function queueVerifiedAgentMessage(input: {
     if (existing) {
       const same =
         existing.body === message.body &&
+        sameStructuredContent(existing, message) &&
         existing.replyToEventId === message.replyToEventId &&
         JSON.stringify(existing.target) === JSON.stringify(message.target) &&
         JSON.stringify(existing.agent) === JSON.stringify(message.agent);
@@ -64,6 +76,9 @@ export async function queueVerifiedAgentMessage(input: {
       target: message.target,
       ...(message.replyToEventId ? { replyToEventId: message.replyToEventId } : {}),
       body: message.body,
+      ...(message.attachments ? { attachments: message.attachments } : {}),
+      ...(message.contextAttachments ? { contextAttachments: message.contextAttachments } : {}),
+      ...(message.richBlocks ? { richBlocks: message.richBlocks } : {}),
       status: 'queued',
       createdAt: new Date(input.now()).toISOString(),
     });
@@ -194,10 +209,12 @@ function recoverSubmittedReply(
   agent: VerifiedAgent,
   artifactSnapshot: WorkResultArtifactSnapshot | undefined,
   resultFile: CollectiveWorkResultFile | undefined,
+  content: ReplyContent,
 ): ConnectorOutboxItem | undefined {
   if (item.status === 'prepared') return undefined;
   if (
     item.body !== body ||
+    !sameStructuredContent(item, content) ||
     item.agent?.catId !== agent.catId ||
     !isDeepStrictEqual(item.workPurpose?.artifactSnapshot, artifactSnapshot) ||
     !isDeepStrictEqual(item.workPurpose?.resultFile, resultFile)
@@ -297,13 +314,18 @@ export async function submitReplyOperation(
   input: PrepareReplyInput & {
     operationId: string;
     body: string;
+    attachments?: ReplyContent['attachments'];
+    contextAttachments?: ReplyContent['contextAttachments'];
+    richBlocks?: ReplyContent['richBlocks'];
     agent: VerifiedAgent;
     verifyAgent: (agent: VerifiedAgent) => Promise<boolean>;
     artifactSnapshot?: WorkResultArtifactSnapshot;
     resultFileSource?: CollectiveWorkResultTextSource;
   },
 ): Promise<ConnectorOutboxItem> {
-  const body = z.string().trim().min(1).max(32000).parse(input.body);
+  const content = replyContentSchema.parse({ body: input.body, attachments: input.attachments,
+    contextAttachments: input.contextAttachments, richBlocks: input.richBlocks });
+  const { body } = content;
   const agent = verifiedAgentSchema.parse(input.agent);
   const artifactSnapshot = input.artifactSnapshot
     ? workResultArtifactSnapshotSchema.parse(input.artifactSnapshot)
@@ -326,10 +348,13 @@ export async function submitReplyOperation(
       ...(input.resultFileSource ? { resultFileSource: input.resultFileSource } : {}),
     });
     assertWorkResultFileAuthority(item, artifactSnapshot, publication.file);
-    const recovered = recoverSubmittedReply(item, publication.body, agent, artifactSnapshot, publication.file);
+    const recovered = recoverSubmittedReply(item, publication.body, agent, artifactSnapshot, publication.file, content);
     if (recovered) return recovered;
     item.agent = agent;
     item.body = publication.body;
+    if (content.attachments) item.attachments = structuredClone(content.attachments);
+    if (content.contextAttachments) item.contextAttachments = structuredClone(content.contextAttachments);
+    if (content.richBlocks) item.richBlocks = structuredClone(content.richBlocks);
     if (item.workPurpose && artifactSnapshot) {
       item.workPurpose.artifactSnapshot = artifactSnapshot;
       if (publication.file) item.workPurpose.resultFile = publication.file;

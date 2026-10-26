@@ -9,6 +9,8 @@ import { collectiveModelImageSchema, collectiveParticipationImageReadRequestSche
 import { authorizeModelImageRead } from './message-model-image-authority.js';
 import type { PersistentServiceState } from './persistence.js';
 import { readMessageStickerCatalog, stickerForUpload } from './message-sticker-catalog.js';
+import { prepareParticipationSticker } from './message-participation-sticker.js';
+import type { ServiceState } from './state.js';
 
 const uploadSchema = collectiveAttachmentScopeSchema.omit({ humanId: true, attachmentId: true }).extend({
   clientUploadId: z.string().trim().min(1).max(200),
@@ -30,6 +32,19 @@ export class CollectiveMessageAttachments {
   async upload(token: string, unsafe: unknown, stream: AsyncIterable<Uint8Array>, signal: AbortSignal) {
     const input = uploadSchema.parse(unsafe);
     const actor = attachmentHuman(this.persistence.snapshot(), token, input);
+    return this.uploadAuthorized(input, stream, signal, actor, state => {
+      if (!isDeepStrictEqual(attachmentHuman(state, token, input), actor)) denyAttachment();
+    });
+  }
+
+  prepareSticker(token: string, unsafe: unknown, signal: AbortSignal) {
+    return prepareParticipationSticker(this.persistence, this.owner, token, unsafe, signal,
+      (input, stream, actor, assertCurrent) => this.uploadAuthorized(input, stream, signal, actor, assertCurrent));
+  }
+
+  private async uploadAuthorized(input: z.infer<typeof uploadSchema>, stream: AsyncIterable<Uint8Array>,
+    signal: AbortSignal, actor: { humanId: string; revision: number }, assertCurrent: (state: ServiceState) => void) {
+    assertCurrent(this.persistence.snapshot());
     const sticker = stickerForUpload(input);
     const owner = this.requireOwner();
     if (this.uploads >= 2) throw new CollectiveServiceError('ATTACHMENT_BUSY', 'Two uploads are already in progress', 429);
@@ -55,12 +70,12 @@ export class CollectiveMessageAttachments {
         ...(sticker ? { sticker } : {}) };
       const authorize = async () => {
         signal.throwIfAborted();
-        if (!isDeepStrictEqual(attachmentHuman(this.persistence.snapshot(), token, input), actor)) denyAttachment();
+        assertCurrent(this.persistence.snapshot());
         return scope;
       };
       await authorize();
       await this.persistence.transaction(state => {
-        if (!isDeepStrictEqual(attachmentHuman(state, token, input), actor)) denyAttachment();
+        assertCurrent(state);
         const existing = state.messageAttachments[attachmentId];
         if (existing) {
           const { attachment: _attachment, publishedEventIds: _events, createdAt: _at, ...prior } = existing;
@@ -77,7 +92,7 @@ export class CollectiveMessageAttachments {
           !isDeepStrictEqual(attachment.sticker, sticker))
         throw new CollectiveServiceError('ATTACHMENT_OWNER_MISMATCH', 'Owner receipt does not match this upload', 502);
       return this.persistence.transaction(state => {
-        if (!isDeepStrictEqual(attachmentHuman(state, token, input), actor)) denyAttachment();
+        assertCurrent(state);
         const record = state.messageAttachments[attachmentId];
         if (!record || (record.attachment && !isDeepStrictEqual(record.attachment, attachment))) denyAttachment();
         record.attachment = attachment;

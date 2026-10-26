@@ -1,17 +1,30 @@
 import { z } from 'zod';
-import { collectiveMessageAttachmentSchema } from './collective-message-content.js';
 import { collectiveConnectionCoordinatesSchema } from './collective.js';
+import { collectiveMessageAttachmentSchema } from './collective-message-content.js';
 
-export const collectiveContextImageSelectionSchema = z.object({
-  eventId: z.string().min(1).max(160).describe('Published eventId from the current Channel context'),
-  attachmentId: collectiveMessageAttachmentSchema.shape.attachmentId.describe('attachmentId on that event'),
-}).strict();
-export const collectiveParticipationImageReadRequestSchema = collectiveConnectionCoordinatesSchema.extend({
-  eventId: z.string().min(1).max(160),
-  catId: z.string().min(1).max(120),
-  participationRevision: z.number().int().positive(),
-  image: collectiveContextImageSelectionSchema,
-}).strict();
+export const collectiveContextImageSelectionSchema = z
+  .object({
+    eventId: z.string().min(1).max(160).describe('Published eventId from the current Channel context'),
+    attachmentId: collectiveMessageAttachmentSchema.shape.attachmentId.describe('attachmentId on that event'),
+  })
+  .strict();
+export const collectiveParticipationImageReadRequestSchema = collectiveConnectionCoordinatesSchema
+  .extend({
+    eventId: z.string().min(1).max(160),
+    catId: z.string().min(1).max(120),
+    participationRevision: z.number().int().positive(),
+    image: collectiveContextImageSelectionSchema,
+  })
+  .strict();
+
+/** Preparing a catalogue sticker uses the exact named public source, never a Human browser session. */
+export const collectiveParticipationStickerPrepareRequestSchema = collectiveParticipationImageReadRequestSchema
+  .omit({ image: true })
+  .extend({
+    stickerId: z.string().min(1).max(80),
+    clientUploadId: z.string().trim().min(1).max(200),
+  })
+  .strict();
 
 /** A transient model response, never a Channel event or an attachment owner reference.
  * The existing native bridge has 1 MiB frames; base64 and metadata must fit together. */

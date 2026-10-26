@@ -216,6 +216,7 @@ contributions:
     actions:
       - { method: collective.context.current }
       - { method: collective.context.read }
+      - { method: collective.sticker.prepare }
       - { method: collective.artifact.command }
       - { method: collective.work.suggest-project }
       - { method: collective.participation.set-interest }

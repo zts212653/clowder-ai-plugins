@@ -13,6 +13,8 @@ import {
   collectiveSourceIdentitySchema,
   collectiveTargetSchema,
   collectiveWorkResultFileBindingSchema,
+  collectiveMessageContentFields,
+  type CollectiveAgentMessageRequest,
 } from '../contracts/index.js';
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
@@ -84,6 +86,9 @@ const outboxItemSchema = z
       .optional(),
     replyToEventId: z.string().optional(),
     body: z.string(),
+    attachments: collectiveMessageContentFields.attachments,
+    contextAttachments: collectiveMessageContentFields.contextAttachments,
+    richBlocks: collectiveMessageContentFields.richBlocks,
     status: z.enum(['prepared', 'queued', 'sending', 'accepted', 'blocked']),
     failureCode: z.string().optional(),
     acceptedEventId: z.string().optional(),
@@ -297,6 +302,9 @@ export interface ConnectorOutboxItem {
   };
   readonly replyToEventId?: string;
   readonly body: string;
+  readonly attachments?: CollectiveAgentMessageRequest['attachments'];
+  readonly contextAttachments?: CollectiveAgentMessageRequest['contextAttachments'];
+  readonly richBlocks?: CollectiveAgentMessageRequest['richBlocks'];
   readonly status: 'prepared' | 'queued' | 'sending' | 'accepted' | 'blocked';
   readonly failureCode?: string;
   readonly acceptedEventId?: string;

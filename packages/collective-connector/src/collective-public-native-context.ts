@@ -4,15 +4,13 @@ import type { CollectiveConnector } from './business/connector/connector.js';
 import { resolveMaterializedParticipation } from './business/connector/participation-custody.js';
 import { collectiveContextError, type CollectiveContextReferences } from './collective-context-refs.js';
 import { continueWorkFromSource, currentWorkSourceContext, suggestProjectWorkFromSource } from './collective-work-source-context.js';
-import { collectiveArtifactCallbackCommandSchema } from './business/contracts/index.js';
-import { collectiveContextReadSchema, collectivePublicNativeTools } from './public-native-methods.js';
+import { collectiveArtifactCallbackCommandSchema, MESSAGE_STICKER_CATALOG } from './business/contracts/index.js';
+import { collectiveContextReadSchema, collectivePublicNativeTools, collectiveReplySubmitSchema, collectiveStickerPrepareSchema } from './public-native-methods.js';
 import { executeCollectiveArtifactCommand } from './collective-artifact-command.js';
 import type { createCollectivePublicSourceCaller } from './collective-public-source.js';
 
 // These schemas preserve ca5 callback-collective-participation-routes.ts byte semantics.
 const currentSchema = z.object({}).strict();
-const replySchema = z.object({ returnRef: z.string().min(1).max(256), replyOperationRef: z.string().min(1).max(256),
-  body: z.string().trim().min(1).max(20000) }).strict();
 const proposeSchema = z.object({ contextRef: z.string().min(1).max(256),
   requestKind: z.string().trim().min(1).max(240).optional(), title: z.string().trim().min(1).max(200).optional(),
   intendedOutcome: z.string().trim().min(1).max(32000).optional() }).strict();
@@ -26,7 +24,7 @@ const continueSchema = z.object({ contextRef: z.string().min(1).max(256), workRe
 const interestSchema = z.object({ contextRef: z.string().min(1).max(256), state: z.enum(['listen', 'withdraw']) }).strict();
 interface Options {
   readonly connector: Pick<CollectiveConnector, 'prepareReply' | 'submitReply' | 'sync' | 'getHostRoute' | 'getProjection' |
-    'readParticipationContext' | 'readParticipationImage' | 'readArtifactContext' | 'requestArtifactForAgent' | 'setStandingInterest' | 'currentWorkDecision' | 'readWorkSourceContext' | 'proposeWork' | 'acceptWork' | 'continueWork'>;
+    'readParticipationContext' | 'readParticipationImage' | 'prepareParticipationSticker' | 'readArtifactContext' | 'requestArtifactForAgent' | 'setStandingInterest' | 'currentWorkDecision' | 'readWorkSourceContext' | 'proposeWork' | 'acceptWork' | 'continueWork'>;
   readonly sourceCaller: Pick<ReturnType<typeof createCollectivePublicSourceCaller>, 'resolveNative'>;
   readonly references: CollectiveContextReferences;
 }
@@ -74,11 +72,15 @@ export function createCollectivePublicNativeActions(options: Options): Readonly<
     return { kind: 'collective' as const, authority: 'public_participation' as const, workDecision, workSourceContext,
       artifactRequests,
       actor: binding.source.actor, location: binding.source.location, participant: binding.displayName, request: binding.context.source,
+      stickerCatalog: MESSAGE_STICKER_CATALOG.map(entry => ({ id: entry.id, label: entry.label })),
       contextRef: refs.opaqueRef(binding.identity, 'context', binding.refScope),
       returnRef: refs.opaqueRef(binding.identity, 'return', binding.refScope),
       replyOperationRef: refs.opaqueRef(binding.identity, `reply:${operation.outboxId}`, binding.refScope),
       reply: { status: operation.status,
-        ...(operation.status !== 'prepared' ? { body: operation.body, author: operation.agent } : {}),
+        ...(operation.status !== 'prepared' ? { body: operation.body, author: operation.agent,
+          ...(operation.attachments ? { attachments: operation.attachments } : {}),
+          ...(operation.contextAttachments ? { contextAttachments: operation.contextAttachments } : {}),
+          ...(operation.richBlocks ? { richBlocks: operation.richBlocks } : {}) } : {}),
         ...(operation.acceptedEventId ? { eventId: operation.acceptedEventId } : {}),
         ...(operation.failureCode ? { code: operation.failureCode } : {}) } };
   };
@@ -108,6 +110,11 @@ export function createCollectivePublicNativeActions(options: Options): Readonly<
       refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope); await binding.revalidate();
       if (input.image) return connector.readParticipationImage(binding.source, input.image);
       return connector.readParticipationContext(binding.source, input.afterSequence ?? 0, input.limit ?? 30);
+    }),
+    'collective.sticker.prepare': handler('collective.sticker.prepare', collectiveStickerPrepareSchema, async (binding, input) => {
+      refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);
+      const operation = await connector.prepareReply(binding.source, binding.sourceRef, 'request'); await binding.revalidate();
+      return connector.prepareParticipationSticker(binding.source, input.stickerId, `reply-sticker:${operation.outboxId}:${input.stickerId}`);
     }),
     'collective.participation.set-interest': handler('collective.participation.set-interest', interestSchema, async (binding, input) => {
       refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);
@@ -143,12 +150,14 @@ export function createCollectivePublicNativeActions(options: Options): Readonly<
       await binding.revalidate();
       return continueWorkFromSource(connector, refs, binding.identity, binding, input, binding.revalidate);
     }),
-    'collective.reply.submit': handler('collective.reply.submit', replySchema, async (binding, input) => {
+    'collective.reply.submit': handler('collective.reply.submit', collectiveReplySubmitSchema, async (binding, input) => {
       const operation = await connector.prepareReply(binding.source, binding.sourceRef, 'request'); await binding.revalidate();
       refs.verifyRef(binding.identity, input.returnRef, 'return', binding.refScope);
       refs.verifyRef(binding.identity, input.replyOperationRef, `reply:${operation.outboxId}`, binding.refScope);
       await binding.revalidate();
-      await connector.submitReply(binding.source, binding.sourceRef, 'request', operation.outboxId, input.body, binding.agent);
+      const { returnRef: _returnRef, replyOperationRef: _replyOperationRef, ...content } = input;
+      await connector.submitReply(binding.source, binding.sourceRef, 'request', operation.outboxId,
+        input.attachments || input.contextAttachments || input.richBlocks ? content : input.body, binding.agent);
       await binding.revalidate();
       await connector.sync(binding.source.connectionId); await binding.revalidate();
       return current(binding);

@@ -3,6 +3,7 @@ import { recordPublicSource, readCurrentPublicSource, type RecordPublicSourceInp
 import { isDeepStrictEqual } from 'node:util';
 import {
   type CollectiveArtifactAction,
+  type CollectiveAgentMessageRequest,
   type CollectiveArtifactAgentContext,
   type CollectiveMediaReadRequest,
   type CollectivePairingIntent,
@@ -631,6 +632,13 @@ export class CollectiveConnector {
     return result;
   }
 
+  async prepareParticipationSticker(source: CollectiveSourceIdentity, stickerId: string, clientUploadId: string) {
+    const { connection, credential } = requireParticipation(this.persistence.snapshot(), source);
+    const result = await this.service.prepareParticipationSticker(connection.serviceUrl, credential, source, stickerId, clientUploadId);
+    requireParticipation(this.persistence.snapshot(), source);
+    return result;
+  }
+
   async readArtifactContext(source: CollectiveSourceIdentity) {
     const { connection, credential } = requireParticipation(this.persistence.snapshot(), source);
     let context: CollectiveArtifactAgentContext;
@@ -692,13 +700,15 @@ export class CollectiveConnector {
     sourceRef: string,
     resultKey: string,
     operationId: string,
-    body: string,
+    bodyOrContent: string | Pick<CollectiveAgentMessageRequest, 'body' | 'attachments' | 'contextAttachments' | 'richBlocks'>,
     agent: VerifiedAgent,
     artifactSnapshot?: WorkResultArtifactSnapshot,
     resultRevision?: number,
     execution?: { readonly revision: number; readonly assignmentEventId: string },
     resultFileSource?: CollectiveWorkResultTextSource,
   ) {
+    const content = typeof bodyOrContent === 'string' ? { body: bodyOrContent } : bodyOrContent;
+    const { body } = content;
     await this.readParticipationContext(source, 0, 1);
     const publishResultFile = resultFileSource && workResultBodyLinksTextSource(body, resultFileSource);
     if (publishResultFile) {
@@ -720,6 +730,9 @@ export class CollectiveConnector {
       resultKey,
       operationId,
       body,
+      ...(content.attachments ? { attachments: content.attachments } : {}),
+      ...(content.contextAttachments ? { contextAttachments: content.contextAttachments } : {}),
+      ...(content.richBlocks ? { richBlocks: content.richBlocks } : {}),
       agent,
       ...(artifactSnapshot ? { artifactSnapshot } : {}),
       ...(resultRevision ? { resultRevision } : {}),

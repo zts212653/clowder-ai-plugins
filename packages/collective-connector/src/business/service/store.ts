@@ -176,6 +176,9 @@ export class CollectiveServiceStore {
   readParticipationImage(...input: Parameters<CollectiveMessageAttachments['modelImage']>) {
     return this.#messageAttachments.modelImage(...input);
   }
+  prepareParticipationSticker(...input: Parameters<CollectiveMessageAttachments['prepareSticker']>) {
+    return this.#messageAttachments.prepareSticker(...input);
+  }
   readArtifactManagement(sessionToken: string, input: unknown) {
     return readArtifactManagement(this.persistence.snapshot(), sessionToken, input);
   }

@@ -28,3 +28,30 @@ it('delivers a rich-only source with a readable inspection cue and gives the nam
     expect(JSON.stringify(result)).toContain('public-visual');
   } finally { await f.close(); }
 });
+
+it('publishes a named cat rich-only reply through the original native operation and preserves its exact retry payload', async () => {
+  const f = await publicSourceFixture({ invocationId: 'fixture-running-turn' });
+  try {
+    await f.admit();
+    const references = await openCollectiveContextReferences(join(f.root, 'native-rich-reply-refs'), () => {});
+    const actions = createCollectivePublicNativeActions({ connector: f.connector, sourceCaller: f.sourceCaller, references });
+    const current = z.object({ returnRef: z.string(), replyOperationRef: z.string() }).passthrough()
+      .parse(await actions['collective.context.current']!({}, f.action));
+    const richBlocks = [{ v: 1, id: 'named-checklist', kind: 'checklist', title: '一起看原文',
+      items: [{ id: 'read', text: '原文已读', checked: true }] }];
+    const input = { returnRef: current.returnRef, replyOperationRef: current.replyOperationRef, body: '', richBlocks };
+    const first = await actions['collective.reply.submit']!(input, f.action);
+    const second = await actions['collective.reply.submit']!(input, f.action);
+    expect(first).toMatchObject({ reply: { status: 'accepted', richBlocks } });
+    expect(second).toMatchObject(first as object);
+    const events = await f.store.listEventsForHuman(f.serviceOwner.sessionToken, f.connection.collectiveId);
+    const replies = events.filter(event => event.actor.kind === 'agent' && event.replyToEventId === f.source.eventId);
+    expect(replies).toHaveLength(1);
+    expect(replies[0]).toMatchObject({ body: '', richBlocks, actor: { kind: 'agent', agent: { agentId: f.action.catId } } });
+    await expect(actions['collective.reply.submit']!({ ...input, richBlocks: [{ ...richBlocks[0], title: 'different payload' }] }, f.action))
+      .rejects.toMatchObject({ code: 'REPLY_PAYLOAD_CONFLICT' });
+    await f.store.revokeConnection({ sessionToken: f.serviceOwner.sessionToken, collectiveId: f.connection.collectiveId,
+      connectionId: f.connection.connectionId });
+    await expect(actions['collective.reply.submit']!(input, f.action)).rejects.toBeDefined();
+  } finally { await f.close(); }
+});
