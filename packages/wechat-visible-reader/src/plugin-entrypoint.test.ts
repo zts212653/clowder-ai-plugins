@@ -40,6 +40,40 @@ function host() {
   } satisfies ModulePluginHostShape;
 }
 
+function leasedHost() {
+  const original = host();
+  let current = true;
+  let deniedCalls = 0;
+  let deleteFailure: Error | undefined;
+  const guard = <Args extends unknown[], Result>(operation: (...args: Args) => Promise<Result>) =>
+    async (...args: Args): Promise<Result> => {
+      if (!current) {
+        deniedCalls += 1;
+        throw new Error('Host module activation is no longer current');
+      }
+      return operation(...args);
+    };
+  return {
+    runtime: {
+      ...original,
+      storage: {
+        get: guard(original.storage.get),
+        list: guard(original.storage.list),
+        set: guard(original.storage.set),
+        compareAndSet: guard(original.storage.compareAndSet),
+        delete: guard(async (...args: Parameters<typeof original.storage.delete>) => {
+          if (deleteFailure) throw deleteFailure;
+          return original.storage.delete(...args);
+        }),
+      },
+    },
+    revoke: () => { current = false; },
+    failDelete: (error: Error) => { deleteFailure = error; },
+    readStoredArm: () => original.storage.get('visible-conversation-arm'),
+    deniedCalls: () => deniedCalls,
+  };
+}
+
 function runner(reads: { visible: number; recent: number }): WeChatVisibleReaderNativeRunner {
   return {
     read: async () => {
@@ -122,10 +156,11 @@ test('module exposes two frozen limb handlers and three arm operations without t
   await active.actions['wechat-visible-reader:disarm']!({ input: {} });
   await visible({ params: {} });
   assert.equal(reads.visible, 1);
+  await active.preStop?.({ reason: 'host_shutdown', deadline: Date.now() + 30_000 });
   await active.stop();
 });
 
-test('activation and disposal revoke a prior process arm', async () => {
+test('activation and pre-stop revoke a prior process arm', async () => {
   const runtimeHost = host();
   await runtimeHost.storage.set('visible-conversation-arm', {
     scope: 'visible-conversation', expiresAt: Date.now() + 600_000,
@@ -134,6 +169,43 @@ test('activation and disposal revoke a prior process arm', async () => {
   const active = await module.create(manifest).start(runtimeHost);
   assert.equal(((await active.actions['wechat-visible-reader:status']!({ input: {} })).data as { armed: boolean }).armed, false);
   await active.actions['wechat-visible-reader:arm']!({ minutes: 10, input: {} });
+  await active.preStop?.({ reason: 'host_shutdown', deadline: Date.now() + 30_000 });
   await active.stop();
   assert.equal(await runtimeHost.storage.get('visible-conversation-arm'), undefined);
+});
+
+for (const armed of [false, true]) {
+  test(`Host pre-stop clears ${armed ? 'an active' : 'an absent'} arm before revoking storage`, async () => {
+    const lease = leasedHost();
+    const reads = { visible: 0, recent: 0 };
+    const module = createWeChatVisibleReaderPluginModule({ createRunner: () => runner(reads) });
+    const active = await module.create(manifest).start(lease.runtime);
+    if (armed) await active.actions['wechat-visible-reader:arm']!({ minutes: 10, input: {} });
+
+    // This is the installed Host's order: preStop, revoke, then stop.
+    await active.preStop?.({ reason: 'api_shutdown', deadline: Date.now() + 30_000 });
+    assert.equal(await lease.readStoredArm(), undefined);
+    lease.revoke();
+    await assert.doesNotReject(() => Promise.resolve(active.stop()));
+
+    assert.equal(lease.deniedCalls(), 0);
+    assert.equal(await lease.readStoredArm(), undefined);
+    assert.deepEqual(reads, { visible: 0, recent: 0 });
+  });
+}
+
+test('pre-stop retains a genuine storage failure instead of ignoring it during shutdown', async () => {
+  const lease = leasedHost();
+  const module = createWeChatVisibleReaderPluginModule({ createRunner: () => runner({ visible: 0, recent: 0 }) });
+  const active = await module.create(manifest).start(lease.runtime);
+  await active.actions['wechat-visible-reader:arm']!({ minutes: 10, input: {} });
+  const failure = new Error('fixture storage failure');
+  lease.failDelete(failure);
+  await assert.rejects(
+    () => Promise.resolve(active.preStop?.({ reason: 'api_shutdown', deadline: Date.now() + 30_000 })),
+    (error: unknown) => error === failure,
+  );
+  lease.revoke();
+  await active.stop();
+  assert.equal(lease.deniedCalls(), 0);
 });

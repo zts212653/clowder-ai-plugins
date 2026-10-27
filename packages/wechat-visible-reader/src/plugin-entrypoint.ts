@@ -100,7 +100,8 @@ async function activateReader(context: FeatureContext, options: WeChatVisibleRea
         return statusResult(await armStore.status());
       },
     },
-    dispose: () => armStore.disarm().then(() => undefined),
+    // Host storage remains authorized during preStop, then is revoked before disposal.
+    preStop: () => armStore.disarm().then(() => undefined),
   };
 }
 
