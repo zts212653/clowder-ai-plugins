@@ -102,7 +102,9 @@ try {
   for (const tool of tools) declaredToolNames.add(tool.name);
   assert.deepEqual(tools.map(tool => tool.name).sort(), ['cat_cafe_collective_current_context', 'cat_cafe_collective_read_context',
     'cat_cafe_collective_set_interest', 'cat_cafe_collective_submit_reply', 'cat_cafe_collective_propose_work', 'cat_cafe_collective_accept_work', 'cat_cafe_collective_continue_work',
-    'cat_cafe_collective_artifact_command', 'cat_cafe_collective_suggest_project_work', 'cat_cafe_collective_prepare_sticker'].sort());
+    'cat_cafe_collective_artifact_command', 'cat_cafe_collective_suggest_project_work', 'cat_cafe_collective_prepare_sticker',
+    'cat_cafe_collective_project_context', 'cat_cafe_collective_read_material', 'cat_cafe_collective_suggest_material',
+    'cat_cafe_collective_suggest_work_time'].sort());
   for (const tool of tools) {
     assert.equal(tool.inputSchema.additionalProperties, false);
     assert.equal(Object.hasOwn(tool.inputSchema.properties ?? {}, 'userId'), false);
@@ -148,7 +150,7 @@ try {
   await workClient.connect(workTransport);
   const {tools} = await workClient.listTools();
   for (const tool of tools) declaredToolNames.add(tool.name);
-  assert.deepEqual(tools.map(tool => tool.name).sort(), ['cat_cafe_collective_work_current_context', 'cat_cafe_collective_work_read_context', 'cat_cafe_collective_progress', 'cat_cafe_collective_work_read_artifact', 'cat_cafe_collective_work_register_artifact', 'cat_cafe_collective_work_return_result', 'cat_cafe_collective_work_artifact_command'].sort());
+  assert.deepEqual(tools.map(tool => tool.name).sort(), ['cat_cafe_collective_work_current_context', 'cat_cafe_collective_work_read_context', 'cat_cafe_collective_progress', 'cat_cafe_collective_work_read_artifact', 'cat_cafe_collective_work_register_artifact', 'cat_cafe_collective_work_return_result', 'cat_cafe_collective_work_artifact_command', 'cat_cafe_collective_work_time', 'cat_cafe_collective_work_project_context', 'cat_cafe_collective_work_read_material', 'cat_cafe_collective_work_suggest_material'].sort());
   for (const tool of tools) {
     assert.equal(tool.inputSchema.additionalProperties, false);
     for (const field of ['userId', 'catId', 'invocationId', 'taskId', 'executionRef', 'grantRef'])
