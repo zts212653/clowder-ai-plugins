@@ -502,7 +502,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.equal(weixinMpPackage.dependencies['@clowder-ai/plugin-sdk'],
       JSON.parse(await readFile(join(repoRoot, 'packages/weixin-mp/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(weixinMpPackage), /"workspace:/u);
-    assert.equal(wechatReaderPackage.version, '0.1.0-alpha.6');
+    assert.equal(wechatReaderPackage.version, '0.1.0-alpha.7');
     assert.equal(wechatReaderPackage.dependencies['@clowder-ai/plugin-sdk'],
       JSON.parse(await readFile(join(repoRoot, 'packages/wechat-visible-reader/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(wechatReaderPackage), /"workspace:/u);

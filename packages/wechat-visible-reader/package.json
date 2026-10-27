@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/wechat-visible-reader",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "description": "Mac WeChat visible-message reader for Clowder AI hosts",
   "license": "MIT",
   "type": "module",
