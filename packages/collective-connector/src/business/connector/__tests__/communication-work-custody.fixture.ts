@@ -129,6 +129,7 @@ export async function fixture(options: { body?: string; legacyArtifactContext?: 
   };
   return {
     root,
+    server,
     store: opened.store,
     owner,
     connector,

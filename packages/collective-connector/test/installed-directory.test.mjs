@@ -84,7 +84,8 @@ test('packed dependency closure runs the real SDK lifecycle without consumer-pro
     console.log(run(process.execPath, ['journey.mjs'], consumer, testEnvironment).trim());
     const standalone = run(process.execPath, ['--import', 'tsx', '--test', '--test-reporter=tap', 'test/standalone-service.test.mjs'], packageRoot,
       { ...testEnvironment, F290_INSTALLED_PACKAGE_ROOT: installedRoot });
-    assert.match(standalone, /# pass 3\b/);
+    assert.match(standalone, /# tests 4\b/);
+    assert.match(standalone, /# pass [34]\b/);
     console.log(standalone.trim());
     // Exercise the documented npm installer and its actual bin link as well as the Host directory closure.
     const npmConsumer = join(temporary, 'npm-consumer');
@@ -95,8 +96,10 @@ test('packed dependency closure runs the real SDK lifecycle without consumer-pro
     assert.match(run(bin, ['--help'], npmConsumer, testEnvironment), /COLLECTIVE_SERVICE_PUBLIC_URL/);
     const npmStandalone = run(process.execPath, ['--import', 'tsx', '--test', '--test-reporter=tap', 'test/standalone-service.test.mjs'], packageRoot,
       { ...testEnvironment, F290_INSTALLED_PACKAGE_ROOT: join(npmConsumer, 'node_modules/@clowder-ai/collective-connector') });
-    assert.match(npmStandalone, /# pass 3\b/);
-    console.log(JSON.stringify({ documentedNpmInstall: true, actualBinExecuted: true, standaloneChecksPassed: 3 }));
+    assert.match(npmStandalone, /# tests 4\b/);
+    assert.match(npmStandalone, /# pass [34]\b/);
+    console.log(JSON.stringify({ documentedNpmInstall: true, actualBinExecuted: true,
+      standaloneChecksPassed: Number(npmStandalone.match(/# pass (\d+)\b/)[1]) }));
     if (process.env.F202_COLLECTIVE_ARTIFACT_DIR) {
       const candidate = join(temporary, 'host-candidate');
       await cp(installedRoot, candidate, { recursive: true });

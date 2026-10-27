@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { cp, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +11,7 @@ import test from 'node:test';
 import { participationFixture } from '../src/business/service/__tests__/participation-fixture.ts';
 import { ConfigurableGitHubHumanAuthProvider } from '../src/business/service/github-human-auth-provider.ts';
 import { GitHubAppManifestSetup } from '../src/business/service/github-app-manifest-setup.ts';
+import { fixture as publicSourceFixture } from '../src/business/connector/__tests__/communication-work-custody.fixture.ts';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const runtimeRoot = process.env.F290_INSTALLED_PACKAGE_ROOT ?? root;
@@ -34,7 +36,7 @@ test('help is side-effect free even when the saved listener configuration is unu
   }
 });
 
-async function launch(dataDirectory) {
+async function launch(dataDirectory, environment = {}) {
   const child = spawn(process.execPath, launcher, {
     cwd: runtimeRoot,
     env: {
@@ -43,6 +45,7 @@ async function launch(dataDirectory) {
       COLLECTIVE_SERVICE_HOST: '127.0.0.1',
       COLLECTIVE_SERVICE_PORT: '0',
       COLLECTIVE_SERVICE_PUBLIC_URL: 'http://127.0.0.1:15201',
+      ...environment,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -76,6 +79,120 @@ async function launch(dataDirectory) {
     throw error;
   }
 }
+
+test(
+  'the installed CLI uses only its explicitly configured, identity-matched local speech service',
+  {
+    skip: ['ffmpeg', 'ffprobe'].some((tool) => spawnSync(tool, ['-version'], { stdio: 'ignore' }).status !== 0),
+  },
+  async () => {
+    const f = await publicSourceFixture();
+    let running,
+      identity = 'whisper-fixture',
+      uploads = 0;
+    const speech = createServer(async (request, response) => {
+      if (request.url === '/health') {
+        response
+          .writeHead(200, { 'content-type': 'application/json' })
+          .end(JSON.stringify({ status: 'ok', model: identity, backend: 'faster-whisper' }));
+        return;
+      }
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const form = await new Response(Buffer.concat(chunks), {
+        headers: { 'content-type': request.headers['content-type'] },
+      }).formData();
+      assert.equal(form.get('model'), 'whisper-fixture');
+      assert.ok(form.get('file') instanceof File && form.get('file').size > 44);
+      uploads++;
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ text: '明确的转写夹具，真实音频传输。' }));
+    });
+    try {
+      await new Promise((resolve) => speech.listen(0, '127.0.0.1', resolve));
+      const origin = f.server.url;
+      await f.server.close();
+      running = await launch(join(f.root, 'service'), {
+        COLLECTIVE_SERVICE_PORT: new URL(origin).port,
+        COLLECTIVE_SERVICE_PUBLIC_URL: origin,
+        COLLECTIVE_STT_URL: `http://127.0.0.1:${speech.address().port}`,
+        COLLECTIVE_STT_MODEL: 'whisper-fixture',
+      });
+      const bytes = spawnSync(
+        'ffmpeg',
+        [
+          '-v',
+          'error',
+          '-f',
+          'lavfi',
+          '-i',
+          'sine=frequency=440:duration=0.25',
+          '-ar',
+          '16000',
+          '-ac',
+          '1',
+          '-f',
+          'wav',
+          'pipe:1',
+        ],
+        { maxBuffer: 1024 * 1024 },
+      );
+      assert.equal(bytes.status, 0, String(bytes.stderr));
+      const coordinates = {
+        serviceInstanceId: f.connection.serviceInstanceId,
+        collectiveId: f.connection.collectiveId,
+      };
+      const headers = { authorization: `Bearer ${f.owner.sessionToken}`, 'content-type': 'application/json' };
+      const query = new URLSearchParams({
+        ...coordinates,
+        channelId: 'general',
+        clientUploadId: 'configured-speech',
+        fileName: 'voice.wav',
+        mediaType: 'audio/wav',
+        blobDigest: `sha256:${createHash('sha256').update(bytes.stdout).digest('hex')}`,
+      });
+      const upload = await fetch(`${origin}/api/message-attachments/upload?${query}`, {
+        method: 'POST',
+        headers,
+        body: bytes.stdout,
+      });
+      assert.equal(upload.status, 201);
+      const attachment = await upload.json();
+      const sent = await fetch(`${origin}/api/events/human`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ...coordinates,
+          clientEventId: 'published-configured-speech',
+          location: { channelId: 'general' },
+          recipient: { kind: 'channel' },
+          body: '',
+          attachments: [attachment],
+        }),
+      });
+      assert.equal(sent.status, 201);
+      const event = await sent.json();
+      const read = () =>
+        f.connector.readParticipationMedia(f.source, { eventId: event.eventId, attachmentId: attachment.attachmentId });
+      const content = await read();
+      assert.equal(content.content.type, 'audio');
+      assert.equal(content.content.transcript, '明确的转写夹具，真实音频传输。');
+      assert.equal(content.sourceDigest, attachment.blobDigest);
+      assert.equal(uploads, 1);
+      identity = 'another-model';
+      assert.deepEqual((await read()).content, { type: 'unavailable', reason: 'transcription_unavailable' });
+      assert.equal(uploads, 1, 'a different local model receives no audio');
+    } finally {
+      await running?.stop();
+      await new Promise((resolve) => {
+        speech.close(resolve);
+        speech.closeAllConnections();
+      });
+      await f.close();
+    }
+  },
+);
 
 test('standalone entry serves the same Client and recovers the unclaimed bootstrap across restart', async () => {
   const data = await mkdtemp(join(tmpdir(), 'collective-standalone-'));

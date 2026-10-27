@@ -20,6 +20,12 @@
 视频取帧和音频元数据依赖服务器 PATH 中的 `ffmpeg`、`ffprobe`。没有转写服务时，音频仍可上传和播放，
 猫的音频读取明确返回 `transcription_unavailable`，不会伪造转写。
 
+若服务器已有家里同协议的本机 ASR，可显式同时设置 `COLLECTIVE_STT_URL=http://127.0.0.1:9876` 和
+`COLLECTIVE_STT_MODEL=<该服务实际模型名>`。只接受 loopback，调用前核 `/health` 的 `status/model/backend`，
+模型身份不符、服务离线或返回无效时不发送音频或返回“转写不可用”；取消和撤权仍由原读取链处理。
+请求使用既有 `/v1/audio/transcriptions` multipart 协议。CLI 不安装、不启动、不下载 ASR，也不借用某位成员
+电脑上的转写服务。环境配置修改后重启 Service；未配置时不探测默认端口。
+
 先把下列 `<发布回执中的版本>` 替换为实际版本，不使用漂移的 `next` 作为部署记录：
 
 ```sh

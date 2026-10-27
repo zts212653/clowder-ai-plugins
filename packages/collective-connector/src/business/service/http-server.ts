@@ -8,7 +8,7 @@ export interface StartCollectiveServerOptions {
   readonly store: CollectiveServiceStore;
   readonly host?: string;
   readonly port?: number;
-  /** Canonical browser-facing URL when TLS terminates before this listener. */
+  /** Canonical browser-facing URL outside this listener (for example SSH forwarding or TLS termination). */
   readonly publicUrl?: string;
   readonly allowedHostOrigins?: readonly string[] | ReadonlySet<string>;
   readonly clientAssets?: CollectiveClientAssets;

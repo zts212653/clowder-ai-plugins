@@ -11,6 +11,7 @@ import { CollectiveServiceStore } from './store.js';
 import { loadCollectiveClient } from '../../client-assets.js';
 import { escrowBootstrapSecret, recoverBootstrapSecret, writeBootstrapLink } from './bootstrap-files.js';
 import { createFileAttachmentOwner } from '../../attachment-owner/file-owner.js';
+import { createConfiguredTranscriber } from '../../attachment-owner/local-transcriber.js';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -25,6 +26,7 @@ Configuration (environment or a Node --env-file supplied by your service manager
   COLLECTIVE_SERVICE_DATA_DIR              persistent Service and attachment data
   COLLECTIVE_SERVICE_ALLOWED_HOST_ORIGINS  comma-separated exact Café origins
   COLLECTIVE_STICKER_DATA_DIR              provisioned catalogue (default DATA_DIR/stickers)
+  COLLECTIVE_STT_URL / COLLECTIVE_STT_MODEL optional existing loopback speech service and pinned model
 
 Ready output names the private bootstrap-link file; the credential is never logged.
 Stop with SIGTERM or SIGINT. Keep the same data directory on upgrade and restart.
@@ -39,6 +41,7 @@ Stop with SIGTERM or SIGINT. Keep the same data directory on upgrade and restart
   const dataDirectory = resolveDataDirectory(process.env.COLLECTIVE_SERVICE_DATA_DIR);
   const allowedHostOrigins = parseOrigins(process.env.COLLECTIVE_SERVICE_ALLOWED_HOST_ORIGINS);
   const publicUrl = resolveCollectivePublicUrl(process.env.COLLECTIVE_SERVICE_PUBLIC_URL, host, port);
+  const transcribeAudio = createConfiguredTranscriber(process.env);
   const client = await loadCollectiveClient(new URL('../../../assets/client/', import.meta.url));
   // The standalone byte owner needs a matching decoder. Connector-only Host imports never load this native addon.
   await import('sharp');
@@ -55,6 +58,7 @@ Stop with SIGTERM or SIGINT. Keep the same data directory on upgrade and restart
     dataDirectory,
     humanAuthProvider,
     messageAttachmentOwner: createFileAttachmentOwner(resolve(dataDirectory, 'attachments'), {
+      transcribeAudio,
       stickerDirectories: { memory: resolve(stickerDirectory, 'memory'), collaboration: resolve(stickerDirectory, 'collaboration') },
     }),
     humanAuthRedirectUri: new URL('/api/auth/github/callback', publicUrl).toString(),
