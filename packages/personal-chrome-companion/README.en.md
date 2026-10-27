@@ -27,7 +27,7 @@ package's native-host socket client and the helper's v2 protocol:
   alone never removes it.
 
 The `personalChromeAuthorizations` operation lists the authorized
-conversations as Host-rendered rows (one `revoke` row action each), revokes one
+conversations as Host-rendered rows with **Check conversation page** and **Revoke** actions, revokes one
 authorization by `conversationId`, and reports authorization status. The
 underlying store holds at most 32 authorizations; the operation surfaces that
 ceiling through the status action.
@@ -86,7 +86,7 @@ Global Test verifies helper/extension connectivity without selecting any authori
 conversation or reading a page. An unselected page is `unobserved`, not stale or
 ready to send. `adapter.check_health(exactConversationId)` performs an explicit,
 read-only page check and distinguishes missing/duplicate tabs from stale adapters.
-The same owner action is available as **检查会话页面** (Check conversation page) on
+The same owner action is available as **Check conversation page** on
 each authorization row. After reloading that page, check the same row to resolve a
 stale-page reminder. The action revalidates authorization without changing it or
 typing/sending a message.
