@@ -1,3 +1,8 @@
+import { readProjectAttention } from './project-attention.js';
+import { CollectiveProjectMaterialStore } from './project-material-store.js';
+import { CollectiveMaterialSourceRelay } from './material-source-relay.js';
+import type { CollectiveMaterialSourcePort } from '../contracts/types/collective-material.js';
+import { CollectiveTimeStore } from './collaboration-time-store.js';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
@@ -39,6 +44,7 @@ import {
 import { readCollectiveWorkResultFile } from './work-result-files.js';
 
 export interface OpenCollectiveServiceStoreOptions {
+  readonly materialSource?: CollectiveMaterialSourcePort;
   readonly messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort;
   readonly dataDirectory: string;
   /** Retained C2 protocol label, not evidence that this backend serves Client assets. */
@@ -61,6 +67,9 @@ export class CollectiveServiceStore {
   readonly #connections: CollectiveConnectionEventStore;
   readonly #participation: CollectiveParticipationStore;
   readonly #collaboration: CollectiveCollaborationStore;
+  readonly #materials: CollectiveProjectMaterialStore;
+  readonly #materialRelay: CollectiveMaterialSourceRelay;
+  readonly #time: CollectiveTimeStore;
   readonly #bindingVotes: CollectiveBindingVoteStore;
   readonly #reactions: CollectiveReactionStore;
   readonly #workPolicy: CollectiveWorkPolicyStore;
@@ -75,11 +84,15 @@ export class CollectiveServiceStore {
     humanAuthRedirectUri?: string,
     private readonly clientBuildId = 'collective-client-v2',
     messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort,
+    materialSource?: CollectiveMaterialSourcePort,
   ) {
     this.#identity = new CollectiveIdentityStore(persistence, now, humanAuthProvider, humanAuthRedirectUri);
     this.#connections = new CollectiveConnectionEventStore(persistence, now);
     this.#participation = new CollectiveParticipationStore(persistence, now);
     this.#collaboration = new CollectiveCollaborationStore(persistence, now);
+    this.#materialRelay = new CollectiveMaterialSourceRelay(persistence);
+    this.#materials = new CollectiveProjectMaterialStore(persistence, now, materialSource ?? this.#materialRelay);
+    this.#time = new CollectiveTimeStore(persistence, now);
     this.#bindingVotes = new CollectiveBindingVoteStore(persistence, now);
     this.#reactions = new CollectiveReactionStore(persistence, now);
     this.#workPolicy = new CollectiveWorkPolicyStore(persistence, now);
@@ -102,6 +115,7 @@ export class CollectiveServiceStore {
           options.humanAuthRedirectUri,
           options.clientBuildId,
           options.messageAttachmentOwner,
+          options.materialSource,
         ),
       };
     } catch (error) {
@@ -138,6 +152,8 @@ export class CollectiveServiceStore {
         composerDrafts: {},
         readPositions: {},
         participations: {},
+        materialPublications: {},
+        materials: {},
         works: {},
         artifacts: {},
         artifactPublications: {},
@@ -160,6 +176,7 @@ export class CollectiveServiceStore {
           options.humanAuthRedirectUri,
           options.clientBuildId,
           options.messageAttachmentOwner,
+          options.materialSource,
         ),
         bootstrapSecret,
       };
@@ -286,13 +303,40 @@ export class CollectiveServiceStore {
   publishArtifactRequest(session: string, input: unknown) {
     return this.#artifacts.publishRequest(session, input);
   }
+  readCollectiveProjectAttention(credential: string, input: unknown) {
+    return readProjectAttention(this.persistence, this.#materials, credential, input, this.now());
+  }
+  listCollectiveMaterialConnections(sessionToken: string, input: unknown) {
+    return this.#materials.connections(sessionToken, input);
+  }
+  publishCollectiveMaterial(sessionToken: string, input: unknown) {
+    return this.#materials.publish(sessionToken, input);
+  }
+  listCollectiveMaterials(sessionToken: string, input: unknown) {
+    return this.#materials.list(sessionToken, input);
+  }
+  sortCollectiveMaterial(sessionToken: string, input: unknown) {
+    return this.#materials.sort(sessionToken, input);
+  }
+  pollMaterialSource(credential: string, input: unknown) {
+    return this.#materialRelay.poll(credential, input);
+  }
+  validateMaterialSource(credential: string, input: unknown) {
+    return this.#materialRelay.validate(credential, input);
+  }
+  respondMaterialSource(credential: string, input: unknown) {
+    return this.#materialRelay.respond(credential, input);
+  }
+
   startArtifactOwnerRelay() {
+    this.#materialRelay.start();
     this.#artifacts.media.start();
     this.#artifacts.relay.start();
     this.#artifacts.publications.start();
     this.#artifacts.custodyPages.start();
   }
   stopArtifactOwnerRelay() {
+    this.#materialRelay.stop();
     this.#artifacts.media.stop();
     this.#artifacts.relay.stop();
     this.#artifacts.publications.stop();
@@ -565,6 +609,16 @@ export class CollectiveServiceStore {
 
   commitCollectiveWork(sessionToken: string, input: unknown) {
     return this.#collaboration.commitWork(sessionToken, input);
+  }
+
+  changeCollectiveWorkTime(sessionToken: string, input: unknown) {
+    return this.#time.changeWork(sessionToken, input);
+  }
+  changeCollectiveAgentWorkTime(credential: string, input: unknown) {
+    return this.#time.changeAgentWork(credential, input);
+  }
+  setCollectiveRoadmapTargetDate(sessionToken: string, input: unknown) {
+    return this.#time.setProjectTarget(sessionToken, input);
   }
 
   setCollectiveWorkDependencies(sessionToken: string, input: unknown) {

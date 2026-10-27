@@ -18,6 +18,17 @@ steps:
 test:
   action: { method: github.connection.test }
 configuration:
+  - key: sourceMaterial
+    label: Explicitly shared GitHub material
+    kind: operation
+    hidden: true
+    required: false
+    actions:
+      - id: invoke
+        label: Read published PR or Issue
+        render: button
+        action:
+          method: github.sourceMaterial
   - key: recoveryMode
     label: 接续旧跟踪（可选）
     description: 新安装留空。接续旧记录时，在启用替代实例前填写 import-only；

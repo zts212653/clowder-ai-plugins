@@ -41,3 +41,8 @@ export * from './types/collective-work-return.js';
 export * from './types/collective-work-wake.js';
 export * from './types/message-stickers.js';
 export * from './utils/media-byte-range.js';
+export * from './types/collective-time.js';
+
+export * from './types/collective-material.js';
+
+export * from './types/collective-project-attention.js';

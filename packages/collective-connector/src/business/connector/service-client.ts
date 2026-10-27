@@ -1,8 +1,10 @@
+import { collectiveProjectAttentionReadSchema } from '../contracts/types/collective-project-attention.js';
 import { z } from 'zod';
 import {
   type CollectiveAccountabilityAttentionReadRequest,
   type CollectiveAgentMessageRequest,
   type CollectiveAgentWorkProposalRequest,
+  type ChangeCollectiveAgentWorkTimeRequest,
   type CollectiveContextAttachmentSelection,
   type CollectiveEventEnvelope,
   type CollectivePairingIntent,
@@ -116,6 +118,15 @@ export class CollectiveServiceClient {
     this.media = new CollectiveArtifactMediaClient((url, path, options) => this.request(url, path, options), fetchImpl);
   }
 
+  async readProjectAttention(url: string, credential: string, body: unknown) {
+    return collectiveProjectAttentionReadSchema.parse(
+      await this.request(url, '/api/collaboration/project-attention', { method: 'POST', credential, body }),
+    );
+  }
+  materialOwnerRequest(url: string, credential: string, action: 'poll' | 'validate' | 'respond', body: unknown) {
+    return this.request(url, `/api/collaboration/materials/owner/${action}`, { method: 'POST', credential, body });
+  }
+
   usesLocalTransport(serviceUrl: string): boolean {
     return this.localTransport?.matches(serviceUrl) ?? false;
   }
@@ -209,6 +220,16 @@ export class CollectiveServiceClient {
       body: input,
     });
     return collectiveWorkProjectionSchema.parse(payload);
+  }
+
+  async changeAgentWorkTime(serviceUrl: string, credential: string, input: ChangeCollectiveAgentWorkTimeRequest) {
+    return collectiveWorkProjectionSchema.parse(
+      await this.request(serviceUrl, '/api/collaboration/work/time-agent', {
+        method: 'POST',
+        credential,
+        body: input,
+      }),
+    );
   }
 
   async readAssignedWork(

@@ -7,6 +7,17 @@ icon:
   type: png
   src: assets/icon.png
 configuration:
+  - key: sourceMaterial
+    label: Published meeting material source
+    kind: operation
+    hidden: true
+    required: false
+    actions:
+      - id: invoke
+        label: Read explicitly published material
+        render: button
+        action:
+          method: meeting.sourceMaterial
   - key: appId
     label: Feishu app ID
     kind: string

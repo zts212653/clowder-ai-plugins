@@ -1,3 +1,4 @@
+import { recordCollectiveActualStart } from './collaboration-time.js';
 import type {
   CollectiveAgentMessageRequest,
   CollectiveEventEnvelope,
@@ -78,4 +79,5 @@ export function recordCollectiveWorkProgress(state: MutableServiceState, event: 
     eventId: event.eventId,
     note: event.body.slice(0, 1000),
   });
+  recordCollectiveActualStart(work, collaborationActorFromEvent(event), event.acceptedAt, event.eventId);
 }

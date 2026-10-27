@@ -91,7 +91,7 @@ export interface ConnectionRecord {
 export interface CollaborationOperationReceipt {
   readonly actorScope: string;
   readonly fingerprint: string;
-  readonly resourceKind: 'work' | 'roadmap' | 'vote' | 'binding_vote' | 'reaction' | 'artifact';
+  readonly resourceKind: 'work' | 'roadmap' | 'vote' | 'binding_vote' | 'reaction' | 'artifact' | 'material';
   readonly resourceId: string;
   readonly revision: number;
   readonly recordedAt: string;
@@ -129,8 +129,16 @@ export type WorkResultFileRecord = CollectiveWorkResultFile & {
 };
 
 export interface ServiceState {
+  readonly materialPublications: Record<
+    string,
+    import('../contracts/types/collective-material.js').CollectiveMaterialPublication
+  >;
+  readonly materials: Record<string, import('../contracts/types/collective-material.js').CollectiveMaterialRecord>;
   readonly messageAttachments: Record<string, import('./message-attachment-state.js').MessageAttachmentRecord>;
-  readonly composerDrafts: Record<string, import('zod').z.infer<typeof import('../contracts/types/collective-message-state.js').collectiveDraftRecordSchema>>;
+  readonly composerDrafts: Record<
+    string,
+    import('zod').z.infer<typeof import('../contracts/types/collective-message-state.js').collectiveDraftRecordSchema>
+  >;
   readonly readPositions: Record<string, { sequence: number; eventId?: string }>;
   readonly schemaVersion: 2;
   readonly serviceInstanceId: string;

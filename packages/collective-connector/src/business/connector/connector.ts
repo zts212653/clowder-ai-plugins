@@ -1,3 +1,7 @@
+import { unavailable } from './work-policy-custody.js';
+import { ConnectorMaterialSourceRelay } from './material-source-client.js';
+import type { CollectiveMaterialSourcePort } from '../contracts/types/collective-material.js';
+import { changeVerifiedWorkTime, type AgentWorkTimeCommand } from './work-time-command.js';
 import { isDeepStrictEqual } from 'node:util';
 import {
   type CollectiveAgentMessageRequest,
@@ -95,6 +99,7 @@ export class CollectiveConnector {
   private readonly workAcceptance: ConnectorWorkAcceptanceCustody;
   private readonly workContinuation: ConnectorWorkContinuationCustody;
   private readonly authorityTails = new Map<string, Promise<void>>();
+  private readonly materialSource: ConnectorMaterialSourceRelay;
   private readonly artifactOwner: ConnectorArtifactOwnerRelay;
 
   private constructor(
@@ -103,6 +108,7 @@ export class CollectiveConnector {
     private readonly verifyAgent: (agent: VerifiedAgent) => Promise<boolean>,
     private readonly now: () => number,
   ) {
+    this.materialSource = new ConnectorMaterialSourceRelay(persistence, service);
     this.artifactOwner = new ConnectorArtifactOwnerRelay(persistence, service);
     this.synchronization = new ConnectorSynchronization(persistence, service, now, (source) =>
       this.workAcceptance.resolveGrant(source),
@@ -206,6 +212,7 @@ export class CollectiveConnector {
         await this.workAcceptance.recover(connectionId);
         await this.workContinuation.recover(connectionId);
         await this.artifactOwner.sync(connectionId);
+        await this.materialSource.sync(connectionId);
       }
       return this.getProjection(connectionId);
     });
@@ -228,6 +235,42 @@ export class CollectiveConnector {
   }
   stopMediaReads() {
     return this.artifactOwner.media.stop();
+  }
+
+  async readProjectAttention(connectionId: string, ownerUserId: string) {
+    const expected = this.persistence.snapshot(),
+      connection = expected.connections[connectionId],
+      route = expected.hostRoutes[connectionId];
+    if (
+      !connection ||
+      connection.authorityStatus !== 'connected' ||
+      !connection.endpointCredential ||
+      route?.localOwnerUserId !== ownerUserId
+    )
+      throw unavailable();
+    // Do not hold the connection mutation lock while its owner source answers a relay read.
+    const read = await this.service.readProjectAttention(connection.serviceUrl, connection.endpointCredential, {
+      serviceInstanceId: connection.serviceInstanceId,
+      collectiveId: connection.collectiveId,
+      connectionId,
+    });
+    const current = this.persistence.snapshot();
+    if (
+      current.connections[connectionId]?.authorityStatus !== 'connected' ||
+      current.connections[connectionId]?.endpointCredential !== connection.endpointCredential ||
+      current.hostRoutes[connectionId]?.revision !== route.revision ||
+      current.hostRoutes[connectionId]?.localOwnerUserId !== ownerUserId ||
+      read.identity.authorizedHumanId !== connection.authorizedHumanId ||
+      read.identity.connectionId !== connectionId ||
+      read.identity.serviceInstanceId !== connection.serviceInstanceId ||
+      read.identity.collectiveId !== connection.collectiveId
+    )
+      throw unavailable();
+    return read;
+  }
+
+  setMaterialSource(owner: CollectiveMaterialSourcePort | undefined) {
+    this.materialSource.owner = owner;
   }
 
   setArtifactOwner(owner: CollectiveArtifactOwnerPort | undefined) {
@@ -862,6 +905,19 @@ export class CollectiveConnector {
         proposal: input,
       });
     });
+  }
+
+  async changeWorkTime(connectionId: string, command: AgentWorkTimeCommand, agent: VerifiedAgent) {
+    return this.withAuthority(connectionId, () =>
+      changeVerifiedWorkTime({
+        connectionId,
+        command,
+        agent,
+        persistence: this.persistence,
+        service: this.service,
+        verifyAgent: this.verifyAgent,
+      }),
+    );
   }
 
   async readAssignedWork(connectionId: string, workId: string) {
