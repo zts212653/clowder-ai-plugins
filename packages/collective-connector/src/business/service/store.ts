@@ -1,12 +1,8 @@
-import { readProjectAttention } from './project-attention.js';
-import { CollectiveProjectMaterialStore } from './project-material-store.js';
-import { CollectiveMaterialSourceRelay } from './material-source-relay.js';
-import type { CollectiveMaterialSourcePort } from '../contracts/types/collective-material.js';
-import { CollectiveTimeStore } from './collaboration-time-store.js';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
 import type { CollectiveMessageAttachmentOwnerPort } from '../contracts/message-attachment-owner.js';
+import type { CollectiveMaterialSourcePort } from '../contracts/types/collective-material.js';
 import { readArtifactRequestReceipt } from './artifact-history.js';
 import { readArtifactManagement } from './artifact-management.js';
 import { recoverMediaCustody } from './artifact-media-continuity.js';
@@ -17,11 +13,13 @@ import { CollectiveHumanChannelState } from './channel-human-state.js';
 import { CollectiveBindingVoteStore } from './collaboration-binding-vote-store.js';
 import { CollectiveReactionStore } from './collaboration-reaction-store.js';
 import { CollectiveCollaborationStore } from './collaboration-store.js';
+import { CollectiveTimeStore } from './collaboration-time-store.js';
 import { assertConnectionCoordinates, requireAuthorizedHuman } from './connection-authority.js';
 import { CollectiveConnectionEventStore, type PairingExchangeInput } from './connection-event-store.js';
 import { CollectiveServiceError } from './errors.js';
 import type { HumanAuthProvider, HumanAuthProviderId } from './human-auth-provider.js';
 import { CollectiveIdentityStore } from './identity-store.js';
+import { CollectiveMaterialSourceRelay } from './material-source-relay.js';
 import { readMemberDirectory } from './member-directory.js';
 import { readMembershipLeaveReadiness } from './membership-leave-readiness.js';
 import { leaveCollectiveMembership } from './membership-lifecycle.js';
@@ -35,6 +33,9 @@ import {
   SERVICE_STATE_FILE,
   secretMatches,
 } from './persistence.js';
+import { readProjectAttention } from './project-attention.js';
+import { CollectiveProjectMaterialStore } from './project-material-store.js';
+import { readProjectSource, suggestMaterial } from './project-source.js';
 import type { ServiceState } from './state.js';
 import { CollectiveWorkPolicyStore } from './work-policy-store.js';
 import {
@@ -305,6 +306,12 @@ export class CollectiveServiceStore {
   }
   readCollectiveProjectAttention(credential: string, input: unknown) {
     return readProjectAttention(this.persistence, this.#materials, credential, input, this.now());
+  }
+  readCollectiveProjectSource(credential: string, input: unknown) {
+    return readProjectSource(this.persistence, this.#materials, credential, input);
+  }
+  suggestCollectiveMaterial(credential: string, input: unknown) {
+    return suggestMaterial(this.persistence, this.#materials, credential, input, this.now());
   }
   listCollectiveMaterialConnections(sessionToken: string, input: unknown) {
     return this.#materials.connections(sessionToken, input);

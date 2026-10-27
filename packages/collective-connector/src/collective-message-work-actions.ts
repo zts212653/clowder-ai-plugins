@@ -1,16 +1,17 @@
 import type { PluginActionContext } from '@clowder-ai/plugin-sdk';
 import type { CollectiveConnector } from './business/connector/connector.js';
-import type { createCollectiveMessageWorkCaller } from './collective-message-work.js';
-import type { openCollectiveContextReferences } from './collective-context-refs.js';
-import { collectiveContextError } from './collective-context-refs.js';
-import { publishCollectiveProgress } from './owner-work-progress.js';
-import type { createCollectiveMessageWorkArtifacts } from './collective-message-work-artifacts.js';
-import { collectiveWorkNativeTools } from './work-native-methods.js';
 import {
   changeCollectiveAgentWorkTimeRequestSchema,
   collectiveArtifactCommandSchema,
 } from './business/contracts/index.js';
 import { executeCollectiveArtifactCommand } from './collective-artifact-command.js';
+import type { openCollectiveContextReferences } from './collective-context-refs.js';
+import { collectiveContextError } from './collective-context-refs.js';
+import type { createCollectiveMessageWorkCaller } from './collective-message-work.js';
+import type { createCollectiveMessageWorkArtifacts } from './collective-message-work-artifacts.js';
+import { publishCollectiveProgress } from './owner-work-progress.js';
+import { materialSuggestInputSchema } from './project-source-native.js';
+import { collectiveWorkNativeTools } from './work-native-methods.js';
 
 /** Same declared Work MCP methods over an ordinary Registry-authenticated call.
  * The original Connector owns reply preparation, replay and Service receipts. */
@@ -78,6 +79,26 @@ export function createCollectiveMessageWorkActions(
         };
       };
       if (method === 'collective.work.context.current') return currentReply();
+      if (method === 'collective.work.project.context' || method === 'collective.work.material.read') {
+        refs.verifyRef(identity, input.contextRef as string, 'context', binding.refScope);
+        await current();
+        const result = await connector.readProjectSource(binding.source, input.materialId as string | undefined);
+        await current();
+        return result;
+      }
+      if (method === 'collective.work.material.suggest') {
+        refs.verifyRef(identity, input.contextRef as string, 'context', binding.refScope);
+        const { contextRef: _, ...command } = materialSuggestInputSchema.parse(input);
+        await current();
+        const result = await connector.suggestMaterial(binding.source, command, {
+          catId: binding.auth.catId,
+          agentId: binding.auth.catId,
+          displayName: binding.displayName,
+          sessionRef: binding.auth.invocationId,
+        });
+        await current();
+        return result;
+      }
       if (method === 'collective.work.time') {
         refs.verifyRef(identity, input.contextRef as string, 'context', binding.refScope);
         await current();
@@ -91,6 +112,7 @@ export function createCollectiveMessageWorkActions(
           connectionId: binding.source.connectionId,
           catId: binding.auth.catId,
           participationRevision: binding.source.participationRevision,
+          sourceEventId: binding.source.eventId,
         });
         const result = await connector.changeWorkTime(binding.source.connectionId, command, {
           catId: binding.auth.catId,

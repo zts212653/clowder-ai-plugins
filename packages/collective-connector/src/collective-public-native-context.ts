@@ -12,6 +12,12 @@ import {
   suggestProjectWorkFromSource,
 } from './collective-work-source-context.js';
 import {
+  materialReadInputSchema,
+  materialSuggestInputSchema,
+  projectSourceContextInputSchema,
+  publicTimeSuggestInputSchema,
+} from './project-source-native.js';
+import {
   collectiveContextReadSchema,
   collectivePublicNativeTools,
   collectiveReplySubmitSchema,
@@ -74,7 +80,8 @@ interface Options {
     | 'proposeWork'
     | 'acceptWork'
     | 'continueWork'
-  >;
+  > &
+    Partial<Pick<CollectiveConnector, 'readProjectSource' | 'suggestMaterial' | 'suggestWorkTime'>>;
   readonly sourceCaller: Pick<ReturnType<typeof createCollectivePublicSourceCaller>, 'resolveNative'>;
   readonly references: CollectiveContextReferences;
 }
@@ -198,6 +205,41 @@ export function createCollectivePublicNativeActions(options: Options): Readonly<
       return result;
     };
   return Object.freeze({
+    'collective.project.context': handler(
+      'collective.project.context',
+      projectSourceContextInputSchema,
+      async (binding, input) => {
+        refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);
+        if (!connector.readProjectSource) throw new Error('Project source reader is unavailable');
+        return connector.readProjectSource(binding.source);
+      },
+    ),
+    'collective.material.read': handler('collective.material.read', materialReadInputSchema, async (binding, input) => {
+      refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);
+      if (!connector.readProjectSource) throw new Error('Project source reader is unavailable');
+      return connector.readProjectSource(binding.source, input.materialId);
+    }),
+    'collective.material.suggest': handler(
+      'collective.material.suggest',
+      materialSuggestInputSchema,
+      async (binding, input) => {
+        refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);
+        if (!connector.suggestMaterial) throw new Error('Project suggestion consumer is unavailable');
+        const { contextRef: _, ...command } = input;
+        return connector.suggestMaterial(binding.source, command, binding.agent);
+      },
+    ),
+    'collective.work.suggest-time': handler(
+      'collective.work.suggest-time',
+      publicTimeSuggestInputSchema,
+      async (binding, input) => {
+        refs.verifyRef(binding.identity, input.contextRef, 'context', binding.refScope);
+        if (!connector.suggestWorkTime) throw new Error('Public date suggestion consumer is unavailable');
+        const { contextRef: _, ...command } = input;
+        const work = await connector.suggestWorkTime(binding.source, command, binding.agent);
+        return { workId: work.workId, revision: work.revision, timeSuggestions: work.timeSuggestions ?? [] };
+      },
+    ),
     'collective.artifact.command': handler(
       'collective.artifact.command',
       collectiveArtifactCallbackCommandSchema,

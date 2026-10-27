@@ -1,14 +1,19 @@
 import {
-  changeCollectiveWorkTimeRequestSchema,
-  changeCollectiveAgentWorkTimeRequestSchema,
-  setCollectiveRoadmapTargetDateRequestSchema,
   type CollectiveCollaborationActor,
+  changeCollectiveAgentWorkTimeRequestSchema,
+  changeCollectiveWorkTimeRequestSchema,
+  setCollectiveRoadmapTargetDateRequestSchema,
 } from '../contracts/index.js';
 import { humanActor, requireHumanCommand, requireWorkSource } from './collaboration-command-helpers.js';
 import { changeCollectiveWorkTime, setCollectiveRoadmapTargetDate } from './collaboration-time.js';
 import { requireCollectiveWork } from './collaboration-work.js';
 import { assertConnectionCoordinates, requireAuthorizedHuman, requireConnection } from './connection-authority.js';
-import { requireParticipant } from './participation-store.js';
+import { CollectiveServiceError } from './errors.js';
+import {
+  requireLinkedParticipationSource,
+  requireParticipant,
+  requireParticipationSource,
+} from './participation-store.js';
 import type { PersistentServiceState } from './persistence.js';
 import { requireAcceptedWorkExecution } from './work-execution-authority.js';
 
@@ -34,6 +39,14 @@ export class CollectiveTimeStore {
       const human = requireAuthorizedHuman(state, connection);
       const work = requireCollectiveWork(state, input.collectiveId, input.workId);
       const source = requireWorkSource(state, input.collectiveId, work.sourceEventId);
+      if (input.action === 'suggest') {
+        if (!input.sourceEventId)
+          throw new CollectiveServiceError('RETURN_UNAVAILABLE', 'An exact public source is required', 409);
+        const request = requireParticipationSource(state, credential, { ...input, eventId: input.sourceEventId });
+        const original = requireLinkedParticipationSource(state, credential, input, work.sourceEventId);
+        if (request.location.channelId !== original.location.channelId)
+          throw new CollectiveServiceError('PARTICIPATION_REVOKED', 'The task is outside this Channel', 403);
+      }
       const participant = requireParticipant(state, {
         ...input,
         humanId: human.humanId,

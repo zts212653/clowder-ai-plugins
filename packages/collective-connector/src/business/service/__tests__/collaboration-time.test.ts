@@ -199,3 +199,51 @@ it('serializes concurrent date changes and preserves the previous value when a d
     }),
   ).rejects.toThrow();
 });
+
+it('lets another current Channel Cat suggest a date from its exact source without acquiring execution or promise authority', async () => {
+  const f = await fixture();
+  await f.store.publishParticipation(f.connection.endpointCredential, {
+    ...f.coordinates,
+    connectionId: f.connection.connectionId,
+    revision: 1,
+    agents: [{ catId: 'reader-cat', displayName: 'Reader', channelIds: ['general'] }],
+  });
+  const input = {
+    ...f.coordinates,
+    connectionId: f.connection.connectionId,
+    catId: 'reader-cat',
+    participationRevision: 1,
+    workId: f.work.workId,
+    expectedRevision: f.work.revision,
+    requestId: 'cat-date',
+    action: 'suggest',
+    field: 'businessDeadline',
+    time: deadline,
+    reason: 'A date suggestion, not a promise',
+    sourceEventId: f.source.eventId,
+  };
+  const result = await f.store.changeCollectiveAgentWorkTime(f.connection.endpointCredential, input);
+  expect(result.time?.businessDeadline).toBeUndefined();
+  expect(result.timeSuggestions?.at(-1)).toMatchObject({
+    actor: { kind: 'agent', catId: 'reader-cat' },
+    sourceEventId: f.source.eventId,
+    status: 'pending',
+  });
+  await expect(
+    f.store.changeCollectiveAgentWorkTime(f.connection.endpointCredential, {
+      ...input,
+      requestId: 'cat-promise',
+      expectedRevision: result.revision,
+      action: 'set',
+      reason: undefined,
+    }),
+  ).rejects.toThrow();
+  await expect(
+    f.store.changeCollectiveAgentWorkTime(f.connection.endpointCredential, {
+      ...input,
+      requestId: 'cat-source-forgery',
+      expectedRevision: result.revision,
+      sourceEventId: 'not-published',
+    }),
+  ).rejects.toThrow();
+});

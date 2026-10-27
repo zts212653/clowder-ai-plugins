@@ -1,10 +1,36 @@
 import { z } from 'zod';
-import { collectiveTimeInputSchema, collectiveArtifactCallbackCommandSchema } from './business/contracts/index.js';
+import { collectiveArtifactCallbackCommandSchema, collectiveTimeInputSchema } from './business/contracts/index.js';
+import {
+  MATERIAL_READ_DESCRIPTION,
+  MATERIAL_SUGGEST_DESCRIPTION,
+  materialReadInputSchema,
+  materialSuggestInputSchema,
+  PROJECT_SOURCE_DESCRIPTION,
+  projectSourceContextInputSchema,
+} from './project-source-native.js';
 
 export const COLLECTIVE_WORK_NATIVE_ID = 'collective-work-native';
 /** Explicit selection is one canonical material; absence of registration still permits body-only results. */
 export const collectiveWorkArtifactRefsSchema = z.array(z.string().trim().min(1).max(1000)).length(1);
 export const collectiveWorkNativeTools = [
+  {
+    method: 'collective.work.project.context',
+    name: 'cat_cafe_collective_work_project_context',
+    description: PROJECT_SOURCE_DESCRIPTION,
+    schema: projectSourceContextInputSchema,
+  },
+  {
+    method: 'collective.work.material.read',
+    name: 'cat_cafe_collective_work_read_material',
+    description: MATERIAL_READ_DESCRIPTION,
+    schema: materialReadInputSchema,
+  },
+  {
+    method: 'collective.work.material.suggest',
+    name: 'cat_cafe_collective_work_suggest_material',
+    description: MATERIAL_SUGGEST_DESCRIPTION,
+    schema: materialSuggestInputSchema,
+  },
   {
     method: 'collective.work.time',
     name: 'cat_cafe_collective_work_time',

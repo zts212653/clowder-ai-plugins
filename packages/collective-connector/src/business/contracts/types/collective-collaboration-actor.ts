@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { collectiveHumanIdSchema, collectiveConnectionIdSchema } from './collective.js';
+import { collectiveConnectionIdSchema, collectiveHumanIdSchema } from './collective.js';
 
 export const collectiveCollaborationActorSchema = z.discriminatedUnion('kind', [
   z

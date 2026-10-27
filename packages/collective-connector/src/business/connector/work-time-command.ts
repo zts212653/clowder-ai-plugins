@@ -4,10 +4,10 @@ import type { ConnectorPersistence } from './persistence.js';
 import type { CollectiveServiceClient } from './service-client.js';
 import type { VerifiedAgent } from './state.js';
 
-export type AgentWorkTimeCommand = Omit<
-  ChangeCollectiveAgentWorkTimeRequest,
-  'serviceInstanceId' | 'collectiveId' | 'connectionId' | 'catId' | 'participationRevision'
->;
+type CommandWithoutIdentity<T> = T extends ChangeCollectiveAgentWorkTimeRequest
+  ? Omit<T, 'serviceInstanceId' | 'collectiveId' | 'connectionId' | 'catId' | 'participationRevision'>
+  : never;
+export type AgentWorkTimeCommand = CommandWithoutIdentity<ChangeCollectiveAgentWorkTimeRequest>;
 
 export async function changeVerifiedWorkTime(input: {
   readonly connectionId: string;

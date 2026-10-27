@@ -1,11 +1,3 @@
-import { collectiveMaterialLinkSchema } from './collective-material.js';
-import { collectiveCollaborationActorSchema } from './collective-collaboration-actor.js';
-import {
-  collectiveWorkTimeSchema,
-  collectiveTimeSuggestionSchema,
-  collectiveTimeChangeSchema,
-  collectiveTimeFactSchema,
-} from './collective-time.js';
 import { z } from 'zod';
 import {
   collectiveConnectionCoordinatesSchema,
@@ -15,14 +7,22 @@ import {
   collectiveHumanIdSchema,
   collectiveLocationSchema,
 } from './collective.js';
+import { collectiveCollaborationActorSchema } from './collective-collaboration-actor.js';
 import { collectiveRoadmapIdSchema, collectiveWorkIdSchema } from './collective-collaboration-identifiers.js';
 import { collectiveBindingVoteProjectionSchema, collectiveDecisionRecordSchema } from './collective-decision-vote.js';
+import { collectiveMaterialLinkSchema } from './collective-material.js';
 import {
   collectiveProjectWorkSuggestionSchema,
   collectiveProjectWorkSuggestionTargetSchema,
   collectiveWorkAccountabilityRequestSchema,
 } from './collective-project-authoring.js';
 import { collectiveReactionSummarySchema } from './collective-reaction.js';
+import {
+  collectiveTimeChangeSchema,
+  collectiveTimeFactSchema,
+  collectiveTimeSuggestionSchema,
+  collectiveWorkTimeSchema,
+} from './collective-time.js';
 import { collectiveVoteProjectionSchema } from './collective-vote.js';
 import {
   collectiveWorkAcceptanceSchema,

@@ -6,6 +6,15 @@ import {
   collectiveMessageContentFields,
   requireCollectiveMessageContent,
 } from './business/contracts/index.js';
+import {
+  MATERIAL_READ_DESCRIPTION,
+  MATERIAL_SUGGEST_DESCRIPTION,
+  materialReadInputSchema,
+  materialSuggestInputSchema,
+  PROJECT_SOURCE_DESCRIPTION,
+  projectSourceContextInputSchema,
+  publicTimeSuggestInputSchema,
+} from './project-source-native.js';
 
 export const collectiveReplySubmitSchema = z
   .object({
@@ -43,6 +52,31 @@ export const collectiveContextReadSchema = z
 
 export const COLLECTIVE_NATIVE_ID = 'collective-native';
 export const collectivePublicNativeTools = [
+  {
+    method: 'collective.project.context',
+    name: 'cat_cafe_collective_project_context',
+    description: PROJECT_SOURCE_DESCRIPTION,
+    schema: projectSourceContextInputSchema,
+  },
+  {
+    method: 'collective.material.read',
+    name: 'cat_cafe_collective_read_material',
+    description: MATERIAL_READ_DESCRIPTION,
+    schema: materialReadInputSchema,
+  },
+  {
+    method: 'collective.material.suggest',
+    name: 'cat_cafe_collective_suggest_material',
+    description: MATERIAL_SUGGEST_DESCRIPTION,
+    schema: materialSuggestInputSchema,
+  },
+  {
+    method: 'collective.work.suggest-time',
+    name: 'cat_cafe_collective_suggest_work_time',
+    description:
+      'Suggest a deadline or review date for a public task in this current source Channel. Use contextRef and task ID/revision from Project context, a stable requestId, reason, instant and IANA zone. Output: a durable authenticated suggestion for its accountable Human; the task promise, estimate and lifecycle stay unchanged until Human confirmation. Not for execution, confirming dates or private Task dates.',
+    schema: publicTimeSuggestInputSchema,
+  },
   {
     method: 'collective.context.current',
     name: 'cat_cafe_collective_current_context',

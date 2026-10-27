@@ -51,6 +51,10 @@ async function routeProjectPost(
 ): Promise<boolean> {
   if (pathname === '/api/collaboration/project-attention') {
     writeJson(response, 200, await store.readCollectiveProjectAttention(credential, body));
+  } else if (pathname === '/api/collaboration/project-source') {
+    writeJson(response, 200, await store.readCollectiveProjectSource(credential, body));
+  } else if (pathname === '/api/collaboration/materials/suggest') {
+    writeJson(response, 200, await store.suggestCollectiveMaterial(credential, body));
   } else if (pathname === '/api/collaboration/materials/connections') {
     writeJson(response, 200, store.listCollectiveMaterialConnections(credential, body));
   } else if (pathname === '/api/collaboration/materials/publish') {

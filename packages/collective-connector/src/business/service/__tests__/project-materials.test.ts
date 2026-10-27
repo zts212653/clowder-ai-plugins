@@ -2,13 +2,13 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
-import { participationFixture } from './participation-fixture.js';
-import { CollectiveServiceStore } from '../store.js';
-import { SERVICE_STATE_FILE } from '../persistence.js';
 import type {
   CollectiveMaterialSourcePort,
   CollectiveMaterialSourceResult,
 } from '../../contracts/types/collective-material.js';
+import { SERVICE_STATE_FILE } from '../persistence.js';
+import { CollectiveServiceStore } from '../store.js';
+import { participationFixture } from './participation-fixture.js';
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -219,4 +219,75 @@ it('projects one material attention row per project and reads deadline attention
   f.setCurrent({ status: 'unavailable', reason: 'access_revoked' });
   expect((await read()).items.some((item) => item.kind === 'triage')).toBe(false);
   expect(f.store.listCollectiveCollaboration(f.owner.sessionToken, f.coordinates.collectiveId).works).toHaveLength(1);
+});
+
+it('lets a current Channel Cat read and select only live published clauses without deciding their destination', async () => {
+  const f = await fixture();
+  const declaration = await f.store.publishParticipation(f.connection.endpointCredential, {
+    ...f.coordinates,
+    connectionId: f.connection.connectionId,
+    revision: 1,
+    agents: [{ catId: 'reader-cat', displayName: 'Reader', channelIds: ['general'] }],
+  });
+  const request = await f.store.postHumanMessage(f.owner.sessionToken, {
+    ...f.coordinates,
+    clientEventId: 'reader-request',
+    location: { channelId: 'general' },
+    recipient: { kind: 'channel' },
+    body: 'Read the published project material',
+  });
+  const scope = {
+    ...f.coordinates,
+    connectionId: f.connection.connectionId,
+    sourceEventId: request.eventId,
+    catId: 'reader-cat',
+    participationRevision: declaration.revision,
+  };
+  expect((await f.store.readCollectiveProjectSource(f.connection.endpointCredential, scope)).materials).toEqual([]);
+  const published = await f.store.publishCollectiveMaterial(f.owner.sessionToken, f.input);
+  const context = await f.store.readCollectiveProjectSource(f.connection.endpointCredential, scope);
+  expect(context.materials).toHaveLength(1);
+  expect(JSON.stringify(context)).not.toContain('Connect the plugin by Friday');
+  const read = await f.store.readCollectiveProjectSource(f.connection.endpointCredential, {
+    ...scope,
+    materialId: published.materialId,
+  });
+  expect(read.materials[0]?.material?.clauses[0]?.text).toBe('Connect the plugin by Friday');
+  const selected = await f.store.suggestCollectiveMaterial(f.connection.endpointCredential, {
+    ...scope,
+    materialId: published.materialId,
+    expectedRevision: context.materials[0]!.revision,
+    requestId: 'select-clause',
+    clauseIds: ['clause-first'],
+  });
+  expect(selected.selections?.[0]?.actor).toMatchObject({ kind: 'agent', catId: 'reader-cat' });
+  expect(f.store.listCollectiveCollaboration(f.owner.sessionToken, f.coordinates.collectiveId).works).toHaveLength(0);
+  const selectedRead = await f.store.readCollectiveProjectSource(f.connection.endpointCredential, {
+    ...scope,
+    materialId: published.materialId,
+  });
+  expect(selectedRead.materials[0]?.material?.clauses[0]?.suggestedBy?.kind).toBe('agent');
+  f.setCurrent({ status: 'unavailable', reason: 'deleted' });
+  const denied = await f.store.readCollectiveProjectSource(f.connection.endpointCredential, {
+    ...scope,
+    materialId: published.materialId,
+  });
+  expect(denied.materials).toEqual([]);
+  expect(JSON.stringify(denied)).not.toContain('Private source title');
+  await expect(
+    f.store.suggestCollectiveMaterial(f.connection.endpointCredential, {
+      ...scope,
+      materialId: published.materialId,
+      expectedRevision: selected.revision,
+      requestId: 'select-deleted',
+      clauseIds: ['clause-second'],
+    }),
+  ).rejects.toMatchObject({ code: 'MATERIAL_SOURCE_UNAVAILABLE' });
+  await f.store.publishParticipation(f.connection.endpointCredential, {
+    ...f.coordinates,
+    connectionId: f.connection.connectionId,
+    revision: declaration.revision + 1,
+    agents: [],
+  });
+  await expect(f.store.readCollectiveProjectSource(f.connection.endpointCredential, scope)).rejects.toThrow();
 });

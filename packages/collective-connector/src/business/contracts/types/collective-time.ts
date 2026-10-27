@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import {
-  collectiveCoordinatesSchema,
   collectiveConnectionCoordinatesSchema,
+  collectiveCoordinatesSchema,
   collectiveEventIdSchema,
-  collectiveServiceUrlSchema,
   collectiveLocationSchema,
+  collectiveServiceUrlSchema,
 } from './collective.js';
 import { collectiveCollaborationActorSchema } from './collective-collaboration-actor.js';
-import { collectiveWorkIdSchema, collectiveRoadmapIdSchema } from './collective-collaboration-identifiers.js';
+import { collectiveRoadmapIdSchema, collectiveWorkIdSchema } from './collective-collaboration-identifiers.js';
 
 export const collectiveTimeZoneSchema = z
   .string()

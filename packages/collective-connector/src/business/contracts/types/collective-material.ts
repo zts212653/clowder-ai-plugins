@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { collectiveCoordinatesSchema, collectiveConnectionCoordinatesSchema } from './collective.js';
+import { collectiveConnectionCoordinatesSchema, collectiveCoordinatesSchema } from './collective.js';
 import { collectiveCollaborationActorSchema } from './collective-collaboration-actor.js';
 import { collectiveRoadmapIdSchema, collectiveWorkIdSchema } from './collective-collaboration-identifiers.js';
 
@@ -89,6 +89,19 @@ export const collectiveMaterialRecordSchema = collectiveCoordinatesSchema
     currentWitness: collectiveMaterialWitnessSchema,
     witnesses: z.array(collectiveMaterialWitnessSchema).min(1),
     decisions: z.record(id, collectiveMaterialDecisionSchema),
+    selections: z
+      .array(
+        z
+          .object({
+            clauseId: id,
+            witness: collectiveMaterialWitnessSchema,
+            actor: collectiveCollaborationActorSchema,
+            at: z.string().datetime(),
+            suggestedWorkId: collectiveWorkIdSchema.optional(),
+          })
+          .strict(),
+      )
+      .optional(),
     disposition: collectiveMaterialDecisionSchema.optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),

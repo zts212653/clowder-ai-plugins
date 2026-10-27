@@ -1,10 +1,9 @@
-import { collectiveProjectAttentionReadSchema } from '../contracts/types/collective-project-attention.js';
 import { z } from 'zod';
 import {
+  type ChangeCollectiveAgentWorkTimeRequest,
   type CollectiveAccountabilityAttentionReadRequest,
   type CollectiveAgentMessageRequest,
   type CollectiveAgentWorkProposalRequest,
-  type ChangeCollectiveAgentWorkTimeRequest,
   type CollectiveContextAttachmentSelection,
   type CollectiveEventEnvelope,
   type CollectivePairingIntent,
@@ -23,6 +22,13 @@ import {
   collectiveWorkProjectionSchema,
   collectiveWorkResultFileBindingResponseSchema,
 } from '../contracts/index.js';
+import { collectiveMaterialRecordSchema } from '../contracts/types/collective-material.js';
+import { collectiveProjectAttentionReadSchema } from '../contracts/types/collective-project-attention.js';
+import {
+  type CollectiveMaterialSuggestionRequest,
+  type CollectiveProjectSourceRequest,
+  collectiveProjectSourceReadSchema,
+} from '../contracts/types/collective-project-source.js';
 import { CollectiveArtifactCustodyClient } from './artifact-custody-client.js';
 import { CollectiveArtifactMediaClient } from './artifact-media-client.js';
 import { CollectiveArtifactOwnerClient } from './artifact-owner-client.js';
@@ -225,6 +231,25 @@ export class CollectiveServiceClient {
   async changeAgentWorkTime(serviceUrl: string, credential: string, input: ChangeCollectiveAgentWorkTimeRequest) {
     return collectiveWorkProjectionSchema.parse(
       await this.request(serviceUrl, '/api/collaboration/work/time-agent', {
+        method: 'POST',
+        credential,
+        body: input,
+      }),
+    );
+  }
+
+  async readProjectSource(serviceUrl: string, credential: string, input: CollectiveProjectSourceRequest) {
+    return collectiveProjectSourceReadSchema.parse(
+      await this.request(serviceUrl, '/api/collaboration/project-source', {
+        method: 'POST',
+        credential,
+        body: input,
+      }),
+    );
+  }
+  async suggestMaterial(serviceUrl: string, credential: string, input: CollectiveMaterialSuggestionRequest) {
+    return collectiveMaterialRecordSchema.parse(
+      await this.request(serviceUrl, '/api/collaboration/materials/suggest', {
         method: 'POST',
         credential,
         body: input,

@@ -1,6 +1,6 @@
 import type {
-  ChangeCollectiveWorkTimeRequest,
   ChangeCollectiveAgentWorkTimeRequest,
+  ChangeCollectiveWorkTimeRequest,
   CollectiveCollaborationActor,
   CollectiveTimeFact,
   CollectiveTimeInput,
@@ -17,6 +17,7 @@ import {
 import { CollectiveServiceError } from './errors.js';
 import { createStableId } from './persistence.js';
 import type { MutableServiceState } from './state.js';
+import { observedWorkTime } from './work-observed-time.js';
 
 type TimeCommand = ChangeCollectiveWorkTimeRequest | ChangeCollectiveAgentWorkTimeRequest;
 type Work = MutableServiceState['works'][string];
@@ -221,7 +222,9 @@ export function recordCollectiveActualStart(
   eventId: string,
 ) {
   if (work.time?.actualStart) return;
-  const current = timeFact({ value: at, timeZone: 'UTC' }, actor, at, `event:${eventId}`, eventId, work.sourceLocation);
+  const current =
+    observedWorkTime(work)?.actualStart ??
+    timeFact({ value: at, timeZone: 'UTC' }, actor, at, `event:${eventId}`, eventId, work.sourceLocation);
   const change = applyTime(work, 'actualStart', current);
   const entry = work.history.at(-1);
   if (entry?.eventId === eventId) entry.timeChange = change;

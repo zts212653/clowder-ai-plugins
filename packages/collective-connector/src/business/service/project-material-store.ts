@@ -1,26 +1,26 @@
-import { observePublishedMaterial } from './project-material-observation.js';
 import type { z } from 'zod';
 import { collectiveConnectionCoordinatesSchema } from '../contracts/types/collective.js';
 import {
-  collectiveMaterialSourceResultSchema,
-  listCollectiveMaterialsRequestSchema,
-  publishCollectiveMaterialRequestSchema,
-  sortCollectiveMaterialRequestSchema,
-  sameCollectiveMaterialWitness,
   type CollectiveMaterialItem,
   type CollectiveMaterialPublication,
   type CollectiveMaterialSourcePort,
   type CollectiveMaterialSourceResult,
+  collectiveMaterialSourceResultSchema,
+  listCollectiveMaterialsRequestSchema,
+  publishCollectiveMaterialRequestSchema,
+  sameCollectiveMaterialWitness,
+  sortCollectiveMaterialRequestSchema,
 } from '../contracts/types/collective-material.js';
-import { assertConnectionCoordinates, requireAuthorizedHuman, requireConnection } from './connection-authority.js';
-import type { ServiceState } from './state.js';
 import { humanActor, humanEventActor, requireHumanCommand, requireRoadmap } from './collaboration-command-helpers.js';
 import { collaborationOperationReplay, recordCollaborationOperation } from './collaboration-operations.js';
+import { assertConnectionCoordinates, requireAuthorizedHuman, requireConnection } from './connection-authority.js';
 import { CollectiveServiceError } from './errors.js';
 import { appendEvent } from './event-log.js';
 import { createStableId, type PersistentServiceState } from './persistence.js';
 import { authorizeMaterialPublication, requireMaterial } from './project-material-authority.js';
+import { observePublishedMaterial } from './project-material-observation.js';
 import { sortProjectMaterial } from './project-material-sort.js';
+import type { ServiceState } from './state.js';
 
 type Available = Extract<CollectiveMaterialSourceResult, { status: 'available' }>;
 export class CollectiveProjectMaterialStore {
@@ -131,6 +131,13 @@ export class CollectiveProjectMaterialStore {
     });
   }
 
+  listForParticipant(
+    input: z.infer<typeof listCollectiveMaterialsRequestSchema>,
+    check: (state: ServiceState) => void,
+  ) {
+    return this.listAuthorized(input, check);
+  }
+
   private async listAuthorized(
     input: z.infer<typeof listCollectiveMaterialsRequestSchema>,
     check: (state: ServiceState) => void,
@@ -154,7 +161,29 @@ export class CollectiveProjectMaterialStore {
         items.push({
           ...current,
           publication: structuredClone(publication),
-          material: source.material,
+          material: {
+            ...source.material,
+            clauses: source.material.clauses.map((clause) => {
+              const { suggestedBy: _actor, suggestedWorkId: _work, ...original } = clause;
+              const selection = current.selections
+                ?.slice()
+                .reverse()
+                .find(
+                  (candidate) =>
+                    candidate.clauseId === clause.clauseId &&
+                    sameCollectiveMaterialWitness(candidate.witness, source.witness),
+                );
+              return {
+                ...original,
+                ...(selection
+                  ? {
+                      suggestedBy: selection.actor,
+                      ...(selection.suggestedWorkId ? { suggestedWorkId: selection.suggestedWorkId } : {}),
+                    }
+                  : {}),
+              };
+            }),
+          },
           currentness: sameCollectiveMaterialWitness(current.firstWitness, source.witness)
             ? 'available_same'
             : 'revised',
