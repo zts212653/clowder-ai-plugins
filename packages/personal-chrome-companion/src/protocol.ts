@@ -3,6 +3,8 @@ import { parseAssistantReturnCursorFields } from './assistant-return-cursor.js';
 
 type PersonalChromeAssistantReturnCursorFields = ReturnType<typeof parseAssistantReturnCursorFields>;
 
+import type { PersonalChromeHealthStatus } from '../native-host/health-result.mjs';
+
 export const PERSONAL_CHROME_PROTOCOL_VERSION = 2 as const;
 export const PERSONAL_CHROME_EXTENSION_REVISION = '0.2.12' as const;
 export const PERSONAL_CHROME_PAGE_ADAPTER_REVISION = '2026-10-26.1' as const;
@@ -110,13 +112,15 @@ export interface PersonalChromeHealthCheckRequest {
   readonly kind: 'health_check';
   readonly requestId: string;
   readonly expectedRevisions: PersonalChromeRevisions;
+  /** Optional exact target supplied by the caller; omitted for a connection-only probe. */
+  readonly conversationId?: string;
 }
 
 export interface PersonalChromeHealthResult {
   readonly v: typeof PERSONAL_CHROME_PROTOCOL_VERSION;
   readonly kind: 'health_result';
   readonly requestId: string;
-  readonly status: 'ready' | 'dormant' | 'stale_adapter' | 'failed';
+  readonly status: PersonalChromeHealthStatus;
   readonly errorCode?: string;
   readonly observedRevisions?: PersonalChromeRevisions;
 }

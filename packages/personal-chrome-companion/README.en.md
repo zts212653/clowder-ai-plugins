@@ -27,7 +27,7 @@ package's native-host socket client and the helper's v2 protocol:
   alone never removes it.
 
 The `personalChromeAuthorizations` operation lists the authorized
-conversations as Host-rendered rows (one `revoke` row action each), revokes one
+conversations as Host-rendered rows with **Check conversation page** and **Revoke** actions, revokes one
 authorization by `conversationId`, and reports authorization status. The
 underlying store holds at most 32 authorizations; the operation surfaces that
 ceiling through the status action.
@@ -82,11 +82,24 @@ ChatGPT conversation you want to authorize and click the extension's toolbar
 action. Its authorization will appear in Settings; use the row's revoke action
 to remove it, or Refresh titles to retrieve its readable title.
 
+Global Test verifies helper/extension connectivity without selecting any authorized
+conversation or reading a page. An unselected page is `unobserved`, not stale or
+ready to send. `adapter.check_health(exactConversationId)` performs an explicit,
+read-only page check and distinguishes missing/duplicate tabs from stale adapters.
+The same owner action is available as **Check conversation page** on
+each authorization row. After reloading that page, check the same row to resolve a
+stale-page reminder. The action revalidates authorization without changing it or
+typing/sending a message.
+Each reminder belongs to its exact conversation: checking another page cannot
+clear it. Revoking that authorization removes its reminder without probing Chrome.
+
 The stable folder is `<projectRoot>/.cat-cafe/plugin-host/personal-chrome-host/extension/`.
 On updates or rollbacks the package refreshes these bytes; **Reload** the already
 loaded extension in Chrome, then run Test. If the helper has not been installed,
 use setup first: reloading Chrome cannot create its registration. The reload
-reminder clears only after a correlated reply proves the current revisions.
+reminder clears after a correlated reply proves the current helper/extension
+revisions. A separately observed stale conversation page keeps its own page reload
+reminder; a global connection-only Test cannot clear that page-specific evidence.
 
 Setup can be retried without rotating a valid pairing identity. A registration
 owned by another installation is a conflict, never silently overwritten. A broken

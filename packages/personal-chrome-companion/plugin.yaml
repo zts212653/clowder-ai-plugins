@@ -1,5 +1,5 @@
 pluginId: official.companion.personal-chrome
-version: 0.1.0-alpha.7
+version: 0.1.0-alpha.8
 contractVersion: 0.1.0
 name: Personal Chrome Companion
 icon:
@@ -35,6 +35,12 @@ configuration:
         action:
           method: personal-chrome-host.authorizations.refresh-titles
         next: list
+      - id: check-page
+        label: 检查会话页面
+        render: row
+        resultRender: status
+        action:
+          method: personal-chrome-host.check-conversation
       - id: status
         label: Authorization status
         render: status

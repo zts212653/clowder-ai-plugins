@@ -29,6 +29,7 @@ import {
 import { writeConversationTitles } from '../native-host/conversation-titles.mjs';
 
 const ROW_OPERATION_ACTIONS: readonly ActionDef[] = [
+  { id: 'check-page', label: 'Check conversation page', render: 'row', action: { method: 'm.check-page' } },
   { id: 'list', label: 'Authorized conversations', render: 'status', action: { method: 'm.list' } },
   {
     id: 'revoke',
@@ -164,6 +165,7 @@ test('authorization list→revoke round trip in a temporary data directory, with
   assert.equal(first.detail, 'https://chatgpt.com/c/conv-000');
   assert.deepEqual(first.actions, [
     { action: 'revoke', input: { conversationId: 'conv-000' } },
+    { action: 'check-page', input: { conversationId: 'conv-000' } },
   ]);
   const fallback = rows.find((row) => row.key === 'conv-001')!;
   assert.equal(fallback.label, 'conv-001');

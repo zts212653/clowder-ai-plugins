@@ -246,6 +246,29 @@ test('only correlated matching revision contact clears reload; stale append/prob
   assert.equal(delivery.status().reloadRequired, true, 'stopped delivery ignores late receipt');
 });
 
+test('a connection-only contact clears extension reload but preserves a known stale page across restart', async (t) => {
+  const f = await fixture(t);
+  let delivery = await f.prepare();
+  const current = await revisions(f);
+  const unobserved = { ...current, pageAdapter: 'unobserved' };
+  await delivery.observe(unobserved, 'CONVERSATION_NOT_SELECTED');
+  assert.equal(delivery.status().reloadRequired, false);
+  assert.equal(delivery.status().pageReloadRequired, undefined);
+  await delivery.observe({ ...current, pageAdapter: '2026-09-02.1' }, 'STALE_PAGE_ADAPTER', 'conversation-1');
+  assert.equal(delivery.status().reloadRequired, false);
+  assert.equal(delivery.status().pageReloadRequired, true);
+  assert.match(delivery.label(), /Reload the affected ChatGPT conversation page/);
+  assert.doesNotMatch(delivery.label(), /Reload the extension once/);
+  await delivery.observe(unobserved, 'CONVERSATION_NOT_SELECTED');
+  await delivery.dispose();
+  delivery = await f.prepare();
+  assert.equal(delivery.status().pageReloadRequired, true, 'an untargeted check cannot certify an outdated page');
+  await delivery.observe(current, undefined, 'conversation-1');
+  assert.equal(delivery.status().reloadRequired, false);
+  assert.equal(delivery.status().pageReloadRequired, undefined);
+  await delivery.dispose();
+});
+
 test('stop waits for in-flight delivery bookkeeping and no write completes after it returns', async (t) => {
   const f = await fixture(t);
   const delivery = await f.prepare();

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createConnection } from 'node:net';
+import { projectHealthResult } from '../native-host/health-result.mjs';
 import { parseTitleRefreshResult, type PersonalChromeTitleRefreshRequest, type PersonalChromeTitleSync } from './title-refresh-protocol.js';
 
 import { assistantReturnCursorFields, type PersonalChromeAssistantReturnCursor } from './assistant-return-cursor.js';
@@ -54,7 +55,7 @@ export interface PersonalChromeHostAdapterOptions {
   readonly onConnected?: () => void;
   readonly onUnavailable?: () => void;
   /** Only correlated, validated replies carry revision evidence; a socket connection does not. */
-  readonly onRevisionContact?: (revisions: PersonalChromeRevisions | undefined, errorCode?: string) => Promise<void>;
+  readonly onRevisionContact?: (revisions: PersonalChromeRevisions | undefined, errorCode?: string, conversationId?: string) => Promise<void>;
 }
 
 /**
@@ -309,7 +310,8 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
         result.errorCode.startsWith('STALE_') ||
         (result.observedRevisions !== undefined &&
           !revisionsMatch(request.expectedRevisions, result.observedRevisions));
-      await this.options.onRevisionContact?.(result.observedRevisions, staleRevision ? 'STALE_ADAPTER' : result.errorCode);
+      await this.options.onRevisionContact?.(result.observedRevisions,
+        staleRevision && !result.errorCode.startsWith('STALE_') ? 'STALE_ADAPTER' : result.errorCode, conversationId);
       throw new PersonalChromeHostError(
         staleRevision ? 'STALE_ADAPTER' : result.errorCode,
         staleRevision
@@ -320,13 +322,13 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
       );
     }
     if (!revisionsMatch(request.expectedRevisions, result.observedRevisions)) {
-      await this.options.onRevisionContact?.(result.observedRevisions, 'STALE_ADAPTER');
+      await this.options.onRevisionContact?.(result.observedRevisions, 'STALE_ADAPTER', conversationId);
       throw new PersonalChromeHostError('STALE_ADAPTER', 'personal Chrome adapter revision does not match runtime');
     }
     if (!result.hostMessageId.trim()) {
       throw new PersonalChromeHostError('AMBIGUOUS_EFFECT', 'hostMessageId must be non-empty');
     }
-    await this.options.onRevisionContact?.(result.observedRevisions);
+    await this.options.onRevisionContact?.(result.observedRevisions, undefined, conversationId);
     return {
       hostMessageId: result.hostMessageId,
       ...(result.idempotentReplay === undefined ? {} : { idempotentReplay: result.idempotentReplay }),
@@ -396,12 +398,16 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
    * for transport failures; a parsed health_result with status !== 'ready' comes back
    * as data so callers can report the reason without treating it as unreachable.
    */
-  async check_health(): Promise<PersonalChromeHealthResult> {
+  async check_health(conversationId?: string): Promise<PersonalChromeHealthResult> {
+    if (conversationId !== undefined && (typeof conversationId !== 'string' || !/^[A-Za-z0-9-]{1,200}$/.test(conversationId))) {
+      throw new PersonalChromeHostError('INVALID_REQUEST', 'health target must be an exact conversation ID');
+    }
     const request: PersonalChromeHealthCheckRequest = {
       v: PERSONAL_CHROME_PROTOCOL_VERSION,
       kind: 'health_check',
       requestId: this.requestId(),
       expectedRevisions: this.expectedRevisions(),
+      ...(conversationId === undefined ? {} : { conversationId }),
     };
     const result = await exchangeLocalFrame(
       this.options,
@@ -411,10 +417,10 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
     if (result.requestId !== request.requestId) {
       throw new PersonalChromeHostError('INVALID_HOST_RECEIPT', 'health receipt does not match the probe request');
     }
-    const stale = result.status === 'stale_adapter' || result.errorCode?.startsWith('STALE_') ||
-      (result.observedRevisions !== undefined && !revisionsMatch(request.expectedRevisions, result.observedRevisions));
-    await this.options.onRevisionContact?.(result.observedRevisions, stale ? 'STALE_ADAPTER' : result.errorCode);
-    if (stale) return { ...result, status: 'stale_adapter', errorCode: 'STALE_ADAPTER' };
-    return result;
+    const projection = projectHealthResult(request, result);
+    const stale = projection.status === 'stale_adapter';
+    await this.options.onRevisionContact?.(result.observedRevisions,
+      stale && !projection.errorCode?.startsWith('STALE_') ? 'STALE_PAGE_ADAPTER' : projection.errorCode, conversationId);
+    return { ...result, ...projection };
   }
 }

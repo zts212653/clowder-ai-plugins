@@ -1,5 +1,7 @@
 import {definePluginModule} from '@clowder-ai/plugin-sdk';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { digestNativeHostArtifactDirectory } from '../native-host/native-host-artifact.mjs';
 
 import type {
   CloudConversationHostContribution,
@@ -16,8 +18,10 @@ import {
 } from '@clowder-ai/plugin-sdk';
 
 import { createConversationHostOperations } from './conversation-host.js';
+import { authorizedPageHealthAction } from './authorized-page-health.js';
 import { describeHelperConnection, type HelperConnectionStatus } from './helper-reachability.js';
 import { prepareRuntimeDelivery, type RuntimeDelivery } from './runtime-delivery.js';
+import { readRuntimeDelivery } from './runtime-delivery-state.js';
 import {
   PERSONAL_CHROME_AUTHORIZATION_LIMIT,
   PersonalChromeConversationAuthorizationError,
@@ -39,6 +43,7 @@ export const PERSONAL_CHROME_REVOKE_METHOD = 'personal-chrome-host.authorization
 export const PERSONAL_CHROME_REFRESH_TITLES_METHOD = 'personal-chrome-host.authorizations.refresh-titles';
 export const PERSONAL_CHROME_STATUS_METHOD = 'personal-chrome-host.authorizations.status';
 export const PERSONAL_CHROME_TEST_METHOD = 'personal-chrome-host.test';
+export const PERSONAL_CHROME_CHECK_CONVERSATION_METHOD = 'personal-chrome-host.check-conversation';
 export const PERSONAL_CHROME_APPEND_MESSAGE_METHOD = 'personal-chrome-host.append-message';
 export const PERSONAL_CHROME_ASSISTANT_LIST_METHOD = 'personal-chrome-host.assistant-returns.list';
 export const PERSONAL_CHROME_ASSISTANT_ACK_METHOD = 'personal-chrome-host.assistant-returns.ack';
@@ -72,7 +77,7 @@ function truncateChars(value: string, limit: number): string {
  * Maps one stored authorization to one Host-rendered row (contract h1):
  * key = conversationId, label = conversation title falling back to the id
  * (truncated to 200), detail = chatUrl (authorizedAt as defensive fallback),
- * and exactly one revoke row action carrying { conversationId } as input.
+ * and explicit revoke/page-check row actions carrying { conversationId } as input.
  */
 export function buildAuthorizationRow(
   conversation: PersonalChromeConversationAuthorization & {
@@ -84,7 +89,8 @@ export function buildAuthorizationRow(
     key: conversation.conversationId,
     label: truncateChars(label, 200),
     detail: conversation.chatUrl.length > 0 ? conversation.chatUrl : conversation.authorizedAt,
-    actions: [operationRowAction(REVOKE_ROW_ACTION_ID, { conversationId: conversation.conversationId })],
+    actions: [operationRowAction(REVOKE_ROW_ACTION_ID, { conversationId: conversation.conversationId }),
+      operationRowAction('check-page', { conversationId: conversation.conversationId })],
   };
 }
 
@@ -160,6 +166,7 @@ export function createAuthorizationOperations(options: {
     revoke: async (input) => {
       const conversationId = revokeConversationId(input);
       await revokePersonalChromeConversation(authorizationPath, conversationId, now().toISOString());
+      await options.delivery?.forgetConversation(conversationId);
       return readRows();
     },
     status: async () => {
@@ -205,18 +212,21 @@ export interface PersonalChromeSettingsHost {
 }
 export interface PersonalChromeSettingsEntrypoint extends PluginModuleEntrypoint {
   create(manifest: unknown): PluginModuleDefinition & {
-    settings(host: PersonalChromeSettingsHost): {
+    settings(host: PersonalChromeSettingsHost): Promise<{
       actions: Readonly<Record<string, (input: unknown) => Promise<unknown>>>;
       dispose(): Promise<void>;
-    };
+    }>;
   };
 }
 
-function loadedSettings(host: PersonalChromeSettingsHost) {
+async function loadedSettings(host: PersonalChromeSettingsHost) {
   if (!host.dataPath) throw new TypeError('Host dataPath is required for Chrome settings');
-  const conversationHost = createConversationHostOperations({ dataDirectory: host.dataPath, log: host.log });
+  const delivery = await readRuntimeDelivery(host.dataPath);
+  const expectedHelperArtifactRevision = await digestNativeHostArtifactDirectory(fileURLToPath(new URL('../native-host/', import.meta.url)));
+  const conversationHost = createConversationHostOperations({ dataDirectory: host.dataPath, log: host.log,
+    expectedHelperArtifactRevision, onRevisionContact: delivery.observe });
   const operations = createAuthorizationOperations({
-    authorizationPath: join(host.dataPath, 'conversation-binding.json'), helperStatus: conversationHost.status,
+    authorizationPath: join(host.dataPath, 'conversation-binding.json'), helperStatus: conversationHost.status, delivery,
   });
   // Inspect/revoke and explicit helper probes do not prepare runtime delivery or
   // register the cloud-conversation-host contribution.
@@ -230,8 +240,14 @@ function loadedSettings(host: PersonalChromeSettingsHost) {
         ? `Updated ${titleSync.updatedCount} of ${titleSync.requestedCount} conversation title(s).`
         : `Title refresh unavailable: ${titleSync.errorCode}` };
     },
-    [PERSONAL_CHROME_TEST_METHOD]: () => conversationHost.probe(),
-  }, dispose: () => conversationHost.dispose() };
+    [PERSONAL_CHROME_TEST_METHOD]: async () => {
+      const result = await conversationHost.probe();
+      const state = delivery.status();
+      return { ok: result.ok && !state.reloadRequired && !state.pageReloadRequired && !state.failure,
+        message: `${result.message} ${delivery.label()}`.trim() };
+    },
+    [PERSONAL_CHROME_CHECK_CONVERSATION_METHOD]: authorizedPageHealthAction(join(host.dataPath, 'conversation-binding.json'), conversationHost),
+  }, dispose: async () => { await Promise.all([delivery.dispose(), conversationHost.dispose()]); } };
 }
 
 export function createPersonalChromePluginModule(): PersonalChromeSettingsEntrypoint {
@@ -269,9 +285,10 @@ export function createPersonalChromePluginModule(): PersonalChromeSettingsEntryp
                 const result = await conversationHost.probe();
                 const state = delivery.status();
                 const helper = conversationHost.status();
-                return { ok: result.ok && !state.reloadRequired && !state.failure,
+                return { ok: result.ok && !state.reloadRequired && !state.pageReloadRequired && !state.failure,
                   message: `${result.message} ${describeHelperConnection(helper)} ${deliveryGuidance(helper, delivery)}`.trim() };
               },
+              [PERSONAL_CHROME_CHECK_CONVERSATION_METHOD]: authorizedPageHealthAction(join(dataDirectory, 'conversation-binding.json'), conversationHost),
               [PERSONAL_CHROME_APPEND_MESSAGE_METHOD]: conversationHost.appendMessage,
               [PERSONAL_CHROME_ASSISTANT_LIST_METHOD]: conversationHost.list,
               [PERSONAL_CHROME_ASSISTANT_ACK_METHOD]: conversationHost.ack,

@@ -141,7 +141,8 @@ test('Settings selects rows from the real manifest and lists and revokes through
     assert.equal(rows.value.rows.length, 1);
     const row = rows.value.rows[0]!;
     assert.equal(row.key, 'settings-conversation');
-    assert.deepEqual(row.actions, [{ action: revoke.id, input: { conversationId: row.key } }]);
+    assert.deepEqual(row.actions, [{ action: revoke.id, input: { conversationId: row.key } },
+      { action: 'check-page', input: { conversationId: row.key } }]);
     await invoke(revoke.action.method, row.actions![0]!.input);
     const after = validateOperationRowsResult(operation, (await invoke(list.action.method, {})).data);
     assert.equal(after.valid, true, JSON.stringify(after.errors));
