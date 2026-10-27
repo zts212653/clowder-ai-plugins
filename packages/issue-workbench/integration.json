@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "stage": "sdk-candidate",
+  "hostInstallable": false,
+  "pluginId": "dev.clowder.issue-workbench",
+  "canonicalManifest": "plugin.yaml",
+  "sdkVersion": "0.2.0-beta.21",
+  "implemented": [
+    "read-source-engine",
+    "versioned-archives",
+    "standalone-workbench",
+    "browser-draft-storage",
+    "source-sync",
+    "team-module-candidate",
+    "conversation-analysis-protocol",
+    "configured-assignment",
+    "durable-inbox",
+    "explicit-feedback-statistics",
+    "owner-operation-client",
+    "team-workbench-panels",
+    "confirmed-publication-recovery",
+    "assignment-withdrawal-and-reopening",
+    "authenticated-host-workbench-assets",
+    "shared-durable-human-classification-history",
+    "initial-open-and-closed-classification",
+    "independent-rule-dispatch",
+    "owner-inbox-acceptance-and-conversation-handoff"
+  ],
+  "pending": [
+    "production-host-grants",
+    "host-lifecycle-and-grants",
+    "durable-work-migration",
+    "real-cat-dispatch-and-acceptance",
+    "two-account-dogfood",
+    "catalog-publication"
+  ]
+}

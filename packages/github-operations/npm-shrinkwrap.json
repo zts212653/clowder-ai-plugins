@@ -1,12 +1,12 @@
 {
   "name": "@clowder-ai/github-operations",
-  "version": "0.1.0-alpha.27",
+  "version": "0.1.0-alpha.28",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@clowder-ai/github-operations",
-      "version": "0.1.0-alpha.27",
+      "version": "0.1.0-alpha.28",
       "license": "MIT",
       "dependencies": {
         "@clowder-ai/plugin-contract": "0.1.0-beta.37",

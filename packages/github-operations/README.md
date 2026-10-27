@@ -33,7 +33,7 @@ Host [通用修复提案 #232](https://github.com/mindfn/clowder-ai/pull/232) �
 
 **已有 catalog/npm 安装请使用目录更新**：当前 Host 的 archive 更新要求新旧 provenance 同为 local-archive，直接上传可能返回已安装冲突。不要为绕过冲突卸载旧实例。目录方式可替换 catalog/npm 安装；若原实例启用，Host 会按既有生命周期暂停并恢复该插件。
 
-更新后核对版本 `0.1.0-alpha.27`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
+更新后核对版本 `0.1.0-alpha.28`：核对可选配置与旧跟踪恢复入口，不出现草稿操作按钮。保存并测试连接，再确认插件运行状态。让猫调用 `github_list_tracking` 读取既有登记，再对已登记 PR 使用 `github_inspect_subject` 读取本地观察；必要时对一个明确授权的 PR 登记跟踪，保持相同 registrationId 重试。`github_refresh_pull_requests` + `github_repository_observations` 可验证仓库 provider 读取。首次登记只建立基线，不能把“暂无新通知”当作失败；观察下一次真实审查/CI 变化再确认消息投递。
 
 等待较多时，后台轮询分轮处理并保存续扫位置。慢请求或模块重启不会清除旧条件、基线和待投递回执；一次轮询完成不代表所有等待都已检查或已经产生通知。
 
@@ -80,6 +80,21 @@ MCP、skill 和调度是用户或猫直接使用的能力；插件也需要声�
 | `github-notification`、`github-wait` 身份 | 标记通知和等待的插件来源，不是新的 GitHub 账号，也不是调用者授权。 |
 
 这些接点都属于**同一个插件**，共享一份 `plugin.yaml`、pluginId、版本和能力声明；不是多个插件或新增配置步骤。本包没有声明 limb。内部编号是否出现在普通能力页，由 Host 的展示层处理，不应通过删掉实际接线来改变功能。
+
+## GitHub 认领与宿主通知
+
+GitHub Issue 的 Assignees 是当前认领事实，事件时间线保留认领和取消历史。
+可以直接在 GitHub 添加或移除本人 Assignee；无需通过 Issue 工作台生成特殊评论。
+
+在此 GitHub 连接的设置中填写 `认领收件仓库`、`认领通知对话`、`认领通知协调猫`，
+再开启 `接收我的 GitHub 认领`。系统约每分钟核对当前登录账号的 Open 认领；
+首次启用也补收已有认领，撤销、关闭和重新认领分别通知。`GitHub 认领收件状态`
+提供 `查看认领同步状态` 与 `重试认领同步`。读取失败保留进度，不将失败当作取消。
+
+通知通过宿主普通消息路由到本人对话并唤醒协调猫；接收方不用安装 Issue 工作台。
+猫先通知 co-creator，按本人接手或既有适用授权进入宿主 Task/开发流程；
+外部负责人变化本身不授权代码执行。取消时通知原宿主保留成果、处理暂停或交接。
+修改目标会为新目标补收当前认领，旧通知保留原目标与去重状态。
 
 ## 权限与恢复边界
 

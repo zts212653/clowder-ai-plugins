@@ -1,0 +1,207 @@
+[
+  {
+    "name": "issue-coordination.ts",
+    "replacements": [
+      {
+        "from": [
+          "import type { IssueSourceFact } from './issue-source.js';",
+          "import type { IssueContextClassification } from '../classification/issue-context.js';",
+          "import { categoryDefinition, primaryCategory } from '../classification/taxonomy.js';"
+        ],
+        "to": [
+          "import type { RoutingInput } from '../classification/routing-context.js';",
+          "import type { IssueSourceFact } from './issue-source.js';",
+          "import type { IssueContextClassification } from '../classification/issue-context.js';",
+          "import { categoryDefinition, primaryCategory } from '../classification/taxonomy.js';"
+        ]
+      },
+      {
+        "from": [
+          "  value: T;",
+          "}",
+          "export type ImpactScope = 'unknown' | 'common' | 'internal';",
+          "export interface IssueInvestigation {",
+          "  ref: IssueRef;",
+          "  /** Last observed metadata keeps authored work discoverable if the catalog loses the item. */",
+          "  title: string;"
+        ],
+        "to": [
+          "  value: T;",
+          "}",
+          "export type ImpactScope = 'unknown' | 'common' | 'internal';",
+          "export interface IssueInvestigation extends RoutingInput {",
+          "  ref: IssueRef;",
+          "  /** Last observed metadata keeps authored work discoverable if the catalog loses the item. */",
+          "  title: string;"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "IssueCoordinationService.ts",
+    "replacements": [
+      {
+        "from": [
+          "import {",
+          "  type CoordinationDetail,",
+          "  type CoordinationSnapshot,"
+        ],
+        "to": [
+          "import { affectedSystemsSchema, routingFocusSchema } from '../classification/routing-context.js';",
+          "import {",
+          "  type CoordinationDetail,",
+          "  type CoordinationSnapshot,"
+        ]
+      },
+      {
+        "from": [
+          "      !['pending', 'failed', 'passed'].includes(value.verification)",
+          "    )",
+          "      throw new Error('Invalid work state');",
+          "    clean.scope = value.scope;",
+          "    clean.adoption = value.adoption;",
+          "    clean.verification = value.verification;"
+        ],
+        "to": [
+          "      !['pending', 'failed', 'passed'].includes(value.verification)",
+          "    )",
+          "      throw new Error('Invalid work state');",
+          "    if (value.affectedSystems !== undefined) clean.affectedSystems = affectedSystemsSchema.parse(value.affectedSystems);",
+          "    if (value.routingFocus !== undefined) clean.routingFocus = routingFocusSchema.parse(value.routingFocus);",
+          "    clean.scope = value.scope;",
+          "    clean.adoption = value.adoption;",
+          "    clean.verification = value.verification;"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "CoordinationEditor.tsx",
+    "replacements": [
+      {
+        "from": [
+          "import { type IssueClassification, type IssueInvestigation } from '../model/issue-coordination.js';",
+          "import styles from './coordination.module.css';",
+          "import { IssueClassificationCandidate } from './IssueClassifications';",
+          "import { IssueContextFacets } from './IssueContextFacets';"
+        ],
+        "to": [
+          "import { type IssueClassification, type IssueInvestigation } from '../model/issue-coordination.js';",
+          "import { IssueRoutingEditor } from './IssueRoutingEditor';",
+          "import styles from './coordination.module.css';",
+          "import { IssueClassificationCandidate } from './IssueClassifications';",
+          "import { IssueContextFacets } from './IssueContextFacets';"
+        ]
+      },
+      {
+        "from": [
+          "      </div>",
+          "      <div className={styles.editorBody}>",
+          "        {context && <IssueContextFacets context={context} />}",
+          "        {!featureBindings?.length && <IssueCategoryPicker value={value.module} areas={classification?.labels.area}",
+          "          change={module => change({ ...value, module })} />}",
+          "        <IssueClassificationCandidate result={classification} featureBindings={featureBindings} sourceUpdatedAt={sourceUpdatedAt} />"
+        ],
+        "to": [
+          "      </div>",
+          "      <div className={styles.editorBody}>",
+          "        {context && <IssueContextFacets context={context} />}",
+          "        <IssueRoutingEditor value={value} change={change} />",
+          "        {!featureBindings?.length && <IssueCategoryPicker value={value.module} areas={classification?.labels.area}",
+          "          change={module => change({ ...value, module })} />}",
+          "        <IssueClassificationCandidate result={classification} featureBindings={featureBindings} sourceUpdatedAt={sourceUpdatedAt} />"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "CoordinationWorkbench.tsx",
+    "replacements": [
+      {
+        "from": [
+          "  showClassifications?: boolean;",
+          "  tools?: ReactNode;",
+          "  projectSnapshot?: (snapshot: CoordinationSnapshot) => CoordinationSnapshot;",
+          "  issueTools?: (profile: IssueSourceProfile, fact: IssueSourceFact, category: string) => ReactNode;",
+          "}) {",
+          "  const columns = useWorkbenchColumns();",
+          "  const [sourceSnapshot, setSnapshot] = useState<CoordinationSnapshot>({ sources: [], relations: [] });"
+        ],
+        "to": [
+          "  showClassifications?: boolean;",
+          "  tools?: ReactNode;",
+          "  projectSnapshot?: (snapshot: CoordinationSnapshot) => CoordinationSnapshot;",
+          "  issueTools?: (profile: IssueSourceProfile, fact: IssueSourceFact, category: string, workRevision: number, dirty: boolean) => ReactNode;",
+          "}) {",
+          "  const columns = useWorkbenchColumns();",
+          "  const [sourceSnapshot, setSnapshot] = useState<CoordinationSnapshot>({ sources: [], relations: [] });"
+        ]
+      },
+      {
+        "from": [
+          "  const groups = issueCategoryCounts(scoped);",
+          "  const row = rows.find((r) => r.key === selected);",
+          "  const classification = row && issueClassificationFor(row.source, row.fact);",
+          "  const context = row && issueContextFor(row.fact, classification);",
+          "  useEffect(() => {",
+          "    if (!selected && rows[0]) setSelected(rows[0].key);",
+          "  }, [selected, rows[0]?.key]);"
+        ],
+        "to": [
+          "  const groups = issueCategoryCounts(scoped);",
+          "  const row = rows.find((r) => r.key === selected);",
+          "  const classification = row && issueClassificationFor(row.source, row.fact);",
+          "  const context = row && issueContextFor(row.fact, classification, drafts[row.key]?.value ?? row.saved?.value);",
+          "  useEffect(() => {",
+          "    if (!selected && rows[0]) setSelected(rows[0].key);",
+          "  }, [selected, rows[0]?.key]);"
+        ]
+      },
+      {
+        "from": [
+          "                  error={saveError}",
+          "                />",
+          "                <CoordinationHistory key={`history:${row.key}:${current.revision}`} host={host} issue={current.value.ref} />",
+          "                {issueTools?.(row.source.profile, row.fact, issueCategory(row).label)}",
+          "              </section>",
+          "            </>",
+          "          ) : ("
+        ],
+        "to": [
+          "                  error={saveError}",
+          "                />",
+          "                <CoordinationHistory key={`history:${row.key}:${current.revision}`} host={host} issue={current.value.ref} />",
+          "                {issueTools?.(row.source.profile, row.fact, issueCategory(row).label, row.saved?.revision ?? 0, current.dirty)}",
+          "              </section>",
+          "            </>",
+          "          ) : ("
+        ]
+      }
+    ]
+  },
+  {
+    "name": "IssueClassifications.tsx",
+    "replacements": [
+      {
+        "from": [
+          "        source,",
+          "        fact,",
+          "        result: issueClassificationFor(source, fact),",
+          "        context: issueContextFor(fact, issueClassificationFor(source, fact)),",
+          "        features: issueFeatureBindings(fact),",
+          "      })),",
+          "  );"
+        ],
+        "to": [
+          "        source,",
+          "        fact,",
+          "        result: issueClassificationFor(source, fact),",
+          "        context: issueContextFor(fact, issueClassificationFor(source, fact), source.work.find(work => work.value.ref.issueId === fact.id)?.value),",
+          "        features: issueFeatureBindings(fact),",
+          "      })),",
+          "  );"
+        ]
+      }
+    ]
+  }
+]

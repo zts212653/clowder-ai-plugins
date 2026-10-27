@@ -1,5 +1,6 @@
 import type { ModulePluginSettingsHost } from '@clowder-ai/plugin-sdk';
 import { executeGitHubRequest, type GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
+import { githubLoginSchema } from './github-login.js';
 
 /** Read-only auth probe. It neither activates schedules nor mutates configuration. */
 export function createGitHubSettings(host: Pick<ModulePluginSettingsHost, 'secrets'>, execFileAsync?: GitHubRequestOptions['execFileAsync']) {
@@ -16,8 +17,7 @@ export function createGitHubSettings(host: Pick<ModulePluginSettingsHost, 'secre
     try {
       const { stdout } = await executeGitHubRequest(['api', 'user', '--hostname', 'github.com', '--jq', '.login'],
         { ghToken: token, signal: lifecycle.signal, timeoutMs: 10_000, ...(execFileAsync ? { execFileAsync } : {}) });
-      const login = stdout.trim();
-      if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$/.test(login)) throw new Error('Invalid account response');
+      const login = githubLoginSchema.parse(stdout.trim());
       return { ok: true, details: { status: 'connected', login },
         message: `已连接 GitHub（${login}），使用${token ? '插件访问令牌' : '本机 gh 登录'}。连接成功不代表已登记跟踪或具备所有仓库权限。` };
     } catch {

@@ -20,6 +20,30 @@ import { GitHubPrTitleReader } from './pr-title-reader.js';
 
 const manifest = parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
 
+test('declared assignment receiver delivers through ordinary Host messaging without the Issue plugin', async t => {
+  const f = host();
+  const config: Record<string, unknown> = { receiveAssignedIssues: true, assignmentRepositories: 'example/project', assignmentThreadId: 'thread-1', assignmentCatId: 'cat-1' };
+  f.runtimeHost.config.get = async key => config[key];
+  f.runtimeHost.threads.get = async () => { throw new Error('thread.readContent not granted'); };
+  f.runtimeHost.threads.getCats = async () => ({ participants: [], routableNow: [{ catId: 'cat-1', displayName: 'Coordinator', aliases: [] }], routableNotJoined: [], notRoutable: [] });
+  const issue = { repo: 'example/project', number: 12, id: 'I_12', title: 'Native GitHub claim', state: 'open' as const, assignees: ['owner'], assignmentId: '123' };
+  const module = createGitHubPluginModule({ createAssignmentProvider: () => ({ identity: async () => 'owner', assigned: async () => [issue], current: async () => issue }) });
+  const schedule = manifest.contributions.find((v: any) => v.type === 'schedule' && v.action?.method === 'github.assignment-poll');
+  assert.ok(schedule, 'assignment receipt must have a declared Host schedule');
+  assert.ok(validateManifest(manifest).valid);
+  const active = await module.create(manifest).start(f.runtimeHost); t.after(() => active.stop({ reason: 'test' }));
+  const pollResult = await active.actions['github.assignment-poll']!({}) as { render: string; data: unknown };
+  assert.equal(pollResult.render, 'status', 'Settings actions require a renderable operation response');
+  const statusResult = await active.actions['github.assignment-status']!({}) as { render: string; data: unknown };
+  assert.equal(statusResult.render, 'status');
+  await active.actions['github.assignment-poll']!({});
+  assert.equal(f.deliveries.length, 1);
+  assert.match(JSON.stringify(f.deliveries), /GitHub 认领通知/);
+  assert.doesNotMatch(JSON.stringify(f.deliveries), /issue_team_|issue-workbench\.dispatch/);
+  assert.ok(active.actions['github.assignment-status']);
+  await active.stop({ reason: 'test' }); await assert.rejects(async () => active.actions['github.assignment-poll']!({}), /stopped|revoked/);
+});
+
 test('declared owner PR title HTTP reads immediately, is side-effect free and stops with its module', async t => {
   const f = host(); let calls = 0;
   const module = createGitHubPluginModule({ createPrTitleReader: () => new GitHubPrTitleReader({
@@ -430,7 +454,7 @@ test('native draft owner operation publishes once and recovers partial success a
   const draft = await active.actions[create.action.method]!(input) as { data: { id: string; bodyMarkdown: string } };
   assert.equal(draft.data.bodyMarkdown, 'Observed [redacted]');
   assert.deepEqual(await active.actions[create.action.method]!(input), draft);
-  assert.equal(manifest.configuration.some((c: { key: string; kind: string }) => c.kind === 'operation' && c.key !== 'migrationRecovery'), false);
+  assert.equal(manifest.configuration.some((c: { key: string; kind: string }) => c.kind === 'operation' && !['migrationRecovery', 'assignmentInboxStatus'].includes(c.key)), false);
   assert.equal(validateManifest(manifest).valid, true);
   assert.ok(!manifest.contributions.some((c: { action?: { method: string } }) => c.action?.method === 'github.draft.publish'), 'publish must not be a general tool');
   const publish = () => active.actions['github.community.http']!({ request: { method: 'POST', path: `github/community-issue-drafts/by-id/${draft.data.id}/publish`, principal: { kind: 'owner', id: 'user-1' }, body: {} } }) as Promise<any>;
@@ -905,7 +929,7 @@ test('builtin stop awaits in-flight provider cleanup and prevents a late notific
   assert.equal(f.deliveries.length, 0);
 });
 
-test('all five declared schedules stay idle without registrations; repository inbox baselines then collects and stops', async () => {
+test('all declared schedules stay idle without registrations; repository inbox baselines then collects and stops', async () => {
   const f = host(); let requests = 0;
   let items: RepoSubject[] = [{ kind: 'issue', number: 1, title: 'Historical', url: 'https://github.com/example/project/issues/1', author: 'contributor', authorAssociation: 'CONTRIBUTOR', draft: false }];
   const module = createGitHubPluginModule({ createCommunityProvider: () => ({
@@ -916,7 +940,7 @@ test('all five declared schedules stay idle without registrations; repository in
   }) });
   const active = await module.create(manifest).start(f.runtimeHost);
   const schedules = manifest.contributions.filter((c: { type: string }) => c.type === 'schedule');
-  assert.equal(schedules.length, 5);
+  assert.equal(schedules.length, 6);
   for (const schedule of schedules) await active.actions[schedule.action.method]!({});
   assert.equal(requests, 0);
   await active.actions['github.repository.register']!({ repo: 'example/project', guardThreadId: 'thread-1', guardCatId: 'cat-1' });

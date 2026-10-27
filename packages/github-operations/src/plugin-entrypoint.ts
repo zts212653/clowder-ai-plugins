@@ -20,6 +20,8 @@ import { GitHubPrIndexProvider } from './pr-index-provider.js';
 import { ReviewTriggerReader } from './review-trigger-observation.js';
 import { CommunityCollectionRuntime, SdkCommunityCollectionStore } from './community-collection.js';
 import { GitHubPrTitleReader, prTitleHttp } from './pr-title-reader.js';
+import { GitHubAssignmentInbox, type AssignmentProvider } from './assignment-inbox.js';
+import { GitHubAssignmentProvider } from './assignment-provider.js';
 import { createGitHubSettings } from './settings.js';
 import { findThreadMetadata } from './metadata-thread.js';
 import type { GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
@@ -40,6 +42,7 @@ export interface GitHubPluginOptions {
   readonly createPrIndexProvider?: (context: FeatureContext) => PrIndexProvider;
   readonly createReviewTriggerReader?: (context: FeatureContext) => ReviewTriggerReader;
   readonly createPrTitleReader?: (context: FeatureContext) => GitHubPrTitleReader;
+  readonly createAssignmentProvider?: (context: FeatureContext) => AssignmentProvider;
 }
 
 async function activate(context: FeatureContext, options: GitHubPluginOptions) {
@@ -54,6 +57,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
     log: { warn: (message, fields) => context.log('warn', message, fields) },
   });
   const provider = options.createProvider?.(context) ?? transport;
+  const assignments = new GitHubAssignmentInbox(context, options.createAssignmentProvider?.(context) ??
+    new GitHubAssignmentProvider({ token: () => context.secrets.get('token') }));
   const prTitles = options.createPrTitleReader?.(context) ?? new GitHubPrTitleReader({ token: () => context.secrets.get('token') });
   const reviewTriggers = options.createReviewTriggerReader?.(context) ?? new ReviewTriggerReader({
     token: () => context.secrets.get('token'),
@@ -124,6 +129,8 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       ], diagnostics: await tracking.diagnostics() } }),
       'github.pr-tracking': () => poll('pr'),
       'github.issue-tracking': () => poll('issue'),
+      'github.assignment-poll': async () => ({ render: 'status', data: await assignments.poll() }),
+      'github.assignment-status': async () => ({ render: 'status', data: await assignments.status() }),
       'github.repo-scan': async () => { await community.run('repo-scan'); return { data: { completed: true } }; },
       'github.repo-comment-poll': async () => { await community.run('repo-comment-poll'); return { data: { completed: true } }; },
       'github.community-reconciler': async () => { await community.run('community-reconciler'); const narratorDeliveries = await narrator.reconcile(); return { data: { completed: true, narratorDeliveries } }; },
@@ -145,7 +152,7 @@ async function activate(context: FeatureContext, options: GitHubPluginOptions) {
       'github.draft.get': (value: unknown) => drafts.get(value),
       'github.triage.recommend': recommendTriage,
     }),
-    dispose: async () => { await Promise.all([connectionSettings.dispose(), migration.stop(), migratedIssues.stop(), prTitles.stop(), reviewVerdicts.stop(), narrator.stop(), http.stop(), collection.stop(), tracking.stop(), community.stop(), drafts.stop(), reviewTriggers.stop(), prIndex.stop()]); },
+    dispose: async () => { await Promise.all([assignments.stop(), connectionSettings.dispose(), migration.stop(), migratedIssues.stop(), prTitles.stop(), reviewVerdicts.stop(), narrator.stop(), http.stop(), collection.stop(), tracking.stop(), community.stop(), drafts.stop(), reviewTriggers.stop(), prIndex.stop()]); },
   };
 }
 

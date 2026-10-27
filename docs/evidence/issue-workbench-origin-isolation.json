@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-14",
+  "packageHead": "58166606bb69458c4b0c7797747daaa7be7da5eb",
+  "scope": "Synthetic feasibility probe; no production/internal connection, no shipped configuration flow",
+  "fixture": {
+    "repo": "example/project",
+    "number": 1,
+    "origins": [
+      "https://github.com",
+      "https://git.example.test"
+    ]
+  },
+  "legacySharedRoot": {
+    "isolated": false,
+    "observedOrigins": [
+      "https://git.example.test",
+      "https://git.example.test"
+    ]
+  },
+  "explicitHostSeparatedRoots": {
+    "isolated": true,
+    "observedOrigins": [
+      "https://github.com",
+      "https://git.example.test"
+    ]
+  },
+  "conclusion": "Repository path alone is insufficient across origins. Host-selected distinct roots preserve both sources after reopening. The config-to-scope binding and user journey still need implementation."
+}

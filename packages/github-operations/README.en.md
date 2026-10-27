@@ -33,7 +33,7 @@ Use the delivered exact archive with its SHA256 and SHA512 SRI. Extract it and s
 
 For an existing catalog/npm installation, use the directory update: the current Host's archive replacement requires matching local-archive provenance and may reject a direct upload as already installed. Do not work around that by uninstalling.
 
-After updating, confirm `0.1.0-alpha.27`, the hidden internal fields, and optional visible fields. Save, test the account, and confirm runtime health. Read existing registrations with `github_list_tracking` and local observations with `github_inspect_subject`. Register an explicitly authorized PR if needed, reusing its registrationId after an ambiguous response. `github_refresh_pull_requests` followed by `github_repository_observations` checks the provider read path. Initial registration is silent; verify delivery on a subsequent real review or CI change. Isolated package tests do not establish that the live installation has recovered. To roll back, install the extracted previous verified package without clearing the instance or history.
+After updating, confirm `0.1.0-alpha.28`, the hidden internal fields, and optional visible fields. Save, test the account, and confirm runtime health. Read existing registrations with `github_list_tracking` and local observations with `github_inspect_subject`. Register an explicitly authorized PR if needed, reusing its registrationId after an ambiguous response. `github_refresh_pull_requests` followed by `github_repository_observations` checks the provider read path. Initial registration is silent; verify delivery on a subsequent real review or CI change. Isolated package tests do not establish that the live installation has recovered. To roll back, install the extracted previous verified package without clearing the instance or history.
 
 Large subscription sets are processed over successive polls with a saved resume position. Slow requests and module restarts preserve conditions, baselines and pending receipts. A completed poll does not mean every subscription was checked or a notification was delivered.
 
@@ -78,6 +78,23 @@ MCP, the skill and schedules are directly used features. Other contributions con
 | `github-notification` / `github-wait` identities | Attribute plugin notifications and waits, not new GitHub accounts or caller permissions. |
 
 These contributions belong to one plugin, with one manifest, ID, version and capability declaration. They are not extra plugins or setup steps. This package declares no limb. The Host controls their presentation; removing real wiring is not a display fix.
+
+## GitHub claims and Host notifications
+
+Native GitHub Issue Assignees own the current claim; the event timeline retains claim and release history.
+Adding or removing your Assignee directly on GitHub works without an Issue Workbench comment or installation.
+
+Configure `assignmentRepositories` (repositories), `assignmentThreadId` (Host thread), and
+`assignmentCatId` (coordinator), then enable `receiveAssignedIssues`.
+The connection polls roughly once a minute and catches up existing assignments on first enable.
+Release, closure, and reclaim are separate observations. The assignment inbox status setting
+exposes status and retry actions; a failed source read never becomes a false withdrawal.
+
+Ordinary Host messaging delivers the notification and wakes the coordinator. The cat notifies its
+co-creator and uses that person's applicable authorization and normal Host work flow to begin development.
+An external assignment alone does not authorize code execution. Release preserves work and asks the
+original Host owner to handle a pause or handoff. A new configured destination catches up current claims;
+old notifications retain their original destination and deduplication identity.
 
 ## Authority and recovery
 

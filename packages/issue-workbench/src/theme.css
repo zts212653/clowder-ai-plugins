@@ -1,0 +1,17 @@
+:root {
+  --cafe-accent: #b05f45; --cafe-accent-hover: #8f4730; --cafe-accent-foreground: #fff;
+  --cafe-text: #141413; --cafe-text-secondary: #3d3d3a; --cafe-text-muted: #5f5d57;
+  --cafe-surface: #fffbf6; --cafe-surface-sunken: #f7f2ea;
+  --cafe-border: #d8d1c6; --cafe-border-subtle: #e5dfd5;
+  --console-shadow-soft: 0 2px 12px #1414130a;
+  color: var(--cafe-text); background: var(--cafe-surface); font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --cafe-text: #faf9f5; --cafe-text-secondary: #d4d1ca; --cafe-text-muted: #a09d96;
+    --cafe-surface: #181715; --cafe-surface-sunken: #252320; --cafe-border: #45423c; --cafe-border-subtle: #34322d; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }

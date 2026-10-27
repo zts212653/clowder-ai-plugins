@@ -46,6 +46,20 @@ test('gate starts with the artifact toolchain check and ends at pack:gate', () =
   assert.equal(steps.at(-1).command, 'pnpm pack:gate');
 });
 
+test('issue workbench retains its package checks and packed browser journey after CI consolidation', () => {
+  const steps = buildGateSteps();
+  const step = steps.find(entry => entry.name === 'Issue workbench independent package');
+  assert.ok(step, 'issue workbench checks must remain in the shared local/CI gate');
+  for (const script of ['check:manifest', 'lint', 'test', 'build', 'test:artifact']) {
+    assert.ok(step.command.includes(`pnpm --filter @clowder-ai/issue-workbench ${script}`));
+  }
+  assert.ok(step.command.indexOf(' build') < step.command.indexOf(' test:artifact'));
+  const workflow = parse(workflowText);
+  assert.ok(workflow.on.push.paths.includes('packages/issue-workbench/**'));
+  const browser = workflow.jobs.validate.steps.find(entry => entry.name === 'Issue workbench packed browser journey');
+  assert.equal(browser.run, 'pnpm --filter @clowder-ai/issue-workbench exec playwright install --with-deps chromium && pnpm --filter @clowder-ai/issue-workbench test:browser');
+});
+
 test('immutable registry validation runs against the current catalog before final packing', () => {
   const steps = buildGateSteps();
   const catalog = steps.findIndex(entry => entry.name === 'Machine catalog');
@@ -151,6 +165,7 @@ test('both validation workflows have no package command missing from the local g
   const externalSteps = new Set([
     'Assert tested HEAD is the PR\'s live head',
     'Companion browser layout contract',
+    'Issue workbench packed browser journey',
     'Xiangqi browser journey',
     'Capture exact-head pack evidence',
     'Capture exact-head SDK pack evidence',

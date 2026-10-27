@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Issue 工作台 · 隔离模拟试用</title><link rel="stylesheet" href="/sandbox/ui.css"></head>
+<body><header>
+  <div class="title"><strong>Issue 工作台</strong><span class="badge">隔离模拟试用</span><span id="live" role="status">正在连接…</span></div>
+  <p class="boundary">真实插件界面与业务，独立保存记录。账号、GitHub、猫结果和授权为测试替身，不连接生产猫咖。</p>
+  <nav aria-label="模拟成员"><button id="sender-tab" aria-pressed="true">发送端 · bob</button><button id="receiver-tab" aria-pressed="false">接收端 · alice</button></nav>
+  <p id="journey">先选一条问题，查看自动分类，或选择「猫猫研判」补充分析；再用「通知成员接手」邀请 alice。</p>
+  <details id="controls"><summary>模拟设置与故障恢复</summary><div class="controls">
+    <label>模拟猫响应<select id="cat-mode"><option value="success">成功 · 自动返回研判</option><option value="failure">失败 · 模拟投递异常</option><option value="timeout">超时 · 保持等待，不返回结果</option></select></label>
+    <label class="check"><input id="network" type="checkbox">模拟 GitHub 离线</label>
+    <label class="check"><input id="enabled" type="checkbox" checked>启用当前成员的插件</label>
+    <button id="tick">执行一次同步</button><button id="recover">恢复成功并补交待处理结果</button>
+    <label>模拟来源<select id="source"></select></label><button id="toggle-source">关闭选中问题</button>
+  </div><p class="hint">超时保留原请求；恢复成功后补交结果。禁用和关闭来源会走真实插件的访问与撤回检查。</p></details>
+  <section id="receiver-tools" hidden aria-label="模拟接收猫回报">
+    <details open><summary>模拟接收猫回报 · 需要你明确提交</summary>
+      <p class="hint">收取通知不会自动接手。在这里代替接收猫提交真实插件回执，发送端会读到这份说明。</p>
+      <form id="report-form"><label>收件记录<select id="inbox" required></select></label>
+        <label>回报状态<select id="report-status"><option value="accepted">明确接手</option><option value="working">处理中</option><option value="blocked">受阻</option><option value="ready">待验证</option></select></label>
+        <label class="grow">回报说明<input id="report-summary" required maxlength="1000" placeholder="写下你的接手说明或当前进展"></label>
+        <button type="submit" id="report-submit">发送模拟回执</button>
+      </form><p id="report-receipt" role="status"></p>
+    </details>
+  </section>
+  <p id="error" role="alert" hidden></p>
+</header>
+<main><iframe id="sender-frame" title="发送端工作台" src="/sender/"></iframe><iframe id="receiver-frame" title="接收端工作台" src="/receiver/" hidden></iframe></main>
+<footer><details><summary>模拟 GitHub 评论与数据保存位置</summary><p id="data-root"></p><div id="comments"></div></details></footer>
+<script type="module" src="/sandbox/ui.js"></script></body></html>
