@@ -6,7 +6,7 @@ import type { CollectiveMessageAttachmentOwnerPort } from '../../contracts/messa
 
 type PluginSourceFact = Omit<Partial<PluginMessage>,'extra'> & {extra?:unknown};
 type DeliveredCallFixture = Omit<PluginActionContext,'source'> & {originTriggerMessageId:string;source:PluginMessage & {source:NonNullable<PluginMessage['source']>}};
-export async function publicSourceFixture(options: { methods?: readonly string[]; invocationId?: string; messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort } = {}) {
+export async function publicSourceFixture(options: { invocationId?: string; messageAttachmentOwner?: CollectiveMessageAttachmentOwnerPort } = {}) {
   const module = await import(process.env.PUBLIC_SOURCE_ROUTING_COMPILED === '1'
     ? '../../../../dist/collective-public-source.js' : '../../../collective-public-source.js');
   const f = await fixture({ messageAttachmentOwner: options.messageAttachmentOwner }); await f.connector.sync(f.connection.connectionId);
@@ -18,7 +18,7 @@ export async function publicSourceFixture(options: { methods?: readonly string[]
   const owner: PluginOwnerOperationContext = { kind: 'owner-operation', userId: 'local-owner', pluginInstanceId: 'installed-instance',
     operationKey: 'sync', actionId: 'sync', requestId: 'request', signal: new AbortController().signal, assertCurrent: current };
   const ports: Parameters<typeof import('../../../collective-public-source.js').createCollectivePublicSourceCaller>[0] = { connector: f.connector,
-    native: { contributionId: 'collective-native', methods: options.methods ?? ['collective.reply.submit', 'collective.context.current'] },
+    native: { contributionId: 'collective-native' },
     pluginInstanceId: owner.pluginInstanceId,
     threads: { async get(id: string) { calls.push(['thread', id]); await beforeThread?.(); return { id } as never; },
       async getCats() { return { participants: [{ catId: 'codex-sol' }] } as never; } },

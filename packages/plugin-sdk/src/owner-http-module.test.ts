@@ -19,7 +19,7 @@ const manifest = {
       id: "backend",
       name: "Backend",
       resources: [],
-      capabilities: [],
+
       contributions: [{ type: "webhook", id: "owner" }],
     },
   ],

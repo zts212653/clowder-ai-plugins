@@ -13,6 +13,14 @@ This is a public prerelease package. It needs a matching approved Host that supp
 3. Use the installed participation MCP tools to read authorized sources, set interest and submit an ordinary reply. The Host authenticates the current cat and source.
 4. Private Work requires an existing Service commitment and the current manual owner choice or standing scope. Pairing, ordinary messages and a UI Task record are not execution grants.
 
+## Dates and material triage
+
+From a Project, explicitly share one source through your own connected Café. Registered GitHub PRs and Issues, or an explicitly selected meeting source, enter a stable public publication receipt. Repository registration and private meeting notifications never imply public sharing. The Project owner decides create, merge, reference or ignore, one passage at a time. A new task is unassigned with no deadline; merging adds provenance while retaining responsibility, lifecycle and dates. Source revisions retain their witnesses. Revoked, deleted or unavailable sources expose no cached title or body and do not enter visible pending counts.
+
+Work dates distinguish deadline, review-by, planned start, observed actual start and estimated completion. The accountable Human confirms promises; executors estimate and others suggest. Project targets are separate; the latest task deadline is derived. Actor, source, history and IANA zone survive restart. Repeated local hours require an explicit occurrence. Public dates appear read-only on the same original family task, without copying Tasks or publishing private calendar data.
+
+Cats discover public material references from current Project context, then read actual passages from the source owner before suggesting. Humans retain destination decisions. GitHub needs the matching source adapter release. The Feishu seam implementation and controlled tests do not certify F292 package publication or real-account Phase D acceptance.
+
 ## Work and materials
 
 The current authorized source can expose shared artifacts, modification proposals and Project task suggestions. The responsible Human still decides; a proposal neither applies changes nor grants private Work execution. Shared images and video use the current authenticated connection. Disable, revocation or disconnect ends reads.
@@ -46,7 +54,7 @@ conversation that opened the world. Refresh restores only previously verified na
 Human, marked as checking rather than authority. The unavailable page keeps the target name, offers an in-place retry
 and hides raw network errors.
 
-The packaged Client's paired Core source is `280fcd4d6618f1fb4e1c7cf614af7901680080ca`; see the
+The earlier alpha.12 Client was paired with Core source `280fcd4d6618f1fb4e1c7cf614af7901680080ca`; see the
 [Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/280fcd4d6618f1fb4e1c7cf614af7901680080ca/docs/evidence/2026-10-25-f290-expression-content)
 and the [same-source real Host journey](https://github.com/zts212653/cat-cafe/blob/280fcd4d6618f1fb4e1c7cf614af7901680080ca/packages/web/test/browser/f290-world-identity.journey.mjs),
 which covers Human identity, A→B→A history, refresh recovery, unavailable retry and identity-card bounds.
@@ -63,4 +71,6 @@ The plugin starts its own loopback HTTP listener on enable and closes it on stop
 
 Service pairing, automatic inbound delivery, public replies, real-model Work, material opening, acceptance and previous-result reads still require the complete installed account/browser journey. Module and provider-fixture evidence does not certify all of these. Local port availability and the complete account journey remain installation acceptance requirements.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+
+The alpha.13 Client is built from exact Core source `5f055fcc907a67f015bceb84500256d8ad41e65d` (542 checked source inputs, no overrides). Batch 2 journey and source boundaries are recorded in that source’s `docs/evidence/2026-10-27-f290-dates-materials/README.md`.

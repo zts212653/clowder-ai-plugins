@@ -4,7 +4,7 @@
 
 `@clowder-ai/video-generation` gives a Clowder AI Agent MCP tools for submitting and tracking image or
 video generation jobs through a configured provider. The package owns the provider protocol templates and
-request signing; the Host owns installation, configuration, secret storage, grants, and process lifecycle.
+request signing; the Host owns installation, configuration, secret storage, caller context, and process lifecycle.
 
 ## What it does
 
@@ -64,4 +64,4 @@ conversations or keep a separate history of them.
 This package is an alpha release. Verify provider compatibility and data policy in an isolated environment
 before relying on it for sensitive workloads.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

@@ -90,12 +90,10 @@ async function setup(taskHost?: ModulePluginHostShape['tasks']) {
       path: `connections/${f.connection.connectionId}/participation`, headers: { origin: 'http://localhost:5172' },
       principal: { kind: 'owner', id: owner } } }, native as never, ownerCaller(owner,'GET',current)); }, async close() { await active.stop({reason:'test'}); await f.close(); } };
 }
-test('retained GET participation and original read-only Task dependency are declared', () => {
+test('retained GET participation is declared by its owning feature', () => {
   const c = manifest.contributions.find((c: { path?: string }) => c.path === 'connections/:connectionId/participation');
   expect(c).toMatchObject({ type: 'webhook', methods: ['GET', 'PUT'], action: { method: 'collective.control.http' } });
   expect(manifest.features[0].contributions).toContainEqual({ type: 'webhook', id: c.id });
-  expect(manifest.features[0].capabilities).toContain('task.read');
-  expect(manifest.features[0].capabilities).not.toContain('task.write');
 });
 test('actual GET retains owner threads, requests, admitted-source Task filtering and policy without mutation', async () => {
   const f = await setup(); try {
@@ -175,7 +173,7 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('compiled Host four read ports cr
       admission: fullAdmission,dataController:{bindingRevision:1,
         state:'active',currentForCaller:true,binding:{userId:'local-owner',catId:'codex-sol',threadId:'channel',subjectKey:'work:fixture',
           firstSourceRef:'message:view-source',admissionAuthorityRef:'message:original-admission',pluginId:'official.collective-connector',
-          pluginInstanceId:'installed-instance',moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,grantRevision:3,
+          pluginInstanceId:'installed-instance',moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,
           ownerOperationReceiptRef:`task-data-controller:${'a'.repeat(64)}`}} } };
   const publicBase:PluginTaskReadItem={...base,entrustedWork:{...base.entrustedWork!,
     admission:{sourceRefs:fullAdmission.sourceRefs,authorityRef:fullAdmission.authorityRef}}};
@@ -189,12 +187,12 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('compiled Host four read ports cr
   Reflect.deleteProperty(legacy, 'userId'); Reflect.deleteProperty(legacy, 'entrustedWork');
   const taskHost: ModulePluginHostShape['tasks'] = createPluginTaskHost({ pluginId: 'official.collective-connector',
     pluginInstanceId:'installed-instance',ownerUserId: 'local-owner', readThreadStore: { async get(id: string) { return { id, createdBy: 'local-owner' }; } },
-    effectiveGrants: ['task.read'],admission:{readCurrentDataControllerAuthority:async()=>({
+    admission:{readCurrentDataControllerAuthority:async()=>({
       pluginId:'official.collective-connector',pluginInstanceId:'installed-instance',moduleRef:'plugin:official.collective-connector',
-      lifecycleRevision:8,grantRevision:3,effectiveGrants:['task.read','task.write','task.admitEntrusted']}),
+      lifecycleRevision:8}),
       withCurrentDataControllerAuthority:async(run:(value:unknown)=>unknown)=>run({
       pluginId:'official.collective-connector',pluginInstanceId:'installed-instance',moduleRef:'plugin:official.collective-connector',
-      lifecycleRevision:8,grantRevision:3,effectiveGrants:['task.read','task.write','task.admitEntrusted']}),assertCurrent:async()=>{},
+      lifecycleRevision:8}),assertCurrent:async()=>{},
       messageStore:{},isCatAvailable:()=>true},taskStore: { async get() { return raw; }, async getBySubject() { return raw; },
       async listByThread() { return [raw, legacy]; }, async listByKind() { return [raw, legacy]; } } });
   const results = [await taskHost.get({ id: raw.id }), await taskHost.get({ subjectKey: 'work:fixture' }),
@@ -203,7 +201,6 @@ if (process.env.C1_TASK_READ_HOST_MODULE) test('compiled Host four read ports cr
   expect(results.filter(row => row?.id === legacy.id)).toHaveLength(2);
   for (const result of results.filter(row => row?.id === raw.id)) expect(result).toEqual(publicBase);
   for (const result of results.filter(row => row?.id === legacy.id)) expect(result!.userId).toBeNull();
-  await expect(taskHost.update(raw.id, { status: 'done' })).rejects.toThrow(/task.write/);
   const f = await setup(taskHost); try {
     const response = await f.invoke() as { status: number; body: { tasks: unknown[] } };
     expect(response.status, JSON.stringify(response)).toBe(200);

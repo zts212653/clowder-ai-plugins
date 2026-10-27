@@ -10,7 +10,6 @@
 
 export { isValidDataClassStrategy } from '../types/data-class.js';
 
-export { getCapabilityLayer } from '../types/capability.js';
 
 export {
   executeBehaviorCase,
@@ -77,8 +76,4 @@ export {
 
 export {
   DATA_CLASS_ALLOWED_STRATEGIES,
-  CAPABILITY_TABLE,
-  L0_CAPABILITIES,
-  L1_CAPABILITIES,
-  L2_CAPABILITIES,
 } from '../generated/contract.generated.js';

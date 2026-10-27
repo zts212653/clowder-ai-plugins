@@ -63,7 +63,7 @@ function operationManifest(): Record<string, unknown> {
         id: 'login',
         name: 'Login',
         resources: [],
-        capabilities: ['plugin.config.read', 'secret.read'],
+
       },
     ],
     runtime: { transport: 'builtin', entrypoint: 'dist/plugin.js' },
@@ -105,7 +105,7 @@ test('admits a runtime-less package containing only self-contained static resour
           { type: 'skill', id: 'guide' },
           { type: 'mcp', id: 'search' },
         ],
-        capabilities: [],
+
       },
     ],
   };
@@ -175,7 +175,7 @@ test('requires a package runtime for callback and handler contributions', () => 
         name: 'Webhook',
         resources: [],
         contributions: [{ type: 'webhook', id: 'events' }],
-        capabilities: [],
+
       },
     ],
   };

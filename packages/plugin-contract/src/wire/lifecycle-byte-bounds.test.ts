@@ -8,7 +8,6 @@ import {
   standardErrorWithIdTemplate,
 } from '../byte-proof/row-proofs.js';
 import { MAX_FRAME_BYTES } from './constants.js';
-import { MAX_GRANT_ITEMS, VALID_CAPABILITIES, validateEffectiveGrants } from './grants.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';
 import {
   HOST_LIFECYCLE_PING_ERROR_BYTE_PROOF,

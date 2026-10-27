@@ -8,7 +8,7 @@ it('sends once with named wake and resolves the authenticated native origin befo
   const f = await setup(); try {
     let early: unknown;
     f.beforeSendReturns(async () => {
-      early = await f.sourceCaller.resolveNative(f.action, 'collective.context.current');
+      early = await f.sourceCaller.resolveNative(f.action);
     });
     const receipt = await f.admit();
     expect(receipt).toEqual({ messageId: 'host-source', threadId: 'channel' });
@@ -20,8 +20,7 @@ it('sends once with named wake and resolves the authenticated native origin befo
 });
 
 it('runs all four original native consumers while Host send is still awaiting its wake receipt', async () => {
-  const methods = ['collective.context.current', 'collective.context.read', 'collective.participation.set-interest', 'collective.reply.submit'];
-  const f = await setup({ methods, invocationId: 'fixture-running-turn' }); try {
+  const f = await setup({ invocationId: 'fixture-running-turn' }); try {
     const references = await openCollectiveContextReferences(join(f.root, 'early-native-refs'), () => {});
     const actions = createCollectivePublicNativeActions({ connector: f.connector, sourceCaller: f.sourceCaller, references });
     f.beforeSendReturns(async () => {
@@ -41,7 +40,7 @@ it('runs all four original native consumers while Host send is still awaiting it
 
 it('retries the same Host send after a lost wake receipt even if native has already persisted the source mapping', async () => {
   const f = await setup(); try {
-    f.beforeSendReturns(async () => { await f.sourceCaller.resolveNative(f.action, 'collective.context.current'); });
+    f.beforeSendReturns(async () => { await f.sourceCaller.resolveNative(f.action); });
     f.loseSend(); await expect(f.admit()).rejects.toThrow('Wake send response lost');
     const binding = f.connector.readCurrentPublicSource('message:host-source');
     f.recoverSend(); await f.admit();

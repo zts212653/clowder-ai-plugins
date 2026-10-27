@@ -1,5 +1,5 @@
 pluginId: official.connector.feishu
-version: 0.1.0-alpha.8
+version: 0.1.0-alpha.9
 contractVersion: 0.2.0
 name: Feishu / Lark Connector
 description:
@@ -122,7 +122,6 @@ features:
         id: feishu-media
       - type: webhook
         id: feishu-events
-    capabilities: [plugin.config.read, plugin.state.get, plugin.state.set, streams.read, message.event.subscribe, messaging.send, secret.read, thread.readContent, thread.listMetadata, thread.write]
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

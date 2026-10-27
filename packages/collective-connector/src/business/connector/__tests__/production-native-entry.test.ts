@@ -52,11 +52,10 @@ test('actual module sends one named wake and handles native context before the s
   let active: Awaited<ReturnType<ReturnType<typeof entrypoint.create>['start']>> | undefined;
   try {
     expect(manifest.contributions.find((item: { type: string; id: string }) => item.type === 'mcp' && item.id === 'collective-native')).toBeDefined();
-    const declared = manifest.contributions.find((item: { id: string }) => item.id === 'collective-native');
-    expect(declared.actions).toContainEqual({ method: 'collective.work.propose' });
-    expect(declared.actions).toContainEqual({ method: 'collective.work.accept' });
-    expect(declared.actions).toContainEqual({ method: 'collective.work.continue' });
     active = await entrypoint.create(manifest).start(host);
+    for (const method of ['collective.work.propose', 'collective.work.accept', 'collective.work.continue']) {
+      expect(typeof active.actions[method]).toBe('function');
+    }
     expect(Object.hasOwn(active, 'publicInvocationVerifier')).toBe(false);
     const roster = await ownerAction(active.actions['collective.control.http']!, owner.userId)({ request: { method: 'GET', path: 'entry-roster',
       headers: { origin: 'http://localhost:5172' }, principal: { kind: 'owner', id: owner.userId } } });

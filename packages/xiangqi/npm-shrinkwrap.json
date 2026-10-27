@@ -1,15 +1,15 @@
 {
   "name": "@clowder-ai/xiangqi",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@clowder-ai/xiangqi",
-      "version": "0.1.0-alpha.2",
+      "version": "0.1.0-alpha.3",
       "license": "MIT",
       "dependencies": {
-        "@clowder-ai/plugin-sdk": "0.2.0-beta.21",
+        "@clowder-ai/plugin-sdk": "0.3.0-beta.1",
         "@modelcontextprotocol/sdk": "1.26.0",
         "zod": "4.4.3"
       },
@@ -17,7 +17,7 @@
         "clowder-xiangqi-mcp": "dist/mcp-entrypoint.mjs"
       },
       "devDependencies": {
-        "@clowder-ai/plugin-contract": "0.1.0-beta.37",
+        "@clowder-ai/plugin-contract": "0.3.0",
         "playwright": "1.61.1",
         "yaml": "^2.8.1"
       },
@@ -26,9 +26,9 @@
       }
     },
     "node_modules/@clowder-ai/plugin-contract": {
-      "version": "0.1.0-beta.37",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.1.0-beta.37.tgz",
-      "integrity": "sha512-6J4XPbWRWHRd7IkvZuITm/zGy8/ZxZfZiSGiEBXbeDDABhOzPcbHwxf7krcF5NIfDtUwdHNHA5kd6blb2apgbw==",
+      "version": "0.3.0",
+      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-contract/-/plugin-contract-0.3.0.tgz",
+      "integrity": "sha512-7o1PP71mcXtfPntLKWxRigxuxZ3DIulAidR3qcytfqcUJ9uY8M+FpYEGaCRUsr8HxKkQOoTFPwe/sLZNLks3rw==",
       "license": "MIT",
       "dependencies": {
         "ajv": "^8.17.0",
@@ -39,12 +39,12 @@
       }
     },
     "node_modules/@clowder-ai/plugin-sdk": {
-      "version": "0.2.0-beta.21",
-      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.2.0-beta.21.tgz",
-      "integrity": "sha512-acvi9BWJWXDgi0Ttk8BVQ54ZcPwds+MyHpOW0ohb9WFSfL92C3SFHD/ilfZcNp7lxx4euh8EEFhIABfVtyMSzA==",
+      "version": "0.3.0-beta.1",
+      "resolved": "https://registry.npmjs.org/@clowder-ai/plugin-sdk/-/plugin-sdk-0.3.0-beta.1.tgz",
+      "integrity": "sha512-W1v9gSscxoj8f41hrRFwX2c3Zt3gFoSIX3en24SDISxGwFLmxI46Y7EJBOoCpHEm9eRaJHhgHuQYnWsAWBKE5g==",
       "license": "MIT",
       "dependencies": {
-        "@clowder-ai/plugin-contract": "0.1.0-beta.37"
+        "@clowder-ai/plugin-contract": "0.3.0"
       },
       "engines": {
         "node": ">=20.0.0"

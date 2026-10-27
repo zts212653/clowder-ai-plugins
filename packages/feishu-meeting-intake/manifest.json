@@ -1,6 +1,6 @@
 {
   "pluginId": "official.feishu-meeting-intake",
-  "version": "0.1.0-alpha.11",
+  "version": "0.1.0-alpha.12",
   "contractVersion": "0.1.0",
   "name": "Feishu Meeting Intake",
   "description": "Owned meeting records, ordinary notifications and authenticated native reads.",
@@ -9,6 +9,23 @@
     "src": "assets/icon.png"
   },
   "configuration": [
+    {
+      "key": "sourceMaterial",
+      "label": "Project source sharing",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "invoke",
+          "label": "Meeting source sharing",
+          "render": "status",
+          "resultRender": "status",
+          "action": {
+            "method": "meeting.sourceMaterial"
+          }
+        }
+      ]
+    },
     {
       "key": "appId",
       "label": "Feishu app ID",
@@ -251,12 +268,6 @@
           "type": "mcp",
           "id": "meeting-records"
         }
-      ],
-      "capabilities": [
-        "plugin.config.read",
-        "secret.read",
-        "thread.readContent",
-        "messaging.send"
       ]
     }
   ],
@@ -277,15 +288,7 @@
       "runtime": {
         "transport": "stdio",
         "entrypoint": "dist/mcp-entrypoint.js"
-      },
-      "actions": [
-        {
-          "method": "meeting.records.list"
-        },
-        {
-          "method": "meeting.records.read"
-        }
-      ]
+      }
     }
   ]
 }

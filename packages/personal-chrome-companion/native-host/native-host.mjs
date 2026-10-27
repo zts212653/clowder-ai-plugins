@@ -13,6 +13,7 @@ import {
   readPersonalChromeConversationAuthorizations,
 } from './conversation-binding.mjs';
 import { createConversationTitleExchange } from './conversation-title-exchange.mjs';
+import { projectHealthResult } from './health-result.mjs';
 import { encodeNativeMessage, NativeMessageDecoder } from './native-framing.mjs';
 import { hasCapacityForEntry, ledgerKey, loadLedger, textDigest, writeAtomicLedger } from './native-ledger.mjs';
 import {
@@ -113,16 +114,6 @@ function revisionsMatch(expected, observed) {
     observed.extension === expected.extension &&
     observed.pageAdapter === expected.pageAdapter
   );
-}
-
-function projectedHealthStatus(message, exact) {
-  if (exact && message.status === 'ready') return 'ready';
-  return message.status === 'dormant' ? 'dormant' : 'stale_adapter';
-}
-
-function projectedHealthError(message, exact) {
-  if (exact) return undefined;
-  return safeErrorCode(message.errorCode) ? message.errorCode : 'STALE_ADAPTER';
 }
 
 function parsePairedAppendEnvelope(expectedPairingSecret, rawEnvelope) {
@@ -357,6 +348,7 @@ export async function createNativeHostBridge(options) {
       socket,
       timeout,
       expectedRevisions: request.expectedRevisions,
+      conversationId: request.conversationId,
     });
     try {
       await options.sendNative(request);
@@ -543,7 +535,8 @@ export async function createNativeHostBridge(options) {
     if (!revisionsMatch(pending.expectedRevisions, observedRevisions)) {
       await settle(
         key,
-        failureFor(message, 'STALE_ADAPTER', {
+        failureFor(message, message.status === 'failed' && safeErrorCode(message.errorCode) &&
+          message.errorCode.startsWith('STALE_') ? message.errorCode : 'STALE_ADAPTER', {
           observedRevisions: observedRevisions ?? {
             helper: options.helperArtifactRevision,
             extension: '0.0.0',
@@ -584,14 +577,17 @@ export async function createNativeHostBridge(options) {
       return true;
     }
     const observedRevisions = safeRevisions(message.observedRevisions);
-    const exact = revisionsMatch(pending.expectedRevisions, observedRevisions);
-    const errorCode = projectedHealthError(message, exact);
+    const projection = projectHealthResult(pending, {
+      status: message.status,
+      errorCode: safeErrorCode(message.errorCode) ? message.errorCode : undefined,
+      observedRevisions,
+    });
     sendSocketResult(pending.socket, {
       v: APPEND_PROTOCOL_VERSION,
       kind: 'health_result',
       requestId: message.requestId,
-      status: projectedHealthStatus(message, exact),
-      ...(errorCode ? { errorCode } : {}),
+      status: projection.status,
+      ...(projection.errorCode ? { errorCode: projection.errorCode } : {}),
       ...(observedRevisions ? { observedRevisions } : {}),
     });
     return true;

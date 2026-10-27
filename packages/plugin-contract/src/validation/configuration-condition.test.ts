@@ -70,7 +70,7 @@ function conditionManifest(): Record<string, unknown> {
         id: 'configuration',
         name: 'Configuration',
         resources: [],
-        capabilities: [],
+
       },
     ],
     runtime: { transport: 'builtin', entrypoint: 'dist/plugin.js' },

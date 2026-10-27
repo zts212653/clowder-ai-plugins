@@ -167,7 +167,7 @@ test('both validation workflows have no package command missing from the local g
   }
 });
 
-test('current inventory builds the non-cataloged Collective runtime before checking its declarations and assets', () => {
+test('Collective full package tests run before inventory and installed artifact checks', () => {
   const command = buildGateSteps().find(step => step.name === 'Package inventory').command;
-  assert.equal(command, 'pnpm --filter @clowder-ai/collective-connector build && pnpm test:package-inventory && pnpm --filter @clowder-ai/collective-connector test:source && pnpm --filter @clowder-ai/collective-connector test:installed');
+  assert.equal(command, 'pnpm --filter @clowder-ai/collective-connector build && pnpm --filter @clowder-ai/collective-connector typecheck && pnpm --filter @clowder-ai/collective-connector test && pnpm test:package-inventory && pnpm --filter @clowder-ai/collective-connector test:source && pnpm --filter @clowder-ai/collective-connector test:installed');
 });

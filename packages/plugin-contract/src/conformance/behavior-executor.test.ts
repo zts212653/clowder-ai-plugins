@@ -58,7 +58,7 @@ function makeCase(
     },
     given: {
       caller: { pluginInstanceId: 'plugin-a' },
-      grants: [],
+
       handles: {},
       state: {},
     },
@@ -161,16 +161,16 @@ test('status and error-code mismatches are reported together', async () => {
 });
 
 test('value-bearing assertions compare the observed value deeply', async () => {
-  const expected = { visible: true, capabilities: ['messaging.send'] };
+  const expected = { visible: true, };
   const adapter = new ScriptedAdapter(
-    { grant_state: null },
-    { grant_state: structuredClone(expected) },
+    { messages: null },
+    { messages: structuredClone(expected) },
     { status: 'success' },
   );
 
   const report = await executeBehaviorCase(
     makeCase(
-      [{ target: 'grant_state', assertion: 'state_equals', value: expected }],
+      [{ target: 'messages', assertion: 'state_equals', value: expected }],
       { status: 'success' },
     ),
     adapter,

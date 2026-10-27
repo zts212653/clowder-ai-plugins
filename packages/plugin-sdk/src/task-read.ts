@@ -112,7 +112,6 @@ function dataControllerBinding(value: unknown): PluginTaskDataControllerBinding 
       binding.lifecycleRevision,
       'entrustedWork.dataController.binding.lifecycleRevision',
     ),
-    grantRevision: positiveRevision(binding.grantRevision, 'entrustedWork.dataController.binding.grantRevision'),
     ownerOperationReceiptRef: controllerReceipt(
       binding.ownerOperationReceiptRef,
       'entrustedWork.dataController.binding.ownerOperationReceiptRef',

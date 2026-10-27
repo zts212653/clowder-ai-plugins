@@ -1,28 +1,35 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
+import type { PluginOwnerOperationContext } from '@clowder-ai/plugin-sdk';
+import YAML from 'yaml';
+import { readCollectiveAccountabilityAttentionSource } from '../src/accountability-attention.js';
+import { createAccountabilityAttentionAction } from '../src/accountability-owner-action.js';
 import type { CollectiveConnector } from '../src/business/connector/connector.js';
 import {
   type CollectiveAccountabilityAttentionItem,
   collectiveAccountabilityAttentionActionRef,
   collectiveAccountabilityAttentionSubjectRef,
 } from '../src/business/contracts/index.js';
-import { readCollectiveAccountabilityAttentionSource } from '../src/accountability-attention.js';
-import { createAccountabilityAttentionAction } from '../src/accountability-owner-action.js';
-import type { PluginOwnerOperationContext } from '@clowder-ai/plugin-sdk';
-import { readFile } from 'node:fs/promises';
-import YAML from 'yaml';
 import { collectiveOwnerOperationInput } from '../src/owner-operation-input.js';
 
 const ownerUserId = 'owner-user';
 
 test('owner envelope separates only known Manager fields without mutating input or dropping operation arguments', () => {
-  const input = {input: {servicePort: '5813', connectionId: 'connection', expectedRevision: 7},
-    operationState: {currentAction: 'sync', updatedAt: 123}};
+  const input = {
+    input: { servicePort: '5813', connectionId: 'connection', expectedRevision: 7 },
+    operationState: { currentAction: 'sync', updatedAt: 123 },
+  };
   const before = structuredClone(input);
-  assert.deepEqual(collectiveOwnerOperationInput(input), {input: {connectionId: 'connection', expectedRevision: 7}});
+  assert.deepEqual(collectiveOwnerOperationInput(input), {
+    input: { connectionId: 'connection', expectedRevision: 7 },
+  });
   assert.deepEqual(input, before);
-  for (const bad of [{...input, userId: 'forged'}, {...input, operationState: {...input.operationState, userId: 'forged'}},
-    {...input, operationState: {currentAction: 'sync', updatedAt: -1}}])
+  for (const bad of [
+    { ...input, userId: 'forged' },
+    { ...input, operationState: { ...input.operationState, userId: 'forged' } },
+    { ...input, operationState: { currentAction: 'sync', updatedAt: -1 } },
+  ])
     assert.throws(() => collectiveOwnerOperationInput(bad));
 });
 const serviceInstanceId = 'svc_aaaaaaaa';
@@ -30,63 +37,125 @@ const collectiveId = 'col_aaaaaaaa';
 const sourceSnapshot = `sha256:${'a'.repeat(64)}`;
 
 function caller(assertCurrent: () => Promise<void> = async () => {}): PluginOwnerOperationContext {
-  return { kind: 'owner-operation', pluginInstanceId: 'installed', userId: ownerUserId,
-    operationKey: 'accountability', actionId: 'attention', requestId: 'request',
-    signal: new AbortController().signal, assertCurrent };
+  return {
+    kind: 'owner-operation',
+    pluginInstanceId: 'installed',
+    userId: ownerUserId,
+    operationKey: 'accountability',
+    actionId: 'attention',
+    requestId: 'request',
+    signal: new AbortController().signal,
+    assertCurrent,
+  };
 }
 
 test('ordinary owner action declares the exact Dot coordinates and refuses other callers', async () => {
   const manifest = YAML.parse(await readFile(new URL('../plugin.yaml', import.meta.url), 'utf8'));
-  const operation = manifest.configuration.find((row: {key: string}) => row.key === 'accountability');
+  const operation = manifest.configuration.find((row: { key: string }) => row.key === 'accountability');
   assert.equal(operation.actions[0].id, 'attention');
   assert.equal(operation.actions[0].action.method, 'collective.owner.accountability-attention');
   let reads = 0;
-  const action = createAccountabilityAttentionAction({ async listConnections() { reads += 1; return []; } } as unknown as CollectiveConnector, () => {});
+  const action = createAccountabilityAttentionAction(
+    {
+      async listConnections() {
+        reads += 1;
+        return [];
+      },
+    } as unknown as CollectiveConnector,
+    () => {},
+  );
   for (const authority of [undefined, { ...caller(), actionId: 'other' }, { ...caller(), operationKey: 'other' }])
-    await assert.rejects(async () => action({input: {}}, undefined, authority), /authenticated owner operation/);
+    await assert.rejects(async () => action({ input: {} }, undefined, authority), /authenticated owner operation/);
   assert.equal(reads, 0);
-  const result = await action({input: {}}, undefined, caller()) as {render: string; data: {items: unknown[]; state: {status: string; exhaustiveness: string}}};
+  const result = (await action({ input: {} }, undefined, caller())) as {
+    render: string;
+    data: { items: unknown[]; state: { status: string; exhaustiveness: string } };
+  };
   assert.equal(result.render, 'status', 'owner operation must have the formal rendering envelope');
   assert.deepEqual(Object.keys(result).sort(), ['data', 'render']);
   assert.deepEqual(result.data.items, []);
   assert.equal(result.data.state.status, 'available');
   assert.equal(result.data.state.exhaustiveness, 'complete');
-  assert.equal(reads, 1);
+  assert.equal(reads, 2, 'accountability and Project attention each read their original source');
 });
 
 test('owner expiry during a read cannot disclose rows or become empty-complete', async () => {
   let expired = false;
-  const action = createAccountabilityAttentionAction({async listConnections() { expired = true; return []; }} as unknown as CollectiveConnector, () => {});
-  await assert.rejects(async () => action({input: {}}, undefined, caller(async () => {if(expired) throw new Error('owner expired');})), /owner expired/);
+  const action = createAccountabilityAttentionAction(
+    {
+      async listConnections() {
+        expired = true;
+        return [];
+      },
+    } as unknown as CollectiveConnector,
+    () => {},
+  );
+  await assert.rejects(
+    async () =>
+      action(
+        { input: {} },
+        undefined,
+        caller(async () => {
+          if (expired) throw new Error('owner expired');
+        }),
+      ),
+    /owner expired/,
+  );
 });
 
 test('abort or deactivation during attention read cannot return a result envelope', async () => {
   for (const revoke of ['abort', 'deactivate']) {
     const controller = new AbortController();
     let active = true;
-    const action = createAccountabilityAttentionAction({async listConnections() {
-      if (revoke === 'abort') controller.abort(new Error('owner request aborted'));
-      else active = false;
-      return [];
-    }} as unknown as CollectiveConnector, () => {if (!active) throw new Error('plugin deactivated');});
-    await assert.rejects(async () => action({input: {}}, undefined, {...caller(), signal: controller.signal}),
-      /owner request aborted|plugin deactivated/);
+    const action = createAccountabilityAttentionAction(
+      {
+        async listConnections() {
+          if (revoke === 'abort') controller.abort(new Error('owner request aborted'));
+          else active = false;
+          return [];
+        },
+      } as unknown as CollectiveConnector,
+      () => {
+        if (!active) throw new Error('plugin deactivated');
+      },
+    );
+    await assert.rejects(
+      async () => action({ input: {} }, undefined, { ...caller(), signal: controller.signal }),
+      /owner request aborted|plugin deactivated/,
+    );
   }
 });
 
 test('attention status envelope preserves unavailable source data for Dot', async (t) => {
   t.mock.method(Date, 'now', () => 123456);
-  const connector = {async listConnections() {throw new Error('index unavailable');}} as unknown as CollectiveConnector;
+  const connector = {
+    async listConnections() {
+      throw new Error('index unavailable');
+    },
+  } as unknown as CollectiveConnector;
   const expected = await readCollectiveAccountabilityAttentionSource(connector, ownerUserId);
   const action = createAccountabilityAttentionAction(connector, () => {});
-  const result = await action({input: {servicePort: '5813'}, operationState: {currentAction: 'attention', updatedAt: 123}}, undefined, caller()) as {render: string; data: unknown};
+  const result = (await action(
+    { input: { servicePort: '5813' }, operationState: { currentAction: 'attention', updatedAt: 123 } },
+    undefined,
+    caller(),
+  )) as { render: string; data: unknown };
   assert.equal(result.render, 'status');
-  assert.deepEqual(result.data, expected);
+  const { projectRead, ...original } = result.data as typeof expected & { projectRead: { state: { status: string } } };
+  assert.deepEqual(original, expected);
+  assert.equal(projectRead.state.status, 'unavailable');
   assert.deepEqual(Object.keys(result).sort(), ['data', 'render']);
 });
 
 test('missing plugin and failed connection index remain unknown and unavailable', async () => {
-  for (const connector of [undefined, {async listConnections() {throw new Error('index unavailable');}} as unknown as CollectiveConnector]) {
+  for (const connector of [
+    undefined,
+    {
+      async listConnections() {
+        throw new Error('index unavailable');
+      },
+    } as unknown as CollectiveConnector,
+  ]) {
     const read = await readCollectiveAccountabilityAttentionSource(connector, ownerUserId);
     assert.equal(read.state.status, 'unavailable');
     assert.equal(read.state.exhaustiveness, 'unknown');
@@ -250,9 +319,13 @@ test('keeps successful rows but marks the source partial when any owned connecti
   assert.deepEqual(read.items, [item(first.connectionId)]);
   assert.ok(read.reasons.includes('collective_accountability_connection_read_failed'));
   const action = createAccountabilityAttentionAction(connector, () => {});
-  const result = await action({input: {}}, undefined, caller()) as {render: string; data: unknown};
+  const result = (await action({ input: {} }, undefined, caller())) as { render: string; data: unknown };
   assert.equal(result.render, 'status');
-  assert.deepEqual(result.data, read);
+  const { projectRead, ...original } = result.data as typeof read & {
+    projectRead: { state: { exhaustiveness: string } };
+  };
+  assert.deepEqual(original, read);
+  assert.equal(projectRead.state.exhaustiveness, 'partial');
 });
 
 test('drops a late response when the endpoint Human or Host route changes before projection', async () => {

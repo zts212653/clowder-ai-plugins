@@ -5,7 +5,7 @@ import { createCollectivePublicNativeActions } from '../../../collective-public-
 import { publicSourceFixture } from './public-source-caller.fixture.js';
 
 async function setup(adopt = true) {
-  const f = await publicSourceFixture({ methods: ['collective.context.current', 'collective.work.accept', 'collective.work.continue'], invocationId: 'fixture-running-turn' });
+  const f = await publicSourceFixture({ invocationId: 'fixture-running-turn' });
   try {
     if (adopt) await f.connector.adoptWorkPolicy(f.connection.connectionId, f.owner.userId, f.policy.revision);
     const references = await openCollectiveContextReferences(join(f.root, 'work-action-refs'), () => {});

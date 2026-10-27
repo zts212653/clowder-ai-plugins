@@ -9,7 +9,6 @@ import { createMemberClient, type PluginMemberHost } from './members.js';
 import type { PluginHostActionContext } from './host-action-context.js';
 import {
   validateManifest,
-  type Capability,
   type CloudConversationHostContribution,
   type ContentEditorProviderContribution,
   type DirectToolContribution,
@@ -45,8 +44,6 @@ export interface FeatureBinding {
   readonly packageRevision: string;
   readonly integrityEpoch: number;
   readonly activationRevision: number;
-  readonly grantRevision: number;
-  readonly grantedCapabilities: readonly Capability[];
   /**
    * Absolute path of the Host-provisioned data directory. Present only when the
    * owning instance starts and the manifest
@@ -108,7 +105,7 @@ export class FeaturePermissionError extends Error {
 export interface FeatureContext {
   /** Host installation attribution. This id grants no operation or business authority. */
   readonly pluginInstanceId: string;
-  /** One ordinary Host member directory, guarded by thread.listMetadata. */
+  /** One ordinary Host member directory. */
   readonly members?: PluginMemberHost;
   readonly featureId: string;
   readonly config: { get(key: string): Promise<unknown> };
@@ -199,7 +196,7 @@ function deepFreeze<T>(value: T): T {
  * Creates the author-facing context around a Host-issued binding.
  *
  * This helper does not grant authority: every adapter operation carries the opaque lease and the Host
- * remains responsible for verifying its signature, revisions, grants, integrity epoch, and liveness.
+ * remains responsible for verifying its signature, revisions, ownership, integrity epoch, and liveness.
  */
 export function createFeatureContextSession(
   binding: FeatureBinding,
@@ -276,15 +273,8 @@ export function createFeatureContextSession(
     create: (input) => runWhileActive(() => adapter.threads.create(input)),
     update: (threadId, patch) => runWhileActive(() => adapter.threads.update(threadId, patch)),
   };
-  const assertContentAccess = () => {
-    assertActive();
-    if (!binding.grantedCapabilities.includes('thread.readContent')) throw new FeaturePermissionError('thread.readContent not granted');
-  };
-  const getMessage = createMessageReader(messageId => adapter.getMessage(messageId), assertContentAccess);
-  const members = adapter.members === undefined ? undefined : createMemberClient(adapter.members, () => {
-    assertActive();
-    if (!binding.grantedCapabilities.includes('thread.listMetadata')) throw new FeaturePermissionError('thread.listMetadata not granted');
-  });
+  const getMessage = createMessageReader(messageId => adapter.getMessage(messageId), assertActive);
+  const members = adapter.members === undefined ? undefined : createMemberClient(adapter.members, assertActive);
   const sendMessage = (threadId: string, input: PluginMessagingDraft) =>
     runWhileActive(() => adapter.sendMessage(binding, threadId, input));
   const subscribeMessage = (
@@ -313,10 +303,7 @@ export function createFeatureContextSession(
   };
   const unsubscribeMessage = (threadId: string): Promise<void> =>
     runWhileActive(() => adapter.unsubscribeMessage(binding, { threadId }));
-  const streams = createStreamsClient({read: (reference, options) => adapter.streams.read(reference, options)}, () => {
-    assertActive();
-    if (!binding.grantedCapabilities.includes('streams.read')) throw new FeaturePermissionError('streams.read not granted');
-  }, lifetime.signal);
+  const streams = createStreamsClient({read: (reference, options) => adapter.streams.read(reference, options)}, assertActive, lifetime.signal);
 
   const log = (
     level: PluginLogLevel,
@@ -400,17 +387,8 @@ export interface ActivePluginFeature {
   dispose(): Promise<void>;
 }
 
-export interface ActivePluginFeatureOptions {
-  /** CallbackAction methods declared outside a feature contribution (operation/test). */
-  readonly additionalMethods?: ReadonlySet<string>;
-  /** Limb handler names live in limb YAML, so the SDK passes extra handlers through. */
-  readonly allowLimbHandlers?: boolean;
-}
-
 function actionMethods(contribution: StaticContribution): readonly string[] {
   switch (contribution.type) {
-    case 'mcp':
-      return (contribution.actions ?? []).map(action => action.method);
     case 'schedule':
     case 'tool':
     case 'webhook':
@@ -445,12 +423,11 @@ export function featureActionMethods(manifest: PluginManifest, featureId: string
   );
 }
 
-/** Activate one Host-authorized feature and close its method/disposal surface. */
+/** Activate one feature and bind exported handlers to its lifecycle. */
 export async function activateDefinedFeature(
   plugin: DefinedPlugin,
   featureId: string,
   context: FeatureContext,
-  options: ActivePluginFeatureOptions = {},
 ): Promise<ActivePluginFeature> {
   if (context.featureId !== featureId) {
     throw new TypeError(`feature context ${context.featureId} cannot activate ${featureId}`);
@@ -465,15 +442,6 @@ export async function activateDefinedFeature(
   const rawActions = Object.freeze({ ...(activation.actions ?? {}) });
   const actions = rawActions;
   const requiredMethods = featureActionMethods(plugin.manifest, featureId);
-  const allowedMethods = new Set(requiredMethods);
-  for (const method of options.additionalMethods ?? []) allowedMethods.add(method);
-  const undeclared = options.allowLimbHandlers === true
-    ? undefined
-    : Object.keys(actions).find((method) => !allowedMethods.has(method));
-  if (undeclared !== undefined) {
-    await Promise.resolve(disposeActivation()).catch(() => undefined);
-    throw new TypeError(`action handler ${undeclared} is not declared by feature ${featureId}`);
-  }
   const missing = [...requiredMethods].find((method) => actions[method] === undefined);
   if (missing !== undefined) {
     await Promise.resolve(disposeActivation()).catch(() => undefined);

@@ -1,30 +1,29 @@
 import type { PluginManifest } from '../generated/contract.generated.js';
 
-/** One declaration binds all public entrypoints; internal producer/lookup methods cannot be public. */
+/** Binds an output operation to owned native/media declarations, without an API grant table. */
 export function projectOutputProblem(manifest: PluginManifest): string | undefined {
   const methods = new Set<string>();
   for (const output of manifest.projectOutputs ?? []) {
-    if (methods.has(output.method)) return 'duplicate output method';
-    methods.add(output.method);
-    if (output.method === output.producerMethod || output.method === output.resultMethod || output.producerMethod === output.resultMethod)
-      return 'output, producer and lookup methods must be distinct';
+    const operationMethods = [output.method, output.producerMethod, output.resultMethod];
+    for (const method of operationMethods) {
+      if (methods.has(method)) return 'output, producer and lookup methods must be distinct across operations';
+      methods.add(method);
+    }
     const source = manifest.contributions?.find(c => c.type === 'media-source' && c.id === output.mediaSourceId);
     if (!source) return 'output media source must be declared';
     const owner = manifest.features.find(f => f.contributions?.some(c => c.type === 'media-source' && c.id === output.mediaSourceId));
-    if (!owner?.capabilities.includes('project.output.create')) return 'output media feature must request project.output.create';
-    let declared = false;
+    const native = manifest.contributions?.find(c => c.type === 'mcp' && c.id === output.mcpId);
+    if (!native || !owner?.contributions?.some(c => c.type === 'mcp' && c.id === output.mcpId))
+      return 'output native entrypoint and media source must have the same feature owner';
     for (const contribution of manifest.contributions ?? []) {
-      const actions = contribution.type === 'mcp' ? contribution.actions ?? [] : contribution.type === 'tool' ? [contribution.action] : [];
-      if (actions.some(a => a.method === output.producerMethod || a.method === output.resultMethod)) return 'internal output methods cannot be exposed directly';
-      if (!actions.some(a => a.method === output.method)) continue;
-      if (contribution.type !== 'mcp') return 'project output currently requires an authenticated native MCP entrypoint';
-      if (!owner.contributions?.some(c => c.type === contribution.type && c.id === contribution.id)) return 'output entrypoint and media source must have the same feature owner';
-      declared = true;
+      if ('action' in contribution && operationMethods.includes(contribution.action.method))
+        return 'project output is unavailable to non-native contribution actions';
     }
-    if (!declared) return 'output method must be a declared tool or native MCP action';
     for (const field of manifest.configuration ?? [])
-      if (field.kind === 'operation' && field.actions?.some(a => [output.method, output.producerMethod, output.resultMethod].includes(a.action.method)))
+      if (field.kind === 'operation' && field.actions?.some(a => operationMethods.includes(a.action.method)))
         return 'project output is unavailable to settings actions';
+    if (manifest.test && operationMethods.includes(manifest.test.action.method))
+      return 'project output is unavailable to connection tests';
   }
   return undefined;
 }

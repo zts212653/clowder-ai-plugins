@@ -48,4 +48,4 @@ Accessibility permissions may be required, and WeChat layout changes can cause a
 This package is an alpha release. Acceptance must use a dedicated local WeChat test conversation with no
 sensitive production history.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

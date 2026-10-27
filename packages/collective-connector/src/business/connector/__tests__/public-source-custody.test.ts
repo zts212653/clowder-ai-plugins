@@ -1,10 +1,13 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { setHostRouteInputSchema } from '../host-route-state.js';
 import { fixture } from './communication-work-custody.fixture.js';
+import { ConnectorPersistence } from '../persistence.js';
+import { CollectiveServiceClient } from '../service-client.js';
+import { LocalOperationRecovery } from '../local-operation-recovery.js';
 
-const native = { contributionId: 'collective-native', methods: ['collective.reply.submit', 'collective.context.current'] };
+const native = { contributionId: 'collective-native' };
 async function setup() {
   const f = await fixture();
   await f.connector.sync(f.connection.connectionId);
@@ -23,10 +26,10 @@ it('stores a detached exact source binding before admission and reopens the same
     const binding = await f.bind();
     expect(binding).toMatchObject({ source: f.source, messageRef: f.input.messageRef,
       pluginInstanceId: 'installed-instance', threadId: 'channel', ownerUserId: 'local-owner', targetCatId: 'codex-sol' });
-    expect(binding.native.methods).toEqual([...native.methods].sort());
+    expect(binding.native).toEqual({ contributionId: 'collective-native' });
     expect(Object.hasOwn(binding,'authority')).toBe(false);
-    binding.native.methods.push('forged');
-    expect((await f.read()).native.methods).toEqual([...native.methods].sort());
+    binding.native.contributionId = 'forged';
+    expect((await f.read()).native).toEqual(native);
     const reopened = await f.open();
     expect(await reopened.readCurrentPublicSource(f.input.messageRef)).toEqual(await f.read());
     const item = (await reopened.listInbox(f.connection.connectionId)).find((item) => item.event.eventId === f.source.eventId);
@@ -40,7 +43,7 @@ it('replays an exact binding but refuses message, instance, thread, owner or nat
     expect(await f.bind()).toEqual(binding);
     const path = join(f.root, 'connector', 'collective-connector.json'), before = await readFile(path);
     for (const input of [{ messageRef: 'message:other' }, { pluginInstanceId: 'foreign' }, { threadId: 'foreign' },
-      { ownerUserId: 'foreign' }, { native: { ...native, methods: ['collective.context.current'] } }]) {
+      { ownerUserId: 'foreign' }, { native: { contributionId: 'foreign-native' } }]) {
       await expect(f.bind(input)).rejects.toBeInstanceOf(Error);
       expect(await readFile(path)).toEqual(before);
     }
@@ -79,11 +82,11 @@ it('preserves exact source permission across unrelated roster changes but reject
   } finally { await f.close(); }
 });
 
-it('rejects unknown messages, missing routing attempt, duplicate or malformed methods and revoked endpoint authority', async () => {
+it('rejects unknown messages, malformed contribution identity and revoked endpoint authority', async () => {
   const f = await setup(); try {
     await expect(f.read('message:unknown')).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_UNAVAILABLE' });
-    for (const methods of [[], ['x', 'x'], ['invalid\nmethod']]) {
-      await expect(f.bind({ native: { ...native, methods } })).rejects.toBeInstanceOf(Error);
+    for (const contributionId of ['', 'invalid\ncontribution']) {
+      await expect(f.bind({ native: { contributionId } })).rejects.toBeInstanceOf(Error);
     }
     await f.bind(); await f.connector.revoke(f.connection.connectionId);
     await expect(f.read()).rejects.toMatchObject({ code: 'PARTICIPATION_REVOKED' });
@@ -114,5 +117,28 @@ it('serializes concurrent exact bindings through the existing persistence tail a
     expect(winners.every(item => JSON.stringify(item) === JSON.stringify(winners[0]))).toBe(true);
     await expect(f.bind({ messageRef: 'message:competing' })).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
     expect(await f.read()).toEqual(winners[0]);
+  } finally { await f.close(); }
+});
+
+it('reopens retired method metadata without losing source identity or blocking existing recovery records', async () => {
+  const f = await setup(); try {
+    const binding = await f.bind();
+    const path = join(f.root, 'connector', 'collective-connector.json');
+    const persistence = await ConnectorPersistence.open(join(f.root, 'connector'));
+    const service = new CollectiveServiceClient(async () => { throw new Error('No network'); });
+    Object.defineProperty(service, 'usesLocalTransport', { value: () => true });
+    const recovery = new LocalOperationRecovery(persistence, service, Date.now);
+    await recovery.run(f.connection.connectionId, 'ack', 'retained-ack', { sequence: 1 }, async () => undefined, () => {});
+    const stored = JSON.parse(await readFile(path, 'utf8'));
+    const attempts = structuredClone(stored.connections[f.connection.connectionId].localAttempts);
+    const item = stored.connections[f.connection.connectionId].inbox.find((candidate: {event: {eventId: string}}) => candidate.event.eventId === f.source.eventId);
+    item.publicSource.native.methods = ['collective.context.current'];
+    await writeFile(path, JSON.stringify(stored, null, 2) + '\n');
+    const reopened = await f.open();
+    expect(reopened.readCurrentPublicSource(f.input.messageRef)).toEqual(binding);
+    await reopened.recordPublicSource(f.input);
+    const saved = JSON.parse(await readFile(path, 'utf8'));
+    expect(saved.connections[f.connection.connectionId].localAttempts).toEqual(attempts);
+    expect(saved.connections[f.connection.connectionId].inbox.find((candidate: {event: {eventId: string}}) => candidate.event.eventId === f.source.eventId).publicSource).toEqual(binding);
   } finally { await f.close(); }
 });

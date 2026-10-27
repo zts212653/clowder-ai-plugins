@@ -11,6 +11,7 @@ import { CollectiveServiceError } from './errors.js';
 import type { MutableServiceState, ServiceState } from './state.js';
 import { requireAcceptedWorkExecution } from './work-execution-authority.js';
 import { projectWorkExecutionStatus } from './work-execution-status.js';
+import { observedWorkTime } from './work-observed-time.js';
 
 export function requireCollectiveWork(state: ServiceState, collectiveId: string, workId: string): CollectiveWorkRecord {
   const work = state.works[workId];
@@ -61,7 +62,13 @@ export function projectCollectiveWork(
 ): CollectiveWorkProjection {
   const executionStatus = projectWorkExecutionStatus(state, work, now);
   const status = workStatus(state, work, executionStatus);
-  return structuredClone({ ...work, status, ...(executionStatus ? { executionStatus } : {}) });
+  const time = observedWorkTime(work);
+  return structuredClone({
+    ...work,
+    ...(time ? { time } : {}),
+    status,
+    ...(executionStatus ? { executionStatus } : {}),
+  });
 }
 
 export function assertDependencySet(

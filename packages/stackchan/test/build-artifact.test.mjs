@@ -20,6 +20,8 @@ test('clean builds normalize the CLI executable mode and produce identical publi
   const fixture = join(root, 'packages/stackchan');
   await mkdir(fixture, { recursive: true });
   await symlink(fileURLToPath(new URL('../../../scripts/', import.meta.url)), join(root, 'scripts'), 'dir');
+  // pnpm's executable shims resolve the workspace store relative to this root.
+  await symlink(await realpath(join(source, '../../node_modules')), join(root, 'node_modules'), 'dir');
   for (const name of ['src', 'package.json', 'tsconfig.json', 'tsconfig.build.json']) {
     await cp(join(source, name), join(fixture, name), { recursive: true });
   }

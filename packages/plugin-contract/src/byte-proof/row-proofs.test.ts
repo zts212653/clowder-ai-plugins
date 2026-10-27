@@ -15,8 +15,6 @@ import {
   pingResponseTemplate,
   drainRequestTemplate,
   drainResponseTemplate,
-  grantsChangedMaxBytes,
-  grantsChangedNPlusOneBytes,
   parseErrorStaticBytes,
   invalidRequestNullIdStaticBytes,
   standardErrorWithIdTemplate,
@@ -179,46 +177,13 @@ test('asciiOnly leaves produce identical bytes across all encoding families', ()
 });
 
 // ---------------------------------------------------------------------------
-// 5. Row 10 static computation
-// ---------------------------------------------------------------------------
-
-test('grantsChangedMaxBytes fits within MAX_FRAME_BYTES', () => {
-  const maxBytes = grantsChangedMaxBytes();
-  assert.ok(
-    maxBytes > 0,
-    'grantsChangedMaxBytes must be positive',
-  );
-  assert.ok(
-    maxBytes < MAX_FRAME_BYTES,
-    `grantsChangedMaxBytes (${maxBytes}) must be < MAX_FRAME_BYTES (${MAX_FRAME_BYTES})`,
-  );
-});
-
-test('grantsChangedNPlusOneBytes exceeds grantsChangedMaxBytes', () => {
-  const maxBytes = grantsChangedMaxBytes();
-  const nPlusOneBytes = grantsChangedNPlusOneBytes();
-  assert.ok(
-    nPlusOneBytes > maxBytes,
-    `N+1 bytes (${nPlusOneBytes}) must exceed max bytes (${maxBytes})`,
-  );
-});
-
-test('grantsChangedNPlusOneBytes still fits within MAX_FRAME_BYTES (cardinality bound, not frame bound)', () => {
-  const nPlusOneBytes = grantsChangedNPlusOneBytes();
-  assert.ok(
-    nPlusOneBytes < MAX_FRAME_BYTES,
-    `N+1 bytes (${nPlusOneBytes}) fits frame; cardinality is the binding constraint, not frame size`,
-  );
-});
-
-// ---------------------------------------------------------------------------
 // 6. getClosedRowTemplates covers the generic scalar-leaf proof rows
 // ---------------------------------------------------------------------------
 
-test('getClosedRowTemplates covers rows 1, 2, 5, 7, 10, 11, 12', () => {
+test('getClosedRowTemplates covers rows 1, 2, 5, 7, 11, 12', () => {
   const templates = getClosedRowTemplates();
   const rowNumbers = Object.keys(templates).map(Number).sort((a, b) => a - b);
-  assert.deepEqual(rowNumbers, [1, 2, 5, 7, 10, 11, 12]);
+  assert.deepEqual(rowNumbers, [1, 2, 5, 7, 11, 12]);
 });
 
 test('getClosedRowTemplates request/response rows have valid ByteProofInput', () => {
@@ -251,17 +216,6 @@ test('published beta.8 maxima equal the generic raw byte-proof calculation', () 
     calculateByteProof(handshakeRejectedErrorTemplate()).maxEncodedBytes,
   );
   assert.equal(BROKER_READY_MAX_ENCODED_ERROR_BYTES, BROKER_HELLO_MAX_ENCODED_ERROR_BYTES);
-});
-
-test('getClosedRowTemplates row 10 notification has maxBytes and nPlusOneBytes', () => {
-  const templates = getClosedRowTemplates();
-  const row10 = templates[10];
-  assert.ok(row10.notification.maxBytes > 0, 'row 10 maxBytes must be positive');
-  assert.ok(row10.notification.nPlusOneBytes > 0, 'row 10 nPlusOneBytes must be positive');
-  assert.ok(
-    row10.notification.nPlusOneBytes > row10.notification.maxBytes,
-    'row 10 nPlusOneBytes must exceed maxBytes',
-  );
 });
 
 // ---------------------------------------------------------------------------

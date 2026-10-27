@@ -12,7 +12,6 @@ test('manifest preserves DingTalk config sensitivity and Host authority', async 
     description: { default: string; translations: Record<string, string> };
     configuration: Array<{ key: string; kind: string; required: boolean }>;
     contributions: Array<Record<string, unknown>>;
-    features: Array<{ capabilities: string[] }>;
   };
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
     version: string;
@@ -28,18 +27,6 @@ test('manifest preserves DingTalk config sensitivity and Host authority', async 
     { key: 'appSecret', label: 'App Secret', kind: 'secret', required: true },
   ]);
   assert.deepEqual(manifest.contributions.map(entry => entry.type), ['identity', 'message-subscription', 'media-source']);
-  assert.deepEqual(manifest.features[0]?.capabilities, [
-    'plugin.config.read',
-    'plugin.state.get',
-    'plugin.state.set',
-    'streams.read',
-    'message.event.subscribe',
-    'messaging.send',
-    'secret.read',
-    'thread.listMetadata',
-    'thread.readContent',
-    'thread.write',
-  ]);
   for (const value of [manifest.description.default, ...Object.values(manifest.description.translations)]) {
     assert.ok([...value].length <= 100);
   }

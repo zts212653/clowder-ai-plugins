@@ -8,7 +8,7 @@ bounded text/markdown/media replies, and shuts down the Stream client during Hos
 
 ## Authority boundary
 
-The Host owns installation, grants, configuration and secrets, connector-to-thread bindings, admission,
+The Host owns installation, caller context, configuration and secrets, connector-to-thread bindings, admission,
 wake routing, retry/dead-letter policy, and lifecycle supervision. The package never parses `@` text to
 invent wake authority and never mints a connector-binding handle. It requires the Host to supply a verified
 opaque `connector_binding` handle for inbound delivery and the corresponding external DingTalk coordinate
@@ -51,4 +51,4 @@ Use normal configuration controls; no permission JSON, separate initialization o
 The initial group whitelist and command restriction are off and the administrator list is empty.
 Group management commands still require an explicitly configured administrator; an empty list grants nobody administration.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

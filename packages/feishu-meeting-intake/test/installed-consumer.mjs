@@ -34,7 +34,7 @@ try {
  assert.equal((await stat(join(packageRoot,'dist/lark-cli'))).mode & 0o777,0o755,'installed declared runner must retain executable permissions');
  assert.equal(createHash('sha256').update(await readFile(join(packageRoot,'dist/lark-cli'))).digest('hex'),runner.binarySha256);
  assert.match(execFileSync(join(packageRoot,'dist/lark-cli'),['--version'],{env:{HOME:data},encoding:'utf8',timeout:10_000}),/1\.0\.85/);
- const active=await module.create(manifest).start({dataDirectory:data,config:{async get(){throw new Error('First start must not read provider settings');}},secrets:{async get(){throw new Error('First start must not read credentials');}},storage:{},tasks:{},threads:{},media:{},messaging:{},log(){}});
+ const active=await module.create(manifest).start({pluginInstanceId:'installed',dataPath:data,config:{async get(){throw new Error('First start must not read provider settings');}},secrets:{async get(){throw new Error('First start must not read credentials');}},storage:{},tasks:{},threads:{},media:{},messaging:{},log(){}});
  const owner={kind:'owner-operation',userId:'owner',pluginInstanceId:'installed',operationKey:'account',actionId:'status',requestId:'status',signal:new AbortController().signal,async assertCurrent(){}};
  const status=await active.actions['meeting.status']({input:{}},undefined,owner);
  assert.deepEqual(status.data,{auth:'not_configured',collectionIntent:'disabled',live:'stopped'});

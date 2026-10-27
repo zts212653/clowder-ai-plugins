@@ -22,7 +22,6 @@ test('first explicit enable starts only the meeting control plane and stop revok
     const manifest = JSON.parse(await readFile(new URL('../manifest.json', import.meta.url), 'utf8'));
     assert.equal(manifest.runtime.transport, 'builtin', 'retired broker must not be the production runtime');
     assert.deepEqual(manifest.contributions.filter((value: { type: string }) => value.type === 'identity').map((value: { id: string }) => value.id), ['feishu-meeting'], 'actual Host SDK messaging requires a declared authored identity');
-    assert.deepEqual(manifest.features[0].capabilities, ['plugin.config.read', 'secret.read', 'thread.readContent', 'messaging.send']);
     const state = new Map<string, { revision: number; value: unknown }>();
     const host = { pluginInstanceId:'installed-meeting',dataPath: directory, config: { async get() { return undefined; } },
       secrets: { async get() { throw new Error('First enable must not read account secrets'); } },

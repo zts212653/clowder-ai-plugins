@@ -12,15 +12,6 @@ test('checked-in generated contract is current', async () => {
   assert.equal(await checkGeneratedContract(), true);
 });
 
-test('generated PluginFeature uses the schema-owned Capability union', async () => {
-  const schemas = await loadContractSchemas();
-  const source = generateContractSource(schemas);
-
-  assert.match(source, /export type Capability =/);
-  assert.match(source, /'messaging\.send'/);
-  assert.match(source, /readonly capabilities: readonly Capability\[\]/);
-});
-
 test('generated contract projects behavior fixture operations and assertions', async () => {
   const schemas = await loadContractSchemas();
   const source = generateContractSource(schemas);
@@ -91,14 +82,6 @@ test('generated contract preserves fixed-length arrays as readonly tuples', asyn
     source,
     /export type PhysicalLimbRgb = readonly \[number, number, number\];/,
   );
-});
-
-test('behavior capability names resolve to the manifest-owned Capability type', async () => {
-  const schemas = await loadContractSchemas();
-  const source = generateContractSource(schemas);
-
-  assert.match(source, /export type CapabilityName = Capability;/);
-  assert.doesNotMatch(source, /export type CapabilityName = unknown;/);
 });
 
 test('generation rejects a behavior alias that drifts from its messaging definition', async () => {
@@ -386,13 +369,4 @@ test('generation fails closed on a duplicate generated const name', async () => 
     () => generateContractSource(mutated),
     /Duplicate generated const export: ACTOR_KIND_VALUES/,
   );
-});
-
-
-test('permission matrix fixture bounds cannot drift from current capabilities', async () => {
-  const schemas = await loadContractSchemas();
-  const broken = structuredClone(schemas);
-  Object.assign(broken.behavior.$defs!.PermissionMatrixInput!.properties!.entries!, { minItems: 29, maxItems: 29 });
-  assert.throws(() => generateContractSource(broken), /permission matrix bounds must match/);
-  assert.doesNotThrow(() => generateContractSource(schemas));
 });

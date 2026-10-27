@@ -22,6 +22,10 @@ export async function routeCollaborationPost(
     writeJson(response, 201, await store.proposeCollectiveWorkAsAgent(credential, body));
   } else if (pathname === '/api/collaboration/work/commit') {
     writeJson(response, 200, await store.commitCollectiveWork(credential, body));
+  } else if (pathname === '/api/collaboration/work/time') {
+    writeJson(response, 200, await store.changeCollectiveWorkTime(credential, body));
+  } else if (pathname === '/api/collaboration/work/time-agent') {
+    writeJson(response, 200, await store.changeCollectiveAgentWorkTime(credential, body));
   } else if (pathname === '/api/collaboration/work/dependencies') {
     writeJson(response, 200, await store.setCollectiveWorkDependencies(credential, body));
   } else if (pathname === '/api/collaboration/work/decline') {
@@ -45,7 +49,27 @@ async function routeProjectPost(
   body: Record<string, unknown>,
   credential: string,
 ): Promise<boolean> {
-  if (pathname === '/api/collaboration/projects/create') {
+  if (pathname === '/api/collaboration/project-attention') {
+    writeJson(response, 200, await store.readCollectiveProjectAttention(credential, body));
+  } else if (pathname === '/api/collaboration/project-source') {
+    writeJson(response, 200, await store.readCollectiveProjectSource(credential, body));
+  } else if (pathname === '/api/collaboration/materials/suggest') {
+    writeJson(response, 200, await store.suggestCollectiveMaterial(credential, body));
+  } else if (pathname === '/api/collaboration/materials/connections') {
+    writeJson(response, 200, store.listCollectiveMaterialConnections(credential, body));
+  } else if (pathname === '/api/collaboration/materials/publish') {
+    writeJson(response, 201, await store.publishCollectiveMaterial(credential, body));
+  } else if (pathname === '/api/collaboration/materials/list') {
+    writeJson(response, 200, await store.listCollectiveMaterials(credential, body));
+  } else if (pathname === '/api/collaboration/materials/sort') {
+    writeJson(response, 200, await store.sortCollectiveMaterial(credential, body));
+  } else if (pathname === '/api/collaboration/materials/owner/poll') {
+    writeJson(response, 200, store.pollMaterialSource(credential, body));
+  } else if (pathname === '/api/collaboration/materials/owner/validate') {
+    writeJson(response, 200, store.validateMaterialSource(credential, body));
+  } else if (pathname === '/api/collaboration/materials/owner/respond') {
+    writeJson(response, 200, store.respondMaterialSource(credential, body));
+  } else if (pathname === '/api/collaboration/projects/create') {
     writeJson(response, 201, await store.createCollectiveProject(credential, body));
   } else if (pathname === '/api/collaboration/projects/tasks/create') {
     writeJson(response, 201, await store.createCollectiveProjectTask(credential, body));
@@ -59,6 +83,8 @@ async function routeProjectPost(
     writeJson(response, 201, await store.createCollectiveRoadmap(credential, body));
   } else if (pathname === '/api/collaboration/roadmaps/works') {
     writeJson(response, 200, await store.setCollectiveRoadmapWorks(credential, body));
+  } else if (pathname === '/api/collaboration/roadmaps/target-date') {
+    writeJson(response, 200, await store.setCollectiveRoadmapTargetDate(credential, body));
   } else if (pathname === '/api/collaboration/roadmaps/status') {
     writeJson(response, 200, await store.setCollectiveRoadmapStatus(credential, body));
   } else {

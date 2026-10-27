@@ -245,14 +245,6 @@ export type {
   HandshakeRowEncodedByteBounds,
 } from './handshake-byte-bounds.js';
 
-// Grant snapshot
-export {
-  MAX_GRANT_ITEMS,
-  validateEffectiveGrants,
-  VALID_CAPABILITIES,
-} from './grants.js';
-
-export type { GrantSnapshot } from './grants.js';
 
 // Wire envelope family — closed public surface (Q1 ruling)
 //
@@ -307,12 +299,10 @@ export {
   READY_ROWS,
   getRegistryRow,
   isWireMethod,
-  getMethodGrant,
 } from './registry.js';
 
 export type {
   MethodDirection,
-  GrantRequirement,
   LeafClosureStatus,
   RegistryRow,
   ReadyRegistryRow,

@@ -9,7 +9,6 @@ test('manifest keeps credentials secret and binding authority Host-owned', async
     contractVersion: string;
     configuration: Array<{ key: string; kind: string }>;
     contributions: Array<Record<string, unknown>>;
-    features: Array<{ capabilities: string[] }>;
     runtime: Record<string, unknown>;
   };
   assert.equal(manifest.pluginId, 'official.connector.feishu');
@@ -24,17 +23,5 @@ test('manifest keeps credentials secret and binding authority Host-owned', async
   ), 'feishu must subscribe at presentation v2 to receive placeholderLine/replyTo');
   assert.ok(manifest.contributions.some(item => item.type === 'webhook' && item.id === 'feishu-events'));
   assert.ok(manifest.contributions.some(item => item.type === 'media-source' && item.id === 'feishu-media'));
-  assert.deepEqual(manifest.features[0]?.capabilities, [
-    'plugin.config.read',
-    'plugin.state.get',
-    'plugin.state.set',
-    'streams.read',
-    'message.event.subscribe',
-    'messaging.send',
-    'secret.read',
-    'thread.readContent',
-    'thread.listMetadata',
-    'thread.write',
-  ]);
   assert.deepEqual(manifest.runtime, { transport: 'builtin', entrypoint: 'dist/plugin-entrypoint.js' });
 });

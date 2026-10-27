@@ -5,17 +5,14 @@ export type LoopbackRecord = Record<string, unknown>;
 
 export interface MessagingLoopbackState {
   callerId: string;
-  grants: Set<string>;
   handles: Map<string, FixtureHandle>;
   messages: Map<string, LoopbackRecord>;
   outputEvents: LoopbackRecord[];
   ledger: Map<string, LoopbackRecord>;
   subscriptions: Map<string, LoopbackRecord>;
   replayEvents: LoopbackRecord[];
-  grantState: Map<string, { visible: boolean; granted: boolean }>;
   observations: Map<BehaviorTarget, unknown>;
   eventWindow?: LoopbackRecord;
-  whisperGrantTargets: Set<string>;
 }
 
 function isRecord(value: unknown): value is LoopbackRecord {
@@ -81,22 +78,6 @@ export function createMessagingLoopbackState(given: FixtureSetup): MessagingLoop
     }
   }
 
-  const grantState = new Map<string, { visible: boolean; granted: boolean }>();
-  if (isRecord(rawState.grantState)) {
-    for (const [capability, value] of Object.entries(rawState.grantState)) {
-      if (
-        isRecord(value) &&
-        typeof value.visible === 'boolean' &&
-        typeof value.granted === 'boolean'
-      ) {
-        grantState.set(capability, {
-          visible: value.visible,
-          granted: value.granted,
-        });
-      }
-    }
-  }
-
   const ledgerRecords = recordArray(rawState.idempotencyLedger);
   const observations = new Map<BehaviorTarget, unknown>([
     ['messages', messages],
@@ -109,31 +90,20 @@ export function createMessagingLoopbackState(given: FixtureSetup): MessagingLoop
     ['snapshot', rawState.snapshot],
     ['reply_preview', rawState.replyPreview],
     ['provenance', rawState.provenance],
-    ['grant_state', rawState.grantState],
-    ['permission_matrix', rawState.permissionMatrix],
     ['replay_events', replayEvents],
   ]);
 
   return {
     callerId: setup.caller.pluginInstanceId,
-    grants: new Set(setup.grants),
     handles,
     messages: recordsByStringKey(messages, 'messageId'),
     outputEvents,
     ledger: recordsByStringKey(ledgerRecords, 'idempotencyKey'),
     subscriptions: recordsByStringKey(subscriptions, 'subscriptionId'),
     replayEvents,
-    grantState,
     observations,
     eventWindow: isRecord(rawState.eventWindow)
       ? structuredClone(rawState.eventWindow)
       : undefined,
-    whisperGrantTargets: new Set(
-      Array.isArray(rawState.whisperGrantTargets)
-        ? rawState.whisperGrantTargets.filter(
-            (target): target is string => typeof target === 'string',
-          )
-        : [],
-    ),
   };
 }

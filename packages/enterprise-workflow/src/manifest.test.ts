@@ -37,7 +37,6 @@ test('manifest exposes only the governed direct-tool and skill surface', async (
     assert.equal(tool.inputSchema.type, 'object');
     assert.ok(Array.isArray(tool.inputSchema.oneOf));
   }
-  assert.deepEqual(validated.manifest.features[0]?.capabilities, ['plugin.config.read']);
   assert.deepEqual(validated.manifest.runtime, {
     transport: 'builtin',
     entrypoint: 'dist/plugin-entrypoint.js',

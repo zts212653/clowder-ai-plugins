@@ -104,7 +104,6 @@ export const PARAMS_ALLOWED_KEYS: ReadonlySet<string> = new Set(['meta', 'input'
 /**
  * Generic JSON-RPC notification envelope (no `id`).
  *
- * In v0, only row 10 (host.grants.changed) is a legal notification.
  * An object without `id` is a notification — no response may be sent.
  *
  * additionalProperties: false — no members beyond jsonrpc, method, params.

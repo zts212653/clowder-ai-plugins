@@ -1,7 +1,7 @@
-# Protected contract surface (P15, §2.3 governance).
-# GitHub accepts one approval from any owner listed on a matching rule. The
-# repository ruleset therefore uses author provenance + approval from the other
-# party, not an impossible requirement for a PR author to approve their own PR.
+# Maintainer map for optional review requests; not a merge-approval gate.
+# main-governance sets require_code_owner_review=false. Independent review,
+# when required by the change's risk, is not restricted to these accounts.
+# Contract surface.
 packages/plugin-contract/ @mindfn @zts212653
 
 # Fixtures are contract, not second-class tests.
@@ -17,7 +17,7 @@ packages/plugin-contract/fixtures/ @mindfn @zts212653
 .github/workflows/ @mindfn @zts212653
 /.github/actions/publish-prerelease/ @mindfn @zts212653
 
-# Ownership policy is self-protected.
+# Ownership policy maintainers.
 /.github/CODEOWNERS @mindfn @zts212653
 
 # Workspace release inputs are dependency and install trust boundaries.
@@ -27,9 +27,9 @@ packages/plugin-contract/fixtures/ @mindfn @zts212653
 /pnpm-workspace.yaml @mindfn @zts212653
 /scripts/pack-publish-artifact.mjs @mindfn @zts212653
 
-# Family-owned foreground-cat assets and their license remain family-first, with
-# the other party reviewing changes. Irreversible license decisions also need
-# the repository owner's explicit sign-off outside GitHub's approval counter.
+# Family-owned foreground-cat assets and their license remain family-first.
+# Irreversible license decisions still need the repository owner's explicit
+# sign-off outside GitHub's approval counter.
 /plugins/foreground-cat/ @zts212653 @mindfn
 /assets/foreground-cat/ @zts212653 @mindfn
 /LICENSE-ASSETS @zts212653 @mindfn

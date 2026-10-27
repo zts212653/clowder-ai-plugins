@@ -20,8 +20,8 @@ const binding = {
   ...claims,
   pluginInstanceId: 'telegram-1',
   brokerSessionId: 'broker-1',
-  grantRevision: 1,
-  effectiveGrants: ['messaging.send', 'onMessage'] as const,
+
+
   bindingNonce: 'nonce-1',
 };
 
@@ -163,20 +163,4 @@ test('exec status is delivered by the same handler and only its receipt is ackno
     assert.deepEqual(await harness.hostCall('host.messaging.deliver',input),{deliveryId:'delivery-1'});
     assert.deepEqual(seen,[input]);
   } finally {await closeHarness(harness.session,harness.host);}
-});
-
-test('fails closed on stale grant notifications', async () => {
-  const harness = createHarness(input => ({ deliveryId: input.deliveryId }));
-  await harness.session.ready;
-
-  await harness.host.send({
-    jsonrpc: '2.0',
-    method: 'host.grants.changed',
-    params: {
-      meta: { deadlineUnixMs: Date.now() + 1_000 },
-      input: { grantRevision: 1, effectiveGrants: ['messaging.send', 'onMessage'] },
-    },
-  });
-  await harness.session.closed;
-  assert.equal(harness.session.liveness.isLive(), false);
 });

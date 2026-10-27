@@ -126,8 +126,6 @@ function featureBinding(
     packageRevision: plugin.manifest.version,
     integrityEpoch: 0,
     activationRevision: 0,
-    grantRevision: 0,
-    grantedCapabilities: feature.capabilities,
     dataPath: host.dataPath,
     executionLease: 'module-host-bound',
   };
@@ -174,10 +172,7 @@ async function startDefinedPluginModule(
         },
       );
       sessions.push(session);
-      const activated = await activateDefinedFeature(plugin, feature.id, session.context, {
-        additionalMethods: globalMethods,
-        allowLimbHandlers: contributions.some((contribution) => contribution.type === 'limb'),
-      });
+      const activated = await activateDefinedFeature(plugin, feature.id, session.context);
       active.push(activated);
       const presentationMethods = new Set(
         contributions

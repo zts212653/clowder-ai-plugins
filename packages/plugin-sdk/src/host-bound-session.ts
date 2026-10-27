@@ -8,14 +8,12 @@ import {
   DELIVERY_REJECTED_MESSAGE,
   DELIVERY_REJECT_REASONS,
   classifyFrame,
-  validateEffectiveGrants,
   isWireUInt53,
   type CandidateHello,
   isPluginDeliveryReceipt,
   type DeliverInput,
   type PluginDeliveryReceipt,
   type DeliveryRejectReason,
-  type GrantSnapshot,
   type InFlightEntry,
   type MessagingRowInputByMethod,
   type MessagingRowResultByMethod,
@@ -170,7 +168,7 @@ function deliveryRejected(id: string, reason: DeliveryRejectReason): JsonObject 
 /**
  * Starts one external plugin session over the signed 13-row stdio wire.
  *
- * The Host remains the sole authority for bindings, grants, liveness, message
+ * The Host remains the sole authority for bindings, liveness, message
  * admission, retries, and delivery settlement. This helper owns only the
  * plugin-side handshake/correlation machinery and never invents an address.
  */
@@ -285,8 +283,8 @@ export function createHostBoundSession(options: HostBoundSessionOptions): HostBo
   };
 
   const dispatchHostMessage = async (id: string, input: DeliverInput): Promise<JsonObject> => {
-    if (state.phase !== 'activated' || !state.binding.effectiveGrants.includes('onMessage')) {
-      throw new HostBoundSessionError('PROTOCOL_VIOLATION', 'Host delivery arrived without active onMessage authority');
+    if (state.phase !== 'activated') {
+      throw new HostBoundSessionError('PROTOCOL_VIOLATION', 'Host delivery arrived before session activation');
     }
     if (options.delivery === undefined) return deliveryRejected(id, 'NO_HANDLER');
     try {

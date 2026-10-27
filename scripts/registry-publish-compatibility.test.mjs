@@ -310,7 +310,7 @@ if (args[0] === 'view') {
   for (const name of ['npm', 'seq', 'sleep']) await chmod(join(bin, name), 0o755);
   const action = parse(await readFile(new URL('../.github/actions/publish-prerelease/action.yml', import.meta.url), 'utf8'));
   const outputs = { pack: { name: '@clowder-ai/plugin-sdk', version, integrity, filename: 'exact.tgz' }, registry: {} };
-  const inputs = { 'npm-token': '', 'allowed-stable-version': '0.2.0' };
+  const inputs = { 'npm-token': '', 'allowed-stable-version': '0.3.0' };
   const interpolate = value => value.replace(/\$\{\{\s*(.*?)\s*\}\}/g, (_, key) => {
     if (key === 'runner.temp') return root;
     if (key.startsWith('inputs.')) return inputs[key.slice(7)];
@@ -383,15 +383,17 @@ test('publication uses only current workspace packages in dependency order', asy
   const steps = parse(source).jobs.publish.steps;
   const index = directory => steps.findIndex(step => step.with?.['package-directory'] === directory);
   assert.ok(index('packages/plugin-contract') >= 0);
+  const contract = JSON.parse(await readFile(new URL('../packages/plugin-contract/package.json', import.meta.url), 'utf8'));
+  assert.equal(steps[index('packages/plugin-contract')].with['allowed-stable-version'], contract.version);
   assert.ok(index('packages/plugin-contract') < index('packages/plugin-sdk'));
   for (const directory of collectPublishPackageDirectories(source).filter(value => !['packages/plugin-contract','packages/plugin-sdk'].includes(value))) assert.ok(index('packages/plugin-sdk') < index(directory));
 });
 
 test('authorized stable contract publication preserves an existing latest tag', async t => {
-  const result = await runPublicationAction(t, { published: false, version: '0.2.0',
+  const result = await runPublicationAction(t, { published: false, version: '0.3.0',
     tags: { latest: '0.1.0-beta.37', next: '0.1.0-beta.37' } });
   assert.equal(result.failure, undefined, JSON.stringify(result.failure));
-  assert.deepEqual(result.state.tags, { latest: '0.1.0-beta.37', next: '0.2.0' });
+  assert.deepEqual(result.state.tags, { latest: '0.1.0-beta.37', next: '0.3.0' });
   assert.equal(result.state.mutations.length, 1);
 });
 

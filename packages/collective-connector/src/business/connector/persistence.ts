@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { type BigIntStats, constants, type Stats } from 'node:fs';
 import { lstat, mkdir, open, rename, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -29,6 +30,7 @@ export class ConnectorPersistence {
       const contents = await readPrivateRegularFile(filePath);
       const raw = JSON.parse(contents.toString('utf8')) as unknown;
       const state = structuredClone(migrateConnectorState(raw)) as MutableConnectorState;
+      const normalized = !isDeepStrictEqual(raw, state);
       let recovered = false;
       for (const connection of Object.values(state.connections)) {
         for (const attempt of connection.localAttempts ?? []) {
@@ -43,7 +45,7 @@ export class ConnectorPersistence {
         }
       }
       const persistence = new ConnectorPersistence(filePath, state);
-      if (recovered || schemaVersionOf(raw) !== state.schemaVersion) await persistence.write(state);
+      if (recovered || normalized) await persistence.write(state);
       return persistence;
     } catch (error) {
       if (!isMissingFile(error)) throw error;
@@ -142,11 +144,6 @@ async function writePrivateDocument(
 
 function serializeState(state: ConnectorState): string {
   return `${JSON.stringify(state, null, 2)}\n`;
-}
-
-function schemaVersionOf(value: unknown): unknown {
-  if (typeof value !== 'object' || value === null || !('schemaVersion' in value)) return undefined;
-  return value.schemaVersion;
 }
 
 async function assertPrivateDirectory(path: string): Promise<void> {

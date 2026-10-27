@@ -5,10 +5,9 @@ import type { PluginActionHandler } from '@clowder-ai/plugin-sdk';
 import { openCollectiveContextReferences } from '../../../collective-context-refs.js';
 import { publicSourceFixture } from './public-source-caller.fixture.js';
 
-const methods = ['collective.context.current', 'collective.context.read', 'collective.participation.set-interest', 'collective.reply.submit'];
 async function setup() {
   const module = await import('../../../collective-public-native-context.js');
-  const f = await publicSourceFixture({ methods, invocationId: 'fixture-running-turn' });
+  const f = await publicSourceFixture({ invocationId: 'fixture-running-turn' });
   try {
     const refs = await openCollectiveContextReferences(join(f.root, 'native-refs'), () => {});
     const actions = module.createCollectivePublicNativeActions({ connector: f.connector, references: refs, sourceCaller: f.sourceCaller });

@@ -55,21 +55,6 @@ test('builtin runtimes do not require an entrypoint', () => {
   assert.equal(validate('RuntimeDeclaration', { transport: 'builtin' }), true);
 });
 
-test('protocol-intrinsic lifecycle fixture needs no lifecycle capability id', () => {
-  const fixture = JSON.parse(
-    readFileSync(
-      new URL(
-        '../../fixtures/manifest/valid/protocol-intrinsic-lifecycle.json',
-        import.meta.url,
-      ),
-      'utf8',
-    ),
-  ) as { features: Array<{ capabilities: string[] }> };
-
-  assert.equal(ajv.getSchema(schema.$id)?.(fixture), true);
-  assert.deepEqual(fixture.features.flatMap((feature) => feature.capabilities), []);
-});
-
 test("render 'rows' binds OperationActionResult.data to OperationRows", () => {
   assert.equal(validate('OperationActionResult', { render: 'rows', data: { rows: [] } }), true);
   assert.equal(validate('OperationActionResult', { render: 'rows', data: 42 }), false);

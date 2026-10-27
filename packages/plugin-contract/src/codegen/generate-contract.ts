@@ -36,8 +36,6 @@ export interface ContractSchemas {
 }
 
 const GENERATED_URL = new URL('../generated/contract.generated.ts', import.meta.url);
-const MANIFEST_CAPABILITY_REF =
-  'https://clowder-ai.dev/schemas/manifest/v0.1#/$defs/Capability';
 const PLUGIN_METADATA_SCHEMA_PREFIX =
   'https://clowder-ai.dev/schemas/plugin-metadata/v1#/$defs/';
 const SIGNAL_SCHEMA_PREFIX = 'https://clowder-ai.dev/schemas/signals/v0.2#/$defs/';
@@ -81,7 +79,6 @@ function literal(value: unknown): string {
 }
 
 function refName(ref: string): string {
-  if (ref === MANIFEST_CAPABILITY_REF) return 'Capability';
   if (ref.startsWith(PLUGIN_METADATA_SCHEMA_PREFIX)) {
     return decodeURIComponent(ref.slice(PLUGIN_METADATA_SCHEMA_PREFIX.length));
   }
@@ -525,34 +522,6 @@ function renderConstArray(name: string, values: readonly string[]): string {
   return `export const ${name} = [${values.map(quote).join(', ')}] as const;`;
 }
 
-function renderCapabilityTables(schema: JsonSchema): string[] {
-  const layers = stringArrayMap(
-    schema['x-clowder-capability-layers'],
-    'x-clowder-capability-layers',
-  );
-  const capabilityValues = schema.$defs?.['Capability']?.enum ?? [];
-  const layeredValues = Object.values(layers).flat();
-  if (
-    capabilityValues.length !== layeredValues.length ||
-    capabilityValues.some((value) => !layeredValues.includes(value))
-  ) {
-    throw new Error('Capability enum and capability layer metadata must contain identical values');
-  }
-
-  const lines: string[] = [];
-  for (const [layer, values] of Object.entries(layers)) {
-    lines.push(renderConstArray(`${layer}_CAPABILITIES`, values));
-    lines.push(`export type ${layer}Capability = (typeof ${layer}_CAPABILITIES)[number];`);
-  }
-  lines.push('export const CAPABILITY_TABLE = {');
-  for (const layer of Object.keys(layers)) {
-    lines.push(`  ${layer}: ${layer}_CAPABILITIES,`);
-  }
-  lines.push('} as const;');
-  lines.push('export type AuthorizationLayer = keyof typeof CAPABILITY_TABLE;');
-  return lines;
-}
-
 function renderDataStrategyTable(schema: JsonSchema): string[] {
   const strategies = stringArrayMap(
     schema['x-clowder-data-class-strategies'],
@@ -785,11 +754,6 @@ function validateDataStrategyMetadata(schema: JsonSchema): void {
 }
 
 export function generateContractSource(schemas: ContractSchemas): string {
-  const layers=schemas.manifest['x-clowder-capability-layers'] as Record<string,readonly string[]>;
-  const count=Object.values(layers).flat().length;
-  const matrix=schemas.behavior.$defs?.PermissionMatrixInput?.properties?.entries;
-  if(matrix?.minItems!==count||matrix.maxItems!==count)throw new Error('behavior permission matrix bounds must match manifest capabilities');
-
   validateDataStrategyMetadata(schemas.manifest);
   validateMessagingBounds(schemas.messaging);
   const sections = [
@@ -828,7 +792,6 @@ export function generateContractSource(schemas: ContractSchemas): string {
     '',
     `export type BehaviorFixture = ${renderType(schemas.behavior)};`,
     '',
-    ...renderCapabilityTables(schemas.manifest),
     '',
     ...renderDataStrategyTable(schemas.manifest),
     '',

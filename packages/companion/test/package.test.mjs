@@ -21,7 +21,6 @@ test('the installable package declares one companion body and contains a closed 
   assert.equal(validateManifest(manifest).valid, true);
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
   assert.equal(manifest.contributions[0].bridgeVersion, '1.6.0');
-  assert.deepEqual(manifest.features[0].capabilities, ['windows.create']);
   const html = await readFile(new URL('renderer/index.html', root));
   const markup = html.toString();
   assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,

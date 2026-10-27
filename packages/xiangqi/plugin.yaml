@@ -1,5 +1,5 @@
 pluginId: dev.clowder.xiangqi
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 contractVersion: 0.1.0
 name: Xiangqi
 description:
@@ -23,10 +23,6 @@ contributions:
     runtime:
       transport: stdio
       entrypoint: dist/mcp-entrypoint.mjs
-    actions:
-      - { method: xiangqi.open }
-      - { method: xiangqi.read }
-      - { method: xiangqi.play }
 features:
   - id: analyze-position
     name: Play and analyze Xiangqi
@@ -38,10 +34,6 @@ features:
         id: xiangqi
       - type: webhook
         id: xiangqi-owner-board
-    capabilities:
-      - thread.readContent
-      - thread.listMetadata
-      - messaging.send
 data:
   - name: games
     dataClass: user-authored

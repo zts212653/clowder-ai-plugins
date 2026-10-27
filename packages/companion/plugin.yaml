@@ -1,6 +1,6 @@
 {
   "pluginId": "official.companion",
-  "version": "0.1.0-alpha.35",
+  "version": "0.1.0-alpha.36",
   "contractVersion": "0.1.0",
   "name": "猫猫球",
   "icon": {
@@ -21,9 +21,6 @@
       "id": "companion",
       "name": "猫猫球",
       "resources": [],
-      "capabilities": [
-        "windows.create"
-      ],
       "contributions": [
         {
           "type": "desktop-window",

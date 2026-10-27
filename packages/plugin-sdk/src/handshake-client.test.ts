@@ -23,8 +23,8 @@ function sessionBinding(overrides: Record<string, unknown> = {}) {
     ...candidateHello,
     pluginInstanceId: 'instance-1',
     brokerSessionId: 'session-1',
-    grantRevision: 0,
-    effectiveGrants: [],
+
+
     bindingNonce: 'binding-nonce',
     ...overrides,
   };
@@ -74,7 +74,7 @@ test('feeds fake Host objects through an object-mode seam without creating wire 
   fakeHost.on('data', binding => transitions.push(acceptSessionBinding(candidate.state, binding)));
 
   const ended = once(fakeHost, 'end');
-  fakeHost.end(sessionBinding());
+  fakeHost.end({ ...sessionBinding(), grantRevision: 0, effectiveGrants: ['messaging.send'] });
   await ended;
 
   assert.equal(transitions.length, 1);
@@ -102,16 +102,6 @@ test('uses the published beta.8 grammar for every binding field', () => {
     state: { phase: 'rejected', reason: 'AUTHORITY_VIOLATION' },
   });
 
-  const duplicateGrants = acceptSessionBinding(
-    candidate.state,
-    sessionBinding({ effectiveGrants: ['plugin.config.read', 'plugin.config.read'] }),
-  );
-  assert.deepEqual(duplicateGrants, {
-    accepted: false,
-    reason: 'AUTHORITY_VIOLATION',
-    state: { phase: 'rejected', reason: 'AUTHORITY_VIOLATION' },
-  });
-
   const nonStringHostIdentifier = acceptSessionBinding(
     candidate.state,
     sessionBinding({ pluginInstanceId: 42 }),
@@ -125,8 +115,6 @@ test('rejects N+1 identities and version grammar outside the public contract', (
   expectAccepted(candidate);
 
   const invalidBindings = [
-    ['non-WireUInt53 grant revision', { grantRevision: 1.5 }],
-    ['unknown effective grant', { effectiveGrants: ['not.a.contract.capability'] }],
     ['overlong binding nonce', { bindingNonce: 'n'.repeat(513) }],
     ['overlong plugin instance id', { pluginInstanceId: 'i'.repeat(513) }],
     ['overlong broker session id', { brokerSessionId: 's'.repeat(513) }],
@@ -148,7 +136,7 @@ test('snapshots accepted handshake inputs before later local transitions', () =>
 
   const mutableBinding = {
     ...sessionBinding(),
-    effectiveGrants: ['plugin.config.read'],
+
   };
   const binding = acceptSessionBinding(candidate.state, mutableBinding);
   expectAccepted(binding);
@@ -156,10 +144,10 @@ test('snapshots accepted handshake inputs before later local transitions', () =>
   if (binding.state.phase !== 'bound') {
     throw new Error('accepted binding transition must enter the bound state');
   }
-  mutableBinding.effectiveGrants.push('not.a.contract.capability');
+  mutableBinding.bindingNonce = 'changed-nonce';
 
   assert.deepEqual(binding.state.candidate, candidateHello);
-  assert.deepEqual(binding.state.binding.effectiveGrants, ['plugin.config.read']);
+  assert.deepEqual(binding.state.binding.bindingNonce, 'binding-nonce');
 
   const mutableReady = { bindingNonce: 'binding-nonce' };
   const activation = prepareActivation(binding.state, mutableReady);
@@ -169,7 +157,7 @@ test('snapshots accepted handshake inputs before later local transitions', () =>
     throw new Error('accepted activation transition must enter the activated state');
   }
   mutableReady.bindingNonce = 'different-nonce';
-  assert.deepEqual(activation.state.binding.effectiveGrants, ['plugin.config.read']);
+  assert.deepEqual(activation.state.binding.bindingNonce, 'binding-nonce');
   assert.deepEqual(activation.state.activation, { bindingNonce: 'binding-nonce' });
 });
 

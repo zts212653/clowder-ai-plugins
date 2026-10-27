@@ -26,7 +26,7 @@ function controlled(overrides: Partial<NonNullable<NonNullable<PluginTaskReadIte
   return {bindingRevision: 1, state: 'active' as const, currentForCaller:true, binding: {userId:'owner',catId:'cat',threadId:'existing',
     subjectKey:'entrusted:legacy',firstSourceRef:'message:assignment',admissionAuthorityRef:'message:admission',
     pluginId:'official.collective-connector',pluginInstanceId:'installed-collective',
-    moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,grantRevision:3,
+    moduleRef:'plugin:official.collective-connector',lifecycleRevision:8,
     ownerOperationReceiptRef:`task-data-controller:${'a'.repeat(64)}`}, ...overrides};
 }
 function owned(overrides: Partial<PluginTaskReadItem> = {}): PluginTaskReadItem {

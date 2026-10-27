@@ -98,8 +98,8 @@ test('Chrome loaded settings read and revoke the same authorization file without
   const directory = await mkdtemp(join(tmpdir(), 'loaded-chrome-settings-'));
   try {
     const entry = createPersonalChromePluginModule(), declaration = await manifest('personal-chrome-companion');
-    assert.throws(() => entry.create(declaration).settings({ log() {} }), /dataPath/);
-    const settings = entry.create(declaration).settings({ dataPath: directory, log() {} });
+    await assert.rejects(entry.create(declaration).settings({ log() {} }), /dataPath/);
+    const settings = await entry.create(declaration).settings({ dataPath: directory, log() {} });
     assert.deepEqual(await readdir(directory), [], 'settings construction cannot install helpers, copy extension assets or register a runtime');
     assert.equal((await settings.actions['personal-chrome-host.test']({ input: {} })).ok, false);
     const file = join(directory, 'conversation-binding.json');

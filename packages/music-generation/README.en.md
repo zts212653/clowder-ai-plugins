@@ -6,7 +6,7 @@ Ask a cat to generate music and deliver a new MP3 plus provenance into the calli
 
 ## Setup and use
 
-1. Install the exact package in Plugin Manager and confirm its requested permissions. Installation leaves it disabled.
+1. Install the exact package in Plugin Manager and review its project-output delivery description. Installation leaves it disabled.
 2. Enter the Google Cloud project that should bear the cost. It needs valid billing, Vertex AI enabled, and sufficient project access for the chosen account.
 3. If standard Google Cloud ADC exists on this machine, choose **Reuse this machine's authorized account** and confirm. The plugin verifies its quota project, billing and service state before Manager saves the grant. It does not read browser or AGY private login stores.
 4. For a new connection or renewed consent, use your own Google Cloud Desktop app OAuth client. Enter its Client ID and Client Secret in the card, connect, explicitly open the Google link and grant Cloud data access. The background receiver survives the initiating request. Reopening the card resumes the flow; expiry requires an explicit new connection. Cancel stops pending consent; disconnect affects only this plugin.

@@ -22,26 +22,6 @@ test('the built conformance boundary exports the stdio harness', async () => {
   assert.equal(Object.hasOwn(conformance,'BETA10_LIFECYCLE_VECTOR_IDS'),false);
   assert.ok(Array.isArray(conformance.BETA11_MESSAGING_VECTOR_IDS));
   assert.equal(conformance.BETA11_MESSAGING_VECTOR_IDS.length, 39);
-  assert.deepEqual(conformance.M0C_BEHAVIOR_CASE_IDS, [
-    'raw-thread-id-rejection',
-    'system-audience-dual-rejection',
-    'cross-instance-handle-rejection',
-    'origin-forgery-rejection',
-    'base-revision-conflict-zero-change',
-    'stale-cursor-snapshot-roundtrip',
-    'cross-subscription-ack-rejection',
-    'reply-to-cross-thread-leakage',
-    'epistemic-status-upgrade-rejection',
-    'preset-l2-rejected',
-    'preset-visible-revocable',
-    'whisper-target-beyond-default-empty-grant-rejected',
-    'append-without-grant-rejected',
-    'denied-on-message-rejected',
-    'permission-matrix-complete',
-    'delete-replay-events-preserves-canonical-messages',
-    'snapshot-without-grant-rejected',
-    'foreign-replay-delete-rejected',
-  ]);
   assert.equal(
     conformance.M0C_BEHAVIOR_FIXTURE_EXPORT,
     '@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants',

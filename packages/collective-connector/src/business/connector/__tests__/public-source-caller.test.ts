@@ -16,7 +16,7 @@ it('records the public send receipt before a same-connection route writer can re
       }), route.revision);
       settledDuringSend = await Promise.race([writer.then(() => true), new Promise<boolean>(resolve => setTimeout(() => resolve(false), 20))]);
       // A real early native callback must still read/bind without re-entering the route writer tail.
-      await f.sourceCaller.resolveNative(f.action, 'collective.context.current');
+      await f.sourceCaller.resolveNative(f.action);
     });
     const receipt = await f.admit();
     await writer;
@@ -71,7 +71,7 @@ it('sends with named wake and rechecks the original Service through standard mes
     expect(draft.meta.participation).toEqual(f.source);
     expect(draft.payload.provenance).toEqual({ origin: { kind: 'plugin', instanceId: 'installed-instance' }, epistemicStatus: 'observation' });
     expect(f.connector.readCurrentPublicSource(messageRef)).not.toHaveProperty('authority');
-    const resolved = await f.sourceCaller.resolveNative(f.action, 'collective.context.current');
+    const resolved = await f.sourceCaller.resolveNative(f.action);
     expect(resolved.source).toEqual(f.source); expect(resolved.auth.invocationId).toEqual(f.action.invocationId);
   } finally { await f.close(); }
 });
@@ -88,12 +88,11 @@ it('lost Host wake receipt retries the same idempotent send when no native mappi
   } finally { await f.close(); }
 });
 
-it('ordinary source handling checks declared business method and current Service without a public verifier', async () => {
+it('ordinary source handling retains current Service validation without a public verifier', async () => {
   const f=await setup();try {
     await f.admit();expect(f.sourceCaller).not.toHaveProperty('publicInvocationVerifier');
-    await expect(f.sourceCaller.resolveNative(f.action,'unknown')).rejects.toBeInstanceOf(Error);
     await f.connector.revoke(f.connection.connectionId);
-    await expect(f.sourceCaller.resolveNative(f.action,'collective.context.current')).rejects.toBeInstanceOf(Error);
+    await expect(f.sourceCaller.resolveNative(f.action)).rejects.toBeInstanceOf(Error);
   } finally {await f.close();}
 });
 
@@ -101,13 +100,13 @@ it('native body identity cannot replace authenticated context, exact origin/cont
   const f = await setup(); try {
     await f.admit();
     for (const change of [{ catId: 'foreign' }, { threadId: 'foreign' }, { userId: 'foreign' }])
-      await expect(f.sourceCaller.resolveNative({ ...f.action, ...change }, 'collective.context.current')).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
+      await expect(f.sourceCaller.resolveNative({ ...f.action, ...change })).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
     f.updateFact({ extra: { pluginMessage: { instanceId: 'foreign' } } });
-    await expect(f.sourceCaller.resolveNative(f.action, 'collective.context.current')).resolves.toHaveProperty('source');
+    await expect(f.sourceCaller.resolveNative(f.action)).resolves.toHaveProperty('source');
     f.updateFact({ extra: { pluginMessage: { instanceId: 'installed-instance' } }, content: 'forged' });
-    await expect(f.sourceCaller.resolveNative(f.action, 'collective.context.current')).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
+    await expect(f.sourceCaller.resolveNative(f.action)).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
     f.updateFact({ content: (await f.connector.listInbox(f.connection.connectionId)).find(item => item.event.eventId === f.source.eventId)!.event.body });
-    f.expire(); await expect(f.sourceCaller.resolveNative(f.action, 'collective.context.current')).rejects.toThrow('Caller expired');
+    f.expire(); await expect(f.sourceCaller.resolveNative(f.action)).rejects.toThrow('Caller expired');
   } finally { await f.close(); }
 });
 
@@ -123,7 +122,7 @@ it('does not send or enqueue after the Service revokes permission while the owne
 
 it('a resolved native caller rechecks real Service permission before a later reply; currentness is not cached', async () => {
   const f = await setup(); try {
-    await f.admit(); const resolved = await f.sourceCaller.resolveNative(f.action, 'collective.reply.submit');
+    await f.admit(); const resolved = await f.sourceCaller.resolveNative(f.action);
     await f.store.revokeConnection({ sessionToken: f.serviceOwner.sessionToken, collectiveId: f.connection.collectiveId,
       connectionId: f.connection.connectionId });
     await expect(resolved.revalidate()).rejects.toBeInstanceOf(Error);
@@ -135,7 +134,7 @@ it('a resolved native caller rechecks real Service permission before a later rep
 
 it('a late wake receipt after owner stop is refused without undoing the early native source mapping', async () => {
   const f = await setup(); try {
-    f.beforeSendReturns(async () => { await f.sourceCaller.resolveNative(f.action, 'collective.context.current'); f.expire(); });
+    f.beforeSendReturns(async () => { await f.sourceCaller.resolveNative(f.action); f.expire(); });
     await expect(f.admit()).rejects.toThrow('Caller expired');
     expect(f.connector.readCurrentPublicSource('message:host-source').source).toEqual(f.source);
     expect(f.calls.filter((call: any) => call[0] === 'send')).toHaveLength(1);
@@ -164,7 +163,7 @@ it('returns local_echo for a real same-connection Agent publication before routi
     await f.connector.beginInboxRouting(f.connection.connectionId, event.eventId, 1);
     await expect(f.connector.recordPublicSource({ connectionId: f.connection.connectionId, eventId: event.eventId,
       pluginInstanceId: 'installed-instance', ownerUserId: 'local-owner', threadId: 'channel', messageRef: 'message:echo',
-      native: { contributionId: 'collective-native', methods: ['collective.context.current'] } })).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_LOCAL_ECHO' });
+      native: { contributionId: 'collective-native' } })).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_LOCAL_ECHO' });
     expect((await f.connector.listInbox(f.connection.connectionId)).find(item => item.event.eventId === event.eventId)?.publicSource).toBeUndefined();
   } finally { await f.close(); }
 });

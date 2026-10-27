@@ -14,7 +14,7 @@ function baseManifest(overrides: Record<string, unknown> = {}): Record<string, u
         id: 'feature-1',
         name: 'Feature one',
         resources: [],
-        capabilities: ['plugin.config.read'],
+
       },
     ],
     runtime: { transport: 'builtin' },
@@ -84,68 +84,6 @@ test('beta.24 admits runtime.dataDirectory with the single-segment grammar', () 
   assert.equal(admit(''), false);
 });
 
-test('beta.24 admits the new capabilities and the cloud-conversation-host contribution', () => {
-  const manifest = baseManifest({
-    contributions: [
-      {
-        type: 'cloud-conversation-host',
-        id: 'chatgpt-pro-host',
-        provider: 'chatgpt',
-        appendMessage: { method: 'appendMessage' },
-        assistantReturns: { list: { method: 'listReturns' }, ack: { method: 'ackReturn' } },
-      },
-    ],
-    features: [
-      {
-        id: 'feature-1',
-        name: 'Feature one',
-        resources: [],
-        contributions: [{ type: 'cloud-conversation-host', id: 'chatgpt-pro-host' }],
-        capabilities: ['cloud.conversation.host'],
-      },
-    ],
-  });
-  assert.equal(validateManifest(manifest).valid, true);
-
-  const withoutCapability = baseManifest({
-    ...manifest,
-    features: [
-      {
-        id: 'feature-1',
-        name: 'Feature one',
-        resources: [],
-        contributions: [{ type: 'cloud-conversation-host', id: 'chatgpt-pro-host' }],
-        capabilities: ['plugin.config.read'],
-      },
-    ],
-  });
-  const missingCapability = validateManifest(withoutCapability);
-  assert.equal(missingCapability.valid, false);
-  if (!missingCapability.valid) {
-    assert.ok(missingCapability.errors.some((error) => error.keyword === 'capabilityRequired'));
-  }
-
-  const wrongProvider = baseManifest({
-    ...manifest,
-    contributions: [
-      { ...(manifest.contributions as Record<string, unknown>[])[0], provider: 'claude' },
-    ],
-  });
-  assert.equal(validateManifest(wrongProvider).valid, false);
-
-  const unknownCapability = baseManifest({
-    features: [
-      {
-        id: 'feature-1',
-        name: 'Feature one',
-        resources: [],
-        capabilities: ['cloud.conversation.hosts'],
-      },
-    ],
-  });
-  assert.equal(validateManifest(unknownCapability).valid, false);
-});
-
 test('beta.24 cloud-conversation-host requires a runtime', () => {
   const manifest = baseManifest({
     runtime: undefined,
@@ -164,7 +102,7 @@ test('beta.24 cloud-conversation-host requires a runtime', () => {
         name: 'Feature one',
         resources: [],
         contributions: [{ type: 'cloud-conversation-host', id: 'chatgpt-pro-host' }],
-        capabilities: ['cloud.conversation.host'],
+
       },
     ],
   });

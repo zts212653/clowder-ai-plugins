@@ -310,7 +310,6 @@ test('source inspection is read-only and reports hidden producer fields instead 
   assert.equal(result.body.data.complete,false);
   assert.ok(result.body.data.unavailable.some(f=>f.fields.includes('typedWaitRegistration')));
   assert.deepEqual(await f.storage.list(),before);
-  assert.ok(!manifest.features[0].capabilities.includes('thread.readContent'));
 });
 
 test('freeze uses two read-only cuts, rejects drift/unknown and retains opaque authority references without converting them', async () => {

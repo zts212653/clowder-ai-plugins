@@ -6,8 +6,8 @@ import type { ConnectorPersistence } from './persistence.js';
 import type { ConnectorInboxItem, ConnectorState } from './state.js';
 
 const boundedCoordinate = (max = 512) => z.string().min(1).max(max).refine(value => value.trim() === value && !/[\x00-\x1f\x7f]/u.test(value));
-const nativeSchema = z.object({ contributionId: boundedCoordinate(256), methods: z.array(boundedCoordinate(256)).min(1).max(256)
-  .refine(methods => new Set(methods).size === methods.length) }).strict();
+// Existing stored bindings may contain retired method metadata; only source identity is retained.
+const nativeSchema = z.object({ contributionId: boundedCoordinate(256) }).strip();
 export const publicSourceBindingSchema = z.object({
   pluginInstanceId: boundedCoordinate(), ownerUserId: boundedCoordinate(), threadId: boundedCoordinate(),
   messageRef: z.string().regex(/^message:\S{1,500}$/u).refine(value => value.slice(8).length <= 512 && !/[\x00-\x1f\x7f]/u.test(value)),
@@ -24,7 +24,7 @@ export interface RecordPublicSourceInput {
   readonly threadId: string;
   readonly messageRef: `message:${string}`;
   /** Supplied by the owning module's declared native contribution. */
-  readonly native: { readonly contributionId: string; readonly methods: readonly string[] };
+  readonly native: { readonly contributionId: string };
 }
 const denied = () => participationError('PUBLIC_SOURCE_CHANGED', 'Exact public source binding is no longer current');
 
@@ -53,7 +53,7 @@ function makeBinding(state: ConnectorState, item: ConnectorInboxItem, input: Rec
   if (source.connectionId !== input.connectionId || connection.authorizedHumanId !==
     (item.event.target.kind === 'agent' ? item.event.target.humanId : undefined) ||
     route.localOwnerUserId !== input.ownerUserId || binding.threadId !== input.threadId) throw denied();
-  const native = nativeSchema.parse(input.native); native.methods.sort();
+  const native = nativeSchema.parse(input.native);
   const fixed = { pluginInstanceId: input.pluginInstanceId, ownerUserId: input.ownerUserId,
     threadId: input.threadId, messageRef: input.messageRef, targetCatId: source.catId, source, native };
   return publicSourceBindingSchema.parse(fixed);

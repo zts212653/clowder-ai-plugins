@@ -9,7 +9,7 @@ import { collectiveSource, collectivePublicSourceBody, matchesCollectivePublicSo
 interface PublicSourceCallerOptions {
   readonly connector: Pick<CollectiveConnector, 'listInbox' | 'getHostRoute' | 'beginInboxRouting' | 'completeInboxRouting' |
     'recordPublicSource' | 'readCurrentPublicSource' | 'readParticipationContext' | 'withInboxRoutingAuthority'>;
-  readonly native: { readonly contributionId: string; readonly methods: readonly string[] };
+  readonly native: { readonly contributionId: string };
   readonly messaging: FeatureContext['messaging'];
   readonly pluginInstanceId: string;
   readonly threads: Pick<FeatureContext['threads'], 'get' | 'getCats'>;
@@ -22,12 +22,9 @@ const changed = () => participationError('PUBLIC_SOURCE_CHANGED', 'Exact public 
 
 /** Ordinary exact-agent send/wake bridge. Work and channel-selection retain their original consumers. */
 export function createCollectivePublicSourceCaller(options: PublicSourceCallerOptions) {
-  // Module configuration is not a native tool selector. Snapshot before any asynchronous caller can mutate it.
-  const native = { contributionId: options.native.contributionId, methods: [...options.native.methods].sort() };
-  // A source keeps its original granted methods across a module upgrade.
-  // New declarations do not add authority to that persisted binding.
-  const isActiveNativeScope = (scope: { readonly contributionId: string; readonly methods: readonly string[] }) =>
-    scope.contributionId === native.contributionId && scope.methods.every(method => native.methods.includes(method));
+  const native = { contributionId: options.native.contributionId };
+  const isActiveNativeScope = (scope: { readonly contributionId: string }) =>
+    scope.contributionId === native.contributionId;
   const currentSource = async (messageRef: string, current: () => Promise<void>) => {
     await current();
     const binding = options.connector.readCurrentPublicSource(messageRef);
@@ -110,7 +107,7 @@ export function createCollectivePublicSourceCaller(options: PublicSourceCallerOp
         return sent;
       });
     },
-    async resolveNative(action: PluginActionContext, method: string) {
+    async resolveNative(action: PluginActionContext) {
       const resolve = async () => {
         await action.assertCurrent();
         if (!action.originTriggerMessageId || !options.messaging.get) throw changed();
@@ -120,7 +117,7 @@ export function createCollectivePublicSourceCaller(options: PublicSourceCallerOp
         const auth = { userId: action.userId, threadId: action.threadId, catId: action.catId,
           invocationId: action.invocationId, originTriggerMessageId: action.originTriggerMessageId, source: fact };
         const messageRef = `message:${auth.originTriggerMessageId}` as const;
-        if (!native.methods.includes(method) || fact.userId !== auth.userId || fact.threadId !== auth.threadId ||
+        if (fact.userId !== auth.userId || fact.threadId !== auth.threadId ||
           fact.catId !== null || fact.source.connector !== 'collective') throw changed();
         const parsed = collectiveSourceIdentitySchema.safeParse(fact.source.meta?.participation);
         if (!parsed.success || parsed.data.catId !== auth.catId) throw changed();
@@ -138,7 +135,7 @@ export function createCollectivePublicSourceCaller(options: PublicSourceCallerOp
         const { binding, context } = await currentSource(messageRef, () => action.assertCurrent());
         const event = (await options.connector.listInbox(binding.source.connectionId)).find(item => item.event.eventId === binding.source.eventId)?.event;
         if (binding.ownerUserId !== auth.userId || binding.threadId !== auth.threadId || binding.targetCatId !== auth.catId ||
-          !isActiveNativeScope(binding.native) || !binding.native.methods.includes(method) ||
+          !isActiveNativeScope(binding.native) ||
           fact.userId !== auth.userId || fact.threadId !== auth.threadId || fact.catId !== null ||
           options.pluginInstanceId !== binding.pluginInstanceId || fact.source.connector !== 'collective' ||
           !isDeepStrictEqual(fact.source.meta?.participation, binding.source) || !event || !matchesCollectivePublicSourceBody(fact.content, event)) throw changed();

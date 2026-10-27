@@ -14,14 +14,27 @@ function sha512Of(bytes: Buffer): string {
   return `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 }
 
-test('connector-feishu shrinkwrap pins the exact official-publish packed contract artifact', () => {
+test('connector-feishu shrinkwrap pins the exact official-publish packed contract artifact', async () => {
   const shrinkwrap = JSON.parse(
     readFileSync(`${pluginContractDir}/../connector-feishu/npm-shrinkwrap.json`, 'utf8'),
   ) as {
-    packages: Record<string, { version?: string; integrity?: string }>;
+    packages: Record<string, { version?: string; integrity?: string; resolved?: string }>;
   };
   const entry = shrinkwrap.packages['node_modules/@clowder-ai/plugin-contract'];
-  assert.equal(entry?.version, '0.2.0');
+  assert.ok(entry?.version);
+  const current = JSON.parse(readFileSync(`${pluginContractDir}/package.json`, 'utf8'));
+  if (entry.version !== current.version) {
+    // The immutable consumer may pin a newer published baseline than local caches.
+    // Fetch precisely its locked registry URL instead of assuming an ignored tarball exists.
+    assert.ok(entry.resolved);
+    assert.equal(new URL(entry.resolved).origin, 'https://registry.npmjs.org');
+    const response = await fetch(entry.resolved, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
+    assert.equal(response.status, 200);
+    const published = Buffer.from(await response.arrayBuffer());
+    assert.ok(published.length <= 16 * 1024 * 1024);
+    assert.equal(sha512Of(published), entry.integrity);
+    return;
+  }
   assert.ok(entry?.integrity?.startsWith('sha512-'), 'shrinkwrap entry must pin a sha512 integrity');
 
   const destination = mkdtempSync(join(tmpdir(), 'clowder-artifact-consistency-'));
@@ -45,28 +58,12 @@ test('connector-feishu shrinkwrap pins the exact official-publish packed contrac
     const [artifact] = JSON.parse(result.stdout) as [
       { filename: string; integrity: string },
     ];
-    const current = JSON.parse(readFileSync(join(pluginContractDir, 'package.json'), 'utf8')) as { version: string };
-    // A frozen published consumer keeps its immutable dependency when a new candidate is prepared.
-    // Compare a rebuild only when the source package is still that exact published version.
-    if (current.version !== entry.version) {
-      const frozen = readFileSync(join(pluginContractDir, `clowder-ai-plugin-contract-${entry.version}.tgz`));
-      assert.equal(sha512Of(frozen), entry.integrity, 'published consumer must keep its exact archived dependency');
-      assert.equal(artifact.filename, `clowder-ai-plugin-contract-${current.version}.tgz`);
-      return;
-    }
-    const official = readFileSync(join(destination, artifact.filename));
-
     assert.equal(
       entry.integrity,
       artifact.integrity,
       'shrinkwrap must pin the official pack-publish-artifact.mjs output',
     );
-    const packed = readFileSync(`${pluginContractDir}/clowder-ai-plugin-contract-0.2.0.tgz`);
-    assert.equal(
-      sha512Of(packed),
-      artifact.integrity,
-      'committed tgz must be byte-identical to the official publish artifact',
-    );
+
   } finally {
     rmSync(destination, { recursive: true, force: true });
   }

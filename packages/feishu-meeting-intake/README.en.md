@@ -57,4 +57,4 @@ The original normalized revision denotes artifact generation, not a transcript e
 Reads verify that generation and current Feishu authorization, report a separate text SHA-256 and
 read time, and label source text as untrusted data. They do not invent immutable historical text.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

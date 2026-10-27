@@ -100,7 +100,6 @@ export {
   createFeatureContextSession,
   definePlugin,
   type ActivePluginFeature,
-  type ActivePluginFeatureOptions,
   type DefinedPlugin,
   type FeatureActivation,
   type FeatureActivator,

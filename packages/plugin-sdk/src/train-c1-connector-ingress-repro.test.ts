@@ -67,8 +67,8 @@ test('C1 repro: the closed handshake cannot project connector-binding handles', 
     wireVersion: '0.1.0',
     pluginInstanceId: 'plugin-instance-1',
     brokerSessionId: 'broker-session-1',
-    grantRevision: 0,
-    effectiveGrants: ['messaging.send'],
+
+
     bindingNonce: 'binding-nonce-1',
     connectorBindings: [{
       connectorId: 'telegram',
@@ -82,7 +82,7 @@ test('C1 repro: a provider conversation id cannot substitute for a Host-issued c
   const adapter = new MessagingLoopbackAdapter();
   await adapter.setup({
     caller: { pluginInstanceId: 'plugin-instance-1' },
-    grants: ['messaging.send'],
+
     handles: {},
     state: {},
   });

@@ -1,5 +1,5 @@
 pluginId: dev.clowder.video-generation
-version: 0.1.0-alpha.2
+version: 0.1.0-alpha.3
 contractVersion: 0.2.0
 name: Video Generation
 description:
@@ -111,8 +111,5 @@ features:
     contributions:
       - type: mcp
         id: video-generation-toolset
-    capabilities:
-      - plugin.config.read
-      - secret.read
 runtime:
   transport: builtin

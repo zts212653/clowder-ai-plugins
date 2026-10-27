@@ -75,7 +75,6 @@ import {
   validateBrokerReadyParams,
   validateSessionBinding,
 } from './handshake.js';
-import { validateEffectiveGrants } from './grants.js';
 import { validateRequestId } from './request-id.js';
 import { isWireUInt53, isCanonicalUInt53Token } from './wire-uint53.js';
 import {
@@ -268,7 +267,6 @@ function containsNonScalarString(value: unknown): boolean {
  *   - params.input.limit          (messaging.read input)
  *   - params.input.maxItems       (messaging.snapshot input)
  *   - params.input.envelope.revision (host.messaging.deliver input)
- *   - result.grantRevision        (broker.hello SessionBinding)
  *   - result.revision             (messaging.send, messaging.appendElements)
  *   - result.publishSequence      (messaging.send)
  *   - result.appendSequence       (messaging.appendElements)
@@ -334,12 +332,6 @@ function hasNonCanonicalUInt53Token(
   if (!('method' in value) && result !== null && typeof result === 'object' && !Array.isArray(result)) {
     const resultObj = result as Record<string, unknown>;
 
-    // H7: broker.hello SessionBinding.grantRevision
-    if (responseMethod === 'broker.hello') {
-      if (typeof resultObj.grantRevision === 'number') {
-        if (!isCanonicalUInt53Token(String(resultObj.grantRevision))) return true;
-      }
-    }
 
     // messaging.send: result.revision, result.publishSequence
     if (responseMethod === 'messaging.send') {
@@ -789,7 +781,6 @@ function validateResponseResult(
 }
 
 // ---------------------------------------------------------------------------
-// Notification sub-classifier (T-J / T-K)
 // ---------------------------------------------------------------------------
 
 function classifyNotification(_value: JsonObject): DispatchResult {return close('T-K');}

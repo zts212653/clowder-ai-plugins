@@ -14,7 +14,7 @@
 │ 身份 / 记忆 / 会话真相 / 表达分寸             │
 ├──────────── 插件契约（本仓定义）──────────────┤
 │ 输入信封（origin × epistemicStatus 两轴）    │
-│ 输出事件流 · manifest · capability 类型      │
+│ 输出事件流 · manifest · 双向协议      │
 ├────────────────────────────────────────────┤
 │ 插件（本仓实现）                             │
 │ 前台猫 · 桌面探针 · 语音包 · IM connectors    │
@@ -28,9 +28,9 @@ Clowder AI 采用两仓协作，而不是把插件管理和插件实现混在一
 | 仓库 | 职责 |
 |---|---|
 | `clowder-ai-plugins`（本仓） | 插件契约、插件侧 SDK/client、standalone runtime、脚手架、官方插件源码与 conformance fixtures |
-| [`clowder-ai`](https://github.com/zts212653/clowder-ai) | 插件发现与安装、统一管理 UI、授权、Host Broker、运行时编排、审计与用户数据管理 |
+| [`clowder-ai`](https://github.com/zts212653/clowder-ai) | 插件发现与安装、统一管理 UI、Host Broker、运行时编排、审计与用户数据管理 |
 
-本仓**不是插件管理器**。官方插件会在这里独立开发、构建和发布；Clowder AI 宿主负责下载或接收插件制品，校验 manifest 与 digest，取得用户授权，然后安装、启用并通过 Host Broker 运行它们。第一方插件与第三方插件走同一套 SDK 和授权通道。
+本仓**不是插件管理器**。官方插件会在这里独立开发、构建和发布；Clowder AI 宿主负责下载或接收插件制品，校验 manifest 与 digest，按安装者选择安装、启用并通过 Host Broker 运行它们。官方仓通过入库审核把关，团队仓由用户团队治理；第一方插件与第三方插件走同一套 SDK、实例与调用上下文。
 
 ## SDK 被谁使用
 
@@ -49,7 +49,7 @@ Host Broker ─────┐
 插件 SDK ────────┴─→ @clowder-ai/plugin-contract
 ```
 
-- `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、capability 表与 conformance fixtures；F285 的 `physical-limb` contribution schema 在这里定义物理动作、观察、readiness 与独立设备 grant，刻意不包含 raw sensor media。
+- `@clowder-ai/plugin-contract`：双方共同消费的机器契约真相源，包含 JSON Schema、生成类型、双向协议与 conformance fixtures；F285 的 `physical-limb` contribution schema 在这里定义物理动作、观察、readiness 与独立设备 grant，刻意不包含 raw sensor media。
 - `@clowder-ai/plugin-sdk`：提供 standalone stdio 载体工具、统一 delivery／streams 和 module 生命周期辅助。声明 `runtime.transport: builtin` + root `entrypoint` 的包必须让该 ESM 模块的 `default` export 通过 `requirePluginModuleEntrypoint(...)`，Host 不猜测 named exports。
 - Host Adapter/Broker：属于 `clowder-ai` 内核，不放在本仓，也不通过插件 client SDK 实现。
 

@@ -9,7 +9,7 @@ function manifest() {
     version: '1.0.0',
     contractVersion: '0.1.0-beta.13',
     name: 'Metadata fixture',
-    features: [{ id: 'main', name: 'Main', resources: [], capabilities: [] }],
+    features: [{ id: 'main', name: 'Main', resources: [], }],
     runtime: { transport: 'builtin' },
   };
 }

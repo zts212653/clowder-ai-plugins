@@ -1,6 +1,6 @@
 pluginId: official.music-generation
 version: 0.1.0-alpha.0
-contractVersion: 0.2.1-candidate.0
+contractVersion: 0.3.1-candidate.0
 name: Google Cloud 配乐
 description:
   default: Generate music using your authorized Google Cloud project, retaining audio and provenance without automatic paid retries.
@@ -82,8 +82,6 @@ contributions:
   - type: mcp
     id: music-native
     runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
-    actions:
-      - { method: music.output }
   - type: identity
     id: music
     displayName: Google Cloud music
@@ -98,9 +96,9 @@ features:
       - { type: identity, id: music }
       - { type: media-source, id: music-media }
       - { type: mcp, id: music-native }
-    capabilities: [plugin.config.read, secret.read, plugin.state.get, plugin.state.set, project.output.create]
 projectOutputs:
   - method: music.output
+    mcpId: music-native
     producerMethod: music.generate
     resultMethod: music.result
     mediaSourceId: music-media

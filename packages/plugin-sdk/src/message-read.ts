@@ -229,8 +229,8 @@ function fact(value: unknown, id: string): PluginMessage | null {
     if (row[key] !== undefined) projected[key] = row[key];
   return freeze(structuredClone(projected)) as unknown as PluginMessage;
 }
-/** Host owns ordinary user/resource visibility; SDK owns the existing feature read
- * grant/lifetime and detached public shape. No message field supplies authority. */
+/** Host owns ordinary user/resource visibility; SDK enforces context
+ * lifetime and the detached public shape. No message field supplies authority. */
 export function createMessageReader(
   read: (id: string) => Promise<PluginMessage | null>,
   assertContentAccess: () => void,

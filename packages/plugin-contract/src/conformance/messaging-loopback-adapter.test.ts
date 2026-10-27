@@ -3,10 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
-  CAPABILITY_TABLE,
   type BehaviorCase,
   type BehaviorFixture,
-  type Capability,
   type FixtureOperation,
 } from '../generated/contract.generated.js';
 import { executeBehaviorCase } from './behavior-executor.js';
@@ -30,10 +28,7 @@ test('committed fixture covers every loopback operation family', () => {
     'appendElements',
     'read',
     'ack',
-    'applyGrantPreset',
-    'revokeGrant',
     'deliverOnMessage',
-    'checkPermissionMatrix',
     'deleteReplayEvents',
   ] as const) {
     assert.equal(operations.has(operation), true, `${operation} must have a committed oracle`);
@@ -49,6 +44,23 @@ for (const behaviorCase of fixture.cases) {
     });
   });
 }
+
+test('message delivery rejects an envelope outside its thread handle without side effects', async () => {
+  const delivery = fixture.cases.find(({ id }) => id === 'on-message-delivery');
+  assert.ok(delivery?.when.operation === 'deliverOnMessage');
+  const adapter = new MessagingLoopbackAdapter();
+  await adapter.setup(structuredClone(delivery.given));
+
+  assert.deepEqual(await adapter.execute({
+    operation: 'deliverOnMessage',
+    input: {
+      ...delivery.when.input,
+      envelope: { ...delivery.when.input.envelope, threadId: 'another-thread' },
+    },
+  }), { status: 'error', errorCode: 'VALIDATION' });
+  assert.deepEqual(await adapter.observe('messages'), []);
+  assert.deepEqual(await adapter.observe('output_events'), []);
+});
 
 test('changing every signed error code is detected by the executor', async () => {
   const errorCases = fixture.cases.filter(({ expect }) => expect.status === 'error');
@@ -69,25 +81,6 @@ test('changing every signed error code is detected by the executor', async () =>
     assert.equal(report.passed, false, behaviorCase.id);
     assert.match(report.failures.join('\n'), /errorCode/);
   }
-});
-
-test('an incomplete permission matrix fails closed', async () => {
-  const behaviorCase = fixture.cases.find(({ id }) => id === 'permission-matrix-complete');
-  assert.ok(behaviorCase?.when.operation === 'checkPermissionMatrix');
-  const mutated = {
-    ...structuredClone(behaviorCase),
-    when: {
-      operation: 'checkPermissionMatrix',
-      input: {
-        entries: behaviorCase.when.input.entries.slice(1),
-      },
-    },
-  } as unknown as BehaviorCase;
-
-  const report = await runCase(mutated);
-
-  assert.equal(report.passed, false);
-  assert.match(report.failures.join('\n'), /status.*expected success.*received error/);
 });
 
 const subscriptionOperations: readonly FixtureOperation[] = [
@@ -114,21 +107,6 @@ const subscriptionCase = fixture.cases.find(
 );
 assert.ok(subscriptionCase);
 
-test('every existing-subscription operation requires the subscription grant', async () => {
-  for (const operation of subscriptionOperations) {
-    const adapter = new MessagingLoopbackAdapter();
-    await adapter.setup({
-      ...structuredClone(subscriptionCase.given),
-      grants: [],
-    });
-
-    assert.deepEqual(await adapter.execute(operation), {
-      status: 'error',
-      errorCode: 'PERMISSION',
-    }, operation.operation);
-  }
-});
-
 test('every existing-subscription operation rejects a foreign caller', async () => {
   for (const operation of subscriptionOperations) {
     const adapter = new MessagingLoopbackAdapter();
@@ -148,7 +126,7 @@ test('connector binding sends require caller ownership', async () => {
   const adapter = new MessagingLoopbackAdapter();
   await adapter.setup({
     caller: { pluginInstanceId: 'plugin-a' },
-    grants: ['messaging.send'],
+
     handles: {
       binding: {
         kind: 'connector_binding',
@@ -184,7 +162,7 @@ test('connector binding sends require caller ownership', async () => {
   const foreignAdapter = new MessagingLoopbackAdapter();
   await foreignAdapter.setup({
     caller: { pluginInstanceId: 'plugin-b' },
-    grants: ['messaging.send'],
+
     handles: {
       binding: {
         kind: 'connector_binding',
@@ -233,7 +211,7 @@ test('send rejects owned handles whose canonical thread target is unresolved', a
     const adapter = new MessagingLoopbackAdapter();
     await adapter.setup({
       caller: { pluginInstanceId: 'plugin-a' },
-      grants: ['messaging.send'],
+
       handles: { target },
       state: {},
     });
@@ -261,60 +239,12 @@ test('send rejects owned handles whose canonical thread target is unresolved', a
   }
 });
 
-test('onMessage delivery requires its distinct grant and matching envelope scope', async () => {
-  const operation = {
-    operation: 'deliverOnMessage' as const,
-    input: {
-      threadHandle: 'thread-handle-a',
-      envelope: { messageId: 'message-1', threadId: 'thread-1' },
-    },
-  };
-  const setup = {
-    caller: { pluginInstanceId: 'plugin-a' },
-    handles: {
-      target: {
-        kind: 'thread_handle' as const,
-        token: 'thread-handle-a',
-        ownerPluginInstanceId: 'plugin-a',
-        threadId: 'thread-1',
-      },
-    },
-    state: {},
-  };
-
-  const allowed = new MessagingLoopbackAdapter();
-  await allowed.setup({ ...setup, grants: ['onMessage'] });
-  assert.deepEqual(await allowed.execute(operation), { status: 'success' });
-
-  const wrongGrant = new MessagingLoopbackAdapter();
-  await wrongGrant.setup({ ...setup, grants: ['message.event.subscribe'] });
-  assert.deepEqual(await wrongGrant.execute(operation), {
-    status: 'error',
-    errorCode: 'PERMISSION',
-  });
-
-  const wrongScope = new MessagingLoopbackAdapter();
-  await wrongScope.setup({ ...setup, grants: ['onMessage'] });
-  assert.deepEqual(
-    await wrongScope.execute({
-      ...operation,
-      input: {
-        ...operation.input,
-        envelope: { messageId: 'message-2', threadId: 'thread-2' },
-      },
-    }),
-    { status: 'error', errorCode: 'VALIDATION' },
-  );
-  assert.deepEqual(await wrongScope.observe('messages'), []);
-  assert.deepEqual(await wrongScope.observe('output_events'), []);
-});
-
 test('append rejects canonical messages outside the handle thread with zero mutation', async () => {
   for (const messageThreadId of [undefined, 'thread-2']) {
     const adapter = new MessagingLoopbackAdapter();
     await adapter.setup({
       caller: { pluginInstanceId: 'plugin-a' },
-      grants: ['messaging.appendElements'],
+
       handles: {
         message: {
           kind: 'message_handle',
@@ -365,7 +295,7 @@ test('append validates the public message-handle discriminant before lookup', as
     const adapter = new MessagingLoopbackAdapter();
     await adapter.setup({
       caller: { pluginInstanceId: 'plugin-a' },
-      grants: ['messaging.appendElements'],
+
       handles: {
         message: {
           kind: 'message_handle',
@@ -403,63 +333,11 @@ test('append validates the public message-handle discriminant before lookup', as
   }
 });
 
-test('first-party presets accept exactly the schema-owned L1 capabilities', async () => {
-  const rejected = [
-    ...CAPABILITY_TABLE.L0,
-    ...CAPABILITY_TABLE.L2,
-  ] as readonly Capability[];
-  for (const capability of rejected) {
-    const adapter = new MessagingLoopbackAdapter();
-    await adapter.setup({
-      caller: { pluginInstanceId: 'first-party-plugin' },
-      grants: [],
-      handles: {},
-      state: { grantState: {} },
-    });
-    assert.deepEqual(
-      await adapter.execute({
-        operation: 'applyGrantPreset',
-        input: { presetKind: 'first_party', capabilities: [capability] },
-      }),
-      { status: 'error', errorCode: 'PERMISSION' },
-      capability,
-    );
-    assert.deepEqual(await adapter.observe('grant_state'), {}, capability);
-  }
-
-  const allowed = new MessagingLoopbackAdapter();
-  await allowed.setup({
-    caller: { pluginInstanceId: 'first-party-plugin' },
-    grants: [],
-    handles: {},
-    state: { grantState: {} },
-  });
-  assert.deepEqual(
-    await allowed.execute({
-      operation: 'applyGrantPreset',
-      input: {
-        presetKind: 'first_party',
-        capabilities: CAPABILITY_TABLE.L1,
-      },
-    }),
-    { status: 'success' },
-  );
-  assert.deepEqual(
-    await allowed.observe('grant_state'),
-    Object.fromEntries(
-      CAPABILITY_TABLE.L1.map((capability) => [
-        capability,
-        { visible: true, granted: true },
-      ]),
-    ),
-  );
-});
-
 test('subscribe resolves and preserves the canonical handle thread', async () => {
   const unresolved = new MessagingLoopbackAdapter();
   await unresolved.setup({
     caller: { pluginInstanceId: 'plugin-a' },
-    grants: ['message.event.subscribe'],
+
     handles: {
       target: {
         kind: 'thread_handle',
@@ -481,7 +359,7 @@ test('subscribe resolves and preserves the canonical handle thread', async () =>
   const scoped = new MessagingLoopbackAdapter();
   await scoped.setup({
     caller: { pluginInstanceId: 'plugin-a' },
-    grants: ['message.event.subscribe'],
+
     handles: {
       target: {
         kind: 'thread_handle',
@@ -512,7 +390,7 @@ test('replay deletion is scoped to the authorized subscription', async () => {
   const adapter = new MessagingLoopbackAdapter();
   await adapter.setup({
     caller: { pluginInstanceId: 'plugin-a' },
-    grants: ['message.event.subscribe'],
+
     handles: {
       subscriptionA: {
         kind: 'subscription',

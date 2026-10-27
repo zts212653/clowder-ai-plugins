@@ -115,6 +115,8 @@ describe('CollectiveServiceStore', () => {
       works?: unknown;
       artifacts?: unknown;
       artifactPublications?: unknown;
+      materialPublications?: unknown;
+      materials?: unknown;
       roadmaps?: unknown;
       votes?: unknown;
       bindingVotes?: unknown;
@@ -136,6 +138,8 @@ describe('CollectiveServiceStore', () => {
     delete persisted.works;
     delete persisted.artifacts;
     delete persisted.artifactPublications;
+    delete persisted.materialPublications;
+    delete persisted.materials;
     delete persisted.roadmaps;
     delete persisted.votes;
     delete persisted.bindingVotes;
@@ -210,6 +214,8 @@ describe('CollectiveServiceStore', () => {
     delete persisted.works;
     delete persisted.artifacts;
     delete persisted.artifactPublications;
+    delete persisted.materialPublications;
+    delete persisted.materials;
     delete persisted.roadmaps;
     delete persisted.votes;
     delete persisted.bindingVotes;
@@ -682,33 +688,73 @@ describe('CollectiveServiceStore', () => {
   it('reads recovery proof from authenticated persisted state without performing poll or trusting partial coordinates', async () => {
     const directory = await dataDirectory();
     const { store, ownerSessionToken, collectiveId } = await bootstrappedCollective(directory);
-    const pairing = await store.createPairingIntent({ sessionToken: ownerSessionToken, collectiveId,
-      hostOrigin: 'http://localhost:5172', nonce: 'recovery-proof-nonce-at-least-16' });
+    const pairing = await store.createPairingIntent({
+      sessionToken: ownerSessionToken,
+      collectiveId,
+      hostOrigin: 'http://localhost:5172',
+      nonce: 'recovery-proof-nonce-at-least-16',
+    });
     const connection = await store.exchangePairingIntent({ ...pairing, endpointLabel: 'Recovery host' });
-    const coordinates = { serviceInstanceId: store.serviceInstanceId, collectiveId, connectionId: connection.connectionId,
-      endpointId: connection.endpointId, authorizedHumanId: connection.authorizedHumanId };
-    const event = await store.postAgentMessage(connection.endpointCredential, { serviceInstanceId: store.serviceInstanceId,
-      collectiveId, connectionId: connection.connectionId, clientEventId: 'recovery-event',
+    const coordinates = {
+      serviceInstanceId: store.serviceInstanceId,
+      collectiveId,
+      connectionId: connection.connectionId,
+      endpointId: connection.endpointId,
+      authorizedHumanId: connection.authorizedHumanId,
+    };
+    const event = await store.postAgentMessage(connection.endpointCredential, {
+      serviceInstanceId: store.serviceInstanceId,
+      collectiveId,
+      connectionId: connection.connectionId,
+      clientEventId: 'recovery-event',
       agent: { agentId: 'sol', displayName: 'Sol', catId: 'sol', sessionRef: 'session:proof' },
-      target: { kind: 'channel', channelId: 'general' }, body: 'Exact persisted payload' });
-    const declaration = { serviceInstanceId: store.serviceInstanceId, collectiveId, connectionId: connection.connectionId,
-      revision: 1, agents: [] };
+      target: { kind: 'channel', channelId: 'general' },
+      body: 'Exact persisted payload',
+    });
+    const declaration = {
+      serviceInstanceId: store.serviceInstanceId,
+      collectiveId,
+      connectionId: connection.connectionId,
+      revision: 1,
+      agents: [],
+    };
     await store.publishParticipation(connection.endpointCredential, declaration);
     const bytes = await readFile(join(directory, 'collective-service.json'));
-    expect(store.readLocalRecoverySnapshot(connection.endpointCredential, coordinates, 'recovery-event')).toMatchObject({
-      status: 'connected', lastAckedSequence: 0, lastDeliveredSequence: 0, declaration, event });
+    expect(store.readLocalRecoverySnapshot(connection.endpointCredential, coordinates, 'recovery-event')).toMatchObject(
+      {
+        status: 'connected',
+        lastAckedSequence: 0,
+        lastDeliveredSequence: 0,
+        declaration,
+        event,
+      },
+    );
     expect(await readFile(join(directory, 'collective-service.json'))).toEqual(bytes);
     expect(() => store.readLocalRecoverySnapshot('wrong-credential', coordinates)).toThrow();
     for (const key of ['serviceInstanceId', 'collectiveId', 'connectionId', 'endpointId', 'authorizedHumanId'] as const)
-      expect(() => store.readLocalRecoverySnapshot(connection.endpointCredential, { ...coordinates, [key]: 'spoofed' })).toThrow();
-    const serviceCoordinates = { serviceInstanceId: store.serviceInstanceId, collectiveId, connectionId: connection.connectionId };
+      expect(() =>
+        store.readLocalRecoverySnapshot(connection.endpointCredential, { ...coordinates, [key]: 'spoofed' }),
+      ).toThrow();
+    const serviceCoordinates = {
+      serviceInstanceId: store.serviceInstanceId,
+      collectiveId,
+      connectionId: connection.connectionId,
+    };
     await store.pollEvents(connection.endpointCredential, { ...serviceCoordinates, afterSequence: 0, limit: 100 });
-    expect(store.readLocalRecoverySnapshot(connection.endpointCredential, coordinates)).toMatchObject({ lastAckedSequence: 0, lastDeliveredSequence: 1 });
+    expect(store.readLocalRecoverySnapshot(connection.endpointCredential, coordinates)).toMatchObject({
+      lastAckedSequence: 0,
+      lastDeliveredSequence: 1,
+    });
     await store.acknowledge(connection.endpointCredential, { ...serviceCoordinates, sequence: 1 });
     const reopened = (await CollectiveServiceStore.open({ dataDirectory: directory })).store;
-    expect(reopened.readLocalRecoverySnapshot(connection.endpointCredential, coordinates)).toMatchObject({ lastAckedSequence: 1, lastDeliveredSequence: 1 });
+    expect(reopened.readLocalRecoverySnapshot(connection.endpointCredential, coordinates)).toMatchObject({
+      lastAckedSequence: 1,
+      lastDeliveredSequence: 1,
+    });
     await reopened.revokeOwnConnection(connection.endpointCredential, serviceCoordinates);
-    expect(reopened.readLocalRecoverySnapshot(connection.endpointCredential, coordinates)).toMatchObject({ status: 'revoked' });
+    expect(reopened.readLocalRecoverySnapshot(connection.endpointCredential, coordinates)).toMatchObject({
+      status: 'revoked',
+    });
   });
 });
 

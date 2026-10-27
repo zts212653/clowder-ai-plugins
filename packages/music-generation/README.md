@@ -6,7 +6,7 @@
 
 ## 配置与使用
 
-1. 在 Plugin Manager 安装精确插件包，核对并确认它申请的权限。安装后保持未启用。
+1. 在 Plugin Manager 安装精确插件包，核对其项目产物交付说明。安装后保持未启用。
 2. 填写要承担费用的 Google Cloud 项目 ID。该项目须有有效结算、启用 Vertex AI，并授予所选账号必要的项目访问权限。
 3. 本机已有标准 Google Cloud 授权时，点“复用本机已授权账号”并确认。插件核对 ADC 的项目、结算及接口状态，再由 Manager 保存授权；不会读取浏览器或 AGY 私有登录。
 4. 新连接或需要重新授权时，使用自己在 Google Cloud 创建的 Desktop app OAuth 应用，在卡片填写 Client ID 和 Client Secret。点连接，主动打开 Google 链接并勾选 Cloud 数据权限。接收器在后台等待；刷新卡片后可接续，过期后明确重新连接。取消按钮只取消等待；断开授权只影响本插件。

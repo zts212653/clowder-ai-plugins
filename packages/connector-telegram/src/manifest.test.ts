@@ -11,7 +11,6 @@ test('manifest keeps the Telegram token secret and binding authority Host-owned'
     contractVersion: string;
     configuration: Array<{ key: string; kind: string; required: boolean }>;
     contributions: Array<Record<string, unknown>>;
-    features: Array<{ capabilities: string[] }>;
   };
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as {
     version: string;
@@ -25,15 +24,4 @@ test('manifest keeps the Telegram token secret and binding authority Host-owned'
     { key: 'botToken', label: 'Bot Token', kind: 'secret', required: true },
   ]);
   assert.deepEqual(manifest.contributions.map(entry => entry.type), ['identity', 'message-subscription', 'media-source']);
-  assert.deepEqual(manifest.features[0]?.capabilities, [
-    'streams.read',
-    'plugin.state.get',
-    'plugin.state.set',
-    'message.event.subscribe',
-    'messaging.send',
-    'secret.read',
-    'thread.listMetadata',
-    'thread.readContent',
-    'thread.write',
-  ]);
 });

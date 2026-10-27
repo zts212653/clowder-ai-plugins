@@ -5,7 +5,7 @@ import {openCollectiveContextReferences} from '../../../collective-context-refs.
 import {createCollectivePublicNativeActions} from '../../../collective-public-native-context.js';
 
 async function setup(){
-  const f=await publicSourceFixture({methods:['collective.context.current','collective.work.suggest-project','collective.artifact.command'],invocationId:'fixture-running-turn'});
+  const f=await publicSourceFixture({invocationId:'fixture-running-turn'});
   try{
     const references=await openCollectiveContextReferences(join(f.root,'replay-refs'),()=>{});
     const actions=createCollectivePublicNativeActions({connector:f.connector,sourceCaller:f.sourceCaller,references});

@@ -16,7 +16,7 @@ The package does not read repository `.env` files or ambient Host configuration.
 
 ## Security and authority
 
-The Host owns installation, grants, configuration, secrets, connector bindings, wake policy, and durable
+The Host owns installation, caller context, configuration, secrets, connector bindings, wake policy, and durable
 checkpoint data. Inbound provider messages target only an authenticated Host-issued `connector_binding`;
 message text, including `@`, cannot mint a binding or wake an Agent. Credentials are used only for the
 provider WebSocket handshake and are never emitted in message payloads.
@@ -49,4 +49,4 @@ This adapter supports direct conversations only. Configure the original account/
 there is no group-permission page, permission initialization or legacy-import step. Group management commands
 do not grant a direct-message sender administrator authority. Existing stored data is not deleted.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

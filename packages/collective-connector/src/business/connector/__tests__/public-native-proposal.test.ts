@@ -6,8 +6,8 @@ import { createCollectivePublicSourceCaller } from '../../../collective-public-s
 import { publicSourceFixture } from './public-source-caller.fixture.js';
 
 async function setup() {
-  const methods = ['collective.context.current', 'collective.work.propose'];
-  const f = await publicSourceFixture({ methods, invocationId: 'fixture-running-turn' });
+
+  const f = await publicSourceFixture({ invocationId: 'fixture-running-turn' });
   try {
     const references = await openCollectiveContextReferences(join(f.root, 'proposal-refs'), () => {});
     const actions = createCollectivePublicNativeActions({ connector: f.connector, sourceCaller: f.sourceCaller, references });
@@ -79,35 +79,15 @@ it('keeps the real proposal after lost response and after late lifecycle refusal
 });
 
 
-it('keeps original method permissions on a retained source after the native table grows without granting the new method', async () => {
-  const legacy = ['collective.context.current', 'collective.context.read', 'collective.participation.set-interest', 'collective.reply.submit'];
-  const f = await publicSourceFixture({ methods: legacy, invocationId: 'fixture-running-turn' });
+it('finishes original routing after response loss when the source consumer reopens', async () => {
+  const f = await publicSourceFixture({ invocationId: 'fixture-running-turn' });
   try {
-    await f.admit();
-    const before = f.connector.readCurrentPublicSource('message:host-source');
-    const upgraded = createCollectivePublicSourceCaller({ ...f.ports, connector: f.connector,
-      native: { contributionId: 'collective-native', methods: [...legacy, 'collective.work.propose'] },
-    });
-    const current = await upgraded.resolveNative(f.action, 'collective.context.current');
-    expect(current.binding).toEqual(before);
-    await expect(upgraded.resolveNative(f.action, 'collective.work.propose')).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
-    expect(f.connector.readCurrentPublicSource('message:host-source')).toEqual(before);
-    expect(Object.hasOwn(upgraded,'publicInvocationVerifier')).toBe(false);
-  } finally { await f.close(); }
-});
-
-
-it('finishes the original routing after response loss across a native-method upgrade without widening its binding', async () => {
-  const legacy = ['collective.context.current', 'collective.context.read', 'collective.participation.set-interest', 'collective.reply.submit'];
-  const f = await publicSourceFixture({ methods: legacy, invocationId: 'fixture-running-turn' });
-  try {
-    f.beforeSendReturns(async () => { await f.sourceCaller.resolveNative(f.action, 'collective.context.current'); });
+    f.beforeSendReturns(async () => { await f.sourceCaller.resolveNative(f.action); });
     f.loseSend(); await expect(f.admit()).rejects.toThrow('Wake send response lost');
     const binding = f.connector.readCurrentPublicSource('message:host-source');
     const originalDraft = (f.calls.find((call: any) => call[0] === 'send') as any)[2];
     let sends = 0;
     const upgraded = createCollectivePublicSourceCaller({ ...f.ports, connector: f.connector,
-      native: { contributionId: 'collective-native', methods: [...legacy, 'collective.work.propose'] },
       messaging: {...f.ports.messaging, async send(threadId, draft) { sends++; expect(draft).toEqual(originalDraft);
         return { messageId: 'host-source', threadId, revision: 1, messageHandle: { kind: 'message' as const, token: 'retained-receipt' } }; },
         async subscribe() { throw new Error('Unused'); }, async unsubscribe() { throw new Error('Unused'); } } });
@@ -117,6 +97,5 @@ it('finishes the original routing after response loss across a native-method upg
     expect(f.connector.readCurrentPublicSource('message:host-source')).toEqual(binding);
     expect(await upgraded.admitAgentEvent(f.connection.connectionId, f.source.eventId, f.owner)).toEqual(receipt);
     expect(sends).toBe(1);
-    await expect(upgraded.resolveNative(f.action, 'collective.work.propose')).rejects.toMatchObject({ code: 'PUBLIC_SOURCE_CHANGED' });
   } finally { await f.close(); }
 });

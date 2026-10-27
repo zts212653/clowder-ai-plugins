@@ -3,16 +3,14 @@
  * Mechanized verbatim from #1165 frozen shape.
  *
  * Handshake flow:
- *   1. Plugin sends CandidateHello (candidate claims only, no grants/session).
+ *   1. Plugin sends CandidateHello (candidate claims only, no instance/session).
  *   2. Host validates, mints instance/session ids, replies with SessionBinding.
  *   3. Plugin sends broker.ready with the bindingNonce to activate.
  *
  * CandidateHello and BrokerReadyParams REJECT any additional
- * identity/instance/grant/session fields (closed surface).
+ * identity/instance/session fields (closed surface).
  */
 
-import type { Capability } from '../generated/contract.generated.js';
-import { validateEffectiveGrants } from './grants.js';
 import { isWireUInt53 } from './wire-uint53.js';
 
 // ---------------------------------------------------------------------------
@@ -88,9 +86,9 @@ export const BINDING_NONCE_MAX_ENCODED_BYTES = 3074 as const;
 /**
  * CandidateHello is sent by the plugin at connection open.
  * It carries only the plugin's candidate claims; no instance ids,
- * grant state, or session identifiers may appear.
+ * Host state or session identifiers may appear.
  *
- * Additional identity/instance/grant/session fields are REJECTED.
+ * Additional identity/instance/session fields are REJECTED.
  */
 export interface CandidateHello {
   /** CLOSED (H1) — manifest pluginId, 1..256 Unicode code points. */
@@ -110,7 +108,7 @@ export interface CandidateHello {
 /**
  * SessionBinding is the Host's authoritative response to CandidateHello.
  * It echoes the four hello fields, then adds Host-minted identifiers
- * and the effective grant snapshot.
+ * and a binding nonce.
  */
 export interface SessionBinding {
   /** Echoed from CandidateHello. */
@@ -125,10 +123,6 @@ export interface SessionBinding {
   readonly pluginInstanceId: string;
   /** CLOSED (H6) — Host-minted session id, 1..512 Unicode code points. */
   readonly brokerSessionId: string;
-  /** CLOSED (H7) — WireUInt53(0, 9_007_199_254_740_991), monotonically increasing. */
-  readonly grantRevision: number;
-  /** CLOSED (H8) — unique Capability[], 0..17 items. */
-  readonly effectiveGrants: readonly Capability[];
   /** CLOSED (H9) — opaque nonce, 1..512 code points. */
   readonly bindingNonce: string;
 }
@@ -141,7 +135,7 @@ export interface SessionBinding {
  * BrokerReadyParams is the params object for the broker.ready request.
  * It carries only bindingNonce for activation; it is NOT a resume carrier.
  *
- * Additional identity/instance/grant/session fields are REJECTED.
+ * Additional identity/instance/session fields are REJECTED.
  */
 export interface BrokerReadyParams {
   /** CLOSED (H9) — activation-only; echoes the nonce from SessionBinding. */
@@ -228,7 +222,7 @@ export const CANDIDATE_HELLO_KEYS = new Set([
 /** Runtime key set mirror of the {@link SessionBinding} interface. */
 export const SESSION_BINDING_KEYS = new Set([
   'pluginId', 'packageDigest', 'contractVersion', 'wireVersion',
-  'pluginInstanceId', 'brokerSessionId', 'grantRevision', 'effectiveGrants',
+  'pluginInstanceId', 'brokerSessionId',
   'bindingNonce',
 ]);
 /** Runtime key set mirror of the {@link BrokerReadyParams} interface. */
@@ -236,8 +230,6 @@ export const BROKER_READY_PARAMS_KEYS = new Set(['bindingNonce']);
 const HANDSHAKE_AUTHORITY_KEYS = new Set([
   'pluginInstanceId',
   'brokerSessionId',
-  'grantRevision',
-  'effectiveGrants',
 ]);
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -278,20 +270,16 @@ export function validateCandidateHello(value: unknown): value is CandidateHello 
  * equality and nonce-use state are peer protocol checks, not schema grammar.
  */
 export function validateSessionBinding(value: unknown): value is SessionBinding {
+  // Older Hosts append these two inert fields; the SDK snapshot omits them.
   return (
     isRecord(value) &&
-    hasExactKeys(value, SESSION_BINDING_KEYS) &&
+    hasExactKeys(Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'grantRevision' && key !== 'effectiveGrants')), SESSION_BINDING_KEYS) &&
     validatePluginId(value.pluginId) &&
     validatePackageDigest(value.packageDigest) &&
     validateContractVersion(value.contractVersion) &&
     validateWireVersion(value.wireVersion) &&
     validatePluginInstanceId(value.pluginInstanceId) &&
     validateBrokerSessionId(value.brokerSessionId) &&
-    typeof value.grantRevision === 'number' &&
-    isWireUInt53(value.grantRevision) &&
-    Array.isArray(value.effectiveGrants) &&
-    value.effectiveGrants.every(grant => typeof grant === 'string') &&
-    validateEffectiveGrants(value.effectiveGrants) &&
     validateBindingNonce(value.bindingNonce)
   );
 }

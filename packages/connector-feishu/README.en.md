@@ -12,7 +12,7 @@ optional group mention aliases. The package does not read repository `.env` file
 
 ## Security and authority
 
-The Host owns installation, grants, secrets, webhook admission, connector bindings, wake policy, delivery,
+The Host owns installation, caller context, secrets, webhook admission, connector bindings, wake policy, delivery,
 and durable state. Ordinary message text, including `@`, cannot mint a binding or wake an Agent.
 
 ## Lifecycle and recovery
@@ -46,7 +46,7 @@ Use normal configuration controls; no permission JSON, separate initialization o
 The initial group whitelist and command restriction are off and the administrator list is empty.
 Group management commands still require an explicitly configured administrator; an empty list grants nobody administration.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
 
 ## Configuration and connection state
 

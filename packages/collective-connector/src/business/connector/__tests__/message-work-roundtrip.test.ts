@@ -173,7 +173,7 @@ test('browser acceptance repeats read-only after the same installation lifecycle
         subjectKey: f.task.subjectKey!, firstSourceRef: 'message:canonical-source',
         admissionAuthorityRef: f.task.entrustedWork!.admission.authorityRef!,
         pluginId: 'official.collective-connector', pluginInstanceId: 'installed-collective',
-        moduleRef: 'plugin:official.collective-connector', lifecycleRevision: 1, grantRevision: 1,
+        moduleRef: 'plugin:official.collective-connector', lifecycleRevision: 1,
         ownerOperationReceiptRef: `task-data-controller:${'a'.repeat(64)}`},
     });
     Object.assign(f.task, {entrustedWork: {...f.task.entrustedWork!, dataController: controller(false)}});
@@ -274,7 +274,7 @@ test.each([
         subjectKey:f.task.subjectKey!,firstSourceRef:'message:canonical-source',
         admissionAuthorityRef:work.admission.authorityRef!,pluginId:'official.collective-connector',
         pluginInstanceId:'installed-collective',moduleRef:'plugin:official.collective-connector',
-        lifecycleRevision:1,grantRevision:1,ownerOperationReceiptRef:`task-data-controller:${'a'.repeat(64)}`},
+        lifecycleRevision:1,ownerOperationReceiptRef:`task-data-controller:${'a'.repeat(64)}`},
     }}});
     await f.store.postHumanMessage(f.owner.sessionToken,{serviceInstanceId:f.connection.serviceInstanceId,
       collectiveId:f.connection.collectiveId,clientEventId:`wake-${drift}`,

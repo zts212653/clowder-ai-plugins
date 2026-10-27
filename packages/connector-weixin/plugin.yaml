@@ -1,5 +1,5 @@
 pluginId: official.connector.weixin
-version: 0.1.0-alpha.7
+version: 0.1.0-alpha.8
 contractVersion: 0.1.0
 name: WeChat Personal Connector
 description:
@@ -101,7 +101,6 @@ features:
         id: weixin
       - type: media-source
         id: weixin-media
-    capabilities: [plugin.config.read, plugin.state.get, plugin.state.set, streams.read, message.event.subscribe, messaging.send, secret.read, thread.readContent, thread.listMetadata, thread.write]
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

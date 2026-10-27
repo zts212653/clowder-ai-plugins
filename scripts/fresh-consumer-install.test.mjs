@@ -416,7 +416,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     const enterprisePackage = JSON.parse(
       await readFile(join(consumer, 'node_modules/@clowder-ai/enterprise-workflow/package.json'), 'utf8'),
     );
-    assert.equal(genofficePackage.version, '0.1.0-alpha.2');
+    assert.equal(genofficePackage.version, '0.1.0-alpha.3');
     assert.equal(genofficePackage.dependencies['@clowder-ai/plugin-contract'],
       JSON.parse(await readFile(join(repoRoot, 'packages/genoffice-docx/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-contract']);
     assert.doesNotMatch(JSON.stringify(genofficePackage), /"workspace:/u);
@@ -489,25 +489,25 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.deepEqual(companionPackage.bin, {
       'clowder-personal-chrome-host': 'native-host/native-host-cli.mjs',
     });
-    assert.equal(videoPackage.version, '0.1.0-alpha.3');
-    assert.equal(xiangqiPackage.version, '0.1.0-alpha.2');
+    assert.equal(videoPackage.version, '0.1.0-alpha.4');
+    assert.equal(xiangqiPackage.version, '0.1.0-alpha.3');
     assert.deepEqual(videoPackage.bin, {
       'clowder-video-analysis-mcp': './dist/mcp-entrypoint.js',
     });
-    assert.equal(videoGenerationPackage.version, '0.1.0-alpha.2');
+    assert.equal(videoGenerationPackage.version, '0.1.0-alpha.3');
     assert.deepEqual(videoGenerationPackage.bin, {
       'clowder-video-generation-mcp': './dist/mcp-entrypoint.js',
     });
-    assert.equal(weixinMpPackage.version, '0.1.0-alpha.5');
+    assert.equal(weixinMpPackage.version, '0.1.0-alpha.6');
     assert.equal(weixinMpPackage.dependencies['@clowder-ai/plugin-sdk'],
       JSON.parse(await readFile(join(repoRoot, 'packages/weixin-mp/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(weixinMpPackage), /"workspace:/u);
-    assert.equal(wechatReaderPackage.version, '0.1.0-alpha.5');
+    assert.equal(wechatReaderPackage.version, '0.1.0-alpha.6');
     assert.equal(wechatReaderPackage.dependencies['@clowder-ai/plugin-sdk'],
       JSON.parse(await readFile(join(repoRoot, 'packages/wechat-visible-reader/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(wechatReaderPackage), /"workspace:/u);
     assert.deepEqual(wechatReaderPackage.os, ['darwin']);
-    assert.equal(enterprisePackage.version, '0.1.0-alpha.4');
+    assert.equal(enterprisePackage.version, '0.1.0-alpha.5');
     assert.equal(enterprisePackage.dependencies['@clowder-ai/plugin-sdk'],
       JSON.parse(await readFile(join(repoRoot, 'packages/enterprise-workflow/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(enterprisePackage), /"workspace:/u);
@@ -699,10 +699,6 @@ test('packed public packages install and import in a fresh npm consumer', async 
       transport: 'builtin',
       entrypoint: 'dist/plugin-entrypoint.js',
     });
-    assert.deepEqual(
-      enterpriseManifest.features.flatMap((feature) => feature.capabilities),
-      ['plugin.config.read'],
-    );
     const enterpriseEntrypoint = installedSdk.requirePluginModuleEntrypoint(
       (await import(pathToFileURL(join(enterpriseRoot, enterpriseManifest.runtime.entrypoint)).href)).default,
     );
@@ -749,7 +745,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
       [
         '--input-type=module',
         '--eval',
-        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const companionSdk = await import('@clowder-ai/plugin-sdk/companion'); const metadata = require('@clowder-ai/plugin-contract/schemas/plugin-metadata'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const xiangqi = await import('@clowder-ai/xiangqi'); const generation = await import('@clowder-ai/video-generation'); const weixinMp = await import('@clowder-ai/weixin-mp'); const wechatReader = await import('@clowder-ai/wechat-visible-reader'); const enterprise = await import('@clowder-ai/enterprise-workflow'); const calls=[]; const client=companionSdk.createCompanionClient({request:async command=>{calls.push(command);return {kind:'app-assist-settlement',scopeRef:'fresh-scope',revision:2,offerRef:'fresh-offer',action:'dismiss',outcome:'settled'};},subscribe:()=>()=>{}}); const settlement=await client.settleAppAssist('fresh-scope','fresh-offer','dismiss'); if (calls[0]?.kind !== 'app-assist.settle' || settlement.outcome !== 'settled' || typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || metadata.title !== 'Clowder AI Plugin Product Metadata (v1)' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 18 || fixture.cases.length !== 18 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || typeof xiangqi.createHostedBoard !== 'function' || typeof generation.startVideoGenerationServer !== 'function' || typeof weixinMp.createWeixinMpHandlers !== 'function' || typeof wechatReader.createWeChatVisibleReaderHandlers !== 'function' || typeof enterprise.createEnterpriseWorkflowPluginModule !== 'function' || typeof companion.default?.create !== 'function' || companion.PERSONAL_CHROME_APPEND_MESSAGE_METHOD !== 'personal-chrome-host.append-message') process.exit(1);",
+        "const { createRequire } = await import('node:module'); const require = createRequire(import.meta.url); const contract = await import('@clowder-ai/plugin-contract'); const conformance = await import('@clowder-ai/plugin-contract/conformance'); const companionSdk = await import('@clowder-ai/plugin-sdk/companion'); const metadata = require('@clowder-ai/plugin-contract/schemas/plugin-metadata'); const fixture = require('@clowder-ai/plugin-contract/fixtures/behavior/messaging/adversarial-invariants'); const sdk = await import('@clowder-ai/plugin-sdk'); const plugin = await import('@clowder-ai/feishu-meeting-intake'); const companion = await import('@clowder-ai/personal-chrome-companion'); const video = await import('@clowder-ai/video-analysis'); const xiangqi = await import('@clowder-ai/xiangqi'); const generation = await import('@clowder-ai/video-generation'); const weixinMp = await import('@clowder-ai/weixin-mp'); const wechatReader = await import('@clowder-ai/wechat-visible-reader'); const enterprise = await import('@clowder-ai/enterprise-workflow'); const calls=[]; const client=companionSdk.createCompanionClient({request:async command=>{calls.push(command);return {kind:'app-assist-settlement',scopeRef:'fresh-scope',revision:2,offerRef:'fresh-offer',action:'dismiss',outcome:'settled'};},subscribe:()=>()=>{}}); const settlement=await client.settleAppAssist('fresh-scope','fresh-offer','dismiss'); if (calls[0]?.kind !== 'app-assist.settle' || settlement.outcome !== 'settled' || typeof contract.validateManifest !== 'function' || typeof contract.validatePluginCatalog !== 'function' || metadata.title !== 'Clowder AI Plugin Product Metadata (v1)' || conformance.M0C_BEHAVIOR_CASE_IDS.length !== 12 || fixture.cases.length !== 12 || typeof sdk.definePlugin !== 'function' || typeof plugin.createFeishuMeetingIntakeRuntime !== 'function' || typeof video.createVideoAnalysisMcpServer !== 'function' || typeof xiangqi.createHostedBoard !== 'function' || typeof generation.startVideoGenerationServer !== 'function' || typeof weixinMp.createWeixinMpHandlers !== 'function' || typeof wechatReader.createWeChatVisibleReaderHandlers !== 'function' || typeof enterprise.createEnterpriseWorkflowPluginModule !== 'function' || typeof companion.default?.create !== 'function' || companion.PERSONAL_CHROME_APPEND_MESSAGE_METHOD !== 'personal-chrome-host.append-message') process.exit(1);",
       ],
       consumer,
     );

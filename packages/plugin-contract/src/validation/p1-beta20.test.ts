@@ -177,7 +177,7 @@ test('Gate M closes media.read and media-source contribution shapes', () => {
       id: 'media',
       name: 'Media',
       resources: [],
-      capabilities: ['plugin.state.get', 'plugin.state.set'],
+
       contributions: [{ type: 'identity', id: 'connector' }, { type: 'media-source', id: 'provider' }],
     }],
     contributions: [{
@@ -190,10 +190,6 @@ test('Gate M closes media.read and media-source contribution shapes', () => {
     runtime: { transport: 'stdio', entrypoint: 'dist/index.js' },
   };
   assert.equal(validateManifest(manifest).valid, true);
-
-  const missingState = structuredClone(manifest);
-  missingState.features[0]!.capabilities = ['plugin.state.get'];
-  assert.equal(validateManifest(missingState).valid, false);
 
   const wrongBinding = structuredClone(manifest);
   wrongBinding.contributions[1]!.binding = 'other-identity';
@@ -261,7 +257,7 @@ test('Gate L closes presentation, lifecycle and pending publication receipts', (
     contractVersion: '0.1.0-beta.21',
     name: 'Lifecycle',
     features: [{
-      id: 'messages', name: 'Messages', resources: [], capabilities: [],
+      id: 'messages', name: 'Messages', resources: [],
       contributions: [{ type: 'message-subscription', id: 'outbound' }],
     }],
     contributions: [{

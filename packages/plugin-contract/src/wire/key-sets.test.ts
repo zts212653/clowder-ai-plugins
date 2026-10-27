@@ -138,7 +138,7 @@ const _d18: ExactKeys<PingInput, 'nonce'> = true;
 
 // ── Handshake structural shapes ──
 const _d22a: ExactKeys<CandidateHello, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion'> = true;
-const _d22b: ExactKeys<SessionBinding, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion' | 'pluginInstanceId' | 'brokerSessionId' | 'grantRevision' | 'effectiveGrants' | 'bindingNonce'> = true;
+const _d22b: ExactKeys<SessionBinding, 'pluginId' | 'packageDigest' | 'contractVersion' | 'wireVersion' | 'pluginInstanceId' | 'brokerSessionId' | 'bindingNonce'> = true;
 const _d22c: ExactKeys<BrokerReadyParams, 'bindingNonce'> = true;
 
 // ── Per-method CLOSED-row result shapes (1:1, no shared mirrors) ──
@@ -250,8 +250,6 @@ test('handshake key sets match their structural contract interfaces', () => {
     'wireVersion',
     'pluginInstanceId',
     'brokerSessionId',
-    'grantRevision',
-    'effectiveGrants',
     'bindingNonce',
   ]);
   assert.deepEqual([...BROKER_READY_PARAMS_KEYS], ['bindingNonce']);

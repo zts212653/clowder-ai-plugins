@@ -29,9 +29,7 @@ const SEND_INPUT = {
   },
 } as const;
 
-function activated(
-  grants: ActivatedHandshakeState['binding']['effectiveGrants'] = ['messaging.send'],
-): ActivatedHandshakeState {
+function activated(): ActivatedHandshakeState {
   return {
     phase: 'activated',
     candidate: {
@@ -47,8 +45,8 @@ function activated(
       wireVersion: '0.1.0',
       pluginInstanceId: 'plugin-instance-1',
       brokerSessionId: 'broker-session-1',
-      grantRevision: 1,
-      effectiveGrants: grants,
+
+
       bindingNonce: 'binding-nonce-1',
     },
     activation: { bindingNonce: 'binding-nonce-1' },
@@ -121,7 +119,7 @@ test('keeps @ text opaque on an ordinary thread handle instead of deriving wake 
   );
 });
 
-test('rejects before transport when session, grant, liveness, input, or Host result is invalid', async () => {
+test('rejects when session, liveness, input, or Host result is invalid', async () => {
   const transport = new RecordingTransport();
   let state: LocalHandshakeState = { phase: 'candidate', candidate: activated().candidate };
   let live = true;
@@ -132,8 +130,6 @@ test('rejects before transport when session, grant, liveness, input, or Host res
   });
 
   await assert.rejects(client.send(SEND_INPUT), error => assertClientError(error, 'SESSION_NOT_ACTIVATED'));
-  state = activated([]);
-  await assert.rejects(client.send(SEND_INPUT), error => assertClientError(error, 'GRANT_MISSING'));
   state = activated();
   live = false;
   await assert.rejects(client.send(SEND_INPUT), error => assertClientError(error, 'SESSION_NOT_LIVE'));
@@ -145,33 +141,4 @@ test('rejects before transport when session, grant, liveness, input, or Host res
   transport.result = { messageId: 'message-1', revision: 1 };
   await assert.rejects(client.send(SEND_INPUT), error => assertClientError(error, 'INVALID_RESULT'));
   assert.equal(transport.calls.length, 1, 'only the malformed Host result reaches transport');
-});
-
-test('maps each outbound row to its frozen grant without widening transport', async () => {
-  const cases = [
-    ['appendElements', 'messaging.appendElements'],
-    ['subscribe', 'message.event.subscribe'],
-    ['read', 'message.event.subscribe'],
-    ['ack', 'message.event.subscribe'],
-    ['snapshot', 'message.event.subscribe'],
-  ] as const;
-
-  for (const [method, grant] of cases) {
-    const transport = new RecordingTransport();
-    const client = createMessagingClient({
-      transport,
-      getHandshakeState: () => activated([]),
-      liveness: { kind: 'stdio-session', isLive: () => true },
-    });
-    await assert.rejects(
-      // Deliberately invalid row inputs are never reached: grant rejection is earlier.
-      client[method]({} as never),
-      error => {
-        assertClientError(error, 'GRANT_MISSING');
-        assert.match((error as Error).message, new RegExp(grant.replace('.', '\\.')));
-        return true;
-      },
-    );
-    assert.equal(transport.calls.length, 0);
-  }
 });

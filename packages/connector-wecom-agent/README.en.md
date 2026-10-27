@@ -17,7 +17,7 @@ The package does not read repository `.env` files or ambient Host configuration.
 
 ## Security and authority
 
-The Host owns installation, grants, configuration, secrets, webhook admission, connector bindings, wake
+The Host owns installation, caller context, configuration, secrets, webhook admission, connector bindings, wake
 policy, delivery, and durable state. Callback bodies are accepted only after signature, decryption, and corp
 identity verification. Ordinary message text, including `@`, cannot mint a binding or wake an Agent.
 
@@ -53,4 +53,4 @@ This adapter supports direct conversations only. Configure the original account/
 there is no group-permission page, permission initialization or legacy-import step. Group management commands
 do not grant a direct-message sender administrator authority. Existing stored data is not deleted.
 
-The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.

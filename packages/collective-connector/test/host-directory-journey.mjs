@@ -13,6 +13,8 @@ assert.match(expectedArchiveSha256 ?? '', /^[a-f0-9]{64}$/, 'explicit prepared a
 const archiveBytes = await readFile(archive);
 assert.equal(createHash('sha256').update(archiveBytes).digest('hex'), expectedArchiveSha256);
 const expectedDigest = `sha512-${createHash('sha512').update(archiveBytes).digest('base64')}`;
+const expectedClosure = process.env.F202_COLLECTIVE_HOST_DEPENDENCY_CLOSURE ?? 'shipped';
+assert.ok(['shipped', 'materialized'].includes(expectedClosure), 'explicit supported dependency closure is required');
 const expectedHead = process.env.F202_COLLECTIVE_HOST_HEAD;
 assert.match(expectedHead ?? '', /^[a-f0-9]{40}$/, 'explicit frozen current Host HEAD is required');
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: hostRoot, encoding: 'utf8' }).trim(), expectedHead);
@@ -55,6 +57,7 @@ try {
   const { FilePluginInventoryStore } = await load('plugin/host-inventory/stores.js');
   const { HostInventoryControlPlane } = await load('plugin/host-inventory/control-plane.js');
   const { FilesystemVerifiedPluginPackageLocator } = await load('plugin/external-runtime/filesystem-package-locator.js');
+  const { FilesystemBuiltinPluginPackageMaterializer } = await load('plugin/manager/package-assets/builtin-package-materializer.js');
   const { ModulePluginRuntime } = await load('plugin/builtin-runtime/carriers/module-plugin-runtime.js');
   const { requestedDataDirectoryName } = await load('plugin/host-inventory/data-directory-name.js');
   const { TaskStore } = await load('cats/services/stores/ports/TaskStore.js');
@@ -76,6 +79,7 @@ try {
   };
   runtime = new ModulePluginRuntime({ taskStore, taskOwnerUserId: ownerUserId,
     taskThreadStore: { async get() { return null; } }, storage, neutral:async()=>({members:{list:async()=>[],get:async()=>null}}), packages: new FilesystemVerifiedPluginPackageLocator(packagesRoot),
+    materializer: new FilesystemBuiltinPluginPackageMaterializer({ packagesRoot }),
     configuration, dataDirectoryParent: join(temporary, 'data'), log() {},
   });
   async function listen(probe, value = 0) {
@@ -87,33 +91,27 @@ try {
   async function close(probe) {
     await new Promise((resolve, reject) => probe.close(error => error ? reject(error) : resolve()));
   }
-  const admission = new LocalPluginPackageAdmission({ packagesRoot, inventory: control,
-    grantPolicy: manifest => [...new Set(manifest.features.flatMap(feature => feature.capabilities ?? []))],
-  });
+  const admission = new LocalPluginPackageAdmission({ packagesRoot, inventory: control });
   const installed = await admission.install({ kind: 'local-archive', path: archive }, { expectedDigest });
   instanceId = installed.pluginInstanceId;
   const snapshot = await new FilePluginInventoryStore(inventoryPath).snapshot();
   assert.equal(snapshot.instances.length, 1, 'actual inventory survives reload');
   const record = snapshot.packages[0];
   assert.equal(record.provenance.kind, 'local-archive');
-  assert.equal(record.provenance.dependencyClosure, 'shipped');
+  assert.equal(record.provenance.dependencyClosure, expectedClosure);
   assert.equal(record.packageDigest, expectedDigest, 'archive admission preserves the exact frozen bytes');
   assert.equal(snapshot.instances[0].pluginInstanceId, instanceId);
   assert.equal(record.pluginId, 'official.collective-connector');
   assert.equal(runtime.claims(record), true);
-  const grants = snapshot.grants[0].effectiveGrants;
-  const declaredGrants = [...new Set(record.manifest.features.flatMap(feature => feature.capabilities ?? []))];
-  assert.deepEqual([...grants].sort(), declaredGrants.sort(), 'fixture grants only declared capabilities');
-  assert.ok(grants.includes('plugin.config.read'));
   const probe = createServer(); port = await listen(probe); await close(probe);
   const dataRoot = join(temporary, 'data', requestedDataDirectoryName(record.manifest));
   const brokenLink = join(dataRoot, 'service/owner-bootstrap.url');
   await mkdir(brokenLink, { recursive: true });
-  await assert.rejects(runtime.start(instanceId, record, grants), /EISDIR|EEXIST|ENOTEMPTY/);
+  await assert.rejects(runtime.start(instanceId, record), /EISDIR|EEXIST|ENOTEMPTY/);
   assert.equal(runtime.actions(instanceId), undefined, 'failed Host activation publishes no actions');
   const released = createServer(); await listen(released, port); await close(released);
   await rm(brokenLink, { recursive: true });
-  await runtime.start(instanceId, record, grants);
+  await runtime.start(instanceId, record);
   const status = (await runtime.invoke(instanceId, 'collective.service.status', {})).data;
   assert.equal((await fetch(status.url + '/api/health', { signal: AbortSignal.timeout(5_000) })).status, 200);
   const bootstrapLink = new URL((await readFile(brokenLink, 'utf8')).trim());
@@ -125,7 +123,7 @@ try {
   await runtime.stop(instanceId, 'disabled');
   await assert.rejects(runtime.invoke(instanceId, 'collective.service.status', {}));
   const disabled = createServer(); await listen(disabled, port); await close(disabled);
-  await runtime.start(instanceId, record, grants);
+  await runtime.start(instanceId, record);
   const resumed = (await runtime.invoke(instanceId, 'collective.service.status', {})).data;
   assert.equal(resumed.serviceInstanceId, status.serviceInstanceId);
   assert.equal(resumed.bootstrapNeeded, false);
@@ -133,9 +131,9 @@ try {
   assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: hostRoot, encoding: 'utf8' }).trim(), expectedHead);
   assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: hostRoot, encoding: 'utf8' }).trim(), '');
   console.log(JSON.stringify({ result: 'PASS', hostHead: expectedHead, archiveAdmission: 'production', archiveSha256: expectedArchiveSha256,
-    inventory: 'file/reloaded', provenance: 'local-archive', dependencyClosure: 'shipped',
+    inventory: 'file/reloaded', provenance: 'local-archive', dependencyClosure: expectedClosure,
     moduleCarrier: 'production', lifecycle: 'failed-start/retry/bootstrap/disable/re-enable',
-    statePreserved: true, hostBuildInputs, grants: 'declared capabilities only',
+    statePreserved: true, hostBuildInputs,
     taskPorts: 'real in-memory Host TaskStore, isolated owner and empty thread reader',
     buildProofLimit: 'Direct dist hashes identify this run; source hashes match frozen HEAD. This is not a fresh-build or transitive-build proof.',
     hostProductWrites: false, settingsUI: 'unverified', neutralPorts: 'isolated empty fixture', fullC1: false }));

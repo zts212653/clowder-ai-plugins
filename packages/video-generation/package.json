@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/video-generation",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Official protocol-driven video generation plugin for Clowder AI hosts",
   "license": "MIT",
   "type": "module",

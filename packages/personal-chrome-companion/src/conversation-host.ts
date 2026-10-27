@@ -17,6 +17,7 @@ import { PersonalChromeHostError, PersonalChromeHostRequestTracker, type Persona
 import type { PersonalChromeAssistantReturnCursor } from './assistant-return-cursor.js';
 import { HelperReachability, type HelperConnectionLog, type HelperConnectionStatus } from './helper-reachability.js';
 import type { PersonalChromeTitleSync } from './title-refresh-protocol.js';
+import type { PersonalChromeHealthResult } from './protocol.js';
 
 export interface PersonalChromeConversationHostOperations {
   readonly refreshTitles: () => Promise<PersonalChromeTitleSync>;
@@ -24,10 +25,17 @@ export interface PersonalChromeConversationHostOperations {
   readonly list: (input: unknown) => Promise<CloudConversationListResult>;
   readonly ack: (input: unknown) => Promise<CloudConversationAckResult>;
   /** Honest reachability probe for the `test` action: never claims ok without a real probe. */
-  readonly probe: () => Promise<{ readonly ok: boolean; readonly message: string }>;
+  readonly probe: () => Promise<PersonalChromeProbeResult>;
+  readonly probeConversation: (conversationId: string) => Promise<PersonalChromeProbeResult>;
   /** Last-known connection state; never opens a socket or reads the pairing record. */
   readonly status: () => HelperConnectionStatus;
   readonly dispose: () => Promise<void>;
+}
+
+interface PersonalChromeProbeResult {
+  readonly ok: boolean;
+  readonly message: string;
+  readonly health?: Pick<PersonalChromeHealthResult, 'status' | 'errorCode' | 'observedRevisions'>;
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -99,6 +107,7 @@ export function createConversationHostOperations(options: {
   readonly now?: () => number;
   readonly log?: HelperConnectionLog;
   readonly onRevisionContact?: PersonalChromeHostAdapterOptions['onRevisionContact'];
+  readonly expectedHelperArtifactRevision?: string;
 }): PersonalChromeConversationHostOperations {
   const { dataDirectory } = options;
   let disposed = false;
@@ -116,12 +125,15 @@ export function createConversationHostOperations(options: {
       () => unavailable('not_installed'),
       () => { if (!disposed) reachability.invalidInstallation(); },
     )),
+    ...(options.expectedHelperArtifactRevision === undefined ? {} : { helperArtifactRevision: options.expectedHelperArtifactRevision }),
     timeoutMs: options.timeoutMs,
     requestTracker,
     onConnected: () => { if (!disposed) reachability.connected(); },
     onUnavailable: () => unavailable('unreachable'),
-    onRevisionContact: async (revisions, errorCode) => {
-      if (!disposed) await options.onRevisionContact?.(revisions, errorCode);
+    onRevisionContact: async (revisions, errorCode, conversationId) => {
+      if (disposed) return;
+      if (conversationId === undefined) await options.onRevisionContact?.(revisions, errorCode);
+      else await options.onRevisionContact?.(revisions, errorCode, conversationId);
     },
   });
 
@@ -217,7 +229,7 @@ export function createConversationHostOperations(options: {
     }
   };
 
-  const probe = async (): Promise<{ readonly ok: boolean; readonly message: string }> => {
+  const probe = async (conversationId?: string): Promise<PersonalChromeProbeResult> => {
     if (disposed) return { ok: false, message: 'personal Chrome host module is stopped' };
     let adapterOptions: PersonalChromeHostAdapterOptions;
     try {
@@ -234,12 +246,25 @@ export function createConversationHostOperations(options: {
     // Stop during pairing resolution: never probe after stop returned.
     if (disposed) return { ok: false, message: 'personal Chrome host module is stopped' };
     try {
-      const health = await createPersonalChromeHostAdapter(adapterOptions).check_health();
+      const health = await createPersonalChromeHostAdapter(adapterOptions).check_health(conversationId);
       if (health.status === 'ready') {
-        return { ok: true, message: 'personal Chrome host helper answered the health probe' };
+        return { ok: true, health, message: conversationId === undefined
+          ? 'personal Chrome host helper answered the health probe'
+          : 'The selected ChatGPT conversation page is ready (read-only health check; no message sent).' };
+      }
+      if (health.status === 'dormant' && health.errorCode === 'CONVERSATION_NOT_SELECTED') {
+        return { ok: true, health, message: 'Personal Chrome helper and extension are connected; no conversation selected or page checked. Sending readiness has not been verified.' };
       }
       const reason = health.errorCode ?? health.status;
-      return { ok: false, message: `personal Chrome host health probe reported ${reason}` };
+      const guidance: Record<string, string> = {
+        BOUND_TAB_NOT_FOUND: 'Open this exact ChatGPT conversation page, then check its row again.',
+        AMBIGUOUS_BOUND_TABS: 'Close duplicate tabs of this conversation, then check its row again.',
+        STALE_HELPER: 'Reload the extension to reconnect to the updated helper, then run Test.',
+        STALE_EXTENSION: 'Reload the Chrome extension, then run Test.',
+        STALE_PAGE_ADAPTER: 'Reload this ChatGPT conversation page, then use its Check conversation page action.',
+        CONTENT_SCRIPT_UNAVAILABLE: 'Reload this ChatGPT conversation page, then check its row again.',
+      };
+      return { ok: false, health, message: `personal Chrome host health probe reported ${reason}. ${guidance[reason] ?? ''}`.trim() };
     } catch (error) {
       if (error instanceof PersonalChromeHostError) {
         return { ok: false, message: `personal Chrome host is not reachable: ${error.code}` };
@@ -265,7 +290,8 @@ export function createConversationHostOperations(options: {
     appendMessage,
     list,
     ack,
-    probe,
+    probe: () => probe(),
+    probeConversation: (conversationId) => probe(conversationId),
     status: () => reachability.snapshot(),
     dispose: async () => {
       disposed = true;

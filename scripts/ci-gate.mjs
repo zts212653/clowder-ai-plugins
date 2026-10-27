@@ -147,7 +147,7 @@ export function buildGateSteps() {
     { name: 'Conformance runner', command: 'pnpm --filter @clowder-ai/plugin-contract conformance' },
     { name: 'Git guards', command: 'pnpm test:guards' },
     { name: 'Fresh consumer install', command: 'pnpm test:fresh-consumer' },
-    { name: 'Package inventory', command: 'pnpm --filter @clowder-ai/collective-connector build && pnpm test:package-inventory && pnpm --filter @clowder-ai/collective-connector test:source && pnpm --filter @clowder-ai/collective-connector test:installed' },
+    { name: 'Package inventory', command: 'pnpm --filter @clowder-ai/collective-connector build && pnpm --filter @clowder-ai/collective-connector typecheck && pnpm --filter @clowder-ai/collective-connector test && pnpm test:package-inventory && pnpm --filter @clowder-ai/collective-connector test:source && pnpm --filter @clowder-ai/collective-connector test:installed' },
     { name: 'Live catalog availability', command: 'pnpm catalog:live-check' },
     { name: 'Machine catalog', command: 'pnpm catalog:check' },
     { name: 'Immutable registry compatibility', command: 'pnpm registry:check' },

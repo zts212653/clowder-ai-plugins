@@ -79,13 +79,13 @@ test('packed static desktop window declarations and current SDK work without wor
       };
       const manifest = { pluginId: 'dev.clowder.consumer', version: '1.0.0', contractVersion: '${contract.version}', name: 'Consumer',
         runtime: { transport: 'builtin' }, contributions: [window],
-        features: [{ id: 'pet', name: 'Pet', resources: [], contributions: [{ type: window.type, id: window.id }], capabilities: ['windows.create'] }] };
+        features: [{ id: 'pet', name: 'Pet', resources: [], contributions: [{ type: window.type, id: window.id }] }] };
       assert.equal(validateManifest(manifest).valid, true);
       assert.equal(validateManifest({ ...manifest, contributions: [{ ...window, ownerUserId: 'forged' }] }).valid, false);
       let started = 0;
       let disposed = 0;
       const binding = { pluginInstanceId: 'fixture', featureId: 'pet', packageRevision: 'fixture', integrityEpoch: 1,
-        activationRevision: 1, grantRevision: 1, grantedCapabilities: ['windows.create'], executionLease: 'host-fixture-only' };
+        activationRevision: 1, executionLease: 'host-fixture-only' };
       const session = createFeatureContextSession(binding, {
         readConfig: async () => null, readSecret: async () => '',
         storage: {}, tasks: {}, threads: {}, streams: { read: async function* () {} },

@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.27
+version: 0.1.0-alpha.29
 contractVersion: 0.1.0
 name: GitHub Operations
 description:
@@ -18,6 +18,17 @@ steps:
 test:
   action: { method: github.connection.test }
 configuration:
+  - key: sourceMaterial
+    label: 项目资料分享
+    kind: operation
+    required: false
+    actions:
+      - id: invoke
+        label: PR / Issue 分享
+        render: status
+        resultRender: status
+        action:
+          method: github.sourceMaterial
   - key: recoveryMode
     label: 接续旧跟踪（可选）
     description: 新安装留空。接续旧记录时，在启用替代实例前填写 import-only；
@@ -234,18 +245,6 @@ contributions:
   - type: mcp
     id: github-tracking
     runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
-    actions:
-      - { method: github.typed-wait.register-pr }
-      - { method: github.typed-wait.register-issue }
-      - { method: github.typed-wait.unregister }
-      - { method: github.migration.bind-wait }
-      - { method: github.review.record-verdict }
-      - { method: github.community.triage-complete }
-      - { method: github.community.request-guardian }
-      - { method: github.community.guardian-signoff }
-      - { method: github.community.validate-route }
-      - { method: github.community.report }
-      - { method: github.community.await-external }
   - type: webhook
     id: repository-events
     path: github/events
@@ -596,19 +595,6 @@ features:
       - { type: schedule, id: issue-tracking }
       - { type: schedule, id: repo-comment-poll }
       - { type: schedule, id: community-reconciler }
-    capabilities:
-      [
-        task.read,
-        task.write,
-        schedule.register,
-        plugin.config.read,
-        secret.read,
-        plugin.state.get,
-        plugin.state.set,
-        thread.listMetadata,
-        thread.write,
-        messaging.send
-      ]
 runtime:
   transport: builtin
   entrypoint: dist/plugin-entrypoint.js

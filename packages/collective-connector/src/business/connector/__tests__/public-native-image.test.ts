@@ -29,7 +29,7 @@ async function setup(options: { imageAsSource?: boolean } = {}) {
     },
   };
   const f = await publicSourceFixture({ messageAttachmentOwner: owner,
-    methods: ['collective.context.current', 'collective.context.read'], invocationId: 'fixture-running-turn' });
+    invocationId: 'fixture-running-turn' });
   try {
     const refs = await openCollectiveContextReferences(join(f.root, 'native-refs'), () => {});
     const actions = createCollectivePublicNativeActions({ connector: f.connector, references: refs, sourceCaller: f.sourceCaller });

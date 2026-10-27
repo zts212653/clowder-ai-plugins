@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/video-analysis",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Official standalone video-analysis plugin for Clowder AI hosts",
   "license": "MIT",
   "type": "module",

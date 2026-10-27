@@ -15,7 +15,6 @@ import {
   PARSE_ERROR_CODE,
   STANDARD_ERROR_CODES,
 } from './errors.js';
-import { MAX_GRANT_ITEMS, VALID_CAPABILITIES } from './grants.js';
 import { REQUEST_ID_MAX_LENGTH } from './request-id.js';
 import { PING_NONCE_MAX_LENGTH } from './row-shapes.js';
 import { WIRE_UINT53_MAX } from './wire-uint53.js';

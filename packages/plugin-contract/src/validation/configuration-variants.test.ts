@@ -11,7 +11,7 @@ function variantManifest(overrides: Record<string, unknown> = {}): Record<string
     version: '0.1.0',
     contractVersion: '0.2.0',
     name: 'Variant fixture',
-    features: [{ id: 'echo', name: 'Echo', resources: [], capabilities: [] }],
+    features: [{ id: 'echo', name: 'Echo', resources: [], }],
     runtime: { transport: 'builtin' },
     configuration: [
       { key: 'appId', label: 'App ID', kind: 'string', required: true },

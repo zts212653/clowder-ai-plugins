@@ -7,9 +7,7 @@
     {
       "id": "echo",
       "name": "Echo",
-      "resources": [],
-      "capabilities": []
-    }
+      "resources": []}
   ],
   "runtime": {
     "transport": "stdio",

@@ -23,11 +23,11 @@ Validate manifests before using these functions. The manifest validator rejects 
 | Settings form | Combine stored safe values with current drafts, including explicit deletion. Recompute visible fields immediately when the selector changes. |
 | Save and readiness | Validate the effective configuration, including common fields and active required fields. Save the selector and active edits together. |
 | Runtime configuration | Deliver only common and active fields through module getters, external runtime projection and declared MCP environment bindings. |
-| Configuration refresh | Recompute the authoritative MCP description and subsequent launch environment after a saved mode change, preserving existing grants and explicit disable controls. |
+| Configuration refresh | Recompute the authoritative MCP description and subsequent launch environment after a saved mode change, preserving instance identity, lifecycle currentness and explicit disable controls. |
 
 An untouched stored secret can satisfy an existence check without exposing its plaintext. Its placeholder is neither a comparison value nor a replacement secret. An explicit delete must remove that existence evidence and re-evaluate requiredness.
 
-For manifests declaring variants, a missing selector without a default or an invalid selector prevents readiness/runtime startup. Settings and management operations must remain available to repair the configuration. Operation target resolution and permission checks retain their existing responsibilities.
+For manifests declaring variants, a missing selector without a default or an invalid selector prevents readiness/runtime startup. Settings and management operations must remain available to repair the configuration. Operation target resolution, caller/resource ownership and lifecycle checks retain their existing responsibilities. Configuration refresh does not create or preserve a per-plugin Host API or native MCP method allowlist; actual methods are resolved through the exported handler table.
 
 Feishu's WebSocket branch excludes Verification Token. Its existing webhook handler skips delivery in WebSocket mode; this feature does not introduce a separate contribution-condition engine. Video-generation selects API Key or Access Key + Secret Key according to `authType`.
 

@@ -1,4 +1,8 @@
 import {
+  collectiveMaterialPublicationSchema,
+  collectiveMaterialRecordSchema,
+} from '../contracts/types/collective-material.js';
+import {
   type CollectiveEventEnvelope,
   collectiveArtifactPublicationRecordSchema,
   collectiveArtifactRecordSchema,
@@ -16,7 +20,10 @@ import {
 } from '../contracts/index.js';
 import { z } from 'zod';
 import { messageAttachmentRecordSchema } from './message-attachment-state.js';
-import { collectiveDraftRecordSchema, collectiveReadPositionSchema } from '../contracts/types/collective-message-state.js';
+import {
+  collectiveDraftRecordSchema,
+  collectiveReadPositionSchema,
+} from '../contracts/types/collective-message-state.js';
 
 import { CollectiveServiceError } from './errors.js';
 import { provenEventLocation } from './event-location.js';
@@ -133,7 +140,7 @@ const collaborationOperationReceiptSchema = z
   .object({
     actorScope: z.string().min(1).max(320),
     fingerprint: z.string().min(1).max(64_000),
-    resourceKind: z.enum(['work', 'roadmap', 'vote', 'binding_vote', 'reaction', 'artifact']),
+    resourceKind: z.enum(['work', 'roadmap', 'vote', 'binding_vote', 'reaction', 'artifact', 'material']),
     resourceId: z.string().min(1).max(160),
     revision: z.number().int().positive(),
     recordedAt: z.string().datetime(),
@@ -141,20 +148,21 @@ const collaborationOperationReceiptSchema = z
   .strict();
 
 const workResultFileRecordFields = {
-    collectiveId: z.string(),
-    workId: z.string().startsWith('work_'),
-    resultEventId: z.string().startsWith('evt_'),
-    resultRevision: z.number().int().positive(),
-    assignmentEventId: z.string().startsWith('evt_'),
-    connectionId: z.string().startsWith('con_'),
-    humanId: z.string().startsWith('human_'),
-    catId: z.string().trim().min(1).max(120),
-    createdAt: z.string().datetime(),
-  };
-const workResultFileRecordSchema = z.discriminatedUnion('v', [
-  collectiveLegacyWorkResultFileBindingV1Schema.extend(workResultFileRecordFields).strict(),
-  collectiveWorkResultFileV2Schema.extend(workResultFileRecordFields).strict(),
-])
+  collectiveId: z.string(),
+  workId: z.string().startsWith('work_'),
+  resultEventId: z.string().startsWith('evt_'),
+  resultRevision: z.number().int().positive(),
+  assignmentEventId: z.string().startsWith('evt_'),
+  connectionId: z.string().startsWith('con_'),
+  humanId: z.string().startsWith('human_'),
+  catId: z.string().trim().min(1).max(120),
+  createdAt: z.string().datetime(),
+};
+const workResultFileRecordSchema = z
+  .discriminatedUnion('v', [
+    collectiveLegacyWorkResultFileBindingV1Schema.extend(workResultFileRecordFields).strict(),
+    collectiveWorkResultFileV2Schema.extend(workResultFileRecordFields).strict(),
+  ])
   .refine((record) => record.mediaType === collectiveWorkResultMediaTypeForFileName(record.fileName), {
     message: 'Work result file name and media type do not match',
   });
@@ -189,6 +197,8 @@ const serviceStateV2Schema = z
         }),
       )
       .default({}),
+    materialPublications: z.record(z.string(), collectiveMaterialPublicationSchema).default({}),
+    materials: z.record(z.string(), collectiveMaterialRecordSchema).default({}),
     works: z.record(z.string(), collectiveWorkRecordSchema).default({}),
     artifacts: z.record(z.string(), collectiveArtifactRecordSchema).default({}),
     artifactPublications: z.record(z.string(), collectiveArtifactPublicationRecordSchema).default({}),
@@ -294,6 +304,8 @@ export function migrateServiceState(value: unknown): { readonly state: ServiceSt
     composerDrafts: {},
     readPositions: {},
     participations: {},
+    materialPublications: {},
+    materials: {},
     works: {},
     artifacts: {},
     artifactPublications: {},

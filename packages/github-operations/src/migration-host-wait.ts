@@ -8,7 +8,7 @@ interface MigrationJournalView {
   tasks: readonly { id: string; mode: string }[];
 }
 
-/** Only retained Host waits use Task capabilities. New private subscriptions
+/** Only retained Host waits use Host Tasks. New private subscriptions
  * remain independent of Host Tasks, including while imported waits coexist. */
 export async function assertMigratedWaitCurrent(context: FeatureContext, task: TaskItem) {
   const entry = await context.storage.get('github.migration.control.v1');

@@ -45,7 +45,7 @@ function videoManifest() {
           { type: 'skill', id: 'video-analysis-skill' },
           { type: 'limb', id: 'video-analysis-limb' },
         ],
-        capabilities: ['plugin.config.read', 'secret.read'],
+
       },
     ],
     runtime: { transport: 'builtin' },
@@ -79,39 +79,26 @@ function docxProviderManifest() {
         name: 'Edit DOCX',
         resources: [],
         contributions: [{ type: 'content-editor-provider', id: 'genoffice-docx' }],
-        capabilities: [],
+
       },
     ],
     runtime: { transport: 'builtin' },
   };
 }
 
-test('native MCP actions are declared separately from public tools and reject malformed entries', () => {
+test('old native MCP metadata is ignored at parsing while the runtime declaration remains validated', () => {
   const manifest = videoManifest();
-  manifest.contributions[0] = { ...manifest.contributions[0], actions: [{ method: 'video.analyze' }] } as never;
-  assert.equal(validateManifest(manifest).valid, true);
-  for (const actions of [[], [{ method: '' }], [{ method: 'video.analyze', undeclared: true }], [{ method: 'video.analyze' }, { method: 'video.analyze' }]]) {
-    const invalid = structuredClone(manifest);
-    invalid.contributions[0] = { ...invalid.contributions[0], actions } as never;
-    assert.equal(validateManifest(invalid).valid, false);
+  for (const actions of [[{ method: 'video.analyze' }], [], 'legacy metadata']) {
+    const legacy = structuredClone(manifest);
+    legacy.contributions[0] = { ...legacy.contributions[0], actions } as never;
+    const result = validateManifest(legacy);
+    assert.equal(result.valid, true);
+    if (result.valid) assert.deepEqual(result.manifest, manifest);
+    assert.equal(Object.hasOwn(legacy.contributions[0]!, 'actions'), true);
   }
-});
-
-test('native MCP method allowlists reject fixed params instead of silently ignoring them', () => {
-  const manifest = videoManifest();
-  manifest.contributions[0] = { ...manifest.contributions[0],
-    actions: [{ method: 'video.analyze', params: { mode: 'readonly' } }] } as never;
-  assert.equal(validateManifest(manifest).valid, false);
-});
-
-test('native MCP duplicate methods cannot be disguised with different params or extra fields', () => {
-  for (const second of [{ method: 'video.analyze' },
-    { method: 'video.analyze', params: { mode: 'write' } }, { method: 'video.analyze', label: 'second' }]) {
-    const manifest = videoManifest();
-    manifest.contributions[0] = { ...manifest.contributions[0],
-      actions: [{ method: 'video.analyze' }, second] } as never;
-    assert.equal(validateManifest(manifest).valid, false);
-  }
+  const invalid = structuredClone(manifest);
+  invalid.contributions[0] = { ...invalid.contributions[0], runtime: { transport: 'unknown' } } as never;
+  assert.equal(validateManifest(invalid).valid, false);
 });
 
 test('admits typed static contributions and closed config/secret references', () => {
@@ -285,7 +272,7 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       command: 'video.open',
       group: 'composer.actions',
       anchor: { position: 'after', target: 'attach' },
-      when: { featureEnabled: true, requiresCapabilities: ['plugin.config.read'] },
+      when: { featureEnabled: true },
     },
     {
       type: 'ui',
@@ -316,7 +303,6 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       name: string;
       resources: unknown[];
       contributions: Array<{ type: string; id: string }>;
-      capabilities: string[];
     }>;
     const targetIndex = features[0]!.contributions.findIndex(
       (reference) => reference.type === dependency.targetType && reference.id === dependency.targetId,
@@ -329,7 +315,7 @@ test('validates closed UI, connector, and webhook reference shapes', () => {
       name: 'Foreign dependency owner',
       resources: [],
       contributions: [target],
-      capabilities: [],
+
     });
 
     const result = validateManifest(crossFeature);

@@ -17,14 +17,14 @@ doc_kind: governing-design
 ## 实现边界
 
 - 插件用普通 `threads`／`messaging` 访问 Host 资源；线程选择、外部会话映射与幂等业务记录归插件
-  `storage`。安装实例、feature、grant 和调用者事实由 Host 注入，业务绑定不增加线程可见性限制。
+  `storage`。安装实例、feature 和调用者事实由 Host 注入，业务绑定不增加线程可见性限制。
 - 纪要等业务的 cursor、待发送通知和重试记录归包内私有队列／持久状态；通过普通
   `messaging.send(threadId, draft)` 投递，业务元数据随消息内容／meta 传递。
 - 单份 manifest 声明能力，module 启动返回 handler map；作者使用同一个 `storage`、`log` 和必需的
   `messaging.get`。Host→Plugin 用统一 delivery 承载 message／execution_status；双向附件使用
   `streams.read`，reader 结束只释放本次读取，附件保留由 owner 决定。
 - 安装、初始化、启用、停止、配置刷新和卸载按接口基线执行。插件管理自建 helper 的 start／stop；
-  Host 管理 carrier 与安装／授权。action 图像、轮询结果与 receipt 用于本次展示，业务恢复状态归插件
+  Host 管理 carrier、安装与启停。action 图像、轮询结果与 receipt 用于本次展示，业务恢复状态归插件
   持久存储；用户配置及声明凭据目标由 Host 正常持久化。
 
 ## 设计原则
@@ -44,8 +44,8 @@ doc_kind: governing-design
 | P11 | **一切插件行为可追溯**：call/callback/事件投递全部留痕（future hook 同规则） | trace 语义必须长在接口签名里，事后补加等于重做 |
 | P12 | **动作有账，失败显式**：动作幂等入结算账本；职责回调必须应答；媒体或展示增补失败应显式降级、保留原消息；插件失败（含崩溃/资源耗尽）不拖垮内核、不静默吞 | 语义决定接口形状（callId/ack/超时字段）；"桌宠崩了 Clowder 不崩"是硬承诺 |
 | P13 | **用户主权**：装/卸/启/停/授权/撤销/数据清除全部用户可见可操作；插件不能自启、不能自我续权、不能绕控制面 | proposal-first 的正面原则化；没有它前 12 条管住接口管不住行为 |
-| P14 | **第一方不走后门**：语音/GitHub/IM/前台猫全走同一套 SDK；第一方与第三方差别只在能力授权集，不在通道 | SDK 撑不起自家插件就撑不起第三方；走捷径会让 SDK 退化成二等公民 |
-| P15 | **契约只有一个机器可读真相源**：schema、类型、capability 表与 conformance fixtures 同包发布；内核和插件 SDK 都消费它，不复制定义 | 两仓协作不能变成两份 schema；文档可分仓解释，契约结构不能双写漂移 |
+| P14 | **第一方不走后门**：语音/GitHub/IM/前台猫全走同一套 SDK；第一方由官方仓审核，第三方由安装者治理，调用通道一致 | SDK 撑不起自家插件就撑不起第三方；走捷径会让 SDK 退化成二等公民 |
+| P15 | **契约只有一个机器可读真相源**：schema、类型、双向协议与 conformance fixtures 同包发布；内核和插件 SDK 都消费它，不复制定义 | 两仓协作不能变成两份 schema；文档可分仓解释，契约结构不能双写漂移 |
 
 
 ## 范围与验证

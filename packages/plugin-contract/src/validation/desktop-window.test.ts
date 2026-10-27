@@ -22,21 +22,10 @@ function manifest() {
       name: 'Companion',
       resources: [],
       contributions: [{ type: 'desktop-window', id: 'companion' }],
-      capabilities: ['windows.create'],
+
     }],
   };
 }
-
-test('accepts a bounded package surface with an explicit feature owner and requested window capability', () => {
-  const result = validateManifest(manifest());
-  assert.equal(result.valid, true, JSON.stringify(result.errors));
-});
-
-test('a window declaration without its owning feature requesting windows.create is invalid', () => {
-  const input = manifest();
-  input.features[0]!.capabilities = [];
-  assert.equal(validateManifest(input).valid, false);
-});
 
 test('window surfaces cannot select remote pages, executables or paths outside the package', () => {
   for (const entrypoint of ['https://example.org/window.html', '../outside.html', '/outside.html', 'surface/main.js', 'surface/../../outside.html']) {

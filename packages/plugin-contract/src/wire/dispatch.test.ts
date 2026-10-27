@@ -78,8 +78,8 @@ const HELLO_BINDING = {
   ...HELLO_CANDIDATE,
   pluginInstanceId: 'instance-1',
   brokerSessionId: 'session-1',
-  grantRevision: 0,
-  effectiveGrants: [],
+
+
   bindingNonce: 'nonce-1',
 } as const;
 
@@ -264,8 +264,6 @@ test('Host-owned fields injected into either handshake request are authority vio
   const authorityFields = [
     ['pluginInstanceId', 'instance-1'],
     ['brokerSessionId', 'session-1'],
-    ['grantRevision', 1],
-    ['effectiveGrants', []],
   ] as const;
 
   for (const [field, injected] of authorityFields) {
@@ -298,40 +296,6 @@ test('Host-owned fields injected into either handshake request are authority vio
   }
 });
 
-test('non-canonical injected grantRevision remains a handshake authority violation', () => {
-  for (const grantRevision of [-1, 1.5]) {
-    for (const [method, input] of [
-      ['broker.hello', { ...HELLO_CANDIDATE, grantRevision }],
-      ['broker.ready', { bindingNonce: 'nonce-1', grantRevision }],
-    ] as const) {
-      const rawFrame = JSON.stringify({
-        jsonrpc: '2.0',
-        id: 'authority-injection',
-        method,
-        params: { meta: { deadlineUnixMs: 1 }, input },
-      });
-      const result = classifyFrame(
-        {
-          raw: Buffer.from(rawFrame, 'utf8'),
-          value: JSON.parse(rawFrame) as JsonObject,
-        },
-        NO_IN_FLIGHT,
-      );
-
-      assert.equal(result.disposition, 'T-G', `${method}.${grantRevision} must reach the authority gate`);
-      assert.deepEqual(result.response, {
-        jsonrpc: '2.0',
-        id: 'authority-injection',
-        error: {
-          code: HANDSHAKE_REJECTED_CODE,
-          message: HANDSHAKE_REJECTED_MESSAGE,
-          data: { reason: 'AUTHORITY_VIOLATION' },
-        },
-      });
-    }
-  }
-});
-
 test('broker.hello SessionBinding is T-L only when it echoes the in-flight candidate', () => {
   const inFlight = new Map<string, InFlightEntry>([
     ['hello-response', helloInFlightEntry()],
@@ -358,43 +322,6 @@ test('broker.hello SessionBinding is T-L only when it echoes the in-flight candi
   }
 });
 
-test('broker.hello non-canonical H7 raw integers close at T-C before response validation', () => {
-  const inFlight = new Map<string, InFlightEntry>([
-    ['hello-response', helloInFlightEntry()],
-  ]);
-
-  for (const grantRevision of [-1, 1.5]) {
-    const result = classifyFrame(
-      helloResponseFrame({ ...HELLO_BINDING, grantRevision }),
-      inFlight,
-    );
-    assert.equal(result.disposition, 'T-C', `${grantRevision} must fail raw WireUInt53 canonicality`);
-    assert.equal(result.outcome, 'close');
-  }
-});
-
-test('non-hello result grantRevision is validated at T-H, not treated as H7', () => {
-  for (const [id, method] of [
-    ['ready-response', 'broker.ready'],
-    ['ping-response', 'host.lifecycle.ping'],
-  ] as const) {
-    const rawFrame = JSON.stringify({
-      jsonrpc: '2.0',
-      id,
-      result: { grantRevision: -1 },
-    });
-    const result = classifyFrame(
-      {
-        raw: Buffer.from(rawFrame, 'utf8'),
-        value: JSON.parse(rawFrame) as JsonObject,
-      },
-      new Map<string, InFlightEntry>([[id, { method }]]),
-    );
-    assert.equal(result.disposition, 'T-H', `${method} must use its own result grammar`);
-    assert.equal(result.outcome, 'close');
-  }
-});
-
 test('method-bearing frame with a hello id does not apply the H7 result gate', () => {
   const rawFrame = JSON.stringify({
     jsonrpc: '2.0',
@@ -404,7 +331,7 @@ test('method-bearing frame with a hello id does not apply the H7 result gate', (
       meta: { deadlineUnixMs: 1 },
       input: { nonce: 'hello' },
     },
-    result: { grantRevision: -1 },
+    result: { },
   });
   const result = classifyFrame(
     {
@@ -678,39 +605,6 @@ test('error response with empty error body {} is T-H (missing code/message)', ()
   assert.equal(result.outcome, 'close');
 });
 
-test('grants.changed notification with unknown capability is T-K (authorization boundary)', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":["UNKNOWN_CAP"]}}}';
-  const frame: DecodedNdjsonFrame = {
-    raw: Buffer.from(rawFrame, 'utf8'),
-    value: JSON.parse(rawFrame) as JsonObject,
-  };
-  const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-K', 'unknown capability must not be accepted as T-J');
-  assert.equal(result.outcome, 'close');
-});
-
-test('grants.changed notification with duplicate capability is T-K (authorization boundary)', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":["messaging.send","messaging.send"]}}}';
-  const frame: DecodedNdjsonFrame = {
-    raw: Buffer.from(rawFrame, 'utf8'),
-    value: JSON.parse(rawFrame) as JsonObject,
-  };
-  const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-K', 'duplicate capability must not be accepted as T-J');
-  assert.equal(result.outcome, 'close');
-});
-
-test('notification-only method (host.grants.changed) with id is T-F (direction gate)', () => {
-  const rawFrame = '{"jsonrpc":"2.0","id":"r1","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]}}}';
-  const frame: DecodedNdjsonFrame = {
-    raw: Buffer.from(rawFrame, 'utf8'),
-    value: JSON.parse(rawFrame) as JsonObject,
-  };
-  const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-F', 'notification-only method as request must be rejected');
-  assert.equal(result.outcome, 'respond');
-});
-
 // ---------------------------------------------------------------------------
 // R2 Finding 1: Response result shape validation (fail-closed)
 // ---------------------------------------------------------------------------
@@ -923,7 +817,7 @@ test('ping input with extra key beyond nonce is T-G', () => {
 });
 
 test('notification params with extra key is T-K', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[]},"extra":1}}';
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.unknown","params":{"meta":{"deadlineUnixMs":1},"input":{},"extra":1}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
@@ -934,24 +828,13 @@ test('notification params with extra key is T-K', () => {
 });
 
 test('notification meta with extra key is T-K', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1,"extra":true},"input":{"grantRevision":0,"effectiveGrants":[]}}}';
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.unknown","params":{"meta":{"deadlineUnixMs":1,"extra":true},"input":{}}}';
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),
     value: JSON.parse(rawFrame) as JsonObject,
   };
   const result = classifyFrame(frame, NO_IN_FLIGHT);
   assert.equal(result.disposition, 'T-K', 'extra notification meta key must reject');
-  assert.equal(result.outcome, 'close');
-});
-
-test('notification input with extra key is T-K (grants.changed input closed)', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":0,"effectiveGrants":[],"extra":1}}}';
-  const frame: DecodedNdjsonFrame = {
-    raw: Buffer.from(rawFrame, 'utf8'),
-    value: JSON.parse(rawFrame) as JsonObject,
-  };
-  const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-K', 'extra notification input key must reject');
   assert.equal(result.outcome, 'close');
 });
 
@@ -1241,20 +1124,8 @@ test('request with deadlineUnixMs:1.5 is T-C (fractional token violates WireUInt
   assert.equal(result.outcome, 'close');
 });
 
-test('removed grant notification with a negative payload token is rejected', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":1},"input":{"grantRevision":-1,"effectiveGrants":[]}}}';
-  const parsed = JSON.parse(rawFrame) as JsonObject;
-  const frame: DecodedNdjsonFrame = {
-    raw: Buffer.from(rawFrame, 'utf8'),
-    value: parsed,
-  };
-  const result = classifyFrame(frame, NO_IN_FLIGHT);
-  assert.equal(result.disposition, 'T-K', 'removed notifications must close before payload dispatch');
-  assert.equal(result.outcome, 'close');
-});
-
 test('notification with deadlineUnixMs:0.5 is T-C (fractional meta token)', () => {
-  const rawFrame = '{"jsonrpc":"2.0","method":"host.grants.changed","params":{"meta":{"deadlineUnixMs":0.5},"input":{"grantRevision":0,"effectiveGrants":[]}}}';
+  const rawFrame = '{"jsonrpc":"2.0","method":"host.unknown","params":{"meta":{"deadlineUnixMs":0.5},"input":{}}}';
   const parsed = JSON.parse(rawFrame) as JsonObject;
   const frame: DecodedNdjsonFrame = {
     raw: Buffer.from(rawFrame, 'utf8'),

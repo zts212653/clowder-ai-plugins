@@ -6,7 +6,7 @@ import { collectiveEventSourceIdentity } from './business/contracts/index.js';
 import { createCollectivePublicSourceCaller } from './collective-public-source.js';
 import { createCollectivePublicNativeActions } from './collective-public-native-context.js';
 import { openCollectiveContextReferences } from './collective-context-refs.js';
-import { COLLECTIVE_NATIVE_ID, COLLECTIVE_PUBLIC_METHODS } from './public-native-methods.js';
+import { COLLECTIVE_NATIVE_ID } from './public-native-methods.js';
 import { createAccountabilityAttentionAction } from './accountability-owner-action.js';
 import { collectiveOwnerOperationInput } from './owner-operation-input.js';
 
@@ -16,7 +16,7 @@ export async function activateCollectivePublicNative(context: FeatureContext, co
     throw new Error('Collective native source/owner-thread Host ports are required');
   const references = await openCollectiveContextReferences(context.dataPath, assertActive);
   const sourceCaller = createCollectivePublicSourceCaller({ connector,
-    native: { contributionId: COLLECTIVE_NATIVE_ID, methods: COLLECTIVE_PUBLIC_METHODS },
+    native: { contributionId: COLLECTIVE_NATIVE_ID },
     messaging: context.messaging,
     pluginInstanceId: context.pluginInstanceId, threads: context.threads });
   const inputOf = <T>(value: unknown, schema: z.ZodType<T>) => schema.parse(z.object({ input: z.unknown() }).strict().parse(collectiveOwnerOperationInput(value)).input);

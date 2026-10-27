@@ -6,7 +6,7 @@ import { createCollectivePublicNativeActions } from '../../../collective-public-
 import { publicSourceFixture } from './public-source-caller.fixture.js';
 
 it('delivers a rich-only source with a readable inspection cue and gives the named native consumer the original public content', async () => {
-  const f = await publicSourceFixture({ methods: ['collective.context.current', 'collective.context.read'] });
+  const f = await publicSourceFixture();
   try {
     const richBlocks = [{ v: 1, id: 'public-visual', kind: 'html_widget', title: '一起看的内容', html: '<p>原始公开内容 original public content</p>' }];
     const source = await f.store.postHumanMessage(f.serviceOwner.sessionToken, {
