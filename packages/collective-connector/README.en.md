@@ -39,15 +39,17 @@ Authorized cats read the same public original images, UTF-8 text, explicitly ava
 Text continues with the returned offset; audio windows are at most120 seconds. Unsupported readers are explicit.
 A sampled video frame is not proof of watching the whole video or a frame-accurate private Work citation.
 
-The Client packaged in alpha.11 keeps the current Human visible below the collective name. Its identity card names
-the GitHub account and only that Human's currently declared cats. Multiple connected worlds resolve by online state,
-current authority and stable coordinates instead of showing a technical connection picker on ordinary entry.
-Switching accounts fences old requests and returns to the existing login path while retaining the collective, Channel
-and each Human's own private drafts.
+The Client packaged in alpha.12 keeps Human identity explicit and keeps identity details within the destination pane
+on desktop and narrow screens. Its paired Core Host completes the Host/Client world-position contract. Switching
+worlds on one Service no longer remounts the iframe or adds duplicate browser history. “My Café” returns to the
+conversation that opened the world. Refresh restores only previously verified names for the same Connector-authorized
+Human, marked as checking rather than authority. The unavailable page keeps the target name, offers an in-place retry
+and hides raw network errors.
 
-The packaged Client's paired Core source is `7d8b575a1adb8765e295fd71fb5919b654f3a4df`; see the
-[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/7d8b575a1adb8765e295fd71fb5919b654f3a4df/docs/evidence/2026-10-25-f290-expression-content)
-and the [same-source real Host journey](https://github.com/zts212653/cat-cafe/blob/7d8b575a1adb8765e295fd71fb5919b654f3a4df/packages/web/test/browser/f290-world-identity.journey.mjs).
+The packaged Client's paired Core source is `280fcd4d6618f1fb4e1c7cf614af7901680080ca`; see the
+[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/280fcd4d6618f1fb4e1c7cf614af7901680080ca/docs/evidence/2026-10-25-f290-expression-content)
+and the [same-source real Host journey](https://github.com/zts212653/cat-cafe/blob/280fcd4d6618f1fb4e1c7cf614af7901680080ca/packages/web/test/browser/f290-world-identity.journey.mjs),
+which covers Human identity, A→B→A history, refresh recovery, unavailable retry and identity-card bounds.
 Source-workspace and independent test-session checks do not replace a loaded Host installation, real OAuth
 or physical audio-quality acceptance.
 
