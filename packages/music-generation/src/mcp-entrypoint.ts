@@ -4,7 +4,7 @@ import { object } from './types.js';
 
 export const musicTool = {
   name: 'generate_music',
-  description: 'Generate music with the enabled Google Cloud plugin and deliver a new MP3 plus provenance into the calling project. Keep the same requestId and exact arguments when polling pending/unknown work; changing requestId starts a new paid operation. Never replay unknown work as a new request.',
+  description: 'Generate background music / 配乐 through the enabled Google Cloud music plugin. Use when: a film or game needs an instrumental soundtrack or song. NOT for: speech, transcription, AI Studio prepaid credits or Flow Music browser subscription usage. Output: one billed generation and a new project-local MP3 plus provenance, or a structured pending/refused/unknown result. GOTCHA: use the same requestId and exact arguments when polling or recovering delivery; a different requestId starts a new paid operation. Never automatically replace unknown work. Cloud OAuth, plugin enablement and the current project output grant are separate; actual charges and Ultra credit deduction remain unverified.',
   inputSchema: { type: 'object', additionalProperties: false, required: ['requestId', 'outputPath', 'parameters'], properties: {
     requestId: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,128}$', description: 'Stable unique identity for this intentional generation, retained unchanged when polling or recovering delivery.' },
     outputPath: { type: 'string', minLength: 1, maxLength: 4096, description: 'New relative .mp3 path in the current calling project. Existing audio or provenance is refused before generation.' },
