@@ -1,12 +1,12 @@
 {
   "name": "@clowder-ai/collective-connector",
-  "version": "0.1.0-alpha.14",
+  "version": "0.1.0-alpha.15",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "@clowder-ai/collective-connector",
-      "version": "0.1.0-alpha.14",
+      "version": "0.1.0-alpha.15",
       "license": "MIT",
       "dependencies": {
         "@clowder-ai/plugin-sdk": "0.3.0-beta.1",

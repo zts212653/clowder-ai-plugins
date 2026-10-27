@@ -12,7 +12,7 @@ const unavailable = () => Object.assign(new Error('Collective Work wake no longe
 /** Service wake notices reuse an existing Task. They never establish a new admission or authority. */
 export async function readCollectiveWorkWake(connector: CollectiveConnector,
   ports: Pick<FeatureContext, 'tasks' | 'messaging' | 'storage' | 'pluginInstanceId'>, connectionId: string, eventId: string,
-  ownerUserId: string, current: () => Promise<void>) {
+  ownerUserId: string, current: () => Promise<void>, phase: 'delivery' | 'execution' = 'delivery') {
   await current();
   const wake = (await connector.listInbox(connectionId)).find(row => row.event.eventId === eventId);
   const notice = wake?.event.workWakeNotice;
@@ -20,7 +20,7 @@ export async function readCollectiveWorkWake(connector: CollectiveConnector,
   return connector.withAssignedWorkAuthority(connectionId, notice.workId, async scope => {
     await current();
     const {work, connection, hostRoute, inbox} = scope;
-    assertCurrentWorkWake(wake.event, work);
+    assertCurrentWorkWake(wake.event, work, phase);
     if (hostRoute?.localOwnerUserId !== ownerUserId || connection.authorityStatus !== 'connected' ||
         connection.authorizedHumanId !== work.accountableHumanId) throw unavailable();
     const birth = inbox.filter(row => row.event.eventId === work.assignmentEventId);
@@ -49,10 +49,16 @@ export async function readCollectiveWorkWake(connector: CollectiveConnector,
   });
 }
 
-export function assertCurrentWorkWake(event: CollectiveEventEnvelope, work: CollectiveWorkProjection) {
+export function assertCurrentWorkWake(event: CollectiveEventEnvelope, work: CollectiveWorkProjection,
+  phase: 'delivery' | 'execution' = 'delivery') {
   const notice = event.workWakeNotice, assignment = work.assignment, recipient = event.recipient;
+  // Delivery consumes the exact observation. An admitted invocation instead
+  // follows the same assignment/execution: its own date/progress CAS advances
+  // business revision without issuing a new execution permission.
+  const revisionCurrent = notice && (phase === 'delivery'
+    ? work.revision === notice.workRevision : work.revision >= notice.workRevision);
   if (event.actor.kind !== 'human' || event.workRequest !== 'resume' || !notice || !assignment || !work.assignmentEventId ||
-      !['committed', 'in_progress'].includes(work.lifecycle) || work.workId !== notice.workId || work.revision !== notice.workRevision ||
+      !['committed', 'in_progress'].includes(work.lifecycle) || work.workId !== notice.workId || !revisionCurrent ||
       work.assignmentEventId !== notice.assignmentEventId || (work.executionAuthority?.revision ?? 1) !== notice.executionRevision ||
       work.executionStatus?.state === 'unavailable' || recipient?.kind !== 'agent' || recipient.connectionId !== assignment.connectionId ||
       recipient.humanId !== assignment.humanId || recipient.agentId !== assignment.catId ||

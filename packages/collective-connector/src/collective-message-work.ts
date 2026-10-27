@@ -65,7 +65,8 @@ export function createCollectiveMessageWorkCaller(connector: CollectiveConnector
       !isDeepStrictEqual(collectiveSource(item.event, source).meta, auth.source.source!.meta) ||
       !['entrust', 'continue', 'resume'].includes(String(item.event.workRequest))) throw changed();
     if (item.event.workRequest === 'resume') {
-      const wake = await readCollectiveWorkWake(connector, context, source.connectionId, source.eventId, auth.userId, action.assertCurrent);
+      const wake = await readCollectiveWorkWake(connector, context, source.connectionId, source.eventId, auth.userId,
+        action.assertCurrent, 'execution');
       source = wake.source;item = wake.item;
     }
     const workId = source.actor.kind === 'agent'
