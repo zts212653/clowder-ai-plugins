@@ -134,19 +134,24 @@ export class CollectiveProjectMaterialStore {
   listForParticipant(
     input: z.infer<typeof listCollectiveMaterialsRequestSchema>,
     check: (state: ServiceState) => void,
+    materialId?: string,
   ) {
-    return this.listAuthorized(input, check);
+    return this.listAuthorized(input, check, materialId);
   }
 
   private async listAuthorized(
     input: z.infer<typeof listCollectiveMaterialsRequestSchema>,
     check: (state: ServiceState) => void,
+    materialId?: string,
   ) {
     const initial = this.persistence.snapshot();
     check(initial);
     requireRoadmap(initial, input.collectiveId, input.roadmapId);
     const records = Object.values(initial.materials).filter(
-      (record) => record.collectiveId === input.collectiveId && record.roadmapId === input.roadmapId,
+      (record) =>
+        record.collectiveId === input.collectiveId &&
+        record.roadmapId === input.roadmapId &&
+        (!materialId || record.materialId === materialId),
     );
     const items: CollectiveMaterialItem[] = [],
       unavailableItems: { materialId: string; revision: number }[] = [];

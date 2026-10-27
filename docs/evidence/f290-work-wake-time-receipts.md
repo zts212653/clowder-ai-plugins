@@ -1,5 +1,5 @@
 ---
-title: F290 resumed Work date and progress receipt regression
+title: F290 Work date, progress and source-material receipt regressions
 date: 2026-10-27
 status: review-ready-installed-reacceptance-pending
 owner: codex61-sol
@@ -32,6 +32,16 @@ The old roundtrip test's existing in-memory Host setup was moved unchanged to `m
 
 This PR does not close Task3008. Real private dates/progress and Host-restart recovery must be repeated after the immutable patch package is installed on the SAME named Alpha. The existing owner is finishing Core #6236 / full Host Contract0.3 intake in `thread_mvq79pxua8m2a1m3`; the original Alpha still loads Contract0.2 and must not be forced to accept the new manifest.
 
-The separate real public invocation `178f062c-ed88-420a-bade-2c4d73ee96a5` has read the Project and PR subject and returned an accepted public reply. Its material suggestion persisted revision5 but also returned unknown502; review-time code evidence does not claim this private-wake patch fixes that separate observation. It remains part of the original Task's installed reacceptance/diagnosis, and no further model sampling is launched before the paired source changes are loaded.
+The separate real public invocation `178f062c-ed88-420a-bade-2c4d73ee96a5` has read the Project and PR subject and returned an accepted public reply. Its material suggestion persisted revision5 but also returned unknown502; its HTTP request lasted10181ms against the ordinary10s transport deadline. A selected-material read was also reloading unrelated sources. The incremental regression reproduced both mechanisms: four owner reads for a two-operation single-material journey, and a committed source-backed mutation losing its receipt to the ordinary wire timeout. The delta filters the selected material before owner IO and gives only project-source/material-suggestion requests a bounded25s owner-relay budget. Publication reauthorization, source witnesses, CAS, ordinary request limits and unknown-effect handling are retained. Real installed reacceptance remains open; no further model sampling is launched before the paired source changes are loaded.
 
 No F292 package publication, real meeting account/PhaseD, production deployment, runtime3001/3002, Redis6399, or parent Task mutation is performed here. Human visual acceptance remains deferred under the original authorization.
+
+## Public material delta after the first approval
+
+The earlier exact approved source remains `f6bb7e9810408d8112821746649df902a6c22b38`; its unpublished candidate identity is retained at `/tmp/f290-batch2-time-receipt-f6bb7e98-identity.json`. The new production delta is limited to `business/connector/service-client.ts` project-source/material suggestion methods, `business/service/project-source.ts`, and `business/service/project-material-store.ts` selected participant reads. No public schema, Host port, dependency or Client input changes.
+
+`/tmp/f290-project-source-focused-red.log` records2/2 matching RED; `/tmp/f290-work-wake-material-delta-green.log` records30/30 targeted GREEN, including the existing private receipt guards. The source relay itself remains bounded at10s; the outer material request now leaves room to return its typed result. The ordinary metadata request still times out at its configured limit and no mutation is retried automatically. Unknown/unpublished material IDs cause zero provider reads.
+
+The large existing ServiceClient remains an endpoint facade over one request primitive; the delta adds two per-operation budgets. The material store retains the existing shared publication authorization/observation transaction path; its exact-ID filter adds no parallel cache or authority. No broad facade/store rewrite is mixed into this patch.
+
+The incremental build/typecheck, full package suite (lifecycle6/control59/transport3, Business98 files/416 tests) and fresh installed dependency closure1/1 pass. Logs: `/tmp/f290-work-wake-material-delta-{build,typecheck,package-green,installed}.log`. These supersede the earlier package counts only; the first approval and its artifact remain historical evidence. The refreshed canonical identity is recorded separately at `/tmp/f290-batch2-time-receipt-delta-identity.json` and will require a new exact-HEAD delta verdict before merge.
