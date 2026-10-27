@@ -31,7 +31,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "pnpm clean && tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json && node ../../scripts/package-bins.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
     "test:lifecycle": "node --import tsx --test test/module-lifecycle.test.ts test/remote-lifecycle.test.ts test/standalone-service.test.mjs",
     "test:transport": "node --import tsx --test test/transport-recovery.test.ts",
