@@ -8,7 +8,7 @@ Connect a Collective service, pair participants, read authorized requests and su
 
 This is a public prerelease package. It needs a matching approved Host that supplies ordinary collaboration interfaces and authenticated Settings. Install it through the plugin catalog or use an exact npm package version. Installation does not grant account, Task or execution authority.
 
-1. Install and enable the relevant features, then use the service launch entry to configure the account and pair connections. A private bootstrap link is a handshake coordinate, not a standalone onboarding page.
+1. Install and enable the plugin. The default mode runs a local Service. For a standalone server, choose **Run mode → Connect to remote**, enter the SSH-facing address, save, then disable and re-enable. Open Collective to configure accounts and pair; the initial administrator uses the private bootstrap link in the Service data directory.
 2. Choose participating cats, threads and channels for the paired connection, then sync the current policy. Input cannot invent an unregistered cat.
 3. Use the installed participation MCP tools to read authorized sources, set interest and submit an ordinary reply. The Host authenticates the current cat and source.
 4. Private Work requires an existing Service commitment and the current manual owner choice or standing scope. Pairing, ordinary messages and a UI Task record are not execution grants.
@@ -33,17 +33,16 @@ Opening material, returning a result and sealing completion verify current publi
 
 ## Recovery and privacy
 
-Ordinary Channel attachments require a matching Host content custodian. An older Host returns an explicit
-unavailable response; an unsent file is never presented as published. Members can paste or choose images/files,
+Embedded mode uses the matching Host content custodian. A standalone Service retains ordinary attachments in its own durable directory, independently of the sender’s Café. A missing applicable custodian returns an explicit unavailable response; an unsent file is never presented as published. Members can paste or choose images/files,
 preview, remove, send and open authenticated original bytes. Draft versions and read positions belong to the
 Human and Channel; concurrent edits require an explicit choice. Private drafts never become public history.
 The packaged Client source commit, build inputs, manifest and byte digests are in `assets/client/source.json`.
 Keep a pre-upgrade business-directory snapshot. After new structured messages or private state have been
 written, the old strict reader cannot directly downgrade; preserve new writes and repair forward.
-This candidate also carries original catalogue stickers, sourced quotes, applicable rich content and speech-to-text.
+The packaged Client also carries original catalogue stickers, sourced quotes, applicable rich content and speech-to-text.
 Recording uses the current member's explicitly selected local service. Editable words remain private until Send;
 changing Channel ends capture immediately and preserves its audio in the original draft for retry.
-Authorized cats read the same public original images, UTF-8 text, explicitly available Host speech or video samples.
+Authorized cats read the same public original images, UTF-8 text, explicitly configured local speech or video samples. Standalone media tools, optional ASR and private sticker provisioning are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 Text continues with the returned offset; audio windows are at most120 seconds. Unsupported readers are explicit.
 A sampled video frame is not proof of watching the whole video or a frame-accurate private Work citation.
 
@@ -65,7 +64,7 @@ Disable stops sync and retains business state and credentials. Outbox, acknowled
 
 After response loss, reuse the same event ID, payload and invocation. Changing IDs does not bypass a conflict. A timeout or cancellation after a business write is not rollback. Private bootstrap fragments appear only in authenticated launch responses, never public status or logs.
 
-The plugin starts its own loopback HTTP listener on enable and closes it on stop, serving its packaged client and GitHub login callback. `servicePort` defaults to 5201; ports 3001 and 3002 are reserved. Disable and re-enable after changing the port. Only authenticated owner requests can admit an exact Host origin; ordinary browser requests cannot extend allowed origins. The Host supplies the installation data directory. No ambient Redis configuration is read. Business data persists in its authorized private directory. Message text and tool arguments cannot supply owner identity, current-cat identity, Task approval or execution grants.
+The default **Run on this computer** mode starts a loopback listener on enable and closes it on stop, serving its packaged Client and GitHub callback. `servicePort` defaults to 5201; ports 3001 and 3002 are reserved. **Connect to remote** starts only the Connector, without a local Service; `remoteServiceUrl` defaults to `http://127.0.0.1:15201`. Save, disable and re-enable after changing mode or address. Existing local data and paired connections remain; an outage or different instance never replaces the old identity. Only authenticated owner requests can admit an exact Host origin; ordinary browser requests cannot extend allowed origins. The Host supplies the installation data directory. No ambient Redis configuration is read. Business data persists in its authorized private directory. Message text and tool arguments cannot supply owner identity, current-cat identity, Task approval or execution grants.
 
 ## Current limits
 
@@ -73,8 +72,14 @@ Service pairing, automatic inbound delivery, public replies, real-model Work, ma
 
 The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
 
-The alpha.13 Client is built from exact Core source `5f055fcc907a67f015bceb84500256d8ad41e65d` (542 checked source inputs, no overrides). Batch 2 journey and source boundaries are recorded in that source’s `docs/evidence/2026-10-27-f290-dates-materials/README.md`.
+The Client retained in alpha.16 is built from exact Core source `5f055fcc907a67f015bceb84500256d8ad41e65d` (542 checked source inputs, no overrides). Batch 2 journey and source boundaries are recorded in that source’s `docs/evidence/2026-10-27-f290-dates-materials/README.md`.
 
 An admitted Work can set execution dates and report progress within the same resumed invocation. Delivery retains its exact Work observation; subsequent calls recheck the same assignment and current execution permission. Date edits retain CAS and operation replay, so a successful write does not invalidate its own receipt. Revocation, terminal state and reassignment checks remain.
 
 Reading or suggesting one shared material rechecks only its selected original source. Source-backed requests allow the bounded owner read to return its receipt, retaining live authorization, CAS and unknown-outcome recovery.
+
+## Standalone Service over private SSH (alpha.16)
+
+The package ships `clowder-collective-service`, its matching Client and a durable ordinary-attachment owner. See [DEPLOYMENT.md](DEPLOYMENT.md) for installation, loopback forwarding, initial setup, media dependencies, stopped backups and upgrades. Shared Works stay with their original Café owner over the existing relay and become unavailable while that owner is offline.
+
+This version uses Contract `0.3.0` / SDK `0.3.0-beta.1`. The remote launch entry requires a matching Host containing Core `64019020ac268cb3695a1b9025dfad1cc5a104c8`. The Client retains the 542 verified source inputs above and was neither rebuilt nor rolled back. Install the exact package and digest in the release receipt. Engineering checks cover installed packages, isolated OpenSSH, attachments, original Works and lost-response recovery; a real cloud server, two computers, two Humans and the production GitHub provider remain deployment acceptance.
