@@ -132,9 +132,13 @@ export async function materializeOwnedLarkRunner(
     JSON.parse(await readFile(join(distribution, 'lark-cli-runners.json'), 'utf8')),
   );
   const selected = selectRunner(manifest);
-  const directory = join(home, '.clowder-runner', `${selected.platform}-${selected.arch}`);
+  await privateDirectory(home);
+  let directory = home;
+  for (const segment of ['.clowder-runner', `${selected.platform}-${selected.arch}`]) {
+    directory = join(directory, segment);
+    await privateDirectory(directory);
+  }
   const executable = join(directory, 'lark-cli');
-  await privateDirectory(directory);
   const existing = await readPrivate(executable, MAX_RUNNER_BYTES);
   if (!existing || existing.length !== selected.binaryBytes || digest(existing) !== selected.binarySha256) {
     const archive = await readPackagedArchive(join(distribution, 'lark-cli-runners', selected.asset));

@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
-import { createCipheriv, randomBytes } from 'node:crypto';
-import { mkdtemp, readFile, writeFile, readdir, symlink, rm } from 'node:fs/promises';
+import { createCipheriv, createHash, randomBytes } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, writeFile, readdir, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { configureOwnedLarkHome, prepareOwnedLarkHome, createOwnedLarkCommand } from '../src/owned-lark-command.js';
+import {
+  configureOwnedLarkHome,
+  prepareOwnedLarkHome,
+  createOwnedLarkCommand,
+  materializeOwnedLarkRunner,
+} from '../src/owned-lark-command.js';
 const current = async () => {};
 const temporary = () => mkdtemp(join(tmpdir(), 'owned-meeting-account-'));
 
@@ -37,6 +42,42 @@ test('credential path aliases are rejected before private master creation', asyn
     await assert.rejects(() => prepareOwnedLarkHome(home,current), /directory.*invalid/);
     assert.deepEqual(await readdir(outside), []);
   } finally { await rm(home,{ recursive:true,force:true }); await rm(outside,{ recursive:true,force:true }); }
+});
+
+async function assertRunnerAliasRejected(alias: 'root' | 'platform'): Promise<void> {
+  const home = await temporary(), outside = await temporary();
+  const platform = `${process.platform}-${process.arch}`;
+  const runnerRoot = join(home, '.clowder-runner');
+  const outsidePlatform = join(outside, platform);
+  const outsideRunner = join(outsidePlatform, 'lark-cli');
+  const sentinel = Buffer.from(`outside-${alias}-sentinel`);
+  try {
+    await mkdir(outsidePlatform, { recursive: true, mode: 0o700 });
+    await writeFile(outsideRunner, sentinel, { mode: 0o600 });
+    if (alias === 'root') await symlink(outside, runnerRoot);
+    else {
+      await mkdir(runnerRoot, { mode: 0o700 });
+      await symlink(outsidePlatform, join(runnerRoot, platform));
+    }
+    let failure: unknown;
+    try { await materializeOwnedLarkRunner(home, current); }
+    catch (error) { failure = error; }
+    const externalDigest = createHash('sha256').update(await readFile(outsideRunner)).digest('hex');
+    const sentinelDigest = createHash('sha256').update(sentinel).digest('hex');
+    assert.equal(externalDigest, sentinelDigest, 'runner materialization must not overwrite an aliased external file');
+    assert.match(String(failure), /private directory is invalid/);
+  } finally {
+    await rm(home, { recursive: true, force: true });
+    await rm(outside, { recursive: true, force: true });
+  }
+}
+
+test('runner root aliases are rejected without changing the external sentinel', async () => {
+  await assertRunnerAliasRejected('root');
+});
+
+test('runner platform aliases remain rejected without changing the external sentinel', async () => {
+  await assertRunnerAliasRejected('platform');
 });
 
 test('command abort kills the actual owned process group, including a child that ignores SIGTERM', async () => {
