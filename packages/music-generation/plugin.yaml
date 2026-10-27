@@ -8,6 +8,7 @@ description:
     zh-CN: 使用已授权的 Google Cloud 项目生成配乐，保留音频和来源回执，不自动重复付费生成。
 icon: { type: svg, src: assets/icon.svg }
 steps:
+  - text: 显式启用后，猫可将本次配乐和来源回执新建到当前调用线程所属项目的指定位置；宿主核对项目归属，不覆盖已有文件，不因结果未知自动重复付费生成。
   - text: 先填写已有 Google Cloud 项目 ID。费用由该项目的结算承担；是否适用赠金须以 Cloud 账单为准，不使用 AI Studio 充值余额。
   - text: 本机已有 Google Cloud 授权时，点击“复用本机已授权账号”。只在确认后读取标准 ADC 并保存到插件凭据库；不会读取浏览器或 AGY 登录。
   - text: 新连接或重新授权可使用下方的桌面 OAuth 应用。点击连接后主动打开 Google 链接并勾选 Cloud 数据权限；接收器在后台等待，不操作你的屏幕。
