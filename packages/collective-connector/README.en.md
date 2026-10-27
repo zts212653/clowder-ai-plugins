@@ -46,9 +46,9 @@ conversation that opened the world. Refresh restores only previously verified na
 Human, marked as checking rather than authority. The unavailable page keeps the target name, offers an in-place retry
 and hides raw network errors.
 
-The packaged Client's paired Core source is `70c0ef7b0f685d5c883138e0a1a0e44d1ba6b4fc`; see the
-[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/70c0ef7b0f685d5c883138e0a1a0e44d1ba6b4fc/docs/evidence/2026-10-25-f290-expression-content)
-and the [same-source real Host journey](https://github.com/zts212653/cat-cafe/blob/70c0ef7b0f685d5c883138e0a1a0e44d1ba6b4fc/packages/web/test/browser/f290-world-identity.journey.mjs),
+The packaged Client's paired Core source is `280fcd4d6618f1fb4e1c7cf614af7901680080ca`; see the
+[Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/280fcd4d6618f1fb4e1c7cf614af7901680080ca/docs/evidence/2026-10-25-f290-expression-content)
+and the [same-source real Host journey](https://github.com/zts212653/cat-cafe/blob/280fcd4d6618f1fb4e1c7cf614af7901680080ca/packages/web/test/browser/f290-world-identity.journey.mjs),
 which covers Human identity, A→B→A history, refresh recovery, unavailable retry and identity-card bounds.
 Source-workspace and independent test-session checks do not replace a loaded Host installation, real OAuth
 or physical audio-quality acceptance.

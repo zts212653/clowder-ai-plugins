@@ -40,9 +40,9 @@ Core Host 补齐 Host 与 Client 的世界位置契约：同一 Service 切换�
 返回「我的 Café」会回到进入世界前的对话；刷新只把与当前 Connector authority 同一 Human 的已验证世界
 名称恢复为待复核入口，不能把缓存当权限。断网页保留目标世界名和就地重试，不展示原始网络错误。
 
-随包 Client 的配套 Core 源码为 `70c0ef7b0f685d5c883138e0a1a0e44d1ba6b4fc`；频道表达边界见
-[第一批证据](https://github.com/zts212653/cat-cafe/tree/70c0ef7b0f685d5c883138e0a1a0e44d1ba6b4fc/docs/evidence/2026-10-25-f290-expression-content)，
-Human 身份、A→B→A 世界历史、刷新恢复、断网重试与卡片边界见[同源真实 Host journey](https://github.com/zts212653/cat-cafe/blob/70c0ef7b0f685d5c883138e0a1a0e44d1ba6b4fc/packages/web/test/browser/f290-world-identity.journey.mjs)。
+随包 Client 的配套 Core 源码为 `280fcd4d6618f1fb4e1c7cf614af7901680080ca`；频道表达边界见
+[第一批证据](https://github.com/zts212653/cat-cafe/tree/280fcd4d6618f1fb4e1c7cf614af7901680080ca/docs/evidence/2026-10-25-f290-expression-content)，
+Human 身份、A→B→A 世界历史、刷新恢复、断网重试与卡片边界见[同源真实 Host journey](https://github.com/zts212653/cat-cafe/blob/280fcd4d6618f1fb4e1c7cf614af7901680080ca/packages/web/test/browser/f290-world-identity.journey.mjs)。
 源码工作区和独立测试会话验证不能代替正式 Host 安装到版、真人 OAuth 或实体音频质量验收。
 
 停用停止同步并保留业务状态和凭据。出站、确认、参与变更及撤销先记录尝试；结果不明会保留为待核实，普通同步或重连不会清除。设置里的恢复列表可核对同一操作，只有证据允许时才能恢复。
