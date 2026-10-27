@@ -89,8 +89,5 @@
     "type": "git",
     "url": "https://github.com/zts212653/clowder-ai-plugins.git",
     "directory": "packages/feishu-meeting-intake"
-  },
-  "bin": {
-    "clowder-feishu-meeting-runner": "dist/lark-cli"
   }
 }

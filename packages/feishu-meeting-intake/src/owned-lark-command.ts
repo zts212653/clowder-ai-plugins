@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
-import { createDecipheriv, randomBytes, createHash } from 'node:crypto';
+import { createDecipheriv, randomBytes } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { privateDirectory, readPrivate, writePrivate } from './private-files.js';
 import { parseLarkCliReadOutput } from './lark-cli-read-command.js';
+import { materializeOwnedLarkRunner } from './owned-lark-runner.js';
+
+export { materializeOwnedLarkRunner } from './owned-lark-runner.js';
 
 
 export type OwnedLarkCommand = (args: readonly string[], signal: AbortSignal, cwd?: string) => Promise<unknown>;
@@ -56,12 +58,10 @@ export async function configureOwnedLarkHome(home: string, appId: string, appSec
 export function createOwnedLarkCommand(home: string, assertCurrent: () => Promise<void>): OwnedLarkCommand {
   return async (args, signal, cwd = home) => {
     await prepareOwnedLarkHome(home, assertCurrent); signal.throwIfAborted();
-    const directory = fileURLToPath(new URL('../dist/', import.meta.url));
-    const runner = JSON.parse(await readFile(join(directory, 'lark-cli-runtime.json'), 'utf8'));
-    if (runner.version !== '1.0.85' || runner.platform !== process.platform || runner.arch !== process.arch || createHash('sha256').update(await readFile(join(directory, 'lark-cli'))).digest('hex') !== runner.binarySha256) throw new Error('Pinned meeting runner integrity is unavailable');
+    const runner = await materializeOwnedLarkRunner(home, assertCurrent);
     await assertCurrent(); signal.throwIfAborted();
     return new Promise((resolve, reject) => {
-      const child = spawn(join(directory, 'lark-cli'), [...args], {
+      const child = spawn(runner.executable, [...args], {
         cwd, env: { HOME: home }, shell: false, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
       });
       let stdout = Buffer.alloc(0), size = 0, failure: unknown;

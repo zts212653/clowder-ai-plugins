@@ -21,7 +21,13 @@ test('one meeting archive installs offline with an empty npm cache and runs its 
     {XDG_CACHE_HOME:join(temp,'cache'),npm_config_cache_dir:join(temp,'metadata'),npm_config_offline:'true'}));
    if(name==='feishu-meeting-intake'){
     assert.equal(pack.files.some(file=>file.path==='node_modules/@larksuite/cli/bin/lark-cli'),false,
-     'postinstall-generated vendor runner must not duplicate the fixed dist/lark-cli');
+     'postinstall-generated vendor runner must not duplicate the fixed runner archives');
+    assert.equal(pack.files.some(file=>file.path==='dist/lark-cli'),false,
+     'a build-host binary must never define the public archive identity');
+    assert.deepEqual(pack.files.filter(file=>file.path.startsWith('dist/lark-cli-runners/')).map(file=>file.path),[
+     'dist/lark-cli-runners/lark-cli-1.0.85-darwin-arm64.tar.gz',
+     'dist/lark-cli-runners/lark-cli-1.0.85-linux-amd64.tar.gz',
+    ]);
     const budget=join(temp,'budget');await mkdir(budget);run('tar',['-xzf',join(packs,pack.filename),'-C',budget],temp);
     assert.ok(await fileBytes(budget)<=64*1024*1024,'meeting archive exceeds Host uncompressed budget');
    }

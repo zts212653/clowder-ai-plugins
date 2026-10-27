@@ -48,7 +48,9 @@ const child=spawn(process.execPath,['-e', 'process.on("SIGTERM",()=>{});setInter
 process.on('SIGTERM',()=>{});fs.writeFileSync(path.join(process.env.HOME,'pids.json'),JSON.stringify([process.pid,child.pid]));setInterval(()=>{},1000);`);
   let childEnv: NodeJS.ProcessEnv | undefined;
   childProcess.spawn = ((executable: string, _args: readonly string[], options: Parameters<typeof realSpawn>[2]) => {
-    childEnv = options?.env; assert.ok(executable.endsWith('/dist/lark-cli')); return realSpawn(process.execPath,[runner],options);
+    childEnv = options?.env;
+    assert.equal(executable, join(home, '.clowder-runner', `${process.platform}-${process.arch}`, 'lark-cli'));
+    return realSpawn(process.execPath,[runner],options);
   }) as typeof realSpawn;
   syncBuiltinESMExports();
   const abort = new AbortController();

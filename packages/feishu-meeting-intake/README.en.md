@@ -6,12 +6,12 @@ A generated meeting artifact becomes a retained record and one ordinary thread n
 The installed MCP lets a cat read the source in that same authenticated thread. People retain
 account authorization, destination choice and the interpretation of the meeting.
 
-This local candidate is not admitted for public release. Fixtures and packed consumers do not
-certify a real Feishu account or the complete installed journey.
+This is a public prerelease candidate. Publication and catalog activation do not certify a real
+Feishu account or the complete installed journey.
 
 ## Settings journey
 
-1. Select the approved local archive in Manager, review the installation details, then enable it.
+1. Select the exact approved catalog version in Manager, review the installation details, then enable it.
    First enable starts only the control plane: no login, CLI process, collection or provider request.
 2. Save your Feishu app ID and secret and an existing accessible notification thread.
 3. Select **Authorize Feishu**, open its Feishu URL, then **Check authorization**.
@@ -39,12 +39,14 @@ secret is never returned to MCP or passed as a process argument. Account data, c
 notification receipts and recovery evidence remain in this installation's private directory. The Host
 checks the saved notification destination; each notification retains a fixed target, body and idempotency key.
 
-The pinned official CLI1.0.85 runner is checksum-verified at build and packaged with this local
-platform artifact. Its declared binary member retains executable permissions in the archive and installed consumer.
-Runtime does not download a runner or borrow the operator's HOME/profile.
+The pinned official CLI 1.0.85 runner archives for macOS arm64 and Linux x64 are checksum-verified
+and packaged together, so npm identity does not depend on the publication machine. Runtime selects
+the Host-matching archive, verifies its archive and executable digests, and materializes only that
+executable in the installation's private directory. Runtime does not download a runner or borrow
+the operator's HOME/profile.
 macOS uses an owned fallback file master; Linux uses its owned file backend. Existing encrypted
 credentials must authenticate locally before starting any CLI. Windows credential isolation is
-not supported by this module. Artifact platform/architecture must match the Host.
+not supported by this module. Other macOS/Linux architectures fail explicitly before provider access.
 
 ## Installed MCP
 
