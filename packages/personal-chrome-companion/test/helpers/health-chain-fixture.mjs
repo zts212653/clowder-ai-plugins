@@ -71,11 +71,17 @@ export async function healthChainFixture(t, options = {}) {
     { chrome, console, URL, TextEncoder, setTimeout, clearTimeout });
   bridge = await createNativeHostBridge({ socketPath: pairing.socketPath, ledgerPath: pairing.ledgerPath,
     conversationBindingPath: paths.conversationBindingPath, pairingSecret: pairing.pairingSecret,
-    helperArtifactRevision: revisions.helper, sendNative: async (request) => { nativeRequests.push(request); nativeListener(request); } });
+    helperArtifactRevision: state.helper ?? revisions.helper, sendNative: async (request) => { nativeRequests.push(request); nativeListener(request); } });
   const adapter = new PersonalChromeHostAdapter({ socketPath: pairing.socketPath, pairingSecret: pairing.pairingSecret,
     helperArtifactRevision: state.expectedHelper ?? revisions.helper,
     onRevisionContact: async (observedRevisions, errorCode) => { revisionContacts.push({ observedRevisions, errorCode }); } });
   return { root, paths, state, adapter, revisions, nativeRequests, tabQueries, contentRequests, revisionContacts,
+    settings: async () => {
+      const settings = await entrypoint.create(parse(await readFile(join(packageRoot, 'plugin.yaml'), 'utf8')))
+        .settings({ dataPath, log() {} });
+      t.after(() => settings.dispose());
+      return settings.actions;
+    },
     hostTest: () => activation.actions[PERSONAL_CHROME_TEST_METHOD]({}),
     pageCheckAction: () => activation.actions['personal-chrome-host.check-conversation'],
     revoke: (conversationId) => activation.actions['personal-chrome-host.authorizations.revoke']({ conversationId }),

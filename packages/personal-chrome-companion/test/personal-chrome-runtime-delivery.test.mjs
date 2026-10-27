@@ -254,7 +254,7 @@ test('a connection-only contact clears extension reload but preserves a known st
   await delivery.observe(unobserved, 'CONVERSATION_NOT_SELECTED');
   assert.equal(delivery.status().reloadRequired, false);
   assert.equal(delivery.status().pageReloadRequired, undefined);
-  await delivery.observe({ ...current, pageAdapter: '2026-09-02.1' }, 'STALE_PAGE_ADAPTER');
+  await delivery.observe({ ...current, pageAdapter: '2026-09-02.1' }, 'STALE_PAGE_ADAPTER', 'conversation-1');
   assert.equal(delivery.status().reloadRequired, false);
   assert.equal(delivery.status().pageReloadRequired, true);
   assert.match(delivery.label(), /Reload the affected ChatGPT conversation page/);
@@ -263,7 +263,7 @@ test('a connection-only contact clears extension reload but preserves a known st
   await delivery.dispose();
   delivery = await f.prepare();
   assert.equal(delivery.status().pageReloadRequired, true, 'an untargeted check cannot certify an outdated page');
-  await delivery.observe(current);
+  await delivery.observe(current, undefined, 'conversation-1');
   assert.equal(delivery.status().reloadRequired, false);
   assert.equal(delivery.status().pageReloadRequired, undefined);
   await delivery.dispose();

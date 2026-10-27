@@ -55,7 +55,7 @@ export interface PersonalChromeHostAdapterOptions {
   readonly onConnected?: () => void;
   readonly onUnavailable?: () => void;
   /** Only correlated, validated replies carry revision evidence; a socket connection does not. */
-  readonly onRevisionContact?: (revisions: PersonalChromeRevisions | undefined, errorCode?: string) => Promise<void>;
+  readonly onRevisionContact?: (revisions: PersonalChromeRevisions | undefined, errorCode?: string, conversationId?: string) => Promise<void>;
 }
 
 /**
@@ -311,7 +311,7 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
         (result.observedRevisions !== undefined &&
           !revisionsMatch(request.expectedRevisions, result.observedRevisions));
       await this.options.onRevisionContact?.(result.observedRevisions,
-        staleRevision && !result.errorCode.startsWith('STALE_') ? 'STALE_ADAPTER' : result.errorCode);
+        staleRevision && !result.errorCode.startsWith('STALE_') ? 'STALE_ADAPTER' : result.errorCode, conversationId);
       throw new PersonalChromeHostError(
         staleRevision ? 'STALE_ADAPTER' : result.errorCode,
         staleRevision
@@ -322,13 +322,13 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
       );
     }
     if (!revisionsMatch(request.expectedRevisions, result.observedRevisions)) {
-      await this.options.onRevisionContact?.(result.observedRevisions, 'STALE_ADAPTER');
+      await this.options.onRevisionContact?.(result.observedRevisions, 'STALE_ADAPTER', conversationId);
       throw new PersonalChromeHostError('STALE_ADAPTER', 'personal Chrome adapter revision does not match runtime');
     }
     if (!result.hostMessageId.trim()) {
       throw new PersonalChromeHostError('AMBIGUOUS_EFFECT', 'hostMessageId must be non-empty');
     }
-    await this.options.onRevisionContact?.(result.observedRevisions);
+    await this.options.onRevisionContact?.(result.observedRevisions, undefined, conversationId);
     return {
       hostMessageId: result.hostMessageId,
       ...(result.idempotentReplay === undefined ? {} : { idempotentReplay: result.idempotentReplay }),
@@ -420,7 +420,7 @@ export class PersonalChromeHostAdapter implements IPersonalChromeAssistantReturn
     const projection = projectHealthResult(request, result);
     const stale = projection.status === 'stale_adapter';
     await this.options.onRevisionContact?.(result.observedRevisions,
-      stale && !projection.errorCode?.startsWith('STALE_') ? 'STALE_PAGE_ADAPTER' : projection.errorCode);
+      stale && !projection.errorCode?.startsWith('STALE_') ? 'STALE_PAGE_ADAPTER' : projection.errorCode, conversationId);
     return { ...result, ...projection };
   }
 }

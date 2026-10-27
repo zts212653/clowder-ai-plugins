@@ -107,6 +107,7 @@ export function createConversationHostOperations(options: {
   readonly now?: () => number;
   readonly log?: HelperConnectionLog;
   readonly onRevisionContact?: PersonalChromeHostAdapterOptions['onRevisionContact'];
+  readonly expectedHelperArtifactRevision?: string;
 }): PersonalChromeConversationHostOperations {
   const { dataDirectory } = options;
   let disposed = false;
@@ -124,12 +125,15 @@ export function createConversationHostOperations(options: {
       () => unavailable('not_installed'),
       () => { if (!disposed) reachability.invalidInstallation(); },
     )),
+    ...(options.expectedHelperArtifactRevision === undefined ? {} : { helperArtifactRevision: options.expectedHelperArtifactRevision }),
     timeoutMs: options.timeoutMs,
     requestTracker,
     onConnected: () => { if (!disposed) reachability.connected(); },
     onUnavailable: () => unavailable('unreachable'),
-    onRevisionContact: async (revisions, errorCode) => {
-      if (!disposed) await options.onRevisionContact?.(revisions, errorCode);
+    onRevisionContact: async (revisions, errorCode, conversationId) => {
+      if (disposed) return;
+      if (conversationId === undefined) await options.onRevisionContact?.(revisions, errorCode);
+      else await options.onRevisionContact?.(revisions, errorCode, conversationId);
     },
   });
 

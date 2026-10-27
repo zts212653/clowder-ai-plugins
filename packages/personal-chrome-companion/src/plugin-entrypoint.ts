@@ -1,5 +1,7 @@
 import {definePluginModule} from '@clowder-ai/plugin-sdk';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { digestNativeHostArtifactDirectory } from '../native-host/native-host-artifact.mjs';
 
 import type {
   CloudConversationHostContribution,
@@ -19,6 +21,7 @@ import { createConversationHostOperations } from './conversation-host.js';
 import { authorizedPageHealthAction } from './authorized-page-health.js';
 import { describeHelperConnection, type HelperConnectionStatus } from './helper-reachability.js';
 import { prepareRuntimeDelivery, type RuntimeDelivery } from './runtime-delivery.js';
+import { readRuntimeDelivery } from './runtime-delivery-state.js';
 import {
   PERSONAL_CHROME_AUTHORIZATION_LIMIT,
   PersonalChromeConversationAuthorizationError,
@@ -163,6 +166,7 @@ export function createAuthorizationOperations(options: {
     revoke: async (input) => {
       const conversationId = revokeConversationId(input);
       await revokePersonalChromeConversation(authorizationPath, conversationId, now().toISOString());
+      await options.delivery?.forgetConversation(conversationId);
       return readRows();
     },
     status: async () => {
@@ -208,18 +212,21 @@ export interface PersonalChromeSettingsHost {
 }
 export interface PersonalChromeSettingsEntrypoint extends PluginModuleEntrypoint {
   create(manifest: unknown): PluginModuleDefinition & {
-    settings(host: PersonalChromeSettingsHost): {
+    settings(host: PersonalChromeSettingsHost): Promise<{
       actions: Readonly<Record<string, (input: unknown) => Promise<unknown>>>;
       dispose(): Promise<void>;
-    };
+    }>;
   };
 }
 
-function loadedSettings(host: PersonalChromeSettingsHost) {
+async function loadedSettings(host: PersonalChromeSettingsHost) {
   if (!host.dataPath) throw new TypeError('Host dataPath is required for Chrome settings');
-  const conversationHost = createConversationHostOperations({ dataDirectory: host.dataPath, log: host.log });
+  const delivery = await readRuntimeDelivery(host.dataPath);
+  const expectedHelperArtifactRevision = await digestNativeHostArtifactDirectory(fileURLToPath(new URL('../native-host/', import.meta.url)));
+  const conversationHost = createConversationHostOperations({ dataDirectory: host.dataPath, log: host.log,
+    expectedHelperArtifactRevision, onRevisionContact: delivery.observe });
   const operations = createAuthorizationOperations({
-    authorizationPath: join(host.dataPath, 'conversation-binding.json'), helperStatus: conversationHost.status,
+    authorizationPath: join(host.dataPath, 'conversation-binding.json'), helperStatus: conversationHost.status, delivery,
   });
   // Inspect/revoke and explicit helper probes do not prepare runtime delivery or
   // register the cloud-conversation-host contribution.
@@ -233,9 +240,14 @@ function loadedSettings(host: PersonalChromeSettingsHost) {
         ? `Updated ${titleSync.updatedCount} of ${titleSync.requestedCount} conversation title(s).`
         : `Title refresh unavailable: ${titleSync.errorCode}` };
     },
-    [PERSONAL_CHROME_TEST_METHOD]: () => conversationHost.probe(),
+    [PERSONAL_CHROME_TEST_METHOD]: async () => {
+      const result = await conversationHost.probe();
+      const state = delivery.status();
+      return { ok: result.ok && !state.reloadRequired && !state.pageReloadRequired && !state.failure,
+        message: `${result.message} ${delivery.label()}`.trim() };
+    },
     [PERSONAL_CHROME_CHECK_CONVERSATION_METHOD]: authorizedPageHealthAction(join(host.dataPath, 'conversation-binding.json'), conversationHost),
-  }, dispose: () => conversationHost.dispose() };
+  }, dispose: async () => { await Promise.all([delivery.dispose(), conversationHost.dispose()]); } };
 }
 
 export function createPersonalChromePluginModule(): PersonalChromeSettingsEntrypoint {

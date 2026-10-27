@@ -138,3 +138,49 @@ test('checking a historical schema-v1 authorization never migrates or rewrites i
   assert.deepEqual(await f.fingerprint(), before);
 });
 
+test('checking another current page cannot clear the exact stale page, including loaded Settings requests', async (t) => {
+  const f = await healthChainFixture(t, { pageAdapter: '2026-09-02.1' });
+  const before = await f.fingerprint();
+  const check = 'personal-chrome-host.check-conversation';
+  const status = 'personal-chrome-host.authorizations.status';
+  const firstSettings = await f.settings();
+  const otherSettings = await f.settings(); // Both initially observe the same record generation.
+  const stale = await firstSettings[check]({ conversationId: 'conversation-7' });
+  assert.equal(stale.data.health.status, 'stale_adapter');
+  assert.equal((await (await f.settings())[status]({})).data.delivery?.pageReloadRequired, true);
+  f.state.tabs = [{ id: 8, url: 'https://chatgpt.com/c/conversation-8' }];
+  assert.equal((await otherSettings[check]({ conversationId: 'conversation-8' })).data.health.status, 'stale_adapter');
+  f.state.pageAdapter = f.revisions.pageAdapter;
+  assert.equal((await otherSettings[check]({ conversationId: 'conversation-8' })).data.health.status, 'ready');
+  assert.equal((await (await f.settings())[status]({})).data.delivery?.pageReloadRequired, true,
+    'a new Settings invocation must retain the other page warning');
+  assert.equal((await f.hostTest()).ok, false, 'active runtime sees the same persisted warning');
+  f.state.tabs = [{ id: 7, url: 'https://chatgpt.com/c/conversation-7' }];
+  assert.equal((await (await f.settings())[check]({ conversationId: 'conversation-7' })).data.health.status, 'ready');
+  assert.equal((await f.hostTest()).ok, true);
+  assert.equal((await (await f.settings())[status]({})).data.delivery?.pageReloadRequired, undefined);
+  assert.deepEqual(await f.fingerprint(), before);
+});
+
+test('revoking the exact stale authorization removes its warning without probing or changing other pages', async (t) => {
+  const f = await healthChainFixture(t, { pageAdapter: '2026-09-02.1' });
+  const actions = await f.settings();
+  await actions['personal-chrome-host.check-conversation']({ conversationId: 'conversation-7' });
+  assert.equal((await (await f.settings())['personal-chrome-host.authorizations.status']({})).data.delivery?.pageReloadRequired, true);
+  const beforeQueries = f.tabQueries.length;
+  await actions['personal-chrome-host.authorizations.revoke']({ conversationId: 'conversation-7' });
+  assert.equal(f.tabQueries.length, beforeQueries);
+  assert.equal((await f.hostTest()).ok, true);
+  const status = await (await f.settings())['personal-chrome-host.authorizations.status']({});
+  assert.equal(status.data.authorizedCount, 20);
+  assert.equal(status.data.delivery?.pageReloadRequired, undefined);
+});
+
+test('loaded Settings rejects a genuinely old running helper against the current package artifact', async (t) => {
+  const f = await healthChainFixture(t, { helper: `sha512:${'0'.repeat(128)}` });
+  const result = await (await f.settings())['personal-chrome-host.test']({});
+  assert.equal(result.ok, false);
+  assert.match(result.message, /STALE_HELPER/);
+  assert.equal(f.tabQueries.length, 0);
+});
+

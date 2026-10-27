@@ -90,6 +90,8 @@ The same owner action is available as **Check conversation page** on
 each authorization row. After reloading that page, check the same row to resolve a
 stale-page reminder. The action revalidates authorization without changing it or
 typing/sending a message.
+Each reminder belongs to its exact conversation: checking another page cannot
+clear it. Revoking that authorization removes its reminder without probing Chrome.
 
 The stable folder is `<projectRoot>/.cat-cafe/plugin-host/personal-chrome-host/extension/`.
 On updates or rollbacks the package refreshes these bytes; **Reload** the already
