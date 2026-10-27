@@ -109,6 +109,10 @@ export function buildGateSteps() {
       command: chain('@clowder-ai/feishu-meeting-intake', ['typecheck', 'test', 'lint', 'build']),
     },
     {
+      name: 'Feishu packed installed journey',
+      command: 'node --test packages/feishu-meeting-intake/test/installed-directory.test.mjs',
+    },
+    {
       name: 'Tripo standalone package and locked consumer',
       command: chain('@clowder-ai/tripo-studio', ['build', 'test', 'lint']) + ' && pnpm --filter @clowder-ai/companion exec playwright install chromium && node packages/tripo-studio/test/workspace.browser.mjs',
     },

@@ -43,6 +43,7 @@ assert.deepEqual(
     'official.connector.weixin',
     'official.connector.xiaoyi',
     'official.enterprise-workflow',
+    'official.feishu-meeting-intake',
     'official.github-operations',
     'official.wechat-visible-reader',
     'official.weixin-mp',
@@ -305,7 +306,46 @@ async function verifyCatalogEntry(catalogEntry) {
     const runtimeDependencies = Object.keys({
       ...packageJson.dependencies, ...packageJson.optionalDependencies,
     }).length > 0;
-    if (!staticSurfaces || runtimeDependencies) {
+    const bundledDependencies = packageJson.bundledDependencies;
+    if (Array.isArray(bundledDependencies) && bundledDependencies.length > 0) {
+      const declaredDependencies = Object.keys(packageJson.dependencies ?? {}).sort();
+      assert.deepEqual(
+        [...bundledDependencies].sort(),
+        declaredDependencies,
+        'bundled runtime must name every declared direct dependency exactly once',
+      );
+      assert.equal(
+        artifact.files.some(file => file.path === 'npm-shrinkwrap.json'),
+        false,
+        'materialized bundled archives must not expose workspace install metadata',
+      );
+      for (const dependency of declaredDependencies) {
+        const dependencyManifest = `node_modules/${dependency}/package.json`;
+        assert.ok(
+          artifact.files.some(file => file.path === dependencyManifest),
+          `packed bundled runtime is missing ${dependencyManifest}`,
+        );
+        const installed = JSON.parse(
+          await readFile(join(unpackedDirectory, 'package', dependencyManifest), 'utf8'),
+        );
+        assert.equal(installed.name, dependency);
+        assert.equal(
+          installed.version,
+          packageJson.dependencies[dependency],
+          `${dependency} must retain its exact declared identity in the bundled archive`,
+        );
+      }
+      const installedTree = spawnSync('npm', ['ls', '--omit=dev', '--all', '--depth=100'], {
+        cwd: join(unpackedDirectory, 'package'),
+        encoding: 'utf8',
+        maxBuffer: 16 * 1024 * 1024,
+      });
+      assert.equal(
+        installedTree.status,
+        0,
+        [installedTree.stdout, installedTree.stderr].filter(Boolean).join('\n'),
+      );
+    } else if (!staticSurfaces || runtimeDependencies) {
       assert.ok(
         artifact.files.some((file) => file.path === 'npm-shrinkwrap.json'),
         'packed artifact is missing npm-shrinkwrap.json',

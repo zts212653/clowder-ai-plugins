@@ -448,6 +448,7 @@ test('main publishes the public dependency chain through one hardened action', (
     'packages/collective-connector',
     'packages/enterprise-workflow',
     'packages/personal-chrome-companion',
+    'packages/feishu-meeting-intake',
     'packages/connector-telegram',
     'packages/connector-dingtalk',
     'packages/connector-feishu',
@@ -939,6 +940,11 @@ test('official Feishu intake changes execute pull-request validation', () => {
     localGate,
     /chain\('@clowder-ai\/feishu-meeting-intake', \['typecheck', 'test', 'lint', 'build'\]\)/,
     'local gate must run Feishu intake typecheck, tests, lint, and build',
+  );
+  assert.match(
+    localGate,
+    /node --test packages\/feishu-meeting-intake\/test\/installed-directory\.test\.mjs/,
+    'local gate must exercise the exact packed meeting archive in an empty consumer',
   );
   assert.ok(
     localGate.indexOf('pnpm --filter @clowder-ai/plugin-sdk build') <

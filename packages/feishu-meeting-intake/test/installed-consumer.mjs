@@ -38,6 +38,9 @@ try {
  const owner={kind:'owner-operation',userId:'owner',pluginInstanceId:'installed',operationKey:'account',actionId:'status',requestId:'status',signal:new AbortController().signal,async assertCurrent(){}};
  const status=await active.actions['meeting.status']({input:{}},undefined,owner);
  assert.deepEqual(status.data,{auth:'not_configured',collectionIntent:'disabled',live:'stopped'});
+ const sourceOwner={...owner,operationKey:'sourceMaterial',actionId:'invoke',requestId:'source-material'};
+ const sourceMaterial=await active.actions['meeting.sourceMaterial']({input:{},operationState:{currentAction:'invoke',updatedAt:1}},undefined,sourceOwner);
+ assert.deepEqual(sourceMaterial.data,{kind:'project_source_sharing'},'installed Host must reach the generic source-material operation');
  await active.stop();
  await assert.rejects(()=>active.actions['meeting.status']({input:{}},undefined,owner),/stopped|revoked/);
  const require=createRequire(join(packageRoot,'package.json'));

@@ -262,6 +262,9 @@ jobs:
       - name: Build personal Chrome companion package
         run: pnpm --filter @clowder-ai/personal-chrome-companion build
 
+      - name: Build Feishu meeting intake package
+        run: pnpm --filter @clowder-ai/feishu-meeting-intake build
+
       - name: Build companion package
         run: pnpm --filter @clowder-ai/companion build
 
@@ -317,6 +320,12 @@ jobs:
         uses: ./.github/actions/publish-prerelease
         with:
           package-directory: packages/personal-chrome-companion
+          npm-token: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Feishu meeting intake prerelease
+        uses: ./.github/actions/publish-prerelease
+        with:
+          package-directory: packages/feishu-meeting-intake
           npm-token: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish Telegram connector prerelease
