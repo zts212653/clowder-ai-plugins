@@ -65,4 +65,4 @@ Human 身份、A→B→A 世界历史、刷新恢复、断网重试与卡片边�
 
 宿主管理安装、授权、凭据和启停；配置保存不自动改变启用意图。英文文档是独立文件，互链不代表页面已支持自动语言切换。
 
-本次 alpha.13 Client 来自精确 Core 源码 `87aeeece8be3a355aa468cd091f443bc75012b46`，核对 541 个源输入、无覆盖。第二批旅程与来源边界见该源的 `docs/evidence/2026-10-27-f290-dates-materials/README.md`。
+本次 alpha.13 Client 来自精确 Core 源码 `5f055fcc907a67f015bceb84500256d8ad41e65d`，核对 542 个源输入、无覆盖。第二批旅程与来源边界见该源的 `docs/evidence/2026-10-27-f290-dates-materials/README.md`。

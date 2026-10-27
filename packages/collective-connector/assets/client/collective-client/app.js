@@ -29107,6 +29107,25 @@ var TipEventBatchAckSchema = external_exports.object({
 var TIP_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1e3;
 var TIP_QUEUE_FLUSH_INTERVAL_MS = 5 * 60 * 1e3;
 
+// ../shared/src/chat-background.ts
+var backgroundImageUrlSchema = external_exports.string().regex(/^\/(?:uploads|backgrounds)\/[A-Za-z0-9_-][A-Za-z0-9._-]*\.(?:png|jpg|jpeg|webp)$/i);
+var backgroundOpacitySchema = external_exports.object({ light: external_exports.number().min(0).max(0.4), dark: external_exports.number().min(0).max(0.4) }).strict();
+var chatBackgroundSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("none") }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("image"),
+    url: backgroundImageUrlSchema,
+    name: external_exports.string().trim().min(1).max(160),
+    placement: external_exports.enum(["fill", "center", "tile"]),
+    opacity: backgroundOpacitySchema,
+    recommendedOpacity: backgroundOpacitySchema
+  }).strict()
+]);
+var chatBackgroundPreferencesSchema = external_exports.object({
+  global: chatBackgroundSchema.optional(),
+  threads: external_exports.record(chatBackgroundSchema)
+});
+
 // ../shared/src/chat-references.ts
 var chatReferenceBatchSchema = external_exports.object({
   groups: external_exports.array(
@@ -64768,13 +64787,16 @@ function channelDestinations(events, participants) {
     return { id: id33, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
   });
 }
-function readChannelPosition(namespace) {
+function readSavedChannelPosition(namespace) {
   try {
     const saved = window.localStorage.getItem(`collective-channel:${namespace}`);
-    return saved?.trim() && saved.length <= 160 ? saved : "general";
+    return saved?.trim() && saved.length <= 160 ? saved : void 0;
   } catch {
-    return "general";
+    return void 0;
   }
+}
+function readChannelPosition(namespace) {
+  return readSavedChannelPosition(namespace) ?? "general";
 }
 function readChannelTarget(search2) {
   const currentSearch = search2 ?? (typeof window !== "undefined" && window.location ? window.location.search : typeof location !== "undefined" ? location.search : "");
@@ -64807,6 +64829,12 @@ function writeLibraryTarget() {
 function saveChannelPosition(namespace, channelId) {
   try {
     window.localStorage.setItem(`collective-channel:${namespace}`, channelId);
+  } catch {
+  }
+}
+function clearChannelPosition(namespace) {
+  try {
+    window.localStorage.removeItem(`collective-channel:${namespace}`);
   } catch {
   }
 }
@@ -75846,8 +75874,9 @@ function CollectiveWorkspace({
   };
   (0, import_react104.useEffect)(() => {
     if (previousNamespace.current !== namespace) return;
-    saveChannelPosition(namespace, channelId);
-  }, [namespace, channelId]);
+    if (destination === "channel") saveChannelPosition(namespace, channelId);
+    else if (destination === "home") clearChannelPosition(namespace);
+  }, [namespace, channelId, destination]);
   (0, import_react104.useEffect)(() => {
     const worldChanged = previousNamespace.current !== namespace;
     previousNamespace.current = namespace;
@@ -76998,10 +77027,13 @@ function useCollectiveClient() {
       if (!collective) return;
       if (snapshot.collective?.collectiveId === collectiveId) return;
       cancelRefresh();
-      currentNamespace.current = collectiveClientNamespace({ ...snapshot, collective });
+      const targetNamespace = collectiveClientNamespace({ ...snapshot, collective });
+      currentNamespace.current = targetNamespace;
       const url = new URL(location.href);
       url.searchParams.set("collectiveId", collectiveId);
-      url.searchParams.delete("channelId");
+      const savedChannelId = targetNamespace ? readSavedChannelPosition(targetNamespace) : void 0;
+      if (savedChannelId) url.searchParams.set("channelId", savedChannelId);
+      else url.searchParams.delete("channelId");
       history.replaceState(null, "", url);
       setSnapshot((current2) => ({
         ...current2,

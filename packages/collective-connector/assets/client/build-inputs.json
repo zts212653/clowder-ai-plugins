@@ -1151,6 +1151,10 @@
       "sha256": "ba6b23f7e0fd9fe1439f630e72643c5b91b8160d9fec1c26f6056906fd3be1b6"
     },
     {
+      "path": "../shared/src/chat-background.ts",
+      "sha256": "b31a7e782122cc0eaa3d6b5572b12fda64437082f158ecb1a7521b63c2c35124"
+    },
+    {
       "path": "../shared/src/chat-references.ts",
       "sha256": "0379762ecad49ab962a90dcda4b0cf9bd231bd2d11dc34f7dbfbf54046f41c63"
     },
@@ -1244,7 +1248,7 @@
     },
     {
       "path": "../shared/src/index.ts",
-      "sha256": "0f741039f7fb601336bcdc1fb09ef23f8f2e072932936f4cf3eab0fa1fc9955f"
+      "sha256": "2322ace22f3333ebf09824b715cab93a6d0a2c96cd9fd9b8343c73e35ed7d79e"
     },
     {
       "path": "../shared/src/markdown-link-safety.ts",
@@ -2452,7 +2456,7 @@
     },
     {
       "path": "src/CollectiveWorkspace.tsx",
-      "sha256": "d2fb4a9e04520c932138c26eeac5833a3963c4b3022420f4a031514f1b8212d7"
+      "sha256": "91b48d8b9f5ed3c6c6cd201cd0dea7a0c9511e1ceb3d519770138151c9d02c9c"
     },
     {
       "path": "src/CollectiveWorldRail.tsx",
@@ -2804,7 +2808,7 @@
     },
     {
       "path": "src/channel-navigation.ts",
-      "sha256": "90835f98fc06d5be21671af1f0dc9bd6019c0e3d419215587d33ad9c755a2b71"
+      "sha256": "00e06a679c0c39ac973e5f28cd22dfef193a161dc3d8bc18214393c171654a74"
     },
     {
       "path": "src/client-request.ts",
@@ -3160,7 +3164,7 @@
     },
     {
       "path": "src/use-collective-client.ts",
-      "sha256": "b4e16697188a16416038d49ae19ee2be4852b077c74bb328a623b97c7096372c"
+      "sha256": "5655c4cb8c0f1f17a435195d95fc335be11f74adc4c46122069f395abbf6f45a"
     },
     {
       "path": "src/use-collective-collaboration.ts",
