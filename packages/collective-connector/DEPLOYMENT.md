@@ -138,7 +138,9 @@ scp -r /absolute/private/stickers <SSH别名>:~/.local/share/clowder-collective/
 1. 停止 Service 并确认进程退出（systemd：`systemctl --user stop collective.service`）。
 2. 整体备份数据目录和环境文件；不要在写入过程中单独复制 JSON 或附件目录。
    备份含成员/会话/endpoint 凭据、GitHub App OAuth 凭据、普通附件和未领取的管理员入口，按私有数据保管。
-3. 修改 service unit 的可执行路径指向新 release，**数据目录和 canonical URL 保持原值**，重启。
+3. 修改 service unit 的可执行路径指向新 release，**数据目录和 canonical URL 保持原值**。
+   使用 systemd 时先 `systemctl --user daemon-reload`，再 `systemctl --user start collective.service`，
+   让已停止的服务按新 unit 启动；随后核 `systemctl --user status collective.service` 和日志。
 4. 核对 `/api/meta` 的 `serviceInstanceId` 未变；重新打开两台 Café，原连接无需重新配对。
    查看一条旧消息、打开旧附件、验证一件原 owner 在线的共享作品，再发一条新消息。
 5. 失败时先停新进程。保留失败目录供排查，将升级前备份解到新目录，配合原 release 启动；
@@ -153,7 +155,19 @@ tar -czf "$HOME/collective-backups/service-before-upgrade.tgz" \
   -C "$HOME/.local/share" clowder-collective
 ```
 
-恢复到新目录，核对文件归属和私有权限，更新 `DATA_DIR` 后再启动。
+停止当前进程后，将上述备份解到新目录（不要覆盖原目录）：
+
+```sh
+umask 077
+mkdir -p "$HOME/collective-restores/before-upgrade"
+tar -xzf "$HOME/collective-backups/service-before-upgrade.tgz" \
+  -C "$HOME/collective-restores/before-upgrade"
+```
+
+在环境文件中将 `COLLECTIVE_SERVICE_DATA_DIR` 改为
+`/home/<服务器账户>/collective-restores/before-upgrade/clowder-collective`，核对文件归属与私有权限。
+将 unit 指向该备份对应的原 release，执行 `systemctl --user daemon-reload` 和
+`systemctl --user start collective.service`；然后按上面的实例、旧消息、附件和原作品检查验收。
 完整目录恢复应保留同一 Service 实例、provider 凭据、成员关系、事件与附件回执；不要手工替换实例 ID。
 备份不是删除策略，升级和停用均不删除用户数据。
 
