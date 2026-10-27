@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createHash } from 'node:crypto';
+import test from 'node:test';
 import type { PluginOwnerOperationContext } from '@clowder-ai/plugin-sdk';
 import { createMeetingRecordDelivery } from './record-delivery.js';
 import { createMeetingSourcePublication } from './source-publication.js';
@@ -19,7 +19,6 @@ test('meeting source publication keeps the private thread private and rechecks c
       actionId: 'invoke',
       requestId: 'publish',
       signal: new AbortController().signal,
-      assertWriteCurrent() {},
       async assertCurrent() {},
     };
     const records = createMeetingRecordDelivery(join(root, 'records'), { pluginInstanceId: owner.pluginInstanceId });

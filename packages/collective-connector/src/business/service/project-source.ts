@@ -146,7 +146,7 @@ export async function suggestMaterial(
       );
       const selection = {
         clauseId,
-        witness: record.currentWitness,
+        witness: current.witness,
         actor,
         at,
         ...(input.suggestedWorkId ? { suggestedWorkId: input.suggestedWorkId } : {}),

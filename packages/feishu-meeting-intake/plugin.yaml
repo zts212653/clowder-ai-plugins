@@ -8,14 +8,14 @@ icon:
   src: assets/icon.png
 configuration:
   - key: sourceMaterial
-    label: Published meeting material source
+    label: Project source sharing
     kind: operation
-    hidden: true
     required: false
     actions:
       - id: invoke
-        label: Read explicitly published material
-        render: button
+        label: Meeting source sharing
+        render: status
+        resultRender: status
         action:
           method: meeting.sourceMaterial
   - key: appId

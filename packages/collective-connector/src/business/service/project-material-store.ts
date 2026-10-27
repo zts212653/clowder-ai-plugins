@@ -160,6 +160,7 @@ export class CollectiveProjectMaterialStore {
         const current = await this.observe(publication, source, check);
         items.push({
           ...current,
+          currentWitness: source.witness,
           publication: structuredClone(publication),
           material: {
             ...source.material,

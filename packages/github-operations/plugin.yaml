@@ -1,5 +1,5 @@
 pluginId: official.github-operations
-version: 0.1.0-alpha.27
+version: 0.1.0-alpha.28
 contractVersion: 0.1.0
 name: GitHub Operations
 description:
@@ -19,14 +19,14 @@ test:
   action: { method: github.connection.test }
 configuration:
   - key: sourceMaterial
-    label: Explicitly shared GitHub material
+    label: 项目资料分享
     kind: operation
-    hidden: true
     required: false
     actions:
       - id: invoke
-        label: Read published PR or Issue
-        render: button
+        label: PR / Issue 分享
+        render: status
+        resultRender: status
         action:
           method: github.sourceMaterial
   - key: recoveryMode

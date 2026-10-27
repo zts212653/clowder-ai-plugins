@@ -11,10 +11,28 @@ export async function readCollectiveProjectAttentionSource(
     items = new Map<string, CollectiveProjectAttentionItem>(),
     reasons: string[] = [];
   await assertCurrent();
-  for (const connection of await connector.listConnections()) {
-    const route = await connector.getHostRoute(connection.connectionId);
-    if (route?.localOwnerUserId !== ownerUserId || connection.authorityStatus !== 'connected') continue;
+  let connections: Awaited<ReturnType<CollectiveConnector['listConnections']>>;
+  try {
+    connections = await connector.listConnections();
+  } catch {
+    await assertCurrent();
+    return {
+      items: [],
+      reasons: ['collective_project_attention_source_unavailable'],
+      state: {
+        coverage,
+        startedAt,
+        observedAt: Date.now(),
+        status: 'unavailable' as const,
+        exhaustiveness: 'unknown' as const,
+      },
+    };
+  }
+  for (const connection of connections) {
     try {
+      const route = await connector.getHostRoute(connection.connectionId);
+      await assertCurrent();
+      if (route?.localOwnerUserId !== ownerUserId || connection.authorityStatus !== 'connected') continue;
       const read = await connector.readProjectAttention(connection.connectionId, ownerUserId);
       await assertCurrent();
       reasons.push(...read.reasons);
@@ -24,6 +42,7 @@ export async function readCollectiveProjectAttentionSource(
           items.set(item.subjectRef, item);
       }
     } catch {
+      await assertCurrent();
       reasons.push('collective_project_attention_source_unavailable');
     }
   }

@@ -1,5 +1,5 @@
 pluginId: official.collective-connector
-version: 0.1.0-alpha.12
+version: 0.1.0-alpha.13
 contractVersion: 0.1.0
 name: Collective
 description:
@@ -10,6 +10,16 @@ icon:
   type: svg
   src: assets/icon.svg
 configuration:
+  - key: calendar
+    label: Current public Work dates
+    kind: operation
+    required: false
+    actions:
+      - id: read
+        label: Read original Work dates
+        render: status
+        resultRender: status
+        action: { method: collective.work.owner.calendar }
   - key: service
     label: Service status
     kind: operation
@@ -216,6 +226,10 @@ contributions:
     actions:
       - { method: collective.context.current }
       - { method: collective.context.read }
+      - { method: collective.project.context }
+      - { method: collective.material.read }
+      - { method: collective.material.suggest }
+      - { method: collective.work.suggest-time }
       - { method: collective.sticker.prepare }
       - { method: collective.artifact.command }
       - { method: collective.work.suggest-project }
@@ -321,6 +335,10 @@ contributions:
     actions:
       - { method: collective.work.context.current }
       - { method: collective.work.context.read }
+      - { method: collective.work.time }
+      - { method: collective.work.project.context }
+      - { method: collective.work.material.read }
+      - { method: collective.work.material.suggest }
       - { method: collective.work.progress }
       - { method: collective.work.artifact.read }
       - { method: collective.work.artifact.command }

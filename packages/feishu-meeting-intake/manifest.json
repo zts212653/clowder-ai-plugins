@@ -10,6 +10,23 @@
   },
   "configuration": [
     {
+      "key": "sourceMaterial",
+      "label": "Project source sharing",
+      "kind": "operation",
+      "required": false,
+      "actions": [
+        {
+          "id": "invoke",
+          "label": "Meeting source sharing",
+          "render": "status",
+          "resultRender": "status",
+          "action": {
+            "method": "meeting.sourceMaterial"
+          }
+        }
+      ]
+    },
+    {
       "key": "appId",
       "label": "Feishu app ID",
       "kind": "string",

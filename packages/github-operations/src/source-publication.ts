@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { z } from 'zod';
 import type { PluginActionHandler, PluginStorageHost } from '@clowder-ai/plugin-sdk';
+import { z } from 'zod';
 import { executeGitHubRequest, type GitHubRequestOptions } from './business/infrastructure/github/request-budget.js';
 
 const publicationSchema = z.object({
@@ -20,9 +20,13 @@ const inputSchema = z
   .object({
     input: z
       .object({
-        operation: z.object({ action: z.enum(['publish', 'read']), publication: publicationSchema }).passthrough(),
+        operation: z
+          .object({ action: z.enum(['publish', 'read']), publication: publicationSchema })
+          .passthrough()
+          .optional(),
       })
       .passthrough(),
+    operationState: z.unknown().optional(),
   })
   .strict();
 const receiptSchema = z
@@ -50,6 +54,7 @@ const subjectSchema = z
   })
   .passthrough();
 const absent = (reason: 'not_published' | 'access_revoked' | 'owner_unavailable') => ({
+  render: 'status',
   data: { status: 'unavailable', reason },
 });
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -83,9 +88,17 @@ export function createGitHubSourcePublication(deps: {
       owner.actionId !== 'invoke'
     )
       throw new Error('GitHub publication requires its authenticated owner operation');
-    const { action, publication } = inputSchema.parse(unsafe).input.operation;
     await owner.assertCurrent();
     owner.signal.throwIfAborted();
+    const input = inputSchema.parse(unsafe).input;
+    if (!input.operation)
+      return {
+        render: 'status',
+        data: { kind: 'project_source_sharing' },
+        label:
+          'Share an exact registered PR or Issue from a Collective Project. Only explicitly shared sources can be read there.',
+      };
+    const { action, publication } = input.operation;
     const source = parseGitHubMaterialSource(publication.sourceId);
     const key =
       'github.source-publication.v1.' +
@@ -162,6 +175,7 @@ export function createGitHubSourcePublication(deps: {
       }
       await current();
       return {
+        render: 'status',
         data: {
           status: 'available',
           sourceKey: source.key,

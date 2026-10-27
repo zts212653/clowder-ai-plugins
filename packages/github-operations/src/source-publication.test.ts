@@ -41,7 +41,6 @@ test('GitHub source sharing requires explicit owner publication, fresh registere
     actionId: 'invoke',
     requestId: 'owner-request',
     signal: new AbortController().signal,
-    assertWriteCurrent() {},
     async assertCurrent() {},
   };
   const publication = {
@@ -57,8 +56,17 @@ test('GitHub source sharing requires explicit owner publication, fresh registere
     sourceId: 'https://github.com/org/repo/issues/8',
   };
   const read = (action: 'publish' | 'read', selected = publication) =>
-    invoke({ input: { operation: { action, publication: selected } } }, undefined, owner);
-  assert.deepEqual(await read('read'), { data: { status: 'unavailable', reason: 'not_published' } });
+    Promise.resolve(
+      invoke(
+        {
+          input: { recoveryMode: '', operation: { action, publication: selected } },
+          operationState: { currentAction: 'invoke', updatedAt: 1 },
+        },
+        undefined,
+        owner,
+      ),
+    );
+  assert.deepEqual(await read('read'), { render: 'status', data: { status: 'unavailable', reason: 'not_published' } });
   assert.equal(calls.length, 0);
   const first = (await read('publish')) as { data: { status: string; witness: { digest: string } } };
   assert.equal(first.data.status, 'available');

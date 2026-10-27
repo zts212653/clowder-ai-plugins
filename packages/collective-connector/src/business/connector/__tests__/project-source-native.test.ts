@@ -83,6 +83,29 @@ it('binds live Project material and date suggestions to actual native context ac
     );
     expect(context.materials[0]?.title).toBe('Published source');
     expect(JSON.stringify(context)).not.toContain('Actual source passage');
+    const task = await f.store.createCollectiveProjectTask(f.serviceOwner.sessionToken, {
+      ...coordinates,
+      requestId: 'native-date-task',
+      roadmapId: project.roadmapId,
+      expectedRoadmapRevision: project.revision,
+      channelId: 'general',
+      title: 'Public task',
+      intendedOutcome: 'Only suggest its promise',
+      accountability: 'self',
+    });
+    await invoke('collective.work.suggest-time', {
+      contextRef,
+      workId: task.work.workId,
+      expectedRevision: task.work.revision,
+      requestId: 'native-date-suggestion',
+      field: 'businessDeadline',
+      time: { value: '2026-11-04T20:00:00Z', timeZone: 'America/Los_Angeles' },
+      reason: 'Awaiting accountable Human confirmation',
+    });
+    const suggested = f.store.listCollectiveCollaboration(f.serviceOwner.sessionToken, coordinates.collectiveId)
+      .works[0]!;
+    expect(suggested.time?.businessDeadline).toBeUndefined();
+    expect(suggested.timeSuggestions?.[0]?.actor).toMatchObject({ kind: 'agent', catId: f.action.catId });
     const materialId = context.materials[0]!.materialId;
     const original = collectiveProjectSourceReadSchema.parse(
       await through(() => invoke('collective.material.read', { contextRef, materialId })),
@@ -121,7 +144,7 @@ it('binds live Project material and date suggestions to actual native context ac
     expect(JSON.stringify(denied)).not.toContain('Actual source passage');
     expect(
       f.store.listCollectiveCollaboration(f.serviceOwner.sessionToken, coordinates.collectiveId).works,
-    ).toHaveLength(0);
+    ).toHaveLength(1);
   } finally {
     await f.close();
   }

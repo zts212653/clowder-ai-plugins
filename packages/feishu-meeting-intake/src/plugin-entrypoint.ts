@@ -1,29 +1,29 @@
-import { createMeetingSourcePublication } from './source-publication.js';
-import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { z } from 'zod';
+import { join } from 'node:path';
 import {
   definePlugin,
   definePluginModule,
-  rowsResult,
-  operationRowAction,
-  type FeatureContext,
   type FeatureActivation,
+  type FeatureContext,
+  operationRowAction,
   type PluginActionHandler,
   type PluginOwnerOperationContext,
+  rowsResult,
 } from '@clowder-ai/plugin-sdk';
-import { privateDirectory, readPrivate, writePrivate } from './private-files.js';
-import { createOwnedLarkCommand, configureOwnedLarkHome, type OwnedLarkCommand } from './owned-lark-command.js';
-import { createMeetingRecordDelivery, type MeetingRecord } from './record-delivery.js';
-import { createFileMeetingIntakeStateStore, type MeetingIntakeStateStore } from './state-store.js';
-import { createFeishuMeetingIntakeRuntime } from './runtime.js';
-import { createLarkCliFeishuPollingGateway } from './lark-cli-polling-gateway.js';
-import { createLarkCliFeishuArtifactInspector, parseFeishuMinutesReference } from './lark-cli-artifact-inspector.js';
-import { requirePollingAuthorization } from './lark-cli-polling-normalizer.js';
+import { z } from 'zod';
 import { createFeishuMeetingCatchUpService } from './catch-up.js';
-import { meetingListInput, meetingReadInput } from './native-methods.js';
-import { readMeetingSource } from './source-reader.js';
 import { FeishuGatewayError } from './gateway.js';
+import { createLarkCliFeishuArtifactInspector, parseFeishuMinutesReference } from './lark-cli-artifact-inspector.js';
+import { createLarkCliFeishuPollingGateway } from './lark-cli-polling-gateway.js';
+import { requirePollingAuthorization } from './lark-cli-polling-normalizer.js';
+import { meetingListInput, meetingReadInput } from './native-methods.js';
+import { configureOwnedLarkHome, createOwnedLarkCommand, type OwnedLarkCommand } from './owned-lark-command.js';
+import { privateDirectory, readPrivate, writePrivate } from './private-files.js';
+import { createMeetingRecordDelivery, type MeetingRecord } from './record-delivery.js';
+import { createFeishuMeetingIntakeRuntime } from './runtime.js';
+import { createMeetingSourcePublication } from './source-publication.js';
+import { readMeetingSource } from './source-reader.js';
+import { createFileMeetingIntakeStateStore, type MeetingIntakeStateStore } from './state-store.js';
 
 const stateSchema = z
   .object({
@@ -50,7 +50,7 @@ export interface MeetingModuleOptions {
 const empty = z.object({}).strict();
 const envelope = <T>(value: unknown, schema: z.ZodType<T>) => {
   const { input } = z
-    .object({ input: z.record(z.unknown()) })
+    .object({ input: z.record(z.unknown()), operationState: z.unknown().optional() })
     .strict()
     .parse(value);
   // Canonical Host merges current non-secret settings into every operation.
@@ -325,8 +325,17 @@ async function activate(context: FeatureContext, options: MeetingModuleOptions):
   });
   const actions: Record<string, PluginActionHandler> = {
     'meeting.sourceMaterial': ownerAction(async (input, owner) => {
-      const { operation } = envelope(input, z.object({ operation: z.unknown() }).strict());
-      return { data: await sourcePublication(operation, owner) };
+      if (owner.operationKey !== 'sourceMaterial' || owner.actionId !== 'invoke')
+        throw new Error('Authenticated meeting source operation required');
+      const { operation } = envelope(input, z.object({ operation: z.unknown().optional() }).strict());
+      if (operation === undefined)
+        return {
+          render: 'status',
+          data: { kind: 'project_source_sharing' },
+          label:
+            'Share a meeting source explicitly from a Collective Project. Private meeting notifications remain private.',
+        };
+      return { render: 'status', data: await sourcePublication(operation, owner) };
     }),
     'meeting.status': ownerAction(async (input) => {
       envelope(input, empty);

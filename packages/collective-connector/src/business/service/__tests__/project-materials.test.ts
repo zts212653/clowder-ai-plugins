@@ -291,3 +291,36 @@ it('lets a current Channel Cat read and select only live published clauses witho
   });
   await expect(f.store.readCollectiveProjectSource(f.connection.endpointCredential, scope)).rejects.toThrow();
 });
+
+it('refuses another Human sorting the Project while its owner confirms one original destination', async () => {
+  const f = await fixture();
+  const invite = await f.store.createInvite({
+    sessionToken: f.owner.sessionToken,
+    collectiveId: f.coordinates.collectiveId,
+  });
+  const attempt = await f.store.beginHumanAuth({
+    provider: 'github',
+    intent: { kind: 'accept_invite', inviteToken: invite.inviteToken },
+  });
+  const completion = await f.store.completeHumanAuth({
+    provider: 'github',
+    state: attempt.state,
+    code: 'second-reader',
+  });
+  const member = await f.store.exchangeHumanAuthCompletion(completion.completionToken);
+  const item = await f.store.publishCollectiveMaterial(f.owner.sessionToken, f.input);
+  const command = {
+    ...f.coordinates,
+    materialId: item.materialId,
+    expectedRevision: item.revision,
+    requestId: 'owner-destination',
+    action: 'reference',
+  };
+  const results = await Promise.allSettled([
+    f.store.sortCollectiveMaterial(f.owner.sessionToken, command),
+    f.store.sortCollectiveMaterial(member.sessionToken, { ...command, requestId: 'member-destination' }),
+  ]);
+  expect(results[0]?.status).toBe('fulfilled');
+  expect(results[1]).toMatchObject({ status: 'rejected', reason: { code: 'ROADMAP_AUTHORITY_REQUIRED' } });
+  expect(f.store.listCollectiveCollaboration(f.owner.sessionToken, f.coordinates.collectiveId).works).toHaveLength(0);
+});
