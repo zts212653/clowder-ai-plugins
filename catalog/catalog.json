@@ -328,6 +328,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.13",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/collective-connector",
+            "version": "0.1.0-alpha.13",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.13.tgz",
+            "integrity": "sha512-H3dXRfYb/8xpDBEBdtvRLndFDMELf6/pQDqK+75ldhICXhXIA93hXsh0Bh0a/BwXhtkmkIZvySJfmB8CRxeqGA==",
+            "shasum": "3ce343470a7bb6dbbc22feb06508149b360a18e2",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/collective-connector"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.12",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
@@ -1976,6 +1993,23 @@
         "schedule"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.28",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/github-operations",
+            "version": "0.1.0-alpha.28",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.28.tgz",
+            "integrity": "sha512-KUnO8W1FkPabGDA6dTZVa4k4Ap9wqyh2QIe1rwNgIZI9lXkazbSZa/lwHacuCkX3xbNlBgpcGLw/ohIDtQkynA==",
+            "shasum": "ebe5649e825b5d3972113693b823421971f72bd0",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/github-operations"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.27",
           "contractVersion": "0.1.0",
