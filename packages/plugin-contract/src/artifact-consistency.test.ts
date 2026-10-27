@@ -45,6 +45,15 @@ test('connector-feishu shrinkwrap pins the exact official-publish packed contrac
     const [artifact] = JSON.parse(result.stdout) as [
       { filename: string; integrity: string },
     ];
+    const current = JSON.parse(readFileSync(join(pluginContractDir, 'package.json'), 'utf8')) as { version: string };
+    // A frozen published consumer keeps its immutable dependency when a new candidate is prepared.
+    // Compare a rebuild only when the source package is still that exact published version.
+    if (current.version !== entry.version) {
+      const frozen = readFileSync(join(pluginContractDir, `clowder-ai-plugin-contract-${entry.version}.tgz`));
+      assert.equal(sha512Of(frozen), entry.integrity, 'published consumer must keep its exact archived dependency');
+      assert.equal(artifact.filename, `clowder-ai-plugin-contract-${current.version}.tgz`);
+      return;
+    }
     const official = readFileSync(join(destination, artifact.filename));
 
     assert.equal(

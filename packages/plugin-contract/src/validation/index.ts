@@ -20,6 +20,8 @@ export {
 } from './messaging-wire.js';
 export {
   validateManifest,
+  isProjectOutputRequest,
+  isProjectOutputResult,
   type ManifestValidationError,
   type ManifestValidationResult,
 } from './manifest.js';

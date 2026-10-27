@@ -31,7 +31,7 @@ export type PluginMember = {
 export type SemVer = string;
 export type DataClass = 'cache' | 'ephemeral' | 'user-authored' | 'derived-user-visible' | 'relationship' | 'interaction-history';
 export type DataStrategy = 'lifecycle' | 'retained' | 'ask-on-uninstall';
-export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'messaging.appendElements' | 'streams.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'task.admitEntrusted' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend' | 'cloud.conversation.host';
+export type Capability = 'plugin.config.read' | 'plugin.state.get' | 'plugin.state.set' | 'messaging.send' | 'schedule.register' | 'messaging.appendElements' | 'streams.read' | 'onMessage' | 'message.event.subscribe' | 'secret.read' | 'thread.listMetadata' | 'thread.readContent' | 'thread.write' | 'task.read' | 'task.write' | 'task.admitEntrusted' | 'memory.query' | 'memory.append' | 'memory.retrieve' | 'windows.create' | 'whisper.extend' | 'cloud.conversation.host' | 'project.output.create';
 export type DataDeclaration = {
   readonly name: string;
   readonly dataClass: 'cache';
@@ -264,6 +264,34 @@ export type ScheduleContribution = {
     readonly overlap: 'skip';
     readonly timeoutMs: number;
   };
+};
+export type ProjectOutputRequest = {
+  readonly requestId: string;
+  readonly outputPath: string;
+  readonly parameters: Readonly<Record<string, unknown>>;
+};
+export type ProjectOutputResult = {
+  readonly state: 'pending' | 'generation_unknown' | 'rejected';
+  readonly code?: string;
+  readonly retryable: false;
+} | {
+  readonly state: 'produced';
+  readonly media: {
+    readonly sourceId: string;
+    readonly reference: string;
+    readonly mimeType: 'audio/mpeg';
+    readonly bytes: number;
+    readonly sha256: string;
+  };
+  readonly provenance: Readonly<Record<string, unknown>>;
+};
+export type ProjectOutputAction = {
+  readonly method: string;
+  readonly producerMethod: string;
+  readonly resultMethod: string;
+  readonly mediaSourceId: string;
+  readonly mimeType: 'audio/mpeg';
+  readonly maxBytes: number;
 };
 export type DirectToolContribution = {
   readonly type: 'tool';
@@ -521,6 +549,7 @@ export type PluginManifest = {
   readonly description?: LocalizedDescription;
   readonly icon?: PluginIcon;
   readonly configuration?: readonly ConfigurationField[];
+  readonly projectOutputs?: readonly ProjectOutputAction[];
   readonly configurationVariants?: ConfigurationVariants;
   readonly contributions?: readonly StaticContribution[];
   readonly features: readonly PluginFeature[];
@@ -1980,7 +2009,7 @@ export type PermissionMatrixEntry = {
   readonly firstPartyPreset: boolean;
 };
 export type PermissionMatrixInput = {
-  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
+  readonly entries: readonly [PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry, PermissionMatrixEntry];
 };
 export type DeleteReplayEventsInput = {
   readonly subscriptionId: string;
@@ -2083,7 +2112,7 @@ export const L0_CAPABILITIES = ['plugin.config.read', 'plugin.state.get', 'plugi
 export type L0Capability = (typeof L0_CAPABILITIES)[number];
 export const L1_CAPABILITIES = ['messaging.send', 'schedule.register', 'messaging.appendElements', 'streams.read'] as const;
 export type L1Capability = (typeof L1_CAPABILITIES)[number];
-export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'task.admitEntrusted', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend', 'cloud.conversation.host'] as const;
+export const L2_CAPABILITIES = ['onMessage', 'message.event.subscribe', 'secret.read', 'thread.listMetadata', 'thread.readContent', 'thread.write', 'task.read', 'task.write', 'task.admitEntrusted', 'memory.query', 'memory.append', 'memory.retrieve', 'windows.create', 'whisper.extend', 'cloud.conversation.host', 'project.output.create'] as const;
 export type L2Capability = (typeof L2_CAPABILITIES)[number];
 export const CAPABILITY_TABLE = {
   L0: L0_CAPABILITIES,

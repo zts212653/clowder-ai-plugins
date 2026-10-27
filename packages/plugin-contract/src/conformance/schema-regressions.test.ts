@@ -105,13 +105,14 @@ test('G-0 preserves authorization tiers and adds narrow entrusted admission at L
       'windows.create',
       'whisper.extend',
       'cloud.conversation.host',
+      'project.output.create',
     ],
   };
   const capabilityEnum = manifestSchema.$defs?.Capability?.enum;
 
   assert.deepEqual(manifestSchema['x-clowder-capability-layers'], expectedLayers);
   assert.deepEqual(capabilityEnum, Object.values(expectedLayers).flat());
-  assert.equal(capabilityEnum?.length, 22);
+  assert.equal(capabilityEnum?.length, 23);
   assert.equal(expectedLayers.L2.includes('whisper.extend'), true);
   assert.equal(capabilityEnum?.includes('lifecycle'), false);
   assert.equal('x-clowder-capability-policy' in manifestSchema, false);
