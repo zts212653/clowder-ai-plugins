@@ -2,24 +2,44 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import { runOAuthReceiver } from '../dist/oauth-receiver.js';
 import { readPrivateJson, writeNew } from '../dist/private-files.js';
 
+async function removeStoppedReceiverFixture(directory, receiver) {
+  if (receiver) {
+    await receiver.close();
+    // close can return while an earlier finish is still writing its receipt.
+    // Wait for that receipt before removing the owned temporary directory.
+    const deadline = performance.now() + 2_000;
+    for (;;) {
+      try {
+        if (await readFile(join(directory, 'closed.json'), 'utf8') === '{}') break;
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+      assert.ok(performance.now() < deadline, 'receiver did not finish before fixture cleanup');
+      await delay(5);
+    }
+  }
+  await rm(directory, { recursive: true, force: true });
+}
+
 test('the receiver survives its initiating request and rejects wrong state before exchanging a code', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'music-consent-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  let receiver;
+  t.after(() => removeStoppedReceiverFixture(directory, receiver));
   let exchanges = 0;
   await writeNew(join(directory, 'request.json'), JSON.stringify({ flowId: 'flow-one', projectId: 'project-one', expiresAt: Date.now() + 60_000,
     clientId: 'fixture.apps.googleusercontent.com', clientSecret: 'fixture-desktop-secret' }));
-  const receiver = await runOAuthReceiver(directory, async (_url, init) => {
+  receiver = await runOAuthReceiver(directory, async (_url, init) => {
     exchanges++;
     const form = new URLSearchParams(init.body);
     assert.equal(form.get('code'), 'fixture-consent-code');
     assert.ok(form.get('code_verifier').length >= 43);
     return new Response(JSON.stringify({ token_type: 'Bearer', refresh_token: 'fixture-consented-grant', scope: 'openid https://www.googleapis.com/auth/cloud-platform' }));
   });
-  t.after(() => receiver.close());
   const status = await readPrivateJson(join(directory, 'status.json'));
   assert.equal(status.state, 'pending');
   const url = new URL(status.authorizationUrl);
@@ -43,11 +63,11 @@ test('the receiver survives its initiating request and rejects wrong state befor
 test('cancel and missing Cloud consent cannot produce an adoptable grant', async t => {
   for (const cancel of [true, false]) {
     const directory = await mkdtemp(join(tmpdir(), 'music-consent-'));
-    t.after(() => rm(directory, { recursive: true, force: true }));
+    let receiver;
+    t.after(() => removeStoppedReceiverFixture(directory, receiver));
     await writeNew(join(directory, 'request.json'), JSON.stringify({ flowId: 'flow-one', projectId: 'project-one', expiresAt: Date.now() + 60_000,
       clientId: 'fixture.apps.googleusercontent.com', clientSecret: 'fixture' }));
-    const receiver = await runOAuthReceiver(directory, async () => new Response(JSON.stringify({ token_type: 'Bearer', refresh_token: 'fixture', scope: 'openid' })));
-    t.after(() => receiver.close());
+    receiver = await runOAuthReceiver(directory, async () => new Response(JSON.stringify({ token_type: 'Bearer', refresh_token: 'fixture', scope: 'openid' })));
     const status = await readPrivateJson(join(directory, 'status.json'));
     if (cancel) await writeNew(join(directory, 'canceled.json'), '{}');
     const url = new URL(status.authorizationUrl);
