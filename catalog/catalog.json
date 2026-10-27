@@ -827,6 +827,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.8",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/personal-chrome-companion",
+            "version": "0.1.0-alpha.8",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/personal-chrome-companion/-/personal-chrome-companion-0.1.0-alpha.8.tgz",
+            "integrity": "sha512-ePdPiPWIyzscHHi9IDi0WGAZK4a9nvDgW6eGkzHA+4gMRqxusmmqMQf8f+ktoGjGFcHUgG4eeJVTlpwm2bj8lg==",
+            "shasum": "1a8eef34c36b8ec286dd6e758533b935465ef544",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/personal-chrome-companion"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.7",
           "contractVersion": "0.1.0",
           "manifestPath": "plugin.yaml",
