@@ -1,6 +1,6 @@
 export function resolveCollectivePublicUrl(value: string | undefined, host: string, port: number): string {
   const configured = value?.trim();
-  const resolved = configured ? new URL(configured) : new URL(`http://${host}:${port}`);
+  const resolved = configured ? new URL(configured) : new URL(`http://${host.includes(':') ? `[${host}]` : host}:${port}`);
   if (!['http:', 'https:'].includes(resolved.protocol) || resolved.username || resolved.password) {
     throw new Error('COLLECTIVE_SERVICE_PUBLIC_URL must be an HTTP(S) URL without embedded credentials');
   }

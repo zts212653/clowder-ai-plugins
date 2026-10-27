@@ -6,6 +6,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "clowder-collective-service": "dist/business/service/cli.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,6 +22,8 @@
     "README.md",
     "skills",
     "README.en.md",
+    "DEPLOYMENT.md",
+    "deployment",
     "assets",
     "npm-shrinkwrap.json"
   ],
@@ -28,9 +33,9 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test:lifecycle": "node --import tsx --test test/module-lifecycle.test.ts",
+    "test:lifecycle": "node --import tsx --test test/module-lifecycle.test.ts test/remote-lifecycle.test.ts test/standalone-service.test.mjs",
     "test:transport": "node --import tsx --test test/transport-recovery.test.ts",
-    "test:business": "vitest run --maxWorkers=2 src/business",
+    "test:business": "vitest run --maxWorkers=2 src/business src/attachment-owner",
     "test:installed": "node --test test/installed-directory.test.mjs",
     "test:source": "node --test test/source-continuity.test.mjs",
     "test": "pnpm test:lifecycle && pnpm test:control && pnpm test:transport && pnpm test:business",
@@ -39,15 +44,16 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@clowder-ai/plugin-sdk": "0.3.0-beta.1",
-    "zod": "3.25.76",
     "@clowder-ai/plugin-contract": "0.3.0",
-    "@modelcontextprotocol/sdk": "1.26.0"
+    "@clowder-ai/plugin-sdk": "0.3.0-beta.1",
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "sharp": "0.34.5",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
-    "typescript": "^5.7.0",
     "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
     "vitest": "4.0.18",
     "yaml": "2.9.0"
   },

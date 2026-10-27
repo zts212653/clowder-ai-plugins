@@ -1,6 +1,6 @@
 pluginId: official.collective-connector
 version: 0.1.0-alpha.14
-contractVersion: 0.1.0
+contractVersion: 0.2.0
 name: Collective
 description:
   default: Collective service and web client managed by the plugin.
@@ -10,6 +10,31 @@ icon:
   type: svg
   src: assets/icon.svg
 configuration:
+  - key: serviceMode
+    label: Run mode
+    kind: select
+    required: true
+    default: embedded
+    description: Choose where the Service runs. Save, then disable and enable this plugin to apply changes. Existing connections and local Service data are retained.
+    options:
+      - value: embedded
+        label: Run on this computer
+        hint: This computer runs and stores the Collective Service.
+      - value: remote
+        label: Connect to remote
+        hint: The Service runs elsewhere. This computer connects through SSH.
+  - key: servicePort
+    label: Local Service port
+    kind: string
+    required: false
+    default: "5201"
+    description: Loopback listener owned by this plugin. Ports 3001 and 3002 are reserved for Café.
+  - key: remoteServiceUrl
+    label: Remote Service address
+    kind: url
+    required: true
+    default: http://127.0.0.1:15201
+    description: The local end of your SSH tunnel. Use the same address for the browser, pairing and login callbacks.
   - key: calendar
     label: Current public Work dates
     kind: operation
@@ -117,13 +142,26 @@ configuration:
         render: button
         resultRender: status
         action: { method: collective.owner.accountability-attention }
-  - key: servicePort
-    label: Local service port
-    kind: string
-    required: false
-    default: "5201"
-    description: Loopback listener owned by this plugin. Restart the plugin after
-      changing the port; runtime ports 3001 and 3002 are reserved.
+configurationVariants:
+  discriminator: serviceMode
+  branches:
+    - id: embedded
+      when:
+        properties: { serviceMode: { const: embedded } }
+      fields: [servicePort]
+    - id: remote
+      when:
+        properties: { serviceMode: { const: remote } }
+      fields: [remoteServiceUrl]
+steps:
+  - text: Open Collective and follow the initial account setup.
+    mode: embedded
+  - text: Install the independent Service on the remote computer, listening only on 127.0.0.1:5201.
+    mode: remote
+  - text: "Keep the local SSH tunnel running: ssh -N -T -L 127.0.0.1:15201:127.0.0.1:5201 <SSH destination>"
+    mode: remote
+  - text: Save, disable and enable the plugin, then open Collective to sign in and pair this Café.
+    mode: remote
 features:
   - id: collective-backend
     name: Collective backend

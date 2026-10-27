@@ -14,7 +14,9 @@ const envelope = z.object({
 export function collectiveOwnerOperationInput(value: unknown): { input?: Record<string, unknown> } {
   const parsed = envelope.parse(value);
   if (parsed.input === undefined) return {};
-  const { servicePort, ...input } = parsed.input;
+  const { servicePort, serviceMode, remoteServiceUrl, ...input } = parsed.input;
   z.string().max(5).optional().parse(servicePort);
+  z.enum(['embedded', 'remote']).optional().parse(serviceMode);
+  z.string().max(2048).optional().parse(remoteServiceUrl);
   return { input };
 }

@@ -1,0 +1,18 @@
+[Unit]
+Description=Private Collective Service
+After=network.target
+
+[Service]
+Type=simple
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=%h/.config/clowder-collective/collective.env
+# Replace VERSION with the exact installed release; keep data outside this directory.
+ExecStart=%h/clowder-collective/releases/VERSION/node_modules/.bin/clowder-collective-service
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=default.target

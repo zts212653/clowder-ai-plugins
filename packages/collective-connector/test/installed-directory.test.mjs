@@ -16,6 +16,7 @@ function run(command, args, cwd, isolatedEnvironment) {
   const env = { ...isolatedEnvironment };
   delete env.NODE_PATH;
   delete env.NODE_OPTIONS;
+  delete env.NODE_TEST_CONTEXT;
   if (command === 'tar') env.COPYFILE_DISABLE = '1';
   const result = spawnSync(command, args, { cwd, env, encoding: 'utf8', timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
   assert.equal(result.status, 0, [command, ...args, result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n'));
@@ -55,8 +56,10 @@ test('packed dependency closure runs the real SDK lifecycle without consumer-pro
           'fresh build cannot republish retired root entrypoints');
         assert.ok(result[0].files.some(file => file.path === 'dist/business/connector/work-reconsideration.js'),
           'the current Connector reconsideration owner must remain packaged');
-        assert.equal(result[0].files.some(file => file.path === 'dist/business/service/cli.js'), false,
-          'module installation must not ship the old standalone Service launcher');
+        assert.ok(result[0].files.some(file => file.path === 'dist/business/service/cli.js'),
+          'the supported standalone Service entry must ship beside the same-version module and Client');
+        const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+        assert.equal(manifest.bin['clowder-collective-service'], 'dist/business/service/cli.js');
         assert.ok(result[0].files.some(file => file.path === 'plugin.yaml'));
         assert.ok(result[0].files.some(file => file.path === 'dist/plugin-entrypoint.js'));
         assert.ok(result[0].files.some(file => file.path === 'skills/collective-participation/SKILL.md'));
@@ -79,6 +82,21 @@ test('packed dependency closure runs the real SDK lifecycle without consumer-pro
       await assert.rejects(readFile(join(consumer, 'node_modules/@clowder-ai', name, 'package.json')), { code: 'ENOENT' });
     }
     console.log(run(process.execPath, ['journey.mjs'], consumer, testEnvironment).trim());
+    const standalone = run(process.execPath, ['--import', 'tsx', '--test', '--test-reporter=tap', 'test/standalone-service.test.mjs'], packageRoot,
+      { ...testEnvironment, F290_INSTALLED_PACKAGE_ROOT: installedRoot });
+    assert.match(standalone, /# pass 3\b/);
+    console.log(standalone.trim());
+    // Exercise the documented npm installer and its actual bin link as well as the Host directory closure.
+    const npmConsumer = join(temporary, 'npm-consumer');
+    await mkdir(npmConsumer);
+    await writeFile(join(npmConsumer, 'package.json'), JSON.stringify({ private: true }));
+    run('npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', packed[2]], npmConsumer, testEnvironment);
+    const bin = join(npmConsumer, 'node_modules/.bin/clowder-collective-service');
+    assert.match(run(bin, ['--help'], npmConsumer, testEnvironment), /COLLECTIVE_SERVICE_PUBLIC_URL/);
+    const npmStandalone = run(process.execPath, ['--import', 'tsx', '--test', '--test-reporter=tap', 'test/standalone-service.test.mjs'], packageRoot,
+      { ...testEnvironment, F290_INSTALLED_PACKAGE_ROOT: join(npmConsumer, 'node_modules/@clowder-ai/collective-connector') });
+    assert.match(npmStandalone, /# pass 3\b/);
+    console.log(JSON.stringify({ documentedNpmInstall: true, actualBinExecuted: true, standaloneChecksPassed: 3 }));
     if (process.env.F202_COLLECTIVE_ARTIFACT_DIR) {
       const candidate = join(temporary, 'host-candidate');
       await cp(installedRoot, candidate, { recursive: true });

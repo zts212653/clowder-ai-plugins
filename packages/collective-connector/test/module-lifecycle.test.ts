@@ -38,7 +38,7 @@ test('fresh owner lists accept Host configuration and persisted operation state 
     assert.equal((await status(active)).bootstrapNeeded,true);
     for(const [operationKey,method] of [['recovery','collective.recovery.list'],['participation','collective.owner.connections'],['work','collective.work.owner.connections']]) {
       const caller:PluginOwnerOperationContext={...owner(),kind:'owner-operation',operationKey:operationKey!,actionId:'list',requestId:'fresh-list'};
-      const input={input:{servicePort:String(port)},operationState:{currentAction:'list',updatedAt:Date.now()}};
+      const input={input:{servicePort:String(port),serviceMode:'embedded',remoteServiceUrl:'http://127.0.0.1:15201'},operationState:{currentAction:'list',updatedAt:Date.now()}};
       const result=await active.actions[method!]!(input,undefined,caller) as {render:string;data:{rows:unknown[];empty?:string}};
       assert.equal(result.render,'rows');assert.deepEqual(result.data.rows,[]);
       for(const field of ['userId','connectionId','credential'])

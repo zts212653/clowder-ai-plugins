@@ -33,6 +33,7 @@ export async function startCollectiveServer(options: StartCollectiveServerOption
     throw new Error(`Port ${requestedPort} is reserved for the Clowder AI runtime`);
   }
   const allowedHostOrigins = options.allowedHostOrigins instanceof Set ? options.allowedHostOrigins : new Set(options.allowedHostOrigins ?? []);
+  if (options.publicUrl) allowedHostOrigins.add(new URL(options.publicUrl).origin);
   const handler = createCollectiveHttpHandler({
     store: options.store,
     ...(options.publicUrl ? { serviceOrigin: new URL(options.publicUrl).origin } : {}),
@@ -54,7 +55,7 @@ export async function startCollectiveServer(options: StartCollectiveServerOption
     await closeServer(server);
     throw new Error('Collective Service did not bind a TCP address');
   }
-  const url = `http://${host}:${address.port}`;
+  const url = `http://${host.includes(':') ? `[${host}]` : host}:${address.port}`;
   allowedHostOrigins.add(url);
   options.store.startArtifactOwnerRelay();
   return {

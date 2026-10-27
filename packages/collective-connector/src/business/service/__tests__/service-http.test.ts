@@ -10,6 +10,27 @@ import { CollectiveServiceStore } from '../store.js';
 const servers: RunningCollectiveServer[] = [];
 const directories: string[] = [];
 
+it('accepts browser writes at its canonical SSH origin while rejecting unconfigured origins', async () => {
+  const dataDirectory = await mkdtemp(join(tmpdir(), 'collective-ssh-origin-'));
+  directories.push(dataDirectory);
+  const opened = await CollectiveServiceStore.open({ dataDirectory });
+  const server = await startCollectiveServer({
+    store: opened.store,
+    port: 0,
+    publicUrl: 'http://127.0.0.1:15201/',
+  });
+  servers.push(server);
+  const bootstrap = (origin: string) => fetch(`${server.url}/api/bootstrap`, {
+    method: 'POST',
+    headers: { origin, 'content-type': 'application/json' },
+    body: JSON.stringify({ secret: opened.bootstrapSecret, displayName: 'SSH owner' }),
+  });
+  expect((await bootstrap('http://127.0.0.1:15202')).status).toBe(403);
+  const accepted = await bootstrap('http://127.0.0.1:15201');
+  expect(accepted.status).toBe(201);
+  expect((await accepted.json()).human.displayName).toBe('SSH owner');
+});
+
 afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true })));

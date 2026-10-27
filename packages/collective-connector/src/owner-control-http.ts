@@ -7,6 +7,7 @@ import type { createCollectiveEntryCaller } from './entry-control.js';
 import type { HostRouteConfig } from './business/connector/host-route-state.js';
 import { desiredParticipationSchema } from './business/connector/host-route-state.js';
 import { channelListeningInputSchema } from './business/connector/channel-listening-custody.js';
+import type { CollectiveRemoteServiceStatus } from './remote-service-status.js';
 
 const requestSchema = z.object({
   method: z.enum(['GET', 'POST', 'PUT']), path: z.string().min(1).max(512),
@@ -38,7 +39,8 @@ interface OwnerControlOptions {
     'setChannelListening' | 'readWorkPolicyStatus' | 'adoptWorkPolicy' | 'revokeWorkGrants'>;
   readonly admitOwnerOrigin: (origin: string) => Promise<void>;
   readonly assertActive: () => void;
-  readonly status: () => CollectiveLocalServiceStatus;
+  readonly status: () => CollectiveLocalServiceStatus | undefined;
+  readonly remoteStatus?: () => Promise<CollectiveRemoteServiceStatus>;
   readonly launch: () => Promise<{ readonly service: CollectiveLocalServiceStatus; readonly launchUrl: string }>;
 }
 const response = (status: number, body: unknown) => ({ status, headers: { 'content-type': 'application/json' }, body });
@@ -143,11 +145,14 @@ export function createOwnerControlHttp(options: OwnerControlOptions) {
       }
     }
     if (request.path === 'connections' && request.method === 'GET')
-      return finish(200, { runtimeStatus: 'active', connections: await connector.listConnections(), localService: options.status() });
+      return finish(200, { runtimeStatus: 'active', connections: await connector.listConnections(),
+        ...(options.remoteStatus ? { remoteService: await options.remoteStatus() } : { localService: options.status() }) });
     if (request.path === 'service/provision' && request.method === 'POST') {
       try { return await finish(200, await options.launch()); }
       catch (error) {
         await current();
+        if (error instanceof Error && 'code' in error && error.code === 'COLLECTIVE_REMOTE_MODE')
+          return response(409, { code: 'COLLECTIVE_REMOTE_MODE', error: 'Remote mode does not create a local Service' });
         return response(409, { code: 'COLLECTIVE_SERVICE_PROVISION_FAILED', error: error instanceof Error ? error.message : 'Local Collective Service could not be created' });
       }
     }

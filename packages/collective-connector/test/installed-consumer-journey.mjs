@@ -80,6 +80,8 @@ const namespace = await import(pathToFileURL(join(packageRoot, manifest.runtime.
 const entrypoint = requirePluginModuleEntrypoint(namespace.default);
 assert.equal(module, namespace.default, 'public export must identify the same installed module');
 const cliEntries = new Set(manifest.contributions.filter(item => item.type === 'mcp').map(item => item.runtime.entrypoint));
+const packageManifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+for (const path of Object.values(packageManifest.bin ?? {})) cliEntries.add(path);
 async function importTree(directory) {
   for (const item of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, item.name);
@@ -87,8 +89,9 @@ async function importTree(directory) {
     else if (item.name.endsWith('.js') && !cliEntries.has(relative(packageRoot, path))) await import(pathToFileURL(path).href);
   }
 }
-// Refuse an accidentally carried executable before the import-closure probe can run it.
-await assert.rejects(stat(join(packageRoot, 'dist/business/service/cli.js')), { code: 'ENOENT' });
+// Explicit executables are exercised separately; importing the module closure must never start a Service.
+assert.equal(packageManifest.bin['clowder-collective-service'], 'dist/business/service/cli.js');
+assert.ok((await stat(join(packageRoot, packageManifest.bin['clowder-collective-service']))).isFile());
 await importTree(join(packageRoot, 'dist'));
 const { Client } = await import(pathToFileURL(fromPackage.resolve('@modelcontextprotocol/sdk/client/index.js')).href);
 const { StdioClientTransport } = await import(pathToFileURL(fromPackage.resolve('@modelcontextprotocol/sdk/client/stdio.js')).href);
@@ -311,7 +314,7 @@ try {
   console.log(JSON.stringify({ result: 'PASS', installedDirectory: true, physicalDependencyClosure: true,
     manifest: 'valid', lifecycle: 'start/bootstrap/create/disable/re-enable', statePreserved: true,
     reservedPortsUsed: false, pluginOwnsListener: true, packagedAssetsVerified: true,
-    hostAcceptance: 'isolated SDK caller, not actual Host installed acceptance', oldCliExcluded: true,
+    hostAcceptance: 'isolated SDK caller, not actual Host installed acceptance', supportedStandaloneBin: true,
     isolatedHome: true, inheritedServiceCredentialsRemoved: true,
     rejectedPrivateRootImports: privateImports, rejectedInternalSubpaths: 4 }));
 } finally {
