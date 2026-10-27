@@ -25,23 +25,25 @@ node scripts/assert-pr-head.mjs <owner/repo> <pr-number> <新HEAD-sha>
 
 每个插件独立目录、独立 `package.json` 与 `plugin.yaml`。PR 说明用途、稳定 pluginId、版本、维护者、所需权限、依赖变动和实际安装/启停结果；没有配置或账号要求的插件不要增加无意义的用户步骤。
 
-仓内新增目录不会自动获得 npm 发布或官方目录条目。需要官方 npm 分发时，同步核对发布 workflow 的实际包清单与 catalog 制品坐标；这些变更继续遵循下面的路径权限规则。团队 Git 仓的目录发现不依赖本仓的 npm catalog。
+仓内新增目录不会自动获得 npm 发布或官方目录条目。需要官方 npm 分发时，同步核对发布 workflow 的实际包清单与 catalog 制品坐标；这些变更继续遵循下面的风险审查约定。团队 Git 仓的目录发现不依赖本仓的 npm catalog。
 
-## 路径级权限矩阵
+## 路径责任与风险审查
+
+本仓不要求指定个人或“另一方”批准 PR。`CODEOWNERS` 用于标识维护者和发出可选审查请求，不是合入审批门槛；需要独立审查时，按实际风险选择一位合适的非作者 reviewer，不限定其 GitHub 账号或所属一方。
 
 | 路径 | 责任与合入规则 |
 |---|---|
-| contract、schema、fixtures、release workflow、`CODEOWNERS`、根依赖输入 | PR 作者提供一方 provenance；最后一次 push 后由另一方 CODEOWNER approve |
-| `mindfn` 主导的 SDK、runtime、probe、普通插件 | 不碰上行受保护路径时，required CI 绿后可由作者自治合入 |
-| `foreground-cat`、家庭形象资产与资产许可证 | 家里主责，另一方复核；不可逆许可证决定另需 CVO 明确签字 |
+| contract、schema、fixtures、release workflow、`CODEOWNERS`、根依赖输入 | 作者提供变更与验证依据；按契约、发布、安全或治理风险选择非作者独立审查，覆盖最终实质内容 |
+| SDK、runtime、probe、普通插件及 catalog 更新 | required CI 绿后可由作者自治合入；实际涉及契约、安全或发布边界时按相应风险审查，不因路径命中 CODEOWNERS 额外等指定人批准 |
+| `foreground-cat`、家庭形象资产与资产许可证 | 家里主责，按实际风险审查；不可逆许可证决定仍需 CVO 明确签字 |
 
-GitHub 对同一条 CODEOWNERS 规则只要求其中任一 owner 的 approval，且 PR 作者不能 approve 自己。因此这里的“双签”不是把全局 approval 数机械设为 2，而是：**author provenance + other-party CODEOWNER approval**。
+独立审查证据可以来自非作者维护者或猫的审查回执，须绑定最终实质内容；共享 GitHub 账号下的猫不需要伪造账号自批。历史计划里的“双签”或“另一方 CODEOWNER approval”不再构成现行合入前提，以本节为准。
 
 `main` ruleset 应保持：
 
-- 所有变更经 PR；全局 `required_approving_review_count=0`，仅命中 CODEOWNERS 的路径要求 code-owner review；
-- 新 commit 撤销 stale approvals，因此受保护路径必须由另一方 CODEOWNER 对 final push 重新批准；`require_last_push_approval=false`，避免给未受保护的普通插件路径强加全局 approval；
+- 所有变更经 PR；`required_approving_review_count=0`、`require_code_owner_review=false`，不强制指定个人或 CODEOWNER approval；
+- `dismiss_stale_reviews_on_push=true`、`require_last_push_approval=false`；需要独立审查的改动核对审查是否覆盖最终实质内容；
 - required status context 为 `Typecheck + Conformance`（workflow：`Contract CI`），且该 workflow 对所有 pull request 上报；
 - 不把管理员 bypass 当常规合入路径。
 
-各包独立维护版本，以相应 package.json 和 npm registry 中实际发布的版本为准，不能把仓内 SDK 候选版本当成已发布版本。当前发布 workflow 由通过 validate 的 main push 触发；实际发布包、版本和 dist-tag 以 workflow 为准。源码集成时仅更新 `catalog/candidate.json`；包发布成功后用 `pnpm catalog:activate` 核验并通过独立普通 PR 更新 live `catalog/catalog.json`，不要将未发布坐标提前激活。独立插件应固定验证过的可获取 SDK 版本，并提交锁文件。行为夹具与插件 manifest 中的 `contractVersion` 仍是签字协议版本 `0.1.0`，不随 npm artifact 的 beta 后缀变化。完整插件系统改造与验收完成后，才发布正式 `0.1.0` 并推进 `latest`。K-1 shape-approved、另一方对 final HEAD 的 approval、required CI、npm scope/`NPM_TOKEN` 与 registry 精确 version+integrity 验证全部完成前，不得合入或消费本 prerelease。
+各包独立维护版本，以相应 package.json 和 npm registry 中实际发布的版本为准，不能把仓内 SDK 候选版本当成已发布版本。当前发布 workflow 由通过 validate 的 main push 触发；实际发布包、版本和 dist-tag 以 workflow 为准。源码集成时仅更新 `catalog/candidate.json`；包发布成功后用 `pnpm catalog:activate` 核验并通过独立普通 PR 更新 live `catalog/catalog.json`，不要将未发布坐标提前激活。独立插件应固定验证过的可获取 SDK 版本，并提交锁文件。行为夹具与插件 manifest 中的 `contractVersion` 仍是签字协议版本 `0.1.0`，不随 npm artifact 的 beta 后缀变化。完整插件系统改造与验收完成后，才发布正式 `0.1.0` 并推进 `latest`。K-1 shape-approved、按实际风险选定的非作者审查、required CI、npm scope/`NPM_TOKEN` 与 registry 精确 version+integrity 验证全部完成前，不得合入或消费本 prerelease。
