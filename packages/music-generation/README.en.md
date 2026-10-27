@@ -1,6 +1,6 @@
 # Google Cloud Music
 
-[中文](README.md)
+[Chinese](README.md)
 
 Ask a cat to generate music and deliver a new MP3 plus provenance into the calling project. Billing belongs to your authorized Google Cloud project, not an AI Studio prepaid balance. This is an unpublished private candidate outside the catalog; the Host must support project-output delivery.
 
