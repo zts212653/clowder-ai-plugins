@@ -84,6 +84,10 @@ export interface CollectiveLocalTransport {
   readRecovery(connection: ConnectorConnectionState, clientEventId?: string): Promise<LocalRecoverySnapshot>;
 }
 
+// Source reads wait on the bounded owner relay (10s per publication), then
+// reauthorize and return the durable command receipt over this transport.
+const MATERIAL_SOURCE_REQUEST_TIMEOUT_MS = 25_000;
+
 export class ConnectorTransportError extends Error {
   get automaticRetry(): false | undefined {
     return this.localFailure?.automaticRetry;
@@ -244,6 +248,7 @@ export class CollectiveServiceClient {
         method: 'POST',
         credential,
         body: input,
+        timeoutMs: MATERIAL_SOURCE_REQUEST_TIMEOUT_MS,
       }),
     );
   }
@@ -253,6 +258,7 @@ export class CollectiveServiceClient {
         method: 'POST',
         credential,
         body: input,
+        timeoutMs: MATERIAL_SOURCE_REQUEST_TIMEOUT_MS,
       }),
     );
   }

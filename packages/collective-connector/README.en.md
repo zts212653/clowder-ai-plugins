@@ -74,3 +74,7 @@ Service pairing, automatic inbound delivery, public replies, real-model Work, ma
 The Host owns installation, caller context, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
 
 The alpha.13 Client is built from exact Core source `5f055fcc907a67f015bceb84500256d8ad41e65d` (542 checked source inputs, no overrides). Batch 2 journey and source boundaries are recorded in that source’s `docs/evidence/2026-10-27-f290-dates-materials/README.md`.
+
+An admitted Work can set execution dates and report progress within the same resumed invocation. Delivery retains its exact Work observation; subsequent calls recheck the same assignment and current execution permission. Date edits retain CAS and operation replay, so a successful write does not invalidate its own receipt. Revocation, terminal state and reassignment checks remain.
+
+Reading or suggesting one shared material rechecks only its selected original source. Source-backed requests allow the bounded owner read to return its receipt, retaining live authorization, CAS and unknown-outcome recovery.

@@ -46,7 +46,7 @@ export async function readProjectSource(
   );
   const found = [];
   for (const project of projects.slice(0, 12)) {
-    const list = await materials.listForParticipant({ ...input, roadmapId: project.roadmapId }, check);
+    const list = await materials.listForParticipant({ ...input, roadmapId: project.roadmapId }, check, input.materialId);
     for (const item of list.items) {
       if (input.materialId && item.materialId !== input.materialId) continue;
       found.push({
