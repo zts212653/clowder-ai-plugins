@@ -8,6 +8,7 @@ export const NATIVE_HOST_ARTIFACT_FILES = Object.freeze([
   'conversation-binding.mjs',
   'conversation-title-exchange.mjs',
   'conversation-titles.mjs',
+  'health-result.mjs',
   'native-framing.mjs',
   'native-host-cli.mjs',
   'native-host.mjs',

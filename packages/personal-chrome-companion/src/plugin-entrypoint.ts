@@ -16,6 +16,7 @@ import {
 } from '@clowder-ai/plugin-sdk';
 
 import { createConversationHostOperations } from './conversation-host.js';
+import { authorizedPageHealthAction } from './authorized-page-health.js';
 import { describeHelperConnection, type HelperConnectionStatus } from './helper-reachability.js';
 import { prepareRuntimeDelivery, type RuntimeDelivery } from './runtime-delivery.js';
 import {
@@ -39,6 +40,7 @@ export const PERSONAL_CHROME_REVOKE_METHOD = 'personal-chrome-host.authorization
 export const PERSONAL_CHROME_REFRESH_TITLES_METHOD = 'personal-chrome-host.authorizations.refresh-titles';
 export const PERSONAL_CHROME_STATUS_METHOD = 'personal-chrome-host.authorizations.status';
 export const PERSONAL_CHROME_TEST_METHOD = 'personal-chrome-host.test';
+export const PERSONAL_CHROME_CHECK_CONVERSATION_METHOD = 'personal-chrome-host.check-conversation';
 export const PERSONAL_CHROME_APPEND_MESSAGE_METHOD = 'personal-chrome-host.append-message';
 export const PERSONAL_CHROME_ASSISTANT_LIST_METHOD = 'personal-chrome-host.assistant-returns.list';
 export const PERSONAL_CHROME_ASSISTANT_ACK_METHOD = 'personal-chrome-host.assistant-returns.ack';
@@ -72,7 +74,7 @@ function truncateChars(value: string, limit: number): string {
  * Maps one stored authorization to one Host-rendered row (contract h1):
  * key = conversationId, label = conversation title falling back to the id
  * (truncated to 200), detail = chatUrl (authorizedAt as defensive fallback),
- * and exactly one revoke row action carrying { conversationId } as input.
+ * and explicit revoke/page-check row actions carrying { conversationId } as input.
  */
 export function buildAuthorizationRow(
   conversation: PersonalChromeConversationAuthorization & {
@@ -84,7 +86,8 @@ export function buildAuthorizationRow(
     key: conversation.conversationId,
     label: truncateChars(label, 200),
     detail: conversation.chatUrl.length > 0 ? conversation.chatUrl : conversation.authorizedAt,
-    actions: [operationRowAction(REVOKE_ROW_ACTION_ID, { conversationId: conversation.conversationId })],
+    actions: [operationRowAction(REVOKE_ROW_ACTION_ID, { conversationId: conversation.conversationId }),
+      operationRowAction('check-page', { conversationId: conversation.conversationId })],
   };
 }
 
@@ -231,6 +234,7 @@ function loadedSettings(host: PersonalChromeSettingsHost) {
         : `Title refresh unavailable: ${titleSync.errorCode}` };
     },
     [PERSONAL_CHROME_TEST_METHOD]: () => conversationHost.probe(),
+    [PERSONAL_CHROME_CHECK_CONVERSATION_METHOD]: authorizedPageHealthAction(join(host.dataPath, 'conversation-binding.json'), conversationHost),
   }, dispose: () => conversationHost.dispose() };
 }
 
@@ -269,9 +273,10 @@ export function createPersonalChromePluginModule(): PersonalChromeSettingsEntryp
                 const result = await conversationHost.probe();
                 const state = delivery.status();
                 const helper = conversationHost.status();
-                return { ok: result.ok && !state.reloadRequired && !state.failure,
+                return { ok: result.ok && !state.reloadRequired && !state.pageReloadRequired && !state.failure,
                   message: `${result.message} ${describeHelperConnection(helper)} ${deliveryGuidance(helper, delivery)}`.trim() };
               },
+              [PERSONAL_CHROME_CHECK_CONVERSATION_METHOD]: authorizedPageHealthAction(join(dataDirectory, 'conversation-binding.json'), conversationHost),
               [PERSONAL_CHROME_APPEND_MESSAGE_METHOD]: conversationHost.appendMessage,
               [PERSONAL_CHROME_ASSISTANT_LIST_METHOD]: conversationHost.list,
               [PERSONAL_CHROME_ASSISTANT_ACK_METHOD]: conversationHost.ack,

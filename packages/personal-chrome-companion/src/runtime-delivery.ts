@@ -12,6 +12,7 @@ import { PERSONAL_CHROME_EXTENSION_REVISION, PERSONAL_CHROME_PAGE_ADAPTER_REVISI
 export interface RuntimeDeliveryStatus {
   readonly extensionPath: string;
   readonly reloadRequired: boolean;
+  readonly pageReloadRequired?: boolean;
   readonly failure?: 'INSTALLATION_BUSY' | 'PERMISSION_DENIED' | 'INVALID_INSTALLATION' | 'DELIVERY_IO';
 }
 interface DeliveryRecord {
@@ -19,6 +20,7 @@ interface DeliveryRecord {
   extensionDigest: string;
   helperDigest: string;
   reloadRequired: boolean;
+  pageReloadRequired?: boolean;
 }
 export interface RuntimeDelivery {
   status(): RuntimeDeliveryStatus;
@@ -41,7 +43,8 @@ async function readRecord(path: string): Promise<DeliveryRecord | undefined> {
     if (!metadata.isFile() || metadata.size > 4096) throw new Error('invalid delivery record');
     const value = JSON.parse(await readFile(path, 'utf8')) as DeliveryRecord;
     if (typeof value.generation !== 'string' || !/^[a-f0-9]{64}$/.test(value.extensionDigest) ||
-        !/^sha512:[a-f0-9]{128}$/.test(value.helperDigest) || typeof value.reloadRequired !== 'boolean') {
+        !/^sha512:[a-f0-9]{128}$/.test(value.helperDigest) || typeof value.reloadRequired !== 'boolean' ||
+        (value.pageReloadRequired !== undefined && typeof value.pageReloadRequired !== 'boolean')) {
       throw new Error('invalid delivery record');
     }
     return value;
@@ -89,7 +92,8 @@ export async function prepareRuntimeDelivery(dataDirectory: string, sources: {
       const changed = previousDigest !== digest || (installedDigest !== undefined && installedDigest !== helperDigest);
       if (!record || record.extensionDigest !== digest || record.helperDigest !== helperDigest || changed) {
         record = { generation: randomUUID(), extensionDigest: digest, helperDigest,
-          reloadRequired: changed || (record?.reloadRequired ?? false) };
+          reloadRequired: changed || (record?.reloadRequired ?? false),
+          ...(record?.pageReloadRequired ? { pageReloadRequired: true } : {}) };
         // Persist before changing bytes: a restart must not forget a pending owner action.
         await writeRecord(recordPath, record);
       }
@@ -98,22 +102,34 @@ export async function prepareRuntimeDelivery(dataDirectory: string, sources: {
   } catch (error) { failure ??= failureClass(error); }
 
   let reloadRequired = record?.reloadRequired ?? false;
+  let pageReloadRequired = record?.pageReloadRequired ?? false;
   const recordContact = async (revisions: PersonalChromeRevisions | undefined, errorCode?: string): Promise<void> => {
     const stale = errorCode?.startsWith('STALE_') === true;
-    if (stale) reloadRequired = true;
+    if (stale) {
+      if (errorCode === 'STALE_PAGE_ADAPTER') pageReloadRequired = true;
+      else reloadRequired = true;
+    }
     if (!record) return;
-    const matched = revisions?.helper === record.helperDigest &&
-      revisions.extension === PERSONAL_CHROME_EXTENSION_REVISION && revisions.pageAdapter === PERSONAL_CHROME_PAGE_ADAPTER_REVISION;
-    if (!stale && (!matched || failure)) return;
-    if (record.reloadRequired === stale) return;
+    const connected = revisions?.helper === record.helperDigest && revisions.extension === PERSONAL_CHROME_EXTENSION_REVISION;
+    const matched = connected && revisions.pageAdapter === PERSONAL_CHROME_PAGE_ADAPTER_REVISION;
+    const connectionOnly = connected && revisions.pageAdapter === 'unobserved' &&
+      ['CONVERSATION_NOT_SELECTED', 'BOUND_TAB_NOT_FOUND', 'AMBIGUOUS_BOUND_TABS'].includes(errorCode ?? '');
+    let nextReload = reloadRequired;
+    let nextPageReload = pageReloadRequired;
+    if (!stale) {
+      if ((!matched && !connectionOnly) || failure) return;
+      nextReload = false;
+      if (matched) nextPageReload = false;
+    }
+    if (record.reloadRequired === nextReload && (record.pageReloadRequired ?? false) === nextPageReload) return;
     try {
       const lease = await acquireProcessLease(join(dataDirectory, 'install'), { label: 'native host installation' });
       try {
         const current = await readRecord(recordPath);
         if (current?.generation !== record.generation) return;
-        const next = { ...record, reloadRequired: stale };
+        const next = { ...record, reloadRequired: nextReload, pageReloadRequired: nextPageReload };
         await writeRecord(recordPath, next);
-        record = next; reloadRequired = next.reloadRequired;
+        record = next; reloadRequired = nextReload; pageReloadRequired = nextPageReload;
       } finally { await lease.release(); }
     } catch (error) {
       // Bookkeeping cannot change the result of an already-sent append.
@@ -121,12 +137,14 @@ export async function prepareRuntimeDelivery(dataDirectory: string, sources: {
     }
   };
   const status = (): RuntimeDeliveryStatus => ({ extensionPath, reloadRequired,
+    ...(pageReloadRequired ? { pageReloadRequired } : {}),
     ...(failure ? { failure } : {}) });
   return {
     status,
     label: () => [
       failure ? `Delivery failed (${failure}); use Settings > Personal Chrome > Chrome connection to repair, then reactivate the plugin.` : '',
       reloadRequired ? 'Reload the extension once in chrome://extensions, then run Test.' : '',
+      pageReloadRequired ? 'Reload the affected ChatGPT conversation page; its page adapter is outdated. Global Test checks the connection only.' : '',
     ].filter(Boolean).join(' '),
     observe: (revisions, errorCode) => {
       if (disposed) return Promise.resolve();
