@@ -54,7 +54,7 @@ conversation that opened the world. Refresh restores only previously verified na
 Human, marked as checking rather than authority. The unavailable page keeps the target name, offers an in-place retry
 and hides raw network errors.
 
-The packaged Client's paired Core source is `280fcd4d6618f1fb4e1c7cf614af7901680080ca`; see the
+The earlier alpha.12 Client was paired with Core source `280fcd4d6618f1fb4e1c7cf614af7901680080ca`; see the
 [Batch 1 evidence](https://github.com/zts212653/cat-cafe/tree/280fcd4d6618f1fb4e1c7cf614af7901680080ca/docs/evidence/2026-10-25-f290-expression-content)
 and the [same-source real Host journey](https://github.com/zts212653/cat-cafe/blob/280fcd4d6618f1fb4e1c7cf614af7901680080ca/packages/web/test/browser/f290-world-identity.journey.mjs),
 which covers Human identity, A→B→A history, refresh recovery, unavailable retry and identity-card bounds.
@@ -72,3 +72,5 @@ The plugin starts its own loopback HTTP listener on enable and closes it on stop
 Service pairing, automatic inbound delivery, public replies, real-model Work, material opening, acceptance and previous-result reads still require the complete installed account/browser journey. Module and provider-fixture evidence does not certify all of these. Local port availability and the complete account journey remain installation acceptance requirements.
 
 The Host owns installation, grants, credentials and lifecycle; saving configuration preserves enable intent. The language link opens a separate document and does not imply automatic language selection.
+
+The alpha.13 Client is built from exact Core source `87aeeece8be3a355aa468cd091f443bc75012b46` (541 checked source inputs, no overrides). Batch 2 journey and source boundaries are recorded in that source’s `docs/evidence/2026-10-27-f290-dates-materials/README.md`.

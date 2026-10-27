@@ -13,6 +13,8 @@ assert.match(expectedArchiveSha256 ?? '', /^[a-f0-9]{64}$/, 'explicit prepared a
 const archiveBytes = await readFile(archive);
 assert.equal(createHash('sha256').update(archiveBytes).digest('hex'), expectedArchiveSha256);
 const expectedDigest = `sha512-${createHash('sha512').update(archiveBytes).digest('base64')}`;
+const expectedClosure = process.env.F202_COLLECTIVE_HOST_DEPENDENCY_CLOSURE ?? 'shipped';
+assert.ok(['shipped', 'materialized'].includes(expectedClosure), 'explicit supported dependency closure is required');
 const expectedHead = process.env.F202_COLLECTIVE_HOST_HEAD;
 assert.match(expectedHead ?? '', /^[a-f0-9]{40}$/, 'explicit frozen current Host HEAD is required');
 assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: hostRoot, encoding: 'utf8' }).trim(), expectedHead);
@@ -55,6 +57,7 @@ try {
   const { FilePluginInventoryStore } = await load('plugin/host-inventory/stores.js');
   const { HostInventoryControlPlane } = await load('plugin/host-inventory/control-plane.js');
   const { FilesystemVerifiedPluginPackageLocator } = await load('plugin/external-runtime/filesystem-package-locator.js');
+  const { FilesystemBuiltinPluginPackageMaterializer } = await load('plugin/manager/package-assets/builtin-package-materializer.js');
   const { ModulePluginRuntime } = await load('plugin/builtin-runtime/carriers/module-plugin-runtime.js');
   const { requestedDataDirectoryName } = await load('plugin/host-inventory/data-directory-name.js');
   const { TaskStore } = await load('cats/services/stores/ports/TaskStore.js');
@@ -76,6 +79,7 @@ try {
   };
   runtime = new ModulePluginRuntime({ taskStore, taskOwnerUserId: ownerUserId,
     taskThreadStore: { async get() { return null; } }, storage, neutral:async()=>({members:{list:async()=>[],get:async()=>null}}), packages: new FilesystemVerifiedPluginPackageLocator(packagesRoot),
+    materializer: new FilesystemBuiltinPluginPackageMaterializer({ packagesRoot }),
     configuration, dataDirectoryParent: join(temporary, 'data'), log() {},
   });
   async function listen(probe, value = 0) {
@@ -96,7 +100,7 @@ try {
   assert.equal(snapshot.instances.length, 1, 'actual inventory survives reload');
   const record = snapshot.packages[0];
   assert.equal(record.provenance.kind, 'local-archive');
-  assert.equal(record.provenance.dependencyClosure, 'shipped');
+  assert.equal(record.provenance.dependencyClosure, expectedClosure);
   assert.equal(record.packageDigest, expectedDigest, 'archive admission preserves the exact frozen bytes');
   assert.equal(snapshot.instances[0].pluginInstanceId, instanceId);
   assert.equal(record.pluginId, 'official.collective-connector');
@@ -133,7 +137,7 @@ try {
   assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: hostRoot, encoding: 'utf8' }).trim(), expectedHead);
   assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: hostRoot, encoding: 'utf8' }).trim(), '');
   console.log(JSON.stringify({ result: 'PASS', hostHead: expectedHead, archiveAdmission: 'production', archiveSha256: expectedArchiveSha256,
-    inventory: 'file/reloaded', provenance: 'local-archive', dependencyClosure: 'shipped',
+    inventory: 'file/reloaded', provenance: 'local-archive', dependencyClosure: expectedClosure,
     moduleCarrier: 'production', lifecycle: 'failed-start/retry/bootstrap/disable/re-enable',
     statePreserved: true, hostBuildInputs, grants: 'declared capabilities only',
     taskPorts: 'real in-memory Host TaskStore, isolated owner and empty thread reader',

@@ -48,7 +48,7 @@ Core Host 补齐 Host 与 Client 的世界位置契约：同一 Service 切换�
 返回「我的 Café」会回到进入世界前的对话；刷新只把与当前 Connector authority 同一 Human 的已验证世界
 名称恢复为待复核入口，不能把缓存当权限。断网页保留目标世界名和就地重试，不展示原始网络错误。
 
-随包 Client 的配套 Core 源码为 `280fcd4d6618f1fb4e1c7cf614af7901680080ca`；频道表达边界见
+此前 alpha.12 Client 的配套 Core 源码为 `280fcd4d6618f1fb4e1c7cf614af7901680080ca`；频道表达边界见
 [第一批证据](https://github.com/zts212653/cat-cafe/tree/280fcd4d6618f1fb4e1c7cf614af7901680080ca/docs/evidence/2026-10-25-f290-expression-content)，
 Human 身份、A→B→A 世界历史、刷新恢复、断网重试与卡片边界见[同源真实 Host journey](https://github.com/zts212653/cat-cafe/blob/280fcd4d6618f1fb4e1c7cf614af7901680080ca/packages/web/test/browser/f290-world-identity.journey.mjs)。
 源码工作区和独立测试会话验证不能代替正式 Host 安装到版、真人 OAuth 或实体音频质量验收。
@@ -64,3 +64,5 @@ Human 身份、A→B→A 世界历史、刷新恢复、断网重试与卡片边�
 服务配对、自动入站、公开回复、真实模型 Work、材料打开与验收，以及前轮历史读取，仍需完成同一安装环境的真实账号和页面旅程；当前模块和替身证据不代表这些已全部通过。本地服务的端口可用性与完整账号旅程仍是安装验收项。
 
 宿主管理安装、授权、凭据和启停；配置保存不自动改变启用意图。英文文档是独立文件，互链不代表页面已支持自动语言切换。
+
+本次 alpha.13 Client 来自精确 Core 源码 `87aeeece8be3a355aa468cd091f443bc75012b46`，核对 541 个源输入、无覆盖。第二批旅程与来源边界见该源的 `docs/evidence/2026-10-27-f290-dates-materials/README.md`。
