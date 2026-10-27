@@ -58,8 +58,8 @@ test('a rejected OAuth refresh makes zero generation calls; connection tests onl
   const client = googleCloudDependencies(async url => {
     calls.push(url);
     if (url === 'https://oauth2.googleapis.com/token') return rejectGrant ? json({}, 400) : auth();
-    if (url === 'https://cloudbilling.googleapis.com/v1/projects/project-one/billingInfo') return json({ billingEnabled: true });
-    if (url === 'https://serviceusage.googleapis.com/v1/projects/project-one/services/aiplatform.googleapis.com') return json({ state: 'ENABLED' });
+    if (url === 'https://cloudbilling.googleapis.com/v1/projects/project-one/billingInfo?fields=billingEnabled') return json({ billingEnabled: true });
+    if (url === 'https://serviceusage.googleapis.com/v1/projects/project-one/services/aiplatform.googleapis.com?fields=state') return json({ state: 'ENABLED' });
     throw new Error('unexpected endpoint');
   });
   await assert.rejects(client.generate(musicInput({ prompt: 'Piano' }), grant, new AbortController().signal), { code: 'oauth_authorization_required' });
@@ -67,6 +67,34 @@ test('a rejected OAuth refresh makes zero generation calls; connection tests onl
   rejectGrant = false;
   assert.deepEqual(await client.verifyConnection(grant), { projectId: 'project-one', billingEnabled: true, vertexEnabled: true });
   assert.equal(calls.some(url => url.includes('/interactions')), false);
+});
+
+test('connection checks request only readiness fields when full service metadata exceeds the response limit', async () => {
+  const calls = [];
+  const service = { state: 'ENABLED', config: { documentation: { summary: 'x'.repeat(128 * 1024) } } };
+  const client = googleCloudDependencies(async raw => {
+    calls.push(raw);
+    if (raw === 'https://oauth2.googleapis.com/token') return auth();
+    const url = new URL(raw);
+    if (url.hostname === 'cloudbilling.googleapis.com') return json({ billingEnabled: true });
+    assert.equal(url.hostname, 'serviceusage.googleapis.com');
+    return json(url.searchParams.get('fields') === 'state' ? { state: service.state } : service);
+  });
+  assert.deepEqual(await client.verifyConnection(grant), {
+    projectId: 'project-one', billingEnabled: true, vertexEnabled: true,
+  });
+  assert.equal(new URL(calls[1]).searchParams.get('fields'), 'billingEnabled');
+  assert.equal(new URL(calls[2]).searchParams.get('fields'), 'state');
+  assert.equal(calls.some(url => url.includes('/interactions')), false);
+});
+
+test('a server ignoring readiness field selection still cannot exceed the bounded response budget', async () => {
+  const client = googleCloudDependencies(async raw => {
+    if (raw === 'https://oauth2.googleapis.com/token') return auth();
+    if (new URL(raw).hostname === 'cloudbilling.googleapis.com') return json({ billingEnabled: true });
+    return json({ state: 'ENABLED', config: 'x'.repeat(128 * 1024) });
+  });
+  await assert.rejects(client.verifyConnection(grant), { code: 'invalid_response' });
 });
 
 test('explicit ADC reuse accepts only a private authorized-user file and refuses symlinks', async t => {

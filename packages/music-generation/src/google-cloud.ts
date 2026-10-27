@@ -67,8 +67,9 @@ export function googleCloudDependencies(request: typeof fetch = fetch): MusicDep
       };
       const project = encodeURIComponent(grant.quota_project_id);
       const [billing, service] = await Promise.all([
-        get(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo`),
-        get(`https://serviceusage.googleapis.com/v1/projects/${project}/services/aiplatform.googleapis.com`),
+        get(`https://cloudbilling.googleapis.com/v1/projects/${project}/billingInfo?fields=billingEnabled`),
+        // services.get otherwise includes the full service configuration, which can exceed our response budget.
+        get(`https://serviceusage.googleapis.com/v1/projects/${project}/services/aiplatform.googleapis.com?fields=state`),
       ]);
       return { projectId: grant.quota_project_id, billingEnabled: object(billing) && billing.billingEnabled === true,
         vertexEnabled: object(service) && service.state === 'ENABLED' };
