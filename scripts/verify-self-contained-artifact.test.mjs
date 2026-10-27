@@ -539,3 +539,17 @@ test('production install is driven by the canonical shrinkwrap instead of newer 
   );
   assert.equal(verification.installedPackages, 1);
 });
+
+test('local candidate packs cannot replace a different frozen dependency version', async (t) => {
+  const { locked, registry, root } = await driftRegistryFixture(t);
+  const packageRoot = await createDriftConsumer(root, registry, locked);
+  const lockBytes = await readFile(join(packageRoot, 'npm-shrinkwrap.json'));
+  for (const workspaceVersion of ['1.1.0', '1.0.0']) {
+    await installProductionDependencies({ packageRoot, registry,
+      localPacks: new Map([['drift-dependency', join(root, 'registry-packs', `drift-dependency-${workspaceVersion}.tgz`)]]) });
+    const installed = JSON.parse(await readFile(join(packageRoot, 'node_modules/drift-dependency/package.json')));
+    assert.equal(installed.version, locked.version, 'only the frozen version may be materialized');
+    assert.deepEqual(await readFile(join(packageRoot, 'npm-shrinkwrap.json')), lockBytes);
+    await rm(join(packageRoot, 'node_modules'), { recursive: true, force: true });
+  }
+});

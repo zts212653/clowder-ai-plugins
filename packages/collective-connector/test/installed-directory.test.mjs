@@ -73,14 +73,21 @@ test('packed dependency closure runs the real SDK lifecycle without consumer-pro
     run('tar', ['-xzf', packed[2], '-C', stage], root, testEnvironment);
     const installedRoot = join(consumer, 'node_modules/@clowder-ai/collective-connector');
     await cp(join(stage, 'package'), installedRoot, { recursive: true });
-    // Produce the distributed closure from its publisher lock and same-batch
-    // core archives. The consumer supplies no hoisted SDK/Contract or symlinks.
+    // Produce the distributed closure from its publisher lock and matching
+    // cohort archives. The consumer supplies no hoisted SDK/Contract or symlinks.
     const localPacks = new Map(packages.slice(0, 2).map((name, index) => ['@clowder-ai/' + name, packed[index]]));
     await installProductionDependencies({ packageRoot: installedRoot, localPacks, env: testEnvironment });
     await rm(join(installedRoot, 'node_modules/.package-lock.json'), { force: true });
+    const frozen = JSON.parse(await readFile(join(packageRoot, 'npm-shrinkwrap.json'), 'utf8')).packages;
+    const installedDependencies = {};
     for (const name of ['plugin-sdk', 'plugin-contract']) {
       await assert.rejects(readFile(join(consumer, 'node_modules/@clowder-ai', name, 'package.json')), { code: 'ENOENT' });
+      const dependency = JSON.parse(await readFile(join(installedRoot, 'node_modules/@clowder-ai', name, 'package.json'), 'utf8'));
+      assert.equal(dependency.version, frozen[`node_modules/@clowder-ai/${name}`].version,
+        'a workspace candidate cannot replace the installed publisher dependency');
+      installedDependencies[dependency.name] = dependency.version;
     }
+    console.log(JSON.stringify({ installedDependencies }));
     console.log(run(process.execPath, ['journey.mjs'], consumer, testEnvironment).trim());
     const standalone = run(process.execPath, ['--import', 'tsx', '--test', '--test-reporter=tap', 'test/standalone-service.test.mjs'], packageRoot,
       { ...testEnvironment, F290_INSTALLED_PACKAGE_ROOT: installedRoot });

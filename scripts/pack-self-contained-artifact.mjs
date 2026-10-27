@@ -218,6 +218,11 @@ export async function installProductionDependencies({
     const packagePath = `node_modules/${packageName}`;
     const entry = installShrinkwrap.packages?.[packagePath];
     assert.ok(entry, `npm-shrinkwrap.json is missing local package ${packagePath}`);
+    const localIdentity = JSON.parse(run('tar', ['-xOzf', archive, 'package/package.json'], packageRoot));
+    assert.equal(localIdentity.name, packageName, 'local dependency archive has a different package identity');
+    // A newer workspace candidate must not replace this consumer's frozen release.
+    // Matching unpublished versions can still use the same-cohort local archive.
+    if (localIdentity.version !== entry.version) continue;
     const archiveBytes = await readFile(archive);
     entry.resolved = pathToFileURL(archive).href;
     entry.integrity = `sha512-${createHash('sha512').update(archiveBytes).digest('base64')}`;
@@ -276,8 +281,8 @@ async function main() {
     const shrinkwrap = JSON.parse(stagedShrinkwrapBytes.toString('utf8'));
     assertProductionDependencyClosure(stagedManifest, shrinkwrap);
 
-    // Dev-wave SDK and contract bytes always come from this checkout, even if
-    // packages with the same versions later become available in the registry.
+    // Matching dev-wave versions use this checkout. Frozen older dependency
+    // versions retain their canonical registry identity during materialization.
     const localPacks = new Map();
     if (shrinkwrap.packages['node_modules/@clowder-ai/plugin-contract']) {
       run('pnpm', ['--filter', '@clowder-ai/plugin-contract', 'build'], repoRoot);
