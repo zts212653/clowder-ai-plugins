@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 
-import type { PluginManifest } from '../generated/contract.generated.js';
+import type { PluginManifest, ProjectOutputRequest, ProjectOutputResult } from '../generated/contract.generated.js';
+import { projectOutputProblem } from './project-output.js';
 
 const require = createRequire(import.meta.url);
 const Ajv2020: new (options: {
@@ -41,6 +42,17 @@ interface AjvInstance {
   compile(schema: Record<string, unknown>): AjvValidateFunction;
 }
 
+function boundedOutput(value: unknown): boolean {
+  try { return Buffer.byteLength(JSON.stringify(value), 'utf8') <= 64 * 1024; } catch { return false; }
+}
+
+export function isProjectOutputRequest(value: unknown): value is ProjectOutputRequest {
+  return boundedOutput(value) && validateOutputRequest(value);
+}
+export function isProjectOutputResult(value: unknown): value is ProjectOutputResult {
+  return boundedOutput(value) && validateOutputResult(value);
+}
+
 export interface ManifestValidationError {
   readonly instancePath: string;
   readonly schemaPath: string;
@@ -65,6 +77,8 @@ ajv.addSchema(pluginMetadataSchema, pluginMetadataSchema['$id'] as string);
 ajv.addSchema(signalSchema, signalSchema['$id'] as string);
 ajv.addSchema(messagingSchema, messagingSchema['$id'] as string);
 const validateSchema = ajv.compile(manifestSchema);
+const validateOutputRequest = ajv.compile({ $ref: `${manifestSchema['$id']}#/$defs/ProjectOutputRequest` });
+const validateOutputResult = ajv.compile({ $ref: `${manifestSchema['$id']}#/$defs/ProjectOutputResult` });
 
 function semanticError(
   instancePath: string,
@@ -130,6 +144,8 @@ export function validateManifest(value: unknown): ManifestValidationResult {
   }
   if (validateSchema(value)) {
     const manifest = value as PluginManifest;
+    const outputProblem = projectOutputProblem(manifest);
+    if (outputProblem) return semanticError('/projectOutputs', '#/projectOutputs', 'projectOutputBoundary', outputProblem);
     const declaredTypes = new Set<string>();
     for (const [index, declaration] of (manifest.signals?.provides ?? []).entries()) {
       if (declaredTypes.has(declaration.type)) {

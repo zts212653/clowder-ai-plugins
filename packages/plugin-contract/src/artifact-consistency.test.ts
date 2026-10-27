@@ -14,17 +14,24 @@ function sha512Of(bytes: Buffer): string {
   return `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 }
 
-test('connector-feishu shrinkwrap pins the exact official-publish packed contract artifact', () => {
+test('connector-feishu shrinkwrap pins the exact official-publish packed contract artifact', async () => {
   const shrinkwrap = JSON.parse(
     readFileSync(`${pluginContractDir}/../connector-feishu/npm-shrinkwrap.json`, 'utf8'),
   ) as {
-    packages: Record<string, { version?: string; integrity?: string }>;
+    packages: Record<string, { version?: string; integrity?: string; resolved?: string }>;
   };
   const entry = shrinkwrap.packages['node_modules/@clowder-ai/plugin-contract'];
   assert.ok(entry?.version);
   const current = JSON.parse(readFileSync(`${pluginContractDir}/package.json`, 'utf8'));
   if (entry.version !== current.version) {
-    const published = readFileSync(`${pluginContractDir}/clowder-ai-plugin-contract-${entry.version}.tgz`);
+    // The immutable consumer may pin a newer published baseline than local caches.
+    // Fetch precisely its locked registry URL instead of assuming an ignored tarball exists.
+    assert.ok(entry.resolved);
+    assert.equal(new URL(entry.resolved).origin, 'https://registry.npmjs.org');
+    const response = await fetch(entry.resolved, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
+    assert.equal(response.status, 200);
+    const published = Buffer.from(await response.arrayBuffer());
+    assert.ok(published.length <= 16 * 1024 * 1024);
     assert.equal(sha512Of(published), entry.integrity);
     return;
   }
@@ -51,8 +58,6 @@ test('connector-feishu shrinkwrap pins the exact official-publish packed contrac
     const [artifact] = JSON.parse(result.stdout) as [
       { filename: string; integrity: string },
     ];
-    const official = readFileSync(join(destination, artifact.filename));
-
     assert.equal(
       entry.integrity,
       artifact.integrity,

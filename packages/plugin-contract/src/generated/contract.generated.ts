@@ -505,6 +505,35 @@ export type BuiltinRuntimeDeclaration = {
   readonly dataDirectory?: string;
 };
 export type RuntimeDeclaration = ExternalRuntimeDeclaration | BuiltinRuntimeDeclaration;
+export type ProjectOutputRequest = {
+  readonly requestId: string;
+  readonly outputPath: string;
+  readonly parameters: Readonly<Record<string, unknown>>;
+};
+export type ProjectOutputResult = {
+  readonly state: 'pending' | 'generation_unknown' | 'rejected';
+  readonly code?: string;
+  readonly retryable: false;
+} | {
+  readonly state: 'produced';
+  readonly media: {
+    readonly sourceId: string;
+    readonly reference: string;
+    readonly mimeType: 'audio/mpeg';
+    readonly bytes: number;
+    readonly sha256: string;
+  };
+  readonly provenance: Readonly<Record<string, unknown>>;
+};
+export type ProjectOutputAction = {
+  readonly method: string;
+  readonly producerMethod: string;
+  readonly resultMethod: string;
+  readonly mediaSourceId: string;
+  readonly mimeType: 'audio/mpeg';
+  readonly maxBytes: number;
+  readonly mcpId: string;
+};
 
 export type PluginManifest = {
   readonly pluginId: string;
@@ -523,6 +552,7 @@ export type PluginManifest = {
   readonly permissions?: ConnectorPermissions;
   readonly steps?: readonly SetupStep[];
   readonly signals?: SignalContribution;
+  readonly projectOutputs?: readonly ProjectOutputAction[];
 };
 
 export type CatalogSemVer = string;

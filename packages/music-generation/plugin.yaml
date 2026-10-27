@@ -1,0 +1,115 @@
+pluginId: official.music-generation
+version: 0.1.0-alpha.0
+contractVersion: 0.3.1-candidate.0
+name: Google Cloud 配乐
+description:
+  default: Generate music using your authorized Google Cloud project, retaining audio and provenance without automatic paid retries.
+  translations:
+    zh-CN: 使用已授权的 Google Cloud 项目生成配乐，保留音频和来源回执，不自动重复付费生成。
+icon: { type: svg, src: assets/icon.svg }
+steps:
+  - text: 显式启用后，猫可将本次配乐和来源回执新建到当前调用线程所属项目的指定位置；宿主核对项目归属，不覆盖已有文件，不因结果未知自动重复付费生成。
+  - text: 先填写已有 Google Cloud 项目 ID。费用由该项目的结算承担；是否适用赠金须以 Cloud 账单为准，不使用 AI Studio 充值余额。
+  - text: 本机已有 Google Cloud 授权时，点击“复用本机已授权账号”。只在确认后读取标准 ADC 并保存到插件凭据库；不会读取浏览器或 AGY 登录。
+  - text: 新连接或重新授权可使用下方的桌面 OAuth 应用。点击连接后主动打开 Google 链接并勾选 Cloud 数据权限；接收器在后台等待，不操作你的屏幕。
+  - text: 检查连接通过后，明确启用插件。检查与启用不会生成音乐。猫的生成请求才会计费；Clip 列表估价每次 $0.04，Pro $0.08，实际扣费和赠金另以账单为准。
+configuration:
+  - key: projectId
+    label: Google Cloud 项目 ID
+    kind: string
+    required: true
+  - key: googleCredentials
+    label: Google Cloud 授权
+    kind: secret
+    hidden: true
+    required: true
+  - key: existingAuthorization
+    label: 复用已有 Cloud 授权
+    kind: operation
+    required: false
+    target: [projectId, googleCredentials]
+    actions:
+      - id: import
+        label: 复用本机已授权账号
+        render: button
+        confirm: 读取本机标准 Google Cloud ADC，核对所填项目，并将授权保存到本插件的凭据库？不会生成音乐、换账号或充值。
+        action: { method: music.import-adc }
+  - key: oauthClientId
+    label: 桌面 OAuth Client ID（已有本机授权时留空）
+    description: 首次连接时使用自己在 Google Cloud 创建的 Desktop app OAuth 应用；不要填写 API key。
+    kind: string
+    required: false
+  - key: oauthClientSecret
+    label: 桌面 OAuth Client Secret（已有本机授权时留空）
+    kind: secret
+    required: false
+  - key: cloudConnection
+    label: 新连接与授权恢复
+    kind: operation
+    required: false
+    target: [projectId, googleCredentials]
+    actions:
+      - id: connect
+        label: 连接 Google Cloud
+        render: button
+        action: { method: music.connect }
+        resultRender: url
+        next: status
+      - id: status
+        label: 检查授权进度
+        render: polling
+        action: { method: music.connection-status }
+        timeout: 600
+        rollback: connect
+        next: disconnect
+      - id: disconnect
+        label: 断开本插件授权
+        confirm: 断开本插件保存的 Google Cloud 授权？现有音乐和来源回执保留，不会注销其他应用的 Google 登录。
+        render: button
+        action: { method: music.disconnect }
+        next: connect
+  - key: cancelPendingConnection
+    label: 取消等待中的连接
+    kind: operation
+    required: false
+    actions:
+      - id: cancel
+        label: 取消这次连接
+        render: button
+        action: { method: music.cancel-connection }
+test:
+  action: { method: music.check }
+contributions:
+  - type: mcp
+    id: music-native
+    runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
+  - type: identity
+    id: music
+    displayName: Google Cloud music
+  - type: media-source
+    id: music-media
+    binding: music
+features:
+  - id: music-generation
+    name: Google Cloud music
+    resources: []
+    contributions:
+      - { type: identity, id: music }
+      - { type: media-source, id: music-media }
+      - { type: mcp, id: music-native }
+projectOutputs:
+  - method: music.output
+    mcpId: music-native
+    producerMethod: music.generate
+    resultMethod: music.result
+    mediaSourceId: music-media
+    mimeType: audio/mpeg
+    maxBytes: 50331648
+data:
+  - name: music-results
+    dataClass: derived-user-visible
+    strategy: retained
+runtime:
+  transport: builtin
+  entrypoint: dist/plugin-entrypoint.js
+  dataDirectory: music-generation

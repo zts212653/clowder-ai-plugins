@@ -1,0 +1,28 @@
+{
+  "name": "@clowder-ai/music-generation",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "description": "Unpublished Google Cloud music plugin candidate",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/plugin-entrypoint.d.ts",
+      "import": "./dist/plugin-entrypoint.js"
+    },
+    "./connection-flows": {
+      "types": "./dist/connection-flows.d.ts",
+      "import": "./dist/connection-flows.js"
+    }
+  },
+  "files": ["dist", "plugin.yaml", "assets", "npm-shrinkwrap.json", "README.md", "README.en.md"],
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "test:installed": "node --test test/installed-directory.mjs"
+  },
+  "dependencies": { "@clowder-ai/plugin-sdk": "0.2.0-beta.24" },
+  "devDependencies": { "typescript": "^5.7.0", "@types/node": "^20.17.0" }
+}

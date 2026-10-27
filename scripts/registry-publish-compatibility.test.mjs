@@ -383,8 +383,9 @@ test('publication uses only current workspace packages in dependency order', asy
   const steps = parse(source).jobs.publish.steps;
   const index = directory => steps.findIndex(step => step.with?.['package-directory'] === directory);
   assert.ok(index('packages/plugin-contract') >= 0);
-  const contract = JSON.parse(await readFile(new URL('../packages/plugin-contract/package.json', import.meta.url), 'utf8'));
-  assert.equal(steps[index('packages/plugin-contract')].with['allowed-stable-version'], contract.version);
+  // This is an explicit stable-release exception, independent of the current prerelease.
+  // A new candidate must not silently extend permission to publish a future stable version.
+  assert.equal(steps[index('packages/plugin-contract')].with['allowed-stable-version'], '0.3.0');
   assert.ok(index('packages/plugin-contract') < index('packages/plugin-sdk'));
   for (const directory of collectPublishPackageDirectories(source).filter(value => !['packages/plugin-contract','packages/plugin-sdk'].includes(value))) assert.ok(index('packages/plugin-sdk') < index(directory));
 });

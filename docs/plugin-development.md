@@ -90,6 +90,18 @@ stateDiagram-v2
 
 实现参考：[SDK 类型](../packages/plugin-sdk/src/module-host.ts)、[feature 生命周期](../packages/plugin-sdk/src/feature-context.ts)、[消息／控制 wire registry](../packages/plugin-contract/src/wire/index.ts)、[模块 action client](../packages/plugin-sdk/src/module-action-client.ts)。wire registry 说明载体消息，不替代以上作者 API。当前 stdio 的 Host 发起请求只有 `host.lifecycle.ping` 和 `host.messaging.deliver`；生命周期 hooks 由 module 载体直接调用，不是额外 stdio 方法。`streams.read` 在 stdio 内部分片传输，作者仍读取 Uint8Array 迭代器。
 
+### 项目产物交付候选（未发布）
+
+`0.3.1-candidate.0` 在当前 `0.3.0` 契约上准备了 `projectOutputs` 有界产物声明。它是待审候选，尚未获得项目产物公共交付范围的采纳或发布批准；不恢复已退役的 API 权限表或原生 MCP 方法白名单。SDK 的对应上下文类型位于 `0.3.0-beta.2-candidate.0`。
+
+每条声明给出公开 action、内部 producer/lookup 方法、同 feature 的 `mcpId` 和 media-source、允许的 MIME 和大小上限。这是产物操作的资源归属与生命周期声明，不是通用 API 访问清单。首版仅接受可解析可信调用上下文的原生 MCP 入口，不接受 direct-tool 或设置动作；Host 拦截产物公开 action，并拒绝普通调用直接触发该声明的内部 producer/lookup。调用正文为 `{requestId, outputPath, parameters}`；Host 从认证调用解析用户、线程和项目，在实际安装、显式启用、当前调用与项目归属检查下，将完整音频／回执目标一起独占预留并持久记录，再调用 producer。producer 仅收到 `parameters`，第二参数带 Host 注入的 `outputOperation.id`；它不收到项目绝对根或 writer。旧 Host 必须在安装或调用之前拒绝，不能先生成后退回附件。
+
+producer 和 lookup 返回同一个有界 `ProjectOutputResult`：`pending`、`generation_unknown`、`rejected` 或 `produced`。后者含归属 PMR、媒体类型、字节数、SHA-256 和来源事实。插件在返回引用前持久保存产物；Host 复用现有媒体 ledger 承接字节，并验证完整性、实例／来源归属和当前权限后交付。Host 控制回执文件名、序列化和归属字段，只有两个文件均持久完成才返回 `delivered`。
+
+相同 `requestId` 与相同参数接续原操作；不同参数拒绝。派发后结果未知不得再次调用 producer；恢复只查询原结果或继续交付。授权撤销、目录变化、外部文件占位与磁盘失败不能变成覆盖或付费重试。多个普通文件的依次提交不宣称整体原子性；崩溃按原预留 inode、内容摘要及前缀恢复。插件与 Host 承接的用户产物都不随停用、升级或卸载丢弃。
+
+设置动作可返回 `render: url, data: {url}`，由 Host 显示仅 HTTPS、无内嵌认证的链接；不自动打开浏览器。轮询可携带同一 `data.url` 供刷新后的卡片恢复显示。Google 等具体来源的固定域名和授权参数校验仍由插件负责。Host 设置结果不接受 `ok`；只读 `test` 则返回 `{ok, message?, details?}`，二者不可混用。
+
 ## 契约边界验证
 
 Contract 的 schema、公开类型和 wire registry 是同一份接口真相；SDK 和独立 Loopback fixture 消费相同的契约夹具，不各自复制一套常量或方法矩阵。协议字节上限从允许的输入形状推导，并以合法最大值和 N+1、UTF-8 多字节与转义字符重新计算验证。请求与响应关联、错误结果、取消及授权撤销也须覆盖；测试通过不表示 Host 已支持或已启用该能力。

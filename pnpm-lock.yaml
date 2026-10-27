@@ -19,10 +19,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
         version: 1.26.0(zod@3.25.76)
@@ -53,10 +53,10 @@ importers:
     devDependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       playwright:
         specifier: 1.61.1
         version: 1.61.1
@@ -65,10 +65,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       dingtalk-stream:
         specifier: 2.1.6-beta.1
         version: 2.1.6-beta.1
@@ -90,10 +90,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       '@larksuiteoapi/node-sdk':
         specifier: 1.59.0
         version: 1.59.0
@@ -121,10 +121,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       grammy:
         specifier: 1.41.1
         version: 1.41.1
@@ -146,10 +146,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       fast-xml-parser:
         specifier: 5.5.9
         version: 5.5.9
@@ -171,10 +171,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       '@wecom/aibot-node-sdk':
         specifier: 1.0.4
         version: 1.0.4
@@ -196,10 +196,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       qrcode:
         specifier: 1.5.4
         version: 1.5.4
@@ -227,10 +227,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       ws:
         specifier: 8.21.3
         version: 8.21.3
@@ -255,14 +255,14 @@ importers:
     dependencies:
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       ajv:
         specifier: 8.20.0
         version: 8.20.0
     devDependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@types/node':
         specifier: ^20.17.0
         version: 20.19.43
@@ -286,10 +286,10 @@ importers:
         version: 1.7.0
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       '@larksuite/cli':
         specifier: 1.0.85
         version: 1.0.85
@@ -344,7 +344,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -363,10 +363,10 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
         version: 1.26.0(zod@3.25.76)
@@ -406,14 +406,27 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/music-generation:
+    dependencies:
+      '@clowder-ai/plugin-sdk':
+        specifier: 0.2.0-beta.24
+        version: 0.2.0-beta.24
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   packages/personal-chrome-companion:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -456,7 +469,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.3.0
+        specifier: 0.3.1-candidate.0
         version: link:../plugin-contract
     devDependencies:
       '@types/node':
@@ -551,7 +564,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -573,7 +586,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -592,7 +605,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.1
-        version: link:../plugin-sdk
+        version: 0.3.0-beta.1
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0
         version: 1.26.0(zod@4.4.3)
@@ -602,7 +615,7 @@ importers:
     devDependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.0
-        version: link:../plugin-contract
+        version: 0.3.0
       playwright:
         specifier: 1.61.1
         version: 1.61.1
@@ -640,6 +653,22 @@ packages:
   '@clack/prompts@1.7.0':
     resolution: {integrity: sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A==}
     engines: {node: '>= 20.12.0'}
+
+  '@clowder-ai/plugin-contract@0.2.0':
+    resolution: {integrity: sha512-pvA/A/s13JLnnYtCacQ3gS+rC3phS5fpNVczmOJemlcLfdCGMQL3VvS8v4TAKEogGVBvHiHEKGeDbwiSmZbCjQ==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-contract@0.3.0':
+    resolution: {integrity: sha512-7o1PP71mcXtfPntLKWxRigxuxZ3DIulAidR3qcytfqcUJ9uY8M+FpYEGaCRUsr8HxKkQOoTFPwe/sLZNLks3rw==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.2.0-beta.24':
+    resolution: {integrity: sha512-obnziD7d+OHHjQp3eNUKHeZJU5CZ1NC5yonWAak4koXX+Jg8o8wzld3CcBhfGMbZCghIvCFJuXMMTXhNjx7u+g==}
+    engines: {node: '>=20.0.0'}
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.1':
+    resolution: {integrity: sha512-W1v9gSscxoj8f41hrRFwX2c3Zt3gFoSIX3en24SDISxGwFLmxI46Y7EJBOoCpHEm9eRaJHhgHuQYnWsAWBKE5g==}
+    engines: {node: '>=20.0.0'}
 
   '@csstools/color-helpers@6.1.2':
     resolution: {integrity: sha512-grhRy3OKmniaAEKXMjua5z/EODX0MSqBGjunw8+j/3HQjOnahs2AGhvEOIYVUWcU6ScApbhLhVrQTX8XqrMrow==}
@@ -2549,6 +2578,24 @@ snapshots:
       fast-string-width: 3.0.2
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
+
+  '@clowder-ai/plugin-contract@0.2.0':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+
+  '@clowder-ai/plugin-contract@0.3.0':
+    dependencies:
+      ajv: 8.20.0
+      ajv-formats: 3.0.1(ajv@8.20.0)
+
+  '@clowder-ai/plugin-sdk@0.2.0-beta.24':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.2.0
+
+  '@clowder-ai/plugin-sdk@0.3.0-beta.1':
+    dependencies:
+      '@clowder-ai/plugin-contract': 0.3.0
 
   '@csstools/color-helpers@6.1.2': {}
 

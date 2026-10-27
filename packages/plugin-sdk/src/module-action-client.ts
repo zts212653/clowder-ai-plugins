@@ -6,6 +6,8 @@ export interface PluginActionContext {
   readonly threadId: string;
   readonly userId: string;
   readonly invocationId: string;
+  /** Host-admitted output identity; absent for ordinary, settings and unsupported Host calls. */
+  readonly outputOperation?: { readonly id: string };
   /** Authentication-grade Host fact; matching userId alone is never owner permission. */
   readonly ownerAuthProvenance?: 'strict' | 'compatibility_fallback' | 'unknown';
   /** Detached Host policy facts. A consumer must not treat their presence as unrestricted authority. */

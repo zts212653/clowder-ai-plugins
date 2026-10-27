@@ -24,6 +24,7 @@ const INSTALL_TIMEOUT_MS = 300_000;
 
 async function packOfficialArtifacts(root) {
   const packs = new Map();
+  const frozen = JSON.parse(await readFile(join(repoRoot, 'packages', FEISHU, 'npm-shrinkwrap.json'), 'utf8'));
   for (const name of Object.keys(SCOPED)) {
     // This fixture also runs directly via test:scripts on clean checkouts.
     // Build in dependency order; the official pack intentionally skips scripts.
@@ -32,6 +33,25 @@ async function packOfficialArtifacts(root) {
     });
     const destination = join(root, 'packs', name);
     await mkdir(destination, { recursive: true });
+    const pin = frozen.packages[`node_modules/${SCOPED[name]}`];
+    const workspace = JSON.parse(await readFile(join(repoRoot, 'packages', name, 'package.json'), 'utf8'));
+    if (pin && pin.version !== workspace.version) {
+      // A new Contract/SDK candidate must not rewrite the immutable dependencies
+      // of an already shipped connector. Serve its exact, integrity-checked pin.
+      const url = new URL(pin.resolved);
+      assert.equal(url.origin, 'https://registry.npmjs.org');
+      const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(30_000) });
+      assert.equal(response.status, 200);
+      const archive = Buffer.from(await response.arrayBuffer());
+      assert.ok(archive.length <= 16 * 1024 * 1024);
+      const integrity = `sha512-${createHash('sha512').update(archive).digest('base64')}`;
+      assert.equal(integrity, pin.integrity, 'historical registry bytes must match the shipped lock');
+      const filename = `${name}-${pin.version}.tgz`;
+      const path = join(destination, filename);
+      await writeFile(path, archive);
+      packs.set(SCOPED[name], { archive, filename, integrity, path, version: pin.version });
+      continue;
+    }
     const { stdout } = await execFileAsync(process.execPath, [
       join('scripts', 'pack-publish-artifact.mjs'),
       `packages/${name}`,
