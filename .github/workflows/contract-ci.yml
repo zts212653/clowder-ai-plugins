@@ -33,13 +33,9 @@ jobs:
         run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
 
       - name: Verify the registry provenance consumer against public alpha.10
-        run: |
-          node .github/scripts/verify-registry-provenance.mjs \
-            '@clowder-ai/feishu-meeting-intake' \
-            '0.1.0-alpha.10' \
-            'sha512-vjDAjFC15ELcrOzB0uLibsyrTDS7IOjzi/E2qCwfRA+njjcgJ1m9hVIOUOtNonBsvIsHJNl3dwJM2F2FKrPHHQ==' \
-            'https://registry.npmjs.org/-/npm/v1/attestations/@clowder-ai%2ffeishu-meeting-intake@0.1.0-alpha.10' \
-            "$RUNNER_TEMP/f292-alpha10-provenance"
+        run: >-
+          node .github/scripts/verify-registry-provenance-recovery.mjs
+          "$RUNNER_TEMP/f292-alpha10-provenance"
 
       - name: Upload pre-publication validation evidence
         uses: actions/upload-artifact@v4
@@ -230,6 +226,7 @@ jobs:
           const crypto = require('node:crypto');
           const fs = require('node:fs');
           const path = require('node:path');
+          const { pathToFileURL } = require('node:url');
 
           const registry = 'https://registry.npmjs.org/';
           const sleep = (milliseconds) =>
@@ -247,6 +244,14 @@ jobs:
             crypto.createHash(algorithm).update(bytes).digest(encoding);
 
           (async () => {
+            const {
+              buildProvenanceReceiptFields,
+              buildProvenanceVerificationEnvironment,
+            } = await import(
+              pathToFileURL(
+                path.resolve('.github/scripts/provenance-release-contract.mjs'),
+              ).href
+            );
             fs.mkdirSync(process.env.RELEASE_DIR, { recursive: true });
             assert.equal(
               childProcess.execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
@@ -362,8 +367,14 @@ jobs:
               process.env.RELEASE_DIR,
               'provenance',
             );
-            const expectedProvenanceRun =
-              `https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/attempts/${process.env.GITHUB_RUN_ATTEMPT}`;
+            const provenanceEnvironment = buildProvenanceVerificationEnvironment({
+              publishedNow,
+              repository: process.env.GITHUB_REPOSITORY,
+              ref: process.env.GITHUB_REF,
+              commit: process.env.GITHUB_SHA,
+              runId: process.env.GITHUB_RUN_ID,
+              runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+            });
             childProcess.execFileSync(
               process.execPath,
               [
@@ -378,9 +389,7 @@ jobs:
                 stdio: 'inherit',
                 env: {
                   ...process.env,
-                  EXPECTED_PROVENANCE_REF: process.env.GITHUB_REF,
-                  EXPECTED_PROVENANCE_COMMIT: process.env.GITHUB_SHA,
-                  EXPECTED_PROVENANCE_RUN: expectedProvenanceRun,
+                  ...provenanceEnvironment,
                 },
               },
             );
@@ -390,13 +399,14 @@ jobs:
                 'utf8',
               ),
             );
+            const provenanceReceipt = buildProvenanceReceiptFields({
+              verification: provenanceVerification,
+              repository: process.env.GITHUB_REPOSITORY,
+            });
 
             const receipt = {
-              repository: provenanceVerification.workflow.repository,
-              workflowRef: `${process.env.GITHUB_REPOSITORY}/${provenanceVerification.workflow.path}@${provenanceVerification.workflow.ref}`,
-              workflowHead: provenanceVerification.source[0].digest.gitCommit,
+              ...provenanceReceipt,
               sourceBase: process.env.EXPECTED_BASE,
-              sourceRun: provenanceVerification.run,
               package: process.env.PACKAGE_NAME,
               version: process.env.PACKAGE_VERSION,
               publishedNow,
@@ -410,13 +420,6 @@ jobs:
               tagsAfter,
               tarball: metadata.dist.tarball,
               attestation: attestationUrl,
-              provenance: {
-                predicateType: provenanceVerification.predicateType,
-                source: provenanceVerification.source,
-                workflow: provenanceVerification.workflow,
-                run: provenanceVerification.run,
-              },
-              provenanceVerified: provenanceVerification.provenanceVerified,
               verifiedAt: new Date().toISOString(),
             };
             fs.writeFileSync(
