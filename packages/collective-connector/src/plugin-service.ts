@@ -4,7 +4,7 @@ import type { FeatureContext } from '@clowder-ai/plugin-sdk';
 import type { ConnectorProjection } from './business/connector/projection.js';
 import type { CollectiveLocalTransport } from './business/connector/service-client.js';
 import type { CollectiveMessageAttachmentOwnerPort } from './business/contracts/message-attachment-owner.js';
-import { escrowBootstrapSecret, readBootstrapSecret, writeBootstrapLink } from './business/service/bootstrap-files.js';
+import { escrowBootstrapSecret, readBootstrapSecret, rotateBootstrapSecret, writeBootstrapLink } from './business/service/bootstrap-files.js';
 import { GitHubAppManifestSetup } from './business/service/github-app-manifest-setup.js';
 import { ConfigurableGitHubHumanAuthProvider } from './business/service/github-human-auth-provider.js';
 import { type RunningCollectiveServer, startCollectiveServer } from './business/service/http-server.js';
@@ -90,6 +90,7 @@ export async function createPluginService(
     clientBuildId: client.clientBuildId,
     humanAuthRedirectUri: origin + '/api/auth/github/callback',
     createBootstrapSecret: () => escrowBootstrapSecret(bootstrapSecretPath),
+    renewExpiredBootstrapSecret: () => rotateBootstrapSecret(bootstrapSecretPath),
   });
   const bootstrapSecret = opened.store.getMetadata().bootstrapNeeded
     ? await readBootstrapSecret(bootstrapSecretPath)

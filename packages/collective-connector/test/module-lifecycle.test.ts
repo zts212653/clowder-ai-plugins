@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, readFile, rm, stat} from 'node:fs/promises';
+import {mkdtemp, mkdir, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:net';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -29,6 +29,39 @@ function host(directory:string,port:number):ModulePluginHostShape {
 async function status(active:PluginModuleActivationShape) {
   return (await active.actions['collective.service.status']!({}) as {data:{url:string;serviceInstanceId:string;bootstrapNeeded:boolean}}).data;
 }
+
+test('embedded restart renews expired first-owner setup without replacing the Service', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'collective-expired-bootstrap-'));
+  const port = await freePort();
+  const source = host(directory, port);
+  const plugin = entrypoint.create(manifest);
+  let active = await plugin.start(source);
+  let stopped = false;
+  try {
+    const first = await status(active);
+    const secretPath = join(directory, 'service/owner-bootstrap.secret');
+    const old = (await readFile(secretPath, 'utf8')).trim();
+    await active.stop({ reason: 'test restart' }); stopped = true;
+    const path = join(directory, 'service/collective-service.json');
+    const saved = JSON.parse(await readFile(path, 'utf8'));
+    saved.bootstrap.expiresAt = new Date(Date.now() - 1000).toISOString();
+    await writeFile(path, JSON.stringify(saved));
+    active = await plugin.start(source); stopped = false;
+    assert.equal((await status(active)).serviceInstanceId, first.serviceInstanceId);
+    const fresh = (await readFile(secretPath, 'utf8')).trim();
+    assert.notEqual(fresh, old);
+    const claim = (secret: string) => fetch(first.url + '/api/bootstrap', {
+      method: 'POST', headers: { origin: first.url, 'content-type': 'application/json' },
+      body: JSON.stringify({ secret, displayName: 'Owner' }),
+    });
+    assert.equal((await claim(old)).status, 401);
+    assert.equal((await claim(fresh)).status, 201);
+    assert.equal((await status(active)).bootstrapNeeded, false);
+  } finally {
+    if (!stopped) await active.stop({ reason: 'test' });
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 function owner():PluginOwnerHttpContext {return {kind:'owner-http-request',userId:'owner',pluginInstanceId:'installed-instance',operation:'write',signal:new AbortController().signal,async assertCurrent(){}};}
 
 test('fresh owner lists accept Host configuration and persisted operation state before bootstrap', async () => {
