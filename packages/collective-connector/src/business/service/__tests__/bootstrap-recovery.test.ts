@@ -93,3 +93,18 @@ it.each([
   const recovered = await CollectiveServiceStore.open({ ...f.options, renewExpiredBootstrapSecret: f.renew });
   expect(recovered.bootstrapSecret).toBeTruthy();
 });
+
+it('owner request expiry after escrow does not commit a credential and the running store can retry', async () => {
+  const f = await fixture();
+  f.expire();
+  const before = await readFile(join(f.directory, 'collective-service.json'), 'utf8');
+  const path = join(f.directory, 'owner-bootstrap.secret');
+  let checks = 0;
+  await expect(f.first.store.renewExpiredBootstrap(() => rotateBootstrapSecret(path), 1000, async () => {
+    if (++checks === 2) throw new Error('Owner request expired');
+  })).rejects.toThrow('Owner request expired');
+  expect(checks).toBe(2);
+  expect(await readFile(join(f.directory, 'collective-service.json'), 'utf8')).toBe(before);
+  const fresh = await f.first.store.renewExpiredBootstrap(() => rotateBootstrapSecret(path), 1000);
+  expect((await f.first.store.consumeBootstrap({ secret: fresh!, displayName: 'Owner' })).human.displayName).toBe('Owner');
+});

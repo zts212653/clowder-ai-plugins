@@ -63,6 +63,7 @@ COLLECTIVE_SERVICE_ALLOWED_HOST_ORIGINS=http://localhost:3001 \
 私有 `bootstrapLinkPath`，不把 bootstrap secret 输出到日志。保留实例 ID 和版本作为恢复核对基线。
 首次认领链接有效期为 24 小时。若过期且尚未建立管理员，正常重启 Service 会保留原数据并
 生成新的私有认领链接，旧链接失效；请重新读取 `bootstrapLinkPath`。已建立管理员后不会重新开放认领。
+嵌入式插件无需为此重启：在已登录的插件管理入口重新打开 Collective，也会恢复已过期的首次认领链接。
 `curl http://127.0.0.1:5201/api/health` 可在服务器探活，`/api/meta` 可核实例身份。
 用 SIGTERM/SIGINT 停止并等待退出后再启动新版本。
 

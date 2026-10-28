@@ -55,7 +55,7 @@ export interface OpenCollectiveServiceStoreOptions {
   readonly bootstrapTtlMs?: number;
   /** Module lifecycle may durably escrow an unclaimed credential before initial state creation. */
   readonly createBootstrapSecret?: () => Promise<string>;
-  /** Trusted local startup only: durably replace an expired initial credential before renewing its digest. */
+  /** Trusted local startup: durably replace an expired initial credential before renewing its digest. */
   readonly renewExpiredBootstrapSecret?: () => Promise<string>;
   readonly humanAuthProvider?: HumanAuthProvider;
   readonly humanAuthRedirectUri?: string;
@@ -117,38 +117,16 @@ export class CollectiveServiceStore {
       await access(stateFile);
       stateExists = true;
       const persistence = await PersistentServiceState.load(options.dataDirectory);
-      const state = persistence.snapshot();
-      let bootstrapSecret: string | undefined;
-      if (
-        options.renewExpiredBootstrapSecret &&
-        state.bootstrap.consumedAt === undefined &&
-        state.bootstrap.ownerHumanId === undefined &&
-        Object.keys(state.humans).length === 0 &&
-        Date.parse(state.bootstrap.expiresAt) < now()
-      ) {
-        // The old credential is already unusable. Escrow first so an interrupted
-        // state write can retry renewal without stranding a new valid credential.
-        bootstrapSecret = await options.renewExpiredBootstrapSecret();
-        const tokenDigest = digestSecret(bootstrapSecret);
-        await persistence.transaction((draft) => {
-          draft.bootstrap = {
-            ...draft.bootstrap,
-            tokenDigest,
-            expiresAt: new Date(now() + (options.bootstrapTtlMs ?? 24 * 60 * 60 * 1_000)).toISOString(),
-          };
-        });
-      }
+      const store = new CollectiveServiceStore(
+        persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri,
+        options.clientBuildId, options.messageAttachmentOwner, options.materialSource,
+      );
+      const bootstrapSecret = options.renewExpiredBootstrapSecret
+        ? await store.renewExpiredBootstrap(options.renewExpiredBootstrapSecret, options.bootstrapTtlMs)
+        : undefined;
       return {
         ...(bootstrapSecret === undefined ? {} : { bootstrapSecret }),
-        store: new CollectiveServiceStore(
-          persistence,
-          now,
-          options.humanAuthProvider,
-          options.humanAuthRedirectUri,
-          options.clientBuildId,
-          options.messageAttachmentOwner,
-          options.materialSource,
-        ),
+        store,
       };
     } catch (error) {
       if (error instanceof CollectiveServiceError) throw error;
@@ -216,6 +194,31 @@ export class CollectiveServiceStore {
         bootstrapSecret,
       };
     }
+  }
+
+  /** Only trusted local startup or the authenticated Host owner launch may renew setup. */
+  async renewExpiredBootstrap(
+    escrow: () => Promise<string>,
+    ttlMs = 24 * 60 * 60 * 1_000,
+    assertCurrent: () => void | Promise<void> = () => {},
+  ): Promise<string | undefined> {
+    const needsRenewal = (state: ServiceState) => state.bootstrap.consumedAt === undefined &&
+      state.bootstrap.ownerHumanId === undefined && Object.keys(state.humans).length === 0 &&
+      Date.parse(state.bootstrap.expiresAt) < this.now();
+    if (!needsRenewal(this.persistence.snapshot())) return undefined;
+    return this.persistence.transaction(async (state) => {
+      if (!needsRenewal(state)) return undefined;
+      await assertCurrent();
+      // Escrow before committing the digest. The transaction serializes competing
+      // owner opens and claims; interrupted writes leave the old credential expired.
+      const secret = await escrow();
+      await assertCurrent();
+      state.bootstrap = {
+        ...state.bootstrap, tokenDigest: digestSecret(secret),
+        expiresAt: new Date(this.now() + ttlMs).toISOString(),
+      };
+      return secret;
+    });
   }
 
   updateArtifactAccess(sessionToken: string, input: unknown) {

@@ -26,7 +26,7 @@ interface PluginService {
   statusAction(
     connections: readonly ConnectorProjection[],
   ): Promise<{ render: 'status'; label: string; data: Record<string, unknown> }>;
-  launch(): Promise<{ service: CollectiveLocalServiceStatus; launchUrl: string }>;
+  launch(assertCurrent?: () => Promise<void>): Promise<{ service: CollectiveLocalServiceStatus; launchUrl: string }>;
   start(): Promise<void>;
   close(): Promise<void>;
 }
@@ -130,13 +130,17 @@ export async function createPluginService(
         data: { state: 'running', url: origin, ...metadata, connections },
       };
     },
-    async launch() {
+    async launch(assertCurrent = async () => { assertActive(); }) {
       assertActive();
+      await opened.store.renewExpiredBootstrap(() => rotateBootstrapSecret(bootstrapSecretPath), undefined, assertCurrent);
       const service = localStatus();
+      const secret = service.bootstrapNeeded ? await readBootstrapSecret(bootstrapSecretPath) : undefined;
+      if (secret) await writeBootstrapLink(bootstrapLinkPath, origin + '#bootstrap=' + encodeURIComponent(secret));
+      await assertCurrent();
       return {
         service,
-        launchUrl: service.bootstrapNeeded
-          ? origin + '#bootstrap=' + encodeURIComponent(await readBootstrapSecret(bootstrapSecretPath))
+        launchUrl: secret
+          ? origin + '#bootstrap=' + encodeURIComponent(secret)
           : origin,
       };
     },

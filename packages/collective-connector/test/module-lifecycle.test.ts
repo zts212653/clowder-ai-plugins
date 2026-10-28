@@ -64,6 +64,47 @@ test('embedded restart renews expired first-owner setup without replacing the Se
 });
 function owner():PluginOwnerHttpContext {return {kind:'owner-http-request',userId:'owner',pluginInstanceId:'installed-instance',operation:'write',signal:new AbortController().signal,async assertCurrent(){}};}
 
+test('authenticated Open Collective recovers after a day of uptime without restarting', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'collective-open-expired-'));
+  const port = await freePort();
+  const now = Date.now();
+  t.mock.timers.enable({ apis: ['Date'], now });
+  const active = await entrypoint.create(manifest).start(host(directory, port));
+  const request = { request: { method: 'POST', path: 'service/provision', headers: {}, principal: { kind: 'owner', id: 'owner' } } };
+  const open = () => active.actions['collective.control.http']!(request, undefined, owner()) as Promise<{ status: number; body: { launchUrl: string } }>;
+  const secret = (url: string) => new URLSearchParams(new URL(url).hash.slice(1)).get('bootstrap');
+  try {
+    const first = await status(active);
+    const original = await open();
+    assert.equal((await open()).body.launchUrl, original.body.launchUrl, 'valid links stay valid');
+    t.mock.timers.setTime(now + 25 * 60 * 60 * 1000);
+    const statePath = join(directory, 'service/collective-service.json');
+    const before = await readFile(statePath, 'utf8');
+    await assert.rejects(Promise.resolve(active.actions['collective.control.http']!(request)), /owner/i);
+    const stale = { ...owner(), async assertCurrent() { throw new Error('expired owner request'); } };
+    await assert.rejects(Promise.resolve(active.actions['collective.control.http']!(request, undefined, stale)), /expired/);
+    assert.equal(await readFile(statePath, 'utf8'), before);
+    const [a, b] = await Promise.all([open(), open()]);
+    assert.equal(a.status, 200); assert.equal(b.status, 200);
+    assert.equal(a.body.launchUrl, b.body.launchUrl, 'concurrent opens share one valid credential');
+    assert.notEqual(secret(a.body.launchUrl), secret(original.body.launchUrl));
+    assert.equal((await status(active)).serviceInstanceId, first.serviceInstanceId);
+    const claim = (url: string) => fetch(first.url + '/api/bootstrap', {
+      method: 'POST', headers: { origin: first.url, 'content-type': 'application/json' },
+      body: JSON.stringify({ secret: secret(url), displayName: 'Owner' }),
+    });
+    assert.equal((await claim(original.body.launchUrl)).status, 401);
+    assert.equal((await claim(a.body.launchUrl)).status, 201);
+    const claimed = await readFile(statePath, 'utf8');
+    assert.equal((await open()).body.launchUrl, first.url);
+    assert.equal(await readFile(statePath, 'utf8'), claimed, 'opening after claim never reopens setup');
+  } finally {
+    t.mock.timers.reset();
+    await active.stop({ reason: 'test' });
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test('fresh owner lists accept Host configuration and persisted operation state before bootstrap', async () => {
   const directory=await mkdtemp(join(tmpdir(),'collective-fresh-settings-'));const port=await freePort();
   const active=await entrypoint.create(manifest).start(host(directory,port));
