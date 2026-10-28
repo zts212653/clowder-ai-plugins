@@ -62,6 +62,10 @@ function host(
   } as const;
   return {
     pluginInstanceId: 'installed-module-fixture',
+    external: {
+      endpoint: 'https://host.example/api/plugins/external',
+      token: 'fixture-external-token',
+    },
     config: { get: async (key: string) => key === 'mode' ? 'safe' : undefined },
     secrets: { get: async (key: string) => key === 'token' ? 'secret' : undefined },
     storage: {

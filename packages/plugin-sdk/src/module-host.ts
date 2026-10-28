@@ -327,14 +327,15 @@ export interface PluginMessagingHost {
   }>;
   subscribe(input: {
     readonly threadId: string;
-    readonly method: string;
+    /** Omit to route through this instance's fixed delivery surface. */
+    readonly method?: string;
     readonly includeOwnMessages?: boolean;
   }): Promise<void>;
   unsubscribe(input: { readonly threadId: string }): Promise<void>;
 }
 
 /** Available while installed, including disabled setup and uninstall. No runtime effects. */
-export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'dataPath' | 'config' | 'secrets' | 'storage' | 'log'>;
+export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'external' | 'dataPath' | 'config' | 'secrets' | 'storage' | 'log'>;
 
 /** Structural mirror of the Host-owned in-process module surface. */
 export interface ModulePluginHostShape {
@@ -355,6 +356,8 @@ export interface ModulePluginHostShape {
   readonly threads: PluginThreadHost;
   readonly messaging: PluginMessagingHost;
   readonly streams: import('./streams.js').PluginStreams;
+  /** Host-owned request endpoint and the sole token for this installed instance. */
+  readonly external: { readonly endpoint: string; readonly token: string };
   /** Stable per-installation storage directory, supplied without a separate grant. */
   readonly dataPath: string;
   readonly log: (
