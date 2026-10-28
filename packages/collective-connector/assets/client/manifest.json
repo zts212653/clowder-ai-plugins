@@ -4,14 +4,14 @@
   "files": [
     {
       "path": "/collective-client/app.css",
-      "size": 176341,
-      "sha256": "cfa169ecc60734675d7bcc052b5115c8060048c6ec9b6c8318f9c44a836202a3",
+      "size": 176061,
+      "sha256": "1647814c89ca58ed4016942783bbefce20e6322b2eb0dcd75934d762ef25432f",
       "contentType": "text/css; charset=utf-8"
     },
     {
       "path": "/collective-client/app.js",
-      "size": 3353009,
-      "sha256": "855a2c341206367948649a04ec440edc53a038c7a8ca6ca4cf61acad76ec9129",
+      "size": 3350729,
+      "sha256": "af365db1193e007d5c175650b0da420a9f86c65dac199dd5c85dc24fc5222c68",
       "contentType": "text/javascript; charset=utf-8"
     },
     {

@@ -39,8 +39,8 @@
       "sha256": "702fcb7d6bfdfe7b673b8bb7fa9d531d9b7d02693bed89f8dbb0a2c461604cf6"
     },
     {
-      "path": "../../node_modules/.pnpm/dompurify@3.3.3/node_modules/dompurify/dist/purify.es.mjs",
-      "sha256": "b8fa73f210aac6c5aca30fd79b344e9a38949a340dc7445038731118a1c49fe9"
+      "path": "../../node_modules/.pnpm/dompurify@3.2.4/node_modules/dompurify/dist/purify.es.mjs",
+      "sha256": "3b024991882ccc83066a8f0e64f3ff2a84d7638e64591221f6b04f8c10cbb3c2"
     },
     {
       "path": "../../node_modules/.pnpm/escape-string-regexp@5.0.0/node_modules/escape-string-regexp/index.js",
@@ -3228,7 +3228,7 @@
     },
     {
       "path": "src/styles/shell-footer.css",
-      "sha256": "9dee95c0ad372f5115b90eae737c7580796970251fad9cb52439c62cbf086ab2"
+      "sha256": "cfa79f4b1cef3fa4a83079343074939f02c696feb67ad8309d0946d9b5223a63"
     },
     {
       "path": "src/styles/shell.css",

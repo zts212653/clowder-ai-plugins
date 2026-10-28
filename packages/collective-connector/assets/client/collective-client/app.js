@@ -58490,7 +58490,7 @@ function Nameplate({
   );
 }
 
-// ../../node_modules/.pnpm/dompurify@3.3.3/node_modules/dompurify/dist/purify.es.mjs
+// ../../node_modules/.pnpm/dompurify@3.2.4/node_modules/dompurify/dist/purify.es.mjs
 var {
   entries,
   setPrototypeOf,
@@ -58518,18 +58518,12 @@ if (!seal) {
   };
 }
 if (!apply) {
-  apply = function apply2(func, thisArg) {
-    for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-      args[_key - 2] = arguments[_key];
-    }
-    return func.apply(thisArg, args);
+  apply = function apply2(fun, thisValue, args) {
+    return fun.apply(thisValue, args);
   };
 }
 if (!construct) {
-  construct = function construct2(Func) {
-    for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
-      args[_key2 - 1] = arguments[_key2];
-    }
+  construct = function construct2(Func, args) {
     return new Func(...args);
   };
 }
@@ -58549,21 +58543,18 @@ var regExpTest = unapply(RegExp.prototype.test);
 var typeErrorCreate = unconstruct(TypeError);
 function unapply(func) {
   return function(thisArg) {
-    if (thisArg instanceof RegExp) {
-      thisArg.lastIndex = 0;
-    }
-    for (var _len3 = arguments.length, args = new Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
-      args[_key3 - 1] = arguments[_key3];
+    for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      args[_key - 1] = arguments[_key];
     }
     return apply(func, thisArg, args);
   };
 }
-function unconstruct(Func) {
+function unconstruct(func) {
   return function() {
-    for (var _len4 = arguments.length, args = new Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
-      args[_key4] = arguments[_key4];
+    for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+      args[_key2] = arguments[_key2];
     }
-    return construct(Func, args);
+    return construct(func, args);
   };
 }
 function addToSet(set2, array) {
@@ -58630,15 +58621,15 @@ function lookupGetter(object, prop) {
   }
   return fallbackValue;
 }
-var html$1 = freeze(["a", "abbr", "acronym", "address", "area", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blink", "blockquote", "body", "br", "button", "canvas", "caption", "center", "cite", "code", "col", "colgroup", "content", "data", "datalist", "dd", "decorator", "del", "details", "dfn", "dialog", "dir", "div", "dl", "dt", "element", "em", "fieldset", "figcaption", "figure", "font", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "img", "input", "ins", "kbd", "label", "legend", "li", "main", "map", "mark", "marquee", "menu", "menuitem", "meter", "nav", "nobr", "ol", "optgroup", "option", "output", "p", "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "search", "section", "select", "shadow", "slot", "small", "source", "spacer", "span", "strike", "strong", "style", "sub", "summary", "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th", "thead", "time", "tr", "track", "tt", "u", "ul", "var", "video", "wbr"]);
-var svg$1 = freeze(["svg", "a", "altglyph", "altglyphdef", "altglyphitem", "animatecolor", "animatemotion", "animatetransform", "circle", "clippath", "defs", "desc", "ellipse", "enterkeyhint", "exportparts", "filter", "font", "g", "glyph", "glyphref", "hkern", "image", "inputmode", "line", "lineargradient", "marker", "mask", "metadata", "mpath", "part", "path", "pattern", "polygon", "polyline", "radialgradient", "rect", "stop", "style", "switch", "symbol", "text", "textpath", "title", "tref", "tspan", "view", "vkern"]);
+var html$1 = freeze(["a", "abbr", "acronym", "address", "area", "article", "aside", "audio", "b", "bdi", "bdo", "big", "blink", "blockquote", "body", "br", "button", "canvas", "caption", "center", "cite", "code", "col", "colgroup", "content", "data", "datalist", "dd", "decorator", "del", "details", "dfn", "dialog", "dir", "div", "dl", "dt", "element", "em", "fieldset", "figcaption", "figure", "font", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i", "img", "input", "ins", "kbd", "label", "legend", "li", "main", "map", "mark", "marquee", "menu", "menuitem", "meter", "nav", "nobr", "ol", "optgroup", "option", "output", "p", "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "section", "select", "shadow", "small", "source", "spacer", "span", "strike", "strong", "style", "sub", "summary", "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th", "thead", "time", "tr", "track", "tt", "u", "ul", "var", "video", "wbr"]);
+var svg$1 = freeze(["svg", "a", "altglyph", "altglyphdef", "altglyphitem", "animatecolor", "animatemotion", "animatetransform", "circle", "clippath", "defs", "desc", "ellipse", "filter", "font", "g", "glyph", "glyphref", "hkern", "image", "line", "lineargradient", "marker", "mask", "metadata", "mpath", "path", "pattern", "polygon", "polyline", "radialgradient", "rect", "stop", "style", "switch", "symbol", "text", "textpath", "title", "tref", "tspan", "view", "vkern"]);
 var svgFilters = freeze(["feBlend", "feColorMatrix", "feComponentTransfer", "feComposite", "feConvolveMatrix", "feDiffuseLighting", "feDisplacementMap", "feDistantLight", "feDropShadow", "feFlood", "feFuncA", "feFuncB", "feFuncG", "feFuncR", "feGaussianBlur", "feImage", "feMerge", "feMergeNode", "feMorphology", "feOffset", "fePointLight", "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence"]);
 var svgDisallowed = freeze(["animate", "color-profile", "cursor", "discard", "font-face", "font-face-format", "font-face-name", "font-face-src", "font-face-uri", "foreignobject", "hatch", "hatchpath", "mesh", "meshgradient", "meshpatch", "meshrow", "missing-glyph", "script", "set", "solidcolor", "unknown", "use"]);
 var mathMl$1 = freeze(["math", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "mprescripts"]);
 var mathMlDisallowed = freeze(["maction", "maligngroup", "malignmark", "mlongdiv", "mscarries", "mscarry", "msgroup", "mstack", "msline", "msrow", "semantics", "annotation", "annotation-xml", "mprescripts", "none"]);
 var text13 = freeze(["#text"]);
-var html5 = freeze(["accept", "action", "align", "alt", "autocapitalize", "autocomplete", "autopictureinpicture", "autoplay", "background", "bgcolor", "border", "capture", "cellpadding", "cellspacing", "checked", "cite", "class", "clear", "color", "cols", "colspan", "controls", "controlslist", "coords", "crossorigin", "datetime", "decoding", "default", "dir", "disabled", "disablepictureinpicture", "disableremoteplayback", "download", "draggable", "enctype", "enterkeyhint", "exportparts", "face", "for", "headers", "height", "hidden", "high", "href", "hreflang", "id", "inert", "inputmode", "integrity", "ismap", "kind", "label", "lang", "list", "loading", "loop", "low", "max", "maxlength", "media", "method", "min", "minlength", "multiple", "muted", "name", "nonce", "noshade", "novalidate", "nowrap", "open", "optimum", "part", "pattern", "placeholder", "playsinline", "popover", "popovertarget", "popovertargetaction", "poster", "preload", "pubdate", "radiogroup", "readonly", "rel", "required", "rev", "reversed", "role", "rows", "rowspan", "spellcheck", "scope", "selected", "shape", "size", "sizes", "slot", "span", "srclang", "start", "src", "srcset", "step", "style", "summary", "tabindex", "title", "translate", "type", "usemap", "valign", "value", "width", "wrap", "xmlns", "slot"]);
-var svg3 = freeze(["accent-height", "accumulate", "additive", "alignment-baseline", "amplitude", "ascent", "attributename", "attributetype", "azimuth", "basefrequency", "baseline-shift", "begin", "bias", "by", "class", "clip", "clippathunits", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-profile", "color-rendering", "cx", "cy", "d", "dx", "dy", "diffuseconstant", "direction", "display", "divisor", "dur", "edgemode", "elevation", "end", "exponent", "fill", "fill-opacity", "fill-rule", "filter", "filterunits", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "fx", "fy", "g1", "g2", "glyph-name", "glyphref", "gradientunits", "gradienttransform", "height", "href", "id", "image-rendering", "in", "in2", "intercept", "k", "k1", "k2", "k3", "k4", "kerning", "keypoints", "keysplines", "keytimes", "lang", "lengthadjust", "letter-spacing", "kernelmatrix", "kernelunitlength", "lighting-color", "local", "marker-end", "marker-mid", "marker-start", "markerheight", "markerunits", "markerwidth", "maskcontentunits", "maskunits", "max", "mask", "mask-type", "media", "method", "mode", "min", "name", "numoctaves", "offset", "operator", "opacity", "order", "orient", "orientation", "origin", "overflow", "paint-order", "path", "pathlength", "patterncontentunits", "patterntransform", "patternunits", "points", "preservealpha", "preserveaspectratio", "primitiveunits", "r", "rx", "ry", "radius", "refx", "refy", "repeatcount", "repeatdur", "restart", "result", "rotate", "scale", "seed", "shape-rendering", "slope", "specularconstant", "specularexponent", "spreadmethod", "startoffset", "stddeviation", "stitchtiles", "stop-color", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "stroke-width", "style", "surfacescale", "systemlanguage", "tabindex", "tablevalues", "targetx", "targety", "transform", "transform-origin", "text-anchor", "text-decoration", "text-rendering", "textlength", "type", "u1", "u2", "unicode", "values", "viewbox", "visibility", "version", "vert-adv-y", "vert-origin-x", "vert-origin-y", "width", "word-spacing", "wrap", "writing-mode", "xchannelselector", "ychannelselector", "x", "x1", "x2", "xmlns", "y", "y1", "y2", "z", "zoomandpan"]);
+var html5 = freeze(["accept", "action", "align", "alt", "autocapitalize", "autocomplete", "autopictureinpicture", "autoplay", "background", "bgcolor", "border", "capture", "cellpadding", "cellspacing", "checked", "cite", "class", "clear", "color", "cols", "colspan", "controls", "controlslist", "coords", "crossorigin", "datetime", "decoding", "default", "dir", "disabled", "disablepictureinpicture", "disableremoteplayback", "download", "draggable", "enctype", "enterkeyhint", "face", "for", "headers", "height", "hidden", "high", "href", "hreflang", "id", "inputmode", "integrity", "ismap", "kind", "label", "lang", "list", "loading", "loop", "low", "max", "maxlength", "media", "method", "min", "minlength", "multiple", "muted", "name", "nonce", "noshade", "novalidate", "nowrap", "open", "optimum", "pattern", "placeholder", "playsinline", "popover", "popovertarget", "popovertargetaction", "poster", "preload", "pubdate", "radiogroup", "readonly", "rel", "required", "rev", "reversed", "role", "rows", "rowspan", "spellcheck", "scope", "selected", "shape", "size", "sizes", "span", "srclang", "start", "src", "srcset", "step", "style", "summary", "tabindex", "title", "translate", "type", "usemap", "valign", "value", "width", "wrap", "xmlns", "slot"]);
+var svg3 = freeze(["accent-height", "accumulate", "additive", "alignment-baseline", "amplitude", "ascent", "attributename", "attributetype", "azimuth", "basefrequency", "baseline-shift", "begin", "bias", "by", "class", "clip", "clippathunits", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-profile", "color-rendering", "cx", "cy", "d", "dx", "dy", "diffuseconstant", "direction", "display", "divisor", "dur", "edgemode", "elevation", "end", "exponent", "fill", "fill-opacity", "fill-rule", "filter", "filterunits", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "fx", "fy", "g1", "g2", "glyph-name", "glyphref", "gradientunits", "gradienttransform", "height", "href", "id", "image-rendering", "in", "in2", "intercept", "k", "k1", "k2", "k3", "k4", "kerning", "keypoints", "keysplines", "keytimes", "lang", "lengthadjust", "letter-spacing", "kernelmatrix", "kernelunitlength", "lighting-color", "local", "marker-end", "marker-mid", "marker-start", "markerheight", "markerunits", "markerwidth", "maskcontentunits", "maskunits", "max", "mask", "media", "method", "mode", "min", "name", "numoctaves", "offset", "operator", "opacity", "order", "orient", "orientation", "origin", "overflow", "paint-order", "path", "pathlength", "patterncontentunits", "patterntransform", "patternunits", "points", "preservealpha", "preserveaspectratio", "primitiveunits", "r", "rx", "ry", "radius", "refx", "refy", "repeatcount", "repeatdur", "restart", "result", "rotate", "scale", "seed", "shape-rendering", "slope", "specularconstant", "specularexponent", "spreadmethod", "startoffset", "stddeviation", "stitchtiles", "stop-color", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "stroke-width", "style", "surfacescale", "systemlanguage", "tabindex", "tablevalues", "targetx", "targety", "transform", "transform-origin", "text-anchor", "text-decoration", "text-rendering", "textlength", "type", "u1", "u2", "unicode", "values", "viewbox", "visibility", "version", "vert-adv-y", "vert-origin-x", "vert-origin-y", "width", "word-spacing", "wrap", "writing-mode", "xchannelselector", "ychannelselector", "x", "x1", "x2", "xmlns", "y", "y1", "y2", "z", "zoomandpan"]);
 var mathMl = freeze(["accent", "accentunder", "align", "bevelled", "close", "columnsalign", "columnlines", "columnspan", "denomalign", "depth", "dir", "display", "displaystyle", "encoding", "fence", "frame", "height", "href", "id", "largeop", "length", "linethickness", "lspace", "lquote", "mathbackground", "mathcolor", "mathsize", "mathvariant", "maxsize", "minsize", "movablelimits", "notation", "numalign", "open", "rowalign", "rowlines", "rowspacing", "rowspan", "rspace", "rquote", "scriptlevel", "scriptminsize", "scriptsizemultiplier", "selection", "separator", "separators", "stretchy", "subscriptshift", "supscriptshift", "symmetric", "voffset", "width", "xmlns"]);
 var xml2 = freeze(["xlink:href", "xml:id", "xlink:title", "xml:space", "xmlns:xlink"]);
 var MUSTACHE_EXPR = seal(/\{\{[\w\W]*|[\w\W]*\}\}/gm);
@@ -58647,7 +58638,7 @@ var TMPLIT_EXPR = seal(/\$\{[\w\W]*/gm);
 var DATA_ATTR = seal(/^data-[\-\w.\u00B7-\uFFFF]+$/);
 var ARIA_ATTR = seal(/^aria-[\-\w]+$/);
 var IS_ALLOWED_URI = seal(
-  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
   // eslint-disable-line no-useless-escape
 );
 var IS_SCRIPT_OR_DATA = seal(/^(?:\w+script|data):/i);
@@ -58730,7 +58721,7 @@ var _createHooksMap = function _createHooksMap2() {
 function createDOMPurify() {
   let window2 = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : getGlobal();
   const DOMPurify = (root5) => createDOMPurify(root5);
-  DOMPurify.version = "3.3.3";
+  DOMPurify.version = "3.2.4";
   DOMPurify.removed = [];
   if (!window2 || !window2.document || window2.document.nodeType !== NODE_TYPE.document || !window2.Element) {
     DOMPurify.isSupported = false;
@@ -58816,20 +58807,6 @@ function createDOMPurify() {
   }));
   let FORBID_TAGS = null;
   let FORBID_ATTR = null;
-  const EXTRA_ELEMENT_HANDLING = Object.seal(create2(null, {
-    tagCheck: {
-      writable: true,
-      configurable: false,
-      enumerable: true,
-      value: null
-    },
-    attributeCheck: {
-      writable: true,
-      configurable: false,
-      enumerable: true,
-      value: null
-    }
-  }));
   let ALLOW_ARIA_ATTR = true;
   let ALLOW_DATA_ATTR = true;
   let ALLOW_UNKNOWN_PROTOCOLS = false;
@@ -58891,8 +58868,8 @@ function createDOMPurify() {
     URI_SAFE_ATTRIBUTES = objectHasOwnProperty(cfg, "ADD_URI_SAFE_ATTR") ? addToSet(clone(DEFAULT_URI_SAFE_ATTRIBUTES), cfg.ADD_URI_SAFE_ATTR, transformCaseFunc) : DEFAULT_URI_SAFE_ATTRIBUTES;
     DATA_URI_TAGS = objectHasOwnProperty(cfg, "ADD_DATA_URI_TAGS") ? addToSet(clone(DEFAULT_DATA_URI_TAGS), cfg.ADD_DATA_URI_TAGS, transformCaseFunc) : DEFAULT_DATA_URI_TAGS;
     FORBID_CONTENTS = objectHasOwnProperty(cfg, "FORBID_CONTENTS") ? addToSet({}, cfg.FORBID_CONTENTS, transformCaseFunc) : DEFAULT_FORBID_CONTENTS;
-    FORBID_TAGS = objectHasOwnProperty(cfg, "FORBID_TAGS") ? addToSet({}, cfg.FORBID_TAGS, transformCaseFunc) : clone({});
-    FORBID_ATTR = objectHasOwnProperty(cfg, "FORBID_ATTR") ? addToSet({}, cfg.FORBID_ATTR, transformCaseFunc) : clone({});
+    FORBID_TAGS = objectHasOwnProperty(cfg, "FORBID_TAGS") ? addToSet({}, cfg.FORBID_TAGS, transformCaseFunc) : {};
+    FORBID_ATTR = objectHasOwnProperty(cfg, "FORBID_ATTR") ? addToSet({}, cfg.FORBID_ATTR, transformCaseFunc) : {};
     USE_PROFILES = objectHasOwnProperty(cfg, "USE_PROFILES") ? cfg.USE_PROFILES : false;
     ALLOW_ARIA_ATTR = cfg.ALLOW_ARIA_ATTR !== false;
     ALLOW_DATA_ATTR = cfg.ALLOW_DATA_ATTR !== false;
@@ -58931,7 +58908,7 @@ function createDOMPurify() {
     }
     if (USE_PROFILES) {
       ALLOWED_TAGS = addToSet({}, text13);
-      ALLOWED_ATTR = create2(null);
+      ALLOWED_ATTR = [];
       if (USE_PROFILES.html === true) {
         addToSet(ALLOWED_TAGS, html$1);
         addToSet(ALLOWED_ATTR, html5);
@@ -58952,31 +58929,17 @@ function createDOMPurify() {
         addToSet(ALLOWED_ATTR, xml2);
       }
     }
-    if (!objectHasOwnProperty(cfg, "ADD_TAGS")) {
-      EXTRA_ELEMENT_HANDLING.tagCheck = null;
-    }
-    if (!objectHasOwnProperty(cfg, "ADD_ATTR")) {
-      EXTRA_ELEMENT_HANDLING.attributeCheck = null;
-    }
     if (cfg.ADD_TAGS) {
-      if (typeof cfg.ADD_TAGS === "function") {
-        EXTRA_ELEMENT_HANDLING.tagCheck = cfg.ADD_TAGS;
-      } else {
-        if (ALLOWED_TAGS === DEFAULT_ALLOWED_TAGS) {
-          ALLOWED_TAGS = clone(ALLOWED_TAGS);
-        }
-        addToSet(ALLOWED_TAGS, cfg.ADD_TAGS, transformCaseFunc);
+      if (ALLOWED_TAGS === DEFAULT_ALLOWED_TAGS) {
+        ALLOWED_TAGS = clone(ALLOWED_TAGS);
       }
+      addToSet(ALLOWED_TAGS, cfg.ADD_TAGS, transformCaseFunc);
     }
     if (cfg.ADD_ATTR) {
-      if (typeof cfg.ADD_ATTR === "function") {
-        EXTRA_ELEMENT_HANDLING.attributeCheck = cfg.ADD_ATTR;
-      } else {
-        if (ALLOWED_ATTR === DEFAULT_ALLOWED_ATTR) {
-          ALLOWED_ATTR = clone(ALLOWED_ATTR);
-        }
-        addToSet(ALLOWED_ATTR, cfg.ADD_ATTR, transformCaseFunc);
+      if (ALLOWED_ATTR === DEFAULT_ALLOWED_ATTR) {
+        ALLOWED_ATTR = clone(ALLOWED_ATTR);
       }
+      addToSet(ALLOWED_ATTR, cfg.ADD_ATTR, transformCaseFunc);
     }
     if (cfg.ADD_URI_SAFE_ATTR) {
       addToSet(URI_SAFE_ATTRIBUTES, cfg.ADD_URI_SAFE_ATTR, transformCaseFunc);
@@ -58986,12 +58949,6 @@ function createDOMPurify() {
         FORBID_CONTENTS = clone(FORBID_CONTENTS);
       }
       addToSet(FORBID_CONTENTS, cfg.FORBID_CONTENTS, transformCaseFunc);
-    }
-    if (cfg.ADD_FORBID_CONTENTS) {
-      if (FORBID_CONTENTS === DEFAULT_FORBID_CONTENTS) {
-        FORBID_CONTENTS = clone(FORBID_CONTENTS);
-      }
-      addToSet(FORBID_CONTENTS, cfg.ADD_FORBID_CONTENTS, transformCaseFunc);
     }
     if (KEEP_CONTENT) {
       ALLOWED_TAGS["#text"] = true;
@@ -59176,7 +59133,7 @@ function createDOMPurify() {
       tagName,
       allowedTags: ALLOWED_TAGS
     });
-    if (SAFE_FOR_XML && currentNode.hasChildNodes() && !_isNode(currentNode.firstElementChild) && regExpTest(/<[/\w!]/g, currentNode.innerHTML) && regExpTest(/<[/\w!]/g, currentNode.textContent)) {
+    if (currentNode.hasChildNodes() && !_isNode(currentNode.firstElementChild) && regExpTest(/<[/\w]/g, currentNode.innerHTML) && regExpTest(/<[/\w]/g, currentNode.textContent)) {
       _forceRemove(currentNode);
       return true;
     }
@@ -59188,7 +59145,7 @@ function createDOMPurify() {
       _forceRemove(currentNode);
       return true;
     }
-    if (!(EXTRA_ELEMENT_HANDLING.tagCheck instanceof Function && EXTRA_ELEMENT_HANDLING.tagCheck(tagName)) && (!ALLOWED_TAGS[tagName] || FORBID_TAGS[tagName])) {
+    if (!ALLOWED_TAGS[tagName] || FORBID_TAGS[tagName]) {
       if (!FORBID_TAGS[tagName] && _isBasicCustomElement(tagName)) {
         if (CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof RegExp && regExpTest(CUSTOM_ELEMENT_HANDLING.tagNameCheck, tagName)) {
           return false;
@@ -59236,21 +59193,17 @@ function createDOMPurify() {
     return false;
   };
   const _isValidAttribute = function _isValidAttribute2(lcTag, lcName, value) {
-    if (FORBID_ATTR[lcName]) {
-      return false;
-    }
     if (SANITIZE_DOM && (lcName === "id" || lcName === "name") && (value in document4 || value in formElement)) {
       return false;
     }
     if (ALLOW_DATA_ATTR && !FORBID_ATTR[lcName] && regExpTest(DATA_ATTR2, lcName)) ;
     else if (ALLOW_ARIA_ATTR && regExpTest(ARIA_ATTR2, lcName)) ;
-    else if (EXTRA_ELEMENT_HANDLING.attributeCheck instanceof Function && EXTRA_ELEMENT_HANDLING.attributeCheck(lcName, lcTag)) ;
     else if (!ALLOWED_ATTR[lcName] || FORBID_ATTR[lcName]) {
       if (
         // First condition does a very basic check if a) it's basically a valid custom element tagname AND
         // b) if the tagName passes whatever the user has configured for CUSTOM_ELEMENT_HANDLING.tagNameCheck
         // and c) if the attribute name passes whatever the user has configured for CUSTOM_ELEMENT_HANDLING.attributeNameCheck
-        _isBasicCustomElement(lcTag) && (CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof RegExp && regExpTest(CUSTOM_ELEMENT_HANDLING.tagNameCheck, lcTag) || CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof Function && CUSTOM_ELEMENT_HANDLING.tagNameCheck(lcTag)) && (CUSTOM_ELEMENT_HANDLING.attributeNameCheck instanceof RegExp && regExpTest(CUSTOM_ELEMENT_HANDLING.attributeNameCheck, lcName) || CUSTOM_ELEMENT_HANDLING.attributeNameCheck instanceof Function && CUSTOM_ELEMENT_HANDLING.attributeNameCheck(lcName, lcTag)) || // Alternative, second condition checks if it's an `is`-attribute, AND
+        _isBasicCustomElement(lcTag) && (CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof RegExp && regExpTest(CUSTOM_ELEMENT_HANDLING.tagNameCheck, lcTag) || CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof Function && CUSTOM_ELEMENT_HANDLING.tagNameCheck(lcTag)) && (CUSTOM_ELEMENT_HANDLING.attributeNameCheck instanceof RegExp && regExpTest(CUSTOM_ELEMENT_HANDLING.attributeNameCheck, lcName) || CUSTOM_ELEMENT_HANDLING.attributeNameCheck instanceof Function && CUSTOM_ELEMENT_HANDLING.attributeNameCheck(lcName)) || // Alternative, second condition checks if it's an `is`-attribute, AND
         // the value passes whatever the user has configured for CUSTOM_ELEMENT_HANDLING.tagNameCheck
         lcName === "is" && CUSTOM_ELEMENT_HANDLING.allowCustomizedBuiltInElements && (CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof RegExp && regExpTest(CUSTOM_ELEMENT_HANDLING.tagNameCheck, value) || CUSTOM_ELEMENT_HANDLING.tagNameCheck instanceof Function && CUSTOM_ELEMENT_HANDLING.tagNameCheck(value))
       ) ;
@@ -59293,8 +59246,7 @@ function createDOMPurify() {
         value: attrValue
       } = attr;
       const lcName = transformCaseFunc(name2);
-      const initValue = attrValue;
-      let value = name2 === "value" ? initValue : stringTrim(initValue);
+      let value = name2 === "value" ? attrValue : stringTrim(attrValue);
       hookEvent.attrName = lcName;
       hookEvent.attrValue = value;
       hookEvent.keepAttr = true;
@@ -59305,19 +59257,15 @@ function createDOMPurify() {
         _removeAttribute(name2, currentNode);
         value = SANITIZE_NAMED_PROPS_PREFIX + value;
       }
-      if (SAFE_FOR_XML && regExpTest(/((--!?|])>)|<\/(style|script|title|xmp|textarea|noscript|iframe|noembed|noframes)/i, value)) {
-        _removeAttribute(name2, currentNode);
-        continue;
-      }
-      if (lcName === "attributename" && stringMatch(value, "href")) {
+      if (SAFE_FOR_XML && regExpTest(/((--!?|])>)|<\/(style|title)/i, value)) {
         _removeAttribute(name2, currentNode);
         continue;
       }
       if (hookEvent.forceKeepAttr) {
         continue;
       }
+      _removeAttribute(name2, currentNode);
       if (!hookEvent.keepAttr) {
-        _removeAttribute(name2, currentNode);
         continue;
       }
       if (!ALLOW_SELF_CLOSE_IN_ATTR && regExpTest(/\/>/i, value)) {
@@ -59331,7 +59279,6 @@ function createDOMPurify() {
       }
       const lcTag = transformCaseFunc(currentNode.nodeName);
       if (!_isValidAttribute(lcTag, lcName, value)) {
-        _removeAttribute(name2, currentNode);
         continue;
       }
       if (trustedTypesPolicy && typeof trustedTypes === "object" && typeof trustedTypes.getAttributeType === "function") {
@@ -59349,21 +59296,18 @@ function createDOMPurify() {
           }
         }
       }
-      if (value !== initValue) {
-        try {
-          if (namespaceURI) {
-            currentNode.setAttributeNS(namespaceURI, name2, value);
-          } else {
-            currentNode.setAttribute(name2, value);
-          }
-          if (_isClobbered(currentNode)) {
-            _forceRemove(currentNode);
-          } else {
-            arrayPop(DOMPurify.removed);
-          }
-        } catch (_) {
-          _removeAttribute(name2, currentNode);
+      try {
+        if (namespaceURI) {
+          currentNode.setAttributeNS(namespaceURI, name2, value);
+        } else {
+          currentNode.setAttribute(name2, value);
         }
+        if (_isClobbered(currentNode)) {
+          _forceRemove(currentNode);
+        } else {
+          arrayPop(DOMPurify.removed);
+        }
+      } catch (_) {
       }
     }
     _executeHooks(hooks.afterSanitizeAttributes, currentNode, null);
