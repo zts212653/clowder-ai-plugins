@@ -328,6 +328,23 @@
       ],
       "versions": [
         {
+          "version": "0.1.0-alpha.19",
+          "contractVersion": "0.2.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/collective-connector",
+            "version": "0.1.0-alpha.19",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.19.tgz",
+            "integrity": "sha512-cg8e7O/PwVjXtox5sMhFrvyRe7WNAw+2ElLCUuzKWLjonE5mYId6mZZTOrZB9INUbCyQW8eHMlvKbARo26xO0Q==",
+            "shasum": "67e71d36c06a850f56cea080816e219c986e7576",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/collective-connector"
+            }
+          }
+        },
+        {
           "version": "0.1.0-alpha.17",
           "contractVersion": "0.2.0",
           "manifestPath": "plugin.yaml",
@@ -372,6 +389,23 @@
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.15.tgz",
             "integrity": "sha512-dYs3Bs4q8e0MJQHK4WzL+3cRAQRC+pvdIN7EReUV9boA/VdSF/U9Y2V9SN6eMAIZrVaScUFNAcPunhj21Ik3lw==",
             "shasum": "716448a883ee350269b09b5f7a7d63483b00819e",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/collective-connector"
+            }
+          }
+        },
+        {
+          "version": "0.1.0-alpha.14",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/collective-connector",
+            "version": "0.1.0-alpha.14",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.14.tgz",
+            "integrity": "sha512-RwM+UF5Yh1NVTUliNK5OUpUNr8GsIxxNnhXooYp4mWRS7Q5h8OC3l37srRbBKWnVLT+qUzegbLFcT5niG7UBuQ==",
+            "shasum": "a30e9aad1bc3eba8e4286ca1ff55cf6724138599",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/collective-connector"
