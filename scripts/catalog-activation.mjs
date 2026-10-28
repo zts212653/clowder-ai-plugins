@@ -10,17 +10,62 @@ import { assertRegistryCompatibility, OFFICIAL_NPM_REGISTRY, readRegistryIntegri
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const maxArchiveBytes = 64 * 1024 * 1024;
 
-export function assertCatalogActivated(candidate, live) {
+function resolveSelectedPluginIds(candidate, pluginIds) {
+  if (pluginIds === undefined) return new Set(candidate.plugins.map(plugin => plugin.pluginId));
+  assert.ok(Array.isArray(pluginIds) && pluginIds.length > 0,
+    'Scoped catalog activation requires at least one plugin id');
+  const selected = new Set();
+  for (const pluginId of pluginIds) {
+    assert.equal(typeof pluginId, 'string', 'Selected plugin id must be a string');
+    assert.ok(!selected.has(pluginId), `Duplicate selected plugin: ${pluginId}`);
+    assert.ok(candidate.plugins.some(plugin => plugin.pluginId === pluginId),
+      `Selected plugin is absent from candidate: ${pluginId}`);
+    selected.add(pluginId);
+  }
+  return selected;
+}
+
+function catalogForSelectedPlugins(candidate, selected) {
+  return {
+    ...candidate,
+    plugins: candidate.plugins.filter(plugin => selected.has(plugin.pluginId)),
+  };
+}
+
+function mergeSelectedPlugins(candidate, live, selected) {
+  assert.equal(candidate.schemaVersion, live.schemaVersion,
+    'Candidate and live catalog schema versions differ');
+  const liveById = new Map(live.plugins.map(plugin => [plugin.pluginId, plugin]));
+  return {
+    ...live,
+    plugins: candidate.plugins.flatMap(plugin => {
+      if (selected.has(plugin.pluginId)) return [plugin];
+      const existing = liveById.get(plugin.pluginId);
+      return existing === undefined ? [] : [existing];
+    }),
+  };
+}
+
+export function parsePluginSelectorArgument(args, usage) {
+  const values = args[0] === '--' ? args.slice(1) : args;
+  assert.equal(values.length, 1, usage);
+  return values[0];
+}
+
+export function assertCatalogActivated(candidate, live, pluginIds) {
   validate(candidate); validate(live);
+  const selected = resolveSelectedPluginIds(candidate, pluginIds);
   const pending = [];
-  for (const plugin of candidate.plugins) {
+  for (const plugin of candidate.plugins.filter(entry => selected.has(entry.pluginId))) {
     const expected = getCatalogPlugin(candidate, plugin.pluginId);
-    const actual = getCatalogPlugin(live, plugin.pluginId);
-    try { assert.deepEqual(actual, expected); }
+    try { assert.deepEqual(getCatalogPlugin(live, plugin.pluginId), expected); }
     catch { pending.push(`${plugin.pluginId}@${expected.version}`); }
   }
+  const activationCommand = pluginIds === undefined
+    ? 'pnpm catalog:activate'
+    : 'pnpm catalog:activate:plugin -- <pluginId>';
   assert.deepEqual(pending, [],
-    `Catalog activation pending: ${pending.join(', ')}. The publication owner must run pnpm catalog:activate and deliver the reviewed catalog PR; npm publication alone is not completion.`);
+    `Catalog activation pending: ${pending.join(', ')}. The publication owner must run ${activationCommand} and deliver the reviewed catalog PR; npm publication alone is not completion.`);
 }
 
 function validate(catalog) {
@@ -106,7 +151,7 @@ export async function assertCatalogAvailable(catalog, {
 
 export async function activateCatalog({
   root = repoRoot, registryIntegrity = readRegistryIntegrity,
-  readArchive = readPublishedArchive, packCurrentPackage,
+  readArchive = readPublishedArchive, packCurrentPackage, pluginIds,
 } = {}) {
   const candidatePath = join(root, 'catalog/candidate.json');
   const livePath = join(root, 'catalog/catalog.json');
@@ -116,44 +161,66 @@ export async function activateCatalog({
   const selectionBytes = await readFile(selectionPath, 'utf8');
   const candidate = JSON.parse(candidateBytes), live = JSON.parse(liveBytes);
   validate(candidate); validate(live);
-  assertInitialPluginSelectionAvailable(JSON.parse(selectionBytes), candidate);
+  const selected = resolveSelectedPluginIds(candidate, pluginIds);
+  const target = pluginIds === undefined
+    ? candidate
+    : mergeSelectedPlugins(candidate, live, selected);
+  validate(target);
+  assertInitialPluginSelectionAvailable(JSON.parse(selectionBytes), target);
   for (const plugin of live.plugins) for (const version of plugin.versions) {
     const retained = candidate.plugins.find(p => p.pluginId === plugin.pluginId)?.versions
       .find(v => v.version === version.version);
     assert.deepEqual(retained, version, `${plugin.pluginId}@${version.version}: cannot remove or rewrite an active release`);
   }
-  const artifacts = [];
-  const result = await assertRegistryCompatibility({
-    catalog: candidate, root, registryIntegrity,
-    workflowSource: await readFile(join(root, '.github/workflows/contract-ci.yml'), 'utf8'),
-    packCurrentPackage: async (directory, destination) => {
-      let artifact;
-      if (packCurrentPackage) artifact = await packCurrentPackage(directory, destination);
-      else {
-        const packed = spawnSync(process.execPath, ['scripts/pack-publish-artifact.mjs', directory, destination],
-          { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
-        assert.equal(packed.status, 0, packed.stderr);
-        [artifact] = JSON.parse(packed.stdout);
-      }
-      artifacts.push(artifact);
-      return artifact;
-    },
-  });
-  const required = new Set(artifacts.map(a => `${a.name}@${a.version}`));
-  assert.deepEqual(result.unpublished.filter(identity => required.has(identity)), [],
-    'Activation requires the complete publication batch, including Contract and SDK');
-  await assertCatalogAvailable(candidate, { registryIntegrity, readArchive });
-  // Core archives are publication dependencies, even though they have no plugin catalog row.
-  for (const artifact of artifacts) if (!candidate.plugins.some(p => p.versions.some(v =>
-    v.artifact.packageName === artifact.name && v.version === artifact.version))) {
-    assertPublishedArchive(await readArchive(archiveUrl(artifact.name, artifact.version)),
-      { packageName: artifact.name, version: artifact.version, integrity: artifact.integrity });
+  let result;
+  if (pluginIds === undefined) {
+    const artifacts = [];
+    result = await assertRegistryCompatibility({
+      catalog: candidate, root, registryIntegrity,
+      workflowSource: await readFile(join(root, '.github/workflows/contract-ci.yml'), 'utf8'),
+      packCurrentPackage: async (directory, destination) => {
+        let artifact;
+        if (packCurrentPackage) artifact = await packCurrentPackage(directory, destination);
+        else {
+          const packed = spawnSync(process.execPath, ['scripts/pack-publish-artifact.mjs', directory, destination],
+            { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+          assert.equal(packed.status, 0, packed.stderr);
+          [artifact] = JSON.parse(packed.stdout);
+        }
+        artifacts.push(artifact);
+        return artifact;
+      },
+    });
+    const required = new Set(artifacts.map(a => `${a.name}@${a.version}`));
+    assert.deepEqual(result.unpublished.filter(identity => required.has(identity)), [],
+      'Activation requires the complete publication batch, including Contract and SDK');
+    await assertCatalogAvailable(candidate, { registryIntegrity, readArchive });
+    // Core archives are publication dependencies, even though they have no plugin catalog row.
+    for (const artifact of artifacts) if (!candidate.plugins.some(p => p.versions.some(v =>
+      v.artifact.packageName === artifact.name && v.version === artifact.version))) {
+      assertPublishedArchive(await readArchive(archiveUrl(artifact.name, artifact.version)),
+        { packageName: artifact.name, version: artifact.version, integrity: artifact.integrity });
+    }
+  } else {
+    const scoped = catalogForSelectedPlugins(candidate, selected);
+    const count = await assertCatalogAvailable(scoped, { registryIntegrity, readArchive });
+    result = {
+      claims: count,
+      published: scoped.plugins.map(plugin => {
+        const artifact = getCatalogPlugin(scoped, plugin.pluginId).artifact;
+        return `${artifact.packageName}@${artifact.version}`;
+      }).sort(),
+      unpublished: [],
+    };
   }
   assert.equal(await readFile(candidatePath, 'utf8'), candidateBytes, 'Candidate changed during verification');
   assert.equal(await readFile(livePath, 'utf8'), liveBytes, 'Live catalog changed during verification');
   assert.equal(await readFile(selectionPath, 'utf8'), selectionBytes, 'Initial selection changed during verification');
+  const targetBytes = pluginIds === undefined
+    ? candidateBytes
+    : `${JSON.stringify(target, null, 2)}\n`;
   const temporary = `${livePath}.${randomUUID()}.tmp`;
-  try { await writeFile(temporary, candidateBytes, { flag: 'wx' }); await rename(temporary, livePath); }
+  try { await writeFile(temporary, targetBytes, { flag: 'wx' }); await rename(temporary, livePath); }
   finally { await rm(temporary, { force: true }); }
   return result;
 }
@@ -163,6 +230,13 @@ async function main() {
     // This prepares a reviewed catalog change; it never publishes npm packages or pushes Git.
     await activateCatalog();
     console.log('Prepared published catalog update. Review and commit it with the C1 Host delivery; no npm publication or Git push was performed.');
+  } else if (process.argv[2] === '--activate-plugin') {
+    const pluginId = parsePluginSelectorArgument(
+      process.argv.slice(3),
+      'Use --activate-plugin <pluginId>',
+    );
+    await activateCatalog({ pluginIds: [pluginId] });
+    console.log(`Prepared published catalog update for ${pluginId}. Review and commit it; no npm publication or Git push was performed.`);
   } else if (process.argv[2] === '--check-activation') {
     const candidate = JSON.parse(await readFile(join(repoRoot, 'catalog/candidate.json'), 'utf8'));
     const live = JSON.parse(await readFile(join(repoRoot, 'catalog/catalog.json'), 'utf8'));
@@ -171,8 +245,22 @@ async function main() {
     assertCatalogActivated(candidate, live);
     const count = await assertCatalogAvailable(candidate);
     console.log(`Catalog activation complete: ${count} current plugin identities are live and their published archives verified.`);
+  } else if (process.argv[2] === '--check-plugin-activation') {
+    const pluginId = parsePluginSelectorArgument(
+      process.argv.slice(3),
+      'Use --check-plugin-activation <pluginId>',
+    );
+    const candidate = JSON.parse(await readFile(join(repoRoot, 'catalog/candidate.json'), 'utf8'));
+    const live = JSON.parse(await readFile(join(repoRoot, 'catalog/catalog.json'), 'utf8'));
+    assertInitialPluginSelectionAvailable(
+      JSON.parse(await readFile(join(repoRoot, 'catalog/initial-plugins.json'), 'utf8')), live);
+    assertCatalogActivated(candidate, live, [pluginId]);
+    const selected = catalogForSelectedPlugins(candidate, resolveSelectedPluginIds(candidate, [pluginId]));
+    await assertCatalogAvailable(selected);
+    console.log(`Catalog activation complete for ${pluginId}; its published archive and live identity are verified.`);
   } else {
-    assert.equal(process.argv[2], undefined, 'Use no argument, --check-activation, or --activate');
+    assert.equal(process.argv[2], undefined,
+      'Use no argument, --check-activation, --check-plugin-activation, --activate, or --activate-plugin');
     const path = 'catalog/catalog.json';
     const live = JSON.parse(await readFile(join(repoRoot, path), 'utf8'));
     assertInitialPluginSelectionAvailable(

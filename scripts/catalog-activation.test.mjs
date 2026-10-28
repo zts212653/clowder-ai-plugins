@@ -55,10 +55,10 @@ async function fixture(t) {
   const core = await archive('@clowder-ai/plugin-contract', '0.1.0-beta.37');
   const sdk = await archive('@clowder-ai/plugin-sdk', '0.2.0-beta.23');
   const row = artifact => ({ version: artifact.version, contractVersion: '0.1.0', manifestPath: 'plugin.yaml', artifact });
-  const entry = versions => ({ pluginId: 'official.example', name: 'Example', description: 'Example',
+  const entry = (pluginId, versions) => ({ pluginId, name: pluginId, description: pluginId,
     icon: { type: 'svg', src: 'assets/icon.svg' }, publisher: { id: 'example', name: 'Example' }, versions: versions.map(row) });
-  const live = { schemaVersion: '1', plugins: [entry([previous])] };
-  const candidate = { schemaVersion: '1', plugins: [entry([next, previous])] };
+  const live = { schemaVersion: '1', plugins: [entry('official.example', [previous])] };
+  const candidate = { schemaVersion: '1', plugins: [entry('official.example', [next, previous])] };
   const livePath = join(directory, 'catalog/catalog.json');
   await writeFile(livePath, JSON.stringify(live));
   await writeFile(join(directory, 'catalog/candidate.json'), JSON.stringify(candidate));
@@ -85,7 +85,20 @@ async function fixture(t) {
       const artifact = path.endsWith('plugin-contract') ? core : path.endsWith('plugin-sdk') ? sdk : next;
       return { name: artifact.packageName, version: artifact.version, integrity: artifact.integrity };
     } };
-  return { directory, livePath, live, candidate, previous, next, core, sdk, archives, published, options };
+  return {
+    directory, livePath, live, candidate, previous, next, core, sdk,
+    archives, published, options, archive, entry,
+  };
+}
+
+async function addPendingSibling(f) {
+  const previous = await f.archive('@clowder-ai/sibling', '0.1.0-alpha.1');
+  const next = await f.archive('@clowder-ai/sibling', '0.1.0-alpha.2');
+  f.live.plugins.push(f.entry('official.sibling', [previous]));
+  f.candidate.plugins.push(f.entry('official.sibling', [next, previous]));
+  await writeFile(f.livePath, JSON.stringify(f.live));
+  await writeFile(join(f.directory, 'catalog/candidate.json'), JSON.stringify(f.candidate));
+  return { previous, next };
 }
 
 for (const missing of ['all', 'plugin', 'sdk']) {
@@ -168,6 +181,69 @@ test('a complete published batch updates discovery without changing staged sourc
   assert.equal(await readFile(join(f.directory, 'catalog/candidate.json'), 'utf8'), staged);
   await activateCatalog(f.options); // Retry is idempotent without publishing or replacing archives.
   assert.equal(await assertCatalogAvailable(f.candidate, f.options), 1);
+});
+
+test('scoped activation advances only the selected plugin and keeps other pending work staged', async t => {
+  const f = await fixture(t);
+  await addPendingSibling(f);
+  const siblingBefore = structuredClone(f.live.plugins[1]);
+
+  await activateCatalog({ ...f.options, pluginIds: ['official.example'] });
+
+  const activated = JSON.parse(await readFile(f.livePath, 'utf8'));
+  assert.deepEqual(activated.plugins[0], f.candidate.plugins[0]);
+  assert.deepEqual(activated.plugins[1], siblingBefore);
+  assertCatalogActivated(f.candidate, activated, ['official.example']);
+  assert.throws(
+    () => assertCatalogActivated(f.candidate, activated),
+    /official\.sibling@0\.1\.0-alpha\.2/u,
+  );
+});
+
+test('an unpublished unselected candidate does not block scoped activation', async t => {
+  const f = await fixture(t);
+  const sibling = await addPendingSibling(f);
+  f.published.delete(`${sibling.next.packageName}@${sibling.next.version}`);
+  f.archives.delete(sibling.next.tarballUrl);
+
+  await activateCatalog({ ...f.options, pluginIds: ['official.example'] });
+
+  const activated = JSON.parse(await readFile(f.livePath, 'utf8'));
+  assert.equal(activated.plugins[0].versions[0].version, f.next.version);
+  assert.equal(activated.plugins[1].versions[0].version, sibling.previous.version);
+});
+
+test('scoped activation rejects missing and duplicate plugin selectors without writing', async t => {
+  const f = await fixture(t);
+  const before = await readFile(f.livePath, 'utf8');
+  await assert.rejects(
+    activateCatalog({ ...f.options, pluginIds: ['official.missing'] }),
+    /Selected plugin is absent from candidate: official\.missing/u,
+  );
+  await assert.rejects(
+    activateCatalog({ ...f.options, pluginIds: ['official.example', 'official.example'] }),
+    /Duplicate selected plugin: official\.example/u,
+  );
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('scoped activation preserves a concurrent live edit instead of overwriting it', async t => {
+  const f = await fixture(t);
+  await addPendingSibling(f);
+  const concurrent = JSON.stringify({ ...f.live, plugins: [f.live.plugins[1]] });
+  let edited = false;
+  await assert.rejects(activateCatalog({
+    ...f.options,
+    pluginIds: ['official.example'],
+    readArchive: async url => {
+      if (!edited) {
+        edited = true;
+        await writeFile(f.livePath, concurrent);
+      }
+      return f.options.readArchive(url);
+    },
+  }), /Live catalog changed/u);
+  assert.equal(await readFile(f.livePath, 'utf8'), concurrent);
 });
 
 test('publication alone does not satisfy the activation completion check', async t => {

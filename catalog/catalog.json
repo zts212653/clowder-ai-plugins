@@ -2019,6 +2019,45 @@
       ]
     },
     {
+      "pluginId": "official.feishu-meeting-intake",
+      "name": "Feishu Meeting Intake",
+      "description": "Owned meeting records, ordinary notifications and authenticated native reads.",
+      "icon": {
+        "type": "png",
+        "src": "assets/icon.png"
+      },
+      "publisher": {
+        "id": "clowder-ai",
+        "name": "Clowder AI"
+      },
+      "keywords": [
+        "clowder-ai",
+        "feishu",
+        "lark",
+        "meeting",
+        "plugin"
+      ],
+      "versions": [
+        {
+          "version": "0.1.0-alpha.12",
+          "contractVersion": "0.1.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/feishu-meeting-intake",
+            "version": "0.1.0-alpha.12",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/feishu-meeting-intake/-/feishu-meeting-intake-0.1.0-alpha.12.tgz",
+            "integrity": "sha512-djHXQf1VaNXOSzuerfFB6NMQ2mh6gPVQzJ6ujc81Jgd29+QdF24sMJMDLe4JszMTNHYqp888WnmVQdgOyr2UfQ==",
+            "shasum": "03dba4672e1f0c334fc9899af680c2d16d39918d",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/feishu-meeting-intake"
+            }
+          }
+        }
+      ]
+    },
+    {
       "pluginId": "official.github-operations",
       "name": "GitHub Operations",
       "description": {

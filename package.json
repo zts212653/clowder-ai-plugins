@@ -21,9 +21,11 @@
     "guards:install": "bash scripts/install-git-guards.sh",
     "catalog:check": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter './packages/connector-*' build && pnpm --filter @clowder-ai/collective-connector build && pnpm --filter @clowder-ai/enterprise-workflow build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/video-generation build && pnpm --filter @clowder-ai/wechat-visible-reader build && pnpm --filter @clowder-ai/weixin-mp build && pnpm --filter @clowder-ai/companion build && pnpm --filter @clowder-ai/genoffice-docx build:renderer && pnpm --filter @clowder-ai/personal-chrome-companion build && pnpm --filter @clowder-ai/xiangqi build && pnpm --filter @clowder-ai/github-operations build && node --test scripts/catalog-package-shrinkwrap.test.mjs scripts/catalog-static-package.test.mjs && node scripts/catalog-check.mjs",
     "pack:gate": "pnpm --filter @clowder-ai/plugin-contract build && pnpm --filter @clowder-ai/plugin-sdk build && pnpm --filter './packages/connector-*' build && pnpm --filter @clowder-ai/collective-connector build && pnpm --filter @clowder-ai/enterprise-workflow build && pnpm --filter @clowder-ai/video-analysis build && pnpm --filter @clowder-ai/video-generation build && pnpm --filter @clowder-ai/wechat-visible-reader build && pnpm --filter @clowder-ai/weixin-mp build && pnpm --filter @clowder-ai/genoffice-docx build && pnpm --filter @clowder-ai/github-operations build && pnpm --filter @clowder-ai/stackchan build && pnpm --filter @clowder-ai/feishu-meeting-intake build && pnpm --filter @clowder-ai/personal-chrome-companion build && pnpm --filter @clowder-ai/companion build && node scripts/pack-gate.mjs",
-    "catalog:live-check": "node --test scripts/catalog-activation.test.mjs && node scripts/catalog-activation.mjs",
+    "catalog:live-check": "node --test scripts/catalog-activation.test.mjs scripts/catalog-activation-cli.test.mjs && node scripts/catalog-activation.mjs",
     "catalog:activation-check": "node scripts/catalog-activation.mjs --check-activation",
-    "catalog:activate": "pnpm catalog:check && node scripts/catalog-activation.mjs --activate"
+    "catalog:activation-check:plugin": "pnpm --filter @clowder-ai/plugin-contract build && node scripts/catalog-activation.mjs --check-plugin-activation",
+    "catalog:activate": "pnpm catalog:check && node scripts/catalog-activation.mjs --activate",
+    "catalog:activate:plugin": "pnpm --filter @clowder-ai/plugin-contract build && node scripts/catalog-activation.mjs --activate-plugin"
   },
   "devDependencies": {
     "tsx": "4.23.1",
