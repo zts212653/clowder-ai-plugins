@@ -139,6 +139,7 @@ SDK 包版本是插件携带的库版本，Host 产品版本不能替代这个�
 
 1. 合入源码与候选坐标，保留当前 live catalog。main push 通过验证后按现有 workflow 发布包。
 2. 确认本批插件、SDK 和 Contract 已发布，再运行 `pnpm catalog:activate`。该命令重新检查候选字节、当前发布清单、实际可下载的归档及摘要，然后在本地准备 `catalog/catalog.json` 更新；不执行 npm 发布、Git push 或 merge。任一步失败，live 文件不变，可修复发布后重试。
+   如果共享候选还包含无关的待发布版本，而一个自包含插件已经独立审查并发布，可运行 `pnpm catalog:activate:plugin -- <pluginId>`。scoped 路径只推进该插件并验证其 registry 身份与归档字节，保留其他 live 行和 staged 候选；它不会执行整批 Contract、SDK 与插件发布对账，因此不得用于依赖尚未发布核心包的制品。
 3. 通过普通 PR 审阅并合入目录更新，与对应 C1 Host 版本一同交付。`pnpm catalog:live-check` 验证目录实际选择的最高版本可获取且摘要匹配；历史版本行保留不可变出处，不要求补发从未发布的旧候选。
 
 发布操作者负责把本批推进到目录 PR 合入，或明确交接给下一位负责人并附 PR／阻塞原因；npm 上传成功不能作为这条责任的终点。发布 job 最后运行 `pnpm catalog:activation-check`：候选最高版本未进入 live，或远端归档不可获取／摘要不符时失败。这个失败可能表示包发布已成功、目录仍待审阅，不应因此重发或改写 npm 版本。正常源码 PR 的 CI 不要求提前激活未发布候选。

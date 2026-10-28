@@ -213,6 +213,58 @@ test('an unpublished unselected candidate does not block scoped activation', asy
   assert.equal(activated.plugins[1].versions[0].version, sibling.previous.version);
 });
 
+test('an unpublished selected plugin blocks scoped activation without writing', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  f.published.delete(`${f.next.packageName}@${f.next.version}`);
+
+  await assert.rejects(
+    activateCatalog({ ...f.options, pluginIds: ['official.example'] }),
+    /live catalog requires a published immutable identity/u,
+  );
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('mismatching selected archive bytes block scoped activation without writing', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+  f.archives.set(f.next.tarballUrl, Buffer.from('corrupt archive'));
+
+  await assert.rejects(
+    activateCatalog({ ...f.options, pluginIds: ['official.example'] }),
+    /archive integrity mismatch/u,
+  );
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('an empty scoped selector is rejected without writing', async t => {
+  const f = await fixture(t), before = await readFile(f.livePath, 'utf8');
+
+  await assert.rejects(
+    activateCatalog({ ...f.options, pluginIds: [] }),
+    /at least one plugin id/u,
+  );
+  assert.equal(await readFile(f.livePath, 'utf8'), before);
+});
+
+test('scoped activation adds a selected candidate-only plugin in candidate order', async t => {
+  const f = await fixture(t);
+  const added = await f.archive('@clowder-ai/new-plugin', '0.1.0-alpha.1');
+  f.candidate.plugins.push(f.entry('official.new-plugin', [added]));
+  await writeFile(
+    join(f.directory, 'catalog/candidate.json'),
+    JSON.stringify(f.candidate),
+  );
+
+  await activateCatalog({ ...f.options, pluginIds: ['official.new-plugin'] });
+
+  const activated = JSON.parse(await readFile(f.livePath, 'utf8'));
+  assert.deepEqual(
+    activated.plugins.map(plugin => plugin.pluginId),
+    ['official.example', 'official.new-plugin'],
+  );
+  assert.deepEqual(activated.plugins[0], f.live.plugins[0]);
+  assert.deepEqual(activated.plugins[1], f.candidate.plugins[1]);
+});
+
 test('scoped activation rejects missing and duplicate plugin selectors without writing', async t => {
   const f = await fixture(t);
   const before = await readFile(f.livePath, 'utf8');
