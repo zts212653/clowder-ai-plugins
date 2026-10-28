@@ -4,11 +4,16 @@
   "sourceState": "exact-source-head",
   "package": "packages/collective-client",
   "buildEntrypoint": "packages/collective-client/scripts/build.mjs#buildRetainedClient",
-  "assetDigest": "864dd4a0f87fab9a4423a36ae6ab8f3d6e1bb9ecf20d2e4f7cd51ebe223e01ed",
-  "buildInputsSha256": "02b33bca34925855b8c77d98fd1d86b50ed5da9fcf645d27cb6d3f855c654edb",
-  "manifestSha256": "353f3fc9f3f20e4bbe6de658911f859eaf971ed9cd7e5f7e83906c554edbc1b6",
+  "assetDigest": "6226e1dfb29e2dd24f23f4f474511d89ebaa9afb9aaebedb10501ec8fbf97003",
+  "buildInputsSha256": "37c5d29b67f3a48573ee8d4ce7f3bfc16f0e96acfdafb8603d73bfc4d3f67afa",
+  "manifestSha256": "4c83b941db8fd66bd2b2fe5c312061b57408d40402b0266f9a1b5a4f8c1e27fe",
   "inputOverrides": [],
   "dependencyInputs": "build-inputs.json",
-  "sourceCheckedInputCount": 848,
-  "sourceLockfileSha256": "933300d712dac3c60559674280104992b718cb817ba9d2e12c2b3f149fc65b80"
+  "sourceCheckedInputCount": 566,
+  "dependencyInputCount": 282,
+  "totalInputCount": 848,
+  "sourceLockfileSha256": "933300d712dac3c60559674280104992b718cb817ba9d2e12c2b3f149fc65b80",
+  "sourceLockBindings": {
+    "packages/ui:dompurify": "3.3.3"
+  }
 }

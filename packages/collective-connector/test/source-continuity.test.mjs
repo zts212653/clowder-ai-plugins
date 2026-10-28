@@ -29,6 +29,9 @@ test('the retained client records verifiable source and generated-byte provenanc
   const manifestBytes = await readFile(new URL('manifest.json', assets));
   const buildInputsBytes = await readFile(new URL('build-inputs.json', assets));
   const manifest = JSON.parse(manifestBytes.toString('utf8'));
+  const buildInputs = JSON.parse(buildInputsBytes.toString('utf8'));
+  const dependencyInputs = buildInputs.inputs.filter(input => input.path.includes('/node_modules/.pnpm/'));
+  const sourceInputs = buildInputs.inputs.filter(input => !input.path.includes('/node_modules/.pnpm/'));
 
   assert.match(source.repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
   assert.match(source.sourceBaseHead, /^[a-f0-9]{40}$/u);
@@ -36,6 +39,19 @@ test('the retained client records verifiable source and generated-byte provenanc
   assert.equal(source.buildEntrypoint, 'packages/collective-client/scripts/build.mjs#buildRetainedClient');
   assert.equal(source.manifestSha256, sha256(manifestBytes));
   assert.equal(source.buildInputsSha256, sha256(buildInputsBytes));
+  assert.equal(source.sourceCheckedInputCount, sourceInputs.length);
+  assert.equal(source.dependencyInputCount, dependencyInputs.length);
+  assert.equal(source.totalInputCount, buildInputs.inputs.length);
+  assert.equal(source.sourceCheckedInputCount + source.dependencyInputCount, source.totalInputCount);
+  const sanitizerInput = dependencyInputs.find(input =>
+    input.path.includes('/node_modules/.pnpm/dompurify@') && input.path.includes('/node_modules/dompurify/'),
+  );
+  assert.ok(sanitizerInput, 'retained Client must record its DOMPurify build input');
+  assert.equal(
+    sanitizerInput.path.match(/\/\.pnpm\/dompurify@([^/]+)\/node_modules\/dompurify\//u)?.[1],
+    source.sourceLockBindings['packages/ui:dompurify'],
+    'retained Client sanitizer must match the packages/ui source-lock binding',
+  );
   assert.equal(
     source.assetDigest,
     sha256(JSON.stringify(manifest.files.map(({ path, size, sha256: fileSha }) => ({ path, size, sha256: fileSha })))),
