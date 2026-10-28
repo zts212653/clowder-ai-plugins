@@ -1,14 +1,22 @@
 import { CollectiveServiceError } from './errors.js';
-import type { MutableServiceState } from './state.js';
+import type { MutableServiceState, ServiceState } from './state.js';
 
 export function collaborationOperationReplay(
-  state: MutableServiceState,
+  state: ServiceState,
   input: {
     collectiveId: string;
     actorScope: string;
     requestId: string;
     payload: unknown;
-    resourceKind: 'work' | 'roadmap' | 'vote' | 'binding_vote' | 'reaction' | 'artifact' | 'material';
+    resourceKind:
+      | 'work'
+      | 'roadmap'
+      | 'vote'
+      | 'binding_vote'
+      | 'reaction'
+      | 'artifact'
+      | 'material'
+      | 'project_artifact';
   },
 ) {
   const key = collaborationOperationKey(input.collectiveId, input.actorScope, input.requestId);
@@ -31,7 +39,15 @@ export function recordCollaborationOperation(
     key: string;
     fingerprint: string;
     actorScope: string;
-    resourceKind: 'work' | 'roadmap' | 'vote' | 'binding_vote' | 'reaction' | 'artifact' | 'material';
+    resourceKind:
+      | 'work'
+      | 'roadmap'
+      | 'vote'
+      | 'binding_vote'
+      | 'reaction'
+      | 'artifact'
+      | 'material'
+      | 'project_artifact';
     resourceId: string;
     revision: number;
     recordedAt: string;

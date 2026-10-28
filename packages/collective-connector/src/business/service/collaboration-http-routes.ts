@@ -13,7 +13,7 @@ export async function routeCollaborationPost(
   const credential = requireBearer(request);
   if (await routeWorkAuthorityPost(store, pathname, response, body, credential)) return true;
   if (await routeVotePost(store, pathname, response, body, credential)) return true;
-  if (await routeProjectPost(store, pathname, response, body, credential)) return true;
+  if (await routeProjectPost(store, pathname, response, body, credential, request.headers['x-collective-project-artifacts'] === '1')) return true;
   if (pathname === '/api/collaboration/reactions/set') {
     writeJson(response, 200, await store.setCollectiveReaction(credential, body));
   } else if (pathname === '/api/collaboration/work/propose') {
@@ -48,11 +48,16 @@ async function routeProjectPost(
   response: ServerResponse,
   body: Record<string, unknown>,
   credential: string,
+  includeArtifactReferences: boolean,
 ): Promise<boolean> {
-  if (pathname === '/api/collaboration/project-attention') {
+  if (pathname === '/api/collaboration/projects/artifacts/list') {
+    writeJson(response, 200, await store.listProjectArtifactReferences(credential, body));
+  } else if (pathname === '/api/collaboration/projects/artifacts/change') {
+    writeJson(response, 200, await store.changeProjectArtifactReference(credential, body));
+  } else if (pathname === '/api/collaboration/project-attention') {
     writeJson(response, 200, await store.readCollectiveProjectAttention(credential, body));
   } else if (pathname === '/api/collaboration/project-source') {
-    writeJson(response, 200, await store.readCollectiveProjectSource(credential, body));
+    writeJson(response, 200, await store.readCollectiveProjectSource(credential, body, includeArtifactReferences));
   } else if (pathname === '/api/collaboration/materials/suggest') {
     writeJson(response, 200, await store.suggestCollectiveMaterial(credential, body));
   } else if (pathname === '/api/collaboration/materials/connections') {

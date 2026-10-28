@@ -18,6 +18,7 @@ import { requireMaterial } from './project-material-authority.js';
 import type { CollectiveProjectMaterialStore } from './project-material-store.js';
 import type { ServiceState } from './state.js';
 import { observedWorkTime } from './work-observed-time.js';
+import { projectParticipantArtifactReferences } from './project-artifact-participant.js';
 
 /** Public publication receipts are the only discoverable source; private provider inboxes are never listed. */
 export async function readProjectSource(
@@ -25,6 +26,7 @@ export async function readProjectSource(
   materials: CollectiveProjectMaterialStore,
   credential: string,
   unsafe: unknown,
+  includeArtifactReferences = false,
 ) {
   const input = collectiveProjectSourceRequestSchema.parse(unsafe);
   const check = (state: ServiceState) =>
@@ -61,12 +63,14 @@ export async function readProjectSource(
       });
     }
   }
-  check(persistence.snapshot());
+  const finalState = persistence.snapshot();
+  check(finalState);
   return collectiveProjectSourceReadSchema.parse({
     sourceEventId: input.sourceEventId,
     projects: projects
       .slice(0, 12)
-      .map((project) => ({ roadmapId: project.roadmapId, title: project.title, revision: project.revision })),
+      .map((project) => ({ roadmapId: project.roadmapId, title: project.title, revision: project.revision,
+        ...(includeArtifactReferences ? projectParticipantArtifactReferences(finalState, credential, input, project.roadmapId) : {}) })),
     dates: dates.slice(0, 100).map((work) => ({
       workId: work.workId,
       title: work.title,

@@ -31,6 +31,7 @@ export function registerArtifactVersion(
   }
   const version = {
     ownerRevision: input.ownerRevision,
+    ...(input.changeSummary ? { changeSummary: input.changeSummary } : {}),
     blobDigest: input.blobDigest,
     receiptRef: input.receiptRef,
     recordedAt: owner.at,

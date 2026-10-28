@@ -3,6 +3,7 @@ import { collectiveWorkIdSchema } from './collective-collaboration-identifiers.j
 import { collectiveMaterialItemSchema, collectiveMaterialWitnessSchema } from './collective-material.js';
 import { collectiveWorkTimeSchema } from './collective-time.js';
 import { collectiveWorkSourceReadRequestSchema } from './collective-work-matter.js';
+import { collectiveProjectArtifactVersionRefSchema } from './collective-project-artifact.js';
 
 const id = z.string().min(1).max(200);
 export const collectiveProjectSourceRequestSchema = collectiveWorkSourceReadRequestSchema
@@ -23,7 +24,14 @@ export const collectiveProjectSourceReadSchema = z
   .object({
     sourceEventId: id,
     projects: z
-      .array(z.object({ roadmapId: id, title: z.string(), revision: z.number().int().positive() }).strict())
+      .array(z.object({
+        roadmapId: id, title: z.string(), revision: z.number().int().positive(),
+        artifactReferences: z.array(z.object({
+          referenceId: z.string().min(1).max(256), artifactId: z.string().min(1).max(256), sourceEventId: id,
+          revision: z.number().int().positive(), versionRef: collectiveProjectArtifactVersionRefSchema,
+        }).strict()).max(30).optional(),
+        artifactReferencesHaveMore: z.boolean().optional(),
+      }).strict())
       .max(12),
     dates: z
       .array(

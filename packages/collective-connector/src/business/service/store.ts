@@ -1,3 +1,4 @@
+import { CollectiveProjectArtifactStore } from './project-artifact-store.js';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
@@ -68,6 +69,7 @@ export class CollectiveServiceStore {
   readonly #connections: CollectiveConnectionEventStore;
   readonly #participation: CollectiveParticipationStore;
   readonly #collaboration: CollectiveCollaborationStore;
+  readonly #projectArtifacts: CollectiveProjectArtifactStore;
   readonly #materials: CollectiveProjectMaterialStore;
   readonly #materialRelay: CollectiveMaterialSourceRelay;
   readonly #time: CollectiveTimeStore;
@@ -92,6 +94,9 @@ export class CollectiveServiceStore {
     this.#participation = new CollectiveParticipationStore(persistence, now);
     this.#collaboration = new CollectiveCollaborationStore(persistence, now);
     this.#materialRelay = new CollectiveMaterialSourceRelay(persistence);
+    this.#projectArtifacts = new CollectiveProjectArtifactStore(persistence, now, (session, input) =>
+      this.#artifacts.relay.request(session, input),
+    );
     this.#materials = new CollectiveProjectMaterialStore(persistence, now, materialSource ?? this.#materialRelay);
     this.#time = new CollectiveTimeStore(persistence, now);
     this.#bindingVotes = new CollectiveBindingVoteStore(persistence, now);
@@ -158,6 +163,7 @@ export class CollectiveServiceStore {
         works: {},
         artifacts: {},
         artifactPublications: {},
+        projectArtifactReferences: {},
         roadmaps: {},
         votes: {},
         bindingVotes: {},
@@ -307,8 +313,8 @@ export class CollectiveServiceStore {
   readCollectiveProjectAttention(credential: string, input: unknown) {
     return readProjectAttention(this.persistence, this.#materials, credential, input, this.now());
   }
-  readCollectiveProjectSource(credential: string, input: unknown) {
-    return readProjectSource(this.persistence, this.#materials, credential, input);
+  readCollectiveProjectSource(credential: string, input: unknown, includeArtifactReferences = false) {
+    return readProjectSource(this.persistence, this.#materials, credential, input, includeArtifactReferences);
   }
   suggestCollectiveMaterial(credential: string, input: unknown) {
     return suggestMaterial(this.persistence, this.#materials, credential, input, this.now());
@@ -650,6 +656,13 @@ export class CollectiveServiceStore {
 
   createCollectiveRoadmap(sessionToken: string, input: unknown) {
     return this.#collaboration.createRoadmap(sessionToken, input);
+  }
+
+  listProjectArtifactReferences(sessionToken: string, input: unknown) {
+    return this.#projectArtifacts.list(sessionToken, input);
+  }
+  changeProjectArtifactReference(sessionToken: string, input: unknown) {
+    return this.#projectArtifacts.change(sessionToken, input);
   }
 
   createCollectiveProject(sessionToken: string, input: unknown) {

@@ -115,6 +115,7 @@ describe('CollectiveServiceStore', () => {
       works?: unknown;
       artifacts?: unknown;
       artifactPublications?: unknown;
+      projectArtifactReferences?: unknown;
       materialPublications?: unknown;
       materials?: unknown;
       roadmaps?: unknown;
@@ -138,6 +139,7 @@ describe('CollectiveServiceStore', () => {
     delete persisted.works;
     delete persisted.artifacts;
     delete persisted.artifactPublications;
+    delete persisted.projectArtifactReferences;
     delete persisted.materialPublications;
     delete persisted.materials;
     delete persisted.roadmaps;
@@ -214,6 +216,7 @@ describe('CollectiveServiceStore', () => {
     delete persisted.works;
     delete persisted.artifacts;
     delete persisted.artifactPublications;
+    delete persisted.projectArtifactReferences;
     delete persisted.materialPublications;
     delete persisted.materials;
     delete persisted.roadmaps;

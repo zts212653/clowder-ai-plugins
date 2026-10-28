@@ -46,3 +46,10 @@ export * from './types/collective-time.js';
 export * from './types/collective-material.js';
 
 export * from './types/collective-project-attention.js';
+
+export * from './types/collective-project-artifact.js';
+
+export * from './types/collective-document-view.js';
+export * from './types/collective-document-surface.js';
+
+export * from './types/collective-project-artifact-return.js';

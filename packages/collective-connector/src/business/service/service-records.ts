@@ -91,7 +91,15 @@ export interface ConnectionRecord {
 export interface CollaborationOperationReceipt {
   readonly actorScope: string;
   readonly fingerprint: string;
-  readonly resourceKind: 'work' | 'roadmap' | 'vote' | 'binding_vote' | 'reaction' | 'artifact' | 'material';
+  readonly resourceKind:
+    | 'work'
+    | 'roadmap'
+    | 'vote'
+    | 'binding_vote'
+    | 'reaction'
+    | 'artifact'
+    | 'material'
+    | 'project_artifact';
   readonly resourceId: string;
   readonly revision: number;
   readonly recordedAt: string;
@@ -164,6 +172,10 @@ export interface ServiceState {
   readonly works: Record<string, CollectiveWorkRecord>;
   readonly artifacts: Record<string, CollectiveArtifactRecord>;
   readonly artifactPublications: Record<string, CollectiveArtifactPublication>;
+  readonly projectArtifactReferences: Record<
+    string,
+    import('../contracts/types/collective-project-artifact.js').CollectiveProjectArtifactReference
+  >;
   readonly roadmaps: Record<string, CollectiveRoadmapRecord>;
   readonly votes: Record<string, CollectiveVoteRecord>;
   readonly bindingVotes: Record<string, CollectiveBindingVoteRecord>;

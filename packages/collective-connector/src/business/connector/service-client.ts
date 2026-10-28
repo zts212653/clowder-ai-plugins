@@ -247,6 +247,7 @@ export class CollectiveServiceClient {
       await this.request(serviceUrl, '/api/collaboration/project-source', {
         method: 'POST',
         credential,
+        headers: { 'x-collective-project-artifacts': '1' },
         body: input,
         timeoutMs: MATERIAL_SOURCE_REQUEST_TIMEOUT_MS,
       }),

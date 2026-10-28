@@ -1,3 +1,4 @@
+import { collectiveProjectArtifactReferenceSchema } from '../contracts/types/collective-project-artifact.js';
 import {
   collectiveMaterialPublicationSchema,
   collectiveMaterialRecordSchema,
@@ -140,7 +141,16 @@ const collaborationOperationReceiptSchema = z
   .object({
     actorScope: z.string().min(1).max(320),
     fingerprint: z.string().min(1).max(64_000),
-    resourceKind: z.enum(['work', 'roadmap', 'vote', 'binding_vote', 'reaction', 'artifact', 'material']),
+    resourceKind: z.enum([
+      'work',
+      'roadmap',
+      'vote',
+      'binding_vote',
+      'reaction',
+      'artifact',
+      'material',
+      'project_artifact',
+    ]),
     resourceId: z.string().min(1).max(160),
     revision: z.number().int().positive(),
     recordedAt: z.string().datetime(),
@@ -202,6 +212,7 @@ const serviceStateV2Schema = z
     works: z.record(z.string(), collectiveWorkRecordSchema).default({}),
     artifacts: z.record(z.string(), collectiveArtifactRecordSchema).default({}),
     artifactPublications: z.record(z.string(), collectiveArtifactPublicationRecordSchema).default({}),
+    projectArtifactReferences: z.record(z.string(), collectiveProjectArtifactReferenceSchema).default({}),
     roadmaps: z.record(z.string(), collectiveRoadmapRecordSchema).default({}),
     votes: z.record(z.string(), collectiveVoteRecordSchema).default({}),
     bindingVotes: z.record(z.string(), collectiveBindingVoteRecordSchema).default({}),
@@ -309,6 +320,7 @@ export function migrateServiceState(value: unknown): { readonly state: ServiceSt
     works: {},
     artifacts: {},
     artifactPublications: {},
+    projectArtifactReferences: {},
     roadmaps: {},
     votes: {},
     bindingVotes: {},
