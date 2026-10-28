@@ -92,8 +92,8 @@ The project owner can compare, explicitly switch, keep the current version or re
 projects, the original and its history remain intact. Concurrent changes return the actual current version.
 Revocation or an unavailable original owner hides content; recovery reopens the same object and version.
 
-The packaged Client is rebuilt from Core `9326d417fa1413bbfcb96c1f42dab56840ed07df`: 566 checked source inputs,
-848 total inputs, asset digest `51c1abbf130f15b71b894175e4ca8b0dc549c8854421511b6816971486cf8834`.
+The packaged Client is rebuilt from Core `59416a3e7f7126a8f938732f7226ba27891292b0`: 566 checked source inputs,
+848 total inputs, asset digest `b3c65ea2e47440b014b651f7ab67287a875720486fc5c1962b6be8c9d14dc10a`.
 This includes Core #6271's narrow project headers and forms. A matching Host opens exact documents and
 comparisons in the common Workspace tabs. Quotes, annotations, candidates and adoption retain their original
 owner and discussion. Older Hosts and standalone browsers retain the existing exact-version reader.

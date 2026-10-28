@@ -1644,7 +1644,7 @@
     },
     {
       "path": "../shared/src/types/collective-document-surface.ts",
-      "sha256": "e61af12ff61fe917713534414d4fd8fa7e7ed976aed05abe569edc16684af013"
+      "sha256": "7dd08195d4ae4d43a080adbfca3dbcf33a496a7a191cabbd465c7a662b83bbc4"
     },
     {
       "path": "../shared/src/types/collective-document-view.ts",
@@ -2472,7 +2472,7 @@
     },
     {
       "path": "src/ChannelScene.tsx",
-      "sha256": "0ffd2e5ef18cac59b099d911e4d268c81b4115e50cc7e8cdb222c82c6db39b3d"
+      "sha256": "12ac0315aebba5b7ad536fb6d95b2d2bb18ded7d7cb67049cdfed03c6774f1dc"
     },
     {
       "path": "src/ChannelTopicContext.tsx",
@@ -3204,7 +3204,7 @@
     },
     {
       "path": "src/styles/roadmap.css",
-      "sha256": "f6a35558cbc180525fa4de18fc18fcfc39b688fa06fff098e645413ef2abe329"
+      "sha256": "9302ee580b7652cda80f8704fbacc2d3ed294dbb4ee65c7e66eb3c7d42988677"
     },
     {
       "path": "src/styles/shared-artifact-feedback.css",
@@ -3288,7 +3288,7 @@
     },
     {
       "path": "src/use-host-context.ts",
-      "sha256": "9f0d843173e556f8a4e9197ef4d813c3991072ceda2fc604b429f0f0cdcf26b4"
+      "sha256": "fd652b98f4b46928e109243dff626f3a46dcfdccc5b687f7745974448f08e38a"
     },
     {
       "path": "src/use-host-document-surface.ts",
@@ -3300,7 +3300,7 @@
     },
     {
       "path": "src/use-host-media-surface.ts",
-      "sha256": "e898444209964f8d473654e06011747b5e7c5b01e8973c41a2d374311025ef2e"
+      "sha256": "5c938fec8af85ce9b449542429fe541b1bb5a94529468156640cfcd350f9ffa0"
     },
     {
       "path": "src/use-host-project-attention-context.ts",
@@ -3356,7 +3356,7 @@
     },
     {
       "path": "src/use-shared-artifact-navigation.ts",
-      "sha256": "b96e6559748dca8ed181cb050de0ea349d262e5b6c7eb9f1e812aa3d8e4aa1f2"
+      "sha256": "2919b802a8290fbbcfdf91d29ec02ec3f5a3416d1ddff940cf490556afeda94b"
     },
     {
       "path": "src/use-shared-artifact-read.ts",

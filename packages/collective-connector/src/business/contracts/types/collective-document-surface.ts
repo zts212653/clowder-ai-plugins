@@ -22,6 +22,8 @@ export const collectiveDocumentBridgeSchema = z
 export const collectiveDocumentClientReadySchema = collectiveDocumentBridgeSchema
   .extend({ type: z.literal('collective:client-document-ready') })
   .strict();
+/** The project-aware Host adapter also acknowledges projectReturn on legacy media V1 refs.
+ * A media-only Host never emits this acknowledgement and must receive the original strict media shape. */
 export const collectiveDocumentHostReadySchema = collectiveDocumentBridgeSchema
   .extend({ type: z.literal('collective:host-document-ready') })
   .strict();

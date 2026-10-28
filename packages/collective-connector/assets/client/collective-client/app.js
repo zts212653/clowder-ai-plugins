@@ -74185,10 +74185,11 @@ function ChannelScene(props) {
     return () => cancelAnimationFrame(frame);
   }, [events, focusEventId, shared?.selected]);
   (0, import_react94.useEffect)(() => {
-    if (content3 !== "roadmap") return;
+    if (content3 !== "roadmap" || artifactTopicId) return;
     setTopicRootId(void 0);
     setReplyRequest(void 0);
-  }, [content3]);
+    setSharedDiscussionOpen(false);
+  }, [content3, artifactTopicId]);
   (0, import_react94.useEffect)(() => {
     if (!context4 && !topic) return;
     const close = (event) => {
@@ -76494,9 +76495,14 @@ function useHostMediaSurface(options) {
   const active = (0, import_react105.useRef)();
   const { artifact, ownerRevision: ownerRevision2 } = options.selection ?? {};
   const selectedRevision = ownerRevision2 ?? artifact?.versions.at(-1)?.ownerRevision;
-  const selectionKey = JSON.stringify([artifact?.artifactId, selectedRevision, artifact?.sourceEventId]);
+  const selectionKey = JSON.stringify([
+    artifact?.artifactId,
+    selectedRevision,
+    artifact?.sourceEventId,
+    options.selection?.options?.projectReturn
+  ]);
   (0, import_react105.useEffect)(() => {
-    const { context: context4, bridge, hostOrigin, channelId, selection } = latest.current;
+    const { context: context4, bridge, hostOrigin, channelId, selection, projectReturnSupported } = latest.current;
     active.current = void 0;
     const { contextId, revision: revision12 } = context4.current;
     if (!selection || !bridge || context4.current.bridge?.bridgeId !== bridge.bridgeId || bridge.authorityStatus === "revoked" || !hostOrigin || revision12 < 1 || selection.artifact.sourceLocation.channelId !== channelId || !selectedRevision || selection.artifact.mediaType !== "image/png" && selection.artifact.mediaType !== "video/mp4")
@@ -76514,11 +76520,11 @@ function useHostMediaSurface(options) {
       artifactId: selection.artifact.artifactId,
       sourceEventId: selection.artifact.sourceEventId,
       ownerRevision: selectedRevision,
-      ...selection.options?.projectReturn ? { projectReturn: selection.options.projectReturn } : {}
+      ...projectReturnSupported && selection.options?.projectReturn ? { projectReturn: selection.options.projectReturn } : {}
     };
     active.current = ref10;
     window.parent.postMessage({ type: "collective:client-media-surface", ref: ref10 }, hostOrigin);
-  }, [options.generation, options.channelId, selectionKey, selectedRevision]);
+  }, [options.generation, options.channelId, options.projectReturnSupported, selectionKey, selectedRevision]);
   (0, import_react105.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
     const current2 = (ref10) => {
@@ -76901,6 +76907,8 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     hostOrigin,
     channelId,
     generation: JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady]),
+    // This adapter's acknowledgement also negotiates project-aware media return coordinates.
+    projectReturnSupported: documentSurfaceReady,
     ...media
   });
   (0, import_react108.useEffect)(() => {
@@ -76982,7 +76990,7 @@ function useSharedArtifactNavigation(options) {
   const open = (0, import_react109.useCallback)((artifact, ownerRevision2, options2) => {
     const { namespace, place, artifacts, onOpenSource } = current2.current;
     const previous4 = origin.current ?? { namespace, place };
-    if (place.destination !== "channel" || place.channelId !== artifact.sourceLocation.channelId)
+    if (place.destination !== "channel" || place.channelId !== artifact.sourceLocation.channelId || place.content !== "conversation")
       onOpenSource(artifact.sourceLocation.channelId, artifact.sourceEventId);
     origin.current = previous4;
     artifacts?.open(artifact, ownerRevision2, options2);

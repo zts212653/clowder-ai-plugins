@@ -3372,6 +3372,7 @@ svg {
 }
 .project-page-main {
   min-width: 0;
+  container: project-main / inline-size;
 }
 .project-summary {
   display: grid;
@@ -3382,6 +3383,12 @@ svg {
   border: 1px solid var(--console-border-soft);
   border-radius: 12px;
   background: var(--console-card-bg);
+}
+@container project-main (max-width: 680px) {
+  .project-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
 }
 .project-summary h1,
 .project-summary p,
