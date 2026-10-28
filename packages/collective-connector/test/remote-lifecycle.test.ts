@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import type { ModulePluginHostShape, PluginModuleActivationShape } from '@clowder-ai/plugin-sdk';
 import { parse } from 'yaml';
@@ -43,11 +46,67 @@ async function control(active: PluginModuleActivationShape, path: string, method
     status: number;
     body: {
       localService?: { serviceInstanceId: string };
-      remoteService?: { state: string; serviceUrl: string; serviceInstanceId?: string };
+      remoteService?: { state: string; serviceUrl: string; serviceInstanceId?: string; probe?: string };
       code?: string;
     };
   };
 }
+
+test('a bounded remote probe timeout keeps the last confirmed lifecycle state instead of reporting an outage', async () => {
+  let responseDelayMs = 0;
+  const remote = createServer(async (request, response) => {
+    if (request.url !== '/api/meta') {
+      response.writeHead(404).end();
+      return;
+    }
+    if (responseDelayMs) await delay(responseDelayMs);
+    response.writeHead(200, { 'content-type': 'application/json' });
+    response.end(
+      JSON.stringify({
+        serviceInstanceId: 'svc_remote_probe',
+        bootstrapNeeded: false,
+        onboardingComplete: true,
+      }),
+    );
+  });
+  remote.listen(0, '127.0.0.1');
+  await once(remote, 'listening');
+  const address = remote.address();
+  assert.ok(address && typeof address !== 'string');
+  const remoteUrl = `http://127.0.0.1:${address.port}`;
+  const directory = await mkdtemp(join(tmpdir(), 'collective-remote-probe-'));
+  let active: PluginModuleActivationShape | undefined;
+  try {
+    active = await entrypoint
+      .create(manifest)
+      .start(
+        host(directory, {
+          get: async (key) => ({ serviceMode: 'remote', remoteServiceUrl: remoteUrl })[key],
+        }),
+      );
+    const confirmed = await control(active, 'connections');
+    assert.equal(confirmed.body.remoteService?.state, 'unpaired');
+
+    responseDelayMs = 3_100;
+    const timedOut = await control(active, 'connections');
+    assert.deepEqual(timedOut.body.remoteService, {
+      state: 'unpaired',
+      serviceUrl: remoteUrl,
+      serviceInstanceId: 'svc_remote_probe',
+      pairedConnections: 0,
+      probe: 'timed_out',
+    });
+  } finally {
+    await active?.stop({ reason: 'test' });
+    await new Promise<void>((resolve, reject) =>
+      remote.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      }),
+    );
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test('remote activation needs no local port or Service directory and never provisions on an outage', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'collective-remote-module-'));
@@ -64,7 +123,7 @@ test('remote activation needs no local port or Service directory and never provi
     const status = await control(active, 'connections');
     assert.equal(status.status, 200);
     assert.equal(status.body.localService, undefined);
-    assert.deepEqual(status.body.remoteService, { state: 'offline', serviceUrl: remoteUrl });
+    assert.deepEqual(status.body.remoteService, { state: 'offline', serviceUrl: remoteUrl, probe: 'completed' });
     const refused = await control(active, 'service/provision', 'POST');
     assert.equal(refused.status, 409);
     assert.equal(refused.body.code, 'COLLECTIVE_REMOTE_MODE');

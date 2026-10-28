@@ -13,8 +13,8 @@ import { loadCollectiveClient } from './client-assets.js';
 import { createLocalServiceTransport } from './local-service-transport.js';
 import type { CollectiveLocalServiceStatus } from './owner-control-http.js';
 import {
+  createRemoteServiceStatusReader,
   type CollectiveRemoteServiceStatus,
-  readRemoteServiceStatus,
   remoteServiceLabel,
   remoteServiceUrl,
 } from './remote-service-status.js';
@@ -42,9 +42,10 @@ export async function createPluginService(
   if (mode === 'remote') {
     const origin = remoteServiceUrl((await context.config.get('remoteServiceUrl')) ?? 'http://127.0.0.1:15201');
     const lifetime = new AbortController();
+    const readStatus = createRemoteServiceStatusReader(origin, lifetime.signal);
     const remoteStatus = async (connections: readonly ConnectorProjection[]) => {
       assertActive();
-      const status = await readRemoteServiceStatus(origin, connections, lifetime.signal);
+      const status = await readStatus(connections);
       assertActive();
       return status;
     };
