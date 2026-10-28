@@ -1,4 +1,4 @@
-name: F292 exact package trusted-publisher proof
+name: F292 exact package OIDC publication
 
 'on':
   push:
@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 24.18.0
 
-      - name: Exchange workflow OIDC without publishing
+      - name: Prove package OIDC grant without publishing
         env:
           EXPECTED_REF: refs/heads/diag/f292-alpha12-oidc-probe
           PACKAGE_NAME: '@clowder-ai/feishu-meeting-intake'
@@ -122,4 +122,267 @@ jobs:
           name: f292-alpha12-oidc-proof-${{ github.sha }}
           path: ${{ runner.temp }}/f292-alpha12-oidc-proof.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 30
+
+  publish:
+    needs: proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Assert reviewed product inputs are unchanged
+        run: |
+          git diff --exit-code \
+            025310b67adc7bcd797f3963923b3c71135f2167 \
+            -- \
+            packages \
+            catalog \
+            scripts \
+            pnpm-lock.yaml \
+            package.json \
+            .npmrc \
+            .github/actions/publish-prerelease/action.yml
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+
+      - name: Verify artifact toolchain
+        run: node packages/plugin-contract/scripts/verify-artifact-toolchain.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build public contract
+        run: pnpm --filter @clowder-ai/plugin-contract build
+
+      - name: Build public SDK
+        run: pnpm --filter @clowder-ai/plugin-sdk build
+
+      - name: Build Feishu meeting intake
+        run: pnpm --filter @clowder-ai/feishu-meeting-intake build
+
+      - name: Pack, publish, and verify exact alpha.12
+        env:
+          EXPECTED_BASE: 025310b67adc7bcd797f3963923b3c71135f2167
+          EXPECTED_INTEGRITY: sha512-djHXQf1VaNXOSzuerfFB6NMQ2mh6gPVQzJ6ujc81Jgd29+QdF24sMJMDLe4JszMTNHYqp888WnmVQdgOyr2UfQ==
+          EXPECTED_SHASUM: 03dba4672e1f0c334fc9899af680c2d16d39918d
+          PACKAGE_NAME: '@clowder-ai/feishu-meeting-intake'
+          PACKAGE_VERSION: 0.1.0-alpha.12
+          RELEASE_DIR: ${{ runner.temp }}/f292-alpha12-release
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const childProcess = require('node:child_process');
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const registry = 'https://registry.npmjs.org/';
+          const sleep = (milliseconds) =>
+            new Promise((resolve) => setTimeout(resolve, milliseconds));
+          const runNpm = (args, options = {}) =>
+            childProcess.execFileSync('npm', [...args, `--registry=${registry}`], {
+              encoding: options.encoding ?? 'utf8',
+              stdio: options.stdio,
+            });
+          const tryNpm = (args) =>
+            childProcess.spawnSync('npm', [...args, `--registry=${registry}`], {
+              encoding: 'utf8',
+            });
+          const hash = (algorithm, bytes, encoding) =>
+            crypto.createHash(algorithm).update(bytes).digest(encoding);
+
+          (async () => {
+            fs.mkdirSync(process.env.RELEASE_DIR, { recursive: true });
+            assert.equal(
+              childProcess.execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim(),
+              '11.16.0',
+            );
+
+            const packOutput = childProcess.execFileSync(
+              process.execPath,
+              [
+                'scripts/pack-publish-artifact.mjs',
+                'packages/feishu-meeting-intake',
+                process.env.RELEASE_DIR,
+              ],
+              { encoding: 'utf8' },
+            );
+            const artifacts = JSON.parse(packOutput);
+            assert.equal(artifacts.length, 1);
+            const artifact = artifacts[0];
+            assert.equal(artifact.name, process.env.PACKAGE_NAME);
+            assert.equal(artifact.version, process.env.PACKAGE_VERSION);
+            assert.equal(artifact.integrity, process.env.EXPECTED_INTEGRITY);
+            assert.equal(artifact.shasum, process.env.EXPECTED_SHASUM);
+
+            const archivePath = path.join(process.env.RELEASE_DIR, artifact.filename);
+            const archiveBytes = fs.readFileSync(archivePath);
+            assert.equal(
+              `sha512-${hash('sha512', archiveBytes, 'base64')}`,
+              process.env.EXPECTED_INTEGRITY,
+            );
+            assert.equal(hash('sha1', archiveBytes, 'hex'), process.env.EXPECTED_SHASUM);
+
+            const tagsBefore = JSON.parse(
+              runNpm(['view', process.env.PACKAGE_NAME, 'dist-tags', '--json']),
+            );
+            assert.equal(tagsBefore.latest, '0.1.0-alpha.0');
+            assert(
+              tagsBefore.next === '0.1.0-alpha.10' ||
+                tagsBefore.next === process.env.PACKAGE_VERSION,
+            );
+
+            const exactBefore = tryNpm([
+              'view',
+              `${process.env.PACKAGE_NAME}@${process.env.PACKAGE_VERSION}`,
+              '--json',
+            ]);
+            let publishedNow = false;
+            if (exactBefore.status === 0) {
+              const existing = JSON.parse(exactBefore.stdout);
+              assert.equal(existing.dist.integrity, process.env.EXPECTED_INTEGRITY);
+            } else {
+              assert(
+                `${exactBefore.stdout}${exactBefore.stderr}`.includes('E404'),
+                'Unexpected registry read failure before publication',
+              );
+              runNpm(
+                [
+                  'publish',
+                  archivePath,
+                  '--provenance',
+                  '--tag=next',
+                  '--access=public',
+                  '--ignore-scripts',
+                ],
+                { stdio: 'inherit' },
+              );
+              publishedNow = true;
+            }
+
+            let metadata;
+            let tagsAfter;
+            for (let attempt = 1; attempt <= 60; attempt += 1) {
+              const exact = tryNpm([
+                'view',
+                `${process.env.PACKAGE_NAME}@${process.env.PACKAGE_VERSION}`,
+                '--json',
+              ]);
+              const tags = tryNpm([
+                'view',
+                process.env.PACKAGE_NAME,
+                'dist-tags',
+                '--json',
+              ]);
+              if (exact.status === 0 && tags.status === 0) {
+                const candidateMetadata = JSON.parse(exact.stdout);
+                const candidateTags = JSON.parse(tags.stdout);
+                if (
+                  candidateMetadata.dist?.integrity === process.env.EXPECTED_INTEGRITY &&
+                  candidateTags.next === process.env.PACKAGE_VERSION &&
+                  candidateTags.latest === '0.1.0-alpha.0'
+                ) {
+                  metadata = candidateMetadata;
+                  tagsAfter = candidateTags;
+                  break;
+                }
+              }
+              if (attempt < 60) await sleep(5000);
+            }
+            assert(metadata, 'Published version did not become readable with the expected integrity');
+            assert(tagsAfter, 'Expected dist-tags did not become readable');
+
+            const tarballResponse = await fetch(metadata.dist.tarball);
+            assert.equal(tarballResponse.status, 200);
+            const downloadedBytes = Buffer.from(await tarballResponse.arrayBuffer());
+            assert.equal(
+              `sha512-${hash('sha512', downloadedBytes, 'base64')}`,
+              process.env.EXPECTED_INTEGRITY,
+            );
+            assert.equal(hash('sha1', downloadedBytes, 'hex'), process.env.EXPECTED_SHASUM);
+
+            const attestationUrl = metadata.dist.attestations?.url;
+            assert.equal(typeof attestationUrl, 'string');
+            const attestationResponse = await fetch(attestationUrl);
+            assert.equal(attestationResponse.status, 200);
+            const attestation = await attestationResponse.json();
+            const attestationPath = path.join(
+              process.env.RELEASE_DIR,
+              `${artifact.filename}.sigstore.json`,
+            );
+            fs.writeFileSync(attestationPath, JSON.stringify(attestation));
+
+            const npmRoot = runNpm(['root', '--global']).trim();
+            const { verifyProvenance } = require(
+              path.join(npmRoot, 'npm/node_modules/libnpmpublish/lib/provenance.js'),
+            );
+            const subject = {
+              name: `pkg:npm/${process.env.PACKAGE_NAME.replace('@', '%40')}@${process.env.PACKAGE_VERSION}`,
+              digest: { sha512: hash('sha512', archiveBytes, 'hex') },
+            };
+            await verifyProvenance(subject, attestationPath);
+
+            const receipt = {
+              repository: process.env.GITHUB_REPOSITORY,
+              workflowRef: process.env.GITHUB_WORKFLOW_REF,
+              workflowHead: process.env.GITHUB_SHA,
+              sourceBase: process.env.EXPECTED_BASE,
+              sourceRun: process.env.GITHUB_RUN_ID,
+              package: process.env.PACKAGE_NAME,
+              version: process.env.PACKAGE_VERSION,
+              publishedNow,
+              credentialsPersisted: false,
+              authentication: 'github-oidc-trusted-publisher',
+              integrity: process.env.EXPECTED_INTEGRITY,
+              shasum: process.env.EXPECTED_SHASUM,
+              sha256: hash('sha256', downloadedBytes, 'hex'),
+              size: downloadedBytes.length,
+              tagsBefore,
+              tagsAfter,
+              tarball: metadata.dist.tarball,
+              attestation: attestationUrl,
+              provenanceVerified: true,
+              verifiedAt: new Date().toISOString(),
+            };
+            fs.writeFileSync(
+              path.join(process.env.RELEASE_DIR, 'publication-receipt.json'),
+              JSON.stringify(receipt, null, 2) + '\n',
+            );
+            console.log(
+              JSON.stringify({
+                package: receipt.package,
+                version: receipt.version,
+                publishedNow: receipt.publishedNow,
+                integrity: receipt.integrity,
+                provenanceVerified: receipt.provenanceVerified,
+              }),
+            );
+          })().catch((error) => {
+            console.error(error.stack ?? error.message);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Upload publication evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: f292-alpha12-release-${{ github.sha }}
+          path: ${{ runner.temp }}/f292-alpha12-release
+          if-no-files-found: error
+          retention-days: 30
