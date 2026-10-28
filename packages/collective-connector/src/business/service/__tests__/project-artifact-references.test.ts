@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
+import { collectiveProjectArtifactChangeSchema } from '../../contracts/index.js';
 import { CollectiveServiceStore } from '../store.js';
 import { projectArtifactFixture as fixture } from './project-artifact.fixture.js';
 
@@ -98,20 +99,31 @@ it('requires the project owner, exact immutable version identity, CAS and idempo
   });
   const v4 = await f.publish(4);
   expect((await f.list(f.a.roadmapId)).value).toMatchObject({ items: [{ hasUpdate: true }] });
+  const versions = [f.v3, v4];
+  const requests = versions.map((version, index) => ({
+    action: 'switch',
+    expectedRevision: 2,
+    requestId: `concurrent-${index}`,
+    versionRef: f.versionRef(version),
+  }));
   const results = await Promise.all(
-    [f.v3, v4].map((version, index) =>
-      f.change(f.a.roadmapId, f.owner.sessionToken, {
-        action: 'switch',
-        expectedRevision: 2,
-        requestId: `concurrent-${index}`,
-        versionRef: f.versionRef(version),
-      }),
-    ),
+    requests.map((request) => f.change(f.a.roadmapId, f.owner.sessionToken, request)),
   );
-  expect(results[0]?.value).toMatchObject({ outcome: 'changed' });
-  expect(results[1]?.value).toMatchObject({
-    outcome: 'conflict',
-    item: { reference: { revision: 3, versionRef: f.versionRef(f.v3) } },
+  expect(results.map((result) => result.status)).toEqual([200, 200]);
+  const replies = results.map((result) => collectiveProjectArtifactChangeSchema.parse(result.value));
+  expect(replies.map((reply) => reply.outcome).sort()).toEqual(['changed', 'conflict']);
+  // Owner probes are asynchronous; either request can reach the CAS transaction first.
+  const winnerIndex = replies.findIndex((reply) => reply.outcome === 'changed');
+  const winner = replies[winnerIndex]!;
+  expect(winner.item?.reference).toMatchObject({
+    revision: 3,
+    versionRef: f.versionRef(versions[winnerIndex]!),
+  });
+  expect(replies.find((reply) => reply.outcome === 'conflict')?.item?.reference).toEqual(winner.item?.reference);
+  expect((await f.list(f.a.roadmapId)).value.items[0]?.reference).toEqual(winner.item?.reference);
+  expect((await f.change(f.a.roadmapId, f.owner.sessionToken, requests[winnerIndex]!)).value).toMatchObject({
+    outcome: 'replayed',
+    item: { reference: winner.item?.reference },
   });
   expect(
     (await f.change(f.a.roadmapId, f.owner.sessionToken, { ...attach, versionRef: f.versionRef(v4) })).status,
