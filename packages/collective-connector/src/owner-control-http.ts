@@ -41,7 +41,7 @@ interface OwnerControlOptions {
   readonly assertActive: () => void;
   readonly status: () => CollectiveLocalServiceStatus | undefined;
   readonly remoteStatus?: () => Promise<CollectiveRemoteServiceStatus>;
-  readonly launch: () => Promise<{ readonly service: CollectiveLocalServiceStatus; readonly launchUrl: string }>;
+  readonly launch: (assertCurrent: () => Promise<void>) => Promise<{ readonly service: CollectiveLocalServiceStatus; readonly launchUrl: string }>;
 }
 const response = (status: number, body: unknown) => ({ status, headers: { 'content-type': 'application/json' }, body });
 
@@ -148,7 +148,7 @@ export function createOwnerControlHttp(options: OwnerControlOptions) {
       return finish(200, { runtimeStatus: 'active', connections: await connector.listConnections(),
         ...(options.remoteStatus ? { remoteService: await options.remoteStatus() } : { localService: options.status() }) });
     if (request.path === 'service/provision' && request.method === 'POST') {
-      try { return await finish(200, await options.launch()); }
+      try { return await finish(200, await options.launch(current)); }
       catch (error) {
         await current();
         if (error instanceof Error && 'code' in error && error.code === 'COLLECTIVE_REMOTE_MODE')
