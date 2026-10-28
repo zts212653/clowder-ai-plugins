@@ -241,9 +241,9 @@ var require_react_development = __commonJS({
         {
           Object.freeze(emptyObject);
         }
-        function Component(props, context3, updater) {
+        function Component(props, context4, updater) {
           this.props = props;
-          this.context = context3;
+          this.context = context4;
           this.refs = emptyObject;
           this.updater = updater || ReactNoopUpdateQueue;
         }
@@ -279,9 +279,9 @@ var require_react_development = __commonJS({
         function ComponentDummy() {
         }
         ComponentDummy.prototype = Component.prototype;
-        function PureComponent(props, context3, updater) {
+        function PureComponent(props, context4, updater) {
           this.props = props;
-          this.context = context3;
+          this.context = context4;
           this.refs = emptyObject;
           this.updater = updater || ReactNoopUpdateQueue;
         }
@@ -373,8 +373,8 @@ var require_react_development = __commonJS({
           if (typeof type === "object") {
             switch (type.$$typeof) {
               case REACT_CONTEXT_TYPE:
-                var context3 = type;
-                return getContextName(context3) + ".Consumer";
+                var context4 = type;
+                return getContextName(context4) + ".Consumer";
               case REACT_PROVIDER_TYPE:
                 var provider = type;
                 return getContextName(provider._context) + ".Provider";
@@ -647,8 +647,8 @@ var require_react_development = __commonJS({
         }
         var didWarnAboutMaps = false;
         var userProvidedKeyEscapeRegex = /\/+/g;
-        function escapeUserProvidedKey(text12) {
-          return text12.replace(userProvidedKeyEscapeRegex, "$&/");
+        function escapeUserProvidedKey(text14) {
+          return text14.replace(userProvidedKeyEscapeRegex, "$&/");
         }
         function getElementKey(element3, index4) {
           if (typeof element3 === "object" && element3 !== null && element3.key != null) {
@@ -753,14 +753,14 @@ var require_react_development = __commonJS({
           }
           return subtreeCount;
         }
-        function mapChildren(children, func, context3) {
+        function mapChildren(children, func, context4) {
           if (children == null) {
             return children;
           }
           var result = [];
           var count2 = 0;
           mapIntoArray(children, result, "", "", function(child) {
-            return func.call(context3, child, count2++);
+            return func.call(context4, child, count2++);
           });
           return result;
         }
@@ -788,7 +788,7 @@ var require_react_development = __commonJS({
           return children;
         }
         function createContext9(defaultValue) {
-          var context3 = {
+          var context4 = {
             $$typeof: REACT_CONTEXT_TYPE,
             // As a workaround to support multiple concurrent renderers, we categorize
             // some renderers as primary and others as secondary. We only expect
@@ -807,9 +807,9 @@ var require_react_development = __commonJS({
             _defaultValue: null,
             _globalName: null
           };
-          context3.Provider = {
+          context4.Provider = {
             $$typeof: REACT_PROVIDER_TYPE,
-            _context: context3
+            _context: context4
           };
           var hasWarnedAboutUsingNestedContextConsumers = false;
           var hasWarnedAboutUsingConsumerProvider = false;
@@ -817,7 +817,7 @@ var require_react_development = __commonJS({
           {
             var Consumer = {
               $$typeof: REACT_CONTEXT_TYPE,
-              _context: context3
+              _context: context4
             };
             Object.defineProperties(Consumer, {
               Provider: {
@@ -826,34 +826,34 @@ var require_react_development = __commonJS({
                     hasWarnedAboutUsingConsumerProvider = true;
                     error("Rendering <Context.Consumer.Provider> is not supported and will be removed in a future major release. Did you mean to render <Context.Provider> instead?");
                   }
-                  return context3.Provider;
+                  return context4.Provider;
                 },
                 set: function(_Provider) {
-                  context3.Provider = _Provider;
+                  context4.Provider = _Provider;
                 }
               },
               _currentValue: {
                 get: function() {
-                  return context3._currentValue;
+                  return context4._currentValue;
                 },
                 set: function(_currentValue) {
-                  context3._currentValue = _currentValue;
+                  context4._currentValue = _currentValue;
                 }
               },
               _currentValue2: {
                 get: function() {
-                  return context3._currentValue2;
+                  return context4._currentValue2;
                 },
                 set: function(_currentValue2) {
-                  context3._currentValue2 = _currentValue2;
+                  context4._currentValue2 = _currentValue2;
                 }
               },
               _threadCount: {
                 get: function() {
-                  return context3._threadCount;
+                  return context4._threadCount;
                 },
                 set: function(_threadCount) {
-                  context3._threadCount = _threadCount;
+                  context4._threadCount = _threadCount;
                 }
               },
               Consumer: {
@@ -862,12 +862,12 @@ var require_react_development = __commonJS({
                     hasWarnedAboutUsingNestedContextConsumers = true;
                     error("Rendering <Context.Consumer.Consumer> is not supported and will be removed in a future major release. Did you mean to render <Context.Consumer> instead?");
                   }
-                  return context3.Consumer;
+                  return context4.Consumer;
                 }
               },
               displayName: {
                 get: function() {
-                  return context3.displayName;
+                  return context4.displayName;
                 },
                 set: function(displayName) {
                   if (!hasWarnedAboutDisplayNameOnConsumer) {
@@ -877,13 +877,13 @@ var require_react_development = __commonJS({
                 }
               }
             });
-            context3.Consumer = Consumer;
+            context4.Consumer = Consumer;
           }
           {
-            context3._currentRenderer = null;
-            context3._currentRenderer2 = null;
+            context4._currentRenderer = null;
+            context4._currentRenderer2 = null;
           }
-          return context3;
+          return context4;
         }
         var Uninitialized = -1;
         var Pending = 0;
@@ -1087,7 +1087,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context2);
         }
-        function useState78(initialState) {
+        function useState84(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1095,11 +1095,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef54(initialValue) {
+        function useRef57(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect57(create3, deps) {
+        function useEffect60(create3, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create3, deps);
         }
@@ -1111,7 +1111,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create3, deps);
         }
-        function useCallback28(callback, deps) {
+        function useCallback29(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
@@ -1878,19 +1878,19 @@ var require_react_development = __commonJS({
         exports.memo = memo;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback28;
+        exports.useCallback = useCallback29;
         exports.useContext = useContext9;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect57;
+        exports.useEffect = useEffect60;
         exports.useId = useId6;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect5;
         exports.useMemo = useMemo15;
         exports.useReducer = useReducer;
-        exports.useRef = useRef54;
-        exports.useState = useState78;
+        exports.useRef = useRef57;
+        exports.useState = useState84;
         exports.useSyncExternalStore = useSyncExternalStore3;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2437,7 +2437,7 @@ var require_react_dom_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment40 = 7;
+        var Fragment43 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -3545,8 +3545,8 @@ var require_react_dom_development = __commonJS({
           if (typeof type === "object") {
             switch (type.$$typeof) {
               case REACT_CONTEXT_TYPE:
-                var context3 = type;
-                return getContextName(context3) + ".Consumer";
+                var context4 = type;
+                return getContextName(context4) + ".Consumer";
               case REACT_PROVIDER_TYPE:
                 var provider = type;
                 return getContextName(provider._context) + ".Provider";
@@ -3585,8 +3585,8 @@ var require_react_dom_development = __commonJS({
             case CacheComponent:
               return "Cache";
             case ContextConsumer:
-              var context3 = type;
-              return getContextName$1(context3) + ".Consumer";
+              var context4 = type;
+              return getContextName$1(context4) + ".Consumer";
             case ContextProvider:
               var provider = type;
               return getContextName$1(provider._context) + ".Provider";
@@ -3594,7 +3594,7 @@ var require_react_dom_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment40:
+            case Fragment43:
               return "Fragment";
             case HostComponent:
               return type;
@@ -4283,15 +4283,15 @@ var require_react_dom_development = __commonJS({
         var COMMENT_NODE = 8;
         var DOCUMENT_NODE = 9;
         var DOCUMENT_FRAGMENT_NODE = 11;
-        var setTextContent = function(node2, text12) {
-          if (text12) {
+        var setTextContent = function(node2, text14) {
+          if (text14) {
             var firstChild = node2.firstChild;
             if (firstChild && firstChild === node2.lastChild && firstChild.nodeType === TEXT_NODE) {
-              firstChild.nodeValue = text12;
+              firstChild.nodeValue = text14;
               return;
             }
           }
-          node2.textContent = text12;
+          node2.textContent = text14;
         };
         var shorthandToLonghand = {
           animation: ["animationDelay", "animationDirection", "animationDuration", "animationFillMode", "animationIterationCount", "animationName", "animationPlayState", "animationTimingFunction"],
@@ -5555,10 +5555,10 @@ var require_react_dom_development = __commonJS({
             passiveBrowserEventsSupported = false;
           }
         }
-        function invokeGuardedCallbackProd(name2, func, context3, a, b, c, d, e, f) {
+        function invokeGuardedCallbackProd(name2, func, context4, a, b, c, d, e, f) {
           var funcArgs = Array.prototype.slice.call(arguments, 3);
           try {
-            func.apply(context3, funcArgs);
+            func.apply(context4, funcArgs);
           } catch (error2) {
             this.onError(error2);
           }
@@ -5567,7 +5567,7 @@ var require_react_dom_development = __commonJS({
         {
           if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof document !== "undefined" && typeof document.createEvent === "function") {
             var fakeNode = document.createElement("react");
-            invokeGuardedCallbackImpl = function invokeGuardedCallbackDev(name2, func, context3, a, b, c, d, e, f) {
+            invokeGuardedCallbackImpl = function invokeGuardedCallbackDev(name2, func, context4, a, b, c, d, e, f) {
               if (typeof document === "undefined" || document === null) {
                 throw new Error("The `document` global was defined when React was initialized, but is not defined anymore. This can happen in a test environment if a component schedules an update from an asynchronous callback, but the test has already finished running. To solve this, you can either unmount the component at the end of your test (and ensure that any asynchronous operations get canceled in `componentWillUnmount`), or you can change the test itself to be asynchronous.");
               }
@@ -5586,7 +5586,7 @@ var require_react_dom_development = __commonJS({
               function callCallback2() {
                 didCall = true;
                 restoreAfterDispatch();
-                func.apply(context3, funcArgs);
+                func.apply(context4, funcArgs);
                 didError = false;
               }
               var error2;
@@ -5642,12 +5642,12 @@ var require_react_dom_development = __commonJS({
             caughtError = error2;
           }
         };
-        function invokeGuardedCallback(name2, func, context3, a, b, c, d, e, f) {
+        function invokeGuardedCallback(name2, func, context4, a, b, c, d, e, f) {
           hasError = false;
           caughtError = null;
           invokeGuardedCallbackImpl$1.apply(reporter, arguments);
         }
-        function invokeGuardedCallbackAndCatchFirstError(name2, func, context3, a, b, c, d, e, f) {
+        function invokeGuardedCallbackAndCatchFirstError(name2, func, context4, a, b, c, d, e, f) {
           invokeGuardedCallback.apply(this, arguments);
           if (hasError) {
             var error2 = clearCaughtError();
@@ -9467,8 +9467,8 @@ var require_react_dom_development = __commonJS({
           }
           return domElement;
         }
-        function createTextNode(text12, rootContainerElement) {
-          return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text12);
+        function createTextNode(text14, rootContainerElement) {
+          return getOwnerDocumentFromRootContainer(rootContainerElement).createTextNode(text14);
         }
         function setInitialProperties(domElement, tag, rawProps, rootContainerElement) {
           var isCustomComponentTag = isCustomComponent(tag, rawProps);
@@ -9912,8 +9912,8 @@ var require_react_dom_development = __commonJS({
           }
           return updatePayload;
         }
-        function diffHydratedText(textNode, text12, isConcurrentMode) {
-          var isDifferent = textNode.nodeValue !== text12;
+        function diffHydratedText(textNode, text14, isConcurrentMode) {
+          var isDifferent = textNode.nodeValue !== text14;
           return isDifferent;
         }
         function warnForDeletedHydratableElement(parentNode, child) {
@@ -9943,16 +9943,16 @@ var require_react_dom_development = __commonJS({
             error("Expected server HTML to contain a matching <%s> in <%s>.", tag, parentNode.nodeName.toLowerCase());
           }
         }
-        function warnForInsertedHydratedText(parentNode, text12) {
+        function warnForInsertedHydratedText(parentNode, text14) {
           {
-            if (text12 === "") {
+            if (text14 === "") {
               return;
             }
             if (didWarnInvalidHydration) {
               return;
             }
             didWarnInvalidHydration = true;
-            error('Expected server HTML to contain a matching text node for "%s" in <%s>.', text12, parentNode.nodeName.toLowerCase());
+            error('Expected server HTML to contain a matching text node for "%s" in <%s>.', text14, parentNode.nodeName.toLowerCase());
           }
         }
         function restoreControlledState$3(domElement, tag, props) {
@@ -10325,12 +10325,12 @@ var require_react_dom_development = __commonJS({
         function shouldSetTextContent(type, props) {
           return type === "textarea" || type === "noscript" || typeof props.children === "string" || typeof props.children === "number" || typeof props.dangerouslySetInnerHTML === "object" && props.dangerouslySetInnerHTML !== null && props.dangerouslySetInnerHTML.__html != null;
         }
-        function createTextInstance(text12, rootContainerInstance, hostContext, internalInstanceHandle) {
+        function createTextInstance(text14, rootContainerInstance, hostContext, internalInstanceHandle) {
           {
             var hostContextDev = hostContext;
-            validateDOMNesting(null, text12, hostContextDev.ancestorInfo);
+            validateDOMNesting(null, text14, hostContextDev.ancestorInfo);
           }
-          var textNode = createTextNode(text12, rootContainerInstance);
+          var textNode = createTextNode(text14, rootContainerInstance);
           precacheFiberNode(internalInstanceHandle, textNode);
           return textNode;
         }
@@ -10468,8 +10468,8 @@ var require_react_dom_development = __commonJS({
           var display = styleProp !== void 0 && styleProp !== null && styleProp.hasOwnProperty("display") ? styleProp.display : null;
           instance.style.display = dangerousStyleValue("display", display);
         }
-        function unhideTextInstance(textInstance, text12) {
-          textInstance.nodeValue = text12;
+        function unhideTextInstance(textInstance, text14) {
+          textInstance.nodeValue = text14;
         }
         function clearContainer(container) {
           if (container.nodeType === ELEMENT_NODE) {
@@ -10486,8 +10486,8 @@ var require_react_dom_development = __commonJS({
           }
           return instance;
         }
-        function canHydrateTextInstance(instance, text12) {
-          if (text12 === "" || instance.nodeType !== TEXT_NODE) {
+        function canHydrateTextInstance(instance, text14) {
+          if (text14 === "" || instance.nodeType !== TEXT_NODE) {
             return null;
           }
           return instance;
@@ -10566,10 +10566,10 @@ var require_react_dom_development = __commonJS({
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
           return diffHydratedProperties(instance, type, props, parentNamespace, rootContainerInstance, isConcurrentMode, shouldWarnDev);
         }
-        function hydrateTextInstance(textInstance, text12, internalInstanceHandle, shouldWarnDev) {
+        function hydrateTextInstance(textInstance, text14, internalInstanceHandle, shouldWarnDev) {
           precacheFiberNode(internalInstanceHandle, textInstance);
           var isConcurrentMode = (internalInstanceHandle.mode & ConcurrentMode) !== NoMode;
-          return diffHydratedText(textInstance, text12);
+          return diffHydratedText(textInstance, text14);
         }
         function hydrateSuspenseInstance(suspenseInstance, internalInstanceHandle) {
           precacheFiberNode(internalInstanceHandle, suspenseInstance);
@@ -10623,14 +10623,14 @@ var require_react_dom_development = __commonJS({
         function shouldDeleteUnhydratedTailInstances(parentType) {
           return parentType !== "head" && parentType !== "body";
         }
-        function didNotMatchHydratedContainerTextInstance(parentContainer, textInstance, text12, isConcurrentMode) {
+        function didNotMatchHydratedContainerTextInstance(parentContainer, textInstance, text14, isConcurrentMode) {
           var shouldWarnDev = true;
-          checkForUnmatchedText(textInstance.nodeValue, text12, isConcurrentMode, shouldWarnDev);
+          checkForUnmatchedText(textInstance.nodeValue, text14, isConcurrentMode, shouldWarnDev);
         }
-        function didNotMatchHydratedTextInstance(parentType, parentProps, parentInstance, textInstance, text12, isConcurrentMode) {
+        function didNotMatchHydratedTextInstance(parentType, parentProps, parentInstance, textInstance, text14, isConcurrentMode) {
           if (parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
             var shouldWarnDev = true;
-            checkForUnmatchedText(textInstance.nodeValue, text12, isConcurrentMode, shouldWarnDev);
+            checkForUnmatchedText(textInstance.nodeValue, text14, isConcurrentMode, shouldWarnDev);
           }
         }
         function didNotHydrateInstanceWithinContainer(parentContainer, instance) {
@@ -10673,9 +10673,9 @@ var require_react_dom_development = __commonJS({
             warnForInsertedHydratedElement(parentContainer, type);
           }
         }
-        function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text12) {
+        function didNotFindHydratableTextInstanceWithinContainer(parentContainer, text14) {
           {
-            warnForInsertedHydratedText(parentContainer, text12);
+            warnForInsertedHydratedText(parentContainer, text14);
           }
         }
         function didNotFindHydratableInstanceWithinSuspenseInstance(parentInstance, type, props) {
@@ -10684,10 +10684,10 @@ var require_react_dom_development = __commonJS({
             if (parentNode !== null) warnForInsertedHydratedElement(parentNode, type);
           }
         }
-        function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text12) {
+        function didNotFindHydratableTextInstanceWithinSuspenseInstance(parentInstance, text14) {
           {
             var parentNode = parentInstance.parentNode;
-            if (parentNode !== null) warnForInsertedHydratedText(parentNode, text12);
+            if (parentNode !== null) warnForInsertedHydratedText(parentNode, text14);
           }
         }
         function didNotFindHydratableInstance(parentType, parentProps, parentInstance, type, props, isConcurrentMode) {
@@ -10697,10 +10697,10 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function didNotFindHydratableTextInstance(parentType, parentProps, parentInstance, text12, isConcurrentMode) {
+        function didNotFindHydratableTextInstance(parentType, parentProps, parentInstance, text14, isConcurrentMode) {
           {
             if (isConcurrentMode || parentProps[SUPPRESS_HYDRATION_WARNING$1] !== true) {
-              warnForInsertedHydratedText(parentInstance, text12);
+              warnForInsertedHydratedText(parentInstance, text14);
             }
           }
         }
@@ -10914,18 +10914,18 @@ var require_react_dom_development = __commonJS({
             if (instance && instance.__reactInternalMemoizedUnmaskedChildContext === unmaskedContext) {
               return instance.__reactInternalMemoizedMaskedChildContext;
             }
-            var context3 = {};
+            var context4 = {};
             for (var key in contextTypes) {
-              context3[key] = unmaskedContext[key];
+              context4[key] = unmaskedContext[key];
             }
             {
               var name2 = getComponentNameFromFiber(workInProgress2) || "Unknown";
-              checkPropTypes(contextTypes, context3, "context", name2);
+              checkPropTypes(contextTypes, context4, "context", name2);
             }
             if (instance) {
-              cacheContext(workInProgress2, unmaskedContext, context3);
+              cacheContext(workInProgress2, unmaskedContext, context4);
             }
-            return context3;
+            return context4;
           }
         }
         function hasContextChanged() {
@@ -10951,12 +10951,12 @@ var require_react_dom_development = __commonJS({
             pop(contextStackCursor, fiber);
           }
         }
-        function pushTopLevelContextObject(fiber, context3, didChange) {
+        function pushTopLevelContextObject(fiber, context4, didChange) {
           {
             if (contextStackCursor.current !== emptyContextObject) {
               throw new Error("Unexpected context found on stack. This error is likely caused by a bug in React. Please file an issue.");
             }
-            push2(contextStackCursor, context3, fiber);
+            push2(contextStackCursor, context4, fiber);
             push2(didPerformWorkStackCursor, didChange, fiber);
           }
         }
@@ -11110,8 +11110,8 @@ var require_react_dom_development = __commonJS({
         function getTreeId() {
           var overflow = treeContextOverflow;
           var idWithLeadingBit = treeContextId;
-          var id33 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
-          return id33.toString(32) + overflow;
+          var id36 = idWithLeadingBit & ~getLeadingBit(idWithLeadingBit);
+          return id36.toString(32) + overflow;
         }
         function pushTreeFork(workInProgress2, totalChildren) {
           warnIfNotHydrating();
@@ -11140,9 +11140,9 @@ var require_react_dom_development = __commonJS({
             var restOfBaseLength = baseLength - numberOfOverflowBits;
             var restOfLength = getBitLength(totalChildren) + restOfBaseLength;
             var restOfNewBits = slot << restOfBaseLength;
-            var id33 = restOfNewBits | restOfBaseId;
+            var id36 = restOfNewBits | restOfBaseId;
             var overflow = newOverflow + baseOverflow;
-            treeContextId = 1 << restOfLength | id33;
+            treeContextId = 1 << restOfLength | id36;
             treeContextOverflow = overflow;
           } else {
             var newBits = slot << baseLength;
@@ -11165,8 +11165,8 @@ var require_react_dom_development = __commonJS({
         function getBitLength(number2) {
           return 32 - clz32(number2);
         }
-        function getLeadingBit(id33) {
-          return 1 << getBitLength(id33) - 1;
+        function getLeadingBit(id36) {
+          return 1 << getBitLength(id36) - 1;
         }
         function popTreeContext(workInProgress2) {
           while (workInProgress2 === treeForkProvider) {
@@ -11308,8 +11308,8 @@ var require_react_dom_development = __commonJS({
                     didNotFindHydratableInstanceWithinContainer(parentContainer, type);
                     break;
                   case HostText:
-                    var text12 = fiber.pendingProps;
-                    didNotFindHydratableTextInstanceWithinContainer(parentContainer, text12);
+                    var text14 = fiber.pendingProps;
+                    didNotFindHydratableTextInstanceWithinContainer(parentContainer, text14);
                     break;
                 }
                 break;
@@ -11390,8 +11390,8 @@ var require_react_dom_development = __commonJS({
               return false;
             }
             case HostText: {
-              var text12 = fiber.pendingProps;
-              var textInstance = canHydrateTextInstance(nextInstance, text12);
+              var text14 = fiber.pendingProps;
+              var textInstance = canHydrateTextInstance(nextInstance, text14);
               if (textInstance !== null) {
                 fiber.stateNode = textInstance;
                 hydrationParentFiber = fiber;
@@ -12023,7 +12023,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current3, fragment, lanes, key) {
-            if (current3 === null || current3.tag !== Fragment40) {
+            if (current3 === null || current3.tag !== Fragment43) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -12426,7 +12426,7 @@ var require_react_dom_development = __commonJS({
               if (child.key === key) {
                 var elementType = element3.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment40) {
+                  if (child.tag === Fragment43) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element3.props.children);
                     existing.return = returnFiber;
@@ -12585,24 +12585,24 @@ var require_react_dom_development = __commonJS({
             isDisallowedContextReadInDEV = false;
           }
         }
-        function pushProvider(providerFiber, context3, nextValue) {
+        function pushProvider(providerFiber, context4, nextValue) {
           {
-            push2(valueCursor, context3._currentValue, providerFiber);
-            context3._currentValue = nextValue;
+            push2(valueCursor, context4._currentValue, providerFiber);
+            context4._currentValue = nextValue;
             {
-              if (context3._currentRenderer !== void 0 && context3._currentRenderer !== null && context3._currentRenderer !== rendererSigil) {
+              if (context4._currentRenderer !== void 0 && context4._currentRenderer !== null && context4._currentRenderer !== rendererSigil) {
                 error("Detected multiple renderers concurrently rendering the same context provider. This is currently unsupported.");
               }
-              context3._currentRenderer = rendererSigil;
+              context4._currentRenderer = rendererSigil;
             }
           }
         }
-        function popProvider(context3, providerFiber) {
+        function popProvider(context4, providerFiber) {
           var currentValue = valueCursor.current;
           pop(valueCursor, providerFiber);
           {
             {
-              context3._currentValue = currentValue;
+              context4._currentValue = currentValue;
             }
           }
         }
@@ -12629,12 +12629,12 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function propagateContextChange(workInProgress2, context3, renderLanes2) {
+        function propagateContextChange(workInProgress2, context4, renderLanes2) {
           {
-            propagateContextChange_eager(workInProgress2, context3, renderLanes2);
+            propagateContextChange_eager(workInProgress2, context4, renderLanes2);
           }
         }
-        function propagateContextChange_eager(workInProgress2, context3, renderLanes2) {
+        function propagateContextChange_eager(workInProgress2, context4, renderLanes2) {
           var fiber = workInProgress2.child;
           if (fiber !== null) {
             fiber.return = workInProgress2;
@@ -12646,7 +12646,7 @@ var require_react_dom_development = __commonJS({
               nextFiber = fiber.child;
               var dependency = list4.firstContext;
               while (dependency !== null) {
-                if (dependency.context === context3) {
+                if (dependency.context === context4) {
                   if (fiber.tag === ClassComponent) {
                     var lane = pickArbitraryLane(renderLanes2);
                     var update = createUpdate(NoTimestamp, lane);
@@ -12731,17 +12731,17 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function readContext(context3) {
+        function readContext(context4) {
           {
             if (isDisallowedContextReadInDEV) {
               error("Context can only be read while React is rendering. In classes, you can read it in the render method or getDerivedStateFromProps. In function components, you can read it directly in the function body, but not inside Hooks like useReducer() or useMemo().");
             }
           }
-          var value = context3._currentValue;
-          if (lastFullyObservedContext === context3) ;
+          var value = context4._currentValue;
+          if (lastFullyObservedContext === context4) ;
           else {
             var contextItem = {
-              context: context3,
+              context: context4,
               memoizedValue: value,
               next: null
             };
@@ -13198,11 +13198,11 @@ var require_react_dom_development = __commonJS({
             currentlyProcessingQueue = null;
           }
         }
-        function callCallback(callback, context3) {
+        function callCallback(callback, context4) {
           if (typeof callback !== "function") {
             throw new Error("Invalid argument passed as callback. Expected a function. Instead " + ("received: " + callback));
           }
-          callback.call(context3);
+          callback.call(context4);
         }
         function resetHasForceUpdateBeforeProcessing() {
           hasForceUpdate = false;
@@ -13252,14 +13252,14 @@ var require_react_dom_development = __commonJS({
           pop(rootInstanceStackCursor, fiber);
         }
         function getHostContext() {
-          var context3 = requiredContext(contextStackCursor$1.current);
-          return context3;
+          var context4 = requiredContext(contextStackCursor$1.current);
+          return context4;
         }
         function pushHostContext(fiber) {
           var rootInstance = requiredContext(rootInstanceStackCursor.current);
-          var context3 = requiredContext(contextStackCursor$1.current);
-          var nextContext = getChildHostContext(context3, fiber.type);
-          if (context3 === nextContext) {
+          var context4 = requiredContext(contextStackCursor$1.current);
+          var nextContext = getChildHostContext(context4, fiber.type);
+          if (context4 === nextContext) {
             return;
           }
           push2(contextFiberStackCursor, fiber, fiber);
@@ -13656,8 +13656,8 @@ var require_react_dom_development = __commonJS({
             stores: null
           };
         }
-        function basicStateReducer(state, action) {
-          return typeof action === "function" ? action(state) : action;
+        function basicStateReducer(state, action2) {
+          return typeof action2 === "function" ? action2(state) : action2;
         }
         function mountReducer(reducer, initialArg, init) {
           var hook = mountWorkInProgressHook();
@@ -13747,8 +13747,8 @@ var require_react_dom_development = __commonJS({
                 if (update.hasEagerState) {
                   newState = update.eagerState;
                 } else {
-                  var action = update.action;
-                  newState = reducer(newState, action);
+                  var action2 = update.action;
+                  newState = reducer(newState, action2);
                 }
               }
               update = update.next;
@@ -13796,8 +13796,8 @@ var require_react_dom_development = __commonJS({
             var firstRenderPhaseUpdate = lastRenderPhaseUpdate.next;
             var update = firstRenderPhaseUpdate;
             do {
-              var action = update.action;
-              newState = reducer(newState, action);
+              var action2 = update.action;
+              newState = reducer(newState, action2);
               update = update.next;
             } while (update !== firstRenderPhaseUpdate);
             if (!objectIs(newState, hook.memoizedState)) {
@@ -14264,28 +14264,28 @@ var require_react_dom_development = __commonJS({
           var hook = mountWorkInProgressHook();
           var root6 = getWorkInProgressRoot();
           var identifierPrefix = root6.identifierPrefix;
-          var id33;
+          var id36;
           if (getIsHydrating()) {
             var treeId = getTreeId();
-            id33 = ":" + identifierPrefix + "R" + treeId;
+            id36 = ":" + identifierPrefix + "R" + treeId;
             var localId = localIdCounter++;
             if (localId > 0) {
-              id33 += "H" + localId.toString(32);
+              id36 += "H" + localId.toString(32);
             }
-            id33 += ":";
+            id36 += ":";
           } else {
             var globalClientId = globalClientIdCounter++;
-            id33 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
+            id36 = ":" + identifierPrefix + "r" + globalClientId.toString(32) + ":";
           }
-          hook.memoizedState = id33;
-          return id33;
+          hook.memoizedState = id36;
+          return id36;
         }
         function updateId() {
           var hook = updateWorkInProgressHook();
-          var id33 = hook.memoizedState;
-          return id33;
+          var id36 = hook.memoizedState;
+          return id36;
         }
-        function dispatchReducerAction(fiber, queue, action) {
+        function dispatchReducerAction(fiber, queue, action2) {
           {
             if (typeof arguments[3] === "function") {
               error("State updates from the useState() and useReducer() Hooks don't support the second callback argument. To execute a side effect after rendering, declare it in the component body with useEffect().");
@@ -14294,7 +14294,7 @@ var require_react_dom_development = __commonJS({
           var lane = requestUpdateLane(fiber);
           var update = {
             lane,
-            action,
+            action: action2,
             hasEagerState: false,
             eagerState: null,
             next: null
@@ -14311,7 +14311,7 @@ var require_react_dom_development = __commonJS({
           }
           markUpdateInDevTools(fiber, lane);
         }
-        function dispatchSetState(fiber, queue, action) {
+        function dispatchSetState(fiber, queue, action2) {
           {
             if (typeof arguments[3] === "function") {
               error("State updates from the useState() and useReducer() Hooks don't support the second callback argument. To execute a side effect after rendering, declare it in the component body with useEffect().");
@@ -14320,7 +14320,7 @@ var require_react_dom_development = __commonJS({
           var lane = requestUpdateLane(fiber);
           var update = {
             lane,
-            action,
+            action: action2,
             hasEagerState: false,
             eagerState: null,
             next: null
@@ -14339,7 +14339,7 @@ var require_react_dom_development = __commonJS({
                 }
                 try {
                   var currentState = queue.lastRenderedState;
-                  var eagerState = lastRenderedReducer(currentState, action);
+                  var eagerState = lastRenderedReducer(currentState, action2);
                   update.hasEagerState = true;
                   update.eagerState = eagerState;
                   if (objectIs(eagerState, currentState)) {
@@ -14387,7 +14387,7 @@ var require_react_dom_development = __commonJS({
             markRootEntangled(root6, newQueueLanes);
           }
         }
-        function markUpdateInDevTools(fiber, lane, action) {
+        function markUpdateInDevTools(fiber, lane, action2) {
           {
             markStateUpdateScheduled(fiber, lane);
           }
@@ -14427,8 +14427,8 @@ var require_react_dom_development = __commonJS({
             error("Do not call Hooks inside useEffect(...), useMemo(...), or other built-in Hooks. You can only call Hooks at the top level of your React function. For more information, see https://reactjs.org/link/rules-of-hooks");
           };
           HooksDispatcherOnMountInDEV = {
-            readContext: function(context3) {
-              return readContext(context3);
+            readContext: function(context4) {
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
@@ -14436,10 +14436,10 @@ var require_react_dom_development = __commonJS({
               checkDepsAreArrayDev(deps);
               return mountCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               mountHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -14537,18 +14537,18 @@ var require_react_dom_development = __commonJS({
             unstable_isNewReconciler: enableNewReconciler
           };
           HooksDispatcherOnMountWithHookTypesInDEV = {
-            readContext: function(context3) {
-              return readContext(context3);
+            readContext: function(context4) {
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
               updateHookTypesDev();
               return mountCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               updateHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -14641,18 +14641,18 @@ var require_react_dom_development = __commonJS({
             unstable_isNewReconciler: enableNewReconciler
           };
           HooksDispatcherOnUpdateInDEV = {
-            readContext: function(context3) {
-              return readContext(context3);
+            readContext: function(context4) {
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
               updateHookTypesDev();
               return updateCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               updateHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -14745,18 +14745,18 @@ var require_react_dom_development = __commonJS({
             unstable_isNewReconciler: enableNewReconciler
           };
           HooksDispatcherOnRerenderInDEV = {
-            readContext: function(context3) {
-              return readContext(context3);
+            readContext: function(context4) {
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
               updateHookTypesDev();
               return updateCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               updateHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -14849,9 +14849,9 @@ var require_react_dom_development = __commonJS({
             unstable_isNewReconciler: enableNewReconciler
           };
           InvalidNestedHooksDispatcherOnMountInDEV = {
-            readContext: function(context3) {
+            readContext: function(context4) {
               warnInvalidContextAccess();
-              return readContext(context3);
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
@@ -14859,11 +14859,11 @@ var require_react_dom_development = __commonJS({
               mountHookTypesDev();
               return mountCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               warnInvalidHookAccess();
               mountHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -14970,9 +14970,9 @@ var require_react_dom_development = __commonJS({
             unstable_isNewReconciler: enableNewReconciler
           };
           InvalidNestedHooksDispatcherOnUpdateInDEV = {
-            readContext: function(context3) {
+            readContext: function(context4) {
               warnInvalidContextAccess();
-              return readContext(context3);
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
@@ -14980,11 +14980,11 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               warnInvalidHookAccess();
               updateHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -15091,9 +15091,9 @@ var require_react_dom_development = __commonJS({
             unstable_isNewReconciler: enableNewReconciler
           };
           InvalidNestedHooksDispatcherOnRerenderInDEV = {
-            readContext: function(context3) {
+            readContext: function(context4) {
               warnInvalidContextAccess();
-              return readContext(context3);
+              return readContext(context4);
             },
             useCallback: function(callback, deps) {
               currentHookNameInDev = "useCallback";
@@ -15101,11 +15101,11 @@ var require_react_dom_development = __commonJS({
               updateHookTypesDev();
               return updateCallback(callback, deps);
             },
-            useContext: function(context3) {
+            useContext: function(context4) {
               currentHookNameInDev = "useContext";
               warnInvalidHookAccess();
               updateHookTypesDev();
-              return readContext(context3);
+              return readContext(context4);
             },
             useEffect: function(create3, deps) {
               currentHookNameInDev = "useEffect";
@@ -15599,7 +15599,7 @@ var require_react_dom_development = __commonJS({
         function constructClassInstance(workInProgress2, ctor, props) {
           var isLegacyContextConsumer = false;
           var unmaskedContext = emptyContextObject;
-          var context3 = emptyContextObject;
+          var context4 = emptyContextObject;
           var contextType = ctor.contextType;
           {
             if ("contextType" in ctor) {
@@ -15626,19 +15626,19 @@ var require_react_dom_development = __commonJS({
             }
           }
           if (typeof contextType === "object" && contextType !== null) {
-            context3 = readContext(contextType);
+            context4 = readContext(contextType);
           } else {
             unmaskedContext = getUnmaskedContext(workInProgress2, ctor, true);
             var contextTypes = ctor.contextTypes;
             isLegacyContextConsumer = contextTypes !== null && contextTypes !== void 0;
-            context3 = isLegacyContextConsumer ? getMaskedContext(workInProgress2, unmaskedContext) : emptyContextObject;
+            context4 = isLegacyContextConsumer ? getMaskedContext(workInProgress2, unmaskedContext) : emptyContextObject;
           }
-          var instance = new ctor(props, context3);
+          var instance = new ctor(props, context4);
           {
             if (workInProgress2.mode & StrictLegacyMode) {
               setIsStrictModeForDevtools(true);
               try {
-                instance = new ctor(props, context3);
+                instance = new ctor(props, context4);
               } finally {
                 setIsStrictModeForDevtools(false);
               }
@@ -15684,7 +15684,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           if (isLegacyContextConsumer) {
-            cacheContext(workInProgress2, unmaskedContext, context3);
+            cacheContext(workInProgress2, unmaskedContext, context4);
           }
           return instance;
         }
@@ -16522,10 +16522,10 @@ var require_react_dom_development = __commonJS({
               }
             }
           }
-          var context3;
+          var context4;
           {
             var unmaskedContext = getUnmaskedContext(workInProgress2, Component, true);
-            context3 = getMaskedContext(workInProgress2, unmaskedContext);
+            context4 = getMaskedContext(workInProgress2, unmaskedContext);
           }
           var nextChildren;
           var hasId;
@@ -16536,12 +16536,12 @@ var require_react_dom_development = __commonJS({
           {
             ReactCurrentOwner$1.current = workInProgress2;
             setIsRendering(true);
-            nextChildren = renderWithHooks(current3, workInProgress2, Component, nextProps, context3, renderLanes2);
+            nextChildren = renderWithHooks(current3, workInProgress2, Component, nextProps, context4, renderLanes2);
             hasId = checkDidRenderIdHook();
             if (workInProgress2.mode & StrictLegacyMode) {
               setIsStrictModeForDevtools(true);
               try {
-                nextChildren = renderWithHooks(current3, workInProgress2, Component, nextProps, context3, renderLanes2);
+                nextChildren = renderWithHooks(current3, workInProgress2, Component, nextProps, context4, renderLanes2);
                 hasId = checkDidRenderIdHook();
               } finally {
                 setIsStrictModeForDevtools(false);
@@ -16856,10 +16856,10 @@ var require_react_dom_development = __commonJS({
         function mountIndeterminateComponent(_current, workInProgress2, Component, renderLanes2) {
           resetSuspendedCurrentOnMountInLegacyMode(_current, workInProgress2);
           var props = workInProgress2.pendingProps;
-          var context3;
+          var context4;
           {
             var unmaskedContext = getUnmaskedContext(workInProgress2, Component, false);
-            context3 = getMaskedContext(workInProgress2, unmaskedContext);
+            context4 = getMaskedContext(workInProgress2, unmaskedContext);
           }
           prepareToReadContext(workInProgress2, renderLanes2);
           var value;
@@ -16880,7 +16880,7 @@ var require_react_dom_development = __commonJS({
             }
             setIsRendering(true);
             ReactCurrentOwner$1.current = workInProgress2;
-            value = renderWithHooks(null, workInProgress2, Component, props, context3, renderLanes2);
+            value = renderWithHooks(null, workInProgress2, Component, props, context4, renderLanes2);
             hasId = checkDidRenderIdHook();
             setIsRendering(false);
           }
@@ -16930,7 +16930,7 @@ var require_react_dom_development = __commonJS({
               if (workInProgress2.mode & StrictLegacyMode) {
                 setIsStrictModeForDevtools(true);
                 try {
-                  value = renderWithHooks(null, workInProgress2, Component, props, context3, renderLanes2);
+                  value = renderWithHooks(null, workInProgress2, Component, props, context4, renderLanes2);
                   hasId = checkDidRenderIdHook();
                 } finally {
                   setIsStrictModeForDevtools(false);
@@ -17589,7 +17589,7 @@ var require_react_dom_development = __commonJS({
         var hasWarnedAboutUsingNoValuePropOnContextProvider = false;
         function updateContextProvider(current3, workInProgress2, renderLanes2) {
           var providerType = workInProgress2.type;
-          var context3 = providerType._context;
+          var context4 = providerType._context;
           var newProps = workInProgress2.pendingProps;
           var oldProps = workInProgress2.memoizedProps;
           var newValue = newProps.value;
@@ -17605,7 +17605,7 @@ var require_react_dom_development = __commonJS({
               checkPropTypes(providerPropTypes, newProps, "prop", "Context.Provider");
             }
           }
-          pushProvider(workInProgress2, context3, newValue);
+          pushProvider(workInProgress2, context4, newValue);
           {
             if (oldProps !== null) {
               var oldValue = oldProps.value;
@@ -17614,7 +17614,7 @@ var require_react_dom_development = __commonJS({
                   return bailoutOnAlreadyFinishedWork(current3, workInProgress2, renderLanes2);
                 }
               } else {
-                propagateContextChange(workInProgress2, context3, renderLanes2);
+                propagateContextChange(workInProgress2, context4, renderLanes2);
               }
             }
           }
@@ -17624,17 +17624,17 @@ var require_react_dom_development = __commonJS({
         }
         var hasWarnedAboutUsingContextAsConsumer = false;
         function updateContextConsumer(current3, workInProgress2, renderLanes2) {
-          var context3 = workInProgress2.type;
+          var context4 = workInProgress2.type;
           {
-            if (context3._context === void 0) {
-              if (context3 !== context3.Consumer) {
+            if (context4._context === void 0) {
+              if (context4 !== context4.Consumer) {
                 if (!hasWarnedAboutUsingContextAsConsumer) {
                   hasWarnedAboutUsingContextAsConsumer = true;
                   error("Rendering <Context> directly is not supported and will be removed in a future major release. Did you mean to render <Context.Consumer> instead?");
                 }
               }
             } else {
-              context3 = context3._context;
+              context4 = context4._context;
             }
           }
           var newProps = workInProgress2.pendingProps;
@@ -17645,7 +17645,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           prepareToReadContext(workInProgress2, renderLanes2);
-          var newValue = readContext(context3);
+          var newValue = readContext(context4);
           {
             markComponentRenderStarted(workInProgress2);
           }
@@ -17758,8 +17758,8 @@ var require_react_dom_development = __commonJS({
               break;
             case ContextProvider: {
               var newValue = workInProgress2.memoizedProps.value;
-              var context3 = workInProgress2.type._context;
-              pushProvider(workInProgress2, context3, newValue);
+              var context4 = workInProgress2.type._context;
+              pushProvider(workInProgress2, context4, newValue);
               break;
             }
             case Profiler:
@@ -17902,7 +17902,7 @@ var require_react_dom_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current3, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment40:
+            case Fragment43:
               return updateFragment(current3, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current3, workInProgress2, renderLanes2);
@@ -18174,7 +18174,7 @@ var require_react_dom_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment40:
+            case Fragment43:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -18345,8 +18345,8 @@ var require_react_dom_development = __commonJS({
               bubbleProperties(workInProgress2);
               return null;
             case ContextProvider:
-              var context3 = workInProgress2.type._context;
-              popProvider(context3, workInProgress2);
+              var context4 = workInProgress2.type._context;
+              popProvider(context4, workInProgress2);
               bubbleProperties(workInProgress2);
               return null;
             case IncompleteClassComponent: {
@@ -18558,8 +18558,8 @@ var require_react_dom_development = __commonJS({
               popHostContainer(workInProgress2);
               return null;
             case ContextProvider:
-              var context3 = workInProgress2.type._context;
-              popProvider(context3, workInProgress2);
+              var context4 = workInProgress2.type._context;
+              popProvider(context4, workInProgress2);
               return null;
             case OffscreenComponent:
             case LegacyHiddenComponent:
@@ -18602,8 +18602,8 @@ var require_react_dom_development = __commonJS({
               popSuspenseContext(interruptedWork);
               break;
             case ContextProvider:
-              var context3 = interruptedWork.type._context;
-              popProvider(context3, interruptedWork);
+              var context4 = interruptedWork.type._context;
+              popProvider(context4, interruptedWork);
               break;
             case OffscreenComponent:
             case LegacyHiddenComponent:
@@ -18915,7 +18915,7 @@ var require_react_dom_development = __commonJS({
               switch (finishedWork.tag) {
                 case Profiler: {
                   var passiveEffectDuration = finishedWork.stateNode.passiveEffectDuration;
-                  var _finishedWork$memoize = finishedWork.memoizedProps, id33 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
+                  var _finishedWork$memoize = finishedWork.memoizedProps, id36 = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
                   var commitTime2 = getCommitTime();
                   var phase = finishedWork.alternate === null ? "mount" : "update";
                   {
@@ -18924,7 +18924,7 @@ var require_react_dom_development = __commonJS({
                     }
                   }
                   if (typeof onPostCommit === "function") {
-                    onPostCommit(id33, phase, passiveEffectDuration, commitTime2);
+                    onPostCommit(id36, phase, passiveEffectDuration, commitTime2);
                   }
                   var parentFiber = finishedWork.return;
                   outer: while (parentFiber !== null) {
@@ -22435,7 +22435,7 @@ var require_react_dom_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode2, lanes, key) {
-          var fiber = createFiber(Fragment40, elements, key, mode2);
+          var fiber = createFiber(Fragment43, elements, key, mode2);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -22713,11 +22713,11 @@ var require_react_dom_development = __commonJS({
           {
             markRenderScheduled(lane);
           }
-          var context3 = getContextForSubtree(parentComponent);
+          var context4 = getContextForSubtree(parentComponent);
           if (container.context === null) {
-            container.context = context3;
+            container.context = context4;
           } else {
-            container.pendingContext = context3;
+            container.pendingContext = context4;
           }
           {
             if (isRendering && current2 !== null && !didWarnAboutNestedUpdates) {
@@ -22912,16 +22912,16 @@ var require_react_dom_development = __commonJS({
           var copyWithSet = function(obj, path2, value) {
             return copyWithSetImpl(obj, path2, 0, value);
           };
-          var findHook = function(fiber, id33) {
+          var findHook = function(fiber, id36) {
             var currentHook2 = fiber.memoizedState;
-            while (currentHook2 !== null && id33 > 0) {
+            while (currentHook2 !== null && id36 > 0) {
               currentHook2 = currentHook2.next;
-              id33--;
+              id36--;
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id33, path2, value) {
-            var hook = findHook(fiber, id33);
+          overrideHookState = function(fiber, id36, path2, value) {
+            var hook = findHook(fiber, id36);
             if (hook !== null) {
               var newState = copyWithSet(hook.memoizedState, path2, value);
               hook.memoizedState = newState;
@@ -22933,8 +22933,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id33, path2) {
-            var hook = findHook(fiber, id33);
+          overrideHookStateDeletePath = function(fiber, id36, path2) {
+            var hook = findHook(fiber, id36);
             if (hook !== null) {
               var newState = copyWithDelete(hook.memoizedState, path2);
               hook.memoizedState = newState;
@@ -22946,8 +22946,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateRenamePath = function(fiber, id33, oldPath, newPath) {
-            var hook = findHook(fiber, id33);
+          overrideHookStateRenamePath = function(fiber, id36, oldPath, newPath) {
+            var hook = findHook(fiber, id36);
             if (hook !== null) {
               var newState = copyWithRename(hook.memoizedState, oldPath, newPath);
               hook.memoizedState = newState;
@@ -23804,8 +23804,8 @@ var require_react_jsx_runtime_development = __commonJS({
           if (typeof type === "object") {
             switch (type.$$typeof) {
               case REACT_CONTEXT_TYPE:
-                var context3 = type;
-                return getContextName(context3) + ".Consumer";
+                var context4 = type;
+                return getContextName(context4) + ".Consumer";
               case REACT_PROVIDER_TYPE:
                 var provider = type;
                 return getContextName(provider._context) + ".Provider";
@@ -24558,11 +24558,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx131 = jsxWithValidationDynamic;
-        var jsxs110 = jsxWithValidationStatic;
+        var jsx133 = jsxWithValidationDynamic;
+        var jsxs112 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx131;
-        exports.jsxs = jsxs110;
+        exports.jsx = jsx133;
+        exports.jsxs = jsxs112;
       })();
     }
   }
@@ -24819,7 +24819,7 @@ var require_cjs3 = __commonJS({
 });
 
 // src/main.tsx
-var import_react111 = __toESM(require_react(), 1);
+var import_react117 = __toESM(require_react(), 1);
 var import_client = __toESM(require_client(), 1);
 
 // src/CollectiveScopeRecovery.tsx
@@ -28474,23 +28474,23 @@ var ZodEffects = class extends ZodType {
     }
     if (effect.type === "transform") {
       if (ctx.common.async === false) {
-        const base3 = this._def.schema._parseSync({
+        const base4 = this._def.schema._parseSync({
           data: ctx.data,
           path: ctx.path,
           parent: ctx
         });
-        if (!isValid(base3))
+        if (!isValid(base4))
           return INVALID;
-        const result = effect.transform(base3.value, checkCtx);
+        const result = effect.transform(base4.value, checkCtx);
         if (result instanceof Promise) {
           throw new Error(`Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`);
         }
         return { status: status.value, value: result };
       } else {
-        return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base3) => {
-          if (!isValid(base3))
+        return this._def.schema._parseAsync({ data: ctx.data, path: ctx.path, parent: ctx }).then((base4) => {
+          if (!isValid(base4))
             return INVALID;
-          return Promise.resolve(effect.transform(base3.value, checkCtx)).then((result) => ({
+          return Promise.resolve(effect.transform(base4.value, checkCtx)).then((result) => ({
             status: status.value,
             value: result
           }));
@@ -28949,10 +28949,10 @@ var humanDispositionLedgerReceiptSchema = external_exports.object(humanDispositi
 var humanDispositionLedgerEntrySchema = external_exports.object({
   episode: humanDispositionDecisionEpisodeSchema,
   envelope: humanDispositionEnvelopeSchema.optional()
-}).strict().superRefine(({ episode, envelope: envelope4 }, context3) => {
+}).strict().superRefine(({ episode, envelope: envelope4 }, context4) => {
   if (!envelope4) {
     if (episode.feedback !== void 0) {
-      context3.addIssue({ code: "custom", message: "episode feedback requires an envelope", path: ["episode"] });
+      context4.addIssue({ code: "custom", message: "episode feedback requires an envelope", path: ["episode"] });
     }
     return;
   }
@@ -28968,7 +28968,7 @@ var humanDispositionLedgerEntrySchema = external_exports.object({
     feedback: envelope4.feedback
   });
   if (JSON.stringify(episode) !== JSON.stringify(expectedEpisode)) {
-    context3.addIssue({ code: "custom", message: "episode and envelope identity must match", path: ["envelope"] });
+    context4.addIssue({ code: "custom", message: "episode and envelope identity must match", path: ["envelope"] });
   }
 });
 var humanDispositionEligibilityContextSchema = external_exports.object({
@@ -29126,6 +29126,21 @@ var chatBackgroundPreferencesSchema = external_exports.object({
   threads: external_exports.record(chatBackgroundSchema)
 });
 
+// ../shared/src/chat-background-state.ts
+var chatBackgroundMetadataSchema = external_exports.object({
+  readableOpacity: backgroundOpacitySchema.optional(),
+  manualOpacity: external_exports.object({ light: external_exports.boolean().optional(), dark: external_exports.boolean().optional() }).strict().optional()
+}).strict();
+var chatBackgroundMetadataEntrySchema = chatBackgroundMetadataSchema.extend({
+  background: chatBackgroundSchema
+});
+var chatBackgroundResponseSchema = chatBackgroundPreferencesSchema.extend({
+  metadata: external_exports.object({
+    global: chatBackgroundMetadataEntrySchema.optional(),
+    threads: external_exports.record(chatBackgroundMetadataEntrySchema)
+  }).optional()
+});
+
 // ../shared/src/chat-references.ts
 var chatReferenceBatchSchema = external_exports.object({
   groups: external_exports.array(
@@ -29245,6 +29260,67 @@ var companionIdentitySnapshotV1Schema = external_exports.object({
 }).strict().refine((snapshot) => snapshot.partner.catId === snapshot.deep.catId, {
   message: "The chosen partner must be the named deep cat"
 });
+
+// ../shared/src/source-code-extensions.ts
+var SOURCE_CODE_EXTENSIONS = [
+  "ts",
+  "tsx",
+  "js",
+  "jsx",
+  "html",
+  "mjs",
+  "cjs",
+  "py",
+  "go",
+  "rs",
+  "java",
+  "c",
+  "cpp",
+  "h",
+  "hpp",
+  "cs",
+  "rb",
+  "php",
+  "swift",
+  "kt",
+  "scala",
+  "sh",
+  "bash",
+  "zsh",
+  "fish",
+  "ps1",
+  "psm1",
+  "psd1",
+  "bat",
+  "cmd",
+  "pl",
+  "pm",
+  "sql",
+  "css",
+  "scss",
+  "less",
+  "vue",
+  "svelte"
+];
+var SOURCE_CODE_EXTENSION_SET = new Set(SOURCE_CODE_EXTENSIONS);
+
+// ../shared/src/content-file.ts
+var TEXT_FILE_EXTENSIONS = /* @__PURE__ */ new Set([
+  "md",
+  "markdown",
+  "mdx",
+  "txt",
+  "log",
+  "json",
+  "yml",
+  "yaml",
+  "toml",
+  "xml",
+  "csv",
+  "tsv",
+  "env",
+  ...SOURCE_CODE_EXTENSIONS
+]);
 
 // ../shared/src/conversation-view-preference.ts
 var conversationViewPreferenceSchema = external_exports.discriminatedUnion("mode", [
@@ -29415,7 +29491,7 @@ function roadmapPath(value) {
 }
 function brand(value) {
   const input = record(value, "brand");
-  const text12 = (key) => {
+  const text14 = (key) => {
     const item = input[key];
     if (typeof item !== "string" || !item.trim() || item.length > 512 || // biome-ignore lint/suspicious/noControlCharactersInRegex: configuration labels must stay single-line.
     /[\u0000-\u001f\u007f]/.test(item))
@@ -29423,11 +29499,11 @@ function brand(value) {
     return item;
   };
   return {
-    name: text12("name"),
-    displayName: text12("displayName"),
-    shortName: text12("shortName"),
-    hubName: text12("hubName"),
-    tagline: text12("tagline")
+    name: text14("name"),
+    displayName: text14("displayName"),
+    shortName: text14("shortName"),
+    hubName: text14("hubName"),
+    tagline: text14("tagline")
   };
 }
 function selectProfile(input, requested) {
@@ -29655,7 +29731,7 @@ var feature_demos_default = {
 
 // ../shared/src/feature-demos.ts
 var FEATURE_DEMO_ASSET_DIR = "site/assets/demos";
-function publish(id33, entry) {
+function publish(id36, entry) {
   return {
     tipId: entry.tipId,
     title: entry.title,
@@ -29665,14 +29741,14 @@ function publish(id33, entry) {
     sha256: entry.sha256 ?? "",
     assetSource: `${FEATURE_DEMO_ASSET_DIR}/${entry.video}`,
     posterAssetSource: `${FEATURE_DEMO_ASSET_DIR}/${entry.poster}`,
-    src: `/vendor/demos/${id33}${entry.video.slice(entry.video.indexOf("."))}`,
-    poster: `/vendor/demos/${id33}${entry.poster.slice(entry.poster.lastIndexOf("."))}`
+    src: `/vendor/demos/${id36}${entry.video.slice(entry.video.indexOf("."))}`,
+    poster: `/vendor/demos/${id36}${entry.poster.slice(entry.poster.lastIndexOf("."))}`
   };
 }
 var FEATURE_DEMOS = Object.fromEntries(
-  Object.entries(feature_demos_default).map(([id33, entry]) => [id33, publish(id33, entry)])
+  Object.entries(feature_demos_default).map(([id36, entry]) => [id36, publish(id36, entry)])
 );
-var DEMO_BY_TIP = new Map(Object.entries(FEATURE_DEMOS).map(([id33, demo]) => [demo.tipId, id33]));
+var DEMO_BY_TIP = new Map(Object.entries(FEATURE_DEMOS).map(([id36, demo]) => [demo.tipId, id36]));
 
 // ../shared/src/ignored-item-preference.ts
 var ignoredItemCoordinateSchema = external_exports.discriminatedUnion("kind", [
@@ -29702,10 +29778,10 @@ var ignoredItemPatchSchema = external_exports.object({
   expectedRevision: external_exports.number().int().nonnegative().safe(),
   ignore: external_exports.array(ignoredItemCoordinateSchema),
   restore: external_exports.array(ignoredItemCoordinateSchema)
-}).strict().superRefine((patch2, context3) => {
+}).strict().superRefine((patch2, context4) => {
   const ignoring = new Set(patch2.ignore.map(ignoredItemKey));
   if (patch2.restore.some((coordinate2) => ignoring.has(ignoredItemKey(coordinate2)))) {
-    context3.addIssue({ code: "custom", message: "An item cannot be ignored and restored in the same change" });
+    context4.addIssue({ code: "custom", message: "An item cannot be ignored and restored in the same change" });
   }
 });
 
@@ -31191,12 +31267,12 @@ function linkReference(node2, _, state, info) {
   let subexit = state.enter("label");
   const tracker = state.createTracker(info);
   let value = tracker.move("[");
-  const text12 = state.containerPhrasing(node2, {
+  const text14 = state.containerPhrasing(node2, {
     before: value,
     after: "]",
     ...tracker.current()
   });
-  value += tracker.move(text12 + "][");
+  value += tracker.move(text14 + "][");
   subexit();
   const stack = state.stack;
   state.stack = [];
@@ -31209,7 +31285,7 @@ function linkReference(node2, _, state, info) {
   subexit();
   state.stack = stack;
   exit3();
-  if (type === "full" || !text12 || text12 !== reference) {
+  if (type === "full" || !text14 || text14 !== reference) {
     value += tracker.move(reference + "]");
   } else if (type === "shortcut") {
     value = value.slice(0, -1);
@@ -31512,8 +31588,8 @@ function decodeNamedCharacterReference(value) {
 }
 
 // ../../node_modules/.pnpm/micromark-util-decode-numeric-character-reference@2.0.2/node_modules/micromark-util-decode-numeric-character-reference/index.js
-function decodeNumericCharacterReference(value, base3) {
-  const code4 = Number.parseInt(value, base3);
+function decodeNumericCharacterReference(value, base4) {
+  const code4 = Number.parseInt(value, base4);
   if (
     // C0 except for HT, LF, FF, CR, space.
     code4 < 9 || code4 === 11 || code4 > 13 && code4 < 32 || // Control character (DEL) of C0, and C1 controls.
@@ -32251,13 +32327,13 @@ function normalizeUri(value) {
 }
 
 // ../../node_modules/.pnpm/micromark-util-resolve-all@2.0.1/node_modules/micromark-util-resolve-all/index.js
-function resolveAll(constructs2, events, context3) {
+function resolveAll(constructs2, events, context4) {
   const called = [];
   let index4 = -1;
   while (++index4 < constructs2.length) {
     const resolve = constructs2[index4].resolveAll;
     if (resolve && !called.includes(resolve)) {
-      events = resolve(events, context3);
+      events = resolve(events, context4);
       called.push(resolve);
     }
   }
@@ -32270,11 +32346,11 @@ var attention = {
   resolveAll: resolveAllAttention,
   tokenize: tokenizeAttention
 };
-function resolveAllAttention(events, context3) {
+function resolveAllAttention(events, context4) {
   let index4 = -1;
   let open;
   let group;
-  let text12;
+  let text14;
   let openingSequence;
   let closingSequence;
   let use;
@@ -32285,7 +32361,7 @@ function resolveAllAttention(events, context3) {
       open = index4;
       while (open--) {
         if (events[open][0] === "exit" && events[open][1].type === "attentionSequence" && events[open][1]._open && // If the markers are the same:
-        context3.sliceSerialize(events[open][1]).charCodeAt(0) === context3.sliceSerialize(events[index4][1]).charCodeAt(0)) {
+        context4.sliceSerialize(events[open][1]).charCodeAt(0) === context4.sliceSerialize(events[index4][1]).charCodeAt(0)) {
           if ((events[open][1]._close || events[index4][1]._open) && (events[index4][1].end.offset - events[index4][1].start.offset) % 3 && !((events[open][1].end.offset - events[open][1].start.offset + events[index4][1].end.offset - events[index4][1].start.offset) % 3)) {
             continue;
           }
@@ -32312,7 +32388,7 @@ function resolveAllAttention(events, context3) {
             },
             end
           };
-          text12 = {
+          text14 = {
             type: use > 1 ? "strongText" : "emphasisText",
             start: {
               ...events[open][1].end
@@ -32338,14 +32414,14 @@ function resolveAllAttention(events, context3) {
           };
           nextEvents = [];
           if (events[open][1].end.offset - events[open][1].start.offset) {
-            nextEvents = push(nextEvents, [["enter", events[open][1], context3], ["exit", events[open][1], context3]]);
+            nextEvents = push(nextEvents, [["enter", events[open][1], context4], ["exit", events[open][1], context4]]);
           }
-          nextEvents = push(nextEvents, [["enter", group, context3], ["enter", openingSequence, context3], ["exit", openingSequence, context3], ["enter", text12, context3]]);
-          nextEvents = push(nextEvents, resolveAll(context3.parser.constructs.insideSpan.null, events.slice(open + 1, index4), context3));
-          nextEvents = push(nextEvents, [["exit", text12, context3], ["enter", closingSequence, context3], ["exit", closingSequence, context3], ["exit", group, context3]]);
+          nextEvents = push(nextEvents, [["enter", group, context4], ["enter", openingSequence, context4], ["exit", openingSequence, context4], ["enter", text14, context4]]);
+          nextEvents = push(nextEvents, resolveAll(context4.parser.constructs.insideSpan.null, events.slice(open + 1, index4), context4));
+          nextEvents = push(nextEvents, [["exit", text14, context4], ["enter", closingSequence, context4], ["exit", closingSequence, context4], ["exit", group, context4]]);
           if (events[index4][1].end.offset - events[index4][1].start.offset) {
             offset2 = 2;
-            nextEvents = push(nextEvents, [["enter", events[index4][1], context3], ["exit", events[index4][1], context3]]);
+            nextEvents = push(nextEvents, [["enter", events[index4][1], context4], ["exit", events[index4][1], context4]]);
           } else {
             offset2 = 0;
           }
@@ -33311,12 +33387,12 @@ function subtokenize(eventsArray) {
 }
 function subcontent(events, eventIndex) {
   const token = events.get(eventIndex)[1];
-  const context3 = events.get(eventIndex)[2];
+  const context4 = events.get(eventIndex)[2];
   let startPosition = eventIndex - 1;
   const startPositions = [];
   let tokenizer = token._tokenizer;
   if (!tokenizer) {
-    tokenizer = context3.parser[token.contentType](token.start);
+    tokenizer = context4.parser[token.contentType](token.start);
     if (token._contentTypeTextTrailing) {
       tokenizer._contentTypeTextTrailing = true;
     }
@@ -33336,7 +33412,7 @@ function subcontent(events, eventIndex) {
     }
     startPositions.push(startPosition);
     if (!current2._tokenizer) {
-      stream = context3.sliceStream(current2);
+      stream = context4.sliceStream(current2);
       if (!current2.next) {
         stream.push(null);
       }
@@ -33808,11 +33884,11 @@ var headingAtx = {
   resolve: resolveHeadingAtx,
   tokenize: tokenizeHeadingAtx
 };
-function resolveHeadingAtx(events, context3) {
+function resolveHeadingAtx(events, context4) {
   let contentEnd = events.length - 2;
   let contentStart = 3;
   let content3;
-  let text12;
+  let text14;
   if (events[contentStart][1].type === "whitespace") {
     contentStart += 2;
   }
@@ -33828,13 +33904,13 @@ function resolveHeadingAtx(events, context3) {
       start: events[contentStart][1].start,
       end: events[contentEnd][1].end
     };
-    text12 = {
+    text14 = {
       type: "chunkText",
       start: events[contentStart][1].start,
       end: events[contentEnd][1].end,
       contentType: "text"
     };
-    splice(events, contentStart, contentEnd - contentStart + 1, [["enter", content3, context3], ["enter", text12, context3], ["exit", text12, context3], ["exit", content3, context3]]);
+    splice(events, contentStart, contentEnd - contentStart + 1, [["enter", content3, context4], ["enter", text14, context4], ["exit", text14, context4], ["exit", content3, context4]]);
   }
   return events;
 }
@@ -34678,7 +34754,7 @@ function resolveAllLabelEnd(events) {
   }
   return events;
 }
-function resolveToLabelEnd(events, context3) {
+function resolveToLabelEnd(events, context4) {
   let index4 = events.length;
   let offset2 = 0;
   let token;
@@ -34724,7 +34800,7 @@ function resolveToLabelEnd(events, context3) {
       ...events[close][1].end
     }
   };
-  const text12 = {
+  const text14 = {
     type: "labelText",
     start: {
       ...events[open + offset2 + 2][1].end
@@ -34733,13 +34809,13 @@ function resolveToLabelEnd(events, context3) {
       ...events[close - 2][1].start
     }
   };
-  media = [["enter", group, context3], ["enter", label, context3]];
+  media = [["enter", group, context4], ["enter", label, context4]];
   media = push(media, events.slice(open + 1, open + offset2 + 3));
-  media = push(media, [["enter", text12, context3]]);
-  media = push(media, resolveAll(context3.parser.constructs.insideSpan.null, events.slice(open + offset2 + 4, close - 3), context3));
-  media = push(media, [["exit", text12, context3], events[close - 2], events[close - 1], ["exit", label, context3]]);
+  media = push(media, [["enter", text14, context4]]);
+  media = push(media, resolveAll(context4.parser.constructs.insideSpan.null, events.slice(open + offset2 + 4, close - 3), context4));
+  media = push(media, [["exit", text14, context4], events[close - 2], events[close - 1], ["exit", label, context4]]);
   media = push(media, events.slice(close + 1));
-  media = push(media, [["exit", group, context3]]);
+  media = push(media, [["exit", group, context4]]);
   splice(events, open, events.length, media);
   return events;
 }
@@ -35114,10 +35190,10 @@ var setextUnderline = {
   resolveTo: resolveToSetextUnderline,
   tokenize: tokenizeSetextUnderline
 };
-function resolveToSetextUnderline(events, context3) {
+function resolveToSetextUnderline(events, context4) {
   let index4 = events.length;
   let content3;
-  let text12;
+  let text14;
   let definition3;
   while (index4--) {
     if (events[index4][0] === "enter") {
@@ -35126,7 +35202,7 @@ function resolveToSetextUnderline(events, context3) {
         break;
       }
       if (events[index4][1].type === "paragraph") {
-        text12 = index4;
+        text14 = index4;
       }
     } else {
       if (events[index4][1].type === "content") {
@@ -35146,17 +35222,17 @@ function resolveToSetextUnderline(events, context3) {
       ...events[events.length - 1][1].end
     }
   };
-  events[text12][1].type = "setextHeadingText";
+  events[text14][1].type = "setextHeadingText";
   if (definition3) {
-    events.splice(text12, 0, ["enter", heading3, context3]);
-    events.splice(definition3 + 1, 0, ["exit", events[content3][1], context3]);
+    events.splice(text14, 0, ["enter", heading3, context4]);
+    events.splice(definition3 + 1, 0, ["exit", events[content3][1], context4]);
     events[content3][1].end = {
       ...events[definition3][1].end
     };
   } else {
     events[content3][1] = heading3;
   }
-  events.push(["exit", heading3, context3]);
+  events.push(["exit", heading3, context4]);
   return events;
 }
 function tokenizeSetextUnderline(effects, ok3, nok) {
@@ -35251,11 +35327,11 @@ function tokenizePotentialGfmFootnoteCall(effects, ok3, nok) {
     if (!labelStart || !labelStart._balanced) {
       return nok(code4);
     }
-    const id33 = normalizeIdentifier(self2.sliceSerialize({
+    const id36 = normalizeIdentifier(self2.sliceSerialize({
       start: labelStart.end,
       end: self2.now()
     }));
-    if (id33.codePointAt(0) !== 94 || !defined.includes(id33.slice(1))) {
+    if (id36.codePointAt(0) !== 94 || !defined.includes(id36.slice(1))) {
       return nok(code4);
     }
     effects.enter("gfmFootnoteCallLabelMarker");
@@ -35264,7 +35340,7 @@ function tokenizePotentialGfmFootnoteCall(effects, ok3, nok) {
     return ok3(code4);
   }
 }
-function resolveToPotentialGfmFootnoteCall(events, context3) {
+function resolveToPotentialGfmFootnoteCall(events, context4) {
   let index4 = events.length;
   let labelStart;
   while (index4--) {
@@ -35303,22 +35379,22 @@ function resolveToPotentialGfmFootnoteCall(events, context3) {
     // Take the `labelImageMarker` (now `data`, the `!`)
     events[index4 + 1],
     events[index4 + 2],
-    ["enter", call, context3],
+    ["enter", call, context4],
     // The `[`
     events[index4 + 3],
     events[index4 + 4],
     // The `^`.
-    ["enter", marker, context3],
-    ["exit", marker, context3],
+    ["enter", marker, context4],
+    ["exit", marker, context4],
     // Everything in between.
-    ["enter", string3, context3],
-    ["enter", chunk, context3],
-    ["exit", chunk, context3],
-    ["exit", string3, context3],
+    ["enter", string3, context4],
+    ["enter", chunk, context4],
+    ["exit", chunk, context4],
+    ["exit", string3, context4],
     // The ending (`]`, properly parsed and labelled).
     events[events.length - 2],
     events[events.length - 1],
-    ["exit", call, context3]
+    ["exit", call, context4]
   ];
   events.splice(index4, events.length - index4 + 1, ...replacement);
   return events;
@@ -35498,7 +35574,7 @@ function gfmStrikethrough(options) {
       null: [126]
     }
   };
-  function resolveAllStrikethrough(events, context3) {
+  function resolveAllStrikethrough(events, context4) {
     let index4 = -1;
     while (++index4 < events.length) {
       if (events[index4][0] === "enter" && events[index4][1].type === "strikethroughSequenceTemporary" && events[index4][1]._close) {
@@ -35513,17 +35589,17 @@ function gfmStrikethrough(options) {
               start: Object.assign({}, events[open][1].start),
               end: Object.assign({}, events[index4][1].end)
             };
-            const text12 = {
+            const text14 = {
               type: "strikethroughText",
               start: Object.assign({}, events[open][1].end),
               end: Object.assign({}, events[index4][1].start)
             };
-            const nextEvents = [["enter", strikethrough2, context3], ["enter", events[open][1], context3], ["exit", events[open][1], context3], ["enter", text12, context3]];
-            const insideSpan2 = context3.parser.constructs.insideSpan.null;
+            const nextEvents = [["enter", strikethrough2, context4], ["enter", events[open][1], context4], ["exit", events[open][1], context4], ["enter", text14, context4]];
+            const insideSpan2 = context4.parser.constructs.insideSpan.null;
             if (insideSpan2) {
-              splice(nextEvents, nextEvents.length, 0, resolveAll(insideSpan2, events.slice(open + 1, index4), context3));
+              splice(nextEvents, nextEvents.length, 0, resolveAll(insideSpan2, events.slice(open + 1, index4), context4));
             }
-            splice(nextEvents, nextEvents.length, 0, [["exit", text12, context3], ["enter", events[index4][1], context3], ["exit", events[index4][1], context3], ["exit", strikethrough2, context3]]);
+            splice(nextEvents, nextEvents.length, 0, [["exit", text14, context4], ["enter", events[index4][1], context4], ["exit", events[index4][1], context4], ["exit", strikethrough2, context4]]);
             splice(events, open - 1, index4 - open + 3, nextEvents);
             index4 = open + nextEvents.length - 2;
             break;
@@ -35902,7 +35978,7 @@ function tokenizeTable(effects, ok3, nok) {
     return bodyRowData(code4);
   }
 }
-function resolveTable(events, context3) {
+function resolveTable(events, context4) {
   let index4 = -1;
   let inFirstCellAwaitingPipe = true;
   let rowKind = 0;
@@ -35921,7 +35997,7 @@ function resolveTable(events, context3) {
       if (token.type === "tableHead") {
         afterHeadAwaitingFirstBodyRow = false;
         if (lastTableEnd !== 0) {
-          flushTableEnd(map3, context3, lastTableEnd, currentTable, currentBody);
+          flushTableEnd(map3, context4, lastTableEnd, currentTable, currentBody);
           currentBody = void 0;
           lastTableEnd = 0;
         }
@@ -35931,7 +36007,7 @@ function resolveTable(events, context3) {
           // Note: correct end is set later.
           end: Object.assign({}, token.end)
         };
-        map3.add(index4, 0, [["enter", currentTable, context3]]);
+        map3.add(index4, 0, [["enter", currentTable, context4]]);
       } else if (token.type === "tableRow" || token.type === "tableDelimiterRow") {
         inFirstCellAwaitingPipe = true;
         currentCell = void 0;
@@ -35945,7 +36021,7 @@ function resolveTable(events, context3) {
             // Note: correct end is set later.
             end: Object.assign({}, token.end)
           };
-          map3.add(index4, 0, [["enter", currentBody, context3]]);
+          map3.add(index4, 0, [["enter", currentBody, context4]]);
         }
         rowKind = token.type === "tableDelimiterRow" ? 2 : currentBody ? 3 : 1;
       } else if (rowKind && (token.type === "data" || token.type === "tableDelimiterMarker" || token.type === "tableDelimiterFiller")) {
@@ -35953,7 +36029,7 @@ function resolveTable(events, context3) {
         if (cell[2] === 0) {
           if (lastCell[1] !== 0) {
             cell[0] = cell[1];
-            currentCell = flushCell(map3, context3, lastCell, rowKind, void 0, currentCell);
+            currentCell = flushCell(map3, context4, lastCell, rowKind, void 0, currentCell);
             lastCell = [0, 0, 0, 0];
           }
           cell[2] = index4;
@@ -35964,7 +36040,7 @@ function resolveTable(events, context3) {
         } else {
           if (lastCell[1] !== 0) {
             cell[0] = cell[1];
-            currentCell = flushCell(map3, context3, lastCell, rowKind, void 0, currentCell);
+            currentCell = flushCell(map3, context4, lastCell, rowKind, void 0, currentCell);
           }
           lastCell = cell;
           cell = [lastCell[1], index4, 0, 0];
@@ -35977,9 +36053,9 @@ function resolveTable(events, context3) {
       lastTableEnd = index4;
       if (lastCell[1] !== 0) {
         cell[0] = cell[1];
-        currentCell = flushCell(map3, context3, lastCell, rowKind, index4, currentCell);
+        currentCell = flushCell(map3, context4, lastCell, rowKind, index4, currentCell);
       } else if (cell[1] !== 0) {
-        currentCell = flushCell(map3, context3, cell, rowKind, index4, currentCell);
+        currentCell = flushCell(map3, context4, cell, rowKind, index4, currentCell);
       }
       rowKind = 0;
     } else if (rowKind && (token.type === "data" || token.type === "tableDelimiterMarker" || token.type === "tableDelimiterFiller")) {
@@ -35987,45 +36063,45 @@ function resolveTable(events, context3) {
     }
   }
   if (lastTableEnd !== 0) {
-    flushTableEnd(map3, context3, lastTableEnd, currentTable, currentBody);
+    flushTableEnd(map3, context4, lastTableEnd, currentTable, currentBody);
   }
-  map3.consume(context3.events);
+  map3.consume(context4.events);
   index4 = -1;
-  while (++index4 < context3.events.length) {
-    const event = context3.events[index4];
+  while (++index4 < context4.events.length) {
+    const event = context4.events[index4];
     if (event[0] === "enter" && event[1].type === "table") {
-      event[1]._align = gfmTableAlign(context3.events, index4);
+      event[1]._align = gfmTableAlign(context4.events, index4);
     }
   }
   return events;
 }
-function flushCell(map3, context3, range2, rowKind, rowEnd, previousCell) {
+function flushCell(map3, context4, range2, rowKind, rowEnd, previousCell) {
   const groupName = rowKind === 1 ? "tableHeader" : rowKind === 2 ? "tableDelimiter" : "tableData";
   const valueName = "tableContent";
   if (range2[0] !== 0) {
-    previousCell.end = Object.assign({}, getPoint(context3.events, range2[0]));
-    map3.add(range2[0], 0, [["exit", previousCell, context3]]);
+    previousCell.end = Object.assign({}, getPoint(context4.events, range2[0]));
+    map3.add(range2[0], 0, [["exit", previousCell, context4]]);
   }
-  const now = getPoint(context3.events, range2[1]);
+  const now = getPoint(context4.events, range2[1]);
   previousCell = {
     type: groupName,
     start: Object.assign({}, now),
     // Note: correct end is set later.
     end: Object.assign({}, now)
   };
-  map3.add(range2[1], 0, [["enter", previousCell, context3]]);
+  map3.add(range2[1], 0, [["enter", previousCell, context4]]);
   if (range2[2] !== 0) {
-    const relatedStart = getPoint(context3.events, range2[2]);
-    const relatedEnd = getPoint(context3.events, range2[3]);
+    const relatedStart = getPoint(context4.events, range2[2]);
+    const relatedEnd = getPoint(context4.events, range2[3]);
     const valueToken = {
       type: valueName,
       start: Object.assign({}, relatedStart),
       end: Object.assign({}, relatedEnd)
     };
-    map3.add(range2[2], 0, [["enter", valueToken, context3]]);
+    map3.add(range2[2], 0, [["enter", valueToken, context4]]);
     if (rowKind !== 2) {
-      const start2 = context3.events[range2[2]];
-      const end = context3.events[range2[3]];
+      const start2 = context4.events[range2[2]];
+      const end = context4.events[range2[3]];
       start2[1].end = Object.assign({}, end[1].end);
       start2[1].type = "chunkText";
       start2[1].contentType = "text";
@@ -36035,24 +36111,24 @@ function flushCell(map3, context3, range2, rowKind, rowEnd, previousCell) {
         map3.add(a, b, []);
       }
     }
-    map3.add(range2[3] + 1, 0, [["exit", valueToken, context3]]);
+    map3.add(range2[3] + 1, 0, [["exit", valueToken, context4]]);
   }
   if (rowEnd !== void 0) {
-    previousCell.end = Object.assign({}, getPoint(context3.events, rowEnd));
-    map3.add(rowEnd, 0, [["exit", previousCell, context3]]);
+    previousCell.end = Object.assign({}, getPoint(context4.events, rowEnd));
+    map3.add(rowEnd, 0, [["exit", previousCell, context4]]);
     previousCell = void 0;
   }
   return previousCell;
 }
-function flushTableEnd(map3, context3, index4, table2, tableBody) {
+function flushTableEnd(map3, context4, index4, table2, tableBody) {
   const exits = [];
-  const related = getPoint(context3.events, index4);
+  const related = getPoint(context4.events, index4);
   if (tableBody) {
     tableBody.end = Object.assign({}, related);
-    exits.push(["exit", tableBody, context3]);
+    exits.push(["exit", tableBody, context4]);
   }
   table2.end = Object.assign({}, related);
-  exits.push(["exit", table2, context3]);
+  exits.push(["exit", table2, context4]);
   map3.add(index4 + 1, 0, exits);
 }
 function getPoint(events, index4) {
@@ -36447,10 +36523,10 @@ function initializeFactory(field) {
   function initializeText(effects) {
     const self2 = this;
     const constructs2 = this.parser.constructs[field];
-    const text12 = effects.attempt(constructs2, start2, notText);
+    const text14 = effects.attempt(constructs2, start2, notText);
     return start2;
     function start2(code4) {
-      return atBreak(code4) ? text12(code4) : notText(code4);
+      return atBreak(code4) ? text14(code4) : notText(code4);
     }
     function notText(code4) {
       if (code4 === null) {
@@ -36464,7 +36540,7 @@ function initializeFactory(field) {
     function data(code4) {
       if (atBreak(code4)) {
         effects.exit("data");
-        return text12(code4);
+        return text14(code4);
       }
       effects.consume(code4);
       return data;
@@ -36489,7 +36565,7 @@ function initializeFactory(field) {
 }
 function createResolver(extraResolver) {
   return resolveAllText;
-  function resolveAllText(events, context3) {
+  function resolveAllText(events, context4) {
     let index4 = -1;
     let enter;
     while (++index4 <= events.length) {
@@ -36507,15 +36583,15 @@ function createResolver(extraResolver) {
         enter = void 0;
       }
     }
-    return extraResolver ? extraResolver(events, context3) : events;
+    return extraResolver ? extraResolver(events, context4) : events;
   }
 }
-function resolveAllLineSuffixes(events, context3) {
+function resolveAllLineSuffixes(events, context4) {
   let eventIndex = 0;
   while (++eventIndex <= events.length) {
     if ((eventIndex === events.length || events[eventIndex][1].type === "lineEnding") && events[eventIndex - 1][1].type === "data") {
       const data = events[eventIndex - 1][1];
-      const chunks = context3.sliceStream(data);
+      const chunks = context4.sliceStream(data);
       let index4 = chunks.length;
       let bufferIndex = -1;
       let size = 0;
@@ -36539,7 +36615,7 @@ function resolveAllLineSuffixes(events, context3) {
           break;
         }
       }
-      if (context3._contentTypeTextTrailing && eventIndex === events.length) {
+      if (context4._contentTypeTextTrailing && eventIndex === events.length) {
         size = 0;
       }
       if (size) {
@@ -36562,7 +36638,7 @@ function resolveAllLineSuffixes(events, context3) {
         if (data.start.offset === data.end.offset) {
           Object.assign(data, token);
         } else {
-          events.splice(eventIndex, 0, ["enter", token, context3], ["exit", token, context3]);
+          events.splice(eventIndex, 0, ["enter", token, context4], ["exit", token, context4]);
           eventIndex += 2;
         }
       }
@@ -36671,7 +36747,7 @@ function createTokenizer(parser3, initialize, from) {
       interrupt: true
     })
   };
-  const context3 = {
+  const context4 = {
     code: null,
     containerState: {},
     defineSkip,
@@ -36683,12 +36759,12 @@ function createTokenizer(parser3, initialize, from) {
     sliceStream,
     write: write2
   };
-  let state = initialize.tokenize.call(context3, effects);
+  let state = initialize.tokenize.call(context4, effects);
   let expectedCode;
   if (initialize.resolveAll) {
     resolveAllConstructs.push(initialize);
   }
-  return context3;
+  return context4;
   function write2(slice) {
     chunks = push(chunks, slice);
     main();
@@ -36696,8 +36772,8 @@ function createTokenizer(parser3, initialize, from) {
       return [];
     }
     addResult(initialize, 0);
-    context3.events = resolveAll(resolveAllConstructs, context3.events, context3);
-    return context3.events;
+    context4.events = resolveAll(resolveAllConstructs, context4.events, context4);
+    return context4.events;
   }
   function sliceSerialize(token, expandTabs) {
     return serializeChunks(sliceStream(token), expandTabs);
@@ -36769,21 +36845,21 @@ function createTokenizer(parser3, initialize, from) {
         point6._index++;
       }
     }
-    context3.previous = code4;
+    context4.previous = code4;
     consumed = true;
   }
   function enter(type, fields) {
     const token = fields || {};
     token.type = type;
     token.start = now();
-    context3.events.push(["enter", token, context3]);
+    context4.events.push(["enter", token, context4]);
     stack.push(token);
     return token;
   }
   function exit3(type) {
     const token = stack.pop();
     token.end = now();
-    context3.events.push(["exit", token, context3]);
+    context4.events.push(["exit", token, context4]);
     return token;
   }
   function onsuccessfulconstruct(construct2, info) {
@@ -36837,16 +36913,16 @@ function createTokenizer(parser3, initialize, from) {
           info = store();
           currentConstruct = construct2;
           if (!construct2.partial) {
-            context3.currentConstruct = construct2;
+            context4.currentConstruct = construct2;
           }
-          if (construct2.name && context3.parser.constructs.disable.null.includes(construct2.name)) {
+          if (construct2.name && context4.parser.constructs.disable.null.includes(construct2.name)) {
             return nok(code4);
           }
           return construct2.tokenize.call(
             // If we do have fields, create an object w/ `context` as its
             // prototype.
             // This allows a “live binding”, which is needed for `interrupt`.
-            fields ? Object.assign(Object.create(context3), fields) : context3,
+            fields ? Object.assign(Object.create(context4), fields) : context4,
             effects,
             ok3,
             nok
@@ -36873,17 +36949,17 @@ function createTokenizer(parser3, initialize, from) {
       resolveAllConstructs.push(construct2);
     }
     if (construct2.resolve) {
-      splice(context3.events, from2, context3.events.length - from2, construct2.resolve(context3.events.slice(from2), context3));
+      splice(context4.events, from2, context4.events.length - from2, construct2.resolve(context4.events.slice(from2), context4));
     }
     if (construct2.resolveTo) {
-      context3.events = construct2.resolveTo(context3.events, context3);
+      context4.events = construct2.resolveTo(context4.events, context4);
     }
   }
   function store() {
     const startPoint = now();
-    const startPrevious = context3.previous;
-    const startCurrentConstruct = context3.currentConstruct;
-    const startEventsIndex = context3.events.length;
+    const startPrevious = context4.previous;
+    const startCurrentConstruct = context4.currentConstruct;
+    const startEventsIndex = context4.events.length;
     const startStack = Array.from(stack);
     return {
       from: startEventsIndex,
@@ -36891,9 +36967,9 @@ function createTokenizer(parser3, initialize, from) {
     };
     function restore() {
       point6 = startPoint;
-      context3.previous = startPrevious;
-      context3.currentConstruct = startCurrentConstruct;
-      context3.events.length = startEventsIndex;
+      context4.previous = startPrevious;
+      context4.currentConstruct = startCurrentConstruct;
+      context4.events.length = startEventsIndex;
       stack = startStack;
       accountForPotentialSkip();
     }
@@ -37224,7 +37300,7 @@ function compiler(options) {
       type: "root",
       children: []
     };
-    const context3 = {
+    const context4 = {
       stack: [tree],
       tokenStack: [],
       config,
@@ -37252,13 +37328,13 @@ function compiler(options) {
       if (own.call(handler, events[index4][1].type)) {
         handler[events[index4][1].type].call(Object.assign({
           sliceSerialize: events[index4][2].sliceSerialize
-        }, context3), events[index4][1]);
+        }, context4), events[index4][1]);
       }
     }
-    if (context3.tokenStack.length > 0) {
-      const tail = context3.tokenStack[context3.tokenStack.length - 1];
+    if (context4.tokenStack.length > 0) {
+      const tail = context4.tokenStack[context4.tokenStack.length - 1];
       const handler = tail[1] || defaultOnError;
-      handler.call(context3, void 0, tail[0]);
+      handler.call(context4, void 0, tail[0]);
     }
     tree.position = {
       start: point2(events.length > 0 ? events[0][1].start : {
@@ -37494,7 +37570,7 @@ function compiler(options) {
     const siblings = node2.children;
     let tail = siblings[siblings.length - 1];
     if (!tail || tail.type !== "text") {
-      tail = text12();
+      tail = text14();
       tail.position = {
         start: point2(token.start),
         // @ts-expect-error: we’ll add `end` later.
@@ -37510,14 +37586,14 @@ function compiler(options) {
     tail.position.end = point2(token.end);
   }
   function onexitlineending(token) {
-    const context3 = this.stack[this.stack.length - 1];
+    const context4 = this.stack[this.stack.length - 1];
     if (this.data.atHardBreak) {
-      const tail = context3.children[context3.children.length - 1];
+      const tail = context4.children[context4.children.length - 1];
       tail.position.end = point2(token.end);
       this.data.atHardBreak = void 0;
       return;
     }
-    if (!this.data.setextHeadingSlurpLineEnding && config.canContainEols.includes(context3.type)) {
+    if (!this.data.setextHeadingSlurpLineEnding && config.canContainEols.includes(context4.type)) {
       onenterdata.call(this, token);
       onexitdata.call(this, token);
     }
@@ -37739,7 +37815,7 @@ function compiler(options) {
       children: []
     };
   }
-  function text12() {
+  function text14() {
     return {
       type: "text",
       value: ""
@@ -39965,7 +40041,7 @@ var TRANSPARENT_CONTAINERS = /* @__PURE__ */ new Set([
   "tableCell"
 ]);
 var unitNulls = (length) => Array.from({ length }, () => null);
-var nulls = (text12) => ({ text: text12, offsets: unitNulls(text12.length) });
+var nulls = (text14) => ({ text: text14, offsets: unitNulls(text14.length) });
 function sourceRange(node2) {
   const start2 = node2.position?.start?.offset;
   const end = node2.position?.end?.offset;
@@ -40072,15 +40148,15 @@ var sourceProjectionSha256 = external_exports.string().regex(/^[a-f0-9]{64}$/);
 var characterOffset = external_exports.number().int().nonnegative().max(1e7);
 var sourceMessageIds = external_exports.array(boundedId).min(1).max(MESSAGE_BUNDLE_MAX_ITEMS).superRefine((ids2, ctx) => {
   const seen = /* @__PURE__ */ new Set();
-  ids2.forEach((id33, index4) => {
-    if (seen.has(id33)) {
+  ids2.forEach((id36, index4) => {
+    if (seen.has(id36)) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: [index4],
         message: "Message Bundle sourceMessageIds must be unique"
       });
     }
-    seen.add(id33);
+    seen.add(id36);
   });
 });
 function requireAnchorInSourceRefs(value, ctx) {
@@ -40542,9 +40618,7 @@ var PluginArchiveReplacementConfirmationSchema = external_exports.object({
   pluginInstanceId: external_exports.string().min(1).max(256),
   currentPackageDigest: digest,
   candidatePackageDigest: digest,
-  expectedLifecycleRevision: revision,
-  expectedGrantRevision: revision,
-  candidateEffectiveGrants: external_exports.array(external_exports.string().min(1).max(128)).max(256)
+  expectedLifecycleRevision: revision
 }).strict();
 var PluginArchiveReplacementOfferSchema = external_exports.object({
   confirmation: PluginArchiveReplacementConfirmationSchema,
@@ -40560,9 +40634,9 @@ var targetPathSchema = external_exports.string().min(1).max(2048).refine((value)
   message: "Target path must be absolute within the preview origin"
 });
 var domAttributeNameSchema = external_exports.string().regex(/^(?:data|aria)-[a-z0-9][a-z0-9._:-]*$/).max(100);
-var domAttributesSchema = external_exports.record(domAttributeNameSchema, external_exports.string().max(200)).superRefine((attributes, context3) => {
+var domAttributesSchema = external_exports.record(domAttributeNameSchema, external_exports.string().max(200)).superRefine((attributes, context4) => {
   if (Object.keys(attributes).length > 8) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: "At most 8 DOM attributes may be asserted" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: "At most 8 DOM attributes may be asserted" });
   }
 });
 var previewVisiblePageDomAssertionSchema = external_exports.object({
@@ -40637,11 +40711,11 @@ var RECALL_META_OPEN_TAG = `<${RECALL_META_TAG}>`;
 var RECALL_META_CLOSE_TAG = `</${RECALL_META_TAG}>`;
 
 // ../shared/src/types/ids.ts
-function createCatId(id33) {
-  if (!id33 || typeof id33 !== "string") {
+function createCatId(id36) {
+  if (!id36 || typeof id36 !== "string") {
     throw new Error("Invalid cat ID: must be non-empty string");
   }
-  return id33;
+  return id36;
 }
 
 // ../shared/src/registry/CatRegistry.ts
@@ -40678,12 +40752,12 @@ var CatRegistry = class {
     return this.entries.get(catId2);
   }
   getAllIds() {
-    return Array.from(this.entries.keys()).map((id33) => createCatId(id33));
+    return Array.from(this.entries.keys()).map((id36) => createCatId(id36));
   }
   getAllConfigs() {
     const result = {};
-    for (const [id33, entry] of this.entries) {
-      result[id33] = entry.config;
+    for (const [id36, entry] of this.entries) {
+      result[id36] = entry.config;
     }
     return result;
   }
@@ -40712,9 +40786,9 @@ var catRegistry = new CatRegistry();
 // ../shared/src/registry/cat-id-schema.ts
 function catIdSchema() {
   return external_exports.string().refine(
-    (id33) => catRegistry.has(id33),
-    (id33) => ({
-      message: `Unknown cat ID: "${id33}". Valid: ${catRegistry.getAllIds().join(", ")}`
+    (id36) => catRegistry.has(id36),
+    (id36) => ({
+      message: `Unknown cat ID: "${id36}". Valid: ${catRegistry.getAllIds().join(", ")}`
     })
   );
 }
@@ -40733,6 +40807,193 @@ var ManifestSlashCommandSchema = external_exports.object({
   subcommands: external_exports.array(external_exports.string().regex(/^[a-z][a-z0-9-]{0,30}$/, "Subcommand must be lowercase alphanumeric/dash")).optional()
 });
 var ManifestSlashCommandsSchema = external_exports.array(ManifestSlashCommandSchema);
+
+// ../shared/src/types/video-project-json.ts
+var videoProjectJsonLimits = { depth: 32, nodes: 2e4, bytes: 1048576 };
+function isJsonPrimitive(value) {
+  if (value === null || typeof value === "boolean") return true;
+  if (typeof value === "number") return Number.isFinite(value);
+  return typeof value === "string" && value.length <= videoProjectJsonLimits.bytes;
+}
+function hasDenseArrayIndices(array, keys2) {
+  return keys2.length === array.length && keys2.every((key) => typeof key === "string" && /^(0|[1-9]\d*)$/.test(key) && Number(key) < array.length);
+}
+function jsonObjectChildren(value) {
+  const array = Array.isArray(value);
+  const prototype = Object.getPrototypeOf(value);
+  if (!array && prototype !== Object.prototype && prototype !== null) return null;
+  const keys2 = Reflect.ownKeys(value).filter((key) => !(array && key === "length"));
+  if (keys2.length > videoProjectJsonLimits.nodes || keys2.some((key) => typeof key !== "string")) return null;
+  if (array && !hasDenseArrayIndices(value, keys2)) return null;
+  const children = [];
+  for (const key of keys2) {
+    const property = Object.getOwnPropertyDescriptor(value, key);
+    if (!property || !("value" in property) || !property.enumerable) return null;
+    children.push(property.value);
+  }
+  return children;
+}
+function isBoundedJson(value) {
+  const pending = [{ kind: "enter", value, depth: 0 }];
+  const ancestors = /* @__PURE__ */ new Set();
+  let nodes = 0;
+  for (let next = pending.pop(); next; next = pending.pop()) {
+    if (next.kind === "leave") {
+      ancestors.delete(next.value);
+      continue;
+    }
+    if (++nodes > videoProjectJsonLimits.nodes || next.depth > videoProjectJsonLimits.depth) return false;
+    const current2 = next.value;
+    if (current2 === null || typeof current2 !== "object") {
+      if (!isJsonPrimitive(current2)) return false;
+      continue;
+    }
+    if (!appendJsonObject(current2, next.depth, pending, ancestors, nodes)) return false;
+  }
+  const serialized = JSON.stringify(value);
+  return typeof serialized === "string" && new TextEncoder().encode(serialized).byteLength <= videoProjectJsonLimits.bytes;
+}
+function appendJsonObject(value, depth, pending, ancestors, nodes) {
+  if (ancestors.has(value)) return false;
+  const children = jsonObjectChildren(value);
+  if (children === null || children.length + nodes + pending.length > videoProjectJsonLimits.nodes) return false;
+  ancestors.add(value);
+  pending.push({ kind: "leave", value });
+  for (const child of children) pending.push({ kind: "enter", value: child, depth: depth + 1 });
+  return true;
+}
+var videoProjectJsonSchema = external_exports.custom(isBoundedJson, "Expected bounded JSON data").transform((value) => structuredClone(value));
+
+// ../shared/src/types/video-project-primitives.ts
+var videoProjectIdSchema = external_exports.string().min(1).max(256).refine((value) => value.trim().length > 0);
+var videoProjectTimestampSchema = external_exports.string().max(64).datetime();
+var videoProjectDigestSchema = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
+var videoProjectPositiveSchema = external_exports.number().int().positive().safe();
+var videoProjectTickSchema = external_exports.number().int().nonnegative().safe();
+var videoProjectTextSchema = (max) => external_exports.string().min(1).max(max).refine((value) => value.trim().length > 0, "Text must be nonblank");
+var videoProjectActorSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("human"), actorId: videoProjectIdSchema }).strict(),
+  external_exports.object({ kind: external_exports.literal("cat"), actorId: videoProjectIdSchema }).strict()
+]);
+var videoProjectOriginSchema = external_exports.object({
+  kind: external_exports.enum(["imported", "created"]),
+  actor: videoProjectActorSchema.nullable(),
+  at: videoProjectTimestampSchema,
+  refs: external_exports.array(videoProjectIdSchema).max(1e3),
+  converter: external_exports.object({ id: videoProjectIdSchema, version: videoProjectIdSchema }).strict().optional(),
+  sources: external_exports.array(external_exports.object({ ref: videoProjectTextSchema(2048), digest: videoProjectDigestSchema }).strict()).max(1e4).optional()
+}).strict();
+var videoProjectExtensionSchema = external_exports.object({
+  namespace: videoProjectIdSchema,
+  schemaVersion: videoProjectPositiveSchema,
+  payload: videoProjectJsonSchema
+}).strict();
+var videoProjectLocatorSchema = external_exports.object({
+  kind: external_exports.literal("workspace"),
+  rootId: videoProjectIdSchema,
+  path: videoProjectTextSchema(2048).refine(
+    (path2) => !path2.includes(":") && !path2.includes("\\") && [...path2].every((character) => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127) && path2.split("/").every((part) => part !== "" && part !== "." && part !== ".."),
+    "Locator must be a safe relative path within a registered root"
+  )
+}).strict();
+var videoProjectAssetVersionSchema = external_exports.object({
+  id: videoProjectIdSchema,
+  mediaType: videoProjectTextSchema(256),
+  byteLength: videoProjectTickSchema,
+  sha256: videoProjectDigestSchema,
+  locator: videoProjectLocatorSchema,
+  recordedAt: videoProjectTimestampSchema,
+  origin: videoProjectOriginSchema,
+  width: videoProjectPositiveSchema.optional(),
+  height: videoProjectPositiveSchema.optional(),
+  rotation: external_exports.union([external_exports.literal(0), external_exports.literal(90), external_exports.literal(180), external_exports.literal(270)]).optional(),
+  durationTicks: videoProjectPositiveSchema.optional()
+}).strict();
+var videoProjectAssetSchema = external_exports.object({
+  id: videoProjectIdSchema,
+  name: videoProjectTextSchema(1e3),
+  kind: videoProjectTextSchema(256),
+  versions: external_exports.array(videoProjectAssetVersionSchema).min(1).max(1e4)
+}).strict();
+
+// ../shared/src/types/work-reference.ts
+var workReferenceSchema = external_exports.object({
+  contentRef: external_exports.string().min(1).max(2048),
+  ownerRevision: external_exports.number().int().positive().safe()
+}).strict();
+
+// ../shared/src/types/asset-canon.ts
+var text6 = videoProjectTextSchema;
+var indexedVersionRefSchema = external_exports.string().regex(/^asset:sha256:[a-f0-9]{64}$/);
+var assetStatusSchema = external_exports.enum(["canonical", "experimental", "failed"]);
+var characterSubjectSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("member"), catId: text6(256) }).strict(),
+  external_exports.object({ kind: external_exports.literal("series"), seriesKey: text6(256), characterKey: text6(256) }).strict()
+]);
+var characterAssetUseSchema = external_exports.object({
+  subjectRef: characterSubjectSchema,
+  representation: text6(128),
+  styleKey: text6(256),
+  role: external_exports.enum(["avatar", "portrait", "action", "reference"]),
+  actionKey: text6(256).optional()
+}).strict().superRefine((value, ctx) => {
+  if (value.role === "action" !== (value.actionKey !== void 0))
+    ctx.addIssue({ code: "custom", path: ["actionKey"], message: "Only action uses require an actionKey" });
+});
+var characterAssetSlotSchema = external_exports.union([
+  characterAssetUseSchema,
+  external_exports.object({ role: external_exports.literal("member-avatar"), catId: text6(256) }).strict()
+]);
+var assetBindingSelectionSchema = external_exports.object({
+  bindingRef: text6(256),
+  bindingRevision: external_exports.number().int().positive().safe(),
+  indexedVersionRef: indexedVersionRefSchema
+}).strict();
+var assetWorkCoordinateSchema = external_exports.object({
+  reference: workReferenceSchema,
+  metadataRevision: external_exports.number().int().positive().safe(),
+  assetId: text6(256)
+}).strict();
+var assetCanonSourceSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("workspace"), threadId: text6(256).optional() }).strict(),
+  assetWorkCoordinateSchema.extend({ kind: external_exports.literal("work"), threadId: text6(256) }).strict()
+]);
+var judgment = external_exports.object({
+  actor: videoProjectActorSchema,
+  reason: text6(4e3),
+  recordedAt: external_exports.string().datetime(),
+  operationId: text6(256),
+  requestDigest: external_exports.string(),
+  evidenceRefs: external_exports.array(text6(2048)).max(100)
+}).strict();
+var assetCanonRecordSchema = external_exports.object({
+  indexedVersionRef: indexedVersionRefSchema,
+  ownerUserId: text6(256),
+  name: text6(1e3),
+  kind: text6(256),
+  version: videoProjectAssetVersionSchema,
+  applicability: external_exports.array(characterAssetUseSchema).max(100),
+  evidenceRefs: external_exports.array(text6(2048)).max(100).optional(),
+  creator: videoProjectActorSchema,
+  source: assetCanonSourceSchema,
+  createdAt: external_exports.string().datetime(),
+  revision: external_exports.number().int().nonnegative().safe(),
+  status: assetStatusSchema.nullable(),
+  judgment: judgment.nullable(),
+  supersededBy: external_exports.object({ eventRef: text6(256), indexedVersionRef: indexedVersionRefSchema }).strict().nullable()
+}).strict();
+var characterAssetBindingSchema = external_exports.object({
+  bindingRef: text6(256),
+  bindingRevision: external_exports.number().int().positive().safe(),
+  ownerUserId: text6(256),
+  slot: characterAssetSlotSchema,
+  indexedVersionRef: indexedVersionRefSchema.nullable(),
+  memberCatId: text6(256).optional(),
+  actor: videoProjectActorSchema,
+  reason: text6(4e3),
+  evidenceRefs: external_exports.array(text6(2048)).min(1).max(100),
+  recordedAt: external_exports.string().datetime()
+}).strict();
 
 // ../shared/src/types/artifact-review-media.ts
 var ref3 = external_exports.string().trim().min(1).max(2048);
@@ -40794,17 +41055,17 @@ var artifactReviewAnchorSchema = external_exports.discriminatedUnion("kind", [
     frameRegion: external_exports.object({ tick, ...region }).strict().optional(),
     framePoint: external_exports.object({ tick, ...point3 }).strict().optional()
   }).strict()
-]).superRefine((anchor, context3) => {
+]).superRefine((anchor, context4) => {
   if (anchor.kind !== "video-range") return;
   if (anchor.endTick <= anchor.startTick)
-    context3.addIssue({ code: "custom", message: "Video range must be nonempty and half-open" });
+    context4.addIssue({ code: "custom", message: "Video range must be nonempty and half-open" });
   if (anchor.frameRegion && (anchor.frameRegion.tick < anchor.startTick || anchor.frameRegion.tick >= anchor.endTick)) {
-    context3.addIssue({ code: "custom", message: "Frame must be inside the selected time range" });
+    context4.addIssue({ code: "custom", message: "Frame must be inside the selected time range" });
   }
   if (anchor.framePoint && (anchor.framePoint.tick < anchor.startTick || anchor.framePoint.tick >= anchor.endTick))
-    context3.addIssue({ code: "custom", message: "Point frame must be inside the selected time range" });
+    context4.addIssue({ code: "custom", message: "Point frame must be inside the selected time range" });
   if (anchor.framePoint && anchor.frameRegion)
-    context3.addIssue({ code: "custom", message: "Choose one spatial target per video anchor" });
+    context4.addIssue({ code: "custom", message: "Choose one spatial target per video anchor" });
 });
 var mediaModificationSelectionItemSchema = external_exports.object({
   id: id3,
@@ -40847,7 +41108,7 @@ var artifactReviewImageEditSchema = external_exports.discriminatedUnion("kind", 
 var ref4 = external_exports.string().trim().min(1).max(2048);
 var id4 = external_exports.string().trim().min(1).max(128);
 var positive2 = external_exports.number().int().positive().safe();
-var text6 = external_exports.string().trim().min(1).max(8e3);
+var text7 = external_exports.string().trim().min(1).max(8e3);
 var timestamp = external_exports.string().datetime();
 var artifactReviewActorSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({ kind: external_exports.literal("human"), actorId: id4 }).strict(),
@@ -40855,7 +41116,7 @@ var artifactReviewActorSchema = external_exports.discriminatedUnion("kind", [
 ]);
 var artifactReviewReplySchema = external_exports.object({
   id: id4,
-  body: text6,
+  body: text7,
   author: artifactReviewActorSchema,
   createdAt: timestamp,
   updatedAt: timestamp
@@ -40863,7 +41124,7 @@ var artifactReviewReplySchema = external_exports.object({
 var artifactReviewAnnotationSchema = external_exports.object({
   id: id4,
   anchor: artifactReviewAnchorSchema,
-  body: text6,
+  body: text7,
   author: artifactReviewActorSchema,
   createdAt: timestamp,
   updatedAt: timestamp,
@@ -40875,7 +41136,7 @@ var artifactReviewAnnotationSchema = external_exports.object({
 var artifactReviewResponseSchema = external_exports.object({
   annotationId: id4,
   disposition: external_exports.enum(["addressed", "unchanged"]),
-  explanation: text6
+  explanation: text7
 }).strict();
 var artifactReviewResponseRecordSchema = artifactReviewResponseSchema.extend({
   resultAnchor: artifactReviewAnchorSchema.optional(),
@@ -40915,7 +41176,7 @@ var artifactReviewRoundSchema = external_exports.object({
     ledgerRevision: positive2.optional()
   }).strict().optional(),
   responseAuthor: artifactReviewActorSchema.optional(),
-  judgmentRequest: external_exports.object({ summary: text6, judgmentNeeded: text6, requestedBy: artifactReviewActorSchema, requestedAt: timestamp }).strict().optional(),
+  judgmentRequest: external_exports.object({ summary: text7, judgmentNeeded: text7, requestedBy: artifactReviewActorSchema, requestedAt: timestamp }).strict().optional(),
   decision: external_exports.object({
     outcome: external_exports.enum(["approved", "changes_requested"]),
     explanation: external_exports.string().trim().max(8e3),
@@ -40962,14 +41223,14 @@ var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
     kind: external_exports.literal("request_media_edit"),
     mediaType: reviewedMediaTypeSchema,
     annotationId: id4,
-    body: text6,
+    body: text7,
     anchor: artifactReviewAnchorSchema.optional(),
     /** Multiple ranges belong to this one request and immutable source round. */
     selections: external_exports.array(
       external_exports.object({
         id: id4,
         selection: artifactReviewAnchorSchema,
-        instruction: text6.optional()
+        instruction: text7.optional()
       }).strict()
     ).min(1).max(12).optional()
   }).strict(),
@@ -40985,11 +41246,11 @@ var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
     kind: external_exports.literal("annotate"),
     annotationId: id4,
     anchor: artifactReviewAnchorSchema,
-    body: text6,
+    body: text7,
     reanchoredFrom: external_exports.object({ round: positive2, annotationId: id4 }).strict().optional()
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("reply"), annotationId: id4, replyId: id4, body: text6 }).strict(),
-  external_exports.object({ kind: external_exports.literal("edit"), annotationId: id4, replyId: id4.optional(), body: text6 }).strict(),
+  external_exports.object({ kind: external_exports.literal("reply"), annotationId: id4, replyId: id4, body: text7 }).strict(),
+  external_exports.object({ kind: external_exports.literal("edit"), annotationId: id4, replyId: id4.optional(), body: text7 }).strict(),
   external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id4, state: external_exports.enum(["open", "resolved"]) }).strict(),
   external_exports.object({
     kind: external_exports.literal("judge_response"),
@@ -40998,20 +41259,20 @@ var artifactReviewActionSchema = external_exports.discriminatedUnion("kind", [
     resultOwnerRevision: positive2,
     outcome: external_exports.enum(["accepted", "reopened"])
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("request_judgment"), summary: text6, judgmentNeeded: text6 }).strict(),
-  external_exports.object({ kind: external_exports.literal("submit_feedback"), explanation: text6 }).strict(),
+  external_exports.object({ kind: external_exports.literal("request_judgment"), summary: text7, judgmentNeeded: text7 }).strict(),
+  external_exports.object({ kind: external_exports.literal("submit_feedback"), explanation: text7 }).strict(),
   external_exports.object({
     kind: external_exports.literal("decide"),
     outcome: external_exports.enum(["approved", "changes_requested"]),
     explanation: external_exports.string().trim().max(8e3)
   }).strict(),
-  external_exports.object({ kind: external_exports.literal("reopen"), explanation: text6 }).strict()
-]).superRefine((action, ctx) => {
-  if (action.kind === "decide" && action.outcome === "changes_requested" && !action.explanation)
+  external_exports.object({ kind: external_exports.literal("reopen"), explanation: text7 }).strict()
+]).superRefine((action2, ctx) => {
+  if (action2.kind === "decide" && action2.outcome === "changes_requested" && !action2.explanation)
     ctx.addIssue({ code: "custom", path: ["explanation"], message: "Changes require human feedback" });
-  if (action.kind !== "request_media_edit" || !action.selections) return;
-  if (action.anchor) ctx.addIssue({ code: "custom", path: ["anchor"], message: "Choose single or named selections" });
-  if (new Set(action.selections.map((item) => item.id)).size !== action.selections.length)
+  if (action2.kind !== "request_media_edit" || !action2.selections) return;
+  if (action2.anchor) ctx.addIssue({ code: "custom", path: ["anchor"], message: "Choose single or named selections" });
+  if (new Set(action2.selections.map((item) => item.id)).size !== action2.selections.length)
     ctx.addIssue({ code: "custom", path: ["selections"], message: "Selection ids must be unique" });
 });
 var artifactReviewCommandSchema = external_exports.object({
@@ -41047,11 +41308,11 @@ var publicationReviewContextSchema = external_exports.object({
   round: positive2,
   taskId: id4,
   threadId: id4,
-  title: text6,
-  taskTitle: text6,
-  threadTitle: text6,
+  title: text7,
+  taskTitle: text7,
+  threadTitle: text7,
   targetCatId: id4.nullable(),
-  targetName: text6,
+  targetName: text7,
   ledgerRef: id4.optional(),
   state: external_exports.enum(["draft", "awaiting_human", "approved", "changes_requested", "superseded"]).optional(),
   taskState: external_exports.enum(["active", "closed"]).optional()
@@ -41164,114 +41425,6 @@ var videoProjectReviewActionSchema = external_exports.discriminatedUnion("kind",
   external_exports.object({ kind: external_exports.literal("reopened"), annotationId: id5, reason: body }).strict(),
   external_exports.object({ kind: external_exports.literal("resolved"), annotationId: id5, reason: body.optional() }).strict()
 ]);
-
-// ../shared/src/types/video-project-json.ts
-var videoProjectJsonLimits = { depth: 32, nodes: 2e4, bytes: 1048576 };
-function isJsonPrimitive(value) {
-  if (value === null || typeof value === "boolean") return true;
-  if (typeof value === "number") return Number.isFinite(value);
-  return typeof value === "string" && value.length <= videoProjectJsonLimits.bytes;
-}
-function hasDenseArrayIndices(array, keys2) {
-  return keys2.length === array.length && keys2.every((key) => typeof key === "string" && /^(0|[1-9]\d*)$/.test(key) && Number(key) < array.length);
-}
-function jsonObjectChildren(value) {
-  const array = Array.isArray(value);
-  const prototype = Object.getPrototypeOf(value);
-  if (!array && prototype !== Object.prototype && prototype !== null) return null;
-  const keys2 = Reflect.ownKeys(value).filter((key) => !(array && key === "length"));
-  if (keys2.length > videoProjectJsonLimits.nodes || keys2.some((key) => typeof key !== "string")) return null;
-  if (array && !hasDenseArrayIndices(value, keys2)) return null;
-  const children = [];
-  for (const key of keys2) {
-    const property = Object.getOwnPropertyDescriptor(value, key);
-    if (!property || !("value" in property) || !property.enumerable) return null;
-    children.push(property.value);
-  }
-  return children;
-}
-function isBoundedJson(value) {
-  const pending = [{ kind: "enter", value, depth: 0 }];
-  const ancestors = /* @__PURE__ */ new Set();
-  let nodes = 0;
-  for (let next = pending.pop(); next; next = pending.pop()) {
-    if (next.kind === "leave") {
-      ancestors.delete(next.value);
-      continue;
-    }
-    if (++nodes > videoProjectJsonLimits.nodes || next.depth > videoProjectJsonLimits.depth) return false;
-    const current2 = next.value;
-    if (current2 === null || typeof current2 !== "object") {
-      if (!isJsonPrimitive(current2)) return false;
-      continue;
-    }
-    if (!appendJsonObject(current2, next.depth, pending, ancestors, nodes)) return false;
-  }
-  const serialized = JSON.stringify(value);
-  return typeof serialized === "string" && new TextEncoder().encode(serialized).byteLength <= videoProjectJsonLimits.bytes;
-}
-function appendJsonObject(value, depth, pending, ancestors, nodes) {
-  if (ancestors.has(value)) return false;
-  const children = jsonObjectChildren(value);
-  if (children === null || children.length + nodes + pending.length > videoProjectJsonLimits.nodes) return false;
-  ancestors.add(value);
-  pending.push({ kind: "leave", value });
-  for (const child of children) pending.push({ kind: "enter", value: child, depth: depth + 1 });
-  return true;
-}
-var videoProjectJsonSchema = external_exports.custom(isBoundedJson, "Expected bounded JSON data").transform((value) => structuredClone(value));
-
-// ../shared/src/types/video-project-primitives.ts
-var videoProjectIdSchema = external_exports.string().min(1).max(256).refine((value) => value.trim().length > 0);
-var videoProjectTimestampSchema = external_exports.string().max(64).datetime();
-var videoProjectDigestSchema = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
-var videoProjectPositiveSchema = external_exports.number().int().positive().safe();
-var videoProjectTickSchema = external_exports.number().int().nonnegative().safe();
-var videoProjectTextSchema = (max) => external_exports.string().min(1).max(max).refine((value) => value.trim().length > 0, "Text must be nonblank");
-var videoProjectActorSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("human"), actorId: videoProjectIdSchema }).strict(),
-  external_exports.object({ kind: external_exports.literal("cat"), actorId: videoProjectIdSchema }).strict()
-]);
-var videoProjectOriginSchema = external_exports.object({
-  kind: external_exports.enum(["imported", "created"]),
-  actor: videoProjectActorSchema.nullable(),
-  at: videoProjectTimestampSchema,
-  refs: external_exports.array(videoProjectIdSchema).max(1e3),
-  converter: external_exports.object({ id: videoProjectIdSchema, version: videoProjectIdSchema }).strict().optional(),
-  sources: external_exports.array(external_exports.object({ ref: videoProjectTextSchema(2048), digest: videoProjectDigestSchema }).strict()).max(1e4).optional()
-}).strict();
-var videoProjectExtensionSchema = external_exports.object({
-  namespace: videoProjectIdSchema,
-  schemaVersion: videoProjectPositiveSchema,
-  payload: videoProjectJsonSchema
-}).strict();
-var videoProjectLocatorSchema = external_exports.object({
-  kind: external_exports.literal("workspace"),
-  rootId: videoProjectIdSchema,
-  path: videoProjectTextSchema(2048).refine(
-    (path2) => !path2.includes(":") && !path2.includes("\\") && [...path2].every((character) => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127) && path2.split("/").every((part) => part !== "" && part !== "." && part !== ".."),
-    "Locator must be a safe relative path within a registered root"
-  )
-}).strict();
-var videoProjectAssetVersionSchema = external_exports.object({
-  id: videoProjectIdSchema,
-  mediaType: videoProjectTextSchema(256),
-  byteLength: videoProjectTickSchema,
-  sha256: videoProjectDigestSchema,
-  locator: videoProjectLocatorSchema,
-  recordedAt: videoProjectTimestampSchema,
-  origin: videoProjectOriginSchema,
-  width: videoProjectPositiveSchema.optional(),
-  height: videoProjectPositiveSchema.optional(),
-  rotation: external_exports.union([external_exports.literal(0), external_exports.literal(90), external_exports.literal(180), external_exports.literal(270)]).optional(),
-  durationTicks: videoProjectPositiveSchema.optional()
-}).strict();
-var videoProjectAssetSchema = external_exports.object({
-  id: videoProjectIdSchema,
-  name: videoProjectTextSchema(1e3),
-  kind: videoProjectTextSchema(256),
-  versions: external_exports.array(videoProjectAssetVersionSchema).min(1).max(1e4)
-}).strict();
 
 // ../shared/src/types/video-project-screening.ts
 var videoProjectFrozenInputSchema = external_exports.object({
@@ -41462,10 +41615,10 @@ var versionSchema = external_exports.object({
   versionRef: exact,
   title: bounded(240).optional(),
   parentEdges: external_exports.array(external_exports.object({ parentVersionRef: exact, edgeRef: owner }).strict()).max(32)
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   for (const edge of value.parentEdges) {
     if (assetOwnerIdentity(edge.parentVersionRef) !== assetOwnerIdentity(value.versionRef) || refIdentity(edge.parentVersionRef) === refIdentity(value.versionRef)) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         message: "a derivation edge must address another version of the same owner asset"
       });
@@ -41505,10 +41658,10 @@ var selectedSchema = external_exports.object({
   ]),
   evidence: external_exports.array(evidenceSchema).max(128),
   uses: external_exports.array(useSchema).max(128)
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   for (const binding of [...value.evidence, ...value.uses]) {
     if (refIdentity(binding.assetVersionRef) !== refIdentity(value.versionRef)) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         message: "evidence and actual use must bind the exact selected version"
       });
@@ -41529,21 +41682,21 @@ var evolutionAssetReviewV1Schema = external_exports.discriminatedUnion("status",
     selected: selectedSchema.optional(),
     blockers: external_exports.array(blocker).max(32)
   }).strict()
-]).superRefine((value, context3) => {
+]).superRefine((value, context4) => {
   if (value.status !== "resolved") return;
   const versions = new Set(value.versions.map((item) => refIdentity(item.versionRef)));
   if (versions.size !== value.versions.length || value.currentVersionRefs.some((ref10) => !versions.has(refIdentity(ref10))) || value.selected && !versions.has(refIdentity(value.selected.versionRef))) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "current and selected versions must occur exactly in the owner catalog"
     });
   }
   const owners = value.currentVersionRefs.map(assetOwnerIdentity);
   if (new Set(owners).size !== owners.length)
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: "one live current version per owner asset" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: "one live current version per owner asset" });
   const diff = value.selected?.diff;
   if (value.selected && diff?.status === "available" && (assetOwnerIdentity(diff.comparedToVersionRef) !== assetOwnerIdentity(value.selected.versionRef) || !value.currentVersionRefs.some((ref10) => refIdentity(ref10) === refIdentity(diff.comparedToVersionRef))))
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "diff comparison must bind the live current version of the selected owner asset"
     });
@@ -41902,10 +42055,10 @@ var workspaceContentReviewSchema = external_exports.object({
   visualMarks: external_exports.array(workspaceContentVisualMarkSchema).max(maxWorkspaceContentVisualMarks).optional(),
   createdAt: timestamp2,
   updatedAt: timestamp2
-}).strict().superRefine((review, context3) => {
+}).strict().superRefine((review, context4) => {
   const shared = review.source.kind === "collective-artifact" || review.source.kind === "collective-media";
   if (shared !== Boolean(review.collaborationScope) || shared && (review.sourceHistory ?? []).some((source4) => source4.kind !== review.source.kind) || review.source.kind === "collective-media" && (!review.collaborationScope?.sourceEventId || !review.collaborationScope.custodyRevision))
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Collective source and collaboration scope must agree"
     });
@@ -42109,13 +42262,13 @@ var contentModificationRequestContractSchema = contentModificationRequestSchema.
     return;
   }
   if (!selections) return;
-  const text12 = selections.filter((item) => item.selection.kind === "text_quote");
-  if (text12.length === 0) {
+  const text14 = selections.filter((item) => item.selection.kind === "text_quote");
+  if (text14.length === 0) {
     if (request.taskContext?.kind === "text")
       ctx.addIssue({ code: "custom", path: ["taskContext"], message: "Media selections require media context" });
     return;
   }
-  if (text12.length !== selections.length) {
+  if (text14.length !== selections.length) {
     ctx.addIssue({ code: "custom", path: ["intent", "selections"], message: "Do not mix text and media selections" });
     return;
   }
@@ -42362,6 +42515,16 @@ var WorkspaceFileContextAttachmentSchema = withValidLineRange({
   lineEnd: lineNumber.optional()
 });
 var ContextAttachmentSchema = external_exports.union([
+  external_exports.object({
+    v: external_exports.literal(1),
+    id: external_exports.string().min(1).max(128),
+    kind: external_exports.literal("asset"),
+    workTitle: external_exports.string().trim().min(1).max(300).optional(),
+    name: external_exports.string().min(1).max(1e3),
+    mediaType: external_exports.string().min(1).max(256),
+    indexedVersionRef: indexedVersionRefSchema,
+    work: assetWorkCoordinateSchema
+  }).strict(),
   ThreadContextAttachmentSchema,
   WorkspaceFileContextAttachmentSchema,
   QuoteContextAttachmentSchema,
@@ -42379,8 +42542,8 @@ var ContextAttachmentsSchema = external_exports.array(ContextAttachmentSchema).m
 });
 var VersionBoundContextAttachmentsSchema = ContextAttachmentsSchema.superRefine((attachments, ctx) => {
   for (const [index4, attachment] of attachments.entries()) {
-    const revision11 = attachment.kind === "workspace_file" ? attachment.revision : attachment.kind === "quote" && attachment.source.kind === "workspace_file" ? attachment.source.revision : "not-a-workspace-reference";
-    if (revision11 === void 0) {
+    const revision12 = attachment.kind === "workspace_file" ? attachment.revision : attachment.kind === "quote" && attachment.source.kind === "workspace_file" ? attachment.source.revision : "not-a-workspace-reference";
+    if (revision12 === void 0) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         message: "New workspace-file references require the exact F063 owner revision",
@@ -42577,8 +42740,8 @@ var MESSAGE_STICKER_CATALOG = [
 // ../shared/src/types/message-stickers.ts
 var MESSAGE_STICKER_PACK_ID = "cafe-expressions";
 var MESSAGE_STICKER_PACK_REVISION = 1;
-function findMessageSticker(id33) {
-  return MESSAGE_STICKER_CATALOG.find((entry) => entry.id === id33);
+function findMessageSticker(id36) {
+  return MESSAGE_STICKER_CATALOG.find((entry) => entry.id === id36);
 }
 var messageStickerSchema = external_exports.object({
   v: external_exports.literal(1),
@@ -42590,8 +42753,8 @@ var messageStickerSchema = external_exports.object({
   (value) => findMessageSticker(value.stickerId)?.blobDigest === value.blobDigest,
   "Sticker must name an immutable catalogue image"
 );
-function messageStickerReference(id33) {
-  const entry = findMessageSticker(id33);
+function messageStickerReference(id36) {
+  const entry = findMessageSticker(id36);
   if (!entry) throw new Error("Unknown sticker catalogue image");
   return {
     v: 1,
@@ -43163,48 +43326,32 @@ var richBlockSchema = external_exports.discriminatedUnion("kind", [
   })
 ]);
 
-// ../shared/src/source-code-extensions.ts
-var SOURCE_CODE_EXTENSIONS = [
-  "ts",
-  "tsx",
-  "js",
-  "jsx",
-  "html",
-  "mjs",
-  "cjs",
-  "py",
-  "go",
-  "rs",
-  "java",
-  "c",
-  "cpp",
-  "h",
-  "hpp",
-  "cs",
-  "rb",
-  "php",
-  "swift",
-  "kt",
-  "scala",
-  "sh",
-  "bash",
-  "zsh",
-  "fish",
-  "ps1",
-  "psm1",
-  "psd1",
-  "bat",
-  "cmd",
-  "pl",
-  "pm",
-  "sql",
-  "css",
-  "scss",
-  "less",
-  "vue",
-  "svelte"
-];
-var SOURCE_CODE_EXTENSION_SET = new Set(SOURCE_CODE_EXTENSIONS);
+// ../shared/src/shared-markdown-selection.ts
+function resolveSharedMarkdownSelection(source4, selectedText, bounds = { start: 0, end: source4.length }) {
+  const raw = source4.slice(bounds.start, bounds.end);
+  if (findGeneratedTextConstructs(raw).length) return null;
+  const projection = projectMarkdownReadableTextWithSourceMap(raw);
+  const selected = selectedText.trim().replace(/\s+/gu, " ");
+  if (!selected) return null;
+  let readable = "";
+  const offsets = [];
+  for (let index4 = 0; index4 < projection.text.length; index4++) {
+    const character = projection.text[index4] ?? "";
+    if (/\s/u.test(character)) {
+      if (readable.endsWith(" ")) continue;
+      readable += " ";
+      offsets.push(null);
+    } else {
+      readable += character;
+      offsets.push(projection.sourceOffsets[index4] ?? null);
+    }
+  }
+  const at = readable.indexOf(selected);
+  if (at < 0 || readable.indexOf(selected, at + 1) >= 0) return null;
+  const first = offsets[at], last = offsets[at + selected.length - 1];
+  if (first == null || last == null) return null;
+  return { start: bounds.start + first, end: bounds.start + last + 1 };
+}
 
 // ../shared/src/types/approval-decision-receipt.ts
 var approvalDecisionReceiptV1Schema = external_exports.object({
@@ -43219,6 +43366,108 @@ var approvalDecisionReceiptV1Schema = external_exports.object({
   decidedBy: external_exports.string(),
   rejectionReason: external_exports.string().max(500).optional()
 }).strict();
+
+// ../shared/src/types/asset-canon-commands.ts
+var text8 = videoProjectTextSchema;
+var revision8 = external_exports.number().int().nonnegative().safe();
+var mutation = { operationId: text8(256), reason: text8(4e3), evidenceRefs: external_exports.array(text8(2048)).max(100).default([]) };
+var context = external_exports.object({ reference: workReferenceSchema, metadataRevision: external_exports.number().int().positive().safe() }).strict();
+var disposition = external_exports.object({
+  bindingRef: text8(256),
+  expectedBindingRevision: revision8,
+  indexedVersionRef: indexedVersionRefSchema.nullable(),
+  expectedAssetRevision: revision8.optional(),
+  reason: text8(4e3)
+}).strict();
+var assetCanonCommandSchema = external_exports.discriminatedUnion("action", [
+  external_exports.object({
+    action: external_exports.literal("index-asset"),
+    operationId: text8(256),
+    name: text8(1e3),
+    kind: text8(256),
+    version: videoProjectAssetVersionSchema,
+    applicability: external_exports.array(characterAssetUseSchema).max(100).default([]),
+    evidenceRefs: external_exports.array(text8(2048)).max(100).default([])
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("list-assets"),
+    purpose: external_exports.enum(["select", "used"]).default("select"),
+    reference: workReferenceSchema.optional(),
+    metadataRevision: external_exports.number().int().positive().safe().optional(),
+    status: assetStatusSchema.optional(),
+    includeSuperseded: external_exports.boolean().default(false),
+    kind: text8(256).optional(),
+    use: characterAssetSlotSchema.optional(),
+    memberAvatarCatId: text8(256).optional(),
+    verifyFiles: external_exports.boolean().default(true),
+    after: external_exports.number().int().min(0).safe().default(0),
+    limit: external_exports.number().int().min(1).max(50).default(30),
+    snapshot: text8(256).optional()
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("read-asset"),
+    indexedVersionRef: indexedVersionRefSchema,
+    expectedRevision: revision8.optional(),
+    after: revision8.default(0)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("read-asset-history"),
+    indexedVersionRef: indexedVersionRefSchema,
+    reference: workReferenceSchema.optional(),
+    after: revision8.default(0),
+    limit: external_exports.number().int().positive().max(50).default(30)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("set-asset-status"),
+    ...mutation,
+    indexedVersionRef: indexedVersionRefSchema,
+    expectedRevision: revision8,
+    status: assetStatusSchema,
+    applicability: external_exports.array(characterAssetUseSchema).max(100).optional(),
+    bindings: external_exports.array(disposition).max(100).default([]),
+    context: context.optional()
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("supersede-asset"),
+    ...mutation,
+    mode: external_exports.enum(["replace", "revoke"]),
+    fromVersionRef: indexedVersionRefSchema,
+    toVersionRef: indexedVersionRefSchema,
+    expectedFromRevision: revision8,
+    expectedToRevision: revision8,
+    eventRef: text8(256).optional(),
+    promoteTarget: external_exports.boolean().default(false),
+    bindings: external_exports.array(disposition).max(100).default([]),
+    context: context.optional()
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("bind-character-asset"),
+    ...mutation,
+    mode: external_exports.enum(["set", "clear"]),
+    slot: characterAssetSlotSchema,
+    expectedBindingRevision: revision8,
+    indexedVersionRef: indexedVersionRefSchema.optional(),
+    expectedAssetRevision: revision8.optional(),
+    memberCatId: text8(256).optional()
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("check-asset-updates"),
+    reference: workReferenceSchema,
+    metadataRevision: external_exports.number().int().positive().safe().optional(),
+    after: external_exports.number().int().nonnegative().safe().default(0),
+    limit: external_exports.number().int().positive().max(50).default(30)
+  }).strict(),
+  external_exports.object({
+    action: external_exports.literal("decide-asset-update"),
+    ...mutation,
+    reference: workReferenceSchema,
+    indexedVersionRef: indexedVersionRefSchema,
+    noticeScope: text8(256),
+    updateFingerprint: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
+    expectedDecisionRevision: revision8,
+    decision: external_exports.literal("keep_this_version")
+  }).strict()
+]);
 
 // ../shared/src/types/auto-dream.ts
 var DREAM_EVIDENCE_KINDS = [
@@ -43448,14 +43697,14 @@ function collectiveRichMediaReferences(blocks) {
     return [];
   });
 }
-function requireDistinctRichBlocks(blocks, context3) {
+function requireDistinctRichBlocks(blocks, context4) {
   if (new Set(blocks?.map((block) => block.id)).size !== (blocks?.length ?? 0))
-    context3.addIssue({ code: "custom", path: ["richBlocks"], message: "Duplicate rich block identity" });
+    context4.addIssue({ code: "custom", path: ["richBlocks"], message: "Duplicate rich block identity" });
   for (const block of blocks ?? []) {
     if (block.kind !== "interactive") continue;
     const ids2 = new Set(block.options.map((option) => option.id));
-    if (ids2.size !== block.options.length || block.selectedIds?.some((id33) => !ids2.has(id33)))
-      context3.addIssue({
+    if (ids2.size !== block.options.length || block.selectedIds?.some((id36) => !ids2.has(id36)))
+      context4.addIssue({
         code: "custom",
         path: ["richBlocks"],
         message: "Interactive choices require distinct current option identities"
@@ -43498,14 +43747,14 @@ var collectiveMessageContentFields = {
   contextAttachments: external_exports.array(collectiveMessageQuoteSchema).min(1).max(12).optional(),
   richBlocks: external_exports.array(collectiveMessageRichBlockSchema).min(1).max(12).optional()
 };
-function requireCollectiveMessageContent(content3, context3) {
+function requireCollectiveMessageContent(content3, context4) {
   if (!content3.body && !content3.attachments?.length && !content3.contextAttachments?.length && !content3.richBlocks?.length)
-    context3.addIssue({ code: "custom", path: ["body"], message: "A message needs text or content" });
+    context4.addIssue({ code: "custom", path: ["body"], message: "A message needs text or content" });
   if (new Set(content3.attachments?.map((item) => item.attachmentId)).size !== (content3.attachments?.length ?? 0))
-    context3.addIssue({ code: "custom", path: ["attachments"], message: "Duplicate attachment reference" });
+    context4.addIssue({ code: "custom", path: ["attachments"], message: "Duplicate attachment reference" });
   if (new Set(content3.contextAttachments?.map((item) => item.id)).size !== (content3.contextAttachments?.length ?? 0))
-    context3.addIssue({ code: "custom", path: ["contextAttachments"], message: "Duplicate quote reference" });
-  validateCollectiveRichContent(content3, context3);
+    context4.addIssue({ code: "custom", path: ["contextAttachments"], message: "Duplicate quote reference" });
+  validateCollectiveRichContent(content3, context4);
   const bytes = new TextEncoder().encode(
     JSON.stringify({
       body: content3.body,
@@ -43514,14 +43763,14 @@ function requireCollectiveMessageContent(content3, context3) {
       richBlocks: content3.richBlocks
     })
   ).length;
-  if (bytes > 192 * 1024) context3.addIssue({ code: "custom", message: "Message content exceeds 192 KiB" });
+  if (bytes > 192 * 1024) context4.addIssue({ code: "custom", message: "Message content exceeds 192 KiB" });
 }
-function validateCollectiveRichContent(content3, context3) {
-  requireDistinctRichBlocks(content3.richBlocks, context3);
+function validateCollectiveRichContent(content3, context4) {
+  requireDistinctRichBlocks(content3.richBlocks, context4);
   for (const ref10 of collectiveRichMediaReferences(content3.richBlocks ?? [])) {
     const attachment = content3.attachments?.find((item) => item.contentRef === ref10.url);
     if (!attachment || ref10.kind !== "file" && !attachment.mediaType.startsWith(`${ref10.kind}/`))
-      context3.addIssue({
+      context4.addIssue({
         code: "custom",
         path: ["richBlocks"],
         message: "Rich media requires a matching message attachment"
@@ -43531,7 +43780,7 @@ function validateCollectiveRichContent(content3, context3) {
     if (block.kind !== "file") continue;
     const attachment = content3.attachments?.find((item) => item.contentRef === block.url);
     if (attachment && (block.fileName !== attachment.fileName || block.fileSize !== void 0 && block.fileSize !== attachment.byteLength || block.mimeType !== void 0 && block.mimeType !== attachment.mediaType))
-      context3.addIssue({
+      context4.addIssue({
         code: "custom",
         path: ["richBlocks"],
         message: "File description must match retained original metadata"
@@ -43607,10 +43856,10 @@ var collectiveWorkWakeNoticeSchema = external_exports.object({
   executionRevision: external_exports.number().int().positive(),
   dependencyWorkId: collectiveWorkIdSchema.optional(),
   dependencyWorkRevision: external_exports.number().int().positive().optional()
-}).strict().superRefine((notice2, context3) => {
+}).strict().superRefine((notice2, context4) => {
   const hasDependency = Boolean(notice2.dependencyWorkId && notice2.dependencyWorkRevision);
   if (notice2.reason === "dependency_completed" !== hasDependency) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Dependency completion wakes require exact dependency identity and revision"
     });
@@ -43716,38 +43965,38 @@ var collectiveEventEnvelopeSchema = collectiveCoordinatesSchema.extend({
   workProgressReceipt: collectiveWorkProgressReceiptSchema.optional(),
   ...collectiveMessageContentFields,
   acceptedAt: external_exports.string().datetime()
-}).strict().superRefine((event, context3) => {
-  requireCollectiveMessageContent(event, context3);
+}).strict().superRefine((event, context4) => {
+  requireCollectiveMessageContent(event, context4);
   if (event.workProgressReceipt && (event.actor.kind !== "agent" || event.workResultReceipt)) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       path: ["workProgressReceipt"],
       message: "Progress needs a named Agent and cannot also be a result"
     });
   }
   if (event.workRequest === "continue" !== Boolean(event.workExecutionNotice) || event.workExecutionNotice && (event.actor.kind !== "agent" || event.recipient?.kind !== "agent")) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       path: ["workExecutionNotice"],
       message: "Continuation requires a Service-issued current execution notice"
     });
   }
   if (event.workAcceptanceNotice && (event.workRequest !== "entrust" || event.actor.kind !== "agent" || event.recipient?.kind !== "agent")) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       path: ["workAcceptanceNotice"],
       message: "Cat acceptance requires an exact Service-issued assignment"
     });
   }
   if (event.workRequest === "revise" !== Boolean(event.workRevisionNotice)) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       path: ["workRevisionNotice"],
       message: "Work revision feedback requires one Service-issued revision notice"
     });
   }
   if (event.workRequest === "resume" !== Boolean(event.workWakeNotice) || event.workWakeNotice && (event.actor.kind !== "human" || event.recipient?.kind !== "agent")) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       path: ["workWakeNotice"],
       message: "Same-Task wake requires one Service-issued Human trigger for an exact Agent"
@@ -43835,12 +44084,12 @@ var collectiveAgentMessageRequestSchema = collectiveConnectionCoordinatesSchema.
   workResultFile: collectiveWorkResultFileSchema.optional(),
   workProgressIntent: collectiveWorkProgressIntentSchema.optional(),
   ...collectiveMessageContentFields
-}).strict().superRefine((input, context3) => {
-  requireCollectiveMessageContent(input, context3);
+}).strict().superRefine((input, context4) => {
+  requireCollectiveMessageContent(input, context4);
   if (input.workResultIntent && input.workProgressIntent)
-    context3.addIssue({ code: "custom", message: "Choose result or progress, not both" });
+    context4.addIssue({ code: "custom", message: "Choose result or progress, not both" });
   if (input.workResultFile && !input.workResultIntent)
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       path: ["workResultFile"],
       message: "A result file requires one exact Work result intent"
@@ -43867,15 +44116,15 @@ function collectiveAccountabilityAttentionSubjectRef(identity2) {
     identity2.accountabilityRequestId
   ].join(":");
 }
-function collectiveAccountabilityAttentionActionRef(action) {
+function collectiveAccountabilityAttentionActionRef(action2) {
   const query = new URLSearchParams([
     ["target", "accountability"],
-    ["connectionId", action.connectionId],
-    ["workId", action.workId],
-    ["workRevision", String(action.workRevision)],
-    ["channelId", action.channelId],
-    ["roadmapId", action.roadmapId],
-    ["accountabilityRequestId", action.accountabilityRequestId]
+    ["connectionId", action2.connectionId],
+    ["workId", action2.workId],
+    ["workRevision", String(action2.workRevision)],
+    ["channelId", action2.channelId],
+    ["roadmapId", action2.roadmapId],
+    ["accountabilityRequestId", action2.accountabilityRequestId]
   ]);
   return `/collective?${query}`;
 }
@@ -43883,9 +44132,9 @@ var collectiveAccountabilityAttentionReadRequestSchema = collectiveConnectionCoo
   offset: external_exports.number().int().nonnegative(),
   limit: external_exports.number().int().min(1).max(100),
   snapshot: collectiveAccountabilityAttentionSnapshotSchema.optional()
-}).strict().superRefine((read, context3) => {
+}).strict().superRefine((read, context4) => {
   if (read.offset > 0 && !read.snapshot) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["snapshot"],
       message: "Later accountability pages require the first page source snapshot"
@@ -43912,17 +44161,17 @@ var collectiveAccountabilityAttentionItemSchema = collectiveConnectionCoordinate
   workTitle: external_exports.string().trim().min(1).max(200),
   actionRef: external_exports.string().trim().min(1).max(2e3),
   expectedProducerRevision: external_exports.number().int().positive()
-}).strict().superRefine((item, context3) => {
+}).strict().superRefine((item, context4) => {
   const subjectRef = collectiveAccountabilityAttentionSubjectRef(item);
   if (item.subjectRef !== subjectRef) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["subjectRef"],
       message: "Accountability attention subject does not match its durable request identity"
     });
   }
   if (item.expectedProducerRevision !== item.workRevision) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["expectedProducerRevision"],
       message: "Expected producer revision must match the current Work revision"
@@ -43930,7 +44179,7 @@ var collectiveAccountabilityAttentionItemSchema = collectiveConnectionCoordinate
   }
   const actionRef = collectiveAccountabilityAttentionActionRef(item);
   if (item.actionRef !== actionRef) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["actionRef"],
       message: "Accountability attention action must name the exact current Project Task request"
@@ -43949,16 +44198,16 @@ var collectiveAccountabilityAttentionReadResponseSchema = external_exports.objec
     snapshot: collectiveAccountabilityAttentionSnapshotSchema,
     totalCount: external_exports.number().int().nonnegative()
   }).strict()
-}).strict().superRefine((read, context3) => {
+}).strict().superRefine((read, context4) => {
   if (read.items.length > read.page.limit) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["items"],
       message: "Accountability attention page exceeds its declared limit"
     });
   }
   if (read.page.offset + read.items.length > read.page.totalCount) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["page", "totalCount"],
       message: "Accountability page exceeds its frozen source size"
@@ -43967,7 +44216,7 @@ var collectiveAccountabilityAttentionReadResponseSchema = external_exports.objec
   for (const [index4, item] of read.items.entries()) {
     const identityMatches = item.serviceInstanceId === read.identity.serviceInstanceId && item.collectiveId === read.identity.collectiveId && item.connectionId === read.identity.connectionId && item.targetHumanId === read.identity.authorizedHumanId;
     if (!identityMatches) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["items", index4],
         message: "Accountability attention item is outside the endpoint Human authority"
@@ -44088,9 +44337,9 @@ var collectiveCustodyTransferSchema = external_exports.object({
   updatedAt: external_exports.string().datetime(),
   sourceFinalized: external_exports.boolean().default(false),
   targetFinalized: external_exports.boolean().default(false)
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   if (["source_prepared", "target_ready", "committed"].includes(value.state) && !value.prepared || ["target_ready", "committed"].includes(value.state) && !value.ready)
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Transfer phase requires exact owner proofs" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Transfer phase requires exact owner proofs" });
 });
 var collectiveCustodyPageSchema = external_exports.object({
   transferId: id13,
@@ -44228,6 +44477,7 @@ var collectiveArtifactActionSchema = external_exports.enum([
 ]);
 var collectiveArtifactVersionSchema = external_exports.object({
   ownerRevision: positive7,
+  changeSummary: external_exports.string().trim().min(1).max(2e3).optional(),
   blobDigest: digest4,
   receiptRef: id15,
   recordedAt: external_exports.string().datetime(),
@@ -44310,6 +44560,7 @@ var registerCollectiveArtifactSchema = external_exports.object({
   sourceEventId: id15,
   workId: id15.optional(),
   ownerRevision: positive7,
+  changeSummary: external_exports.string().trim().min(1).max(2e3).optional(),
   blobDigest: digest4,
   receiptRef: id15,
   requestId: id15,
@@ -44658,9 +44909,9 @@ var collectiveMediaReviewCommandSchema = external_exports.object({
     external_exports.object({ kind: external_exports.literal("set_annotation_state"), annotationId: id20, state: external_exports.enum(["open", "resolved"]) }).strict()
   ])
 }).strict();
-async function collectiveMediaOperationId(scope, action, requestId2) {
+async function collectiveMediaOperationId(scope, action2, requestId2) {
   const bytes = new TextEncoder().encode(
-    JSON.stringify([scope.serviceInstanceId, scope.collectiveId, scope.artifactId, scope.humanId, action, requestId2])
+    JSON.stringify([scope.serviceInstanceId, scope.collectiveId, scope.artifactId, scope.humanId, action2, requestId2])
   );
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return `collective-media-operation:${Array.from(hash, (item) => item.toString(16).padStart(2, "0")).join("")}`;
@@ -44888,22 +45139,22 @@ var collectiveVoteRecordBaseSchema = collectiveCoordinatesSchema.extend({
   updatedAt: external_exports.string().datetime(),
   history: external_exports.array(collectiveVoteHistoryEntrySchema).max(1e4)
 }).strict();
-var refineCollectiveVote = (vote, context3) => {
+var refineCollectiveVote = (vote, context4) => {
   const options = new Set(vote.options.map((option) => option.optionId));
   if (options.size !== vote.options.length) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["options"], message: "Vote option IDs must be unique" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["options"], message: "Vote option IDs must be unique" });
   }
   const voters = /* @__PURE__ */ new Set();
   for (const [index4, ballot] of vote.ballots.entries()) {
     if (!options.has(ballot.optionId)) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["ballots", index4, "optionId"],
         message: "Ballot must reference one Vote option"
       });
     }
     if (voters.has(ballot.humanId)) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["ballots", index4, "humanId"],
         message: "Each Human has one current ballot"
@@ -44912,7 +45163,7 @@ var refineCollectiveVote = (vote, context3) => {
     voters.add(ballot.humanId);
   }
   if (vote.lifecycle === "closed" && !vote.closedAt) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["closedAt"], message: "Closed Vote needs closedAt" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["closedAt"], message: "Closed Vote needs closedAt" });
   }
 };
 var collectiveVoteRecordSchema = collectiveVoteRecordBaseSchema.superRefine(refineCollectiveVote);
@@ -45003,11 +45254,11 @@ var bindingVoteBaseSchema = collectiveCoordinatesSchema.extend({
   updatedAt: external_exports.string().datetime(),
   history: external_exports.array(collectiveBindingVoteHistoryEntrySchema).max(1e4)
 }).strict();
-var refineBindingVote = (vote, context3) => {
+var refineBindingVote = (vote, context4) => {
   const optionIds = new Set(vote.options.map((option) => option.optionId));
   const eligibleIds = new Set(vote.rules.eligibleVoters.map((voter) => voter.humanId));
   if (optionIds.size !== vote.options.length || eligibleIds.size !== vote.rules.eligibleVoters.length) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Binding Vote options and eligible Humans must be unique"
     });
@@ -45015,29 +45266,29 @@ var refineBindingVote = (vote, context3) => {
   const ballotHumans = /* @__PURE__ */ new Set();
   for (const [index4, ballot] of vote.ballots.entries()) {
     if (!eligibleIds.has(ballot.humanId) || ballotHumans.has(ballot.humanId)) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["ballots", index4],
         message: "Ballot identity is invalid"
       });
     }
     if (ballot.choice.kind === "option" && !optionIds.has(ballot.choice.optionId)) {
-      context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["ballots", index4, "choice"], message: "Unknown option" });
+      context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["ballots", index4, "choice"], message: "Unknown option" });
     }
     ballotHumans.add(ballot.humanId);
   }
   if (vote.rules.quorumCount !== vote.rules.passCount || vote.rules.passCount !== Math.floor(eligibleIds.size / 2) + 1) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["rules"],
       message: "Binding Vote must use frozen majority"
     });
   }
   if (vote.lifecycle === "settled" && !vote.result) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["result"], message: "Settled Vote needs a result" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["result"], message: "Settled Vote needs a result" });
   }
   if (vote.decisionId && vote.result?.outcome !== "passed") {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["decisionId"],
       message: "Only a passed Vote creates a Decision"
@@ -45178,14 +45429,14 @@ var publishCollectiveMaterialRequestSchema = command.extend({
   connectionId: id24,
   provider: external_exports.enum(["github", "feishu"]),
   sourceId: external_exports.string().trim().min(1).max(2048)
-}).strict().superRefine((input, context3) => {
+}).strict().superRefine((input, context4) => {
   const valid2 = input.provider === "github" ? /^(?:(?:pr|issue):[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*#[1-9]\d*|https:\/\/github\.com\/[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*\/(?:pull|issues)\/[1-9]\d*\/?)$/.test(
     input.sourceId
   ) : /^(?:[a-f0-9]{64}|feishu:\/\/meeting-artifacts\/(?:minute|note)\/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\?revision=[^\s]{1,500})$/.test(
     input.sourceId
   );
   if (!valid2)
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["sourceId"],
       message: "Choose an exact registered source reference"
@@ -45235,9 +45486,9 @@ var projectWorkSuggestionTargetFields = {
   prerequisiteForWorkId: collectiveWorkIdSchema.optional(),
   prerequisiteForWorkRevision: external_exports.number().int().positive().optional()
 };
-function requireCompletePrerequisiteTarget(suggestion, context3) {
+function requireCompletePrerequisiteTarget(suggestion, context4) {
   if (Boolean(suggestion.prerequisiteForWorkId) !== Boolean(suggestion.prerequisiteForWorkRevision)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "A prerequisite suggestion requires both target Work identity and revision"
     });
@@ -45261,10 +45512,10 @@ var collectiveWorkAccountabilityRequestSchema = external_exports.object({
   status: external_exports.enum(["pending", "accepted", "declined"]),
   responseEventId: collectiveEventIdSchema.optional(),
   respondedAt: external_exports.string().datetime().optional()
-}).strict().superRefine((request, context3) => {
+}).strict().superRefine((request, context4) => {
   const resolved = request.status !== "pending";
   if (resolved !== Boolean(request.responseEventId) || resolved !== Boolean(request.respondedAt)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Resolved accountability requests require one response event and timestamp"
     });
@@ -45283,9 +45534,9 @@ var createCollectiveProjectTaskRequestSchema = projectCommandBase.extend({
   intendedOutcome: external_exports.string().trim().min(1).max(32e3),
   accountability: external_exports.enum(["self", "unassigned"]),
   requestedAccountableHumanId: collectiveHumanIdSchema.optional()
-}).strict().superRefine((request, context3) => {
+}).strict().superRefine((request, context4) => {
   if (request.accountability === "self" && request.requestedAccountableHumanId) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["requestedAccountableHumanId"],
       message: "A self-owned task cannot also request another accountable Human"
@@ -45304,9 +45555,9 @@ var respondCollectiveWorkAccountabilityRequestSchema = projectCommandBase.extend
   accountabilityRequestId: collectiveWorkAccountabilityRequestIdSchema,
   decision: external_exports.enum(["accept", "decline"]),
   assignment: collectiveProjectTaskAssignmentRequestSchema.optional()
-}).strict().superRefine((request, context3) => {
+}).strict().superRefine((request, context4) => {
   if (request.decision === "decline" && request.assignment) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["assignment"],
       message: "A declined responsibility request cannot assign a Cat"
@@ -45322,9 +45573,9 @@ var decideCollectiveProjectWorkSuggestionRequestSchema = projectCommandBase.exte
   title: external_exports.string().trim().min(1).max(200).optional(),
   intendedOutcome: external_exports.string().trim().min(1).max(32e3).optional(),
   reason: external_exports.string().trim().min(1).max(1e3).optional()
-}).strict().superRefine((request, context3) => {
+}).strict().superRefine((request, context4) => {
   if (request.decision === "ignore" && (request.title || request.intendedOutcome)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "An ignored suggestion cannot carry accepted Work edits"
     });
@@ -45609,9 +45860,9 @@ var commitCollectiveWorkRequestSchema = humanCommandBase.extend({
   expectedRevision: external_exports.number().int().positive(),
   accountability: external_exports.enum(["self", "unassigned"]).optional(),
   assignment: collectiveWorkAssignmentRequestSchema.optional()
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   if (value.accountability === "unassigned" && value.assignment) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["assignment"],
       message: "Unassigned Work cannot also name a Cat assignment"
@@ -45711,9 +45962,9 @@ var collectiveRegisterWorkPolicyRequestSchema = collectiveConnectionCoordinatesS
   requestId: ref5,
   decisionMode: external_exports.enum(["automatic", "manual"]).default("automatic"),
   grants: external_exports.array(collectiveWorkGrantScopeSchema).max(100)
-}).strict().superRefine((input, context3) => {
+}).strict().superRefine((input, context4) => {
   if (new Set(input.grants.map((grant) => grant.grantRef)).size !== input.grants.length)
-    context3.addIssue({ code: "custom", message: "Each owner grant needs one stable reference" });
+    context4.addIssue({ code: "custom", message: "Each owner grant needs one stable reference" });
 });
 var collectiveRevokeWorkPolicyRequestSchema = collectiveConnectionCoordinatesSchema.extend({
   expectedRevision: external_exports.number().int().positive(),
@@ -45755,7 +46006,7 @@ var collectiveContinueWorkRequestSchema = collectiveAcceptWorkRequestSchema.omit
 
 // ../shared/src/types/collective-work-policy-bridge.ts
 var id25 = external_exports.string().min(8).max(120);
-var context = collectiveConnectionCoordinatesSchema.extend({
+var context2 = collectiveConnectionCoordinatesSchema.extend({
   bridgeId: id25,
   contextId: id25,
   contextRevision: external_exports.number().int().positive(),
@@ -45771,7 +46022,7 @@ var collectiveHostWorkPolicyActionSchema = external_exports.discriminatedUnion("
   external_exports.object({ kind: external_exports.literal("allow_request"), ...work, permission: external_exports.enum(["once", "class"]) }).strict(),
   external_exports.object({ kind: external_exports.literal("decline_request"), ...work }).strict()
 ]);
-var collectiveHostWorkPolicyCommandSchema = context.extend({
+var collectiveHostWorkPolicyCommandSchema = context2.extend({
   type: external_exports.literal("collective:host-work-policy-command"),
   commandId: id25,
   action: collectiveHostWorkPolicyActionSchema
@@ -45782,7 +46033,7 @@ var receipt = external_exports.object({
   grantRevision: external_exports.number().int().positive().optional(),
   workRevision: external_exports.number().int().positive().optional()
 }).strict();
-var collectiveClientWorkPolicyReplySchema = context.extend({
+var collectiveClientWorkPolicyReplySchema = context2.extend({
   type: external_exports.literal("collective:client-work-policy-reply"),
   commandId: id25,
   result: external_exports.discriminatedUnion("state", [
@@ -45794,7 +46045,7 @@ var collectiveClientWorkPolicyReplySchema = context.extend({
     }).strict()
   ])
 }).strict();
-var collectiveClientWorkPermissionRequestSchema = context.extend({
+var collectiveClientWorkPermissionRequestSchema = context2.extend({
   type: external_exports.literal("collective:client-work-permission-request"),
   ...work,
   sourceEventId: external_exports.string().min(1).max(120),
@@ -45940,6 +46191,115 @@ var collectiveHostWorldSelectionSchema = external_exports.object({
   collectiveId: collectiveIdSchema
 }).strict();
 
+// ../shared/src/types/collective-document-view.ts
+var collectiveDocumentViewSchema = external_exports.object({
+  contentRef: external_exports.string(),
+  ownerRevision: external_exports.number().int().positive(),
+  blobDigest: external_exports.string(),
+  text: external_exports.string().max(65536),
+  view: external_exports.object({
+    review: workspaceContentReviewSchema.innerType().omit({ ownerUserId: true }),
+    historyReadOnly: external_exports.boolean(),
+    canWrite: external_exports.boolean(),
+    canReply: external_exports.boolean().optional(),
+    replyPages: external_exports.object({
+      annotationId: external_exports.string(),
+      offset: external_exports.number(),
+      total: external_exports.number(),
+      nextOffset: external_exports.number().optional()
+    }).array().optional(),
+    annotationPage: external_exports.object({ offset: external_exports.number(), total: external_exports.number(), nextOffset: external_exports.number().optional() }),
+    annotationResolutions: external_exports.object({ annotationId: external_exports.string(), status: external_exports.enum(["attached", "moved", "ambiguous", "orphaned"]) }).array().optional()
+  }).strip(),
+  modifications: external_exports.object({
+    requests: collectiveModificationProjectionSchema.array(),
+    total: external_exports.number(),
+    offset: external_exports.number(),
+    nextOffset: external_exports.number().optional(),
+    snapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
+  }).optional()
+}).strip();
+
+// ../shared/src/types/collective-project-artifact-return.ts
+var collectiveProjectArtifactReturnSchema = external_exports.object({
+  roadmapId: external_exports.string().trim().min(1).max(256),
+  channelId: external_exports.string().trim().min(1).max(120),
+  referenceId: external_exports.string().trim().min(1).max(256).optional()
+}).strict();
+
+// ../shared/src/types/collective-document-surface.ts
+var id26 = external_exports.string().trim().min(1).max(256);
+var positive10 = external_exports.number().int().positive().safe();
+var collectiveDocumentBridgeSchema = external_exports.object({
+  bridgeId: external_exports.string().min(8).max(120),
+  contextId: external_exports.string().min(8).max(120),
+  contextRevision: positive10,
+  serviceInstanceId: id26,
+  collectiveId: id26,
+  connectionId: id26,
+  humanId: id26
+}).strict();
+var collectiveDocumentClientReadySchema = collectiveDocumentBridgeSchema.extend({ type: external_exports.literal("collective:client-document-ready") }).strict();
+var collectiveDocumentHostReadySchema = collectiveDocumentBridgeSchema.extend({ type: external_exports.literal("collective:host-document-ready") }).strict();
+var collectiveDocumentTargetSchema = external_exports.object({
+  serviceInstanceId: id26,
+  collectiveId: id26,
+  connectionId: id26,
+  humanId: id26,
+  artifactId: id26,
+  sourceEventId: id26,
+  channelId: id26,
+  ownerRevision: positive10,
+  comparisonOwnerRevision: positive10.optional(),
+  projectReturn: collectiveProjectArtifactReturnSchema.optional()
+}).strict();
+var collectiveDocumentRefSchema = collectiveDocumentTargetSchema.extend({
+  bridgeId: external_exports.string().min(8).max(120),
+  contextId: external_exports.string().min(8).max(120),
+  contextRevision: positive10
+}).strict();
+var collectiveDocumentOpenSchema = external_exports.object({
+  type: external_exports.literal("collective:client-document-open"),
+  ref: collectiveDocumentRefSchema
+}).strict();
+var collectiveDocumentOperationSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("read"), ownerRevision: positive10 }).strict(),
+  external_exports.object({ kind: external_exports.literal("history"), offset: external_exports.number().int().nonnegative().max(1e4).default(0) }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("stage-selection"),
+    selection: collectiveArtifactSelectionSchema
+  }).strict()
+]);
+var collectiveDocumentRequestSchema = external_exports.object({
+  type: external_exports.literal("collective:host-document-request"),
+  ref: collectiveDocumentRefSchema,
+  requestId: external_exports.string().uuid(),
+  operation: collectiveDocumentOperationSchema
+}).strict();
+var collectiveDocumentResultSchema = external_exports.object({
+  type: external_exports.literal("collective:client-document-result"),
+  ref: collectiveDocumentRefSchema,
+  requestId: external_exports.string().uuid(),
+  result: external_exports.discriminatedUnion("kind", [
+    external_exports.object({
+      kind: external_exports.literal("read"),
+      title: external_exports.string().trim().min(1).max(200),
+      value: collectiveDocumentViewSchema
+    }).strict(),
+    external_exports.object({ kind: external_exports.literal("history"), value: collectiveArtifactCatalogueHistoryPageSchema }).strict(),
+    external_exports.object({ kind: external_exports.literal("selection_staged") }).strict(),
+    external_exports.object({
+      kind: external_exports.literal("error"),
+      code: external_exports.enum(["access_denied", "owner_unavailable", "conflict", "unavailable"])
+    }).strict()
+  ])
+}).strict();
+var collectiveDocumentReturnSchema = external_exports.object({
+  type: external_exports.literal("collective:host-document-return"),
+  ref: collectiveDocumentRefSchema,
+  destination: external_exports.enum(["project", "source", "discussion"])
+}).strict();
+
 // ../shared/src/types/collective-media-surface.ts
 var collectiveMediaSurfaceRefV1Schema = collectiveConnectionCoordinatesSchema.extend({
   v: external_exports.literal(1),
@@ -45950,7 +46310,8 @@ var collectiveMediaSurfaceRefV1Schema = collectiveConnectionCoordinatesSchema.ex
   channelId: collectiveLocationSchema.shape.channelId,
   artifactId: external_exports.string().trim().min(1).max(256),
   sourceEventId: collectiveEventIdSchema,
-  ownerRevision: external_exports.number().int().positive().safe()
+  ownerRevision: external_exports.number().int().positive().safe(),
+  projectReturn: collectiveProjectArtifactReturnSchema.optional()
 }).strict();
 var collectiveMediaSurfaceRefKey = (ref10) => JSON.stringify(collectiveMediaSurfaceRefV1Schema.parse(ref10));
 var collectiveMediaSurfaceOpenSchema = external_exports.object({
@@ -45963,28 +46324,28 @@ var collectiveMediaSurfaceReturnSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-media-share-surface.ts
-var id26 = external_exports.string().trim().min(1).max(256);
-var positive10 = external_exports.number().int().positive().safe();
+var id27 = external_exports.string().trim().min(1).max(256);
+var positive11 = external_exports.number().int().positive().safe();
 var collectiveRetainedMediaShareSchema = external_exports.object({
-  contentRef: id26,
-  ownerRevision: positive10,
+  contentRef: id27,
+  ownerRevision: positive11,
   title: external_exports.string().trim().min(1).max(200),
-  sourceEventId: id26,
-  requestId: id26,
-  workId: id26.optional(),
-  expectedRevision: positive10.optional(),
-  expectedCustodyRevision: positive10.optional()
+  sourceEventId: id27,
+  requestId: id27,
+  workId: id27.optional(),
+  expectedRevision: positive11.optional(),
+  expectedCustodyRevision: positive11.optional()
 }).strict();
 var collectiveRetainedMediaRegistrationRequestSchema = external_exports.object({
-  serviceInstanceId: id26,
-  collectiveId: id26,
-  connectionId: id26,
-  contentRef: id26,
-  sourceEventId: id26,
+  serviceInstanceId: id27,
+  collectiveId: id27,
+  connectionId: id27,
+  contentRef: id27,
+  sourceEventId: id27,
   mediaType: external_exports.enum(["image/png", "video/mp4"])
 }).strict();
 var collectiveRetainedMediaRegistrationSchema = collectiveRetainedMediaRegistrationRequestSchema.extend({
-  current: external_exports.object({ revision: positive10, custodyRevision: positive10, workId: id26.optional() }).strict().nullable()
+  current: external_exports.object({ revision: positive11, custodyRevision: positive11, workId: id27.optional() }).strict().nullable()
 });
 var collectiveMediaShareRefSchema = collectiveMediaSurfaceRefV1Schema.omit({
   artifactId: true,
@@ -46011,7 +46372,7 @@ var collectiveRetainedMediaPageSchema = external_exports.object({
 
 // ../shared/src/types/collective-media-surface-rpc.ts
 var source3 = workspaceContentSourceSchema.options[0];
-var positive11 = external_exports.number().int().positive().safe();
+var positive12 = external_exports.number().int().positive().safe();
 var offset = external_exports.number().int().nonnegative().safe();
 var page = external_exports.object({ offset, total: offset, nextOffset: offset.optional() }).strict();
 var collectiveMediaViewSchema = reviewedMediaAssetSchema.omit({ sourcePublication: true }).extend({
@@ -46037,12 +46398,12 @@ var collectiveMediaViewSchema = reviewedMediaAssetSchema.omit({ sourcePublicatio
 }).strict();
 var collectiveMediaReceiptSchema = external_exports.object({
   annotationId: external_exports.string().min(1).max(256),
-  ownerRevision: positive11,
+  ownerRevision: positive12,
   receipt: external_exports.object({
     reviewId: external_exports.string().min(1).max(256),
     receiptRef: external_exports.string().min(1).max(256),
     operationId: external_exports.string().regex(/^collective-media-operation:[a-f0-9]{64}$/),
-    revision: positive11,
+    revision: positive12,
     actor: external_exports.object({ kind: external_exports.literal("human"), actorId: external_exports.string().min(1).max(256) }).strict(),
     createdAt: external_exports.string().datetime(),
     replayed: external_exports.boolean()
@@ -46109,10 +46470,10 @@ var collectiveMemberDirectorySchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/collective-message-state.ts
-var id27 = external_exports.string().trim().min(1).max(200);
-var artifactIdentity = external_exports.object({ artifactId: id27, ownerRevision: external_exports.number().int().positive(), blobDigest: id27 });
+var id28 = external_exports.string().trim().min(1).max(200);
+var artifactIdentity = external_exports.object({ artifactId: id28, ownerRevision: external_exports.number().int().positive(), blobDigest: id28 });
 var collectiveComposerVoiceDraftSchema = external_exports.object({
-  captureId: id27,
+  captureId: id28,
   state: external_exports.enum(["recording", "transcribing", "failed", "ready"]),
   transcript: external_exports.string().max(32e3).optional(),
   applied: external_exports.boolean()
@@ -46133,36 +46494,36 @@ var collectiveComposerDraftSchema = external_exports.object({
   voiceDraft: collectiveComposerVoiceDraftSchema.optional(),
   entrust: external_exports.boolean().optional(),
   responseRequested: external_exports.boolean().optional(),
-  replyToEventId: id27.optional(),
+  replyToEventId: id28.optional(),
   replyNeedsSelection: external_exports.boolean().optional(),
   artifactSelections: external_exports.array(artifactIdentity.extend({ span: collectiveArtifactSelectionSchema }).strict()).max(12).optional(),
   artifactRework: artifactIdentity.extend({ sourceOwnerRevision: external_exports.number().int().positive(), rework: collectiveModificationReworkSchema }).strict().optional(),
-  artifactReply: artifactIdentity.extend({ annotationId: id27, messageEventId: id27, authorHumanId: id27 }).strict().optional()
-}).strict().superRefine((content3, context3) => {
-  validateCollectiveRichContent(content3, context3);
+  artifactReply: artifactIdentity.extend({ annotationId: id28, messageEventId: id28, authorHumanId: id28 }).strict().optional()
+}).strict().superRefine((content3, context4) => {
+  validateCollectiveRichContent(content3, context4);
   if (new TextEncoder().encode(JSON.stringify(content3)).length > 192 * 1024)
-    context3.addIssue({ code: "custom", message: "Private draft exceeds 192 KiB" });
+    context4.addIssue({ code: "custom", message: "Private draft exceeds 192 KiB" });
 });
 var collectiveHumanChannelCoordinatesSchema = external_exports.object({
-  serviceInstanceId: id27,
-  collectiveId: id27,
-  channelId: id27,
-  rootEventId: id27.optional()
+  serviceInstanceId: id28,
+  collectiveId: id28,
+  channelId: id28,
+  rootEventId: id28.optional()
 }).strict();
 var collectiveSaveComposerDraftSchema = collectiveHumanChannelCoordinatesSchema.extend({
   expectedRevision: external_exports.number().int().nonnegative().safe(),
-  clientOperationId: id27,
+  clientOperationId: id28,
   content: collectiveComposerDraftSchema
 }).strict();
 var collectiveDraftRecordSchema = collectiveHumanChannelCoordinatesSchema.extend({
-  humanId: id27,
+  humanId: id28,
   revision: external_exports.number().int().nonnegative().safe(),
   content: collectiveComposerDraftSchema,
   clientOperationId: external_exports.string().trim().min(1).max(205).optional()
 }).strict();
 var collectiveReadPositionSchema = external_exports.object({
   sequence: external_exports.number().int().nonnegative().safe(),
-  eventId: id27.optional()
+  eventId: id28.optional()
 }).strict();
 var collectiveHumanChannelStateSchema = external_exports.object({
   draft: collectiveDraftRecordSchema,
@@ -46253,13 +46614,13 @@ var collectiveModelMediaSchema = external_exports.object({
     }).strict(),
     external_exports.object({ type: external_exports.literal("unavailable"), reason: external_exports.enum(["unsupported_format", "transcription_unavailable"]) }).strict()
   ])
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   if (value.content.type === "audio" && !value.mediaType.startsWith("audio/") || value.content.type === "video" && !value.mediaType.startsWith("video/"))
-    context3.addIssue({ code: "custom", message: "Model media kind must match its retained MIME type" });
+    context4.addIssue({ code: "custom", message: "Model media kind must match its retained MIME type" });
   if (value.content.type === "video" && (value.content.frame.attachmentId !== value.attachmentId || value.content.frame.sourceDigest !== value.sourceDigest))
-    context3.addIssue({ code: "custom", message: "Video frame must name its original attachment" });
+    context4.addIssue({ code: "custom", message: "Video frame must name its original attachment" });
   if (new TextEncoder().encode(JSON.stringify(value)).length > 768 * 1024)
-    context3.addIssue({ code: "custom", message: "Model content exceeds the native response budget" });
+    context4.addIssue({ code: "custom", message: "Model content exceeds the native response budget" });
 });
 var collectiveModelContentSchema = external_exports.union([collectiveModelImageSchema, collectiveModelMediaSchema]);
 
@@ -46307,6 +46668,101 @@ var collectiveExecutionGrantSchema = external_exports.object({
   source: collectiveSourceIdentitySchema
 }).strict();
 
+// ../shared/src/types/collective-project-artifact.ts
+var id29 = external_exports.string().trim().min(1).max(256);
+var positive13 = external_exports.number().int().positive().safe();
+var coordinates3 = { serviceInstanceId: id29, collectiveId: id29 };
+var collectiveProjectArtifactVersionRefSchema = collectiveArtifactVersionSchema.pick({
+  ownerRevision: true,
+  blobDigest: true,
+  receiptRef: true
+});
+var action = external_exports.enum(["attach", "switch", "keep", "remove"]);
+var collectiveProjectArtifactReferenceSchema = external_exports.object({
+  ...coordinates3,
+  referenceId: id29,
+  roadmapId: id29,
+  artifactId: id29,
+  versionRef: collectiveProjectArtifactVersionRefSchema,
+  keptVersionRef: collectiveProjectArtifactVersionRefSchema.optional(),
+  status: external_exports.enum(["active", "removed"]),
+  revision: positive13,
+  createdAt: external_exports.string().datetime(),
+  updatedAt: external_exports.string().datetime(),
+  history: external_exports.array(
+    external_exports.object({
+      revision: positive13,
+      action,
+      actor: collectiveCollaborationActorSchema,
+      at: external_exports.string().datetime(),
+      sourceEventId: id29,
+      versionRef: collectiveProjectArtifactVersionRefSchema,
+      previousVersionRef: collectiveProjectArtifactVersionRefSchema.optional(),
+      observedVersionRef: collectiveProjectArtifactVersionRefSchema.optional()
+    }).strict()
+  ).min(1).max(1e4)
+}).strict();
+var base2 = external_exports.object({
+  ...coordinates3,
+  roadmapId: id29,
+  artifactId: id29,
+  requestId: id29,
+  expectedRevision: external_exports.number().int().nonnegative().safe()
+});
+var changeCollectiveProjectArtifactRequestSchema = external_exports.discriminatedUnion("action", [
+  base2.extend({ action: external_exports.literal("attach"), versionRef: collectiveProjectArtifactVersionRefSchema }).strict(),
+  base2.extend({ action: external_exports.literal("switch"), versionRef: collectiveProjectArtifactVersionRefSchema }).strict(),
+  base2.extend({ action: external_exports.literal("keep"), versionRef: collectiveProjectArtifactVersionRefSchema }).strict(),
+  base2.extend({ action: external_exports.literal("remove") }).strict()
+]);
+var listCollectiveProjectArtifactsRequestSchema = external_exports.object({
+  ...coordinates3,
+  roadmapId: id29,
+  expectedSnapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional(),
+  offset: external_exports.number().int().nonnegative().max(1e3).default(0),
+  limit: external_exports.number().int().min(1).max(30).default(30)
+}).strict();
+var collectiveProjectArtifactItemSchema = external_exports.object({
+  reference: collectiveProjectArtifactReferenceSchema,
+  availability: external_exports.enum(["available", "access_denied", "owner_unavailable", "version_unavailable"]),
+  artifact: collectiveArtifactProjectionSchema.optional(),
+  latestVersionRef: collectiveProjectArtifactVersionRefSchema.optional(),
+  hasUpdate: external_exports.boolean(),
+  usedBy: external_exports.array(
+    external_exports.object({
+      roadmapId: id29,
+      title: external_exports.string(),
+      accountableHumanId: id29,
+      versionRef: collectiveProjectArtifactVersionRefSchema
+    }).strict()
+  ).max(1e3)
+}).strict().superRefine((item, context4) => {
+  if (item.availability !== "available" && (item.artifact || item.latestVersionRef || item.usedBy.length || item.hasUpdate))
+    context4.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      message: "Unavailable references must not disclose source metadata"
+    });
+  if (item.availability === "available" && !item.artifact)
+    context4.addIssue({
+      code: external_exports.ZodIssueCode.custom,
+      message: "Available references require authorized original metadata"
+    });
+});
+var collectiveProjectArtifactListSchema = external_exports.object({
+  ...coordinates3,
+  roadmapId: id29,
+  snapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
+  offset: external_exports.number().int().nonnegative(),
+  total: external_exports.number().int().nonnegative(),
+  nextOffset: external_exports.number().int().nonnegative().optional(),
+  items: external_exports.array(collectiveProjectArtifactItemSchema).max(30),
+  removedReferences: external_exports.array(external_exports.object({ artifactId: id29, revision: positive13 }).strict()).max(1e3)
+}).strict();
+var collectiveProjectArtifactChangeSchema = external_exports.object({
+  outcome: external_exports.enum(["changed", "replayed", "conflict"]),
+  item: collectiveProjectArtifactItemSchema.nullable()
+}).strict();
+
 // ../shared/src/types/collective-project-attention.ts
 var COLLECTIVE_PROJECT_ATTENTION_PRODUCER_ID = "f290.collective_project_attention";
 var kindSchema = external_exports.enum(["triage", "date_suggestion", "overdue"]);
@@ -46350,9 +46806,9 @@ var collectiveProjectAttentionItemSchema = collectiveConnectionCoordinatesSchema
   workRevision: external_exports.number().int().positive().optional(),
   workTitle: external_exports.string().min(1).max(200).optional(),
   actionRef: external_exports.string().min(1).max(2e3)
-}).strict().superRefine((item, context3) => {
+}).strict().superRefine((item, context4) => {
   if (item.subjectRef !== collectiveProjectAttentionSubjectRef(item) || item.actionRef !== collectiveProjectAttentionActionRef(item) || item.kind !== "triage" && (!item.workId || !item.workRevision || !item.workTitle || item.workRevision !== item.expectedProducerRevision) || item.kind === "triage" && (item.workId || item.workRevision || item.workTitle))
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "Project attention must retain its exact owner and source action"
     });
@@ -46361,10 +46817,10 @@ var collectiveProjectAttentionReadSchema = external_exports.object({
   identity: collectiveConnectionCoordinatesSchema.extend({ authorizedHumanId: collectiveHumanIdSchema }).strict(),
   items: external_exports.array(collectiveProjectAttentionItemSchema),
   reasons: external_exports.array(external_exports.string())
-}).strict().superRefine((read, context3) => {
+}).strict().superRefine((read, context4) => {
   for (const item of read.items)
     if (item.serviceInstanceId !== read.identity.serviceInstanceId || item.collectiveId !== read.identity.collectiveId || item.connectionId !== read.identity.connectionId || item.targetHumanId !== read.identity.authorizedHumanId)
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         message: "Project attention is outside the paired Human scope"
       });
@@ -46381,11 +46837,11 @@ var collectiveHostProjectAttentionFocusSchema = external_exports.object({
   attention: external_exports.enum(["triage", "date_suggestion", "overdue", "work_dates"]),
   workId: collectiveWorkIdSchema.optional(),
   workRevision: external_exports.number().int().positive().optional()
-}).strict().superRefine((focus, context3) => {
+}).strict().superRefine((focus, context4) => {
   if (focus.attention !== "work_dates" && !focus.roadmapId)
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Project attention requires its Project" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Project attention requires its Project" });
   if (focus.attention === "triage" ? Boolean(focus.workId || focus.workRevision) : !focus.workId || !focus.workRevision)
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Project focus must name its exact kind of source" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: "Project focus must name its exact kind of source" });
 });
 
 // ../shared/src/types/collective-ui-placement.ts
@@ -46488,18 +46944,18 @@ var entrustedWorkTaskExecutionV1Schema = external_exports.discriminatedUnion("st
     canConfirmSatisfied: external_exports.literal(false),
     binding: taskExecutionBindingSchema.optional()
   }).strict()
-]).superRefine((projection, context3) => {
+]).superRefine((projection, context4) => {
   const canonicalSubjectRef = `task:work:${projection.taskRef.taskId}`;
   const canonicalOwnerRef = `task:item:${projection.taskRef.taskId}`;
   if (projection.taskRef.subjectRef !== canonicalSubjectRef || projection.taskRef.ownerRef !== canonicalOwnerRef) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["taskRef"],
       message: "Task execution coordinates must use the canonical subject and owner refs"
     });
   }
   if (projection.state === "idle" && projection.reasonCode === "unassigned_without_binding" && projection.binding) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["binding"],
       message: "Unassigned idle work cannot carry an execution binding"
@@ -46529,9 +46985,9 @@ var entrustedWorkTaskExecutionStopV1Schema = external_exports.object({
     "execution_control_unavailable"
   ]),
   executionRefs: external_exports.array(boundedRef).max(8)
-}).strict().superRefine((result, context3) => {
+}).strict().superRefine((result, context4) => {
   if (result.state === "stopped" && result.executionRefs.length === 0) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["executionRefs"],
       message: "A stopped result must name the exact execution that was aborted"
@@ -46612,25 +47068,25 @@ var entrustedWorkHumanTerminalReceiptV1Schema = external_exports.object({
     stop: entrustedWorkTaskExecutionStopV1Schema
   }).strict(),
   recordedAt: timestampSchema2
-}).strict().superRefine((receipt2, context3) => {
+}).strict().superRefine((receipt2, context4) => {
   const canonicalSubjectRef = `task:work:${receipt2.task.taskId}`;
   const canonicalOwnerRef = `task:item:${receipt2.task.taskId}`;
   if (receipt2.task.subjectRef !== canonicalSubjectRef || receipt2.task.ownerRef !== canonicalOwnerRef || receipt2.execution.before.taskRef.taskId !== receipt2.task.taskId) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["task"],
       message: "Terminal receipt must bind one canonical Task across every coordinate"
     });
   }
   if (receipt2.task.revision !== receipt2.task.previousRevision + 1) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["task", "revision"],
       message: "Terminal receipt must describe exactly one Task revision transition"
     });
   }
   if (receipt2.decision.actorRef !== `user:${receipt2.ownerUserId}`) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["decision", "actorRef"],
       message: "Terminal receipt actor must be the authenticated Task owner"
@@ -46639,35 +47095,35 @@ var entrustedWorkHumanTerminalReceiptV1Schema = external_exports.object({
   const expectedDecisionRef = `${canonicalSubjectRef}#human-decision:${receipt2.decision.decisionId}`;
   const expectedAuthorityRef = `${canonicalOwnerRef}#human-terminal:${receipt2.decision.decisionId}`;
   if (receipt2.decision.decisionRef !== expectedDecisionRef || receipt2.decision.authorityRef !== expectedAuthorityRef) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["decision"],
       message: "Terminal receipt decision and authority refs must be server-canonical"
     });
   }
   if (receipt2.execution.before.taskRef.revision !== receipt2.task.previousRevision) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["execution", "before", "taskRef", "revision"],
       message: "Execution observation must be fenced by the pre-terminal Task revision"
     });
   }
   if (receipt2.recordedAt < receipt2.decision.decidedAt) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["recordedAt"],
       message: "Receipt cannot precede the human decision"
     });
   }
   if (receipt2.decision.state === "satisfied" && receipt2.execution.stop.state !== "not_requested") {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["execution", "stop"],
       message: "Satisfied decisions never request execution cancellation"
     });
   }
   if (receipt2.decision.state === "satisfied" && receipt2.execution.before.state !== "idle") {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["execution", "before"],
       message: "Satisfied receipts require a fresh idle Task-binding observation"
@@ -46722,7 +47178,7 @@ var developmentScopeQueryV1Schema = external_exports.object({
 
 // ../shared/src/types/task-data-controller.ts
 var ref7 = external_exports.string().trim().min(1).max(1e3);
-var revision8 = external_exports.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+var revision9 = external_exports.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 var timestamp3 = external_exports.number().int().nonnegative().finite();
 var digest6 = external_exports.string().regex(/^sha256:[a-f0-9]{64}$/);
 var entrustedTaskDataControllerCoordinatesV1Schema = external_exports.object({
@@ -46735,9 +47191,8 @@ var entrustedTaskDataControllerCoordinatesV1Schema = external_exports.object({
   pluginId: ref7,
   pluginInstanceId: ref7,
   moduleRef: ref7,
-  lifecycleRevision: revision8,
-  grantRevision: revision8
-}).strict();
+  lifecycleRevision: revision9
+});
 var receiptBase = {
   receiptRef: ref7.regex(/^task-data-controller:[a-f0-9]{64}$/),
   operationId: ref7,
@@ -46753,7 +47208,8 @@ var entrustedTaskDataControllerReceiptV1Schema = external_exports.discriminatedU
   external_exports.object({
     ...receiptBase,
     kind: external_exports.literal("bind"),
-    controller: entrustedTaskDataControllerCoordinatesV1Schema
+    // Historical input is immutable evidence, never current API authority.
+    controller: entrustedTaskDataControllerCoordinatesV1Schema.extend({ grantRevision: revision9.optional() })
   }).strict(),
   external_exports.object({
     ...receiptBase,
@@ -46762,16 +47218,16 @@ var entrustedTaskDataControllerReceiptV1Schema = external_exports.discriminatedU
   }).strict()
 ]);
 var entrustedTaskDataControllerV1Schema = external_exports.object({
-  bindingRevision: revision8,
+  bindingRevision: revision9,
   state: external_exports.enum(["active", "revoked"]),
   binding: entrustedTaskDataControllerCoordinatesV1Schema.extend({
     ownerOperationReceiptRef: receiptBase.receiptRef
-  }).strict(),
+  }),
   receipts: external_exports.array(entrustedTaskDataControllerReceiptV1Schema).min(1).max(256),
   revocationReceiptRef: receiptBase.receiptRef.optional()
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   if (value.bindingRevision !== value.receipts.length) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["bindingRevision"],
       message: "bindingRevision must identify the complete receipt history"
@@ -46780,8 +47236,8 @@ var entrustedTaskDataControllerV1Schema = external_exports.object({
   const bindingReceipt = value.receipts.find(
     (receipt2) => receipt2.kind === "bind" && receipt2.receiptRef === value.binding.ownerOperationReceiptRef
   );
-  if (!bindingReceipt || JSON.stringify(bindingReceipt.controller) !== JSON.stringify(stripBindingReceipt(value.binding))) {
-    context3.addIssue({
+  if (!bindingReceipt || JSON.stringify(entrustedTaskDataControllerCoordinatesV1Schema.parse(bindingReceipt.controller)) !== JSON.stringify(stripBindingReceipt(value.binding))) {
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["binding"],
       message: "binding must be backed by its exact owner-operation receipt"
@@ -46791,7 +47247,7 @@ var entrustedTaskDataControllerV1Schema = external_exports.object({
     (receipt2) => receipt2.kind === "revoke" && receipt2.receiptRef === value.revocationReceiptRef
   ) : void 0;
   if (value.state === "revoked" && (!revocationReceipt || revocationReceipt.controllerReceiptRef !== value.binding.ownerOperationReceiptRef) || value.state === "active" && value.revocationReceiptRef !== void 0) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["revocationReceiptRef"],
       message: "revocation state must be backed by the current binding receipt"
@@ -46799,8 +47255,8 @@ var entrustedTaskDataControllerV1Schema = external_exports.object({
   }
 });
 function stripBindingReceipt(binding) {
-  const { ownerOperationReceiptRef: _receiptRef, ...coordinates3 } = binding;
-  return coordinates3;
+  const { ownerOperationReceiptRef: _receiptRef, ...coordinates4 } = binding;
+  return coordinates4;
 }
 
 // ../shared/src/types/growing.ts
@@ -46844,9 +47300,9 @@ var custodyOfferBase = {
   /** Message-owner witness of candidate recognition; absent only on legacy offers. */
   recognizedAt: timestampSchema3.optional()
 };
-var refusedOffer = (disposition) => external_exports.object({
+var refusedOffer = (disposition2) => external_exports.object({
   ...custodyOfferBase,
-  disposition: external_exports.literal(disposition),
+  disposition: external_exports.literal(disposition2),
   actorRef: boundedRef2,
   dispositionAt: timestampSchema3
 }).strict();
@@ -46902,9 +47358,9 @@ var humanSatisfiedConfirmationSchema = external_exports.object({
   decisionRef: boundedRef2,
   confirmedAt: timestampSchema3,
   taskExecution: entrustedWorkTaskExecutionV1Schema
-}).strict().superRefine((confirmation, context3) => {
+}).strict().superRefine((confirmation, context4) => {
   if (confirmation.taskExecution.state !== "idle") {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["taskExecution"],
       message: "Human confirmation requires an idle Task-binding observation"
@@ -46984,12 +47440,12 @@ var producerAttentionCoverageV1Schema = external_exports.discriminatedUnion("sta
     state: external_exports.literal("partial"),
     unavailableSources: external_exports.array(producerAttentionUnavailableSourceV1Schema).min(1).max(NEEDS_ME_PRODUCER_IDS.length)
   }).strict()
-]).superRefine((coverage, context3) => {
+]).superRefine((coverage, context4) => {
   if (coverage.state !== "partial") return;
   const seen = /* @__PURE__ */ new Set();
   coverage.unavailableSources.forEach((source4, index4) => {
     if (seen.has(source4.producerId)) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["unavailableSources", index4, "producerId"],
         message: "producer attention coverage cannot repeat an unavailable source"
@@ -47018,9 +47474,9 @@ var producerAttentionReevaluationLinkV1Schema = external_exports.object({
     observedRevision: revisionSchema2
   }).strict(),
   reEvaluateActionRef: boundedRef2
-}).strict().superRefine((link3, context3) => {
+}).strict().superRefine((link3, context4) => {
   if (link3.reEvaluateActionRef !== `${link3.producer.subjectRef}#reevaluate`) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["reEvaluateActionRef"],
       message: "reEvaluateActionRef must be the canonical producer action"
@@ -47047,9 +47503,9 @@ var eligibleAttentionReceiptSchema = external_exports.object({
   }).strict(),
   reEvaluateActionRef: boundedRef2
 }).strict();
-var producerAttentionReceiptV1Schema = external_exports.discriminatedUnion("eligible", [ineligibleAttentionReceiptSchema, eligibleAttentionReceiptSchema]).superRefine((receipt2, context3) => {
+var producerAttentionReceiptV1Schema = external_exports.discriminatedUnion("eligible", [ineligibleAttentionReceiptSchema, eligibleAttentionReceiptSchema]).superRefine((receipt2, context4) => {
   if (receipt2.eligible && receipt2.action.expectedProducerRevision !== receipt2.producer.revision) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["action", "expectedProducerRevision"],
       message: "action revision must match current producer revision"
@@ -47188,12 +47644,12 @@ var collectiveWorkDelegationV1Schema = external_exports.object({
   executionRef: external_exports.string().regex(/^message:.+/).max(1e3).optional(),
   ownerCatId: external_exports.string().min(1).max(120),
   targetCatIds: external_exports.array(external_exports.string().min(1).max(120)).min(1).max(20)
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   if (new Set(value.targetCatIds).size !== value.targetCatIds.length) {
-    context3.addIssue({ code: "custom", message: "Collective Work delegation targets must be unique" });
+    context4.addIssue({ code: "custom", message: "Collective Work delegation targets must be unique" });
   }
   if (value.targetCatIds.includes(value.ownerCatId)) {
-    context3.addIssue({ code: "custom", message: "Collective Work delegation must name another home Cat" });
+    context4.addIssue({ code: "custom", message: "Collective Work delegation must name another home Cat" });
   }
 });
 var collectiveWorkBindingSchema = collectiveWorkInvocationV1Schema.extend({
@@ -47273,7 +47729,7 @@ var collectiveWorkSourceContextSchema = external_exports.object({
 
 // ../shared/src/types/connection-diagnostics.ts
 var CONNECTION_DIAGNOSTIC_UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-var id28 = external_exports.string().regex(CONNECTION_DIAGNOSTIC_UUID);
+var id30 = external_exports.string().regex(CONNECTION_DIAGNOSTIC_UUID);
 var duration = external_exports.number().finite().min(0).max(864e5);
 var route = external_exports.enum([
   "session",
@@ -47287,12 +47743,12 @@ var route = external_exports.enum([
 ]);
 var errorKind = external_exports.enum(["timeout", "aborted", "network", "other"]);
 var notice = external_exports.enum(["not-saved", "unavailable", "interrupted", "clear-failed", "save-failed"]);
-var base2 = { eventId: id28, at: external_exports.number().int().nonnegative() };
+var base3 = { eventId: id30, at: external_exports.number().int().nonnegative() };
 var connectionDiagnosticEventSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
-    ...base2,
+    ...base3,
     kind: external_exports.literal("http"),
-    clientRequestId: id28,
+    clientRequestId: id30,
     route,
     method: external_exports.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "OTHER"]),
     state: external_exports.enum(["start", "finish", "failed"]),
@@ -47303,17 +47759,17 @@ var connectionDiagnosticEventSchema = external_exports.discriminatedUnion("kind"
     statusCode: external_exports.number().int().min(100).max(599).optional()
   }).strict(),
   external_exports.object({
-    ...base2,
+    ...base3,
     kind: external_exports.literal("connection_notice"),
-    clientRequestId: id28.optional(),
+    clientRequestId: id30.optional(),
     route: route.optional(),
     state: external_exports.enum(["shown", "suppressed"]),
     errorKind: external_exports.enum(["timeout", "network"])
   }).strict(),
   external_exports.object({
-    ...base2,
+    ...base3,
     kind: external_exports.literal("settings_return"),
-    bridgeId: id28,
+    bridgeId: id30,
     phase: external_exports.enum(["created", "capture", "return", "cancel", "notice", "consumed", "presented", "disposed"]),
     cause: external_exports.enum([
       "route",
@@ -47341,16 +47797,16 @@ var connectionDiagnosticBatchSchema = external_exports.object({
 }).strict();
 
 // ../shared/src/types/content-modification-carrier.ts
-var id29 = external_exports.string().trim().min(1).max(256);
+var id31 = external_exports.string().trim().min(1).max(256);
 var requestId = external_exports.string().regex(/^f309-modification-[a-f0-9]{64}$/);
 var receiptRef = external_exports.string().min(1).max(2048);
 var contentModificationRequestCarrierV1Schema = external_exports.object({
   v: external_exports.literal(1),
   kind: external_exports.enum(["request_text_edit", "request_image_edit", "request_media_edit", "supersede_request"]),
   requestId,
-  sourceMessageId: id29,
-  targetCatId: id29,
-  taskId: id29,
+  sourceMessageId: id31,
+  targetCatId: id31,
+  taskId: id31,
   expectedTaskRevision: external_exports.number().int().positive().safe(),
   requestReceiptRef: receiptRef
 }).strict();
@@ -47359,29 +47815,29 @@ var contentModificationPublicationCarrierV1Schema = external_exports.object({
   kind: external_exports.literal("resume_media_publication"),
   returnRef: receiptRef,
   requestId,
-  sourceMessageId: id29,
+  sourceMessageId: id31,
   sourceMessageRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   requestReceiptRef: receiptRef,
-  taskId: id29,
-  targetCatId: id29,
+  taskId: id31,
+  targetCatId: id31,
   expectedTaskRevision: external_exports.number().int().positive().safe(),
-  reviewId: id29,
+  reviewId: id31,
   round: external_exports.number().int().positive().safe(),
-  contentRef: id29,
+  contentRef: id31,
   ownerRevision: external_exports.number().int().positive().safe(),
-  publicationMessageId: id29,
+  publicationMessageId: id31,
   publicationRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  publicationItemId: id29,
+  publicationItemId: id31,
   artifactRef: external_exports.string().startsWith("/uploads/").max(1e3),
   artifactRevision: external_exports.string().regex(/^\d+$/),
-  producingInvocationId: id29
+  producingInvocationId: id31
 }).strict();
 var contentModificationFollowUpCarrierV1Schema = external_exports.object({
   v: external_exports.literal(1),
   requestId,
-  sourceMessageId: id29,
-  targetCatId: id29,
-  taskId: id29,
+  sourceMessageId: id31,
+  targetCatId: id31,
+  taskId: id31,
   candidateRef: external_exports.string().min(1).max(1e3).optional(),
   receiptRef,
   state: external_exports.enum(["conflict", "unknown"])
@@ -47392,9 +47848,9 @@ var contentTextWritebackCompletionCarrierV1Schema = external_exports.object({
   returnRef: receiptRef,
   requestId,
   closureRequestId: requestId,
-  sourceMessageId: id29,
-  taskId: id29,
-  targetCatId: id29,
+  sourceMessageId: id31,
+  taskId: id31,
+  targetCatId: id31,
   observedTaskRevision: external_exports.number().int().positive().safe(),
   expectedSignal: external_exports.string().min(1).max(512),
   candidateRef: external_exports.string().min(1).max(1e3),
@@ -47406,11 +47862,11 @@ var contentTextWritebackCompletionCarrierV1Schema = external_exports.object({
 });
 
 // ../shared/src/types/content-modification-control.ts
-var id30 = external_exports.string().min(1).max(256);
+var id32 = external_exports.string().min(1).max(256);
 var contentRuntimeControlTargetSchema = external_exports.discriminatedUnion("kind", [
-  external_exports.object({ kind: external_exports.literal("stop_execution"), executionId: id30, invocationId: id30 }).strict(),
-  external_exports.object({ kind: external_exports.literal("withdraw_single"), entryId: id30, messageId: id30 }).strict(),
-  external_exports.object({ kind: external_exports.literal("withdraw_queue"), entryId: id30, messageId: id30 }).strict()
+  external_exports.object({ kind: external_exports.literal("stop_execution"), executionId: id32, invocationId: id32 }).strict(),
+  external_exports.object({ kind: external_exports.literal("withdraw_single"), entryId: id32, messageId: id32 }).strict(),
+  external_exports.object({ kind: external_exports.literal("withdraw_queue"), entryId: id32, messageId: id32 }).strict()
 ]);
 
 // ../shared/src/types/deployment-wait.ts
@@ -47516,6 +47972,8 @@ function isAllowedActionSuccessorSlot(actionFamily, successorSlot) {
   return ACTION_SLOTS[actionFamily].has(successorSlot);
 }
 var actionSuccessorMetadataObjectSchema = external_exports.object({
+  expectedOwnerRevision: external_exports.number().int().nonnegative().optional(),
+  stopPreviousExecution: external_exports.boolean().optional(),
   subjectRef: actionSubjectRefSchema,
   actionFamily: external_exports.enum(ACTION_SUCCESSOR_ACTION_FAMILIES),
   successorSlot: external_exports.enum(ACTION_SUCCESSOR_SLOTS),
@@ -47951,8 +48409,8 @@ var evolutionPreparationSectionSchema = external_exports.enum(EVOLUTION_PREPARAT
 var programIdSchema = external_exports.string().regex(/^evolution-program:[0-9a-f]{32}$/);
 var revisionSchema3 = external_exports.string().regex(/^sha256:[0-9a-f]{64}$/);
 var identifierSchema = external_exports.string().trim().min(1).max(120).regex(/^[a-z0-9][a-z0-9._-]*$/);
-var text7 = (max = 2e3) => bounded(max);
-var textList = (max = 32) => external_exports.array(text7()).max(max);
+var text9 = (max = 2e3) => bounded(max);
+var textList = (max = 32) => external_exports.array(text9()).max(max);
 var PREPARATION_REF_PATTERN = new RegExp(
   `^preparation-submission:(evolution-program:[0-9a-f]{32}):(${EVOLUTION_PREPARATION_SECTIONS.join("|")})$`
 );
@@ -47982,7 +48440,7 @@ var evolutionPreparationActivityRefV1Schema = ownerTruthRefV1Schema.superRefine(
 });
 var evolutionPreparationModifiabilityV1Schema = external_exports.object({
   state: external_exports.enum(["unknown", "modifiable", "partially_modifiable", "not_modifiable_this_round", "not_applicable"]),
-  reason: text7(1e3),
+  reason: text9(1e3),
   basisRefs: external_exports.array(ownerTruthRefV1Schema).max(16)
 }).strict().superRefine((value, ctx) => {
   if (value.state !== "unknown" && value.basisRefs.length === 0) {
@@ -47995,16 +48453,16 @@ var evolutionPreparationModifiabilityV1Schema = external_exports.object({
 });
 var evolutionPreparationItemV1Schema = external_exports.object({
   itemId: identifierSchema,
-  label: text7(240),
-  category: text7(120).optional(),
+  label: text9(240),
+  category: text9(120).optional(),
   recommendation: preparationRecommendationSchema.optional(),
-  existingWork: external_exports.object({ summary: text7(), sourceRefs: external_exports.array(ownerTruthRefV1Schema).min(1).max(16) }).strict().optional(),
+  existingWork: external_exports.object({ summary: text9(), sourceRefs: external_exports.array(ownerTruthRefV1Schema).min(1).max(16) }).strict().optional(),
   decision: preparationDecisionSchema.optional(),
-  scope: text7(),
-  why: text7(),
+  scope: text9(),
+  why: text9(),
   modifiability: evolutionPreparationModifiabilityV1Schema,
   sourceRefs: external_exports.array(ownerTruthRefV1Schema).max(32),
-  nextAction: text7()
+  nextAction: text9()
 }).strict().superRefine((value, ctx) => {
   if (value.decision?.state === "explore" && !["modifiable", "partially_modifiable"].includes(value.modifiability.state)) {
     ctx.addIssue({
@@ -48016,89 +48474,89 @@ var evolutionPreparationItemV1Schema = external_exports.object({
 });
 var objectMapBodySchema = external_exports.object({
   kind: external_exports.literal("object_map"),
-  goalStatement: text7(4e3),
-  summary: text7(4e3),
+  goalStatement: text9(4e3),
+  summary: text9(4e3),
   items: external_exports.array(evolutionPreparationItemV1Schema).min(1).max(32),
   unknowns: textList(),
-  nextAction: text7()
+  nextAction: text9()
 }).strict();
 var payerSchema = external_exports.object({
   kind: external_exports.enum(["engineering_maintenance", "judge_runway", "human_attention", "mixed"]),
-  detail: text7()
+  detail: text9()
 }).strict();
 var evolutionPreparationCriterionV1Schema = external_exports.object({
   criterionId: identifierSchema,
-  label: text7(240),
-  utilityClaim: text7(4e3),
-  observationUnit: text7(),
-  estimator: text7(4e3),
-  counterexample: text7(),
+  label: text9(240),
+  utilityClaim: text9(4e3),
+  observationUnit: text9(),
+  estimator: text9(4e3),
+  counterexample: text9(),
   gtDomain: external_exports.enum(["verifiable", "semi_verifiable", "open_value"]),
   judge: external_exports.enum(["verifier", "calibrated_judge", "value_owner", "mixed"]),
   payer: payerSchema,
   gtSourceKeys: external_exports.array(identifierSchema).min(1).max(16),
   validityBounds: textList(16).min(1),
   unknowns: textList(16),
-  nextAction: text7()
+  nextAction: text9()
 }).strict();
 var successContractBodySchema = external_exports.object({
   kind: external_exports.literal("success_contract"),
-  summary: text7(4e3),
+  summary: text9(4e3),
   criteria: external_exports.array(evolutionPreparationCriterionV1Schema).min(1).max(12),
   unknowns: textList(),
-  nextAction: text7()
+  nextAction: text9()
 }).strict();
 var gtCollectionSchema = external_exports.discriminatedUnion("state", [
-  external_exports.object({ state: external_exports.literal("not_connected"), method: text7() }).strict(),
-  external_exports.object({ state: external_exports.literal("collecting"), method: text7(), sourceRef: ownerTruthRefV1Schema.optional() }).strict(),
-  external_exports.object({ state: external_exports.literal("collected"), method: text7(), sourceRef: ownerTruthRefV1Schema }).strict()
+  external_exports.object({ state: external_exports.literal("not_connected"), method: text9() }).strict(),
+  external_exports.object({ state: external_exports.literal("collecting"), method: text9(), sourceRef: ownerTruthRefV1Schema.optional() }).strict(),
+  external_exports.object({ state: external_exports.literal("collected"), method: text9(), sourceRef: ownerTruthRefV1Schema }).strict()
 ]);
 var gtValiditySchema = external_exports.discriminatedUnion("state", [
-  external_exports.object({ state: external_exports.literal("unknown"), detail: text7() }).strict(),
+  external_exports.object({ state: external_exports.literal("unknown"), detail: text9() }).strict(),
   external_exports.object({
     state: external_exports.literal("needs_review"),
-    detail: text7(),
+    detail: text9(),
     proofRefs: external_exports.array(ownerTruthRefV1Schema).max(16).optional()
   }).strict(),
   external_exports.object({
     state: external_exports.literal("bounded"),
-    detail: text7(),
-    validFor: text7(),
+    detail: text9(),
+    validFor: text9(),
     proofRefs: external_exports.array(ownerTruthRefV1Schema).min(1).max(16)
   }).strict()
 ]);
 var evolutionPreparationGtSourceV1Schema = external_exports.object({
   sourceKey: identifierSchema,
   category: external_exports.enum(["business_fact", "domain_precedent", "real_world_outcome"]),
-  label: text7(240),
+  label: text9(240),
   collection: gtCollectionSchema,
   validity: gtValiditySchema,
   missingOrDisputed: textList(32),
-  cost: external_exports.object({ payer: text7(240), detail: text7() }).strict()
+  cost: external_exports.object({ payer: text9(240), detail: text9() }).strict()
 }).strict();
 var comparisonSchema = external_exports.object({
-  unit: text7(),
-  primaryVariable: text7(),
+  unit: text9(),
+  primaryVariable: text9(),
   controls: textList(32),
-  developmentEvidence: text7(),
-  independentHoldout: text7(),
-  repeatability: text7()
+  developmentEvidence: text9(),
+  independentHoldout: text9(),
+  repeatability: text9()
 }).strict();
 var measurementPlanBodySchema = external_exports.object({
   kind: external_exports.literal("measurement_plan"),
-  summary: text7(4e3),
+  summary: text9(4e3),
   gtSources: external_exports.array(evolutionPreparationGtSourceV1Schema).min(1).max(32),
   conditions: external_exports.array(evolutionPreparationItemV1Schema).max(32),
   comparison: comparisonSchema,
   unknowns: textList(),
-  nextAction: text7()
+  nextAction: text9()
 }).strict();
 var baselineFactSchema = external_exports.object({
   factId: identifierSchema,
-  label: text7(240),
+  label: text9(240),
   state: external_exports.enum(["unknown", "reported", "owner_verified"]),
   sourceRefs: external_exports.array(ownerTruthRefV1Schema).max(32),
-  limitation: text7()
+  limitation: text9()
 }).strict().superRefine((value, ctx) => {
   if (value.state === "owner_verified" && value.sourceRefs.length === 0) {
     ctx.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["sourceRefs"], message: "verified facts require owner refs" });
@@ -48106,20 +48564,20 @@ var baselineFactSchema = external_exports.object({
 });
 var competingExplanationSchema = external_exports.object({
   explanationId: identifierSchema,
-  hypothesis: text7(),
+  hypothesis: text9(),
   evidenceFor: external_exports.array(ownerTruthRefV1Schema).max(32),
   evidenceAgainst: external_exports.array(ownerTruthRefV1Schema).max(32),
-  discriminatingNextStep: text7()
+  discriminatingNextStep: text9()
 }).strict();
 var baselineDiagnosisBodySchema = external_exports.object({
   kind: external_exports.literal("baseline_diagnosis"),
-  summary: text7(4e3),
+  summary: text9(4e3),
   baselineState: external_exports.enum(["unknown", "draft", "owner_verified"]),
-  observationUnit: text7(),
+  observationUnit: text9(),
   facts: external_exports.array(baselineFactSchema).max(64),
   competingExplanations: external_exports.array(competingExplanationSchema).min(2).max(16),
   unknowns: textList(),
-  nextAction: text7()
+  nextAction: text9()
 }).strict().superRefine((value, ctx) => {
   if (value.baselineState === "owner_verified" && !value.facts.some((fact2) => fact2.state === "owner_verified")) {
     ctx.addIssue({
@@ -48139,7 +48597,7 @@ var evolutionPreparationSubmissionV1Schema = external_exports.object({
   schemaVersion: external_exports.literal(1),
   programId: programIdSchema,
   section: evolutionPreparationSectionSchema,
-  title: text7(240),
+  title: text9(240),
   authorCatId: identifierSchema,
   revision: revisionSchema3,
   dependsOn: external_exports.array(evolutionPreparationSubmissionRefV1Schema).max(3),
@@ -48150,8 +48608,8 @@ var evolutionPreparationSubmissionV1Schema = external_exports.object({
   }
   const identities = /* @__PURE__ */ new Set();
   for (const dependency of value.dependsOn) {
-    const coordinates3 = evolutionPreparationSubmissionRefCoordinates(dependency);
-    if (!coordinates3 || coordinates3.programId !== value.programId || coordinates3.section === value.section) {
+    const coordinates4 = evolutionPreparationSubmissionRefCoordinates(dependency);
+    if (!coordinates4 || coordinates4.programId !== value.programId || coordinates4.section === value.section) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["dependsOn"],
@@ -48159,7 +48617,7 @@ var evolutionPreparationSubmissionV1Schema = external_exports.object({
       });
       continue;
     }
-    const identity2 = `${coordinates3.section}:${coordinates3.revision}`;
+    const identity2 = `${coordinates4.section}:${coordinates4.revision}`;
     if (identities.has(identity2)) {
       ctx.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["dependsOn"], message: "dependencies must be unique" });
     }
@@ -48371,8 +48829,8 @@ var evolutionProgramEventV1Schema = evolutionProgramEventV1Union.superRefine((ev
   if (event.type === "intervention_receipt_linked") validateInterventionReceipt(event, ctx);
   if (event.type === "decision_recorded") validateDecisionEvent(event, ctx);
   if (event.type === "preparation_work_registered" && event.baseSubmissionRef) {
-    const base3 = evolutionPreparationSubmissionRefCoordinates(event.baseSubmissionRef);
-    if (base3?.section !== event.section) {
+    const base4 = evolutionPreparationSubmissionRefCoordinates(event.baseSubmissionRef);
+    if (base4?.section !== event.section) {
       ctx.addIssue({ code: external_exports.ZodIssueCode.custom, message: "preparation work base must match its section" });
     }
   }
@@ -48684,9 +49142,9 @@ var evolutionPreparationResourceV1Schema = external_exports.object({
   sourceRef: owner2,
   ownerHref: evolutionOwnerHrefSchema.optional(),
   media: evolutionPreparationMediaV1Schema.optional()
-}).strict().superRefine((value, context3) => {
+}).strict().superRefine((value, context4) => {
   if (value.media && refIdentity(value.media.mediaRef) !== refIdentity(value.sourceRef))
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "preparation media and resource source refs must match"
     });
@@ -48720,12 +49178,12 @@ var evolutionPreparationReviewV1Schema = external_exports.discriminatedUnion("st
     groups: external_exports.array(evolutionPreparationGroupV1Schema).max(32),
     blockers: blockers2
   }).strict()
-]).superRefine((value, context3) => {
+]).superRefine((value, context4) => {
   if (value.status !== "resolved") return;
   const groups = value.groups.map((item) => refIdentity(item.groupRef));
   const materials = value.groups.flatMap((item) => item.items.map((entry) => refIdentity(entry.materialRef)));
   if (new Set(groups).size !== groups.length || new Set(materials).size !== materials.length)
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "publication group and material refs must each be unique"
     });
@@ -48733,7 +49191,7 @@ var evolutionPreparationReviewV1Schema = external_exports.discriminatedUnion("st
   if (value.groups.some(
     (item) => item.items.some((entry) => entry.activity && Date.parse(entry.activity.updatedAt) > publicationTime)
   ))
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: "material activity cannot be newer than its publication"
     });
@@ -48875,6 +49333,13 @@ var CONNECTOR_DEFINITIONS = [
     description: "\u90E8\u7F72\u6761\u4EF6\u6EE1\u8DB3\u540E\u63A5\u56DE\u539F\u4EFB\u52A1"
   },
   {
+    id: "worktree-lifecycle",
+    displayName: "\u5DE5\u4F4D\u901A\u77E5",
+    icon: { type: "svg", iconId: "settings" },
+    themeColor: "#6B7280",
+    description: "\u5DE5\u4F4D\u4FDD\u7559\u3001\u6E05\u7406\u53CA\u6062\u590D\u7ED3\u679C"
+  },
+  {
     id: "physical-limb.stackchan",
     displayName: "StackChan",
     icon: { type: "svg", iconId: "robot" },
@@ -48994,87 +49459,87 @@ function selectCanonicalOwnerTime(timeRefs) {
   ];
   return priority.flatMap((role) => timeRefs.filter((timeRef) => timeRef.role === role))[0];
 }
-function validateOwnerTimeCoordinates(ownerRead, context3) {
+function validateOwnerTimeCoordinates(ownerRead, context4) {
   const roles = /* @__PURE__ */ new Set();
   ownerRead.timeRefs.forEach((timeRef, index4) => {
     if (timeRef.subjectRef !== ownerRead.envelope.subjectRef || timeRef.ownerRef !== ownerRead.envelope.ownerRef || timeRef.revision !== ownerRead.envelope.revision) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["timeRefs", index4],
         message: "time coordinate must be linked to the canonical Task owner revision"
       });
     }
     if (roles.has(timeRef.role)) {
-      context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["timeRefs", index4], message: "time role must be unique" });
+      context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["timeRefs", index4], message: "time role must be unique" });
     }
     roles.add(timeRef.role);
   });
 }
 
 // ../shared/src/types/entrusted-work-owner-read-validation.ts
-function addBriefIssue(context3, path2, message) {
-  context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["brief", path2], message });
+function addBriefIssue(context4, path2, message) {
+  context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: ["brief", path2], message });
 }
-function validateTerminalCoordinates(ownerRead, context3) {
+function validateTerminalCoordinates(ownerRead, context4) {
   const hasTerminalTruth = Boolean(ownerRead.terminal || ownerRead.completion);
   if (ownerRead.brief.current.state === "done" !== hasTerminalTruth) {
-    addBriefIssue(context3, "current", "terminal reads require canonical Task terminal truth");
+    addBriefIssue(context4, "current", "terminal reads require canonical Task terminal truth");
   }
   if (ownerRead.terminal?.state === "satisfied" && !ownerRead.completion) {
-    addBriefIssue(context3, "current", "satisfied terminal truth requires canonical completion evidence");
+    addBriefIssue(context4, "current", "satisfied terminal truth requires canonical completion evidence");
   }
   if (ownerRead.terminal && ownerRead.terminal.state !== "satisfied" && ownerRead.completion) {
-    addBriefIssue(context3, "current", "cancelled or abandoned work must not be represented as completed");
+    addBriefIssue(context4, "current", "cancelled or abandoned work must not be represented as completed");
   }
   if (ownerRead.terminal?.state === "satisfied" && ownerRead.completion && JSON.stringify(ownerRead.terminal.evidenceRefs) !== JSON.stringify(ownerRead.completion.evidenceRefs)) {
-    addBriefIssue(context3, "current", "satisfied terminal and completion evidence must be identical");
+    addBriefIssue(context4, "current", "satisfied terminal and completion evidence must be identical");
   }
 }
-function validateBriefTaskCoordinates(ownerRead, context3) {
-  validateTerminalCoordinates(ownerRead, context3);
+function validateBriefTaskCoordinates(ownerRead, context4) {
+  validateTerminalCoordinates(ownerRead, context4);
   if (ownerRead.brief.current.ownerRef !== ownerRead.envelope.ownerRef || ownerRead.brief.current.revision !== ownerRead.envelope.revision) {
-    addBriefIssue(context3, "current", "brief current state must use the same Task owner coordinate");
+    addBriefIssue(context4, "current", "brief current state must use the same Task owner coordinate");
   }
   if (ownerRead.brief.outcome.state === "known" && (ownerRead.brief.outcome.ownerRef !== ownerRead.envelope.ownerRef || ownerRead.brief.outcome.revision !== ownerRead.envelope.revision)) {
-    addBriefIssue(context3, "outcome", "brief outcome must use the same Task owner coordinate");
+    addBriefIssue(context4, "outcome", "brief outcome must use the same Task owner coordinate");
   }
   if (ownerRead.brief.nextOwner.kind === "cat" && (!ownerRead.brief.nextOwner.ownerRef.startsWith("cat:") || ownerRead.brief.nextOwner.evidenceRef !== ownerRead.envelope.ownerRef || ownerRead.brief.nextOwner.revision !== ownerRead.envelope.revision)) {
-    addBriefIssue(context3, "nextOwner", "cat next owner must be backed by the current Task owner coordinate");
+    addBriefIssue(context4, "nextOwner", "cat next owner must be backed by the current Task owner coordinate");
   }
 }
-function validateTerminalDispositionMilestone(ownerRead, context3) {
+function validateTerminalDispositionMilestone(ownerRead, context4) {
   const terminal = ownerRead.terminal;
   if (terminal?.state !== "cancelled" && terminal?.state !== "abandoned") return false;
   const milestone = ownerRead.brief.verifiedMilestone;
   const expectedKind = terminal.state === "cancelled" ? "work_cancelled" : "work_abandoned";
   if (milestone.kind !== expectedKind || milestone.evidenceRef !== terminal.disposition.dispositionRef || milestone.revision !== ownerRead.envelope.revision) {
-    addBriefIssue(context3, "verifiedMilestone", "terminal disposition milestone must match Task terminal truth");
+    addBriefIssue(context4, "verifiedMilestone", "terminal disposition milestone must match Task terminal truth");
   }
   return true;
 }
-function validateBriefAttentionAndMilestone(ownerRead, context3) {
+function validateBriefAttentionAndMilestone(ownerRead, context4) {
   const eligibleReceipts = ownerRead.attentionReceipts.filter(
     (receipt2) => receipt2.eligible
   );
   if (ownerRead.envelope.freshness.state === "stale") {
     if (ownerRead.brief.needsMe.state !== "unknown" || ownerRead.brief.nextOwner.kind !== "unknown" || ownerRead.brief.verifiedMilestone.kind !== "unknown" || ownerRead.brief.verifiedMilestone.reason !== "stale_owner_read") {
-      addBriefIssue(context3, "needsMe", "stale owner reads must fail closed to unknown attention truth");
+      addBriefIssue(context4, "needsMe", "stale owner reads must fail closed to unknown attention truth");
     }
     return;
   }
-  validateBriefAttention(ownerRead, eligibleReceipts, context3);
+  validateBriefAttention(ownerRead, eligibleReceipts, context4);
   if ((ownerRead.completion || ownerRead.terminal) && (ownerRead.attentionReceipts.length > 0 || ownerRead.brief.nextOwner.kind !== "unknown")) {
-    addBriefIssue(context3, "nextOwner", "completed history is inert and cannot expose attention or a next owner");
+    addBriefIssue(context4, "nextOwner", "completed history is inert and cannot expose attention or a next owner");
   }
-  validateBriefMilestone(ownerRead, eligibleReceipts, context3);
+  validateBriefMilestone(ownerRead, eligibleReceipts, context4);
 }
-function validateBriefAttention(ownerRead, eligibleReceipts, context3) {
+function validateBriefAttention(ownerRead, eligibleReceipts, context4) {
   const expectedHumanOwnerRef = `user:${ownerRead.envelope.visibility.ownerUserId}`;
   const evidence = canonicalProducerEvidence(eligibleReceipts);
   if (eligibleReceipts.length > 0) {
     if (ownerRead.brief.needsMe.state !== "needed" || !sameProducerEvidence(ownerRead.brief.needsMe.evidence, evidence) || ownerRead.brief.nextOwner.kind !== "human" || ownerRead.brief.nextOwner.ownerRef !== expectedHumanOwnerRef || !sameProducerEvidence(ownerRead.brief.nextOwner.evidence, evidence)) {
       addBriefIssue(
-        context3,
+        context4,
         "needsMe",
         "needed brief state must match every current eligible producer coordinate and the human next owner"
       );
@@ -49084,7 +49549,7 @@ function validateBriefAttention(ownerRead, eligibleReceipts, context3) {
   if (ownerRead.attentionCoverage?.state === "partial") {
     if (ownerRead.brief.needsMe.state !== "unknown" || ownerRead.brief.needsMe.reason !== "attention_source_unavailable" || ownerRead.brief.nextOwner.kind !== "unknown") {
       addBriefIssue(
-        context3,
+        context4,
         "needsMe",
         "partial attention coverage must fail closed when no healthy source needs action"
       );
@@ -49093,45 +49558,45 @@ function validateBriefAttention(ownerRead, eligibleReceipts, context3) {
   }
   if (ownerRead.brief.needsMe.state !== "not_needed" || ownerRead.brief.needsMe.evidenceRef !== ownerRead.envelope.ownerRef || ownerRead.brief.needsMe.revision !== ownerRead.envelope.revision || ownerRead.brief.nextOwner.kind === "human") {
     addBriefIssue(
-      context3,
+      context4,
       "needsMe",
       "not-needed brief state must use the current Task coordinate and cannot retain a human next owner"
     );
   }
 }
-function validateBriefMilestone(ownerRead, eligibleReceipts, context3) {
+function validateBriefMilestone(ownerRead, eligibleReceipts, context4) {
   if (eligibleReceipts.length > 0) {
-    validateAttentionMilestone(ownerRead, eligibleReceipts, context3);
+    validateAttentionMilestone(ownerRead, eligibleReceipts, context4);
     return;
   }
-  validateOwnerMilestone(ownerRead, context3);
+  validateOwnerMilestone(ownerRead, context4);
 }
-function validateAttentionMilestone(ownerRead, eligibleReceipts, context3) {
+function validateAttentionMilestone(ownerRead, eligibleReceipts, context4) {
   const milestone = ownerRead.brief.verifiedMilestone;
   if (eligibleReceipts.length === 1) {
     const [eligibleReceipt] = eligibleReceipts;
     if (!eligibleReceipt || milestone.kind !== "needs_judgment" || milestone.evidenceRef !== eligibleReceipt.producer.ownerRef || milestone.revision !== eligibleReceipt.producer.revision) {
-      addBriefIssue(context3, "verifiedMilestone", "judgment milestone must match the sole eligible producer receipt");
+      addBriefIssue(context4, "verifiedMilestone", "judgment milestone must match the sole eligible producer receipt");
     }
     return;
   }
   if (milestone.kind !== "unknown" || milestone.reason !== "multiple_current_milestones") {
-    addBriefIssue(context3, "verifiedMilestone", "multiple producer milestones must remain explicitly ambiguous");
+    addBriefIssue(context4, "verifiedMilestone", "multiple producer milestones must remain explicitly ambiguous");
   }
 }
-function validateOwnerMilestone(ownerRead, context3) {
+function validateOwnerMilestone(ownerRead, context4) {
   const milestone = ownerRead.brief.verifiedMilestone;
-  if (validateTerminalDispositionMilestone(ownerRead, context3)) return;
+  if (validateTerminalDispositionMilestone(ownerRead, context4)) return;
   if (ownerRead.completion) {
     if (milestone.kind !== "work_completed" || milestone.evidenceRef !== ownerRead.envelope.ownerRef || milestone.revision !== ownerRead.envelope.revision) {
-      addBriefIssue(context3, "verifiedMilestone", "completed milestone must match the closed Task coordinate");
+      addBriefIssue(context4, "verifiedMilestone", "completed milestone must match the closed Task coordinate");
     }
     return;
   }
   if (ownerRead.preparedArtifact) {
     if (milestone.kind !== "artifact_ready" || milestone.evidenceRef !== ownerRead.preparedArtifact.completenessRef || milestone.revision !== ownerRead.preparedArtifact.artifactRevision) {
       addBriefIssue(
-        context3,
+        context4,
         "verifiedMilestone",
         "Artifact milestone must match the prepared Artifact owner coordinate"
       );
@@ -49141,12 +49606,12 @@ function validateOwnerMilestone(ownerRead, context3) {
   const primaryTime = selectCanonicalOwnerTime(ownerRead.timeRefs);
   if (primaryTime) {
     if (milestone.kind !== "time_committed" || milestone.role !== primaryTime.role || milestone.evidenceRef !== primaryTime.ownerRef || milestone.revision !== primaryTime.revision) {
-      addBriefIssue(context3, "verifiedMilestone", "time milestone must match the canonical typed Task time coordinate");
+      addBriefIssue(context4, "verifiedMilestone", "time milestone must match the canonical typed Task time coordinate");
     }
     return;
   }
   if (milestone.kind !== "custody_admitted" || milestone.evidenceRef !== ownerRead.envelope.admissionReceiptRef || milestone.revision !== ownerRead.envelope.revision) {
-    addBriefIssue(context3, "verifiedMilestone", "custody milestone must match the canonical Task admission receipt");
+    addBriefIssue(context4, "verifiedMilestone", "custody milestone must match the canonical Task admission receipt");
   }
 }
 
@@ -49170,17 +49635,17 @@ var ownerReadEnvelopeV1Schema = external_exports.object({
     human: external_exports.boolean(),
     cat: external_exports.boolean()
   }).strict()
-}).strict().superRefine((envelope4, context3) => {
+}).strict().superRefine((envelope4, context4) => {
   const { state, observedRevision } = envelope4.freshness;
   if (state === "current" && observedRevision !== envelope4.revision) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["freshness", "observedRevision"],
       message: "current read must observe the canonical owner revision"
     });
   }
   if (state === "stale" && observedRevision >= envelope4.revision) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["freshness", "observedRevision"],
       message: "stale read must identify an older observed revision"
@@ -49282,17 +49747,17 @@ var entrustedWorkOwnerReadV1Schema = external_exports.object({
   timeRefs: external_exports.array(entrustedWorkTimeRefV1Schema).max(64),
   attentionCoverage: producerAttentionCoverageV1Schema.optional(),
   attentionReceipts: external_exports.array(producerAttentionReceiptV1Schema).max(NEEDS_ME_PRODUCER_IDS.length)
-}).strict().superRefine((ownerRead, context3) => {
-  validateBriefTaskCoordinates(ownerRead, context3);
+}).strict().superRefine((ownerRead, context4) => {
+  validateBriefTaskCoordinates(ownerRead, context4);
   if ((ownerRead.terminal || ownerRead.completion) && ownerRead.execution) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["execution"],
       message: "terminal history cannot expose a live Task execution projection"
     });
   }
   if (ownerRead.execution && (ownerRead.execution.taskRef.subjectRef !== ownerRead.envelope.subjectRef || ownerRead.execution.taskRef.ownerRef !== ownerRead.envelope.ownerRef || ownerRead.execution.taskRef.revision !== ownerRead.envelope.revision)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["execution", "taskRef"],
       message: "execution truth must reference the same canonical Task owner coordinate"
@@ -49300,14 +49765,14 @@ var entrustedWorkOwnerReadV1Schema = external_exports.object({
   }
   const terminalExecution = ownerRead.terminal?.state === "satisfied" ? ownerRead.terminal.confirmation?.taskExecution : ownerRead.terminal?.disposition.taskExecution;
   if (terminalExecution && (terminalExecution.taskRef.subjectRef !== ownerRead.envelope.subjectRef || terminalExecution.taskRef.ownerRef !== ownerRead.envelope.ownerRef || terminalExecution.taskRef.revision + 1 !== ownerRead.envelope.revision)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["terminal", "taskExecution", "taskRef"],
       message: "terminal execution evidence must bind the immediately preceding Task revision"
     });
   }
   if (ownerRead.envelope.freshness.state !== "current" && ownerRead.attentionReceipts.length > 0) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["attentionReceipts"],
       message: "stale owner reads cannot expose producer attention actions"
@@ -49315,22 +49780,22 @@ var entrustedWorkOwnerReadV1Schema = external_exports.object({
   }
   ownerRead.attentionReceipts.forEach((receipt2, index4) => {
     if (receipt2.taskRef.subjectRef !== ownerRead.envelope.subjectRef) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["attentionReceipts", index4, "taskRef", "subjectRef"],
         message: "attention receipt must reference the same Task subject"
       });
     }
     if (receipt2.taskRef.observedRevision !== ownerRead.envelope.revision) {
-      context3.addIssue({
+      context4.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["attentionReceipts", index4, "taskRef", "observedRevision"],
         message: "attention receipt must observe the current Task revision"
       });
     }
   });
-  validateOwnerTimeCoordinates(ownerRead, context3);
-  validateBriefAttentionAndMilestone(ownerRead, context3);
+  validateOwnerTimeCoordinates(ownerRead, context4);
+  validateBriefAttentionAndMilestone(ownerRead, context4);
 });
 
 // ../shared/src/types/eval-repair-decision-explanation.ts
@@ -49479,37 +49944,37 @@ var episodeBase = {
   interruption: interruptionSchema,
   duplicatePromptRefs: external_exports.array(boundedRef5).max(64)
 };
-function validateEpisodeSemantics(episode, context3) {
+function validateEpisodeSemantics(episode, context4) {
   if (episode.window.closedAt < episode.window.openedAt) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["window", "closedAt"],
       message: "window closes before open"
     });
   }
   if (episode.candidate.state === "exposed" && (episode.candidate.exposedAt < episode.window.openedAt || episode.candidate.exposedAt > episode.window.closedAt)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["candidate", "exposedAt"],
       message: "candidate exposure must be replayable inside the opportunity window"
     });
   }
   if (episode.policyDisposition === "abstain" && episode.candidate.state !== "exposed") {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["policyDisposition"],
       message: "deliberate abstention requires an exposed candidate"
     });
   }
   if ((episode.policyDisposition === "auto_admit" || episode.policyDisposition === "offer") && (episode.window.kind !== "action" || episode.candidate.state !== "exposed")) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["policyDisposition"],
       message: "custody actions require an exposed candidate in an action window"
     });
   }
   if (episode.policyDisposition === "uninformed_silence" && episode.window.kind !== "sampled_silent") {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["policyDisposition"],
       message: "uninformed silence can enter only through a sampled silent window"
@@ -49527,15 +49992,15 @@ var custodyOpportunityEpisodeV1Schema = external_exports.object({
 
 // ../shared/src/types/harness-history-publication.ts
 var harnessHistoryCommitSchema = external_exports.string().regex(/^[a-f0-9]{40}$/);
-var revision9 = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
+var revision10 = external_exports.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 var commonCommand = {
-  expectedRevision: revision9,
+  expectedRevision: revision10,
   clientMessageId: bounded(240),
   reason: bounded(1e3)
 };
 var harnessHistoryPublicationCommandSchema = external_exports.discriminatedUnion("action", [
   external_exports.object({ ...commonCommand, action: external_exports.literal("publish"), sourceRevision: harnessHistoryCommitSchema }).strict(),
-  external_exports.object({ ...commonCommand, action: external_exports.literal("restore"), restoreRevision: revision9 }).strict()
+  external_exports.object({ ...commonCommand, action: external_exports.literal("restore"), restoreRevision: revision10 }).strict()
 ]);
 var harnessHistoryFailureCodeSchema = external_exports.enum([
   "source_unavailable",
@@ -49545,12 +50010,12 @@ var harnessHistoryFailureCodeSchema = external_exports.enum([
   "restore_not_found"
 ]);
 var harnessHistoryPublicationAttemptSchema = external_exports.object({
-  revision: revision9.refine((value) => value > 0),
+  revision: revision10.refine((value) => value > 0),
   clientMessageId: bounded(240),
   action: external_exports.enum(["publish", "restore"]),
   status: external_exports.enum(["published", "failed"]),
   sourceRevision: harnessHistoryCommitSchema.optional(),
-  restoreRevision: revision9.optional(),
+  restoreRevision: revision10.optional(),
   actorRef: bounded(240),
   originRef: bounded(2e3),
   reason: bounded(1e3),
@@ -49570,7 +50035,7 @@ var harnessHistoryPublicationStatusSchema = evolutionArchivePublicationSchema.ex
   schemaVersion: external_exports.literal(1),
   programRef: ownerTruthRefV1Schema,
   objectRef: ownerTruthRefV1Schema,
-  revision: revision9,
+  revision: revision10,
   current: harnessHistoryPublicationVersionSchema,
   attempts: external_exports.array(harnessHistoryPublicationAttemptSchema).max(50),
   hasMore: external_exports.boolean(),
@@ -50888,6 +51353,29 @@ var ASR_PERSON_MEMORY_REFLEX_ENTRY_V1 = Object.freeze({
   sunsetOwner: "memory/private-person-relationship"
 });
 
+// ../shared/src/types/paw-feel-repair-binding.ts
+var id33 = external_exports.string().trim().min(1);
+var pawFeelRepairRequestSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({ kind: external_exports.literal("task_assignment"), taskId: id33, expectedOwnerRevision: external_exports.number().int().nonnegative() }).strict(),
+  external_exports.object({ kind: external_exports.literal("action_lease"), leaseId: id33 }).strict()
+]);
+var pawFeelRepairBindingSchema = external_exports.discriminatedUnion("kind", [
+  external_exports.object({
+    kind: external_exports.literal("task_assignment"),
+    taskId: id33,
+    ownerRevision: external_exports.number().int().nonnegative(),
+    taskThreadId: id33
+  }).strict(),
+  external_exports.object({
+    kind: external_exports.literal("action_lease"),
+    taskId: id33,
+    leaseId: id33,
+    generation: external_exports.number().int().nonnegative(),
+    /** Null only when replaying old events which never recorded the holder thread. */
+    holderThreadId: id33.nullable()
+  }).strict()
+]);
+
 // ../shared/src/types/person-memory-source-bundle.ts
 var digestSchema2 = external_exports.string().regex(/^[a-f0-9]{64}$/);
 var sourceIdSchema = boundedString2(120).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
@@ -51841,21 +52329,21 @@ var requestGenerationSchemaDeliverySchema = external_exports.object({
     digest: publicDigest
   }).strict().optional(),
   fallbackReason: external_exports.enum(MCP_SCHEMA_DELIVERY_FALLBACK_REASONS).optional()
-}).strict().superRefine((delivery, context3) => {
+}).strict().superRefine((delivery, context4) => {
   if (schemaDeliveryEvidenceClaimModes.has(delivery.requestedMode) && (!delivery.hostVersion || !delivery.attestation)) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       message: "evidence-claiming schema delivery requires host version and attestation"
     });
   }
   if (delivery.attestation && !delivery.hostVersion) {
-    context3.addIssue({ code: "custom", message: "attested schema delivery requires a host version" });
+    context4.addIssue({ code: "custom", message: "attested schema delivery requires a host version" });
   }
   if (delivery.requestedMode === "unknown" && !delivery.fallbackReason) {
-    context3.addIssue({ code: "custom", message: "unknown schema delivery requires a bounded fallback reason" });
+    context4.addIssue({ code: "custom", message: "unknown schema delivery requires a bounded fallback reason" });
   }
   if (delivery.requestedMode !== "unknown" && delivery.fallbackReason) {
-    context3.addIssue({ code: "custom", message: "known schema delivery cannot carry a fallback reason" });
+    context4.addIssue({ code: "custom", message: "known schema delivery cannot carry a fallback reason" });
   }
 });
 var REQUEST_GENERATION_RETRY_REASONS = [
@@ -51892,20 +52380,20 @@ var requestGenerationChannelSchema = external_exports.object({
   body: external_exports.string().optional(),
   sourceRefs: external_exports.array(requestGenerationSourceRefSchema).max(64),
   injectionDecision: nonEmpty.optional()
-}).strict().superRefine((channel2, context3) => {
+}).strict().superRefine((channel2, context4) => {
   if (channel2.channel === "provider_native_hidden" && channel2.accuracy === "exact") {
-    context3.addIssue({ code: "custom", message: "provider-native hidden channels cannot be exact" });
+    context4.addIssue({ code: "custom", message: "provider-native hidden channels cannot be exact" });
   }
   if (channel2.accuracy === "exact") {
     if (channel2.body === void 0 || channel2.keyedContentDigest === void 0 || channel2.byteLength === void 0) {
-      context3.addIssue({ code: "custom", message: "exact channels require body, keyed digest, and byte length" });
+      context4.addIssue({ code: "custom", message: "exact channels require body, keyed digest, and byte length" });
     } else if (utf8ByteLength(channel2.body) !== channel2.byteLength) {
-      context3.addIssue({ code: "custom", message: "exact channel byte length does not match body" });
+      context4.addIssue({ code: "custom", message: "exact channel byte length does not match body" });
     }
     return;
   }
   if (channel2.body !== void 0 || channel2.keyedContentDigest !== void 0 || channel2.byteLength !== void 0) {
-    context3.addIssue({ code: "custom", message: "unsupported or unknown channels cannot persist exact fields" });
+    context4.addIssue({ code: "custom", message: "unsupported or unknown channels cannot persist exact fields" });
   }
 });
 var requestGenerationPresentationSchema = external_exports.object({
@@ -51939,12 +52427,12 @@ var requestGenerationToolSurfaceSchema = external_exports.object({
   providerObservedSchemaSetHash: keyedDigest.optional(),
   finalSurface: external_exports.enum(["exact", "declared_only", "unsupported", "unknown"]),
   schemaDelivery: requestGenerationSchemaDeliverySchema.optional()
-}).strict().superRefine((surface, context3) => {
+}).strict().superRefine((surface, context4) => {
   if (surface.finalSurface === "exact" && !surface.catCafeSchemaSetHash && !surface.providerObservedSchemaSetHash) {
-    context3.addIssue({ code: "custom", message: "exact tool surfaces require a schema-set hash" });
+    context4.addIssue({ code: "custom", message: "exact tool surfaces require a schema-set hash" });
   }
   if (surface.finalSurface === "declared_only" && !surface.declaredServerSetHash) {
-    context3.addIssue({ code: "custom", message: "declared-only tool surfaces require a server-set hash" });
+    context4.addIssue({ code: "custom", message: "declared-only tool surfaces require a server-set hash" });
   }
 });
 var requestGenerationEnvelopeV1Schema = external_exports.object({
@@ -51979,16 +52467,16 @@ var requestGenerationEnvelopeV1Schema = external_exports.object({
     previousGenerationOrdinal: external_exports.number().int().positive().optional(),
     reason: external_exports.enum(REQUEST_GENERATION_RETRY_REASONS).optional()
   }).strict()
-}).strict().superRefine((envelope4, context3) => {
+}).strict().superRefine((envelope4, context4) => {
   if (envelope4.retryBoundary.previousGenerationOrdinal !== void 0) {
     if (envelope4.retryBoundary.previousGenerationOrdinal >= envelope4.generationOrdinal) {
-      context3.addIssue({ code: "custom", message: "previous generation must precede the current ordinal" });
+      context4.addIssue({ code: "custom", message: "previous generation must precede the current ordinal" });
     }
     if (!envelope4.retryBoundary.reason) {
-      context3.addIssue({ code: "custom", message: "retry generations require a bounded reason" });
+      context4.addIssue({ code: "custom", message: "retry generations require a bounded reason" });
     }
   } else if (envelope4.generationOrdinal !== 1) {
-    context3.addIssue({ code: "custom", message: "non-initial generations require a previous ordinal" });
+    context4.addIssue({ code: "custom", message: "non-initial generations require a previous ordinal" });
   }
 });
 var requestGenerationAssembledEventSchema = external_exports.object({
@@ -52597,8 +53085,8 @@ var routingContextReadModelV1Schema = external_exports.object({
       });
     }
   });
-  model.preferenceRevisions.forEach((revision11, index4) => {
-    if (revision11.ownerId !== model.ownerId) {
+  model.preferenceRevisions.forEach((revision12, index4) => {
+    if (revision12.ownerId !== model.ownerId) {
       ctx.addIssue({
         code: external_exports.ZodIssueCode.custom,
         path: ["preferenceRevisions", index4, "ownerId"],
@@ -52646,75 +53134,75 @@ var runtimeConversationDecisionRequestSchema = external_exports.object({
   allowTextResponse: external_exports.boolean(),
   deadlineAt: external_exports.number().int().positive().optional(),
   defaultResponse: runtimeConversationResponseSchema.optional()
-}).strict().superRefine((request, context3) => {
+}).strict().superRefine((request, context4) => {
   const optionIds = request.presentation.options.map((option) => option.id);
   if (new Set(optionIds).size !== optionIds.length) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["presentation", "options"],
       message: "conversation decision option ids must be unique"
     });
   }
   if (request.presentation.options.some((option) => option.action)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["presentation", "options"],
       message: "callback/guide/action options cannot become conversation decisions"
     });
   }
   if (request.presentation.groupId || request.presentation.autoGroup === true) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["presentation"],
       message: "one conversation decision must own one independently submitted block"
     });
   }
   if (request.presentation.disabled === true) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["presentation", "disabled"],
       message: "conversation decision presentation must be actionable when published"
     });
   }
   if (request.deadlineAt !== void 0 && request.deadlineAt <= request.createdAt) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["deadlineAt"],
       message: "deadlineAt must be later than createdAt"
     });
   }
   if (request.defaultResponse !== void 0 && request.deadlineAt === void 0) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       path: ["defaultResponse"],
       message: "defaultResponse requires deadlineAt"
     });
   }
   if (request.defaultResponse) {
-    addResponseIssues(request, request.defaultResponse, context3, ["defaultResponse"]);
+    addResponseIssues(request, request.defaultResponse, context4, ["defaultResponse"]);
   }
 });
-function addResponseIssues(request, response, context3, path2) {
+function addResponseIssues(request, response, context4, path2) {
   if (response.kind === "text") {
     if (!request.allowTextResponse) {
-      context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "text response is not allowed" });
+      context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "text response is not allowed" });
     }
     return;
   }
   const ids2 = response.selectedIds;
   if (new Set(ids2).size !== ids2.length) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selectedIds must be unique" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selectedIds must be unique" });
   }
   const options = new Map(request.presentation.options.map((option) => [option.id, option]));
-  if (ids2.some((id33) => !options.has(id33))) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection contains an unknown option" });
+  if (ids2.some((id36) => !options.has(id36))) {
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection contains an unknown option" });
   }
   const limit = request.presentation.interactiveType === "multi-select" ? request.presentation.maxSelect ?? ids2.length : 1;
   if (ids2.length > limit || request.presentation.interactiveType !== "multi-select" && ids2.length !== 1) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection count exceeds the block contract" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "selection count exceeds the block contract" });
   }
-  if (response.customInput && !ids2.some((id33) => options.get(id33)?.customInput)) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "custom input requires a selected custom option" });
+  if (response.customInput && !ids2.some((id36) => options.get(id36)?.customInput)) {
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, path: path2, message: "custom input requires a selected custom option" });
   }
 }
 
@@ -52773,15 +53261,15 @@ var runtimeInteractionPrimitivePropertySchema = external_exports.object({
   maximum: external_exports.number().optional(),
   minLength: external_exports.number().int().nonnegative().optional(),
   maxLength: external_exports.number().int().nonnegative().optional()
-}).strict().superRefine((property, context3) => {
+}).strict().superRefine((property, context4) => {
   if (property.default !== void 0 && !matchesPropertyType(property.type, property.default)) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: `property default must match declared ${property.type} type`
     });
   }
   if (property.enum?.some((value) => !matchesPropertyType(property.type, value))) {
-    context3.addIssue({
+    context4.addIssue({
       code: external_exports.ZodIssueCode.custom,
       message: `property enum values must match declared ${property.type} type`
     });
@@ -52792,15 +53280,15 @@ var runtimeInteractionObjectSchema = external_exports.object({
   properties: external_exports.record(nonBlank2, runtimeInteractionPrimitivePropertySchema),
   required: external_exports.array(nonBlank2).optional(),
   additionalProperties: external_exports.literal(false)
-}).strict().superRefine((schema2, context3) => {
+}).strict().superRefine((schema2, context4) => {
   const propertyIds = new Set(Object.keys(schema2.properties));
   const required = schema2.required ?? [];
   if (new Set(required).size !== required.length) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: "schema required ids must be unique" });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: "schema required ids must be unique" });
   }
-  for (const id33 of required) {
-    if (!propertyIds.has(id33)) {
-      context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id33} is missing` });
+  for (const id36 of required) {
+    if (!propertyIds.has(id36)) {
+      context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: `schema required property ${id36} is missing` });
     }
   }
 });
@@ -52845,19 +53333,19 @@ var urlElicitationRequestSchema = baseRequestSchema.extend({
   url: httpUrlSchema,
   decisions: external_exports.array(runtimeInteractionDecisionSchema).min(1)
 }).strict();
-var runtimeProviderInteractionRequestSchema = external_exports.union([approvalRequestSchema, questionRequestSchema, formElicitationRequestSchema, urlElicitationRequestSchema]).superRefine((request, context3) => {
+var runtimeProviderInteractionRequestSchema = external_exports.union([approvalRequestSchema, questionRequestSchema, formElicitationRequestSchema, urlElicitationRequestSchema]).superRefine((request, context4) => {
   if (request.kind === "question") {
     assertUniqueIds(
       request.questions.map((question) => question.id),
       "question",
-      context3
+      context4
     );
     return;
   }
   assertUniqueIds(
     request.decisions.map((decision) => decision.id),
     "decision",
-    context3
+    context4
   );
 });
 var runtimeInteractionRequestSchema = external_exports.union([
@@ -52882,9 +53370,9 @@ var runtimeInteractionResponseSchema = external_exports.discriminatedUnion("kind
   runtimeConversationSelectionResponseSchema,
   runtimeConversationTextResponseSchema
 ]);
-function assertUniqueIds(ids2, label, context3) {
+function assertUniqueIds(ids2, label, context4) {
   if (new Set(ids2).size !== ids2.length) {
-    context3.addIssue({ code: external_exports.ZodIssueCode.custom, message: `${label} ids must be unique` });
+    context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: `${label} ids must be unique` });
   }
 }
 function matchesPropertyType(type, value) {
@@ -53448,7 +53936,7 @@ function coverageGraphHasCycle(edges) {
     if (!indegrees.has(source4)) indegrees.set(source4, 0);
     for (const target of targets) indegrees.set(target, (indegrees.get(target) ?? 0) + 1);
   }
-  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id33]) => id33);
+  const pending = [...indegrees].filter(([, degree]) => degree === 0).map(([id36]) => id36);
   let visited = 0;
   for (const source4 of pending) {
     visited++;
@@ -53465,38 +53953,38 @@ function coverageGraphHasCycle(edges) {
 var videoProjectDocumentSchema = videoProjectDocumentBaseSchema.superRefine(refineVideoProjectReferences);
 
 // ../shared/src/types/video-project-command.ts
-var id31 = external_exports.string().trim().min(1).max(256);
-var revision10 = external_exports.number().int().positive().safe();
+var id34 = external_exports.string().trim().min(1).max(256);
+var revision11 = external_exports.number().int().positive().safe();
 var page2 = {
   cursor: external_exports.number().int().nonnegative().safe().default(0),
   expectedSnapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
 };
 var videoProjectCommandSchema = external_exports.object({
-  requestId: id31,
+  requestId: id34,
   command: external_exports.discriminatedUnion("kind", [
-    external_exports.object({ kind: external_exports.literal("read"), ownerRevision: revision10.optional(), ...page2 }).strict(),
+    external_exports.object({ kind: external_exports.literal("read"), ownerRevision: revision11.optional(), ...page2 }).strict(),
     external_exports.object({ kind: external_exports.literal("review-read"), ...page2 }).strict(),
     external_exports.object({
       kind: external_exports.literal("save"),
-      expectedOwnerRevision: revision10,
-      operationId: id31,
+      expectedOwnerRevision: revision11,
+      operationId: id34,
       document: external_exports.record(external_exports.unknown())
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("review-act"),
-      expectedRevision: revision10,
-      operationId: id31,
+      expectedRevision: revision11,
+      operationId: id34,
       action: videoProjectReviewActionSchema
     }).strict(),
     external_exports.object({
       kind: external_exports.literal("self-review"),
-      expectedOwnerRevision: revision10,
-      operationId: id31,
-      id: id31,
+      expectedOwnerRevision: revision11,
+      operationId: id34,
+      id: id34,
       input: videoProjectFrozenInputSchema,
-      segmentIds: external_exports.array(id31).min(1).max(1e4),
+      segmentIds: external_exports.array(id34).min(1).max(1e4),
       conclusion: external_exports.enum(["pass", "changes-requested"]),
-      refs: external_exports.array(id31).min(1).max(1e3)
+      refs: external_exports.array(id34).min(1).max(1e3)
     }).strict()
   ])
 }).strict();
@@ -53539,9 +54027,9 @@ var userCancelWaitTerminationEventSchema = external_exports.object({
   waitKind: external_exports.literal("hold_ball"),
   reason: external_exports.literal("user_cancel"),
   actor: external_exports.object({ kind: external_exports.literal("user"), userId: ownerIdentitySchema }).strict()
-}).strict().superRefine((event, context3) => {
+}).strict().superRefine((event, context4) => {
   if (event.actor.userId !== event.ownerUserId) {
-    context3.addIssue({
+    context4.addIssue({
       code: "custom",
       message: "user cancel actor must match the authenticated wait owner",
       path: ["actor", "userId"]
@@ -53550,54 +54038,55 @@ var userCancelWaitTerminationEventSchema = external_exports.object({
 });
 
 // ../shared/src/types/work-video.ts
-var text8 = videoProjectTextSchema;
+var text10 = videoProjectTextSchema;
 var pts2 = external_exports.number().int().safe();
 var chapter = external_exports.object({
-  id: text8(256),
-  title: text8(1e3),
-  label: text8(256).optional(),
-  streamId: text8(128),
+  id: text10(256),
+  title: text10(1e3),
+  label: text10(256).optional(),
+  streamId: text10(128),
   startPts: pts2,
   endPts: pts2,
-  sourceId: text8(2048).optional()
+  sourceId: text10(2048).optional()
 }).strict().refine((row) => row.startPts < row.endPts, "Chapter range must be nonempty");
 var workVideoContextSchema = external_exports.object({
   format: external_exports.literal("video"),
-  extractorVersion: text8(128),
-  provenance: external_exports.array(external_exports.object({ ref: text8(2048), digest: videoProjectDigestSchema }).strict()).min(1).max(100),
+  extractorVersion: text10(128),
+  provenance: external_exports.array(external_exports.object({ ref: text10(2048), digest: videoProjectDigestSchema }).strict()).min(1).max(100),
   /** Original production/file time, distinct from the owner's import/commit time. */
-  production: external_exports.object({ createdAt: external_exports.string().datetime(), sourceRef: text8(2048) }).strict().optional(),
+  production: external_exports.object({ createdAt: external_exports.string().datetime(), sourceRef: text10(2048) }).strict().optional(),
   chapters: external_exports.array(chapter).max(1e3).optional(),
   story: external_exports.array(
     external_exports.object({
-      id: text8(256),
-      chapterId: text8(256).optional(),
-      title: text8(1e3),
+      id: text10(256),
+      chapterId: text10(256).optional(),
+      title: text10(1e3),
       text: external_exports.string().max(12e3).optional(),
-      streamId: text8(128),
+      streamId: text10(128),
       startPts: pts2,
       endPts: pts2,
       /** Only explicit source identity may relate this paragraph to another version. */
-      sourceId: text8(2048).optional(),
+      sourceId: text10(2048).optional(),
       derived: external_exports.boolean().optional()
     }).strict().refine((item) => item.startPts < item.endPts, "Story range must be nonempty")
   ).max(1e4),
   assets: external_exports.array(
     external_exports.object({
       asset: videoProjectAssetSchema,
-      versionId: text8(256),
-      uses: external_exports.array(text8(2e3)).min(1).max(1e3)
+      versionId: text10(256),
+      uses: external_exports.array(text10(2e3)).min(1).max(1e3),
+      bindingSelection: assetBindingSelectionSchema.optional()
     }).strict().refine(
       (item) => item.asset.versions.some((version) => version.id === item.versionId),
       "Selected asset version must exist"
     )
   ).max(1e4),
   sourceBinding: external_exports.object({
-    sourceProjectContentRef: text8(2048),
+    sourceProjectContentRef: text10(2048),
     sourceOwnerRevision: external_exports.number().int().positive().safe(),
     sourceDigest: videoProjectDigestSchema,
-    screeningId: text8(256).optional(),
-    reviewId: text8(256).optional()
+    screeningId: text10(256).optional(),
+    reviewId: text10(256).optional()
   }).strict().optional()
 }).strict().superRefine((value, ctx) => {
   for (const [field, ids2] of [
@@ -53622,9 +54111,8 @@ var workVideoContextSchema = external_exports.object({
 });
 
 // ../shared/src/types/living-work.ts
-var id32 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
+var id35 = external_exports.string().min(1).max(256).refine((value) => value === value.trim() && !value.includes("\0"));
 var ref9 = external_exports.string().min(1).max(2048);
-var workReferenceSchema = external_exports.object({ contentRef: ref9, ownerRevision: external_exports.number().int().positive().safe() }).strict();
 var workReferenceCardSchema = external_exports.object({
   id: external_exports.string().min(1).max(128),
   kind: external_exports.literal("card"),
@@ -53634,24 +54122,24 @@ var workReferenceCardSchema = external_exports.object({
   meta: external_exports.object({ kind: external_exports.literal("work_reference"), reference: workReferenceSchema }).strict()
 }).strict();
 var workWorkspaceSourceSchema = external_exports.object({
-  worktreeId: id32,
+  worktreeId: id35,
   path: external_exports.string().min(1).max(2048),
   expectedSourceRevision: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/)
 }).strict();
 var submission = {
-  operationId: id32,
+  operationId: id35,
   title: external_exports.string().trim().min(1).max(240),
   changeSummary: external_exports.string().trim().min(1).max(4e3),
   versionLabel: external_exports.string().trim().min(1).max(128).optional(),
   source: workWorkspaceSourceSchema
 };
 var workReviewResponseSchema = external_exports.object({
-  reviewId: id32,
+  reviewId: id35,
   sourceRound: external_exports.number().int().positive().safe(),
   expectedReviewRevision: external_exports.number().int().positive().safe(),
   expectedTaskRevision: external_exports.number().int().positive().safe(),
   expectedLedgerRevision: external_exports.number().int().positive().safe().optional(),
-  requestId: id32.optional(),
+  requestId: id35.optional(),
   responses: external_exports.array(artifactReviewResponseRecordSchema.omit({ judgment: true })).max(500)
 }).strict();
 var submitWorkSchema = external_exports.object({
@@ -53668,22 +54156,23 @@ var commitWorkSchema = external_exports.discriminatedUnion("action", [
 var setWorkContextSchema = external_exports.object({
   action: external_exports.literal("set-context"),
   reference: workReferenceSchema,
-  operationId: id32,
+  operationId: id35,
   expectedMetadataRevision: external_exports.number().int().nonnegative().safe(),
   context: workVideoContextSchema
 }).strict();
 var importWorkContextSchema = setWorkContextSchema.omit({ action: true, context: true }).extend({ action: external_exports.literal("import-context"), source: workWorkspaceSourceSchema }).strict();
 var workCommandSchema = external_exports.union([
+  assetCanonCommandSchema,
   commitWorkSchema,
   setWorkContextSchema,
   importWorkContextSchema,
   external_exports.object({
     action: external_exports.literal("resolve-review-submission"),
-    reviewId: id32,
+    reviewId: id35,
     sourceRound: external_exports.number().int().positive().safe(),
     expectedReviewRevision: external_exports.number().int().positive().safe(),
-    pendingOperationId: id32,
-    operationId: id32
+    pendingOperationId: id35,
+    operationId: id35
   }).strict(),
   external_exports.object({
     action: external_exports.literal("read-context"),
@@ -53703,23 +54192,23 @@ var workCommandSchema = external_exports.union([
   }).strict()
 ]);
 var workVersionRecordSchema = workReferenceSchema.extend({
-  ownerUserId: id32,
-  threadId: id32,
+  ownerUserId: id35,
+  threadId: id35,
   title: submission.title,
   changeSummary: submission.changeSummary,
   versionLabel: submission.versionLabel,
   source: workWorkspaceSourceSchema,
-  operationId: id32,
+  operationId: id35,
   requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
   receiptRef: ref9
 }).strict();
 var workContextRecordSchema = external_exports.object({
   reference: workReferenceSchema,
   metadataRevision: external_exports.number().int().positive().safe(),
-  ownerUserId: id32,
-  operationId: id32,
+  ownerUserId: id35,
+  operationId: id35,
   requestDigest: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/),
-  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id32 }).strict(),
+  actor: external_exports.object({ kind: external_exports.enum(["human", "cat"]), actorId: id35 }).strict(),
   recordedAt: external_exports.string().datetime(),
   context: workVideoContextSchema
 }).strict();
@@ -53751,6 +54240,29 @@ var messagePublicationLandingSchema = external_exports.discriminatedUnion("statu
     unavailableContexts: external_exports.boolean().optional()
   })
 ]);
+
+// ../shared/src/worktree-notice.ts
+var WORKTREE_NOTICE_KINDS = [
+  "retention-expired",
+  "retention-invalid",
+  "retention-head-changed",
+  "merged-unfinished",
+  "merged-removed",
+  "merged-removal-interrupted",
+  "merged-retirement-blocked"
+];
+var worktreeNoticeSchema = external_exports.object({
+  version: external_exports.literal(1),
+  kind: external_exports.enum(WORKTREE_NOTICE_KINDS),
+  owner: external_exports.string().min(1).max(2e3),
+  path: external_exports.string().min(1).max(4096),
+  sourceRef: external_exports.string().max(2e3),
+  until: external_exports.string().max(2e3).optional(),
+  archivePath: external_exports.string().max(4096).optional(),
+  restore: external_exports.string().max(32e3).optional(),
+  reason: external_exports.string().max(32e3).optional(),
+  ownerAction: external_exports.enum(["queued", "unavailable"]).optional()
+});
 
 // src/collective-scope-recovery.ts
 function currentCollectiveScope(snapshot) {
@@ -53827,11 +54339,11 @@ function CollectiveScopeRecovery({
       setError("\u6D4F\u89C8\u5668\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u672C\u673A\u8349\u7A3F\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762\u540E\u91CD\u8BD5\u3002");
     }
   }, [serviceInstanceId, collectiveId, humanId]);
-  const run2 = async (action) => {
+  const run2 = async (action2) => {
     setBusy(true);
     setError(void 0);
     try {
-      await action();
+      await action2();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : String(failure));
     } finally {
@@ -53875,7 +54387,7 @@ function CollectiveScopeRecovery({
 }
 
 // src/CollectiveWorkspace.tsx
-var import_react104 = __toESM(require_react(), 1);
+var import_react110 = __toESM(require_react(), 1);
 
 // ../ui/src/AppTooltip.tsx
 var import_react2 = __toESM(require_react(), 1);
@@ -53917,7 +54429,7 @@ function AppTooltip({
   children,
   useOwnership = usePlainSurface
 }) {
-  const id33 = (0, import_react2.useId)();
+  const id36 = (0, import_react2.useId)();
   const wrapperRef = (0, import_react2.useRef)(null);
   const tipRef = (0, import_react2.useRef)(null);
   const showTimer = (0, import_react2.useRef)(null);
@@ -54100,7 +54612,7 @@ function AppTooltip({
             "div",
             {
               ref: ownedTipRef,
-              id: id33,
+              id: id36,
               role: "tooltip",
               "data-testid": "app-tooltip",
               "data-side": side,
@@ -54688,8 +55200,8 @@ var en = {
   "\u5DF2\u786E\u8BA4\u4EA4\u63A5\uFF0C\u7B49\u5F85\u63A5\u6536 Caf\xE9 \u6062\u590D\u8BBF\u95EE\u3002": "Transfer confirmed; waiting for the receiving Caf\xE9 to restore access.",
   "\u4EA4\u63A5\u5DF2\u53D6\u6D88\u3002": "The transfer was cancelled."
 };
-function collectiveText(text12, language) {
-  return language === "en" ? en[text12] ?? text12 : text12;
+function collectiveText(text14, language) {
+  return language === "en" ? en[text14] ?? text14 : text14;
 }
 
 // ../ui/src/DiffViewer.tsx
@@ -56267,7 +56779,7 @@ function one2(state, node2, key) {
     return root2(state, node2, key);
   }
   if (node2.type === "text") {
-    return text9(state, node2);
+    return text11(state, node2);
   }
 }
 function element2(state, node2, key) {
@@ -56335,7 +56847,7 @@ function root2(state, node2, key) {
   addChildren(props, createChildren(state, node2));
   return state.create(node2, state.Fragment, props, key);
 }
-function text9(_, node2) {
+function text11(_, node2) {
   return node2.value;
 }
 function addNode(state, props, type, node2) {
@@ -56351,11 +56863,11 @@ function addChildren(props, children) {
     }
   }
 }
-function productionCreate(_, jsx131, jsxs110) {
+function productionCreate(_, jsx133, jsxs112) {
   return create3;
   function create3(_2, type, props, key) {
     const isStaticChildren = Array.isArray(props.children);
-    const fn = isStaticChildren ? jsxs110 : jsx131;
+    const fn = isStaticChildren ? jsxs112 : jsx133;
     return key ? fn(type, props, key) : fn(type, props);
   }
 }
@@ -56673,20 +57185,20 @@ function emphasis2(state, node2) {
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/footnote-reference.js
 function footnoteReference2(state, node2) {
   const clobberPrefix = typeof state.options.clobberPrefix === "string" ? state.options.clobberPrefix : "user-content-";
-  const id33 = String(node2.identifier).toUpperCase();
-  const safeId = normalizeUri(id33.toLowerCase());
-  const index4 = state.footnoteOrder.indexOf(id33);
+  const id36 = String(node2.identifier).toUpperCase();
+  const safeId = normalizeUri(id36.toLowerCase());
+  const index4 = state.footnoteOrder.indexOf(id36);
   let counter;
-  let reuseCounter = state.footnoteCounts.get(id33);
+  let reuseCounter = state.footnoteCounts.get(id36);
   if (reuseCounter === void 0) {
     reuseCounter = 0;
-    state.footnoteOrder.push(id33);
+    state.footnoteOrder.push(id36);
     counter = state.footnoteOrder.length;
   } else {
     counter = index4 + 1;
   }
   reuseCounter += 1;
-  state.footnoteCounts.set(id33, reuseCounter);
+  state.footnoteCounts.set(id36, reuseCounter);
   const link3 = {
     type: "element",
     tagName: "a",
@@ -56761,8 +57273,8 @@ function revert(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/image-reference.js
 function imageReference2(state, node2) {
-  const id33 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id33);
+  const id36 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id36);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -56791,13 +57303,13 @@ function image2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/inline-code.js
 function inlineCode2(state, node2) {
-  const text12 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
-  state.patch(node2, text12);
+  const text14 = { type: "text", value: node2.value.replace(/\r?\n|\r/g, " ") };
+  state.patch(node2, text14);
   const result = {
     type: "element",
     tagName: "code",
     properties: {},
-    children: [text12]
+    children: [text14]
   };
   state.patch(node2, result);
   return state.applyData(node2, result);
@@ -56805,8 +57317,8 @@ function inlineCode2(state, node2) {
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/link-reference.js
 function linkReference2(state, node2) {
-  const id33 = String(node2.identifier).toUpperCase();
-  const definition3 = state.definitionById.get(id33);
+  const id36 = String(node2.identifier).toUpperCase();
+  const definition3 = state.definitionById.get(id36);
   if (!definition3) {
     return revert(state, node2);
   }
@@ -57084,7 +57596,7 @@ function trimLine(value, start2, end) {
 }
 
 // ../../node_modules/.pnpm/mdast-util-to-hast@13.2.1/node_modules/mdast-util-to-hast/lib/handlers/text.js
-function text10(state, node2) {
+function text12(state, node2) {
   const result = { type: "text", value: trimLines(String(node2.value)) };
   state.patch(node2, result);
   return state.applyData(node2, result);
@@ -57126,7 +57638,7 @@ var handlers = {
   table,
   tableCell,
   tableRow,
-  text: text10,
+  text: text12,
   thematicBreak: thematicBreak3,
   toml: ignore,
   yaml: ignore,
@@ -57389,11 +57901,11 @@ function footer(state) {
       continue;
     }
     const content3 = state.all(definition3);
-    const id33 = String(definition3.identifier).toUpperCase();
-    const safeId = normalizeUri(id33.toLowerCase());
+    const id36 = String(definition3.identifier).toUpperCase();
+    const safeId = normalizeUri(id36.toLowerCase());
     let rereferenceIndex = 0;
     const backReferences = [];
-    const counts = state.footnoteCounts.get(id33);
+    const counts = state.footnoteCounts.get(id36);
     while (counts !== void 0 && ++rereferenceIndex <= counts) {
       if (backReferences.length > 0) {
         backReferences.push({ type: "text", value: " " });
@@ -57489,9 +58001,9 @@ function createState(tree, options) {
   visit(tree, function(node2) {
     if (node2.type === "definition" || node2.type === "footnoteDefinition") {
       const map3 = node2.type === "definition" ? definitionById : footnoteById;
-      const id33 = String(node2.identifier).toUpperCase();
-      if (!map3.has(id33)) {
-        map3.set(id33, node2);
+      const id36 = String(node2.identifier).toUpperCase();
+      if (!map3.has(id36)) {
+        map3.set(id36, node2);
       }
     }
   });
@@ -57930,7 +58442,7 @@ function MeowClubMark({ className = "h-6 w-6" }) {
 // ../ui/src/Nameplate.tsx
 var import_jsx_runtime11 = __toESM(require_jsx_runtime(), 1);
 function Nameplate({
-  id: id33,
+  id: id36,
   name: name2,
   avatar,
   surface,
@@ -57947,7 +58459,7 @@ function Nameplate({
     {
       ref: anchorRef,
       "data-testid": `${kind}-nameplate`,
-      "data-cat-id": kind === "cat" ? id33 : void 0,
+      "data-cat-id": kind === "cat" ? id36 : void 0,
       "data-avatar-shape": avatarShape,
       className: "cafe-nameplate",
       style: { backgroundImage: `linear-gradient(to bottom, ${surface}, transparent)` },
@@ -58124,7 +58636,7 @@ var svgFilters = freeze(["feBlend", "feColorMatrix", "feComponentTransfer", "feC
 var svgDisallowed = freeze(["animate", "color-profile", "cursor", "discard", "font-face", "font-face-format", "font-face-name", "font-face-src", "font-face-uri", "foreignobject", "hatch", "hatchpath", "mesh", "meshgradient", "meshpatch", "meshrow", "missing-glyph", "script", "set", "solidcolor", "unknown", "use"]);
 var mathMl$1 = freeze(["math", "menclose", "merror", "mfenced", "mfrac", "mglyph", "mi", "mlabeledtr", "mmultiscripts", "mn", "mo", "mover", "mpadded", "mphantom", "mroot", "mrow", "ms", "mspace", "msqrt", "mstyle", "msub", "msup", "msubsup", "mtable", "mtd", "mtext", "mtr", "munder", "munderover", "mprescripts"]);
 var mathMlDisallowed = freeze(["maction", "maligngroup", "malignmark", "mlongdiv", "mscarries", "mscarry", "msgroup", "mstack", "msline", "msrow", "semantics", "annotation", "annotation-xml", "mprescripts", "none"]);
-var text11 = freeze(["#text"]);
+var text13 = freeze(["#text"]);
 var html5 = freeze(["accept", "action", "align", "alt", "autocapitalize", "autocomplete", "autopictureinpicture", "autoplay", "background", "bgcolor", "border", "capture", "cellpadding", "cellspacing", "checked", "cite", "class", "clear", "color", "cols", "colspan", "controls", "controlslist", "coords", "crossorigin", "datetime", "decoding", "default", "dir", "disabled", "disablepictureinpicture", "disableremoteplayback", "download", "draggable", "enctype", "enterkeyhint", "exportparts", "face", "for", "headers", "height", "hidden", "high", "href", "hreflang", "id", "inert", "inputmode", "integrity", "ismap", "kind", "label", "lang", "list", "loading", "loop", "low", "max", "maxlength", "media", "method", "min", "minlength", "multiple", "muted", "name", "nonce", "noshade", "novalidate", "nowrap", "open", "optimum", "part", "pattern", "placeholder", "playsinline", "popover", "popovertarget", "popovertargetaction", "poster", "preload", "pubdate", "radiogroup", "readonly", "rel", "required", "rev", "reversed", "role", "rows", "rowspan", "spellcheck", "scope", "selected", "shape", "size", "sizes", "slot", "span", "srclang", "start", "src", "srcset", "step", "style", "summary", "tabindex", "title", "translate", "type", "usemap", "valign", "value", "width", "wrap", "xmlns", "slot"]);
 var svg3 = freeze(["accent-height", "accumulate", "additive", "alignment-baseline", "amplitude", "ascent", "attributename", "attributetype", "azimuth", "basefrequency", "baseline-shift", "begin", "bias", "by", "class", "clip", "clippathunits", "clip-path", "clip-rule", "color", "color-interpolation", "color-interpolation-filters", "color-profile", "color-rendering", "cx", "cy", "d", "dx", "dy", "diffuseconstant", "direction", "display", "divisor", "dur", "edgemode", "elevation", "end", "exponent", "fill", "fill-opacity", "fill-rule", "filter", "filterunits", "flood-color", "flood-opacity", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", "font-variant", "font-weight", "fx", "fy", "g1", "g2", "glyph-name", "glyphref", "gradientunits", "gradienttransform", "height", "href", "id", "image-rendering", "in", "in2", "intercept", "k", "k1", "k2", "k3", "k4", "kerning", "keypoints", "keysplines", "keytimes", "lang", "lengthadjust", "letter-spacing", "kernelmatrix", "kernelunitlength", "lighting-color", "local", "marker-end", "marker-mid", "marker-start", "markerheight", "markerunits", "markerwidth", "maskcontentunits", "maskunits", "max", "mask", "mask-type", "media", "method", "mode", "min", "name", "numoctaves", "offset", "operator", "opacity", "order", "orient", "orientation", "origin", "overflow", "paint-order", "path", "pathlength", "patterncontentunits", "patterntransform", "patternunits", "points", "preservealpha", "preserveaspectratio", "primitiveunits", "r", "rx", "ry", "radius", "refx", "refy", "repeatcount", "repeatdur", "restart", "result", "rotate", "scale", "seed", "shape-rendering", "slope", "specularconstant", "specularexponent", "spreadmethod", "startoffset", "stddeviation", "stitchtiles", "stop-color", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke", "stroke-width", "style", "surfacescale", "systemlanguage", "tabindex", "tablevalues", "targetx", "targety", "transform", "transform-origin", "text-anchor", "text-decoration", "text-rendering", "textlength", "type", "u1", "u2", "unicode", "values", "viewbox", "visibility", "version", "vert-adv-y", "vert-origin-x", "vert-origin-y", "width", "word-spacing", "wrap", "writing-mode", "xchannelselector", "ychannelselector", "x", "x1", "x2", "xmlns", "y", "y1", "y2", "z", "zoomandpan"]);
 var mathMl = freeze(["accent", "accentunder", "align", "bevelled", "close", "columnsalign", "columnlines", "columnspan", "denomalign", "depth", "dir", "display", "displaystyle", "encoding", "fence", "frame", "height", "href", "id", "largeop", "length", "linethickness", "lspace", "lquote", "mathbackground", "mathcolor", "mathsize", "mathvariant", "maxsize", "minsize", "movablelimits", "notation", "numalign", "open", "rowalign", "rowlines", "rowspacing", "rowspan", "rspace", "rquote", "scriptlevel", "scriptminsize", "scriptsizemultiplier", "selection", "separator", "separators", "stretchy", "subscriptshift", "supscriptshift", "symmetric", "voffset", "width", "xmlns"]);
@@ -58279,7 +58791,7 @@ function createDOMPurify() {
     IS_ALLOWED_URI: IS_ALLOWED_URI$1
   } = EXPRESSIONS;
   let ALLOWED_TAGS = null;
-  const DEFAULT_ALLOWED_TAGS = addToSet({}, [...html$1, ...svg$1, ...svgFilters, ...mathMl$1, ...text11]);
+  const DEFAULT_ALLOWED_TAGS = addToSet({}, [...html$1, ...svg$1, ...svgFilters, ...mathMl$1, ...text13]);
   let ALLOWED_ATTR = null;
   const DEFAULT_ALLOWED_ATTR = addToSet({}, [...html5, ...svg3, ...mathMl, ...xml2]);
   let CUSTOM_ELEMENT_HANDLING = Object.seal(create2(null, {
@@ -58418,7 +58930,7 @@ function createDOMPurify() {
       RETURN_DOM = true;
     }
     if (USE_PROFILES) {
-      ALLOWED_TAGS = addToSet({}, text11);
+      ALLOWED_TAGS = addToSet({}, text13);
       ALLOWED_ATTR = create2(null);
       if (USE_PROFILES.html === true) {
         addToSet(ALLOWED_TAGS, html$1);
@@ -59017,8 +59529,8 @@ function sanitizeWidgetHtml(html6) {
     node2.textContent = "";
   });
   purifier.addHook("afterSanitizeAttributes", (node2) => {
-    const text12 = scriptText.get(node2);
-    if (text12 !== void 0) node2.textContent = text12;
+    const text14 = scriptText.get(node2);
+    if (text14 !== void 0) node2.textContent = text14;
   });
   return purifier.sanitize(html6, {
     // Widgets are complete HTML documents — preserve <html>/<head>/<style>
@@ -59044,9 +59556,9 @@ function publicWidgetDocument(html6, nonce) {
   for (const style2 of document4.querySelectorAll("style")) style2.setAttribute("nonce", nonce);
   const rules = [];
   for (const [index4, element3] of [...document4.querySelectorAll("[style]")].entries()) {
-    const id33 = `cafe-widget-inline-${index4}`;
-    rules.push(`[data-cafe-widget-style="${id33}"]{${element3.style.cssText}}`);
-    element3.setAttribute("data-cafe-widget-style", id33);
+    const id36 = `cafe-widget-inline-${index4}`;
+    rules.push(`[data-cafe-widget-style="${id36}"]{${element3.style.cssText}}`);
+    element3.setAttribute("data-cafe-widget-style", id36);
     element3.removeAttribute("style");
   }
   if (rules.length) {
@@ -59065,13 +59577,13 @@ function publicWidgetDocument(html6, nonce) {
 // ../ui/src/QuoteExcerpt.tsx
 var import_jsx_runtime12 = __toESM(require_jsx_runtime(), 1);
 function QuoteExcerpt({
-  text: text12,
+  text: text14,
   comment,
   commentLabel,
   compact = false
 }) {
   return /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "cafe-quote-excerpt", "data-compact": compact || void 0, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "cafe-quote-text", children: text12 }),
+    /* @__PURE__ */ (0, import_jsx_runtime12.jsx)("span", { className: "cafe-quote-text", children: text14 }),
     comment && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("span", { className: "cafe-quote-comment", children: [
       commentLabel && /* @__PURE__ */ (0, import_jsx_runtime12.jsxs)("strong", { children: [
         commentLabel,
@@ -59159,11 +59671,11 @@ var AudioElement = (0, import_react6.forwardRef)(function AudioElement2(props, r
 // ../ui/src/SandboxedWidgetFrame.tsx
 var import_react7 = __toESM(require_react(), 1);
 var import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
-var SandboxedWidgetFrame = (0, import_react7.forwardRef)(function SandboxedWidgetFrame2({ id: id33, html: html6, title, height, scrolling = "no" }, ref10) {
+var SandboxedWidgetFrame = (0, import_react7.forwardRef)(function SandboxedWidgetFrame2({ id: id36, html: html6, title, height, scrolling = "no" }, ref10) {
   return /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
     "iframe",
     {
-      id: id33,
+      id: id36,
       ref: ref10,
       srcDoc: html6,
       sandbox: "allow-scripts",
@@ -59411,7 +59923,7 @@ var import_jsx_runtime19 = __toESM(require_jsx_runtime(), 1);
 function StickerPicker({ choices, language = "zh", readImage, onSelect, onClose }) {
   const dialog = (0, import_react10.useRef)(null);
   const [group, setGroup] = (0, import_react10.useState)();
-  const en2 = language === "en";
+  const en3 = language === "en";
   (0, import_react10.useEffect)(() => {
     const prior = document.activeElement instanceof HTMLElement ? document.activeElement : void 0;
     dialog.current?.showModal();
@@ -59426,7 +59938,7 @@ function StickerPicker({ choices, language = "zh", readImage, onSelect, onClose 
       {
         ref: dialog,
         className: "cafe-sticker-picker",
-        "aria-label": en2 ? "Stickers" : "\u8D34\u7EB8",
+        "aria-label": en3 ? "Stickers" : "\u8D34\u7EB8",
         onCancel: (event) => {
           event.preventDefault();
           onClose();
@@ -59436,15 +59948,15 @@ function StickerPicker({ choices, language = "zh", readImage, onSelect, onClose 
         },
         children: [
           /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("header", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("strong", { children: en2 ? "Stickers" : "\u8D34\u7EB8" }),
-            /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("button", { type: "button", onClick: onClose, "aria-label": en2 ? "Close stickers" : "\u5173\u95ED\u8D34\u7EB8", children: "\xD7" })
+            /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("strong", { children: en3 ? "Stickers" : "\u8D34\u7EB8" }),
+            /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("button", { type: "button", onClick: onClose, "aria-label": en3 ? "Close stickers" : "\u5173\u95ED\u8D34\u7EB8", children: "\xD7" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("p", { children: en2 ? "Choose an expression to add to your draft" : "\u9009\u4E00\u5F20\uFF0C\u653E\u8FDB\u8349\u7A3F" }),
-          /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("nav", { "aria-label": en2 ? "Artwork characters" : "\u8D34\u7EB8\u89D2\u8272", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("button", { type: "button", "aria-pressed": !group, onClick: () => setGroup(void 0), children: en2 ? "All" : "\u5168\u90E8" }),
+          /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("p", { children: en3 ? "Choose an expression to add to your draft" : "\u9009\u4E00\u5F20\uFF0C\u653E\u8FDB\u8349\u7A3F" }),
+          /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)("nav", { "aria-label": en3 ? "Artwork characters" : "\u8D34\u7EB8\u89D2\u8272", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("button", { type: "button", "aria-pressed": !group, onClick: () => setGroup(void 0), children: en3 ? "All" : "\u5168\u90E8" }),
             [...new Set(choices.map((choice) => choice.group))].map((value) => /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("button", { type: "button", "aria-pressed": group === value, onClick: () => setGroup(value), children: value }, value))
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "cafe-sticker-grid", children: choices.filter((choice) => !group || choice.group === group).map((choice) => /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(StickerTile, { choice, en: en2, readImage, onSelect }, choice.id)) })
+          /* @__PURE__ */ (0, import_jsx_runtime19.jsx)("div", { className: "cafe-sticker-grid", children: choices.filter((choice) => !group || choice.group === group).map((choice) => /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(StickerTile, { choice, en: en3, readImage, onSelect }, choice.id)) })
         ]
       }
     ),
@@ -59453,7 +59965,7 @@ function StickerPicker({ choices, language = "zh", readImage, onSelect, onClose 
 }
 function StickerTile({
   choice,
-  en: en2,
+  en: en3,
   readImage,
   onSelect
 }) {
@@ -59485,13 +59997,13 @@ function StickerTile({
       url = URL.createObjectURL(blob);
       setImage({ blob, url });
     }).catch(() => {
-      if (!controller.signal.aborted) setError(en2 ? "Unavailable \xB7 Retry" : "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6 \xB7 \u91CD\u8BD5");
+      if (!controller.signal.aborted) setError(en3 ? "Unavailable \xB7 Retry" : "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6 \xB7 \u91CD\u8BD5");
     });
     return () => {
       controller.abort();
       if (url) URL.revokeObjectURL(url);
     };
-  }, [requested, choice.id, readImage, attempt, en2]);
+  }, [requested, choice.id, readImage, attempt, en3]);
   (0, import_react10.useEffect)(() => {
     active.current = true;
     return () => {
@@ -59514,7 +60026,7 @@ function StickerTile({
         if (!image3) return;
         setSelecting(true);
         void Promise.resolve(onSelect(choice.id, image3.blob)).catch(() => {
-          if (active.current) setError(en2 ? "Could not add \xB7 Retry" : "\u672A\u80FD\u653E\u8FDB\u8349\u7A3F \xB7 \u91CD\u8BD5");
+          if (active.current) setError(en3 ? "Could not add \xB7 Retry" : "\u672A\u80FD\u653E\u8FDB\u8349\u7A3F \xB7 \u91CD\u8BD5");
         }).finally(() => {
           if (active.current) setSelecting(false);
         });
@@ -59634,10 +60146,10 @@ function crossesExcludedChrome(range2, root5) {
   ];
   return excluded.some((candidate) => rangeSelectsTextWithin(range2, candidate));
 }
-function countRenderedOccurrences(root5, text12) {
-  if (!text12) return 0;
+function countRenderedOccurrences(root5, text14) {
+  if (!text14) return 0;
   const rendered = root5 instanceof HTMLElement && typeof root5.innerText === "string" ? root5.innerText : root5.textContent ?? "";
-  return rendered.split(text12).length - 1;
+  return rendered.split(text14).length - 1;
 }
 function matchingSubtree(root5, selector) {
   return [...root5.matches(selector) ? [root5] : [], ...Array.from(root5.querySelectorAll(selector))];
@@ -59747,8 +60259,8 @@ function selectionBelongsToContainer(selection, container) {
 function projectSelectionAction(selection, container, coordinateSpace, projection) {
   if (!selectionBelongsToContainer(selection, container)) return null;
   const rawText = selection.toString();
-  const text12 = rawText.trim();
-  if (!text12) return null;
+  const text14 = rawText.trim();
+  if (!text14) return null;
   const viewport = selectionViewport(container, coordinateSpace);
   const position4 = positionSelectionActionForAnchors(selectionAnchorRects(selection), viewport);
   const source4 = selectionSource(selection, container, projection);
@@ -59758,10 +60270,10 @@ function projectSelectionAction(selection, container, coordinateSpace, projectio
   if (projection?.isUnmapped(source4.coordinateRoot, trimmedOffsets)) return null;
   const renderedRoot = source4.coordinateRoot ?? container;
   return {
-    text: text12,
+    text: text14,
     position: position4,
     sourceKind: source4.kind,
-    renderedOccurrences: countRenderedOccurrences(renderedRoot, text12),
+    renderedOccurrences: countRenderedOccurrences(renderedRoot, text14),
     sourceProjectionVersion: source4.projectionVersion ?? void 0,
     ...trimmedOffsets && source4.segmentId ? { sourceSegmentId: source4.segmentId } : {},
     ...trimmedOffsets ? { selectionStart: trimmedOffsets.start, selectionEnd: trimmedOffsets.end } : {}
@@ -59770,7 +60282,7 @@ function projectSelectionAction(selection, container, coordinateSpace, projectio
 
 // ../ui/src/useTextSelectionAction.ts
 function useTextSelectionAction(containerRef, active, resetKey, coordinateSpace = "container", projection) {
-  const [action, setAction] = (0, import_react11.useState)(null);
+  const [action2, setAction] = (0, import_react11.useState)(null);
   (0, import_react11.useEffect)(() => {
     void resetKey;
     const container = containerRef.current;
@@ -59792,7 +60304,7 @@ function useTextSelectionAction(containerRef, active, resetKey, coordinateSpace 
       resizeObserver?.disconnect();
     };
   }, [active, containerRef, coordinateSpace, resetKey, projection]);
-  return action;
+  return action2;
 }
 
 // ../ui/src/VoiceInputButton.tsx
@@ -59806,8 +60318,8 @@ function VoiceInputButton({
   onStop,
   className
 }) {
-  const en2 = language === "en";
-  const label = !available ? en2 ? "Voice input is not available on this device" : "\u8FD9\u53F0\u8BBE\u5907\u4E0A\u8FD8\u4E0D\u80FD\u8BED\u97F3\u8F93\u5165" : state === "recording" ? en2 ? "Stop recording" : "\u505C\u6B62\u5F55\u97F3" : state === "transcribing" ? en2 ? "Transcribing\u2026" : "\u6B63\u5728\u8F6C\u6210\u6587\u5B57\u2026" : en2 ? "Voice input" : "\u8BED\u97F3\u8F93\u5165";
+  const en3 = language === "en";
+  const label = !available ? en3 ? "Voice input is not available on this device" : "\u8FD9\u53F0\u8BBE\u5907\u4E0A\u8FD8\u4E0D\u80FD\u8BED\u97F3\u8F93\u5165" : state === "recording" ? en3 ? "Stop recording" : "\u505C\u6B62\u5F55\u97F3" : state === "transcribing" ? en3 ? "Transcribing\u2026" : "\u6B63\u5728\u8F6C\u6210\u6587\u5B57\u2026" : en3 ? "Voice input" : "\u8BED\u97F3\u8F93\u5165";
   return /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
     "button",
     {
@@ -59968,7 +60480,7 @@ function createHostAppearance(input) {
   const listeners = /* @__PURE__ */ new Set();
   let state = DIRECT;
   let generation;
-  let revision11 = 0;
+  let revision12 = 0;
   let shellRevision = 0;
   const paint = (next) => {
     input.root.setAttribute("data-theme", next.scheme);
@@ -60022,8 +60534,8 @@ function createHostAppearance(input) {
     const parsed = collectiveHostAppearanceSchema.safeParse(event.data);
     if (!parsed.success) return false;
     const message = parsed.data;
-    if (message.bridgeId !== generation || message.appearanceRevision <= revision11) return false;
-    revision11 = message.appearanceRevision;
+    if (message.bridgeId !== generation || message.appearanceRevision <= revision12) return false;
+    revision12 = message.appearanceRevision;
     set2({
       presentation: message.presentation,
       scheme: message.resolvedScheme,
@@ -60046,7 +60558,7 @@ function createHostAppearance(input) {
     observeGeneration(bridgeId) {
       if (bridgeId === generation) return;
       generation = bridgeId;
-      revision11 = 0;
+      revision12 = 0;
       shellRevision = 0;
     },
     receive,
@@ -60093,7 +60605,7 @@ function useCollectiveLanguage() {
 }
 function useCollectiveText() {
   const language = useCollectiveLanguage();
-  return (text12) => collectiveText(text12, language);
+  return (text14) => collectiveText(text14, language);
 }
 
 // src/ChannelNavigation.tsx
@@ -60220,7 +60732,7 @@ function ChannelNavigation({
 }
 
 // src/ChannelScene.tsx
-var import_react90 = __toESM(require_react(), 1);
+var import_react94 = __toESM(require_react(), 1);
 
 // src/ChannelComposer.tsx
 var import_react33 = __toESM(require_react(), 1);
@@ -60369,26 +60881,26 @@ var import_react14 = __toESM(require_react(), 1);
 // src/ComposerVoiceStatus.tsx
 var import_jsx_runtime27 = __toESM(require_jsx_runtime(), 1);
 function ComposerVoiceStatus({ voice }) {
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const draft = voice.draft;
   if (!draft && !voice.notice) return null;
   const duration2 = `${Math.floor(voice.duration / 60)}:${String(voice.duration % 60).padStart(2, "0")}`;
   return /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("div", { className: "composer-voice-status", "data-voice-status": draft?.state, children: [
     draft && /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)(import_jsx_runtime27.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { role: "status", children: draft.state === "recording" ? en2 ? `Listening\u2026 ${duration2}` : `\u6B63\u5728\u542C\u2026 ${duration2}` : draft.state === "transcribing" ? en2 ? "Transcribing\u2026" : "\u6B63\u5728\u8F6C\u6210\u6587\u5B57\u2026" : draft.state === "failed" ? en2 ? "Could not transcribe \xB7 Recording kept" : "\u6CA1\u8F6C\u6210\u6587\u5B57 \xB7 \u539F\u5F55\u97F3\u5DF2\u4FDD\u7559" : draft.applied ? en2 ? "Added to your draft \xB7 Recording is private" : "\u6587\u5B57\u5DF2\u653E\u8FDB\u8349\u7A3F \xB7 \u5F55\u97F3\u4EC5\u81EA\u5DF1\u53EF\u89C1" : en2 ? "Transcription kept \xB7 Make room to insert it" : "\u8F6C\u5199\u5DF2\u4FDD\u7559 \xB7 \u8BF7\u7559\u51FA\u4F4D\u7F6E\u518D\u653E\u8FDB\u8349\u7A3F" }),
-      draft.state === "failed" && /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("button", { type: "button", disabled: !voice.available, onClick: () => void voice.retry(), children: en2 ? "Try again" : "\u518D\u8BD5\u4E00\u6B21" }),
+      /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { role: "status", children: draft.state === "recording" ? en3 ? `Listening\u2026 ${duration2}` : `\u6B63\u5728\u542C\u2026 ${duration2}` : draft.state === "transcribing" ? en3 ? "Transcribing\u2026" : "\u6B63\u5728\u8F6C\u6210\u6587\u5B57\u2026" : draft.state === "failed" ? en3 ? "Could not transcribe \xB7 Recording kept" : "\u6CA1\u8F6C\u6210\u6587\u5B57 \xB7 \u539F\u5F55\u97F3\u5DF2\u4FDD\u7559" : draft.applied ? en3 ? "Added to your draft \xB7 Recording is private" : "\u6587\u5B57\u5DF2\u653E\u8FDB\u8349\u7A3F \xB7 \u5F55\u97F3\u4EC5\u81EA\u5DF1\u53EF\u89C1" : en3 ? "Transcription kept \xB7 Make room to insert it" : "\u8F6C\u5199\u5DF2\u4FDD\u7559 \xB7 \u8BF7\u7559\u51FA\u4F4D\u7F6E\u518D\u653E\u8FDB\u8349\u7A3F" }),
+      draft.state === "failed" && /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("button", { type: "button", disabled: !voice.available, onClick: () => void voice.retry(), children: en3 ? "Try again" : "\u518D\u8BD5\u4E00\u6B21" }),
       draft.state === "ready" && !draft.applied && /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)(import_jsx_runtime27.Fragment, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("p", { className: "composer-voice-transcript", children: draft.transcript }),
-        /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("button", { type: "button", onClick: voice.insert, children: en2 ? "Insert into draft" : "\u653E\u8FDB\u8349\u7A3F" })
+        /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("button", { type: "button", onClick: voice.insert, children: en3 ? "Insert into draft" : "\u653E\u8FDB\u8349\u7A3F" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("button", { type: "button", onClick: () => void voice.cancel(), children: draft.applied ? en2 ? "Remove recording" : "\u79FB\u9664\u5F55\u97F3" : en2 ? "Cancel" : "\u53D6\u6D88" }),
+      /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("button", { type: "button", onClick: () => void voice.cancel(), children: draft.applied ? en3 ? "Remove recording" : "\u79FB\u9664\u5F55\u97F3" : en3 ? "Cancel" : "\u53D6\u6D88" }),
       voice.audioUrl && /* @__PURE__ */ (0, import_jsx_runtime27.jsx)(
         "audio",
         {
           src: voice.audioUrl,
           controls: true,
           preload: "metadata",
-          "aria-label": en2 ? "Private recording" : "\u79C1\u4EBA\u5F55\u97F3"
+          "aria-label": en3 ? "Private recording" : "\u79C1\u4EBA\u5F55\u97F3"
         }
       )
     ] }),
@@ -60526,16 +61038,16 @@ function MemberAvatar({
 var import_jsx_runtime30 = __toESM(require_jsx_runtime(), 1);
 function ComposerMentionMenu({
   options,
-  id: id33,
+  id: id36,
   active,
   onSelect
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "mention-list", id: id33, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "mention-list", id: id36, role: "listbox", "aria-label": t("\u9009\u62E9\u8981\u63D0\u5230\u7684\u6210\u5458"), children: [
     options.map((option, index4) => /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)(
       "button",
       {
-        id: `${id33}-${index4}`,
+        id: `${id36}-${index4}`,
         type: "button",
         role: "option",
         "aria-selected": index4 === active,
@@ -60564,13 +61076,13 @@ function ComposerRichContent({
   setDraft,
   expanded
 }) {
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const [notice2, setNotice] = (0, import_react16.useState)();
   const editor = draft.richEditor;
   const labels2 = {
-    checklist: en2 ? "Checklist" : "\u6E05\u5355",
-    interactive: en2 ? "Reply choices" : "\u56DE\u590D\u9009\u9879",
-    html_widget: en2 ? "HTML content" : "HTML \u4EA4\u4E92",
+    checklist: en3 ? "Checklist" : "\u6E05\u5355",
+    interactive: en3 ? "Reply choices" : "\u56DE\u590D\u9009\u9879",
+    html_widget: en3 ? "HTML content" : "HTML \u4EA4\u4E92",
     diff: "Diff"
   };
   const edit = (patch2) => setDraft(
@@ -60579,17 +61091,17 @@ function ComposerRichContent({
   const add = () => {
     if (!editor || !editor.source.trim()) return;
     const lines = editor.source.split("\n").map((line) => line.trim()).filter(Boolean);
-    const base3 = { v: 1, id: `rich_${crypto.randomUUID()}`, kind: editor.kind };
+    const base4 = { v: 1, id: `rich_${crypto.randomUUID()}`, kind: editor.kind };
     const value = editor.kind === "checklist" ? {
-      ...base3,
+      ...base4,
       title: editor.title || void 0,
-      items: lines.map((text12, index4) => ({ id: `item-${index4}`, text: text12 }))
+      items: lines.map((text14, index4) => ({ id: `item-${index4}`, text: text14 }))
     } : editor.kind === "interactive" ? {
-      ...base3,
+      ...base4,
       title: editor.title || void 0,
       interactiveType: "select",
       options: lines.map((label, index4) => ({ id: `choice-${index4}`, label }))
-    } : editor.kind === "diff" ? { ...base3, filePath: editor.title || "Diff", diff: editor.source } : { ...base3, title: editor.title || void 0, html: editor.source };
+    } : editor.kind === "diff" ? { ...base4, filePath: editor.title || "Diff", diff: editor.source } : { ...base4, title: editor.title || void 0, html: editor.source };
     const block = collectiveMessageRichBlockSchema.safeParse(value);
     const next = block.success && collectiveComposerDraftSchema.safeParse({
       ...draft,
@@ -60598,7 +61110,7 @@ function ComposerRichContent({
     });
     if (!next || !next.success) {
       setNotice(
-        en2 ? "This content is too large or incomplete; it is still in your private draft." : "\u5185\u5BB9\u592A\u957F\u6216\u8FD8\u6CA1\u586B\u597D\uFF0C\u4ECD\u4FDD\u7559\u5728\u79C1\u4EBA\u8349\u7A3F\u91CC\u3002"
+        en3 ? "This content is too large or incomplete; it is still in your private draft." : "\u5185\u5BB9\u592A\u957F\u6216\u8FD8\u6CA1\u586B\u597D\uFF0C\u4ECD\u4FDD\u7559\u5728\u79C1\u4EBA\u8349\u7A3F\u91CC\u3002"
       );
       return;
     }
@@ -60608,12 +61120,12 @@ function ComposerRichContent({
   return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(import_jsx_runtime31.Fragment, { children: [
     draft.richBlocks?.map((block) => /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "composer-rich-preview", children: [
       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("strong", { children: block.kind === "file" ? block.fileName : block.kind === "diff" ? block.filePath : "title" in block && block.title || block.kind }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: block.kind === "checklist" ? block.items.map((item) => item.text).join(" \xB7 ") : block.kind === "interactive" ? block.options.map((option) => option.label).join(" \xB7 ") : block.kind === "html_widget" ? en2 ? "Interactive HTML" : "HTML \u4EA4\u4E92\u5185\u5BB9" : "" }),
+      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: block.kind === "checklist" ? block.items.map((item) => item.text).join(" \xB7 ") : block.kind === "interactive" ? block.options.map((option) => option.label).join(" \xB7 ") : block.kind === "html_widget" ? en3 ? "Interactive HTML" : "HTML \u4EA4\u4E92\u5185\u5BB9" : "" }),
       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
         "button",
         {
           type: "button",
-          "aria-label": en2 ? "Remove content" : "\u79FB\u9664\u5185\u5BB9",
+          "aria-label": en3 ? "Remove content" : "\u79FB\u9664\u5185\u5BB9",
           onClick: () => setDraft((current2) => ({
             ...current2,
             richBlocks: current2.richBlocks?.filter((item) => item.id !== block.id)
@@ -60635,11 +61147,11 @@ function ComposerRichContent({
     editor && /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("fieldset", { className: "composer-rich-editor", children: [
       /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("legend", { children: labels2[editor.kind] }),
       /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { children: [
-        editor.kind === "diff" ? en2 ? "File name" : "\u6587\u4EF6\u540D" : en2 ? "Title (optional)" : "\u6807\u9898\uFF08\u53EF\u9009\uFF09",
+        editor.kind === "diff" ? en3 ? "File name" : "\u6587\u4EF6\u540D" : en3 ? "Title (optional)" : "\u6807\u9898\uFF08\u53EF\u9009\uFF09",
         /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("input", { value: editor.title, maxLength: 240, onChange: (event) => edit({ title: event.target.value }) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { children: [
-        editor.kind === "checklist" || editor.kind === "interactive" ? en2 ? "One item per line" : "\u6BCF\u884C\u4E00\u9879" : labels2[editor.kind],
+        editor.kind === "checklist" || editor.kind === "interactive" ? en3 ? "One item per line" : "\u6BCF\u884C\u4E00\u9879" : labels2[editor.kind],
         /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
           "textarea",
           {
@@ -60650,9 +61162,9 @@ function ComposerRichContent({
           }
         )
       ] }),
-      editor.kind === "interactive" && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("small", { children: en2 ? "Choices go into each member\u2019s reply draft." : "\u6210\u5458\u9009\u62E9\u540E\u653E\u8FDB\u81EA\u5DF1\u7684\u56DE\u590D\u8349\u7A3F\u3002" }),
+      editor.kind === "interactive" && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("small", { children: en3 ? "Choices go into each member\u2019s reply draft." : "\u6210\u5458\u9009\u62E9\u540E\u653E\u8FDB\u81EA\u5DF1\u7684\u56DE\u590D\u8349\u7A3F\u3002" }),
       (editor.kind === "html_widget" || editor.kind === "diff") && /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("label", { children: [
-        en2 ? "Choose a file" : "\u9009\u62E9\u6587\u4EF6",
+        en3 ? "Choose a file" : "\u9009\u62E9\u6587\u4EF6",
         /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
           "input",
           {
@@ -60662,14 +61174,14 @@ function ComposerRichContent({
               const file = event.target.files?.[0];
               if (!file) return;
               if (file.size > 192 * 1024) {
-                setNotice(en2 ? "Send this larger content as a file instead." : "\u5185\u5BB9\u8F83\u957F\uFF0C\u8BF7\u6539\u4E3A\u666E\u901A\u6587\u4EF6\u53D1\u9001\u3002");
+                setNotice(en3 ? "Send this larger content as a file instead." : "\u5185\u5BB9\u8F83\u957F\uFF0C\u8BF7\u6539\u4E3A\u666E\u901A\u6587\u4EF6\u53D1\u9001\u3002");
                 return;
               }
               const currentEditor = editor;
               void file.text().then((source4) => {
                 if (source4.length > 48e3) {
                   setNotice(
-                    en2 ? "Send this larger content as a file instead." : "\u5185\u5BB9\u8F83\u957F\uFF0C\u8BF7\u6539\u4E3A\u666E\u901A\u6587\u4EF6\u53D1\u9001\u3002"
+                    en3 ? "Send this larger content as a file instead." : "\u5185\u5BB9\u8F83\u957F\uFF0C\u8BF7\u6539\u4E3A\u666E\u901A\u6587\u4EF6\u53D1\u9001\u3002"
                   );
                   return;
                 }
@@ -60679,14 +61191,14 @@ function ComposerRichContent({
                     richEditor: { ...currentEditor, source: source4, title: currentEditor.title || file.name }
                   } : current2
                 );
-              }).catch(() => setNotice(en2 ? "Could not read this file" : "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4EFD\u6587\u4EF6"));
+              }).catch(() => setNotice(en3 ? "Could not read this file" : "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4EFD\u6587\u4EF6"));
               event.target.value = "";
             }
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", onClick: add, disabled: !editor.source.trim(), children: en2 ? "Add to draft" : "\u653E\u8FDB\u8349\u7A3F" }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", onClick: () => setDraft((current2) => ({ ...current2, richEditor: void 0 })), children: en2 ? "Cancel" : "\u53D6\u6D88" })
+      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", onClick: add, disabled: !editor.source.trim(), children: en3 ? "Add to draft" : "\u653E\u8FDB\u8349\u7A3F" }),
+      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", onClick: () => setDraft((current2) => ({ ...current2, richEditor: void 0 })), children: en3 ? "Cancel" : "\u53D6\u6D88" })
     ] }),
     notice2 && /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("p", { role: "status", children: notice2 })
   ] });
@@ -60710,7 +61222,7 @@ function MessageExpressionProvider({
 }
 var useMessageExpression = () => (0, import_react17.useContext)(MessageExpressionContext);
 function createMessageExpressionPort(identity2, transport) {
-  const { humanId, ...coordinates3 } = identity2;
+  const { humanId, ...coordinates4 } = identity2;
   const request = (path2, init) => transport(path2, {
     ...init,
     headers: {
@@ -60721,7 +61233,7 @@ function createMessageExpressionPort(identity2, transport) {
   });
   return {
     async channelState(channelId, rootEventId) {
-      const query = new URLSearchParams({ ...coordinates3, channelId, ...rootEventId ? { rootEventId } : {} });
+      const query = new URLSearchParams({ ...coordinates4, channelId, ...rootEventId ? { rootEventId } : {} });
       return collectiveHumanChannelStateSchema.parse(await (await request(`/api/channel-state?${query}`)).json());
     },
     async saveDraft(channelId, rootEventId, content3, expectedRevision, clientOperationId, keepalive) {
@@ -60729,7 +61241,7 @@ function createMessageExpressionPort(identity2, transport) {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          ...coordinates3,
+          ...coordinates4,
           channelId,
           ...rootEventId ? { rootEventId } : {},
           content: content3,
@@ -60744,13 +61256,13 @@ function createMessageExpressionPort(identity2, transport) {
       const response = await request("/api/channel-state/read", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...coordinates3, channelId, eventId: eventId2 })
+        body: JSON.stringify({ ...coordinates4, channelId, eventId: eventId2 })
       });
       const value = await response.json();
       return collectiveReadPositionSchema.parse(value.read);
     },
     async catalogImage(stickerId, channelId, signal) {
-      const query = new URLSearchParams({ ...coordinates3, channelId, stickerId });
+      const query = new URLSearchParams({ ...coordinates4, channelId, stickerId });
       const response = await request(`/api/message-attachments/catalog?${query}`, { method: "POST", signal });
       const blob = await response.blob();
       signal.throwIfAborted();
@@ -60761,7 +61273,7 @@ function createMessageExpressionPort(identity2, transport) {
       signal.throwIfAborted();
       const blobDigest = `sha256:${[...new Uint8Array(digest8)].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
       const query = new URLSearchParams({
-        ...coordinates3,
+        ...coordinates4,
         channelId,
         clientUploadId,
         fileName: file.name,
@@ -60779,7 +61291,7 @@ function createMessageExpressionPort(identity2, transport) {
     },
     async read(attachmentId, sourceEventId, signal) {
       const query = new URLSearchParams({
-        ...coordinates3,
+        ...coordinates4,
         attachmentId,
         ...sourceEventId ? { sourceEventId } : {}
       });
@@ -60801,9 +61313,9 @@ function ComposerStickers({
   const port2 = useMessageExpression();
   const language = useCollectiveLanguage();
   const readImage = (0, import_react18.useCallback)(
-    async (id33, signal) => {
+    async (id36, signal) => {
       if (!port2?.catalogImage) throw new Error("Sticker images are unavailable");
-      return port2.catalogImage(id33, channelId, signal);
+      return port2.catalogImage(id36, channelId, signal);
     },
     [port2, channelId]
   );
@@ -60818,8 +61330,8 @@ function ComposerStickers({
       })),
       readImage,
       onClose,
-      onSelect: async (id33, blob) => {
-        await files.add([new File([blob], `${id33}.png`, { type: "image/png" })], messageStickerReference(id33));
+      onSelect: async (id36, blob) => {
+        await files.add([new File([blob], `${id36}.png`, { type: "image/png" })], messageStickerReference(id36));
         onClose();
       }
     }
@@ -60833,15 +61345,15 @@ function VoiceServiceSettings({
   voice,
   onClose
 }) {
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const [endpoint, setEndpoint] = (0, import_react19.useState)(voice.savedEndpoint);
   const operation = (0, import_react19.useRef)();
   (0, import_react19.useEffect)(() => () => operation.current?.abort(), []);
-  return /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("section", { className: "composer-voice-settings", "aria-label": en2 ? "Voice settings" : "\u8BED\u97F3\u8BBE\u7F6E", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("strong", { children: en2 ? "Voice input on this device" : "\u8FD9\u53F0\u8BBE\u5907\u7684\u8BED\u97F3\u8F93\u5165" }),
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("p", { children: en2 ? "Connect an existing local transcription service. This only configures your account on this device." : "\u8FDE\u63A5\u8FD9\u53F0\u8BBE\u5907\u4E0A\u5DF2\u6709\u7684\u8F6C\u5199\u670D\u52A1\u3002\u8BBE\u7F6E\u4EC5\u7528\u4E8E\u4F60\u5728\u8FD9\u53F0\u8BBE\u5907\u4E0A\u7684\u8D26\u53F7\u3002" }),
+  return /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("section", { className: "composer-voice-settings", "aria-label": en3 ? "Voice settings" : "\u8BED\u97F3\u8BBE\u7F6E", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("strong", { children: en3 ? "Voice input on this device" : "\u8FD9\u53F0\u8BBE\u5907\u7684\u8BED\u97F3\u8F93\u5165" }),
+    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("p", { children: en3 ? "Connect an existing local transcription service. This only configures your account on this device." : "\u8FDE\u63A5\u8FD9\u53F0\u8BBE\u5907\u4E0A\u5DF2\u6709\u7684\u8F6C\u5199\u670D\u52A1\u3002\u8BBE\u7F6E\u4EC5\u7528\u4E8E\u4F60\u5728\u8FD9\u53F0\u8BBE\u5907\u4E0A\u7684\u8D26\u53F7\u3002" }),
     /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)("label", { children: [
-      en2 ? "Local service address" : "\u672C\u673A\u8F6C\u5199\u670D\u52A1\u5730\u5740",
+      en3 ? "Local service address" : "\u672C\u673A\u8F6C\u5199\u670D\u52A1\u5730\u5740",
       /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
         "input",
         {
@@ -60865,7 +61377,7 @@ function VoiceServiceSettings({
             if (connected) onClose();
           });
         },
-        children: voice.checking ? en2 ? "Checking\u2026" : "\u6B63\u5728\u68C0\u67E5\u2026" : en2 ? "Check and enable" : "\u68C0\u67E5\u5E76\u542F\u7528"
+        children: voice.checking ? en3 ? "Checking\u2026" : "\u6B63\u5728\u68C0\u67E5\u2026" : en3 ? "Check and enable" : "\u68C0\u67E5\u5E76\u542F\u7528"
       }
     ),
     voice.savedEndpoint && /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
@@ -60876,10 +61388,10 @@ function VoiceServiceSettings({
           voice.remove();
           setEndpoint("");
         },
-        children: en2 ? "Disconnect" : "\u65AD\u5F00\u8FDE\u63A5"
+        children: en3 ? "Disconnect" : "\u65AD\u5F00\u8FDE\u63A5"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("button", { type: "button", onClick: onClose, children: en2 ? "Close" : "\u5173\u95ED" }),
+    /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("button", { type: "button", onClick: onClose, children: en3 ? "Close" : "\u5173\u95ED" }),
     voice.error && /* @__PURE__ */ (0, import_jsx_runtime34.jsx)("p", { role: "status", children: voice.error })
   ] });
 }
@@ -61120,8 +61632,8 @@ function MessageQuoteProvider({
     [storageNamespace]
   );
   const consumed = (0, import_react21.useCallback)(
-    (id33) => setRequests((current2) => {
-      if (current2.get(storageNamespace)?.id !== id33) return current2;
+    (id36) => setRequests((current2) => {
+      if (current2.get(storageNamespace)?.id !== id36) return current2;
       const next = new Map(current2);
       next.delete(storageNamespace);
       return next;
@@ -61145,9 +61657,9 @@ function ComposerMessageQuotes({
     MessageQuotes,
     {
       quotes: draft.contextAttachments,
-      onRemove: (id33) => setDraft((current2) => ({
+      onRemove: (id36) => setDraft((current2) => ({
         ...current2,
-        contextAttachments: current2.contextAttachments?.filter((quote) => quote.id !== id33)
+        contextAttachments: current2.contextAttachments?.filter((quote) => quote.id !== id36)
       }))
     }
   );
@@ -61256,13 +61768,13 @@ function fileIntents(namespace) {
     (item) => item && typeof item === "object" && typeof item.id === "string" && (item.attachmentId === void 0 || typeof item.attachmentId === "string")
   ) : [];
 }
-function beginPendingAttachmentFile(namespace, id33) {
+function beginPendingAttachmentFile(namespace, id36) {
   const intents = fileIntents(namespace);
-  if (!intents.some((item) => item.id === id33))
-    localStorage.setItem(intentKey(namespace), JSON.stringify([...intents, { id: id33 }]));
+  if (!intents.some((item) => item.id === id36))
+    localStorage.setItem(intentKey(namespace), JSON.stringify([...intents, { id: id36 }]));
 }
-function hasPendingAttachmentFile(namespace, id33) {
-  return fileIntents(namespace).some((item) => item.id === id33);
+function hasPendingAttachmentFile(namespace, id36) {
+  return fileIntents(namespace).some((item) => item.id === id36);
 }
 async function openFiles() {
   return new Promise((resolve, reject) => {
@@ -61280,7 +61792,7 @@ async function pendingAttachmentFiles(namespace) {
       request.onsuccess = () => resolve(
         request.result.filter(
           (item) => item.namespace === namespace && fileIntents(namespace).some((intent) => intent.id === item.id)
-        ).map(({ id: id33, file, attachment, sticker }) => ({ id: id33, file, attachment, sticker }))
+        ).map(({ id: id36, file, attachment, sticker }) => ({ id: id36, file, attachment, sticker }))
       );
       request.onerror = () => reject(request.error);
     });
@@ -61402,9 +61914,9 @@ function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = tr
         setNotice(`${file.name}\uFF1A\u8BF7\u9009\u62E9 50 MiB \u4EE5\u5185\u7684\u975E\u7A7A\u6587\u4EF6\u3002`);
         continue;
       }
-      const id33 = crypto.randomUUID();
+      const id36 = crypto.randomUUID();
       const item = {
-        id: id33,
+        id: id36,
         file,
         name: file.name,
         mediaType: file.type,
@@ -61414,11 +61926,11 @@ function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = tr
         ...sticker ? { sticker } : {}
       };
       uploadUrls.current.add(item.url);
-      present.current.add(id33);
+      present.current.add(id36);
       setUploads((current2) => [...current2, item]);
       try {
-        beginPendingAttachmentFile(draftKey, id33);
-        await savePendingAttachmentFile(draftKey, { id: id33, file, ...sticker ? { sticker } : {} });
+        beginPendingAttachmentFile(draftKey, id36);
+        await savePendingAttachmentFile(draftKey, { id: id36, file, ...sticker ? { sticker } : {} });
       } catch {
         setNotice("\u6D4F\u89C8\u5668\u65E0\u6CD5\u4FDD\u5B58\u672A\u4E0A\u4F20\u7684\u6587\u4EF6\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762\u3002");
       }
@@ -61499,18 +62011,18 @@ function useComposerAttachments(draftKey, channelId, draft, setDraft, ready = tr
     notice: notice2,
     pending: uploads.length > 0,
     add,
-    remove(id33) {
-      controllers.current.get(id33)?.abort();
-      present.current.delete(id33);
-      setUploads((current2) => current2.filter((item) => item.id !== id33));
+    remove(id36) {
+      controllers.current.get(id36)?.abort();
+      present.current.delete(id36);
+      setUploads((current2) => current2.filter((item) => item.id !== id36));
       setDraft((current2) => ({
         ...current2,
-        attachments: current2.attachments?.filter((item) => item.attachmentId !== id33)
+        attachments: current2.attachments?.filter((item) => item.attachmentId !== id36)
       }));
-      void discardPendingAttachmentFiles(draftKey, [id33]).catch(() => setNotice("\u672A\u80FD\u79FB\u9664\u672C\u5730\u6587\u4EF6\uFF0C\u8BF7\u91CD\u8BD5\u3002"));
+      void discardPendingAttachmentFiles(draftKey, [id36]).catch(() => setNotice("\u672A\u80FD\u79FB\u9664\u672C\u5730\u6587\u4EF6\uFF0C\u8BF7\u91CD\u8BD5\u3002"));
     },
-    retry(id33) {
-      const item = uploads.find((value) => value.id === id33);
+    retry(id36) {
+      const item = uploads.find((value) => value.id === id36);
       if (item) enqueueUpload(item);
     },
     async confirm(attachments) {
@@ -61881,10 +62393,10 @@ function useComposerVoice(input) {
       if (url) URL.revokeObjectURL(url);
     };
   }, [scope, captureId, state, host]);
-  const makeSession = (id33, service) => new ComposerVoiceSession(
+  const makeSession = (id36, service) => new ComposerVoiceSession(
     {
       draftKey: input.draftKey,
-      captureId: id33,
+      captureId: id36,
       channelId: input.channelId,
       rootEventId: input.rootEventId,
       port: port2,
@@ -61909,12 +62421,12 @@ function useComposerVoice(input) {
     async start() {
       if (!device.service || !port2 || input.draft.voiceDraft || !input.durable.ready || input.durable.conflict || transition.current)
         return;
-      const id33 = crypto.randomUUID();
-      transition.current = id33;
+      const id36 = crypto.randomUUID();
+      transition.current = id36;
       setTransitioning(true);
-      const voiceDraft = { captureId: id33, state: "recording", applied: false };
+      const voiceDraft = { captureId: id36, state: "recording", applied: false };
       const draft = { ...input.draft, voiceDraft };
-      const session = makeSession(id33, device.service);
+      const session = makeSession(id36, device.service);
       input.setDraft(draft);
       setDuration(0);
       setNotice(void 0);
@@ -61924,10 +62436,10 @@ function useComposerVoice(input) {
         await session.start();
       } catch (error) {
         session.cancel();
-        host.edit((draft2) => updateComposerVoice(draft2, id33, { state: "failed" }));
+        host.edit((draft2) => updateComposerVoice(draft2, id36, { state: "failed" }));
         host.notice(error instanceof Error ? error.message : String(error));
       } finally {
-        if (transition.current === id33) {
+        if (transition.current === id36) {
           transition.current = void 0;
           if (currentScope.current === scope) setTransitioning(false);
         }
@@ -62042,7 +62554,7 @@ function useServiceComposerDraft(input) {
   const [ready, setReady] = (0, import_react27.useState)(!port2);
   const [notice2, setNotice] = (0, import_react27.useState)();
   const [conflict, setConflict] = (0, import_react27.useState)();
-  const base3 = (0, import_react27.useRef)({ revision: 0, fingerprint: fingerprint(emptyDraft) });
+  const base4 = (0, import_react27.useRef)({ revision: 0, fingerprint: fingerprint(emptyDraft) });
   const current2 = (0, import_react27.useRef)(input);
   current2.current = input;
   const currentConflict = (0, import_react27.useRef)(conflict);
@@ -62053,7 +62565,7 @@ function useServiceComposerDraft(input) {
   const metadataKey = `${input.draftKey}:service-version`;
   const remember = (0, import_react27.useCallback)(
     (saved) => {
-      base3.current = saved;
+      base4.current = saved;
       try {
         localStorage.setItem(metadataKey, JSON.stringify(saved));
       } catch {
@@ -62110,12 +62622,12 @@ function useServiceComposerDraft(input) {
     };
   }, [port2, input.draftKey, input.channelId, input.rootEventId, input.namespace, metadataKey, remember]);
   const persist = async (draft, keepalive = false) => {
-    if (!port2) return base3.current;
+    if (!port2) return base4.current;
     while (pending.current) await pending.current;
     if (currentConflict.current) throw new Error("\u53E6\u4E00\u7A97\u53E3\u5DF2\u66F4\u65B0\u8349\u7A3F\uFF0C\u8BF7\u5148\u9009\u62E9\u8981\u4FDD\u7559\u7684\u5185\u5BB9\u3002");
     const content3 = collectiveComposerDraftSchema.parse(draft), serialized2 = fingerprint(content3);
-    if (serialized2 === base3.current.fingerprint && base3.current.revision > 0) return base3.current;
-    const clientOperationId = crypto.randomUUID(), expectedRevision = base3.current.revision;
+    if (serialized2 === base4.current.fingerprint && base4.current.revision > 0) return base4.current;
+    const clientOperationId = crypto.randomUUID(), expectedRevision = base4.current.revision;
     const operation = (async () => {
       const result = await port2.saveDraft(
         input.channelId,
@@ -62146,7 +62658,7 @@ function useServiceComposerDraft(input) {
   persistRef.current = persist;
   const serialized = fingerprint(input.draft);
   (0, import_react27.useEffect)(() => {
-    if (!port2 || !ready || conflict || input.paused || serialized === base3.current.fingerprint) return;
+    if (!port2 || !ready || conflict || input.paused || serialized === base4.current.fingerprint) return;
     timer.current = setTimeout(() => {
       void persistRef.current(current2.current.draft).catch((error) => {
         if (active.current) setNotice(error instanceof Error ? error.message : String(error));
@@ -62158,7 +62670,7 @@ function useServiceComposerDraft(input) {
   }, [serialized, ready, conflict, input.paused, port2]);
   (0, import_react27.useEffect)(() => {
     const pageExit = () => {
-      if (!port2 || !ready || currentConflict.current || current2.current.paused || fingerprint(current2.current.draft) === base3.current.fingerprint)
+      if (!port2 || !ready || currentConflict.current || current2.current.paused || fingerprint(current2.current.draft) === base4.current.fingerprint)
         return;
       void persistRef.current(current2.current.draft, true).catch(() => {
       });
@@ -62265,6 +62777,60 @@ var CollectiveClientRequestError = class extends Error {
   }
 };
 
+// src/collaboration-command-custody.ts
+var pendingCommandSchema = external_exports.object({
+  fingerprint: external_exports.string().min(1).max(64e3),
+  requestId: external_exports.string().min(1).max(200)
+}).strict();
+function prepareCollaborationCommand(storage, namespace, payload, createId = () => crypto.randomUUID()) {
+  const key = `collective-collaboration-pending:${namespace}`;
+  const raw = storage.getItem(key);
+  const pending = raw ? pendingCommandSchema.array().parse(JSON.parse(raw)) : [];
+  const fingerprint2 = JSON.stringify(payload);
+  const existing = pending.find((item) => item.fingerprint === fingerprint2);
+  if (existing) return existing.requestId;
+  const next = pendingCommandSchema.parse({ fingerprint: fingerprint2, requestId: createId() });
+  storage.setItem(key, JSON.stringify([...pending, next]));
+  return next.requestId;
+}
+function acknowledgeCollaborationCommand(storage, namespace, requestId2) {
+  const key = `collective-collaboration-pending:${namespace}`;
+  const raw = storage.getItem(key);
+  if (!raw) return;
+  const pending = pendingCommandSchema.array().parse(JSON.parse(raw)).filter((item) => item.requestId !== requestId2);
+  if (pending.length) storage.setItem(key, JSON.stringify(pending));
+  else storage.removeItem(key);
+}
+
+// src/project-artifact-client.ts
+function projectArtifactClient(request, coordinates4, namespace) {
+  const post2 = (path2, body4) => request(`/api/collaboration/projects/artifacts/${path2}`, {
+    method: "POST",
+    body: JSON.stringify({ ...coordinates4, ...body4 })
+  });
+  return {
+    namespace,
+    list: async (roadmapId, page3 = {}) => {
+      const feed = collectiveProjectArtifactListSchema.parse(await post2("list", { roadmapId, ...page3 }));
+      if (feed.serviceInstanceId !== coordinates4.serviceInstanceId || feed.collectiveId !== coordinates4.collectiveId || feed.roadmapId !== roadmapId || feed.offset !== (page3.offset ?? 0) || page3.expectedSnapshot && feed.snapshot !== page3.expectedSnapshot || feed.items.some(
+        (item) => item.reference.roadmapId !== roadmapId || item.reference.serviceInstanceId !== coordinates4.serviceInstanceId || item.reference.collectiveId !== coordinates4.collectiveId
+      ))
+        throw new Error("\u9879\u76EE\u5F15\u7528\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
+      return feed;
+    },
+    change: async (input) => {
+      const intent = { path: "project-artifact-reference", ...input };
+      const requestId2 = prepareCollaborationCommand(localStorage, namespace, intent);
+      const result = collectiveProjectArtifactChangeSchema.parse(await post2("change", { ...input, requestId: requestId2 }));
+      if (result.item && (result.item.reference.artifactId !== input.artifactId || result.item.reference.roadmapId !== input.roadmapId || result.item.reference.serviceInstanceId !== coordinates4.serviceInstanceId || result.item.reference.collectiveId !== coordinates4.collectiveId))
+        throw new Error("\u9879\u76EE\u5F15\u7528\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
+      acknowledgeCollaborationCommand(localStorage, namespace, requestId2);
+      window.dispatchEvent(new Event("collective:project-artifacts-changed"));
+      return result;
+    }
+  };
+}
+
 // src/shared-artifact-json-pages.ts
 var chunkSchema = external_exports.object({
   encoding: external_exports.literal("json-text-chunk"),
@@ -62339,14 +62905,14 @@ function appendSharedAnnotationPage(view, page3) {
 function clearSavedIntent(key, serialized) {
   if (localStorage.getItem(key) === serialized) localStorage.removeItem(key);
 }
-function verifyControlReceipt(value, artifact, request, action) {
+function verifyControlReceipt(value, artifact, request, action2) {
   const result = external_exports.object({ request: collectiveModificationProjectionSchema }).parse(value).request;
-  if (result.requestId !== request.requestId || result.sourceEventId !== artifact.sourceEventId || !["cancelled", "accepted"].includes(result.state) || result.state === "cancelled" && result.resolution?.kind !== (action === "cancel" ? "cancelled" : "rejected"))
+  if (result.requestId !== request.requestId || result.sourceEventId !== artifact.sourceEventId || !["cancelled", "accepted"].includes(result.state) || result.state === "cancelled" && result.resolution?.kind !== (action2 === "cancel" ? "cancelled" : "rejected"))
     throw new Error("\u51B3\u5B9A\u56DE\u6267\u5C1A\u672A\u6838\u5BF9\uFF0C\u8BF7\u91CD\u8BD5\u539F\u64CD\u4F5C\u3002");
   return result;
 }
-async function resolveSharedArtifactModification(operation, namespace, artifact, request, action) {
-  const key = `collective-resolution:${namespace}:${artifact.artifactId}:${request.requestId}:${action}:${action === "reject" ? request.latestProposalRef : ""}`;
+async function resolveSharedArtifactModification(operation, namespace, artifact, request, action2) {
+  const key = `collective-resolution:${namespace}:${artifact.artifactId}:${request.requestId}:${action2}:${action2 === "reject" ? request.latestProposalRef : ""}`;
   const saved = localStorage.getItem(key);
   const pending = external_exports.object({ operationId: external_exports.string().uuid(), input: collectiveArtifactControlSchema }).strict().parse(
     saved ? JSON.parse(saved) : {
@@ -62354,22 +62920,22 @@ async function resolveSharedArtifactModification(operation, namespace, artifact,
       input: {
         requestId: request.requestId,
         expectedRequestRevision: request.revision,
-        ...action === "reject" ? { proposalRef: request.latestProposalRef } : {}
+        ...action2 === "reject" ? { proposalRef: request.latestProposalRef } : {}
       }
     }
   );
-  if (pending.input.requestId !== request.requestId || action === "reject" && pending.input.proposalRef !== request.latestProposalRef)
+  if (pending.input.requestId !== request.requestId || action2 === "reject" && pending.input.proposalRef !== request.latestProposalRef)
     throw new Error("\u51B3\u5B9A\u5F15\u7528\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
   const serialized = JSON.stringify(pending);
   localStorage.setItem(key, serialized);
   let value;
   try {
-    value = await operation(artifact, action, pending.input, pending.operationId);
+    value = await operation(artifact, action2, pending.input, pending.operationId);
   } catch (error) {
     if (error instanceof CollectiveClientRequestError && error.status === 409) clearSavedIntent(key, serialized);
     throw error;
   }
-  const result = verifyControlReceipt(value, artifact, request, action);
+  const result = verifyControlReceipt(value, artifact, request, action2);
   clearSavedIntent(key, serialized);
   return result;
 }
@@ -62458,11 +63024,11 @@ async function sendSharedArtifactFeedback(request, namespace, operation, input) 
 }
 
 // src/shared-artifact-history-client.ts
-function sharedArtifactHistoryClient(post2, coordinates3) {
+function sharedArtifactHistoryClient(post2, coordinates4) {
   const history2 = async (artifact, page3 = {}) => {
     const value = collectiveArtifactCatalogueHistoryPageSchema.parse(
       await post2("history", {
-        ...coordinates3,
+        ...coordinates4,
         artifactId: artifact.artifactId,
         sourceEventId: artifact.sourceEventId,
         ...page3
@@ -62480,10 +63046,10 @@ function sharedArtifactHistoryClient(post2, coordinates3) {
     if (selected?.ownerRevision !== ownerRevision2) throw new Error("\u4F5C\u54C1\u7248\u672C\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u3002");
     return selected;
   };
-  const receipts = batchedRequestReceipts(post2, coordinates3);
+  const receipts = batchedRequestReceipts(post2, coordinates4);
   return { history: history2, version, receipts };
 }
-function batchedRequestReceipts(post2, coordinates3) {
+function batchedRequestReceipts(post2, coordinates4) {
   const pending = /* @__PURE__ */ new Map();
   let scheduled = false;
   const flush = async () => {
@@ -62491,7 +63057,7 @@ function batchedRequestReceipts(post2, coordinates3) {
     pending.clear();
     scheduled = false;
     for (let offset2 = 0; offset2 < queued.length; offset2 += 30)
-      await readReceiptBatch(post2, coordinates3, queued.slice(offset2, offset2 + 30));
+      await readReceiptBatch(post2, coordinates4, queued.slice(offset2, offset2 + 30));
   };
   return (requestEventId) => new Promise((resolve, reject) => {
     const listeners = pending.get(requestEventId) ?? [];
@@ -62505,28 +63071,28 @@ function batchedRequestReceipts(post2, coordinates3) {
     }
   });
 }
-async function readReceiptBatch(post2, coordinates3, batch) {
+async function readReceiptBatch(post2, coordinates4, batch) {
   try {
-    const requestEventIds = batch.map(([id33]) => id33);
+    const requestEventIds = batch.map(([id36]) => id36);
     const value = collectiveArtifactRequestReceiptPageSchema.parse(
-      await post2("receipts/by-request", { ...coordinates3, requestEventIds })
+      await post2("receipts/by-request", { ...coordinates4, requestEventIds })
     );
-    assertReceiptBindings(value.receipts, coordinates3, requestEventIds);
-    for (const [id33, listeners] of batch) {
-      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id33);
+    assertReceiptBindings(value.receipts, coordinates4, requestEventIds);
+    for (const [id36, listeners] of batch) {
+      const receipts = value.receipts.filter((receipt2) => receipt2.version.lineage?.requestEventId === id36);
       for (const listener of listeners) listener.resolve(receipts);
     }
   } catch (error) {
     for (const [, listeners] of batch) for (const listener of listeners) listener.reject(error);
   }
 }
-function assertReceiptBindings(receipts, coordinates3, requestEventIds) {
+function assertReceiptBindings(receipts, coordinates4, requestEventIds) {
   const seen = /* @__PURE__ */ new Set();
   for (const receipt2 of receipts) {
-    const id33 = receipt2.version.lineage?.requestEventId;
-    if (!id33 || !requestEventIds.includes(id33) || seen.has(id33) || receipt2.artifact.serviceInstanceId !== coordinates3.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates3.collectiveId)
+    const id36 = receipt2.version.lineage?.requestEventId;
+    if (!id36 || !requestEventIds.includes(id36) || seen.has(id36) || receipt2.artifact.serviceInstanceId !== coordinates4.serviceInstanceId || receipt2.artifact.collectiveId !== coordinates4.collectiveId)
       throw new Error("\u91C7\u7528\u56DE\u6267\u4E0E\u539F\u8BF7\u6C42\u4E0D\u4E00\u81F4\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
-    seen.add(id33);
+    seen.add(id36);
   }
 }
 
@@ -62535,32 +63101,32 @@ var pendingSchema = external_exports.discriminatedUnion("action", [
   external_exports.object({ action: external_exports.literal("access"), input: updateCollectiveArtifactAccessSchema }).strict(),
   external_exports.object({ action: external_exports.literal("offer"), input: offerCollectiveArtifactCustodySchema }).strict()
 ]);
-function sharedArtifactManagementClient(request, coordinates3, namespace) {
+function sharedArtifactManagementClient(request, coordinates4, namespace) {
   const post2 = (path2, input) => request(`/api/artifacts/${path2}`, { method: "POST", body: JSON.stringify(input) });
   const key = (artifact) => `collective-management:${namespace}:${artifact.artifactId}`;
   const read = async (artifact, page3 = {}) => {
-    const result = external_exports.object({ management: collectiveArtifactManagementSchema }).parse(await post2("management/read", { ...coordinates3, artifactId: artifact.artifactId, ...page3 })).management;
-    if (result.artifactId !== artifact.artifactId || result.serviceInstanceId !== coordinates3.serviceInstanceId || result.collectiveId !== coordinates3.collectiveId)
+    const result = external_exports.object({ management: collectiveArtifactManagementSchema }).parse(await post2("management/read", { ...coordinates4, artifactId: artifact.artifactId, ...page3 })).management;
+    if (result.artifactId !== artifact.artifactId || result.serviceInstanceId !== coordinates4.serviceInstanceId || result.collectiveId !== coordinates4.collectiveId)
       throw new Error("\u7BA1\u7406\u5F15\u7528\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
     return result;
   };
   const execute = async (artifact, pending) => {
-    const { input, action } = pending;
-    if (input.artifactId !== artifact.artifactId || input.serviceInstanceId !== coordinates3.serviceInstanceId || input.collectiveId !== coordinates3.collectiveId)
+    const { input, action: action2 } = pending;
+    if (input.artifactId !== artifact.artifactId || input.serviceInstanceId !== coordinates4.serviceInstanceId || input.collectiveId !== coordinates4.collectiveId)
       throw new Error("\u7BA1\u7406\u5F15\u7528\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
     let result;
     try {
-      result = await post2(action === "access" ? "access/update" : "custody/offer", input);
+      result = await post2(action2 === "access" ? "access/update" : "custody/offer", input);
     } catch (error) {
       if (error instanceof CollectiveClientRequestError && error.status === 409) localStorage.removeItem(key(artifact));
       throw error;
     }
-    if (action === "access")
+    if (action2 === "access")
       external_exports.object({
         artifact: external_exports.object({
           artifactId: external_exports.literal(artifact.artifactId),
-          serviceInstanceId: external_exports.literal(coordinates3.serviceInstanceId),
-          collectiveId: external_exports.literal(coordinates3.collectiveId)
+          serviceInstanceId: external_exports.literal(coordinates4.serviceInstanceId),
+          collectiveId: external_exports.literal(coordinates4.collectiveId)
         })
       }).parse(result);
     else external_exports.object({ handoffRef: external_exports.string().min(1) }).parse(result);
@@ -62582,7 +63148,7 @@ function sharedArtifactManagementClient(request, coordinates3, namespace) {
     setAccess: (artifact, humanId, access2, expectedAccessRevision) => send(artifact, {
       action: "access",
       input: {
-        ...coordinates3,
+        ...coordinates4,
         artifactId: artifact.artifactId,
         humanId,
         access: access2,
@@ -62593,7 +63159,7 @@ function sharedArtifactManagementClient(request, coordinates3, namespace) {
     offer: (artifact, targetHumanId, expectedCustodyRevision, targetConnectionId) => send(artifact, {
       action: "offer",
       input: {
-        ...coordinates3,
+        ...coordinates4,
         artifactId: artifact.artifactId,
         targetHumanId,
         ...targetConnectionId ? { targetConnectionId } : {},
@@ -62603,7 +63169,7 @@ function sharedArtifactManagementClient(request, coordinates3, namespace) {
     }),
     cancel: async (artifact, transferId) => {
       external_exports.object({ transfer: external_exports.object({ transferId: external_exports.literal(transferId), state: external_exports.literal("cancelled") }) }).parse(
-        await post2("custody/cancel", { ...coordinates3, artifactId: artifact.artifactId, transferId })
+        await post2("custody/cancel", { ...coordinates4, artifactId: artifact.artifactId, transferId })
       );
     }
   };
@@ -62628,11 +63194,11 @@ var previewSchema = external_exports.object({
   stale: external_exports.boolean(),
   currentOwnerRevision: external_exports.number().int().positive()
 });
-async function digest7(text12) {
-  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text12)));
+async function digest7(text14) {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text14)));
   return `sha256:${Array.from(bytes, (item) => item.toString(16).padStart(2, "0")).join("")}`;
 }
-async function previewSharedArtifactModification(operation, artifact, selection, resolveVersion = async (revision11) => artifact.versions.find((version) => version.ownerRevision === revision11)) {
+async function previewSharedArtifactModification(operation, artifact, selection, resolveVersion = async (revision12) => artifact.versions.find((version) => version.ownerRevision === revision12)) {
   const requestId2 = crypto.randomUUID();
   const value = previewSchema.parse(
     await readArtifactJsonPages((page3) => operation(artifact, "preview", { ...selection, ...page3 }, requestId2))
@@ -62809,50 +63375,23 @@ var workResultArtifactResolutionSchema = external_exports.discriminatedUnion("st
     mayPromote: external_exports.boolean()
   }).strict()
 ]);
-var sharedMarkdownViewSchema = external_exports.object({
-  contentRef: external_exports.string(),
-  ownerRevision: external_exports.number().int().positive(),
-  blobDigest: external_exports.string(),
-  text: external_exports.string().max(65536),
-  view: external_exports.object({
-    review: workspaceContentReviewSchema.innerType().omit({ ownerUserId: true }),
-    historyReadOnly: external_exports.boolean(),
-    canWrite: external_exports.boolean(),
-    canReply: external_exports.boolean().optional(),
-    replyPages: external_exports.object({
-      annotationId: external_exports.string(),
-      offset: external_exports.number(),
-      total: external_exports.number(),
-      nextOffset: external_exports.number().optional()
-    }).array().optional(),
-    annotationPage: external_exports.object({ offset: external_exports.number(), total: external_exports.number(), nextOffset: external_exports.number().optional() }),
-    annotationResolutions: external_exports.object({ annotationId: external_exports.string(), status: external_exports.enum(["attached", "moved", "ambiguous", "orphaned"]) }).array().optional()
-  }).passthrough(),
-  modifications: external_exports.object({
-    requests: collectiveModificationProjectionSchema.array(),
-    total: external_exports.number(),
-    offset: external_exports.number(),
-    nextOffset: external_exports.number().optional(),
-    snapshot: external_exports.string().regex(/^sha256:[a-f0-9]{64}$/).optional()
-  }).optional()
-}).passthrough();
-function collectiveArtifactClient(request, coordinates3, namespace) {
+function collectiveArtifactClient(request, coordinates4, namespace) {
   const post2 = (path2, body4) => request(`/api/artifacts/${path2}`, { method: "POST", body: JSON.stringify(body4) });
-  const historyClient = sharedArtifactHistoryClient(post2, coordinates3);
+  const historyClient = sharedArtifactHistoryClient(post2, coordinates4);
   const list4 = async () => {
-    const artifacts = external_exports.object({ artifacts: external_exports.array(collectiveArtifactProjectionSchema) }).parse(await post2("list", coordinates3)).artifacts;
+    const artifacts = external_exports.object({ artifacts: external_exports.array(collectiveArtifactProjectionSchema) }).parse(await post2("list", coordinates4)).artifacts;
     if (artifacts.some(
-      (artifact) => artifact.serviceInstanceId !== coordinates3.serviceInstanceId || artifact.collectiveId !== coordinates3.collectiveId
+      (artifact) => artifact.serviceInstanceId !== coordinates4.serviceInstanceId || artifact.collectiveId !== coordinates4.collectiveId
     ))
       throw new Error("\u4F5C\u54C1\u5217\u8868\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
     return artifacts;
   };
-  const operation = async (artifact, action, payload, requestId2, ownerRevision2) => {
+  const operation = async (artifact, action2, payload, requestId2, ownerRevision2) => {
     const result = await post2("owner/request", {
-      ...coordinates3,
+      ...coordinates4,
       artifactId: artifact.artifactId,
       sourceEventId: artifact.sourceEventId,
-      action,
+      action: action2,
       payload,
       requestId: requestId2,
       ...ownerRevision2 ? { ownerRevision: ownerRevision2 } : {}
@@ -62862,7 +63401,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
   const read = async (artifact, ownerRevision2) => {
     const requestId2 = crypto.randomUUID();
     const value = await readArtifactJsonPages((page3) => operation(artifact, "read", page3, requestId2, ownerRevision2));
-    const parsed = sharedMarkdownViewSchema.parse(value);
+    const parsed = collectiveDocumentViewSchema.parse(value);
     assertSharedAnnotationPage(parsed, 0);
     if (parsed.contentRef !== artifact.contentRef || ownerRevision2 && parsed.ownerRevision !== ownerRevision2)
       throw new Error("\u4F5C\u54C1\u7248\u672C\u5DF2\u6539\u53D8\uFF0C\u8BF7\u91CD\u65B0\u6253\u5F00\u3002");
@@ -62894,7 +63433,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     const prepared = await post2(
       "publications/prepare",
       {
-        ...coordinates3,
+        ...coordinates4,
         connectionId: input.connectionId,
         sourceEventId: input.sourceEventId,
         requestId: requestId2,
@@ -62916,7 +63455,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
   };
   const promoteWorkResult = async (fileId) => {
     const result = await post2("publications/promote-result", {
-      ...coordinates3,
+      ...coordinates4,
       fileId
     });
     if (result.publication.status !== "published" || !result.publication.artifact)
@@ -62924,7 +63463,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     return collectiveArtifactProjectionSchema.parse(result.publication.artifact);
   };
   const openWorkResult = async (fileId) => {
-    const result = await post2("publications/resolve-result", { ...coordinates3, fileId });
+    const result = await post2("publications/resolve-result", { ...coordinates4, fileId });
     const resolution = workResultArtifactResolutionSchema.parse(result.resolution);
     if (resolution.status === "published") return resolution.artifact;
     if (!resolution.mayPromote)
@@ -62934,12 +63473,12 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     return promoteWorkResult(fileId);
   };
   const sendFeedback = (input) => sendSharedArtifactFeedback(request, namespace, operation, input);
-  const resolveModification = (artifact, record2, action) => resolveSharedArtifactModification(operation, namespace, artifact, record2, action);
+  const resolveModification = (artifact, record2, action2) => resolveSharedArtifactModification(operation, namespace, artifact, record2, action2);
   const previewModification = (artifact, selection) => previewSharedArtifactModification(
     operation,
     artifact,
     selection,
-    (revision11) => historyClient.version(artifact, revision11)
+    (revision12) => historyClient.version(artifact, revision12)
   );
   const adoptModification = (artifact, preview) => adoptSharedArtifactModification(operation, namespace, artifact, preview);
   const moreRequests = async (artifact, view) => {
@@ -62955,7 +63494,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
   };
   const moreReplies = async (artifact, view, annotationId, offset2) => {
     const requestId2 = crypto.randomUUID();
-    const page3 = sharedMarkdownViewSchema.parse(
+    const page3 = collectiveDocumentViewSchema.parse(
       await readArtifactJsonPages(
         (cursor) => operation(artifact, "read", { ...cursor, annotationId, replyOffset: offset2 }, requestId2, view.ownerRevision)
       )
@@ -62963,11 +63502,12 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     return verifySharedAnnotationReplyPage(view, annotationId, offset2, page3);
   };
   return {
+    projectReferences: projectArtifactClient(request, coordinates4, namespace),
     moreAnnotations: async (artifact, view) => {
       const annotationOffset = view.view.annotationPage.nextOffset;
       if (annotationOffset === void 0) return view;
       const requestId2 = crypto.randomUUID();
-      const page3 = sharedMarkdownViewSchema.parse(
+      const page3 = collectiveDocumentViewSchema.parse(
         await readArtifactJsonPages(
           (cursor) => operation(artifact, "read", { ...cursor, annotationOffset }, requestId2, view.ownerRevision)
         )
@@ -62977,7 +63517,7 @@ function collectiveArtifactClient(request, coordinates3, namespace) {
     moreReplies,
     sendReply: (input) => sendSharedAnnotationReply(request, operation, namespace, input),
     setAnnotationState: (input) => setSharedAnnotationState(operation, namespace, input),
-    management: sharedArtifactManagementClient(request, coordinates3, namespace),
+    management: sharedArtifactManagementClient(request, coordinates4, namespace),
     ...historyClient,
     list: list4,
     read,
@@ -62998,7 +63538,7 @@ async function appendSharedRequestPage(view, read) {
   const seen = new Set(requests.requests.map((request) => request.requestId));
   const offset2 = requests.nextOffset;
   if (offset2 !== void 0) {
-    const page3 = sharedMarkdownViewSchema.parse(await read({ requestOffset: offset2 }));
+    const page3 = collectiveDocumentViewSchema.parse(await read({ requestOffset: offset2 }));
     const next = page3.modifications;
     if (!requests.snapshot || !next || next.snapshot !== requests.snapshot || next.total !== requests.total || next.offset !== offset2 || page3.contentRef !== view.contentRef || page3.ownerRevision !== view.ownerRevision || page3.blobDigest !== view.blobDigest || page3.view.review.revision !== view.view.review.revision || next.requests.length === 0 || next.nextOffset !== void 0 && next.nextOffset <= offset2)
       throw new Error("\u4FEE\u6539\u8BB0\u5F55\u6B63\u5728\u66F4\u65B0\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
@@ -63062,7 +63602,11 @@ function useCollectiveArtifacts(snapshot, request, refreshDiscussion) {
     };
   }, [api, refresh, snapshot.phase]);
   const open = (0, import_react28.useCallback)(
-    (artifact, ownerRevision2) => setSelected({ artifactId: artifact.artifactId, ...ownerRevision2 ? { ownerRevision: ownerRevision2 } : {} }),
+    (artifact, ownerRevision2, options) => setSelected({
+      artifactId: artifact.artifactId,
+      ...ownerRevision2 ? { ownerRevision: ownerRevision2 } : {},
+      ...options ? { options } : {}
+    }),
     []
   );
   const close = (0, import_react28.useCallback)(() => setSelected(void 0), []);
@@ -63900,12 +64444,12 @@ function prepareGitHubAppManifestSubmission(value) {
   if (!isRecord2(value) || typeof value.registrationUrl !== "string") {
     throw new Error("GitHub \u767B\u5F55\u5E94\u7528\u521B\u5EFA\u5730\u5740\u4E0D\u53EF\u4FE1");
   }
-  const action = trustedGitHubAppRegistrationUrl(value.registrationUrl);
-  if (!action) throw new Error("GitHub \u767B\u5F55\u5E94\u7528\u521B\u5EFA\u5730\u5740\u4E0D\u53EF\u4FE1");
+  const action2 = trustedGitHubAppRegistrationUrl(value.registrationUrl);
+  if (!action2) throw new Error("GitHub \u767B\u5F55\u5E94\u7528\u521B\u5EFA\u5730\u5740\u4E0D\u53EF\u4FE1");
   const manifest = parseGitHubAppManifest(value.manifest);
   if (!manifest) throw new Error("GitHub \u767B\u5F55\u5E94\u7528\u914D\u7F6E\u4E0D\u5B8C\u6574");
   return {
-    action,
+    action: action2,
     method: "post",
     fields: [{ name: "manifest", value: JSON.stringify(manifest) }]
   };
@@ -64019,7 +64563,7 @@ function phaseForHuman(me) {
 
 // src/use-provider-setup.ts
 var import_react35 = __toESM(require_react(), 1);
-function finishProviderSetupCallback(context3) {
+function finishProviderSetupCallback(context4) {
   const callbackSearch = new URLSearchParams(location.search);
   const configured = callbackSearch.get("providerConfigured") === "1";
   const rawError = callbackSearch.get("providerSetupError");
@@ -64030,8 +64574,8 @@ function finishProviderSetupCallback(context3) {
       configured ? { type: "collective:provider-setup-completion", serviceUrl: location.origin } : { type: "collective:provider-setup-error", serviceUrl: location.origin, errorCode },
       location.origin
     );
-    if (!context3.isCancelled()) {
-      context3.setSnapshot((current2) => ({
+    if (!context4.isCancelled()) {
+      context4.setSnapshot((current2) => ({
         ...current2,
         phase: "loading",
         notice: configured ? "GitHub \u767B\u5F55\u5E94\u7528\u5DF2\u521B\u5EFA\uFF0C\u6B63\u5728\u8FD4\u56DE Collective\u2026" : void 0,
@@ -64128,11 +64672,11 @@ function submitGitHubAppManifest(openedWindow, result) {
 // src/use-human-auth-session.ts
 var SESSION_KEY = "collective-session";
 function selectedCollective(me) {
-  const id33 = new URLSearchParams(location.search).get("collectiveId");
-  return id33 ? me?.collectives.find((item) => item.collectiveId === id33) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
+  const id36 = new URLSearchParams(location.search).get("collectiveId");
+  return id36 ? me?.collectives.find((item) => item.collectiveId === id36) : me?.collectives.length === 1 ? me.collectives[0] : void 0;
 }
-async function finishAuthCompletion(context3) {
-  const completed = await context3.request("/api/auth/completions/exchange", {
+async function finishAuthCompletion(context4) {
+  const completed = await context4.request("/api/auth/completions/exchange", {
     method: "POST",
     body: "{}"
   });
@@ -64141,8 +64685,8 @@ async function finishAuthCompletion(context3) {
       { type: "collective:human-auth-completion", serviceUrl: location.origin, sessionToken: completed.sessionToken },
       location.origin
     );
-    if (!context3.isCancelled()) {
-      context3.setSnapshot((current2) => ({
+    if (!context4.isCancelled()) {
+      context4.setSnapshot((current2) => ({
         ...current2,
         phase: "loading",
         notice: "\u8EAB\u4EFD\u9A8C\u8BC1\u5B8C\u6210\uFF0C\u6B63\u5728\u56DE\u5230 Collective\u2026"
@@ -64151,9 +64695,9 @@ async function finishAuthCompletion(context3) {
     window.setTimeout(() => window.close(), 100);
     return;
   }
-  if (!context3.isCancelled()) await context3.enterSession(completed.sessionToken);
+  if (!context4.isCancelled()) await context4.enterSession(completed.sessionToken);
 }
-function finishAuthError(errorCode, context3) {
+function finishAuthError(errorCode, context4) {
   if (!errorCode) return false;
   const error = humanAuthErrorMessage(errorCode);
   if (window.name === HUMAN_AUTH_WINDOW_NAME && window.opener) {
@@ -64161,7 +64705,7 @@ function finishAuthError(errorCode, context3) {
       { type: "collective:human-auth-error", serviceUrl: location.origin, errorCode },
       location.origin
     );
-    if (!context3.isCancelled()) context3.setSnapshot((current2) => ({ ...current2, phase: "entry", error }));
+    if (!context4.isCancelled()) context4.setSnapshot((current2) => ({ ...current2, phase: "entry", error }));
     window.setTimeout(() => window.close(), 100);
     return true;
   }
@@ -64170,27 +64714,27 @@ function finishAuthError(errorCode, context3) {
   history.replaceState(null, "", cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
   return false;
 }
-async function initializeHumanSession(context3) {
-  const meta = await context3.request("/api/meta");
-  if (context3.isCancelled()) return;
-  const authProviders = await context3.request(
+async function initializeHumanSession(context4) {
+  const meta = await context4.request("/api/meta");
+  if (context4.isCancelled()) return;
+  const authProviders = await context4.request(
     "/api/auth/providers"
   );
-  if (context3.isCancelled()) return;
-  context3.setSnapshot((current2) => ({ ...current2, meta, providers: authProviders.providers }));
-  if (finishProviderSetupCallback(context3)) return;
+  if (context4.isCancelled()) return;
+  context4.setSnapshot((current2) => ({ ...current2, meta, providers: authProviders.providers }));
+  if (finishProviderSetupCallback(context4)) return;
   const callbackSearch = new URLSearchParams(location.search);
-  if (callbackSearch.get("authCompleted") === "1") return finishAuthCompletion(context3);
+  if (callbackSearch.get("authCompleted") === "1") return finishAuthCompletion(context4);
   const authErrorCode = parseHumanAuthErrorCode(callbackSearch.get("authError"));
-  if (finishAuthError(authErrorCode, context3)) return;
+  if (finishAuthError(authErrorCode, context4)) return;
   const authError = authErrorCode ? humanAuthErrorMessage(authErrorCode) : void 0;
-  if (context3.invitationMode === "invite" || context3.invitationMode === "bootstrap" && meta.bootstrapNeeded) {
-    if (!context3.isCancelled()) context3.setSnapshot((current2) => ({ ...current2, phase: "entry", error: authError }));
+  if (context4.invitationMode === "invite" || context4.invitationMode === "bootstrap" && meta.bootstrapNeeded) {
+    if (!context4.isCancelled()) context4.setSnapshot((current2) => ({ ...current2, phase: "entry", error: authError }));
     return;
   }
-  const me = await context3.restoreSavedSession();
-  if (context3.isCancelled()) return;
-  context3.setSnapshot((current2) => ({
+  const me = await context4.restoreSavedSession();
+  if (context4.isCancelled()) return;
+  context4.setSnapshot((current2) => ({
     ...current2,
     meta,
     me,
@@ -64535,7 +65079,7 @@ function AuthenticatedWorkResultFile({
     if (pending) return;
     setFailed(false);
     setPending(true);
-    let action;
+    let action2;
     if (promotable) {
       const promote = shared?.openWorkResultFile;
       if (!promote) {
@@ -64543,7 +65087,7 @@ function AuthenticatedWorkResultFile({
         setPending(false);
         return;
       }
-      action = promote(address);
+      action2 = promote(address);
     } else {
       const sessionToken = currentCollectiveSessionToken();
       if (!sessionToken) {
@@ -64551,9 +65095,9 @@ function AuthenticatedWorkResultFile({
         setPending(false);
         return;
       }
-      action = openCollectiveWorkResultFile(address, sessionToken, window.open("about:blank", "_blank"));
+      action2 = openCollectiveWorkResultFile(address, sessionToken, window.open("about:blank", "_blank"));
     }
-    void action.catch(() => setFailed(true)).finally(() => setPending(false));
+    void action2.catch(() => setFailed(true)).finally(() => setPending(false));
   };
   return /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(import_jsx_runtime42.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
@@ -64618,13 +65162,13 @@ function MessageChoices({ block, event }) {
   return /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(MessageChoiceForm, { block, event }, `${namespace ?? ""}:${event.eventId}:${block.id}`);
 }
 function MessageChoiceForm({ block, event }) {
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const actions = useMessageQuotes();
   const key = actions?.namespace && `collective-choice:${actions.namespace}:${event.eventId}:${block.id}`;
   const [selection, setSelection] = (0, import_react38.useState)(() => {
     try {
       const saved = key && JSON.parse(localStorage.getItem(key) ?? "null");
-      if (saved && typeof saved === "object" && "ids" in saved && Array.isArray(saved.ids) && saved.ids.every((id33) => typeof id33 === "string" && block.options.some((option) => option.id === id33)) && "text" in saved && typeof saved.text === "string")
+      if (saved && typeof saved === "object" && "ids" in saved && Array.isArray(saved.ids) && saved.ids.every((id36) => typeof id36 === "string" && block.options.some((option) => option.id === id36)) && "text" in saved && typeof saved.text === "string")
         return { ids: saved.ids, text: saved.text };
     } catch {
     }
@@ -64637,7 +65181,7 @@ function MessageChoiceForm({ block, event }) {
       try {
         localStorage.setItem(key, JSON.stringify(next));
       } catch {
-        setNotice(en2 ? "This selection could not be saved on this device" : "\u8FD9\u53F0\u8BBE\u5907\u672A\u80FD\u4FDD\u5B58\u9009\u62E9\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762");
+        setNotice(en3 ? "This selection could not be saved on this device" : "\u8FD9\u53F0\u8BBE\u5907\u672A\u80FD\u4FDD\u5B58\u9009\u62E9\uFF0C\u8BF7\u4FDD\u7559\u5F53\u524D\u9875\u9762");
       }
   };
   const many = block.interactiveType === "multi-select";
@@ -64660,11 +65204,11 @@ function MessageChoiceForm({ block, event }) {
       }
     });
     if (!quote.success) {
-      setNotice(en2 ? "Selection is too long for one reply" : "\u8FD9\u6B21\u9009\u62E9\u592A\u957F\uFF0C\u8BF7\u7F29\u77ED\u540E\u653E\u8FDB\u8349\u7A3F");
+      setNotice(en3 ? "Selection is too long for one reply" : "\u8FD9\u6B21\u9009\u62E9\u592A\u957F\uFF0C\u8BF7\u7F29\u77ED\u540E\u653E\u8FDB\u8349\u7A3F");
       return;
     }
     actions.add(quote.data);
-    setNotice(en2 ? "Added to your reply draft \xB7 Send when ready" : "\u5DF2\u653E\u8FDB\u56DE\u590D\u8349\u7A3F \xB7 \u5199\u597D\u540E\u7531\u4F60\u53D1\u9001");
+    setNotice(en3 ? "Added to your reply draft \xB7 Send when ready" : "\u5DF2\u653E\u8FDB\u56DE\u590D\u8349\u7A3F \xB7 \u5199\u597D\u540E\u7531\u4F60\u53D1\u9001");
   };
   return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)("section", { className: "cafe-message-choices", children: [
     block.title && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("h4", { children: block.title }),
@@ -64680,7 +65224,7 @@ function MessageChoiceForm({ block, event }) {
           disabled: !actions || block.disabled || many && !selection.ids.includes(option.id) && selection.ids.length >= (block.maxSelect ?? block.options.length),
           onClick: () => edit({
             ...selection,
-            ids: many ? selection.ids.includes(option.id) ? selection.ids.filter((id33) => id33 !== option.id) : [...selection.ids, option.id] : [option.id]
+            ids: many ? selection.ids.includes(option.id) ? selection.ids.filter((id36) => id36 !== option.id) : [...selection.ids, option.id] : [option.id]
           }),
           children: [
             option.icon ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(CafeIcon, { name: option.icon }) : option.emoji && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("span", { "aria-hidden": "true", children: option.emoji }),
@@ -64701,7 +65245,7 @@ function MessageChoiceForm({ block, event }) {
       {
         type: "button",
         onClick: () => edit({ ids: [block.options[Math.floor(Math.random() * block.options.length)].id], text: "" }),
-        children: en2 ? "Pick one for me" : "\u5E2E\u6211\u9009\u4E00\u4E2A"
+        children: en3 ? "Pick one for me" : "\u5E2E\u6211\u9009\u4E00\u4E2A"
       }
     ),
     custom2 && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(
@@ -64715,7 +65259,7 @@ function MessageChoiceForm({ block, event }) {
         onChange: (event2) => edit({ ...selection, text: event2.target.value })
       }
     ),
-    actions && !block.disabled && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { type: "button", disabled: !selected.length || Boolean(custom2 && !selection.text.trim()), onClick: submit2, children: en2 ? "Add to reply draft" : "\u653E\u8FDB\u56DE\u590D\u8349\u7A3F" }),
+    actions && !block.disabled && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("button", { type: "button", disabled: !selected.length || Boolean(custom2 && !selection.text.trim()), onClick: submit2, children: en3 ? "Add to reply draft" : "\u653E\u8FDB\u56DE\u590D\u8349\u7A3F" }),
     notice2 && /* @__PURE__ */ (0, import_jsx_runtime44.jsx)("p", { role: "status", children: notice2 })
   ] });
 }
@@ -64724,7 +65268,7 @@ function MessageChoiceForm({ block, event }) {
 var import_react39 = __toESM(require_react(), 1);
 var import_jsx_runtime45 = __toESM(require_jsx_runtime(), 1);
 function MessageWidget({ block }) {
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const [html6, setHtml] = (0, import_react39.useState)();
   const [error, setError] = (0, import_react39.useState)();
   (0, import_react39.useEffect)(() => {
@@ -64732,23 +65276,23 @@ function MessageWidget({ block }) {
     setError(void 0);
     try {
       const nonce = document.querySelector('meta[name="collective-widget-nonce"]')?.content;
-      if (!nonce) throw new Error(en2 ? "Reload to enable this visualization" : "\u8BF7\u5237\u65B0\u9875\u9762\u4EE5\u6253\u5F00\u4EA4\u4E92\u5185\u5BB9");
+      if (!nonce) throw new Error(en3 ? "Reload to enable this visualization" : "\u8BF7\u5237\u65B0\u9875\u9762\u4EE5\u6253\u5F00\u4EA4\u4E92\u5185\u5BB9");
       setHtml(publicWidgetDocument(block.html, nonce));
     } catch (error2) {
       setError(error2 instanceof Error ? error2.message : String(error2));
     }
-  }, [block.html, en2]);
+  }, [block.html, en3]);
   return /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)("section", { className: "cafe-rich-widget", children: [
     block.title && /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("h4", { children: block.title }),
     html6 ? /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(
       SandboxedWidgetFrame,
       {
         html: html6,
-        title: block.title ?? (en2 ? "Interactive content" : "\u4EA4\u4E92\u5185\u5BB9"),
+        title: block.title ?? (en3 ? "Interactive content" : "\u4EA4\u4E92\u5185\u5BB9"),
         height: block.height ?? 300,
         scrolling: "auto"
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("p", { role: "status", children: error ?? (en2 ? "Preparing\u2026" : "\u6B63\u5728\u51C6\u5907\u2026") })
+    ) : /* @__PURE__ */ (0, import_jsx_runtime45.jsx)("p", { role: "status", children: error ?? (en3 ? "Preparing\u2026" : "\u6B63\u5728\u51C6\u5907\u2026") })
   ] });
 }
 
@@ -64781,10 +65325,10 @@ function channelDestinations(events, participants) {
     ...events.flatMap((event) => eventChannelId(event) ?? []),
     ...participants.flatMap((member) => member.channelIds)
   ]);
-  return [...ids2].map((id33) => {
-    const messages = events.filter((event) => eventChannelId(event) === id33);
-    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id33));
-    return { id: id33, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
+  return [...ids2].map((id36) => {
+    const messages = events.filter((event) => eventChannelId(event) === id36);
+    const cats = participants.filter((member) => member.availability === "declared" && member.channelIds.includes(id36));
+    return { id: id36, messageCount: messages.length, catCount: cats.length, latestSequence: messages.at(-1)?.sequence ?? 0 };
   });
 }
 function readSavedChannelPosition(namespace) {
@@ -64993,8 +65537,8 @@ function CollectiveNameplate({
 }) {
   const language = useCollectiveLanguage();
   const actor3 = event.actor;
-  const id33 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
-  const safeId = /^[a-zA-Z0-9_-]+$/.test(id33) ? id33 : "cocreator";
+  const id36 = actor3.kind === "agent" ? actor3.provenance.catId : actor3.humanId;
+  const safeId = /^[a-zA-Z0-9_-]+$/.test(id36) ? id36 : "cocreator";
   const participant = actor3.kind === "agent" ? participants.find(
     (p) => p.serviceInstanceId === event.serviceInstanceId && p.collectiveId === event.collectiveId && p.connectionId === actor3.provenance.connectionId && p.catId === actor3.provenance.catId && p.humanId === actor3.human.humanId
   ) : void 0;
@@ -65003,12 +65547,12 @@ function CollectiveNameplate({
   return /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
     Nameplate,
     {
-      id: id33,
+      id: id36,
       name: label,
       kind: human ? "human" : "cat",
       surface: human ? "var(--human-surface)" : `var(--color-${safeId}-surface, var(--shell-selected))`,
       ink: human ? "var(--human-name)" : `var(--color-${safeId}-text, var(--shell-ink))`,
-      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id33}` : actorDisplayName(event),
+      title: actor3.kind === "agent" ? `${actorDisplayName(event)} \xB7 ${actor3.human.displayName} \xB7 @${id36}` : actorDisplayName(event),
       avatar: onOpen ? /* @__PURE__ */ (0, import_jsx_runtime48.jsx)(
         "button",
         {
@@ -65073,7 +65617,7 @@ function WorkActions({
     ),
     work2.status === "ready" && !work2.assignment && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("div", { className: "work-actions", children: /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", onClick: () => onComplete(work2), children: t("\u6807\u8BB0\u5B8C\u6210") }) }),
     work2.lifecycle === "result_ready" && work2.accountableHumanId === currentHumanId && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)(WorkResultReview, { work: work2, onAcceptResult, onRequestRevision }),
-    roadmapActions.length > 0 && work2.lifecycle !== "proposed" && work2.lifecycle !== "declined" && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("div", { className: "work-actions work-secondary-actions", children: roadmapActions.map((action) => /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", className: "quiet-action", onClick: () => action.onInvoke(work2), children: t(action.label) }, action.label)) })
+    roadmapActions.length > 0 && work2.lifecycle !== "proposed" && work2.lifecycle !== "declined" && /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("div", { className: "work-actions work-secondary-actions", children: roadmapActions.map((action2) => /* @__PURE__ */ (0, import_jsx_runtime49.jsx)("button", { type: "button", className: "quiet-action", onClick: () => action2.onInvoke(work2), children: t(action2.label) }, action2.label)) })
   ] });
 }
 function CommitActions({
@@ -65144,7 +65688,7 @@ var import_react42 = __toESM(require_react(), 1);
 async function executeHostWorkPolicyCommand(input) {
   const command3 = collectiveHostWorkPolicyCommandSchema.parse(input.command);
   const { serviceInstanceId, collectiveId, connectionId } = command3;
-  const coordinates3 = { serviceInstanceId, collectiveId, connectionId };
+  const coordinates4 = { serviceInstanceId, collectiveId, connectionId };
   const key = `collective-owner-command:${serviceInstanceId}:${collectiveId}:${connectionId}:${command3.humanId}:${command3.commandId}`;
   const fingerprint2 = JSON.stringify(command3.action);
   const previous4 = input.storage.getItem(key);
@@ -65155,7 +65699,7 @@ async function executeHostWorkPolicyCommand(input) {
   } else {
     const result = await input.request(
       "/api/participation/work-policy/read-owner",
-      { method: "POST", body: JSON.stringify(coordinates3) }
+      { method: "POST", body: JSON.stringify(coordinates4) }
     );
     if (result.policy && result.policy.ownerHumanId !== command3.humanId) throw new Error("\u8FD9\u4EFD\u6388\u6743\u4E0D\u5C5E\u4E8E\u5F53\u524D Caf\xE9\u3002");
     const policy = result.policy;
@@ -65205,7 +65749,7 @@ async function executeHostWorkPolicyCommand(input) {
       fingerprint: fingerprint2,
       path: "/api/participation/work-policy/register",
       body: {
-        ...coordinates3,
+        ...coordinates4,
         requestId: command3.commandId,
         expectedRevision: policy?.revision ?? 0,
         decisionMode,
@@ -65250,10 +65794,10 @@ async function verifiedPermissionChange(command3, operation, request) {
   }
 }
 function ownCurrentProposal(works, command3) {
-  const action = command3.action;
-  if (action.kind !== "allow_request" && action.kind !== "decline_request") throw new Error("\u5F53\u524D\u64CD\u4F5C\u6CA1\u6709\u4EFB\u52A1\u5EFA\u8BAE\u3002");
+  const action2 = command3.action;
+  if (action2.kind !== "allow_request" && action2.kind !== "decline_request") throw new Error("\u5F53\u524D\u64CD\u4F5C\u6CA1\u6709\u4EFB\u52A1\u5EFA\u8BAE\u3002");
   const work2 = works.find(
-    (item) => item.workId === action.workId && item.revision === action.workRevision && item.lifecycle === "proposed"
+    (item) => item.workId === action2.workId && item.revision === action2.workRevision && item.lifecycle === "proposed"
   );
   if (!work2 || work2.proposedBy.kind !== "agent" || work2.proposedBy.humanId !== command3.humanId || work2.proposedBy.connectionId !== command3.connectionId || !work2.proposedRequestKind)
     throw new Error("\u8FD9\u9879\u63D0\u8BAE\u5DF2\u53D8\u5316\uFF0C\u6216\u4E0D\u5C5E\u4E8E\u5F53\u524D Caf\xE9\u3002\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002");
@@ -65373,8 +65917,8 @@ function matches(value, active) {
   return value.bridgeId === active.bridge?.bridgeId && value.contextId === active.contextId && value.contextRevision === active.revision && value.serviceInstanceId === active.bridge.serviceInstanceId && value.collectiveId === active.bridge.collectiveId && value.connectionId === active.bridge.connectionId && value.humanId === active.bridge.humanId;
 }
 function commandCoordinates(command3) {
-  const { action: _action, type: _type, ...coordinates3 } = command3;
-  return coordinates3;
+  const { action: _action, type: _type, ...coordinates4 } = command3;
+  return coordinates4;
 }
 
 // src/WorkTimeCommandContext.ts
@@ -65481,7 +66025,7 @@ function RepeatedTimeChoice({
   selected,
   onSelect,
   disabled,
-  en: en2
+  en: en3
 }) {
   let choices;
   try {
@@ -65492,22 +66036,22 @@ function RepeatedTimeChoice({
   if (choices.length < 2) return null;
   const normalized = selected && Number.isFinite(Date.parse(selected)) ? new Date(selected).toISOString() : "";
   return /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("label", { children: [
-    en2 ? "This time occurs twice" : "\u8FD9\u4E2A\u65F6\u95F4\u51FA\u73B0\u4E24\u6B21",
+    en3 ? "This time occurs twice" : "\u8FD9\u4E2A\u65F6\u95F4\u51FA\u73B0\u4E24\u6B21",
     /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)(
       "select",
       {
-        "aria-label": en2 ? "This time occurs twice" : "\u8FD9\u4E2A\u65F6\u95F4\u51FA\u73B0\u4E24\u6B21",
+        "aria-label": en3 ? "This time occurs twice" : "\u8FD9\u4E2A\u65F6\u95F4\u51FA\u73B0\u4E24\u6B21",
         required: true,
         disabled,
         value: choices.includes(normalized || "") ? normalized : "",
         onChange: (event) => onSelect(event.target.value),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("option", { value: "", children: en2 ? "Choose an occurrence" : "\u8BF7\u9009\u62E9\u54EA\u4E00\u6B21" }),
+          /* @__PURE__ */ (0, import_jsx_runtime50.jsx)("option", { value: "", children: en3 ? "Choose an occurrence" : "\u8BF7\u9009\u62E9\u54EA\u4E00\u6B21" }),
           choices.map((instant, index4) => /* @__PURE__ */ (0, import_jsx_runtime50.jsxs)("option", { value: instant, children: [
-            en2 ? `Occurrence ${index4 + 1}` : `\u7B2C ${index4 + 1} \u6B21`,
+            en3 ? `Occurrence ${index4 + 1}` : `\u7B2C ${index4 + 1} \u6B21`,
             " \xB7",
             " ",
-            new Intl.DateTimeFormat(en2 ? "en-US" : "zh-CN", {
+            new Intl.DateTimeFormat(en3 ? "en-US" : "zh-CN", {
               timeZone,
               hour: "2-digit",
               minute: "2-digit",
@@ -65531,7 +66075,7 @@ function WorkTimeEditor({
   onClose,
   sourceHint
 }) {
-  const language = useCollectiveLanguage(), en2 = language === "en";
+  const language = useCollectiveLanguage(), en3 = language === "en";
   const owner3 = currentHumanId === work2.accountableHumanId;
   const executor = work2.assignment ? currentHumanId === work2.assignment.humanId : owner3;
   const fields = ["businessDeadline", "reviewBy", "plannedStart", "estimatedCompletion"].filter(
@@ -65550,7 +66094,7 @@ function WorkTimeEditor({
       const time = clear ? null : { value: localDateTimeToInstant(value, timeZone, selectedInstant), timeZone };
       if (suggest2) {
         if (field !== "businessDeadline" && field !== "reviewBy") throw new Error("Invalid suggestion field");
-        if (!reason.trim()) throw new Error(en2 ? "Explain the suggested change" : "\u8BF7\u5199\u5EFA\u8BAE\u7406\u7531");
+        if (!reason.trim()) throw new Error(en3 ? "Explain the suggested change" : "\u8BF7\u5199\u5EFA\u8BAE\u7406\u7531");
         await onChange(work2, {
           action: "suggest",
           field,
@@ -65581,9 +66125,9 @@ function WorkTimeEditor({
         void submit2(false);
       },
       children: [
-        sourceHint && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { children: en2 ? `The material mentions \u201C${sourceHint.text}\u201D. Choose the exact date, time and zone; this is still unconfirmed.` : `\u6750\u6599\u63D0\u5230\u300C${sourceHint.text}\u300D\u3002\u8BF7\u660E\u786E\u65E5\u671F\u3001\u65F6\u523B\u548C\u65F6\u533A\uFF1B\u73B0\u5728\u8FD8\u6CA1\u6709\u786E\u8BA4\u3002` }),
+        sourceHint && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { children: en3 ? `The material mentions \u201C${sourceHint.text}\u201D. Choose the exact date, time and zone; this is still unconfirmed.` : `\u6750\u6599\u63D0\u5230\u300C${sourceHint.text}\u300D\u3002\u8BF7\u660E\u786E\u65E5\u671F\u3001\u65F6\u523B\u548C\u65F6\u533A\uFF1B\u73B0\u5728\u8FD8\u6CA1\u6709\u786E\u8BA4\u3002` }),
         /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-          en2 ? "Date kind" : "\u65E5\u671F\u7C7B\u578B",
+          en3 ? "Date kind" : "\u65E5\u671F\u7C7B\u578B",
           /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
             "select",
             {
@@ -65598,12 +66142,12 @@ function WorkTimeEditor({
                 setSelectedInstant(fact2?.value);
                 if (fact2) setTimeZone(fact2.timeZone);
               },
-              children: fields.map((field2) => /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("option", { value: field2, children: workTimeLabels[field2][en2 ? 1 : 0] }, field2))
+              children: fields.map((field2) => /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("option", { value: field2, children: workTimeLabels[field2][en3 ? 1 : 0] }, field2))
             }
           )
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-          en2 ? "Date and time" : "\u65E5\u671F\u548C\u65F6\u95F4",
+          en3 ? "Date and time" : "\u65E5\u671F\u548C\u65F6\u95F4",
           /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
             "input",
             {
@@ -65619,7 +66163,7 @@ function WorkTimeEditor({
           )
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-          en2 ? "Time zone" : "\u65F6\u533A",
+          en3 ? "Time zone" : "\u65F6\u533A",
           /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
             "input",
             {
@@ -65641,12 +66185,12 @@ function WorkTimeEditor({
             selected: selectedInstant,
             onSelect: setSelectedInstant,
             disabled: saving,
-            en: en2
+            en: en3
           }
         ),
         suggest2 && /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)(import_jsx_runtime51.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("label", { children: [
-            en2 ? "Reason" : "\u7406\u7531",
+            en3 ? "Reason" : "\u7406\u7531",
             /* @__PURE__ */ (0, import_jsx_runtime51.jsx)(
               "textarea",
               {
@@ -65658,13 +66202,13 @@ function WorkTimeEditor({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { children: en2 ? "A suggestion keeps the current date until the owner confirms." : "\u5EFA\u8BAE\u4E0D\u4F1A\u6539\u52A8\u5F53\u524D\u65E5\u671F\uFF0C\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { children: en3 ? "A suggestion keeps the current date until the owner confirms." : "\u5EFA\u8BAE\u4E0D\u4F1A\u6539\u52A8\u5F53\u524D\u65E5\u671F\uFF0C\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4\u3002" })
         ] }),
         error && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("p", { role: "alert", children: error }),
         /* @__PURE__ */ (0, import_jsx_runtime51.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", disabled: saving, onClick: onClose, children: en2 ? "Cancel" : "\u53D6\u6D88" }),
-          !suggest2 && current2 && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", disabled: saving, onClick: () => void submit2(true), children: en2 ? "Clear date" : "\u6E05\u9664\u65E5\u671F" }),
-          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "submit", className: "primary", disabled: saving, children: saving ? en2 ? "Saving\u2026" : "\u4FDD\u5B58\u4E2D\u2026" : suggest2 ? en2 ? "Suggest" : "\u63D0\u51FA\u5EFA\u8BAE" : en2 ? "Save date" : "\u4FDD\u5B58\u65E5\u671F" })
+          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", disabled: saving, onClick: onClose, children: en3 ? "Cancel" : "\u53D6\u6D88" }),
+          !suggest2 && current2 && /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "button", disabled: saving, onClick: () => void submit2(true), children: en3 ? "Clear date" : "\u6E05\u9664\u65E5\u671F" }),
+          /* @__PURE__ */ (0, import_jsx_runtime51.jsx)("button", { type: "submit", className: "primary", disabled: saving, children: saving ? en3 ? "Saving\u2026" : "\u4FDD\u5B58\u4E2D\u2026" : suggest2 ? en3 ? "Suggest" : "\u63D0\u51FA\u5EFA\u8BAE" : en3 ? "Save date" : "\u4FDD\u5B58\u65E5\u671F" })
         ] })
       ]
     }
@@ -65681,9 +66225,9 @@ function WorkTimePanel({
   sourceHint,
   onClearSourceHint
 }) {
-  const context3 = (0, import_react45.useContext)(WorkTimeCommandContext);
-  const onOpenSource = explicitOpenSource ?? context3.openSource;
-  const language = useCollectiveLanguage(), en2 = language === "en";
+  const context4 = (0, import_react45.useContext)(WorkTimeCommandContext);
+  const onOpenSource = explicitOpenSource ?? context4.openSource;
+  const language = useCollectiveLanguage(), en3 = language === "en";
   const [editing, setEditing] = (0, import_react45.useState)();
   const [pending, setPending] = (0, import_react45.useState)(false), [error, setError] = (0, import_react45.useState)("");
   const owner3 = work2.accountableHumanId === currentHumanId;
@@ -65704,24 +66248,24 @@ function WorkTimePanel({
       setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("section", { className: "work-time-panel", "aria-label": en2 ? "Task dates" : "\u4EFB\u52A1\u65F6\u95F4", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("section", { className: "work-time-panel", "aria-label": en3 ? "Task dates" : "\u4EFB\u52A1\u65F6\u95F4", children: [
     /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("h4", { children: en2 ? "Dates" : "\u65F6\u95F4" }),
+      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("h4", { children: en3 ? "Dates" : "\u65F6\u95F4" }),
       /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("div", { children: editable && /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(import_jsx_runtime52.Fragment, { children: [
-        (owner3 || executor) && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { type: "button", onClick: () => setEditing("set"), children: en2 ? "Edit dates\u2026" : "\u6539\u65E5\u671F\u2026" }),
-        !owner3 && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { type: "button", onClick: () => setEditing("suggest"), children: en2 ? "Suggest a date\u2026" : "\u5EFA\u8BAE\u65E5\u671F\u2026" })
+        (owner3 || executor) && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { type: "button", onClick: () => setEditing("set"), children: en3 ? "Edit dates\u2026" : "\u6539\u65E5\u671F\u2026" }),
+        !owner3 && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { type: "button", onClick: () => setEditing("suggest"), children: en3 ? "Suggest a date\u2026" : "\u5EFA\u8BAE\u65E5\u671F\u2026" })
       ] }) })
     ] }),
     (work2.timeSuggestions ?? []).filter((suggestion) => suggestion.status === "pending").map((suggestion) => /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("article", { className: "work-time-suggestion", children: [
       /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("strong", { children: [
         suggestion.actor.displayName,
         " \xB7 ",
-        workTimeLabels[suggestion.field][en2 ? 1 : 0],
+        workTimeLabels[suggestion.field][en3 ? 1 : 0],
         " ",
-        suggestion.time ? formatWorkDate(suggestion.time, language) : en2 ? "clear date" : "\u6E05\u9664\u65E5\u671F"
+        suggestion.time ? formatWorkDate(suggestion.time, language) : en3 ? "clear date" : "\u6E05\u9664\u65E5\u671F"
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { children: suggestion.reason }),
-      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("small", { children: new Date(suggestion.at).toLocaleString(en2 ? "en-US" : "zh-CN") }),
+      /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("small", { children: new Date(suggestion.at).toLocaleString(en3 ? "en-US" : "zh-CN") }),
       suggestion.sourceEventId && onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
         "button",
         {
@@ -65730,7 +66274,7 @@ function WorkTimePanel({
             suggestion.sourceEventId,
             suggestion.sourceLocation?.channelId ?? work2.sourceLocation.channelId
           ),
-          children: en2 ? "Source" : "\u51FA\u5904"
+          children: en3 ? "Source" : "\u51FA\u5904"
         }
       ),
       owner3 && onChange ? /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
@@ -65741,11 +66285,11 @@ function WorkTimePanel({
             disabled: pending,
             className: "primary",
             onClick: () => void respond2(suggestion.suggestionId, "accept"),
-            children: en2 ? "Accept date" : "\u91C7\u7528\u65E5\u671F"
+            children: en3 ? "Accept date" : "\u91C7\u7528\u65E5\u671F"
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { type: "button", disabled: pending, onClick: () => void respond2(suggestion.suggestionId, "keep"), children: en2 ? "Keep current date" : "\u4FDD\u6301\u539F\u65E5\u671F" })
-      ] }) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { children: en2 ? "Waiting for the task owner" : "\u7B49\u8D1F\u8D23\u4EBA\u51B3\u5B9A" })
+        /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("button", { type: "button", disabled: pending, onClick: () => void respond2(suggestion.suggestionId, "keep"), children: en3 ? "Keep current date" : "\u4FDD\u6301\u539F\u65E5\u671F" })
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { children: en3 ? "Waiting for the task owner" : "\u7B49\u8D1F\u8D23\u4EBA\u51B3\u5B9A" })
     ] }, suggestion.suggestionId)),
     editing && onChange && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
       WorkTimeEditor,
@@ -65767,19 +66311,19 @@ function WorkTimePanel({
       (field) => {
         const fact2 = work2.time?.[field];
         return /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dt", { children: workTimeLabels[field][en2 ? 1 : 0] }),
+          /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dt", { children: workTimeLabels[field][en3 ? 1 : 0] }),
           /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("dd", { children: fact2 ? /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)(import_jsx_runtime52.Fragment, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("strong", { children: formatWorkDateTime(fact2, language) }),
             /* @__PURE__ */ (0, import_jsx_runtime52.jsxs)("small", { children: [
               fact2.actor.displayName,
               " \xB7 ",
-              new Date(fact2.at).toLocaleDateString(en2 ? "en-US" : "zh-CN"),
+              new Date(fact2.at).toLocaleDateString(en3 ? "en-US" : "zh-CN"),
               " \xB7",
               " ",
-              en2 ? "in" : "\u6309",
+              en3 ? "in" : "\u6309",
               " ",
               fact2.timeZone,
-              field === "estimatedCompletion" ? en2 ? " \xB7 estimate" : " \xB7 \u53EA\u662F\u4F30\u8BA1" : ""
+              field === "estimatedCompletion" ? en3 ? " \xB7 estimate" : " \xB7 \u53EA\u662F\u4F30\u8BA1" : ""
             ] }),
             fact2.sourceEventId && onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime52.jsx)(
               "button",
@@ -65789,14 +66333,14 @@ function WorkTimePanel({
                   fact2.sourceEventId,
                   fact2.sourceLocation?.channelId ?? work2.sourceLocation.channelId
                 ),
-                children: en2 ? "Source" : "\u51FA\u5904"
+                children: en3 ? "Source" : "\u51FA\u5904"
               }
             )
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: en2 ? "Not set" : "\u672A\u5B9A" }) })
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("span", { children: en3 ? "Not set" : "\u672A\u5B9A" }) })
         ] }, field);
       }
     ) }),
-    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { className: "work-time-note", children: en2 ? "Estimates and dates mentioned in materials never become deadlines. The task owner confirms deadlines and review dates." : "\u732B\u7684\u4F30\u8BA1\u3001\u6750\u6599\u91CC\u63D0\u5230\u7684\u65E5\u5B50\uFF0C\u90FD\u4E0D\u4F1A\u81EA\u5DF1\u53D8\u6210\u622A\u6B62\u3002\u622A\u6B62\u548C\u8BF7\u4F60\u5BA1\u9605\u53EA\u6709\u8D1F\u8D23\u4EBA\u80FD\u5B9A\u3002" })
+    /* @__PURE__ */ (0, import_jsx_runtime52.jsx)("p", { className: "work-time-note", children: en3 ? "Estimates and dates mentioned in materials never become deadlines. The task owner confirms deadlines and review dates." : "\u732B\u7684\u4F30\u8BA1\u3001\u6750\u6599\u91CC\u63D0\u5230\u7684\u65E5\u5B50\uFF0C\u90FD\u4E0D\u4F1A\u81EA\u5DF1\u53D8\u6210\u622A\u6B62\u3002\u622A\u6B62\u548C\u8BF7\u4F60\u5BA1\u9605\u53EA\u6709\u8D1F\u8D23\u4EBA\u80FD\u5B9A\u3002" })
   ] });
 }
 
@@ -65806,11 +66350,11 @@ function WorkTimeSummary({
   work: work2,
   board = false
 }) {
-  const language = useCollectiveLanguage(), en2 = language === "en";
+  const language = useCollectiveLanguage(), en3 = language === "en";
   const value = workTimePresentation(work2, language);
   if (!value || board && value.field !== "businessDeadline") return null;
   const title = Object.entries(work2.time ?? {}).map(
-    ([field, fact2]) => `${workTimeLabels[field][en2 ? 1 : 0]} ${formatWorkDate(fact2, language)} \xB7 ${fact2.actor.displayName} \xB7 ${fact2.timeZone}`
+    ([field, fact2]) => `${workTimeLabels[field][en3 ? 1 : 0]} ${formatWorkDate(fact2, language)} \xB7 ${fact2.actor.displayName} \xB7 ${fact2.timeZone}`
   ).join("\n");
   const suggested = work2.timeSuggestions?.some((item) => item.status === "pending");
   return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("div", { className: "work-time-summary", "data-tone": value.tone, title, children: [
@@ -65820,9 +66364,9 @@ function WorkTimeSummary({
     ] }),
     !board && /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)("small", { children: [
       value.fact.actor.displayName,
-      value.field === "estimatedCompletion" ? en2 ? " \xB7 estimate" : "\u4F30\u7684" : en2 ? " \xB7 confirmed" : "\u5B9A"
+      value.field === "estimatedCompletion" ? en3 ? " \xB7 estimate" : "\u4F30\u7684" : en3 ? " \xB7 confirmed" : "\u5B9A"
     ] }),
-    !board && suggested && /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("small", { className: "work-time-pending", children: en2 ? "Date suggestion awaiting owner" : "\u65B0\u65E5\u671F\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4" })
+    !board && suggested && /* @__PURE__ */ (0, import_jsx_runtime53.jsx)("small", { className: "work-time-pending", children: en3 ? "Date suggestion awaiting owner" : "\u65B0\u65E5\u671F\u7B49\u8D1F\u8D23\u4EBA\u786E\u8BA4" })
   ] });
 }
 
@@ -66121,9 +66665,9 @@ function MessageActionBar({
     setOpen(void 0);
     queueMicrotask(() => moreTriggerRef.current?.focus());
   }, [moreTriggerRef, pendingReaction]);
-  const run2 = (action) => {
+  const run2 = (action2) => {
     setOpen(void 0);
-    action?.();
+    action2?.();
   };
   return /* @__PURE__ */ (0, import_jsx_runtime55.jsxs)("div", { ref: rootRef, className: "message-actions", role: "toolbar", "aria-label": t("\u6D88\u606F\u64CD\u4F5C"), children: [
     canReact && /* @__PURE__ */ (0, import_jsx_runtime55.jsx)(
@@ -66558,10 +67102,10 @@ function SharedArtifactLibraryFilters({
               onChange: (event) => update("channel", event.target.value),
               children: [
                 /* @__PURE__ */ (0, import_jsx_runtime59.jsx)("option", { value: "", children: t("\u5168\u90E8\u9891\u9053") }),
-                channels.map((id33) => /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("option", { value: id33, children: [
+                channels.map((id36) => /* @__PURE__ */ (0, import_jsx_runtime59.jsxs)("option", { value: id36, children: [
                   "#",
-                  id33
-                ] }, id33))
+                  id36
+                ] }, id36))
               ]
             }
           )
@@ -66906,9 +67450,9 @@ function VoteDraftForm({
               type: "button",
               className: "quiet-action",
               onClick: () => {
-                const id33 = nextOptionId.current;
+                const id36 = nextOptionId.current;
                 nextOptionId.current += 1;
-                setOptions((current2) => [...current2, { id: id33, value: "" }]);
+                setOptions((current2) => [...current2, { id: id36, value: "" }]);
               },
               children: "\u589E\u52A0\u9009\u9879"
             }
@@ -67923,7 +68467,7 @@ function ChannelTopicContext({
       onClose,
       onReturnToSource,
       onSend: scene.onSend,
-      onProposeWork: (id33) => void scene.onProposeWork(id33).catch(() => void 0),
+      onProposeWork: (id36) => void scene.onProposeWork(id36).catch(() => void 0),
       onCommitWork: (work2, participant, accountability) => void scene.onCommitWork(work2, participant, accountability).catch(() => void 0),
       onDeclineWork: (work2) => void scene.onDeclineWork(work2).catch(() => void 0),
       onAcceptWorkResult: (work2) => void scene.onAcceptWorkResult(work2).catch(() => void 0),
@@ -68162,7 +68706,7 @@ function PublicChannelActivity({
 }
 
 // src/RoadmapWorkspace.tsx
-var import_react76 = __toESM(require_react(), 1);
+var import_react80 = __toESM(require_react(), 1);
 
 // src/BindingVoteCard.tsx
 var import_react58 = __toESM(require_react(), 1);
@@ -68328,16 +68872,16 @@ var import_react60 = __toESM(require_react(), 1);
 var import_react59 = __toESM(require_react(), 1);
 var import_jsx_runtime75 = __toESM(require_jsx_runtime(), 1);
 var empty3 = { items: [], pendingCount: 0, unavailable: [] };
-var context2 = (0, import_react59.createContext)({});
+var context3 = (0, import_react59.createContext)({});
 function ProjectMaterialsProvider({
   client,
   onOpenSource,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(context2.Provider, { value: { client, openSource: onOpenSource }, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime75.jsx)(context3.Provider, { value: { client, openSource: onOpenSource }, children });
 }
 function useProjectMaterials(roadmapId) {
-  const { client, openSource } = (0, import_react59.useContext)(context2), current2 = (0, import_react59.useRef)(client);
+  const { client, openSource } = (0, import_react59.useContext)(context3), current2 = (0, import_react59.useRef)(client);
   current2.current = client;
   const epoch = `${client?.namespace ?? ""}:${roadmapId}`, epochRef = (0, import_react59.useRef)(epoch), sequence = (0, import_react59.useRef)(0);
   epochRef.current = epoch;
@@ -68387,19 +68931,19 @@ function ProjectMaterialAttentionRow({
   onOpen,
   onCount
 }) {
-  const source4 = useProjectMaterials(project.roadmapId), en2 = useCollectiveLanguage() === "en", count2 = source4.feed.pendingCount;
+  const source4 = useProjectMaterials(project.roadmapId), en3 = useCollectiveLanguage() === "en", count2 = source4.feed.pendingCount;
   (0, import_react60.useEffect)(() => {
     onCount(project.roadmapId, count2);
     return () => onCount(project.roadmapId, 0);
   }, [count2, onCount, project.roadmapId]);
   if (!count2) return null;
   return /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("li", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("span", { className: "project-attention-status is-triage", children: en2 ? "To sort" : "\u5F85\u5206\u62E3" }),
+    /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("span", { className: "project-attention-status is-triage", children: en3 ? "To sort" : "\u5F85\u5206\u62E3" }),
     /* @__PURE__ */ (0, import_jsx_runtime76.jsxs)("div", { children: [
       /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("strong", { children: project.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("span", { children: en2 ? `${count2} new external items` : `\u6765\u4E86 ${count2} \u4EFD\u5916\u90E8\u6750\u6599` })
+      /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("span", { children: en3 ? `${count2} new external items` : `\u6765\u4E86 ${count2} \u4EFD\u5916\u90E8\u6750\u6599` })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("button", { type: "button", onClick: () => onOpen(project), children: en2 ? "Sort" : "\u53BB\u5206\u62E3" })
+    /* @__PURE__ */ (0, import_jsx_runtime76.jsx)("button", { type: "button", onClick: () => onOpen(project), children: en3 ? "Sort" : "\u53BB\u5206\u62E3" })
   ] });
 }
 
@@ -68415,10 +68959,10 @@ function ProjectAttentionPanel({
   onOpen,
   onOpenMaterials
 }) {
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const [materialCounts, setMaterialCounts] = (0, import_react61.useState)({});
   const onMaterialCount = (0, import_react61.useCallback)(
-    (id33, count2) => setMaterialCounts((current2) => current2[id33] === count2 ? current2 : { ...current2, [id33]: count2 }),
+    (id36, count2) => setMaterialCounts((current2) => current2[id36] === count2 ? current2 : { ...current2, [id36]: count2 }),
     []
   );
   const [selectedHumanId, setSelectedHumanId] = (0, import_react61.useState)(currentHumanId);
@@ -68449,7 +68993,7 @@ function ProjectAttentionPanel({
         /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("span", { children: [
           selected.length + materialCount,
           " ",
-          en2 ? "items" : "\u4EF6"
+          en3 ? "items" : "\u4EF6"
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("div", { className: "project-attention-controls", children: [
@@ -68493,7 +69037,7 @@ function ProjectAttentionPanel({
         project.roadmapId
       )),
       selected.map((item) => /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("li", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("span", { className: `project-attention-status is-${item.kind}`, children: attentionStatus(item, en2) }),
+        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("span", { className: `project-attention-status is-${item.kind}`, children: attentionStatus(item, en3) }),
         /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("strong", { children: item.work.title }),
           /* @__PURE__ */ (0, import_jsx_runtime77.jsxs)("span", { children: [
@@ -68501,7 +69045,7 @@ function ProjectAttentionPanel({
             waitingDays(item.sinceAt)
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("button", { type: "button", onClick: () => onOpen(item.roadmap, item.work), children: attentionAction(item, currentHumanId, en2) })
+        /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("button", { type: "button", onClick: () => onOpen(item.roadmap, item.work), children: attentionAction(item, currentHumanId, en3) })
       ] }, item.key))
     ] }) : /* @__PURE__ */ (0, import_jsx_runtime77.jsx)("p", { children: "\u5F53\u524D\u6CA1\u6709\u9700\u8981\u8FD9\u4F4D\u6210\u5458\u5904\u7406\u7684\u9879\u76EE\u4E8B\u9879\u3002" })
   ] });
@@ -68583,16 +69127,16 @@ function resultAttentionItem(work2, roadmap) {
     sinceAt: returned?.at ?? work2.updatedAt
   };
 }
-function attentionStatus(item, en2 = false) {
-  if (item.kind === "date_suggestion") return en2 ? "Date suggestion" : "\u65E5\u671F\u5EFA\u8BAE";
-  if (item.kind === "overdue") return en2 ? "Past deadline" : "\u8D85\u8FC7\u622A\u6B62";
+function attentionStatus(item, en3 = false) {
+  if (item.kind === "date_suggestion") return en3 ? "Date suggestion" : "\u65E5\u671F\u5EFA\u8BAE";
+  if (item.kind === "overdue") return en3 ? "Past deadline" : "\u8D85\u8FC7\u622A\u6B62";
   if (item.kind === "accountability_request") return "\u8D23\u4EFB\u9080\u8BF7";
   if (item.kind === "result_ready") return "\u5F85\u9A8C\u6536";
   return "\u5F85\u6307\u6D3E";
 }
-function attentionAction(item, currentHumanId, en2 = false) {
-  if (item.kind === "overdue") return en2 ? "Change date / View" : "\u6539\u65E5\u671F\u2026 / \u53BB\u770B\u770B";
-  if (item.kind === "date_suggestion") return en2 ? "Review suggestions" : "\u786E\u8BA4\u65E5\u671F\u5EFA\u8BAE";
+function attentionAction(item, currentHumanId, en3 = false) {
+  if (item.kind === "overdue") return en3 ? "Change date / View" : "\u6539\u65E5\u671F\u2026 / \u53BB\u770B\u770B";
+  if (item.kind === "date_suggestion") return en3 ? "Review suggestions" : "\u786E\u8BA4\u65E5\u671F\u5EFA\u8BAE";
   if (item.targetHumanId !== currentHumanId) return "\u67E5\u770B\u4EFB\u52A1";
   if (item.kind === "accountability_request") return "\u5904\u7406\u9080\u8BF7";
   if (item.kind === "result_ready") return "\u9A8C\u6536\u7ED3\u679C";
@@ -69078,10 +69622,475 @@ function projectRecordsForWorks(roadmaps) {
 }
 
 // src/ProjectList.tsx
-var import_react65 = __toESM(require_react(), 1);
+var import_react70 = __toESM(require_react(), 1);
 
 // src/ProjectArtifactSurface.tsx
+var import_react69 = __toESM(require_react(), 1);
+
+// src/MaterialDialogFrame.tsx
+var import_react65 = __toESM(require_react(), 1);
 var import_jsx_runtime83 = __toESM(require_jsx_runtime(), 1);
+function MaterialDialogFrame({
+  label,
+  children,
+  onClose,
+  busy = false
+}) {
+  const dialog = (0, import_react65.useRef)(null);
+  (0, import_react65.useEffect)(() => {
+    const element3 = dialog.current;
+    element3?.showModal();
+    return () => element3?.close();
+  }, []);
+  return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
+    "dialog",
+    {
+      ref: dialog,
+      "aria-label": label,
+      className: "material-dialog",
+      onCancel: (event) => {
+        event.preventDefault();
+        if (!busy) onClose();
+      },
+      children
+    }
+  );
+}
+
+// src/ProjectArtifactReferenceCard.tsx
+var import_react67 = __toESM(require_react(), 1);
+
+// src/ProjectArtifactVersionDialog.tsx
+var import_react66 = __toESM(require_react(), 1);
+
+// src/project-artifact-copy.ts
+var en2 = {
+  \u9884\u89C8\u6240\u9009\u539F\u4EF6\u7248\u672C: "Preview selected original version",
+  \u5171\u540C\u4F53\u6210\u5458: "Collective member",
+  \u66F4\u591A\u4F5C\u54C1: "More works",
+  \u6700\u65B0\u7248\u6682\u65F6\u4E0D\u53EF\u786E\u8BA4: "The latest readable version is unconfirmed",
+  \u672C\u9879\u76EE\u7528\u7684\u7248\u672C: "Version used by this project",
+  "\u5F15\u7528\u4F5C\u54C1\u2026": "Reference a work\u2026",
+  \u5F15\u7528\u4F5C\u54C1: "Reference a work",
+  "\u672C\u9879\u76EE\u5F15\u7528\u7684\u662F\u539F\u4F5C\u54C1\u7684\u660E\u786E\u7248\u672C\u3002\u65B0\u7248\u53EA\u63D0\u793A\uFF0C\u6362\u7528\u53EA\u6539\u672C\u9879\u76EE\u3002": "This project references one exact original version. New versions notify you; switching affects only this project.",
+  \u8FD9\u4EF6\u4F5C\u54C1\u73B0\u5728\u6253\u4E0D\u5F00: "This work is currently unavailable",
+  "\u539F\u4EF6\u64A4\u56DE\u4E86\uFF0C\u6216\u4F60\u6CA1\u6709\u6743\u9650\u4E86\u3002": "The original was withdrawn or you no longer have access.",
+  "\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\u3002": "The content owner\u2019s Caf\xE9 is temporarily unavailable.",
+  \u6253\u5F00\u672C\u9879\u76EE\u7528\u7684: "Open this project\u2019s",
+  \u6709\u65B0\u7248: "New version",
+  "\u6362\u7528\u2026": "Switch version\u2026",
+  \u4FDD\u6301: "Keep",
+  "\u79FB\u51FA\u2026": "Remove\u2026",
+  \u7248\u672C\u4E0E\u52A8\u6001: "Versions and activity",
+  "\u7531\u9879\u76EE\u8D1F\u8D23\u4EBA\u51B3\u5B9A\u6362\u4E0D\u6362\u3002": "The project owner decides whether to switch.",
+  "\u4FDD\u6301\u5F53\u524D\u7248\u672C\uFF0C\u4EE5\u540E\u4ECD\u53EF\u6362\u7528\u3002": "Keeping the current version. You can still switch later.",
+  "\u8FD8\u6CA1\u6709\u5F15\u7528\u4F5C\u54C1\u3002": "No work referenced yet.",
+  "\u9879\u76EE\u5F15\u7528\u6682\u65F6\u4E0D\u53EF\u8BFB\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002": "Project references are temporarily unavailable. Please reload.",
+  \u91CD\u65B0\u8BFB\u53D6: "Reload",
+  \u4F5C\u54C1: "Work",
+  \u9879\u76EE\u4F5C\u54C1: "Project works",
+  "\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026": "Reading project works\u2026",
+  "\u4F60\u65E0\u6743\u8BFB\u53D6\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\u3002": "You do not have access to this project\u2019s works.",
+  "\u6682\u65F6\u8BFB\u4E0D\u5230\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002": "This project\u2019s works are temporarily unavailable. Please try again.",
+  \u6362\u7528\u4F5C\u54C1\u7248\u672C: "Switch the referenced version",
+  \u4ECE\u9879\u76EE\u79FB\u51FA\u4F5C\u54C1: "Remove work from project",
+  \u73B0\u5728\u7528: "Currently using",
+  \u6362\u6210: "Switch to",
+  \u9009\u62E9\u7248\u672C: "Choose a version",
+  \u5148\u4E0D\u6362: "Cancel",
+  \u53D6\u6D88: "Cancel",
+  \u5F15\u7528: "Reference",
+  \u6362\u7528: "Switch to",
+  \u79FB\u51FA: "Remove",
+  \u5F53\u524D\u53EF\u8BFB\u6700\u65B0\u7248: "Latest readable version",
+  \u5E76\u6392\u6BD4\u8F83\u8FD9\u4E24\u7248: "Compare these versions",
+  "\u53EA\u6539\u8FD9\u4E2A\u9879\u76EE\uFF0C\u5176\u4ED6\u9879\u76EE\u4E0E\u539F\u4EF6\u3001\u65E7\u7248\u90FD\u4E0D\u53D8\u3002": "Only this project changes. Other projects, the original and earlier versions remain unchanged.",
+  "\u79FB\u51FA\u53EA\u89E3\u9664\u672C\u9879\u76EE\u7684\u5F15\u7528\uFF0C\u4E0D\u5220\u9664\u539F\u4EF6\u6216\u5176\u4ED6\u9879\u76EE\u7684\u5F15\u7528\u3002": "Removing only releases this project\u2019s reference. The original and other projects remain intact.",
+  "\u5408\u5E76\u5185\u5BB9\u8BF7\u56DE\u539F\u8BA8\u8BBA\uFF0C\u8BF7\u4FDD\u7BA1\u4EBA\u51FA\u5019\u9009\uFF0C\u518D\u6279\u6CE8\u548C\u91C7\u7528\u3002": "To merge content, return to the original discussion and ask the custodian for a candidate, then review and adopt it.",
+  \u8FD4\u56DE\u539F\u8BA8\u8BBA: "Original discussion",
+  "\u6CA1\u6709\u53EF\u5F15\u7528\u7684\u4F5C\u54C1\u3002": "No readable work is available.",
+  "\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026": "Reading version history\u2026",
+  \u66F4\u65E9\u7684\u7248\u672C: "Earlier versions",
+  \u672A\u63D0\u4F9B\u6539\u52A8\u8BF4\u660E: "No change description provided",
+  \u5206\u4EAB\u7684\u7248\u672C: "Published version",
+  \u91C7\u7528\u4E86\u4FEE\u6539: "Adopted changes",
+  "\u8FD9\u5904\u5F15\u7528\u521A\u88AB\u6539\u8FC7\uFF0C\u5DF2\u663E\u793A\u73B0\u5728\u5B9E\u9645\u4F7F\u7528\u7684\u7248\u672C\uFF1B\u8BF7\u91CD\u65B0\u9009\u62E9\u3002": "This reference just changed. The actual current version is shown; choose again.",
+  "\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u91CD\u8BD5\u3002": "The operation is unconfirmed. Please retry.",
+  \u52A8\u6001: "Activity",
+  \u8FD8\u672A\u9009\u62E9\u672C\u9879\u76EE\u7248\u672C: "No project version selected yet"
+};
+function useProjectArtifactText() {
+  const language = useCollectiveLanguage();
+  return (text14) => language === "en" ? en2[text14] ?? text14 : text14;
+}
+
+// src/ProjectArtifactVersionDialog.tsx
+var import_jsx_runtime84 = __toESM(require_jsx_runtime(), 1);
+function ProjectArtifactVersionDialog({
+  artifact,
+  item,
+  roadmapId,
+  projectChannelId,
+  action: action2,
+  expectedRevision,
+  onChange,
+  onOpen,
+  onClose
+}) {
+  const t = useProjectArtifactText(), shared = useSharedArtifacts();
+  const [target, setTarget] = (0, import_react66.useState)(
+    artifact?.versions.at(-1)?.ownerRevision ?? item?.reference.versionRef.ownerRevision ?? 1
+  );
+  const [busy, setBusy] = (0, import_react66.useState)(false), [error, setError] = (0, import_react66.useState)();
+  const title = t(action2 === "attach" ? "\u5F15\u7528\u4F5C\u54C1" : action2 === "switch" ? "\u6362\u7528\u4F5C\u54C1\u7248\u672C" : "\u4ECE\u9879\u76EE\u79FB\u51FA\u4F5C\u54C1");
+  const submit2 = async (versionRef) => {
+    setBusy(true);
+    setError(void 0);
+    try {
+      const base4 = { roadmapId, artifactId: artifact?.artifactId ?? item.reference.artifactId, expectedRevision };
+      const changed2 = await onChange(
+        action2 === "remove" ? { ...base4, action: action2 } : { ...base4, action: action2, versionRef }
+      );
+      if (changed2) onClose();
+      else setError(t("\u8FD9\u5904\u5F15\u7528\u521A\u88AB\u6539\u8FC7\uFF0C\u5DF2\u663E\u793A\u73B0\u5728\u5B9E\u9645\u4F7F\u7528\u7684\u7248\u672C\uFF1B\u8BF7\u91CD\u65B0\u9009\u62E9\u3002"));
+    } catch {
+      setError(t("\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\uFF0C\u8BF7\u91CD\u8BD5\u3002"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(MaterialDialogFrame, { label: title, onClose, busy, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("h2", { children: title }),
+    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: artifact?.title ?? t("\u8FD9\u4EF6\u4F5C\u54C1\u73B0\u5728\u6253\u4E0D\u5F00") }),
+    artifact && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("p", { children: [
+      "#",
+      artifact.sourceLocation.channelId,
+      " \xB7 ",
+      shared?.humanName?.(artifact.publishedByHumanId) ?? t("\u5171\u540C\u4F53\u6210\u5458")
+    ] }),
+    item && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("p", { children: [
+      t("\u73B0\u5728\u7528"),
+      " ",
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("strong", { children: [
+        "v",
+        item.reference.versionRef.ownerRevision
+      ] })
+    ] }),
+    action2 === "remove" ? /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(import_jsx_runtime84.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t("\u79FB\u51FA\u53EA\u89E3\u9664\u672C\u9879\u76EE\u7684\u5F15\u7528\uFF0C\u4E0D\u5220\u9664\u539F\u4EF6\u6216\u5176\u4ED6\u9879\u76EE\u7684\u5F15\u7528\u3002") }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { role: "alert", children: error }),
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("footer", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", disabled: busy, onClick: onClose, children: t("\u53D6\u6D88") }),
+        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", disabled: busy, onClick: () => void submit2(), children: t("\u79FB\u51FA") })
+      ] })
+    ] }) : artifact && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+      VersionChoice,
+      {
+        artifact,
+        selected: target,
+        current: item?.reference.versionRef.ownerRevision,
+        onSelect: setTarget,
+        children: (version) => /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(import_jsx_runtime84.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t("\u53EA\u6539\u8FD9\u4E2A\u9879\u76EE\uFF0C\u5176\u4ED6\u9879\u76EE\u4E0E\u539F\u4EF6\u3001\u65E7\u7248\u90FD\u4E0D\u53D8\u3002") }),
+          item && version && artifact.mediaType === "text/markdown" && version.ownerRevision !== item.reference.versionRef.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+            "button",
+            {
+              type: "button",
+              onClick: () => onOpen?.(
+                artifact,
+                artifact.mediaType === "text/markdown" ? item.reference.versionRef.ownerRevision : version.ownerRevision,
+                {
+                  comparisonOwnerRevision: version.ownerRevision,
+                  projectReturn: {
+                    roadmapId,
+                    referenceId: item.reference.referenceId,
+                    channelId: projectChannelId
+                  }
+                }
+              ),
+              children: t("\u5E76\u6392\u6BD4\u8F83\u8FD9\u4E24\u7248")
+            }
+          ),
+          version && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(
+            "button",
+            {
+              type: "button",
+              onClick: () => onOpen?.(artifact, version.ownerRevision, {
+                projectReturn: {
+                  roadmapId,
+                  referenceId: item?.reference.referenceId,
+                  channelId: projectChannelId
+                }
+              }),
+              children: [
+                t("\u9884\u89C8\u6240\u9009\u539F\u4EF6\u7248\u672C"),
+                " v",
+                version.ownerRevision
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { children: t("\u5408\u5E76\u5185\u5BB9\u8BF7\u56DE\u539F\u8BA8\u8BBA\uFF0C\u8BF7\u4FDD\u7BA1\u4EBA\u51FA\u5019\u9009\uFF0C\u518D\u6279\u6CE8\u548C\u91C7\u7528\u3002") }),
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                shared?.close();
+                shared?.returnToSource?.(artifact.sourceLocation.channelId, artifact.sourceEventId);
+              },
+              children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA")
+            }
+          ),
+          error && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { role: "alert", children: error }),
+          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("footer", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", disabled: busy, onClick: onClose, children: t("\u5148\u4E0D\u6362") }),
+            /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("button", { type: "button", disabled: busy || !version, onClick: () => void submit2(version), children: [
+              t(action2 === "attach" ? "\u5F15\u7528" : "\u6362\u7528"),
+              " v",
+              target
+            ] })
+          ] })
+        ] })
+      }
+    )
+  ] });
+}
+function VersionChoice({
+  artifact,
+  selected,
+  current: current2,
+  onSelect,
+  children
+}) {
+  const t = useProjectArtifactText(), history2 = useSharedArtifactVersionHistory(artifact), shared = useSharedArtifacts();
+  const versions = history2.page?.versions ?? [];
+  const selectedVersion = versions.find((version) => version.ownerRevision === selected);
+  const selectedRef = selectedVersion && {
+    ownerRevision: selectedVersion.ownerRevision,
+    blobDigest: selectedVersion.blobDigest,
+    receiptRef: selectedVersion.receiptRef
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(import_jsx_runtime84.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
+      t("\u9009\u62E9\u7248\u672C"),
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("select", { value: selected, onChange: (event) => onSelect(Number(event.target.value)), children: versions.map((version) => /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("option", { value: version.ownerRevision, children: [
+        "v",
+        version.ownerRevision,
+        current2 === version.ownerRevision ? ` \xB7 ${t("\u73B0\u5728\u7528")}` : ""
+      ] }, version.ownerRevision)) })
+    ] }),
+    history2.pending && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026") }),
+    history2.error && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { role: "alert", children: history2.error }),
+    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("ol", { className: "project-reference-version-list", children: versions.map((version) => /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("li", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("strong", { children: [
+        "v",
+        version.ownerRevision
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("time", { children: new Date(version.recordedAt).toLocaleDateString() }),
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: version.lineage ? `${shared?.humanName(version.adoptedByHumanId ?? "") ?? ""} \xB7 ${t("\u91C7\u7528\u4E86\u4FEE\u6539")}` : t("\u5206\u4EAB\u7684\u7248\u672C") }),
+      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: version.changeSummary ?? t("\u672A\u63D0\u4F9B\u6539\u52A8\u8BF4\u660E") })
+    ] }, version.ownerRevision)) }),
+    history2.page?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: t("\u66F4\u65E9\u7684\u7248\u672C") }),
+    children(selectedRef)
+  ] });
+}
+
+// src/ProjectArtifactReferenceCard.tsx
+var import_jsx_runtime85 = __toESM(require_jsx_runtime(), 1);
+function ProjectArtifactReferenceCard({
+  item,
+  owner: owner3,
+  sourceChannelId,
+  onChange,
+  onOpen
+}) {
+  const t = useProjectArtifactText(), shared = useSharedArtifacts(), reference = item.reference;
+  const [dialog, setDialog] = (0, import_react67.useState)(), [error, setError] = (0, import_react67.useState)(false), [busy, setBusy] = (0, import_react67.useState)(false);
+  const readable = item.availability === "available", artifact = readable ? item.artifact : void 0;
+  const keep = async () => {
+    if (!item.latestVersionRef) return;
+    setBusy(true);
+    setError(false);
+    try {
+      setError(
+        !await onChange({
+          roadmapId: reference.roadmapId,
+          artifactId: reference.artifactId,
+          action: "keep",
+          expectedRevision: reference.revision,
+          versionRef: item.latestVersionRef
+        })
+      );
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("article", { className: "project-reference-card", "data-reference-id": reference.referenceId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("div", { className: "project-reference-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("strong", { children: artifact?.title ?? t("\u8FD9\u4EF6\u4F5C\u54C1\u73B0\u5728\u6253\u4E0D\u5F00") }),
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("small", { children: [
+        t("\u672C\u9879\u76EE\u7528\u7684\u7248\u672C"),
+        " \xB7 v",
+        reference.versionRef.ownerRevision
+      ] })
+    ] }),
+    artifact ? /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(import_jsx_runtime85.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("small", { children: item.latestVersionRef ? `${t("\u5F53\u524D\u53EF\u8BFB\u6700\u65B0\u7248")} v${item.latestVersionRef.ownerRevision}` : t("\u6700\u65B0\u7248\u6682\u65F6\u4E0D\u53EF\u786E\u8BA4") }),
+      item.usedBy.filter((project) => project.roadmapId !== reference.roadmapId).map((project) => /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("small", { children: [
+        project.title,
+        " \xB7 v",
+        project.versionRef.ownerRevision
+      ] }, project.roadmapId)),
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("div", { className: "project-reference-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(
+          "button",
+          {
+            type: "button",
+            onClick: () => onOpen?.(artifact, reference.versionRef.ownerRevision, {
+              projectReturn: {
+                roadmapId: reference.roadmapId,
+                referenceId: reference.referenceId,
+                channelId: sourceChannelId
+              }
+            }),
+            children: [
+              t("\u6253\u5F00\u672C\u9879\u76EE\u7528\u7684"),
+              " v",
+              reference.versionRef.ownerRevision
+            ]
+          }
+        ),
+        item.hasUpdate && /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("span", { className: "project-reference-update", children: [
+          t("\u6709\u65B0\u7248"),
+          " v",
+          item.latestVersionRef?.ownerRevision
+        ] }),
+        owner3 ? /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(import_jsx_runtime85.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", onClick: () => setDialog("switch"), children: t("\u6362\u7528\u2026") }),
+          item.hasUpdate && /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("button", { type: "button", disabled: busy, onClick: () => void keep(), children: [
+            t("\u4FDD\u6301"),
+            " v",
+            reference.versionRef.ownerRevision
+          ] })
+        ] }) : item.hasUpdate && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("small", { children: t("\u7531\u9879\u76EE\u8D1F\u8D23\u4EBA\u51B3\u5B9A\u6362\u4E0D\u6362\u3002") })
+      ] }),
+      !item.hasUpdate && reference.keptVersionRef && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("small", { children: t("\u4FDD\u6301\u5F53\u524D\u7248\u672C\uFF0C\u4EE5\u540E\u4ECD\u53EF\u6362\u7528\u3002") })
+    ] }) : /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("p", { children: t(
+      item.availability === "owner_unavailable" ? "\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\u3002" : "\u539F\u4EF6\u64A4\u56DE\u4E86\uFF0C\u6216\u4F60\u6CA1\u6709\u6743\u9650\u4E86\u3002"
+    ) }),
+    owner3 && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", className: "project-reference-remove", onClick: () => setDialog("remove"), children: t("\u79FB\u51FA\u2026") }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("p", { role: "alert", children: t("\u8FD9\u5904\u5F15\u7528\u521A\u88AB\u6539\u8FC7\uFF0C\u5DF2\u663E\u793A\u73B0\u5728\u5B9E\u9645\u4F7F\u7528\u7684\u7248\u672C\uFF1B\u8BF7\u91CD\u65B0\u9009\u62E9\u3002") }),
+    /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("details", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("summary", { children: t("\u52A8\u6001") }),
+      /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("ol", { children: reference.history.toReversed().map((entry) => /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("time", { children: new Date(entry.at).toLocaleString() }),
+        " \xB7",
+        " ",
+        entry.actor.kind === "human" ? entry.actor.displayName : entry.actor.humanDisplayName,
+        " \xB7",
+        " ",
+        t({ attach: "\u5F15\u7528", switch: "\u6362\u7528", keep: "\u4FDD\u6301", remove: "\u79FB\u51FA" }[entry.action]),
+        " v",
+        entry.versionRef.ownerRevision,
+        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", onClick: () => shared?.returnToSource?.(sourceChannelId, entry.sourceEventId), children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA") })
+      ] }, entry.revision)) })
+    ] }),
+    dialog && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+      ProjectArtifactVersionDialog,
+      {
+        artifact,
+        item,
+        roadmapId: reference.roadmapId,
+        projectChannelId: sourceChannelId,
+        expectedRevision: reference.revision,
+        action: dialog,
+        onChange,
+        onOpen,
+        onClose: () => setDialog(void 0)
+      },
+      `${reference.revision}:${dialog}`
+    )
+  ] });
+}
+
+// src/use-project-artifact-references.ts
+var import_react68 = __toESM(require_react(), 1);
+function useProjectArtifactReferences(roadmapId) {
+  const shared = useSharedArtifacts(), client = shared?.api?.projectReferences;
+  const key = `${client?.namespace ?? ""}:${roadmapId}:${shared?.status ?? ""}`;
+  const current2 = (0, import_react68.useRef)(key);
+  current2.current = key;
+  const sequence = (0, import_react68.useRef)(0), running = (0, import_react68.useRef)(), visibleCount = (0, import_react68.useRef)(30);
+  const [state, setState] = (0, import_react68.useState)({ key });
+  const reload = (0, import_react68.useCallback)(
+    async (force = false) => {
+      if (!client || !roadmapId || running.current === key && !force) return;
+      const ticket = ++sequence.current;
+      running.current = key;
+      try {
+        let feed = await client.list(roadmapId);
+        while (feed.items.length < visibleCount.current && feed.nextOffset !== void 0) {
+          const next = await client.list(roadmapId, { offset: feed.nextOffset, expectedSnapshot: feed.snapshot });
+          if (next.total !== feed.total || next.items.some(
+            (item) => feed.items.some((previous4) => previous4.reference.referenceId === item.reference.referenceId)
+          ))
+            throw new Error("Reference pages changed");
+          feed = { ...next, offset: 0, items: [...feed.items, ...next.items] };
+        }
+        if (current2.current === key && ticket === sequence.current) setState({ key, feed });
+      } catch {
+        if (current2.current === key && ticket === sequence.current)
+          setState({ key, error: "\u9879\u76EE\u5F15\u7528\u6682\u65F6\u4E0D\u53EF\u8BFB\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002" });
+      } finally {
+        if (running.current === key && ticket === sequence.current) running.current = void 0;
+      }
+    },
+    [client, roadmapId, key]
+  );
+  (0, import_react68.useEffect)(() => {
+    visibleCount.current = 30;
+    setState({ key });
+    void reload();
+    const timer = window.setInterval(() => void reload(), 5e3);
+    const refresh = () => void reload();
+    window.addEventListener("collective:project-artifacts-changed", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      ++sequence.current;
+      running.current = void 0;
+      window.clearInterval(timer);
+      window.removeEventListener("collective:project-artifacts-changed", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [reload, key]);
+  const more = async () => {
+    const feed = state.key === key ? state.feed : void 0;
+    if (!client || !feed || feed.nextOffset === void 0 || running.current === key) return;
+    const ticket = ++sequence.current;
+    running.current = key;
+    try {
+      const next = await client.list(roadmapId, { offset: feed.nextOffset, expectedSnapshot: feed.snapshot });
+      if (current2.current !== key || ticket !== sequence.current) return;
+      if (next.total !== feed.total || next.items.some(
+        (item) => feed.items.some((previous4) => previous4.reference.referenceId === item.reference.referenceId)
+      ))
+        throw new Error("Reference pages changed");
+      visibleCount.current = feed.items.length + next.items.length;
+      setState({ key, feed: { ...next, offset: 0, items: [...feed.items, ...next.items] } });
+    } catch {
+      if (current2.current === key && ticket === sequence.current)
+        setState({ key, error: "\u9879\u76EE\u5F15\u7528\u6682\u65F6\u4E0D\u53EF\u8BFB\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002" });
+    } finally {
+      if (running.current === key && ticket === sequence.current) running.current = void 0;
+    }
+  };
+  return { client, reload, more, ...state.key === key ? state : { key }, shared };
+}
+
+// src/ProjectArtifactSurface.tsx
+var import_jsx_runtime86 = __toESM(require_jsx_runtime(), 1);
 function ProjectArtifactSurface({
   roadmap,
   works,
@@ -69089,78 +70098,176 @@ function ProjectArtifactSurface({
   status,
   onOpen
 }) {
-  const projectArtifacts = artifactsForWorks(artifacts, new Set(works.map((work2) => work2.workId)));
-  const workTitles = new Map(works.map((work2) => [work2.workId, work2.title]));
-  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("section", { className: "project-artifacts", "aria-label": "\u9879\u76EE\u4F5C\u54C1", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: "\u4F5C\u54C1" }),
-        /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { children: status === "ready" ? `${projectArtifacts.length} \u4EF6` : "\u8BFB\u53D6\u72B6\u6001\u672A\u786E\u8BA4" })
+  const t = useProjectArtifactText(), refs2 = useProjectArtifactReferences(roadmap.roadmapId);
+  const [picker, setPicker] = (0, import_react69.useState)(false), [selected, setSelected] = (0, import_react69.useState)();
+  const [notice2, setNotice] = (0, import_react69.useState)();
+  const items = refs2.feed?.items ?? [], owner3 = refs2.shared?.humanId === roadmap.accountableHumanId;
+  const legacy = artifactsForWorks(artifacts, new Set(works.map((work2) => work2.workId))).filter(
+    (artifact) => !items.some((item) => item.reference.artifactId === artifact.artifactId) && !refs2.feed?.removedReferences.some((ref10) => ref10.artifactId === artifact.artifactId)
+  );
+  const change = async (input) => {
+    if (!refs2.client) throw new Error("Project unavailable");
+    const result = await refs2.client.change(input);
+    await refs2.reload(true);
+    if (result.outcome === "conflict") setNotice(t("\u8FD9\u5904\u5F15\u7528\u521A\u88AB\u6539\u8FC7\uFF0C\u5DF2\u663E\u793A\u73B0\u5728\u5B9E\u9645\u4F7F\u7528\u7684\u7248\u672C\uFF1B\u8BF7\u91CD\u65B0\u9009\u62E9\u3002"));
+    else setNotice(void 0);
+    return result.outcome !== "conflict";
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "project-artifacts project-references", "aria-label": t("\u9879\u76EE\u4F5C\u54C1"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("strong", { children: t("\u4F5C\u54C1") }),
+        /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("small", { children: t("\u672C\u9879\u76EE\u7528\u7684\u7248\u672C") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("small", { children: roadmap.title })
+      owner3 && refs2.client && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", onClick: () => setPicker(true), children: t("\u5F15\u7528\u4F5C\u54C1\u2026") })
     ] }),
-    status !== "ready" ? /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(ProjectArtifactState, { status }) : projectArtifacts.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: "project-artifact-empty", children: "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4F5C\u54C1\u3002\u4EFB\u52A1\u4EA4\u56DE\u4F5C\u54C1\u540E\uFF0C\u4F1A\u6309\u540C\u4E00 Work \u81EA\u52A8\u51FA\u73B0\u5728\u8FD9\u91CC\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("div", { className: "project-artifact-grid", children: projectArtifacts.map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)(
-      "button",
-      {
-        type: "button",
-        className: "project-artifact-card",
-        onClick: () => onOpen?.(artifact),
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { "aria-hidden": "true", className: "project-artifact-icon", children: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("svg", { "aria-hidden": "true", viewBox: "0 0 32 36", fill: "none", stroke: "currentColor", strokeWidth: "1.3", children: /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("path", { d: "M8 3h12l6 6v24H6V3h2Zm12 0v7h6M10 17h12M10 22h12M10 27h8" }) }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("span", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: artifact.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("small", { children: [
-              workTitles.get(artifact.workId ?? "") ?? "\u9879\u76EE\u4EFB\u52A1",
-              " \xB7 \u7B2C",
-              " ",
-              artifact.versions.at(-1)?.ownerRevision ?? 1,
-              " \u7248"
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "project-reference-explanation", children: t("\u672C\u9879\u76EE\u5F15\u7528\u7684\u662F\u539F\u4F5C\u54C1\u7684\u660E\u786E\u7248\u672C\u3002\u65B0\u7248\u53EA\u63D0\u793A\uFF0C\u6362\u7528\u53EA\u6539\u672C\u9879\u76EE\u3002") }),
+    notice2 && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { role: "status", children: notice2 }),
+    refs2.error ? /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("p", { role: "alert", children: [
+      t(refs2.error),
+      " ",
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", onClick: () => void refs2.reload(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
+    ] }) : refs2.client && !refs2.feed ? /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "project-artifact-empty", children: t("\u6B63\u5728\u8BFB\u53D6\u7248\u672C\u8BB0\u5F55\u2026") }) : status !== "ready" ? /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(ProjectArtifactState, { status }) : /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(import_jsx_runtime86.Fragment, { children: [
+      items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+        ProjectArtifactReferenceCard,
+        {
+          item,
+          owner: owner3,
+          sourceChannelId: roadmap.sourceLocation.channelId,
+          onChange: change,
+          onOpen
+        },
+        item.reference.referenceId
+      )),
+      refs2.feed?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", onClick: () => void refs2.more(), children: t("\u66F4\u591A\u4F5C\u54C1") }),
+      !items.length && !legacy.length && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "project-artifact-empty", children: t("\u8FD8\u6CA1\u6709\u5F15\u7528\u4F5C\u54C1\u3002") }),
+      legacy.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "project-artifact-grid", children: legacy.map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(
+        "button",
+        {
+          type: "button",
+          className: "project-artifact-card",
+          onClick: () => onOpen?.(artifact),
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("span", {}),
+            /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("span", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("strong", { children: artifact.title }),
+              /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("small", { children: t("\u8FD8\u672A\u9009\u62E9\u672C\u9879\u76EE\u7248\u672C") })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("span", { children: "\u203A" })
+          ]
+        },
+        artifact.artifactId
+      )) })
+    ] }),
+    picker && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(MaterialDialogFrame, { label: t("\u5F15\u7528\u4F5C\u54C1"), onClose: () => setPicker(false), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h2", { children: t("\u5F15\u7528\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("div", { className: "project-reference-picker", children: artifacts.filter(
+        (artifact) => artifact.availability === "available" && !items.some((item) => item.reference.artifactId === artifact.artifactId)
+      ).map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            setSelected(artifact);
+            setPicker(false);
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("strong", { children: artifact.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("small", { children: [
               "#",
               artifact.sourceLocation.channelId,
-              artifact.availability === "owner_unavailable" ? " \xB7 \u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528" : ""
+              " \xB7",
+              " ",
+              refs2.shared?.humanName?.(artifact.publishedByHumanId) ?? t("\u5171\u540C\u4F53\u6210\u5458")
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("small", { children: [
+              t("\u5F53\u524D\u53EF\u8BFB\u6700\u65B0\u7248"),
+              " v",
+              artifact.versions.at(-1)?.ownerRevision
             ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { "aria-hidden": "true", children: "\u203A" })
-        ]
-      },
-      artifact.artifactId
-    )) })
+          ]
+        },
+        artifact.artifactId
+      )) }),
+      !artifacts.length && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: t("\u6CA1\u6709\u53EF\u5F15\u7528\u7684\u4F5C\u54C1\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("footer", { children: /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", onClick: () => setPicker(false), children: t("\u53D6\u6D88") }) })
+    ] }),
+    selected && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+      ProjectArtifactVersionDialog,
+      {
+        artifact: selected,
+        roadmapId: roadmap.roadmapId,
+        projectChannelId: roadmap.sourceLocation.channelId,
+        expectedRevision: refs2.feed?.removedReferences.find((ref10) => ref10.artifactId === selected.artifactId)?.revision ?? 0,
+        action: "attach",
+        onChange: change,
+        onOpen,
+        onClose: () => setSelected(void 0)
+      }
+    )
   ] });
 }
 function ProjectArtifactSummary({
+  roadmap,
   works,
   artifacts,
   status,
   onOpen
 }) {
-  if (status !== "ready") return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(ProjectArtifactState, { status, compact: true });
-  const latest = artifactsForWorks(artifacts, new Set(works.map((work2) => work2.workId)))[0];
-  if (!latest) return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("span", { className: "project-list-artifact-empty", children: "\u8FD8\u6CA1\u6709\u4F5C\u54C1" });
-  return /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("button", { type: "button", className: "project-list-artifact", onClick: () => onOpen?.(latest), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("strong", { children: latest.title }),
-    /* @__PURE__ */ (0, import_jsx_runtime83.jsxs)("small", { children: [
-      "\u7B2C ",
-      latest.versions.at(-1)?.ownerRevision ?? 1,
-      " \u7248 \xB7 ",
-      new Date(latest.updatedAt).toLocaleDateString("zh-CN")
-    ] })
+  const t = useProjectArtifactText(), refs2 = useProjectArtifactReferences(roadmap.roadmapId);
+  if (status !== "ready") return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(ProjectArtifactState, { status, compact: true });
+  if (refs2.error) return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("span", { className: "project-list-artifact-empty", children: t(refs2.error) });
+  const item = refs2.feed?.items[0];
+  if (item)
+    return item.artifact && item.availability === "available" ? /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(
+      "button",
+      {
+        type: "button",
+        className: "project-list-artifact",
+        onClick: () => onOpen?.(item.artifact, item.reference.versionRef.ownerRevision, {
+          projectReturn: {
+            roadmapId: item.reference.roadmapId,
+            referenceId: item.reference.referenceId,
+            channelId: roadmap.sourceLocation.channelId
+          }
+        }),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("strong", { children: item.artifact.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("small", { children: [
+            t("\u672C\u9879\u76EE\u7528\u7684\u7248\u672C"),
+            " v",
+            item.reference.versionRef.ownerRevision
+          ] })
+        ]
+      }
+    ) : /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("span", { className: "project-list-artifact-empty", children: [
+      t("\u8FD9\u4EF6\u4F5C\u54C1\u73B0\u5728\u6253\u4E0D\u5F00"),
+      " \xB7 v",
+      item.reference.versionRef.ownerRevision
+    ] });
+  const latest = artifactsForWorks(artifacts, new Set(works.map((work2) => work2.workId))).find(
+    (artifact) => !refs2.feed?.removedReferences.some((ref10) => ref10.artifactId === artifact.artifactId)
+  );
+  if (!latest) return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("span", { className: "project-list-artifact-empty", children: t("\u8FD8\u6CA1\u6709\u5F15\u7528\u4F5C\u54C1\u3002") });
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("button", { type: "button", className: "project-list-artifact", onClick: () => onOpen?.(latest), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("strong", { children: latest.title }),
+    /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("small", { children: t("\u8FD8\u672A\u9009\u62E9\u672C\u9879\u76EE\u7248\u672C") })
   ] });
 }
 function ProjectArtifactState({
   status,
   compact = false
 }) {
-  const label = status === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026" : status === "access_denied" ? compact ? "\u65E0\u6743\u8BFB\u53D6\u4F5C\u54C1" : "\u4F60\u65E0\u6743\u8BFB\u53D6\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\u3002" : compact ? "\u4F5C\u54C1\u6682\u65F6\u4E0D\u53EF\u8BFB" : "\u6682\u65F6\u8BFB\u4E0D\u5230\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002";
-  return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)("p", { className: compact ? "project-list-artifact-empty" : "project-artifact-empty", children: label });
+  const t = useProjectArtifactText();
+  const label = status === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026" : status === "access_denied" ? "\u4F60\u65E0\u6743\u8BFB\u53D6\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\u3002" : "\u6682\u65F6\u8BFB\u4E0D\u5230\u8FD9\u4E2A\u9879\u76EE\u7684\u4F5C\u54C1\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5\u3002";
+  return /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: compact ? "project-list-artifact-empty" : "project-artifact-empty", children: t(label) });
 }
 function artifactsForWorks(artifacts, workIds) {
-  return artifacts.filter((artifact) => Boolean(artifact.workId && workIds.has(artifact.workId))).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  return artifacts.filter((artifact) => Boolean(artifact.workId && workIds.has(artifact.workId))).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 // src/ProjectList.tsx
-var import_jsx_runtime84 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime87 = __toESM(require_jsx_runtime(), 1);
 function ProjectList({
   roadmaps,
   works,
@@ -69173,34 +70280,34 @@ function ProjectList({
   onOpen,
   onOpenArtifact
 }) {
-  const [filter, setFilter] = (0, import_react65.useState)("active");
-  const [owner3, setOwner] = (0, import_react65.useState)("all");
-  const [showCompleted, setShowCompleted] = (0, import_react65.useState)(false);
+  const [filter, setFilter] = (0, import_react70.useState)("active");
+  const [owner3, setOwner] = (0, import_react70.useState)("all");
+  const [showCompleted, setShowCompleted] = (0, import_react70.useState)(false);
   const owned = roadmaps.filter((roadmap) => owner3 === "all" || roadmap.accountableHumanId === owner3);
   const active = owned.filter((roadmap) => roadmap.status === "active");
   const mine = active.filter((roadmap) => projectRelatesToHuman(roadmap, works, currentHumanId));
   const blocked = active.filter((roadmap) => worksForRoadmap(roadmap, works).some((work2) => work2.status === "blocked"));
   const displayed = filter === "mine" ? mine : filter === "blocked" ? blocked : active;
   const completed = owned.filter((roadmap) => roadmap.status === "completed");
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("section", { className: "project-list", "aria-label": "\u9879\u76EE\u5217\u8868", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("div", { className: "project-list-toolbar", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("nav", { "aria-label": "\u9879\u76EE\u5217\u8868\u7B5B\u9009", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(FilterButton, { active: filter === "active", onClick: () => setFilter("active"), children: `\u8FDB\u884C\u4E2D ${active.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(FilterButton, { active: filter === "mine", onClick: () => setFilter("mine"), children: `\u4E0E\u6211\u76F8\u5173 ${mine.length}` }),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(FilterButton, { active: filter === "blocked", onClick: () => setFilter("blocked"), children: `\u6709\u963B\u585E ${blocked.length}` })
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("section", { className: "project-list", "aria-label": "\u9879\u76EE\u5217\u8868", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { className: "project-list-toolbar", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("nav", { "aria-label": "\u9879\u76EE\u5217\u8868\u7B5B\u9009", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(FilterButton, { active: filter === "active", onClick: () => setFilter("active"), children: `\u8FDB\u884C\u4E2D ${active.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(FilterButton, { active: filter === "mine", onClick: () => setFilter("mine"), children: `\u4E0E\u6211\u76F8\u5173 ${mine.length}` }),
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(FilterButton, { active: filter === "blocked", onClick: () => setFilter("blocked"), children: `\u6709\u963B\u585E ${blocked.length}` })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { className: "project-list-owner-filter", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("select", { "aria-label": "\u6309\u8D1F\u8D23\u4EBA\u7B5B\u9009", value: owner3, onChange: (event) => setOwner(event.currentTarget.value), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: "all", children: "\u6240\u6709\u4EBA" }),
-            humans.map((human) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("label", { className: "project-list-owner-filter", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("select", { "aria-label": "\u6309\u8D1F\u8D23\u4EBA\u7B5B\u9009", value: owner3, onChange: (event) => setOwner(event.currentTarget.value), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("option", { value: "all", children: "\u6240\u6709\u4EBA" }),
+            humans.map((human) => /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("details", { className: "project-list-display-settings", "aria-label": "\u9879\u76EE\u5217\u8868\u663E\u793A\u8BBE\u7F6E", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("summary", { children: "\u663E\u793A\u8BBE\u7F6E" }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("label", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("details", { className: "project-list-display-settings", "aria-label": "\u9879\u76EE\u5217\u8868\u663E\u793A\u8BBE\u7F6E", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("summary", { children: "\u663E\u793A\u8BBE\u7F6E" }),
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
               "input",
               {
                 type: "checkbox",
@@ -69214,9 +70321,9 @@ function ProjectList({
         ] })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(ProjectListColumns, {}),
-    displayed.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("p", { className: "project-list-empty", children: roadmaps.length === 0 ? "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u7528\u53F3\u4E0A\u89D2\u201C\u65B0\u5EFA\u9879\u76EE\u201D\u7559\u4E0B\u7B2C\u4E00\u9879\u76EE\u6807\u4E0E\u5B8C\u6210\u6807\u51C6\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u9879\u76EE\u3002" }),
-    displayed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(ProjectListColumns, {}),
+    displayed.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("p", { className: "project-list-empty", children: roadmaps.length === 0 ? "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u7528\u53F3\u4E0A\u89D2\u201C\u65B0\u5EFA\u9879\u76EE\u201D\u7559\u4E0B\u7B2C\u4E00\u9879\u76EE\u6807\u4E0E\u5B8C\u6210\u6807\u51C6\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u9879\u76EE\u3002" }),
+    displayed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
       ProjectListRow,
       {
         roadmap,
@@ -69231,13 +70338,13 @@ function ProjectList({
       },
       roadmap.roadmapId
     )),
-    showCompleted && completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("details", { className: "project-list-completed", "aria-label": "\u5DF2\u5B8C\u6210\u9879\u76EE", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("summary", { children: [
+    showCompleted && completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("details", { className: "project-list-completed", "aria-label": "\u5DF2\u5B8C\u6210\u9879\u76EE", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("summary", { children: [
         "\u5DF2\u5B8C\u6210\u9879\u76EE ",
         completed.length
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(ProjectListColumns, {}),
-      completed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(ProjectListColumns, {}),
+      completed.map((roadmap) => /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
         ProjectListRow,
         {
           roadmap,
@@ -69256,12 +70363,12 @@ function ProjectList({
   ] });
 }
 function ProjectListColumns() {
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("header", { className: "project-list-columns", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: "\u9879\u76EE\u4E0E\u5B8C\u6210\u6807\u51C6" }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: "\u8D1F\u8D23\u4EBA \xB7 \u6267\u884C" }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: "\u4EFB\u52A1" }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: "\u963B\u585E / \u4E0B\u4E00\u6B65" }),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { children: "\u6700\u65B0\u4F5C\u54C1" })
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("header", { className: "project-list-columns", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: "\u9879\u76EE\u4E0E\u5B8C\u6210\u6807\u51C6" }),
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: "\u8D1F\u8D23\u4EBA \xB7 \u6267\u884C" }),
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: "\u4EFB\u52A1" }),
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: "\u963B\u585E / \u4E0B\u4E00\u6B65" }),
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: "\u6700\u65B0\u4F5C\u54C1" })
   ] });
 }
 function FilterButton({
@@ -69269,7 +70376,7 @@ function FilterButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
 }
 function ProjectListRow({
   roadmap,
@@ -69290,8 +70397,8 @@ function ProjectListRow({
   const humanExecutors = uniqueHumanExecutors(projectWorks);
   const assignments = uniqueAssignments(projectWorks);
   const hasExecutors = humanExecutors.length > 0 || assignments.length > 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("article", { className: "project-list-row", "data-project-id": roadmap.roadmapId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("article", { className: "project-list-row", "data-project-id": roadmap.roadmapId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)(
       "button",
       {
         type: "button",
@@ -69299,10 +70406,10 @@ function ProjectListRow({
         "aria-label": `\u6253\u5F00\u9879\u76EE \xB7 ${roadmap.title}`,
         onClick: () => onOpen(roadmap),
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("span", { className: "project-list-identity", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("strong", { children: roadmap.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: roadmap.purpose }),
-            roadmap.targetDate && /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("small", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "project-list-identity", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("strong", { children: roadmap.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: roadmap.purpose }),
+            roadmap.targetDate && /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("small", { children: [
               language === "en" ? "Target" : "\u76EE\u6807",
               " ",
               formatWorkDate(roadmap.targetDate, language),
@@ -69312,8 +70419,8 @@ function ProjectListRow({
               language === "en" ? "" : "\u5B9A"
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("span", { className: "project-list-people", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "project-list-people", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
               HumanIdentityChip,
               {
                 humanId: roadmap.accountableHumanId,
@@ -69322,7 +70429,7 @@ function ProjectListRow({
                 suffix: "\u8D1F\u8D23"
               }
             ),
-            humanExecutors.map((humanId) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+            humanExecutors.map((humanId) => /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
               HumanIdentityChip,
               {
                 humanId,
@@ -69332,7 +70439,7 @@ function ProjectListRow({
               },
               `executor:${humanId}`
             )),
-            assignments.map((assignment) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+            assignments.map((assignment) => /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
               AgentIdentityChip,
               {
                 assignment,
@@ -69341,31 +70448,32 @@ function ProjectListRow({
               },
               `${assignment.connectionId}:${assignment.catId}`
             )),
-            !hasExecutors && /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: projectWorks.length ? "\u7531\u8D1F\u8D23\u4EBA\u63A8\u8FDB\u6216\u5C1A\u672A\u5206\u914D" : "\u8FD8\u6CA1\u6709\u4EFB\u52A1" })
+            !hasExecutors && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: projectWorks.length ? "\u7531\u8D1F\u8D23\u4EBA\u63A8\u8FDB\u6216\u5C1A\u672A\u5206\u914D" : "\u8FD8\u6CA1\u6709\u4EFB\u52A1" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("span", { className: "project-list-progress", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("span", { className: "project-progress-segments", "aria-hidden": "true", children: projectWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("i", { "data-project-progress": projectBoardColumn(work2) }, work2.workId)) }),
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("strong", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "project-list-progress", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { className: "project-progress-segments", "aria-hidden": "true", children: projectWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("i", { "data-project-progress": projectBoardColumn(work2) }, work2.workId)) }),
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("strong", { children: [
               projectWorks.length,
               " \u9879"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("small", { children: [
               projectWorks.filter((work2) => work2.lifecycle === "completed").length,
               " \u5B8C\u6210",
               blocked ? ` \xB7 ${blocked} \u963B\u585E` : "",
               unassigned ? ` \xB7 ${unassigned} \u672A\u5206\u914D` : ""
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime84.jsxs)("span", { className: "project-list-next", "data-critical": next.critical || void 0, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("strong", { children: next.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("small", { children: next.detail })
+          /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("span", { className: "project-list-next", "data-critical": next.critical || void 0, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("strong", { children: next.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: next.detail })
           ] })
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime84.jsx)("div", { className: "project-list-artifact-cell", children: /* @__PURE__ */ (0, import_jsx_runtime84.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("div", { className: "project-list-artifact-cell", children: /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
       ProjectArtifactSummary,
       {
+        roadmap,
         works: projectWorks,
         artifacts,
         status: artifactStatus,
@@ -69433,8 +70541,8 @@ function projectNextCopy(roadmap, projectWorks, availableWorks, humanNames) {
 }
 
 // src/ProjectTaskAuthoring.tsx
-var import_react66 = __toESM(require_react(), 1);
-var import_jsx_runtime85 = __toESM(require_jsx_runtime(), 1);
+var import_react71 = __toESM(require_react(), 1);
+var import_jsx_runtime88 = __toESM(require_jsx_runtime(), 1);
 function NewProjectTaskControl({
   roadmap,
   channelId,
@@ -69442,7 +70550,7 @@ function NewProjectTaskControl({
   humans,
   onCreate
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
     ProjectTaskControl,
     {
       roadmaps: [roadmap],
@@ -69461,7 +70569,7 @@ function NewWorkspaceTaskControl({
   humans,
   onCreate
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
     ProjectTaskControl,
     {
       roadmaps,
@@ -69484,13 +70592,13 @@ function ProjectTaskControl({
   const eligible = roadmaps.filter(
     (roadmap2) => roadmap2.status === "active" && roadmap2.accountableHumanId === currentHumanId
   );
-  const [open, setOpen] = (0, import_react66.useState)(false);
-  const [roadmapId, setRoadmapId] = (0, import_react66.useState)(eligible[0]?.roadmapId ?? "");
-  const [title, setTitle] = (0, import_react66.useState)("");
-  const [outcome, setOutcome] = (0, import_react66.useState)("");
-  const [responsibility2, setResponsibility] = (0, import_react66.useState)("unassigned");
-  const [submitting, setSubmitting] = (0, import_react66.useState)(false);
-  const [error, setError] = (0, import_react66.useState)();
+  const [open, setOpen] = (0, import_react71.useState)(false);
+  const [roadmapId, setRoadmapId] = (0, import_react71.useState)(eligible[0]?.roadmapId ?? "");
+  const [title, setTitle] = (0, import_react71.useState)("");
+  const [outcome, setOutcome] = (0, import_react71.useState)("");
+  const [responsibility2, setResponsibility] = (0, import_react71.useState)("unassigned");
+  const [submitting, setSubmitting] = (0, import_react71.useState)(false);
+  const [error, setError] = (0, import_react71.useState)();
   const roadmap = eligible.find((candidate) => candidate.roadmapId === roadmapId) ?? eligible[0];
   if (!onCreate || !roadmap) return null;
   const submit2 = async (event) => {
@@ -69513,24 +70621,24 @@ function ProjectTaskControl({
       setSubmitting(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("div", { className: "project-authoring-control project-task-authoring-control", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", className: "project-primary-action", "aria-expanded": open, onClick: () => setOpen(!open), children: "\u65B0\u5EFA\u4EFB\u52A1" }),
-    open && /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("form", { className: "project-authoring-form project-task-authoring-form", onSubmit: (event) => void submit2(event), children: [
-      showProjectPicker && eligible.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("span", { children: "\u9879\u76EE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { className: "project-authoring-control project-task-authoring-control", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", className: "project-primary-action", "aria-expanded": open, onClick: () => setOpen(!open), children: "\u65B0\u5EFA\u4EFB\u52A1" }),
+    open && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("form", { className: "project-authoring-form project-task-authoring-form", onSubmit: (event) => void submit2(event), children: [
+      showProjectPicker && eligible.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: "\u9879\u76EE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
           "select",
           {
             "aria-label": "\u4EFB\u52A1\u6240\u5C5E\u9879\u76EE",
             value: roadmap.roadmapId,
             onChange: (event) => setRoadmapId(event.currentTarget.value),
-            children: eligible.map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("option", { value: candidate.roadmapId, children: candidate.title }, candidate.roadmapId))
+            children: eligible.map((candidate) => /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("option", { value: candidate.roadmapId, children: candidate.title }, candidate.roadmapId))
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
           "input",
           {
             "aria-label": "\u4EFB\u52A1\u540D\u79F0",
@@ -69540,9 +70648,9 @@ function ProjectTaskControl({
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(
           "textarea",
           {
             "aria-label": "\u4EFB\u52A1\u5B8C\u6210\u6807\u51C6",
@@ -69553,18 +70661,18 @@ function ProjectTaskControl({
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: "\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)(
           "select",
           {
             "aria-label": "\u4EFB\u52A1\u8D1F\u8D23\u4EBA",
             value: responsibility2,
             onChange: (event) => setResponsibility(event.currentTarget.value),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("option", { value: "unassigned", children: "\u5F85\u6307\u6D3E" }),
-              /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("option", { value: "self", children: "\u6211\u8D1F\u8D23" }),
-              humans.filter((human) => human.humanId !== currentHumanId).map((human) => /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("option", { value: human.humanId, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("option", { value: "unassigned", children: "\u5F85\u6307\u6D3E" }),
+              /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("option", { value: "self", children: "\u6211\u8D1F\u8D23" }),
+              humans.filter((human) => human.humanId !== currentHumanId).map((human) => /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("option", { value: human.humanId, children: [
                 "\u9080\u8BF7 ",
                 human.displayName,
                 " \u8D1F\u8D23"
@@ -69573,18 +70681,18 @@ function ProjectTaskControl({
           }
         )
       ] }),
-      responsibility2 !== "self" && responsibility2 !== "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("p", { className: "project-authoring-note", children: "\u4EFB\u52A1\u5148\u4FDD\u6301\u5F85\u6307\u6D3E\uFF1B\u5BF9\u65B9\u63A5\u53D7\u9080\u8BF7\u540E\u624D\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\u3002" }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("p", { role: "alert", children: error }),
-      /* @__PURE__ */ (0, import_jsx_runtime85.jsxs)("div", { className: "project-authoring-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "button", onClick: () => setOpen(false), children: "\u53D6\u6D88" }),
-        /* @__PURE__ */ (0, import_jsx_runtime85.jsx)("button", { type: "submit", className: "project-primary-action", disabled: submitting, children: submitting ? "\u6B63\u5728\u521B\u5EFA\u2026" : "\u521B\u5EFA\u4EFB\u52A1" })
+      responsibility2 !== "self" && responsibility2 !== "unassigned" && /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { className: "project-authoring-note", children: "\u4EFB\u52A1\u5148\u4FDD\u6301\u5F85\u6307\u6D3E\uFF1B\u5BF9\u65B9\u63A5\u53D7\u9080\u8BF7\u540E\u624D\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\u3002" }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { role: "alert", children: error }),
+      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { className: "project-authoring-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "button", onClick: () => setOpen(false), children: "\u53D6\u6D88" }),
+        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("button", { type: "submit", className: "project-primary-action", disabled: submitting, children: submitting ? "\u6B63\u5728\u521B\u5EFA\u2026" : "\u521B\u5EFA\u4EFB\u52A1" })
       ] })
     ] })
   ] });
 }
 
 // src/RoadmapPanel.tsx
-var import_react75 = __toESM(require_react(), 1);
+var import_react79 = __toESM(require_react(), 1);
 
 // src/material-copy.ts
 var copy = {
@@ -69653,7 +70761,7 @@ function useMaterialText() {
 }
 
 // src/ProjectMaterialCard.tsx
-var import_jsx_runtime86 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime89 = __toESM(require_jsx_runtime(), 1);
 function materialDateHint(clause) {
   return clause.dateHint ?? clause.text.match(
     /\b20\d{2}-\d{2}-\d{2}\b|\b\d{1,2}-\d{2}\b|(?:周|星期)[一二三四五六日天](?:前|后)?|\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i
@@ -69673,61 +70781,61 @@ function ProjectMaterialCard({
   onOpenSource,
   onOpenWork
 }) {
-  const t = useMaterialText(), en2 = useCollectiveLanguage() === "en", url = materialSourceUrl(item);
-  const date = (value) => new Intl.DateTimeFormat(en2 ? "en-US" : "zh-CN", {
+  const t = useMaterialText(), en3 = useCollectiveLanguage() === "en", url = materialSourceUrl(item);
+  const date = (value) => new Intl.DateTimeFormat(en3 ? "en-US" : "zh-CN", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
-  return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("article", { className: "project-material-card", "data-material-id": item.materialId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("span", { className: "material-kind", children: item.material.kind === "meeting" ? en2 ? "Meeting notes" : "\u4F1A\u8BAE\u7EAA\u8981" : item.material.kind === "pr" ? "PR" : "Issue" }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h3", { children: item.material.title })
+  return /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("article", { className: "project-material-card", "data-material-id": item.materialId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("span", { className: "material-kind", children: item.material.kind === "meeting" ? en3 ? "Meeting notes" : "\u4F1A\u8BAE\u7EAA\u8981" : item.material.kind === "pr" ? "PR" : "Issue" }),
+      /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("h3", { children: item.material.title })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("p", { className: "material-meta", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("p", { className: "material-meta", children: [
       item.material.author ?? item.publication.actor.displayName,
       " \xB7 #",
       item.publication.channelId,
       item.material.occurredAt ? ` \xB7 ${date(item.material.occurredAt)}` : ""
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("div", { className: "material-source-links", children: [
-      url && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("a", { href: url, target: "_blank", rel: "noreferrer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("div", { className: "material-source-links", children: [
+      url && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("a", { href: url, target: "_blank", rel: "noreferrer", children: [
         t("source"),
         " \u2197"
       ] }),
-      onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", onClick: onOpenSource, children: t("channel") })
+      onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "button", onClick: onOpenSource, children: t("channel") })
     ] }),
-    item.publicationIds.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "material-note", children: t("same") }),
-    item.currentness === "revised" && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("details", { className: "material-revised", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("summary", { children: [
+    item.publicationIds.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("p", { className: "material-note", children: t("same") }),
+    item.currentness === "revised" && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("details", { className: "material-revised", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("summary", { children: [
         t("revised"),
         " \xB7 ",
         t("revisions")
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("ol", { children: item.witnesses.map((witness, index4) => /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("li", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("ol", { children: item.witnesses.map((witness, index4) => /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("li", { children: [
         date(witness.readAt),
         " \xB7",
         " ",
-        en2 ? index4 === 0 ? "Read when shared" : "Read after update" : index4 === 0 ? "\u9996\u6B21\u5206\u4EAB\u65F6\u6838\u5BF9" : "\u6765\u6E90\u66F4\u65B0\u540E\u6838\u5BF9"
+        en3 ? index4 === 0 ? "Read when shared" : "Read after update" : index4 === 0 ? "\u9996\u6B21\u5206\u4EAB\u65F6\u6838\u5BF9" : "\u6765\u6E90\u66F4\u65B0\u540E\u6838\u5BF9"
       ] }, `${index4}:${witness.digest}`)) })
     ] }),
-    item.disposition ? /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("p", { className: "material-destination", children: [
+    item.disposition ? /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("p", { className: "material-destination", children: [
       t("handled"),
       " \xB7 ",
       t(item.disposition.action === "reference" ? "reference" : "ignore"),
       " \xB7",
       " ",
       item.disposition.actor.displayName
-    ] }) : /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)(import_jsx_runtime86.Fragment, { children: [
-      item.material.kind === "meeting" && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("h4", { children: t("passages") }),
+    ] }) : /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)(import_jsx_runtime89.Fragment, { children: [
+      item.material.kind === "meeting" && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("h4", { children: t("passages") }),
       item.material.clauses.map((clause) => {
         const decision = item.decisions[clause.clauseId], work2 = works.find((work3) => work3.workId === decision?.workId);
         const guessed = clause.suggestedBy?.kind === "agent" && works.find((work3) => work3.workId === clause.suggestedWorkId);
         const hint = materialDateHint(clause);
-        return /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("section", { className: "material-clause", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { children: clause.text }),
-          guessed && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("small", { children: [
+        return /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("section", { className: "material-clause", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("p", { children: clause.text }),
+          guessed && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("small", { children: [
             guessed.title,
             " \xB7 ",
             t("guess"),
@@ -69735,23 +70843,23 @@ function ProjectMaterialCard({
             clause.suggestedBy?.displayName,
             "\uFF09"
           ] }),
-          hint && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("small", { children: [
-            en2 ? `Mentions \u201C${hint}\u201D \xB7 ` : `\u63D0\u5230\u300C${hint}\u300D\xB7 `,
+          hint && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("small", { children: [
+            en3 ? `Mentions \u201C${hint}\u201D \xB7 ` : `\u63D0\u5230\u300C${hint}\u300D\xB7 `,
             t("hint")
           ] }),
-          decision ? /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("p", { className: "material-destination", children: [
+          decision ? /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("p", { className: "material-destination", children: [
             t("handled"),
             " \xB7 ",
             decision.actor.displayName,
             " \xB7 ",
             date(decision.at),
-            work2 && /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("button", { type: "button", onClick: () => onOpenWork?.(work2.workId), children: [
+            work2 && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("button", { type: "button", onClick: () => onOpenWork?.(work2.workId), children: [
               work2.title,
               " \u2192"
             ] }),
             !work2 && decision.action === "ignore" && ` \xB7 ${t("unused")}`
-          ] }) : canSort ? /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("div", { className: "material-actions", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+          ] }) : canSort ? /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("div", { className: "material-actions", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(
               "button",
               {
                 type: "button",
@@ -69761,7 +70869,7 @@ function ProjectMaterialCard({
                 children: t("create")
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime86.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(
               "button",
               {
                 type: "button",
@@ -69771,20 +70879,20 @@ function ProjectMaterialCard({
                 children: guessed ? `${t("merge")} \xB7 ${guessed.title}` : t("merge")
               }
             ),
-            item.material.kind === "meeting" && /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy, onClick: () => onDecide("ignore", clause.clauseId), children: t("unused") })
+            item.material.kind === "meeting" && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "button", disabled: busy, onClick: () => onDecide("ignore", clause.clauseId), children: t("unused") })
           ] }) : null
         ] }, clause.clauseId);
       }),
-      canSort ? /* @__PURE__ */ (0, import_jsx_runtime86.jsxs)("footer", { className: "material-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy, onClick: () => onDecide("reference"), children: t("reference") }),
-        /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("button", { type: "button", disabled: busy, onClick: () => onDecide("ignore"), children: t("ignore") })
-      ] }) : /* @__PURE__ */ (0, import_jsx_runtime86.jsx)("p", { className: "material-note", children: t("wait") })
+      canSort ? /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("footer", { className: "material-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "button", disabled: busy, onClick: () => onDecide("reference"), children: t("reference") }),
+        /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "button", disabled: busy, onClick: () => onDecide("ignore"), children: t("ignore") })
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("p", { className: "material-note", children: t("wait") })
     ] })
   ] });
 }
 
 // src/MaterialSources.tsx
-var import_jsx_runtime87 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime90 = __toESM(require_jsx_runtime(), 1);
 function MaterialSources({
   feed,
   work: work2,
@@ -69792,11 +70900,11 @@ function MaterialSources({
   onSuggestDate
 }) {
   const t = useMaterialText();
-  const en2 = useCollectiveLanguage() === "en";
+  const en3 = useCollectiveLanguage() === "en";
   const references = work2 ? work2.materialLinks ?? [] : feed.feed.items.filter((item) => item.disposition?.action === "reference").map((item) => ({ materialId: item.materialId }));
   if (!references.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("section", { className: "material-sources", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("h4", { children: t(work2 ? "taskSources" : "references") }),
+  return /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("section", { className: "material-sources", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("h4", { children: t(work2 ? "taskSources" : "references") }),
     references.map((link3, index4) => {
       const item = feed.feed.items.find((item2) => item2.materialId === link3.materialId), url = item && materialSourceUrl(item);
       const linkedWitness = work2?.materialLinks?.[index4]?.witness;
@@ -69804,27 +70912,27 @@ function MaterialSources({
       const clause = item?.material.clauses.find((clause2) => clause2.clauseId === clauseId);
       const hint = clause && materialDateHint(clause);
       const changed2 = item && (linkedWitness ? !sameCollectiveMaterialWitness(linkedWitness, item.currentWitness) : item.currentness === "revised");
-      return /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("div", { children: item ? /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)(import_jsx_runtime87.Fragment, { children: [
-        url ? /* @__PURE__ */ (0, import_jsx_runtime87.jsxs)("a", { href: url, target: "_blank", rel: "noreferrer", children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("div", { children: item ? /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)(import_jsx_runtime90.Fragment, { children: [
+        url ? /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("a", { href: url, target: "_blank", rel: "noreferrer", children: [
           item.material.title,
           " \u2197"
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("button", { type: "button", onClick: () => feed.openSource?.(item.publication, view), children: item.material.title }),
-        changed2 && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("small", { children: t("revised") }),
-        hint && onSuggestDate && /* @__PURE__ */ (0, import_jsx_runtime87.jsx)(
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: () => feed.openSource?.(item.publication, view), children: item.material.title }),
+        changed2 && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("small", { children: t("revised") }),
+        hint && onSuggestDate && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
           "button",
           {
             type: "button",
             onClick: () => onSuggestDate({ text: hint, eventId: item.publication.sourceEventId }),
-            children: en2 ? `Consider \u201C${hint}\u201D as a deadline\u2026` : `\u8003\u8651\u628A\u300C${hint}\u300D\u8BBE\u6210\u622A\u6B62\u2026`
+            children: en3 ? `Consider \u201C${hint}\u201D as a deadline\u2026` : `\u8003\u8651\u628A\u300C${hint}\u300D\u8BBE\u6210\u622A\u6B62\u2026`
           }
         )
-      ] }) : /* @__PURE__ */ (0, import_jsx_runtime87.jsx)("span", { children: t(feed.loading ? "loading" : "unavailable") }) }, `${link3.materialId}:${index4}`);
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("span", { children: t(feed.loading ? "loading" : "unavailable") }) }, `${link3.materialId}:${index4}`);
     })
   ] });
 }
 
 // src/ProjectContextPanel.tsx
-var import_jsx_runtime88 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime91 = __toESM(require_jsx_runtime(), 1);
 function ProjectContextPanel({
   roadmap,
   materialFeed,
@@ -69836,72 +70944,72 @@ function ProjectContextPanel({
   const completed = works.filter((work2) => work2.lifecycle === "completed");
   const blocked = works.filter((work2) => work2.status === "blocked");
   const activity = projectActivity(roadmap, works).slice(0, 8);
-  const language = useCollectiveLanguage(), en2 = language === "en", latest = projectLatestDeadline(works);
-  return /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("aside", { className: "project-context", "aria-label": "\u9879\u76EE\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("strong", { children: "\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: "\u732B\u63A5\u624B\u8FD9\u4E2A\u9879\u76EE\u7684\u4EFB\u52A1\u65F6\uFF0C\u5148\u8BFB\u5230\u8FD9\u4E9B" })
+  const language = useCollectiveLanguage(), en3 = language === "en", latest = projectLatestDeadline(works);
+  return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("aside", { className: "project-context", "aria-label": "\u9879\u76EE\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: "\u4E0A\u4E0B\u6587\u4E0E\u52A8\u6001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u732B\u63A5\u624B\u8FD9\u4E2A\u9879\u76EE\u7684\u4EFB\u52A1\u65F6\uFF0C\u5148\u8BFB\u5230\u8FD9\u4E9B" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("dl", { className: "project-context-facts", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dt", { children: "\u9879\u76EE\u76EE\u6807" }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dd", { children: roadmap.purpose })
+    /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("dl", { className: "project-context-facts", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dt", { children: "\u9879\u76EE\u76EE\u6807" }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dd", { children: roadmap.purpose })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dt", { children: "\u5DF2\u5B8C\u6210" }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dd", { children: completed.length ? completed.map((work2) => work2.title).join("\u3001") : "\u8FD8\u6CA1\u6709\u5DF2\u5B8C\u6210\u4EFB\u52A1" })
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dt", { children: "\u5DF2\u5B8C\u6210" }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dd", { children: completed.length ? completed.map((work2) => work2.title).join("\u3001") : "\u8FD8\u6CA1\u6709\u5DF2\u5B8C\u6210\u4EFB\u52A1" })
       ] }),
-      (roadmap.targetDate || latest) && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dt", { children: en2 ? "Dates" : "\u65F6\u95F4" }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("dd", { children: [
-          roadmap.targetDate && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("span", { children: [
-            en2 ? "Target" : "\u76EE\u6807",
+      (roadmap.targetDate || latest) && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dt", { children: en3 ? "Dates" : "\u65F6\u95F4" }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("dd", { children: [
+          roadmap.targetDate && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("span", { children: [
+            en3 ? "Target" : "\u76EE\u6807",
             " \xB7 ",
             formatWorkDate(roadmap.targetDate, language),
             " \xB7",
             " ",
             roadmap.targetDate.actor.displayName
           ] }),
-          latest && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("small", { children: [
-            en2 ? "Latest task deadline" : "\u4EFB\u52A1\u91CC\u6700\u665A\u7684\u622A\u6B62",
+          latest && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("small", { children: [
+            en3 ? "Latest task deadline" : "\u4EFB\u52A1\u91CC\u6700\u665A\u7684\u622A\u6B62",
             " \xB7 ",
             formatWorkDate(latest, language)
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dt", { children: "\u5F53\u524D\u963B\u585E" }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dd", { children: blocked.length ? blocked.map((work2) => blockingSummary(work2, availableWorks)).join("\uFF1B") : "\u5F53\u524D\u6CA1\u6709\u963B\u585E" })
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dt", { children: "\u5F53\u524D\u963B\u585E" }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dd", { children: blocked.length ? blocked.map((work2) => blockingSummary(work2, availableWorks)).join("\uFF1B") : "\u5F53\u524D\u6CA1\u6709\u963B\u585E" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("dt", { children: "\u51FA\u5904" }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("dd", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("dt", { children: "\u51FA\u5904" }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("dd", { children: [
           "\u6765\u81EA #",
           roadmap.sourceLocation.channelId
         ] })
       ] })
     ] }),
-    onOpenSource && works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("details", { className: "project-context-sources", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("summary", { children: "\u4EFB\u52A1\u51FA\u5904" }),
-      works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: work2.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("small", { children: [
+    onOpenSource && works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("details", { className: "project-context-sources", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("summary", { children: "\u4EFB\u52A1\u51FA\u5904" }),
+      works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: work2.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("small", { children: [
           "#",
           work2.sourceLocation.channelId
         ] })
       ] }, work2.workId))
     ] }),
-    materialFeed && /* @__PURE__ */ (0, import_jsx_runtime88.jsx)(MaterialSources, { feed: materialFeed, view }),
-    /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("section", { className: "project-context-activity", "aria-label": "\u9879\u76EE\u52A8\u6001", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("h3", { children: "\u52A8\u6001" }),
-      activity.length ? /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("ol", { children: activity.map((item) => /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("li", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("span", { children: formatHistoryTime(item.at) }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("strong", { children: item.label }),
-        /* @__PURE__ */ (0, import_jsx_runtime88.jsxs)("p", { children: [
+    materialFeed && /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(MaterialSources, { feed: materialFeed, view }),
+    /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("section", { className: "project-context-activity", "aria-label": "\u9879\u76EE\u52A8\u6001", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("h3", { children: "\u52A8\u6001" }),
+      activity.length ? /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("ol", { children: activity.map((item) => /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: formatHistoryTime(item.at) }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: item.label }),
+        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("p", { children: [
           item.actor,
           item.note ? ` \xB7 ${item.note}` : ""
         ] })
-      ] }, item.key)) }) : /* @__PURE__ */ (0, import_jsx_runtime88.jsx)("p", { children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u52A8\u6001\u3002" })
+      ] }, item.key)) }) : /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("p", { children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u52A8\u6001\u3002" })
     ] })
   ] });
 }
@@ -69932,19 +71040,19 @@ function projectActivity(roadmap, works) {
 }
 
 // src/ProjectTimeSummary.tsx
-var import_react67 = __toESM(require_react(), 1);
-var import_jsx_runtime89 = __toESM(require_jsx_runtime(), 1);
+var import_react72 = __toESM(require_react(), 1);
+var import_jsx_runtime92 = __toESM(require_jsx_runtime(), 1);
 function ProjectTimeSummary({
   roadmap,
   works,
   currentHumanId,
   onChange
 }) {
-  const language = useCollectiveLanguage(), en2 = language === "en";
-  const [editing, setEditing] = (0, import_react67.useState)(false), [saving, setSaving] = (0, import_react67.useState)(false), [error, setError] = (0, import_react67.useState)("");
-  const [value, setValue] = (0, import_react67.useState)(roadmap.targetDate ? timeFactToLocalDateTime(roadmap.targetDate) : "");
-  const [selectedInstant, setSelectedInstant] = (0, import_react67.useState)(roadmap.targetDate?.value);
-  const [timeZone, setTimeZone] = (0, import_react67.useState)(
+  const language = useCollectiveLanguage(), en3 = language === "en";
+  const [editing, setEditing] = (0, import_react72.useState)(false), [saving, setSaving] = (0, import_react72.useState)(false), [error, setError] = (0, import_react72.useState)("");
+  const [value, setValue] = (0, import_react72.useState)(roadmap.targetDate ? timeFactToLocalDateTime(roadmap.targetDate) : "");
+  const [selectedInstant, setSelectedInstant] = (0, import_react72.useState)(roadmap.targetDate?.value);
+  const [timeZone, setTimeZone] = (0, import_react72.useState)(
     roadmap.targetDate?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
   );
   const latest = projectLatestDeadline(works), target = roadmap.targetDate;
@@ -69964,27 +71072,27 @@ function ProjectTimeSummary({
       setSaving(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("div", { className: "project-time-target", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("dt", { children: en2 ? "Dates" : "\u65F6\u95F4" }),
-    /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("dd", { children: [
-      target ? /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)(import_jsx_runtime89.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("strong", { children: [
-          en2 ? "Target" : "\u76EE\u6807",
+  return /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("div", { className: "project-time-target", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("dt", { children: en3 ? "Dates" : "\u65F6\u95F4" }),
+    /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("dd", { children: [
+      target ? /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)(import_jsx_runtime92.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("strong", { children: [
+          en3 ? "Target" : "\u76EE\u6807",
           " \xB7 ",
           formatWorkDate(target, language)
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("small", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("small", { children: [
           target.actor.displayName,
           " \xB7 ",
           target.timeZone
         ] })
-      ] }) : /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("span", { children: en2 ? "No project target" : "\u672A\u8BBE\u9879\u76EE\u76EE\u6807" }),
-      latest && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("small", { children: [
-        en2 ? "Latest task deadline" : "\u4EFB\u52A1\u91CC\u6700\u665A\u7684\u622A\u6B62",
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("span", { children: en3 ? "No project target" : "\u672A\u8BBE\u9879\u76EE\u76EE\u6807" }),
+      latest && /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("small", { children: [
+        en3 ? "Latest task deadline" : "\u4EFB\u52A1\u91CC\u6700\u665A\u7684\u622A\u6B62",
         " \xB7 ",
         formatWorkDate(latest, language)
       ] }),
-      roadmap.accountableHumanId === currentHumanId && onChange && !editing && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(
+      roadmap.accountableHumanId === currentHumanId && onChange && !editing && /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
         "button",
         {
           type: "button",
@@ -69994,10 +71102,10 @@ function ProjectTimeSummary({
             setTimeZone(target?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
             setEditing(true);
           },
-          children: en2 ? "Edit target\u2026" : "\u6539\u76EE\u6807\u65E5\u671F\u2026"
+          children: en3 ? "Edit target\u2026" : "\u6539\u76EE\u6807\u65E5\u671F\u2026"
         }
       ),
-      editing && /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)(
+      editing && /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)(
         "form",
         {
           className: "work-time-editor",
@@ -70006,9 +71114,9 @@ function ProjectTimeSummary({
             void save(false);
           },
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("label", { children: [
-              en2 ? "Project target" : "\u9879\u76EE\u76EE\u6807",
-              /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("label", { children: [
+              en3 ? "Project target" : "\u9879\u76EE\u76EE\u6807",
+              /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                 "input",
                 {
                   type: "datetime-local",
@@ -70022,9 +71130,9 @@ function ProjectTimeSummary({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("label", { children: [
-              en2 ? "Time zone" : "\u65F6\u533A",
-              /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("label", { children: [
+              en3 ? "Time zone" : "\u65F6\u533A",
+              /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
                 "input",
                 {
                   value: timeZone,
@@ -70037,7 +71145,7 @@ function ProjectTimeSummary({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime89.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
               RepeatedTimeChoice,
               {
                 value,
@@ -70045,25 +71153,25 @@ function ProjectTimeSummary({
                 selected: selectedInstant,
                 onSelect: setSelectedInstant,
                 disabled: saving,
-                en: en2
+                en: en3
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("p", { children: en2 ? "Task deadlines stay unchanged." : "\u9879\u76EE\u76EE\u6807\u4E0D\u6539\u53D8\u4EFB\u4F55\u4EFB\u52A1\u7684\u622A\u6B62\u3002" }),
-            /* @__PURE__ */ (0, import_jsx_runtime89.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "button", disabled: saving, onClick: () => setEditing(false), children: en2 ? "Cancel" : "\u53D6\u6D88" }),
-              target && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "button", disabled: saving, onClick: () => void save(true), children: en2 ? "Clear target" : "\u6E05\u9664\u76EE\u6807" }),
-              /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("button", { type: "submit", className: "primary", disabled: saving, children: en2 ? "Save target" : "\u4FDD\u5B58\u76EE\u6807" })
+            /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("p", { children: en3 ? "Task deadlines stay unchanged." : "\u9879\u76EE\u76EE\u6807\u4E0D\u6539\u53D8\u4EFB\u4F55\u4EFB\u52A1\u7684\u622A\u6B62\u3002" }),
+            /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("button", { type: "button", disabled: saving, onClick: () => setEditing(false), children: en3 ? "Cancel" : "\u53D6\u6D88" }),
+              target && /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("button", { type: "button", disabled: saving, onClick: () => void save(true), children: en3 ? "Clear target" : "\u6E05\u9664\u76EE\u6807" }),
+              /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("button", { type: "submit", className: "primary", disabled: saving, children: en3 ? "Save target" : "\u4FDD\u5B58\u76EE\u6807" })
             ] })
           ]
         }
       ),
-      error && /* @__PURE__ */ (0, import_jsx_runtime89.jsx)("p", { role: "alert", children: error })
+      error && /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("p", { role: "alert", children: error })
     ] })
   ] });
 }
 
 // src/ProjectPanelChrome.tsx
-var import_jsx_runtime90 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime93 = __toESM(require_jsx_runtime(), 1);
 function ProjectPageToolbar({
   roadmap,
   channelId,
@@ -70079,16 +71187,16 @@ function ProjectPageToolbar({
   onCreateTask
 }) {
   const materialText = useMaterialText();
-  return /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("header", { className: "project-page-toolbar", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("div", { className: "project-page-location", children: [
-      onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(ShellGlyph, { name: "panelLeft" }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("nav", { className: "project-breadcrumb", "aria-label": "\u9879\u76EE\u5C42\u7EA7", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", onClick: onBack, children: "\u9879\u76EE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("span", { "aria-hidden": "true", children: "\u203A" }),
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("strong", { children: roadmap.title })
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("header", { className: "project-page-toolbar", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("div", { className: "project-page-location", children: [
+      onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(ShellGlyph, { name: "panelLeft" }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("nav", { className: "project-breadcrumb", "aria-label": "\u9879\u76EE\u5C42\u7EA7", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { type: "button", onClick: onBack, children: "\u9879\u76EE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("span", { "aria-hidden": "true", children: "\u203A" }),
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("strong", { children: roadmap.title })
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       ProjectViewNavigation,
       {
         view,
@@ -70097,9 +71205,9 @@ function ProjectPageToolbar({
         hasMaterials
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("div", { className: "project-page-authoring-actions", children: [
-      onShareMaterial && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { className: "project-share-material", type: "button", onClick: onShareMaterial, children: materialText("add") }),
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("div", { className: "project-page-authoring-actions", children: [
+      onShareMaterial && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { className: "project-share-material", type: "button", onClick: onShareMaterial, children: materialText("add") }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
         NewProjectTaskControl,
         {
           roadmap,
@@ -70125,16 +71233,16 @@ function ProjectPanelSummary({
   const completed = works.filter((work2) => work2.lifecycle === "completed").length;
   const blocked = works.filter((work2) => work2.status === "blocked").length;
   const unassigned = works.filter((work2) => work2.status === "unassigned").length;
-  return /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("section", { className: "project-summary", "aria-label": `\u9879\u76EE \xB7 ${roadmap.title}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("span", { className: "project-summary-status", children: roadmap.status === "active" ? "\u8FDB\u884C\u4E2D" : "\u5DF2\u5B8C\u6210" }),
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("h1", { children: roadmap.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("p", { children: roadmap.purpose })
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("section", { className: "project-summary", "aria-label": `\u9879\u76EE \xB7 ${roadmap.title}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("span", { className: "project-summary-status", children: roadmap.status === "active" ? "\u8FDB\u884C\u4E2D" : "\u5DF2\u5B8C\u6210" }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("h1", { children: roadmap.title }),
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("p", { children: roadmap.purpose })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("dl", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("dl", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
           HumanIdentityChip,
           {
             humanId: roadmap.accountableHumanId,
@@ -70143,9 +71251,9 @@ function ProjectPanelSummary({
           }
         ) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("dt", { children: "\u8FDB\u5EA6" }),
-        /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("dd", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("dt", { children: "\u8FDB\u5EA6" }),
+        /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("dd", { children: [
           works.length,
           " \u9879 \xB7 ",
           completed,
@@ -70154,9 +71262,9 @@ function ProjectPanelSummary({
           unassigned ? ` \xB7 ${unassigned} \u672A\u5206\u914D` : ""
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(ProjectTimeSummary, { roadmap, works, currentHumanId, onChange: onChangeTarget })
+      /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(ProjectTimeSummary, { roadmap, works, currentHumanId, onChange: onChangeTarget })
     ] }),
-    roadmap.accountableHumanId === currentHumanId && canChangeStatus && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+    roadmap.accountableHumanId === currentHumanId && canChangeStatus && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       "button",
       {
         type: "button",
@@ -70174,8 +71282,8 @@ function ProjectViewNavigation({
   hasMaterials
 }) {
   const materialText = useMaterialText();
-  return /* @__PURE__ */ (0, import_jsx_runtime90.jsxs)("nav", { className: "project-view-navigation", "aria-label": "\u9879\u76EE\u89C2\u5BDF\u65B9\u5F0F", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsxs)("nav", { className: "project-view-navigation", "aria-label": "\u9879\u76EE\u89C2\u5BDF\u65B9\u5F0F", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       LensButton,
       {
         active: view.lens === "stage" && view.presentation === "graph",
@@ -70183,7 +71291,7 @@ function ProjectViewNavigation({
         children: "\u8BA1\u5212"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       LensButton,
       {
         active: view.lens === "stage" && view.presentation === "board",
@@ -70191,8 +71299,8 @@ function ProjectViewNavigation({
         children: "\u770B\u677F"
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(LensButton, { active: view.lens === "dependencies", onClick: () => onSetLens("dependencies"), children: "\u4F9D\u8D56\u56FE" }),
-    hasMaterials && /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(LensButton, { active: view.lens === "dependencies", onClick: () => onSetLens("dependencies"), children: "\u4F9D\u8D56\u56FE" }),
+    hasMaterials && /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
       LensButton,
       {
         active: view.lens === "triage",
@@ -70200,7 +71308,7 @@ function ProjectViewNavigation({
         children: `${materialText("sort")} ${materialCount}`
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime90.jsx)(LensButton, { active: view.lens === "artifacts", onClick: () => onSetLens("artifacts"), children: "\u4F5C\u54C1" })
+    /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(LensButton, { active: view.lens === "artifacts", onClick: () => onSetLens("artifacts"), children: "\u4F5C\u54C1" })
   ] });
 }
 function LensButton({
@@ -70208,11 +71316,11 @@ function LensButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime90.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
 }
 
 // src/ProjectPlanTable.tsx
-var import_jsx_runtime91 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime94 = __toESM(require_jsx_runtime(), 1);
 function ProjectPlanTable(props) {
   const levels = dependencyLevels(props.works);
   const ordered = [...props.works].sort(
@@ -70220,32 +71328,32 @@ function ProjectPlanTable(props) {
   );
   const completed = ordered.filter((work2) => work2.lifecycle === "completed");
   const current2 = ordered.filter((work2) => work2.lifecycle !== "completed");
-  return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("section", { className: "project-plan", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u8BA1\u5212", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("header", { className: "project-plan-columns", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u4EFB\u52A1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u6267\u884C" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u963B\u585E / \u524D\u7F6E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u4E0B\u4E00\u6B21\u4EA4\u4ED8" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u65F6\u95F4" })
+  return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("section", { className: "project-plan", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u8BA1\u5212", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("header", { className: "project-plan-columns", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u4EFB\u52A1" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u6267\u884C" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u963B\u585E / \u524D\u7F6E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u4E0B\u4E00\u6B21\u4EA4\u4ED8" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u65F6\u95F4" })
     ] }),
-    completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("details", { className: "project-plan-completed", "aria-label": "\u5DF2\u5B8C\u6210\u4EFB\u52A1", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("summary", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("span", { children: [
+    completed.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("details", { className: "project-plan-completed", "aria-label": "\u5DF2\u5B8C\u6210\u4EFB\u52A1", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("summary", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("span", { children: [
           "\u5DF2\u5B8C\u6210 ",
           completed.length,
           " \u9879"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("small", { children: completed.map((work2) => work2.title).join(" \xB7 ") })
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("small", { children: completed.map((work2) => work2.title).join(" \xB7 ") })
       ] }),
-      completed.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId))
+      completed.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("div", { className: "project-plan-current", children: current2.length ? current2.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId)) : /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("p", { className: "project-plan-empty", children: "\u6CA1\u6709\u672A\u5B8C\u6210\u4EFB\u52A1\u3002" }) })
+    /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("div", { className: "project-plan-current", children: current2.length ? current2.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(ProjectPlanRow, { ...props, work: work2 }, work2.workId)) : /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("p", { className: "project-plan-empty", children: "\u6CA1\u6709\u672A\u5B8C\u6210\u4EFB\u52A1\u3002" }) })
   ] });
 }
 function ProjectPlanRow({ work: work2, ...props }) {
   const recent = work2.history.at(-1);
   const execution = workExecutionPresentation(work2);
-  return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(
     "article",
     {
       className: "project-plan-row",
@@ -70253,12 +71361,12 @@ function ProjectPlanRow({ work: work2, ...props }) {
       "data-blocked": work2.status === "blocked" || void 0,
       "data-selected": props.selectedWorkId === work2.workId || void 0,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("button", { type: "button", className: "project-plan-task", onClick: () => props.onSelect(work2.workId), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { className: "project-plan-status", "data-work-status-label": work2.status, children: execution.statusLabel }),
-          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: work2.title })
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("button", { type: "button", className: "project-plan-task", onClick: () => props.onSelect(work2.workId), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { className: "project-plan-status", "data-work-status-label": work2.status, children: execution.statusLabel }),
+          /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: work2.title })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("div", { className: "project-plan-execution", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("div", { className: "project-plan-execution", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
             WorkIdentityChips,
             {
               work: work2,
@@ -70267,7 +71375,7 @@ function ProjectPlanRow({ work: work2, ...props }) {
               humanNames: props.humanNames
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
             ProjectResponsibilityInline,
             {
               roadmap: props.roadmap,
@@ -70281,16 +71389,16 @@ function ProjectPlanRow({ work: work2, ...props }) {
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("div", { className: "project-plan-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(ProjectDependencySummary, { work: work2, availableWorks: props.availableWorks }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("p", { className: "project-plan-delivery", children: work2.intendedOutcome || "\u672A\u586B\u5199" }),
-        /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("div", { className: "project-plan-recent", children: work2.time?.businessDeadline || work2.time?.reviewBy || work2.time?.estimatedCompletion ? /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(WorkTimeSummary, { work: work2 }) : recent ? /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: workHistoryLabels[recent.action] }),
-          /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("div", { className: "project-plan-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(ProjectDependencySummary, { work: work2, availableWorks: props.availableWorks }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("p", { className: "project-plan-delivery", children: work2.intendedOutcome || "\u672A\u586B\u5199" }),
+        /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("div", { className: "project-plan-recent", children: work2.time?.businessDeadline || work2.time?.reviewBy || work2.time?.estimatedCompletion ? /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(WorkTimeSummary, { work: work2 }) : recent ? /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: workHistoryLabels[recent.action] }),
+          /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("span", { children: [
             recent.actor.displayName,
             " \xB7 ",
             formatHistoryTime(recent.at)
           ] })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u6682\u65E0\u52A8\u6001" }) })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u6682\u65E0\u52A8\u6001" }) })
       ]
     }
   );
@@ -70302,59 +71410,59 @@ function ProjectDependencySummary({
   const blocking = workBlockingPresentation(work2, availableWorks);
   const dependencies = blocking ?? workDependencyPresentation(work2, availableWorks);
   if (blocking?.kind === "execution") {
-    return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: blocking.label }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: blocking.detail }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(DependencyHistory, { dependencies })
+    return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: blocking.label }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: blocking.detail }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(DependencyHistory, { dependencies })
     ] });
   }
   if (blocking?.kind === "dependencies") {
-    return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: "\u7B49\u5F85\u524D\u7F6E\u4EFB\u52A1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: blocking.incompleteLabels.join("\u3001") }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
+    return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: "\u7B49\u5F85\u524D\u7F6E\u4EFB\u52A1" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: blocking.incompleteLabels.join("\u3001") }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
     ] });
   }
   if (blocking) {
-    return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: "\u963B\u585E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: blocking.detail }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
+    return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: "\u963B\u585E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: blocking.detail }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(CompletedDependencyHistory, { labels: blocking.completedLabels })
     ] });
   }
   if (dependencies.incompleteLabels.length) {
-    return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: [...dependencies.incompleteLabels, ...dependencies.completedLabels].join("\u3001") })
+    return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: [...dependencies.incompleteLabels, ...dependencies.completedLabels].join("\u3001") })
     ] });
   }
   if (dependencies.completedLabels.length) {
-    return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("strong", { children: "\u524D\u7F6E\u5DF2\u5B8C\u6210" }),
-      /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: dependencies.completedLabels.join("\u3001") })
+    return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("strong", { children: "\u524D\u7F6E\u5DF2\u5B8C\u6210" }),
+      /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: dependencies.completedLabels.join("\u3001") })
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime91.jsx)("span", { children: "\u65E0\u524D\u7F6E\u4EFB\u52A1" });
+  return /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: "\u65E0\u524D\u7F6E\u4EFB\u52A1" });
 }
 function DependencyHistory({ dependencies }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)(import_jsx_runtime91.Fragment, { children: [
-    dependencies.incompleteLabels.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("small", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
+    dependencies.incompleteLabels.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("small", { children: [
       "\u53E6\u6709\u672A\u5B8C\u6210\u524D\u7F6E\uFF1A",
       dependencies.incompleteLabels.join("\u3001")
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime91.jsx)(CompletedDependencyHistory, { labels: dependencies.completedLabels })
+    /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(CompletedDependencyHistory, { labels: dependencies.completedLabels })
   ] });
 }
 function CompletedDependencyHistory({ labels: labels2 }) {
-  return labels2.length ? /* @__PURE__ */ (0, import_jsx_runtime91.jsxs)("small", { children: [
+  return labels2.length ? /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("small", { children: [
     "\u5DF2\u5B8C\u6210\u524D\u7F6E\uFF1A",
     labels2.join("\u3001")
   ] }) : null;
 }
 
 // src/ProjectSuggestionActions.tsx
-var import_react68 = __toESM(require_react(), 1);
-var import_jsx_runtime92 = __toESM(require_jsx_runtime(), 1);
+var import_react73 = __toESM(require_react(), 1);
+var import_jsx_runtime95 = __toESM(require_jsx_runtime(), 1);
 function ProjectSuggestionActions({
   roadmap,
   works,
@@ -70367,18 +71475,18 @@ function ProjectSuggestionActions({
   );
   if (!suggestions.length) return null;
   const byId = new Map(works.map((work2) => [work2.workId, work2]));
-  return /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("section", { className: "project-suggestions", "aria-label": "\u9879\u76EE\u5EFA\u8BAE", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("strong", { children: "\u732B\u7684\u5EFA\u8BAE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("section", { className: "project-suggestions", "aria-label": "\u9879\u76EE\u5EFA\u8BAE", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("strong", { children: "\u732B\u7684\u5EFA\u8BAE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("span", { children: [
           suggestions.length,
           " \u9879\u5F85\u4F60\u5224\u65AD"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("small", { children: "\u63A5\u53D7\u540E\u624D\u4F1A\u6210\u4E3A\u672A\u5206\u914D\u4EFB\u52A1\uFF1B\u6B64\u5904\u4E0D\u4F1A\u66FF\u4EFB\u4F55\u4EBA\u63A5\u8D23\u3002" })
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("small", { children: "\u63A5\u53D7\u540E\u624D\u4F1A\u6210\u4E3A\u672A\u5206\u914D\u4EFB\u52A1\uFF1B\u6B64\u5904\u4E0D\u4F1A\u66FF\u4EFB\u4F55\u4EBA\u63A5\u8D23\u3002" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("div", { className: "project-suggestion-list", children: suggestions.map((suggestion) => /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("div", { className: "project-suggestion-list", children: suggestions.map((suggestion) => /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
       ProjectSuggestionCard,
       {
         roadmap,
@@ -70396,10 +71504,10 @@ function ProjectSuggestionCard({
   target,
   onDecide
 }) {
-  const [title, setTitle] = (0, import_react68.useState)(suggestion.title);
-  const [intendedOutcome, setIntendedOutcome] = (0, import_react68.useState)(suggestion.intendedOutcome);
-  const [busy, setBusy] = (0, import_react68.useState)(false);
-  const [error, setError] = (0, import_react68.useState)();
+  const [title, setTitle] = (0, import_react73.useState)(suggestion.title);
+  const [intendedOutcome, setIntendedOutcome] = (0, import_react73.useState)(suggestion.intendedOutcome);
+  const [busy, setBusy] = (0, import_react73.useState)(false);
+  const [error, setError] = (0, import_react73.useState)();
   const decide = async (decision) => {
     if (!onDecide || busy) return;
     setBusy(true);
@@ -70418,24 +71526,24 @@ function ProjectSuggestionCard({
     }
   };
   const agentName = suggestion.proposedBy.kind === "agent" ? suggestion.proposedBy.displayName : "\u5171\u540C\u4F53\u4F19\u4F34";
-  return /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("article", { className: "project-suggestion-card", "data-project-suggestion-id": suggestion.workId, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("strong", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("article", { className: "project-suggestion-card", "data-project-suggestion-id": suggestion.workId, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("strong", { children: [
           agentName,
           " \u7684\u5EFA\u8BAE"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("span", { children: [
           target ? `\u5EFA\u8BAE\u4F5C\u4E3A\u201C${target.title}\u201D\u7684\u524D\u7F6E\u4EFB\u52A1` : "\u5EFA\u8BAE\u52A0\u5165\u8FD9\u4E2A\u9879\u76EE",
           " \xB7 #",
           suggestion.sourceLocation.channelId
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("span", { className: "project-suggestion-state", children: "\u5F85\u5224\u65AD" })
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("span", { className: "project-suggestion-state", children: "\u5F85\u5224\u65AD" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("span", { children: "\u4EFB\u52A1\u540D\u79F0" }),
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
         "input",
         {
           "aria-label": `\u5EFA\u8BAE\u4EFB\u52A1\u540D\u79F0 \xB7 ${suggestion.title}`,
@@ -70446,9 +71554,9 @@ function ProjectSuggestionCard({
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("span", { children: "\u5B8C\u6210\u6807\u51C6" }),
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
         "textarea",
         {
           "aria-label": `\u5EFA\u8BAE\u4EFB\u52A1\u5B8C\u6210\u6807\u51C6 \xB7 ${suggestion.title}`,
@@ -70460,10 +71568,10 @@ function ProjectSuggestionCard({
         }
       )
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("p", { role: "alert", children: error }),
-    /* @__PURE__ */ (0, import_jsx_runtime92.jsxs)("footer", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)("button", { type: "button", disabled: busy, onClick: () => void decide("ignore"), children: "\u5FFD\u7565\u5EFA\u8BAE" }),
-      /* @__PURE__ */ (0, import_jsx_runtime92.jsx)(
+    error && /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("p", { role: "alert", children: error }),
+    /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("footer", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("button", { type: "button", disabled: busy, onClick: () => void decide("ignore"), children: "\u5FFD\u7565\u5EFA\u8BAE" }),
+      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
         "button",
         {
           type: "button",
@@ -70478,47 +71586,15 @@ function ProjectSuggestionCard({
 }
 
 // src/ProjectTriagePanel.tsx
-var import_react71 = __toESM(require_react(), 1);
+var import_react75 = __toESM(require_react(), 1);
 
 // src/MaterialDecisionDialog.tsx
-var import_react70 = __toESM(require_react(), 1);
-
-// src/MaterialDialogFrame.tsx
-var import_react69 = __toESM(require_react(), 1);
-var import_jsx_runtime93 = __toESM(require_jsx_runtime(), 1);
-function MaterialDialogFrame({
-  label,
-  children,
-  onClose,
-  busy = false
-}) {
-  const dialog = (0, import_react69.useRef)(null);
-  (0, import_react69.useEffect)(() => {
-    const element3 = dialog.current;
-    element3?.showModal();
-    return () => element3?.close();
-  }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime93.jsx)(
-    "dialog",
-    {
-      ref: dialog,
-      "aria-label": label,
-      className: "material-dialog",
-      onCancel: (event) => {
-        event.preventDefault();
-        if (!busy) onClose();
-      },
-      children
-    }
-  );
-}
-
-// src/MaterialDecisionDialog.tsx
-var import_jsx_runtime94 = __toESM(require_jsx_runtime(), 1);
+var import_react74 = __toESM(require_react(), 1);
+var import_jsx_runtime96 = __toESM(require_jsx_runtime(), 1);
 function MaterialDecisionDialog({
   item,
   clause,
-  action,
+  action: action2,
   project,
   works,
   onSubmit,
@@ -70526,11 +71602,11 @@ function MaterialDecisionDialog({
   checking = false
 }) {
   const t = useMaterialText();
-  const [title, setTitle] = (0, import_react70.useState)(
+  const [title, setTitle] = (0, import_react74.useState)(
     item.material.kind === "meeting" ? clause.text.slice(0, 120) : item.material.title.slice(0, 200)
   );
-  const [outcome, setOutcome] = (0, import_react70.useState)(clause.text), [search2, setSearch] = (0, import_react70.useState)("");
-  const [target, setTarget] = (0, import_react70.useState)(clause.suggestedWorkId ?? ""), [busy, setBusy] = (0, import_react70.useState)(false), [error, setError] = (0, import_react70.useState)(false);
+  const [outcome, setOutcome] = (0, import_react74.useState)(clause.text), [search2, setSearch] = (0, import_react74.useState)("");
+  const [target, setTarget] = (0, import_react74.useState)(clause.suggestedWorkId ?? ""), [busy, setBusy] = (0, import_react74.useState)(false), [error, setError] = (0, import_react74.useState)(false);
   const candidates = works.filter((work2) => project.workIds.includes(work2.workId) && work2.lifecycle !== "proposed").filter((work2) => work2.title.toLocaleLowerCase().includes(search2.toLocaleLowerCase())).sort(
     (left, right) => Number(right.workId === clause.suggestedWorkId) - Number(left.workId === clause.suggestedWorkId)
   );
@@ -70539,9 +71615,9 @@ function MaterialDecisionDialog({
     setBusy(true);
     setError(false);
     try {
-      if (action === "create")
+      if (action2 === "create")
         await onSubmit({
-          action,
+          action: action2,
           clauseId: clause.clauseId,
           expectedRoadmapRevision: project.revision,
           title,
@@ -70549,7 +71625,7 @@ function MaterialDecisionDialog({
         });
       else if (selected)
         await onSubmit({
-          action,
+          action: action2,
           clauseId: clause.clauseId,
           workId: selected.workId,
           expectedWorkRevision: selected.revision
@@ -70562,15 +71638,15 @@ function MaterialDecisionDialog({
       setBusy(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(MaterialDialogFrame, { label: t(action), onClose, busy, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("h2", { children: t(action) }),
-    /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("p", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)(MaterialDialogFrame, { label: t(action2), onClose, busy, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("h2", { children: t(action2) }),
+    /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("p", { children: [
       project.title,
       " \xB7 ",
       t("sourceLocked")
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("blockquote", { children: checking ? t("loading") : clause.text }),
-    /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("blockquote", { children: checking ? t("loading") : clause.text }),
+    /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)(
       "form",
       {
         onSubmit: (event) => {
@@ -70578,14 +71654,14 @@ function MaterialDecisionDialog({
           void submit2();
         },
         children: [
-          action === "create" ? /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("label", { children: [
+          action2 === "create" ? /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)(import_jsx_runtime96.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("label", { children: [
               t("name"),
-              /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("input", { value: title, maxLength: 200, required: true, onChange: (event) => setTitle(event.target.value) })
+              /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("input", { value: title, maxLength: 200, required: true, onChange: (event) => setTitle(event.target.value) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("label", { children: [
               t("outcome"),
-              /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime96.jsx)(
                 "textarea",
                 {
                   value: outcome,
@@ -70595,17 +71671,17 @@ function MaterialDecisionDialog({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("p", { className: "material-defaults", children: t("unassigned") }),
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("p", { children: t("hint") })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)(import_jsx_runtime94.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("p", { className: "material-defaults", children: t("unassigned") }),
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("p", { children: t("hint") })
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)(import_jsx_runtime96.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("label", { children: [
               t("search"),
-              /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("input", { type: "search", value: search2, onChange: (event) => setSearch(event.target.value) })
+              /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("input", { type: "search", value: search2, onChange: (event) => setSearch(event.target.value) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("fieldset", { className: "material-task-choices", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("legend", { children: t("merge") }),
-              candidates.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("label", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("fieldset", { className: "material-task-choices", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("legend", { children: t("merge") }),
+              candidates.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("label", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime96.jsx)(
                   "input",
                   {
                     type: "radio",
@@ -70615,19 +71691,19 @@ function MaterialDecisionDialog({
                     onChange: () => setTarget(work2.workId)
                   }
                 ),
-                /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("span", { children: work2.title })
+                /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("span", { children: work2.title })
               ] }, work2.workId))
             ] })
           ] }),
-          error && /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("p", { role: "alert", children: t("commandError") }),
-          /* @__PURE__ */ (0, import_jsx_runtime94.jsxs)("footer", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsx)("button", { type: "button", disabled: busy, onClick: onClose, children: t("cancel") }),
-            /* @__PURE__ */ (0, import_jsx_runtime94.jsx)(
+          error && /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("p", { role: "alert", children: t("commandError") }),
+          /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)("footer", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("button", { type: "button", disabled: busy, onClick: onClose, children: t("cancel") }),
+            /* @__PURE__ */ (0, import_jsx_runtime96.jsx)(
               "button",
               {
                 type: "submit",
                 className: "primary",
-                disabled: busy || checking || (action === "merge" ? !selected : !title.trim() || !outcome.trim()),
+                disabled: busy || checking || (action2 === "merge" ? !selected : !title.trim() || !outcome.trim()),
                 children: t("save")
               }
             )
@@ -70639,7 +71715,7 @@ function MaterialDecisionDialog({
 }
 
 // src/ProjectTriagePanel.tsx
-var import_jsx_runtime95 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime97 = __toESM(require_jsx_runtime(), 1);
 function ProjectTriagePanel({
   project,
   works,
@@ -70649,8 +71725,8 @@ function ProjectTriagePanel({
   onOpenWork
 }) {
   const t = useMaterialText(), canSort = currentHumanId === project.accountableHumanId && project.status === "active";
-  const [selected, setSelected] = (0, import_react71.useState)();
-  const [busy, setBusy] = (0, import_react71.useState)(false), [error, setError] = (0, import_react71.useState)(false);
+  const [selected, setSelected] = (0, import_react75.useState)();
+  const [busy, setBusy] = (0, import_react75.useState)(false), [error, setError] = (0, import_react75.useState)(false);
   const decide = async (item, change) => {
     if (!feed.client) throw new Error("Source client unavailable");
     setBusy(true);
@@ -70668,7 +71744,7 @@ function ProjectTriagePanel({
   };
   const currentSelection = selected && feed.feed.items.find((item) => item.materialId === selected.item.materialId);
   const selectionCurrent = !selected || Boolean(currentSelection && currentSelection.revision === selected.item.revision);
-  (0, import_react71.useEffect)(() => {
+  (0, import_react75.useEffect)(() => {
     if (selected && !feed.loading && !selectionCurrent) {
       setSelected(void 0);
       setError(true);
@@ -70677,40 +71753,40 @@ function ProjectTriagePanel({
   const processed = feed.feed.items.flatMap(
     (item) => Object.entries(item.decisions).map(([clauseId, decision]) => ({ materialId: item.materialId, clauseId, decision }))
   );
-  return /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("section", { className: "project-triage", "aria-label": t("sort"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("h2", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("section", { className: "project-triage", "aria-label": t("sort"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("h2", { children: [
         t("sort"),
         " ",
-        /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("span", { children: feed.feed.pendingCount })
+        /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("span", { children: feed.feed.pendingCount })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("button", { type: "button", disabled: feed.loading || busy, onClick: () => void feed.reload(), children: t("refresh") })
+      /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("button", { type: "button", disabled: feed.loading || busy, onClick: () => void feed.reload(), children: t("refresh") })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("p", { className: "material-note", children: t("readonly") }),
-    (error || feed.error) && /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("p", { role: "alert", children: error ? t("commandError") : t("failed") }),
-    feed.loading ? /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("p", { role: "status", children: t("loading") }) : /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("div", { className: "project-triage-columns", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("main", { children: [
-        feed.feed.items.length === 0 && feed.feed.unavailable.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("p", { children: t("empty") }),
-        feed.feed.items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { className: "material-note", children: t("readonly") }),
+    (error || feed.error) && /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { role: "alert", children: error ? t("commandError") : t("failed") }),
+    feed.loading ? /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { role: "status", children: t("loading") }) : /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("div", { className: "project-triage-columns", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("main", { children: [
+        feed.feed.items.length === 0 && feed.feed.unavailable.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { children: t("empty") }),
+        feed.feed.items.map((item) => /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
           ProjectMaterialCard,
           {
             item,
             works,
             canSort,
             busy,
-            onDecide: (action, clauseId) => void decide(
+            onDecide: (action2, clauseId) => void decide(
               item,
-              action === "ignore" ? { action, ...clauseId ? { clauseId } : {} } : { action }
+              action2 === "ignore" ? { action: action2, ...clauseId ? { clauseId } : {} } : { action: action2 }
             ).catch(() => void 0),
-            onChoose: (clause, action) => setSelected({ item, clause, action }),
+            onChoose: (clause, action2) => setSelected({ item, clause, action: action2 }),
             onOpenWork,
             onOpenSource: feed.openSource ? () => feed.openSource?.(item.publication, view) : void 0
           },
           item.materialId
         )),
-        feed.feed.unavailable.map((item) => /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("article", { className: "project-material-unavailable", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("p", { children: t("unavailable") }),
-          canSort && /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
+        feed.feed.unavailable.map((item) => /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("article", { className: "project-material-unavailable", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { children: t("unavailable") }),
+          canSort && /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
             "button",
             {
               type: "button",
@@ -70721,21 +71797,21 @@ function ProjectTriagePanel({
           )
         ] }, item.materialId))
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("aside", { className: "material-processed", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("h3", { children: t("handled") }),
+      /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("aside", { className: "material-processed", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("h3", { children: t("handled") }),
         processed.map(({ materialId, clauseId, decision }) => {
           const work2 = works.find((work3) => work3.workId === decision.workId);
-          return /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("p", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("span", { children: decision.actor.displayName }),
-            work2 ? /* @__PURE__ */ (0, import_jsx_runtime95.jsxs)("button", { type: "button", onClick: () => onOpenWork(work2.workId), children: [
+          return /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("p", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("span", { children: decision.actor.displayName }),
+            work2 ? /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("button", { type: "button", onClick: () => onOpenWork(work2.workId), children: [
               work2.title,
               " \u2192"
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime95.jsx)("span", { children: t(decision.action === "ignore" ? "ignore" : "reference") })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("span", { children: t(decision.action === "ignore" ? "ignore" : "reference") })
           ] }, `${materialId}:${clauseId}`);
         })
       ] })
     ] }),
-    selected && (feed.loading || selectionCurrent) && /* @__PURE__ */ (0, import_jsx_runtime95.jsx)(
+    selected && (feed.loading || selectionCurrent) && /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
       MaterialDecisionDialog,
       {
         checking: feed.loading,
@@ -70750,7 +71826,7 @@ function ProjectTriagePanel({
 }
 
 // src/RoadmapWorkNode.tsx
-var import_jsx_runtime96 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime98 = __toESM(require_jsx_runtime(), 1);
 function RoadmapWorkNode({
   work: work2,
   humanNames,
@@ -70761,7 +71837,7 @@ function RoadmapWorkNode({
   const accountable = work2.accountableHumanId ? humanNames[work2.accountableHumanId] ?? "\u5171\u540C\u4F53\u6210\u5458" : "\u672A\u5206\u914D";
   const execution = workExecutionPresentation(work2);
   const ownership = work2.assignment ? `${work2.assignment.displayName} ${execution.assignmentAction} \xB7 ${accountable} \u8D1F\u8D23` : work2.accountableHumanId ? `${accountable} \u8D1F\u8D23` : "\u672A\u5206\u914D \xB7 \u7B49\u5F85\u8D1F\u8D23\u4EBA\u63A5\u4E0B";
-  return /* @__PURE__ */ (0, import_jsx_runtime96.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)(
     "button",
     {
       type: "button",
@@ -70772,16 +71848,16 @@ function RoadmapWorkNode({
       "aria-current": selected ? "true" : void 0,
       onClick: () => onSelect(work2.workId),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("span", { className: "roadmap-work-node-status", children: execution.statusLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("strong", { children: work2.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime96.jsx)("small", { children: responsibility2 ?? ownership })
+        /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("span", { className: "roadmap-work-node-status", children: execution.statusLabel }),
+        /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("strong", { children: work2.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("small", { children: responsibility2 ?? ownership })
       ]
     }
   );
 }
 
 // src/RoadmapProjection.tsx
-var import_jsx_runtime97 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime99 = __toESM(require_jsx_runtime(), 1);
 function RoadmapProjection({
   works,
   allWorks,
@@ -70792,7 +71868,7 @@ function RoadmapProjection({
   onSelect
 }) {
   if (view.lens === "dependencies") {
-    return /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
       DependencyGraph,
       {
         works,
@@ -70804,9 +71880,9 @@ function RoadmapProjection({
     );
   }
   if (view.lens === "mine") {
-    return /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("section", { className: "roadmap-mine", "aria-label": "\u4E0E\u6211\u76F8\u5173", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { children: "\u53EA\u770B\u4F60\u8D1F\u8D23\u6216\u7531\u4F60\u5BB6\u4F19\u4F34\u6267\u884C\u7684\u4EFB\u52A1\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("div", { className: "roadmap-mine-track", children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("section", { className: "roadmap-mine", "aria-label": "\u4E0E\u6211\u76F8\u5173", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("p", { children: "\u53EA\u770B\u4F60\u8D1F\u8D23\u6216\u7531\u4F60\u5BB6\u4F19\u4F34\u6267\u884C\u7684\u4EFB\u52A1\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("div", { className: "roadmap-mine-track", children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
         RoadmapWorkNode,
         {
           work: work2,
@@ -70819,18 +71895,18 @@ function RoadmapProjection({
       )) })
     ] });
   }
-  return view.presentation === "board" ? /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(StatusBoard, { works, humanNames, selectedWorkId, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(StageRoute, { works, humanNames, selectedWorkId, onSelect });
+  return view.presentation === "board" ? /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(StatusBoard, { works, humanNames, selectedWorkId, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(StageRoute, { works, humanNames, selectedWorkId, onSelect });
 }
 function StageRoute({ works, humanNames, selectedWorkId, onSelect }) {
   const stages = ["queued", "active", "accepted"];
-  return /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("section", { className: "roadmap-stage-route", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u56FE", children: stages.map((stage) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("section", { className: "roadmap-stage-route", "aria-label": "\u9879\u76EE\u4EFB\u52A1\u56FE", children: stages.map((stage) => {
     const stageWorks = works.filter((work2) => stageForWork(work2.status) === stage);
-    return /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("section", { className: "roadmap-stage", "data-stage": stage, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("header", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("strong", { children: stageLabels[stage] }),
-        /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("span", { children: stageWorks.length })
+    return /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("section", { className: "roadmap-stage", "data-stage": stage, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("header", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("strong", { children: stageLabels[stage] }),
+        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("span", { children: stageWorks.length })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("div", { className: "roadmap-stage-items", children: stageWorks.length ? stageWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("div", { className: "roadmap-stage-items", children: stageWorks.length ? stageWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
         RoadmapWorkNode,
         {
           work: work2,
@@ -70839,7 +71915,7 @@ function StageRoute({ works, humanNames, selectedWorkId, onSelect }) {
           onSelect
         },
         work2.workId
-      )) : /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("p", { children: "\u8FD9\u4E00\u6BB5\u6682\u65F6\u6CA1\u6709\u4EFB\u52A1\u3002" }) })
+      )) : /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("p", { children: "\u8FD9\u4E00\u6BB5\u6682\u65F6\u6CA1\u6709\u4EFB\u52A1\u3002" }) })
     ] }, stage);
   }) });
 }
@@ -70850,14 +71926,14 @@ function StatusBoard({ works, humanNames, selectedWorkId, onSelect }) {
     { tone: "queued", label: "\u7B49\u5F85" },
     { tone: "accepted", label: "\u5DF2\u5B8C\u6210" }
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("section", { className: "roadmap-status-board", "aria-label": "\u9879\u76EE\u72B6\u6001\u770B\u677F", children: lanes.map(({ tone, label }) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("section", { className: "roadmap-status-board", "aria-label": "\u9879\u76EE\u72B6\u6001\u770B\u677F", children: lanes.map(({ tone, label }) => {
     const laneWorks = works.filter((work2) => roadmapStatusTone(work2.status) === tone);
-    return /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("section", { className: "roadmap-board-lane", "data-status-tone": tone, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime97.jsxs)("header", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("strong", { children: label }),
-        /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("span", { children: laneWorks.length })
+    return /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("section", { className: "roadmap-board-lane", "data-status-tone": tone, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("header", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("strong", { children: label }),
+        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("span", { children: laneWorks.length })
       ] }),
-      laneWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
+      laneWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
         RoadmapWorkNode,
         {
           work: work2,
@@ -70879,13 +71955,13 @@ function DependencyGraph({
 }) {
   const levels = dependencyLevels(works);
   const levelValues = [...new Set(levels.values())].sort((left, right) => left - right);
-  return /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("section", { className: "roadmap-dependency-graph", "aria-label": "\u4EFB\u52A1\u4F9D\u8D56\u56FE", children: levelValues.map((level) => /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("section", { className: "roadmap-dependency-graph", "aria-label": "\u4EFB\u52A1\u4F9D\u8D56\u56FE", children: levelValues.map((level) => /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
     "section",
     {
       className: "roadmap-dependency-level",
       "aria-label": `\u4F9D\u8D56\u5C42\u7EA7 ${level + 1}`,
       children: works.filter((work2) => levels.get(work2.workId) === level).map((work2) => {
-        return /* @__PURE__ */ (0, import_jsx_runtime97.jsx)("div", { "data-dependency-level": level, children: /* @__PURE__ */ (0, import_jsx_runtime97.jsx)(
+        return /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("div", { "data-dependency-level": level, children: /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
           RoadmapWorkNode,
           {
             work: work2,
@@ -70914,11 +71990,11 @@ function dependencyResponsibility(work2, availableWorks) {
 }
 
 // src/RoadmapWorkDetails.tsx
-var import_react73 = __toESM(require_react(), 1);
+var import_react77 = __toESM(require_react(), 1);
 
 // src/WorkAccountabilityActions.tsx
-var import_react72 = __toESM(require_react(), 1);
-var import_jsx_runtime98 = __toESM(require_jsx_runtime(), 1);
+var import_react76 = __toESM(require_react(), 1);
+var import_jsx_runtime100 = __toESM(require_jsx_runtime(), 1);
 function WorkAccountabilityActions({
   roadmap,
   roadmaps = [roadmap],
@@ -70930,8 +72006,8 @@ function WorkAccountabilityActions({
   onRequest,
   onRespond
 }) {
-  const [targetHumanId, setTargetHumanId] = (0, import_react72.useState)("");
-  const [participantSelection, setParticipantSelection] = (0, import_react72.useState)("self");
+  const [targetHumanId, setTargetHumanId] = (0, import_react76.useState)("");
+  const [participantSelection, setParticipantSelection] = (0, import_react76.useState)("self");
   const canChangeResponsibility = canChangeWorkResponsibility(roadmap, work2);
   const requestState = workAccountabilityRequestState(work2, roadmaps);
   const pending = requestState.pending;
@@ -70944,23 +72020,23 @@ function WorkAccountabilityActions({
   const targetedRequest = pending?.targetHumanId === currentHumanId ? pending : void 0;
   if (pending && !requestState.roadmap) return null;
   if (!canTakeSelf && !canRequest && !pending) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("section", { className: "work-accountability-actions", "aria-label": "\u4EFB\u52A1\u8D1F\u8D23\u4EBA\u64CD\u4F5C", children: targetedRequest && onRespond ? /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)(import_jsx_runtime98.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("strong", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("section", { className: "work-accountability-actions", "aria-label": "\u4EFB\u52A1\u8D1F\u8D23\u4EBA\u64CD\u4F5C", children: targetedRequest && onRespond ? /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(import_jsx_runtime100.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("strong", { children: [
       targetedRequest.requestedByDisplayName,
       " \u9080\u8BF7\u4F60\u8D1F\u8D23"
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("p", { children: "\u63A5\u53D7\u540E\u4F60\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\uFF1B\u4E5F\u53EF\u4EE5\u540C\u65F6\u9009\u62E9\u81EA\u5DF1 Caf\xE9 \u91CC\u7684\u732B\u6765\u63A8\u8FDB\u3002" }),
-    /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("label", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("span", { children: "\u63A5\u4E0B\u4EFB\u52A1\u540E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("p", { children: "\u63A5\u53D7\u540E\u4F60\u4F1A\u6210\u4E3A\u8D1F\u8D23\u4EBA\uFF1B\u4E5F\u53EF\u4EE5\u540C\u65F6\u9009\u62E9\u81EA\u5DF1 Caf\xE9 \u91CC\u7684\u732B\u6765\u63A8\u8FDB\u3002" }),
+    /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("label", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("span", { children: "\u63A5\u4E0B\u4EFB\u52A1\u540E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(
         "select",
         {
           "aria-label": "\u63A5\u4E0B\u4EFB\u52A1\u540E",
           value: participantSelection,
           onChange: (event) => setParticipantSelection(event.target.value),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("option", { value: "self", children: "\u6211\u81EA\u5DF1\u63A8\u8FDB" }),
-            ownParticipants.map((participant) => /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("option", { value: participantKey(participant), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("option", { value: "self", children: "\u6211\u81EA\u5DF1\u63A8\u8FDB" }),
+            ownParticipants.map((participant) => /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("option", { value: participantKey(participant), children: [
               "\u4EA4\u7ED9 ",
               participant.displayName
             ] }, participantKey(participant)))
@@ -70968,8 +72044,8 @@ function WorkAccountabilityActions({
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime98.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime100.jsx)(
         "button",
         {
           type: "button",
@@ -70983,7 +72059,7 @@ function WorkAccountabilityActions({
           children: "\u63A5\u53D7\u8D1F\u8D23"
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime98.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime100.jsx)(
         "button",
         {
           type: "button",
@@ -70992,12 +72068,12 @@ function WorkAccountabilityActions({
         }
       )
     ] })
-  ] }) : pending ? /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("p", { children: [
+  ] }) : pending ? /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("p", { children: [
     "\u5DF2\u9080\u8BF7 ",
     pending.targetDisplayName,
     "\uFF0C\u7B49\u5F85\u56DE\u590D\u3002"
-  ] }) : /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)(import_jsx_runtime98.Fragment, { children: [
-    canTakeSelf && onCommit && /* @__PURE__ */ (0, import_jsx_runtime98.jsx)(
+  ] }) : /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(import_jsx_runtime100.Fragment, { children: [
+    canTakeSelf && onCommit && /* @__PURE__ */ (0, import_jsx_runtime100.jsx)(
       "button",
       {
         type: "button",
@@ -71006,23 +72082,23 @@ function WorkAccountabilityActions({
         children: "\u6211\u6765\u8D1F\u8D23"
       }
     ),
-    canRequest && onRequest && availableTargets.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("div", { className: "work-accountability-invite", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)("label", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("span", { children: "\u9080\u8BF7\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime98.jsxs)(
+    canRequest && onRequest && availableTargets.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("div", { className: "work-accountability-invite", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("span", { children: "\u9080\u8BF7\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(
           "select",
           {
             "aria-label": "\u9080\u8BF7\u8D1F\u8D23\u4EBA",
             value: targetHumanId,
             onChange: (event) => setTargetHumanId(event.target.value),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("option", { value: "", children: "\u9009\u62E9\u5171\u540C\u4F53\u6210\u5458" }),
-              availableTargets.map((human) => /* @__PURE__ */ (0, import_jsx_runtime98.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
+              /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("option", { value: "", children: "\u9009\u62E9\u5171\u540C\u4F53\u6210\u5458" }),
+              availableTargets.map((human) => /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("option", { value: human.humanId, children: human.displayName }, human.humanId))
             ]
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime98.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime100.jsx)(
         "button",
         {
           type: "button",
@@ -71036,7 +72112,7 @@ function WorkAccountabilityActions({
 }
 
 // src/RoadmapWorkDetails.tsx
-var import_jsx_runtime99 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime101 = __toESM(require_jsx_runtime(), 1);
 function RoadmapWorkDetails({
   work: work2,
   materialFeed,
@@ -71058,7 +72134,7 @@ function RoadmapWorkDetails({
   onOpenResult,
   onClose
 }) {
-  const [dateHint, setDateHint] = (0, import_react73.useState)();
+  const [dateHint, setDateHint] = (0, import_react77.useState)();
   const activeHint = dateHint?.workId === work2.workId && materialFeed?.feed.items.some((item) => item.publication.sourceEventId === dateHint.eventId) ? dateHint : void 0;
   const accountable = work2.accountableHumanId ? humanNames[work2.accountableHumanId] ?? "\u5171\u540C\u4F53\u6210\u5458" : "\u672A\u5206\u914D";
   const dependencies = resolveWorkDependencies(work2, availableWorks);
@@ -71071,40 +72147,40 @@ function RoadmapWorkDetails({
   const sourceKind = work2.sourceLocation.rootEventId ? "\u8BDD\u9898" : "\u9891\u9053\u6D88\u606F";
   const canEdit = canEditDependencies && canEditWorkDependencies(work2) && work2.accountableHumanId === currentHumanId;
   const execution = workExecutionPresentation(work2);
-  return /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("aside", { className: "roadmap-work-details", "aria-label": `\u4EFB\u52A1\u8BE6\u60C5 \xB7 ${work2.title}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("span", { children: execution.statusLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("h3", { children: work2.title })
+  return /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("aside", { className: "roadmap-work-details", "aria-label": `\u4EFB\u52A1\u8BE6\u60C5 \xB7 ${work2.title}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("span", { children: execution.statusLabel }),
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("h3", { children: work2.title })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("button", { type: "button", className: "roadmap-details-close", "aria-label": "\u5173\u95ED\u4EFB\u52A1\u8BE6\u60C5", onClick: onClose, children: "\xD7" })
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("button", { type: "button", className: "roadmap-details-close", "aria-label": "\u5173\u95ED\u4EFB\u52A1\u8BE6\u60C5", onClick: onClose, children: "\xD7" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("p", { children: work2.intendedOutcome }),
-    execution.admissionMessage && /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("p", { className: "work-admission", children: execution.admissionMessage }),
-    /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("dl", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dd", { children: work2.accountableHumanId ? `${accountable} \u8D1F\u8D23` : "\u672A\u5206\u914D" })
+    /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("p", { children: work2.intendedOutcome }),
+    execution.admissionMessage && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("p", { className: "work-admission", children: execution.admissionMessage }),
+    /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("dl", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dt", { children: "\u8D1F\u8D23\u4EBA" }),
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dd", { children: work2.accountableHumanId ? `${accountable} \u8D1F\u8D23` : "\u672A\u5206\u914D" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dt", { children: "\u6267\u884C" }),
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dd", { children: work2.assignment ? `${work2.assignment.displayName} ${execution.assignmentAction}` : accountable })
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dt", { children: "\u6267\u884C" }),
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dd", { children: work2.assignment ? `${work2.assignment.displayName} ${execution.assignmentAction}` : accountable })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dt", { children: "\u6765\u6E90" }),
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("dd", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dt", { children: "\u6765\u6E90" }),
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("dd", { children: [
           "#",
           work2.sourceLocation.channelId,
           " \xB7 ",
           sourceKind
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dt", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("dd", { children: dependencyLabels.length ? dependencyLabels.join("\u3001") : "\u6CA1\u6709\u524D\u7F6E\u4EFB\u52A1" })
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dt", { children: "\u524D\u7F6E\u4EFB\u52A1" }),
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("dd", { children: dependencyLabels.length ? dependencyLabels.join("\u3001") : "\u6CA1\u6709\u524D\u7F6E\u4EFB\u52A1" })
       ] })
     ] }),
-    materialFeed && /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
+    materialFeed && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
       MaterialSources,
       {
         feed: materialFeed,
@@ -71113,7 +72189,7 @@ function RoadmapWorkDetails({
         onSuggestDate: (hint) => setDateHint((previous4) => ({ ...hint, workId: work2.workId, request: (previous4?.request ?? 0) + 1 }))
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
       WorkTimePanel,
       {
         work: work2,
@@ -71124,7 +72200,7 @@ function RoadmapWorkDetails({
       },
       work2.workId
     ),
-    roadmap && /* @__PURE__ */ (0, import_jsx_runtime99.jsx)(
+    roadmap && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
       WorkAccountabilityActions,
       {
         roadmap,
@@ -71138,15 +72214,15 @@ function RoadmapWorkDetails({
         onRespond: onRespondWorkAccountability
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("div", { className: "roadmap-details-actions", children: [
-      onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: "\u67E5\u770B\u6765\u6E90\u6D88\u606F" }),
-      work2.resultEventId && onOpenResult && /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("button", { type: "button", onClick: () => onOpenResult(work2, view), children: "\u67E5\u770B\u7ED3\u679C\u6D88\u606F" })
+    /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { className: "roadmap-details-actions", children: [
+      onOpenSource && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("button", { type: "button", onClick: () => onOpenSource(work2, view), children: "\u67E5\u770B\u6765\u6E90\u6D88\u606F" }),
+      work2.resultEventId && onOpenResult && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("button", { type: "button", onClick: () => onOpenResult(work2, view), children: "\u67E5\u770B\u7ED3\u679C\u6D88\u606F" })
     ] }),
-    canEdit && /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("details", { className: "roadmap-dependency-editor", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("summary", { children: "\u8C03\u6574\u524D\u7F6E\u4EFB\u52A1" }),
+    canEdit && /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("details", { className: "roadmap-dependency-editor", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("summary", { children: "\u8C03\u6574\u524D\u7F6E\u4EFB\u52A1" }),
       availableWorks.filter((candidate) => candidate.workId !== work2.workId && canTrackWorkInProject(candidate)).map((candidate) => {
         const selected = work2.dependencyWorkIds.includes(candidate.workId);
-        return /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)(
+        return /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)(
           "button",
           {
             type: "button",
@@ -71164,19 +72240,19 @@ function RoadmapWorkDetails({
         );
       })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("section", { className: "roadmap-work-history", "aria-label": "\u4EFB\u52A1\u52A8\u6001", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("h4", { children: "\u52A8\u6001" }),
-      /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("ol", { children: [...work2.history].reverse().map((entry) => /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("li", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("strong", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("section", { className: "roadmap-work-history", "aria-label": "\u4EFB\u52A1\u52A8\u6001", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("h4", { children: "\u52A8\u6001" }),
+      /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("ol", { children: [...work2.history].reverse().map((entry) => /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("li", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("strong", { children: [
           workHistoryLabels[entry.action],
           isResultHistoryAction(entry.action) ? ` \xB7 \u7ED3\u679C v${entry.resultRevision ?? 1}` : ""
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("span", { children: [
           actorName(entry.actor),
           " \xB7 ",
           formatHistoryTime(entry.at)
         ] }),
-        entry.timeChange && /* @__PURE__ */ (0, import_jsx_runtime99.jsxs)("p", { children: [
+        entry.timeChange && /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("p", { children: [
           workTimeLabels[entry.timeChange.field][0],
           " \xB7",
           " ",
@@ -71185,29 +72261,29 @@ function RoadmapWorkDetails({
           " ",
           entry.timeChange.current ? formatWorkDate(entry.timeChange.current, "zh") : "\u672A\u5B9A"
         ] }),
-        entry.note && /* @__PURE__ */ (0, import_jsx_runtime99.jsx)("p", { children: entry.note })
+        entry.note && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("p", { children: entry.note })
       ] }, `${entry.revision}:${entry.action}`)) })
     ] })
   ] });
 }
-function isResultHistoryAction(action) {
-  return action === "result_returned" || action === "revision_requested" || action === "result_accepted";
+function isResultHistoryAction(action2) {
+  return action2 === "result_returned" || action2 === "revision_requested" || action2 === "result_accepted";
 }
 
 // src/ShareMaterialDialog.tsx
-var import_react74 = __toESM(require_react(), 1);
-var import_jsx_runtime100 = __toESM(require_jsx_runtime(), 1);
+var import_react78 = __toESM(require_react(), 1);
+var import_jsx_runtime102 = __toESM(require_jsx_runtime(), 1);
 function ShareMaterialDialog({
   project,
   client,
   onClose,
   onShared
 }) {
-  const t = useMaterialText(), [connections, setConnections] = (0, import_react74.useState)([]);
-  const [connectionId, setConnectionId] = (0, import_react74.useState)(""), [provider, setProvider] = (0, import_react74.useState)("github");
-  const [sourceId, setSourceId] = (0, import_react74.useState)(""), [busy, setBusy] = (0, import_react74.useState)(false), [error, setError] = (0, import_react74.useState)(false);
-  const [loading, setLoading] = (0, import_react74.useState)(true), [consent, setConsent] = (0, import_react74.useState)(false);
-  (0, import_react74.useEffect)(() => {
+  const t = useMaterialText(), [connections, setConnections] = (0, import_react78.useState)([]);
+  const [connectionId, setConnectionId] = (0, import_react78.useState)(""), [provider, setProvider] = (0, import_react78.useState)("github");
+  const [sourceId, setSourceId] = (0, import_react78.useState)(""), [busy, setBusy] = (0, import_react78.useState)(false), [error, setError] = (0, import_react78.useState)(false);
+  const [loading, setLoading] = (0, import_react78.useState)(true), [consent, setConsent] = (0, import_react78.useState)(false);
+  (0, import_react78.useEffect)(() => {
     let current2 = true;
     void client.connections(project.roadmapId).then((values) => {
       if (current2) {
@@ -71223,14 +72299,14 @@ function ShareMaterialDialog({
       current2 = false;
     };
   }, [client.namespace, project.roadmapId]);
-  return /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(MaterialDialogFrame, { label: t("add"), onClose, busy, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("h2", { children: t("add") }),
-    /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("p", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)(MaterialDialogFrame, { label: t("add"), onClose, busy, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("h2", { children: t("add") }),
+    /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("p", { children: [
       project.title,
       " \xB7 #",
       project.sourceLocation.channelId
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)(
       "form",
       {
         onSubmit: (event) => {
@@ -71240,14 +72316,14 @@ function ShareMaterialDialog({
           void client.publish(project, connectionId, provider, sourceId.trim()).then(onShared).then(onClose).catch(() => setError(true)).finally(() => setBusy(false));
         },
         children: [
-          loading ? /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("p", { children: t("loading") }) : connections.length ? /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(import_jsx_runtime100.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("label", { children: [
+          loading ? /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("p", { children: t("loading") }) : connections.length ? /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)(import_jsx_runtime102.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("label", { children: [
               t("cafe"),
-              /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("select", { value: connectionId, onChange: (event) => setConnectionId(event.target.value), children: connections.map((connection) => /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("option", { value: connection.connectionId, children: connection.label }, connection.connectionId)) })
+              /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("select", { value: connectionId, onChange: (event) => setConnectionId(event.target.value), children: connections.map((connection) => /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("option", { value: connection.connectionId, children: connection.label }, connection.connectionId)) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("label", { children: [
               t("provider"),
-              /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)(
                 "select",
                 {
                   value: provider,
@@ -71256,15 +72332,15 @@ function ShareMaterialDialog({
                     setSourceId("");
                   },
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("option", { value: "github", children: "GitHub PR / Issue" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("option", { value: "feishu", children: t("meeting") })
+                    /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("option", { value: "github", children: "GitHub PR / Issue" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("option", { value: "feishu", children: t("meeting") })
                   ]
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("label", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("label", { children: [
               t(provider === "github" ? "github" : "meeting"),
-              /* @__PURE__ */ (0, import_jsx_runtime100.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
                 "input",
                 {
                   value: sourceId,
@@ -71275,15 +72351,15 @@ function ShareMaterialDialog({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("label", { className: "material-consent", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("input", { type: "checkbox", checked: consent, onChange: (event) => setConsent(event.target.checked) }),
-              /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("span", { children: t("consent") })
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("label", { className: "material-consent", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("input", { type: "checkbox", checked: consent, onChange: (event) => setConsent(event.target.checked) }),
+              /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("span", { children: t("consent") })
             ] })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("p", { children: t("noCafe") }),
-          error && /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("p", { role: "alert", children: t("shareError") }),
-          /* @__PURE__ */ (0, import_jsx_runtime100.jsxs)("footer", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime100.jsx)("button", { type: "button", disabled: busy, onClick: onClose, children: t("cancel") }),
-            /* @__PURE__ */ (0, import_jsx_runtime100.jsx)(
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("p", { children: t("noCafe") }),
+          error && /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("p", { role: "alert", children: t("shareError") }),
+          /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("footer", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("button", { type: "button", disabled: busy, onClick: onClose, children: t("cancel") }),
+            /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
               "button",
               {
                 type: "submit",
@@ -71300,7 +72376,7 @@ function ShareMaterialDialog({
 }
 
 // src/RoadmapPanel.tsx
-var import_jsx_runtime101 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime103 = __toESM(require_jsx_runtime(), 1);
 function RoadmapPanel({
   roadmap,
   allRoadmaps = [roadmap],
@@ -71329,7 +72405,7 @@ function RoadmapPanel({
   onOpenResult,
   onOpenArtifact
 }) {
-  const [internalView, setInternalView] = (0, import_react75.useState)({
+  const [internalView, setInternalView] = (0, import_react79.useState)({
     lens: "stage",
     presentation: "graph",
     scope: "all",
@@ -71341,7 +72417,7 @@ function RoadmapPanel({
     onViewChange?.(next);
   };
   const materialFeed = useProjectMaterials(roadmap.roadmapId);
-  const [sharingMaterial, setSharingMaterial] = (0, import_react75.useState)(false);
+  const [sharingMaterial, setSharingMaterial] = (0, import_react79.useState)(false);
   const routeWorks = worksForRoadmap(roadmap, works);
   const visibleWorks = visibleRoadmapWorks(routeWorks, activeView, currentHumanId);
   const selectedWork = activeView.workId ? routeWorks.find((work2) => work2.workId === activeView.workId) : void 0;
@@ -71365,8 +72441,8 @@ function RoadmapPanel({
   ).length;
   const isPlan = activeView.lens === "stage" && activeView.presentation === "graph";
   const isBoard = activeView.lens === "stage" && activeView.presentation === "board";
-  return /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("section", { className: "roadmap-panel", "aria-label": `\u9879\u76EE\u9875\u9762 \xB7 ${roadmap.title}`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)("section", { className: "roadmap-panel", "aria-label": `\u9879\u76EE\u9875\u9762 \xB7 ${roadmap.title}`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
       ProjectPageToolbar,
       {
         roadmap,
@@ -71383,9 +72459,9 @@ function RoadmapPanel({
         onCreateTask
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("div", { className: "project-page-body", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("main", { className: "project-page-main", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)("div", { className: "project-page-body", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)("main", { className: "project-page-main", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           ProjectPanelSummary,
           {
             roadmap,
@@ -71398,7 +72474,7 @@ function RoadmapPanel({
             onSetStatus
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           ProjectSuggestionActions,
           {
             roadmap,
@@ -71407,8 +72483,8 @@ function RoadmapPanel({
             onDecide: onDecideProjectSuggestion
           }
         ),
-        (isPlan || activeView.lens === "dependencies") && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("div", { className: "roadmap-context-bar", children: /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)(ControlGroup, { label: "\u9879\u76EE\u7B5B\u9009", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        (isPlan || activeView.lens === "dependencies") && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("div", { className: "roadmap-context-bar", children: /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)(ControlGroup, { label: "\u9879\u76EE\u7B5B\u9009", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
             ControlButton,
             {
               active: activeView.relation !== "mine" && activeView.scope === "all",
@@ -71416,7 +72492,7 @@ function RoadmapPanel({
               children: `\u5168\u90E8 ${routeWorks.length}`
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
             ControlButton,
             {
               active: activeView.relation !== "mine" && activeView.scope === "unfinished",
@@ -71424,7 +72500,7 @@ function RoadmapPanel({
               children: `\u672A\u5B8C\u6210 ${unfinishedCount}`
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
             ControlButton,
             {
               active: activeView.relation === "mine",
@@ -71433,7 +72509,7 @@ function RoadmapPanel({
             }
           )
         ] }) }),
-        activeView.lens === "triage" ? /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        activeView.lens === "triage" ? /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           ProjectTriagePanel,
           {
             project: roadmap,
@@ -71443,7 +72519,7 @@ function RoadmapPanel({
             view: activeView,
             onOpenWork: (workId) => updateView({ ...activeView, workId })
           }
-        ) : activeView.lens === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        ) : activeView.lens === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           ProjectArtifactSurface,
           {
             roadmap,
@@ -71452,7 +72528,7 @@ function RoadmapPanel({
             status: artifactStatus,
             onOpen: onOpenArtifact
           }
-        ) : isBoard ? /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        ) : isBoard ? /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           ProjectBoard,
           {
             roadmaps: [roadmap],
@@ -71468,7 +72544,7 @@ function RoadmapPanel({
             onRequestWorkAccountability,
             onRespondWorkAccountability
           }
-        ) : isPlan ? /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        ) : isPlan ? /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           ProjectPlanTable,
           {
             roadmap,
@@ -71485,7 +72561,7 @@ function RoadmapPanel({
             onRequestWorkAccountability,
             onRespondWorkAccountability
           }
-        ) : visibleWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("div", { className: "roadmap-canvas", "data-concierge-safe-zone": true, children: /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+        ) : visibleWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("div", { className: "roadmap-canvas", "data-concierge-safe-zone": true, children: /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
           RoadmapProjection,
           {
             works: visibleWorks,
@@ -71496,9 +72572,9 @@ function RoadmapPanel({
             selectedWorkId: selectedWork?.workId,
             onSelect: (workId) => updateView({ ...activeView, workId })
           }
-        ) }) : /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("p", { className: "roadmap-empty", children: activeView.relation === "mine" ? "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4E0E\u4F60\u76F8\u5173\u7684\u4EFB\u52A1\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u4EFB\u52A1\u3002" })
+        ) }) : /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("p", { className: "roadmap-empty", children: activeView.relation === "mine" ? "\u8FD9\u4E2A\u9879\u76EE\u8FD8\u6CA1\u6709\u4E0E\u4F60\u76F8\u5173\u7684\u4EFB\u52A1\u3002" : "\u5F53\u524D\u7B5B\u9009\u4E0B\u6CA1\u6709\u4EFB\u52A1\u3002" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
         ProjectContextPanel,
         {
           materialFeed,
@@ -71510,7 +72586,7 @@ function RoadmapPanel({
         }
       )
     ] }),
-    selectedWork && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+    selectedWork && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
       RoadmapWorkDetails,
       {
         materialFeed,
@@ -71534,7 +72610,7 @@ function RoadmapPanel({
         onClose: () => updateView({ ...activeView, workId: void 0 })
       }
     ),
-    sharingMaterial && materialFeed.client && /* @__PURE__ */ (0, import_jsx_runtime101.jsx)(
+    sharingMaterial && materialFeed.client && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(
       ShareMaterialDialog,
       {
         project: roadmap,
@@ -71549,8 +72625,8 @@ function RoadmapPanel({
   ] });
 }
 function ControlGroup({ label, children }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime101.jsxs)("fieldset", { className: "roadmap-control-group", "aria-label": label, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("legend", { children: label }),
+  return /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)("fieldset", { className: "roadmap-control-group", "aria-label": label, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("legend", { children: label }),
     children
   ] });
 }
@@ -71559,11 +72635,11 @@ function ControlButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime101.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("button", { type: "button", "aria-pressed": active, onClick, children });
 }
 
 // src/RoadmapWorkspace.tsx
-var import_jsx_runtime102 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime104 = __toESM(require_jsx_runtime(), 1);
 function RoadmapWorkspace({
   roadmaps,
   works,
@@ -71597,7 +72673,7 @@ function RoadmapWorkspace({
   onWithdrawBindingVote,
   onSettleBindingVote
 }) {
-  const [internalView, setInternalView] = (0, import_react76.useState)(() => ({
+  const [internalView, setInternalView] = (0, import_react80.useState)(() => ({
     ...defaultRoadmapView,
     roadmapId: roadmaps[0]?.roadmapId
   }));
@@ -71624,8 +72700,8 @@ function RoadmapWorkspace({
   const switchWorkspace = (next) => updateView({ ...defaultRoadmapView, workspace: next, roadmapId: activeView.roadmapId });
   const projectWorks = worksForProjects(roadmaps, works);
   if (workspace === "project" && selected) {
-    return /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("div", { className: "roadmap-workspace", "data-project-page": true, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("div", { className: "roadmap-workspace", "data-project-page": true, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
         RoadmapPanel,
         {
           roadmap: selected,
@@ -71656,7 +72732,7 @@ function RoadmapWorkspace({
           onDecideProjectSuggestion
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
         BindingVoteSection,
         {
           roadmap: selected,
@@ -71671,22 +72747,22 @@ function RoadmapWorkspace({
       )
     ] });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("div", { className: "roadmap-workspace", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("section", { className: "project-workspace-heading", "aria-label": "\u9879\u76EE\u603B\u89C8\u5BFC\u822A", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("div", { className: "project-workspace-title", children: [
-        onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(ShellGlyph, { name: "panelLeft" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("h1", { children: "\u9879\u76EE" }),
-        /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("span", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("div", { className: "roadmap-workspace", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("section", { className: "project-workspace-heading", "aria-label": "\u9879\u76EE\u603B\u89C8\u5BFC\u822A", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("div", { className: "project-workspace-title", children: [
+        onOpenNavigation && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("button", { type: "button", className: "mobile-navigation", "aria-label": "\u9891\u9053\u5BFC\u822A", onClick: onOpenNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(ShellGlyph, { name: "panelLeft" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("h1", { children: "\u9879\u76EE" }),
+        /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("span", { children: [
           roadmaps.filter((roadmap) => roadmap.status === "active").length,
           " \u4E2A\u8FDB\u884C\u4E2D"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime102.jsxs)("nav", { "aria-label": "\u9879\u76EE\u89C6\u56FE", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(ProjectViewButton, { active: workspace === "list", onClick: () => switchWorkspace("list"), children: "\u9879\u76EE\u5217\u8868" }),
-        /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(ProjectViewButton, { active: workspace === "dependencies", onClick: () => switchWorkspace("dependencies"), children: "\u8DE8\u9879\u76EE\u4F9D\u8D56" }),
-        /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(ProjectViewButton, { active: workspace === "board", onClick: () => switchWorkspace("board"), children: "\u770B\u677F" })
+      /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("nav", { "aria-label": "\u9879\u76EE\u89C6\u56FE", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(ProjectViewButton, { active: workspace === "list", onClick: () => switchWorkspace("list"), children: "\u9879\u76EE\u5217\u8868" }),
+        /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(ProjectViewButton, { active: workspace === "dependencies", onClick: () => switchWorkspace("dependencies"), children: "\u8DE8\u9879\u76EE\u4F9D\u8D56" }),
+        /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(ProjectViewButton, { active: workspace === "board", onClick: () => switchWorkspace("board"), children: "\u770B\u677F" })
       ] }),
-      workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(NewProjectControl, { channelId, onCreate: onCreateProject }) : /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+      workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(NewProjectControl, { channelId, onCreate: onCreateProject }) : /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
         NewWorkspaceTaskControl,
         {
           roadmaps,
@@ -71697,7 +72773,7 @@ function RoadmapWorkspace({
         }
       )
     ] }),
-    workspace === "list" && /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+    workspace === "list" && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
       ProjectAttentionPanel,
       {
         onOpenMaterials: (project) => updateView({ ...defaultRoadmapView, workspace: "project", roadmapId: project.roadmapId, lens: "triage" }),
@@ -71709,7 +72785,7 @@ function RoadmapWorkspace({
         onOpen: openProject
       }
     ),
-    workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+    workspace === "list" ? /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
       ProjectList,
       {
         roadmaps,
@@ -71723,7 +72799,7 @@ function RoadmapWorkspace({
         onOpen: openProject,
         onOpenArtifact
       }
-    ) : workspace === "dependencies" ? /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("div", { className: "project-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+    ) : workspace === "dependencies" ? /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("div", { className: "project-dependencies", children: /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
       RoadmapProjection,
       {
         works: projectWorks,
@@ -71736,7 +72812,7 @@ function RoadmapWorkspace({
           if (work2) openProjectWork(work2);
         }
       }
-    ) }) : workspace === "board" ? /* @__PURE__ */ (0, import_jsx_runtime102.jsx)(
+    ) }) : workspace === "board" ? /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
       ProjectBoard,
       {
         roadmaps,
@@ -71751,7 +72827,7 @@ function RoadmapWorkspace({
         onRequestWorkAccountability,
         onRespondWorkAccountability
       }
-    ) : /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("p", { className: "project-workspace-empty", children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u65B0\u5EFA\u9879\u76EE\u540E\uFF0C\u4EFB\u52A1\u3001\u8D1F\u8D23\u4EBA\u548C\u7ED3\u679C\u4F1A\u7559\u5728\u540C\u4E00\u6761\u8DEF\u5F84\u91CC\u3002" })
+    ) : /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("p", { className: "project-workspace-empty", children: "\u8FD8\u6CA1\u6709\u9879\u76EE\u3002\u65B0\u5EFA\u9879\u76EE\u540E\uFF0C\u4EFB\u52A1\u3001\u8D1F\u8D23\u4EBA\u548C\u7ED3\u679C\u4F1A\u7559\u5728\u540C\u4E00\u6761\u8DEF\u5F84\u91CC\u3002" })
   ] });
 }
 function ProjectViewButton({
@@ -71759,15 +72835,15 @@ function ProjectViewButton({
   onClick,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime102.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
+  return /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("button", { type: "button", "aria-current": active ? "page" : void 0, onClick, children });
 }
 
 // src/SharedArtifactSurface.tsx
-var import_react88 = __toESM(require_react(), 1);
+var import_react92 = __toESM(require_react(), 1);
 
 // src/SharedArtifactAnnotationThread.tsx
-var import_react77 = __toESM(require_react(), 1);
-var import_jsx_runtime103 = __toESM(require_jsx_runtime(), 1);
+var import_react81 = __toESM(require_react(), 1);
+var import_jsx_runtime105 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactAnnotationThread({
   artifact,
   view,
@@ -71785,12 +72861,12 @@ function SharedArtifactAnnotationThread({
     view.view.review.revision,
     annotation.id
   ]);
-  const current2 = (0, import_react77.useRef)(key);
+  const current2 = (0, import_react81.useRef)(key);
   current2.current = key;
-  const [loaded, setLoaded] = (0, import_react77.useState)();
-  const [pending, setPending] = (0, import_react77.useState)();
-  const [settled, setSettled] = (0, import_react77.useState)();
-  const [failure, setFailure] = (0, import_react77.useState)();
+  const [loaded, setLoaded] = (0, import_react81.useState)();
+  const [pending, setPending] = (0, import_react81.useState)();
+  const [settled, setSettled] = (0, import_react81.useState)();
+  const [failure, setFailure] = (0, import_react81.useState)();
   const page3 = view.view.replyPages?.find((item) => item.annotationId === annotation.id);
   const replies = loaded?.key === key ? loaded.replies : annotation.replies ?? [];
   const total = page3?.total ?? replies.length;
@@ -71832,20 +72908,20 @@ function SharedArtifactAnnotationThread({
       if (current2.current === key) setPending(void 0);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)("div", { className: "shared-artifact-annotation-thread", children: [
-    replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime103.jsxs)("div", { className: "shared-artifact-annotation-reply", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("strong", { children: shared?.humanName(reply.author.actorId) }),
-      /* @__PURE__ */ (0, import_jsx_runtime103.jsx)(MessageMarkdown, { source: reply.body })
+  return /* @__PURE__ */ (0, import_jsx_runtime105.jsxs)("div", { className: "shared-artifact-annotation-thread", children: [
+    replies.map((reply) => /* @__PURE__ */ (0, import_jsx_runtime105.jsxs)("div", { className: "shared-artifact-annotation-reply", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("strong", { children: shared?.humanName(reply.author.actorId) }),
+      /* @__PURE__ */ (0, import_jsx_runtime105.jsx)(MessageMarkdown, { source: reply.body })
     ] }, reply.id)),
-    offset2 !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("button", { type: "button", disabled: blocked, onClick: () => void more(), children: language === "en" ? `Load replies (${replies.length}/${total})` : `\u8BFB\u53D6\u56DE\u590D\uFF08${replies.length}/${total}\uFF09` }),
-    view.view.canWrite && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("button", { type: "button", disabled: blocked, onClick: () => void decide(), children: t(annotation.state === "open" ? "\u89E3\u51B3\u6279\u6CE8" : "\u91CD\u65B0\u6253\u5F00\u6279\u6CE8") }),
-    settled === key && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("output", { children: t("\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026") }),
-    failure?.key === key && /* @__PURE__ */ (0, import_jsx_runtime103.jsx)("p", { role: "alert", children: t(failure.message) })
+    offset2 !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("button", { type: "button", disabled: blocked, onClick: () => void more(), children: language === "en" ? `Load replies (${replies.length}/${total})` : `\u8BFB\u53D6\u56DE\u590D\uFF08${replies.length}/${total}\uFF09` }),
+    view.view.canWrite && /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("button", { type: "button", disabled: blocked, onClick: () => void decide(), children: t(annotation.state === "open" ? "\u89E3\u51B3\u6279\u6CE8" : "\u91CD\u65B0\u6253\u5F00\u6279\u6CE8") }),
+    settled === key && /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("output", { children: t("\u6B63\u5728\u540C\u6B65\u6279\u6CE8\u2026") }),
+    failure?.key === key && /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("p", { role: "alert", children: t(failure.message) })
   ] });
 }
 
 // src/use-shared-artifact-annotation-pages.ts
-var import_react78 = __toESM(require_react(), 1);
+var import_react82 = __toESM(require_react(), 1);
 function useSharedArtifactAnnotationPages(artifact, view) {
   const shared = useSharedArtifacts();
   const fence = JSON.stringify([
@@ -71863,11 +72939,11 @@ function useSharedArtifactAnnotationPages(artifact, view) {
     view.view.canWrite,
     view.view.canReply
   ]);
-  const current2 = (0, import_react78.useRef)(fence);
+  const current2 = (0, import_react82.useRef)(fence);
   current2.current = fence;
-  const [expanded, setExpanded] = (0, import_react78.useState)();
-  const [pending, setPending] = (0, import_react78.useState)();
-  const [failure, setFailure] = (0, import_react78.useState)();
+  const [expanded, setExpanded] = (0, import_react82.useState)();
+  const [pending, setPending] = (0, import_react82.useState)();
+  const [failure, setFailure] = (0, import_react82.useState)();
   const selected = expanded?.fence === fence ? expanded.view : view;
   const more = async () => {
     if (!shared?.api || !artifact || pending === fence) return;
@@ -71895,7 +72971,7 @@ function useSharedArtifactAnnotationPages(artifact, view) {
 }
 
 // src/SharedArtifactAnnotations.tsx
-var import_jsx_runtime104 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime106 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactAnnotations({
   view: initial,
   onOpenDiscussion
@@ -71908,8 +72984,8 @@ function SharedArtifactAnnotations({
   const pages = useSharedArtifactAnnotationPages(artifact, initial);
   const view = pages.view;
   if (!view.view.review.annotations.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("aside", { className: "shared-artifact-annotations", "aria-label": t("\u4F5C\u54C1\u6279\u6CE8"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("h2", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("aside", { className: "shared-artifact-annotations", "aria-label": t("\u4F5C\u54C1\u6279\u6CE8"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("h2", { children: [
       t("\u6279\u6CE8"),
       " \xB7 ",
       view.view.annotationPage?.total ?? view.view.review.annotations.length
@@ -71919,24 +72995,24 @@ function SharedArtifactAnnotations({
       const source4 = annotation.collectiveMessage;
       const original = source4?.ownerRevision;
       const orphaned = status === "orphaned" || status === "ambiguous";
-      return /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("article", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("strong", { children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("article", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("strong", { children: [
             index4 + 1,
             " \xB7 ",
             shared?.humanName(annotation.author.actorId) ?? t("\u5171\u540C\u4F53\u6210\u5458")
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("span", { children: t(annotation.state === "resolved" ? "\u5DF2\u89E3\u51B3" : "\u6279\u6CE8") })
+          /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("span", { children: t(annotation.state === "resolved" ? "\u5DF2\u89E3\u51B3" : "\u6279\u6CE8") })
         ] }),
-        "quote" in annotation.anchor && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("blockquote", { children: annotation.anchor.quote }),
-        /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(MessageMarkdown, { source: annotation.body }),
-        /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("div", { className: "shared-artifact-annotation-links", children: [
-          original && artifact && /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, original), children: [
+        "quote" in annotation.anchor && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("blockquote", { children: annotation.anchor.quote }),
+        /* @__PURE__ */ (0, import_jsx_runtime106.jsx)(MessageMarkdown, { source: annotation.body }),
+        /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("div", { className: "shared-artifact-annotation-links", children: [
+          original && artifact && /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("button", { type: "button", onClick: () => shared?.open(artifact, original), children: [
             orphaned ? `${t("\u539F\u6587\u5DF2\u6539")} \xB7 ` : "",
             language === "en" ? `View in version ${original}` : `\u5728\u7B2C ${original} \u7248\u67E5\u770B`
           ] }),
-          artifact && source4 && /* @__PURE__ */ (0, import_jsx_runtime104.jsxs)(import_jsx_runtime104.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
+          artifact && source4 && /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)(import_jsx_runtime106.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime106.jsx)(
               "button",
               {
                 type: "button",
@@ -71947,7 +73023,7 @@ function SharedArtifactAnnotations({
                 children: t("\u5728\u539F\u8BA8\u8BBA\u67E5\u770B")
               }
             ),
-            view.view.canReply && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(
+            view.view.canReply && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)(
               "button",
               {
                 type: "button",
@@ -71968,16 +73044,16 @@ function SharedArtifactAnnotations({
             )
           ] })
         ] }),
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)(SharedArtifactAnnotationThread, { artifact, view, annotation })
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)(SharedArtifactAnnotationThread, { artifact, view, annotation })
       ] }, annotation.id);
     }),
-    view.view.annotationPage?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("button", { type: "button", disabled: pages.pending, onClick: () => void pages.more(), children: pages.pending ? t("\u6B63\u5728\u8BFB\u53D6\u2026") : language === "en" ? `More annotations (${view.view.review.annotations.length}/${view.view.annotationPage.total})` : `\u66F4\u591A\u6279\u6CE8\uFF08${view.view.review.annotations.length}/${view.view.annotationPage.total}\uFF09` }),
-    pages.error && /* @__PURE__ */ (0, import_jsx_runtime104.jsx)("p", { role: "alert", children: t(pages.error) })
+    view.view.annotationPage?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("button", { type: "button", disabled: pages.pending, onClick: () => void pages.more(), children: pages.pending ? t("\u6B63\u5728\u8BFB\u53D6\u2026") : language === "en" ? `More annotations (${view.view.review.annotations.length}/${view.view.annotationPage.total})` : `\u66F4\u591A\u6279\u6CE8\uFF08${view.view.review.annotations.length}/${view.view.annotationPage.total}\uFF09` }),
+    pages.error && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("p", { role: "alert", children: t(pages.error) })
   ] });
 }
 
 // src/SharedArtifactDocument.tsx
-var import_react79 = __toESM(require_react(), 1);
+var import_react83 = __toESM(require_react(), 1);
 
 // src/shared-markdown-selection.ts
 function sharedMarkdownDomSelection(paper, event, source4) {
@@ -71992,43 +73068,18 @@ function sharedMarkdownDomSelection(paper, event, source4) {
   const bounds = block ? { start: Number(block.dataset.sourceStart), end: Number(block.dataset.sourceEnd) } : void 0;
   return resolveSharedMarkdownSelection(source4, selection.toString(), bounds);
 }
-function resolveSharedMarkdownSelection(source4, selectedText, bounds = { start: 0, end: source4.length }) {
-  const raw = source4.slice(bounds.start, bounds.end);
-  if (findGeneratedTextConstructs(raw).length) return null;
-  const projection = projectMarkdownReadableTextWithSourceMap(raw);
-  const selected = selectedText.trim().replace(/\s+/gu, " ");
-  if (!selected) return null;
-  let readable = "";
-  const offsets = [];
-  for (let index4 = 0; index4 < projection.text.length; index4++) {
-    const character = projection.text[index4] ?? "";
-    if (/\s/u.test(character)) {
-      if (readable.endsWith(" ")) continue;
-      readable += " ";
-      offsets.push(null);
-    } else {
-      readable += character;
-      offsets.push(projection.sourceOffsets[index4] ?? null);
-    }
-  }
-  const at = readable.indexOf(selected);
-  if (at < 0 || readable.indexOf(selected, at + 1) >= 0) return null;
-  const first = offsets[at], last = offsets[at + selected.length - 1];
-  if (first == null || last == null) return null;
-  return { start: bounds.start + first, end: bounds.start + last + 1 };
-}
 
 // src/SharedArtifactDocument.tsx
-var import_jsx_runtime105 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime107 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactDocument({ view }) {
   const t = useCollectiveText();
-  const paper = (0, import_react79.useRef)(null);
+  const paper = (0, import_react83.useRef)(null);
   const reading = useSharedArtifactReading();
-  const [notice2, setNotice] = (0, import_react79.useState)();
+  const [notice2, setNotice] = (0, import_react83.useState)();
   const version = `${view.contentRef}:${view.ownerRevision}:${view.blobDigest}`;
-  const currentVersion = (0, import_react79.useRef)(version);
+  const currentVersion = (0, import_react83.useRef)(version);
   currentVersion.current = version;
-  (0, import_react79.useEffect)(() => {
+  (0, import_react83.useEffect)(() => {
     let active = true;
     const select = async (event) => {
       if (!paper.current || !view.view.canWrite) return;
@@ -72061,30 +73112,30 @@ function SharedArtifactDocument({ view }) {
       document.removeEventListener("keyup", select);
     };
   }, [reading?.artifact, reading?.setQuote, version, view]);
-  return /* @__PURE__ */ (0, import_jsx_runtime105.jsxs)(import_jsx_runtime105.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("div", { ref: paper, className: "shared-artifact-document", children: /* @__PURE__ */ (0, import_jsx_runtime105.jsx)(MessageMarkdown, { source: view.text, sourceCoordinates: true }) }),
-    notice2 && /* @__PURE__ */ (0, import_jsx_runtime105.jsx)("output", { className: "composer-warning", children: t(notice2) })
+  return /* @__PURE__ */ (0, import_jsx_runtime107.jsxs)(import_jsx_runtime107.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("div", { ref: paper, className: "shared-artifact-document", children: /* @__PURE__ */ (0, import_jsx_runtime107.jsx)(MessageMarkdown, { source: view.text, sourceCoordinates: true }) }),
+    notice2 && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("output", { className: "composer-warning", children: t(notice2) })
   ] });
 }
 
 // src/SharedArtifactModificationCompare.tsx
-var import_react81 = __toESM(require_react(), 1);
+var import_react85 = __toESM(require_react(), 1);
 
 // src/use-shared-artifact-control.ts
-var import_react80 = __toESM(require_react(), 1);
+var import_react84 = __toESM(require_react(), 1);
 function useSharedArtifactControl(artifact, request) {
   const shared = useSharedArtifacts();
-  const [attempt, setAttempt] = (0, import_react80.useState)();
-  const [result, setResult] = (0, import_react80.useState)();
+  const [attempt, setAttempt] = (0, import_react84.useState)();
+  const [result, setResult] = (0, import_react84.useState)();
   const fence = `${artifact?.serviceInstanceId}:${artifact?.collectiveId}:${artifact?.artifactId}:${artifact?.accessRevision}:${request.requestId}`;
-  const current2 = (0, import_react80.useRef)(fence);
+  const current2 = (0, import_react84.useRef)(fence);
   current2.current = fence;
   const pending = attempt?.fence === fence && attempt.pending;
-  const resolve = async (action) => {
+  const resolve = async (action2) => {
     if (!shared?.api || !artifact || pending) return;
     setAttempt({ fence, pending: true });
     try {
-      const resolved = await shared.api.resolveModification(artifact, request, action);
+      const resolved = await shared.api.resolveModification(artifact, request, action2);
       if (current2.current !== fence) return;
       setResult({ fence, request: resolved });
       await shared.refresh();
@@ -72110,7 +73161,7 @@ function useSharedArtifactControl(artifact, request) {
 }
 
 // src/SharedArtifactModificationCompare.tsx
-var import_jsx_runtime106 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime108 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactModificationCompare({
   artifact,
   request,
@@ -72123,14 +73174,14 @@ function SharedArtifactModificationCompare({
   const reading = useSharedArtifactReading();
   const control = useSharedArtifactControl(artifact, request);
   const api = shared?.api;
-  const [preview, setPreview] = (0, import_react81.useState)();
-  const [error, setError] = (0, import_react81.useState)();
-  const [pending, setPending] = (0, import_react81.useState)(false);
-  const [written, setWritten] = (0, import_react81.useState)();
+  const [preview, setPreview] = (0, import_react85.useState)();
+  const [error, setError] = (0, import_react85.useState)();
+  const [pending, setPending] = (0, import_react85.useState)(false);
+  const [written, setWritten] = (0, import_react85.useState)();
   const fence = `${artifact.serviceInstanceId}:${artifact.collectiveId}:${artifact.artifactId}:${artifact.accessRevision}:${request.requestId}:${request.latestProposalRef}`;
-  const current2 = (0, import_react81.useRef)(fence);
+  const current2 = (0, import_react85.useRef)(fence);
   current2.current = fence;
-  (0, import_react81.useEffect)(() => {
+  (0, import_react85.useEffect)(() => {
     let active = true;
     setPreview(void 0);
     setError(void 0);
@@ -72190,27 +73241,27 @@ function SharedArtifactModificationCompare({
       if (current2.current === fence) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("section", { className: "shared-artifact-compare", "aria-label": t("\u4FEE\u6539\u524D\u540E\u5BF9\u6BD4"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("header", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("strong", { children: language === "en" ? `${shared?.catName(request.target.humanId, request.target.catId)}'s changes \xB7 based on version ${request.ownerRevision}` : `${shared?.catName(request.target.humanId, request.target.catId)}\u63D0\u4EA4\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248` }),
-      /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("button", { type: "button", onClick: onClose, children: t("\u8FD4\u56DE\u4F5C\u54C1") })
+  return /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("section", { className: "shared-artifact-compare", "aria-label": t("\u4FEE\u6539\u524D\u540E\u5BF9\u6BD4"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("header", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("strong", { children: language === "en" ? `${shared?.catName(request.target.humanId, request.target.catId)}'s changes \xB7 based on version ${request.ownerRevision}` : `${shared?.catName(request.target.humanId, request.target.catId)}\u63D0\u4EA4\u7684\u4FEE\u6539 \xB7 \u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248` }),
+      /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("button", { type: "button", onClick: onClose, children: t("\u8FD4\u56DE\u4F5C\u54C1") })
     ] }),
-    !preview && !error && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026") }),
-    preview && /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)(import_jsx_runtime106.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("p", { children: preview.proposal.response }),
-      preview.proposal.edits.map((edit, index4) => /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("div", { className: "shared-artifact-edit", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("h3", { children: t("\u539F\u6587") }),
-          /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("del", { children: edit.expectedText || t("\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09") }) })
+    !preview && !error && /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("output", { children: t("\u6B63\u5728\u8BFB\u53D6\u5BF9\u7167\u2026") }),
+    preview && /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)(import_jsx_runtime108.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { children: preview.proposal.response }),
+      preview.proposal.edits.map((edit, index4) => /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("div", { className: "shared-artifact-edit", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("h3", { children: t("\u539F\u6587") }),
+          /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("del", { children: edit.expectedText || t("\uFF08\u6B64\u5904\u539F\u65E0\u5185\u5BB9\uFF09") }) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("h3", { children: t("\u4FEE\u6539\u540E") }),
-          /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("ins", { children: edit.replacement || t("\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09") }) })
+        /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("h3", { children: t("\u4FEE\u6539\u540E") }),
+          /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("pre", { children: /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("ins", { children: edit.replacement || t("\uFF08\u5220\u9664\u6B64\u5904\u5185\u5BB9\uFF09") }) })
         ] })
       ] }, `${edit.start}:${edit.end}:${index4}`))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("footer", { children: [
-      !adopted && !control.closed && artifact.canApply && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("footer", { children: [
+      !adopted && !control.closed && artifact.canApply && /* @__PURE__ */ (0, import_jsx_runtime108.jsx)(
         "button",
         {
           type: "button",
@@ -72219,9 +73270,9 @@ function SharedArtifactModificationCompare({
           children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u4E0D\u91C7\u7528")
         }
       ),
-      adopted ? /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted} \u7248` }) : control.closed ? /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("output", { children: t(closedRequestLabel(control.request)) }) : stale ? /* @__PURE__ */ (0, import_jsx_runtime106.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("p", { children: language === "en" ? `These changes are based on version ${request.ownerRevision}; the work is now version ${latest}.` : `\u8FD9\u4EFD\u4FEE\u6539\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248\uFF0C\u73B0\u5728\u5DF2\u662F\u7B2C ${latest} \u7248` }),
-        /* @__PURE__ */ (0, import_jsx_runtime106.jsx)(
+      adopted ? /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted} \u7248` }) : control.closed ? /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("output", { children: t(closedRequestLabel(control.request)) }) : stale ? /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { children: language === "en" ? `These changes are based on version ${request.ownerRevision}; the work is now version ${latest}.` : `\u8FD9\u4EFD\u4FEE\u6539\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248\uFF0C\u73B0\u5728\u5DF2\u662F\u7B2C ${latest} \u7248` }),
+        /* @__PURE__ */ (0, import_jsx_runtime108.jsx)(
           "button",
           {
             type: "button",
@@ -72230,9 +73281,9 @@ function SharedArtifactModificationCompare({
             children: language === "en" ? `Ask ${shared?.catName(request.target.humanId, request.target.catId)} to redo this from version ${latest}\u2026` : `\u8BF7${shared?.catName(request.target.humanId, request.target.catId)}\u57FA\u4E8E\u7B2C ${latest} \u7248\u91CD\u505A\u2026`
           }
         )
-      ] }) : !artifact.canApply ? /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("p", { children: t("\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002") }) : /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("button", { type: "button", disabled: !preview || pending || control.pending, onClick: () => void adopt(), children: t(pending ? "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026" : "\u91C7\u7528") }),
-      control.error && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("p", { role: "alert", children: t(control.error) }),
-      error && !adopted && /* @__PURE__ */ (0, import_jsx_runtime106.jsx)("p", { role: "alert", children: t(error) })
+      ] }) : !artifact.canApply ? /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { children: t("\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A\uFF0C\u4F60\u4ECD\u53EF\u53C2\u4E0E\u8BA8\u8BBA\u3002") }) : /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("button", { type: "button", disabled: !preview || pending || control.pending, onClick: () => void adopt(), children: t(pending ? "\u6B63\u5728\u6838\u5BF9\u91C7\u7528\u56DE\u6267\u2026" : "\u91C7\u7528") }),
+      control.error && /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { role: "alert", children: t(control.error) }),
+      error && !adopted && /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { role: "alert", children: t(error) })
     ] })
   ] });
 }
@@ -72243,7 +73294,7 @@ function closedRequestLabel(request) {
 }
 
 // src/use-shared-artifact-request-history.ts
-var import_react82 = __toESM(require_react(), 1);
+var import_react86 = __toESM(require_react(), 1);
 function useSharedArtifactRequestHistory(artifact, view) {
   const shared = useSharedArtifacts();
   const fence = JSON.stringify([
@@ -72254,11 +73305,11 @@ function useSharedArtifactRequestHistory(artifact, view) {
     view.view.review.revision,
     view.modifications?.snapshot
   ]);
-  const current2 = (0, import_react82.useRef)(fence);
+  const current2 = (0, import_react86.useRef)(fence);
   current2.current = fence;
-  const [expanded, setExpanded] = (0, import_react82.useState)();
-  const [pending, setPending] = (0, import_react82.useState)();
-  const [failure, setFailure] = (0, import_react82.useState)();
+  const [expanded, setExpanded] = (0, import_react86.useState)();
+  const [pending, setPending] = (0, import_react86.useState)();
+  const [failure, setFailure] = (0, import_react86.useState)();
   const selected = expanded?.fence === fence ? expanded.view : view;
   const more = async () => {
     if (!shared?.api || !artifact || pending === fence) return;
@@ -72282,7 +73333,7 @@ function useSharedArtifactRequestHistory(artifact, view) {
 }
 
 // src/SharedArtifactRequestCards.tsx
-var import_jsx_runtime107 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime109 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactRequestCards({
   view,
   hidden = false
@@ -72293,11 +73344,11 @@ function SharedArtifactRequestCards({
   const history2 = useSharedArtifactRequestHistory(artifact, view);
   const requests = history2.view.modifications?.requests ?? [];
   if (!requests.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime107.jsxs)("section", { className: "shared-artifact-requests", "aria-label": t("\u4F5C\u54C1\u4FEE\u6539"), hidden, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("h2", { children: t("\u4FEE\u6539\u8BF7\u6C42") }),
-    requests.map((request) => /* @__PURE__ */ (0, import_jsx_runtime107.jsx)(SharedArtifactRequestCard, { artifact, record: request }, request.requestId)),
-    history2.view.modifications?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: t(history2.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : "\u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55") }),
-    history2.error && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("p", { role: "alert", children: t(history2.error) })
+  return /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("section", { className: "shared-artifact-requests", "aria-label": t("\u4F5C\u54C1\u4FEE\u6539"), hidden, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("h2", { children: t("\u4FEE\u6539\u8BF7\u6C42") }),
+    requests.map((request) => /* @__PURE__ */ (0, import_jsx_runtime109.jsx)(SharedArtifactRequestCard, { artifact, record: request }, request.requestId)),
+    history2.view.modifications?.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("button", { type: "button", disabled: history2.pending, onClick: () => void history2.more(), children: t(history2.pending ? "\u6B63\u5728\u8BFB\u53D6\u2026" : "\u66F4\u65E9\u7684\u4FEE\u6539\u8BB0\u5F55") }),
+    history2.error && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("p", { role: "alert", children: t(history2.error) })
   ] });
 }
 function SharedArtifactRequestCard({
@@ -72313,33 +73364,33 @@ function SharedArtifactRequestCard({
   const adopted = receipts.find(
     ({ artifact: work2, version }) => work2.artifactId === artifact?.artifactId && version.lineage?.requestId === request.requestId
   )?.version;
-  return /* @__PURE__ */ (0, import_jsx_runtime107.jsxs)("article", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime107.jsxs)("strong", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("article", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("strong", { children: [
       shared?.catName(request.target.humanId, request.target.catId) ?? request.target.catId,
       " \xB7",
       " ",
       t(sharedArtifactRequestState(request))
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("span", { children: language === "en" ? `Based on version ${request.ownerRevision} \xB7 ${request.annotationIds.length} ${request.annotationIds.length === 1 ? "reference" : "references"}` : `\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248 \xB7 ${request.annotationIds.length} \u5904\u5F15\u7528` }),
-    /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("p", { children: shared?.sourceMessage(request.requestEventId)?.body }),
-    request.latestProposalRef && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("button", { type: "button", onClick: () => shared?.compare(request.requestId, request), children: t("\u67E5\u770B\u5BF9\u7167") }),
-    !control.closed && control.canCancel && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("button", { type: "button", disabled: control.pending, onClick: () => void control.resolve("cancel"), children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539") }),
-    adopted && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted.ownerRevision}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted.ownerRevision} \u7248` }),
-    control.error && /* @__PURE__ */ (0, import_jsx_runtime107.jsx)("p", { role: "alert", children: t(control.error) })
+    /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("span", { children: language === "en" ? `Based on version ${request.ownerRevision} \xB7 ${request.annotationIds.length} ${request.annotationIds.length === 1 ? "reference" : "references"}` : `\u57FA\u4E8E\u7B2C ${request.ownerRevision} \u7248 \xB7 ${request.annotationIds.length} \u5904\u5F15\u7528` }),
+    /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("p", { children: shared?.sourceMessage(request.requestEventId)?.body }),
+    request.latestProposalRef && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("button", { type: "button", onClick: () => shared?.compare(request.requestId, request), children: t("\u67E5\u770B\u5BF9\u7167") }),
+    !control.closed && control.canCancel && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("button", { type: "button", disabled: control.pending, onClick: () => void control.resolve("cancel"), children: t(control.pending ? "\u6B63\u5728\u6838\u5BF9\u51B3\u5B9A\u2026" : "\u53D6\u6D88\u8FD9\u6B21\u4FEE\u6539") }),
+    adopted && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("output", { children: language === "en" ? `Adopted as version ${adopted.ownerRevision}` : `\u5DF2\u91C7\u7528\u4E3A\u7B2C ${adopted.ownerRevision} \u7248` }),
+    control.error && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("p", { role: "alert", children: t(control.error) })
   ] });
 }
 
 // src/SharedArtifactToolbar.tsx
-var import_react87 = __toESM(require_react(), 1);
+var import_react91 = __toESM(require_react(), 1);
 
 // src/SharedArtifactInformation.tsx
-var import_react86 = __toESM(require_react(), 1);
+var import_react90 = __toESM(require_react(), 1);
 
 // src/SharedArtifactManagement.tsx
-var import_react85 = __toESM(require_react(), 1);
+var import_react89 = __toESM(require_react(), 1);
 
 // src/SharedArtifactCustody.tsx
-var import_react83 = __toESM(require_react(), 1);
+var import_react87 = __toESM(require_react(), 1);
 
 // src/shared-artifact-member-label.ts
 function artifactMemberLabel(human, directory) {
@@ -72360,7 +73411,7 @@ function artifactCafeLabel(cafe, directory) {
 }
 
 // src/SharedArtifactCustody.tsx
-var import_jsx_runtime108 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime110 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactCustody({
   artifact,
   management
@@ -72368,7 +73419,7 @@ function SharedArtifactCustody({
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const [target, setTarget] = (0, import_react83.useState)("");
+  const [target, setTarget] = (0, import_react87.useState)("");
   const { api, value, pending, unconfirmed } = management;
   if (!value) return null;
   const transfer = value.transfer;
@@ -72381,16 +73432,16 @@ function SharedArtifactCustody({
   ) ?? [];
   const destination = cafes.find((cafe) => cafe.connectionId === target);
   const custodianLabel = !value.custodianHumanId ? void 0 : value.custodianCafe && directory ? artifactCafeLabel({ ...value.custodianCafe, humanId: value.custodianHumanId }, directory) : language === "en" ? `${shared?.humanName(value.custodianHumanId) ?? t("\u6210\u5458")}'s Caf\xE9` : `${shared?.humanName(value.custodianHumanId) ?? "\u6210\u5458"}\u7684 Caf\xE9`;
-  return /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("div", { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("h3", { children: t("\u4FDD\u7BA1\u4F5C\u54C1") }),
-    /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { children: value.custodianHumanId ? language === "en" ? `${custodianLabel} keeps the document, versions, and collaboration history.` : `${custodianLabel} \u4FDD\u7BA1\u6B63\u6587\u3001\u7248\u672C\u548C\u534F\u4F5C\u8BB0\u5F55\u3002` : t("\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002") }),
-    transfer && /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("output", { children: t(transferLabel(transfer)) }),
-    transfer?.targetCafe && directory && /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("p", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("div", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("h3", { children: t("\u4FDD\u7BA1\u4F5C\u54C1") }),
+    /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("p", { children: value.custodianHumanId ? language === "en" ? `${custodianLabel} keeps the document, versions, and collaboration history.` : `${custodianLabel} \u4FDD\u7BA1\u6B63\u6587\u3001\u7248\u672C\u548C\u534F\u4F5C\u8BB0\u5F55\u3002` : t("\u5F53\u524D\u4FDD\u7BA1\u65B9\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u3002") }),
+    transfer && /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("output", { children: t(transferLabel(transfer)) }),
+    transfer?.targetCafe && directory && /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("p", { children: [
       t("\u672C\u6B21\u4EA4\u63A5\u76EE\u7684\u5730"),
       "\uFF1A",
       artifactCafeLabel({ ...transfer.targetCafe, humanId: transfer.targetHumanId }, directory)
     ] }),
-    active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime108.jsx)(
+    active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(
       "button",
       {
         type: "button",
@@ -72399,10 +73450,10 @@ function SharedArtifactCustody({
         children: t("\u53D6\u6D88\u8FD9\u6B21\u4EA4\u63A5")
       }
     ),
-    !active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)(import_jsx_runtime108.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)("label", { children: [
+    !active && value.canManageCustody && /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)(import_jsx_runtime110.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("label", { children: [
         t("\u4EA4\u63A5\u7ED9"),
-        /* @__PURE__ */ (0, import_jsx_runtime108.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)(
           "select",
           {
             "aria-label": t("\u4F5C\u54C1\u63A5\u6536 Caf\xE9"),
@@ -72410,13 +73461,13 @@ function SharedArtifactCustody({
             onChange: (event) => setTarget(event.target.value),
             disabled: blocked,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("option", { value: "", children: t("\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9") }),
-              cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("option", { value: cafe.connectionId, children: directory ? artifactCafeLabel(cafe, directory) : cafe.endpointLabel }, cafe.connectionId))
+              /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("option", { value: "", children: t("\u9009\u62E9\u6210\u5458\u4E0E Caf\xE9") }),
+              cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("option", { value: cafe.connectionId, children: directory ? artifactCafeLabel(cafe, directory) : cafe.endpointLabel }, cafe.connectionId))
             ]
           }
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime108.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(
         "button",
         {
           type: "button",
@@ -72429,7 +73480,7 @@ function SharedArtifactCustody({
           children: t("\u4EA4\u63A5\u4F5C\u54C1\u4E0E\u8BB0\u5F55")
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime108.jsx)("p", { children: t("\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002") })
+      /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("p", { children: t("\u4EA4\u63A5\u4FDD\u7559\u539F\u6765\u6E90\u4E0E\u6743\u9650\uFF0C\u4F5C\u54C1\u548C\u5168\u90E8\u8BB0\u5F55\u6838\u5BF9\u5B8C\u6210\u540E\u624D\u5207\u6362\u4FDD\u7BA1\u65B9\u3002") })
     ] })
   ] });
 }
@@ -72449,20 +73500,20 @@ function transferLabel(transfer) {
 }
 
 // src/use-shared-artifact-management.ts
-var import_react84 = __toESM(require_react(), 1);
+var import_react88 = __toESM(require_react(), 1);
 function useSharedArtifactManagement(artifact) {
   const shared = useSharedArtifacts();
   const api = shared?.api?.management;
   const fence = `${artifact.serviceInstanceId}:${artifact.collectiveId}:${artifact.artifactId}:${artifact.accessRevision}:${shared?.humanId}`;
-  const current2 = (0, import_react84.useRef)({ fence, api });
+  const current2 = (0, import_react88.useRef)({ fence, api });
   current2.current = { fence, api };
-  const mounted = (0, import_react84.useRef)(true);
+  const mounted = (0, import_react88.useRef)(true);
   const matches2 = () => mounted.current && current2.current.fence === fence && current2.current.api === api;
-  const generation = (0, import_react84.useRef)(0);
-  const busy = (0, import_react84.useRef)(false);
-  const [state, setState] = (0, import_react84.useState)();
+  const generation = (0, import_react88.useRef)(0);
+  const busy = (0, import_react88.useRef)(false);
+  const [state, setState] = (0, import_react88.useState)();
   const value = state?.fence === fence ? state.value : void 0;
-  const refresh = (0, import_react84.useCallback)(async () => {
+  const refresh = (0, import_react88.useCallback)(async () => {
     if (!api || shared?.status !== "ready") return;
     const token = ++generation.current;
     try {
@@ -72479,7 +73530,7 @@ function useSharedArtifactManagement(artifact) {
       setState({ fence, error: denied ? "\u4F60\u5DF2\u65E0\u6CD5\u7BA1\u7406\u8FD9\u4EF6\u4F5C\u54C1\u3002" : "\u6682\u65F6\u65E0\u6CD5\u6838\u5BF9\u6743\u9650\u4E0E\u4FDD\u7BA1\uFF0C\u8BF7\u91CD\u65B0\u8BFB\u53D6\u3002" });
     }
   }, [api, fence, shared?.status]);
-  (0, import_react84.useEffect)(() => {
+  (0, import_react88.useEffect)(() => {
     mounted.current = true;
     busy.current = false;
     void refresh();
@@ -72492,12 +73543,12 @@ function useSharedArtifactManagement(artifact) {
       window.clearInterval(timer);
     };
   }, [refresh]);
-  const run2 = async (action) => {
+  const run2 = async (action2) => {
     if (!api || busy.current) return;
     busy.current = true;
     setState({ fence, value, pending: true });
     try {
-      await action();
+      await action2();
       if (!matches2()) return;
       await refresh();
       await shared?.refresh();
@@ -72557,7 +73608,7 @@ function appendManagerPage(previous4, next) {
 }
 
 // src/SharedArtifactManagement.tsx
-var import_jsx_runtime109 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime111 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactManagement({ artifact }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
@@ -72565,13 +73616,13 @@ function SharedArtifactManagement({ artifact }) {
   const management = useSharedArtifactManagement(artifact);
   const { api, value, pending, unconfirmed } = management;
   const blocked = pending || unconfirmed;
-  return /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("section", { className: "shared-artifact-management", "aria-label": t("\u6743\u9650\u4E0E\u4FDD\u7BA1"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("h2", { children: t("\u6743\u9650\u4E0E\u4FDD\u7BA1") }),
-    !value && !management.error && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("output", { children: t("\u6B63\u5728\u6838\u5BF9\u2026") }),
-    management.error && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("p", { role: "alert", children: t(management.error) }),
-    unconfirmed && /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("div", { role: "status", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("p", { children: t("\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime109.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("section", { className: "shared-artifact-management", "aria-label": t("\u6743\u9650\u4E0E\u4FDD\u7BA1"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("h2", { children: t("\u6743\u9650\u4E0E\u4FDD\u7BA1") }),
+    !value && !management.error && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("output", { children: t("\u6B63\u5728\u6838\u5BF9\u2026") }),
+    management.error && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("p", { role: "alert", children: t(management.error) }),
+    unconfirmed && /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("div", { role: "status", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("p", { children: t("\u4E0A\u6B21\u64CD\u4F5C\u5C1A\u672A\u786E\u8BA4\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
         "button",
         {
           type: "button",
@@ -72581,12 +73632,12 @@ function SharedArtifactManagement({ artifact }) {
         }
       )
     ] }),
-    value && /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)(import_jsx_runtime109.Fragment, { children: [
-      value.canManageAccess && /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("h3", { children: t("\u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650") }),
-        /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("p", { children: t("\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002") }),
+    value && /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(import_jsx_runtime111.Fragment, { children: [
+      value.canManageAccess && /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("h3", { children: t("\u6210\u5458\u7684\u4F5C\u54C1\u6743\u9650") }),
+        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("p", { children: t("\u4FEE\u6539\u53EA\u4F5C\u7528\u4E8E\u8FD9\u4EF6\u4F5C\u54C1\uFF0C\u91C7\u7528\u6743\u9650\u7531\u4F60\u660E\u786E\u6388\u4E88\u3002") }),
         value.members.map(
-          (member) => member.access && member.accessRevision !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)(
+          (member) => member.access && member.accessRevision !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
             ArtifactMemberPermission,
             {
               member,
@@ -72600,10 +73651,10 @@ function SharedArtifactManagement({ artifact }) {
           )
         )
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime109.jsx)(SharedArtifactCustody, { artifact, management }),
-      value.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("button", { type: "button", disabled: blocked, onClick: () => void management.more(), children: language === "en" ? `More members (${value.members.length}/${value.total} read)` : `\u66F4\u591A\u6210\u5458\uFF08\u5DF2\u8BFB ${value.members.length}/${value.total}\uFF09` })
+      /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(SharedArtifactCustody, { artifact, management }),
+      value.nextOffset !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", disabled: blocked, onClick: () => void management.more(), children: language === "en" ? `More members (${value.members.length}/${value.total} read)` : `\u66F4\u591A\u6210\u5458\uFF08\u5DF2\u8BFB ${value.members.length}/${value.total}\uFF09` })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("button", { type: "button", disabled: pending, onClick: () => void management.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1") })
+    /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", disabled: pending, onClick: () => void management.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6\u6743\u9650\u4E0E\u4FDD\u7BA1") })
   ] });
 }
 function ArtifactMemberPermission({
@@ -72614,11 +73665,11 @@ function ArtifactMemberPermission({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  const [access2, setAccess] = (0, import_react85.useState)(member.access ?? "read");
-  return /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("div", { className: "shared-artifact-member-permission", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)("label", { children: [
+  const [access2, setAccess] = (0, import_react89.useState)(member.access ?? "read");
+  return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("div", { className: "shared-artifact-member-permission", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("label", { children: [
       label,
-      /* @__PURE__ */ (0, import_jsx_runtime109.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(
         "select",
         {
           "aria-label": language === "en" ? `${label}'s work access` : `${label}\u7684\u4F5C\u54C1\u6743\u9650`,
@@ -72626,19 +73677,19 @@ function ArtifactMemberPermission({
           disabled,
           onChange: (event) => setAccess(event.target.value),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("option", { value: "read", children: t("\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539") }),
-            /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("option", { value: "apply", children: t("\u4E5F\u53EF\u91C7\u7528\u4FEE\u6539") }),
-            /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("option", { value: "revoked", children: t("\u505C\u6B62\u8BBF\u95EE") })
+            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("option", { value: "read", children: t("\u67E5\u770B\u3001\u6279\u6CE8\u4E0E\u8BF7\u732B\u4FEE\u6539") }),
+            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("option", { value: "apply", children: t("\u4E5F\u53EF\u91C7\u7528\u4FEE\u6539") }),
+            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("option", { value: "revoked", children: t("\u505C\u6B62\u8BBF\u95EE") })
           ]
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime109.jsx)("button", { type: "button", disabled: disabled || access2 === member.access, onClick: () => onSave(access2), children: language === "en" ? `Update ${label}'s access` : `\u66F4\u65B0${label}\u7684\u6743\u9650` })
+    /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", disabled: disabled || access2 === member.access, onClick: () => onSave(access2), children: language === "en" ? `Update ${label}'s access` : `\u66F4\u65B0${label}\u7684\u6743\u9650` })
   ] });
 }
 
 // src/SharedArtifactInformation.tsx
-var import_jsx_runtime110 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime112 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactInformation({
   artifact,
   managementArtifact,
@@ -72649,11 +73700,11 @@ function SharedArtifactInformation({
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const close = (0, import_react86.useRef)(null);
-  (0, import_react86.useEffect)(() => {
+  const close = (0, import_react90.useRef)(null);
+  (0, import_react90.useEffect)(() => {
     close.current?.focus();
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)(
     "dialog",
     {
       open: true,
@@ -72667,28 +73718,28 @@ function SharedArtifactInformation({
         }
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("h2", { children: t("\u4F5C\u54C1\u4FE1\u606F") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u4F5C\u54C1\u4FE1\u606F"), onClick: onClose, children: "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h2", { children: t("\u4F5C\u54C1\u4FE1\u606F") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { ref: close, type: "button", "aria-label": t("\u5173\u95ED\u4F5C\u54C1\u4FE1\u606F"), onClick: onClose, children: "\xD7" })
         ] }),
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("dl", { className: "shared-artifact-info", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dt", { children: t("\u7248\u672C") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dd", { children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dt", { children: t("\u6765\u81EA") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime110.jsxs)("button", { type: "button", onClick: onReturnToSource, children: [
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("dl", { className: "shared-artifact-info", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dt", { children: t("\u7248\u672C") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dd", { children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dt", { children: t("\u6765\u81EA") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("button", { type: "button", onClick: onReturnToSource, children: [
             "#",
             artifact.sourceLocation.channelId,
             " \xB7 ",
             t("\u539F\u8BA8\u8BBA")
           ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dt", { children: t("\u5C5E\u4E8E\u4EFB\u52A1") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dd", { children: t(artifact.workId ? "\u5DF2\u5173\u8054\u539F\u4EFB\u52A1" : "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dt", { children: t("\u67E5\u770B\u4E0E\u6279\u6CE8") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dd", { children: t("\u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dt", { children: t("\u91C7\u7528\u4FEE\u6539") }),
-          /* @__PURE__ */ (0, import_jsx_runtime110.jsx)("dd", { children: t(artifact.canApply ? "\u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539" : "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A") })
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dt", { children: t("\u5C5E\u4E8E\u4EFB\u52A1") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dd", { children: t(artifact.workId ? "\u5DF2\u5173\u8054\u539F\u4EFB\u52A1" : "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u5171\u540C\u4F5C\u54C1") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dt", { children: t("\u67E5\u770B\u4E0E\u6279\u6CE8") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dd", { children: t("\u6709\u6743\u8BBF\u95EE\u8FD9\u4EF6\u4F5C\u54C1\u7684\u5171\u540C\u4F53\u6210\u5458") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dt", { children: t("\u91C7\u7528\u4FEE\u6539") }),
+          /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("dd", { children: t(artifact.canApply ? "\u4F60\u6709\u6743\u91C7\u7528\u4FEE\u6539" : "\u4F60\u53EF\u4EE5\u53C2\u4E0E\u8BA8\u8BBA\uFF0C\u91C7\u7528\u7531\u6709\u6743\u6210\u5458\u51B3\u5B9A") })
         ] }),
-        shared?.status === "ready" && managementArtifact && (managementArtifact.canManageAccess || managementArtifact.canManageCustody) && /* @__PURE__ */ (0, import_jsx_runtime110.jsx)(
+        shared?.status === "ready" && managementArtifact && (managementArtifact.canManageAccess || managementArtifact.canManageCustody) && /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
           SharedArtifactManagement,
           {
             artifact: managementArtifact
@@ -72701,7 +73752,7 @@ function SharedArtifactInformation({
 }
 
 // src/SharedArtifactToolbar.tsx
-var import_jsx_runtime111 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime113 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactToolbar({
   artifact,
   managementArtifact,
@@ -72712,13 +73763,13 @@ function SharedArtifactToolbar({
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
   const shared = useSharedArtifacts();
-  const [panel, setPanel] = (0, import_react87.useState)();
-  const infoToggle = (0, import_react87.useRef)(null);
-  const historyToggle = (0, import_react87.useRef)(null);
+  const [panel, setPanel] = (0, import_react91.useState)();
+  const infoToggle = (0, import_react91.useRef)(null);
+  const historyToggle = (0, import_react91.useRef)(null);
   const infoOpen = panel === "information";
-  return /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(import_jsx_runtime111.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("header", { className: "shared-artifact-header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(import_jsx_runtime113.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("header", { className: "shared-artifact-header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(
         "button",
         {
           ref: infoToggle,
@@ -72728,16 +73779,16 @@ function SharedArtifactToolbar({
           },
           "aria-expanded": infoOpen,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("strong", { children: artifact?.title ?? t("\u5171\u540C\u4F5C\u54C1") }),
-            /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("strong", { children: artifact?.title ?? t("\u5171\u540C\u4F5C\u54C1") }),
+            /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("span", { children: [
               t("\u4F5C\u54C1\u4FE1\u606F"),
               " \u2304"
             ] })
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("div", { children: [
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("div", { children: [
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
           "button",
           {
             ref: historyToggle,
@@ -72749,18 +73800,18 @@ function SharedArtifactToolbar({
             children: t("\u7248\u672C\u8BB0\u5F55")
           }
         ),
-        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", className: "shared-discussion-toggle", onClick: onOpenDiscussion, children: t("\u8BA8\u8BBA") }),
-        artifact && /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("label", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", className: "shared-discussion-toggle", onClick: onOpenDiscussion, children: t("\u8BA8\u8BBA") }),
+        artifact && /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("label", { children: [
           t("\u7248\u672C"),
-          /* @__PURE__ */ (0, import_jsx_runtime111.jsxs)("select", { value: ownerRevision2, onChange: (event) => shared?.open(artifact, Number(event.target.value)), children: [
-            ownerRevision2 !== void 0 && ownerRevision2 !== artifact.versions.at(-1)?.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("option", { value: ownerRevision2, children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
-            artifact.versions.slice(-1).map((version) => /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("option", { value: version.ownerRevision, children: language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248` }, version.ownerRevision))
+          /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("select", { value: ownerRevision2, onChange: (event) => shared?.open(artifact, Number(event.target.value)), children: [
+            ownerRevision2 !== void 0 && ownerRevision2 !== artifact.versions.at(-1)?.ownerRevision && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("option", { value: ownerRevision2, children: language === "en" ? `Version ${ownerRevision2}` : `\u7B2C ${ownerRevision2} \u7248` }),
+            artifact.versions.slice(-1).map((version) => /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("option", { value: version.ownerRevision, children: language === "en" ? `Version ${version.ownerRevision}` : `\u7B2C ${version.ownerRevision} \u7248` }, version.ownerRevision))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime111.jsx)("button", { type: "button", "aria-label": t(shared?.returnLabel ?? "\u5173\u95ED\u4F5C\u54C1"), onClick: shared?.close, children: shared?.returnLabel && shared?.returnLabel !== "\u5173\u95ED\u4F5C\u54C1" ? "\u2190" : "\xD7" })
+        /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", "aria-label": t(shared?.returnLabel ?? "\u5173\u95ED\u4F5C\u54C1"), onClick: shared?.close, children: shared?.returnLabel && shared?.returnLabel !== "\u5173\u95ED\u4F5C\u54C1" ? "\u2190" : "\xD7" })
       ] })
     ] }),
-    infoOpen && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
+    infoOpen && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
       SharedArtifactInformation,
       {
         artifact,
@@ -72773,7 +73824,7 @@ function SharedArtifactToolbar({
         }
       }
     ),
-    artifact && panel === "history" && /* @__PURE__ */ (0, import_jsx_runtime111.jsx)(
+    artifact && panel === "history" && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
       SharedArtifactHistory,
       {
         artifact,
@@ -72788,7 +73839,7 @@ function SharedArtifactToolbar({
 }
 
 // src/SharedArtifactSurface.tsx
-var import_jsx_runtime112 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime114 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactSurface({
   onReturnToSource,
   onOpenDiscussion
@@ -72799,7 +73850,7 @@ function SharedArtifactSurface({
   const artifact = shared?.catalogue.find((item) => item.artifactId === shared.selected?.artifactId);
   const selectedRevision = shared?.selected?.ownerRevision;
   const { view, inaccessible, unavailable, error } = useSharedArtifactReading() ?? {};
-  const managed = (0, import_react88.useRef)();
+  const managed = (0, import_react92.useRef)();
   if (artifact) managed.current = artifact;
   if (!shared?.selected) managed.current = void 0;
   if (!shared?.selected) return null;
@@ -72812,13 +73863,13 @@ function SharedArtifactSurface({
     if (artifact) onReturnToSource(artifact.sourceLocation.channelId, artifact.sourceEventId);
   };
   if (artifact && (artifact.mediaType === "image/png" || artifact.mediaType === "video/mp4"))
-    return /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("section", { className: "shared-artifact-state", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h2", { children: artifact.title }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("p", { children: t("\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA") })
+    return /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("section", { className: "shared-artifact-state", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: artifact.title }),
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t("\u5728\u5DF2\u8FDE\u63A5\u7684 Caf\xE9 \u4E2D\u67E5\u770B\u753B\u9762\u4E0E\u6279\u6CE8\u3002\u72EC\u7ACB\u7A97\u53E3\u8BF7\u4ECE\u81EA\u5DF1\u7684 Caf\xE9 \u6253\u5F00\u5171\u540C\u4F53\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u8FD4\u56DE\u539F\u8BA8\u8BBA") })
     ] });
-  return /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("section", { className: "shared-artifact-surface", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("section", { className: "shared-artifact-surface", "aria-label": t("\u4F5C\u54C1\u6A21\u5F0F"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
       SharedArtifactToolbar,
       {
         artifact,
@@ -72829,22 +73880,23 @@ function SharedArtifactSurface({
       },
       infoKey
     ),
-    inaccessible ? /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h2", { children: t("\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1") }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("p", { children: t("\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: shared.close, children: t("\u8FD4\u56DE\u9891\u9053") })
-    ] }) : unavailable || error ? /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("h2", { children: t("\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1") }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("p", { children: artifact?.availability === "owner_unavailable" ? t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002") : t(error?.message ?? "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
-    ] }) : !view ? /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("output", { className: "shared-artifact-state", children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") }) : null,
-    view && artifact && /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)(import_jsx_runtime112.Fragment, { children: [
-      view.view.historyReadOnly && /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("p", { className: "shared-artifact-history-banner", children: [
+    inaccessible ? /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: t("\u4F60\u5DF2\u65E0\u6CD5\u67E5\u770B\u8FD9\u4EF6\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: t("\u4F5C\u54C1\u5185\u5BB9\u548C\u5F15\u7528\u5DF2\u5173\u95ED\u3002\u4F60\u7684\u767B\u5F55\u4ECD\u7136\u4FDD\u7559\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", onClick: shared.close, children: t("\u8FD4\u56DE\u9891\u9053") })
+    ] }) : unavailable || error ? /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("div", { className: "shared-artifact-state", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("h2", { children: t("\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u4F5C\u54C1") }),
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { children: artifact?.availability === "owner_unavailable" ? t("\u5185\u5BB9\u6240\u5728\u7684 Caf\xE9 \u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BA8\u8BBA\u548C\u8349\u7A3F\u4ECD\u5728\u539F\u5904\u3002") : t(error?.message ?? "\u6B63\u5728\u91CD\u65B0\u8FDE\u63A5\u5171\u540C\u4F53\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", onClick: () => void shared.refresh(), children: t("\u91CD\u65B0\u8BFB\u53D6") })
+    ] }) : !view ? /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("output", { className: "shared-artifact-state", children: t("\u6B63\u5728\u8BFB\u53D6\u4F5C\u54C1\u2026") }) : null,
+    shared.documentHosted && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("p", { className: "shared-artifact-history-banner", children: t("\u6B63\u6587\u5728 Workspace \u7684\u5E38\u9A7B\u6807\u7B7E\u4E2D\uFF1B\u8FD9\u91CC\u6CBF\u539F\u8BA8\u8BBA\u6279\u6CE8\u3001\u8BF7\u732B\u4FEE\u6539\u4E0E\u91C7\u7528\u3002") }),
+    view && artifact && /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(import_jsx_runtime114.Fragment, { children: [
+      view.view.historyReadOnly && /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("p", { className: "shared-artifact-history-banner", children: [
         language === "en" ? `Version ${view.ownerRevision} \xB7 historical version, read only ` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u5386\u53F2\u7248\u672C\uFF0C\u53EA\u8BFB\u67E5\u770B `,
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: () => shared.open(artifact), children: t("\u56DE\u5230\u6700\u65B0\u7248") })
+        /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", onClick: () => shared.open(artifact), children: t("\u56DE\u5230\u6700\u65B0\u7248") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(SharedArtifactRequestCards, { view, hidden: Boolean(comparing) }),
-      comparing ? /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(SharedArtifactRequestCards, { view, hidden: Boolean(comparing) }),
+      comparing ? /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(
         SharedArtifactModificationCompare,
         {
           artifact,
@@ -72852,35 +73904,35 @@ function SharedArtifactSurface({
           onClose: () => shared.compare(void 0),
           onRework: onOpenDiscussion
         }
-      ) : /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("div", { className: "shared-artifact-reading-area", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(SharedArtifactDocument, { view }),
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)(SharedArtifactAnnotations, { view, onOpenDiscussion })
+      ) : /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("div", { className: "shared-artifact-reading-area", children: [
+        !shared.documentHosted && /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(SharedArtifactDocument, { view }),
+        /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(SharedArtifactAnnotations, { view, onOpenDiscussion })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime112.jsxs)("footer", { className: "shared-artifact-footer", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("span", { children: language === "en" ? `Version ${view.ownerRevision} \xB7 reading the same document as other members` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u4E0E\u6210\u5458\u9605\u8BFB\u540C\u4E00\u4EFD\u6B63\u6587` }),
-        /* @__PURE__ */ (0, import_jsx_runtime112.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u56DE\u5230\u539F\u8BA8\u8BBA") })
+      /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("footer", { className: "shared-artifact-footer", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("span", { children: language === "en" ? `Version ${view.ownerRevision} \xB7 reading the same document as other members` : `\u7B2C ${view.ownerRevision} \u7248 \xB7 \u4E0E\u6210\u5458\u9605\u8BFB\u540C\u4E00\u4EFD\u6B63\u6587` }),
+        /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", onClick: returnToSource, children: t("\u56DE\u5230\u539F\u8BA8\u8BBA") })
       ] })
     ] })
   ] });
 }
 
 // src/use-channel-read-position.ts
-var import_react89 = __toESM(require_react(), 1);
+var import_react93 = __toESM(require_react(), 1);
 function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEventId, surface) {
   const port2 = useMessageExpression();
-  const [read, setRead] = (0, import_react89.useState)();
-  const [notice2, setNotice] = (0, import_react89.useState)();
-  const [armed, setArmed] = (0, import_react89.useState)(false);
-  const [attempt, setAttempt] = (0, import_react89.useState)(0);
-  const restored = (0, import_react89.useRef)(false);
-  const requested = (0, import_react89.useRef)(0);
+  const [read, setRead] = (0, import_react93.useState)();
+  const [notice2, setNotice] = (0, import_react93.useState)();
+  const [armed, setArmed] = (0, import_react93.useState)(false);
+  const [attempt, setAttempt] = (0, import_react93.useState)(0);
+  const restored = (0, import_react93.useRef)(false);
+  const requested = (0, import_react93.useRef)(0);
   const readRoot = surface?.rootRef ?? flowRef;
   const surfaceKey = surface?.key;
-  const channelEvents = (0, import_react89.useMemo)(
+  const channelEvents = (0, import_react93.useMemo)(
     () => events.filter((event) => eventChannelId(event) === channelId),
     [events, channelId]
   );
-  const jump = (0, import_react89.useCallback)(
+  const jump = (0, import_react93.useCallback)(
     (event) => {
       if (!event) return;
       const sourceId = event.location?.rootEventId ?? event.replyToEventId ?? event.eventId;
@@ -72889,7 +73941,7 @@ function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEven
     },
     [flowRef]
   );
-  (0, import_react89.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (!port2 || !enabled) return;
     let active = true;
     restored.current = false;
@@ -72908,7 +73960,7 @@ function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEven
       active = false;
     };
   }, [port2, channelId, enabled, attempt]);
-  (0, import_react89.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     if (!read || !enabled || restored.current || !flowRef.current || !channelEvents.length) return;
     if (!focusedEventId)
       jump(
@@ -72917,7 +73969,7 @@ function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEven
     restored.current = true;
     setArmed(true);
   }, [read, channelEvents, enabled, focusedEventId, flowRef, jump]);
-  (0, import_react89.useEffect)(() => {
+  (0, import_react93.useEffect)(() => {
     const flow3 = readRoot.current;
     if (!port2 || !flow3 || !enabled || !armed || !restored.current) return;
     const visible = /* @__PURE__ */ new Map();
@@ -72941,9 +73993,9 @@ function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEven
     const observer = new IntersectionObserver(
       (entries2) => {
         for (const entry of entries2) {
-          const id33 = entry.target.dataset.eventReadEnd;
-          if (!id33) continue;
-          if (entry.isIntersecting && entry.intersectionRatio >= 1) visible.set(entry.target, id33);
+          const id36 = entry.target.dataset.eventReadEnd;
+          if (!id36) continue;
+          if (entry.isIntersecting && entry.intersectionRatio >= 1) visible.set(entry.target, id36);
           else visible.delete(entry.target);
         }
         if (timer) clearTimeout(timer);
@@ -72971,7 +74023,7 @@ function useChannelReadPosition(flowRef, channelId, events, enabled, focusedEven
 }
 
 // src/ChannelScene.tsx
-var import_jsx_runtime113 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime115 = __toESM(require_jsx_runtime(), 1);
 function ChannelScene(props) {
   const t = useCollectiveText();
   const {
@@ -73026,7 +74078,7 @@ function ChannelScene(props) {
     onOpenMember,
     onOpenTopic,
     onOpenChannel,
-    context: context3,
+    context: context4,
     onCafe,
     onChannelCafe,
     members,
@@ -73034,18 +74086,18 @@ function ChannelScene(props) {
   } = props;
   const shared = useSharedArtifacts();
   const selectedArtifact = shared?.catalogue.find((item) => item.artifactId === shared.selected?.artifactId);
-  const sharedOpenSource = (0, import_react90.useRef)(onOpenTopic);
+  const sharedOpenSource = (0, import_react94.useRef)(onOpenTopic);
   sharedOpenSource.current = onOpenTopic;
-  const [rightPanel, setRightPanel] = (0, import_react90.useState)();
-  const [topicRootId, setTopicRootId] = (0, import_react90.useState)();
-  const [sharedDiscussionOpen, setSharedDiscussionOpen] = (0, import_react90.useState)(false);
-  const [replyRequest, setReplyRequest] = (0, import_react90.useState)();
-  const [mention, setMention] = (0, import_react90.useState)();
-  const [selectionError, setSelectionError] = (0, import_react90.useState)();
-  const [highlightedId, setHighlightedId] = (0, import_react90.useState)(focusEventId);
-  const focusedHostEvent = (0, import_react90.useRef)();
-  const flowRef = (0, import_react90.useRef)(null);
-  const readSurface = (0, import_react90.useRef)(null);
+  const [rightPanel, setRightPanel] = (0, import_react94.useState)();
+  const [topicRootId, setTopicRootId] = (0, import_react94.useState)();
+  const [sharedDiscussionOpen, setSharedDiscussionOpen] = (0, import_react94.useState)(false);
+  const [replyRequest, setReplyRequest] = (0, import_react94.useState)();
+  const [mention, setMention] = (0, import_react94.useState)();
+  const [selectionError, setSelectionError] = (0, import_react94.useState)();
+  const [highlightedId, setHighlightedId] = (0, import_react94.useState)(focusEventId);
+  const focusedHostEvent = (0, import_react94.useRef)();
+  const flowRef = (0, import_react94.useRef)(null);
+  const readSurface = (0, import_react94.useRef)(null);
   const language = useCollectiveLanguage();
   const readPosition = useChannelReadPosition(
     flowRef,
@@ -73064,7 +74116,7 @@ function ChannelScene(props) {
   );
   const topic = allThreads.find((thread) => thread.root.eventId === topicRootId);
   const artifactTopicId = selectedArtifact?.sourceLocation.rootEventId ?? selectedArtifact?.sourceEventId;
-  (0, import_react90.useEffect)(() => {
+  (0, import_react94.useEffect)(() => {
     if (!artifactTopicId) return;
     setTopicRootId(artifactTopicId);
     setReplyRequest(void 0);
@@ -73085,13 +74137,13 @@ function ChannelScene(props) {
     (reaction) => threads.some((thread) => [thread.root, ...thread.replies].some((event) => event.eventId === reaction.eventId))
   );
   const legacy = events.filter((event) => !eventChannelId(event));
-  const openTopic = (id33, focusComposer = false) => {
+  const openTopic = (id36, focusComposer = false) => {
     setRightPanel(void 0);
-    setTopicRootId(id33);
-    setReplyRequest(focusComposer ? { eventId: id33 } : void 0);
+    setTopicRootId(id36);
+    setReplyRequest(focusComposer ? { eventId: id36 } : void 0);
     onOpenTopic();
   };
-  const returnToRoot = (0, import_react90.useCallback)(
+  const returnToRoot = (0, import_react94.useCallback)(
     (event) => {
       shared?.close();
       setTopicRootId(void 0);
@@ -73107,7 +74159,7 @@ function ChannelScene(props) {
     },
     [channelId, onOpenChannel, shared?.close]
   );
-  (0, import_react90.useEffect)(() => {
+  (0, import_react94.useEffect)(() => {
     if (shared?.selected) return;
     if (!focusEventId) {
       focusedHostEvent.current = void 0;
@@ -73132,13 +74184,13 @@ function ChannelScene(props) {
     });
     return () => cancelAnimationFrame(frame);
   }, [events, focusEventId, shared?.selected]);
-  (0, import_react90.useEffect)(() => {
+  (0, import_react94.useEffect)(() => {
     if (content3 !== "roadmap") return;
     setTopicRootId(void 0);
     setReplyRequest(void 0);
   }, [content3]);
-  (0, import_react90.useEffect)(() => {
-    if (!context3 && !topic) return;
+  (0, import_react94.useEffect)(() => {
+    if (!context4 && !topic) return;
     const close = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -73148,38 +74200,43 @@ function ChannelScene(props) {
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [context3, topic, onCloseContext, returnToRoot]);
+  }, [context4, topic, onCloseContext, returnToRoot]);
+  (0, import_react94.useEffect)(() => {
+    const reveal = () => setSharedDiscussionOpen(true);
+    window.addEventListener("collective:reveal-document-discussion", reveal);
+    return () => window.removeEventListener("collective:reveal-document-discussion", reveal);
+  }, []);
   const requestMember = (event) => {
     setTopicRootId(void 0);
     const result = mentionSelectionForEvent(event, participants, channelId);
     setSelectionError(result.error);
     if (result.selection) setMention(result.selection);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
     MessageQuoteProvider,
     {
       namespace,
       onOpenSource: onOpenChannel ? (source4) => {
         if (source4.kind === "collective_message") onOpenChannel?.(source4.channelId, source4.eventId);
       } : void 0,
-      children: /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)(
         "div",
         {
           ref: readSurface,
           className: "scene-layout",
-          "data-context-open": Boolean(context3 || topic || rightPanel),
+          "data-context-open": Boolean(context4 || topic || rightPanel),
           "data-shared-artifact-open": Boolean(shared?.selected),
           "data-shared-discussion-open": Boolean(shared?.selected && sharedDiscussionOpen),
           "data-entry-browsing": firstEntry?.phase === "browsing",
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)(
+            /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)(
               "section",
               {
                 className: "channel-scene",
                 hidden: Boolean(shared?.selected) || props.contextFullPage,
                 "aria-label": search2 ? t("\u641C\u7D22\u7ED3\u679C") : `# ${channelId}`,
                 children: [
-                  content3 !== "roadmap" && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                  content3 !== "roadmap" && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                     ChannelHeader,
                     {
                       collectiveName: collective.name,
@@ -73208,18 +74265,18 @@ function ChannelScene(props) {
                       guideCatCount: firstEntry?.phase === "playing" && firstEntry.beat === 0 && firstEntry.arrivalComplete ? firstEntry.ownCats.length : void 0
                     }
                   ),
-                  content3 === "conversation" && roadmapReturnLabel && onReturnToRoadmap && /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("button", { type: "button", className: "roadmap-return", onClick: onReturnToRoadmap, children: [
+                  content3 === "conversation" && roadmapReturnLabel && onReturnToRoadmap && /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("button", { type: "button", className: "roadmap-return", onClick: onReturnToRoadmap, children: [
                     "\u2190 ",
                     t("\u8FD4\u56DE"),
                     " ",
                     roadmapReturnLabel
                   ] }),
-                  content3 === "conversation" && !search2 && readPosition.unreadCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", className: "channel-unread-return", onClick: readPosition.jumpToUnread, children: language === "en" ? `Continue reading \xB7 ${readPosition.unreadCount} unread` : `\u56DE\u6765\u63A5\u7740\u8BFB \xB7 ${readPosition.unreadCount} \u6761\u672A\u8BFB` }),
-                  readPosition.notice && /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("p", { role: "status", className: "delivery-state", children: [
+                  content3 === "conversation" && !search2 && readPosition.unreadCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", className: "channel-unread-return", onClick: readPosition.jumpToUnread, children: language === "en" ? `Continue reading \xB7 ${readPosition.unreadCount} unread` : `\u56DE\u6765\u63A5\u7740\u8BFB \xB7 ${readPosition.unreadCount} \u6761\u672A\u8BFB` }),
+                  readPosition.notice && /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("p", { role: "status", className: "delivery-state", children: [
                     readPosition.notice,
-                    /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("button", { type: "button", onClick: readPosition.retry, children: language === "en" ? "Retry" : "\u91CD\u8BD5" })
+                    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", onClick: readPosition.retry, children: language === "en" ? "Retry" : "\u91CD\u8BD5" })
                   ] }),
-                  content3 === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(SharedArtifactLibrary, { channelId, filterable: true }, namespace) : content3 === "roadmap" ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                  content3 === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(SharedArtifactLibrary, { channelId, filterable: true }, namespace) : content3 === "roadmap" ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                     RoadmapWorkspace,
                     {
                       roadmaps,
@@ -73254,7 +74311,7 @@ function ChannelScene(props) {
                       onWithdrawBindingVote: (vote) => void onWithdrawBindingVote(vote).catch(() => void 0),
                       onSettleBindingVote: (vote) => void onSettleBindingVote(vote).catch(() => void 0)
                     }
-                  ) : /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                  ) : /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                     ChannelConversationFlow,
                     {
                       flowRef,
@@ -73289,12 +74346,12 @@ function ChannelScene(props) {
                         setRoadmapWorks: onSetRoadmapWorks,
                         setReaction: onSetReaction
                       },
-                      children: firstEntry?.phase === "playing" && firstEntry.narrator && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(DemoPlayback, { beat: firstEntry.beat, narrator: firstEntry.narrator, humanName })
+                      children: firstEntry?.phase === "playing" && firstEntry.narrator && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(DemoPlayback, { beat: firstEntry.beat, narrator: firstEntry.narrator, humanName })
                     }
                   ),
-                  (error || selectionError) && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("p", { role: "alert", className: "delivery-state delivery-failed", children: selectionError ?? error }),
-                  !search2 && content3 === "conversation" && /* @__PURE__ */ (0, import_jsx_runtime113.jsxs)("div", { className: "channel-composer-placement", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                  (error || selectionError) && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { role: "alert", className: "delivery-state delivery-failed", children: selectionError ?? error }),
+                  !search2 && content3 === "conversation" && /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("div", { className: "channel-composer-placement", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                       PublicChannelActivity,
                       {
                         works: channelWorks,
@@ -73307,8 +74364,8 @@ function ChannelScene(props) {
                         onOpen: openTopic
                       }
                     ),
-                    props.hostActivity && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("div", { className: "private-activity-slot", "data-host-ui-slot": "activity" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                    props.hostActivity && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { className: "private-activity-slot", "data-host-ui-slot": "activity" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                       ChannelComposer,
                       {
                         namespace,
@@ -73327,12 +74384,12 @@ function ChannelScene(props) {
                 ]
               }
             ),
-            rightPanel && !context3 && !topic && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+            rightPanel && !context4 && !topic && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
               ChannelRightPanel,
               {
                 title: t(rightPanel === "artifacts" ? "\u9891\u9053\u4F5C\u54C1" : "\u9891\u9053\u4EFB\u52A1"),
                 onClose: () => setRightPanel(void 0),
-                children: rightPanel === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                children: rightPanel === "artifacts" ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                   SharedArtifactLibrary,
                   {
                     channelId,
@@ -73340,7 +74397,7 @@ function ChannelScene(props) {
                     onOpenChannelLibrary: () => props.onOpenLibrary?.(channelId)
                   },
                   namespace
-                ) : !collaboration ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026") }) : !channelWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime113.jsx)("p", { children: t("\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002") }) : channelWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+                ) : !collaboration ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u2026") }) : !channelWorks.length ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: t("\u8FD9\u4E2A\u9891\u9053\u8FD8\u6CA1\u6709\u4EFB\u52A1\u3002") }) : channelWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
                   CollectiveWorkCard,
                   {
                     work: work2,
@@ -73363,7 +74420,7 @@ function ChannelScene(props) {
                 ))
               }
             ),
-            context3 || topic && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+            context4 || topic && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
               ChannelTopicContext,
               {
                 scene: props,
@@ -73380,7 +74437,7 @@ function ChannelScene(props) {
               },
               topic.root.eventId
             ),
-            shared?.selected && /* @__PURE__ */ (0, import_jsx_runtime113.jsx)(
+            shared?.selected && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(
               SharedArtifactSurface,
               {
                 onOpenDiscussion: () => setSharedDiscussionOpen(true),
@@ -73396,7 +74453,7 @@ function ChannelScene(props) {
 }
 
 // src/MemberFamilies.tsx
-var import_jsx_runtime114 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime116 = __toESM(require_jsx_runtime(), 1);
 function MemberFamilies({
   members,
   participants,
@@ -73420,31 +74477,31 @@ function MemberFamilies({
         const key = JSON.stringify([cat.serviceInstanceId, cat.collectiveId, cat.endpointId, cat.humanId, cat.catId]);
         cats.set(key, [...cats.get(key) ?? [], cat]);
       }
-      return /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("details", { open: true, className: "member-family", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("summary", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("strong", { children: home?.endpointLabel ?? human.displayName }),
-          /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("small", { children: [
+      return /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("details", { open: true, className: "member-family", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("summary", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("strong", { children: home?.endpointLabel ?? human.displayName }),
+          /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("small", { children: [
             cats.size + 1,
             " ",
             language === "en" && cats.size === 0 ? "member" : t("\u4F4D\u6210\u5458")
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)(
           "button",
           {
             type: "button",
             className: "member-row",
             onClick: () => onSelect({ kind: "human", humanId: human.humanId }),
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
-              /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("span", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("strong", { children: human.displayName }),
-                /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("small", { children: t(human.role === "steward" ? "\u7EF4\u62A4\u8005" : "\u666E\u901A\u6210\u5458") })
+              /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
+              /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("span", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("strong", { children: human.displayName }),
+                /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("small", { children: t(human.role === "steward" ? "\u7EF4\u62A4\u8005" : "\u666E\u901A\u6210\u5458") })
               ] })
             ]
           }
         ),
-        [...cats].map(([key, sessions2]) => /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(PublicCatRow, { sessions: sessions2, onSelect }, key))
+        [...cats].map(([key, sessions2]) => /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(PublicCatRow, { sessions: sessions2, onSelect }, key))
       ] }, `${human.humanId}:${home?.endpointId ?? "human"}`);
     });
   });
@@ -73458,11 +74515,11 @@ function PublicCatRow({
   const cat = ordered[0];
   const label = cat.displayLabel ?? cat.displayName;
   const identity2 = `${cat.displayName} \xB7 @${cat.catId} \xB7 ${cat.humanDisplayName} \xB7 ${cat.endpointLabel}`;
-  const name2 = /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(import_jsx_runtime114.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(MemberAvatar, { name: label, kind: "agent", avatarUrl: cat.avatarDataUrl }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("span", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsx)(AppTooltip, { label: identity2, intent: "content", children: /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("strong", { children: label }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("small", { children: [
+  const name2 = /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)(import_jsx_runtime116.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(MemberAvatar, { name: label, kind: "agent", avatarUrl: cat.avatarDataUrl }),
+    /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("span", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(AppTooltip, { label: identity2, intent: "content", children: /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("strong", { children: label }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("small", { children: [
         "@",
         cat.catId,
         ordered.length > 1 ? ` \xB7 ${ordered.length} ${t("\u4E2A\u516C\u5F00\u8FDE\u63A5")}` : ""
@@ -73471,10 +74528,10 @@ function PublicCatRow({
   ] });
   const select = (session) => onSelect({ kind: "agent", connectionId: session.connectionId, catId: session.catId });
   if (ordered.length === 1)
-    return /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("button", { type: "button", className: "member-row member-row-agent", "aria-label": identity2, onClick: () => select(cat), children: name2 });
-  return /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("details", { className: "member-sessions", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("summary", { className: "member-row member-row-agent", children: name2 }),
-    /* @__PURE__ */ (0, import_jsx_runtime114.jsx)("div", { className: "member-connection-choices", children: ordered.map((session, index4) => /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)(
+    return /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("button", { type: "button", className: "member-row member-row-agent", "aria-label": identity2, onClick: () => select(cat), children: name2 });
+  return /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("details", { className: "member-sessions", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("summary", { className: "member-row member-row-agent", children: name2 }),
+    /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("div", { className: "member-connection-choices", children: ordered.map((session, index4) => /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)(
       "button",
       {
         type: "button",
@@ -73484,8 +74541,8 @@ function PublicCatRow({
           t("\u516C\u5F00\u8FDE\u63A5"),
           " ",
           index4 + 1,
-          /* @__PURE__ */ (0, import_jsx_runtime114.jsxs)("small", { children: [
-            session.channelIds.map((id33) => `#${id33}`).join(" \xB7 "),
+          /* @__PURE__ */ (0, import_jsx_runtime116.jsxs)("small", { children: [
+            session.channelIds.map((id36) => `#${id36}`).join(" \xB7 "),
             " \xB7 ",
             session.connectionId
           ] })
@@ -73497,7 +74554,7 @@ function PublicCatRow({
 }
 
 // src/MemberPanel.tsx
-var import_jsx_runtime115 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime117 = __toESM(require_jsx_runtime(), 1);
 function MemberPanel({
   member,
   members,
@@ -73510,25 +74567,25 @@ function MemberPanel({
   privateRoster = false
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)(
     "aside",
     {
       className: member === "members" ? "members-page" : "context-panel member-panel",
       "data-spatial-role": "context-panel",
       "aria-label": t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599"),
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("header", { className: "context-header", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("span", { children: t("\u5171\u540C\u4F53") }),
-            /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h2", { children: t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599") })
+        /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("header", { className: "context-header", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("span", { children: t("\u5171\u540C\u4F53") }),
+            /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("h2", { children: t(member === "members" ? "\u6210\u5458" : "\u6210\u5458\u8D44\u6599") })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", "aria-label": t("\u5173\u95ED\u6210\u5458\u8D44\u6599"), onClick: onClose, children: "\xD7" })
+          /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("button", { type: "button", "aria-label": t("\u5173\u95ED\u6210\u5458\u8D44\u6599"), onClick: onClose, children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("div", { className: "member-content", children: [
-          member === "members" && privateRoster && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { "data-host-ui-slot": "roster", className: "private-roster-slot" }),
-          member === "members" ? !members ? /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { className: "empty-copy", children: t("\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026") }) : /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(MemberFamilies, { members, participants, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(MemberProfile, { member, members, participants, events }),
-          onCafe && !privateRoster && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", className: "cafe-window-button", onClick: onCafe, children: "\u7BA1\u7406\u2026" }),
-          member === "members" && onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("button", { type: "button", className: "first-entry-replay", onClick: onReplayGuide, children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") })
+        /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("div", { className: "member-content", children: [
+          member === "members" && privateRoster && /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("div", { "data-host-ui-slot": "roster", className: "private-roster-slot" }),
+          member === "members" ? !members ? /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("p", { className: "empty-copy", children: t("\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u2026") }) : /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(MemberFamilies, { members, participants, onSelect }) : /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(MemberProfile, { member, members, participants, events }),
+          onCafe && !privateRoster && /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("button", { type: "button", className: "cafe-window-button", onClick: onCafe, children: "\u7BA1\u7406\u2026" }),
+          member === "members" && onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("button", { type: "button", className: "first-entry-replay", onClick: onReplayGuide, children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") })
         ] })
       ]
     }
@@ -73544,19 +74601,19 @@ function MemberProfile({
     const current2 = members?.humans.find((human2) => human2.humanId === member.humanId);
     const previous5 = events.map((event) => event.actor.kind === "human" ? event.actor : event.actor.human).find((human2) => human2.humanId === member.humanId);
     const human = current2 ?? previous5;
-    if (!human) return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
+    if (!human) return /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
     const cafes = members?.cafes.filter((cafe) => cafe.humanId === human.humanId) ?? [];
-    return /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)(import_jsx_runtime115.Fragment, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("div", { className: "member-profile", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
-        /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h3", { children: human.displayName })
+    return /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)(import_jsx_runtime117.Fragment, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("div", { className: "member-profile", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(MemberAvatar, { name: human.displayName, kind: "human", avatarUrl: human.avatarUrl }),
+        /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("h3", { children: human.displayName })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("dl", { className: "member-facts", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dt", { children: "\u4F60\u5728\u8FD9\u91CC\u662F" }),
-        /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dd", { children: current2?.role === "steward" ? "\u7EF4\u62A4\u8005" : current2 ? "\u6210\u5458" : "\u5386\u53F2\u6D88\u606F\u4E2D\u7684\u7F72\u540D" }),
-        cafes.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)(import_jsx_runtime115.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dt", { children: "Caf\xE9" }),
-          /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dd", { children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("div", { children: cafe.endpointLabel }, cafe.connectionId)) })
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("dl", { className: "member-facts", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dt", { children: "\u4F60\u5728\u8FD9\u91CC\u662F" }),
+        /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dd", { children: current2?.role === "steward" ? "\u7EF4\u62A4\u8005" : current2 ? "\u6210\u5458" : "\u5386\u53F2\u6D88\u606F\u4E2D\u7684\u7F72\u540D" }),
+        cafes.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)(import_jsx_runtime117.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dt", { children: "Caf\xE9" }),
+          /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dd", { children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("div", { children: cafe.endpointLabel }, cafe.connectionId)) })
         ] })
       ] })
     ] });
@@ -73569,30 +74626,30 @@ function MemberProfile({
   )?.actor;
   const previous4 = actor3?.kind === "agent" ? actor3 : void 0;
   const name2 = participant?.displayName ?? previous4?.agent.displayName;
-  if (!name2) return /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
-  return /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)(import_jsx_runtime115.Fragment, { children: [
-    /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("div", { className: "member-profile", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)(MemberAvatar, { name: name2, kind: "agent", avatarUrl: participant?.avatarDataUrl }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("h3", { children: name2 }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("p", { children: [
+  if (!name2) return /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("p", { children: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\u8FD9\u4F4D\u6210\u5458\u3002" });
+  return /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)(import_jsx_runtime117.Fragment, { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("div", { className: "member-profile", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(MemberAvatar, { name: name2, kind: "agent", avatarUrl: participant?.avatarDataUrl }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("h3", { children: name2 }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("p", { children: [
         participant?.endpointLabel ?? previous4?.provenance.endpointLabel,
         " \xB7 \u732B"
       ] }),
-      participant?.description && /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("p", { children: participant.description })
+      participant?.description && /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("p", { children: participant.description })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime115.jsxs)("dl", { className: "member-facts", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dt", { children: "\u7531\u8C01\u8D1F\u8D23" }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dd", { children: participant?.humanDisplayName ?? previous4?.human.displayName }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dt", { children: "\u516C\u5F00\u53C2\u4E0E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id33) => `#${id33}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dt", { children: "\u53D1\u8A00\u8EAB\u4EFD" }),
-      /* @__PURE__ */ (0, import_jsx_runtime115.jsx)("dd", { children: "\u4EE5\u81EA\u8EAB\u5177\u540D\u8EAB\u4EFD\u56DE\u5E94\uFF0C\u79C1\u4EBA\u6388\u6743\u7531\u4E3B\u4EBA\u7BA1\u7406\u3002" })
+    /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("dl", { className: "member-facts", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dt", { children: "\u7531\u8C01\u8D1F\u8D23" }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dd", { children: participant?.humanDisplayName ?? previous4?.human.displayName }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dt", { children: "\u516C\u5F00\u53C2\u4E0E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dd", { children: participant?.availability === "declared" ? participant.channelIds.map((id36) => `#${id36}`).join(" \xB7 ") : "\u5F53\u524D\u6CA1\u6709\u6709\u6548\u53C2\u4E0E\u58F0\u660E" }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dt", { children: "\u53D1\u8A00\u8EAB\u4EFD" }),
+      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("dd", { children: "\u4EE5\u81EA\u8EAB\u5177\u540D\u8EAB\u4EFD\u56DE\u5E94\uFF0C\u79C1\u4EBA\u6388\u6743\u7531\u4E3B\u4EBA\u7BA1\u7406\u3002" })
     ] })
   ] });
 }
 
 // src/CollectiveChannelWorkspace.tsx
-var import_jsx_runtime116 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime118 = __toESM(require_jsx_runtime(), 1);
 function CollectiveChannelWorkspace({
   channelId,
   client,
@@ -73624,7 +74681,7 @@ function CollectiveChannelWorkspace({
   const members = snapshot.members;
   const showCafe = host.available ? () => host.show("cats") : void 0;
   const showChannelCafe = host.available ? () => host.show("channel") : void 0;
-  return /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(WorkTimeCommandContext.Provider, { value: { change: client.changeWorkTime, openSource: onOpenTimeSource }, children: /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(ProjectMaterialsProvider, { client: client.materialClient, onOpenSource: onOpenMaterialSource, children: /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime118.jsx)(WorkTimeCommandContext.Provider, { value: { change: client.changeWorkTime, openSource: onOpenTimeSource }, children: /* @__PURE__ */ (0, import_jsx_runtime118.jsx)(ProjectMaterialsProvider, { client: client.materialClient, onOpenSource: onOpenMaterialSource, children: /* @__PURE__ */ (0, import_jsx_runtime118.jsx)(
     ChannelScene,
     {
       collective: snapshot.collective,
@@ -73702,7 +74759,7 @@ function CollectiveChannelWorkspace({
       },
       onOpenChannel: onSelectChannel,
       contextFullPage: selectedMember === "members" || host.open,
-      context: host.open ? /* @__PURE__ */ (0, import_jsx_runtime116.jsx)("div", { className: "context-panel", "aria-hidden": "true" }) : selectedMember && /* @__PURE__ */ (0, import_jsx_runtime116.jsx)(
+      context: host.open ? /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("div", { className: "context-panel", "aria-hidden": "true" }) : selectedMember && /* @__PURE__ */ (0, import_jsx_runtime118.jsx)(
         MemberPanel,
         {
           member: selectedMember,
@@ -73722,7 +74779,7 @@ function CollectiveChannelWorkspace({
 }
 
 // src/CollectiveHome.tsx
-var import_react91 = __toESM(require_react(), 1);
+var import_react95 = __toESM(require_react(), 1);
 
 // src/collective-home-model.ts
 var activityLabels = {
@@ -73773,7 +74830,7 @@ function visibleHistoryEvent(work2, entryEventId, events) {
 }
 
 // src/CollectiveHome.tsx
-var import_jsx_runtime117 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime119 = __toESM(require_jsx_runtime(), 1);
 function CollectiveHome({
   collective,
   events,
@@ -73784,20 +74841,20 @@ function CollectiveHome({
   onOpenEvent
 }) {
   const shared = useSharedArtifacts();
-  const projection = (0, import_react91.useMemo)(() => projectCollectiveHome(events, collaboration), [collaboration, events]);
+  const projection = (0, import_react95.useMemo)(() => projectCollectiveHome(events, collaboration), [collaboration, events]);
   const loading = collaboration === void 0 && !error;
   const unavailable = Boolean(error || connection === "offline");
   const activityState = unavailable ? "error" : loading ? "loading" : projection.activities.length ? "ready" : "empty";
   const worksState = unavailable ? "error" : loading ? "loading" : "unavailable";
-  return /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("section", { className: "collective-home", "data-testid": "collective-home", "aria-label": `${collective.name}\u9996\u9875`, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("section", { className: "collective-home", "data-testid": "collective-home", "aria-label": `${collective.name}\u9996\u9875`, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)(
       "div",
       {
         className: "collective-home-hero",
         role: "img",
         "aria-label": "\u51E0\u5BB6\u4EBA\u548C\u732B\u5728\u957F\u684C\u65C1\u5171\u540C\u521B\u4F5C\uFF0C\u58A8\u58A8\u628A\u6BDB\u7B14\u9012\u7ED9\u65B0\u6765\u7684\u5C0F\u732B",
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime119.jsx)(
             "button",
             {
               type: "button",
@@ -73808,17 +74865,17 @@ function CollectiveHome({
               children: "\u2630"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("div", { className: "collective-home-title", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("h1", { children: collective.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("p", { children: "\u4EBA\u548C\u732B\u5728\u8FD9\u91CC\u4E00\u8D77\u8BA8\u8BBA\u3001\u534F\u4F5C\u548C\u4EA4\u4ED8\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("div", { className: "collective-home-title", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("h1", { children: collective.name }),
+            /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("p", { children: "\u4EBA\u548C\u732B\u5728\u8FD9\u91CC\u4E00\u8D77\u8BA8\u8BBA\u3001\u534F\u4F5C\u548C\u4EA4\u4ED8\u3002" })
           ] })
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("div", { className: "collective-home-content", children: [
-      unavailable && /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("output", { className: "collective-home-notice", children: "\u6682\u65F6\u65E0\u6CD5\u66F4\u65B0\u5171\u540C\u4F53\u9996\u9875\u3002\u9891\u9053\u4ECD\u53EF\u6253\u5F00\uFF1B\u8FDE\u63A5\u6062\u590D\u540E\u4F1A\u81EA\u52A8\u91CD\u8BD5\u3002" }),
-      projection.partial && /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("output", { className: "collective-home-notice", children: "\u90E8\u5206\u5185\u5BB9\u6682\u4E0D\u53EF\u8BFB\uFF0C\u53EA\u663E\u793A\u5F53\u524D\u6709\u6743\u6253\u5F00\u7684\u516C\u5171\u8BB0\u5F55\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(HomeSection, { title: "\u6700\u8FD1\u52A8\u6001", state: activityState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5171\u4EFB\u52A1\u52A8\u6001\u3002", children: projection.activities.map((activity) => /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("div", { className: "collective-home-content", children: [
+      unavailable && /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("output", { className: "collective-home-notice", children: "\u6682\u65F6\u65E0\u6CD5\u66F4\u65B0\u5171\u540C\u4F53\u9996\u9875\u3002\u9891\u9053\u4ECD\u53EF\u6253\u5F00\uFF1B\u8FDE\u63A5\u6062\u590D\u540E\u4F1A\u81EA\u52A8\u91CD\u8BD5\u3002" }),
+      projection.partial && /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("output", { className: "collective-home-notice", children: "\u90E8\u5206\u5185\u5BB9\u6682\u4E0D\u53EF\u8BFB\uFF0C\u53EA\u663E\u793A\u5F53\u524D\u6709\u6743\u6253\u5F00\u7684\u516C\u5171\u8BB0\u5F55\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime119.jsx)(HomeSection, { title: "\u6700\u8FD1\u52A8\u6001", state: activityState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5171\u4EFB\u52A1\u52A8\u6001\u3002", children: projection.activities.map((activity) => /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)(
         "button",
         {
           type: "button",
@@ -73826,13 +74883,13 @@ function CollectiveHome({
           "data-testid": "collective-home-activity",
           onClick: () => onOpenEvent(activity.channelId, activity.eventId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("span", { className: "collective-home-actor", children: activity.actorName }),
-            /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("span", { className: "collective-home-actor", children: activity.actorName }),
+            /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("span", { children: [
               activity.actionLabel,
               " ",
-              /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("strong", { children: activity.title })
+              /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("strong", { children: activity.title })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("small", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("small", { children: [
               "# ",
               activity.channelId,
               " \xB7 ",
@@ -73842,7 +74899,7 @@ function CollectiveHome({
         },
         activity.id
       )) }),
-      shared?.api ? /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(SharedArtifactLibrary, { title: "\u6700\u8FD1\u4F5C\u54C1" }) : /* @__PURE__ */ (0, import_jsx_runtime117.jsx)(HomeSection, { title: "\u6700\u8FD1\u4F5C\u54C1", state: worksState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5F00\u4F5C\u54C1\u3002" })
+      shared?.api ? /* @__PURE__ */ (0, import_jsx_runtime119.jsx)(SharedArtifactLibrary, { title: "\u6700\u8FD1\u4F5C\u54C1" }) : /* @__PURE__ */ (0, import_jsx_runtime119.jsx)(HomeSection, { title: "\u6700\u8FD1\u4F5C\u54C1", state: worksState, empty: "\u8FD9\u91CC\u8FD8\u6CA1\u6709\u516C\u5F00\u4F5C\u54C1\u3002" })
     ] })
   ] });
 }
@@ -73858,9 +74915,9 @@ function HomeSection({
     error: "\u6682\u65F6\u65E0\u6CD5\u8BFB\u53D6\uFF1B\u8FDE\u63A5\u6062\u590D\u540E\u4F1A\u81EA\u52A8\u91CD\u8BD5\u3002",
     unavailable: "\u4F5C\u54C1\u5217\u8868\u8FD8\u6CA1\u6709\u53EF\u9760\u7684\u516C\u5F00\u6765\u6E90\u3002"
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime117.jsxs)("section", { className: "collective-home-section", "aria-label": title, "aria-busy": state === "loading" || void 0, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("h2", { children: title }),
-    state === "ready" ? children : /* @__PURE__ */ (0, import_jsx_runtime117.jsx)("p", { className: "collective-home-empty", children: fallback[state] })
+  return /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("section", { className: "collective-home-section", "aria-label": title, "aria-busy": state === "loading" || void 0, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("h2", { children: title }),
+    state === "ready" ? children : /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("p", { className: "collective-home-empty", children: fallback[state] })
   ] });
 }
 function formatHomeTime(value) {
@@ -73875,8 +74932,8 @@ function visibleCollectiveCats(participants, members) {
 }
 
 // src/first-entry/DemoSpotlight.tsx
-var import_react92 = __toESM(require_react(), 1);
-var import_jsx_runtime118 = __toESM(require_jsx_runtime(), 1);
+var import_react96 = __toESM(require_react(), 1);
+var import_jsx_runtime120 = __toESM(require_jsx_runtime(), 1);
 function targetForBeat(beat, arrivalComplete) {
   if (beat > 0) {
     const selector = beat === 1 ? "[data-guide-thread]" : beat === 2 ? "[data-guide-neighbor]" : "[data-guide-work]";
@@ -73894,9 +74951,9 @@ function DemoSpotlight({
   onNext,
   onSkip
 }) {
-  const [spotlight, setSpotlight] = (0, import_react92.useState)(null);
-  const [arrivals, setArrivals] = (0, import_react92.useState)([]);
-  (0, import_react92.useLayoutEffect)(() => {
+  const [spotlight, setSpotlight] = (0, import_react96.useState)(null);
+  const [arrivals, setArrivals] = (0, import_react96.useState)([]);
+  (0, import_react96.useLayoutEffect)(() => {
     const target = targetForBeat(beat, arrivalComplete);
     if (!target) return;
     if (beat > 0) {
@@ -73946,9 +75003,9 @@ function DemoSpotlight({
     selectedCats.length === 1 ? "\u7B49\u522B\u5BB6 Caf\xE9 \u52A0\u5165\uFF0C\u5C31\u80FD @ \u5B83\u4EEC\u7684\u732B" : "\u5404\u56DE\u5404\u5BB6\u5E72\u6D3B\uFF0C\u5728\u540C\u4E00\u5904\u78B0\u5934",
     "\u8981\u4F60\u70B9\u5934\u624D\u7B97\u6570"
   ];
-  return /* @__PURE__ */ (0, import_jsx_runtime118.jsxs)(import_jsx_runtime118.Fragment, { children: [
-    spotlight && /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("div", { className: "demo-spotlight", "data-demo": "spotlight", style: spotlight, "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime118.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)(import_jsx_runtime120.Fragment, { children: [
+    spotlight && /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("div", { className: "demo-spotlight", "data-demo": "spotlight", style: spotlight, "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime120.jsx)(
       "button",
       {
         type: "button",
@@ -73958,38 +75015,38 @@ function DemoSpotlight({
         onClick: onNext
       }
     ),
-    beat === 0 && /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("div", { className: "demo-arrivals", "data-demo": "arrival", "aria-hidden": "true", children: arrivals.map(({ cat, startX, startY, dx, dy }) => /* @__PURE__ */ (0, import_jsx_runtime118.jsxs)(
+    beat === 0 && /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("div", { className: "demo-arrivals", "data-demo": "arrival", "aria-hidden": "true", children: arrivals.map(({ cat, startX, startY, dx, dy }) => /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)(
       "span",
       {
         className: "demo-arrival",
         style: { left: startX, top: startY, "--arrival-x": `${dx}px`, "--arrival-y": `${dy}px` },
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime118.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl }),
-          /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("strong", { children: cat.displayName })
+          /* @__PURE__ */ (0, import_jsx_runtime120.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl }),
+          /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("strong", { children: cat.displayName })
         ]
       },
       `${cat.connectionId}:${cat.catId}`
     )) }),
-    /* @__PURE__ */ (0, import_jsx_runtime118.jsxs)("section", { className: "demo-caption", "data-demo": "caption", "data-demo-beat": beat, "aria-label": "\u5165\u573A\u6F14\u793A", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime118.jsxs)("div", { className: "demo-caption-copy", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("h2", { children: titles[beat] }),
-        /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("p", { children: details[beat] })
+    /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)("section", { className: "demo-caption", "data-demo": "caption", "data-demo-beat": beat, "aria-label": "\u5165\u573A\u6F14\u793A", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)("div", { className: "demo-caption-copy", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("h2", { children: titles[beat] }),
+        /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("p", { children: details[beat] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime118.jsxs)("div", { className: "demo-caption-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("span", { role: "img", "aria-label": `\u7B2C ${beat + 1} / 4 \u6B65`, children: titles.map((title, index4) => /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("span", { children: index4 === beat ? "\u25CF" : "\u25CB" }, title)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("button", { type: "button", onClick: onSkip, children: "\u8DF3\u8FC7" }),
-        /* @__PURE__ */ (0, import_jsx_runtime118.jsx)("button", { type: "button", onClick: onNext, children: beat === 3 ? "\u6211\u6765\u8BD5\u8BD5" : "\u4E0B\u4E00\u6B65" })
+      /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)("div", { className: "demo-caption-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("span", { role: "img", "aria-label": `\u7B2C ${beat + 1} / 4 \u6B65`, children: titles.map((title, index4) => /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("span", { children: index4 === beat ? "\u25CF" : "\u25CB" }, title)) }),
+        /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("button", { type: "button", onClick: onSkip, children: "\u8DF3\u8FC7" }),
+        /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("button", { type: "button", onClick: onNext, children: beat === 3 ? "\u6211\u6765\u8BD5\u8BD5" : "\u4E0B\u4E00\u6B65" })
       ] })
     ] })
   ] });
 }
 
 // src/first-entry/EntrySpotlight.tsx
-var import_react93 = __toESM(require_react(), 1);
-var import_jsx_runtime119 = __toESM(require_jsx_runtime(), 1);
+var import_react97 = __toESM(require_react(), 1);
+var import_jsx_runtime121 = __toESM(require_jsx_runtime(), 1);
 function EntrySpotlight({ onPair, onBrowse }) {
-  const [spotlight, setSpotlight] = (0, import_react93.useState)();
-  (0, import_react93.useLayoutEffect)(() => {
+  const [spotlight, setSpotlight] = (0, import_react97.useState)();
+  (0, import_react97.useLayoutEffect)(() => {
     const target = document.querySelector("[data-guide-pair]");
     if (!target) return;
     const measure = () => {
@@ -74010,30 +75067,30 @@ function EntrySpotlight({ onPair, onBrowse }) {
       window.removeEventListener("resize", measure);
     };
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)(import_jsx_runtime119.Fragment, { children: [
-    spotlight && /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("div", { className: "demo-spotlight", "data-demo": "entry-spotlight", style: spotlight, "aria-hidden": "true" }),
-    /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("section", { className: "demo-caption entry-caption", "data-demo": "entry-caption", "aria-label": "\u5E26\u5165\u4F19\u4F34\u5F15\u5BFC", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("h2", { children: "\u5148\u628A\u4F60\u7684\u732B\u5E26\u8FDB\u6765" }),
-      /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("p", { children: "\u5B83\u4EEC\u4F1A\u5728\u9891\u9053\u91CC\u966A\u4F60\u5E72\u6D3B\uFF0C\u5BB6\u91CC\u7684\u79C1\u4EBA\u5BF9\u8BDD\u4E0D\u4F1A\u88AB\u5E26\u51FA\u6765\u3002" }),
-      /* @__PURE__ */ (0, import_jsx_runtime119.jsxs)("div", { className: "demo-caption-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("button", { type: "button", onClick: onBrowse, children: "\u5148\u901B\u901B" }),
-        /* @__PURE__ */ (0, import_jsx_runtime119.jsx)("button", { type: "button", onClick: onPair, children: "\u5E26\u732B\u8FDB\u6765" })
+  return /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)(import_jsx_runtime121.Fragment, { children: [
+    spotlight && /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("div", { className: "demo-spotlight", "data-demo": "entry-spotlight", style: spotlight, "aria-hidden": "true" }),
+    /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("section", { className: "demo-caption entry-caption", "data-demo": "entry-caption", "aria-label": "\u5E26\u5165\u4F19\u4F34\u5F15\u5BFC", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("h2", { children: "\u5148\u628A\u4F60\u7684\u732B\u5E26\u8FDB\u6765" }),
+      /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("p", { children: "\u5B83\u4EEC\u4F1A\u5728\u9891\u9053\u91CC\u966A\u4F60\u5E72\u6D3B\uFF0C\u5BB6\u91CC\u7684\u79C1\u4EBA\u5BF9\u8BDD\u4E0D\u4F1A\u88AB\u5E26\u51FA\u6765\u3002" }),
+      /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "demo-caption-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("button", { type: "button", onClick: onBrowse, children: "\u5148\u901B\u901B" }),
+        /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("button", { type: "button", onClick: onPair, children: "\u5E26\u732B\u8FDB\u6765" })
       ] })
     ] })
   ] });
 }
 
 // src/first-entry/FirstEntryOverlays.tsx
-var import_jsx_runtime120 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime122 = __toESM(require_jsx_runtime(), 1);
 function FirstEntryOverlays({
   firstEntry,
   destination,
   channelId,
   onPair
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)(import_jsx_runtime120.Fragment, { children: [
-    firstEntry.phase === "entry" && /* @__PURE__ */ (0, import_jsx_runtime120.jsx)(EntrySpotlight, { onPair, onBrowse: firstEntry.browse }),
-    firstEntry.phase === "playing" && destination === "channel" && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime120.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)(import_jsx_runtime122.Fragment, { children: [
+    firstEntry.phase === "entry" && /* @__PURE__ */ (0, import_jsx_runtime122.jsx)(EntrySpotlight, { onPair, onBrowse: firstEntry.browse }),
+    firstEntry.phase === "playing" && destination === "channel" && channelId === "general" && /* @__PURE__ */ (0, import_jsx_runtime122.jsx)(
       DemoSpotlight,
       {
         beat: firstEntry.beat,
@@ -74043,9 +75100,9 @@ function FirstEntryOverlays({
         onSkip: firstEntry.finish
       }
     ),
-    firstEntry.phase === "handoff" && firstEntry.handoffCaptionVisible && firstEntry.narrator && /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)("section", { className: "demo-caption demo-handoff-caption", "data-handoff-caption": true, "aria-label": "\u8F6E\u5230\u4F60", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime120.jsx)("h2", { children: "\u6362\u4F60\u6765" }),
-      /* @__PURE__ */ (0, import_jsx_runtime120.jsxs)("p", { children: [
+    firstEntry.phase === "handoff" && firstEntry.handoffCaptionVisible && firstEntry.narrator && /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("section", { className: "demo-caption demo-handoff-caption", "data-handoff-caption": true, "aria-label": "\u8F6E\u5230\u4F60", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("h2", { children: "\u6362\u4F60\u6765" }),
+      /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("p", { children: [
         "@ ",
         firstEntry.narrator.displayName,
         " \u8BD5\u8BD5"
@@ -74055,7 +75112,7 @@ function FirstEntryOverlays({
 }
 
 // src/first-entry/use-first-entry-guide.ts
-var import_react94 = __toESM(require_react(), 1);
+var import_react98 = __toESM(require_react(), 1);
 
 // src/first-entry/first-entry-model.ts
 function firstEntryPhase(conditions) {
@@ -74116,34 +75173,34 @@ function hasRealFirstReply(events, baseline, humanId, connectionId) {
   );
 }
 function useFirstEntryGuide(input) {
-  const [, setRevision] = (0, import_react94.useState)(0);
-  const ephemeral = (0, import_react94.useRef)(/* @__PURE__ */ new Map());
-  const [beat, setBeat] = (0, import_react94.useState)(0);
-  const [arrivalComplete, setArrivalComplete] = (0, import_react94.useState)(false);
-  const [replayKey, setReplayKey] = (0, import_react94.useState)();
-  const [handoffKey, setHandoffKey] = (0, import_react94.useState)();
-  const [handoffCaptionVisible, setHandoffCaptionVisible] = (0, import_react94.useState)(false);
-  const [hintVisible, setHintVisible] = (0, import_react94.useState)(false);
-  const eventsRef = (0, import_react94.useRef)(input.events);
+  const [, setRevision] = (0, import_react98.useState)(0);
+  const ephemeral = (0, import_react98.useRef)(/* @__PURE__ */ new Map());
+  const [beat, setBeat] = (0, import_react98.useState)(0);
+  const [arrivalComplete, setArrivalComplete] = (0, import_react98.useState)(false);
+  const [replayKey, setReplayKey] = (0, import_react98.useState)();
+  const [handoffKey, setHandoffKey] = (0, import_react98.useState)();
+  const [handoffCaptionVisible, setHandoffCaptionVisible] = (0, import_react98.useState)(false);
+  const [hintVisible, setHintVisible] = (0, import_react98.useState)(false);
+  const eventsRef = (0, import_react98.useRef)(input.events);
   eventsRef.current = input.events;
   const { serviceInstanceId, collectiveId, humanId, connectionId } = input;
-  const entryKey = (0, import_react94.useMemo)(
+  const entryKey = (0, import_react98.useMemo)(
     () => firstEntryBrowseKey({ serviceInstanceId, collectiveId, humanId }),
     [serviceInstanceId, collectiveId, humanId]
   );
   const pairStartedKey = entryKey ? `${entryKey}:pair-started` : void 0;
-  const keys2 = (0, import_react94.useMemo)(
+  const keys2 = (0, import_react98.useMemo)(
     () => firstEntryKeys({ serviceInstanceId, collectiveId, humanId, connectionId }),
     [serviceInstanceId, collectiveId, humanId, connectionId]
   );
-  const read = (0, import_react94.useCallback)((key) => key ? ephemeral.current.get(key) ?? stored(key) : null, []);
-  const persist = (0, import_react94.useCallback)((key, value) => {
+  const read = (0, import_react98.useCallback)((key) => key ? ephemeral.current.get(key) ?? stored(key) : null, []);
+  const persist = (0, import_react98.useCallback)((key, value) => {
     if (!key) return;
     ephemeral.current.set(key, value);
     write(key, value);
     setRevision((current2) => current2 + 1);
   }, []);
-  const ownCats = (0, import_react94.useMemo)(
+  const ownCats = (0, import_react98.useMemo)(
     () => input.participants?.filter(
       (cat) => cat.connectionId === input.connectionId && cat.availability === "declared" && cat.channelIds.includes("general")
     ) ?? [],
@@ -74163,12 +75220,12 @@ function useFirstEntryGuide(input) {
     replaying: replayKey === keys2?.viewed,
     handoff: handoffKey === keys2?.viewed
   });
-  const browse = (0, import_react94.useCallback)(() => persist(entryKey, "yes"), [entryKey, persist]);
-  const beginPair = (0, import_react94.useCallback)(() => {
+  const browse = (0, import_react98.useCallback)(() => persist(entryKey, "yes"), [entryKey, persist]);
+  const beginPair = (0, import_react98.useCallback)(() => {
     persist(entryKey, "yes");
     persist(pairStartedKey, "yes");
   }, [entryKey, pairStartedKey, persist]);
-  const finish = (0, import_react94.useCallback)(() => {
+  const finish = (0, import_react98.useCallback)(() => {
     if (!keys2) return;
     const wasReplay = replayKey === keys2.viewed;
     persist(keys2.viewed, "yes");
@@ -74180,12 +75237,12 @@ function useFirstEntryGuide(input) {
     setHandoffCaptionVisible(!wasReplay);
     setArrivalComplete(true);
   }, [keys2, pairStartedKey, persist, read, replayKey]);
-  const next = (0, import_react94.useCallback)(() => {
+  const next = (0, import_react98.useCallback)(() => {
     setArrivalComplete(true);
     if (beat === 3) finish();
     else setBeat((current2) => current2 + 1);
   }, [beat, finish]);
-  const replay = (0, import_react94.useCallback)(() => {
+  const replay = (0, import_react98.useCallback)(() => {
     if (!keys2 || !narrator) return;
     setBeat(0);
     setArrivalComplete(false);
@@ -74193,22 +75250,22 @@ function useFirstEntryGuide(input) {
     setHandoffCaptionVisible(false);
     setReplayKey(keys2.viewed);
   }, [keys2, narrator]);
-  (0, import_react94.useEffect)(() => {
+  (0, import_react98.useEffect)(() => {
     if (phase !== "playing") return;
     const timer = window.setTimeout(next, firstEntryBeatMs);
     return () => window.clearTimeout(timer);
   }, [next, phase]);
-  (0, import_react94.useEffect)(() => {
+  (0, import_react98.useEffect)(() => {
     if (phase !== "playing" || beat !== 0) return;
     const timer = window.setTimeout(() => setArrivalComplete(true), 1250);
     return () => window.clearTimeout(timer);
   }, [beat, phase]);
-  (0, import_react94.useEffect)(() => {
+  (0, import_react98.useEffect)(() => {
     if (!handoffCaptionVisible) return;
     const timer = window.setTimeout(() => setHandoffCaptionVisible(false), 1200);
     return () => window.clearTimeout(timer);
   }, [handoffCaptionVisible]);
-  (0, import_react94.useEffect)(() => {
+  (0, import_react98.useEffect)(() => {
     if (!keys2 || !input.humanId || !input.connectionId || read(keys2.hint) === "yes" || read(keys2.viewed) !== "yes")
       return;
     const storedBaseline = read(keys2.baseline);
@@ -74241,11 +75298,81 @@ function useFirstEntryGuide(input) {
   };
 }
 
+// src/HostedDocumentSelection.tsx
+var import_react99 = __toESM(require_react(), 1);
+function HostedDocumentSelection() {
+  const reading = useSharedArtifactReading(), shared = useSharedArtifacts();
+  const [pending, setPending] = (0, import_react99.useState)();
+  const latest = (0, import_react99.useRef)({ reading, shared });
+  latest.current = { reading, shared };
+  (0, import_react99.useEffect)(() => {
+    const stage = (event) => {
+      const next = event.detail;
+      const state = latest.current.shared;
+      const artifact = state?.catalogue.find(
+        (item) => item.artifactId === next.request.ref.artifactId && item.sourceEventId === next.request.ref.sourceEventId && item.serviceInstanceId === next.request.ref.serviceInstanceId && item.collectiveId === next.request.ref.collectiveId
+      );
+      if (next.request.operation.kind !== "stage-selection" || !artifact || state?.humanId !== next.request.ref.humanId || state.status !== "ready") {
+        next.complete(false);
+        return;
+      }
+      setPending((previous4) => {
+        previous4?.complete(false);
+        return next;
+      });
+      state.open(artifact, next.request.ref.ownerRevision, {
+        discussionOnly: true,
+        projectReturn: next.request.ref.projectReturn
+      });
+    };
+    window.addEventListener("collective:stage-document-selection", stage);
+    return () => window.removeEventListener("collective:stage-document-selection", stage);
+  }, []);
+  (0, import_react99.useEffect)(() => {
+    if (!pending) return;
+    const { request, value, complete } = pending;
+    if (!shared || shared.humanId !== request.ref.humanId || shared.status !== "ready") {
+      complete(false);
+      setPending(void 0);
+      return;
+    }
+    if (!reading?.artifact || reading.artifact.artifactId !== request.ref.artifactId) return;
+    if (reading.inaccessible) {
+      complete(false);
+      setPending(void 0);
+      return;
+    }
+    if (!reading.view || reading.view.ownerRevision !== request.ref.ownerRevision) return;
+    if (request.operation.kind !== "stage-selection" || reading.artifact.sourceEventId !== request.ref.sourceEventId || reading.view.blobDigest !== value.blobDigest || !reading.view.view.canWrite) {
+      complete(false);
+      setPending(void 0);
+      return;
+    }
+    reading.setQuote({
+      artifactId: reading.artifact.artifactId,
+      ownerRevision: value.ownerRevision,
+      blobDigest: value.blobDigest,
+      span: request.operation.selection
+    });
+    complete(true);
+    setPending(void 0);
+  }, [pending, reading, shared]);
+  (0, import_react99.useEffect)(() => {
+    if (!pending) return;
+    const timer = window.setTimeout(() => {
+      pending.complete(false);
+      setPending(void 0);
+    }, 9500);
+    return () => window.clearTimeout(timer);
+  }, [pending]);
+  return null;
+}
+
 // src/LeaveCollectiveDialog.tsx
-var import_react95 = __toESM(require_react(), 1);
+var import_react100 = __toESM(require_react(), 1);
 
 // src/LeaveResponsibilityGroups.tsx
-var import_jsx_runtime121 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime123 = __toESM(require_jsx_runtime(), 1);
 function LeaveResponsibilityGroups({
   readiness,
   onOpenWork,
@@ -74255,21 +75382,21 @@ function LeaveResponsibilityGroups({
 }) {
   const { works, roadmaps, artifacts } = readiness.responsibilities;
   const knownCount = Number(readiness.governanceHandoffRequired) + works.length + roadmaps.length + artifacts.items.length + artifacts.inaccessibleCount;
-  return /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-groups", children: [
-    readiness.governanceHandoffRequired && /* @__PURE__ */ (0, import_jsx_runtime121.jsx)(ResponsibilityGroup, { title: "\u7BA1\u7406\u5458", children: /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-static", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("strong", { children: "\u4F60\u662F\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u7BA1\u7406\u5458" }),
-      /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("small", { children: "\u8981\u5148\u628A\u7BA1\u7406\u5458\u4EA4\u7ED9\u522B\u4EBA\u624D\u80FD\u79BB\u5F00\u3002\u4EA4\u63A5\u7BA1\u7406\u5458\u73B0\u5728\u8FD8\u6CA1\u6709\u5165\u53E3\u3002" })
+  return /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-groups", children: [
+    readiness.governanceHandoffRequired && /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(ResponsibilityGroup, { title: "\u7BA1\u7406\u5458", children: /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-static", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("strong", { children: "\u4F60\u662F\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u7BA1\u7406\u5458" }),
+      /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("small", { children: "\u8981\u5148\u628A\u7BA1\u7406\u5458\u4EA4\u7ED9\u522B\u4EBA\u624D\u80FD\u79BB\u5F00\u3002\u4EA4\u63A5\u7BA1\u7406\u5458\u73B0\u5728\u8FD8\u6CA1\u6709\u5165\u53E3\u3002" })
     ] }) }),
-    works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime121.jsx)(
+    works.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(
       ResponsibilityGroup,
       {
         title: `\u4F60\u8D1F\u8D23\u7684\u4EFB\u52A1 ${works.length}`,
         description: "\u53EF\u4EE5\u5B8C\u6210\u3001\u53D6\u6D88\uFF0C\u6216\u5728\u90A3\u91CC\u8BF7\u522B\u4EBA\u63A5\u624B\u8D1F\u8D23\u3002",
-        children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-row", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("span", { className: "leave-status-dot", "data-tone": workStatusTone(work2.status), "aria-hidden": "true" }),
-          /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("span", { className: "leave-responsibility-copy", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("strong", { title: work2.title, children: work2.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("small", { children: [
+        children: works.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-row", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("span", { className: "leave-status-dot", "data-tone": workStatusTone(work2.status), "aria-hidden": "true" }),
+          /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("span", { className: "leave-responsibility-copy", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("strong", { title: work2.title, children: work2.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("small", { children: [
               workProjectLabel(work2),
               " \xB7 # ",
               work2.source.location.channelId,
@@ -74277,69 +75404,69 @@ function LeaveResponsibilityGroups({
               workStatusLabel2(work2.status)
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("button", { type: "button", onClick: () => onOpenWork(work2), children: "\u53BB\u5904\u7406 \u203A" })
+          /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("button", { type: "button", onClick: () => onOpenWork(work2), children: "\u53BB\u5904\u7406 \u203A" })
         ] }, work2.workId))
       }
     ),
-    roadmaps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime121.jsx)(ResponsibilityGroup, { title: `\u4F60\u8D1F\u8D23\u7684\u9879\u76EE ${roadmaps.length}`, children: roadmaps.map((project) => /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-row", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("span", { className: "leave-status-dot", "data-tone": "info", "aria-hidden": "true" }),
-      /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("span", { className: "leave-responsibility-copy", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("strong", { title: project.title, children: project.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("small", { children: [
+    roadmaps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(ResponsibilityGroup, { title: `\u4F60\u8D1F\u8D23\u7684\u9879\u76EE ${roadmaps.length}`, children: roadmaps.map((project) => /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-row", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("span", { className: "leave-status-dot", "data-tone": "info", "aria-hidden": "true" }),
+      /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("span", { className: "leave-responsibility-copy", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("strong", { title: project.title, children: project.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("small", { children: [
           "# ",
           project.source.location.channelId,
           " \xB7 \u8FDB\u884C\u4E2D"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("button", { type: "button", onClick: () => onOpenProject(project), children: "\u53BB\u9879\u76EE \u203A" })
+      /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("button", { type: "button", onClick: () => onOpenProject(project), children: "\u53BB\u9879\u76EE \u203A" })
     ] }, project.roadmapId)) }),
-    (artifacts.items.length > 0 || artifacts.inaccessibleCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)(
+    (artifacts.items.length > 0 || artifacts.inaccessibleCount > 0) && /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)(
       ResponsibilityGroup,
       {
         title: `\u4F60\u5BB6\u4FDD\u7BA1\u7684\u4F5C\u54C1 ${artifacts.items.length + artifacts.inaccessibleCount}`,
         description: artifacts.items.some((item) => item.kind === "artifact") ? "\u6253\u5F00\u4F5C\u54C1\u540E\uFF0C\u53EF\u5728\u300C\u6743\u9650\u4E0E\u4FDD\u7BA1\u300D\u91CC\u4EA4\u63A5\u7ED9\u522B\u4EBA\u7684 Caf\xE9\u3002" : void 0,
         children: [
           artifacts.items.map(
-            (item) => item.kind === "artifact" ? /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-row leave-responsibility-row-no-status", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("span", { className: "leave-responsibility-copy", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("strong", { title: item.title, children: [
+            (item) => item.kind === "artifact" ? /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-row leave-responsibility-row-no-status", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("span", { className: "leave-responsibility-copy", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("strong", { title: item.title, children: [
                   item.title,
                   " \xB7 \u7B2C ",
                   item.ownerRevision,
                   " \u7248"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("small", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("small", { children: [
                   "\u5728 # ",
                   item.source.location.channelId,
                   " \xB7 \u539F\u4EF6\u5728\u4F60\u7684 Caf\xE9"
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("button", { type: "button", onClick: () => onOpenArtifact(item), children: "\u53BB\u4F5C\u54C1 \u203A" })
-            ] }, item.artifactId) : /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-static", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("strong", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("button", { type: "button", onClick: () => onOpenArtifact(item), children: "\u53BB\u4F5C\u54C1 \u203A" })
+            ] }, item.artifactId) : /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-static", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("strong", { children: [
                 "\u300A",
                 item.title,
                 "\u300B\u6B63\u5728\u53D1\u5E03"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("small", { children: "\u53D1\u5E03\u7ED3\u675F\u540E\u91CD\u65B0\u68C0\u67E5\uFF1B\u82E5\u539F\u4EF6\u4ECD\u5728\u4F60\u7684 Caf\xE9\uFF0C\u8FD8\u9700\u5904\u7406\u4FDD\u7BA1\u8D23\u4EFB\u3002" })
+              /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("small", { children: "\u53D1\u5E03\u7ED3\u675F\u540E\u91CD\u65B0\u68C0\u67E5\uFF1B\u82E5\u539F\u4EF6\u4ECD\u5728\u4F60\u7684 Caf\xE9\uFF0C\u8FD8\u9700\u5904\u7406\u4FDD\u7BA1\u8D23\u4EFB\u3002" })
             ] }, item.publicationId)
           ),
-          artifacts.inaccessibleCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("div", { className: "leave-responsibility-hidden", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime121.jsx)(LockIcon, {}),
-            /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("span", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("strong", { children: [
+          artifacts.inaccessibleCount > 0 && /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "leave-responsibility-hidden", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(LockIcon, {}),
+            /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("span", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("strong", { children: [
                 "\u8FD8\u6709 ",
                 artifacts.inaccessibleCount,
                 " \u4EF6\u4F60\u73B0\u5728\u6253\u4E0D\u5F00"
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("small", { children: "\u5B83\u4EEC\u4E5F\u8981\u5148\u5904\u7406\uFF1B\u53EF\u4EE5\u8BF7\u7BA1\u7406\u5458\u770B\u770B\u3002" })
+              /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("small", { children: "\u5B83\u4EEC\u4E5F\u8981\u5148\u5904\u7406\uFF1B\u53EF\u4EE5\u8BF7\u7BA1\u7406\u5458\u770B\u770B\u3002" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("button", { type: "button", onClick: onOpenMembers, children: "\u67E5\u770B\u7BA1\u7406\u5458" })
+            /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("button", { type: "button", onClick: onOpenMembers, children: "\u67E5\u770B\u7BA1\u7406\u5458" })
           ] })
         ]
       }
     ),
-    knownCount === 0 && /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("output", { className: "leave-dialog-unknown", children: "\u8FD8\u6709\u8D23\u4EFB\u6CA1\u6709\u5B8C\u6574\u663E\u793A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\uFF0C\u786E\u8BA4\u5B8C\u6574\u7ED3\u679C\u540E\u624D\u80FD\u79BB\u5F00\u3002" })
+    knownCount === 0 && /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("output", { className: "leave-dialog-unknown", children: "\u8FD8\u6709\u8D23\u4EFB\u6CA1\u6709\u5B8C\u6574\u663E\u793A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\uFF0C\u786E\u8BA4\u5B8C\u6574\u7ED3\u679C\u540E\u624D\u80FD\u79BB\u5F00\u3002" })
   ] });
 }
 function ResponsibilityGroup({
@@ -74347,10 +75474,10 @@ function ResponsibilityGroup({
   description,
   children
 }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("section", { className: "leave-responsibility-group", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("h3", { children: title }),
-    description && /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("p", { children: description }),
-    /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("div", { children })
+  return /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("section", { className: "leave-responsibility-group", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("h3", { children: title }),
+    description && /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("p", { children: description }),
+    /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("div", { children })
   ] });
 }
 function workProjectLabel(work2) {
@@ -74379,21 +75506,21 @@ function workStatusTone(status) {
   return "info";
 }
 function LockIcon() {
-  return /* @__PURE__ */ (0, import_jsx_runtime121.jsxs)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("rect", { x: "5", y: "10", width: "14", height: "10", rx: "2" }),
-    /* @__PURE__ */ (0, import_jsx_runtime121.jsx)("path", { d: "M8 10V7a4 4 0 0 1 8 0v3" })
+  return /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("rect", { x: "5", y: "10", width: "14", height: "10", rx: "2" }),
+    /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("path", { d: "M8 10V7a4 4 0 0 1 8 0v3" })
   ] });
 }
 
 // src/LeaveCollectiveDialog.tsx
-var import_jsx_runtime122 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime124 = __toESM(require_jsx_runtime(), 1);
 function LeaveCollectiveDialog(props) {
-  const [state, setState] = (0, import_react95.useState)({ kind: "loading" });
-  const generation = (0, import_react95.useRef)(0);
-  const dialog = (0, import_react95.useRef)(null);
-  const closeButton = (0, import_react95.useRef)(null);
+  const [state, setState] = (0, import_react100.useState)({ kind: "loading" });
+  const generation = (0, import_react100.useRef)(0);
+  const dialog = (0, import_react100.useRef)(null);
+  const closeButton = (0, import_react100.useRef)(null);
   const busy = state.kind === "leaving";
-  const check = (0, import_react95.useCallback)(async () => {
+  const check = (0, import_react100.useCallback)(async () => {
     const current2 = ++generation.current;
     setState({ kind: "loading" });
     try {
@@ -74403,14 +75530,14 @@ function LeaveCollectiveDialog(props) {
       if (current2 === generation.current) setState({ kind: "read-failed" });
     }
   }, [props.read]);
-  (0, import_react95.useEffect)(() => {
+  (0, import_react100.useEffect)(() => {
     void check();
     return () => {
       ++generation.current;
     };
   }, [check]);
-  (0, import_react95.useEffect)(() => closeButton.current?.focus(), []);
-  (0, import_react95.useEffect)(() => {
+  (0, import_react100.useEffect)(() => closeButton.current?.focus(), []);
+  (0, import_react100.useEffect)(() => {
     const closeOnEscape = (event) => {
       if (event.key !== "Escape" || busy) return;
       event.preventDefault();
@@ -74458,8 +75585,8 @@ function LeaveCollectiveDialog(props) {
       first.focus();
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("div", { className: "leave-dialog-layer", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime122.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("div", { className: "leave-dialog-layer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime124.jsx)(
       "button",
       {
         type: "button",
@@ -74469,7 +75596,7 @@ function LeaveCollectiveDialog(props) {
         onClick: close
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)(
       "dialog",
       {
         ref: dialog,
@@ -74479,19 +75606,19 @@ function LeaveCollectiveDialog(props) {
         "aria-busy": busy || void 0,
         onKeyDown: trapFocus,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("header", { className: "leave-dialog-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("h2", { id: "leave-dialog-title", children: leaveDialogTitle(props.collectiveName) }),
-            /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { ref: closeButton, type: "button", "aria-label": "\u5173\u95ED\u79BB\u5F00\u5171\u540C\u4F53\u5BF9\u8BDD\u6846", disabled: busy, onClick: close, children: "\xD7" })
+          /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("header", { className: "leave-dialog-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("h2", { id: "leave-dialog-title", children: leaveDialogTitle(props.collectiveName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { ref: closeButton, type: "button", "aria-label": "\u5173\u95ED\u79BB\u5F00\u5171\u540C\u4F53\u5BF9\u8BDD\u6846", disabled: busy, onClick: close, children: "\xD7" })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("div", { className: "leave-dialog-body", "aria-live": "polite", children: [
-            state.kind === "loading" && /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("p", { className: "leave-dialog-state", children: "\u6B63\u5728\u770B\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406\u2026" }),
-            state.kind === "read-failed" && /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("div", { className: "leave-dialog-state", role: "alert", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("strong", { children: "\u6CA1\u80FD\u68C0\u67E5\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406" }),
-              /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("p", { children: "\u6CA1\u6709\u5B8C\u6574\u7ED3\u679C\u65F6\u4E0D\u4F1A\u628A\u6E05\u5355\u5F53\u6210\u7A7A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("div", { className: "leave-dialog-body", "aria-live": "polite", children: [
+            state.kind === "loading" && /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("p", { className: "leave-dialog-state", children: "\u6B63\u5728\u770B\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406\u2026" }),
+            state.kind === "read-failed" && /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("div", { className: "leave-dialog-state", role: "alert", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("strong", { children: "\u6CA1\u80FD\u68C0\u67E5\u8FD8\u6709\u54EA\u4E9B\u4E8B\u6CA1\u5904\u7406" }),
+              /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("p", { children: "\u6CA1\u6709\u5B8C\u6574\u7ED3\u679C\u65F6\u4E0D\u4F1A\u628A\u6E05\u5355\u5F53\u6210\u7A7A\u3002\u8BF7\u91CD\u65B0\u68C0\u67E5\u3002" })
             ] }),
-            readiness && !readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)(import_jsx_runtime122.Fragment, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("p", { children: "\u4E0B\u9762\u8FD9\u4E9B\u5904\u7406\u5B8C\u624D\u80FD\u79BB\u5F00\u3002\u70B9\u4E00\u4EF6\uFF0C\u56DE\u5230\u5B83\u539F\u6765\u7684\u5730\u65B9\u3002" }),
-              /* @__PURE__ */ (0, import_jsx_runtime122.jsx)(
+            readiness && !readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)(import_jsx_runtime124.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("p", { children: "\u4E0B\u9762\u8FD9\u4E9B\u5904\u7406\u5B8C\u624D\u80FD\u79BB\u5F00\u3002\u70B9\u4E00\u4EF6\uFF0C\u56DE\u5230\u5B83\u539F\u6765\u7684\u5730\u65B9\u3002" }),
+              /* @__PURE__ */ (0, import_jsx_runtime124.jsx)(
                 LeaveResponsibilityGroups,
                 {
                   readiness,
@@ -74505,13 +75632,13 @@ function LeaveCollectiveDialog(props) {
                 }
               )
             ] }),
-            readiness && readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("p", { children: "\u79BB\u5F00\u4EE5\u540E\uFF0C\u4F60\u7684 Caf\xE9 \u9A6C\u4E0A\u505C\u6B62\u5728\u8FD9\u91CC\u8BFB\u53D6\u548C\u53D1\u9001\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4F1A\u4FDD\u7559\u3002" }),
-            state.kind === "leave-failed" && /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("div", { className: "leave-dialog-error", role: "alert", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("strong", { children: "\u6CA1\u80FD\u79BB\u5F00" }),
-              /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("span", { children: state.message })
+            readiness && readyToLeave && /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("p", { children: "\u79BB\u5F00\u4EE5\u540E\uFF0C\u4F60\u7684 Caf\xE9 \u9A6C\u4E0A\u505C\u6B62\u5728\u8FD9\u91CC\u8BFB\u53D6\u548C\u53D1\u9001\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4F1A\u4FDD\u7559\u3002" }),
+            state.kind === "leave-failed" && /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("div", { className: "leave-dialog-error", role: "alert", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("strong", { children: "\u6CA1\u80FD\u79BB\u5F00" }),
+              /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("span", { children: state.message })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime122.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime124.jsx)(
             DialogFooter,
             {
               state,
@@ -74534,27 +75661,27 @@ function DialogFooter({
   onLeave
 }) {
   if (state.kind === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("footer", { className: "leave-dialog-footer", children: /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", onClick: onClose, children: "\u53D6\u6D88" }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("footer", { className: "leave-dialog-footer", children: /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", onClick: onClose, children: "\u53D6\u6D88" }) });
   }
   if (state.kind === "read-failed") {
-    return /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("footer", { className: "leave-dialog-footer", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u8BD5" }),
-      /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
+    return /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("footer", { className: "leave-dialog-footer", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u8BD5" }),
+      /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
     ] });
   }
   if (!readyToLeave) {
-    return /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("footer", { className: "leave-dialog-footer leave-dialog-footer-split", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("small", { children: "\u5904\u7406\u5B8C\u56DE\u6765\u70B9\u300C\u91CD\u65B0\u68C0\u67E5\u300D" }),
-      /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("span", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u65B0\u68C0\u67E5" }),
-        /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
+    return /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("footer", { className: "leave-dialog-footer leave-dialog-footer-split", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("small", { children: "\u5904\u7406\u5B8C\u56DE\u6765\u70B9\u300C\u91CD\u65B0\u68C0\u67E5\u300D" }),
+      /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("span", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", onClick: onCheck, children: "\u91CD\u65B0\u68C0\u67E5" }),
+        /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", onClick: onClose, children: "\u5173\u95ED" })
       ] })
     ] });
   }
   const leaving = state.kind === "leaving";
-  return /* @__PURE__ */ (0, import_jsx_runtime122.jsxs)("footer", { className: "leave-dialog-footer", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", disabled: leaving, onClick: onClose, children: "\u53D6\u6D88" }),
-    /* @__PURE__ */ (0, import_jsx_runtime122.jsx)("button", { type: "button", className: "leave-dialog-danger", disabled: leaving, onClick: onLeave, children: leaving ? "\u6B63\u5728\u79BB\u5F00\u2026" : state.kind === "leave-failed" ? "\u91CD\u8BD5" : "\u79BB\u5F00\u5171\u540C\u4F53" })
+  return /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)("footer", { className: "leave-dialog-footer", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", disabled: leaving, onClick: onClose, children: "\u53D6\u6D88" }),
+    /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("button", { type: "button", className: "leave-dialog-danger", disabled: leaving, onClick: onLeave, children: leaving ? "\u6B63\u5728\u79BB\u5F00\u2026" : state.kind === "leave-failed" ? "\u91CD\u8BD5" : "\u79BB\u5F00\u5171\u540C\u4F53" })
   ] });
 }
 function leaveFailureMessage(error) {
@@ -74573,7 +75700,7 @@ function readinessIsCompleteAndEmpty(readiness) {
 }
 
 // src/CollectiveIdentitySummary.tsx
-var import_jsx_runtime123 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime125 = __toESM(require_jsx_runtime(), 1);
 function CollectiveIdentitySummary({
   collectiveName,
   identity: identity2,
@@ -74586,46 +75713,46 @@ function CollectiveIdentitySummary({
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("details", { className: "collective-identity", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("details", { className: "collective-identity", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)(
       "summary",
       {
         "aria-label": language === "en" ? `Current identity: ${identity2.human.displayName}` : `\u5F53\u524D\u8EAB\u4EFD\uFF1A${identity2.human.displayName}`,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
-          /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("span", { children: identity2.human.displayName })
+          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("span", { children: identity2.human.displayName })
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "collective-identity-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "collective-identity-who", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
-        /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("p", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-identity-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-identity-who", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
+        /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("p", { children: [
             language === "en" ? `You are ` : `\u4F60\u5728${collectiveName}\u91CC\u662F`,
-            /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("strong", { children: identity2.human.displayName }),
+            /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("strong", { children: identity2.human.displayName }),
             language === "en" ? ` in ${collectiveName}` : ""
           ] }),
-          identity2.auth && /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("small", { children: language === "en" ? `Signed in with GitHub as @${identity2.auth.handle}` : `\u7528 GitHub \u8D26\u53F7 @${identity2.auth.handle} \u767B\u5F55` })
+          identity2.auth && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("small", { children: language === "en" ? `Signed in with GitHub as @${identity2.auth.handle}` : `\u7528 GitHub \u8D26\u53F7 @${identity2.auth.handle} \u767B\u5F55` })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("section", { className: "collective-identity-cats", "aria-label": t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC"), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("h2", { children: t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC") }),
-        identity2.cats === void 0 ? /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u6211\u7684\u732B\u2026") }) : identity2.cats.length ? /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("ul", { children: identity2.cats.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("li", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime123.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl, compact: true }),
-          /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("span", { children: cat.displayName })
-        ] }, `${cat.connectionId}:${cat.catId}`)) }) : /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("p", { children: t("\u5F53\u524D\u6CA1\u6709\u767B\u8BB0\u5230\u8FD9\u91CC\u7684\u732B\u3002") })
+      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("section", { className: "collective-identity-cats", "aria-label": t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC"), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("h2", { children: t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC") }),
+        identity2.cats === void 0 ? /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u6211\u7684\u732B\u2026") }) : identity2.cats.length ? /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("ul", { children: identity2.cats.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("li", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("span", { children: cat.displayName })
+        ] }, `${cat.connectionId}:${cat.catId}`)) }) : /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { children: t("\u5F53\u524D\u6CA1\u6709\u767B\u8BB0\u5230\u8FD9\u91CC\u7684\u732B\u3002") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime123.jsxs)("div", { className: "collective-identity-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("button", { type: "button", onClick: act(onOpenSelf), children: t("\u770B\u6211\u7684\u6210\u5458\u8D44\u6599") }),
-        /* @__PURE__ */ (0, import_jsx_runtime123.jsx)("button", { type: "button", onClick: act(onSwitchAccount), children: t("\u6362\u8D26\u53F7\u2026") })
+      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-identity-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: act(onOpenSelf), children: t("\u770B\u6211\u7684\u6210\u5458\u8D44\u6599") }),
+        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: act(onSwitchAccount), children: t("\u6362\u8D26\u53F7\u2026") })
       ] })
     ] })
   ] });
 }
 
 // src/CollectiveWorldRail.tsx
-var import_jsx_runtime124 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime126 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorldRail({
   activeCollective,
   collectives,
@@ -74635,11 +75762,11 @@ function CollectiveWorldRail({
 }) {
   const t = useCollectiveText();
   if (!visible || !collectives?.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u4F53"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime124.jsx)(MeowClubMark, {}) }),
-    /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("nav", { children: collectives.map((item) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u4F53"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(MeowClubMark, {}) }),
+    /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("nav", { children: collectives.map((item) => {
       const active = item.collectiveId === activeCollective?.collectiveId;
-      return /* @__PURE__ */ (0, import_jsx_runtime124.jsxs)(
+      return /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(
         "button",
         {
           type: "button",
@@ -74648,8 +75775,8 @@ function CollectiveWorldRail({
           "aria-current": active ? "page" : void 0,
           onClick: () => active ? onHome?.() : onSelectCollective?.(item.collectiveId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
-            /* @__PURE__ */ (0, import_jsx_runtime124.jsx)("span", { children: item.name })
+            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
+            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("span", { children: item.name })
           ]
         },
         item.collectiveId
@@ -74659,7 +75786,7 @@ function CollectiveWorldRail({
 }
 
 // src/ProductShell.tsx
-var import_jsx_runtime125 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime127 = __toESM(require_jsx_runtime(), 1);
 function DestinationTitle({
   collective,
   onHome,
@@ -74675,43 +75802,43 @@ function DestinationTitle({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("h1", { children: t("\u5171\u540C\u4F53") });
+  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h1", { children: t("\u5171\u540C\u4F53") });
   const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || onLeave);
-  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("h1", { children: collective.name });
-  const action = (callback) => (event) => {
+  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h1", { children: collective.name });
+  const action2 = (callback) => (event) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("details", { className: "collective-menu", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("h1", { children: collective.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
+  return /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("details", { className: "collective-menu", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h1", { children: collective.name }),
+      /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-menu-popover", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "collective-menu-popover", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
         "button",
         {
           type: "button",
           className: "collective-menu-heading",
           "aria-label": onHome ? language === "en" ? `Open ${collective.name} home` : `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
-          onClick: onHome ? action(onHome) : void 0,
+          onClick: onHome ? action2(onHome) : void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("strong", { children: collective.name }),
-            meta && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("span", { children: meta })
+            /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("strong", { children: collective.name }),
+            meta && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("span", { children: meta })
           ]
         }
       ),
-      canSteward && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: action(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
-      onCafe && /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("button", { type: "button", onClick: action(onCafe), children: [
+      canSteward && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
+      onCafe && /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("button", { type: "button", onClick: action2(onCafe), children: [
         t("\u6211\u7684\u732B\u2026"),
         " ",
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
       ] }),
-      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: action(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
-      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: action(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
-      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: action(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
-      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: action(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
-      onLeave && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
+      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
+      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
+      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
+      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
+      onLeave && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action2(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
     ] })
   ] });
 }
@@ -74745,7 +75872,7 @@ function ProductShell({
 }) {
   const t = useCollectiveText();
   const hasWorldRail = !embedded && Boolean(collectives?.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
     "main",
     {
       className: "collective-shell",
@@ -74754,7 +75881,7 @@ function ProductShell({
       "data-world-rail": hasWorldRail,
       "data-navigation-open": navigationOpen,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
           CollectiveWorldRail,
           {
             activeCollective: collective,
@@ -74764,11 +75891,11 @@ function ProductShell({
             visible: !embedded
           }
         ),
-        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u4F53\u5BFC\u822A"), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("header", { className: "destination-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "destination-heading", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(
+        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u4F53\u5BFC\u822A"), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("header", { className: "destination-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "destination-heading", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
                 DestinationTitle,
                 {
                   collective,
@@ -74784,7 +75911,7 @@ function ProductShell({
                   onLeave
                 }
               ),
-              collective && identity2 && onOpenSelf && onSwitchAccount && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(
+              collective && identity2 && onOpenSelf && onSwitchAccount && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
                 CollectiveIdentitySummary,
                 {
                   collectiveName: collective.name,
@@ -74794,24 +75921,24 @@ function ProductShell({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
+            /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
           ] }),
           destinations,
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("footer", { className: "destination-footer", children: [
-            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
-            notice2 && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { className: "destination-notice", children: t(notice2) }),
-            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("footer", { className: "destination-footer", children: [
+            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
+            notice2 && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("p", { className: "destination-notice", children: t(notice2) }),
+            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
       ]
     }
   );
 }
 
 // src/SharedArtifactPublication.tsx
-var import_react96 = __toESM(require_react(), 1);
-var import_jsx_runtime126 = __toESM(require_jsx_runtime(), 1);
+var import_react101 = __toESM(require_react(), 1);
+var import_jsx_runtime128 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactPublication({
   snapshot,
   onPair,
@@ -74820,23 +75947,23 @@ function SharedArtifactPublication({
   const shared = useSharedArtifacts();
   const source4 = snapshot.events.find((event) => event.eventId === shared?.publicationSource);
   const cafes = snapshot.members?.cafes.filter((cafe) => cafe.humanId === snapshot.me?.human.humanId) ?? [];
-  const [file, setFile] = (0, import_react96.useState)();
-  const [title, setTitle] = (0, import_react96.useState)("");
-  const [connectionId, setConnectionId] = (0, import_react96.useState)("");
-  const [workId, setWorkId] = (0, import_react96.useState)("");
+  const [file, setFile] = (0, import_react101.useState)();
+  const [title, setTitle] = (0, import_react101.useState)("");
+  const [connectionId, setConnectionId] = (0, import_react101.useState)("");
+  const [workId, setWorkId] = (0, import_react101.useState)("");
   const sourceWorks = snapshot.collaboration?.works.filter((work2) => work2.sourceEventId === source4?.eventId) ?? [];
-  const [pending, setPending] = (0, import_react96.useState)(false);
-  const [error, setError] = (0, import_react96.useState)();
-  const dialog = (0, import_react96.useRef)(null);
-  const mounted = (0, import_react96.useRef)(true);
-  (0, import_react96.useEffect)(() => {
+  const [pending, setPending] = (0, import_react101.useState)(false);
+  const [error, setError] = (0, import_react101.useState)();
+  const dialog = (0, import_react101.useRef)(null);
+  const mounted = (0, import_react101.useRef)(true);
+  (0, import_react101.useEffect)(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
   const sourceId = source4?.eventId;
-  (0, import_react96.useEffect)(() => {
+  (0, import_react101.useEffect)(() => {
     if (!sourceId) {
       dialog.current?.close();
       return;
@@ -74874,21 +76001,21 @@ function SharedArtifactPublication({
       if (mounted.current) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
     "dialog",
     {
       ref: dialog,
       className: "shared-publication-dialog",
       onCancel: () => shared?.closePublication(),
       onClose: () => shared?.closePublication(),
-      children: /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
+      children: /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
-        /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("blockquote", { children: source4?.body }),
-        onShareMedia && source4 && /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
+        /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("blockquote", { children: source4?.body }),
+        onShareMedia && source4 && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
           "button",
           {
             type: "button",
@@ -74899,13 +76026,13 @@ function SharedArtifactPublication({
             children: "\u4ECE\u6B64 Caf\xE9 \u9009\u62E9\u56FE\u7247\u6216\u89C6\u9891"
           }
         ),
-        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("p", { children: [
+        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("p", { children: [
           "\u5148\u8FDE\u63A5\u81EA\u5DF1\u7684 Caf\xE9\uFF0C\u518D\u5206\u4EAB\u4F5C\u54C1\u3002",
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(import_jsx_runtime126.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)(import_jsx_runtime128.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
             "Markdown \u6587\u4EF6",
-            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
               "input",
               {
                 type: "file",
@@ -74920,37 +76047,37 @@ function SharedArtifactPublication({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
             "\u4F5C\u54C1\u540D\u79F0",
-            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
+            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
             "\u4F5C\u54C1\u5B58\u653E\u5728",
-            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
               "select",
               {
                 value: connectionId || cafes[0]?.connectionId,
                 onChange: (event) => setConnectionId(event.target.value),
-                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
+                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
               }
             )
           ] }),
-          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("label", { children: [
+          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
             "\u5C5E\u4E8E\u4EFB\u52A1",
-            /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
-              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
+            /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
+              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
         ] }),
-        error && /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("p", { role: "alert", children: [
+        error && /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("p", { role: "alert", children: [
           error,
           " \u8BF7\u4FDD\u7559\u6587\u4EF6\uFF0C\u91CD\u8BD5\u4F1A\u63A5\u7740\u540C\u4E00\u6B21\u53D1\u5E03\u3002"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("footer", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
+        /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("footer", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
+          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
         ] })
       ] })
     }
@@ -74958,10 +76085,10 @@ function SharedArtifactPublication({
 }
 
 // src/use-host-context.ts
-var import_react102 = __toESM(require_react(), 1);
+var import_react108 = __toESM(require_react(), 1);
 
 // src/use-host-accountability-context.ts
-var import_react97 = __toESM(require_react(), 1);
+var import_react102 = __toESM(require_react(), 1);
 
 // src/collective-accountability-events.ts
 var COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT = "collective:accountability-changed";
@@ -74975,13 +76102,13 @@ function publishCollectiveAccountabilityChanged(detail) {
 
 // src/use-host-accountability-context.ts
 function useHostAccountabilityContext(input) {
-  const currentWorks = (0, import_react97.useRef)(input.works);
+  const currentWorks = (0, import_react102.useRef)(input.works);
   currentWorks.current = input.works;
-  const currentRoadmaps = (0, import_react97.useRef)(input.roadmaps);
+  const currentRoadmaps = (0, import_react102.useRef)(input.roadmaps);
   currentRoadmaps.current = input.roadmaps;
-  const pendingFocus = (0, import_react97.useRef)();
-  const pendingChange = (0, import_react97.useRef)();
-  const applyFocus = (0, import_react97.useCallback)(
+  const pendingFocus = (0, import_react102.useRef)();
+  const pendingChange = (0, import_react102.useRef)();
+  const applyFocus = (0, import_react102.useCallback)(
     (value) => {
       if (!generationMatches(value, input.context.current)) return false;
       const activeHumanId = input.context.current.bridge?.humanId;
@@ -75004,7 +76131,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.onFocus]
   );
-  const postChange = (0, import_react97.useCallback)(
+  const postChange = (0, import_react102.useCallback)(
     (detail) => {
       const active = input.context.current;
       const activeBridge = active.bridge;
@@ -75031,7 +76158,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.hostOrigin]
   );
-  const handleFocus = (0, import_react97.useCallback)(
+  const handleFocus = (0, import_react102.useCallback)(
     (data) => {
       const parsed = collectiveHostProjectWorkFocusSchema.safeParse(data);
       if (!parsed.success) return false;
@@ -75043,11 +76170,11 @@ function useHostAccountabilityContext(input) {
     },
     [applyFocus, input.context]
   );
-  const reset = (0, import_react97.useCallback)(() => {
+  const reset = (0, import_react102.useCallback)(() => {
     pendingFocus.current = void 0;
     pendingChange.current = void 0;
   }, []);
-  (0, import_react97.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     const handleChange = (event) => {
       const detail = event.detail;
       if (!detail) return;
@@ -75057,7 +76184,7 @@ function useHostAccountabilityContext(input) {
     window.addEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
     return () => window.removeEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
   }, [postChange]);
-  (0, import_react97.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     const pending = pendingFocus.current;
     if (!pending || !input.works || !input.roadmaps) return;
     if (!generationMatches(pending, input.context.current)) {
@@ -75066,7 +76193,7 @@ function useHostAccountabilityContext(input) {
     }
     if (applyFocus(pending)) pendingFocus.current = void 0;
   }, [applyFocus, input.context, input.roadmaps, input.works]);
-  (0, import_react97.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     if (!input.works) return;
     const pending = pendingChange.current;
     if (pending && postChange(pending)) pendingChange.current = void 0;
@@ -75077,18 +76204,198 @@ function generationMatches(value, active) {
   return value.bridgeId === active.bridge?.bridgeId && value.contextId === active.contextId && value.contextRevision === active.revision;
 }
 
-// src/use-host-media-share.ts
-var import_react98 = __toESM(require_react(), 1);
-function useHostMediaShare(options) {
-  const latest = (0, import_react98.useRef)(options);
+// src/use-host-document-surface.ts
+var import_react103 = __toESM(require_react(), 1);
+
+// src/collective-document-surface-client.ts
+async function serveCollectiveDocumentRequest(request, api) {
+  const { ref: ref10, operation } = request;
+  try {
+    const artifact = (await api.list()).find((candidate) => candidate.artifactId === ref10.artifactId);
+    if (!artifact || artifact.serviceInstanceId !== ref10.serviceInstanceId || artifact.collectiveId !== ref10.collectiveId || artifact.sourceEventId !== ref10.sourceEventId || artifact.sourceLocation.channelId !== ref10.channelId || artifact.mediaType !== "text/markdown")
+      return { kind: "error", code: "access_denied" };
+    if (artifact.availability !== "available") return { kind: "error", code: "owner_unavailable" };
+    if (operation.kind === "history")
+      return { kind: "history", value: await api.history(artifact, { offset: operation.offset }) };
+    const revision12 = operation.kind === "read" ? operation.ownerRevision : ref10.ownerRevision;
+    if (revision12 !== ref10.ownerRevision && revision12 !== ref10.comparisonOwnerRevision)
+      return { kind: "error", code: "access_denied" };
+    const value = collectiveDocumentViewSchema.parse(await api.read(artifact, revision12));
+    if (value.ownerRevision !== revision12 || value.contentRef !== artifact.contentRef)
+      return { kind: "error", code: "conflict" };
+    if (operation.kind === "stage-selection") return { kind: "error", code: "access_denied" };
+    return { kind: "read", title: artifact.title, value };
+  } catch (error) {
+    return {
+      kind: "error",
+      code: error instanceof CollectiveClientRequestError ? error.status === 401 || error.status === 403 ? "access_denied" : error.status === 503 ? "owner_unavailable" : error.status === 409 ? "conflict" : "unavailable" : "unavailable"
+    };
+  }
+}
+
+// src/use-host-document-surface.ts
+function useHostDocumentSurface(options) {
+  const latest = (0, import_react103.useRef)(options);
   latest.current = options;
-  const pending = (0, import_react98.useRef)();
-  (0, import_react98.useEffect)(() => {
+  const sent = (0, import_react103.useRef)();
+  const [readyKey, setReadyKey] = (0, import_react103.useState)();
+  const ready = (0, import_react103.useRef)();
+  ready.current = readyKey;
+  const currentBridge = options.context.current;
+  const bridgeKey = JSON.stringify([
+    options.generation,
+    options.bridge?.bridgeId,
+    currentBridge.contextId,
+    currentBridge.revision
+  ]);
+  const available = readyKey === bridgeKey;
+  (0, import_react103.useEffect)(() => {
+    const { bridge, context: context4, hostOrigin } = latest.current;
+    if (!bridge || !hostOrigin || context4.current.revision < 1 || bridge.authorityStatus === "revoked") return;
+    let attempts = 0;
+    const key = JSON.stringify([
+      latest.current.generation,
+      bridge.bridgeId,
+      context4.current.contextId,
+      context4.current.revision
+    ]);
+    const sendReady = () => {
+      if (ready.current === key || ++attempts > 10) {
+        clearInterval(timer);
+        return;
+      }
+      window.parent.postMessage(
+        {
+          type: "collective:client-document-ready",
+          ...collectiveDocumentBridgeSchema.parse({
+            bridgeId: bridge.bridgeId,
+            contextId: context4.current.contextId,
+            contextRevision: context4.current.revision,
+            serviceInstanceId: bridge.serviceInstanceId,
+            collectiveId: bridge.collectiveId,
+            connectionId: bridge.connectionId,
+            humanId: bridge.humanId
+          })
+        },
+        hostOrigin
+      );
+    };
+    const timer = window.setInterval(sendReady, 1e3);
+    sendReady();
+    return () => window.clearInterval(timer);
+  }, [options.generation]);
+  const selection = options.selection;
+  const selectionKey = JSON.stringify([selection?.artifact.artifactId, selection?.ownerRevision, selection?.options]);
+  (0, import_react103.useEffect)(() => {
+    const { context: context4, bridge, hostOrigin, selection: selection2 } = latest.current;
+    if (!available || !bridge || !hostOrigin || !selection2 || selection2.options?.discussionOnly || selection2.artifact.mediaType !== "text/markdown" || bridge.authorityStatus === "revoked" || context4.current.bridge?.bridgeId !== bridge.bridgeId || context4.current.revision < 1) {
+      if (!selection2) sent.current = void 0;
+      return;
+    }
+    const ref10 = collectiveDocumentRefSchema.parse({
+      serviceInstanceId: bridge.serviceInstanceId,
+      collectiveId: bridge.collectiveId,
+      connectionId: bridge.connectionId,
+      humanId: bridge.humanId,
+      bridgeId: bridge.bridgeId,
+      artifactId: selection2.artifact.artifactId,
+      sourceEventId: selection2.artifact.sourceEventId,
+      contextId: context4.current.contextId,
+      contextRevision: context4.current.revision,
+      channelId: selection2.artifact.sourceLocation.channelId,
+      ownerRevision: selection2.ownerRevision ?? selection2.artifact.versions.at(-1)?.ownerRevision,
+      comparisonOwnerRevision: selection2.options?.comparisonOwnerRevision,
+      projectReturn: selection2.options?.projectReturn
+    });
+    const key = JSON.stringify([bridge.bridgeId, selectionKey]);
+    if (key === sent.current) return;
+    sent.current = key;
+    window.parent.postMessage({ type: "collective:client-document-open", ref: ref10 }, hostOrigin);
+  }, [options.generation, selectionKey, available]);
+  (0, import_react103.useEffect)(() => {
+    const jobs = /* @__PURE__ */ new Set();
+    const current2 = (ref10) => {
+      const { context: context4, bridge } = latest.current, active = context4.current;
+      return bridge?.authorityStatus !== "revoked" && active.bridge?.authorityStatus !== "revoked" && bridge?.bridgeId === ref10.bridgeId && active.bridge?.bridgeId === ref10.bridgeId && active.contextId === ref10.contextId && active.revision === ref10.contextRevision && bridge.serviceInstanceId === ref10.serviceInstanceId && bridge.collectiveId === ref10.collectiveId && bridge.connectionId === ref10.connectionId && bridge.humanId === ref10.humanId;
+    };
     const listener = async (event) => {
-      const { context: context3, hostOrigin, bridge, onShared } = latest.current;
+      if (event.source !== window.parent || event.origin !== latest.current.hostOrigin) return;
+      const ready2 = collectiveDocumentHostReadySchema.safeParse(event.data);
+      if (ready2.success) {
+        const active = latest.current.context.current, bridge = latest.current.bridge;
+        if (bridge && bridge.authorityStatus !== "revoked" && ready2.data.bridgeId === bridge.bridgeId && ready2.data.contextId === active.contextId && ready2.data.contextRevision === active.revision && ready2.data.serviceInstanceId === bridge.serviceInstanceId && ready2.data.collectiveId === bridge.collectiveId && ready2.data.connectionId === bridge.connectionId && ready2.data.humanId === bridge.humanId)
+          setReadyKey(JSON.stringify([latest.current.generation, bridge.bridgeId, active.contextId, active.revision]));
+        return;
+      }
+      const returned = collectiveDocumentReturnSchema.safeParse(event.data);
+      if (returned.success && current2(returned.data.ref)) {
+        latest.current.onDocumentReturn?.(returned.data.ref, returned.data.destination);
+        return;
+      }
+      const parsed = collectiveDocumentRequestSchema.safeParse(event.data);
+      if (!parsed.success || !current2(parsed.data.ref) || jobs.has(parsed.data.requestId)) return;
+      const { api, hostOrigin } = latest.current;
+      if (!api || !hostOrigin || jobs.size >= 8) return;
+      const request = parsed.data;
+      jobs.add(request.requestId);
+      try {
+        let result;
+        if (request.operation.kind === "stage-selection") {
+          const fresh2 = await serveCollectiveDocumentRequest(
+            { ...request, operation: { kind: "read", ownerRevision: request.ref.ownerRevision } },
+            api
+          );
+          result = fresh2.kind !== "read" || !fresh2.value.view.canWrite ? { kind: "error", code: "access_denied" } : await new Promise((resolve) => {
+            const timer = setTimeout(() => resolve({ kind: "error", code: "unavailable" }), 1e4);
+            window.dispatchEvent(
+              new CustomEvent("collective:stage-document-selection", {
+                detail: {
+                  request,
+                  value: fresh2.value,
+                  complete: (staged) => {
+                    clearTimeout(timer);
+                    resolve(staged ? { kind: "selection_staged" } : { kind: "error", code: "conflict" });
+                  }
+                }
+              })
+            );
+          });
+        } else result = await serveCollectiveDocumentRequest(request, api);
+        if (current2(request.ref))
+          window.parent.postMessage(
+            collectiveDocumentResultSchema.parse({
+              type: "collective:client-document-result",
+              ref: request.ref,
+              requestId: request.requestId,
+              result
+            }),
+            hostOrigin
+          );
+      } finally {
+        jobs.delete(request.requestId);
+      }
+    };
+    window.addEventListener("message", listener);
+    return () => {
+      sent.current = void 0;
+      window.removeEventListener("message", listener);
+    };
+  }, []);
+  return available;
+}
+
+// src/use-host-media-share.ts
+var import_react104 = __toESM(require_react(), 1);
+function useHostMediaShare(options) {
+  const latest = (0, import_react104.useRef)(options);
+  latest.current = options;
+  const pending = (0, import_react104.useRef)();
+  (0, import_react104.useEffect)(() => {
+    const listener = async (event) => {
+      const { context: context4, hostOrigin, bridge, onShared } = latest.current;
       if (event.source !== window.parent || event.origin !== hostOrigin) return;
       const parsed = collectiveMediaShareResultSchema.safeParse(event.data);
-      if (!parsed.success || !pending.current || !bridge || bridge.authorityStatus === "revoked" || JSON.stringify(collectiveMediaShareRefSchema.parse(pending.current)) !== JSON.stringify(parsed.data.ref) || bridge.bridgeId !== parsed.data.ref.bridgeId || context3.current.contextId !== parsed.data.ref.contextId || context3.current.bridge?.bridgeId !== parsed.data.ref.bridgeId || context3.current.revision !== parsed.data.ref.contextRevision)
+      if (!parsed.success || !pending.current || !bridge || bridge.authorityStatus === "revoked" || JSON.stringify(collectiveMediaShareRefSchema.parse(pending.current)) !== JSON.stringify(parsed.data.ref) || bridge.bridgeId !== parsed.data.ref.bridgeId || context4.current.contextId !== parsed.data.ref.contextId || context4.current.bridge?.bridgeId !== parsed.data.ref.bridgeId || context4.current.revision !== parsed.data.ref.contextRevision)
         return;
       pending.current = void 0;
       const artifact = parsed.data.artifact;
@@ -75103,9 +76410,9 @@ function useHostMediaShare(options) {
       window.removeEventListener("message", listener);
     };
   }, []);
-  return (0, import_react98.useCallback)((sourceEventId) => {
-    const { context: context3, bridge, hostOrigin, channelId } = latest.current;
-    if (!bridge || bridge.authorityStatus === "revoked" || !hostOrigin || context3.current.bridge?.bridgeId !== bridge.bridgeId || context3.current.revision < 1)
+  return (0, import_react104.useCallback)((sourceEventId) => {
+    const { context: context4, bridge, hostOrigin, channelId } = latest.current;
+    if (!bridge || bridge.authorityStatus === "revoked" || !hostOrigin || context4.current.bridge?.bridgeId !== bridge.bridgeId || context4.current.revision < 1)
       return;
     const ref10 = collectiveMediaShareRefSchema.parse({
       bridgeId: bridge.bridgeId,
@@ -75114,8 +76421,8 @@ function useHostMediaShare(options) {
       connectionId: bridge.connectionId,
       humanId: bridge.humanId,
       v: 1,
-      contextId: context3.current.contextId,
-      contextRevision: context3.current.revision,
+      contextId: context4.current.contextId,
+      contextRevision: context4.current.revision,
       channelId,
       sourceEventId
     });
@@ -75125,7 +76432,7 @@ function useHostMediaShare(options) {
 }
 
 // src/use-host-media-surface.ts
-var import_react99 = __toESM(require_react(), 1);
+var import_react105 = __toESM(require_react(), 1);
 
 // src/collective-media-surface-client.ts
 async function serveCollectiveMediaRequest(message, api, artifact, humanName) {
@@ -75182,23 +76489,23 @@ function mediaFailureCode(error) {
 
 // src/use-host-media-surface.ts
 function useHostMediaSurface(options) {
-  const latest = (0, import_react99.useRef)(options);
+  const latest = (0, import_react105.useRef)(options);
   latest.current = options;
-  const active = (0, import_react99.useRef)();
+  const active = (0, import_react105.useRef)();
   const { artifact, ownerRevision: ownerRevision2 } = options.selection ?? {};
   const selectedRevision = ownerRevision2 ?? artifact?.versions.at(-1)?.ownerRevision;
   const selectionKey = JSON.stringify([artifact?.artifactId, selectedRevision, artifact?.sourceEventId]);
-  (0, import_react99.useEffect)(() => {
-    const { context: context3, bridge, hostOrigin, channelId, selection } = latest.current;
+  (0, import_react105.useEffect)(() => {
+    const { context: context4, bridge, hostOrigin, channelId, selection } = latest.current;
     active.current = void 0;
-    const { contextId, revision: revision11 } = context3.current;
-    if (!selection || !bridge || context3.current.bridge?.bridgeId !== bridge.bridgeId || bridge.authorityStatus === "revoked" || !hostOrigin || revision11 < 1 || selection.artifact.sourceLocation.channelId !== channelId || !selectedRevision || selection.artifact.mediaType !== "image/png" && selection.artifact.mediaType !== "video/mp4")
+    const { contextId, revision: revision12 } = context4.current;
+    if (!selection || !bridge || context4.current.bridge?.bridgeId !== bridge.bridgeId || bridge.authorityStatus === "revoked" || !hostOrigin || revision12 < 1 || selection.artifact.sourceLocation.channelId !== channelId || !selectedRevision || selection.artifact.mediaType !== "image/png" && selection.artifact.mediaType !== "video/mp4")
       return;
     const ref10 = {
       v: 1,
       bridgeId: bridge.bridgeId,
       contextId,
-      contextRevision: revision11,
+      contextRevision: revision12,
       serviceInstanceId: bridge.serviceInstanceId,
       collectiveId: bridge.collectiveId,
       humanId: bridge.humanId,
@@ -75206,16 +76513,17 @@ function useHostMediaSurface(options) {
       channelId,
       artifactId: selection.artifact.artifactId,
       sourceEventId: selection.artifact.sourceEventId,
-      ownerRevision: selectedRevision
+      ownerRevision: selectedRevision,
+      ...selection.options?.projectReturn ? { projectReturn: selection.options.projectReturn } : {}
     };
     active.current = ref10;
     window.parent.postMessage({ type: "collective:client-media-surface", ref: ref10 }, hostOrigin);
   }, [options.generation, options.channelId, selectionKey, selectedRevision]);
-  (0, import_react99.useEffect)(() => {
+  (0, import_react105.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
     const current2 = (ref10) => {
-      const value = latest.current, context3 = value.context.current;
-      return Boolean(active.current && collectiveMediaSurfaceRefKey(active.current) === collectiveMediaSurfaceRefKey(ref10)) && value.bridge?.bridgeId === ref10.bridgeId && context3.bridge?.authorityStatus !== "revoked" && context3.bridge?.bridgeId === ref10.bridgeId && context3.contextId === ref10.contextId && context3.revision === ref10.contextRevision;
+      const value = latest.current, context4 = value.context.current;
+      return Boolean(active.current && collectiveMediaSurfaceRefKey(active.current) === collectiveMediaSurfaceRefKey(ref10)) && value.bridge?.bridgeId === ref10.bridgeId && context4.bridge?.authorityStatus !== "revoked" && context4.bridge?.bridgeId === ref10.bridgeId && context4.contextId === ref10.contextId && context4.revision === ref10.contextRevision;
     };
     const listener = async (event) => {
       if (event.source !== window.parent || event.origin !== latest.current.hostOrigin) return;
@@ -75259,19 +76567,19 @@ function useHostMediaSurface(options) {
 }
 
 // src/use-host-project-attention-context.ts
-var import_react100 = __toESM(require_react(), 1);
+var import_react106 = __toESM(require_react(), 1);
 function useHostProjectAttentionContext(input) {
-  const latest = (0, import_react100.useRef)(input.snapshot);
+  const latest = (0, import_react106.useRef)(input.snapshot);
   latest.current = input.snapshot;
-  const pending = (0, import_react100.useRef)();
-  const apply2 = (0, import_react100.useCallback)(
+  const pending = (0, import_react106.useRef)();
+  const apply2 = (0, import_react106.useCallback)(
     (focus) => {
-      const context3 = input.context.current, snapshot = latest.current;
-      if (!context3.bridge || focus.bridgeId !== context3.bridge.bridgeId || focus.contextId !== context3.contextId || focus.contextRevision !== context3.revision)
+      const context4 = input.context.current, snapshot = latest.current;
+      if (!context4.bridge || focus.bridgeId !== context4.bridge.bridgeId || focus.contextId !== context4.contextId || focus.contextRevision !== context4.revision)
         return false;
       if (focus.attention === "work_dates") {
         const work2 = snapshot.collaboration?.works.find(
-          (item) => item.workId === focus.workId && item.revision === focus.workRevision && item.accountableHumanId === context3.bridge?.humanId && item.sourceLocation.channelId === focus.channelId
+          (item) => item.workId === focus.workId && item.revision === focus.workRevision && item.accountableHumanId === context4.bridge?.humanId && item.sourceLocation.channelId === focus.channelId
         );
         if (!work2) return false;
         const containing = snapshot.collaboration?.roadmaps.find((item) => item.workIds.includes(work2.workId));
@@ -75291,10 +76599,10 @@ function useHostProjectAttentionContext(input) {
       );
       if (!project) return false;
       if (focus.attention === "triage") {
-        if (project.accountableHumanId !== context3.bridge.humanId) return false;
+        if (project.accountableHumanId !== context4.bridge.humanId) return false;
       } else {
         const work2 = snapshot.collaboration?.works.find(
-          (item) => item.workId === focus.workId && item.revision === focus.workRevision && project.workIds.includes(item.workId) && item.accountableHumanId === context3.bridge?.humanId && !["proposed", "completed", "cancelled", "declined"].includes(item.lifecycle)
+          (item) => item.workId === focus.workId && item.revision === focus.workRevision && project.workIds.includes(item.workId) && item.accountableHumanId === context4.bridge?.humanId && !["proposed", "completed", "cancelled", "declined"].includes(item.lifecycle)
         );
         if (!work2 || focus.attention === "date_suggestion" && !work2.timeSuggestions?.some((item) => item.status === "pending") || focus.attention === "overdue" && (!work2.time?.businessDeadline || Date.parse(work2.time.businessDeadline.value) >= Date.now()))
           return false;
@@ -75309,7 +76617,7 @@ function useHostProjectAttentionContext(input) {
     },
     [input.context, input.onFocus]
   );
-  const handleFocus = (0, import_react100.useCallback)(
+  const handleFocus = (0, import_react106.useCallback)(
     (unsafe) => {
       const parsed = collectiveHostProjectAttentionFocusSchema.safeParse(unsafe);
       if (!parsed.success) return false;
@@ -75319,25 +76627,25 @@ function useHostProjectAttentionContext(input) {
     },
     [apply2]
   );
-  const reset = (0, import_react100.useCallback)(() => {
+  const reset = (0, import_react106.useCallback)(() => {
     pending.current = void 0;
   }, []);
-  (0, import_react100.useEffect)(() => {
+  (0, import_react106.useEffect)(() => {
     if (pending.current && apply2(pending.current)) pending.current = void 0;
   }, [apply2, input.snapshot.collaboration]);
   return { handleFocus, reset };
 }
 
 // src/use-host-ui-placement.ts
-var import_react101 = __toESM(require_react(), 1);
+var import_react107 = __toESM(require_react(), 1);
 function useHostUiPlacement(origin, active, channelId, generation) {
-  (0, import_react101.useEffect)(() => {
+  (0, import_react107.useEffect)(() => {
     if (!origin) return;
     let frame = 0;
     const publish2 = () => {
       frame = 0;
-      const context3 = active.current;
-      if (!context3.bridge || context3.revision < 1) return;
+      const context4 = active.current;
+      if (!context4.bridge || context4.revision < 1) return;
       const membersOpen = Boolean(document.querySelector(".members-page"));
       const slots = Array.from(document.querySelectorAll("[data-host-ui-slot]")).flatMap((element3) => {
         if (membersOpen && element3.dataset.hostUiSlot !== "roster") return [];
@@ -75358,12 +76666,12 @@ function useHostUiPlacement(origin, active, channelId, generation) {
       window.parent.postMessage(
         {
           type: "collective:client-ui-placement",
-          bridgeId: context3.bridge.bridgeId,
-          contextId: context3.contextId,
-          contextRevision: context3.revision,
-          serviceInstanceId: context3.bridge.serviceInstanceId,
-          collectiveId: context3.bridge.collectiveId,
-          humanId: context3.bridge.humanId,
+          bridgeId: context4.bridge.bridgeId,
+          contextId: context4.contextId,
+          contextRevision: context4.revision,
+          serviceInstanceId: context4.bridge.serviceInstanceId,
+          collectiveId: context4.bridge.collectiveId,
+          humanId: context4.bridge.humanId,
           channelId,
           slots
         },
@@ -75373,8 +76681,8 @@ function useHostUiPlacement(origin, active, channelId, generation) {
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(publish2);
     };
-    const mutation = new MutationObserver(schedule);
-    mutation.observe(document.getElementById("collective-root") ?? document.body, {
+    const mutation2 = new MutationObserver(schedule);
+    mutation2.observe(document.getElementById("collective-root") ?? document.body, {
       childList: true,
       subtree: true,
       attributes: true
@@ -75386,7 +76694,7 @@ function useHostUiPlacement(origin, active, channelId, generation) {
     const timer = setInterval(schedule, 1e3);
     schedule();
     return () => {
-      mutation.disconnect();
+      mutation2.disconnect();
       size?.disconnect();
       clearInterval(timer);
       cancelAnimationFrame(frame);
@@ -75398,29 +76706,29 @@ function useHostUiPlacement(origin, active, channelId, generation) {
 
 // src/use-host-context.ts
 function useHostContext(embedded, snapshot, channelId, channelIds, humanSession, media, onOpenMembers) {
-  const openMembersAction = (0, import_react102.useRef)(onOpenMembers);
+  const openMembersAction = (0, import_react108.useRef)(onOpenMembers);
   openMembersAction.current = onOpenMembers;
-  const [bridge, setBridge] = (0, import_react102.useState)();
-  const liveBridge = (0, import_react102.useRef)();
-  const [participationReady, setParticipationReady] = (0, import_react102.useState)();
-  const [open, setOpen] = (0, import_react102.useState)(false);
-  const [cafeSection, setCafeSection] = (0, import_react102.useState)("cats");
-  const [focusWork, setFocusWork] = (0, import_react102.useState)();
-  const [contextId] = (0, import_react102.useState)(() => crypto.randomUUID());
-  const revision11 = (0, import_react102.useRef)(0);
-  const opener = (0, import_react102.useRef)();
-  const reconciledWorks = (0, import_react102.useRef)(/* @__PURE__ */ new Set());
-  const pendingWorkFocus = (0, import_react102.useRef)();
+  const [bridge, setBridge] = (0, import_react108.useState)();
+  const liveBridge = (0, import_react108.useRef)();
+  const [participationReady, setParticipationReady] = (0, import_react108.useState)();
+  const [open, setOpen] = (0, import_react108.useState)(false);
+  const [cafeSection, setCafeSection] = (0, import_react108.useState)("cats");
+  const [focusWork, setFocusWork] = (0, import_react108.useState)();
+  const [contextId] = (0, import_react108.useState)(() => crypto.randomUUID());
+  const revision12 = (0, import_react108.useRef)(0);
+  const opener = (0, import_react108.useRef)();
+  const reconciledWorks = (0, import_react108.useRef)(/* @__PURE__ */ new Set());
+  const pendingWorkFocus = (0, import_react108.useRef)();
   const hostOrigin = embedded ? new URLSearchParams(location.search).get("hostOrigin") : null;
-  const publicContext = (0, import_react102.useRef)({ bridge, contextId, revision: 0 });
+  const publicContext = (0, import_react108.useRef)({ bridge, contextId, revision: 0 });
   const requestWorkPermission = useHostWorkPolicy({ hostOrigin, context: publicContext, ...humanSession });
-  const currentWorks = (0, import_react102.useRef)(snapshot.collaboration?.works);
+  const currentWorks = (0, import_react108.useRef)(snapshot.collaboration?.works);
   currentWorks.current = snapshot.collaboration?.works;
   const serviceInstanceId = snapshot.meta?.serviceInstanceId;
   const collectiveId = snapshot.collective?.collectiveId;
   const humanId = snapshot.me?.human.humanId;
   const projectionReady = snapshot.participants !== void 0 && snapshot.members !== void 0 && snapshot.collaboration !== void 0;
-  const applyWorkFocus = (0, import_react102.useCallback)((value) => {
+  const applyWorkFocus = (0, import_react108.useCallback)((value) => {
     if (!reconciliationMatches(value, publicContext.current)) return false;
     const work2 = currentWorks.current?.find(
       (candidate) => candidate.workId === value.workId && candidate.revision === value.workRevision && candidate.lifecycle === "result_ready" && candidate.status === "result_ready" && candidate.sourceLocation.channelId === value.channelId && candidate.resultEventId === value.resultEventId && (candidate.resultRevision ?? 1) === value.resultRevision && candidate.assignment?.connectionId === publicContext.current.bridge?.connectionId
@@ -75441,7 +76749,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     roadmaps: snapshot.collaboration?.roadmaps,
     onFocus: setFocusWork
   });
-  (0, import_react102.useEffect)(() => {
+  (0, import_react108.useEffect)(() => {
     if (!hostOrigin || !serviceInstanceId || !collectiveId || !humanId) return;
     const handleInit = (data) => {
       const parsed = collectiveHostContextInitSchema.safeParse(data);
@@ -75517,7 +76825,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     resetAccountabilityContext,
     serviceInstanceId
   ]);
-  (0, import_react102.useEffect)(() => {
+  (0, import_react108.useEffect)(() => {
     const pending = pendingWorkFocus.current;
     if (!pending || !snapshot.collaboration?.works) return;
     if (!reconciliationMatches(pending, publicContext.current)) {
@@ -75527,9 +76835,9 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     if (applyWorkFocus(pending)) pendingWorkFocus.current = void 0;
   }, [applyWorkFocus, snapshot.collaboration?.works]);
   const channelKey = JSON.stringify([.../* @__PURE__ */ new Set([channelId, ...channelIds])].slice(0, 100));
-  (0, import_react102.useEffect)(() => {
+  (0, import_react108.useEffect)(() => {
     if (!bridge || !hostOrigin || !projectionReady) return;
-    const nextRevision = ++revision11.current;
+    const nextRevision = ++revision12.current;
     publicContext.current = { bridge, contextId, revision: nextRevision };
     window.parent.postMessage(
       {
@@ -75567,7 +76875,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     channelId,
     JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady])
   );
-  const completedWorks = (0, import_react102.useMemo)(
+  const completedWorks = (0, import_react108.useMemo)(
     () => (snapshot.collaboration?.works ?? []).filter(
       (work2) => work2.lifecycle === "completed" && work2.status === "completed" && work2.assignment?.connectionId === bridge?.connectionId && work2.assignmentEventId !== void 0 && work2.resultEventId !== void 0
     ),
@@ -75580,6 +76888,13 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     channelId,
     onShared: media?.onShared
   });
+  const documentSurfaceReady = useHostDocumentSurface({
+    context: publicContext,
+    bridge,
+    hostOrigin,
+    generation: JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady]),
+    ...media
+  });
   useHostMediaSurface({
     context: publicContext,
     bridge,
@@ -75588,7 +76903,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     generation: JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady]),
     ...media
   });
-  (0, import_react102.useEffect)(() => {
+  (0, import_react108.useEffect)(() => {
     if (!bridge || !hostOrigin || completedWorks.length === 0) return;
     const postPending = () => {
       const active = publicContext.current;
@@ -75619,13 +76934,14 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     const retry = window.setInterval(postPending, 5e3);
     return () => window.clearInterval(retry);
   }, [bridge, completedWorks, hostOrigin]);
-  const show = (0, import_react102.useCallback)((section = "cats") => {
+  const show = (0, import_react108.useCallback)((section = "cats") => {
     if (document.activeElement instanceof HTMLElement) opener.current = document.activeElement;
     setCafeSection(section);
     setOpen(true);
   }, []);
-  const hide = (0, import_react102.useCallback)(() => setOpen(false), []);
+  const hide = (0, import_react108.useCallback)(() => setOpen(false), []);
   return {
+    documentSurfaceReady,
     shareMedia: bridge && bridge.authorityStatus !== "revoked" ? shareMedia : void 0,
     requestWorkPermission: humanSession ? requestWorkPermission : void 0,
     available: Boolean(bridge),
@@ -75653,37 +76969,39 @@ function workRevisionKey(value) {
 }
 
 // src/use-shared-artifact-navigation.ts
-var import_react103 = __toESM(require_react(), 1);
+var import_react109 = __toESM(require_react(), 1);
 function useSharedArtifactNavigation(options) {
-  const current2 = (0, import_react103.useRef)(options);
+  const current2 = (0, import_react109.useRef)(options);
   current2.current = options;
-  const origin = (0, import_react103.useRef)();
+  const origin = (0, import_react109.useRef)();
   if (origin.current && origin.current.namespace !== options.namespace) origin.current = void 0;
-  const discard = (0, import_react103.useCallback)(() => {
+  const discard = (0, import_react109.useCallback)(() => {
     origin.current = void 0;
     current2.current.artifacts?.close();
   }, []);
-  const open = (0, import_react103.useCallback)((artifact, ownerRevision2) => {
+  const open = (0, import_react109.useCallback)((artifact, ownerRevision2, options2) => {
     const { namespace, place, artifacts, onOpenSource } = current2.current;
     const previous4 = origin.current ?? { namespace, place };
     if (place.destination !== "channel" || place.channelId !== artifact.sourceLocation.channelId)
       onOpenSource(artifact.sourceLocation.channelId, artifact.sourceEventId);
     origin.current = previous4;
-    artifacts?.open(artifact, ownerRevision2);
+    artifacts?.open(artifact, ownerRevision2, options2);
   }, []);
-  const close = (0, import_react103.useCallback)(() => {
+  const close = (0, import_react109.useCallback)(() => {
     const previous4 = origin.current;
     origin.current = void 0;
-    const { namespace, artifacts, onRestore } = current2.current;
+    const { namespace, artifacts, onRestore, onRestoreProject } = current2.current;
+    const projectReturn = artifacts?.selected?.options?.projectReturn;
     artifacts?.close();
-    if (previous4?.namespace === namespace) onRestore(previous4.place);
+    if (projectReturn && onRestoreProject) onRestoreProject(projectReturn);
+    else if (previous4?.namespace === namespace) onRestore(previous4.place);
   }, []);
-  const returnLabel = origin.current?.place.destination === "library" ? "\u8FD4\u56DE\u5168\u90E8\u4F5C\u54C1" : origin.current?.place.content === "artifacts" ? "\u8FD4\u56DE\u9891\u9053\u4F5C\u54C1" : "\u5173\u95ED\u4F5C\u54C1";
+  const returnLabel = options.artifacts?.selected?.options?.projectReturn ? "\u8FD4\u56DE\u539F\u9879\u76EE" : origin.current?.place.destination === "library" ? "\u8FD4\u56DE\u5168\u90E8\u4F5C\u54C1" : origin.current?.place.content === "artifacts" ? "\u8FD4\u56DE\u9891\u9053\u4F5C\u54C1" : "\u5173\u95ED\u4F5C\u54C1";
   return { open, close, discard, returnLabel };
 }
 
 // src/CollectiveWorkspace.tsx
-var import_jsx_runtime127 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime129 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorkspace({
   embedded,
   client
@@ -75692,24 +77010,42 @@ function CollectiveWorkspace({
   const t = useCollectiveText();
   const { snapshot } = client;
   const namespace = collectiveClientNamespace(snapshot) ?? "";
-  const previousNamespace = (0, import_react104.useRef)(namespace);
+  const previousNamespace = (0, import_react110.useRef)(namespace);
   const initialEntry = readChannelEntry(namespace);
-  const [channelId, setChannelId] = (0, import_react104.useState)(initialEntry.channelId);
-  const [destination, setDestination] = (0, import_react104.useState)(initialEntry.destination);
-  const [focusEventId, setFocusEventId] = (0, import_react104.useState)();
-  const [content3, setContent] = (0, import_react104.useState)("conversation");
-  const [roadmapViews, setRoadmapViews] = (0, import_react104.useState)({});
-  const [roadmapReturn, setRoadmapReturn] = (0, import_react104.useState)();
-  const [query, setQuery] = (0, import_react104.useState)("");
-  const [libraryChannel, setLibraryChannel] = (0, import_react104.useState)();
-  const [navigationOpen, setNavigationOpen] = (0, import_react104.useState)(false);
-  const [selectedMember, setSelectedMember] = (0, import_react104.useState)();
-  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react104.useState)(false);
+  const [channelId, setChannelId] = (0, import_react110.useState)(initialEntry.channelId);
+  const [destination, setDestination] = (0, import_react110.useState)(initialEntry.destination);
+  const [focusEventId, setFocusEventId] = (0, import_react110.useState)();
+  const [content3, setContent] = (0, import_react110.useState)("conversation");
+  const [roadmapViews, setRoadmapViews] = (0, import_react110.useState)({});
+  const [roadmapReturn, setRoadmapReturn] = (0, import_react110.useState)();
+  const [query, setQuery] = (0, import_react110.useState)("");
+  const [libraryChannel, setLibraryChannel] = (0, import_react110.useState)();
+  const [navigationOpen, setNavigationOpen] = (0, import_react110.useState)(false);
+  const [selectedMember, setSelectedMember] = (0, import_react110.useState)();
+  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react110.useState)(false);
   const participants = snapshot.participants ?? [];
   const channels = channelDestinations(snapshot.events, participants);
   const mediaArtifact = client.artifacts?.catalogue.find(
     (item) => item.artifactId === client.artifacts?.selected?.artifactId
   );
+  const restoreArtifactProject = (target) => {
+    setDestination("channel");
+    setChannelId(target.channelId);
+    setContent("roadmap");
+    setSelectedMember(void 0);
+    setNavigationOpen(false);
+    setFocusEventId(void 0);
+    setRoadmapViews((current2) => ({
+      ...current2,
+      [target.channelId]: {
+        ...defaultRoadmapView,
+        roadmapId: target.roadmapId,
+        lens: "artifacts",
+        workspace: "project"
+      }
+    }));
+    writeChannelTarget(target.channelId);
+  };
   const host = useHostContext(
     embedded,
     snapshot,
@@ -75724,12 +77060,29 @@ function CollectiveWorkspace({
         client.artifacts?.closePublication();
         client.artifacts?.open(artifact);
       },
+      onDocumentReturn: (target, targetDestination) => {
+        if (targetDestination === "project" && target.projectReturn) {
+          artifactNavigation.discard();
+          restoreArtifactProject(target.projectReturn);
+        } else if (targetDestination === "discussion") {
+          const artifact = client.artifacts?.catalogue.find((item) => item.artifactId === target.artifactId);
+          if (artifact)
+            client.artifacts?.open(artifact, target.ownerRevision, {
+              projectReturn: target.projectReturn,
+              discussionOnly: true
+            });
+          setDestination("channel");
+          setChannelId(target.channelId);
+          setContent("conversation");
+          requestAnimationFrame(() => window.dispatchEvent(new Event("collective:reveal-document-discussion")));
+        } else selectChannel(target.channelId, target.sourceEventId);
+      },
       selection: mediaArtifact && {
         artifact: mediaArtifact,
         ownerRevision: client.artifacts?.selected?.ownerRevision,
+        options: client.artifacts?.selected?.options,
         onReturn: () => {
-          client.artifacts?.close();
-          selectChannel(mediaArtifact.sourceLocation.channelId, mediaArtifact.sourceEventId);
+          artifactNavigation.close();
         }
       }
     },
@@ -75747,12 +77100,13 @@ function CollectiveWorkspace({
     participants: snapshot.participants,
     events: snapshot.events
   });
-  const previousFirstEntryPhase = (0, import_react104.useRef)();
+  const previousFirstEntryPhase = (0, import_react110.useRef)();
   const artifactNavigation = useSharedArtifactNavigation({
     namespace,
     artifacts: client.artifacts,
     place: { destination, channelId, content: content3, query, focusEventId, roadmapReturn },
-    onOpenSource: (id33, eventId2) => selectChannel(id33, eventId2),
+    onOpenSource: (id36, eventId2) => selectChannel(id36, eventId2),
+    onRestoreProject: restoreArtifactProject,
     onRestore: (place) => {
       setDestination(place.destination);
       setChannelId(place.channelId);
@@ -75767,7 +77121,7 @@ function CollectiveWorkspace({
       else writeChannelTarget(place.destination === "channel" ? place.channelId : void 0);
     }
   });
-  const enterFirstEntryChannel = (0, import_react104.useCallback)(() => {
+  const enterFirstEntryChannel = (0, import_react110.useCallback)(() => {
     setDestination("channel");
     setChannelId("general");
     writeChannelTarget("general");
@@ -75776,12 +77130,12 @@ function CollectiveWorkspace({
     setNavigationOpen(false);
     host.hide();
   }, [host.hide]);
-  (0, import_react104.useEffect)(() => {
+  (0, import_react110.useEffect)(() => {
     const guideStarted = firstEntry.phase === "playing" && previousFirstEntryPhase.current !== "playing";
     previousFirstEntryPhase.current = firstEntry.phase;
     if (guideStarted && destination === "home") enterFirstEntryChannel();
   }, [destination, enterFirstEntryChannel, firstEntry.phase]);
-  (0, import_react104.useEffect)(() => {
+  (0, import_react110.useEffect)(() => {
     const focus = host.focusWork;
     if (!focus) return;
     if ("roadmapId" in focus) {
@@ -75837,15 +77191,15 @@ function CollectiveWorkspace({
     firstEntry.beginPair();
     void client.pairHost();
   };
-  const selectChannel = (id33, eventId2) => {
+  const selectChannel = (id36, eventId2) => {
     artifactNavigation.discard();
     setDestination("channel");
     setFocusEventId(eventId2);
     setContent("conversation");
     setRoadmapReturn(void 0);
     host.hide();
-    setChannelId(id33);
-    writeChannelTarget(id33);
+    setChannelId(id36);
+    writeChannelTarget(id36);
     setQuery("");
     setSelectedMember(void 0);
     setNavigationOpen(false);
@@ -75872,12 +77226,12 @@ function CollectiveWorkspace({
     host.hide();
     writeLibraryTarget();
   };
-  (0, import_react104.useEffect)(() => {
+  (0, import_react110.useEffect)(() => {
     if (previousNamespace.current !== namespace) return;
     if (destination === "channel") saveChannelPosition(namespace, channelId);
     else if (destination === "home") clearChannelPosition(namespace);
   }, [namespace, channelId, destination]);
-  (0, import_react104.useEffect)(() => {
+  (0, import_react110.useEffect)(() => {
     const worldChanged = previousNamespace.current !== namespace;
     previousNamespace.current = namespace;
     setContent("conversation");
@@ -75994,12 +77348,13 @@ function CollectiveWorkspace({
     }
     selectChannel(item.source.location.channelId, item.source.eventId);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
     CollectiveArtifactContext.Provider,
     {
       value: client.artifacts && {
         ...client.artifacts,
         open: artifactNavigation.open,
+        documentHosted: host.documentSurfaceReady,
         close: artifactNavigation.close,
         openWorkResultFile: async (address) => {
           const artifact = await client.artifacts?.resolveWorkResultFile(address);
@@ -76008,13 +77363,14 @@ function CollectiveWorkspace({
         returnLabel: artifactNavigation.returnLabel,
         returnToSource: selectChannel
       },
-      children: /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(SharedArtifactReading, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(SharedArtifactReading, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(HostedDocumentSelection, {}),
+        /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(
           HostWorkPermissionContext.Provider,
           {
             value: { connectionId: host.connectionId, request: host.requestWorkPermission },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(
                 ProductShell,
                 {
                   embedded,
@@ -76044,7 +77400,7 @@ function CollectiveWorkspace({
                   onReplayGuide: firstEntry.narrator ? replayGuide : void 0,
                   navigationOpen: navigationOpen || firstEntry.phase === "entry",
                   onCloseNavigation: () => setNavigationOpen(false),
-                  destinations: /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+                  destinations: /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                     ChannelNavigation,
                     {
                       channels,
@@ -76076,7 +77432,7 @@ function CollectiveWorkspace({
                     }
                   ),
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                       SharedArtifactLibrary,
                       {
                         title: t("\u5168\u90E8\u4F5C\u54C1"),
@@ -76087,7 +77443,7 @@ function CollectiveWorkspace({
                       },
                       namespace
                     ),
-                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                       CollectiveHome,
                       {
                         collective: snapshot.collective,
@@ -76098,7 +77454,7 @@ function CollectiveWorkspace({
                         onOpenNavigation: () => setNavigationOpen((value) => !value),
                         onOpenEvent: selectChannel
                       }
-                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                       CollectiveChannelWorkspace,
                       {
                         channelId,
@@ -76132,7 +77488,7 @@ function CollectiveWorkspace({
                   ]
                 }
               ),
-              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                 LeaveCollectiveDialog,
                 {
                   collectiveName: snapshot.collective.name,
@@ -76145,7 +77501,7 @@ function CollectiveWorkspace({
                   onOpenMembers: showMembers
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                 FirstEntryOverlays,
                 {
                   firstEntry,
@@ -76157,15 +77513,15 @@ function CollectiveWorkspace({
             ]
           }
         ),
-        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
+        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
       ] })
     }
   );
 }
 
 // src/OnboardingScene.tsx
-var import_react105 = __toESM(require_react(), 1);
-var import_jsx_runtime128 = __toESM(require_jsx_runtime(), 1);
+var import_react111 = __toESM(require_react(), 1);
+var import_jsx_runtime130 = __toESM(require_jsx_runtime(), 1);
 function OnboardingScene({
   phase,
   mode: mode2,
@@ -76178,47 +77534,47 @@ function OnboardingScene({
   onCreateCollective
 }) {
   const t = useCollectiveText();
-  const [busy, setBusy] = (0, import_react105.useState)(false);
-  const [localError, setLocalError] = (0, import_react105.useState)();
+  const [busy, setBusy] = (0, import_react111.useState)(false);
+  const [localError, setLocalError] = (0, import_react111.useState)();
   const github = providers.find((provider) => provider.id === "github");
   if (phase === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u4F53\u2026") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u4F53\u2026") }) });
   }
   if (phase === "unavailable") {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("small", { children: error })
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("small", { children: error })
     ] });
   }
-  const run2 = async (action) => {
+  const run2 = async (action2) => {
     setBusy(true);
     setLocalError(void 0);
     try {
-      await action();
+      await action2();
     } catch (cause) {
       setLocalError(cause instanceof Error ? cause.message : String(cause));
     } finally {
       setBusy(false);
     }
   };
-  const submitValue = (action) => async (event) => {
+  const submitValue = (action2) => async (event) => {
     event.preventDefault();
     const value = String(new FormData(event.currentTarget).get("value") ?? "").trim();
-    if (value) await run2(() => action(value));
+    if (value) await run2(() => action2(value));
   };
   const canConfigureProvider = shouldConfigureProvider(github, mode2, phase);
   if (canConfigureProvider) {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("section", { className: "entry-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
-      localError && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "form-error", children: localError })
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("section", { className: "entry-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
+      localError && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "form-error", children: localError })
     ] }) });
   }
   if (phase === "create-collective") {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
       EntryCard,
       {
         eyebrow: hasAuthenticatedHuman ? "\u9009\u62E9\u4E0B\u4E00\u6B65" : "\u7B2C\u4E00\u6B21\u5EFA\u7ACB Collective",
@@ -76234,7 +77590,7 @@ function OnboardingScene({
     );
   }
   if (phase === "bind-identity") {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
       AuthCard,
       {
         eyebrow: "Human \u8EAB\u4EFD",
@@ -76249,7 +77605,7 @@ function OnboardingScene({
     );
   }
   if (mode2 === "bootstrap") {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
       EntryCard,
       {
         eyebrow: "\u4E00\u6B21\u6027\u521D\u59CB\u5316",
@@ -76264,7 +77620,7 @@ function OnboardingScene({
     );
   }
   if (mode2 === "invite") {
-    return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
       AuthCard,
       {
         eyebrow: "Collective \u9080\u8BF7",
@@ -76278,7 +77634,7 @@ function OnboardingScene({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
     AuthCard,
     {
       eyebrow: "\u6B22\u8FCE\u56DE\u6765",
@@ -76306,13 +77662,13 @@ function AuthCard({
   onAuthenticate
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
-    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "form-error", children: error })
+  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
+    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 function EntryCard({
@@ -76327,23 +77683,23 @@ function EntryCard({
   onSubmit
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("label", { children: [
         t(label),
-        /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
+        /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
+      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { className: "form-error", children: error })
+    error && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 
 // src/use-collective-client.ts
-var import_react109 = __toESM(require_react(), 1);
+var import_react115 = __toESM(require_react(), 1);
 
 // src/leave-readiness.ts
 var sourceSchema3 = external_exports.object({
@@ -76457,37 +77813,10 @@ async function respondToPairingRequest(options) {
 }
 
 // src/use-collective-collaboration.ts
-var import_react106 = __toESM(require_react(), 1);
-
-// src/collaboration-command-custody.ts
-var pendingCommandSchema = external_exports.object({
-  fingerprint: external_exports.string().min(1).max(64e3),
-  requestId: external_exports.string().min(1).max(200)
-}).strict();
-function prepareCollaborationCommand(storage, namespace, payload, createId = () => crypto.randomUUID()) {
-  const key = `collective-collaboration-pending:${namespace}`;
-  const raw = storage.getItem(key);
-  const pending = raw ? pendingCommandSchema.array().parse(JSON.parse(raw)) : [];
-  const fingerprint2 = JSON.stringify(payload);
-  const existing = pending.find((item) => item.fingerprint === fingerprint2);
-  if (existing) return existing.requestId;
-  const next = pendingCommandSchema.parse({ fingerprint: fingerprint2, requestId: createId() });
-  storage.setItem(key, JSON.stringify([...pending, next]));
-  return next.requestId;
-}
-function acknowledgeCollaborationCommand(storage, namespace, requestId2) {
-  const key = `collective-collaboration-pending:${namespace}`;
-  const raw = storage.getItem(key);
-  if (!raw) return;
-  const pending = pendingCommandSchema.array().parse(JSON.parse(raw)).filter((item) => item.requestId !== requestId2);
-  if (pending.length) storage.setItem(key, JSON.stringify(pending));
-  else storage.removeItem(key);
-}
-
-// src/use-collective-collaboration.ts
+var import_react112 = __toESM(require_react(), 1);
 function useCollectiveCollaboration(input) {
-  const running = (0, import_react106.useRef)();
-  const command3 = (0, import_react106.useCallback)(
+  const running = (0, import_react112.useRef)();
+  const command3 = (0, import_react112.useCallback)(
     (path2, payload, acceptedLabel, onAccepted) => {
       const { snapshot } = input;
       const namespace = collectiveClientNamespace(snapshot);
@@ -76767,7 +78096,7 @@ function prepareProjectSuggestionDecision(roadmap, work2, works, decision, edits
 }
 
 // src/use-collective-refresh.ts
-var import_react107 = __toESM(require_react(), 1);
+var import_react113 = __toESM(require_react(), 1);
 async function readCollectiveProjection(request, collectiveId, signal) {
   const query = `?collectiveId=${encodeURIComponent(collectiveId)}`;
   const [result, declared, members, collaboration] = await Promise.all([
@@ -76792,26 +78121,26 @@ async function reconcileDeniedScope(loadMe, collectiveId, close) {
 function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
   const scope = currentCollectiveScope(snapshot);
   const key = scope && `${scope.serviceInstanceId}:${scope.collectiveId}:${scope.humanId}`;
-  const currentKey = (0, import_react107.useRef)(key);
+  const currentKey = (0, import_react113.useRef)(key);
   currentKey.current = key;
-  const latest = (0, import_react107.useRef)(snapshot);
+  const latest = (0, import_react113.useRef)(snapshot);
   latest.current = snapshot;
-  const generation = (0, import_react107.useRef)(0);
-  const pending = (0, import_react107.useRef)();
-  const cancelRefresh = (0, import_react107.useCallback)(() => {
+  const generation = (0, import_react113.useRef)(0);
+  const pending = (0, import_react113.useRef)();
+  const cancelRefresh = (0, import_react113.useCallback)(() => {
     ++generation.current;
     pending.current?.abort();
   }, []);
-  const run2 = (0, import_react107.useCallback)(
+  const run2 = (0, import_react113.useCallback)(
     async (verifyMembership = false) => {
       const target = currentCollectiveScope(latest.current);
       if (!target || !token.current) return;
       const credential = token.current;
-      const revision11 = ++generation.current;
+      const revision12 = ++generation.current;
       pending.current?.abort();
       const abort = new AbortController();
       pending.current = abort;
-      const fresh2 = () => !abort.signal.aborted && revision11 === generation.current && key === currentKey.current && credential === token.current;
+      const fresh2 = () => !abort.signal.aborted && revision12 === generation.current && key === currentKey.current && credential === token.current;
       const close = (reason, me) => {
         if (fresh2()) setSnapshot((current2) => closeCollectiveScope(current2, target, reason, me ?? current2.me));
       };
@@ -76854,7 +78183,7 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     },
     [key, loadMe, request, setSnapshot, token]
   );
-  (0, import_react107.useEffect)(() => {
+  (0, import_react113.useEffect)(() => {
     if (snapshot.phase !== "ready" || !key) return;
     if (!latest.current.restrictedScope) void run2();
     const interval = window.setInterval(() => {
@@ -76866,14 +78195,14 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     };
   }, [cancelRefresh, key, run2, snapshot.phase]);
   return {
-    refreshEvents: (0, import_react107.useCallback)(() => run2(), [run2]),
-    recheckScope: (0, import_react107.useCallback)(() => run2(true), [run2]),
+    refreshEvents: (0, import_react113.useCallback)(() => run2(), [run2]),
+    recheckScope: (0, import_react113.useCallback)(() => run2(true), [run2]),
     cancelRefresh
   };
 }
 
 // src/use-collective-send.ts
-var import_react108 = __toESM(require_react(), 1);
+var import_react114 = __toESM(require_react(), 1);
 function humanSendPayload(snapshot, body4, destination) {
   const { collective, meta } = snapshot;
   if (!collective || !meta) return void 0;
@@ -76885,8 +78214,8 @@ function humanSendPayload(snapshot, body4, destination) {
   };
 }
 function useCollectiveSend(input) {
-  const sending = (0, import_react108.useRef)();
-  return (0, import_react108.useCallback)(
+  const sending = (0, import_react114.useRef)();
+  return (0, import_react114.useCallback)(
     (body4, destination) => {
       const namespace = collectiveClientNamespace(input.snapshot);
       const payload = humanSendPayload(input.snapshot, body4, destination);
@@ -76939,11 +78268,11 @@ var initialSnapshot = {
   delivery: { kind: "idle" }
 };
 function useCollectiveClient() {
-  const [snapshot, setSnapshot] = (0, import_react109.useState)(initialSnapshot);
+  const [snapshot, setSnapshot] = (0, import_react115.useState)(initialSnapshot);
   const activeCollectiveId = snapshot.collective?.collectiveId;
   const activeCollectiveName = snapshot.collective?.name;
   const activeCollectiveRole = snapshot.collective?.role;
-  const currentNamespace = (0, import_react109.useRef)();
+  const currentNamespace = (0, import_react115.useRef)();
   currentNamespace.current = collectiveClientNamespace(snapshot);
   const {
     token,
@@ -76963,12 +78292,12 @@ function useCollectiveClient() {
     loadMe,
     token
   );
-  const switchAccount = (0, import_react109.useCallback)(() => {
+  const switchAccount = (0, import_react115.useCallback)(() => {
     cancelRefresh();
     currentNamespace.current = void 0;
     leaveHumanSession();
   }, [cancelRefresh, leaveHumanSession]);
-  const createCollective = (0, import_react109.useCallback)(
+  const createCollective = (0, import_react115.useCallback)(
     async (name2) => {
       const created = await request("/api/collectives", {
         method: "POST",
@@ -76996,7 +78325,7 @@ function useCollectiveClient() {
     [loadMe, request]
   );
   const sendMessage = useCollectiveSend({ snapshot, setSnapshot, currentNamespace, request, refresh: refreshEvents });
-  const createInvite = (0, import_react109.useCallback)(async () => {
+  const createInvite = (0, import_react115.useCallback)(async () => {
     if (!snapshot.collective) return;
     const result = await request("/api/invites", {
       method: "POST",
@@ -77005,11 +78334,11 @@ function useCollectiveClient() {
     const inviteUrl = `${location.origin}/#invite=${encodeURIComponent(result.inviteToken)}`;
     setSnapshot((current2) => ({ ...current2, notice: inviteUrl }));
   }, [request, snapshot.collective]);
-  const readLeaveReadiness = (0, import_react109.useCallback)(async () => {
+  const readLeaveReadiness = (0, import_react115.useCallback)(async () => {
     if (!activeCollectiveId) throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u68C0\u67E5\u7684\u5171\u540C\u4F53");
     return readMembershipLeaveReadiness(request, activeCollectiveId);
   }, [activeCollectiveId, request]);
-  const leaveCollective = (0, import_react109.useCallback)(async () => {
+  const leaveCollective = (0, import_react115.useCallback)(async () => {
     if (!activeCollectiveId || activeCollectiveRole !== "member") return;
     await request("/api/memberships/self-leave", {
       method: "POST",
@@ -77021,7 +78350,7 @@ function useCollectiveClient() {
       notice: `\u5DF2\u79BB\u5F00${activeCollectiveName ?? "\u5171\u540C\u4F53"}\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002`
     }));
   }, [activeCollectiveId, activeCollectiveName, activeCollectiveRole, recheckScope, request]);
-  const selectCollective = (0, import_react109.useCallback)(
+  const selectCollective = (0, import_react115.useCallback)(
     (collectiveId) => {
       const collective = snapshot.me?.collectives.find((item) => item.collectiveId === collectiveId);
       if (!collective) return;
@@ -77049,7 +78378,7 @@ function useCollectiveClient() {
     },
     [snapshot, cancelRefresh]
   );
-  const pairHost = (0, import_react109.useCallback)(async () => {
+  const pairHost = (0, import_react115.useCallback)(async () => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const authority = resolvePairingAuthority({
@@ -77086,7 +78415,7 @@ function useCollectiveClient() {
       (current2) => result === "paired" ? { ...current2, notice: "Cat Caf\xE9 \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026", error: void 0 } : { ...current2, error: "\u6682\u65F6\u65E0\u6CD5\u521B\u5EFA\u65B0\u7684\u914D\u5BF9\u9080\u8BF7" }
     );
   }, [loadMe, request, snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope, token]);
-  const announcePairingState = (0, import_react109.useCallback)(() => {
+  const announcePairingState = (0, import_react115.useCallback)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window || snapshot.phase === "loading") return;
     const authority = resolvePairingAuthority({
@@ -77101,8 +78430,8 @@ function useCollectiveClient() {
       postToHost: (message, targetOrigin) => window.parent.postMessage(message, targetOrigin)
     });
   }, [snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope]);
-  (0, import_react109.useEffect)(() => announcePairingState(), [announcePairingState]);
-  (0, import_react109.useEffect)(() => {
+  (0, import_react115.useEffect)(() => announcePairingState(), [announcePairingState]);
+  (0, import_react115.useEffect)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const onMessage = (event) => {
@@ -77124,7 +78453,7 @@ function useCollectiveClient() {
   const expressionServiceId = snapshot.meta?.serviceInstanceId;
   const expressionCollectiveId = snapshot.collective?.collectiveId;
   const expressionHumanId = snapshot.me?.human.humanId;
-  const expression = (0, import_react109.useMemo)(
+  const expression = (0, import_react115.useMemo)(
     () => expressionServiceId && expressionCollectiveId && expressionHumanId ? createMessageExpressionPort(
       {
         serviceInstanceId: expressionServiceId,
@@ -77157,28 +78486,28 @@ function useCollectiveClient() {
 }
 
 // src/use-host-world-directory.ts
-var import_react110 = __toESM(require_react(), 1);
+var import_react116 = __toESM(require_react(), 1);
 
 // src/world-directory-bridge.ts
-function projectWorldDirectory(snapshot, bridgeId, revision11) {
-  const base3 = {
+function projectWorldDirectory(snapshot, bridgeId, revision12) {
+  const base4 = {
     type: "collective:client-world-directory",
     bridgeId,
-    revision: revision11
+    revision: revision12
   };
   if (snapshot.phase === "loading") return void 0;
   if (snapshot.phase === "unavailable") {
     return {
-      ...base3,
+      ...base4,
       state: "unavailable",
       code: "client_unavailable",
       ...snapshot.meta ? { serviceInstanceId: snapshot.meta.serviceInstanceId } : {}
     };
   }
-  if (!snapshot.meta) return { ...base3, state: "unavailable", code: "service_unavailable" };
+  if (!snapshot.meta) return { ...base4, state: "unavailable", code: "service_unavailable" };
   if (snapshot.connection === "offline") {
     return {
-      ...base3,
+      ...base4,
       state: "unavailable",
       code: "service_unavailable",
       serviceInstanceId: snapshot.meta.serviceInstanceId
@@ -77186,13 +78515,13 @@ function projectWorldDirectory(snapshot, bridgeId, revision11) {
   }
   if (!snapshot.me) {
     return {
-      ...base3,
+      ...base4,
       state: "session_required",
       serviceInstanceId: snapshot.meta.serviceInstanceId
     };
   }
   return {
-    ...base3,
+    ...base4,
     state: "ready",
     serviceInstanceId: snapshot.meta.serviceInstanceId,
     humanId: snapshot.me.human.humanId,
@@ -77215,7 +78544,7 @@ function trustedWorldDirectoryHostMessage(event, hostOrigin, parent) {
 function useHostWorldDirectory(input) {
   const hostOrigin = resolveHostOrigin2(input.embedded);
   const authorityKey = `${input.snapshot.meta?.serviceInstanceId ?? "unknown"}:${input.snapshot.me?.human.humanId ?? "anonymous"}`;
-  const projectionSource = (0, import_react110.useMemo)(
+  const projectionSource = (0, import_react116.useMemo)(
     () => ({
       phase: input.snapshot.phase,
       meta: input.snapshot.meta,
@@ -77231,19 +78560,19 @@ function useHostWorldDirectory(input) {
       input.snapshot.phase
     ]
   );
-  const [bridge, setBridge] = (0, import_react110.useState)();
-  const revision11 = (0, import_react110.useRef)(0);
-  const current2 = (0, import_react110.useRef)();
-  const selectCollective = (0, import_react110.useRef)(input.selectCollective);
+  const [bridge, setBridge] = (0, import_react116.useState)();
+  const revision12 = (0, import_react116.useRef)(0);
+  const current2 = (0, import_react116.useRef)();
+  const selectCollective = (0, import_react116.useRef)(input.selectCollective);
   selectCollective.current = input.selectCollective;
-  (0, import_react110.useEffect)(() => {
+  (0, import_react116.useEffect)(() => {
     if (!hostOrigin || window.parent === window) return;
     const parent = window.parent;
     const onMessage = (event) => {
       const message = trustedWorldDirectoryHostMessage(event, hostOrigin, parent);
       if (!message) return;
       if (message.type === "collective:host-world-directory-init") {
-        revision11.current = 0;
+        revision12.current = 0;
         current2.current = void 0;
         observeHostAppearanceGeneration(message.bridgeId);
         setBridge({ bridgeId: message.bridgeId, authorityKey });
@@ -77264,11 +78593,11 @@ function useHostWorldDirectory(input) {
       window.removeEventListener("message", onMessage);
     };
   }, [authorityKey, hostOrigin]);
-  (0, import_react110.useEffect)(() => {
+  (0, import_react116.useEffect)(() => {
     if (!bridge || bridge.authorityKey !== authorityKey || !hostOrigin || window.parent === window) return;
-    const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision11.current + 1);
+    const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision12.current + 1);
     if (!projection) return;
-    revision11.current = projection.revision;
+    revision12.current = projection.revision;
     current2.current = projection.state === "ready" ? projection : void 0;
     window.parent.postMessage(projection, hostOrigin);
   }, [authorityKey, bridge, hostOrigin, projectionSource]);
@@ -77286,11 +78615,11 @@ function resolveHostOrigin2(embedded) {
 }
 
 // src/CollectiveClient.tsx
-var import_jsx_runtime129 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime131 = __toESM(require_jsx_runtime(), 1);
 function CollectiveClient() {
   const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
   const embedded = window.parent !== window && hostOrigin !== null;
-  return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(LiveCollectiveClient, { embedded });
+  return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(LiveCollectiveClient, { embedded });
 }
 function LiveCollectiveClient({ embedded }) {
   const client = useCollectiveClient();
@@ -77299,9 +78628,9 @@ function LiveCollectiveClient({ embedded }) {
   const canSteward = !snapshot.restrictedScope && snapshot.collective?.role === "steward";
   const canPair = !snapshot.restrictedScope && snapshot.phase === "ready" && Boolean(snapshot.me?.auth && snapshot.collective);
   if (!snapshot.restrictedScope && snapshot.phase === "ready" && snapshot.collective && snapshot.me) {
-    return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
+    return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
     ProductShell,
     {
       embedded,
@@ -77314,7 +78643,7 @@ function LiveCollectiveClient({ embedded }) {
       notice: snapshot.notice,
       onInvite: () => void client.createInvite(),
       onPair: () => void client.pairHost(),
-      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
         CollectiveScopeRecovery,
         {
           scope: snapshot.restrictedScope,
@@ -77322,7 +78651,7 @@ function LiveCollectiveClient({ embedded }) {
           onAuthenticate: client.authenticate
         },
         `${snapshot.restrictedScope.serviceInstanceId}:${snapshot.restrictedScope.collectiveId}:${snapshot.restrictedScope.humanId}`
-      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u4F53\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime131.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u4F53\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
         OnboardingScene,
         {
           phase: snapshot.phase,
@@ -77341,10 +78670,10 @@ function LiveCollectiveClient({ embedded }) {
 }
 
 // src/main.tsx
-var import_jsx_runtime130 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime132 = __toESM(require_jsx_runtime(), 1);
 var root4 = document.getElementById("collective-root");
 if (!root4) throw new Error("Collective client root is missing");
 startHostAppearance();
 (0, import_client.createRoot)(root4).render(
-  /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(import_react111.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(CollectiveClient, {}) })
+  /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(import_react117.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(CollectiveClient, {}) })
 );

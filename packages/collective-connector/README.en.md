@@ -83,3 +83,20 @@ Reading or suggesting one shared material rechecks only its selected original so
 The package ships `clowder-collective-service`, its matching Client and a durable ordinary-attachment owner. See [DEPLOYMENT.md](DEPLOYMENT.md) for installation, loopback forwarding, initial setup, media dependencies, stopped backups and upgrades. Shared Works stay with their original Café owner over the existing relay and become unavailable while that owner is offline.
 
 This version uses Contract `0.3.0` / SDK `0.3.0-beta.1`. The remote launch entry requires a matching Host containing Core `64019020ac268cb3695a1b9025dfad1cc5a104c8`. The Client retains the 542 verified source inputs above and was neither rebuilt nor rolled back. Install the exact package and digest in the release receipt. Engineering checks cover installed packages, isolated OpenSSH, attachments, original Works and lost-response recovery; a real cloud server, two computers, two Humans and the production GitHub provider remain deployment acceptance.
+
+
+## Exact project work versions (alpha.17)
+
+Choose an original work and an exact retained version from a project's Works view. New versions only notify.
+The project owner can compare, explicitly switch, keep the current version or remove the reference. Other
+projects, the original and its history remain intact. Concurrent changes return the actual current version.
+Revocation or an unavailable original owner hides content; recovery reopens the same object and version.
+
+The packaged Client is rebuilt from Core `9326d417fa1413bbfcb96c1f42dab56840ed07df`: 566 checked source inputs,
+848 total inputs, asset digest `51c1abbf130f15b71b894175e4ca8b0dc549c8854421511b6816971486cf8834`.
+This includes Core #6271's narrow project headers and forms. A matching Host opens exact documents and
+comparisons in the common Workspace tabs. Quotes, annotations, candidates and adoption retain their original
+owner and discussion. Older Hosts and standalone browsers retain the existing exact-version reader.
+Project-source reference fields are opt-in, preserving older Connectors. The standalone CLI, remote mode,
+Contract `0.3.0` and SDK `0.3.0-beta.1` pins remain unchanged. Fixture checks do not replace real account or
+cloud deployment acceptance.
