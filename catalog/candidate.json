@@ -7,7 +7,7 @@
       "description": {
         "default": "Edit DOCX documents together in your Clowder workspace. Requires a compatible Host; other Office formats are not yet enabled.",
         "translations": {
-          "zh-CN": "在 Clowder 工作空间里共同编辑 DOCX 文档。需要兼容的宿主；其他 Office 格式尚未开放。"
+          "zh-CN": "\u5728 Clowder \u5de5\u4f5c\u7a7a\u95f4\u91cc\u5171\u540c\u7f16\u8f91 DOCX \u6587\u6863\u3002\u9700\u8981\u517c\u5bb9\u7684\u5bbf\u4e3b\uff1b\u5176\u4ed6 Office \u683c\u5f0f\u5c1a\u672a\u5f00\u653e\u3002"
         }
       },
       "icon": {
@@ -101,7 +101,7 @@
       "description": {
         "default": "Send one remote HTTPS video URL and a prompt to the configured provider for analysis.",
         "translations": {
-          "zh-CN": "将一个远程 HTTPS 视频 URL 和提示词交给已配置的提供商分析。"
+          "zh-CN": "\u5c06\u4e00\u4e2a\u8fdc\u7a0b HTTPS \u89c6\u9891 URL \u548c\u63d0\u793a\u8bcd\u4ea4\u7ed9\u5df2\u914d\u7f6e\u7684\u63d0\u4f9b\u5546\u5206\u6790\u3002"
         }
       },
       "icon": {
@@ -212,7 +212,7 @@
       "description": {
         "default": "Submit and track image or video generation jobs through a configured provider.",
         "translations": {
-          "zh-CN": "通过已配置的提供商提交并跟踪图片或视频生成任务。"
+          "zh-CN": "\u901a\u8fc7\u5df2\u914d\u7f6e\u7684\u63d0\u4f9b\u5546\u63d0\u4ea4\u5e76\u8ddf\u8e2a\u56fe\u7247\u6216\u89c6\u9891\u751f\u6210\u4efb\u52a1\u3002"
         }
       },
       "icon": {
@@ -305,7 +305,7 @@
       "description": {
         "default": "Play Chinese chess with the cat in your conversation, or analyze a position.",
         "translations": {
-          "zh-CN": "和当前对话里的猫下一盘象棋，也可以单独分析局面。"
+          "zh-CN": "\u548c\u5f53\u524d\u5bf9\u8bdd\u91cc\u7684\u732b\u4e0b\u4e00\u76d8\u8c61\u68cb\uff0c\u4e5f\u53ef\u4ee5\u5355\u72ec\u5206\u6790\u5c40\u9762\u3002"
         }
       },
       "icon": {
@@ -382,7 +382,7 @@
       "description": {
         "default": "Collective service and web client managed by the plugin.",
         "translations": {
-          "zh-CN": "插件管理的 Collective 服务与网页客户端。"
+          "zh-CN": "\u63d2\u4ef6\u7ba1\u7406\u7684 Collective \u670d\u52a1\u4e0e\u7f51\u9875\u5ba2\u6237\u7aef\u3002"
         }
       },
       "publisher": {
@@ -395,6 +395,23 @@
         "work"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.22",
+          "contractVersion": "0.3.2-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/collective-connector",
+            "version": "0.1.0-alpha.22",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.22.tgz",
+            "integrity": "sha512-0iFmOHJb/cBd+tAieoV8fVjrdjt8T5FbOmlJoHsxcXPkdg0yUK1R7AZrfKedBTbxsgqIYcHAxnayAjsseSMFVA==",
+            "shasum": "66b162b7596616ed4beda3fcd2c8e990896dd0a5",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/collective-connector"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.21",
           "contractVersion": "0.2.0",
@@ -624,11 +641,11 @@
     },
     {
       "pluginId": "official.companion",
-      "name": "猫猫球",
+      "name": "\u732b\u732b\u7403",
       "description": {
         "default": "Talk, think and find your shared history with your companion.",
         "translations": {
-          "zh-CN": "和猫猫说话、查资料，回到同一段聊天继续工作。"
+          "zh-CN": "\u548c\u732b\u732b\u8bf4\u8bdd\u3001\u67e5\u8d44\u6599\uff0c\u56de\u5230\u540c\u4e00\u6bb5\u804a\u5929\u7ee7\u7eed\u5de5\u4f5c\u3002"
         }
       },
       "icon": {
@@ -1028,7 +1045,7 @@
       "description": {
         "default": "Host authorized ChatGPT conversations through the F247 personal Chrome extension and native messaging helper.",
         "translations": {
-          "zh-CN": "通过 F247 个人 Chrome 扩展与原生消息助手托管已授权的 ChatGPT 会话。"
+          "zh-CN": "\u901a\u8fc7 F247 \u4e2a\u4eba Chrome \u6269\u5c55\u4e0e\u539f\u751f\u6d88\u606f\u52a9\u624b\u6258\u7ba1\u5df2\u6388\u6743\u7684 ChatGPT \u4f1a\u8bdd\u3002"
         }
       },
       "icon": {
@@ -1208,7 +1225,7 @@
       "description": {
         "default": "Receive and send DingTalk enterprise messages through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收和发送钉钉企业消息。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u548c\u53d1\u9001\u9489\u9489\u4f01\u4e1a\u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -1352,7 +1369,7 @@
       "description": {
         "default": "Receive and send Feishu or Lark messages through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收和发送飞书或 Lark 消息。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u548c\u53d1\u9001\u98de\u4e66\u6216 Lark \u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -1514,7 +1531,7 @@
       "description": {
         "default": "Receive and send Telegram Bot messages through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收和发送 Telegram Bot 消息。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u548c\u53d1\u9001 Telegram Bot \u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -1658,7 +1675,7 @@
       "description": {
         "default": "Receive encrypted WeCom callbacks and send replies through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收企微加密回调并发送回复。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u4f01\u5fae\u52a0\u5bc6\u56de\u8c03\u5e76\u53d1\u9001\u56de\u590d\u3002"
         }
       },
       "icon": {
@@ -1802,7 +1819,7 @@
       "description": {
         "default": "Receive and send WeCom intelligent-bot messages through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收和发送企微智能机器人消息。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u548c\u53d1\u9001\u4f01\u5fae\u667a\u80fd\u673a\u5668\u4eba\u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -1947,7 +1964,7 @@
       "description": {
         "default": "Receive and send WeChat Personal iLink messages through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收和发送微信个人号 iLink 消息。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u548c\u53d1\u9001\u5fae\u4fe1\u4e2a\u4eba\u53f7 iLink \u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -2092,7 +2109,7 @@
       "description": {
         "default": "Receive and send XiaoYi OpenClaw messages through a Host-owned connector binding.",
         "translations": {
-          "zh-CN": "通过宿主所有的连接器绑定接收和发送小艺 OpenClaw 消息。"
+          "zh-CN": "\u901a\u8fc7\u5bbf\u4e3b\u6240\u6709\u7684\u8fde\u63a5\u5668\u7ed1\u5b9a\u63a5\u6536\u548c\u53d1\u9001\u5c0f\u827a OpenClaw \u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -2236,7 +2253,7 @@
       "description": {
         "default": "Create governed WeCom and Lark documents, tasks, tables, meetings, and workflows.",
         "translations": {
-          "zh-CN": "通过受治理的企微与飞书工具创建文档、任务、表格、会议和工作流。"
+          "zh-CN": "\u901a\u8fc7\u53d7\u6cbb\u7406\u7684\u4f01\u5fae\u4e0e\u98de\u4e66\u5de5\u5177\u521b\u5efa\u6587\u6863\u3001\u4efb\u52a1\u3001\u8868\u683c\u3001\u4f1a\u8bae\u548c\u5de5\u4f5c\u6d41\u3002"
         }
       },
       "icon": {
@@ -2367,9 +2384,9 @@
       "pluginId": "official.github-operations",
       "name": "GitHub Operations",
       "description": {
-        "default": "跟踪 GitHub PR 审查、CI 检查、冲突、Issue 和评论，并同步仓库协作动态。",
+        "default": "\u8ddf\u8e2a GitHub PR \u5ba1\u67e5\u3001CI \u68c0\u67e5\u3001\u51b2\u7a81\u3001Issue \u548c\u8bc4\u8bba\uff0c\u5e76\u540c\u6b65\u4ed3\u5e93\u534f\u4f5c\u52a8\u6001\u3002",
         "translations": {
-          "zh-CN": "跟踪 GitHub PR 审查、CI 检查、冲突、Issue 和评论，并同步仓库协作动态。",
+          "zh-CN": "\u8ddf\u8e2a GitHub PR \u5ba1\u67e5\u3001CI \u68c0\u67e5\u3001\u51b2\u7a81\u3001Issue \u548c\u8bc4\u8bba\uff0c\u5e76\u540c\u6b65\u4ed3\u5e93\u534f\u4f5c\u52a8\u6001\u3002",
           "en": "Track GitHub reviews, checks, conflicts, issues, comments, and repository reconciliation."
         }
       },
@@ -2389,6 +2406,23 @@
         "schedule"
       ],
       "versions": [
+        {
+          "version": "0.1.0-alpha.30",
+          "contractVersion": "0.3.2-candidate.0",
+          "manifestPath": "plugin.yaml",
+          "artifact": {
+            "kind": "npm",
+            "packageName": "@clowder-ai/github-operations",
+            "version": "0.1.0-alpha.30",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/github-operations/-/github-operations-0.1.0-alpha.30.tgz",
+            "integrity": "sha512-l+ICQ+dwTkftNsb9oDJcqk7emnXVbTR9r5cuFpEDlLmkTnFsV03OSCxxPGpCLi+H4S5dPO51ny7K19KLwpL2tQ==",
+            "shasum": "2145bdf37910042a2340b0812740d483e5561476",
+            "provenance": {
+              "repository": "https://github.com/zts212653/clowder-ai-plugins",
+              "sourceDirectory": "packages/github-operations"
+            }
+          }
+        },
         {
           "version": "0.1.0-alpha.29",
           "contractVersion": "0.1.0",
@@ -2499,7 +2533,7 @@
       "description": {
         "default": "Read visible Mac WeChat messages under explicit, short-lived local authorization.",
         "translations": {
-          "zh-CN": "在明确、短时的本机授权下读取 Mac 微信可见消息。"
+          "zh-CN": "\u5728\u660e\u786e\u3001\u77ed\u65f6\u7684\u672c\u673a\u6388\u6743\u4e0b\u8bfb\u53d6 Mac \u5fae\u4fe1\u53ef\u89c1\u6d88\u606f\u3002"
         }
       },
       "icon": {
@@ -2609,7 +2643,7 @@
       "description": {
         "default": "Prepare, upload, publish, and inspect WeChat Official Account content.",
         "translations": {
-          "zh-CN": "准备、上传、发布并查看微信公众号内容。"
+          "zh-CN": "\u51c6\u5907\u3001\u4e0a\u4f20\u3001\u53d1\u5e03\u5e76\u67e5\u770b\u5fae\u4fe1\u516c\u4f17\u53f7\u5185\u5bb9\u3002"
         }
       },
       "icon": {

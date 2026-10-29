@@ -258,12 +258,13 @@ export function validateManifest(value: unknown): ManifestValidationResult {
 
     const variants = manifest.configurationVariants;
     if (variants !== undefined) {
-      if (manifest.contractVersion !== '0.2.0') {
+      const [major = 0, minor = 0] = manifest.contractVersion.split(/[.-]/).slice(0, 2).map(Number);
+      if (!(major > 0 || minor >= 2)) {
         return semanticError(
           '/configurationVariants',
           '#/$defs/ConfigurationVariants/contractVersion',
           'contractVersion',
-          'configurationVariants requires contractVersion 0.2.0',
+          'configurationVariants requires contractVersion 0.2.0 or newer',
         );
       }
 

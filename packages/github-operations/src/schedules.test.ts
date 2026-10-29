@@ -40,6 +40,7 @@ test('native tracking MCP and skill use the same installed entrypoint and direct
   assert.match(content, /cat_cafe_unregister_tracking/);
   assert.doesNotMatch(content, /plugin_call/);
   assert.deepEqual(manifest.contributions.filter((item: { type: string }) => item.type === 'mcp'),
-    [{ type: 'mcp', id: 'github-tracking', runtime: { transport: 'stdio', entrypoint: 'dist/mcp-entrypoint.js' } }]);
+    [{ type: 'mcp', id: 'github-tracking', runtime: { transport: 'stdio', entrypoint: 'dist/mcp-entrypoint.js' },
+      sharedFactory: { module: 'dist/tracking-mcp-server.js', export: 'createRemoteTrackingMcpServer' } }]);
   assert.equal(manifest.runtime.transport, 'builtin');
 });
