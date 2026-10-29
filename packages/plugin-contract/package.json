@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/plugin-contract",
-  "version": "0.3.1-candidate.0",
+  "version": "0.3.2-candidate.0",
   "private": false,
   "description": "Clowder AI plugin schemas, bidirectional protocol and conformance fixtures",
   "license": "MIT",

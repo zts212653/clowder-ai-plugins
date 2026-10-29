@@ -1050,6 +1050,25 @@
           "additionalProperties": {
             "$ref": "#/$defs/EnvironmentBinding"
           }
+        },
+        "sharedFactory": {
+          "type": "object",
+          "description": "Side-effect-free MCP factory from the admitted builtin package. Host supplies a request-owned action client; stdio remains the explicit fallback.",
+          "properties": {
+            "module": {
+              "$ref": "#/$defs/PackageRelativePath"
+            },
+            "export": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]*$",
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "module",
+            "export"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
