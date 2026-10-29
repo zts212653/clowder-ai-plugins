@@ -1087,7 +1087,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context2);
         }
-        function useState84(initialState) {
+        function useState85(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1095,7 +1095,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef57(initialValue) {
+        function useRef58(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -1137,7 +1137,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useDeferredValue(value);
         }
-        function useId6() {
+        function useId7() {
           var dispatcher = resolveDispatcher();
           return dispatcher.useId();
         }
@@ -1883,14 +1883,14 @@ var require_react_development = __commonJS({
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
         exports.useEffect = useEffect60;
-        exports.useId = useId6;
+        exports.useId = useId7;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect5;
         exports.useMemo = useMemo15;
         exports.useReducer = useReducer;
-        exports.useRef = useRef57;
-        exports.useState = useState84;
+        exports.useRef = useRef58;
+        exports.useState = useState85;
         exports.useSyncExternalStore = useSyncExternalStore3;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -24558,11 +24558,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx133 = jsxWithValidationDynamic;
-        var jsxs112 = jsxWithValidationStatic;
+        var jsx135 = jsxWithValidationDynamic;
+        var jsxs114 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx133;
-        exports.jsxs = jsxs112;
+        exports.jsx = jsx135;
+        exports.jsxs = jsxs114;
       })();
     }
   }
@@ -24819,7 +24819,7 @@ var require_cjs3 = __commonJS({
 });
 
 // src/main.tsx
-var import_react117 = __toESM(require_react(), 1);
+var import_react118 = __toESM(require_react(), 1);
 var import_client = __toESM(require_client(), 1);
 
 // src/CollectiveScopeRecovery.tsx
@@ -45078,6 +45078,48 @@ var collectiveArtifactRelayResponseSchema = external_exports.discriminatedUnion(
   }).strict()
 ]);
 
+// ../shared/src/types/collective-channel.ts
+var COLLECTIVE_CHANNEL_NAME_MAX = 40;
+function normalizeCollectiveChannelName(value) {
+  return value.normalize("NFKC").trim().replace(/[ \t]+/gu, " ");
+}
+function collectiveChannelNameIssue(value) {
+  const normalized = normalizeCollectiveChannelName(value);
+  if (!normalized) return "empty";
+  if (Array.from(normalized).length > COLLECTIVE_CHANNEL_NAME_MAX) return "too_long";
+  if (Array.from(normalized).some(isForbiddenChannelNameCharacter)) return "invalid_characters";
+  return void 0;
+}
+function isForbiddenChannelNameCharacter(character) {
+  const codePoint = character.codePointAt(0);
+  return codePoint !== void 0 && (codePoint <= 31 || codePoint === 127 || character === "#" || character === "/" || character === "\\");
+}
+function collectiveChannelNameKey(value) {
+  return normalizeCollectiveChannelName(value).toLowerCase();
+}
+var collectiveChannelNameSchema = external_exports.string().max(200).transform(normalizeCollectiveChannelName).superRefine((value, context4) => {
+  const issue2 = collectiveChannelNameIssue(value);
+  if (issue2) context4.addIssue({ code: external_exports.ZodIssueCode.custom, message: issue2 });
+});
+var collectiveChannelIdSchema = external_exports.string().trim().min(1).max(160);
+var collectiveChannelProjectionSchema = collectiveCoordinatesSchema.extend({
+  channelId: collectiveChannelIdSchema,
+  visibility: external_exports.literal("public"),
+  createdBy: collectiveHumanActorSchema.omit({ kind: true }).strict(),
+  createdAt: external_exports.string().datetime(),
+  revision: external_exports.number().int().positive()
+}).strict();
+var collectiveChannelListSchema = collectiveCoordinatesSchema.extend({ channels: external_exports.array(collectiveChannelProjectionSchema) }).strict();
+var collectiveChannelCreateRequestSchema = external_exports.object({
+  collectiveId: collectiveIdSchema,
+  name: collectiveChannelNameSchema,
+  clientOperationId: external_exports.string().trim().min(8).max(160)
+}).strict();
+var collectiveChannelCreateResponseSchema = external_exports.object({
+  status: external_exports.enum(["created", "replayed", "existing"]),
+  channel: collectiveChannelProjectionSchema
+}).strict();
+
 // ../shared/src/types/collective-collaboration-actor.ts
 var collectiveCollaborationActorSchema = external_exports.discriminatedUnion("kind", [
   external_exports.object({
@@ -54282,6 +54324,7 @@ function closeCollectiveScope(current2, scope, reason, me = current2.me) {
     collective: me?.collectives.find((item) => item.collectiveId === scope.collectiveId),
     restrictedScope: { ...scope, reason },
     events: [],
+    channels: void 0,
     participants: void 0,
     members: void 0,
     collaboration: void 0,
@@ -54387,7 +54430,7 @@ function CollectiveScopeRecovery({
 }
 
 // src/CollectiveWorkspace.tsx
-var import_react110 = __toESM(require_react(), 1);
+var import_react111 = __toESM(require_react(), 1);
 
 // ../ui/src/AppTooltip.tsx
 var import_react2 = __toESM(require_react(), 1);
@@ -54859,6 +54902,15 @@ var en = {
   \u5171\u540C\u4F53\u6210\u5458\u5217\u8868: "Collective members",
   \u5168\u90E8\u4F5C\u54C1: "All works",
   \u9891\u9053: "Channels",
+  \u65B0\u5EFA\u9891\u9053: "Create channel",
+  \u9891\u9053\u540D: "Channel name",
+  "\u6BD4\u5982 \u53D1\u5E03\u8282\u594F": "e.g. release rhythm",
+  \u53BB\u8FD9\u4E2A\u9891\u9053: "Go to channel",
+  "\u9891\u9053\u540D\u4E0D\u80FD\u5305\u542B #\u3001\u659C\u6760\u6216\u6362\u884C": "Channel names cannot contain #, slashes, or line breaks",
+  \u516C\u5F00: "Public",
+  "\u6B63\u5728\u65B0\u5EFA\u2026": "Creating\u2026",
+  \u65B0\u5EFA: "Create",
+  \u5173\u95ED: "Close",
   \u6211\u7684\u732B: "My cats",
   \u4F60\u7684\u732B\u5728\u8FD9\u91CC: "Your cats here",
   \u770B\u6211\u7684\u6210\u5458\u8D44\u6599: "View my member profile",
@@ -56863,11 +56915,11 @@ function addChildren(props, children) {
     }
   }
 }
-function productionCreate(_, jsx133, jsxs112) {
+function productionCreate(_, jsx135, jsxs114) {
   return create3;
   function create3(_2, type, props, key) {
     const isStaticChildren = Array.isArray(props.children);
-    const fn = isStaticChildren ? jsxs112 : jsx133;
+    const fn = isStaticChildren ? jsxs114 : jsx135;
     return key ? fn(type, props, key) : fn(type, props);
   }
 }
@@ -60616,6 +60668,7 @@ function ChannelNavigation({
   query,
   onQuery,
   onSelect,
+  onCreateChannel,
   onMembers,
   onLibrary,
   libraryActive,
@@ -60706,10 +60759,13 @@ function ChannelNavigation({
         ] }) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("nav", { className: "destination-list", "aria-label": t("\u9891\u9053"), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("p", { children: [
-          t("\u9891\u9053"),
-          " ",
-          channels.length
+        /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("div", { className: "destination-list-heading", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)("p", { children: [
+            t("\u9891\u9053"),
+            " ",
+            channels.length
+          ] }),
+          onCreateChannel && /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(AppTooltip, { label: t("\u65B0\u5EFA\u9891\u9053"), children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)("button", { type: "button", "aria-label": t("\u65B0\u5EFA\u9891\u9053"), onClick: onCreateChannel, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(ShellGlyph, { name: "plus" }) }) })
         ] }),
         (query ? visible : channels).map((channel2) => /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(
           "button",
@@ -62771,9 +62827,10 @@ function collectiveClientErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 var CollectiveClientRequestError = class extends Error {
-  constructor(status, detail) {
+  constructor(status, detail, code4) {
     super(detail);
     this.status = status;
+    this.code = code4;
   }
 };
 
@@ -64742,6 +64799,7 @@ async function initializeHumanSession(context4) {
     restrictedScope: me ? missingMembershipScope(meta.serviceInstanceId, me) : void 0,
     phase: me ? phaseForHuman(me) : "entry",
     events: [],
+    channels: void 0,
     collaboration: void 0,
     participants: void 0,
     members: void 0,
@@ -64782,7 +64840,8 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       const result = await response.json();
       throw new CollectiveClientRequestError(
         response.status,
-        result.error?.message ?? `\u8BF7\u6C42\u5931\u8D25\uFF08${response.status}\uFF09`
+        result.error?.message ?? `\u8BF7\u6C42\u5931\u8D25\uFF08${response.status}\uFF09`,
+        result.error?.code
       );
     }
     return response;
@@ -64808,7 +64867,8 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       if (!response.ok) {
         throw new CollectiveClientRequestError(
           response.status,
-          payload.error?.message ?? `\u8BF7\u6C42\u5931\u8D25\uFF08${response.status}\uFF09`
+          payload.error?.message ?? `\u8BF7\u6C42\u5931\u8D25\uFF08${response.status}\uFF09`,
+          payload.error?.code
         );
       }
       return payload;
@@ -64837,6 +64897,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
             me: void 0,
             collective: void 0,
             events: [],
+            channels: void 0,
             collaboration: void 0,
             participants: void 0,
             members: void 0
@@ -64864,6 +64925,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
         collective: selectedCollective(me),
         restrictedScope: current2.meta ? missingMembershipScope(current2.meta.serviceInstanceId, me) : void 0,
         events: [],
+        channels: void 0,
         collaboration: void 0,
         participants: void 0,
         members: void 0,
@@ -64980,6 +65042,7 @@ function useHumanAuthSession(snapshot, setSnapshot) {
       collective: void 0,
       restrictedScope: void 0,
       events: [],
+      channels: void 0,
       collaboration: void 0,
       participants: void 0,
       members: void 0,
@@ -65319,9 +65382,10 @@ function MessageRichBlocks({ event }) {
 function eventChannelId(event) {
   return event.location?.channelId ?? (event.target.kind === "channel" ? event.target.channelId : void 0);
 }
-function channelDestinations(events, participants) {
+function channelDestinations(events, participants, channels = []) {
   const ids2 = /* @__PURE__ */ new Set([
     "general",
+    ...channels.map((channel2) => channel2.channelId),
     ...events.flatMap((event) => eventChannelId(event) ?? []),
     ...participants.flatMap((member) => member.channelIds)
   ]);
@@ -68089,6 +68153,8 @@ function ChannelConversationFlow({
   legacy,
   search: search2,
   humanName,
+  channel: channel2,
+  collectiveName,
   channelWorks,
   channelVotes,
   channelReactions,
@@ -68106,8 +68172,8 @@ function ChannelConversationFlow({
   const t = useCollectiveText();
   return /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("div", { ref: flowRef, className: "channel-flow", "aria-live": "polite", children: [
     threads.length === 0 && !children ? /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("div", { className: "channel-empty", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("h2", { children: t(search2 ? "\u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA" : "\u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759") }),
-      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: search2 ? t("\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002") : language === "en" ? `${humanName}, start with a message.` : `${humanName}\uFF0C\u4ECE\u4E00\u53E5\u8BDD\u5F00\u59CB\u5427\u3002` })
+      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("h2", { children: t(search2 ? "\u6CA1\u6709\u627E\u5230\u76F8\u5173\u8BA8\u8BBA" : channel2 ? "\u8FD9\u662F\u8FD9\u4E2A\u9891\u9053\u7684\u5F00\u5934\u3002" : "\u8FD9\u91CC\u8FD8\u5F88\u5B89\u9759") }),
+      /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("p", { children: search2 ? t("\u6362\u4E00\u4E2A\u5173\u952E\u8BCD\uFF0C\u6216\u8005\u4ECE\u5DE6\u8FB9\u8FDB\u5165\u9891\u9053\u3002") : channel2 ? language === "en" ? `${channel2.createdBy.displayName} created it on ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(channel2.createdAt))}. Everyone in ${collectiveName ?? "this Collective"} can see it.` : `${channel2.createdBy.displayName} ${new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" }).format(new Date(channel2.createdAt))}\u65B0\u5EFA\uFF0C${collectiveName ?? "\u5171\u540C\u4F53"}\u7684\u6210\u5458\u90FD\u80FD\u770B\u5230\u3002` : language === "en" ? `${humanName}, start with a message.` : `${humanName}\uFF0C\u4ECE\u4E00\u53E5\u8BDD\u5F00\u59CB\u5427\u3002` })
     ] }) : threads.map((thread, index4) => /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("div", { children: [
       (!index4 || eventDayLabel(threads[index4 - 1]?.root.acceptedAt, language) !== eventDayLabel(thread.root.acceptedAt, language)) && /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("div", { className: "day-divider", children: /* @__PURE__ */ (0, import_jsx_runtime67.jsx)("span", { children: eventDayLabel(thread.root.acceptedAt, language) }) }),
       search2 && /* @__PURE__ */ (0, import_jsx_runtime67.jsxs)("button", { type: "button", className: "search-source", onClick: () => actions.returnToRoot(thread.root), children: [
@@ -69634,20 +69700,33 @@ function MaterialDialogFrame({
   label,
   children,
   onClose,
-  busy = false
+  busy = false,
+  className = "material-dialog",
+  initialFocusRef
 }) {
   const dialog = (0, import_react65.useRef)(null);
+  const previousFocus = (0, import_react65.useRef)(
+    typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : void 0
+  );
   (0, import_react65.useEffect)(() => {
     const element3 = dialog.current;
-    element3?.showModal();
-    return () => element3?.close();
-  }, []);
+    if (!element3) return;
+    if (typeof element3.showModal === "function") element3.showModal();
+    else element3.setAttribute("open", "");
+    initialFocusRef?.current?.focus();
+    return () => {
+      if (typeof element3.close === "function" && element3.open) element3.close();
+      else element3.removeAttribute("open");
+      if (previousFocus.current?.isConnected) previousFocus.current.focus();
+    };
+  }, [initialFocusRef]);
   return /* @__PURE__ */ (0, import_jsx_runtime83.jsx)(
     "dialog",
     {
       ref: dialog,
       "aria-label": label,
-      className: "material-dialog",
+      "aria-busy": busy || void 0,
+      className,
       onCancel: (event) => {
         event.preventDefault();
         if (!busy) onClose();
@@ -74031,6 +74110,7 @@ function ChannelScene(props) {
     humanId,
     humanName,
     channelId,
+    channel: channel2,
     content: content3,
     focusEventId,
     onCloseContext,
@@ -74320,6 +74400,8 @@ function ChannelScene(props) {
                       legacy,
                       search: Boolean(search2),
                       humanName,
+                      channel: channel2,
+                      collectiveName: collective.name,
                       channelWorks,
                       channelVotes,
                       channelReactions,
@@ -74689,6 +74771,7 @@ function CollectiveChannelWorkspace({
       humanId: snapshot.me.human.humanId,
       humanName: snapshot.me.human.displayName,
       channelId,
+      channel: snapshot.channels?.find((channel2) => channel2.channelId === channelId),
       content: content3,
       onSelectContent: onContent,
       onOpenLibrary: onLibrary,
@@ -75700,8 +75783,191 @@ function readinessIsCompleteAndEmpty(readiness) {
   return readiness.role === "member" && readiness.canLeave && !readiness.governanceHandoffRequired && readiness.responsibilities.works.length === 0 && readiness.responsibilities.roadmaps.length === 0 && readiness.responsibilities.artifacts.items.length === 0 && readiness.responsibilities.artifacts.inaccessibleCount === 0;
 }
 
-// src/CollectiveIdentitySummary.tsx
+// src/NewChannelDialog.tsx
+var import_react101 = __toESM(require_react(), 1);
+
+// src/NewChannelDialogFeedback.tsx
 var import_jsx_runtime125 = __toESM(require_jsx_runtime(), 1);
+function ChannelNameFeedback({
+  existing,
+  issue: issue2,
+  onSelect,
+  onClose
+}) {
+  const t = useCollectiveText();
+  const language = useCollectiveLanguage();
+  if (existing) {
+    return /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("p", { className: "new-channel-field-error", children: [
+      language === "en" ? `#${existing} already exists \xB7 ` : `\u5DF2\u7ECF\u6709 # ${existing} \u4E86 \xB7 `,
+      /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(
+        "button",
+        {
+          type: "button",
+          onClick: () => {
+            onSelect(existing);
+            onClose();
+          },
+          children: t("\u53BB\u8FD9\u4E2A\u9891\u9053")
+        }
+      )
+    ] });
+  }
+  if (issue2 === "too_long") {
+    return /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { className: "new-channel-field-error", children: language === "en" ? `Use ${COLLECTIVE_CHANNEL_NAME_MAX} characters or fewer.` : `\u9891\u9053\u540D\u6700\u591A ${COLLECTIVE_CHANNEL_NAME_MAX} \u4E2A\u5B57\u3002` });
+  }
+  if (issue2 === "invalid_characters") {
+    return /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { className: "new-channel-field-error", children: t("\u9891\u9053\u540D\u4E0D\u80FD\u5305\u542B #\u3001\u659C\u6760\u6216\u6362\u884C") });
+  }
+  return null;
+}
+function SubmissionFeedback({
+  phase,
+  language,
+  collectiveName
+}) {
+  if (phase === "idle" || phase === "submitting") return null;
+  return /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { className: "new-channel-submit-error", role: "alert", children: channelFailureMessage(phase, language, collectiveName) });
+}
+function ChannelDialogFooter({
+  phase,
+  createDisabled,
+  onClose
+}) {
+  const t = useCollectiveText();
+  if (isTerminalSubmissionPhase(phase)) {
+    return /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("footer", { children: /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", className: "primary", onClick: onClose, children: t("\u5173\u95ED") }) });
+  }
+  const submitting = phase === "submitting";
+  return /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("footer", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", disabled: submitting, onClick: onClose, children: t("\u53D6\u6D88") }),
+    /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "submit", className: "primary", disabled: createDisabled || submitting, children: submitting ? t("\u6B63\u5728\u65B0\u5EFA\u2026") : phase === "failed" ? t("\u91CD\u8BD5") : t("\u65B0\u5EFA") })
+  ] });
+}
+function isTerminalSubmissionPhase(phase) {
+  return phase === "forbidden" || phase === "limit" || phase === "signed-out";
+}
+function channelFailurePhase(error) {
+  if (!(error instanceof CollectiveClientRequestError)) return "failed";
+  if (error.status === 401) return "signed-out";
+  if (error.status === 403) return "forbidden";
+  if (error.code === "CHANNEL_LIMIT_REACHED") return "limit";
+  return "failed";
+}
+function channelFailureMessage(phase, language, collectiveName) {
+  if (phase === "forbidden") {
+    return language === "en" ? "You no longer have permission to create channels. Only stewards can." : "\u4F60\u73B0\u5728\u6CA1\u6709\u65B0\u5EFA\u9891\u9053\u7684\u6743\u9650\uFF0C\u53EA\u6709\u7BA1\u7406\u5458\u53EF\u4EE5";
+  }
+  if (phase === "limit") {
+    return language === "en" ? "This Collective has reached its channel limit." : "\u8FD9\u4E2A\u5171\u540C\u4F53\u7684\u9891\u9053\u6570\u5DF2\u7ECF\u8FBE\u5230\u4E0A\u9650\uFF0C\u6682\u65F6\u4E0D\u80FD\u518D\u65B0\u5EFA\u3002";
+  }
+  if (phase === "signed-out") {
+    return language === "en" ? "Your sign-in has expired. Sign in again before creating a channel." : "\u767B\u5F55\u72B6\u6001\u5DF2\u7ECF\u5931\u6548\uFF0C\u8BF7\u91CD\u65B0\u767B\u5F55\u540E\u518D\u65B0\u5EFA\u9891\u9053\u3002";
+  }
+  return language === "en" ? `Could not create the channel: ${collectiveName}'s service is temporarily unavailable. Retry will not create a duplicate.` : `\u6CA1\u80FD\u65B0\u5EFA\uFF1A\u6682\u65F6\u8FDE\u4E0D\u4E0A${collectiveName}\u7684\u670D\u52A1\u3002\u70B9\u300C\u91CD\u8BD5\u300D\uFF0C\u4E0D\u4F1A\u5EFA\u51FA\u4E24\u4E2A`;
+}
+
+// src/NewChannelDialog.tsx
+var import_jsx_runtime126 = __toESM(require_jsx_runtime(), 1);
+function NewChannelDialog({
+  collectiveName,
+  channels,
+  create: create3,
+  onCreated,
+  onSelect,
+  onClose
+}) {
+  const t = useCollectiveText();
+  const language = useCollectiveLanguage();
+  const inputId = (0, import_react101.useId)();
+  const input = (0, import_react101.useRef)(null);
+  const operation = (0, import_react101.useRef)();
+  const [name2, setName] = (0, import_react101.useState)("");
+  const [phase, setPhase] = (0, import_react101.useState)("idle");
+  const [serviceExisting, setServiceExisting] = (0, import_react101.useState)();
+  const normalized = normalizeCollectiveChannelName(name2);
+  const issue2 = collectiveChannelNameIssue(name2);
+  const localExisting = channels.find(
+    (channelId) => collectiveChannelNameKey(channelId) === collectiveChannelNameKey(normalized)
+  );
+  const existing = serviceExisting ?? localExisting;
+  const terminalFailure = isTerminalSubmissionPhase(phase);
+  const submit2 = async () => {
+    if (issue2 || existing || phase === "submitting" || terminalFailure) return;
+    if (!operation.current || operation.current.name !== normalized) {
+      operation.current = { name: normalized, id: crypto.randomUUID() };
+    }
+    setPhase("submitting");
+    try {
+      const result = await create3(normalized, operation.current.id);
+      if (!result) return;
+      if (result.status === "existing") {
+        setServiceExisting(result.channel.channelId);
+        setPhase("idle");
+        return;
+      }
+      onCreated(result.channel.channelId);
+    } catch (error) {
+      setPhase(channelFailurePhase(error));
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(
+    MaterialDialogFrame,
+    {
+      label: t("\u65B0\u5EFA\u9891\u9053"),
+      className: "new-channel-dialog",
+      busy: phase === "submitting",
+      initialFocusRef: input,
+      onClose,
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("h2", { children: t("\u65B0\u5EFA\u9891\u9053") }),
+          /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("button", { type: "button", "aria-label": t("\u5173\u95ED"), disabled: phase === "submitting", onClick: onClose, children: "\xD7" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(
+          "form",
+          {
+            onSubmit: (event) => {
+              event.preventDefault();
+              void submit2();
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("label", { htmlFor: inputId, children: t("\u9891\u9053\u540D") }),
+              /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("div", { className: "new-channel-name", "data-invalid": Boolean(issue2 && issue2 !== "empty" || existing), children: [
+                /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("span", { "aria-hidden": "true", children: "#" }),
+                /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(
+                  "input",
+                  {
+                    ref: input,
+                    id: inputId,
+                    "aria-label": t("\u9891\u9053\u540D"),
+                    placeholder: t("\u6BD4\u5982 \u53D1\u5E03\u8282\u594F"),
+                    value: name2,
+                    disabled: phase === "submitting" || terminalFailure,
+                    onChange: (event) => {
+                      setName(event.target.value);
+                      setServiceExisting(void 0);
+                      if (phase === "failed") setPhase("idle");
+                    }
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(ChannelNameFeedback, { existing, issue: issue2, onSelect, onClose }),
+              /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)("p", { className: "new-channel-visibility", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("strong", { children: t("\u516C\u5F00") }),
+                language === "en" ? ` \xB7 Everyone in ${collectiveName} can view and post.` : `\uFF1A${collectiveName}\u7684\u6210\u5458\u90FD\u80FD\u770B\u5230\u3001\u90FD\u80FD\u53D1\u8A00`
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(SubmissionFeedback, { phase, language, collectiveName }),
+              /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(ChannelDialogFooter, { phase, createDisabled: Boolean(issue2 || existing), onClose })
+            ]
+          }
+        )
+      ]
+    }
+  );
+}
+
+// src/CollectiveIdentitySummary.tsx
+var import_jsx_runtime127 = __toESM(require_jsx_runtime(), 1);
 function CollectiveIdentitySummary({
   collectiveName,
   identity: identity2,
@@ -75714,46 +75980,46 @@ function CollectiveIdentitySummary({
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("details", { className: "collective-identity", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("details", { className: "collective-identity", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
       "summary",
       {
         "aria-label": language === "en" ? `Current identity: ${identity2.human.displayName}` : `\u5F53\u524D\u8EAB\u4EFD\uFF1A${identity2.human.displayName}`,
         children: [
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("span", { children: identity2.human.displayName })
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("span", { children: identity2.human.displayName })
         ]
       }
     ),
-    /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-identity-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-identity-who", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("p", { children: [
+    /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "collective-identity-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "collective-identity-who", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(MemberAvatar, { name: identity2.human.displayName, kind: "human", avatarUrl: identity2.human.avatarUrl, compact: true }),
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("p", { children: [
             language === "en" ? `You are ` : `\u4F60\u5728${collectiveName}\u91CC\u662F`,
-            /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("strong", { children: identity2.human.displayName }),
+            /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("strong", { children: identity2.human.displayName }),
             language === "en" ? ` in ${collectiveName}` : ""
           ] }),
-          identity2.auth && /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("small", { children: language === "en" ? `Signed in with GitHub as @${identity2.auth.handle}` : `\u7528 GitHub \u8D26\u53F7 @${identity2.auth.handle} \u767B\u5F55` })
+          identity2.auth && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("small", { children: language === "en" ? `Signed in with GitHub as @${identity2.auth.handle}` : `\u7528 GitHub \u8D26\u53F7 @${identity2.auth.handle} \u767B\u5F55` })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("section", { className: "collective-identity-cats", "aria-label": t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC"), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("h2", { children: t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC") }),
-        identity2.cats === void 0 ? /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u6211\u7684\u732B\u2026") }) : identity2.cats.length ? /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("ul", { children: identity2.cats.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("li", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl, compact: true }),
-          /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("span", { children: cat.displayName })
-        ] }, `${cat.connectionId}:${cat.catId}`)) }) : /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("p", { children: t("\u5F53\u524D\u6CA1\u6709\u767B\u8BB0\u5230\u8FD9\u91CC\u7684\u732B\u3002") })
+      /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("section", { className: "collective-identity-cats", "aria-label": t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC"), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h2", { children: t("\u4F60\u7684\u732B\u5728\u8FD9\u91CC") }),
+        identity2.cats === void 0 ? /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("p", { children: t("\u6B63\u5728\u8BFB\u53D6\u6211\u7684\u732B\u2026") }) : identity2.cats.length ? /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("ul", { children: identity2.cats.map((cat) => /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("li", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(MemberAvatar, { name: cat.displayName, kind: "agent", avatarUrl: cat.avatarDataUrl, compact: true }),
+          /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("span", { children: cat.displayName })
+        ] }, `${cat.connectionId}:${cat.catId}`)) }) : /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("p", { children: t("\u5F53\u524D\u6CA1\u6709\u767B\u8BB0\u5230\u8FD9\u91CC\u7684\u732B\u3002") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime125.jsxs)("div", { className: "collective-identity-actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: act(onOpenSelf), children: t("\u770B\u6211\u7684\u6210\u5458\u8D44\u6599") }),
-        /* @__PURE__ */ (0, import_jsx_runtime125.jsx)("button", { type: "button", onClick: act(onSwitchAccount), children: t("\u6362\u8D26\u53F7\u2026") })
+      /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "collective-identity-actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: act(onOpenSelf), children: t("\u770B\u6211\u7684\u6210\u5458\u8D44\u6599") }),
+        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: act(onSwitchAccount), children: t("\u6362\u8D26\u53F7\u2026") })
       ] })
     ] })
   ] });
 }
 
 // src/CollectiveWorldRail.tsx
-var import_jsx_runtime126 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime128 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorldRail({
   activeCollective,
   collectives,
@@ -75763,11 +76029,11 @@ function CollectiveWorldRail({
 }) {
   const t = useCollectiveText();
   if (!visible || !collectives?.length) return null;
-  return /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u4F53"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime126.jsx)(MeowClubMark, {}) }),
-    /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("nav", { children: collectives.map((item) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)(WorldRailFrame, { className: "global-rail", "data-spatial-role": "global-rail", "aria-label": t("\u9009\u62E9\u5171\u540C\u4F53"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("div", { className: "brand-mark", role: "img", "aria-label": "Cat Caf\xE9 Collective", children: /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(MeowClubMark, {}) }),
+    /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("nav", { children: collectives.map((item) => {
       const active = item.collectiveId === activeCollective?.collectiveId;
-      return /* @__PURE__ */ (0, import_jsx_runtime126.jsxs)(
+      return /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)(
         "button",
         {
           type: "button",
@@ -75776,8 +76042,8 @@ function CollectiveWorldRail({
           "aria-current": active ? "page" : void 0,
           onClick: () => active ? onHome?.() : onSelectCollective?.(item.collectiveId),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
-            /* @__PURE__ */ (0, import_jsx_runtime126.jsx)("span", { children: item.name })
+            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("span", { className: "world-mark", children: item.name.slice(0, 1) }),
+            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("span", { children: item.name })
           ]
         },
         item.collectiveId
@@ -75787,7 +76053,7 @@ function CollectiveWorldRail({
 }
 
 // src/ProductShell.tsx
-var import_jsx_runtime127 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime129 = __toESM(require_jsx_runtime(), 1);
 function DestinationTitle({
   collective,
   onHome,
@@ -75803,20 +76069,20 @@ function DestinationTitle({
 }) {
   const language = useCollectiveLanguage();
   const t = useCollectiveText();
-  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h1", { children: t("\u5171\u540C\u4F53") });
+  if (!collective) return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("h1", { children: t("\u5171\u540C\u4F53") });
   const hasMenu = Boolean(onHome || canSteward || onCafe || onReplayGuide || onLeave);
-  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h1", { children: collective.name });
+  if (!hasMenu) return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("h1", { children: collective.name });
   const action2 = (callback) => (event) => {
     event.currentTarget.closest("details")?.removeAttribute("open");
     callback();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("details", { className: "collective-menu", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("h1", { children: collective.name }),
-      /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
+  return /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("details", { className: "collective-menu", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("summary", { "aria-label": language === "en" ? `${collective.name} menu` : `${collective.name}\u83DC\u5355`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("h1", { children: collective.name }),
+      /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("span", { "aria-hidden": "true", children: "\u2304" })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "collective-menu-popover", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
+    /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("div", { className: "collective-menu-popover", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(
         "button",
         {
           type: "button",
@@ -75824,22 +76090,22 @@ function DestinationTitle({
           "aria-label": onHome ? language === "en" ? `Open ${collective.name} home` : `\u6253\u5F00${collective.name}\u9996\u9875` : void 0,
           onClick: onHome ? action2(onHome) : void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("strong", { children: collective.name }),
-            meta && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("span", { children: meta })
+            /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("strong", { children: collective.name }),
+            meta && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("span", { children: meta })
           ]
         }
       ),
-      canSteward && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
-      onCafe && /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("button", { type: "button", onClick: action2(onCafe), children: [
+      canSteward && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", onClick: action2(onInvite), children: t("\u9080\u8BF7\u6210\u5458") }),
+      onCafe && /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("button", { type: "button", onClick: action2(onCafe), children: [
         t("\u6211\u7684\u732B\u2026"),
         " ",
-        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
+        /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("small", { children: t("\u4EC5\u81EA\u5DF1\u53EF\u89C1") })
       ] }),
-      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
-      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
-      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
-      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", onClick: action2(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
-      onLeave && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action2(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
+      onPermissions && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", onClick: action2(onPermissions), children: t("\u5DF2\u5141\u8BB8\u7684\u4EFB\u52A1\u2026") }),
+      onCalendar && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", onClick: action2(onCalendar), children: t("\u6211\u7684\u65E5\u7A0B\u2026") }),
+      onReconnect && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", onClick: action2(onReconnect), children: t("\u91CD\u65B0\u8FDE\u63A5\u2026") }),
+      onReplayGuide && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", onClick: action2(onReplayGuide), children: t("\u518D\u770B\u4E00\u904D\u4ECB\u7ECD") }),
+      onLeave && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", className: "collective-menu-muted", onClick: action2(onLeave), children: t("\u79BB\u5F00\u5171\u540C\u4F53\u2026") })
     ] })
   ] });
 }
@@ -75873,7 +76139,7 @@ function ProductShell({
 }) {
   const t = useCollectiveText();
   const hasWorldRail = !embedded && Boolean(collectives?.length);
-  return /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(
     "main",
     {
       className: "collective-shell",
@@ -75882,7 +76148,7 @@ function ProductShell({
       "data-world-rail": hasWorldRail,
       "data-navigation-open": navigationOpen,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
           CollectiveWorldRail,
           {
             activeCollective: collective,
@@ -75892,11 +76158,11 @@ function ProductShell({
             visible: !embedded
           }
         ),
-        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
-        /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u4F53\u5BFC\u822A"), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("header", { className: "destination-header", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("div", { className: "destination-heading", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+        navigationOpen && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", className: "navigation-scrim", "aria-label": t("\u5173\u95ED\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation }),
+        /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("aside", { className: "destination-pane", "data-spatial-role": "destination-pane", "aria-label": t("\u5171\u540C\u4F53\u5BFC\u822A"), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("header", { className: "destination-header", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("div", { className: "destination-heading", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                 DestinationTitle,
                 {
                   collective,
@@ -75912,7 +76178,7 @@ function ProductShell({
                   onLeave
                 }
               ),
-              collective && identity2 && onOpenSelf && onSwitchAccount && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)(
+              collective && identity2 && onOpenSelf && onSwitchAccount && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
                 CollectiveIdentitySummary,
                 {
                   collectiveName: collective.name,
@@ -75922,24 +76188,24 @@ function ProductShell({
                 }
               )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
+            /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", className: "navigation-close", "aria-label": t("\u6536\u8D77\u9891\u9053\u5BFC\u822A"), onClick: onCloseNavigation, children: "\xD7" })
           ] }),
           destinations,
-          /* @__PURE__ */ (0, import_jsx_runtime127.jsxs)("footer", { className: "destination-footer", children: [
-            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
-            notice2 && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("p", { className: "destination-notice", children: t(notice2) }),
-            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
+          /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)("footer", { className: "destination-footer", children: [
+            embedded && canPair && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("div", { className: "steward-actions", children: /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("button", { type: "button", className: pairNudge ? "pair-nudge" : void 0, "data-guide-pair": true, onClick: onPair, children: t("\u8FDE\u63A5\u6B64 Caf\xE9") }) }),
+            notice2 && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("p", { className: "destination-notice", children: t(notice2) }),
+            connection === "offline" && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("p", { className: "connection-line", children: t("\u6682\u65F6\u79BB\u7EBF \xB7 \u53D1\u9001\u5931\u8D25\u540E\u53EF\u4EE5\u91CD\u8BD5") })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime127.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
+        /* @__PURE__ */ (0, import_jsx_runtime129.jsx)("section", { className: "primary-scene", "data-spatial-role": "primary-scene", children })
       ]
     }
   );
 }
 
 // src/SharedArtifactPublication.tsx
-var import_react101 = __toESM(require_react(), 1);
-var import_jsx_runtime128 = __toESM(require_jsx_runtime(), 1);
+var import_react102 = __toESM(require_react(), 1);
+var import_jsx_runtime130 = __toESM(require_jsx_runtime(), 1);
 function SharedArtifactPublication({
   snapshot,
   onPair,
@@ -75948,23 +76214,23 @@ function SharedArtifactPublication({
   const shared = useSharedArtifacts();
   const source4 = snapshot.events.find((event) => event.eventId === shared?.publicationSource);
   const cafes = snapshot.members?.cafes.filter((cafe) => cafe.humanId === snapshot.me?.human.humanId) ?? [];
-  const [file, setFile] = (0, import_react101.useState)();
-  const [title, setTitle] = (0, import_react101.useState)("");
-  const [connectionId, setConnectionId] = (0, import_react101.useState)("");
-  const [workId, setWorkId] = (0, import_react101.useState)("");
+  const [file, setFile] = (0, import_react102.useState)();
+  const [title, setTitle] = (0, import_react102.useState)("");
+  const [connectionId, setConnectionId] = (0, import_react102.useState)("");
+  const [workId, setWorkId] = (0, import_react102.useState)("");
   const sourceWorks = snapshot.collaboration?.works.filter((work2) => work2.sourceEventId === source4?.eventId) ?? [];
-  const [pending, setPending] = (0, import_react101.useState)(false);
-  const [error, setError] = (0, import_react101.useState)();
-  const dialog = (0, import_react101.useRef)(null);
-  const mounted = (0, import_react101.useRef)(true);
-  (0, import_react101.useEffect)(() => {
+  const [pending, setPending] = (0, import_react102.useState)(false);
+  const [error, setError] = (0, import_react102.useState)();
+  const dialog = (0, import_react102.useRef)(null);
+  const mounted = (0, import_react102.useRef)(true);
+  (0, import_react102.useEffect)(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
   const sourceId = source4?.eventId;
-  (0, import_react101.useEffect)(() => {
+  (0, import_react102.useEffect)(() => {
     if (!sourceId) {
       dialog.current?.close();
       return;
@@ -76002,21 +76268,21 @@ function SharedArtifactPublication({
       if (mounted.current) setPending(false);
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
     "dialog",
     {
       ref: dialog,
       className: "shared-publication-dialog",
       onCancel: () => shared?.closePublication(),
       onClose: () => shared?.closePublication(),
-      children: /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("header", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
+      children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("form", { onSubmit: (event) => void submit2(event), children: [
+        /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("header", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: "\u5206\u4EAB\u5171\u540C\u4F5C\u54C1" }),
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", "aria-label": "\u5173\u95ED\u5206\u4EAB", onClick: () => shared?.closePublication(), children: "\xD7" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
-        /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("blockquote", { children: source4?.body }),
-        onShareMedia && source4 && /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+        /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: "\u4F5C\u54C1\u5C06\u56DE\u5230\u8FD9\u6761\u8BA8\u8BBA\uFF0C\u6210\u5458\u53EF\u4EE5\u4E00\u8D77\u9605\u8BFB\u548C\u6279\u6CE8\u3002" }),
+        /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("blockquote", { children: source4?.body }),
+        onShareMedia && source4 && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
           "button",
           {
             type: "button",
@@ -76027,13 +76293,13 @@ function SharedArtifactPublication({
             children: "\u4ECE\u6B64 Caf\xE9 \u9009\u62E9\u56FE\u7247\u6216\u89C6\u9891"
           }
         ),
-        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("p", { children: [
+        !cafes.length ? /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("p", { children: [
           "\u5148\u8FDE\u63A5\u81EA\u5DF1\u7684 Caf\xE9\uFF0C\u518D\u5206\u4EAB\u4F5C\u54C1\u3002",
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)(import_jsx_runtime128.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", onClick: onPair, children: "\u8FDE\u63A5\u6211\u7684 Caf\xE9" })
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)(import_jsx_runtime130.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("label", { children: [
             "Markdown \u6587\u4EF6",
-            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
               "input",
               {
                 type: "file",
@@ -76048,37 +76314,37 @@ function SharedArtifactPublication({
               }
             )
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("label", { children: [
             "\u4F5C\u54C1\u540D\u79F0",
-            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
+            /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("input", { value: title, required: true, maxLength: 200, onChange: (event) => setTitle(event.target.value) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("label", { children: [
             "\u4F5C\u54C1\u5B58\u653E\u5728",
-            /* @__PURE__ */ (0, import_jsx_runtime128.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
               "select",
               {
                 value: connectionId || cafes[0]?.connectionId,
                 onChange: (event) => setConnectionId(event.target.value),
-                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
+                children: cafes.map((cafe) => /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("option", { value: cafe.connectionId, children: cafe.endpointLabel }, cafe.connectionId))
               }
             )
           ] }),
-          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("label", { children: [
+          sourceWorks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("label", { children: [
             "\u5C5E\u4E8E\u4EFB\u52A1",
-            /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
-              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
+            /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("select", { value: workId, onChange: (event) => setWorkId(event.target.value), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("option", { value: "", children: "\u8FD9\u6761\u8BA8\u8BBA\u4E2D\u7684\u4F5C\u54C1" }),
+              sourceWorks.map((work2) => /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("option", { value: work2.workId, children: work2.title }, work2.workId))
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("small", { children: "\u652F\u6301 UTF-8 Markdown\uFF0C\u6700\u5927 64KB\u3002\u8FD9\u4E2A Caf\xE9 \u79BB\u7EBF\u65F6\uFF0C\u4F5C\u54C1\u4F1A\u6682\u65F6\u65E0\u6CD5\u6253\u5F00\u3002" })
         ] }),
-        error && /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("p", { role: "alert", children: [
+        error && /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("p", { role: "alert", children: [
           error,
           " \u8BF7\u4FDD\u7559\u6587\u4EF6\uFF0C\u91CD\u8BD5\u4F1A\u63A5\u7740\u540C\u4E00\u6B21\u53D1\u5E03\u3002"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime128.jsxs)("footer", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
-          /* @__PURE__ */ (0, import_jsx_runtime128.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
+        /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("footer", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", onClick: () => shared?.closePublication(), children: pending ? "\u5173\u95ED" : "\u53D6\u6D88" }),
+          /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "submit", disabled: !file || !title.trim() || !cafes.length || pending, children: pending ? "\u6B63\u5728\u5206\u4EAB\u2026" : "\u5206\u4EAB\u4F5C\u54C1" })
         ] })
       ] })
     }
@@ -76086,10 +76352,10 @@ function SharedArtifactPublication({
 }
 
 // src/use-host-context.ts
-var import_react108 = __toESM(require_react(), 1);
+var import_react109 = __toESM(require_react(), 1);
 
 // src/use-host-accountability-context.ts
-var import_react102 = __toESM(require_react(), 1);
+var import_react103 = __toESM(require_react(), 1);
 
 // src/collective-accountability-events.ts
 var COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT = "collective:accountability-changed";
@@ -76103,13 +76369,13 @@ function publishCollectiveAccountabilityChanged(detail) {
 
 // src/use-host-accountability-context.ts
 function useHostAccountabilityContext(input) {
-  const currentWorks = (0, import_react102.useRef)(input.works);
+  const currentWorks = (0, import_react103.useRef)(input.works);
   currentWorks.current = input.works;
-  const currentRoadmaps = (0, import_react102.useRef)(input.roadmaps);
+  const currentRoadmaps = (0, import_react103.useRef)(input.roadmaps);
   currentRoadmaps.current = input.roadmaps;
-  const pendingFocus = (0, import_react102.useRef)();
-  const pendingChange = (0, import_react102.useRef)();
-  const applyFocus = (0, import_react102.useCallback)(
+  const pendingFocus = (0, import_react103.useRef)();
+  const pendingChange = (0, import_react103.useRef)();
+  const applyFocus = (0, import_react103.useCallback)(
     (value) => {
       if (!generationMatches(value, input.context.current)) return false;
       const activeHumanId = input.context.current.bridge?.humanId;
@@ -76132,7 +76398,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.onFocus]
   );
-  const postChange = (0, import_react102.useCallback)(
+  const postChange = (0, import_react103.useCallback)(
     (detail) => {
       const active = input.context.current;
       const activeBridge = active.bridge;
@@ -76159,7 +76425,7 @@ function useHostAccountabilityContext(input) {
     },
     [input.context, input.hostOrigin]
   );
-  const handleFocus = (0, import_react102.useCallback)(
+  const handleFocus = (0, import_react103.useCallback)(
     (data) => {
       const parsed = collectiveHostProjectWorkFocusSchema.safeParse(data);
       if (!parsed.success) return false;
@@ -76171,11 +76437,11 @@ function useHostAccountabilityContext(input) {
     },
     [applyFocus, input.context]
   );
-  const reset = (0, import_react102.useCallback)(() => {
+  const reset = (0, import_react103.useCallback)(() => {
     pendingFocus.current = void 0;
     pendingChange.current = void 0;
   }, []);
-  (0, import_react102.useEffect)(() => {
+  (0, import_react103.useEffect)(() => {
     const handleChange = (event) => {
       const detail = event.detail;
       if (!detail) return;
@@ -76185,7 +76451,7 @@ function useHostAccountabilityContext(input) {
     window.addEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
     return () => window.removeEventListener(COLLECTIVE_ACCOUNTABILITY_CHANGED_EVENT, handleChange);
   }, [postChange]);
-  (0, import_react102.useEffect)(() => {
+  (0, import_react103.useEffect)(() => {
     const pending = pendingFocus.current;
     if (!pending || !input.works || !input.roadmaps) return;
     if (!generationMatches(pending, input.context.current)) {
@@ -76194,7 +76460,7 @@ function useHostAccountabilityContext(input) {
     }
     if (applyFocus(pending)) pendingFocus.current = void 0;
   }, [applyFocus, input.context, input.roadmaps, input.works]);
-  (0, import_react102.useEffect)(() => {
+  (0, import_react103.useEffect)(() => {
     if (!input.works) return;
     const pending = pendingChange.current;
     if (pending && postChange(pending)) pendingChange.current = void 0;
@@ -76206,7 +76472,7 @@ function generationMatches(value, active) {
 }
 
 // src/use-host-document-surface.ts
-var import_react103 = __toESM(require_react(), 1);
+var import_react104 = __toESM(require_react(), 1);
 
 // src/collective-document-surface-client.ts
 async function serveCollectiveDocumentRequest(request, api) {
@@ -76236,11 +76502,11 @@ async function serveCollectiveDocumentRequest(request, api) {
 
 // src/use-host-document-surface.ts
 function useHostDocumentSurface(options) {
-  const latest = (0, import_react103.useRef)(options);
+  const latest = (0, import_react104.useRef)(options);
   latest.current = options;
-  const sent = (0, import_react103.useRef)();
-  const [readyKey, setReadyKey] = (0, import_react103.useState)();
-  const ready = (0, import_react103.useRef)();
+  const sent = (0, import_react104.useRef)();
+  const [readyKey, setReadyKey] = (0, import_react104.useState)();
+  const ready = (0, import_react104.useRef)();
   ready.current = readyKey;
   const currentBridge = options.context.current;
   const bridgeKey = JSON.stringify([
@@ -76250,7 +76516,7 @@ function useHostDocumentSurface(options) {
     currentBridge.revision
   ]);
   const available = readyKey === bridgeKey;
-  (0, import_react103.useEffect)(() => {
+  (0, import_react104.useEffect)(() => {
     const { bridge, context: context4, hostOrigin } = latest.current;
     if (!bridge || !hostOrigin || context4.current.revision < 1 || bridge.authorityStatus === "revoked") return;
     let attempts = 0;
@@ -76287,7 +76553,7 @@ function useHostDocumentSurface(options) {
   }, [options.generation]);
   const selection = options.selection;
   const selectionKey = JSON.stringify([selection?.artifact.artifactId, selection?.ownerRevision, selection?.options]);
-  (0, import_react103.useEffect)(() => {
+  (0, import_react104.useEffect)(() => {
     const { context: context4, bridge, hostOrigin, selection: selection2 } = latest.current;
     if (!available || !bridge || !hostOrigin || !selection2 || selection2.options?.discussionOnly || selection2.artifact.mediaType !== "text/markdown" || bridge.authorityStatus === "revoked" || context4.current.bridge?.bridgeId !== bridge.bridgeId || context4.current.revision < 1) {
       if (!selection2) sent.current = void 0;
@@ -76313,7 +76579,7 @@ function useHostDocumentSurface(options) {
     sent.current = key;
     window.parent.postMessage({ type: "collective:client-document-open", ref: ref10 }, hostOrigin);
   }, [options.generation, selectionKey, available]);
-  (0, import_react103.useEffect)(() => {
+  (0, import_react104.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
     const current2 = (ref10) => {
       const { context: context4, bridge } = latest.current, active = context4.current;
@@ -76386,12 +76652,12 @@ function useHostDocumentSurface(options) {
 }
 
 // src/use-host-media-share.ts
-var import_react104 = __toESM(require_react(), 1);
+var import_react105 = __toESM(require_react(), 1);
 function useHostMediaShare(options) {
-  const latest = (0, import_react104.useRef)(options);
+  const latest = (0, import_react105.useRef)(options);
   latest.current = options;
-  const pending = (0, import_react104.useRef)();
-  (0, import_react104.useEffect)(() => {
+  const pending = (0, import_react105.useRef)();
+  (0, import_react105.useEffect)(() => {
     const listener = async (event) => {
       const { context: context4, hostOrigin, bridge, onShared } = latest.current;
       if (event.source !== window.parent || event.origin !== hostOrigin) return;
@@ -76411,7 +76677,7 @@ function useHostMediaShare(options) {
       window.removeEventListener("message", listener);
     };
   }, []);
-  return (0, import_react104.useCallback)((sourceEventId) => {
+  return (0, import_react105.useCallback)((sourceEventId) => {
     const { context: context4, bridge, hostOrigin, channelId } = latest.current;
     if (!bridge || bridge.authorityStatus === "revoked" || !hostOrigin || context4.current.bridge?.bridgeId !== bridge.bridgeId || context4.current.revision < 1)
       return;
@@ -76433,7 +76699,7 @@ function useHostMediaShare(options) {
 }
 
 // src/use-host-media-surface.ts
-var import_react105 = __toESM(require_react(), 1);
+var import_react106 = __toESM(require_react(), 1);
 
 // src/collective-media-surface-client.ts
 async function serveCollectiveMediaRequest(message, api, artifact, humanName) {
@@ -76490,9 +76756,9 @@ function mediaFailureCode(error) {
 
 // src/use-host-media-surface.ts
 function useHostMediaSurface(options) {
-  const latest = (0, import_react105.useRef)(options);
+  const latest = (0, import_react106.useRef)(options);
   latest.current = options;
-  const active = (0, import_react105.useRef)();
+  const active = (0, import_react106.useRef)();
   const { artifact, ownerRevision: ownerRevision2 } = options.selection ?? {};
   const selectedRevision = ownerRevision2 ?? artifact?.versions.at(-1)?.ownerRevision;
   const selectionKey = JSON.stringify([
@@ -76501,7 +76767,7 @@ function useHostMediaSurface(options) {
     artifact?.sourceEventId,
     options.selection?.options?.projectReturn
   ]);
-  (0, import_react105.useEffect)(() => {
+  (0, import_react106.useEffect)(() => {
     const { context: context4, bridge, hostOrigin, channelId, selection, projectReturnSupported } = latest.current;
     active.current = void 0;
     const { contextId, revision: revision12 } = context4.current;
@@ -76525,7 +76791,7 @@ function useHostMediaSurface(options) {
     active.current = ref10;
     window.parent.postMessage({ type: "collective:client-media-surface", ref: ref10 }, hostOrigin);
   }, [options.generation, options.channelId, options.projectReturnSupported, selectionKey, selectedRevision]);
-  (0, import_react105.useEffect)(() => {
+  (0, import_react106.useEffect)(() => {
     const jobs = /* @__PURE__ */ new Set();
     const current2 = (ref10) => {
       const value = latest.current, context4 = value.context.current;
@@ -76573,12 +76839,12 @@ function useHostMediaSurface(options) {
 }
 
 // src/use-host-project-attention-context.ts
-var import_react106 = __toESM(require_react(), 1);
+var import_react107 = __toESM(require_react(), 1);
 function useHostProjectAttentionContext(input) {
-  const latest = (0, import_react106.useRef)(input.snapshot);
+  const latest = (0, import_react107.useRef)(input.snapshot);
   latest.current = input.snapshot;
-  const pending = (0, import_react106.useRef)();
-  const apply2 = (0, import_react106.useCallback)(
+  const pending = (0, import_react107.useRef)();
+  const apply2 = (0, import_react107.useCallback)(
     (focus) => {
       const context4 = input.context.current, snapshot = latest.current;
       if (!context4.bridge || focus.bridgeId !== context4.bridge.bridgeId || focus.contextId !== context4.contextId || focus.contextRevision !== context4.revision)
@@ -76623,7 +76889,7 @@ function useHostProjectAttentionContext(input) {
     },
     [input.context, input.onFocus]
   );
-  const handleFocus = (0, import_react106.useCallback)(
+  const handleFocus = (0, import_react107.useCallback)(
     (unsafe) => {
       const parsed = collectiveHostProjectAttentionFocusSchema.safeParse(unsafe);
       if (!parsed.success) return false;
@@ -76633,19 +76899,19 @@ function useHostProjectAttentionContext(input) {
     },
     [apply2]
   );
-  const reset = (0, import_react106.useCallback)(() => {
+  const reset = (0, import_react107.useCallback)(() => {
     pending.current = void 0;
   }, []);
-  (0, import_react106.useEffect)(() => {
+  (0, import_react107.useEffect)(() => {
     if (pending.current && apply2(pending.current)) pending.current = void 0;
   }, [apply2, input.snapshot.collaboration]);
   return { handleFocus, reset };
 }
 
 // src/use-host-ui-placement.ts
-var import_react107 = __toESM(require_react(), 1);
+var import_react108 = __toESM(require_react(), 1);
 function useHostUiPlacement(origin, active, channelId, generation) {
-  (0, import_react107.useEffect)(() => {
+  (0, import_react108.useEffect)(() => {
     if (!origin) return;
     let frame = 0;
     const publish2 = () => {
@@ -76712,29 +76978,29 @@ function useHostUiPlacement(origin, active, channelId, generation) {
 
 // src/use-host-context.ts
 function useHostContext(embedded, snapshot, channelId, channelIds, humanSession, media, onOpenMembers) {
-  const openMembersAction = (0, import_react108.useRef)(onOpenMembers);
+  const openMembersAction = (0, import_react109.useRef)(onOpenMembers);
   openMembersAction.current = onOpenMembers;
-  const [bridge, setBridge] = (0, import_react108.useState)();
-  const liveBridge = (0, import_react108.useRef)();
-  const [participationReady, setParticipationReady] = (0, import_react108.useState)();
-  const [open, setOpen] = (0, import_react108.useState)(false);
-  const [cafeSection, setCafeSection] = (0, import_react108.useState)("cats");
-  const [focusWork, setFocusWork] = (0, import_react108.useState)();
-  const [contextId] = (0, import_react108.useState)(() => crypto.randomUUID());
-  const revision12 = (0, import_react108.useRef)(0);
-  const opener = (0, import_react108.useRef)();
-  const reconciledWorks = (0, import_react108.useRef)(/* @__PURE__ */ new Set());
-  const pendingWorkFocus = (0, import_react108.useRef)();
+  const [bridge, setBridge] = (0, import_react109.useState)();
+  const liveBridge = (0, import_react109.useRef)();
+  const [participationReady, setParticipationReady] = (0, import_react109.useState)();
+  const [open, setOpen] = (0, import_react109.useState)(false);
+  const [cafeSection, setCafeSection] = (0, import_react109.useState)("cats");
+  const [focusWork, setFocusWork] = (0, import_react109.useState)();
+  const [contextId] = (0, import_react109.useState)(() => crypto.randomUUID());
+  const revision12 = (0, import_react109.useRef)(0);
+  const opener = (0, import_react109.useRef)();
+  const reconciledWorks = (0, import_react109.useRef)(/* @__PURE__ */ new Set());
+  const pendingWorkFocus = (0, import_react109.useRef)();
   const hostOrigin = embedded ? new URLSearchParams(location.search).get("hostOrigin") : null;
-  const publicContext = (0, import_react108.useRef)({ bridge, contextId, revision: 0 });
+  const publicContext = (0, import_react109.useRef)({ bridge, contextId, revision: 0 });
   const requestWorkPermission = useHostWorkPolicy({ hostOrigin, context: publicContext, ...humanSession });
-  const currentWorks = (0, import_react108.useRef)(snapshot.collaboration?.works);
+  const currentWorks = (0, import_react109.useRef)(snapshot.collaboration?.works);
   currentWorks.current = snapshot.collaboration?.works;
   const serviceInstanceId = snapshot.meta?.serviceInstanceId;
   const collectiveId = snapshot.collective?.collectiveId;
   const humanId = snapshot.me?.human.humanId;
   const projectionReady = snapshot.participants !== void 0 && snapshot.members !== void 0 && snapshot.collaboration !== void 0;
-  const applyWorkFocus = (0, import_react108.useCallback)((value) => {
+  const applyWorkFocus = (0, import_react109.useCallback)((value) => {
     if (!reconciliationMatches(value, publicContext.current)) return false;
     const work2 = currentWorks.current?.find(
       (candidate) => candidate.workId === value.workId && candidate.revision === value.workRevision && candidate.lifecycle === "result_ready" && candidate.status === "result_ready" && candidate.sourceLocation.channelId === value.channelId && candidate.resultEventId === value.resultEventId && (candidate.resultRevision ?? 1) === value.resultRevision && candidate.assignment?.connectionId === publicContext.current.bridge?.connectionId
@@ -76755,7 +77021,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     roadmaps: snapshot.collaboration?.roadmaps,
     onFocus: setFocusWork
   });
-  (0, import_react108.useEffect)(() => {
+  (0, import_react109.useEffect)(() => {
     if (!hostOrigin || !serviceInstanceId || !collectiveId || !humanId) return;
     const handleInit = (data) => {
       const parsed = collectiveHostContextInitSchema.safeParse(data);
@@ -76831,7 +77097,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     resetAccountabilityContext,
     serviceInstanceId
   ]);
-  (0, import_react108.useEffect)(() => {
+  (0, import_react109.useEffect)(() => {
     const pending = pendingWorkFocus.current;
     if (!pending || !snapshot.collaboration?.works) return;
     if (!reconciliationMatches(pending, publicContext.current)) {
@@ -76841,7 +77107,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     if (applyWorkFocus(pending)) pendingWorkFocus.current = void 0;
   }, [applyWorkFocus, snapshot.collaboration?.works]);
   const channelKey = JSON.stringify([.../* @__PURE__ */ new Set([channelId, ...channelIds])].slice(0, 100));
-  (0, import_react108.useEffect)(() => {
+  (0, import_react109.useEffect)(() => {
     if (!bridge || !hostOrigin || !projectionReady) return;
     const nextRevision = ++revision12.current;
     publicContext.current = { bridge, contextId, revision: nextRevision };
@@ -76881,7 +77147,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     channelId,
     JSON.stringify([bridge, channelKey, open, cafeSection, projectionReady])
   );
-  const completedWorks = (0, import_react108.useMemo)(
+  const completedWorks = (0, import_react109.useMemo)(
     () => (snapshot.collaboration?.works ?? []).filter(
       (work2) => work2.lifecycle === "completed" && work2.status === "completed" && work2.assignment?.connectionId === bridge?.connectionId && work2.assignmentEventId !== void 0 && work2.resultEventId !== void 0
     ),
@@ -76911,7 +77177,7 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     projectReturnSupported: documentSurfaceReady,
     ...media
   });
-  (0, import_react108.useEffect)(() => {
+  (0, import_react109.useEffect)(() => {
     if (!bridge || !hostOrigin || completedWorks.length === 0) return;
     const postPending = () => {
       const active = publicContext.current;
@@ -76942,12 +77208,12 @@ function useHostContext(embedded, snapshot, channelId, channelIds, humanSession,
     const retry = window.setInterval(postPending, 5e3);
     return () => window.clearInterval(retry);
   }, [bridge, completedWorks, hostOrigin]);
-  const show = (0, import_react108.useCallback)((section = "cats") => {
+  const show = (0, import_react109.useCallback)((section = "cats") => {
     if (document.activeElement instanceof HTMLElement) opener.current = document.activeElement;
     setCafeSection(section);
     setOpen(true);
   }, []);
-  const hide = (0, import_react108.useCallback)(() => setOpen(false), []);
+  const hide = (0, import_react109.useCallback)(() => setOpen(false), []);
   return {
     documentSurfaceReady,
     shareMedia: bridge && bridge.authorityStatus !== "revoked" ? shareMedia : void 0,
@@ -76977,17 +77243,17 @@ function workRevisionKey(value) {
 }
 
 // src/use-shared-artifact-navigation.ts
-var import_react109 = __toESM(require_react(), 1);
+var import_react110 = __toESM(require_react(), 1);
 function useSharedArtifactNavigation(options) {
-  const current2 = (0, import_react109.useRef)(options);
+  const current2 = (0, import_react110.useRef)(options);
   current2.current = options;
-  const origin = (0, import_react109.useRef)();
+  const origin = (0, import_react110.useRef)();
   if (origin.current && origin.current.namespace !== options.namespace) origin.current = void 0;
-  const discard = (0, import_react109.useCallback)(() => {
+  const discard = (0, import_react110.useCallback)(() => {
     origin.current = void 0;
     current2.current.artifacts?.close();
   }, []);
-  const open = (0, import_react109.useCallback)((artifact, ownerRevision2, options2) => {
+  const open = (0, import_react110.useCallback)((artifact, ownerRevision2, options2) => {
     const { namespace, place, artifacts, onOpenSource } = current2.current;
     const previous4 = origin.current ?? { namespace, place };
     if (place.destination !== "channel" || place.channelId !== artifact.sourceLocation.channelId || place.content !== "conversation")
@@ -76995,7 +77261,7 @@ function useSharedArtifactNavigation(options) {
     origin.current = previous4;
     artifacts?.open(artifact, ownerRevision2, options2);
   }, []);
-  const close = (0, import_react109.useCallback)(() => {
+  const close = (0, import_react110.useCallback)(() => {
     const previous4 = origin.current;
     origin.current = void 0;
     const { namespace, artifacts, onRestore, onRestoreProject } = current2.current;
@@ -77009,7 +77275,7 @@ function useSharedArtifactNavigation(options) {
 }
 
 // src/CollectiveWorkspace.tsx
-var import_jsx_runtime129 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime131 = __toESM(require_jsx_runtime(), 1);
 function CollectiveWorkspace({
   embedded,
   client
@@ -77018,21 +77284,22 @@ function CollectiveWorkspace({
   const t = useCollectiveText();
   const { snapshot } = client;
   const namespace = collectiveClientNamespace(snapshot) ?? "";
-  const previousNamespace = (0, import_react110.useRef)(namespace);
+  const previousNamespace = (0, import_react111.useRef)(namespace);
   const initialEntry = readChannelEntry(namespace);
-  const [channelId, setChannelId] = (0, import_react110.useState)(initialEntry.channelId);
-  const [destination, setDestination] = (0, import_react110.useState)(initialEntry.destination);
-  const [focusEventId, setFocusEventId] = (0, import_react110.useState)();
-  const [content3, setContent] = (0, import_react110.useState)("conversation");
-  const [roadmapViews, setRoadmapViews] = (0, import_react110.useState)({});
-  const [roadmapReturn, setRoadmapReturn] = (0, import_react110.useState)();
-  const [query, setQuery] = (0, import_react110.useState)("");
-  const [libraryChannel, setLibraryChannel] = (0, import_react110.useState)();
-  const [navigationOpen, setNavigationOpen] = (0, import_react110.useState)(false);
-  const [selectedMember, setSelectedMember] = (0, import_react110.useState)();
-  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react110.useState)(false);
+  const [channelId, setChannelId] = (0, import_react111.useState)(initialEntry.channelId);
+  const [destination, setDestination] = (0, import_react111.useState)(initialEntry.destination);
+  const [focusEventId, setFocusEventId] = (0, import_react111.useState)();
+  const [content3, setContent] = (0, import_react111.useState)("conversation");
+  const [roadmapViews, setRoadmapViews] = (0, import_react111.useState)({});
+  const [roadmapReturn, setRoadmapReturn] = (0, import_react111.useState)();
+  const [query, setQuery] = (0, import_react111.useState)("");
+  const [libraryChannel, setLibraryChannel] = (0, import_react111.useState)();
+  const [navigationOpen, setNavigationOpen] = (0, import_react111.useState)(false);
+  const [selectedMember, setSelectedMember] = (0, import_react111.useState)();
+  const [leaveDialogOpen, setLeaveDialogOpen] = (0, import_react111.useState)(false);
+  const [newChannelOpen, setNewChannelOpen] = (0, import_react111.useState)(false);
   const participants = snapshot.participants ?? [];
-  const channels = channelDestinations(snapshot.events, participants);
+  const channels = channelDestinations(snapshot.events, participants, snapshot.channels);
   const mediaArtifact = client.artifacts?.catalogue.find(
     (item) => item.artifactId === client.artifacts?.selected?.artifactId
   );
@@ -77108,7 +77375,7 @@ function CollectiveWorkspace({
     participants: snapshot.participants,
     events: snapshot.events
   });
-  const previousFirstEntryPhase = (0, import_react110.useRef)();
+  const previousFirstEntryPhase = (0, import_react111.useRef)();
   const artifactNavigation = useSharedArtifactNavigation({
     namespace,
     artifacts: client.artifacts,
@@ -77129,7 +77396,7 @@ function CollectiveWorkspace({
       else writeChannelTarget(place.destination === "channel" ? place.channelId : void 0);
     }
   });
-  const enterFirstEntryChannel = (0, import_react110.useCallback)(() => {
+  const enterFirstEntryChannel = (0, import_react111.useCallback)(() => {
     setDestination("channel");
     setChannelId("general");
     writeChannelTarget("general");
@@ -77138,12 +77405,12 @@ function CollectiveWorkspace({
     setNavigationOpen(false);
     host.hide();
   }, [host.hide]);
-  (0, import_react110.useEffect)(() => {
+  (0, import_react111.useEffect)(() => {
     const guideStarted = firstEntry.phase === "playing" && previousFirstEntryPhase.current !== "playing";
     previousFirstEntryPhase.current = firstEntry.phase;
     if (guideStarted && destination === "home") enterFirstEntryChannel();
   }, [destination, enterFirstEntryChannel, firstEntry.phase]);
-  (0, import_react110.useEffect)(() => {
+  (0, import_react111.useEffect)(() => {
     const focus = host.focusWork;
     if (!focus) return;
     if ("roadmapId" in focus) {
@@ -77234,12 +77501,12 @@ function CollectiveWorkspace({
     host.hide();
     writeLibraryTarget();
   };
-  (0, import_react110.useEffect)(() => {
+  (0, import_react111.useEffect)(() => {
     if (previousNamespace.current !== namespace) return;
     if (destination === "channel") saveChannelPosition(namespace, channelId);
     else if (destination === "home") clearChannelPosition(namespace);
   }, [namespace, channelId, destination]);
-  (0, import_react110.useEffect)(() => {
+  (0, import_react111.useEffect)(() => {
     const worldChanged = previousNamespace.current !== namespace;
     previousNamespace.current = namespace;
     setContent("conversation");
@@ -77254,6 +77521,7 @@ function CollectiveWorkspace({
     setSelectedMember(void 0);
     setNavigationOpen(false);
     setLeaveDialogOpen(false);
+    setNewChannelOpen(false);
     host.hide();
   }, [namespace]);
   if (!snapshot.collective || !snapshot.me) return null;
@@ -77356,7 +77624,7 @@ function CollectiveWorkspace({
     }
     selectChannel(item.source.location.channelId, item.source.eventId);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
     CollectiveArtifactContext.Provider,
     {
       value: client.artifacts && {
@@ -77371,14 +77639,14 @@ function CollectiveWorkspace({
         returnLabel: artifactNavigation.returnLabel,
         returnToSource: selectChannel
       },
-      children: /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(SharedArtifactReading, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(HostedDocumentSelection, {}),
-        /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(
+      children: /* @__PURE__ */ (0, import_jsx_runtime131.jsxs)(SharedArtifactReading, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(HostedDocumentSelection, {}),
+        /* @__PURE__ */ (0, import_jsx_runtime131.jsxs)(
           HostWorkPermissionContext.Provider,
           {
             value: { connectionId: host.connectionId, request: host.requestWorkPermission },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime129.jsxs)(
+              /* @__PURE__ */ (0, import_jsx_runtime131.jsxs)(
                 ProductShell,
                 {
                   embedded,
@@ -77408,7 +77676,7 @@ function CollectiveWorkspace({
                   onReplayGuide: firstEntry.narrator ? replayGuide : void 0,
                   navigationOpen: navigationOpen || firstEntry.phase === "entry",
                   onCloseNavigation: () => setNavigationOpen(false),
-                  destinations: /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+                  destinations: /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
                     ChannelNavigation,
                     {
                       channels,
@@ -77421,6 +77689,7 @@ function CollectiveWorkspace({
                         writeChannelTarget(channelId);
                       },
                       onSelect: selectChannel,
+                      onCreateChannel: snapshot.collective.role === "steward" && snapshot.meta?.capabilities?.channels === 1 ? () => setNewChannelOpen(true) : void 0,
                       libraryActive: destination === "library",
                       onLibrary: client.artifacts?.api ? () => showLibrary() : void 0,
                       roadmapActive: content3 === "roadmap",
@@ -77440,7 +77709,7 @@ function CollectiveWorkspace({
                     }
                   ),
                   children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+                    /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
                       SharedArtifactLibrary,
                       {
                         title: t("\u5168\u90E8\u4F5C\u54C1"),
@@ -77451,7 +77720,7 @@ function CollectiveWorkspace({
                       },
                       namespace
                     ),
-                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+                    destination === "home" ? /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
                       CollectiveHome,
                       {
                         collective: snapshot.collective,
@@ -77462,7 +77731,7 @@ function CollectiveWorkspace({
                         onOpenNavigation: () => setNavigationOpen((value) => !value),
                         onOpenEvent: selectChannel
                       }
-                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+                    ) : destination === "channel" ? /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
                       CollectiveChannelWorkspace,
                       {
                         channelId,
@@ -77496,7 +77765,7 @@ function CollectiveWorkspace({
                   ]
                 }
               ),
-              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+              leaveDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
                 LeaveCollectiveDialog,
                 {
                   collectiveName: snapshot.collective.name,
@@ -77509,7 +77778,21 @@ function CollectiveWorkspace({
                   onOpenMembers: showMembers
                 }
               ),
-              /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(
+              newChannelOpen && /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
+                NewChannelDialog,
+                {
+                  collectiveName: snapshot.collective.name,
+                  channels: channels.map((channel2) => channel2.id),
+                  create: client.createChannel,
+                  onCreated: (createdChannelId) => {
+                    setNewChannelOpen(false);
+                    selectChannel(createdChannelId);
+                  },
+                  onSelect: selectChannel,
+                  onClose: () => setNewChannelOpen(false)
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
                 FirstEntryOverlays,
                 {
                   firstEntry,
@@ -77521,15 +77804,15 @@ function CollectiveWorkspace({
             ]
           }
         ),
-        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime129.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
+        client.artifacts?.publicationSource && /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(SharedArtifactPublication, { snapshot, onPair: beginPair, onShareMedia: host.shareMedia })
       ] })
     }
   );
 }
 
 // src/OnboardingScene.tsx
-var import_react111 = __toESM(require_react(), 1);
-var import_jsx_runtime130 = __toESM(require_jsx_runtime(), 1);
+var import_react112 = __toESM(require_react(), 1);
+var import_jsx_runtime132 = __toESM(require_jsx_runtime(), 1);
 function OnboardingScene({
   phase,
   mode: mode2,
@@ -77542,17 +77825,17 @@ function OnboardingScene({
   onCreateCollective
 }) {
   const t = useCollectiveText();
-  const [busy, setBusy] = (0, import_react111.useState)(false);
-  const [localError, setLocalError] = (0, import_react111.useState)();
+  const [busy, setBusy] = (0, import_react112.useState)(false);
+  const [localError, setLocalError] = (0, import_react112.useState)();
   const github = providers.find((provider) => provider.id === "github");
   if (phase === "loading") {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u4F53\u2026") }) });
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("div", { className: "state-scene", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { children: t("\u6B63\u5728\u6253\u5F00\u5171\u540C\u4F53\u2026") }) });
   }
   if (phase === "unavailable") {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
-      error && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("small", { children: error })
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsxs)("div", { className: "state-scene state-scene-error", role: "alert", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("h2", { children: t("\u73B0\u5728\u8FD8\u8FDB\u4E0D\u53BB") }),
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { children: t("\u6682\u65F6\u8FDE\u4E0D\u4E0A\u8FD9\u4E2A\u5171\u540C\u4F53\u3002\u6062\u590D\u540E\u53EF\u4EE5\u63A5\u7740\u7528\u3002") }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("small", { children: error })
     ] });
   }
   const run2 = async (action2) => {
@@ -77573,16 +77856,16 @@ function OnboardingScene({
   };
   const canConfigureProvider = shouldConfigureProvider(github, mode2, phase);
   if (canConfigureProvider) {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("section", { className: "entry-card", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
-      localError && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "form-error", children: localError })
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime132.jsxs)("section", { className: "entry-card", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "entry-eyebrow", children: t("Human \u767B\u5F55") }),
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("h2", { children: t("\u521B\u5EFA GitHub \u767B\u5F55\u5E94\u7528") }),
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { children: t("\u5728 GitHub \u786E\u8BA4\u4E00\u6B21\u5373\u53EF\u4E3A\u8FD9\u4E2A Service \u5EFA\u7ACB\u767B\u5F55\u80FD\u529B\uFF0C\u4E0D\u9700\u8981\u590D\u5236 Client ID \u6216 secret\u3002") }),
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("button", { type: "button", disabled: busy, onClick: () => void run2(onConfigureProvider), children: t(busy ? "\u6B63\u5728\u6253\u5F00 GitHub\u2026" : "\u5728 GitHub \u4E2D\u521B\u5EFA") }) }),
+      localError && /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "form-error", children: localError })
     ] }) });
   }
   if (phase === "create-collective") {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(
       EntryCard,
       {
         eyebrow: hasAuthenticatedHuman ? "\u9009\u62E9\u4E0B\u4E00\u6B65" : "\u7B2C\u4E00\u6B21\u5EFA\u7ACB Collective",
@@ -77598,7 +77881,7 @@ function OnboardingScene({
     );
   }
   if (phase === "bind-identity") {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(
       AuthCard,
       {
         eyebrow: "Human \u8EAB\u4EFD",
@@ -77613,7 +77896,7 @@ function OnboardingScene({
     );
   }
   if (mode2 === "bootstrap") {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(
       EntryCard,
       {
         eyebrow: "\u4E00\u6B21\u6027\u521D\u59CB\u5316",
@@ -77628,7 +77911,7 @@ function OnboardingScene({
     );
   }
   if (mode2 === "invite") {
-    return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
+    return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(
       AuthCard,
       {
         eyebrow: "Collective \u9080\u8BF7",
@@ -77642,7 +77925,7 @@ function OnboardingScene({
       }
     );
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(
     AuthCard,
     {
       eyebrow: "\u6B22\u8FCE\u56DE\u6765",
@@ -77670,13 +77953,13 @@ function AuthCard({
   onAuthenticate
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
-    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "form-error", children: error })
+  return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime132.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("div", { className: "entry-action", children: /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("button", { type: "button", disabled: busy || !providerReady, onClick: () => void onAuthenticate(), children: t(busy ? "\u6B63\u5728\u524D\u5F80\u9A8C\u8BC1\u2026" : button) }) }),
+    !providerReady && /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "provider-note", children: t("Human \u767B\u5F55\u5C1A\u672A\u914D\u7F6E\uFF0C\u8BF7\u8054\u7CFB Service \u7BA1\u7406\u8005\u3002") }),
+    error && /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 function EntryCard({
@@ -77691,23 +77974,23 @@ function EntryCard({
   onSubmit
 }) {
   const t = useCollectiveText();
-  return /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("section", { className: "entry-card", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("h2", { children: t(title) }),
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { children: t(description) }),
-    /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsxs)("label", { children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("div", { className: "entry-wrap", children: /* @__PURE__ */ (0, import_jsx_runtime132.jsxs)("section", { className: "entry-card", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "entry-eyebrow", children: t(eyebrow) }),
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("h2", { children: t(title) }),
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { children: t(description) }),
+    /* @__PURE__ */ (0, import_jsx_runtime132.jsxs)("form", { onSubmit: (event) => void onSubmit(event), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsxs)("label", { children: [
         t(label),
-        /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
+        /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("input", { name: "value", defaultValue, autoComplete: "name", required: true })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
+      /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("button", { type: "submit", disabled: busy, children: t(busy ? "\u6B63\u5728\u7EE7\u7EED\u2026" : button) })
     ] }),
-    error && /* @__PURE__ */ (0, import_jsx_runtime130.jsx)("p", { className: "form-error", children: error })
+    error && /* @__PURE__ */ (0, import_jsx_runtime132.jsx)("p", { className: "form-error", children: error })
   ] }) });
 }
 
 // src/use-collective-client.ts
-var import_react115 = __toESM(require_react(), 1);
+var import_react116 = __toESM(require_react(), 1);
 
 // src/leave-readiness.ts
 var sourceSchema3 = external_exports.object({
@@ -77821,10 +78104,10 @@ async function respondToPairingRequest(options) {
 }
 
 // src/use-collective-collaboration.ts
-var import_react112 = __toESM(require_react(), 1);
+var import_react113 = __toESM(require_react(), 1);
 function useCollectiveCollaboration(input) {
-  const running = (0, import_react112.useRef)();
-  const command3 = (0, import_react112.useCallback)(
+  const running = (0, import_react113.useRef)();
+  const command3 = (0, import_react113.useCallback)(
     (path2, payload, acceptedLabel, onAccepted) => {
       const { snapshot } = input;
       const namespace = collectiveClientNamespace(snapshot);
@@ -78104,18 +78387,27 @@ function prepareProjectSuggestionDecision(roadmap, work2, works, decision, edits
 }
 
 // src/use-collective-refresh.ts
-var import_react113 = __toESM(require_react(), 1);
-async function readCollectiveProjection(request, collectiveId, signal) {
+var import_react114 = __toESM(require_react(), 1);
+async function readCollectiveProjection(request, collectiveId, signal, channelsSupported) {
   const query = `?collectiveId=${encodeURIComponent(collectiveId)}`;
-  const [result, declared, members, collaboration] = await Promise.all([
+  const [result, declared, members, collaboration, channels] = await Promise.all([
     request(`/api/events/human${query}`, { signal }),
     request(`/api/participants${query}`, { signal }),
     request(`/api/members${query}`, { signal }).then((value) => collectiveMemberDirectorySchema.parse(value)),
     request(`/api/collaboration${query}`, { signal }).then(
       (value) => collectiveCollaborationProjectionSchema.parse(value)
-    )
+    ),
+    channelsSupported ? request(`/api/channels${query}`, { signal }).then(
+      (value) => collectiveChannelListSchema.parse(value).channels
+    ) : Promise.resolve(void 0)
   ]);
-  return { events: result.events, participants: declared.participants, members, collaboration };
+  return {
+    events: result.events,
+    participants: declared.participants,
+    members,
+    collaboration,
+    ...channels ? { channels } : {}
+  };
 }
 async function reconcileDeniedScope(loadMe, collectiveId, close) {
   close("checking");
@@ -78129,17 +78421,17 @@ async function reconcileDeniedScope(loadMe, collectiveId, close) {
 function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
   const scope = currentCollectiveScope(snapshot);
   const key = scope && `${scope.serviceInstanceId}:${scope.collectiveId}:${scope.humanId}`;
-  const currentKey = (0, import_react113.useRef)(key);
+  const currentKey = (0, import_react114.useRef)(key);
   currentKey.current = key;
-  const latest = (0, import_react113.useRef)(snapshot);
+  const latest = (0, import_react114.useRef)(snapshot);
   latest.current = snapshot;
-  const generation = (0, import_react113.useRef)(0);
-  const pending = (0, import_react113.useRef)();
-  const cancelRefresh = (0, import_react113.useCallback)(() => {
+  const generation = (0, import_react114.useRef)(0);
+  const pending = (0, import_react114.useRef)();
+  const cancelRefresh = (0, import_react114.useCallback)(() => {
     ++generation.current;
     pending.current?.abort();
   }, []);
-  const run2 = (0, import_react113.useCallback)(
+  const run2 = (0, import_react114.useCallback)(
     async (verifyMembership = false) => {
       const target = currentCollectiveScope(latest.current);
       if (!target || !token.current) return;
@@ -78161,7 +78453,12 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
           if (!me.collectives.some((item) => item.collectiveId === target.collectiveId))
             return close("membership_lost", me);
         }
-        const projection = await readCollectiveProjection(request, target.collectiveId, abort.signal);
+        const projection = await readCollectiveProjection(
+          request,
+          target.collectiveId,
+          abort.signal,
+          latest.current.meta?.capabilities?.channels === 1
+        );
         if (!fresh2()) return;
         setSnapshot((current2) => ({
           ...current2,
@@ -78191,7 +78488,7 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     },
     [key, loadMe, request, setSnapshot, token]
   );
-  (0, import_react113.useEffect)(() => {
+  (0, import_react114.useEffect)(() => {
     if (snapshot.phase !== "ready" || !key) return;
     if (!latest.current.restrictedScope) void run2();
     const interval = window.setInterval(() => {
@@ -78203,14 +78500,14 @@ function useCollectiveRefresh(snapshot, setSnapshot, request, loadMe, token) {
     };
   }, [cancelRefresh, key, run2, snapshot.phase]);
   return {
-    refreshEvents: (0, import_react113.useCallback)(() => run2(), [run2]),
-    recheckScope: (0, import_react113.useCallback)(() => run2(true), [run2]),
+    refreshEvents: (0, import_react114.useCallback)(() => run2(), [run2]),
+    recheckScope: (0, import_react114.useCallback)(() => run2(true), [run2]),
     cancelRefresh
   };
 }
 
 // src/use-collective-send.ts
-var import_react114 = __toESM(require_react(), 1);
+var import_react115 = __toESM(require_react(), 1);
 function humanSendPayload(snapshot, body4, destination) {
   const { collective, meta } = snapshot;
   if (!collective || !meta) return void 0;
@@ -78222,8 +78519,8 @@ function humanSendPayload(snapshot, body4, destination) {
   };
 }
 function useCollectiveSend(input) {
-  const sending = (0, import_react114.useRef)();
-  return (0, import_react114.useCallback)(
+  const sending = (0, import_react115.useRef)();
+  return (0, import_react115.useCallback)(
     (body4, destination) => {
       const namespace = collectiveClientNamespace(input.snapshot);
       const payload = humanSendPayload(input.snapshot, body4, destination);
@@ -78276,12 +78573,15 @@ var initialSnapshot = {
   delivery: { kind: "idle" }
 };
 function useCollectiveClient() {
-  const [snapshot, setSnapshot] = (0, import_react115.useState)(initialSnapshot);
+  const [snapshot, setSnapshot] = (0, import_react116.useState)(initialSnapshot);
   const activeCollectiveId = snapshot.collective?.collectiveId;
   const activeCollectiveName = snapshot.collective?.name;
   const activeCollectiveRole = snapshot.collective?.role;
-  const currentNamespace = (0, import_react115.useRef)();
-  currentNamespace.current = collectiveClientNamespace(snapshot);
+  const activeNamespace = collectiveClientNamespace(snapshot);
+  const activeServiceInstanceId = snapshot.meta?.serviceInstanceId;
+  const channelCapability = snapshot.meta?.capabilities?.channels;
+  const currentNamespace = (0, import_react116.useRef)();
+  currentNamespace.current = activeNamespace;
   const {
     token,
     request,
@@ -78300,12 +78600,12 @@ function useCollectiveClient() {
     loadMe,
     token
   );
-  const switchAccount = (0, import_react115.useCallback)(() => {
+  const switchAccount = (0, import_react116.useCallback)(() => {
     cancelRefresh();
     currentNamespace.current = void 0;
     leaveHumanSession();
   }, [cancelRefresh, leaveHumanSession]);
-  const createCollective = (0, import_react115.useCallback)(
+  const createCollective = (0, import_react116.useCallback)(
     async (name2) => {
       const created = await request("/api/collectives", {
         method: "POST",
@@ -78325,6 +78625,7 @@ function useCollectiveClient() {
         collective,
         restrictedScope: void 0,
         events: [],
+        channels: void 0,
         collaboration: void 0,
         participants: void 0,
         members: void 0
@@ -78333,7 +78634,39 @@ function useCollectiveClient() {
     [loadMe, request]
   );
   const sendMessage = useCollectiveSend({ snapshot, setSnapshot, currentNamespace, request, refresh: refreshEvents });
-  const createInvite = (0, import_react115.useCallback)(async () => {
+  const createChannel = (0, import_react116.useCallback)(
+    async (name2, clientOperationId) => {
+      if (!activeCollectiveId || !activeServiceInstanceId || !activeNamespace || activeNamespace !== currentNamespace.current || channelCapability !== 1) {
+        throw new Error("\u5F53\u524D Service \u8FD8\u4E0D\u80FD\u65B0\u5EFA\u9891\u9053");
+      }
+      const result = collectiveChannelCreateResponseSchema.parse(
+        await request("/api/channels", {
+          method: "POST",
+          body: JSON.stringify({
+            collectiveId: activeCollectiveId,
+            name: normalizeCollectiveChannelName(name2),
+            clientOperationId
+          })
+        })
+      );
+      if (result.channel.serviceInstanceId !== activeServiceInstanceId || result.channel.collectiveId !== activeCollectiveId) {
+        throw new Error("Service \u8FD4\u56DE\u4E86\u4E0D\u5C5E\u4E8E\u5F53\u524D Collective \u7684\u9891\u9053");
+      }
+      if (activeNamespace !== currentNamespace.current) return void 0;
+      setSnapshot(
+        (current2) => collectiveClientNamespace(current2) === activeNamespace ? {
+          ...current2,
+          channels: [
+            ...(current2.channels ?? []).filter((channel2) => channel2.channelId !== result.channel.channelId),
+            result.channel
+          ]
+        } : current2
+      );
+      return result;
+    },
+    [activeCollectiveId, activeNamespace, activeServiceInstanceId, channelCapability, request]
+  );
+  const createInvite = (0, import_react116.useCallback)(async () => {
     if (!snapshot.collective) return;
     const result = await request("/api/invites", {
       method: "POST",
@@ -78342,11 +78675,11 @@ function useCollectiveClient() {
     const inviteUrl = `${location.origin}/#invite=${encodeURIComponent(result.inviteToken)}`;
     setSnapshot((current2) => ({ ...current2, notice: inviteUrl }));
   }, [request, snapshot.collective]);
-  const readLeaveReadiness = (0, import_react115.useCallback)(async () => {
+  const readLeaveReadiness = (0, import_react116.useCallback)(async () => {
     if (!activeCollectiveId) throw new Error("\u5F53\u524D\u6CA1\u6709\u53EF\u68C0\u67E5\u7684\u5171\u540C\u4F53");
     return readMembershipLeaveReadiness(request, activeCollectiveId);
   }, [activeCollectiveId, request]);
-  const leaveCollective = (0, import_react115.useCallback)(async () => {
+  const leaveCollective = (0, import_react116.useCallback)(async () => {
     if (!activeCollectiveId || activeCollectiveRole !== "member") return;
     await request("/api/memberships/self-leave", {
       method: "POST",
@@ -78358,7 +78691,7 @@ function useCollectiveClient() {
       notice: `\u5DF2\u79BB\u5F00${activeCollectiveName ?? "\u5171\u540C\u4F53"}\uFF1B\u516C\u5F00\u5386\u53F2\u548C\u7F72\u540D\u4ECD\u4F1A\u4FDD\u7559\u3002`
     }));
   }, [activeCollectiveId, activeCollectiveName, activeCollectiveRole, recheckScope, request]);
-  const selectCollective = (0, import_react115.useCallback)(
+  const selectCollective = (0, import_react116.useCallback)(
     (collectiveId) => {
       const collective = snapshot.me?.collectives.find((item) => item.collectiveId === collectiveId);
       if (!collective) return;
@@ -78377,6 +78710,7 @@ function useCollectiveClient() {
         collective,
         restrictedScope: void 0,
         events: [],
+        channels: void 0,
         collaboration: void 0,
         participants: void 0,
         members: void 0,
@@ -78386,7 +78720,7 @@ function useCollectiveClient() {
     },
     [snapshot, cancelRefresh]
   );
-  const pairHost = (0, import_react115.useCallback)(async () => {
+  const pairHost = (0, import_react116.useCallback)(async () => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const authority = resolvePairingAuthority({
@@ -78423,7 +78757,7 @@ function useCollectiveClient() {
       (current2) => result === "paired" ? { ...current2, notice: "Cat Caf\xE9 \u6B63\u5728\u5B89\u5168\u6258\u7BA1\u8FDE\u63A5\u51ED\u636E\u2026", error: void 0 } : { ...current2, error: "\u6682\u65F6\u65E0\u6CD5\u521B\u5EFA\u65B0\u7684\u914D\u5BF9\u9080\u8BF7" }
     );
   }, [loadMe, request, snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope, token]);
-  const announcePairingState = (0, import_react115.useCallback)(() => {
+  const announcePairingState = (0, import_react116.useCallback)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window || snapshot.phase === "loading") return;
     const authority = resolvePairingAuthority({
@@ -78438,8 +78772,8 @@ function useCollectiveClient() {
       postToHost: (message, targetOrigin) => window.parent.postMessage(message, targetOrigin)
     });
   }, [snapshot.collective, snapshot.me, snapshot.phase, snapshot.restrictedScope]);
-  (0, import_react115.useEffect)(() => announcePairingState(), [announcePairingState]);
-  (0, import_react115.useEffect)(() => {
+  (0, import_react116.useEffect)(() => announcePairingState(), [announcePairingState]);
+  (0, import_react116.useEffect)(() => {
     const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
     if (!hostOrigin || window.parent === window) return;
     const onMessage = (event) => {
@@ -78461,7 +78795,7 @@ function useCollectiveClient() {
   const expressionServiceId = snapshot.meta?.serviceInstanceId;
   const expressionCollectiveId = snapshot.collective?.collectiveId;
   const expressionHumanId = snapshot.me?.human.humanId;
-  const expression = (0, import_react115.useMemo)(
+  const expression = (0, import_react116.useMemo)(
     () => expressionServiceId && expressionCollectiveId && expressionHumanId ? createMessageExpressionPort(
       {
         serviceInstanceId: expressionServiceId,
@@ -78483,6 +78817,7 @@ function useCollectiveClient() {
     configureProvider,
     switchAccount,
     createCollective,
+    createChannel,
     sendMessage,
     createInvite,
     readLeaveReadiness,
@@ -78494,7 +78829,7 @@ function useCollectiveClient() {
 }
 
 // src/use-host-world-directory.ts
-var import_react116 = __toESM(require_react(), 1);
+var import_react117 = __toESM(require_react(), 1);
 
 // src/world-directory-bridge.ts
 function projectWorldDirectory(snapshot, bridgeId, revision12) {
@@ -78552,7 +78887,7 @@ function trustedWorldDirectoryHostMessage(event, hostOrigin, parent) {
 function useHostWorldDirectory(input) {
   const hostOrigin = resolveHostOrigin2(input.embedded);
   const authorityKey = `${input.snapshot.meta?.serviceInstanceId ?? "unknown"}:${input.snapshot.me?.human.humanId ?? "anonymous"}`;
-  const projectionSource = (0, import_react116.useMemo)(
+  const projectionSource = (0, import_react117.useMemo)(
     () => ({
       phase: input.snapshot.phase,
       meta: input.snapshot.meta,
@@ -78568,12 +78903,12 @@ function useHostWorldDirectory(input) {
       input.snapshot.phase
     ]
   );
-  const [bridge, setBridge] = (0, import_react116.useState)();
-  const revision12 = (0, import_react116.useRef)(0);
-  const current2 = (0, import_react116.useRef)();
-  const selectCollective = (0, import_react116.useRef)(input.selectCollective);
+  const [bridge, setBridge] = (0, import_react117.useState)();
+  const revision12 = (0, import_react117.useRef)(0);
+  const current2 = (0, import_react117.useRef)();
+  const selectCollective = (0, import_react117.useRef)(input.selectCollective);
   selectCollective.current = input.selectCollective;
-  (0, import_react116.useEffect)(() => {
+  (0, import_react117.useEffect)(() => {
     if (!hostOrigin || window.parent === window) return;
     const parent = window.parent;
     const onMessage = (event) => {
@@ -78601,7 +78936,7 @@ function useHostWorldDirectory(input) {
       window.removeEventListener("message", onMessage);
     };
   }, [authorityKey, hostOrigin]);
-  (0, import_react116.useEffect)(() => {
+  (0, import_react117.useEffect)(() => {
     if (!bridge || bridge.authorityKey !== authorityKey || !hostOrigin || window.parent === window) return;
     const projection = projectWorldDirectory(projectionSource, bridge.bridgeId, revision12.current + 1);
     if (!projection) return;
@@ -78623,11 +78958,11 @@ function resolveHostOrigin2(embedded) {
 }
 
 // src/CollectiveClient.tsx
-var import_jsx_runtime131 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime133 = __toESM(require_jsx_runtime(), 1);
 function CollectiveClient() {
   const hostOrigin = new URLSearchParams(location.search).get("hostOrigin");
   const embedded = window.parent !== window && hostOrigin !== null;
-  return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(LiveCollectiveClient, { embedded });
+  return /* @__PURE__ */ (0, import_jsx_runtime133.jsx)(LiveCollectiveClient, { embedded });
 }
 function LiveCollectiveClient({ embedded }) {
   const client = useCollectiveClient();
@@ -78636,9 +78971,9 @@ function LiveCollectiveClient({ embedded }) {
   const canSteward = !snapshot.restrictedScope && snapshot.collective?.role === "steward";
   const canPair = !snapshot.restrictedScope && snapshot.phase === "ready" && Boolean(snapshot.me?.auth && snapshot.collective);
   if (!snapshot.restrictedScope && snapshot.phase === "ready" && snapshot.collective && snapshot.me) {
-    return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
+    return /* @__PURE__ */ (0, import_jsx_runtime133.jsx)(MessageExpressionProvider, { value: client.expression, children: /* @__PURE__ */ (0, import_jsx_runtime133.jsx)(CollectiveWorkspace, { embedded, client }, collectiveClientNamespace(snapshot)) });
   }
-  return /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime133.jsx)(
     ProductShell,
     {
       embedded,
@@ -78651,7 +78986,7 @@ function LiveCollectiveClient({ embedded }) {
       notice: snapshot.notice,
       onInvite: () => void client.createInvite(),
       onPair: () => void client.pairHost(),
-      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
+      children: snapshot.restrictedScope ? /* @__PURE__ */ (0, import_jsx_runtime133.jsx)(
         CollectiveScopeRecovery,
         {
           scope: snapshot.restrictedScope,
@@ -78659,7 +78994,7 @@ function LiveCollectiveClient({ embedded }) {
           onAuthenticate: client.authenticate
         },
         `${snapshot.restrictedScope.serviceInstanceId}:${snapshot.restrictedScope.collectiveId}:${snapshot.restrictedScope.humanId}`
-      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime131.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u4F53\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime131.jsx)(
+      ) : snapshot.phase === "ready" && snapshot.me ? /* @__PURE__ */ (0, import_jsx_runtime133.jsx)("p", { className: "channel-empty", children: "\u9009\u62E9\u4E00\u4E2A\u5171\u540C\u4F53\uFF0C\u7EE7\u7EED\u4EA4\u6D41\u3002" }) : /* @__PURE__ */ (0, import_jsx_runtime133.jsx)(
         OnboardingScene,
         {
           phase: snapshot.phase,
@@ -78678,10 +79013,10 @@ function LiveCollectiveClient({ embedded }) {
 }
 
 // src/main.tsx
-var import_jsx_runtime132 = __toESM(require_jsx_runtime(), 1);
+var import_jsx_runtime134 = __toESM(require_jsx_runtime(), 1);
 var root4 = document.getElementById("collective-root");
 if (!root4) throw new Error("Collective client root is missing");
 startHostAppearance();
 (0, import_client.createRoot)(root4).render(
-  /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(import_react117.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime132.jsx)(CollectiveClient, {}) })
+  /* @__PURE__ */ (0, import_jsx_runtime134.jsx)(import_react118.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime134.jsx)(CollectiveClient, {}) })
 );

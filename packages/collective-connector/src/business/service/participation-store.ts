@@ -11,6 +11,7 @@ import {
 import { z } from 'zod';
 import { assertConnectionCoordinates, requireAuthorizedHuman, requireConnection } from './connection-authority.js';
 import { CollectiveServiceError } from './errors.js';
+import { requirePublicChannel } from './channel-authority.js';
 import { requireHumanAuthBinding, requireMembership, resolveSession } from './identity-store.js';
 import type { PersistentServiceState } from './persistence.js';
 import type { ServiceState } from './state.js';
@@ -43,6 +44,9 @@ export class CollectiveParticipationStore {
       const connection = requireConnection(state, endpointCredential, input.connectionId);
       assertConnectionCoordinates(state, connection, input);
       requireAuthorizedHuman(state, connection);
+      for (const channelId of new Set(input.agents.flatMap((agent) => agent.channelIds))) {
+        requirePublicChannel(state, input.collectiveId, channelId);
+      }
       const current = state.participations[input.connectionId];
       if (current && current.revision >= input.revision) {
         if (current.revision === input.revision && JSON.stringify(current.agents) === JSON.stringify(input.agents))

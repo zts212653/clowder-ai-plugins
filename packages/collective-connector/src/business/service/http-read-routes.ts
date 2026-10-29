@@ -20,6 +20,15 @@ export async function routeCollectiveRead(
     writeJson(response, 200, await store.getHumanProjection(requireBearer(request)));
     return true;
   }
+  if (url.pathname === '/api/channels') {
+    const collectiveId = requiredQuery(url, 'collectiveId');
+    writeJson(response, 200, {
+      serviceInstanceId: store.serviceInstanceId,
+      collectiveId,
+      channels: store.listChannels(requireBearer(request), collectiveId),
+    });
+    return true;
+  }
   if (url.pathname === '/api/memberships/self-leave/readiness') {
     writeJson(
       response,

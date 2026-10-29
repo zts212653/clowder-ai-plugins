@@ -218,6 +218,11 @@ async function routeIdentityPost(
   if (pathname === '/api/channel-state/read') {
     writeJson(response, 200, await store.markHumanChannelRead(requireBearer(request), body)); return true;
   }
+  if (pathname === '/api/channels') {
+    const result = await store.createChannel(requireBearer(request), body);
+    writeJson(response, result.status === 'created' ? 201 : 200, result);
+    return true;
+  }
   if (pathname === '/api/bootstrap') {
     const result = await store.consumeBootstrap(requireFields(body, ['secret', 'displayName']));
     if (bootstrapLinkPath) await rm(bootstrapLinkPath, { force: true }).catch(() => undefined);

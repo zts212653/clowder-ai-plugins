@@ -29,6 +29,11 @@ export async function participationFixture(
   const completion = await store.completeHumanAuth({ provider: 'github', state: attempt.state, code: 'owner' });
   await store.exchangeHumanAuthCompletion(completion.completionToken);
   const collective = await store.createCollective({ sessionToken: owner.sessionToken, name: 'Participation' });
+  await store.createChannel(owner.sessionToken, {
+    collectiveId: collective.collectiveId,
+    name: 'a',
+    clientOperationId: 'participation-fixture-channel-a',
+  });
   const coordinates = { serviceInstanceId: store.serviceInstanceId, collectiveId: collective.collectiveId };
   const pair = async () => {
     const intent = await store.createPairingIntent({

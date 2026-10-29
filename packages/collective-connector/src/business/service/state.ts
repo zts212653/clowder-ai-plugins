@@ -8,6 +8,7 @@ import {
   collectiveArtifactPublicationRecordSchema,
   collectiveArtifactRecordSchema,
   collectiveBindingVoteRecordSchema,
+  collectiveChannelIdSchema,
   collectiveDecisionRecordSchema,
   collectiveEventEnvelopeSchema,
   collectiveParticipationDeclarationSchema,
@@ -28,6 +29,7 @@ import {
 
 import { CollectiveServiceError } from './errors.js';
 import { provenEventLocation } from './event-location.js';
+import { channelRecordKey } from './channel-authority.js';
 import { humanAuthAttemptSchema, humanAuthBindingSchema, humanAuthCompletionSchema } from './human-auth-state.js';
 import { membershipSchema } from './membership-state.js';
 import { reactionRecordSchema } from './reaction-state.js';
@@ -62,6 +64,20 @@ const collectiveSchema = z
     name: z.string(),
     createdByHumanId: z.string(),
     createdAt: z.string().datetime(),
+  })
+  .strict();
+
+const channelRecordSchema = z
+  .object({
+    v: z.literal(1),
+    collectiveId: z.string(),
+    channelId: collectiveChannelIdSchema,
+    visibility: z.literal('public'),
+    createdByHumanId: z.string(),
+    createdAt: z.string().datetime(),
+    revision: z.literal(1),
+    createdVia: z.enum(['bootstrap', 'migration', 'human']),
+    clientOperationId: z.string().trim().min(8).max(160).optional(),
   })
   .strict();
 
@@ -189,6 +205,7 @@ const serviceStateV2Schema = z
     humanAuthAttempts: z.record(z.string(), humanAuthAttemptSchema),
     humanAuthCompletions: z.record(z.string(), humanAuthCompletionSchema),
     collectives: z.record(z.string(), collectiveSchema),
+    channels: z.record(z.string(), channelRecordSchema).default({}),
     memberships: z.record(z.string(), membershipSchema),
     invites: z.record(z.string(), inviteSchema),
     pairingIntents: z.record(z.string(), pairingIntentSchema),
@@ -265,7 +282,7 @@ export function parseServiceState(value: unknown): ServiceState {
 
 export function migrateServiceState(value: unknown): { readonly state: ServiceState; readonly migrated: boolean } {
   const version = readSchemaVersion(value);
-  if (version === 2) return migrateProvenLocations(parseServiceState(value));
+  if (version === 2) return migrateChannels(migrateProvenLocations(parseServiceState(value)));
   const legacy = serviceStateV1Schema.parse(value);
   const migratedEvents: Record<string, CollectiveEventEnvelope[]> = {};
   for (const [collectiveId, events] of Object.entries(legacy.events)) {
@@ -296,6 +313,7 @@ export function migrateServiceState(value: unknown): { readonly state: ServiceSt
     humanAuthAttempts: {},
     humanAuthCompletions: {},
     collectives: legacy.collectives,
+    channels: {},
     memberships: legacy.memberships,
     invites: legacy.invites,
     pairingIntents: legacy.pairingIntents,
@@ -331,7 +349,57 @@ export function migrateServiceState(value: unknown): { readonly state: ServiceSt
     legacyEvents: {},
     clientEventIndex: rebuildClientEventIndex(migratedEvents),
   };
-  return { state: migrateProvenLocations(parseServiceState(migrated)).state, migrated: true };
+  const canonical = migrateChannels(migrateProvenLocations(parseServiceState(migrated)));
+  return { state: canonical.state, migrated: true };
+}
+
+function migrateChannels(input: { state: ServiceState; migrated: boolean }) {
+  const channels = { ...input.state.channels };
+  let migrated = input.migrated;
+  for (const collective of Object.values(input.state.collectives)) {
+    const discovered = new Map<string, { createdAt: string; createdByHumanId: string }>();
+    discovered.set('general', {
+      createdAt: collective.createdAt,
+      createdByHumanId: collective.createdByHumanId,
+    });
+    for (const event of input.state.events[collective.collectiveId] ?? []) {
+      const channelId = provenEventLocation(input.state.events[collective.collectiveId] ?? [], event)?.channelId;
+      if (!channelId || discovered.has(channelId)) continue;
+      discovered.set(channelId, {
+        createdAt: event.acceptedAt,
+        createdByHumanId: event.actor.kind === 'human' ? event.actor.humanId : event.actor.human.humanId,
+      });
+    }
+    for (const participation of Object.values(input.state.participations)) {
+      if (participation.collectiveId !== collective.collectiveId) continue;
+      const owner = input.state.connections[participation.connectionId]?.authorizedHumanId ?? collective.createdByHumanId;
+      for (const channelId of participation.agents.flatMap((agent) => agent.channelIds)) {
+        if (!discovered.has(channelId)) {
+          discovered.set(channelId, { createdAt: participation.publishedAt, createdByHumanId: owner });
+        }
+      }
+    }
+    const existingIds = new Set(
+      Object.values(channels)
+        .filter((channel) => channel.collectiveId === collective.collectiveId)
+        .map((channel) => channel.channelId),
+    );
+    for (const [channelId, origin] of discovered) {
+      if (existingIds.has(channelId)) continue;
+      channels[channelRecordKey(collective.collectiveId, channelId)] = {
+        v: 1,
+        collectiveId: collective.collectiveId,
+        channelId,
+        visibility: 'public',
+        createdByHumanId: origin.createdByHumanId,
+        createdAt: origin.createdAt,
+        revision: 1,
+        createdVia: 'migration',
+      };
+      migrated = true;
+    }
+  }
+  return { state: { ...input.state, channels }, migrated };
 }
 
 function migrateProvenLocations(state: ServiceState): { state: ServiceState; migrated: boolean } {

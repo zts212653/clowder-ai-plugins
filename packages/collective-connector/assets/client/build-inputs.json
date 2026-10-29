@@ -1260,7 +1260,7 @@
     },
     {
       "path": "../shared/src/index.ts",
-      "sha256": "2bbc0a8cbe8ad1a75c3c7fbdac15f2ecc3dc42f1a0f101b788ba36834cce2b5b"
+      "sha256": "83a8ce133b4fbba2a78bb4c714ac9993ae39c7d145f08daa4e35832d74df6220"
     },
     {
       "path": "../shared/src/markdown-link-safety.ts",
@@ -1619,6 +1619,10 @@
       "sha256": "a0ed30c538a50d22f29e9a5f01609d1b56eb1626fccccec769a4de7d850eaad1"
     },
     {
+      "path": "../shared/src/types/collective-channel.ts",
+      "sha256": "f3bb86d7194d53db5d150a0733dda248e47241ba52de6e0b8b8d9f228865f844"
+    },
+    {
       "path": "../shared/src/types/collective-collaboration-actor.ts",
       "sha256": "67bf86dae5230d6e0653d58cd61d350eec04f39189ecf247f6267c6657204f92"
     },
@@ -1948,7 +1952,7 @@
     },
     {
       "path": "../shared/src/types/index.ts",
-      "sha256": "7bb76ae013d78a40411e8695e08a3bce18f04738640f57610739dfa907c74fc1"
+      "sha256": "a68f9143984d86ab72aad5de620001cb080e4ebdfd23c24c941c727eb76ff615"
     },
     {
       "path": "../shared/src/types/lesson-consumption-replay.ts",
@@ -2384,7 +2388,7 @@
     },
     {
       "path": "../ui/src/collective-copy.ts",
-      "sha256": "678f83a39f63a9194232f972ea5cbf886a7ce5c39ec84ae52b495ec1a6020db0"
+      "sha256": "ba049484f7a125bbb07f1dd71899f79fc2099a9c250da0d408c431031bb2705f"
     },
     {
       "path": "../ui/src/index.ts",
@@ -2452,7 +2456,7 @@
     },
     {
       "path": "src/ChannelConversationFlow.tsx",
-      "sha256": "74408bc2473c66e6a8d95185cfbd7c43724e4c0ae33da84ebcf154e9b1259ae2"
+      "sha256": "4ca2ec4da94ecf0c572f5ce2558d2f0884aecc1096db059c5cf7c8da9cae0617"
     },
     {
       "path": "src/ChannelHeader.tsx",
@@ -2464,7 +2468,7 @@
     },
     {
       "path": "src/ChannelNavigation.tsx",
-      "sha256": "46474e186bba2a11676ce4e172ad84dfe1f6b3234f37d84a440e487100964ab1"
+      "sha256": "4acf29aa4c98b4633aec1401025fd7cf083e3ab4ea5e308b6c8622ff05a0f454"
     },
     {
       "path": "src/ChannelRightPanel.tsx",
@@ -2472,7 +2476,7 @@
     },
     {
       "path": "src/ChannelScene.tsx",
-      "sha256": "12ac0315aebba5b7ad536fb6d95b2d2bb18ded7d7cb67049cdfed03c6774f1dc"
+      "sha256": "f9a1f567002dcc786eb1956aa32efca4ce4150334e7575ca3aaf9ad5959b3d2f"
     },
     {
       "path": "src/ChannelTopicContext.tsx",
@@ -2480,7 +2484,7 @@
     },
     {
       "path": "src/CollectiveChannelWorkspace.tsx",
-      "sha256": "185770c42cd0d1168b65f382c914a8267e98037594216d1a779b32191d0126a5"
+      "sha256": "26293a2c01698291ee0e57e34cdc6150e01cb51bbb47031fc0dbe028587af6b3"
     },
     {
       "path": "src/CollectiveClient.tsx",
@@ -2516,7 +2520,7 @@
     },
     {
       "path": "src/CollectiveWorkspace.tsx",
-      "sha256": "7ba60e63ff10ca15a2fa083b13c520b1ed63068b9a2f99a8c4269902cbbd3d7b"
+      "sha256": "dabd6f9e0ef46baa47da48fcc49465e2cc911e8bdfdfebbc9390fb9f630ba000"
     },
     {
       "path": "src/CollectiveWorldRail.tsx",
@@ -2576,7 +2580,7 @@
     },
     {
       "path": "src/MaterialDialogFrame.tsx",
-      "sha256": "fb9eab1072782d01a7dc3c45c664968c0b2d0be810cac601e1e38b2e2dcb339d"
+      "sha256": "80b70e5083bb2b89e9b62083fb6e73df18d066cd6d9f3b8fb4305a8146ccfe57"
     },
     {
       "path": "src/MaterialSources.tsx",
@@ -2633,6 +2637,14 @@
     {
       "path": "src/MessageWidget.tsx",
       "sha256": "cade92a5d283845c7aeff018edfd493247561ad682879a20c04d6cdfaf58346f"
+    },
+    {
+      "path": "src/NewChannelDialog.tsx",
+      "sha256": "a151ab6c003f04507e4f791694d2588217991b84adefc7191eb5969b4607d55b"
+    },
+    {
+      "path": "src/NewChannelDialogFeedback.tsx",
+      "sha256": "658f1679e3a0c8525fe66c2133b6a575b70371ea16eb3000b343da336363a06d"
     },
     {
       "path": "src/OnboardingScene.tsx",
@@ -2880,11 +2892,11 @@
     },
     {
       "path": "src/channel-navigation.ts",
-      "sha256": "00e06a679c0c39ac973e5f28cd22dfef193a161dc3d8bc18214393c171654a74"
+      "sha256": "f2b181dd4356fbbd0de9cd9aafd870fd858948e7a2fe4465e8bdde6409e45afc"
     },
     {
       "path": "src/client-request.ts",
-      "sha256": "660da74ad1a4ce23cf5329a39658bf2ee767b73f94f58f77528e28d0dc91e336"
+      "sha256": "c7a48a5c08f7f45b3964789eedf46ee6b6ac32d3f720987f00520a4ab09c14da"
     },
     {
       "path": "src/collaboration-command-custody.ts",
@@ -2916,7 +2928,7 @@
     },
     {
       "path": "src/collective-scope-recovery.ts",
-      "sha256": "91830ab92472fc9a39a2c54644c6abc980aea1377e5b655e9e30658eda0580cc"
+      "sha256": "bdbf7633c1503a9f986968447e1cfa676bbcc43fec498e1396af53efbd80865e"
     },
     {
       "path": "src/collective-workspace-model.ts",
@@ -3004,7 +3016,7 @@
     },
     {
       "path": "src/main.tsx",
-      "sha256": "14d0d8799be4e0a6b1f77712d7fddf710e00fece1edc2bf3b75453a80d3f4fe2"
+      "sha256": "a9878c9ec5f225642e98315c2aae72765c3025266b81d4928c50fc9690803945"
     },
     {
       "path": "src/material-copy.ts",
@@ -3159,6 +3171,10 @@
       "sha256": "8658baedac72066543f712efd385532dc764121d01d55406406829d53ab6ae17"
     },
     {
+      "path": "src/styles/new-channel.css",
+      "sha256": "56e22e759f84718b76fecd37e697ecb7b987843e4410c5c3b3d0c13de2d071a0"
+    },
+    {
       "path": "src/styles/onboarding.css",
       "sha256": "b749214ce9600a03016162663559b1696a01a85832b3f3a75b11f756fe2c29da"
     },
@@ -3252,7 +3268,7 @@
     },
     {
       "path": "src/use-collective-client.ts",
-      "sha256": "5655c4cb8c0f1f17a435195d95fc335be11f74adc4c46122069f395abbf6f45a"
+      "sha256": "7077f35a1d06b0abbbbe91432968cff4ce42ed40916f1e7654a5c0da38b4e65a"
     },
     {
       "path": "src/use-collective-collaboration.ts",
@@ -3260,7 +3276,7 @@
     },
     {
       "path": "src/use-collective-refresh.ts",
-      "sha256": "aed7d691bb363a6c73608754191d20193e3bc2ff4e45fe5061c12b14feed1ffe"
+      "sha256": "eecf68f79f9ea48a5d98f5a63725414df3ab1fb0b525b48c0c2901834be865af"
     },
     {
       "path": "src/use-collective-send.ts",
@@ -3320,7 +3336,7 @@
     },
     {
       "path": "src/use-human-auth-session.ts",
-      "sha256": "9f62028a31d2b904a7f8b0c61f99d2aa59a4c5dec4931b5cc66f771032acb021"
+      "sha256": "9391c88e9e092daa42092c2b153edef623c61b4e80e3e424412a295718f24f41"
     },
     {
       "path": "src/use-project-artifact-references.ts",

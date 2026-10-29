@@ -1,4 +1,5 @@
 import { CollectiveServiceError } from './errors.js';
+import { channelRecordKey, initialChannelRecord } from './channel-authority.js';
 import type { HumanAuthProvider, HumanAuthProviderId } from './human-auth-provider.js';
 import {
   applyAuthenticatedIdentity,
@@ -113,6 +114,13 @@ export class CollectiveIdentityStore {
         history: [{ revision: 1, action: 'joined', at: collective.createdAt, role: 'steward' }],
       };
       state.events[collective.collectiveId] = [];
+      const initialChannel = initialChannelRecord({
+        collectiveId: collective.collectiveId,
+        createdByHumanId: human.humanId,
+        createdAt: collective.createdAt,
+        createdVia: 'bootstrap',
+      });
+      state.channels[channelRecordKey(collective.collectiveId, initialChannel.channelId)] = initialChannel;
       return collective;
     });
   }

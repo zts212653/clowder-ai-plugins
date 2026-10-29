@@ -11,6 +11,7 @@ import { prepareArtifactPublication } from './artifact-publication-authority.js'
 import { readArtifactAgentContext } from './artifact-request-sources.js';
 import { CollectiveArtifactStore } from './artifact-store.js';
 import { CollectiveHumanChannelState } from './channel-human-state.js';
+import { CollectiveChannelStore } from './channel-store.js';
 import { CollectiveBindingVoteStore } from './collaboration-binding-vote-store.js';
 import { CollectiveReactionStore } from './collaboration-reaction-store.js';
 import { CollectiveCollaborationStore } from './collaboration-store.js';
@@ -79,6 +80,7 @@ export class CollectiveServiceStore {
   readonly #artifacts: CollectiveArtifactStore;
   readonly #messageAttachments: CollectiveMessageAttachments;
   readonly #humanChannelState: CollectiveHumanChannelState;
+  readonly #channels: CollectiveChannelStore;
 
   private constructor(
     private readonly persistence: PersistentServiceState,
@@ -105,6 +107,7 @@ export class CollectiveServiceStore {
     this.#artifacts = new CollectiveArtifactStore(persistence, now);
     this.#messageAttachments = new CollectiveMessageAttachments(persistence, now, messageAttachmentOwner);
     this.#humanChannelState = new CollectiveHumanChannelState(persistence);
+    this.#channels = new CollectiveChannelStore(persistence, now);
   }
 
   static async open(options: OpenCollectiveServiceStoreOptions): Promise<OpenedCollectiveServiceStore> {
@@ -149,6 +152,7 @@ export class CollectiveServiceStore {
         humanAuthAttempts: {},
         humanAuthCompletions: {},
         collectives: {},
+        channels: {},
         memberships: {},
         invites: {},
         pairingIntents: {},
@@ -198,6 +202,12 @@ export class CollectiveServiceStore {
   }
   readHumanChannelState(...input: Parameters<CollectiveHumanChannelState['read']>) {
     return this.#humanChannelState.read(...input);
+  }
+  listChannels(sessionToken: string, collectiveId: string) {
+    return this.#channels.list(sessionToken, collectiveId);
+  }
+  createChannel(sessionToken: string, input: unknown) {
+    return this.#channels.create(sessionToken, input);
   }
   saveHumanChannelDraft(...input: Parameters<CollectiveHumanChannelState['save']>) {
     return this.#humanChannelState.save(...input);
@@ -407,7 +417,7 @@ export class CollectiveServiceStore {
         Object.values(state.humanAuthBindings).some((binding) => binding.humanId === ownerHumanId) &&
         Object.keys(state.collectives).length > 0,
       clientBuildId: this.clientBuildId,
-      capabilities: { workResultFiles: 1 as const },
+      capabilities: { workResultFiles: 1 as const, channels: 1 as const },
     };
   }
 
