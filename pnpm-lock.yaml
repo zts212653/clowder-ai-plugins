@@ -1194,6 +1194,7 @@ packages:
   '@larksuite/cli@1.0.85':
     resolution: {integrity: sha512-EtoX13gfn5eeqDI4oSbaMKcc2R++TyIxDVAKAw/cMXaMM7q0MKIqfWcKM0r02PCxQVC5JjBd1QPxKyra+n//Qw==}
     engines: {node: '>=16'}
+    cpu: [x64, arm64, riscv64]
     os: [darwin, linux, win32]
     hasBin: true
 

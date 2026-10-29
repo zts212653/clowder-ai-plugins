@@ -15,6 +15,20 @@ test('admits an explicit package-local factory while retaining the original stdi
   assert.equal(accepted.valid, true, JSON.stringify(accepted));
 });
 
+test('every shared factory retains a stdio contribution for explicit fallback', () => {
+  const value = manifest();
+  value.contributions[0]!.runtime.transport = 'ipc';
+  const rejected = validateManifest(value);
+  assert.equal(rejected.valid, false, 'IPC cannot replace the promised stdio fallback');
+  assert.equal(rejected.errors[0]?.keyword, 'sharedFactoryBoundary');
+  const legacy = { ...value, contributions: value.contributions.map(({ sharedFactory: _factory, ...contribution }) => contribution) };
+  assert.equal(validateManifest(legacy).valid, true, 'the new factory boundary does not retire existing IPC declarations');
+  // Also check a later contribution: a valid first factory cannot hide an IPC one.
+  const multiple = manifest();
+  multiple.contributions.push({ ...multiple.contributions[0]!, id: 'second', runtime: { transport: 'ipc', entrypoint: 'dist/ipc.js' } });
+  assert.equal(validateManifest(multiple).valid, false);
+});
+
 test('factory admission rejects traversal, missing module runtime and undeclared factory inputs', () => {
   for (const module of ['../escape.js', '/tmp/escape.js', 'dist/../../escape.js']) {
     const value = manifest(); value.contributions[0]!.sharedFactory.module = module;

@@ -148,6 +148,8 @@ export function validateManifest(value: unknown): ManifestValidationResult {
       const [major = 0, minor = 0, patch = 0] = manifest.contractVersion.split(/[.-]/).slice(0, 3).map(Number);
       if (manifest.runtime?.transport !== 'builtin' || !manifest.runtime.entrypoint)
         return semanticError('/contributions', '#/sharedFactory', 'sharedFactoryBoundary', 'shared MCP factories require an admitted builtin module runtime');
+      if (manifest.contributions.some(c => c.type === 'mcp' && c.sharedFactory && c.runtime.transport !== 'stdio'))
+        return semanticError('/contributions', '#/sharedFactory', 'sharedFactoryBoundary', 'shared MCP factories require a retained stdio contribution for explicit fallback');
       if (!(major > 0 || minor > 3 || (minor === 3 && patch >= 2)))
         return semanticError('/contractVersion', '#/sharedFactory', 'sharedFactoryBoundary', 'shared MCP factories require contract 0.3.2 or newer');
     }
