@@ -35,7 +35,7 @@ export function createCollectiveAssetResponder(assets: CollectiveClientAssets | 
     }
     response.setHeader('cache-control', 'public, max-age=0, must-revalidate');
     response.setHeader('etag', asset.etag);
-    response.setHeader('vary', 'Accept-Encoding');
+    response.setHeader('vary', 'Origin, Accept-Encoding');
     const validators = request.headers['if-none-match']?.split(',').map(value => value.trim().replace(/^W\//, ''));
     if (validators?.some(value => value === '*' || value === asset.etag.replace(/^W\//, ''))) {
       response.writeHead(304).end();

@@ -14,6 +14,7 @@ beforeEach(async () => {
   server = await startCollectiveServer({
     store,
     port: 0,
+    allowedHostOrigins: ['https://first.cafe.test', 'https://second.cafe.test'],
     clientAssets: new Map([
       ['/index.html', { bytes: Buffer.from('<html><head></head><body>Collective</body></html>'), contentType: 'text/html; charset=utf-8' }],
       ['/collective-client/app.js', { bytes: Buffer.from(script), contentType: 'text/javascript; charset=utf-8' }],
@@ -30,7 +31,7 @@ it('compresses a verified public script when the browser accepts gzip, preservin
   expect(response.status).toBe(200);
   expect(response.headers.get('content-encoding')).toBe('gzip');
   expect(Number(response.headers.get('content-length'))).toBeLessThan(Buffer.byteLength(script) / 2);
-  expect(response.headers.get('vary')).toBe('Accept-Encoding');
+  expect(response.headers.get('vary')?.split(',').map(value => value.trim())).toContain('Accept-Encoding');
   expect(await response.text()).toBe(script);
 });
 
@@ -46,6 +47,19 @@ it('revalidates unchanged public assets without retransmitting their bodies', as
   const stale = await fetch(`${server.url}/collective-client/app.js`, { headers: { 'if-none-match': 'W/"old-build"' } });
   expect(stale.status).toBe(200);
   expect(await stale.text()).toBe(script);
+});
+
+it('keeps each allowed Host origin separate when a public asset is revalidated', async () => {
+  const first = await fetch(`${server.url}/collective-client/app.js`, { headers: { origin: 'https://first.cafe.test' } });
+  expect(first.headers.get('access-control-allow-origin')).toBe('https://first.cafe.test');
+  expect(first.headers.get('vary')?.split(',').map(value => value.trim())).toContain('Origin');
+  await first.arrayBuffer();
+  const next = await fetch(`${server.url}/collective-client/app.js`, {
+    headers: { origin: 'https://second.cafe.test', 'if-none-match': first.headers.get('etag')! },
+  });
+  expect(next.status).toBe(304);
+  expect(next.headers.get('access-control-allow-origin')).toBe('https://second.cafe.test');
+  expect(next.headers.get('vary')?.split(',').map(value => value.trim())).toContain('Origin');
 });
 
 it('respects an explicit gzip rejection even when a wildcard accepts other encodings', async () => {
