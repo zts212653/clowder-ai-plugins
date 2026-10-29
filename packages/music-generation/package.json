@@ -15,14 +15,29 @@
       "import": "./dist/connection-flows.js"
     }
   },
-  "files": ["dist", "plugin.yaml", "assets", "npm-shrinkwrap.json", "README.md", "README.en.md"],
-  "engines": { "node": ">=20.0.0" },
+  "files": [
+    "dist",
+    "plugin.yaml",
+    "assets",
+    "npm-shrinkwrap.json",
+    "README.md",
+    "README.en.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "node --test test/*.test.mjs",
     "test:installed": "node --test test/installed-directory.mjs"
   },
-  "dependencies": { "@clowder-ai/plugin-sdk": "0.2.0-beta.24" },
-  "devDependencies": { "typescript": "^5.7.0", "@types/node": "^20.17.0" }
+  "dependencies": {
+    "@clowder-ai/plugin-sdk": "0.2.0-beta.24",
+    "@modelcontextprotocol/sdk": "1.26.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^20.17.0"
+  }
 }

@@ -411,6 +411,9 @@ importers:
       '@clowder-ai/plugin-sdk':
         specifier: 0.2.0-beta.24
         version: 0.2.0-beta.24
+      '@modelcontextprotocol/sdk':
+        specifier: 1.26.0
+        version: 1.26.0(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: ^20.17.0
@@ -469,7 +472,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.3.1-candidate.0
+        specifier: 0.3.2-candidate.0
         version: link:../plugin-contract
     devDependencies:
       '@types/node':
@@ -1194,7 +1197,6 @@ packages:
   '@larksuite/cli@1.0.85':
     resolution: {integrity: sha512-EtoX13gfn5eeqDI4oSbaMKcc2R++TyIxDVAKAw/cMXaMM7q0MKIqfWcKM0r02PCxQVC5JjBd1QPxKyra+n//Qw==}
     engines: {node: '>=16'}
-    cpu: [x64, arm64, riscv64]
     os: [darwin, linux, win32]
     hasBin: true
 

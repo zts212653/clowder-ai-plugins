@@ -277,6 +277,10 @@ export type McpContribution = {
   readonly id: string;
   readonly runtime: ContributionRuntime;
   readonly environment?: Readonly<Record<string, EnvironmentBinding>>;
+  readonly sharedFactory?: {
+    readonly module: PackageRelativePath;
+    readonly export: string;
+  };
 };
 export type SkillContribution = {
   readonly type: 'skill';

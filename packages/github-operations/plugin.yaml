@@ -1,6 +1,6 @@
 pluginId: official.github-operations
 version: 0.1.0-alpha.29
-contractVersion: 0.1.0
+contractVersion: 0.3.2-candidate.0
 name: GitHub Operations
 description:
   default: 跟踪 GitHub PR 审查、CI 检查、冲突、Issue 和评论，并同步仓库协作动态。
@@ -245,6 +245,7 @@ contributions:
   - type: mcp
     id: github-tracking
     runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
+    sharedFactory: { module: dist/tracking-mcp-server.js, export: createRemoteTrackingMcpServer }
   - type: webhook
     id: repository-events
     path: github/events

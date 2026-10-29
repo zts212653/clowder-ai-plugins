@@ -1,6 +1,6 @@
 pluginId: official.collective-connector
 version: 0.1.0-alpha.20
-contractVersion: 0.2.0
+contractVersion: 0.3.2-candidate.0
 name: Collective
 description:
   default: Collective service and web client managed by the plugin.
@@ -238,6 +238,7 @@ contributions:
   - type: mcp
     id: collective-native
     runtime: { transport: stdio, entrypoint: dist/mcp-entrypoint.js }
+    sharedFactory: { module: dist/mcp-server.js, export: createCollectiveMcpServer }
   - type: webhook
     id: collective-owner-10
     path: connections
@@ -316,6 +317,7 @@ contributions:
   - type: mcp
     id: collective-owner-native
     runtime: { transport: stdio, entrypoint: dist/owner-mcp-entrypoint.js }
+    sharedFactory: { module: dist/owner-mcp-server.js, export: createCollectiveOwnerMcpServer }
   - type: webhook
     id: collective-participation-view
     path: connections/:connectionId/participation
@@ -330,6 +332,7 @@ contributions:
   - type: mcp
     id: collective-work-native
     runtime: { transport: stdio, entrypoint: dist/work-mcp-entrypoint.js }
+    sharedFactory: { module: dist/work-mcp-server.js, export: createCollectiveWorkMcpServer }
   - type: webhook
     id: collective-work-admit
     path: connections/:connectionId/work/admit
