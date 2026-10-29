@@ -17,7 +17,15 @@ Host 调用 action 时，将 `PluginActionContext` 作为 handler 第二参数�
 
 同进程模块直接持有 Host 创建的能力对象。当前还实现了按 `runtime.transport` 声明启动的独立载体，其会话、身份与生命周期管理属于 carrier 内部。插件业务自行启动的 helper 子进程属于插件自己的 `start/stop` 资源，Host 不理解其 PID 或内部协议。
 
-原生 MCP contribution 只声明进程与环境，不声明 action 方法白名单。RPC 的 `method` 路由到模块实际导出的 `actions`；未知方法返回普通未暴露错误，token 只证明当前活跃实例与调用上下文。webhook、direct-tool、配置按钮等 `action.method` 仍用于各自的路由。
+原生 MCP contribution 声明进程与环境，不声明 action 方法白名单。RPC 的 `method` 路由到模块实际导出的 `actions`；未知方法返回普通未暴露错误，token 只证明当前活跃实例与调用上下文。webhook、direct-tool、配置按钮等 `action.method` 仍用于各自的路由。
+
+Contract `0.3.2-candidate.0` 起，具有 builtin 模块入口的插件可以在 MCP contribution 增加
+`sharedFactory: { module: 'dist/mcp-server.js', export: 'createMcpServer' }`。
+工厂接收 Host 为本次请求注入的 action client，返回可连接和关闭的 MCP server；stdio 入口应复用同一工厂。
+导入工厂不得启动进程、监听端口、注册退出钩子或保存调用者身份。Host 继续验证当前安装、贡献和调用者，
+并沿原 action 入口执行权限、取消和结果脱敏；包内处理器保留 schema refinement 和结果包装。
+旧 stdio 声明必须保留作显式回退，受限调用仍走原载体。新声明要求相容 Host 和实际验证过的 SDK／Contract
+依赖；旧 Host 可能在安装时拒绝新包，不能把保留 stdio 等同于旧 Host 可安装。
 
 调用取消由实际载体的 `AbortSignal`、action 的 `assertCurrent()`、feature 撤销共同完成。未提供 signal 参数的方法依靠实例撤销／Host 方法检查；普通写操作不会因结果丢失自动重试，拒收晚到结果不等于已经发生的写入被撤销。`config/secrets.get` 每次读取当前有效配置；配置保存保持启用意图，运行实例通过 `configRefresh` 更新实际资源。
 
