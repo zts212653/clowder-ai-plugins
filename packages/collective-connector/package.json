@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/collective-connector",
-  "version": "0.1.0-alpha.19",
+  "version": "0.1.0-alpha.20",
   "description": "Collective backend business and Host-loadable module",
   "license": "MIT",
   "type": "module",

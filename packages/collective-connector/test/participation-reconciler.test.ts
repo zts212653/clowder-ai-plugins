@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { hostRouteConfigSchema } from '../src/business/connector/host-route-state.js';
 import * as moved from '../src/participation-reconciler.js';
-function fixture() {
+function fixture(initialExcludedCatIds: readonly string[] = ['b']) {
   assert.equal(typeof moved.createCollectiveParticipationCaller, 'function', 'the original reconciler must be moved and paired');
   const calls: unknown[] = []; let expired = false;
   const threads = new Map<string, { id: string; createdBy: string; participants: string[] }>();
@@ -24,20 +24,38 @@ function fixture() {
   const caller = moved.createCollectiveParticipationCaller({ ownerUserId: 'owner', threads:currentThreads, async assertCurrent() { if (expired) throw new Error('Caller is no longer current'); },
     members: { async list() { calls.push(['members']); return rows; },async get(id){return rows.find(row=>row.catId===id)??null;} }, connector: connector as never });
   const reconcile = () => caller.reconcile({ connectionId: 'con_aaaaaaaa', expectedRevision: route?.revision ?? 0, route,
-    channelIds: ['z', 'general', 'general'], initialExcludedCatIds: ['b'] });
+    channelIds: ['z', 'general', 'general'], initialExcludedCatIds });
   return { calls, caller, reconcile, threads, ownerThreads, get route() { return route; }, expire() { expired = true; }, connector, updateRows(value: typeof rows) { rows = value; } };
 }
 test('reconciler preserves initial exclusions and sorted channel routes using strict owner thread and honest public roster', async () => {
   const f = fixture(), route = await f.reconcile();
   assert.deepEqual(Object.keys(route.channelRoutes), ['general', 'z']);
   assert.deepEqual(route.desiredParticipation.excludedCatIds, ['b']);
-  assert.equal(route.observedEligibility.a.eligible, true); assert.equal(route.observedEligibility.b.eligible, true); // Availability is not provider support; exclusion remains plugin policy.
+  assert.equal(route.observedEligibility.a.eligible, true); assert.equal(route.observedEligibility.b.eligible, false);
   assert.deepEqual(Object.keys(route.channelRoutes.general.participants), ['a']);
   assert.deepEqual(route.publicProfiles.a, { description: 'Role', avatarDataUrl: 'data:image/webp;base64,UklGRg==' });
-  assert.deepEqual(route.publicProfiles.b, {});
+  assert.equal(route.publicProfiles.b, undefined);
   assert.equal(route.localOwnerUserId, 'owner'); assert.equal(route.defaultIngressThreadId, route.channelRoutes.general.threadId);
   assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'create'), [['create', { title: 'Collective #general 公共参与' }], ['create', { title: 'Collective #z 公共参与' }]]);
   assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'members'), [['members']]);
+});
+test('default participation follows Host enable switches while retaining disabled members and thread history', async () => {
+  const f = fixture([]), first = await f.reconcile();
+  assert.deepEqual(Object.keys(first.channelRoutes.general.participants), ['a']);
+  assert.equal(first.observedEligibility.b.configured, true);
+  assert.equal(first.observedEligibility.b.eligible, false);
+  f.updateRows([
+    { catId: 'a', displayName: 'Cat A', defaultModel: 'model', available: false },
+    { catId: 'b', displayName: 'Cat B', defaultModel: 'model', available: true },
+  ]);
+  const next = await f.reconcile();
+  assert.deepEqual(Object.keys(next.channelRoutes.general.participants), ['b']);
+  assert.equal(next.observedEligibility.a.configured, true);
+  assert.equal(next.observedEligibility.a.eligible, false);
+  assert.equal(next.publicProfiles.a, undefined);
+  assert.deepEqual(Object.keys(next.publicProfiles), ['b']);
+  assert.equal(next.channelRoutes.general.threadId, first.channelRoutes.general.threadId);
+  assert.deepEqual(f.threads.get(next.channelRoutes.general.threadId)!.participants, ['a', 'b']);
 });
 test('same reconciler input retains routes/threads and still publishes participation without reissuing create', async () => {
   const f = fixture(), first = await f.reconcile(); const count = f.calls.length;

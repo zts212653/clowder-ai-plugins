@@ -11,7 +11,8 @@ function fixture() {
   const calls: unknown[] = []; let current = rows;
   const connector = { async pair(input: unknown) { calls.push(input); return { connectionId: 'con_aaaaaaaa' }; } };
   const caller = entry.createCollectiveEntryCaller({ async assertCurrent() {}, members: {async get(){return null;},async list(){calls.push(['roster']);return current;}}, connector: connector as never });
-  return { caller, calls, change() { current = rows.map(row => ({ ...row, displayName: 'Changed' })); }, connector };
+  return { caller, calls, change() { current = rows.map(row => ({ ...row, displayName: 'Changed' })); },
+    setRows(value: typeof rows) { current = value; }, connector };
 }
 test('entry caller preserves qualification/disambiguation, sorting, eligible projection and fingerprint', async () => {
   const f = fixture(), roster = await f.caller.entryRoster(async () => {});
@@ -21,6 +22,32 @@ test('entry caller preserves qualification/disambiguation, sorting, eligible pro
   ]);
   assert.equal(roster.fingerprint, createHash('sha256').update(JSON.stringify(roster.cats)).digest('hex'));
   assert.deepEqual(f.calls, [['roster']]);
+});
+test('entry roster offers only Host-enabled members, including after all members were disabled', async () => {
+  const f = fixture();
+  f.setRows(rows.map(row => ({ ...row, available: row.catId === 'cat-a' })));
+  const enabled = await f.caller.entryRoster(async () => {});
+  assert.deepEqual(enabled.cats.map(cat => cat.id), ['cat-a']);
+  f.setRows(rows.map(row => ({ ...row, available: false })));
+  const empty = await f.caller.entryRoster(async () => {});
+  assert.deepEqual(empty.cats, []);
+  assert.notEqual(empty.fingerprint, enabled.fingerprint);
+  f.setRows(rows);
+  const restored = await f.caller.entryRoster(async () => {});
+  assert.deepEqual(restored.cats.map(cat => cat.id), ['cat-a', 'cat-b']);
+});
+test('disabling a member after preview rejects the stale confirmation before any pairing effect', async () => {
+  const f = fixture(), preview = await f.caller.entryRoster(async () => {});
+  const body = { serviceUrl: 'http://127.0.0.1:5271', endpointLabel: 'Owner', intent,
+    rosterFingerprint: preview.fingerprint, excludedCatIds: [] };
+  f.setRows(rows.map(row => ({ ...row, available: row.catId === 'cat-a' })));
+  const result = await f.caller.pair(body, intent.hostOrigin, async () => {});
+  assert.equal(result.status, 409);
+  assert.deepEqual(result.body, { code: 'ENTRY_ROSTER_CHANGED', error: '伙伴名单已更新，请重新确认。' });
+  assert.ok(f.calls.every(call => Array.isArray(call)), 'no Connector pair effect after the Host disabled a member');
+  const fresh = await f.caller.entryRoster(async () => {});
+  assert.deepEqual(fresh.cats.map(cat => cat.id), ['cat-a']);
+  assert.equal((await f.caller.pair({ ...body, rosterFingerprint: fresh.fingerprint }, intent.hostOrigin, async () => {})).status, 200);
 });
 test('pair rereads the actual Host roster before Connector effects and retains exclusion payload', async () => {
   const f = fixture(), roster = await f.caller.entryRoster(async () => {});

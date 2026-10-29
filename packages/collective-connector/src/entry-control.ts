@@ -14,7 +14,8 @@ interface ParticipationCat {
 }
 type RegisteredCat = Omit<PluginMember, 'catId' | 'supported'> & { readonly id: string };
 
-/** Owner-local registry projection. Eligibility is a policy check, not proof of a live model session. */
+/** Respect the Host member enable switch before applying Collective participation policy.
+ * Disabled members stay in this local projection so reconciliation can retain their history. */
 export function registeredCollectiveCats(
   cats: readonly RegisteredCat[],
   supportsParticipation: (catId: string) => boolean = () => true,
@@ -29,7 +30,7 @@ export function registeredCollectiveCats(
   return named.map(({ cat, displayName }) => ({
     id: cat.id,
     displayName: counts.get(displayName) === 1 ? displayName : `${displayName} · ${cat.id}`,
-    supported: supportsParticipation(cat.id),
+    supported: cat.available && supportsParticipation(cat.id),
     avatar: cat.avatar,
     roleDescription: cat.roleDescription,
     defaultModel: cat.defaultModel,
@@ -48,6 +49,7 @@ const pairBodySchema = z
 
 export function entryRoster(cats: readonly ParticipationCat[]) {
   const cards = [...cats]
+    .filter((cat) => cat.supported)
     .sort((left, right) => left.id.localeCompare(right.id))
     .map(({ id, displayName, supported, avatar, roleDescription, defaultModel }) => ({
       id,
