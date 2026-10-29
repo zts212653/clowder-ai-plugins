@@ -3,6 +3,7 @@ import { constants } from 'node:fs';
 import { link, mkdir, open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createSecret } from './business/service/persistence.js';
+import { syncDirectory } from './directory-durability.js';
 
 /** Constructed only from authenticated Host native context, never tool input.
  * This identifies a business reference; it is not a Host Task admission receipt. */
@@ -75,8 +76,7 @@ export async function openCollectiveContextReferences(
       catch (error) {
         if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'EEXIST') throw error;
       }
-      const directory = await open(dataDirectory, 'r');
-      try { await directory.sync(); } finally { await directory.close(); }
+      await syncDirectory(dataDirectory);
       assertActive();
       key = await readKey(path);
     } finally { await rm(temporary, { force: true }); }

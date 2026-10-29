@@ -887,8 +887,8 @@
       "sha256": "5e3700fcaa7faf7542982e2657286be3a652744c0f3d0ee64c311ed158ef00d9"
     },
     {
-      "path": "../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js",
-      "sha256": "1459b808bc6991de5a1ec3a86d8beee32dbb6c14282cf13f84e00dfebfbdc025"
+      "path": "../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.production.min.js",
+      "sha256": "cbf7fe6b9726ee65f8bcd5715289cc5161c8dacf74d0b8aaa0d29412516f5f47"
     },
     {
       "path": "../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/client.js",
@@ -907,12 +907,12 @@
       "sha256": "1c8d95723a74051c354dd4470fb669ae5269baf0ac62aa9b52c4516960ace5ee"
     },
     {
-      "path": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react-jsx-runtime.development.js",
-      "sha256": "581f93fa33c32b3aa7ea35b85b80258922517de046f5447236047dcc2845d9ff"
+      "path": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react-jsx-runtime.production.min.js",
+      "sha256": "76e3364c46895ed2c4a8d5cc332e5e4ef31d6f732d35b1e56826dc5895245452"
     },
     {
-      "path": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js",
-      "sha256": "1ff3a1d9861a87984329584fa1172aea920855d79eb57dae0d1cebe54093d7e3"
+      "path": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.production.min.js",
+      "sha256": "4b35e378f469c4f492c7514bb106b5833746dbbae80496bd4aa9acc6e9ac4b42"
     },
     {
       "path": "../../node_modules/.pnpm/react@18.3.1/node_modules/react/index.js",
@@ -963,8 +963,8 @@
       "sha256": "85f8d8985414613d2a64c4b6927e10ebd1edefe87a956190a1343dd833f689ef"
     },
     {
-      "path": "../../node_modules/.pnpm/scheduler@0.23.2/node_modules/scheduler/cjs/scheduler.development.js",
-      "sha256": "22e3d959dc9f9cd59fca4e1fc95fecb9fde4d2cb8ecadbd279137ada995983ac"
+      "path": "../../node_modules/.pnpm/scheduler@0.23.2/node_modules/scheduler/cjs/scheduler.production.min.js",
+      "sha256": "f6cb8cf42696980c702f6b879417ab8bd489660485eb012b46f67e92e18a78ee"
     },
     {
       "path": "../../node_modules/.pnpm/scheduler@0.23.2/node_modules/scheduler/index.js",
@@ -2444,7 +2444,7 @@
     },
     {
       "path": "scripts/build.mjs",
-      "sha256": "e3941053e5b5d59f3f7316b71adc6d39624fd6afc4f06acc07e7f1f011dc90e1"
+      "sha256": "8fdb0bb3ca62708eeb4b389e3f01109d2c8d67a6c0a14620046a81a7026954ad"
     },
     {
       "path": "src/BindingVoteCard.tsx",
@@ -2476,7 +2476,7 @@
     },
     {
       "path": "src/ChannelScene.tsx",
-      "sha256": "f9a1f567002dcc786eb1956aa32efca4ce4150334e7575ca3aaf9ad5959b3d2f"
+      "sha256": "d3ceb86acc6e0c05d837117647d4531c7579591edd0d241480479a17e76b5bbf"
     },
     {
       "path": "src/ChannelTopicContext.tsx",
@@ -2704,7 +2704,7 @@
     },
     {
       "path": "src/ProjectMaterialsContext.tsx",
-      "sha256": "1ce142f4421565f8c302c67ea1eb7fbaa3c648d9d275991ef85d9d162f8c8f71"
+      "sha256": "edcd1a2f77740f014688486c7ed493aa9f2adde0bc009474770a63606af66523"
     },
     {
       "path": "src/ProjectPanelChrome.tsx",
@@ -2896,7 +2896,7 @@
     },
     {
       "path": "src/client-request.ts",
-      "sha256": "c7a48a5c08f7f45b3964789eedf46ee6b6ac32d3f720987f00520a4ab09c14da"
+      "sha256": "9b169aadecdc00b152106dd70e3f520d58615dbad20b1275c5d072bebea0d058"
     },
     {
       "path": "src/collaboration-command-custody.ts",
@@ -2908,7 +2908,7 @@
     },
     {
       "path": "src/collective-artifact-client.ts",
-      "sha256": "05e214869c35a88f9fcd765b3190e537e8f851565bf93848e1544b9a4ae22ede"
+      "sha256": "3e2a3220e3cee5f00173e9abe3237f89060de32c286b96dedf74e6256da7db8b"
     },
     {
       "path": "src/collective-copy.ts",
@@ -3036,7 +3036,7 @@
     },
     {
       "path": "src/pairing-bridge.ts",
-      "sha256": "4dff29663427993b08bc7551bc39ebc1621ca63a7e3ffd9cacc1dccb0b5f0f92"
+      "sha256": "8258d527292f18c96a43b4a4da0c6080ca580f51c1af9ce8ea2efb3fa089ab58"
     },
     {
       "path": "src/participant-identity.ts",
@@ -3096,7 +3096,7 @@
     },
     {
       "path": "src/shared-artifact-management-client.ts",
-      "sha256": "ae37539774a4f29102f1c92411721dbd49fdedcee377b785d8b190d057559973"
+      "sha256": "58a4b7c7c40eefc033320d00faee655df8da65e7127a1425f1fc16606fcea53e"
     },
     {
       "path": "src/shared-artifact-member-label.ts",
@@ -3264,19 +3264,19 @@
     },
     {
       "path": "src/use-collective-artifacts.ts",
-      "sha256": "86d87f2f8e64f0434001f7aa95f2fc60a194e5ae55eefba1142dcadeca8dec00"
+      "sha256": "d0238cf1fb676382e53621ea3abbc330941057ec506c4dc9e768703fca20d0a5"
     },
     {
       "path": "src/use-collective-client.ts",
-      "sha256": "7077f35a1d06b0abbbbe91432968cff4ce42ed40916f1e7654a5c0da38b4e65a"
+      "sha256": "17362d1a59fd30b91c913a24063f46e71c4f0e20c157f88fb506d24ea5d6bd5a"
     },
     {
       "path": "src/use-collective-collaboration.ts",
-      "sha256": "e1bb28f01b3201e04d6aee9de802e598a75027684a680e0af178d31e6f75e213"
+      "sha256": "f76bb6409579ae1eb0f0f0bed11252ea2f1c4a80f587db14c5256bf2f6a6eeee"
     },
     {
       "path": "src/use-collective-refresh.ts",
-      "sha256": "eecf68f79f9ea48a5d98f5a63725414df3ab1fb0b525b48c0c2901834be865af"
+      "sha256": "19f3ef0a6888114d0f68b611ef196fec273dce3589972d8de26d869965b32186"
     },
     {
       "path": "src/use-collective-send.ts",
@@ -3304,7 +3304,7 @@
     },
     {
       "path": "src/use-host-context.ts",
-      "sha256": "fd652b98f4b46928e109243dff626f3a46dcfdccc5b687f7745974448f08e38a"
+      "sha256": "af99ac113ae4a6352bca47fbe448c514379081068ecfbc1a92b463f7718434e2"
     },
     {
       "path": "src/use-host-document-surface.ts",
@@ -3336,7 +3336,7 @@
     },
     {
       "path": "src/use-human-auth-session.ts",
-      "sha256": "9391c88e9e092daa42092c2b153edef623c61b4e80e3e424412a295718f24f41"
+      "sha256": "9d210dc0b6ef28ae8e3abceb61acc3899302dce32e0aa584c34043ce6993e6b9"
     },
     {
       "path": "src/use-project-artifact-references.ts",
@@ -3368,7 +3368,7 @@
     },
     {
       "path": "src/use-shared-artifact-management.ts",
-      "sha256": "9c89e232636ebfd9a06420e3170f7cb6d3351d72a8c235e57cdc1e333eb48e1d"
+      "sha256": "fa81d8f59a7fa463466ce3b30c748fee799df5927664122eac348d057fd5072d"
     },
     {
       "path": "src/use-shared-artifact-navigation.ts",

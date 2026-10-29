@@ -1,5 +1,5 @@
 import { rm } from 'node:fs/promises';
-import type {CollectiveClientAssets} from '../../client-assets.js';
+import {createCollectiveAssetResponder, type CollectiveClientAssets} from '../../client-assets.js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { maxCollectiveArtifactProposalEnvelopeBytes } from '../contracts/index.js';
@@ -44,6 +44,7 @@ interface CollectiveHttpHandlerOptions {
 export function createCollectiveHttpHandler(options: CollectiveHttpHandlerOptions) {
   const allowedOrigins = options.allowedHostOrigins instanceof Set ? options.allowedHostOrigins
     : new Set([...options.allowedHostOrigins].map(origin => new URL(origin).origin));
+  const serveAsset = createCollectiveAssetResponder(options.clientAssets);
   return async (request: IncomingMessage, response: ServerResponse) => {
     try {
       const documentNonce = randomBytes(18).toString('base64url');
@@ -65,14 +66,7 @@ export function createCollectiveHttpHandler(options: CollectiveHttpHandlerOption
           throw new CollectiveServiceError('HUMAN_CONTEXT_CHANGED', 'This private expression belongs to a different signed-in person', 409);
       }
       const assetPath = new URL(request.url ?? '/', 'http://collective.local').pathname;
-      const asset = options.clientAssets?.get(assetPath === '/' ? '/index.html' : assetPath);
-      if (request.method === 'GET' && asset) {
-        const bytes = asset.contentType.startsWith('text/html')
-          ? Buffer.from(asset.bytes.toString('utf8').replace('</head>', `<meta name="collective-widget-nonce" content="${documentNonce}"></head>`))
-          : asset.bytes;
-        response.writeHead(200, {'content-type': asset.contentType, 'content-length': bytes.length, 'x-content-type-options':'nosniff'}).end(bytes);
-        return;
-      }
+      if (serveAsset(request, response, assetPath, documentNonce)) return;
       await routeRequest(
         options.store,
         options.serviceOrigin,

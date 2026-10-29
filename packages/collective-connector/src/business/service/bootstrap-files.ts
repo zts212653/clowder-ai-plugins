@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { open, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { syncDirectory } from '../../directory-durability.js';
 import { createSecret } from './persistence.js';
 
 export async function readBootstrapSecret(path: string): Promise<string> {
@@ -58,13 +59,4 @@ export async function recoverBootstrapSecret(secretPath: string, linkPath: strin
     throw new Error('Restore the original private bootstrap credential');
   await writeFile(secretPath, secret + '\n', { flag: 'wx', mode: 0o600 });
   return secret;
-}
-
-async function syncDirectory(path: string) {
-  const handle = await open(path, 'r');
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
 }

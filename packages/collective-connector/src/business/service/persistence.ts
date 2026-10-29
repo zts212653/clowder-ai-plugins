@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { mkdir, open, readFile, rename } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+import { syncDirectory } from '../../directory-durability.js';
 import { type MutableServiceState, migrateServiceState, parseServiceState, type ServiceState } from './state.js';
 
 export const SERVICE_STATE_FILE = 'collective-service.json';
@@ -84,10 +85,5 @@ async function writeAtomic(filePath: string, state: ServiceState): Promise<void>
     await handle.close();
   }
   await rename(temporaryPath, filePath);
-  const directoryHandle = await open(dirname(filePath), 'r');
-  try {
-    await directoryHandle.sync();
-  } finally {
-    await directoryHandle.close();
-  }
+  await syncDirectory(dirname(filePath));
 }

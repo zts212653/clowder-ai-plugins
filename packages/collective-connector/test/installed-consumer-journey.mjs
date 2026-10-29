@@ -256,7 +256,11 @@ try {
     assert.equal(response.status, 200, file.path);
     assert.equal(response.headers.get('content-type'), file.contentType);
     const bytes = Buffer.from(await response.arrayBuffer());
-    assert.equal(Number(response.headers.get('content-length')), bytes.length);
+    // Fetch decodes gzip, while Content-Length describes the encoded wire body.
+    // The decoded manifest length and digest are still checked below for every public asset.
+    if (!response.headers.get('content-encoding')) {
+      assert.equal(Number(response.headers.get('content-length')), bytes.length);
+    }
     if (file.path === '/index.html') {
       const retained = await readFile(join(packageRoot, 'assets/client/index.html'));
       assert.equal(retained.length, file.size);

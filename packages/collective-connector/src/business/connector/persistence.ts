@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { type BigIntStats, constants, type Stats } from 'node:fs';
 import { lstat, mkdir, open, rename, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { syncDirectory } from '../../directory-durability.js';
 import {
   type ConnectorState,
   type MutableConnectorState,
@@ -134,12 +135,7 @@ async function writePrivateDocument(
   } finally {
     await rm(temporaryPath, { force: true });
   }
-  const directoryHandle = await open(dirname(filePath), 'r');
-  try {
-    await directoryHandle.sync();
-  } finally {
-    await directoryHandle.close();
-  }
+  await syncDirectory(dirname(filePath));
 }
 
 function serializeState(state: ConnectorState): string {
