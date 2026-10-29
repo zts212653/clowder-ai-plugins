@@ -498,7 +498,7 @@ test('packed public packages install and import in a fresh npm consumer', async 
     assert.deepEqual(videoGenerationPackage.bin, {
       'clowder-video-generation-mcp': './dist/mcp-entrypoint.js',
     });
-    assert.equal(weixinMpPackage.version, '0.1.0-alpha.6');
+    assert.equal(weixinMpPackage.version, '0.1.0-alpha.7');
     assert.equal(weixinMpPackage.dependencies['@clowder-ai/plugin-sdk'],
       JSON.parse(await readFile(join(repoRoot, 'packages/weixin-mp/package.json'), 'utf8')).dependencies['@clowder-ai/plugin-sdk']);
     assert.doesNotMatch(JSON.stringify(weixinMpPackage), /"workspace:/u);
