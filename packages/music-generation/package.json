@@ -1,6 +1,6 @@
 {
   "name": "@clowder-ai/music-generation",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "private": true,
   "description": "Unpublished Google Cloud music plugin candidate",
   "license": "MIT",
@@ -39,5 +39,9 @@
   "devDependencies": {
     "typescript": "^5.7.0",
     "@types/node": "^20.17.0"
-  }
+  },
+  "bundledDependencies": [
+    "@clowder-ai/plugin-sdk",
+    "@modelcontextprotocol/sdk"
+  ]
 }
