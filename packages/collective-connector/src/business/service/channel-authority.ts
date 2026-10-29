@@ -29,7 +29,7 @@ export function findChannel(
 }
 
 export function requirePublicChannel(state: ServiceState, collectiveId: string, channelId: string): ChannelRecord {
-  const channel = findChannel(state, collectiveId, channelId);
+  const channel = state.channels[channelRecordKey(collectiveId, channelId)];
   if (!channel) throw new CollectiveServiceError('CHANNEL_NOT_FOUND', 'Channel was not found', 404);
   return channel;
 }

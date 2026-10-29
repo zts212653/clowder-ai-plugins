@@ -3,6 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, expect, it } from 'vitest';
+import {
+  COLLECTIVE_CHANNEL_CREATE_LIMIT,
+  collectiveChannelListSchema,
+} from '../../contracts/index.js';
 import { type RunningCollectiveServer, startCollectiveServer } from '../http-server.js';
 import type { HumanAuthProvider } from '../human-auth-provider.js';
 import { CollectiveServiceStore } from '../store.js';
@@ -74,6 +78,17 @@ it('persists steward-created public channels and makes retries, duplicates, and 
       body: '普通成员也能在公开频道发言。',
     }),
   ).resolves.toMatchObject({ body: '普通成员也能在公开频道发言。', location: { channelId: '发布节奏' } });
+  for (const [index, channelId] of ['GENERAL', 'Ｇｅｎｅｒａｌ'].entries()) {
+    await expect(
+      opened.store.postHumanMessage(memberToken, {
+        serviceInstanceId: opened.store.serviceInstanceId,
+        collectiveId: collective.collectiveId,
+        clientEventId: `member-channel-alias-${index}`,
+        target: { kind: 'channel', channelId },
+        body: '近似名称不能成为新的频道坐标。',
+      }),
+    ).rejects.toMatchObject({ statusCode: 404, code: 'CHANNEL_NOT_FOUND' });
+  }
   await expect(
     post(
       server.url,
@@ -160,6 +175,72 @@ it('backfills general and historical event channels when an alpha.17 state first
     'general',
     '历史讨论',
   ]);
+});
+
+it('keeps a complete legacy directory readable beyond the managed creation limit', async () => {
+  const dataDirectory = await mkdtemp(join(tmpdir(), 'collective-channel-large-migration-'));
+  directories.push(dataDirectory);
+  const opened = await CollectiveServiceStore.open({ dataDirectory, humanAuthProvider: authProvider() });
+  const owner = await opened.store.consumeBootstrap({ secret: opened.bootstrapSecret ?? '', displayName: 'Landy' });
+  const collective = await opened.store.createCollective({ sessionToken: owner.sessionToken, name: '旧频道档案' });
+  await bindOwner(opened.store, owner.sessionToken);
+  await opened.store.postHumanMessage(owner.sessionToken, {
+    serviceInstanceId: opened.store.serviceInstanceId,
+    collectiveId: collective.collectiveId,
+    clientEventId: 'legacy-seed-event',
+    target: { kind: 'channel', channelId: 'general' },
+    body: '旧频道历史不能丢。',
+  });
+  const statePath = join(dataDirectory, 'collective-service.json');
+  const state = JSON.parse(await readFile(statePath, 'utf8')) as {
+    channels?: unknown;
+    events: Record<string, Array<Record<string, unknown>>>;
+    clientEventIndex: Record<string, string>;
+  };
+  delete state.channels;
+  const seed = state.events[collective.collectiveId]?.[0];
+  const seedClientEventId = seed?.clientEventId;
+  if (!seed || typeof seedClientEventId !== 'string') throw new Error('Expected one indexed historical event');
+  const seedIndexKey = Object.keys(state.clientEventIndex).find((key) => key.endsWith(`:${seedClientEventId}`));
+  if (!seedIndexKey) throw new Error('Expected the historical event index');
+  const indexPrefix = seedIndexKey.slice(0, -seedClientEventId.length);
+  const history = Array.from({ length: COLLECTIVE_CHANNEL_CREATE_LIMIT }, (_, index) => {
+    const channelId = `legacy-${index}`;
+    return {
+      ...seed,
+      eventId: `evt_legacy${String(index).padStart(5, '0')}`,
+      clientEventId: `legacy-event-${index}`,
+      sequence: index + 1,
+      target: { kind: 'channel', channelId },
+      location: { channelId },
+    };
+  });
+  state.events[collective.collectiveId] = history;
+  state.clientEventIndex = Object.fromEntries(
+    history.map((event) => [`${indexPrefix}${String(event.clientEventId)}`, String(event.eventId)]),
+  );
+  await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
+
+  const reopened = await CollectiveServiceStore.open({ dataDirectory, humanAuthProvider: authProvider() });
+  const channels = reopened.store.listChannels(owner.sessionToken, collective.collectiveId);
+  expect(channels).toHaveLength(COLLECTIVE_CHANNEL_CREATE_LIMIT + 1);
+  expect(channels.filter((channel) => channel.channelId.startsWith('legacy-'))).toHaveLength(
+    COLLECTIVE_CHANNEL_CREATE_LIMIT,
+  );
+  expect(
+    collectiveChannelListSchema.safeParse({
+      serviceInstanceId: reopened.store.serviceInstanceId,
+      collectiveId: collective.collectiveId,
+      channels,
+    }).success,
+  ).toBe(true);
+  await expect(
+    reopened.store.createChannel(owner.sessionToken, {
+      collectiveId: collective.collectiveId,
+      name: '超过新建上限',
+      clientOperationId: 'create-after-legacy-limit',
+    }),
+  ).rejects.toMatchObject({ statusCode: 409, code: 'CHANNEL_LIMIT_REACHED' });
 });
 
 async function bindOwner(store: CollectiveServiceStore, sessionToken: string) {

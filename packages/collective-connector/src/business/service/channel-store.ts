@@ -1,4 +1,5 @@
 import {
+  COLLECTIVE_CHANNEL_CREATE_LIMIT,
   collectiveChannelCreateRequestSchema,
   collectiveChannelNameKey,
   type CollectiveChannelCreateResponse,
@@ -51,7 +52,7 @@ export class CollectiveChannelStore {
       }
       const existing = findChannel(state, input.collectiveId, input.name);
       if (existing) return { status: 'existing', channel: projectChannel(state, existing) };
-      if (listChannelRecords(state, input.collectiveId).length >= 100) {
+      if (listChannelRecords(state, input.collectiveId).length >= COLLECTIVE_CHANNEL_CREATE_LIMIT) {
         throw new CollectiveServiceError('CHANNEL_LIMIT_REACHED', 'Collective channel limit was reached', 409);
       }
       const channel = {

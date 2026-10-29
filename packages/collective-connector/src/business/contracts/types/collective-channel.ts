@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { collectiveCoordinatesSchema, collectiveHumanActorSchema, collectiveIdSchema } from './collective.js';
 
 export const COLLECTIVE_CHANNEL_NAME_MAX = 40;
+export const COLLECTIVE_CHANNEL_CREATE_LIMIT = 100;
 
 export type CollectiveChannelNameIssue = 'empty' | 'too_long' | 'invalid_characters';
 
@@ -55,7 +56,7 @@ export const collectiveChannelProjectionSchema = collectiveCoordinatesSchema
   .strict();
 
 export const collectiveChannelListSchema = collectiveCoordinatesSchema
-  .extend({ channels: z.array(collectiveChannelProjectionSchema).max(100) })
+  .extend({ channels: z.array(collectiveChannelProjectionSchema) })
   .strict();
 
 export const collectiveChannelCreateRequestSchema = z
