@@ -38,7 +38,7 @@ SDK 公开方法是接口边界，不再按插件 ID 或 feature 能力数组复
 | `context.threads.create({title,parentThreadId?,participants?})` | 创建普通线程；父线程存在时继承项目；返回摘要 | 普通用户线程写入规则 | 写失败不自动重试；成功后业务绑定由插件 storage 管理；响应异常后允许重新创建并覆盖映射 |
 | `context.threads.update(id,{title?,preferredCats?})` | 修改标题或偏好，返回摘要 | 普通用户线程写入规则 | preferredCats 是偏好，不等同实际参与者 |
 | `context.threads.addParticipants({threadId,catIds})` | 添加实际线程参与者，返回摘要 | 普通用户线程写入规则 | Host 复用成员与线程资源校验 |
-| `context.members.list()`、`context.members.get(catId)` | 同一成员目录的列表／单行或 null；catId/displayName/defaultModel/available，及可选 nickname/variantLabel/roleDescription/avatar | 当前实例与普通成员目录 | available 是 quota 事实，不是某插件操作的支持证明；实际调用由 Host 判断 |
+| `context.members.list()`、`context.members.get(catId)` | 同一成员目录的列表／单行或 null；catId/displayName/defaultModel/available，及可选 nickname/variantLabel/roleDescription/avatar | 当前实例与普通成员目录 | available 是 Host 的成员启用/可用状态，当前与成员设置的启停开关同源；不证明实时额度、Provider 在线或某插件操作受支持，实际调用仍由 Host 判断 |
 | `context.messaging.get(messageId)` | 标准 PluginMessage 或 null，正文、结构化块、来源 meta、时间及修订 | 普通用户消息可见性 | 消息元数据是数据，不能制造权限 |
 | `context.messaging.send(threadId,draft)` | 保存可见消息，返回 messageId/threadId；可声明 identity、replyTo、媒体及 wake:auto／catId | 声明身份；当前实例与目标线程 | 普通入站 send+wake 一次完成；按 idempotencyKey 重放原写入 |
 | `context.messaging.subscribe(threadId,options?)`、`unsubscribe(threadId)` | 声明允许的消息订阅／撤销；options 含 contributionId/includeOwnMessages | 声明的订阅 contribution 与方法 | 与实例启停绑定，消息回调见下一节 |
