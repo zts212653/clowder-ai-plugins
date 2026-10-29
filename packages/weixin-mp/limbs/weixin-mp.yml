@@ -12,8 +12,8 @@ auth:
   tokenEndpoint: /token
   tokenParams:
     grant_type: client_credential
-    appid: ${WEIXIN_MP_APP_ID}
-    secret: ${WEIXIN_MP_APP_SECRET}
+    appid: ${appId}
+    secret: ${appSecret}
   tokenResponsePath: access_token
   tokenPlacement: query
   tokenParamName: access_token

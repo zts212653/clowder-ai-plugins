@@ -40,6 +40,17 @@ test('manifest and package metadata remain one exact package truth', async () =>
     transport: 'builtin',
     entrypoint: 'dist/plugin-entrypoint.js',
   });
+  const limb = parse(await readFile(new URL('../limbs/weixin-mp.yml', import.meta.url), 'utf8')) as {
+    auth?: { tokenParams?: Record<string, string> };
+  };
+  const declaredConfigurationKeys = new Set(manifest.configuration.map(({ key }) => key));
+  const referencedAuthenticationKeys = Object.values(limb.auth?.tokenParams ?? {})
+    .flatMap((template) => [...template.matchAll(/\$\{([^}]+)\}/g)].map((match) => match[1]));
+  assert.deepEqual(
+    referencedAuthenticationKeys.filter((key) => !declaredConfigurationKeys.has(key)),
+    [],
+    'limb authentication templates must reference declared plugin configuration keys',
+  );
   const lock = JSON.parse(await readFile(new URL('../npm-shrinkwrap.json', import.meta.url), 'utf8'));
   const sdkDependency = packageJson.dependencies['@clowder-ai/plugin-sdk'];
   assert.ok(sdkDependency, 'SDK dependency must be declared');
