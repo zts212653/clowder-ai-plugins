@@ -396,14 +396,14 @@
       ],
       "versions": [
         {
-          "version": "0.1.0-alpha.22",
+          "version": "0.1.0-alpha.23",
           "contractVersion": "0.3.2-candidate.0",
           "manifestPath": "plugin.yaml",
           "artifact": {
             "kind": "npm",
             "packageName": "@clowder-ai/collective-connector",
-            "version": "0.1.0-alpha.22",
-            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.22.tgz",
+            "version": "0.1.0-alpha.23",
+            "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.23.tgz",
             "integrity": "sha512-0iFmOHJb/cBd+tAieoV8fVjrdjt8T5FbOmlJoHsxcXPkdg0yUK1R7AZrfKedBTbxsgqIYcHAxnayAjsseSMFVA==",
             "shasum": "66b162b7596616ed4beda3fcd2c8e990896dd0a5",
             "provenance": {
