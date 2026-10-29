@@ -4,6 +4,11 @@ import { CollectiveServiceStore } from '../store.js';
 
 it('persists one draft per Human/channel, rejects concurrent overwrites and ignores an old send ACK', async () => {
   const f = await artifactFixture();
+  await f.store.createChannel(f.owner.sessionToken, {
+    collectiveId: f.coordinates.collectiveId,
+    name: 'other',
+    clientOperationId: 'draft-other-channel',
+  });
   const content = { body: '我的私人草稿', recipient: { kind: 'channel' }, recipientLabel: '' };
   const input = { ...f.coordinates, channelId: 'general', expectedRevision: 0, clientOperationId: 'draft-A-1', content };
   const saved = await f.post('/api/channel-state/draft', f.owner.sessionToken, input);
@@ -30,6 +35,11 @@ it('persists one draft per Human/channel, rejects concurrent overwrites and igno
 
 it('consumes only the exact sent draft and advances read position monotonically from a same-channel message', async () => {
   const f = await artifactFixture();
+  await f.store.createChannel(f.owner.sessionToken, {
+    collectiveId: f.coordinates.collectiveId,
+    name: 'other',
+    clientOperationId: 'read-other-channel',
+  });
   const coordinates = { ...f.coordinates, channelId: 'general' };
   const content = { body: '发送后草稿清空', recipient: { kind: 'channel' }, recipientLabel: '' };
   const saved = await f.post('/api/channel-state/draft', f.member.sessionToken,

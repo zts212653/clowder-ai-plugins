@@ -4,6 +4,7 @@ import { collectiveHumanChannelCoordinatesSchema, collectiveSaveComposerDraftSch
   type CollectiveEventEnvelope, type CollectiveHumanMessageRequest } from '../contracts/index.js';
 import { provenEventLocation } from './event-location.js';
 import { CollectiveServiceError } from './errors.js';
+import { requirePublicChannel } from './channel-authority.js';
 import { attachmentHuman, denyAttachment, validateMessageAttachments } from './message-attachment-authority.js';
 import { validateMessageQuotes } from './message-quote-authority.js';
 import type { PersistentServiceState } from './persistence.js';
@@ -17,6 +18,7 @@ function readKey(humanId: string, input: { collectiveId: string; channelId: stri
   return JSON.stringify([input.collectiveId, humanId, input.channelId]);
 }
 function requireChannel(state: ServiceState, input: { collectiveId: string; channelId: string; rootEventId?: string }) {
+  requirePublicChannel(state, input.collectiveId, input.channelId);
   if (!input.rootEventId) return;
   const events = state.events[input.collectiveId] ?? [];
   const root = events.find(event => event.eventId === input.rootEventId);

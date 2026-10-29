@@ -17,6 +17,7 @@ import type {
 } from '../contracts/index.js';
 
 import { CollectiveServiceError } from './errors.js';
+import { requirePublicChannel } from './channel-authority.js';
 import { resolveEventAddress } from './event-location.js';
 import { requireMembership } from './identity-store.js';
 import { requireParticipant } from './participation-store.js';
@@ -55,6 +56,7 @@ export interface AppendEventInput {
 export function appendEvent(state: MutableServiceState, input: AppendEventInput): CollectiveEventEnvelope {
   const events = state.events[input.coordinates.collectiveId] ?? [];
   const address = resolveEventAddress(events, input.coordinates);
+  requirePublicChannel(state, input.coordinates.collectiveId, address.location.channelId);
   validateMessageQuotes(state, input.coordinates);
   validateMessageAttachments(state, { collectiveId: input.coordinates.collectiveId,
     humanId: input.actor.kind === 'human' ? input.actor.humanId : input.actor.human.humanId,

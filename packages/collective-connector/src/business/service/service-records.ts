@@ -34,6 +34,18 @@ export interface CollectiveRecord {
   readonly createdAt: string;
 }
 
+export interface ChannelRecord {
+  readonly v: 1;
+  readonly collectiveId: string;
+  readonly channelId: string;
+  readonly visibility: 'public';
+  readonly createdByHumanId: string;
+  readonly createdAt: string;
+  readonly revision: 1;
+  readonly createdVia: 'bootstrap' | 'migration' | 'human';
+  readonly clientOperationId?: string;
+}
+
 export interface MembershipRecord {
   readonly collectiveId: string;
   readonly humanId: string;
@@ -163,6 +175,7 @@ export interface ServiceState {
   readonly humanAuthAttempts: Record<string, HumanAuthAttemptRecord>;
   readonly humanAuthCompletions: Record<string, HumanAuthCompletionRecord>;
   readonly collectives: Record<string, CollectiveRecord>;
+  readonly channels: Record<string, ChannelRecord>;
   readonly memberships: Record<string, MembershipRecord>;
   readonly invites: Record<string, InviteRecord>;
   readonly pairingIntents: Record<string, PairingIntentRecord>;

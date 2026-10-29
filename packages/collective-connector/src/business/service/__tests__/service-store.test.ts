@@ -125,6 +125,7 @@ describe('CollectiveServiceStore', () => {
       reactions?: unknown;
       workResultFiles?: unknown;
       collaborationOperations?: unknown;
+      channels?: unknown;
       connections: Record<string, Record<string, unknown>>;
     };
     persisted.schemaVersion = 1;
@@ -149,6 +150,7 @@ describe('CollectiveServiceStore', () => {
     delete persisted.reactions;
     delete persisted.workResultFiles;
     delete persisted.collaborationOperations;
+    delete persisted.channels;
     delete persisted.connections[connection.connectionId]?.authorizedHumanId;
     await writeFile(filePath, `${JSON.stringify(persisted, null, 2)}\n`);
 
@@ -226,6 +228,7 @@ describe('CollectiveServiceStore', () => {
     delete persisted.reactions;
     delete persisted.workResultFiles;
     delete persisted.collaborationOperations;
+    delete persisted.channels;
     for (const legacyConnection of Object.values(persisted.connections)) {
       delete legacyConnection.authorizedHumanId;
       delete legacyConnection.revocationReason;

@@ -34,6 +34,11 @@ it('keeps uploads private, publishes exact references once, survives Service res
     },
   };
   const f = await artifactFixture({ messageAttachmentOwner });
+  await f.store.createChannel(f.owner.sessionToken, {
+    collectiveId: f.coordinates.collectiveId,
+    name: 'other',
+    clientOperationId: 'message-attachment-other-channel',
+  });
   const bytes = Buffer.from('跨成员读取，刷新后仍在');
   const query = new URLSearchParams({ ...f.coordinates, channelId: 'general', clientUploadId: 'paste-two-remove-one',
     fileName: 'notes.txt', mediaType: 'text/plain', blobDigest: `sha256:${createHash('sha256').update(bytes).digest('hex')}` });

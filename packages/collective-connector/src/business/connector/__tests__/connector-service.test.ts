@@ -683,6 +683,11 @@ describe('official Collective Connector', () => {
 
   it('persists desired policy, observed eligibility, and shared Channel materialization across restart', async () => {
     const fixture = await createFixture();
+    await fixture.store.createChannel(fixture.ownerSessionToken, {
+      collectiveId: fixture.collectiveId,
+      name: 'private',
+      clientOperationId: 'connector-service-private-channel',
+    });
     const connector = await openConnector(fixture.connectorDirectory);
     const connection = await connector.pair({
       serviceUrl: fixture.server.url,

@@ -29,6 +29,11 @@ it('a declared participant can read ordinary Channel text without changing its a
     };
     expect(f.store.readParticipationContext(f.connection.endpointCredential, read).source).toEqual(source);
     expect(f.store.listCollectiveCollaboration(f.owner.sessionToken, f.coordinates.collectiveId).works).toEqual([]);
+    await f.store.createChannel(f.owner.sessionToken, {
+      collectiveId: f.coordinates.collectiveId,
+      name: 'other',
+      clientOperationId: 'communication-listening-other-channel',
+    });
     const forbidden = await f.store.postHumanMessage(f.owner.sessionToken, {
       ...f.coordinates,
       clientEventId: 'elsewhere',

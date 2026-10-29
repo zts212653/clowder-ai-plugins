@@ -52,7 +52,7 @@ const metadataResponseSchema = z
     serviceInstanceId: z.string(),
     clientBuildId: z.string().trim().min(1).max(120),
     capabilities: z
-      .object({ workResultFiles: z.literal(1).optional() })
+      .object({ workResultFiles: z.literal(1).optional(), channels: z.literal(1).optional() })
       .strict()
       .optional(),
   })
@@ -166,7 +166,7 @@ export class CollectiveServiceClient {
   async readMetadata(serviceUrl: string): Promise<{
     serviceInstanceId: string;
     clientBuildId: string;
-    capabilities?: { workResultFiles?: 1 };
+    capabilities?: { workResultFiles?: 1; channels?: 1 };
   }> {
     const parsed = metadataResponseSchema.safeParse(await this.request(serviceUrl, '/api/meta'));
     if (!parsed.success) throw new ConnectorTransportError('Service metadata is invalid');

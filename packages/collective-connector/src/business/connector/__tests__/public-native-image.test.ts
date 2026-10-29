@@ -105,6 +105,11 @@ it('rejects private staging, another event, bad context refs and revoked endpoin
 it('does not let a current Channel context read a published image in another Channel', async () => {
   const f = await setup();
   try {
+    await f.store.createChannel(f.serviceOwner.sessionToken, {
+      collectiveId: f.scope.collectiveId,
+      name: 'other',
+      clientOperationId: 'native-image-other-channel',
+    });
     const other = await f.stage('other');
     const event = await f.store.postHumanMessage(f.serviceOwner.sessionToken, { ...f.scope,
       clientEventId: 'other-image', location: { channelId: 'other' }, recipient: { kind: 'channel' }, body: '', attachments: [other] });

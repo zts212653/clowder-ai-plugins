@@ -14,6 +14,7 @@ export * from './types/collective-artifact-media-read.js';
 export * from './types/collective-artifact-operations.js';
 export * from './types/collective-artifact-publication.js';
 export * from './types/collective-artifact-relay.js';
+export * from './types/collective-channel.js';
 export * from './types/collective-collaboration.js';
 export * from './types/collective-collaboration-identifiers.js';
 export * from './types/collective-content-modification.js';

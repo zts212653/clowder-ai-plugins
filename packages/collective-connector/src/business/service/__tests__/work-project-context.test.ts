@@ -20,6 +20,11 @@ it('projects only visible Projects and dependency outcomes into a Cat Work conte
     revision: 1,
     agents: [{ catId: 'codex-sol', displayName: '小太阳 · 砚砚', channelIds: ['general'] }],
   });
+  await current.store.createChannel(current.owner.sessionToken, {
+    collectiveId: current.coordinates.collectiveId,
+    name: 'private-planning',
+    clientOperationId: 'work-project-private-planning-channel',
+  });
 
   const visibleProject = await current.store.createCollectiveProject(current.owner.sessionToken, {
     ...current.coordinates,
