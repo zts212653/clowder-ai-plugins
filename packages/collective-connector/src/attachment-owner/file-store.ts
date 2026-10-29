@@ -4,6 +4,7 @@ import { lstat, mkdir, mkdtemp, open, rename, rm, type FileHandle } from 'node:f
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
+import { syncDirectory } from '../directory-durability.js';
 import { collectiveAttachmentScopeSchema, collectiveMessageAttachmentSchema } from '../business/contracts/index.js';
 
 const recordSchema = z
@@ -101,13 +102,5 @@ async function durableWrite(path: string, bytes: Buffer) {
     await file.sync();
   } finally {
     await file.close();
-  }
-}
-async function syncDirectory(path: string) {
-  const directory = await open(path, 'r');
-  try {
-    await directory.sync();
-  } finally {
-    await directory.close();
   }
 }

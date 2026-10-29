@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 
 import { z } from 'zod';
 
+import { syncDirectory } from '../../directory-durability.js';
 import { CollectiveServiceError } from './errors.js';
 import { ConfigurableGitHubHumanAuthProvider, type GitHubOAuthCredentials } from './github-human-auth-provider.js';
 import { createSecret, digestSecret, secretMatches } from './persistence.js';
@@ -222,12 +223,7 @@ async function writePrivateJson(path: string, value: unknown): Promise<void> {
     await handle.close();
   }
   await rename(temporaryPath, path);
-  const directory = await open(dirname(path), 'r');
-  try {
-    await directory.sync();
-  } finally {
-    await directory.close();
-  }
+  await syncDirectory(dirname(path));
 }
 
 function isMissingFile(error: unknown): boolean {
