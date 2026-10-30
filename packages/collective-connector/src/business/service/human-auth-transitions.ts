@@ -128,7 +128,10 @@ function acceptInviteIdentity(
   if (!human) throw new CollectiveServiceError('AUTH_IDENTITY_CONFLICT', 'Bound Human identity is missing', 409);
   const existingMembership = state.memberships[membershipKey(invite.collectiveId, human.humanId)];
   if (existingMembership?.status === 'active') {
-    throw new CollectiveServiceError('AUTH_IDENTITY_CONFLICT', 'Human is already a Collective member', 409);
+    // An existing member may follow the same link without consuming another person's invitation.
+    upsertBinding(state, human, provider, identity, existingBinding?.bindingId, now);
+    refreshHumanProfile(human, identity);
+    return { human, collectiveId: invite.collectiveId };
   }
   upsertBinding(state, human, provider, identity, existingBinding?.bindingId, now);
   refreshHumanProfile(human, identity);
@@ -165,7 +168,9 @@ export function validateInvite(
   invite: MutableServiceState['invites'][string] | ServiceState['invites'][string] | undefined,
   now: number,
 ): asserts invite is MutableServiceState['invites'][string] | ServiceState['invites'][string] {
-  if (!invite || invite.consumedAt) throw new CollectiveServiceError('INVITE_INVALID', 'Invite is invalid', 401);
+  if (!invite || invite.consumedAt || invite.revokedAt) {
+    throw new CollectiveServiceError('INVITE_INVALID', 'Invite is invalid', 401);
+  }
   if (Date.parse(invite.expiresAt) < now) {
     throw new CollectiveServiceError('INVITE_EXPIRED', 'Invite expired', 410);
   }

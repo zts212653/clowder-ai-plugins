@@ -54,6 +54,16 @@ export async function routeCollectiveRead(
     });
     return true;
   }
+  if (url.pathname === '/api/invites') {
+    const cursor = url.searchParams.get('cursor');
+    writeJson(response, 200, store.listInvites({
+      sessionToken: requireBearer(request),
+      collectiveId: requiredQuery(url, 'collectiveId'),
+      limit: numberQuery(url, 'limit', 20),
+      ...(cursor ? { cursor } : {}),
+    }));
+    return true;
+  }
   if (url.pathname === '/api/members') {
     writeJson(response, 200, store.listMembers(requireBearer(request), requiredQuery(url, 'collectiveId')));
     return true;

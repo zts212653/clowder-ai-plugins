@@ -15,6 +15,7 @@ import { requirePublicChannel } from './channel-authority.js';
 import { requireHumanAuthBinding, requireMembership, resolveSession } from './identity-store.js';
 import type { PersistentServiceState } from './persistence.js';
 import type { ServiceState } from './state.js';
+import { projectParticipants } from './member-projection.js';
 
 export interface ParticipationRecord extends CollectiveParticipationDeclaration {
   readonly publishedAt: string;
@@ -93,29 +94,7 @@ export class CollectiveParticipationStore {
     const { human } = resolveSession(state, sessionToken);
     requireHumanAuthBinding(state, human.humanId);
     requireMembership(state, collectiveId, human.humanId);
-    return Object.values(state.participations)
-      .filter((declaration) => declaration.collectiveId === collectiveId)
-      .flatMap((declaration) => {
-        const connection = state.connections[declaration.connectionId];
-        const owner = connection?.authorizedHumanId ? state.humans[connection.authorizedHumanId] : undefined;
-        if (!connection || !owner) return [];
-        const membership = state.memberships[`${collectiveId}:${owner.humanId}`];
-        return declaration.agents.map((agent) => ({
-          serviceInstanceId: state.serviceInstanceId,
-          collectiveId,
-          connectionId: connection.connectionId,
-          endpointId: connection.endpointId,
-          endpointLabel: connection.endpointLabel,
-          humanId: owner.humanId,
-          humanDisplayName: owner.displayName,
-          ...agent,
-          participationRevision: declaration.revision,
-          availability:
-            connection.status === 'connected' && membership?.status === 'active'
-              ? ('declared' as const)
-              : ('revoked' as const),
-        }));
-      });
+    return projectParticipants(state, collectiveId);
   }
 
   readContext(endpointCredential: string, unsafeInput: unknown, readerVersion = '2') {

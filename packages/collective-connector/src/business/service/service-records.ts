@@ -70,7 +70,10 @@ export interface InviteRecord {
   readonly tokenDigest: string;
   readonly expiresAt: string;
   readonly createdAt: string;
+  /** Older invitations predate creator tracking; do not infer their inviter. */
+  readonly createdByHumanId?: string;
   readonly consumedAt?: string;
+  readonly revokedAt?: string;
 }
 
 export interface PairingIntentRecord {
