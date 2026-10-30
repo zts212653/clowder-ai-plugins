@@ -404,8 +404,8 @@
             "packageName": "@clowder-ai/collective-connector",
             "version": "0.1.0-alpha.23",
             "tarballUrl": "https://registry.npmjs.org/@clowder-ai/collective-connector/-/collective-connector-0.1.0-alpha.23.tgz",
-            "integrity": "sha512-TCiuxROOZBOvgZOUIlkVzsVN1rJyxQxLv7p//UuNIS7PzsVp/da53jXDmnJtzPbGJPpf74en9/HXQPIbzkLk7w==",
-            "shasum": "773f1619954d6c579d899a1f97e132b854f50442",
+            "integrity": "sha512-0d54V0ATE4ALkS500HxCavDnifxvGxuc749Gt1d/G/XDMmDNngZ2hjvSJiXUfHrmoK6A/CQlgifw2TiVTGkoOQ==",
+            "shasum": "8e7da9e93e4b915580b1948403671b2e3bf46882",
             "provenance": {
               "repository": "https://github.com/zts212653/clowder-ai-plugins",
               "sourceDirectory": "packages/collective-connector"
