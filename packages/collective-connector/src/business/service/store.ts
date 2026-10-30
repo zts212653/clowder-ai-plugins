@@ -1,6 +1,6 @@
-import { CollectiveProjectArtifactStore } from './project-artifact-store.js';
-import { access } from 'node:fs/promises';
+import { access, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { establishPrivateDirectoryAccess } from '../../private-path-access.js';
 import type { LocalRecoverySnapshot } from '../connector/recovery-proof.js';
 import type { CollectiveMessageAttachmentOwnerPort } from '../contracts/message-attachment-owner.js';
 import type { CollectiveMaterialSourcePort } from '../contracts/types/collective-material.js';
@@ -35,6 +35,7 @@ import {
   SERVICE_STATE_FILE,
   secretMatches,
 } from './persistence.js';
+import { CollectiveProjectArtifactStore } from './project-artifact-store.js';
 import { readProjectAttention } from './project-attention.js';
 import { CollectiveProjectMaterialStore } from './project-material-store.js';
 import { readProjectSource, suggestMaterial } from './project-source.js';
@@ -112,6 +113,8 @@ export class CollectiveServiceStore {
 
   static async open(options: OpenCollectiveServiceStoreOptions): Promise<OpenedCollectiveServiceStore> {
     const now = options.now ?? Date.now;
+    await mkdir(options.dataDirectory, { recursive: true, mode: 0o700 });
+    await establishPrivateDirectoryAccess(options.dataDirectory);
     const stateFile = join(options.dataDirectory, SERVICE_STATE_FILE);
     try {
       await access(stateFile);

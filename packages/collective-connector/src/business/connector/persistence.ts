@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { isDeepStrictEqual } from 'node:util';
-import { type BigIntStats, constants, type Stats } from 'node:fs';
+import { type BigIntStats, constants } from 'node:fs';
 import { lstat, mkdir, open, rename, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { syncDirectory } from '../../directory-durability.js';
+import { establishPrivateDirectoryAccess, type PrivatePathBoundary } from '../../private-path-access.js';
 import {
   type ConnectorState,
   type MutableConnectorState,
@@ -16,19 +17,22 @@ export const CONNECTOR_STATE_FILE = 'collective-connector.json';
 export class ConnectorPersistence {
   readonly filePath: string;
   #state: ConnectorState;
+  readonly #privatePath: PrivatePathBoundary;
   #tail: Promise<void> = Promise.resolve();
 
-  private constructor(filePath: string, state: ConnectorState) {
+  private constructor(filePath: string, state: ConnectorState, privatePath: PrivatePathBoundary) {
     this.filePath = filePath;
     this.#state = state;
+    this.#privatePath = privatePath;
   }
 
   static async open(dataDirectory: string): Promise<ConnectorPersistence> {
     const filePath = join(dataDirectory, CONNECTOR_STATE_FILE);
     await mkdir(dataDirectory, { recursive: true, mode: 0o700 });
-    await assertPrivateDirectory(dataDirectory);
+    const privatePath = await establishPrivateDirectoryAccess(dataDirectory);
+    await assertPrivateDirectory(dataDirectory, privatePath);
     try {
-      const contents = await readPrivateRegularFile(filePath);
+      const contents = await readPrivateRegularFile(filePath, privatePath);
       const raw = JSON.parse(contents.toString('utf8')) as unknown;
       const state = structuredClone(migrateConnectorState(raw)) as MutableConnectorState;
       const normalized = !isDeepStrictEqual(raw, state);
@@ -45,17 +49,21 @@ export class ConnectorPersistence {
           recovered = true;
         }
       }
-      const persistence = new ConnectorPersistence(filePath, state);
+      const persistence = new ConnectorPersistence(filePath, state, privatePath);
       if (recovered || normalized) await persistence.write(state);
       return persistence;
     } catch (error) {
       if (!isMissingFile(error)) throw error;
-      const persistence = new ConnectorPersistence(filePath, {
-        schemaVersion: 3,
-        connections: {},
-        legacyConnections: [],
-        hostRoutes: {},
-      });
+      const persistence = new ConnectorPersistence(
+        filePath,
+        {
+          schemaVersion: 3,
+          connections: {},
+          legacyConnections: [],
+          hostRoutes: {},
+        },
+        privatePath,
+      );
       await persistence.write(persistence.#state);
       return persistence;
     }
@@ -99,10 +107,10 @@ export class ConnectorPersistence {
 
   private async backingFileMatches(serialized: string): Promise<boolean> {
     const directory = dirname(this.filePath);
-    await assertPrivateDirectory(directory);
+    await assertPrivateDirectory(directory, this.#privatePath);
     try {
-      const bytes = await readPrivateRegularFile(this.filePath);
-      await assertPrivateDirectory(directory);
+      const bytes = await readPrivateRegularFile(this.filePath, this.#privatePath);
+      await assertPrivateDirectory(directory, this.#privatePath);
       return bytes.equals(Buffer.from(serialized, 'utf8'));
     } catch (error) {
       if (isMissingFile(error)) return false;
@@ -111,16 +119,17 @@ export class ConnectorPersistence {
   }
 
   private async write(state: ConnectorState, assertCurrent?: () => Promise<void>): Promise<void> {
-    await writePrivateDocument(this.filePath, serializeState(state), assertCurrent);
+    await writePrivateDocument(this.filePath, serializeState(state), this.#privatePath, assertCurrent);
   }
 }
 
 async function writePrivateDocument(
   filePath: string,
   serialized: string,
+  privatePath: PrivatePathBoundary,
   assertCurrent?: () => Promise<void>,
 ): Promise<void> {
-  await assertPrivateDirectory(dirname(filePath));
+  await assertPrivateDirectory(dirname(filePath), privatePath);
   const temporaryPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
   const handle = await open(temporaryPath, 'wx', 0o600);
   try {
@@ -142,29 +151,24 @@ function serializeState(state: ConnectorState): string {
   return `${JSON.stringify(state, null, 2)}\n`;
 }
 
-async function assertPrivateDirectory(path: string): Promise<void> {
+async function assertPrivateDirectory(path: string, privatePath: PrivatePathBoundary): Promise<void> {
   const metadata = await lstat(path);
   if (!metadata.isDirectory()) {
     throw new Error(`Collective Connector data directory must be a private regular directory`);
   }
-  assertOwned(metadata);
-  if ((metadata.mode & 0o077) !== 0) {
-    throw new Error(`Collective Connector data directory permissions must be private (mode 0700)`);
-  }
+  privatePath.assertMetadata(metadata, {
+    owner: 'Collective Connector private state must be owned by the current user',
+    mode: 'Collective Connector data directory permissions must be private (mode 0700)',
+  });
 }
 
-function assertOwned(metadata: Pick<Stats | BigIntStats, 'uid'>): void {
-  const uid = process.geteuid?.() ?? process.getuid?.();
-  if (uid !== undefined && Number(metadata.uid) !== uid)
-    throw new Error(`Collective Connector private state must be owned by the current user`);
-}
-
-function assertPrivateRegularFile(metadata: BigIntStats): void {
+function assertPrivateRegularFile(metadata: BigIntStats, privatePath: PrivatePathBoundary): void {
   if (!metadata.isFile())
     throw new Error(`Collective Connector credential state must be a private regular file`);
-  assertOwned(metadata);
-  if ((metadata.mode & 0o077n) !== 0n)
-    throw new Error(`Collective Connector credential state permissions must be private (mode 0600)`);
+  privatePath.assertMetadata(metadata, {
+    owner: 'Collective Connector private state must be owned by the current user',
+    mode: 'Collective Connector credential state permissions must be private (mode 0600)',
+  });
 }
 
 function sameFile(left: BigIntStats, right: BigIntStats): boolean {
@@ -177,20 +181,20 @@ function sameFile(left: BigIntStats, right: BigIntStats): boolean {
   );
 }
 
-async function readPrivateRegularFile(path: string): Promise<Buffer> {
+async function readPrivateRegularFile(path: string, privatePath: PrivatePathBoundary): Promise<Buffer> {
   const pathMetadata = await lstat(path, { bigint: true });
-  assertPrivateRegularFile(pathMetadata);
+  assertPrivateRegularFile(pathMetadata, privatePath);
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const before = await handle.stat({ bigint: true });
-    assertPrivateRegularFile(before);
+    assertPrivateRegularFile(before, privatePath);
     if (!sameFile(pathMetadata, before))
       throw new Error('Collective Connector private file changed before read');
     const bytes = await handle.readFile();
     const after = await handle.stat({ bigint: true });
     const canonical = await lstat(path, { bigint: true });
-    assertPrivateRegularFile(after);
-    assertPrivateRegularFile(canonical);
+    assertPrivateRegularFile(after, privatePath);
+    assertPrivateRegularFile(canonical, privatePath);
     if (!sameFile(before, after) || !sameFile(after, canonical) || BigInt(bytes.length) !== after.size)
       throw new Error('Collective Connector private file changed during read');
     return bytes;
