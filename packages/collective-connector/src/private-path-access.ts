@@ -31,6 +31,11 @@ if ([String]::IsNullOrWhiteSpace($rootPath)) { throw 'Private root was not provi
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 try { $currentSid = $identity.User } finally { $identity.Dispose() }
 if ($null -eq $currentSid) { throw 'Current Windows user has no SID' }
+$trustedOwnerSids = @(
+  $currentSid.Value,
+  'S-1-5-32-544', # BUILTIN\Administrators can own files created by an elevated process.
+  'S-1-5-18'      # LocalSystem can own provisioned service files.
+)
 
 function Assert-NotReparsePoint([System.IO.FileSystemInfo] $item) {
   if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
@@ -52,8 +57,18 @@ function New-PrivateRule([bool] $isDirectory) {
   )
 }
 
-function Set-PrivateAcl([System.IO.FileSystemInfo] $item) {
+function Get-TrustedPrivateAcl([System.IO.FileSystemInfo] $item) {
+  Assert-NotReparsePoint $item
   $acl = Get-Acl -LiteralPath $item.FullName -ErrorAction Stop
+  $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier])
+  if ($trustedOwnerSids -notcontains $owner.Value) {
+    throw ('Private tree item has an untrusted owner ' + $owner.Value + ': ' + $item.FullName)
+  }
+  return $acl
+}
+
+function Set-PrivateAcl([System.IO.FileSystemInfo] $item) {
+  $acl = Get-TrustedPrivateAcl $item
   $acl.SetAccessRuleProtection($true, $false)
   foreach ($rule in @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))) {
     [void] $acl.RemoveAccessRuleSpecific([System.Security.AccessControl.FileSystemAccessRule] $rule)
@@ -66,7 +81,7 @@ function Set-PrivateAcl([System.IO.FileSystemInfo] $item) {
 }
 
 function Test-PrivateAcl([System.IO.FileSystemInfo] $item, [bool] $requireProtected) {
-  $acl = Get-Acl -LiteralPath $item.FullName -ErrorAction Stop
+  $acl = Get-TrustedPrivateAcl $item
   if ($requireProtected -and -not $acl.AreAccessRulesProtected) { return $false }
   if (-not $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Equals($currentSid)) { return $false }
   $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier]))
@@ -105,6 +120,11 @@ $root = Get-Item -Force -LiteralPath $rootPath -ErrorAction Stop
 if (-not ($root -is [System.IO.DirectoryInfo])) { throw 'Private root is not a directory' }
 Assert-NotReparsePoint $root
 $descendants = @(Get-PrivateDescendants $root)
+# Validate every existing owner before the first ACL mutation. A later per-item
+# recheck in Set/Test closes the ordinary replacement window; an untrusted tree
+# is rejected without adopting its pre-existing secrets or state.
+[void] (Get-TrustedPrivateAcl $root)
+foreach ($item in $descendants) { [void] (Get-TrustedPrivateAcl $item) }
 $unsafeDescendants = @($descendants | Where-Object { -not (Test-PrivateAcl $_ $false) })
 if ((Test-PrivateAcl $root $true) -and $unsafeDescendants.Count -eq 0) { exit 0 }
 

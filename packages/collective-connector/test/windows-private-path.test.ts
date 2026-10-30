@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
 
 import { ConnectorPersistence } from '../src/business/connector/persistence.js';
+import { GitHubAppManifestSetup } from '../src/business/service/github-app-manifest-setup.js';
+import { ConfigurableGitHubHumanAuthProvider } from '../src/business/service/github-human-auth-provider.js';
 import { CollectiveServiceStore } from '../src/business/service/index.js';
 import { SERVICE_STATE_FILE } from '../src/business/service/persistence.js';
 import { openCollectiveContextReferences } from '../src/collective-context-refs.js';
@@ -14,27 +16,85 @@ import { openCollectiveContextReferences } from '../src/collective-context-refs.
 const execFileAsync = promisify(execFile);
 
 test(
-  'Windows repairs an open Service tree before first boot and recovery reads',
+  'Windows repairs an explicitly open child after the root is already private',
   { skip: process.platform !== 'win32' },
   async (t) => {
     const directory = await privateFixture(t, 'collective-windows-service-');
+    const first = await CollectiveServiceStore.open({ dataDirectory: directory });
     const existing = join(directory, 'preexisting-secret.json');
     await writeFile(existing, '{"secret":true}\n');
-    await grantEveryoneRead(directory);
+    await grantEveryoneExplicitRead(existing);
+    assertPrivateAcl(await inspectAcl(directory), true);
     assert.equal(
-      (await inspectAcl(directory)).rules.some((rule) => rule.sid === 'S-1-1-0'),
+      (await inspectAcl(existing)).rules.some((rule) => rule.sid === 'S-1-1-0'),
       true,
     );
 
-    const first = await CollectiveServiceStore.open({
-      dataDirectory: directory,
-    });
     assert.equal(first.store.getMetadata().bootstrapNeeded, true);
     await CollectiveServiceStore.open({ dataDirectory: directory });
 
     assertPrivateAcl(await inspectAcl(directory), true);
     assertPrivateAcl(await inspectAcl(existing), true);
     assertPrivateAcl(await inspectAcl(join(directory, SERVICE_STATE_FILE)), false);
+  },
+);
+
+test(
+  'Windows GitHub App setup establishes and reopens the same private tree',
+  { skip: process.platform !== 'win32' },
+  async (t) => {
+    const directory = await privateFixture(t, 'collective-windows-github-app-');
+    const setup = await GitHubAppManifestSetup.open({
+      dataDirectory: directory,
+      provider: new ConfigurableGitHubHumanAuthProvider({}),
+      createSecret: () => 's'.repeat(43),
+    });
+    await setup.begin({
+      serviceInstanceId: 'svc_windows_private_path',
+      serviceUrl: 'http://127.0.0.1:5201',
+      humanAuthCallbackUrl: 'http://127.0.0.1:5201/api/auth/github/callback',
+      setupCallbackUrl: 'http://127.0.0.1:5201/api/setup/github-app/callback',
+    });
+    await GitHubAppManifestSetup.open({
+      dataDirectory: directory,
+      provider: new ConfigurableGitHubHumanAuthProvider({}),
+    });
+    assertPrivateAcl(await inspectAcl(directory), true);
+    assertPrivateAcl(await inspectAcl(join(directory, 'github-app-setup.json')), false);
+  },
+);
+
+test(
+  'Windows refuses a junction before reading private state',
+  { skip: process.platform !== 'win32' },
+  async (t) => {
+    const directory = await privateFixture(t, 'collective-windows-junction-root-');
+    const target = await privateFixture(t, 'collective-windows-junction-target-');
+    await symlink(target, join(directory, 'outside'), 'junction');
+    await rejectsWithDiagnostic(
+      CollectiveServiceStore.open({ dataDirectory: directory }),
+      /reparse point/i,
+    );
+  },
+);
+
+test(
+  'Windows refuses an untrusted existing owner without adopting the tree',
+  { skip: process.platform !== 'win32' },
+  async (t) => {
+    const directory = await privateFixture(t, 'collective-windows-untrusted-owner-');
+    const untrustedSid = 'S-1-5-19';
+    if (!(await isElevated())) {
+      t.skip('Changing owner requires an elevated Windows runner');
+      return;
+    }
+    await setOwner(directory, untrustedSid);
+    assert.equal((await inspectAcl(directory)).owner, untrustedSid);
+    await rejectsWithDiagnostic(
+      CollectiveServiceStore.open({ dataDirectory: directory }),
+      /untrusted owner/i,
+    );
+    assert.equal((await inspectAcl(directory)).owner, untrustedSid);
   },
 );
 
@@ -92,6 +152,63 @@ async function privateFixture(t: { after(fn: () => Promise<void>): void }, prefi
 
 async function grantEveryoneRead(path: string): Promise<void> {
   await execFileAsync('icacls.exe', [path, '/grant', '*S-1-1-0:(OI)(CI)R']);
+}
+
+async function grantEveryoneExplicitRead(path: string): Promise<void> {
+  await execFileAsync('icacls.exe', [path, '/inheritance:r', '/grant:r', '*S-1-1-0:R']);
+}
+
+async function setOwner(path: string, sid: string): Promise<void> {
+  await execFileAsync('icacls.exe', [path, '/setowner', `*${sid}`]);
+}
+
+async function isElevated(): Promise<boolean> {
+  const script = `
+$identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+try {
+  $principal = [System.Security.Principal.WindowsPrincipal]::new($identity)
+  if ($principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) { exit 0 }
+  exit 1
+} finally { $identity.Dispose() }
+`;
+  const systemRoot = process.env.SystemRoot?.trim();
+  assert.ok(systemRoot, 'Windows elevation probe requires SystemRoot');
+  const executable = join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+  try {
+    await execFileAsync(executable, [
+      '-NoLogo',
+      '-NoProfile',
+      '-NonInteractive',
+      '-EncodedCommand',
+      Buffer.from(script, 'utf16le').toString('base64'),
+    ]);
+    return true;
+  } catch (error) {
+    if ((error as { readonly code?: unknown }).code === 1) return false;
+    throw error;
+  }
+}
+
+async function rejectsWithDiagnostic(operation: Promise<unknown>, pattern: RegExp): Promise<void> {
+  await assert.rejects(operation, (error) => {
+    assert.match(errorDiagnostic(error), pattern);
+    return true;
+  });
+}
+
+function errorDiagnostic(value: unknown): string {
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  let current = value;
+  while (current instanceof Error && !seen.has(current)) {
+    seen.add(current);
+    messages.push(current.message);
+    const details = current as Error & { readonly cause?: unknown; readonly stderr?: unknown };
+    if (typeof details.stderr === 'string') messages.push(details.stderr);
+    if (Buffer.isBuffer(details.stderr)) messages.push(details.stderr.toString('utf8'));
+    current = details.cause;
+  }
+  return messages.join('\n');
 }
 
 async function inspectAcl(path: string): Promise<AclInspection> {

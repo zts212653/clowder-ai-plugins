@@ -33,7 +33,7 @@
   "scripts": {
     "build": "pnpm clean && tsc -p tsconfig.build.json && node ../../scripts/package-bins.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
-    "test:lifecycle": "node --import tsx --test test/module-lifecycle.test.ts test/remote-lifecycle.test.ts test/standalone-service.test.mjs",
+    "test:lifecycle": "node --import tsx --test test/module-lifecycle.test.ts test/remote-lifecycle.test.ts test/standalone-service.test.mjs test/windows-private-path.test.ts",
     "test:transport": "node --import tsx --test test/transport-recovery.test.ts",
     "test:business": "vitest run --maxWorkers=2 src/business src/attachment-owner",
     "test:installed": "node --test test/installed-directory.test.mjs",

@@ -58,10 +58,24 @@ describe('private path boundary', () => {
     ).not.toThrow();
     expect(() =>
       boundary.assertMetadata(
-        { ...metadata, mode: metadata.mode | 0o077 },
+        { ...metadata, uid: Number(metadata.uid) + 1 },
+        { owner: 'wrong owner', mode: 'open mode' },
+      ),
+    ).toThrow('wrong owner');
+    expect(() =>
+      boundary.assertMetadata(
+        { ...metadata, mode: metadata.mode | 0o070 },
         { owner: 'wrong owner', mode: 'open mode' },
       ),
     ).toThrow('open mode');
+  });
+
+  it('rejects an existing POSIX root that is not mode 0700', async () => {
+    const directory = await temporaryDirectory();
+    await chmod(directory, 0o750);
+    await expect(establishPrivateDirectoryAccessForPlatform(directory, 'linux', async () => {})).rejects.toThrow(
+      'mode 0700',
+    );
   });
 });
 
