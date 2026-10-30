@@ -1,0 +1,13 @@
+{
+  "pluginId": "official.codeagent",
+  "version": "0.1.0-beta.4",
+  "contractVersion": "0.1.0",
+  "name": "CodeAgent",
+  "description": "使用本机已安装并登录的 CodeAgent ACP 入口，启用后可直接绑定项目角色。",
+  "features": [
+    { "id": "codeagent", "name": "CodeAgent ACP", "resources": [], "capabilities": ["plugin.config.read"] }
+  ],
+  "configuration": [
+    { "key": "connection", "label": "CodeAgent 连接", "kind": "string", "required": false, "default": "{}", "description": "默认直接使用 codeagent --acp；特殊程序路径、参数、引导目录及显式权限模式在此保存，角色身份分别设置。" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@clowder-ai/codeagent",
+  "version": "0.1.0-beta.4",
+  "description": "CodeAgent ACP provider for Clowder AI",
+  "type": "module",
+  "license": "MIT",
+  "files": ["manifest.json", "agent-provider.json", "README.md", "README.en.md"],
+  "scripts": {
+    "build": "node --test test/package.test.mjs",
+    "test": "node --test test/package.test.mjs",
+    "typecheck": "node --test test/package.test.mjs",
+    "lint": "node --test test/package.test.mjs"
+  }
+}

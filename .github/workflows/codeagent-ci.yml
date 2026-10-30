@@ -1,0 +1,38 @@
+name: CodeAgent package
+
+on:
+  pull_request:
+    paths:
+      - 'packages/codeagent/**'
+      - '.github/workflows/codeagent-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/codeagent/**'
+      - '.github/workflows/codeagent-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  packed-contract:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Test source declaration
+        working-directory: packages/codeagent
+        run: node --test test/package.test.mjs
+      - name: Verify the packed artifact in an empty consumer
+        shell: bash
+        working-directory: packages/codeagent
+        run: |
+          mkdir -p "$RUNNER_TEMP/codeagent-packed"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/codeagent-packed"
+          (cd "$RUNNER_TEMP/codeagent-packed" && tar -xzf ./*.tgz)
+          CODEAGENT_PACKAGE_DIR="$RUNNER_TEMP/codeagent-packed/package" node --test test/package.test.mjs

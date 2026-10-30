@@ -1,0 +1,6 @@
+{
+  "id": "codeagent",
+  "transport": "acp",
+  "configurationKey": "connection",
+  "acp": { "command": "codeagent", "startupArgs": ["--acp"], "permissionPolicy": "deny" }
+}

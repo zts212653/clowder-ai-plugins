@@ -1,0 +1,23 @@
+# CodeAgent
+
+[中文](README.md)
+
+Install and authenticate the native CodeAgent client on the Host computer first. This data-only package does not install the native client or copy credentials/history.
+
+Install this package directory (`packages/codeagent`, not the repository root) or its packed tgz in Settings → Plugins. Enable the plugin, choose CodeAgent as a project member's tool, save the member, and send a message. Connection overrides are optional.
+
+The default command is `codeagent --acp`. No preset or empty configuration save is needed. Several members can select the same client while keeping separate identities and sessions. The Host supplies project/session context and authorized Clowder MCP.
+
+Use the existing plugin configuration to override the executable, arguments (one per line), bootstrap directory or ACP permission response. Find a native executable on the Host with `Get-Command codeagent -All | Select-Object Source`; enter its path without extra quotes. Overrides such as `{"command":"D:/Tools/CodeAgent/codeagent.exe"}` persist in the Host project and affect subsequent executions of members referencing this plugin. Unspecified fields inherit package defaults; member identities remain separate.
+
+The bootstrap directory holds Host-generated startup files, not the native binary or the project. Leave it automatic or check an absolute directory on the Host computer. Inspection may create a private subdirectory; it does not change ancestor/system-drive ACLs. Windows trust and restricted audit recovery are Host deployment policies, outside plugin authority.
+
+ACP permission requests default to `deny`. The matching Host currently has no interactive ACP approval channel; `auto_allow` requires an explicit owner choice. This is separate from native CodeAgent bypass, MCP grants and bootstrap trust. Native bypass is optional and explicit: arguments `--acp`, `--permission-mode`, `bypassPermission`, `--allow-dangerously-skip-permissions`. Arbitrary environment overrides are unsupported; never put secrets in argv or the package. Native account, endpoint, model and certificate configuration remain owned by CodeAgent.
+
+Existing library (`plugin:official.acp-clients/<id>`) and native bindings are preserved. This plugin uses `plugin:official.codeagent/codeagent` and never merges bindings by executable name. Disable blocks new calls without deleting roles/configuration/history; re-enable or correct the same configuration to recover without reinstalling.
+
+Version `0.1.0-beta.4` requires fixed ACP declarations with `configurationKey` overrides. [Host PR #1745](https://github.com/zts212653/clowder-ai/pull/1745) provides this on `develop` at `f27e6b0f40b119f43b68312b0dcb28ecf12b2121`, without the role-client refactor. Older static-only Hosts reject it. A develop merge does not establish availability in a stable installer; an installer version number alone is insufficient. See the [Host guide](https://github.com/zts212653/clowder-ai/blob/f27e6b0f40b119f43b68312b0dcb28ecf12b2121/docs/ops/codeagent-main-acp-plugin.md). This package remains an unpublished candidate.
+
+Members may follow CodeAgent's model setting or select a model actually reported by the client. An unreported default stays unconfirmed; a readable catalog is not proof of a successful model request. Refresh the member configuration after connection changes and check actual adoption. Native system/persona support is unverified: the generic ACP compatibility path still sends identity context together with the user task. A static declaration does not complete native identity integration.
+
+The paired public Host already has `CAT_CAFE_WINDOWS_ACP_BOOTSTRAP_MODE=strict|trusted-host` (default strict) and separate `CAT_CAFE_ACP_BOOTSTRAP_CONFIG_AUDIT_MODE=required|warn-bootstrap-root` (default required). If needed, select these explicitly in persistent Host deployment configuration and restart the API; this plugin never writes or switches them. Trusted-host skips ancestor trust while retaining checks on the directory itself and its path. Audit recovery has additional existing-client/root-only restrictions and does not cover command, argument or permission changes. See the [Host policy guide](https://github.com/zts212653/clowder-ai/blob/f27e6b0f40b119f43b68312b0dcb28ecf12b2121/docs/ops/acp-trusted-host-compatibility.md). This package does not deliver one-time preparation, offline provisioning or intranet distribution configuration, and does not change ancestor/system-drive ACLs. Packed-artifact and Host lifecycle evidence remain separate from real enterprise CodeAgent model/MCP/collaboration acceptance.
