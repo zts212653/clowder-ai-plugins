@@ -1,0 +1,8 @@
+{
+  "configurationKey": "clients",
+  "presets": [
+    { "id": "dsh", "name": "DeepSeek Harness", "command": "dsh", "startupArgs": ["--profile", "acp"] },
+    { "id": "claude", "name": "Claude Code（ACP 桥）", "command": "claude-agent-acp", "startupArgs": [] },
+    { "id": "pi", "name": "pi（Clowder ACP 桥，含 MCP）", "command": "clowder-pi-acp", "startupArgs": [] }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@clowder-ai/pi-acp",
+  "version": "0.1.0-beta.1",
+  "description": "Pi ACP adapter with session-scoped native MCP forwarding for Clowder AI",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "bin": { "clowder-pi-acp": "dist/index.js" },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": { "build": "node scripts/build.mjs", "test": "node --test test/*.test.mjs", "prepack": "npm run build" },
+  "dependencies": { "@agentclientprotocol/sdk": "0.26.0", "cross-spawn": "7.0.6", "zod": "3.25.76" },
+  "devDependencies": { "pi-acp": "0.0.34" }
+}

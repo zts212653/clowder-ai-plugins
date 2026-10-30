@@ -15,6 +15,8 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
+  packages/acp-clients: {}
+
   packages/collective-connector:
     dependencies:
       '@clowder-ai/plugin-contract':
@@ -447,6 +449,22 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
 
+  packages/pi-acp:
+    dependencies:
+      '@agentclientprotocol/sdk':
+        specifier: 0.26.0
+        version: 0.26.0(zod@3.25.76)
+      cross-spawn:
+        specifier: 7.0.6
+        version: 7.0.6
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+    devDependencies:
+      pi-acp:
+        specifier: 0.0.34
+        version: 0.0.34
+
   packages/plugin-contract:
     dependencies:
       ajv:
@@ -627,6 +645,11 @@ packages:
 
   '@acemir/cssom@0.9.31':
     resolution: {integrity: sha512-ZnR3GSaH+/vJ0YlHau21FjfLYjMpYVIzTD8M8vIEQvIGxeOXyXdzCI140rrCY862p/C/BbzWsjc1dgnM9mkoTA==}
+
+  '@agentclientprotocol/sdk@0.26.0':
+    resolution: {integrity: sha512-ialrcI+RzKOYe+fw+TfpyTdRmEoqIkXLlwbTi6XgaXXfdhNcdod7TmE1VsTnG3yTlox8TMTSMQgWbLLbz3r86Q==}
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
 
   '@asamuzakjp/css-color@5.1.11':
     resolution: {integrity: sha512-KVw6qIiCTUQhByfTd78h2yD1/00waTmm9uy/R7Ck/ctUyAPj+AEDLkQIdJW0T8+qGgj3j5bpNKK7Q3G+LedJWg==}
@@ -2052,6 +2075,11 @@ packages:
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
 
+  pi-acp@0.0.34:
+    resolution: {integrity: sha512-MrCp37UbpUzkTkzTIMJQf1RYrT+kr4fgGDGFoLmBN26UupuCZp0XxVIY+7XYsMo3yDnzDeZUJ0jPyM3Si6Bkkg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -2542,6 +2570,10 @@ packages:
 snapshots:
 
   '@acemir/cssom@0.9.31': {}
+
+  '@agentclientprotocol/sdk@0.26.0(zod@3.25.76)':
+    dependencies:
+      zod: 3.25.76
 
   '@asamuzakjp/css-color@5.1.11':
     dependencies:
@@ -3858,6 +3890,12 @@ snapshots:
   path-to-regexp@8.4.2: {}
 
   pathe@2.0.3: {}
+
+  pi-acp@0.0.34:
+    dependencies:
+      '@agentclientprotocol/sdk': 0.26.0(zod@3.25.76)
+      cross-spawn: 7.0.6
+      zod: 3.25.76
 
   picocolors@1.1.1: {}
 

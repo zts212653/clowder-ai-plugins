@@ -1,0 +1,13 @@
+{
+  "pluginId": "official.acp-clients",
+  "version": "0.1.0-beta.2",
+  "contractVersion": "0.1.0",
+  "name": "ACP 客户端目录",
+  "description": "配置本机已安装的 ACP client，在项目成员中选择后使用。支持命令、exe 或解释器加脚本路径。",
+  "features": [
+    { "id": "clients", "name": "ACP 客户端配置", "resources": [], "capabilities": ["plugin.config.read"] }
+  ],
+  "configuration": [
+    { "key": "clients", "label": "ACP 客户端", "kind": "string", "required": false, "default": "[]", "description": "命名 client 列表，由 Host 提供结构化编辑器。凭据由各 client 管理。" }
+  ]
+}
