@@ -12,7 +12,6 @@ import {
 	type PluginHostActionContext,
 	type PluginModuleDefinition,
 } from "@clowder-ai/plugin-sdk";
-import { z } from "zod";
 import { DotConnection, type DotSettingsHost } from "./connection.js";
 import { createDotWebhookSender, type DotWebhookSend } from "./dot-webhook.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
@@ -21,7 +20,6 @@ export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
 }
-const beginInput = z.object({ reconnect: z.boolean().optional() }).strict();
 export function createDotPlugin(
 	options: DotPluginOptions = {},
 ): PluginModuleDefinition {
@@ -74,12 +72,11 @@ export function createDotPlugin(
 			const controller = new AbortController(),
 				[current] = await connection(host as DotSettingsHost, controller);
 			const actions: Record<string, PluginActionHandler> = {
-				"dot.begin": async (input, _native, context) => ({
+				"dot.begin": async (_input, _native, context) => ({
 					render: "text",
-					data: await current.begin(
-						context,
-						beginInput.parse(input ?? {}).reconnect ?? false,
-					),
+					// Host supplies configuration/operation metadata here. Preparing is
+					// idempotent; only the separately confirmed reconnect action rotates it.
+					data: await current.begin(context),
 				}),
 				"dot.reconnect": async (_input, _native, context) => ({
 					render: "text",

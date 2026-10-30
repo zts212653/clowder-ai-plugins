@@ -71,8 +71,8 @@ test("forged callback targets, changed source and stale pairing cannot grant a r
 		(await rpc(f, "cat_cafe_dot_read_source", { event_id: event.eventId }))
 			.error,
 	);
-	await f.settings.actions["dot.begin"](
-		{ reconnect: true },
+	await f.settings.actions["dot.reconnect"](
+		{},
 		undefined,
 		f.owner,
 	);

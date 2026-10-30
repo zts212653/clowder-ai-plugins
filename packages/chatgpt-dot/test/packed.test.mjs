@@ -82,10 +82,10 @@ test("canonical archive installs offline and survives two independently material
     messaging:{subscribe:async()=>assert.fail('unexpected global subscription'),unsubscribe:async()=>{},get:async()=>assert.fail('unexpected message read'),send:async()=>assert.fail('unexpected message send')},
     threads:{get:async()=>assert.fail('unexpected thread read'),create:async()=>assert.fail('unexpected thread creation'),getCats:async()=>assert.fail('unexpected member lookup'),readMessages:async()=>assert.fail('unexpected history read')}};
    const owner={kind:'owner-operation',pluginInstanceId:host.pluginInstanceId,userId:'owner',operationKey:'connection',actionId:'begin',requestId:'request',signal:new AbortController().signal,assertCurrent:async()=>{}};
-   const settings=await module.settings(host),first=(await settings.actions['dot.begin']({},undefined,owner)).data;
+   const settings=await module.settings(host),first=(await settings.actions['dot.begin']({input:{webhookProxyUrl:''},operationState:{currentAction:'status',updatedAt:1}},undefined,owner)).data;
    await settings.dispose();const active=await module.start(host);assert.equal(typeof active.deliver,'function');assert.equal(typeof active.handle,'function');
    assert.equal((await active.actions['dot.test']({},undefined,owner)).ok,false);await active.stop({reason:'disabled'});
-   const secondSettings=await module.settings(host),second=(await secondSettings.actions['dot.begin']({},undefined,owner)).data;
+   const secondSettings=await module.settings(host),second=(await secondSettings.actions['dot.begin']({input:{webhookProxyUrl:''},operationState:{currentAction:'begin',updatedAt:2}},undefined,owner)).data;
    assert.equal(first.attemptId,second.attemptId);assert.deepEqual(first.external,host.external);
    await secondSettings.dispose();const restarted=await module.start(host);await restarted.stop({reason:'uninstall'});await module.uninstall(host);
    console.log(JSON.stringify({offlineInstall:true,setup:true,enableStopRestart:true,retained:true}));
