@@ -155,7 +155,8 @@ async function grantEveryoneRead(path: string): Promise<void> {
 }
 
 async function grantEveryoneExplicitRead(path: string): Promise<void> {
-  await execFileAsync('icacls.exe', [path, '/inheritance:r', '/grant:r', '*S-1-1-0:R']);
+  await execFileAsync('icacls.exe', [path, '/inheritance:d']);
+  await execFileAsync('icacls.exe', [path, '/grant', '*S-1-1-0:R']);
 }
 
 async function setOwner(path: string, sid: string): Promise<void> {
