@@ -49,10 +49,6 @@ export async function collectiveOwnerParticipationView(options: ViewOptions, aut
   const registeredCats = options.cats();
   const profiles = new Map(registeredCats.map((cat) => [cat.id, cat]));
   const cats = currentParticipationCats(auth.route?.observedEligibility ?? {}, registeredCats);
-  const ownerThreads = (await options.threads.list(auth.userId)).filter(
-    (thread) => !thread.deletedAt,
-  );
-  const ownerThreadById = new Map(ownerThreads.map((thread) => [thread.id, thread]));
   const workByEvent = new Map<string, string>();
   for (const item of inbox) {
     const notice = item.event.workExecutionNotice ?? item.event.workAcceptanceNotice;
@@ -66,16 +62,27 @@ export async function collectiveOwnerParticipationView(options: ViewOptions, aut
       if (choice) workByEvent.set(item.event.eventId, choice.work.workId);
     }
   }
-  const taskSummaries = tasks.flatMap((task) => {
+  const referencedThreadIds = new Set(
+    inbox.flatMap((item) => item.routeReceipt?.kind === 'thread_message' ? [item.routeReceipt.threadId] : []),
+  );
+  if (auth.route) {
+    referencedThreadIds.add(auth.route.defaultIngressThreadId);
+    referencedThreadIds.add(auth.route.humanNotificationThreadId);
+    for (const binding of Object.values(auth.route.agentRoutes)) referencedThreadIds.add(binding.threadId);
+    for (const endpoint of Object.values(auth.route.channelRoutes)) referencedThreadIds.add(endpoint.threadId);
+  }
+  const taskSourceRefs = new Map<string, readonly string[]>();
+  for (const task of tasks) {
     const work = task.entrustedWork;
-    if (work) return task.userId === auth.userId && work.admission.sourceRefs.some(ref => sources.has(ref))
-      ? [{id: task.id, title: task.title, threadId: task.threadId, status: task.status,
-          revision: work.revision, closure: work.closure.state, sourceRefs: work.admission.sourceRefs}]
-      : [];
-    const thread = ownerThreadById.get(task.threadId);
-    if ((task.userId !== null && task.userId !== auth.userId) || !task.ownerCatId ||
-      !thread?.participants.includes(task.ownerCatId)) return [];
-    const sourceRefs = inbox.flatMap(item => {
+    if (work) {
+      if (task.userId === auth.userId && work.admission.sourceRefs.some((ref) => sources.has(ref))) {
+        taskSourceRefs.set(task.id, work.admission.sourceRefs);
+        referencedThreadIds.add(task.threadId);
+      }
+      continue;
+    }
+    if ((task.userId !== null && task.userId !== auth.userId) || !task.ownerCatId) continue;
+    const sourceRefs = inbox.flatMap((item) => {
       const workId = workByEvent.get(item.event.eventId);
       const recipient = item.event.recipient;
       return workId && task.subjectKey === `collective-work:${auth.connection.connectionId}:${workId}` &&
@@ -83,10 +90,27 @@ export async function collectiveOwnerParticipationView(options: ViewOptions, aut
         recipient.agentId === task.ownerCatId && item.routeReceipt?.kind === 'thread_message'
         ? [`message:${item.routeReceipt.messageId}`] : [];
     });
+    if (sourceRefs.length) {
+      taskSourceRefs.set(task.id, sourceRefs);
+      referencedThreadIds.add(task.threadId);
+    }
+  }
+  const ownerThreads = (await options.threads.list(auth.userId, [...referencedThreadIds])).filter(
+    (thread) => !thread.deletedAt,
+  );
+  const ownerThreadById = new Map(ownerThreads.map((thread) => [thread.id, thread]));
+  const taskSummaries = tasks.flatMap((task) => {
+    const sourceRefs = taskSourceRefs.get(task.id);
+    if (!sourceRefs) return [];
+    const work = task.entrustedWork;
+    if (work) return [{id: task.id, title: task.title, threadId: task.threadId, status: task.status,
+      revision: work.revision, closure: work.closure.state, sourceRefs}];
+    const thread = ownerThreadById.get(task.threadId);
+    if (!task.ownerCatId || !thread?.participants.includes(task.ownerCatId)) return [];
     // These are the same UI fields used before migration. updatedAt is the
     // ordinary Task's observed version, not an execution/authorization revision.
-    return sourceRefs.length ? [{id: task.id, title: task.title, threadId: task.threadId, status: task.status,
-      revision: task.updatedAt, closure: task.status === 'done' ? 'satisfied' : 'open', sourceRefs}] : [];
+    return [{id: task.id, title: task.title, threadId: task.threadId, status: task.status,
+      revision: task.updatedAt, closure: task.status === 'done' ? 'satisfied' : 'open', sourceRefs}];
   });
   const requestItems = inbox.filter(
     (item) =>

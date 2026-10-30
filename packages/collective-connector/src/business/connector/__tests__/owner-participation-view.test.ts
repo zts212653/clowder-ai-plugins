@@ -6,6 +6,7 @@ import { type PluginTaskReadItem, type ModulePluginHostShape } from '@clowder-ai
 import entrypoint from '../../../plugin-entrypoint.js';
 import { fixture } from './communication-work-custody.fixture.js';
 import { ownerRequestExecution } from '../../../collective-owner-request-progress.js';
+import { readCollectiveOwnerThreadCandidates } from '../../../owner-participation-caller.js';
 
 const manifest = parse(await readFile(new URL('../../../../plugin.yaml', import.meta.url), 'utf8'));
 
@@ -45,8 +46,37 @@ test('the original browser accepted-result operation has an owner webhook declar
   expect(manifest.features.find((f: {id: string}) => f.id === 'collective-work').contributions)
     .toContainEqual({type: 'webhook', id: declaration.id});
 });
+
+test('owner thread candidates are read completely across the Host single-request bound', async () => {
+  const ids = Array.from({ length: 5_001 }, (_, index) => `thread-${index}`);
+  const batchSizes: number[] = [];
+  const summary = (id: string) => ({
+    id,
+    title: id,
+    deepLinkUrl: `/thread/${id}`,
+    createdAt: 1,
+    lastActiveAt: 1,
+    preferredCats: [],
+    featureRefs: [],
+  });
+  const rows = await readCollectiveOwnerThreadCandidates({
+    async list({ threadIds }) {
+      batchSizes.push(threadIds.length);
+      expect(threadIds.length).toBeLessThanOrEqual(1_000);
+      return threadIds.map(summary);
+    },
+    async get(id) { return summary(id); },
+    async getCats() { return { participants: [], routableNow: [], routableNotJoined: [], notRoutable: [] }; },
+  }, ids, async () => {});
+  expect(batchSizes).toEqual([1_000, 1_000, 1_000, 1_000, 1_000, 1]);
+  expect(rows).toHaveLength(ids.length);
+  expect(rows[0]?.id).toBe(ids[0]);
+  expect(rows.at(-1)?.id).toBe(ids.at(-1));
+});
+
 async function setup(taskHost?: ModulePluginHostShape['tasks']) {
   const f = await fixture(); let stale = false, reads = 0, bodyReads = 0;
+  let threadListReads = 0, threadGetReads = 0, threadCatReads = 0;
   let deliveryStatus: 'queued'|'delivered'|'canceled'|undefined;
   const current = async () => { if (stale) throw new Error('Owner view expired'); };
   const sourceMessageId = 'view-source';
@@ -73,9 +103,9 @@ async function setup(taskHost?: ModulePluginHostShape['tasks']) {
     tasks: taskHost ?? { get: unused, create: unused, update: unused,
       bindDataController: unused, revokeDataController: unused,
       async list(filter) { await current(); expect(filter).toEqual({kind:'work'}); reads++; return tasks; } },
-    threads: { async get(id){const row=rows.find(row=>row.id===id&&row.createdBy==='local-owner');return row?{id:row.id,title:row.title,deepLinkUrl:'/thread/'+row.id,createdAt:0,lastActiveAt:0,preferredCats:[],featureRefs:[]}:null;},readMessages: unused,async getCats(id){return {participants:(rows.find(row=>row.id===id)?.participants??[]).map(catId=>({catId,displayName:catId,aliases:[],lastMessageAt:0,messageCount:0})),routableNow:[],routableNotJoined:[],notRoutable:[]};},create: unused,update: unused,addParticipants:unused,
-      async list(options: { limit?: number; before?: { lastActiveAt: number; id: string } } = {}) {
-      await current(); return rows.filter(r=>r.createdBy==='local-owner').map((r, i) => ({ ...r, deepLinkUrl: '/thread/' + r.id, createdAt: 1,
+    threads: { async get(id){threadGetReads++;const row=rows.find(row=>row.id===id&&row.createdBy==='local-owner');return row?{id:row.id,title:row.title,deepLinkUrl:'/thread/'+row.id,createdAt:0,lastActiveAt:0,preferredCats:[],featureRefs:[]}:null;},readMessages: unused,async getCats(id){threadCatReads++;return {participants:(rows.find(row=>row.id===id)?.participants??[]).map(catId=>({catId,displayName:catId,aliases:[],lastMessageAt:0,messageCount:0})),routableNow:[],routableNotJoined:[],notRoutable:[]};},create: unused,update: unused,addParticipants:unused,
+      async list(options: { limit?: number; before?: { lastActiveAt: number; id: string }; threadIds?: readonly string[] } = {}) {
+      threadListReads++; await current(); return rows.filter(r=>r.createdBy==='local-owner' && (!options.threadIds || options.threadIds.includes(r.id))).map((r, i) => ({ ...r, deepLinkUrl: '/thread/' + r.id, createdAt: 1,
         lastActiveAt: rows.length - i, preferredCats: [], featureRefs: [] }))
         .filter(r => !options.before || r.lastActiveAt < options.before.lastActiveAt ||
           (r.lastActiveAt === options.before.lastActiveAt && r.id > options.before.id)).slice(0, options.limit ?? 50);
@@ -84,8 +114,10 @@ async function setup(taskHost?: ModulePluginHostShape['tasks']) {
   let active = await entrypoint.create(manifest).start(host);
   // Work activation restores subscriptions with a permitted metadata read.
   // The counters below measure only the subsequent owner HTTP request.
-  reads = 0;
-  return { ...f, get active() {return active;}, tasks, rows, subscriptions, async restart() {await active.stop({reason:'test'});active = await entrypoint.create(manifest).start(host);reads = 0;}, get reads() { return reads; }, get bodyReads() { return bodyReads; }, setDeliveryStatus(status: typeof deliveryStatus) { deliveryStatus = status; }, expire() { stale = true; },
+  reads = 0; threadListReads = 0; threadGetReads = 0; threadCatReads = 0;
+  const resetReads = () => { reads = 0; threadListReads = 0; threadGetReads = 0; threadCatReads = 0; };
+  return { ...f, get active() {return active;}, tasks, rows, subscriptions, async restart() {await active.stop({reason:'test'});active = await entrypoint.create(manifest).start(host);resetReads();}, get reads() { return reads; }, get bodyReads() { return bodyReads; },
+    get threadReads() { return { list: threadListReads, get: threadGetReads, getCats: threadCatReads }; }, setDeliveryStatus(status: typeof deliveryStatus) { deliveryStatus = status; }, expire() { stale = true; },
     invoke(owner = 'local-owner', native?: unknown) { return active.actions['collective.control.http']!({ request: { method: 'GET',
       path: `connections/${f.connection.connectionId}/participation`, headers: { origin: 'http://localhost:5172' },
       principal: { kind: 'owner', id: owner } } }, native as never, ownerCaller(owner,'GET',current)); }, async close() { await active.stop({reason:'test'}); await f.close(); } };
@@ -122,13 +154,13 @@ test('expired view and disposed feature cannot return cached owner data', async 
     expect(f.reads).toBe(0);
   } finally { await f.close(); }
 });
-test('the existing fifty-row Host cursor preserves the complete owned-thread selection', async () => {
+test('unrelated private threads do not amplify the participation owner read', async () => {
   const f = await setup(); try {
-    for (let i = 0; i < 55; i++) f.rows.push({ id: `owned-${i}`, title: `Owner ${i}`, createdBy: 'local-owner', participants: [] });
+    for (let i = 0; i < 120; i++) f.rows.push({ id: `unrelated-${i}`, title: `Unrelated ${i}`, createdBy: 'local-owner', participants: [] });
     const result = await f.invoke() as { status: number; body: { threads: { id: string }[] } };
-    expect(result.status).toBe(200); expect(result.body.threads).toHaveLength(56);
-    expect(result.body.threads.at(-1)?.id).toBe('owned-54');
-    expect(result.body.threads.some(t => t.id === 'foreign')).toBe(false);
+    expect(result.status).toBe(200);
+    expect(result.body.threads.map(thread => thread.id)).toEqual(['channel']);
+    expect(f.threadReads).toEqual({ list: 1, get: 1, getCats: 1 });
   } finally { await f.close(); }
 });
 test('ordinary source delivery facts distinguish queued/canceled without claiming Cat execution', async () => {

@@ -44,18 +44,20 @@ test('accepted thread projections and preferredCats patch cross the real Feature
     await threads.list({ before: 20 });
   }
   await threads.list({ limit: 50, before: { lastActiveAt: 30, id: 'thread-30' } });
+  await threads.list({ threadIds: ['thread-a', 'thread-b'] });
   await threads.readMessages('thread', { before: { timestamp: 20, id: 'message-20' }, limit: 500 });
   await threads.getCats('thread');
   assert.equal((await threads.update('thread', { preferredCats: [] })).deepLinkUrl,
     'https://owner.example/thread/projected', 'the wrapper preserves Host navigation without reconstructing it');
-  assert.deepEqual(seen, [['list', { limit: 50, before: { lastActiveAt: 30, id: 'thread-30' } }], ['readMessages', 'thread', { before: { timestamp: 20, id: 'message-20' }, limit: 500 }],
+  assert.deepEqual(seen, [['list', { limit: 50, before: { lastActiveAt: 30, id: 'thread-30' } }],
+    ['list', { threadIds: ['thread-a', 'thread-b'] }], ['readMessages', 'thread', { before: { timestamp: 20, id: 'message-20' }, limit: 500 }],
     ['getCats', 'thread'], ['update', 'thread', { preferredCats: [] }]]);
   await session.revoke();
   for (const invoke of [() => threads.list(), () => threads.readMessages('thread', { limit: 1 }),
     () => threads.getCats('thread'), () => threads.update('thread', { preferredCats: [] })]) {
     await assert.rejects(invoke(), FeatureContextRevokedError);
   }
-  assert.equal(seen.length, 4);
+  assert.equal(seen.length, 5);
 });
 
 function manifest() {

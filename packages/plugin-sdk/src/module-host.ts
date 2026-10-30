@@ -90,8 +90,14 @@ export interface PluginThreadCreateInput {
 export interface PluginThreadHost {
   get(threadId: string): Promise<PluginThreadSummary | null>;
   /** Live owner-visible keyset; use the previous page's last position. A short
-   * or empty page ends this traversal, not an immutable cross-page snapshot. */
-  list(options?: { readonly limit?: number; readonly before?: { readonly lastActiveAt: number; readonly id: string } }): Promise<readonly PluginThreadSummary[]>;
+   * or empty page ends this traversal, not an immutable cross-page snapshot.
+   * `threadIds` selects an exact owner-visible candidate set and is mutually
+   * exclusive with directory pagination. */
+  list(options?: {
+    readonly limit?: number;
+    readonly before?: { readonly lastActiveAt: number; readonly id: string };
+    readonly threadIds?: readonly string[];
+  }): Promise<readonly PluginThreadSummary[]>;
   /** Exclusive timeline cursor: timestamp and id must come from the same returned row. */
   readMessages(threadId: string, options: { readonly before?: { readonly timestamp: number; readonly id: string }; readonly limit: number }): Promise<readonly PluginThreadMessage[]>;
   getCats(threadId: string): Promise<PluginThreadCats>;
