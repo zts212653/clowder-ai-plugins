@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { z } from 'zod';
 
 import { syncDirectory } from '../../directory-durability.js';
+import { assertPrivatePosixAccess } from '../../private-path-access.js';
 import { CollectiveServiceError } from './errors.js';
 import { ConfigurableGitHubHumanAuthProvider, type GitHubOAuthCredentials } from './github-human-auth-provider.js';
 import { createSecret, digestSecret, secretMatches } from './persistence.js';
@@ -202,9 +203,13 @@ function setupError(
 async function readPrivateJson<Output>(path: string, schema: z.ZodType<Output>): Promise<Output | undefined> {
   try {
     const file = await stat(path);
-    if (!file.isFile() || (file.mode & 0o077) !== 0) {
+    if (!file.isFile()) {
       throw new Error(`Collective Service secret state must be a private regular file: ${path}`);
     }
+    assertPrivatePosixAccess(file, {
+      owner: `Collective Service secret state must be owned by the current user: ${path}`,
+      mode: `Collective Service secret state must be a private regular file: ${path}`,
+    });
     return schema.parse(JSON.parse(await readFile(path, 'utf8')));
   } catch (error) {
     if (isMissingFile(error)) return undefined;

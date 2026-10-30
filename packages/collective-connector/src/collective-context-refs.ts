@@ -4,6 +4,7 @@ import { link, mkdir, open, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createSecret } from './business/service/persistence.js';
 import { syncDirectory } from './directory-durability.js';
+import { assertPrivatePosixAccess } from './private-path-access.js';
 
 /** Constructed only from authenticated Host native context, never tool input.
  * This identifies a business reference; it is not a Host Task admission receipt. */
@@ -41,8 +42,12 @@ async function readKey(path: string): Promise<string> {
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await file.stat();
-    if (!stat.isFile() || stat.mode & 0o077 || stat.size < 1 || stat.size > 64)
+    if (!stat.isFile() || stat.size < 1 || stat.size > 64)
       throw new Error('Collective native reference key is invalid');
+    assertPrivatePosixAccess(stat, {
+      owner: 'Collective native reference key is invalid',
+      mode: 'Collective native reference key is invalid',
+    });
     const key = (await file.readFile('utf8')).trim();
     if (!/^[A-Za-z0-9_-]{43}$/.test(key) || Buffer.from(key, 'base64url').toString('base64url') !== key)
       throw new Error('Collective native reference key is invalid');

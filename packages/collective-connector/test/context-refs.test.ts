@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHmac } from 'node:crypto';
@@ -39,6 +39,20 @@ test('private key survives restart and concurrent initialization publishes a sin
   const other = await mkdtemp(join(tmpdir(), 'collective-refs-race-')); t.after(() => rm(other, { recursive: true, force: true }));
   const all = await Promise.all(Array.from({ length: 16 }, () => open!(other, () => {})));
   assert.equal(new Set(all.map(refs => refs.opaqueRef(auth, 'context', 'message:1'))).size, 1);
+});
+test('Windows restart relies on the Host dataPath ACL instead of interpreting POSIX mode bits', async t => {
+  const { directory, refs } = await fixture(t); const path = join(directory, 'native-reference.secret');
+  const before = refs.opaqueRef(auth, 'context', 'message:1');
+  const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
+  if (!platformDescriptor) throw new Error('process.platform descriptor is unavailable');
+  await chmod(path, 0o644);
+  Object.defineProperty(process, 'platform', { ...platformDescriptor, value: 'win32' });
+  try {
+    const reopened = await open!(directory, () => {});
+    assert.equal(reopened.opaqueRef(auth, 'context', 'message:1'), before);
+  } finally {
+    Object.defineProperty(process, 'platform', platformDescriptor);
+  }
 });
 test('separate private data roots never share a key even with the same identity tuple', async t => {
   const first = await fixture(t), second = await fixture(t);

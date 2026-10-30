@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { type BigIntStats, constants, type Stats } from 'node:fs';
+import { type BigIntStats, constants } from 'node:fs';
 import { lstat, mkdir, open, rename, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { syncDirectory } from '../../directory-durability.js';
+import { assertPrivatePosixAccess } from '../../private-path-access.js';
 import {
   type ConnectorState,
   type MutableConnectorState,
@@ -147,24 +148,19 @@ async function assertPrivateDirectory(path: string): Promise<void> {
   if (!metadata.isDirectory()) {
     throw new Error(`Collective Connector data directory must be a private regular directory`);
   }
-  assertOwned(metadata);
-  if ((metadata.mode & 0o077) !== 0) {
-    throw new Error(`Collective Connector data directory permissions must be private (mode 0700)`);
-  }
-}
-
-function assertOwned(metadata: Pick<Stats | BigIntStats, 'uid'>): void {
-  const uid = process.geteuid?.() ?? process.getuid?.();
-  if (uid !== undefined && Number(metadata.uid) !== uid)
-    throw new Error(`Collective Connector private state must be owned by the current user`);
+  assertPrivatePosixAccess(metadata, {
+    owner: 'Collective Connector private state must be owned by the current user',
+    mode: 'Collective Connector data directory permissions must be private (mode 0700)',
+  });
 }
 
 function assertPrivateRegularFile(metadata: BigIntStats): void {
   if (!metadata.isFile())
     throw new Error(`Collective Connector credential state must be a private regular file`);
-  assertOwned(metadata);
-  if ((metadata.mode & 0o077n) !== 0n)
-    throw new Error(`Collective Connector credential state permissions must be private (mode 0600)`);
+  assertPrivatePosixAccess(metadata, {
+    owner: 'Collective Connector private state must be owned by the current user',
+    mode: 'Collective Connector credential state permissions must be private (mode 0600)',
+  });
 }
 
 function sameFile(left: BigIntStats, right: BigIntStats): boolean {
