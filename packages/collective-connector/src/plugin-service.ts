@@ -4,7 +4,7 @@ import type { FeatureContext } from '@clowder-ai/plugin-sdk';
 import type { ConnectorProjection } from './business/connector/projection.js';
 import type { CollectiveLocalTransport } from './business/connector/service-client.js';
 import type { CollectiveMessageAttachmentOwnerPort } from './business/contracts/message-attachment-owner.js';
-import { escrowBootstrapSecret, readBootstrapSecret, writeBootstrapLink } from './business/service/bootstrap-files.js';
+import { escrowBootstrapSecret, readBootstrapSecret, rotateBootstrapSecret, writeBootstrapLink } from './business/service/bootstrap-files.js';
 import { GitHubAppManifestSetup } from './business/service/github-app-manifest-setup.js';
 import { ConfigurableGitHubHumanAuthProvider } from './business/service/github-human-auth-provider.js';
 import { type RunningCollectiveServer, startCollectiveServer } from './business/service/http-server.js';
@@ -26,7 +26,7 @@ interface PluginService {
   statusAction(
     connections: readonly ConnectorProjection[],
   ): Promise<{ render: 'status'; label: string; data: Record<string, unknown> }>;
-  launch(): Promise<{ service: CollectiveLocalServiceStatus; launchUrl: string }>;
+  launch(assertCurrent?: () => Promise<void>): Promise<{ service: CollectiveLocalServiceStatus; launchUrl: string }>;
   start(): Promise<void>;
   close(): Promise<void>;
 }
@@ -91,6 +91,7 @@ export async function createPluginService(
     clientBuildId: client.clientBuildId,
     humanAuthRedirectUri: origin + '/api/auth/github/callback',
     createBootstrapSecret: () => escrowBootstrapSecret(bootstrapSecretPath),
+    renewExpiredBootstrapSecret: () => rotateBootstrapSecret(bootstrapSecretPath),
   });
   const bootstrapSecret = opened.store.getMetadata().bootstrapNeeded
     ? await readBootstrapSecret(bootstrapSecretPath)
@@ -130,13 +131,17 @@ export async function createPluginService(
         data: { state: 'running', url: origin, ...metadata, connections },
       };
     },
-    async launch() {
+    async launch(assertCurrent = async () => { assertActive(); }) {
       assertActive();
+      await opened.store.renewExpiredBootstrap(() => rotateBootstrapSecret(bootstrapSecretPath), undefined, assertCurrent);
       const service = localStatus();
+      const secret = service.bootstrapNeeded ? await readBootstrapSecret(bootstrapSecretPath) : undefined;
+      if (secret) await writeBootstrapLink(bootstrapLinkPath, origin + '#bootstrap=' + encodeURIComponent(secret));
+      await assertCurrent();
       return {
         service,
-        launchUrl: service.bootstrapNeeded
-          ? origin + '#bootstrap=' + encodeURIComponent(await readBootstrapSecret(bootstrapSecretPath))
+        launchUrl: secret
+          ? origin + '#bootstrap=' + encodeURIComponent(secret)
           : origin,
       };
     },

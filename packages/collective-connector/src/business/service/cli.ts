@@ -9,7 +9,7 @@ import { ConfigurableGitHubHumanAuthProvider } from './github-human-auth-provide
 import { startCollectiveServer } from './http-server.js';
 import { CollectiveServiceStore } from './store.js';
 import { loadCollectiveClient } from '../../client-assets.js';
-import { escrowBootstrapSecret, recoverBootstrapSecret, writeBootstrapLink } from './bootstrap-files.js';
+import { escrowBootstrapSecret, recoverBootstrapSecret, rotateBootstrapSecret, writeBootstrapLink } from './bootstrap-files.js';
 import { createFileAttachmentOwner } from '../../attachment-owner/file-owner.js';
 import { createConfiguredTranscriber } from '../../attachment-owner/local-transcriber.js';
 
@@ -64,6 +64,7 @@ Stop with SIGTERM or SIGINT. Keep the same data directory on upgrade and restart
     humanAuthRedirectUri: new URL('/api/auth/github/callback', publicUrl).toString(),
     clientBuildId: client.clientBuildId,
     createBootstrapSecret: () => escrowBootstrapSecret(bootstrapSecretPath),
+    renewExpiredBootstrapSecret: () => rotateBootstrapSecret(bootstrapSecretPath),
   });
   const bootstrapNeeded = opened.store.getMetadata().bootstrapNeeded;
   const bootstrapLinkPath = bootstrapNeeded ? bootstrapUrlPath : undefined;

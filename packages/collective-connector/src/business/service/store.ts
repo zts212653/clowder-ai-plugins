@@ -57,6 +57,8 @@ export interface OpenCollectiveServiceStoreOptions {
   readonly bootstrapTtlMs?: number;
   /** Module lifecycle may durably escrow an unclaimed credential before initial state creation. */
   readonly createBootstrapSecret?: () => Promise<string>;
+  /** Trusted local startup: durably replace an expired initial credential before renewing its digest. */
+  readonly renewExpiredBootstrapSecret?: () => Promise<string>;
   readonly humanAuthProvider?: HumanAuthProvider;
   readonly humanAuthRedirectUri?: string;
 }
@@ -116,23 +118,27 @@ export class CollectiveServiceStore {
     await mkdir(options.dataDirectory, { recursive: true, mode: 0o700 });
     await establishPrivateDirectoryAccess(options.dataDirectory);
     const stateFile = join(options.dataDirectory, SERVICE_STATE_FILE);
+    let stateExists = false;
     try {
       await access(stateFile);
+      stateExists = true;
       const persistence = await PersistentServiceState.load(options.dataDirectory);
+      const store = new CollectiveServiceStore(
+        persistence, now, options.humanAuthProvider, options.humanAuthRedirectUri,
+        options.clientBuildId, options.messageAttachmentOwner, options.materialSource,
+      );
+      const bootstrapSecret = options.renewExpiredBootstrapSecret
+        ? await store.renewExpiredBootstrap(options.renewExpiredBootstrapSecret, options.bootstrapTtlMs)
+        : undefined;
       return {
-        store: new CollectiveServiceStore(
-          persistence,
-          now,
-          options.humanAuthProvider,
-          options.humanAuthRedirectUri,
-          options.clientBuildId,
-          options.messageAttachmentOwner,
-          options.materialSource,
-        ),
+        ...(bootstrapSecret === undefined ? {} : { bootstrapSecret }),
+        store,
       };
     } catch (error) {
       if (error instanceof CollectiveServiceError) throw error;
-      if (!isMissingFile(error)) {
+      // Only an absent state file permits creating a Service. A missing escrow
+      // file or failed migration/renewal must never replace an existing Service.
+      if (stateExists || !isMissingFile(error)) {
         throw new CollectiveServiceError(
           'STATE_CORRUPT',
           `Collective Service state could not be loaded: ${errorMessage(error)}`,
@@ -195,6 +201,31 @@ export class CollectiveServiceStore {
         bootstrapSecret,
       };
     }
+  }
+
+  /** Only trusted local startup or the authenticated Host owner launch may renew setup. */
+  async renewExpiredBootstrap(
+    escrow: () => Promise<string>,
+    ttlMs = 24 * 60 * 60 * 1_000,
+    assertCurrent: () => void | Promise<void> = () => {},
+  ): Promise<string | undefined> {
+    const needsRenewal = (state: ServiceState) => state.bootstrap.consumedAt === undefined &&
+      state.bootstrap.ownerHumanId === undefined && Object.keys(state.humans).length === 0 &&
+      Date.parse(state.bootstrap.expiresAt) < this.now();
+    if (!needsRenewal(this.persistence.snapshot())) return undefined;
+    return this.persistence.transaction(async (state) => {
+      if (!needsRenewal(state)) return undefined;
+      await assertCurrent();
+      // Escrow before committing the digest. The transaction serializes competing
+      // owner opens and claims; interrupted writes leave the old credential expired.
+      const secret = await escrow();
+      await assertCurrent();
+      state.bootstrap = {
+        ...state.bootstrap, tokenDigest: digestSecret(secret),
+        expiresAt: new Date(this.now() + ttlMs).toISOString(),
+      };
+      return secret;
+    });
   }
 
   updateArtifactAccess(sessionToken: string, input: unknown) {

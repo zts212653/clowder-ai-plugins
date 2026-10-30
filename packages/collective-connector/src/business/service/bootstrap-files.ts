@@ -30,11 +30,22 @@ export async function escrowBootstrapSecret(path: string): Promise<string> {
 }
 
 export async function writeBootstrapLink(path: string, link: string): Promise<void> {
+  await writePrivateBootstrapValue(path, link);
+}
+
+/** Replace an expired, unclaimed credential before committing its new digest. */
+export async function rotateBootstrapSecret(path: string): Promise<string> {
+  const secret = createSecret();
+  await writePrivateBootstrapValue(path, secret);
+  return secret;
+}
+
+async function writePrivateBootstrapValue(path: string, value: string): Promise<void> {
   const temporaryPath = path + '.' + randomUUID() + '.tmp';
   try {
     const handle = await open(temporaryPath, 'wx', 0o600);
     try {
-      await handle.writeFile(link + '\n', 'utf8');
+      await handle.writeFile(value + '\n', 'utf8');
       await handle.sync();
     } finally {
       await handle.close();

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { once } from 'node:events';
-import { cp, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join } from 'node:path';
@@ -79,6 +79,34 @@ async function launch(dataDirectory, environment = {}) {
     throw error;
   }
 }
+
+test('standalone restart replaces an expired initial link and retains Service identity', async () => {
+  const data = await mkdtemp(join(tmpdir(), 'collective-standalone-expired-'));
+  let running;
+  try {
+    running = await launch(data);
+    const first = running.ready;
+    const oldLink = await readFile(first.bootstrapLinkPath, 'utf8');
+    await running.stop(); running = undefined;
+    const path = join(data, 'collective-service.json');
+    const state = JSON.parse(await readFile(path, 'utf8'));
+    state.bootstrap.expiresAt = new Date(Date.now() - 1000).toISOString();
+    await writeFile(path, JSON.stringify(state));
+    running = await launch(data);
+    assert.equal(running.ready.serviceInstanceId, first.serviceInstanceId);
+    const freshLink = await readFile(running.ready.bootstrapLinkPath, 'utf8');
+    assert.notEqual(freshLink, oldLink);
+    const claim = link => fetch(`${running.ready.listenUrl ?? running.ready.url}/api/bootstrap`, {
+      method: 'POST', headers: { origin: 'http://127.0.0.1:15201', 'content-type': 'application/json' },
+      body: JSON.stringify({ secret: new URLSearchParams(new URL(link.trim()).hash.slice(1)).get('bootstrap'), displayName: 'Owner' }),
+    });
+    assert.equal((await claim(oldLink)).status, 401);
+    assert.equal((await claim(freshLink)).status, 201);
+  } finally {
+    await running?.stop();
+    await rm(data, { recursive: true, force: true });
+  }
+});
 
 test(
   'the installed CLI uses only its explicitly configured, identity-matched local speech service',

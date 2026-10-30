@@ -54,7 +54,7 @@ export class PersistentServiceState {
     return structuredClone(this.#state);
   }
 
-  async transaction<T>(mutate: (draft: MutableServiceState) => T): Promise<T> {
+  async transaction<T>(mutate: (draft: MutableServiceState) => T | Promise<T>): Promise<T> {
     let release: (() => void) | undefined;
     const previous = this.#tail;
     this.#tail = new Promise<void>((resolve) => {
@@ -63,7 +63,7 @@ export class PersistentServiceState {
     await previous;
     try {
       const draft = structuredClone(this.#state) as MutableServiceState;
-      const result = mutate(draft);
+      const result = await mutate(draft);
       const validated = parseServiceState(draft);
       await writeAtomic(this.filePath, validated);
       this.#state = validated;
