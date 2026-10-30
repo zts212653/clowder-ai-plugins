@@ -26,6 +26,15 @@ test('Contract author exports contain no retired event-publication validators or
  assert.equal(generated.includes('export type EventsPublish'),false);
 });
 
+test('optional runtimeInfo returns detached facts and stops with the feature', async () => {
+ const facts={version:'revision',platform:'win32',architecture:'x64',nodeVersion:'22',projectRoot:'project',logDirectory:'logs'};
+ const adapter={runtimeInfo:{get:async()=>facts}} as unknown as FeatureHostAdapter;
+ const session=createFeatureContextSession(binding,adapter);
+ const port=session.context.runtimeInfo;assert.ok(port);
+ assert.notEqual(await port.get(),facts);
+ await session.revoke();await assert.rejects(()=>port.get(),/revoked/);
+});
+
 const binding = {pluginInstanceId:'instance',featureId:'feature',packageRevision:'1',integrityEpoch:0,activationRevision:0,
   executionLease:'lease',dataPath:'/private/instance'} as FeatureBinding;
 
@@ -88,7 +97,7 @@ test('uninstall hooks can run with an installed disabled context and never requi
 import {readFile} from 'node:fs/promises';
 import type {PluginModuleDefinition} from './module-plugin.js';
 import type {PluginModuleActivationShape, PluginTaskHost} from './module-host.js';
-const authorPorts=['pluginInstanceId','featureId','members','config','secrets','storage','tasks','threads','messaging','streams','dataPath','log'] as const satisfies readonly (keyof FeatureContext)[];
+const authorPorts=['pluginInstanceId','featureId','members','runtimeInfo','config','secrets','storage','tasks','threads','messaging','streams','dataPath','log'] as const satisfies readonly (keyof FeatureContext)[];
 type RequiredMessageRead = undefined extends FeatureContext['messaging']['get'] ? never : true;
 const requiredMessageRead: RequiredMessageRead = true;
 type RequiredHostMessageRead = undefined extends ModulePluginHostShape['messaging']['get'] ? never : true;

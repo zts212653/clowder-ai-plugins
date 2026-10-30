@@ -1,0 +1,7 @@
+{
+  "name": "@clowder-ai/feedback",
+  "version": "0.1.0-alpha.1",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": { "": { "name": "@clowder-ai/feedback", "version": "0.1.0-alpha.1", "license": "MIT", "engines": { "node": ">=22.0.0" } } }
+}

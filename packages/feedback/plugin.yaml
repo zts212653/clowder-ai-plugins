@@ -1,0 +1,48 @@
+pluginId: official.feedback
+version: 0.1.0-alpha.1
+contractVersion: 0.3.0
+name: 问题反馈
+description:
+  default: 通过已配置的本地 Agent Client 生成脱敏分析报告，检查后自动提交 Issue；同时保留直接反馈与手动创建兜底。
+  translations:
+    en: Sanitized feedback reports with configured local Agent diagnosis, automatic Issue submission and manual fallback.
+icon: { type: svg, src: assets/icon.svg }
+steps:
+  - text: 启用后，从左侧栏底部打开“问题反馈”。建议先分析，检查完整报告和截图后再确认提交。
+  - text: 本地 Client 可能连接云端模型；文本先脱敏，截图不交给模型。请手动遮盖截图中的敏感信息。
+  - text: 默认反馈到公开的 Clowder AI GitHub 仓库。内网可配置 GitLab、组织 CLI 或仅手动创建。
+test: { action: { method: feedback.check } }
+configuration:
+  - key: destinations
+    label: 反馈目标 JSON（可选）
+    description: 留空使用公开 GitHub。配置示例及 CLI JSON 协议见插件 README；更改目标或报告会撤销旧确认。
+    kind: string
+    required: false
+  - key: githubToken
+    label: GitHub 访问令牌（自动提交时需要）
+    kind: secret
+    required: false
+  - key: gitlabToken
+    label: GitLab 访问令牌（REST 模式）
+    kind: secret
+    required: false
+contributions:
+  - { type: identity, id: feedback.identity, displayName: 问题反馈 }
+  - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
+  - { type: ui, id: feedback.open, kind: command, label: 问题反馈, action: { method: feedback.panel } }
+  - { type: ui, id: feedback.rail, kind: slot-item, label: 问题反馈, command: feedback.open, group: activity-bar.bottom, order: 90 }
+features:
+  - id: feedback
+    name: 问题反馈
+    resources: []
+    contributions:
+      - { type: identity, id: feedback.identity }
+      - { type: message-subscription, id: feedback.results }
+      - { type: ui, id: feedback.open }
+      - { type: ui, id: feedback.rail }
+data:
+  - { name: feedback-journal, dataClass: user-authored, strategy: retained }
+runtime:
+  transport: builtin
+  entrypoint: dist/index.js
+  dataDirectory: feedback

@@ -193,6 +193,7 @@ export { createModuleActionClient, type ModuleActionCallOptions,
 
 
 export * from './host-action-context.js';
+export type { PluginRuntimeInfo, PluginRuntimeInfoHost, PluginUiPanel } from './runtime-info.js';
 
 export * from './members.js';
 

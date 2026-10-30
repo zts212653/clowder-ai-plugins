@@ -1,0 +1,22 @@
+{
+  "name": "@clowder-ai/feedback",
+  "version": "0.1.0-alpha.1",
+  "description": "Owner-confirmed, sanitized feedback reports with local Agent diagnosis and configurable Issue adapters",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }, "./manifest": "./plugin.yaml" },
+  "files": ["dist", "plugin.yaml", "assets", "README.md", "README.en.md", "npm-shrinkwrap.json"],
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/build-ui.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {},
+  "devDependencies": { "@clowder-ai/plugin-sdk": "workspace:*", "@types/node": "^20.17.0", "typescript": "^5.7.0", "tsx": "^4.19.0", "esbuild": "0.28.1", "marked": "18.1.2" },
+  "repository": { "type": "git", "url": "https://github.com/zts212653/clowder-ai-plugins.git", "directory": "packages/feedback" }
+}

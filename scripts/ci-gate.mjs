@@ -72,6 +72,7 @@ export function buildGateSteps() {
     { name: 'SDK typecheck', command: 'pnpm --filter @clowder-ai/plugin-sdk typecheck' },
     { name: 'SDK unit tests', command: 'pnpm --filter @clowder-ai/plugin-sdk test' },
     { name: 'SDK build', command: 'pnpm --filter @clowder-ai/plugin-sdk build' },
+    { name: 'Feedback package', command: chain('@clowder-ai/feedback', ['typecheck', 'build', 'test', 'lint']) },
     {
       name: 'Music module and installed native entrypoint',
       command: chain('@clowder-ai/music-generation', ['build', 'typecheck', 'test', 'test:installed']),
