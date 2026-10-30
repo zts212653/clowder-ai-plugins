@@ -44,7 +44,7 @@ export function windowsPowerShell51Environment(
 
 // Windows PowerShell 5.1 ships with supported Windows desktop releases. This fixed script never
 // interpolates the target path: the child receives it through a process-scoped environment value.
-const WINDOWS_PRIVATE_TREE_SCRIPT = `
+export const WINDOWS_PRIVATE_TREE_SCRIPT = `
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2.0
 
@@ -79,9 +79,38 @@ function New-PrivateRule([bool] $isDirectory) {
   )
 }
 
+function Read-PrivateAcl([System.IO.FileSystemInfo] $item) {
+  if ($item -is [System.IO.DirectoryInfo]) {
+    return ([System.IO.DirectoryInfo] $item).GetAccessControl()
+  }
+  if ($item -is [System.IO.FileInfo]) {
+    return ([System.IO.FileInfo] $item).GetAccessControl()
+  }
+  throw 'Private tree item type is unsupported'
+}
+
+function Write-PrivateAcl(
+  [System.IO.FileSystemInfo] $item,
+  [System.Security.AccessControl.FileSystemSecurity] $acl
+) {
+  if ($item -is [System.IO.DirectoryInfo]) {
+    ([System.IO.DirectoryInfo] $item).SetAccessControl(
+      [System.Security.AccessControl.DirectorySecurity] $acl
+    )
+    return
+  }
+  if ($item -is [System.IO.FileInfo]) {
+    ([System.IO.FileInfo] $item).SetAccessControl(
+      [System.Security.AccessControl.FileSecurity] $acl
+    )
+    return
+  }
+  throw 'Private tree item type is unsupported'
+}
+
 function Get-TrustedPrivateAcl([System.IO.FileSystemInfo] $item) {
   Assert-NotReparsePoint $item
-  $acl = Get-Acl -LiteralPath $item.FullName -ErrorAction Stop
+  $acl = Read-PrivateAcl $item
   $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($trustedOwnerSids -notcontains $owner.Value) {
     throw ('Private tree item has an untrusted owner ' + $owner.Value + ': ' + $item.FullName)
@@ -99,7 +128,7 @@ function Set-PrivateAcl([System.IO.FileSystemInfo] $item) {
     $acl.SetOwner($currentSid)
   }
   [void] $acl.AddAccessRule((New-PrivateRule ($item -is [System.IO.DirectoryInfo])))
-  Set-Acl -LiteralPath $item.FullName -AclObject $acl -ErrorAction Stop
+  Write-PrivateAcl $item $acl
 }
 
 function Test-PrivateAcl([System.IO.FileSystemInfo] $item, [bool] $requireProtected) {
