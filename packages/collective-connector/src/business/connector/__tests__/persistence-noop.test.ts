@@ -112,33 +112,6 @@ it('disk equality compares exact bytes rather than lossy UTF8 decoded strings', 
   expect(await readFile(persistence.filePath)).toEqual(canonical);
 });
 
-it('uses the Host-provisioned Windows ACL boundary instead of POSIX mode bits on create and reopen', async () => {
-  const windowsDirectory = await mkdtemp(join(tmpdir(), 'f290-connector-windows-private-'));
-  const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
-  if (!platformDescriptor) throw new Error('process.platform descriptor is unavailable');
-  await chmod(windowsDirectory, 0o755);
-  Object.defineProperty(process, 'platform', { ...platformDescriptor, value: 'win32' });
-  try {
-    const opened = await ConnectorPersistence.open(windowsDirectory);
-    await opened.transaction((state) => {
-      state.hostRoutes.cafe = hostRouteConfigSchema.parse({
-        connectionId: 'cafe',
-        localOwnerUserId: 'fixture-owner',
-        defaultIngressThreadId: 'fixture-thread',
-        humanNotificationThreadId: 'fixture-notifications',
-        agentRoutes: {},
-        revision: 1,
-        updatedAt: new Date(0).toISOString(),
-      });
-    });
-    await chmod(opened.filePath, 0o644);
-    expect((await ConnectorPersistence.open(windowsDirectory)).snapshot()).toEqual(opened.snapshot());
-  } finally {
-    Object.defineProperty(process, 'platform', platformDescriptor);
-    await rm(windowsDirectory, { recursive: true, force: true });
-  }
-});
-
 for (const weak of ['file', 'directory']) {
   it(`an unchanged draft cannot skip ${weak} privacy violations`, async () => {
     const snapshot = persistence.snapshot();

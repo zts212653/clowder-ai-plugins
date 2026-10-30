@@ -5,14 +5,20 @@ import { dirname, join } from 'node:path';
 import { z } from 'zod';
 
 import { syncDirectory } from '../../directory-durability.js';
-import { assertPrivatePosixAccess } from '../../private-path-access.js';
+import { establishPrivateDirectoryAccess, type PrivatePathBoundary } from '../../private-path-access.js';
 import { CollectiveServiceError } from './errors.js';
-import { ConfigurableGitHubHumanAuthProvider, type GitHubOAuthCredentials } from './github-human-auth-provider.js';
+import type { ConfigurableGitHubHumanAuthProvider, GitHubOAuthCredentials } from './github-human-auth-provider.js';
 import { createSecret, digestSecret, secretMatches } from './persistence.js';
 
 export interface GitHubAppManifestBeginResult {
   readonly registrationUrl: string;
-  readonly manifest: { readonly name: string; readonly url: string; readonly redirect_url: string; readonly callback_urls: readonly string[]; readonly public: true };
+  readonly manifest: {
+    readonly name: string;
+    readonly url: string;
+    readonly redirect_url: string;
+    readonly callback_urls: readonly string[];
+    readonly public: true;
+  };
 }
 
 const CREDENTIAL_FILE = 'github-app-oauth.json';
@@ -92,14 +98,23 @@ export class GitHubAppManifestSetup {
 
   static async open(options: GitHubAppManifestSetupOptions): Promise<GitHubAppManifestSetup> {
     await mkdir(options.dataDirectory, { recursive: true, mode: 0o700 });
-    const savedCredentials = await readPrivateJson(join(options.dataDirectory, CREDENTIAL_FILE), credentialSchema);
+    const privatePath = await establishPrivateDirectoryAccess(options.dataDirectory);
+    const savedCredentials = await readPrivateJson(
+      join(options.dataDirectory, CREDENTIAL_FILE),
+      credentialSchema,
+      privatePath,
+    );
     if (savedCredentials && !options.provider.readiness.ready) {
       options.provider.configure({
         clientId: savedCredentials.clientId,
         clientSecret: savedCredentials.clientSecret,
       });
     }
-    const savedState = await readPrivateJson(join(options.dataDirectory, SETUP_STATE_FILE), setupStateSchema);
+    const savedState = await readPrivateJson(
+      join(options.dataDirectory, SETUP_STATE_FILE),
+      setupStateSchema,
+      privatePath,
+    );
     return new GitHubAppManifestSetup(options, savedState ?? { version: 1, attempts: [] });
   }
 
@@ -200,13 +215,17 @@ function setupError(
   return new CollectiveServiceError(code, message, statusCode);
 }
 
-async function readPrivateJson<Output>(path: string, schema: z.ZodType<Output>): Promise<Output | undefined> {
+async function readPrivateJson<Output>(
+  path: string,
+  schema: z.ZodType<Output>,
+  privatePath: PrivatePathBoundary,
+): Promise<Output | undefined> {
   try {
     const file = await stat(path);
     if (!file.isFile()) {
       throw new Error(`Collective Service secret state must be a private regular file: ${path}`);
     }
-    assertPrivatePosixAccess(file, {
+    privatePath.assertMetadata(file, {
       owner: `Collective Service secret state must be owned by the current user: ${path}`,
       mode: `Collective Service secret state must be a private regular file: ${path}`,
     });

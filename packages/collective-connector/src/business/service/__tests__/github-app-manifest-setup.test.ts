@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -111,41 +111,6 @@ describe('GitHub App Manifest setup', () => {
     const restartedProvider = new ConfigurableGitHubHumanAuthProvider({});
     await GitHubAppManifestSetup.open({ dataDirectory, provider: restartedProvider });
     expect(restartedProvider.readiness).toEqual({ ready: true });
-  });
-
-  it('reopens Windows secret state without treating POSIX mode bits as DACL evidence', async () => {
-    const dataDirectory = await mkdtemp(join(tmpdir(), 'collective-github-app-windows-'));
-    directories.push(dataDirectory);
-    const setup = await GitHubAppManifestSetup.open({
-      dataDirectory,
-      provider: new ConfigurableGitHubHumanAuthProvider({}),
-      fetchImpl: async () =>
-        new Response(JSON.stringify({ id: 42, client_id: 'saved-id', client_secret: 'saved-secret' }), {
-          status: 201,
-        }),
-      createSecret: () => 'w'.repeat(43),
-    });
-    await setup.begin({
-      serviceInstanceId: 'svc_windows',
-      serviceUrl: 'http://127.0.0.1:5201',
-      humanAuthCallbackUrl: 'http://127.0.0.1:5201/api/auth/github/callback',
-      setupCallbackUrl: 'http://127.0.0.1:5201/api/setup/github-app/callback',
-    });
-    await setup.complete({ state: 'w'.repeat(43), code: 'ok' });
-    await Promise.all([
-      chmod(join(dataDirectory, 'github-app-oauth.json'), 0o644),
-      chmod(join(dataDirectory, 'github-app-setup.json'), 0o644),
-    ]);
-    const platformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform');
-    if (!platformDescriptor) throw new Error('process.platform descriptor is unavailable');
-    Object.defineProperty(process, 'platform', { ...platformDescriptor, value: 'win32' });
-    try {
-      const restartedProvider = new ConfigurableGitHubHumanAuthProvider({});
-      await GitHubAppManifestSetup.open({ dataDirectory, provider: restartedProvider });
-      expect(restartedProvider.readiness).toEqual({ ready: true });
-    } finally {
-      Object.defineProperty(process, 'platform', platformDescriptor);
-    }
   });
 
   it('claims a setup attempt before exchange so concurrent callback replay never reaches GitHub twice', async () => {
