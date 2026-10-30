@@ -12,6 +12,7 @@ import { ConfigurableGitHubHumanAuthProvider } from '../src/business/service/git
 import { CollectiveServiceStore } from '../src/business/service/index.js';
 import { SERVICE_STATE_FILE } from '../src/business/service/persistence.js';
 import { openCollectiveContextReferences } from '../src/collective-context-refs.js';
+import { windowsPowerShell51Environment } from '../src/private-path-access.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -176,13 +177,17 @@ try {
   assert.ok(systemRoot, 'Windows elevation probe requires SystemRoot');
   const executable = join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
   try {
-    await execFileAsync(executable, [
-      '-NoLogo',
-      '-NoProfile',
-      '-NonInteractive',
-      '-EncodedCommand',
-      Buffer.from(script, 'utf16le').toString('base64'),
-    ]);
+    await execFileAsync(
+      executable,
+      [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-EncodedCommand',
+        Buffer.from(script, 'utf16le').toString('base64'),
+      ],
+      { env: windowsPowerShell51Environment() },
+    );
     return true;
   } catch (error) {
     if ((error as { readonly code?: unknown }).code === 1) return false;
@@ -241,7 +246,7 @@ $rules = @($acl.GetAccessRules($true, $true, [System.Security.Principal.Security
     executable,
     ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
     {
-      env: { ...process.env, CLOWDER_ACL_INSPECTION_PATH: path },
+      env: windowsPowerShell51Environment({ CLOWDER_ACL_INSPECTION_PATH: path }),
       windowsHide: true,
     },
   );

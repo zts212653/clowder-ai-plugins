@@ -20,6 +20,28 @@ export interface PrivatePathBoundary {
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * Build the environment for a Windows PowerShell 5.1 child process.
+ *
+ * When pwsh launches Node and Node then launches powershell.exe, Node is an intermediate process:
+ * the PowerShell 7 PSModulePath would otherwise survive unchanged and can make 5.1 resolve an
+ * incompatible system module. Removing the key lets Windows PowerShell construct its own defaults.
+ * See Microsoft about_PSModulePath, “Starting Windows PowerShell from PowerShell 7”.
+ */
+export function windowsPowerShell51Environment(
+  overrides: NodeJS.ProcessEnv = {},
+  inheritedEnvironment: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+  for (const source of [inheritedEnvironment, overrides]) {
+    for (const [key, value] of Object.entries(source)) {
+      if (key.toUpperCase() === 'PSMODULEPATH' || value === undefined) continue;
+      environment[key] = value;
+    }
+  }
+  return environment;
+}
+
 // Windows PowerShell 5.1 ships with supported Windows desktop releases. This fixed script never
 // interpolates the target path: the child receives it through a process-scoped environment value.
 const WINDOWS_PRIVATE_TREE_SCRIPT = `
@@ -189,7 +211,7 @@ async function protectWindowsPrivateTree(path: string): Promise<void> {
         Buffer.from(WINDOWS_PRIVATE_TREE_SCRIPT, 'utf16le').toString('base64'),
       ],
       {
-        env: { ...process.env, CLOWDER_COLLECTIVE_PRIVATE_ROOT: path },
+        env: windowsPowerShell51Environment({ CLOWDER_COLLECTIVE_PRIVATE_ROOT: path }),
         maxBuffer: 1024 * 1024,
         timeout: 30_000,
         windowsHide: true,

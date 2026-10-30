@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { establishPrivateDirectoryAccessForPlatform } from '../private-path-access.js';
+import {
+  establishPrivateDirectoryAccessForPlatform,
+  windowsPowerShell51Environment,
+} from '../private-path-access.js';
 
 const directories: string[] = [];
 
@@ -12,6 +15,27 @@ afterEach(async () => {
 });
 
 describe('private path boundary', () => {
+  it('removes inherited PowerShell 7 module paths before launching Windows PowerShell 5.1', () => {
+    const inheritedEnvironment = {
+      Path: 'C:\\Windows\\System32',
+      PSModulePath: 'C:\\Program Files\\PowerShell\\7\\Modules',
+      psMODULEpath: 'C:\\Users\\fixture\\Documents\\PowerShell\\Modules',
+      KEEP_ME: 'inherited',
+    };
+    const overrides = {
+      CLOWDER_COLLECTIVE_PRIVATE_ROOT: 'C:\\fixture\\private',
+      PSMODULEPATH: 'must-not-reappear',
+      KEEP_ME: 'overridden',
+    };
+
+    expect(windowsPowerShell51Environment(overrides, inheritedEnvironment)).toEqual({
+      Path: 'C:\\Windows\\System32',
+      KEEP_ME: 'overridden',
+      CLOWDER_COLLECTIVE_PRIVATE_ROOT: 'C:\\fixture\\private',
+    });
+    expect(inheritedEnvironment.PSModulePath).toContain('PowerShell\\7');
+  });
+
   it('does not admit Windows metadata until the DACL protector succeeds', async () => {
     const directory = await temporaryDirectory();
     const attempted: string[] = [];
