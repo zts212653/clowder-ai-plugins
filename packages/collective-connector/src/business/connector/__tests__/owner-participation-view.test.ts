@@ -6,6 +6,7 @@ import { type PluginTaskReadItem, type ModulePluginHostShape } from '@clowder-ai
 import entrypoint from '../../../plugin-entrypoint.js';
 import { fixture } from './communication-work-custody.fixture.js';
 import { ownerRequestExecution } from '../../../collective-owner-request-progress.js';
+import { readCollectiveOwnerThreadCandidates } from '../../../owner-participation-caller.js';
 
 const manifest = parse(await readFile(new URL('../../../../plugin.yaml', import.meta.url), 'utf8'));
 
@@ -45,6 +46,34 @@ test('the original browser accepted-result operation has an owner webhook declar
   expect(manifest.features.find((f: {id: string}) => f.id === 'collective-work').contributions)
     .toContainEqual({type: 'webhook', id: declaration.id});
 });
+
+test('owner thread candidates are read completely across the Host single-request bound', async () => {
+  const ids = Array.from({ length: 5_001 }, (_, index) => `thread-${index}`);
+  const batchSizes: number[] = [];
+  const summary = (id: string) => ({
+    id,
+    title: id,
+    deepLinkUrl: `/thread/${id}`,
+    createdAt: 1,
+    lastActiveAt: 1,
+    preferredCats: [],
+    featureRefs: [],
+  });
+  const rows = await readCollectiveOwnerThreadCandidates({
+    async list({ threadIds }) {
+      batchSizes.push(threadIds.length);
+      expect(threadIds.length).toBeLessThanOrEqual(1_000);
+      return threadIds.map(summary);
+    },
+    async get(id) { return summary(id); },
+    async getCats() { return { participants: [], routableNow: [], routableNotJoined: [], notRoutable: [] }; },
+  }, ids, async () => {});
+  expect(batchSizes).toEqual([1_000, 1_000, 1_000, 1_000, 1_000, 1]);
+  expect(rows).toHaveLength(ids.length);
+  expect(rows[0]?.id).toBe(ids[0]);
+  expect(rows.at(-1)?.id).toBe(ids.at(-1));
+});
+
 async function setup(taskHost?: ModulePluginHostShape['tasks']) {
   const f = await fixture(); let stale = false, reads = 0, bodyReads = 0;
   let threadListReads = 0, threadGetReads = 0, threadCatReads = 0;
