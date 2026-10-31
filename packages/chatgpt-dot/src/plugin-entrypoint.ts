@@ -110,10 +110,22 @@ export function createDotPlugin(
 					render: "text",
 					data: await current.begin(context, true),
 				}),
-				"dot.disconnect": async (_input, _native, context) => ({
-					render: "text",
-					data: await current.disconnect(context),
-				}),
+				"dot.disconnect": async (_input, _native, context) => {
+					const shared = (host as DotSettingsHost).external.shared;
+					if (shared) {
+						const connection = await shared.status();
+						if (
+							connection.state === "active" ||
+							connection.state === "needs-confirmation"
+						) {
+							await shared.unbind(connection.revision);
+						}
+					}
+					return {
+						render: "text",
+						data: await current.disconnect(context),
+					};
+				},
 				"dot.status": async (_input, _native, context) => {
 					await current.owner(context);
 					const state = await current.store.connection();

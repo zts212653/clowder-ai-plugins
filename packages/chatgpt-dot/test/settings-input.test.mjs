@@ -70,3 +70,41 @@ test('shared confirmation is rendered byte-for-byte and the selected proposal re
   assert.equal(connected.data.state, 'active');
   assert.match(connected.data.instructions, /pairing_code=/);
 });
+
+test('owner disconnect revokes the approved shared slot before revoking the Dot pairing', async (t) => {
+  const f = fixture(t);
+  const calls = [];
+  f.host.external.shared = {
+    status: async () => ({
+      state: 'active', endpoint: '/mcp', principal: 'gpt-pro', revision: 7, scope: { tools: 4, events: 1 },
+    }),
+    prepare: async () => ({
+      proposalRef: '',
+      expiresAt: 0,
+      presentation: { key: 'already-bound', label: 'Connected', detail: 'Shared connection active.', actions: [] },
+      connection: {
+        state: 'active', endpoint: '/mcp', principal: 'gpt-pro', revision: 7, scope: { tools: 4, events: 1 },
+      },
+    }),
+    bind: async () => assert.fail('unexpected bind'),
+    unbind: async (revision) => {
+      calls.push({ kind: 'unbind', revision });
+      return { state: 'revoked', endpoint: '/mcp', principal: 'gpt-pro', revision: 8, scope: { tools: 0, events: 0 } };
+    },
+  };
+  const settings = await createDotPlugin({ sendWebhook: f.sendWebhook }).settings(f.host);
+  t.after(() => settings.dispose());
+  await settings.actions['dot.begin']({}, undefined, f.owner);
+  const original = f.host.storage.compareAndSet.bind(f.host.storage);
+  f.host.storage.compareAndSet = async (...args) => {
+    calls.push({ kind: 'pairing-revoked' });
+    return original(...args);
+  };
+
+  await settings.actions['dot.disconnect']({}, undefined, f.owner);
+
+  assert.deepEqual(calls, [
+    { kind: 'unbind', revision: 7 },
+    { kind: 'pairing-revoked' },
+  ]);
+});
