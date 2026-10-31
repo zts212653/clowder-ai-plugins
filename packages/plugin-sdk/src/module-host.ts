@@ -277,7 +277,7 @@ export type PluginMessageContent =
   | { readonly type: 'context_attachment'; readonly attachment: unknown };
 
 export type PluginMessagingDraft = Omit<MessageDraft, 'address'> & {
-  readonly wake?: 'auto' | { readonly catId: string };
+  readonly wake?: 'auto' | { readonly catId: string; readonly exact?: true };
   readonly sender?: { readonly id: string; readonly name?: string };
   readonly contentBlocks?: readonly PluginMessageContent[];
   readonly identity?: string;
@@ -296,6 +296,15 @@ export type PluginMessagingDelivery = import('@clowder-ai/plugin-contract').Plug
 export interface PluginMessagingHost {
   /** Persistent message facts, subject to ordinary content-read authority. */
   get(messageId: string): Promise<import('./message-read.js').PluginMessage | null>;
+  /** Durable own-send lookup, independent of the transport ledger's retention.
+   * Absent on older Hosts. Recipients are admitted Queue targets, not execution or read receipts. */
+  findSent?(input: { readonly threadId: string; readonly idempotencyKey: string }): Promise<{
+    readonly messageId: string;
+    readonly threadId: string;
+    readonly content: string;
+    readonly routedCatIds: readonly string[];
+    readonly deliveryStatus?: 'queued' | 'delivered' | 'canceled';
+  } | null>;
   send(input: PluginMessagingDraft & { readonly threadId: string }): Promise<{
     readonly messageId: string;
     readonly threadId: string;
