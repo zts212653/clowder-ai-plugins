@@ -10,8 +10,41 @@ export const equalSecret = (a: string, b: string) => {
     return left.length === right.length && timingSafeEqual(left, right);
 };
 export type DotSettingsHost = ModulePluginSettingsHost & {
-    readonly external: { readonly endpoint: string; readonly token: string };
+    readonly external: {
+        readonly endpoint: string;
+        readonly token: string;
+        readonly shared?: {
+            status(): Promise<SharedConnectionView>;
+            prepare(input: { readonly confirmationActionId: string }): Promise<SharedProposalView>;
+            bind(proposalRef: string): Promise<SharedConnectionView>;
+            unbind(expectedBindingRevision: number): Promise<SharedConnectionView>;
+        };
+    };
 };
+export interface SharedConnectionView {
+    readonly state: 'unbound' | 'pending' | 'active' | 'needs-confirmation' | 'revoked' | 'unavailable';
+    readonly endpoint: string;
+    readonly principal: string;
+    readonly revision: number;
+    readonly scope: { readonly tools: number; readonly events: number };
+    readonly reason?: string;
+}
+export interface SharedProposalView {
+    readonly proposalRef: string;
+    readonly expiresAt: number;
+    readonly presentation: {
+        readonly key: string;
+        readonly label: string;
+        readonly detail: string;
+        readonly actions: readonly {
+            readonly action: string;
+            readonly label: string;
+            readonly confirm: string;
+            readonly input: { readonly proposalRef: string };
+        }[];
+    };
+    readonly connection: SharedConnectionView;
+}
 export class DotConnection {
     readonly store: DotStore;
     private readonly operations = new AsyncLocalStorage<PluginHostActionContext | undefined>();
@@ -92,7 +125,7 @@ export class DotConnection {
                 pairingCode: randomBytes(16).toString('hex'), pairingExpiresAt: this.now() + 30 * 60000, pairedAt: null, pairedCallbackUrl: null,
                 subscription: null, lastSourceReadAt: null, lastReplyAt: null, lastImageAt: null, revokedAt: null, testEventIds: [] };
         });
-        return { ...this.project(state), pairingCode: state.pairingCode, external: this.host.external,
+        return { ...this.project(state), pairingCode: state.pairingCode,
             instructions: `启用本插件后，订阅 dot.summoned，attempt_id=${state.attemptId}，pairing_code=${state.pairingCode}。每次先读取原消息，再在原对话回复。` };
     }
     async subscribe(input: {

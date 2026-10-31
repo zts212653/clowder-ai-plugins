@@ -149,7 +149,7 @@ test("stable Host access cannot keep an old ask alive across reconnect", async (
 	const next = (
 		await f.settings.actions["dot.reconnect"]({}, undefined, f.owner)
 	).data;
-	assert.deepEqual(next.external, f.host.external);
+	assert.equal(Object.hasOwn(next, "external"), false);
 	assert.notEqual(next.attemptId, f.credentials.attemptId);
 	const state = (await f.host.storage.get(CONNECTION_KEY)).value;
 	await f.host.storage.set(CONNECTION_KEY, {

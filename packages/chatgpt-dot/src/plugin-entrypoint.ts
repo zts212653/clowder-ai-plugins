@@ -72,12 +72,40 @@ export function createDotPlugin(
 			const controller = new AbortController(),
 				[current] = await connection(host as DotSettingsHost, controller);
 			const actions: Record<string, PluginActionHandler> = {
-				"dot.begin": async (_input, _native, context) => ({
-					render: "text",
-					// Host supplies configuration/operation metadata here. Preparing is
-					// idempotent; only the separately confirmed reconnect action rotates it.
-					data: await current.begin(context),
-				}),
+				"dot.begin": async (_input, _native, context) => {
+					const shared = (host as DotSettingsHost).external.shared;
+					if (!shared) throw new Error("shared_connection_unavailable");
+					// The pairing attempt remains plugin-owned. The Host contributes only
+					// the canonical owner-confirmation row for the existing shared /mcp.
+					const connection = await current.begin(context);
+					const proposal = await shared.prepare({ confirmationActionId: "bind-shared" });
+					return {
+						render: "rows",
+						data: {
+							rows: [
+								{
+									...proposal.presentation,
+									detail:
+										proposal.presentation.actions.length === 0
+											? `${proposal.presentation.detail} ${connection.instructions}`
+											: proposal.presentation.detail,
+								},
+							],
+						},
+					};
+				},
+				"dot.bind-shared": async (raw, _native, context) => {
+					const shared = (host as DotSettingsHost).external.shared;
+					if (!shared) throw new Error("shared_connection_unavailable");
+					const proposalRef =
+						raw && typeof raw === "object" && "input" in raw &&
+						(raw.input as { proposalRef?: unknown } | undefined)?.proposalRef;
+					if (typeof proposalRef !== "string" || proposalRef.length === 0)
+						throw new Error("shared_proposal_required");
+					const connection = await shared.bind(proposalRef);
+					const prepared = await current.begin(context);
+					return { render: "status", data: { ...connection, instructions: prepared.instructions } };
+				},
 				"dot.reconnect": async (_input, _native, context) => ({
 					render: "text",
 					data: await current.begin(context, true),
@@ -89,11 +117,13 @@ export function createDotPlugin(
 				"dot.status": async (_input, _native, context) => {
 					await current.owner(context);
 					const state = await current.store.connection();
+					const shared = await (host as DotSettingsHost).external.shared?.status();
 					return {
 						render: "text",
 						data: {
 							...current.project(state),
 							live: running ? "running" : "unobserved",
+							shared: shared ?? { state: "unavailable" },
 						},
 					};
 				},

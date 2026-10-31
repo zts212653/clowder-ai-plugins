@@ -41,6 +41,17 @@ export function fixture(t) {
 		external: {
 			endpoint: "https://plugins.example/plugin/mcp",
 			token: `cpa_${"a".repeat(43)}`,
+			shared: {
+				status: async () => ({ state: "active", endpoint: "https://shared.example/mcp", principal: "gpt-pro", revision: 1, scope: { tools: 4, events: 1 } }),
+				prepare: async () => ({
+					proposalRef: "",
+					expiresAt: 0,
+					presentation: { key: "already-bound", label: "已连接", detail: "共享连接有效。", actions: [] },
+					connection: { state: "active", endpoint: "https://shared.example/mcp", principal: "gpt-pro", revision: 1, scope: { tools: 4, events: 1 } },
+				}),
+				bind: async () => assert.fail("already-bound fixture must not bind"),
+				unbind: async () => assert.fail("fixture does not unbind"),
+			},
 		},
 		storage,
 		config: { get: async () => undefined },
@@ -178,7 +189,8 @@ export async function paired(t) {
 	f.module = createDotPlugin({ sendWebhook: f.sendWebhook });
 	f.settings = await f.module.settings(f.host);
 	const begun = await f.settings.actions["dot.begin"]({}, undefined, f.owner);
-	f.credentials = begun.data;
+	assert.equal(begun.render, "rows");
+	f.credentials = structuredClone(f.records.get("dot/connection/v1").value);
 	f.active = await f.module.start(f.host);
 	t.after(() => f.active.stop({ reason: "test" }));
 	await mcp(f.active, {

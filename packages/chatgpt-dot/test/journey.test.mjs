@@ -9,7 +9,7 @@ test("pair, addressed receive, read and source-bound reply survive restart witho
 	assert.equal(f.active.call, undefined);
 	assert.equal(f.active.delivery, undefined);
 	assert.equal(f.credentials.credentialSecret, undefined);
-	assert.deepEqual(f.credentials.external, f.host.external);
+	assert.equal(JSON.stringify(f.credentials).includes(f.host.external.token), false);
 	assert.deepEqual(await f.active.deliver(delivery(f)), {
 		deliveryId: "delivery-1",
 	});
