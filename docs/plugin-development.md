@@ -102,6 +102,10 @@ stateDiagram-v2
 
 需要保留具体接收者的 module 发送可用 `wake:{catId,exact:true}`。目标失效时拒绝该次唤醒，沿原幂等键恢复，不能回退其他成员；原有 `wake:{catId}` 继续使用普通对话路由语义。`findSent` 的目标合并当前 Queue 与原消息 History 投递记录，Queue 已消费不代表原目标消失；可选 deliveryStatus 为 canceled 时不可重新发送该原消息。
 
+模块 Host 的可选 `host.memberSessions`（SDK `0.3.0-beta.2-candidate.5` 候选类型）承接受限成员执行；旧 Host 或缺少持久化支持时可以不提供，插件应明确暂停，不能退回普通工作线程或只读工具模式。`create(input)` 由 Host 创建独立线程并准备授权；`prepare(input)` 仅续接本实例已创建的受限线程；两者与 `revoke(sessionId)` 都只接受 Host 认证的当前 owner 操作上下文，正文没有批准字段。输入只含真实成员、已声明 MCP/identity、现有账号引用及已批准记忆引用，不含 key、登录态、任意工作目录或模型替身。返回的 summary 记录真实 client/model/carrier/authType/accountRevision、授权 generation、已消费语义游标，以及可选 Host activationId。
+
+`execute({sessionId,generation,executionId,semanticCursor,content})` 只消费既有授权。原 executionId 与完整输入绑定，未知结果沿原 ID 查询／续接；成功只能来自同一原消息的 canonical 子执行、响应与 provider teardown，不由插件正文或 CLI session ID 宣布。`get(sessionId)` 读取授权摘要；`getExecution({sessionId,generation,executionId})` 读取原有持久回执，也可在撤销／续接后读历史 generation，不发送消息、不唤醒、不恢复执行权限。安装停止、激活版本变化、账号或记忆修订变化会阻止旧行动；新的 owner 操作可以续接同一线程并升授权代次。游戏角色代次和业务动作由插件自己的权威服务负责，不由这个通用 Host 端口替代。该接口只属于 module Host，未声明 stdio、settings-only Host 或 feature-context 支持，也不意味着任一 provider 的受限载体已经可用。
+
 实现参考：[SDK 类型](../packages/plugin-sdk/src/module-host.ts)、[feature 生命周期](../packages/plugin-sdk/src/feature-context.ts)、[消息／控制 wire registry](../packages/plugin-contract/src/wire/index.ts)、[模块 action client](../packages/plugin-sdk/src/module-action-client.ts)。wire registry 说明载体消息，不替代以上作者 API。当前 stdio 的 Host 发起请求只有 `host.lifecycle.ping` 和 `host.messaging.deliver`；生命周期 hooks 由 module 载体直接调用，不是额外 stdio 方法。`streams.read` 在 stdio 内部分片传输，作者仍读取 Uint8Array 迭代器。
 
 ### 项目产物交付候选（未发布）

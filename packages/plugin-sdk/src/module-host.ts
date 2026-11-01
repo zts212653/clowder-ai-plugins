@@ -328,6 +328,8 @@ export interface ModulePluginHostShape {
   /** Installation attribution supplied by the Host, never the manifest's package id. */
   readonly pluginInstanceId: string;
   readonly members?: import('./members.js').PluginMemberHost;
+  /** Available only on Hosts with persistent, controlled member execution. */
+  readonly memberSessions?: import('./member-sessions.js').PluginMemberSessionsHost;
   readonly config: { get(key: string): Promise<unknown> };
   readonly secrets: { get(key: string): Promise<string | undefined> };
   readonly storage: PluginStorageHost;
