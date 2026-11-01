@@ -28,6 +28,42 @@ export interface PrepareMemberSession {
   readonly memory: readonly MemberMemoryReference[];
 }
 export type CreateMemberSession = Omit<PrepareMemberSession, 'threadId'> & { readonly title: string };
+/** Stable package business coordinate. It never substitutes for current owner authority. */
+export interface EnsureMemberThread {
+  readonly catId: string;
+  readonly contributionId: string;
+  readonly identity: string;
+  readonly title: string;
+  readonly creationKey: string;
+}
+/** Protection metadata only; no permission to wake, read arbitrary memory or run a model. */
+export interface MemberThreadBinding {
+  readonly schema: 'host.member-thread.v1';
+  readonly threadId: string;
+  readonly sessionId: string;
+  readonly ownerUserId: string;
+  readonly pluginInstanceId: string;
+  readonly catId: string;
+  readonly creationDigest: string;
+}
+export interface MemberResourceDescription {
+  readonly schema: 'host.member-resources.v1';
+  readonly catId: string;
+  readonly runtime?: Pick<MemberRuntimeSnapshot, 'clientId' | 'model' | 'carrier'>;
+  readonly defaultAccountRef?: string;
+  readonly available: boolean;
+  readonly reason?: string;
+  readonly accounts: readonly {
+    readonly accountRef: string;
+    readonly displayName: string;
+    readonly authType: 'oauth' | 'api_key';
+    readonly accountRevision?: string;
+    readonly available: boolean;
+    readonly reason?: string;
+    readonly selection?: MemberAccountSelection;
+  }[];
+  readonly memory: readonly (MemberMemoryReference & { readonly bytes: number })[];
+}
 export interface MemberSessionSummary extends PrepareMemberSession {
   readonly schema: 'host.member-session.v1';
   readonly sessionId: string;
@@ -67,6 +103,11 @@ export type MemberExecutionLookup = Pick<ExecuteMemberSession, 'sessionId' | 'ge
  * another model/account. A new activation needs explicit owner renewal.
  */
 export interface PluginMemberSessionsHost {
+  /** Optional on older Hosts. Current owner only; no grant, thread or model is created. */
+  describe?(input: { readonly catId: string }): Promise<MemberResourceDescription>;
+  /** Optional on older Hosts. Confirmed owner only. Stable across HTTP request IDs;
+   * returns the same protected thread after a lost ACK, without preparing a grant. */
+  ensureThread?(input: EnsureMemberThread): Promise<MemberThreadBinding>;
   create(input: CreateMemberSession): Promise<MemberSessionSummary>;
   prepare(input: PrepareMemberSession): Promise<MemberSessionSummary>;
   execute(input: ExecuteMemberSession): Promise<MemberSessionExecution>;
