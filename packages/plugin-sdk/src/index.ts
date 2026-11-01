@@ -196,6 +196,7 @@ export * from './host-action-context.js';
 export type { PluginRuntimeInfo, PluginRuntimeInfoHost, PluginUiPanel } from './runtime-info.js';
 
 export * from './members.js';
+export type * from './member-sessions.js';
 
 
 export { createStreamsClient, type PluginStreams, type PluginStreamReadOptions } from './streams.js';
