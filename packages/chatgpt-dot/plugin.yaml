@@ -1,5 +1,5 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.6
+version: 0.2.0-alpha.7
 contractVersion: 0.3.1-candidate.0
 name: ChatGPT Dot
 description:
@@ -13,7 +13,9 @@ call:
   alias: dot
   displayName: Dot
 steps:
-  - text: 准备连接后先启用插件，再在目标云端对话按配对说明订阅召唤。
+  - text: 若 ChatGPT 已有本实例连接，不要新建或修改正式 Pro 连接；先由本实例主人恢复原共享入口。
+  - text: 全新隔离验收时，由本实例主人提供 HTTPS Server URL；在 https://chatgpt.com/plugins 点 + → Add custom MCP server。仅当 URL 自带验收 token 时，Authentication 选 No authentication。
+  - text: 本地确认连接范围后，在 ChatGPT 安装 personal plugin、Refresh 元数据，在 Work 对话用 @ 选择它，再按配对说明订阅 dot.summoned。
   - text: 发起往返测试；读取原消息并回复校验码后，再检查测试结果。
 configuration:
   - key: webhookProxyUrl

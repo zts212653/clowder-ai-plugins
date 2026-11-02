@@ -147,8 +147,25 @@ test('shared connection state gates pairing instructions instead of inferring re
       const serialized = JSON.stringify(result);
       assert.equal(f.records.has('dot/connection/v1'), item.expectsPairing);
       assert.equal(serialized.includes('pairing_code='), item.expectsPairing);
-      if (!item.expectsPairing) {
+      if (item.name === 'pending') {
         assert.deepEqual(result, { render: 'rows', data: { rows: [item.presentation] } });
+      }
+      if (item.name === 'unavailable') {
+        assert.deepEqual(result.data.rows[0], item.presentation);
+        assert.match(serialized, /当前缺少.*cloud principal/);
+        assert.match(serialized, /本实例主人.*Server URL/);
+        assert.match(serialized, /https:\/\/chatgpt\.com\/plugins/);
+        assert.match(serialized, /Add custom MCP server/);
+        assert.match(serialized, /Authentication.*No authentication/);
+        assert.match(serialized, /personal plugin/);
+        assert.match(serialized, /Refresh/);
+        assert.match(serialized, /Work.*@/);
+        assert.equal(serialized.includes(f.host.external.token), false);
+      }
+      if (item.name === 'active') {
+        assert.match(serialized, /https:\/\/chatgpt\.com\/plugins/);
+        assert.match(serialized, /Refresh/);
+        assert.match(serialized, /dot\.summoned/);
       }
     });
   }

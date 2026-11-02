@@ -20,6 +20,36 @@ export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
 }
+const chatGptSetupRows = [
+	{
+		key: "dot-chatgpt-existing-connection",
+		label: "ChatGPT 已有本实例连接",
+		detail:
+			"不要新建或修改正式 Pro 连接。打开 https://chatgpt.com/plugins 中对应的 personal plugin；本地授权成功后点 Refresh，确认出现 Dot 工具和 dot.summoned，再到 Work 对话用 @ 选择它。",
+		actions: [],
+	},
+	{
+		key: "dot-chatgpt-isolated-connection",
+		label: "全新隔离验收连接",
+		detail:
+			"先向本实例主人取得这套实例的 HTTPS Server URL，再打开 https://chatgpt.com/plugins，点 + → Add custom MCP server。只粘贴主人提供的 URL；仅当该 URL 自带验收 token 时，Authentication 选 No authentication。Create as a plugin 后在 personal plugins 安装，授权后 Refresh，在 Work 对话用 @ 选择，最后按本页说明订阅 dot.summoned。",
+		actions: [],
+	},
+] as const;
+function unavailableGuidance(reason?: string) {
+	const missing =
+		reason === "shared_endpoint_unavailable"
+			? "当前缺少本实例的公开 HTTPS Server URL。"
+			: reason === "occupied"
+				? "当前共享连接已绑定到另一个已批准的安装。"
+				: "当前缺少本实例的 cloud principal。";
+	return {
+		key: "dot-shared-entry-missing",
+		label: "先恢复本实例的共享入口",
+		detail: `${missing} 请由本实例主人恢复这套实例自己的共享 /mcp，并提供它的 HTTPS Server URL；不要填写 localhost、虚构地址，也不要修改正式 Pro 连接。完成后再点“准备连接”。`,
+		actions: [],
+	} as const;
+}
 export function createDotPlugin(
 	options: DotPluginOptions = {},
 ): PluginModuleDefinition {
@@ -82,6 +112,12 @@ export function createDotPlugin(
 					// pairing instruction which the cloud consumer cannot use.
 					const connection =
 						proposal.connection.state === "active" ? await current.begin(context) : undefined;
+					const guidance =
+						proposal.connection.state === "unavailable"
+							? [unavailableGuidance(proposal.connection.reason), ...chatGptSetupRows]
+							: proposal.connection.state === "active"
+								? chatGptSetupRows
+								: [];
 					return {
 						render: "rows",
 						data: {
@@ -93,6 +129,7 @@ export function createDotPlugin(
 											? `${proposal.presentation.detail} ${connection.instructions}`
 											: proposal.presentation.detail,
 								},
+								...guidance,
 							],
 						},
 					};

@@ -8,7 +8,9 @@ Dot 把已配对的 ChatGPT 云端对话接入 Clowder AI。安装实例可作�
 
 ## 安装与连接
 
-在插件管理器选择本地插件目录或作者提供的完整归档。归档携带实际运行依赖，不需要另装 SDK。当前完整归档已在 macOS Apple Silicon 验证；其他平台需从源码构建对应依赖，尚未验收。安装后打开「Dot 连接」，选择「准备连接」，先启用插件，再按返回的配对说明在目标云端对话订阅召唤事件。实际可用的安装、设置和旧连接导入入口由配套 Host 提供。
+在插件管理器选择本地插件目录或作者提供的完整归档。归档携带实际运行依赖，不需要另装 SDK。当前完整归档已在 macOS Apple Silicon 验证；其他平台需从源码构建对应依赖，尚未验收。安装后打开「Dot 连接」，选择「准备连接」。如果页面报告本实例缺少 cloud principal 或 HTTPS Server URL，应由本实例主人恢复原共享入口；登录 ChatGPT 不会替本地实例完成这一步，也不要为此修改正式 Pro 连接。
+
+已有本实例 ChatGPT 连接时，打开 <https://chatgpt.com/plugins> 中对应的 personal plugin；本地授权后执行 Refresh，再在 Work 对话用 `@` 选择它。只有全新隔离验收才点 `+` → `Add custom MCP server`，并粘贴本实例主人提供的 HTTPS Server URL；仅当该 URL 自带验收 token 时，Authentication 选择 `No authentication`。创建后还要安装 personal plugin、Refresh 并核对 Dot 工具和 `dot.summoned`，最后按返回的配对说明订阅召唤事件。实际可用的安装、设置和旧连接导入入口由配套 Host 提供。
 
 配对固定到所选云端回调地址。选择「重新配对」会换掉配对标识，旧召唤将失效；「断开连接」撤销当前配对。Host 为每个安装提供一份外部 MCP 地址和 token，插件只读取并展示，不再生成第二套口令。旧连接迁移会把仍有效的旧口令收编为这份安装 token，无需重填。请勿把 token 贴到公共对话或诊断日志。
 
