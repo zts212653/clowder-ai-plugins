@@ -60,8 +60,10 @@ export class CommunityReviewVerdictRuntime {
         await check();
       };
       const source = this.options.storage;
+      const scan = source.scan?.bind(source);
       const storage: PluginStorageHost = {
         get: key => source.get(key), list: () => source.list(),
+        ...(scan ? { scan: async input => { await fence(); const page = await scan(input); await fence(); return page; } } : {}),
         set: async (key, value) => { await fence(); return source.set(key, value); },
         compareAndSet: async (key, revision, value) => { await fence(); return source.compareAndSet(key, revision, value); },
         delete: async (key, revision) => { await fence(); return source.delete(key, revision); },

@@ -1,0 +1,3431 @@
+[
+  {
+    "id": "@clowder-ai/github-operations@0.1.0-alpha.32",
+    "name": "@clowder-ai/github-operations",
+    "version": "0.1.0-alpha.32",
+    "size": 509921,
+    "unpackedSize": 2313986,
+    "shasum": "814935f0ae7446fef4bfc064d692f30af2cebe2e",
+    "integrity": "sha512-Hd+V3DFmPCRYmdH4L9eezkgB/WRyAOqBQI8TOZapgYHUfRan5UzqYWgt4iuib5cdVJYtXqs9LlRvdPaMFrlAWw==",
+    "filename": "clowder-ai-github-operations-0.1.0-alpha.32.tgz",
+    "files": [
+      {
+        "path": "README.en.md",
+        "size": 12131,
+        "mode": 420
+      },
+      {
+        "path": "README.md",
+        "size": 11557,
+        "mode": 420
+      },
+      {
+        "path": "assets/icon.svg",
+        "size": 605,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/wait-state-machine.d.ts",
+        "size": 3874,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/wait-state-machine.d.ts.map",
+        "size": 2208,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/wait-state-machine.js",
+        "size": 8332,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/wait-state-machine.js.map",
+        "size": 5259,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/WaitLifecycleRecoverySweep.d.ts",
+        "size": 571,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/WaitLifecycleRecoverySweep.d.ts.map",
+        "size": 601,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/WaitLifecycleRecoverySweep.js",
+        "size": 960,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/ball-custody/WaitLifecycleRecoverySweep.js.map",
+        "size": 976,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-auto-tracking.d.ts",
+        "size": 2299,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-auto-tracking.d.ts.map",
+        "size": 632,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-auto-tracking.js",
+        "size": 4536,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-auto-tracking.js.map",
+        "size": 2275,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-bootstrap.d.ts",
+        "size": 1818,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-bootstrap.d.ts.map",
+        "size": 948,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-bootstrap.js",
+        "size": 3029,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-bootstrap.js.map",
+        "size": 1773,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-closure-checklist.d.ts",
+        "size": 1594,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-closure-checklist.d.ts.map",
+        "size": 810,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-closure-checklist.js",
+        "size": 2896,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-closure-checklist.js.map",
+        "size": 1474,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-closure.d.ts",
+        "size": 890,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-closure.d.ts.map",
+        "size": 868,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-closure.js",
+        "size": 3941,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-closure.js.map",
+        "size": 3199,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-types.d.ts",
+        "size": 4361,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-types.d.ts.map",
+        "size": 4229,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-types.js",
+        "size": 69,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue-types.js.map",
+        "size": 188,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue.d.ts",
+        "size": 990,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue.d.ts.map",
+        "size": 524,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue.js",
+        "size": 12192,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-decision-queue.js.map",
+        "size": 10610,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-delivery-policy.d.ts",
+        "size": 1515,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-delivery-policy.d.ts.map",
+        "size": 598,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-delivery-policy.js",
+        "size": 2126,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-delivery-policy.js.map",
+        "size": 768,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-keys.d.ts",
+        "size": 2471,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-keys.d.ts.map",
+        "size": 581,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-keys.js",
+        "size": 2900,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-keys.js.map",
+        "size": 958,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-link-parser.d.ts",
+        "size": 959,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-link-parser.d.ts.map",
+        "size": 285,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-link-parser.js",
+        "size": 1675,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-link-parser.js.map",
+        "size": 800,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-plugin-http.d.ts",
+        "size": 350,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-plugin-http.d.ts.map",
+        "size": 294,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-plugin-http.js",
+        "size": 405,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-plugin-http.js.map",
+        "size": 334,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-projector.d.ts",
+        "size": 3306,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-projector.d.ts.map",
+        "size": 1101,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-projector.js",
+        "size": 22619,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-projector.js.map",
+        "size": 14230,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-route-recommendation.d.ts",
+        "size": 471,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-route-recommendation.d.ts.map",
+        "size": 293,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-route-recommendation.js",
+        "size": 393,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-route-recommendation.js.map",
+        "size": 246,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-sla-policy.d.ts",
+        "size": 2068,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-sla-policy.d.ts.map",
+        "size": 911,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-sla-policy.js",
+        "size": 3281,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-sla-policy.js.map",
+        "size": 1919,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-state-machine.d.ts",
+        "size": 1581,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-state-machine.d.ts.map",
+        "size": 686,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-state-machine.js",
+        "size": 7774,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/community-state-machine.js.map",
+        "size": 5025,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityEventLog.d.ts",
+        "size": 1568,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityEventLog.d.ts.map",
+        "size": 935,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityEventLog.js",
+        "size": 3503,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityEventLog.js.map",
+        "size": 3630,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityIssueStore.d.ts",
+        "size": 2670,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityIssueStore.d.ts.map",
+        "size": 1867,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityIssueStore.js",
+        "size": 6504,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityIssueStore.js.map",
+        "size": 6735,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityObjectStore.d.ts",
+        "size": 1000,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityObjectStore.d.ts.map",
+        "size": 867,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityObjectStore.js",
+        "size": 1207,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityObjectStore.js.map",
+        "size": 1237,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityRepoConfigStore.d.ts",
+        "size": 2154,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityRepoConfigStore.d.ts.map",
+        "size": 1506,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityRepoConfigStore.js",
+        "size": 3362,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityRepoConfigStore.js.map",
+        "size": 3333,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityWorkflowStores.d.ts",
+        "size": 2894,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityWorkflowStores.d.ts.map",
+        "size": 1867,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityWorkflowStores.js",
+        "size": 14726,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/CommunityWorkflowStores.js.map",
+        "size": 16593,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/derivePrGroup.d.ts",
+        "size": 1020,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/derivePrGroup.d.ts.map",
+        "size": 632,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/derivePrGroup.js",
+        "size": 1073,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/derivePrGroup.js.map",
+        "size": 695,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-cloud-review-classifier.d.ts",
+        "size": 1643,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-cloud-review-classifier.d.ts.map",
+        "size": 1459,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-cloud-review-classifier.js",
+        "size": 5141,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-cloud-review-classifier.js.map",
+        "size": 4660,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-aggregate.d.ts",
+        "size": 2410,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-aggregate.d.ts.map",
+        "size": 1963,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-aggregate.js",
+        "size": 19332,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-aggregate.js.map",
+        "size": 18015,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-projector.d.ts",
+        "size": 658,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-projector.d.ts.map",
+        "size": 637,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-projector.js",
+        "size": 3055,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-projector.js.map",
+        "size": 2407,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-verdict-submission.d.ts",
+        "size": 4525,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-verdict-submission.d.ts.map",
+        "size": 3752,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-verdict-submission.js",
+        "size": 9015,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/external-review-verdict-submission.js.map",
+        "size": 7684,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewCoordinator.d.ts",
+        "size": 2588,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewCoordinator.d.ts.map",
+        "size": 2237,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewCoordinator.js",
+        "size": 9481,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewCoordinator.js.map",
+        "size": 8559,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewVerdictService.d.ts",
+        "size": 1106,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewVerdictService.d.ts.map",
+        "size": 750,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewVerdictService.js",
+        "size": 7940,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/external-review/ExternalReviewVerdictService.js.map",
+        "size": 5819,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssueFetcher.d.ts",
+        "size": 404,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssueFetcher.d.ts.map",
+        "size": 546,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssueFetcher.js",
+        "size": 1092,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssueFetcher.js.map",
+        "size": 1438,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssuePublisher.d.ts",
+        "size": 1167,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssuePublisher.d.ts.map",
+        "size": 910,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssuePublisher.js",
+        "size": 2836,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubIssuePublisher.js.map",
+        "size": 2168,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubPrFetcher.d.ts",
+        "size": 648,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubPrFetcher.d.ts.map",
+        "size": 811,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubPrFetcher.js",
+        "size": 786,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/github/GitHubPrFetcher.js.map",
+        "size": 1022,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/community-issue-preview-card-builder.d.ts",
+        "size": 828,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/community-issue-preview-card-builder.d.ts.map",
+        "size": 434,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/community-issue-preview-card-builder.js",
+        "size": 2505,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/community-issue-preview-card-builder.js.map",
+        "size": 1730,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/CommunityIssueSanitizer.d.ts",
+        "size": 1618,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/CommunityIssueSanitizer.d.ts.map",
+        "size": 494,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/CommunityIssueSanitizer.js",
+        "size": 5216,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/CommunityIssueSanitizer.js.map",
+        "size": 2683,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-comment-classifier.d.ts",
+        "size": 965,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-comment-classifier.d.ts.map",
+        "size": 731,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-comment-classifier.js",
+        "size": 790,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-comment-classifier.js.map",
+        "size": 698,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-fix-evidence.d.ts",
+        "size": 1229,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-fix-evidence.d.ts.map",
+        "size": 1173,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-fix-evidence.js",
+        "size": 6868,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/issue-analysis/issue-fix-evidence.js.map",
+        "size": 7070,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/community-narrator-eligibility.d.ts",
+        "size": 1943,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/community-narrator-eligibility.d.ts.map",
+        "size": 623,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/community-narrator-eligibility.js",
+        "size": 1824,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/community-narrator-eligibility.js.map",
+        "size": 770,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/narrator-briefing.d.ts",
+        "size": 808,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/narrator-briefing.d.ts.map",
+        "size": 557,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/narrator-briefing.js",
+        "size": 2338,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/narrator-briefing.js.map",
+        "size": 765,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/SdkNarratorDelivery.d.ts",
+        "size": 1639,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/SdkNarratorDelivery.d.ts.map",
+        "size": 1112,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/SdkNarratorDelivery.js",
+        "size": 4496,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/narrator/SdkNarratorDelivery.js.map",
+        "size": 4890,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueDraftStore.d.ts",
+        "size": 1710,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueDraftStore.d.ts.map",
+        "size": 1064,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueDraftStore.js",
+        "size": 293,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueDraftStore.js.map",
+        "size": 198,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueStore.d.ts",
+        "size": 832,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueStore.d.ts.map",
+        "size": 847,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueStore.js",
+        "size": 156,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityIssueStore.js.map",
+        "size": 186,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityPrStore.d.ts",
+        "size": 1305,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityPrStore.d.ts.map",
+        "size": 1492,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityPrStore.js",
+        "size": 55,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityPrStore.js.map",
+        "size": 169,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityThreads.d.ts",
+        "size": 528,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityThreads.d.ts.map",
+        "size": 504,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityThreads.js",
+        "size": 55,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityThreads.js.map",
+        "size": 169,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityTracking.d.ts",
+        "size": 1015,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityTracking.d.ts.map",
+        "size": 835,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityTracking.js",
+        "size": 56,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/ports/CommunityTracking.js.map",
+        "size": 171,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciler.d.ts",
+        "size": 2071,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciler.d.ts.map",
+        "size": 1078,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciler.js",
+        "size": 7631,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciler.js.map",
+        "size": 4039,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconcilerTaskSpec.d.ts",
+        "size": 1525,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconcilerTaskSpec.d.ts.map",
+        "size": 1490,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconcilerTaskSpec.js",
+        "size": 3696,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconcilerTaskSpec.js.map",
+        "size": 3680,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciliationFindingStore.d.ts",
+        "size": 1688,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciliationFindingStore.d.ts.map",
+        "size": 1591,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciliationFindingStore.js",
+        "size": 3671,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/CommunityReconciliationFindingStore.js.map",
+        "size": 4029,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/resolveConsensus.d.ts",
+        "size": 215,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/resolveConsensus.d.ts.map",
+        "size": 303,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/resolveConsensus.js",
+        "size": 1070,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/reconciliation/resolveConsensus.js.map",
+        "size": 1209,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/TriageOrchestrator.d.ts",
+        "size": 1248,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/TriageOrchestrator.d.ts.map",
+        "size": 1241,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/TriageOrchestrator.js",
+        "size": 7428,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/community/TriageOrchestrator.js.map",
+        "size": 5165,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/github-wait-renderer.d.ts",
+        "size": 1009,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/github-wait-renderer.d.ts.map",
+        "size": 963,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/github-wait-renderer.js",
+        "size": 5297,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/github-wait-renderer.js.map",
+        "size": 3567,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubIssueWaitBaselineReader.d.ts",
+        "size": 770,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubIssueWaitBaselineReader.d.ts.map",
+        "size": 832,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubIssueWaitBaselineReader.js",
+        "size": 840,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubIssueWaitBaselineReader.js.map",
+        "size": 861,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubReviewVerdicts.d.ts",
+        "size": 2908,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubReviewVerdicts.d.ts.map",
+        "size": 1818,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubReviewVerdicts.js",
+        "size": 4758,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubReviewVerdicts.js.map",
+        "size": 4276,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitBaselineReader.d.ts",
+        "size": 1678,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitBaselineReader.d.ts.map",
+        "size": 1698,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitBaselineReader.js",
+        "size": 5178,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitBaselineReader.js.map",
+        "size": 4886,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitLifecycleService.d.ts",
+        "size": 4874,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitLifecycleService.d.ts.map",
+        "size": 3005,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitLifecycleService.js",
+        "size": 18724,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitLifecycleService.js.map",
+        "size": 15740,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitPredicateCatalog.d.ts",
+        "size": 15666,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitPredicateCatalog.d.ts.map",
+        "size": 3201,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitPredicateCatalog.js",
+        "size": 24340,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitPredicateCatalog.js.map",
+        "size": 16636,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitRenewalBaseline.d.ts",
+        "size": 3258,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitRenewalBaseline.d.ts.map",
+        "size": 1372,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitRenewalBaseline.js",
+        "size": 10908,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/GitHubWaitRenewalBaseline.js.map",
+        "size": 7664,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/TaskAutomationState.d.ts",
+        "size": 512,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/TaskAutomationState.d.ts.map",
+        "size": 423,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/TaskAutomationState.js",
+        "size": 3467,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/TaskAutomationState.js.map",
+        "size": 3414,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/wait-ports.d.ts",
+        "size": 1730,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/wait-ports.d.ts.map",
+        "size": 1651,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/wait-ports.js",
+        "size": 1085,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/domains/github-signals/wait-ports.js.map",
+        "size": 1112,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/GitHubRepoWebhookHandler.d.ts",
+        "size": 2583,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/GitHubRepoWebhookHandler.d.ts.map",
+        "size": 1919,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/GitHubRepoWebhookHandler.js",
+        "size": 19190,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/GitHubRepoWebhookHandler.js.map",
+        "size": 11566,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/ReconciliationDedup.d.ts",
+        "size": 1050,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/ReconciliationDedup.d.ts.map",
+        "size": 900,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/ReconciliationDedup.js",
+        "size": 1756,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/ReconciliationDedup.js.map",
+        "size": 1389,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoCommentPollTaskSpec.d.ts",
+        "size": 5632,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoCommentPollTaskSpec.d.ts.map",
+        "size": 1878,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoCommentPollTaskSpec.js",
+        "size": 6621,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoCommentPollTaskSpec.js.map",
+        "size": 4372,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoScanTaskSpec.d.ts",
+        "size": 1615,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoScanTaskSpec.d.ts.map",
+        "size": 1690,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoScanTaskSpec.js",
+        "size": 9076,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/RepoScanTaskSpec.js.map",
+        "size": 7022,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/SdkDeliveryDedup.d.ts",
+        "size": 573,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/SdkDeliveryDedup.d.ts.map",
+        "size": 582,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/SdkDeliveryDedup.js",
+        "size": 1848,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/SdkDeliveryDedup.js.map",
+        "size": 2017,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/types.d.ts",
+        "size": 994,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/types.d.ts.map",
+        "size": 866,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/types.js",
+        "size": 89,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/types.js.map",
+        "size": 177,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/verify-signature.d.ts",
+        "size": 166,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/verify-signature.d.ts.map",
+        "size": 295,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/verify-signature.js",
+        "size": 727,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/connectors/github-repo-event/verify-signature.js.map",
+        "size": 727,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-cd-contract.d.ts",
+        "size": 1037,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-cd-contract.d.ts.map",
+        "size": 937,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-cd-contract.js",
+        "size": 53,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-cd-contract.js.map",
+        "size": 159,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-execution-failure.d.ts",
+        "size": 783,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-execution-failure.d.ts.map",
+        "size": 850,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-execution-failure.js",
+        "size": 4100,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-execution-failure.js.map",
+        "size": 3712,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-message-content.d.ts",
+        "size": 574,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-message-content.d.ts.map",
+        "size": 453,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-message-content.js",
+        "size": 1503,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-message-content.js.map",
+        "size": 1109,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-batch-fetcher.d.ts",
+        "size": 871,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-batch-fetcher.d.ts.map",
+        "size": 721,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-batch-fetcher.js",
+        "size": 6804,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-batch-fetcher.js.map",
+        "size": 6713,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-fetcher.d.ts",
+        "size": 1967,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-fetcher.d.ts.map",
+        "size": 1732,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-fetcher.js",
+        "size": 7730,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ci-status-fetcher.js.map",
+        "size": 6305,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/CiCdRouter.d.ts",
+        "size": 629,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/CiCdRouter.d.ts.map",
+        "size": 670,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/CiCdRouter.js",
+        "size": 995,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/CiCdRouter.js.map",
+        "size": 1113,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ConflictRouter.d.ts",
+        "size": 209,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ConflictRouter.d.ts.map",
+        "size": 330,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ConflictRouter.js",
+        "size": 53,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ConflictRouter.js.map",
+        "size": 159,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/github-feedback-filter.d.ts",
+        "size": 1931,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/github-feedback-filter.d.ts.map",
+        "size": 730,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/github-feedback-filter.js",
+        "size": 1648,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/github-feedback-filter.js.map",
+        "size": 764,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/IssueCommentRouter.d.ts",
+        "size": 701,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/IssueCommentRouter.d.ts.map",
+        "size": 652,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/IssueCommentRouter.js",
+        "size": 2022,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/IssueCommentRouter.js.map",
+        "size": 1895,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/pr-tracking-keys.d.ts",
+        "size": 592,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/pr-tracking-keys.d.ts.map",
+        "size": 260,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/pr-tracking-keys.js",
+        "size": 595,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/pr-tracking-keys.js.map",
+        "size": 361,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ReviewFeedbackRouter.d.ts",
+        "size": 794,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ReviewFeedbackRouter.d.ts.map",
+        "size": 1003,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ReviewFeedbackRouter.js",
+        "size": 59,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/ReviewFeedbackRouter.js.map",
+        "size": 171,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/setup-noise-filter.d.ts",
+        "size": 1884,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/setup-noise-filter.d.ts.map",
+        "size": 493,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/setup-noise-filter.js",
+        "size": 2912,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/setup-noise-filter.js.map",
+        "size": 1198,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/severity-parser.d.ts",
+        "size": 1159,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/severity-parser.d.ts.map",
+        "size": 465,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/severity-parser.js",
+        "size": 2972,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/email/severity-parser.js.map",
+        "size": 1992,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/abortable-wait.d.ts",
+        "size": 304,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/abortable-wait.d.ts.map",
+        "size": 295,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/abortable-wait.js",
+        "size": 834,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/abortable-wait.js.map",
+        "size": 882,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/admission-budget.d.ts",
+        "size": 1591,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/admission-budget.d.ts.map",
+        "size": 1193,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/admission-budget.js",
+        "size": 1939,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/admission-budget.js.map",
+        "size": 1876,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-cursors.d.ts",
+        "size": 540,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-cursors.d.ts.map",
+        "size": 594,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-cursors.js",
+        "size": 658,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-cursors.js.map",
+        "size": 803,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-since.d.ts",
+        "size": 486,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-since.d.ts.map",
+        "size": 348,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-since.js",
+        "size": 2031,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/comment-since.js.map",
+        "size": 1782,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-paginated.d.ts",
+        "size": 695,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-paginated.d.ts.map",
+        "size": 410,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-paginated.js",
+        "size": 2387,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-paginated.js.map",
+        "size": 1609,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-review-threads.d.ts",
+        "size": 379,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-review-threads.d.ts.map",
+        "size": 432,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-review-threads.js",
+        "size": 1330,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/fetch-review-threads.js.map",
+        "size": 1193,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-cli-env.d.ts",
+        "size": 1137,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-cli-env.d.ts.map",
+        "size": 716,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-cli-env.js",
+        "size": 1487,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-cli-env.js.map",
+        "size": 1261,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-process.d.ts",
+        "size": 629,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-process.d.ts.map",
+        "size": 521,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-process.js",
+        "size": 3818,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/gh-process.js.map",
+        "size": 3673,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/github-object-validator.d.ts",
+        "size": 1729,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/github-object-validator.d.ts.map",
+        "size": 1401,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/github-object-validator.js",
+        "size": 3993,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/github-object-validator.js.map",
+        "size": 3110,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/repo-poll-readers.d.ts",
+        "size": 1213,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/repo-poll-readers.d.ts.map",
+        "size": 756,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/repo-poll-readers.js",
+        "size": 3144,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/repo-poll-readers.js.map",
+        "size": 3217,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-budget.d.ts",
+        "size": 1535,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-budget.d.ts.map",
+        "size": 1380,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-budget.js",
+        "size": 7456,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-budget.js.map",
+        "size": 7494,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-queue.d.ts",
+        "size": 520,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-queue.d.ts.map",
+        "size": 509,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-queue.js",
+        "size": 1323,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/request-queue.js.map",
+        "size": 1525,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/self-login-resolver.d.ts",
+        "size": 582,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/self-login-resolver.d.ts.map",
+        "size": 606,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/self-login-resolver.js",
+        "size": 3282,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/infrastructure/github/self-login-resolver.js.map",
+        "size": 2635,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/index.d.ts",
+        "size": 3052,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/index.d.ts.map",
+        "size": 2067,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/index.js",
+        "size": 631,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/index.js.map",
+        "size": 513,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/cat-breed.d.ts",
+        "size": 1309,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/cat-breed.d.ts.map",
+        "size": 748,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/cat-breed.js",
+        "size": 177,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/cat-breed.js.map",
+        "size": 151,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-event.d.ts",
+        "size": 8413,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-event.d.ts.map",
+        "size": 5456,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-event.js",
+        "size": 334,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-event.js.map",
+        "size": 166,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue-draft.d.ts",
+        "size": 2276,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue-draft.d.ts.map",
+        "size": 1659,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue-draft.js",
+        "size": 1469,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue-draft.js.map",
+        "size": 1198,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue.d.ts",
+        "size": 7650,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue.d.ts.map",
+        "size": 5982,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue.js",
+        "size": 3726,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/community-issue.js.map",
+        "size": 2920,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/github-wait.d.ts",
+        "size": 18277,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/github-wait.d.ts.map",
+        "size": 6967,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/github-wait.js",
+        "size": 11473,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/github-wait.js.map",
+        "size": 6001,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/ids.d.ts",
+        "size": 597,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/ids.d.ts.map",
+        "size": 478,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/ids.js",
+        "size": 744,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/ids.js.map",
+        "size": 652,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/rich-card.d.ts",
+        "size": 1555,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/rich-card.d.ts.map",
+        "size": 952,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/rich-card.js",
+        "size": 279,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/rich-card.js.map",
+        "size": 153,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/task.d.ts",
+        "size": 5987,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/task.d.ts.map",
+        "size": 3370,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/task.js",
+        "size": 43,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/task.js.map",
+        "size": 130,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-contract.d.ts",
+        "size": 2502,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-contract.d.ts.map",
+        "size": 1925,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-contract.js",
+        "size": 2333,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-contract.js.map",
+        "size": 2375,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-termination.d.ts",
+        "size": 5842,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-termination.d.ts.map",
+        "size": 813,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-termination.js",
+        "size": 1978,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/types/wait-termination.js.map",
+        "size": 2309,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/utils/subject-key.d.ts",
+        "size": 845,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/utils/subject-key.d.ts.map",
+        "size": 619,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/utils/subject-key.js",
+        "size": 2420,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/model/utils/subject-key.js.map",
+        "size": 2044,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue-read-model.d.ts",
+        "size": 1018,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue-read-model.d.ts.map",
+        "size": 857,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue-read-model.js",
+        "size": 7105,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue-read-model.js.map",
+        "size": 6656,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue.d.ts",
+        "size": 2150,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue.d.ts.map",
+        "size": 1529,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue.js",
+        "size": 6263,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-decision-queue.js.map",
+        "size": 6179,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issue-draft-routes.d.ts",
+        "size": 1465,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issue-draft-routes.d.ts.map",
+        "size": 935,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issue-draft-routes.js",
+        "size": 9677,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issue-draft-routes.js.map",
+        "size": 8536,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issues.d.ts",
+        "size": 3796,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issues.d.ts.map",
+        "size": 2109,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issues.js",
+        "size": 66271,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-issues.js.map",
+        "size": 51179,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-repo-config.d.ts",
+        "size": 954,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-repo-config.d.ts.map",
+        "size": 465,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-repo-config.js",
+        "size": 2219,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-repo-config.js.map",
+        "size": 2036,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-request-context.d.ts",
+        "size": 1986,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-request-context.d.ts.map",
+        "size": 1298,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-request-context.js",
+        "size": 6128,
+        "mode": 420
+      },
+      {
+        "path": "dist/business/routes/community-request-context.js.map",
+        "size": 5638,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-collection.d.ts",
+        "size": 2387,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-collection.d.ts.map",
+        "size": 1788,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-collection.js",
+        "size": 10847,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-collection.js.map",
+        "size": 11606,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-http-router.d.ts",
+        "size": 2663,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-http-router.d.ts.map",
+        "size": 1338,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-http-router.js",
+        "size": 7932,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-http-router.js.map",
+        "size": 7374,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-narrator.d.ts",
+        "size": 1404,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-narrator.d.ts.map",
+        "size": 747,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-narrator.js",
+        "size": 5498,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-narrator.js.map",
+        "size": 5215,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-native-actions.d.ts",
+        "size": 1219,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-native-actions.d.ts.map",
+        "size": 360,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-native-actions.js",
+        "size": 1035,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-native-actions.js.map",
+        "size": 764,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-read-model.d.ts",
+        "size": 1127,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-read-model.d.ts.map",
+        "size": 388,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-read-model.js",
+        "size": 2532,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-read-model.js.map",
+        "size": 2383,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-review-verdict.d.ts",
+        "size": 2811,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-review-verdict.d.ts.map",
+        "size": 898,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-review-verdict.js",
+        "size": 5358,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-review-verdict.js.map",
+        "size": 5580,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-route-provider.d.ts",
+        "size": 1554,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-route-provider.d.ts.map",
+        "size": 1262,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-route-provider.js",
+        "size": 7500,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-route-provider.js.map",
+        "size": 8190,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-runtime.d.ts",
+        "size": 6003,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-runtime.d.ts.map",
+        "size": 2811,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-runtime.js",
+        "size": 23388,
+        "mode": 420
+      },
+      {
+        "path": "dist/community-runtime.js.map",
+        "size": 22113,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-provider.d.ts",
+        "size": 2599,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-provider.d.ts.map",
+        "size": 1993,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-provider.js",
+        "size": 12435,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-provider.js.map",
+        "size": 12985,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-review-evidence.d.ts",
+        "size": 1607,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-review-evidence.d.ts.map",
+        "size": 1419,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-review-evidence.js",
+        "size": 6980,
+        "mode": 420
+      },
+      {
+        "path": "dist/github-review-evidence.js.map",
+        "size": 8116,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.d.ts",
+        "size": 441,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.d.ts.map",
+        "size": 402,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.js",
+        "size": 234,
+        "mode": 420
+      },
+      {
+        "path": "dist/index.js.map",
+        "size": 255,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-observations.d.ts",
+        "size": 1491,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-observations.d.ts.map",
+        "size": 488,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-observations.js",
+        "size": 4370,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-observations.js.map",
+        "size": 4177,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-progress.d.ts",
+        "size": 1251,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-progress.d.ts.map",
+        "size": 735,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-progress.js",
+        "size": 7203,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-issue-progress.js.map",
+        "size": 7596,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-provider-history.d.ts",
+        "size": 1474,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-provider-history.d.ts.map",
+        "size": 612,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-provider-history.js",
+        "size": 8985,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-provider-history.js.map",
+        "size": 9093,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-repository-progress.d.ts",
+        "size": 1259,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-repository-progress.d.ts.map",
+        "size": 573,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-repository-progress.js",
+        "size": 7313,
+        "mode": 420
+      },
+      {
+        "path": "dist/legacy-repository-progress.js.map",
+        "size": 7470,
+        "mode": 420
+      },
+      {
+        "path": "dist/mcp-entrypoint.d.ts",
+        "size": 55,
+        "mode": 420
+      },
+      {
+        "path": "dist/mcp-entrypoint.d.ts.map",
+        "size": 122,
+        "mode": 420
+      },
+      {
+        "path": "dist/mcp-entrypoint.js",
+        "size": 389,
+        "mode": 420
+      },
+      {
+        "path": "dist/mcp-entrypoint.js.map",
+        "size": 366,
+        "mode": 420
+      },
+      {
+        "path": "dist/metadata-thread.d.ts",
+        "size": 340,
+        "mode": 420
+      },
+      {
+        "path": "dist/metadata-thread.d.ts.map",
+        "size": 329,
+        "mode": 420
+      },
+      {
+        "path": "dist/metadata-thread.js",
+        "size": 942,
+        "mode": 420
+      },
+      {
+        "path": "dist/metadata-thread.js.map",
+        "size": 854,
+        "mode": 420
+      },
+      {
+        "path": "dist/migrated-issue-runtime.d.ts",
+        "size": 874,
+        "mode": 420
+      },
+      {
+        "path": "dist/migrated-issue-runtime.d.ts.map",
+        "size": 697,
+        "mode": 420
+      },
+      {
+        "path": "dist/migrated-issue-runtime.js",
+        "size": 6923,
+        "mode": 420
+      },
+      {
+        "path": "dist/migrated-issue-runtime.js.map",
+        "size": 7287,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-host-wait.d.ts",
+        "size": 760,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-host-wait.d.ts.map",
+        "size": 426,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-host-wait.js",
+        "size": 2403,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-host-wait.js.map",
+        "size": 2212,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-http.d.ts",
+        "size": 659,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-http.d.ts.map",
+        "size": 424,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-http.js",
+        "size": 2703,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-http.js.map",
+        "size": 2415,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-plan.d.ts",
+        "size": 1237,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-plan.d.ts.map",
+        "size": 1034,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-plan.js",
+        "size": 11323,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-plan.js.map",
+        "size": 11349,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-runtime.d.ts",
+        "size": 2005,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-runtime.d.ts.map",
+        "size": 868,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-runtime.js",
+        "size": 16360,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-runtime.js.map",
+        "size": 17033,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-cli.d.ts",
+        "size": 563,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-cli.d.ts.map",
+        "size": 240,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-cli.js",
+        "size": 2459,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-cli.js.map",
+        "size": 2518,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-inspection.d.ts",
+        "size": 722,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-inspection.d.ts.map",
+        "size": 307,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-inspection.js",
+        "size": 2433,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-inspection.js.map",
+        "size": 1784,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-schema.d.ts",
+        "size": 3199,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-schema.d.ts.map",
+        "size": 370,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-schema.js",
+        "size": 1546,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source-schema.js.map",
+        "size": 2066,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source.d.ts",
+        "size": 2599,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source.d.ts.map",
+        "size": 1823,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source.js",
+        "size": 5781,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-source.js.map",
+        "size": 6815,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-storage.d.ts",
+        "size": 825,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-storage.d.ts.map",
+        "size": 538,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-storage.js",
+        "size": 1012,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-storage.js.map",
+        "size": 1279,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-terminal.d.ts",
+        "size": 723,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-terminal.d.ts.map",
+        "size": 618,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-terminal.js",
+        "size": 3265,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-terminal.js.map",
+        "size": 3173,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-wait.d.ts",
+        "size": 416,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-wait.d.ts.map",
+        "size": 410,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-wait.js",
+        "size": 1373,
+        "mode": 420
+      },
+      {
+        "path": "dist/migration-wait.js.map",
+        "size": 1593,
+        "mode": 420
+      },
+      {
+        "path": "dist/native-issue-drafts.d.ts",
+        "size": 2592,
+        "mode": 420
+      },
+      {
+        "path": "dist/native-issue-drafts.d.ts.map",
+        "size": 1498,
+        "mode": 420
+      },
+      {
+        "path": "dist/native-issue-drafts.js",
+        "size": 11099,
+        "mode": 420
+      },
+      {
+        "path": "dist/native-issue-drafts.js.map",
+        "size": 11549,
+        "mode": 420
+      },
+      {
+        "path": "dist/notification-filter.d.ts",
+        "size": 522,
+        "mode": 420
+      },
+      {
+        "path": "dist/notification-filter.d.ts.map",
+        "size": 459,
+        "mode": 420
+      },
+      {
+        "path": "dist/notification-filter.js",
+        "size": 1855,
+        "mode": 420
+      },
+      {
+        "path": "dist/notification-filter.js.map",
+        "size": 2011,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-cli.d.ts",
+        "size": 1729,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-cli.d.ts.map",
+        "size": 461,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-cli.js",
+        "size": 4604,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-cli.js.map",
+        "size": 3985,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-policy.d.ts",
+        "size": 3440,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-policy.d.ts.map",
+        "size": 635,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-policy.js",
+        "size": 6204,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-policy.js.map",
+        "size": 6474,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-receipts.d.ts",
+        "size": 548,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-receipts.d.ts.map",
+        "size": 440,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-receipts.js",
+        "size": 2527,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-receipts.js.map",
+        "size": 2397,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-redis.d.ts",
+        "size": 876,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-redis.d.ts.map",
+        "size": 331,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-redis.js",
+        "size": 3598,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-redis.js.map",
+        "size": 3269,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-repositories.d.ts",
+        "size": 692,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-repositories.d.ts.map",
+        "size": 366,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-repositories.js",
+        "size": 4292,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-repositories.js.map",
+        "size": 4125,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-tasks.d.ts",
+        "size": 478,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-tasks.d.ts.map",
+        "size": 387,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-tasks.js",
+        "size": 4086,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-tasks.js.map",
+        "size": 4049,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-values.d.ts",
+        "size": 1058,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-values.d.ts.map",
+        "size": 904,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-values.js",
+        "size": 2794,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source-values.js.map",
+        "size": 3364,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source.d.ts",
+        "size": 576,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source.d.ts.map",
+        "size": 618,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source.js",
+        "size": 1190,
+        "mode": 420
+      },
+      {
+        "path": "dist/operational-source.js.map",
+        "size": 1103,
+        "mode": 420
+      },
+      {
+        "path": "dist/owner-issue-drafts.d.ts",
+        "size": 2091,
+        "mode": 420
+      },
+      {
+        "path": "dist/owner-issue-drafts.d.ts.map",
+        "size": 729,
+        "mode": 420
+      },
+      {
+        "path": "dist/owner-issue-drafts.js",
+        "size": 3218,
+        "mode": 420
+      },
+      {
+        "path": "dist/owner-issue-drafts.js.map",
+        "size": 3792,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin-entrypoint.d.ts",
+        "size": 1853,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin-entrypoint.d.ts.map",
+        "size": 1390,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin-entrypoint.js",
+        "size": 13119,
+        "mode": 420
+      },
+      {
+        "path": "dist/plugin-entrypoint.js.map",
+        "size": 11542,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-index-provider.d.ts",
+        "size": 789,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-index-provider.d.ts.map",
+        "size": 595,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-index-provider.js",
+        "size": 1726,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-index-provider.js.map",
+        "size": 1519,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-provider-index.d.ts",
+        "size": 2347,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-provider-index.d.ts.map",
+        "size": 1319,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-provider-index.js",
+        "size": 18080,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-provider-index.js.map",
+        "size": 19535,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-title-reader.d.ts",
+        "size": 1156,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-title-reader.d.ts.map",
+        "size": 832,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-title-reader.js",
+        "size": 4491,
+        "mode": 420
+      },
+      {
+        "path": "dist/pr-title-reader.js.map",
+        "size": 4889,
+        "mode": 420
+      },
+      {
+        "path": "dist/provider-briefing.d.ts",
+        "size": 728,
+        "mode": 420
+      },
+      {
+        "path": "dist/provider-briefing.d.ts.map",
+        "size": 328,
+        "mode": 420
+      },
+      {
+        "path": "dist/provider-briefing.js",
+        "size": 2583,
+        "mode": 420
+      },
+      {
+        "path": "dist/provider-briefing.js.map",
+        "size": 1974,
+        "mode": 420
+      },
+      {
+        "path": "dist/review-trigger-observation.d.ts",
+        "size": 1315,
+        "mode": 420
+      },
+      {
+        "path": "dist/review-trigger-observation.d.ts.map",
+        "size": 1068,
+        "mode": 420
+      },
+      {
+        "path": "dist/review-trigger-observation.js",
+        "size": 6229,
+        "mode": 420
+      },
+      {
+        "path": "dist/review-trigger-observation.js.map",
+        "size": 6151,
+        "mode": 420
+      },
+      {
+        "path": "dist/schedules.d.ts",
+        "size": 666,
+        "mode": 420
+      },
+      {
+        "path": "dist/schedules.d.ts.map",
+        "size": 247,
+        "mode": 420
+      },
+      {
+        "path": "dist/schedules.js",
+        "size": 409,
+        "mode": 420
+      },
+      {
+        "path": "dist/schedules.js.map",
+        "size": 513,
+        "mode": 420
+      },
+      {
+        "path": "dist/settings.d.ts",
+        "size": 909,
+        "mode": 420
+      },
+      {
+        "path": "dist/settings.d.ts.map",
+        "size": 367,
+        "mode": 420
+      },
+      {
+        "path": "dist/settings.js",
+        "size": 2459,
+        "mode": 420
+      },
+      {
+        "path": "dist/settings.js.map",
+        "size": 2112,
+        "mode": 420
+      },
+      {
+        "path": "dist/source-publication.d.ts",
+        "size": 754,
+        "mode": 420
+      },
+      {
+        "path": "dist/source-publication.d.ts.map",
+        "size": 552,
+        "mode": 420
+      },
+      {
+        "path": "dist/source-publication.js",
+        "size": 8468,
+        "mode": 420
+      },
+      {
+        "path": "dist/source-publication.js.map",
+        "size": 8659,
+        "mode": 420
+      },
+      {
+        "path": "dist/storage-pages.d.ts",
+        "size": 732,
+        "mode": 420
+      },
+      {
+        "path": "dist/storage-pages.d.ts.map",
+        "size": 561,
+        "mode": 420
+      },
+      {
+        "path": "dist/storage-pages.js",
+        "size": 1284,
+        "mode": 420
+      },
+      {
+        "path": "dist/storage-pages.js.map",
+        "size": 1366,
+        "mode": 420
+      },
+      {
+        "path": "dist/thread-mappings.d.ts",
+        "size": 2190,
+        "mode": 420
+      },
+      {
+        "path": "dist/thread-mappings.d.ts.map",
+        "size": 673,
+        "mode": 420
+      },
+      {
+        "path": "dist/thread-mappings.js",
+        "size": 2576,
+        "mode": 420
+      },
+      {
+        "path": "dist/thread-mappings.js.map",
+        "size": 3166,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-diagnostics.d.ts",
+        "size": 2920,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-diagnostics.d.ts.map",
+        "size": 1173,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-diagnostics.js",
+        "size": 5558,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-diagnostics.js.map",
+        "size": 6341,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-schemas.d.ts",
+        "size": 3856,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-schemas.d.ts.map",
+        "size": 376,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-schemas.js",
+        "size": 6987,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-schemas.js.map",
+        "size": 3958,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-server.d.ts",
+        "size": 1498,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-server.d.ts.map",
+        "size": 1116,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-server.js",
+        "size": 9478,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-mcp-server.js.map",
+        "size": 4249,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-polling.d.ts",
+        "size": 1041,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-polling.d.ts.map",
+        "size": 976,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-polling.js",
+        "size": 4878,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-polling.js.map",
+        "size": 5029,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-runtime.d.ts",
+        "size": 5101,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-runtime.d.ts.map",
+        "size": 4281,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-runtime.js",
+        "size": 23828,
+        "mode": 420
+      },
+      {
+        "path": "dist/tracking-runtime.js.map",
+        "size": 23265,
+        "mode": 420
+      },
+      {
+        "path": "dist/triage-recommendation.d.ts",
+        "size": 514,
+        "mode": 420
+      },
+      {
+        "path": "dist/triage-recommendation.d.ts.map",
+        "size": 199,
+        "mode": 420
+      },
+      {
+        "path": "dist/triage-recommendation.js",
+        "size": 2646,
+        "mode": 420
+      },
+      {
+        "path": "dist/triage-recommendation.js.map",
+        "size": 2491,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-provider.d.ts",
+        "size": 2271,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-provider.d.ts.map",
+        "size": 906,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-provider.js",
+        "size": 12364,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-provider.js.map",
+        "size": 12000,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-registration.d.ts",
+        "size": 2438,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-registration.d.ts.map",
+        "size": 2104,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-registration.js",
+        "size": 14825,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-registration.js.map",
+        "size": 13884,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-runtime.d.ts",
+        "size": 3467,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-runtime.d.ts.map",
+        "size": 1924,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-runtime.js",
+        "size": 21047,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-runtime.js.map",
+        "size": 19350,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-storage.d.ts",
+        "size": 2000,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-storage.d.ts.map",
+        "size": 1725,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-storage.js",
+        "size": 7834,
+        "mode": 420
+      },
+      {
+        "path": "dist/typed-wait-storage.js.map",
+        "size": 8210,
+        "mode": 420
+      },
+      {
+        "path": "npm-shrinkwrap.json",
+        "size": 59759,
+        "mode": 420
+      },
+      {
+        "path": "package.json",
+        "size": 1580,
+        "mode": 420
+      },
+      {
+        "path": "plugin.yaml",
+        "size": 23073,
+        "mode": 420
+      },
+      {
+        "path": "skills/github-operations/SKILL.md",
+        "size": 10654,
+        "mode": 420
+      }
+    ],
+    "entryCount": 683,
+    "bundled": []
+  }
+]

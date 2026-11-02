@@ -1,0 +1,4 @@
+
+> @clowder-ai/github-operations@0.1.0-alpha.32 typecheck /Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/packages/github-operations
+> tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json
+

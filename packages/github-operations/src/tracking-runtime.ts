@@ -159,6 +159,7 @@ export class GitHubTrackingRuntime {
   private readonly lifecycle = new AbortController();
   private readonly queues = new Map<string, Promise<unknown>>();
   private readonly polling = new Map<string, AbortController>();
+  private readonly ciBatchPolling = new Map<string, AbortController>();
   private stopping = false;
   private readonly now: () => number;
   private readonly pollBudgetMs: number;
@@ -239,7 +240,9 @@ export class GitHubTrackingRuntime {
 
   async unregister(target: Pick<GitHubTarget, 'kind' | 'repoFullName' | 'number'>): Promise<{ active: false }> {
     const key = keyOf(target);
-    this.polling.get(key)?.abort(new Error('tracking unregistered'));
+    const reason = new Error('tracking unregistered');
+    this.polling.get(key)?.abort(reason);
+    this.ciBatchPolling.get(key)?.abort(reason);
     return this.serialize(key, async () => {
       const current = await this.deps.storage.get(key);
       if (current) {
@@ -272,9 +275,35 @@ export class GitHubTrackingRuntime {
     return pollTrackingPages({
       storage: this.deps.storage, prefix: PREFIX, channel, signal: this.lifecycle.signal,
       provider: this.deps.provider, now: this.now, pollBudgetMs: this.pollBudgetMs,
+      ...(this.deps.provider.forCiBatch ? { forCiBatch: (targets: readonly GitHubTarget[], signal: AbortSignal) => this.readCiBatch(targets, signal) } : {}),
       objectTimeoutMs: this.objectTimeoutMs, record: recordOf,
       pollTarget: (key, deadline, provider) => this.serialize(key, () => this.pollTarget(key, channel, deadline, provider)),
     });
+  }
+
+  private async readCiBatch(targets: readonly GitHubTarget[], signal: AbortSignal): Promise<GitHubTrackingProvider> {
+    const controller = new AbortController();
+    const currentSignal = AbortSignal.any([signal, controller.signal]);
+    const keys = targets.map(keyOf);
+    for (const key of keys) this.ciBatchPolling.set(key, controller);
+    try {
+      const currentTargets: GitHubTarget[] = [];
+      for (const key of keys) {
+        currentSignal.throwIfAborted();
+        const entry = await this.deps.storage.get(key);
+        currentSignal.throwIfAborted();
+        if (!entry) continue;
+        const record = recordOf(entry.value);
+        if (record.active && record.target.kind === 'pr') currentTargets.push(record.target);
+      }
+      currentSignal.throwIfAborted();
+      if (!currentTargets.length) return this.deps.provider;
+      const provider = await this.deps.provider.forCiBatch!(currentTargets, currentSignal);
+      currentSignal.throwIfAborted();
+      return provider;
+    } finally {
+      for (const key of keys) if (this.ciBatchPolling.get(key) === controller) this.ciBatchPolling.delete(key);
+    }
   }
 
   private async pollTarget(key: string, channel: Channel, deadline: number, provider: GitHubTrackingProvider): Promise<void> {

@@ -1,0 +1,69 @@
+import base64,hashlib,json,os,re,shutil,subprocess,sys,time
+from pathlib import Path
+OUT=Path(__file__).resolve().parent
+PLUGINS=OUT.parents[3]
+CORE=PLUGINS.parent/'cat-cafe-task229-private-storage'
+OLD=CORE/'.cat-cafe/evidence/task229-private-storage'
+BIN=Path('/Users/lysander/.npm/_npx/004e8352dee60470/node_modules/.bin')
+NODE=str(BIN/'node')
+ENV={k:v for k,v in os.environ.items() if k not in ('NODE_ENV','REDIS_URL','OPENAI_API_KEY','ANTHROPIC_API_KEY','GEMINI_API_KEY') and not k.startswith(('CAT_CAFE_','CATCAFE_'))}
+ENV['PATH']=str(BIN)+os.pathsep+ENV['PATH']
+ENV['CLOWDER_ARTIFACT_NPM_CLI']=str(BIN.parent/'npm/bin/npm-cli.js')
+workflow=(PLUGINS/'.github/workflows/contract-ci.yml').read_text()
+for name in ('NODE','NPM','ZLIB'):ENV[f'ARTIFACT_{name}_VERSION']=re.search(rf"ARTIFACT_{name}_VERSION: '([^']+)'",workflow)[1]
+ARTIFACTS=OUT/'f202-w1-tarballs'
+(ARTIFACTS/'self-contained').mkdir(parents=True,exist_ok=True)
+rows=[]
+def run(stage,cmd,cwd):
+    start=time.monotonic()
+    with (OUT/f'{stage}.log').open('wb') as log:
+        result=subprocess.run(cmd,cwd=cwd,env=ENV,stdout=log,stderr=subprocess.STDOUT)
+    row={'stage':stage,'exitCode':result.returncode,'elapsedMs':round((time.monotonic()-start)*1000),'command':cmd,'cwd':str(cwd)}
+    rows.append(row);(OUT/'stage-results.json').write_text(json.dumps(rows,indent=2)+'\n');print(json.dumps(row),flush=True)
+    if result.returncode:sys.exit(result.returncode)
+    return OUT/f'{stage}.log'
+frozen={}
+files=subprocess.check_output(['git','ls-files','--modified','--others','--exclude-standard'],cwd=PLUGINS,text=True).splitlines()+subprocess.check_output(['git','diff','--name-only','e39b70d0ef7763cf464108e451df13f81ccd2ce1...HEAD'],cwd=PLUGINS,text=True).splitlines()
+for name in sorted(set(files)):
+    if name.startswith('packages/'):frozen[name]=hashlib.sha256((PLUGINS/name).read_bytes()).hexdigest()
+(OUT/'frozen-source.json').write_text(json.dumps(frozen,indent=2)+'\n')
+run('github-build',['pnpm','--filter','@clowder-ai/github-operations','build'],PLUGINS)
+sdk=json.loads((OLD/'release-sdk-pack.log').read_text())[0]
+sdkArchive=OLD/'release-artifacts'/sdk['filename']
+assert sdk['integrity']=='sha512-'+base64.b64encode(hashlib.sha512(sdkArchive.read_bytes()).digest()).decode()
+shutil.copyfile(sdkArchive,ARTIFACTS/sdk['filename'])
+pack=run('github-pack',[NODE,'scripts/pack-publish-artifact.mjs','packages/github-operations',str(ARTIFACTS)],PLUGINS)
+metadata=json.loads(pack.read_text())[0]
+catalogPath=PLUGINS/'catalog/candidate.json'
+catalog=json.loads(catalogPath.read_text())
+def update(v):
+    if isinstance(v,list):return any(update(child) for child in v)
+    if not isinstance(v,dict):return False
+    if v.get('pluginId')=='official.github-operations' and 'versions' in v:
+        row=next(row for row in v['versions'] if row['version']==metadata['version'])
+        row['artifact'].update({key:metadata[key] for key in ['integrity','shasum']});return True
+    return any(update(child) for child in v.values())
+assert update(catalog)
+catalogPath.write_text(json.dumps(catalog,indent=2)+'\n')
+run('self-contained',[NODE,'scripts/pack-self-contained-artifact.mjs','packages/github-operations',str(ARTIFACTS)],PLUGINS)
+bundle=json.loads((OUT/'self-contained.log').read_text())
+witness=(OLD/'packaged-consumer.mjs').read_text()
+witness=witness.replace("const core = fileURLToPath(new URL('../../../', import.meta.url));",'const core = '+json.dumps(str(CORE))+';')
+(OUT/'packaged-consumer.mjs').write_text(witness)
+run('physical-consumer',[NODE,str(OUT/'packaged-consumer.mjs'),bundle['destination']],PLUGINS)
+checker=(OLD/'catalog-candidate-check.mjs').read_text().replace("'release-github-pack.log'","'github-pack.log'").replace("'HEAD:catalog/candidate.json'","'e39b70d0ef7763cf464108e451df13f81ccd2ce1:catalog/candidate.json'")
+(OUT/'catalog-candidate-check.mjs').write_text(checker)
+run('catalog',[NODE,str(OUT/'catalog-candidate-check.mjs')],PLUGINS)
+run('full-native-ci',['pnpm','gate:ci'],PLUGINS)
+for name,expected in frozen.items():assert hashlib.sha256((PLUGINS/name).read_bytes()).hexdigest()==expected,name
+bindings={}
+for name in sorted(set(files)|{'catalog/candidate.json'}):
+    if name.startswith('packages/') or name in ['catalog/candidate.json','pnpm-lock.yaml']:
+        bindings[name]=hashlib.sha256((PLUGINS/name).read_bytes()).hexdigest()
+        if '/src/' in name and name.endswith('.ts') and '.test.' not in name:
+            for suffix in ['.js','.d.ts']:
+                emitted=PLUGINS/(name.replace('/src/','/dist/').removesuffix('.ts')+suffix)
+                if emitted.exists():bindings[str(emitted.relative_to(PLUGINS))]=hashlib.sha256(emitted.read_bytes()).hexdigest()
+(OUT/'final-bindings.json').write_text(json.dumps(bindings,indent=2)+'\n')
+(OUT/'artifact-proof.json').write_text(json.dumps({'sdk':{k:sdk[k] for k in ['name','version','integrity','shasum']},'github':{k:metadata[k] for k in ['name','version','integrity','shasum']},'bundle':bundle,'published':False,'activated':False},indent=2)+'\n')
+run('diff',['git','diff','--check'],PLUGINS)

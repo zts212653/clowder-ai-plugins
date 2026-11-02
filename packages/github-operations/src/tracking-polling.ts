@@ -1,4 +1,4 @@
-import type { PluginStorageEntry, PluginStorageHost } from '@clowder-ai/plugin-sdk';
+import type { PluginStorageHost } from '@clowder-ai/plugin-sdk';
 import { gitHubAdmissionCanContinue, gitHubObjectSignal } from './business/infrastructure/github/admission-budget.js';
 import type { GitHubTarget, GitHubTrackingProvider } from './tracking-runtime.js';
 
@@ -22,6 +22,7 @@ export async function pollTrackingPages(input: {
   readonly channel: TrackingChannel;
   readonly signal: AbortSignal;
   readonly provider: GitHubTrackingProvider;
+  readonly forCiBatch?: GitHubTrackingProvider['forCiBatch'];
   readonly now: () => number;
   readonly pollBudgetMs: number;
   readonly objectTimeoutMs: number;
@@ -36,7 +37,6 @@ export async function pollTrackingPages(input: {
   const legacyKey = `github.poll-cursor.${channel}`;
   const state = readProgress((await storage.get(progressKey))?.value, prefix);
   let started = state.cursor !== '0' || state.pending.length > 0;
-  let entries: Readonly<Record<string, PluginStorageEntry>> = {};
   let attempts = 0;
   const seen = new Set<string>();
   const failures: unknown[] = [];
@@ -59,7 +59,6 @@ export async function pollTrackingPages(input: {
       started = true;
       state.cursor = page.cursor;
       state.pending = Object.keys(page.entries).filter(key => key.startsWith(prefix)).sort();
-      entries = page.entries;
       await save();
       if (!state.pending.length) continue;
     }
@@ -70,23 +69,23 @@ export async function pollTrackingPages(input: {
       signal.throwIfAborted();
       if (!canContinue()) break;
       if (seen.has(key)) { ignored.push(key); continue; }
-      const entry = entries[key] ?? await storage.get(key);
+      const entry = await storage.get(key);
       if (!entry) { ignored.push(key); continue; }
       const record = input.record(entry.value);
       if (!record.active || (channel === 'issue-tracking') !== (record.target.kind === 'issue')) {
         ignored.push(key); continue;
       }
       cohort.push({ key, target: record.target });
-      if (channel === 'cicd-check' && input.provider.forCiBatch && cohort.length === 20) break;
+      if (channel === 'cicd-check' && input.forCiBatch && cohort.length === 20) break;
     }
     if (ignored.length) await advance(ignored);
     if (!cohort.length) continue;
 
     let provider = input.provider;
-    if (channel === 'cicd-check' && provider.forCiBatch) {
+    if (channel === 'cicd-check' && input.forCiBatch) {
       const objectSignal = gitHubObjectSignal({ signal, deadlineMs: deadline, now, objectTimeoutMs: input.objectTimeoutMs })!;
       try {
-        provider = await provider.forCiBatch(cohort.map(row => row.target), objectSignal);
+        provider = await input.forCiBatch(cohort.map(row => row.target), objectSignal);
         objectSignal.throwIfAborted();
       } catch (error) {
         signal.throwIfAborted();
@@ -104,7 +103,7 @@ export async function pollTrackingPages(input: {
       // Failed remote targets also advance fairness; their original record/outbox remains retryable.
       await advance([key]);
     }
-    if (channel === 'cicd-check' && input.provider.forCiBatch) break;
+    if (channel === 'cicd-check' && input.forCiBatch) break;
   }
   if (failures.length === 1) throw failures[0];
   if (failures.length > 1) throw new AggregateError(failures, 'GitHub poll failed for multiple targets');

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { PluginStorageEntry } from '@clowder-ai/plugin-sdk';
-import { GitHubTrackingRuntime, type GitHubSnapshot } from './tracking-runtime.js';
+import { GitHubTrackingRuntime, type GitHubSnapshot, type GitHubTrackingProvider } from './tracking-runtime.js';
 import { GitHubWaitStorage } from './typed-wait-storage.js';
 import type { TaskItem } from './business/model/index.js';
 import { SdkCommunityObjectStore } from './business/domains/community/CommunityObjectStore.js';
@@ -132,4 +132,101 @@ test('a partially processed private page survives runtime recreation without sta
   assert.equal(seen.length, 2);
   assert.notEqual(seen[0], seen[1]);
   assert.equal(f.fullLists(), 0);
+});
+
+test('a CI scan followed by unregister cannot start a batch from the stale page', async t => {
+  const f = fixture();
+  const batches: number[][] = [];
+  const provider = {
+    read: async (): Promise<GitHubSnapshot> => ({ state: 'open', comments: [], reviews: [] }),
+    forCiBatch: async (targets: readonly { number: number }[]): Promise<GitHubTrackingProvider> => { batches.push(targets.map(row => row.number)); return provider; },
+  };
+  const runtime = new GitHubTrackingRuntime({
+    storage: f.storage, provider,
+    threads: { get: async () => ({ id: 'thread', deepLinkUrl: '/threads/thread', title: null,
+      createdAt: 1, lastActiveAt: 1, preferredCats: [], featureRefs: [] }) },
+    selfLogin: async () => undefined, noiseLogins: async () => [],
+    send: async () => ({ messageId: 'unused', threadId: 'thread' }),
+  });
+  t.after(() => runtime.stop());
+  const target = { kind: 'pr' as const, repoFullName: 'example/repo', number: 1, threadId: 'thread', catId: 'cat' };
+  await runtime.register(target);
+  const scan = f.storage.scan.bind(f.storage);
+  Object.assign(f.storage, { scan: async (input: Parameters<typeof scan>[0]) => {
+    const page = await scan(input);
+    if (input.prefix === 'github.tracking.v1.') await runtime.unregister(target);
+    return page;
+  } });
+  await runtime.poll('cicd-check');
+  assert.deepEqual(batches, [], 'revoked HSCAN rows are not authority for a remote CI read');
+});
+
+test('a replacement registration supplies the current target to the CI batch', async t => {
+  const f = fixture();
+  const destinations: string[] = [];
+  const provider = {
+    read: async (): Promise<GitHubSnapshot> => ({ state: 'open', comments: [], reviews: [] }),
+    forCiBatch: async (targets: readonly { threadId: string }[]): Promise<GitHubTrackingProvider> => { destinations.push(...targets.map(row => row.threadId)); return provider; },
+  };
+  const runtime = new GitHubTrackingRuntime({
+    storage: f.storage, provider,
+    threads: { get: async id => ({ id, deepLinkUrl: '/threads/' + id, title: null,
+      createdAt: 1, lastActiveAt: 1, preferredCats: [], featureRefs: [] }) },
+    selfLogin: async () => undefined, noiseLogins: async () => [],
+    send: async () => ({ messageId: 'unused', threadId: 'thread' }),
+  });
+  t.after(() => runtime.stop());
+  const target = { kind: 'pr' as const, repoFullName: 'example/repo', number: 1, threadId: 'old-thread', catId: 'cat' };
+  await runtime.register(target);
+  const scan = f.storage.scan.bind(f.storage);
+  Object.assign(f.storage, { scan: async (input: Parameters<typeof scan>[0]) => {
+    const page = await scan(input);
+    if (input.prefix === 'github.tracking.v1.') {
+      await runtime.unregister(target);
+      await runtime.register({ ...target, threadId: 'current-thread' });
+    }
+    return page;
+  } });
+  await runtime.poll('cicd-check');
+  assert.deepEqual(destinations, ['current-thread']);
+});
+
+test('unregister aborts an in-flight CI batch and waits for its real cleanup', async t => {
+  const f = fixture();
+  let entered!: () => void;
+  const started = new Promise<void>(resolve => { entered = resolve; });
+  let release!: () => void;
+  let batchSignal: AbortSignal | undefined;
+  const provider = {
+    read: async (): Promise<GitHubSnapshot> => ({ state: 'open', comments: [], reviews: [] }),
+    forCiBatch: async (_targets: readonly unknown[], signal: AbortSignal): Promise<GitHubTrackingProvider> => {
+      batchSignal = signal;
+      entered();
+      await new Promise<void>(resolve => { release = resolve; });
+      return provider;
+    },
+  };
+  const runtime = new GitHubTrackingRuntime({
+    storage: f.storage, provider,
+    threads: { get: async () => ({ id: 'thread', deepLinkUrl: '/threads/thread', title: null,
+      createdAt: 1, lastActiveAt: 1, preferredCats: [], featureRefs: [] }) },
+    selfLogin: async () => undefined, noiseLogins: async () => [],
+    send: async () => ({ messageId: 'unused', threadId: 'thread' }),
+  });
+  t.after(() => runtime.stop());
+  const target = { kind: 'pr' as const, repoFullName: 'example/repo', number: 1, threadId: 'thread', catId: 'cat' };
+  await runtime.register(target);
+  const pending = runtime.poll('cicd-check');
+  let completed = false;
+  const settled = pending.then(() => { completed = true; }, error => { completed = true; return error; });
+  try {
+    await started;
+    await runtime.unregister(target);
+    assert.equal(batchSignal?.aborted, true, 'unregister must cover the batch before per-target polling starts');
+    await new Promise<void>(resolve => setImmediate(resolve));
+    assert.equal(completed, false, 'poll must retain the real provider child until cleanup completes');
+  } finally {
+    release();
+    await settled;
+  }
 });

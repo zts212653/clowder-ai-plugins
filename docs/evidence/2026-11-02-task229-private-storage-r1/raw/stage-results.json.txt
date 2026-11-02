@@ -1,0 +1,80 @@
+[
+  {
+    "stage": "github-build",
+    "exitCode": 0,
+    "elapsedMs": 2679,
+    "command": [
+      "pnpm",
+      "--filter",
+      "@clowder-ai/github-operations",
+      "build"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  },
+  {
+    "stage": "github-pack",
+    "exitCode": 0,
+    "elapsedMs": 940,
+    "command": [
+      "/Users/lysander/.npm/_npx/004e8352dee60470/node_modules/.bin/node",
+      "scripts/pack-publish-artifact.mjs",
+      "packages/github-operations",
+      "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/.cat-cafe/evidence/task229-private-storage/r1/f202-w1-tarballs"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  },
+  {
+    "stage": "self-contained",
+    "exitCode": 0,
+    "elapsedMs": 15648,
+    "command": [
+      "/Users/lysander/.npm/_npx/004e8352dee60470/node_modules/.bin/node",
+      "scripts/pack-self-contained-artifact.mjs",
+      "packages/github-operations",
+      "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/.cat-cafe/evidence/task229-private-storage/r1/f202-w1-tarballs"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  },
+  {
+    "stage": "physical-consumer",
+    "exitCode": 0,
+    "elapsedMs": 2784,
+    "command": [
+      "/Users/lysander/.npm/_npx/004e8352dee60470/node_modules/.bin/node",
+      "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/.cat-cafe/evidence/task229-private-storage/r1/packaged-consumer.mjs",
+      "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/.cat-cafe/evidence/task229-private-storage/r1/f202-w1-tarballs/self-contained/clowder-ai-github-operations-0.1.0-alpha.32-darwin-arm64-3b66d9b5f487.tgz"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  },
+  {
+    "stage": "catalog",
+    "exitCode": 0,
+    "elapsedMs": 1062,
+    "command": [
+      "/Users/lysander/.npm/_npx/004e8352dee60470/node_modules/.bin/node",
+      "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/.cat-cafe/evidence/task229-private-storage/r1/catalog-candidate-check.mjs"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  },
+  {
+    "stage": "full-native-ci",
+    "exitCode": 0,
+    "elapsedMs": 919907,
+    "command": [
+      "pnpm",
+      "gate:ci"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  },
+  {
+    "stage": "diff",
+    "exitCode": 0,
+    "elapsedMs": 69,
+    "command": [
+      "git",
+      "diff",
+      "--check"
+    ],
+    "cwd": "/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage"
+  }
+]

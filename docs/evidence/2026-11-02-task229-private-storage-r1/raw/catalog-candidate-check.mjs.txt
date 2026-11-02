@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { join } from 'node:path';
+
+const out = fileURLToPath(new URL('./', import.meta.url));
+const plugins = '/Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage';
+const load = (relative) => import(pathToFileURL(join(plugins, relative)).href);
+const { validatePluginCatalog, validateManifest, getCatalogPlugin } =
+  await load('packages/plugin-contract/dist/index.js');
+const { assertProductionDependencyClosure } = await load('scripts/catalog-package-shrinkwrap.mjs');
+const { assertPackedRuntimeEntrypoints } = await load('scripts/catalog-runtime-entrypoints.mjs');
+const { parse } = createRequire(join(plugins, 'package.json'))('yaml');
+const read = async (filename) => JSON.parse(await readFile(filename, 'utf8'));
+const catalog = await read(join(plugins, 'catalog/candidate.json'));
+const validation = validatePluginCatalog(catalog);
+assert.equal(validation.valid, true, JSON.stringify(validation.errors));
+const latest = getCatalogPlugin(validation.catalog, 'official.github-operations');
+const artifact = (await read(join(out, 'github-pack.log')))[0];
+assert.equal(latest.version, artifact.version);
+assert.equal(latest.artifact.integrity, artifact.integrity);
+assert.equal(latest.artifact.shasum, artifact.shasum);
+const manifest = validateManifest(parse(await readFile(join(plugins, 'packages/github-operations/plugin.yaml'), 'utf8')));
+assert.equal(manifest.valid, true, JSON.stringify(manifest.errors));
+assert.equal(manifest.manifest.version, latest.version);
+assert.equal(manifest.manifest.contractVersion, latest.contractVersion);
+assertPackedRuntimeEntrypoints(manifest.manifest, artifact.files);
+const packageJson = await read(join(plugins, 'packages/github-operations/package.json'));
+const shrinkwrap = await read(join(plugins, 'packages/github-operations/npm-shrinkwrap.json'));
+assertProductionDependencyClosure(packageJson, shrinkwrap);
+assert.equal(shrinkwrap.packages['node_modules/@clowder-ai/plugin-sdk'].version, '0.3.0-beta.2-candidate.8');
+const previous = JSON.parse(execFileSync('git', ['show', 'e39b70d0ef7763cf464108e451df13f81ccd2ce1:catalog/candidate.json'], { cwd: plugins, encoding: 'utf8' }));
+const restored = structuredClone(catalog);
+function removeNew(value) {
+  if (Array.isArray(value)) return value.forEach(removeNew);
+  if (!value || typeof value !== 'object') return;
+  if (value.pluginId === 'official.github-operations' && value.versions) {
+    assert.equal(value.versions.shift().version, '0.1.0-alpha.32');
+  }
+  Object.values(value).forEach(removeNew);
+}
+removeNew(restored);
+assert.deepEqual(restored, previous, 'only the new GitHub artifact may change the catalog');
+console.log(JSON.stringify({ version: latest.version, dependencyClosure: true, artifactBytesMatchCatalog: true,
+  priorVersionsAndOtherPackagesUnchanged: true, catalogActivated: false }));

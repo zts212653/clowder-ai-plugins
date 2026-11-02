@@ -1,0 +1,79 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { lstat, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const out = dirname(fileURLToPath(import.meta.url));
+const core = "/Users/lysander/projects/relay-station/cat-cafe-task229-private-storage";
+const archive = process.argv[2];
+assert.ok(archive, 'supply the canonical self-contained GitHub archive');
+const root = await mkdtemp(join(out, 'packaged-consumer-'));
+const scans = [];
+let outcome;
+try {
+  execFileSync('tar', ['-xzf', archive, '-C', root]);
+  const packageRoot = join(root, 'package');
+  async function physical(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const location = join(directory, entry.name);
+      assert.equal((await lstat(location)).isSymbolicLink(), false, location);
+      if (entry.isDirectory()) await physical(location);
+    }
+  }
+  await physical(packageRoot);
+  const sdkRoot = join(packageRoot, 'node_modules/@clowder-ai/plugin-sdk');
+  const github = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+  const sdk = JSON.parse(await readFile(join(sdkRoot, 'package.json'), 'utf8'));
+  assert.equal(github.version, '0.1.0-alpha.32');
+  assert.equal(sdk.version, '0.3.0-beta.2-candidate.8');
+  const { createFeatureContextSession, FeatureContextRevokedError } =
+    await import(pathToFileURL(join(sdkRoot, 'dist/index.js')).href);
+  const { GitHubWaitStorage } = await import(pathToFileURL(join(packageRoot, 'dist/typed-wait-storage.js')).href);
+  const { createPluginStorageHost, RedisPluginPrivateStorage } = await import(
+    pathToFileURL(join(core, 'packages/api/dist/domains/plugin/host-surface/plugin-private-storage.js')).href
+  );
+  const owner = { userId: 'private-package-user', catId: 'private-package-cat', threadId: 'private-package-thread' };
+  const task = {
+    id: 'original-imported-package-wait-id', kind: 'pr_tracking', subjectKey: 'pr:example/repo#1',
+    userId: owner.userId, ownerCatId: owner.catId, threadId: owner.threadId,
+    title: 'Original imported wait', why: '', status: 'doing', createdBy: owner.catId,
+    createdAt: 1, updatedAt: 2,
+  };
+  const key = 'github.typed-wait.v1.' + createHash('sha256').update(task.id).digest('hex');
+  const redis = {
+    async hgetall() { assert.fail('the installed consumer must not request the complete private hash'); },
+    async hscan(...args) {
+      scans.push(args);
+      assert.equal(args[0], 'plugin-private-state:v1:official.github-operations');
+      assert.equal(args[3], 'github.typed-wait.v1.*');
+      return ['0', [key, '7:v:' + JSON.stringify({ schemaVersion: 1, task })]];
+    },
+  };
+  const storage = createPluginStorageHost({ pluginId: 'official.github-operations', storage: new RedisPluginPrivateStorage(redis) });
+  const session = createFeatureContextSession({
+    pluginInstanceId: 'installed-github', featureId: 'tracking', packageRevision: 'packaged-alpha32',
+    integrityEpoch: 1, activationRevision: 1, executionLease: 'owned-test-lease',
+  }, { storage });
+  try {
+    const consumer = new GitHubWaitStorage(session.context.storage);
+    assert.deepEqual(await consumer.getBySubject(task.subjectKey, owner), task);
+    assert.equal(scans.length, 1);
+    await session.revoke();
+    await assert.rejects(consumer.getBySubject(task.subjectKey, owner), FeatureContextRevokedError);
+    assert.equal(scans.length, 1, 'revoked packaged facade must refuse before another Redis read');
+  } finally {
+    await session.revoke();
+  }
+  outcome = {
+    github: github.version, sdk: sdk.version, physicalDependencyTree: true,
+    coreCompiledProducer: true, fullPrivateReads: 0, nativeHscanCalls: scans.length,
+    originalIdPreserved: true, revokedReadRefused: true,
+    registryPublished: false, formalRuntimeInstalled: false,
+  };
+} finally {
+  await rm(root, { recursive: true, force: true });
+}
+await writeFile(join(out, 'packaged-consumer-proof.json'), JSON.stringify(outcome, null, 2) + '\n');
+console.log(JSON.stringify(outcome));
