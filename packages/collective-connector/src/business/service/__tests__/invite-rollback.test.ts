@@ -1,8 +1,9 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { prepareInviteRollback, restoreInviteMetadata } from '../invite-rollback.js';
+import { CollectiveServiceStore } from '../store.js';
 import { participationFixture } from './participation-fixture.js';
 
 it('prepares an old-reader snapshot without reactivating revoked invitations and restores metadata after rollback', async () => {
@@ -42,6 +43,22 @@ it('prepares an old-reader snapshot without reactivating revoked invitations and
     const alreadyChanged = structuredClone(prepared.state);
     alreadyChanged.invites[ready.inviteId].createdByHumanId = 'human_conflicting';
     expect(() => restoreInviteMetadata(alreadyChanged, prepared.metadata)).toThrow();
+
+    // A revoked invite retains a consumed marker for the old reader. After restoring,
+    // both the preview and a repeated steward revoke must still report revocation.
+    await writeFile(join(directory, 'collective-service.json'), `${JSON.stringify(restored)}\n`);
+    const reopened = (await CollectiveServiceStore.open({ dataDirectory: directory, humanAuthProvider: f.humanAuthProvider })).store;
+    expect(reopened.previewInvite(revoked.inviteToken)).toMatchObject({ status: 'revoked' });
+    await expect(reopened.revokeInvite({
+      sessionToken: f.owner.sessionToken,
+      collectiveId: f.coordinates.collectiveId,
+      inviteId: revoked.inviteId,
+    })).resolves.toEqual({ status: 'revoked' });
+    await expect(reopened.revokeInvite({
+      sessionToken: f.owner.sessionToken,
+      collectiveId: f.coordinates.collectiveId,
+      inviteId: ready.inviteId,
+    })).resolves.toEqual({ status: 'used' });
   } finally {
     await rm(directory, { recursive: true });
   }

@@ -77,8 +77,9 @@ export async function revokeInvite(
     if (!invite || invite.collectiveId !== input.collectiveId) {
       throw new CollectiveServiceError('INVITE_INVALID', 'Invite is invalid', 404);
     }
+    if (invite.revokedAt) return { status: 'revoked' as const };
     if (invite.consumedAt) return { status: 'used' as const };
-    if (!invite.revokedAt) invite.revokedAt = new Date(now()).toISOString();
+    invite.revokedAt = new Date(now()).toISOString();
     return { status: 'revoked' as const };
   });
 }
