@@ -60,5 +60,4 @@ and a repeated revoke returned `revoked` while the revoked invitation stayed unu
 This is reproducible evidence for the offline conversion functions, not a production
 rollback or authorization to change the deployed Service. The deployment instructions
 retain the required stopped-Service backup, private conversion copy, and restoration steps.
-The probe is adapted from Sonnet's independent review in
-`thread_mvumss547y41x2uj#0001793633634352-001378-577be8fa`.
+The probe was adapted from an independent review of the rollback path.
