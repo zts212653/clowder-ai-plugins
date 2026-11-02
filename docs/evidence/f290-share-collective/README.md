@@ -42,7 +42,8 @@ actual iframe policy but is not the full Café application. No real GitHub or fr
 
 ## Invitation rollback against published versions
 
-The [probe](published-rollback-probe.mjs) exercises the current built Service against the
+The [probe](published-rollback-probe.mjs) exercises the current built Service, or an
+explicitly supplied installed candidate package, against the
 actual published `@clowder-ai/collective-connector` alpha.22 and alpha.24 packages. It uses
 synthetic state and a fake identity provider; it does not touch an existing Service, actual
 accounts, or deployment data. It installs both old packages in temporary directories with
@@ -56,12 +57,27 @@ env -u NODE_ENV pnpm --filter @clowder-ai/collective-connector build
 env -u NODE_ENV node docs/evidence/f290-share-collective/published-rollback-probe.mjs
 ```
 
+To verify a packaged candidate instead of the source build, install the exact candidate
+archive in a separate temporary directory and pass the installed package root:
+
+```sh
+probe_root="$(mktemp -d)"
+npm install --ignore-scripts --no-audit --no-fund --prefix "$probe_root" "<candidate-archive>"
+env -u NODE_ENV F290_NEW_PACKAGE_ROOT="$probe_root/node_modules/@clowder-ai/collective-connector" \
+  node docs/evidence/f290-share-collective/published-rollback-probe.mjs
+```
+
+It prints the loaded package version and still uses temporary synthetic data.
+
 On 2026-11-02, against source `171acbac0bb760fe2b4bad69525745858635d6be`, all **28/28**
 checks passed. Both real old packages rejected unconverted new state without changing its
 bytes. Converted copies opened; used and revoked invitations remained unusable; a ready
 invitation could admit a member. After restoring metadata onto the advanced old-version
 state, the member and inviter remained, an old-version invitation had no invented inviter,
 and a repeated revoke returned `revoked` while the revoked invitation stayed unusable.
+The same **28/28** checks passed on the installed unpublished alpha.26 draft archive
+(SHA-256 `d12ff706df9ac060bf41e4470b907a74a86a80526012f89fe093fd54e563fab9`).
+The candidate must be tested again if its Service code or final package changes.
 
 This is reproducible evidence for the offline conversion functions, not a production
 rollback or authorization to change the deployed Service. The deployment instructions
