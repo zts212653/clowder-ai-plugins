@@ -21,10 +21,12 @@ const evidence = path.join(sourceRoot, 'docs/evidence/2026-11-02-f290-share-coll
 let probe = await readFile(path.join(evidence, 'real-service-invitation-probe.mjs'), 'utf8');
 const assetLine = "const clientRoot = new URL('../../../packages/collective-client/dist/', import.meta.url);";
 const helperImport = "'./host-frame-policy.mjs'";
-assert.ok(probe.includes(assetLine) && probe.includes(helperImport), 'reviewed probe entrypoints changed');
+const clipboardLine = "  const realClipboard = await hostPage.evaluate(() => navigator.clipboard.readText());";
+assert.ok(probe.includes(assetLine) && probe.includes(helperImport) && probe.includes(clipboardLine), 'reviewed probe entrypoints changed');
 probe = probe
   .replace(assetLine, `const clientRoot = new URL(${JSON.stringify(pathToFileURL(`${assets}${path.sep}`).href)});`)
-  .replace(helperImport, JSON.stringify(pathToFileURL(path.join(evidence, 'host-frame-policy.mjs')).href));
+  .replace(helperImport, JSON.stringify(pathToFileURL(path.join(evidence, 'host-frame-policy.mjs')).href))
+  .replace(clipboardLine, `${clipboardLine}\n  assert.ok(realClipboard.includes('退出码不是 0 时先停下'), 'non-zero version checks must stop and report');`);
 
 const directory = await mkdtemp(path.join(tmpdir(), 'f290-retained-client-probe-'));
 try {
