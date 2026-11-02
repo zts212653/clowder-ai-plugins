@@ -1,3 +1,4 @@
+import { storageEntries } from './storage-pages.js';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { FeatureContext, PluginActionContext, PluginStorageHost } from '@clowder-ai/plugin-sdk';
@@ -39,7 +40,7 @@ export async function writeRegistrationDiagnostic(storage: PluginStorageHost, ca
 }
 
 export async function readRegistrationDiagnostics(storage: PluginStorageHost): Promise<RegistrationDiagnostic[]> {
-  return Object.entries(await storage.list()).filter(([key]) => key.startsWith(prefix))
+  return (await storageEntries(storage, prefix))
     .map(([, entry]) => schema.parse(entry.value)).sort((a, b) => b.at - a.at).slice(0, 25);
 }
 

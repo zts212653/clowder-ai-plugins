@@ -1,3 +1,4 @@
+import { storageEntries, storagePages } from './storage-pages.js';
 import type { FeatureContext } from '@clowder-ai/plugin-sdk';
 import type { TaskItem } from './business/model/index.js';
 import type { GitHubTrackingProvider, GitHubTarget } from './tracking-runtime.js';
@@ -19,7 +20,7 @@ export class MigratedIssueRuntime {
   constructor(private readonly context: FeatureContext, private readonly provider: GitHubTrackingProvider,
     private readonly selfLogin: () => string | undefined, private readonly now = Date.now) {}
   async list(): Promise<readonly TaskItem[]> {
-    return Object.entries(await this.context.storage.list()).filter(([key]) => key.startsWith('github.migrated-issue.v1.'))
+    return (await storageEntries(this.context.storage, 'github.migrated-issue.v1.', { signal: this.stopController.signal }))
       .map(([, entry]) => (entry.value as RecordV1).task);
   }
   poll() {
@@ -29,10 +30,13 @@ export class MigratedIssueRuntime {
     return run;
   }
   private async collect() {
-    for (const [key] of Object.entries(await this.context.storage.list()).filter(([k]) => k.startsWith('github.migrated-issue.v1.'))) {
-      this.stopController.signal.throwIfAborted();
-      try { await this.one(key); }
-      catch { this.context.log('warn', 'Migrated issue observation retained for retry'); }
+    for await (const page of storagePages(this.context.storage, 'github.migrated-issue.v1.', { signal: this.stopController.signal })) {
+      for (const key of Object.keys(page)) {
+        this.stopController.signal.throwIfAborted();
+        if (!key.startsWith('github.migrated-issue.v1.')) continue;
+        try { await this.one(key); }
+        catch { this.context.log('warn', 'Migrated issue observation retained for retry'); }
+      }
     }
   }
   private async one(key: string) {

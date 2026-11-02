@@ -227,9 +227,11 @@ export function createFeatureContextSession(
     return runWhileActive(() => adapter.readSecret(binding, key));
   };
 
+  const scanStorage = adapter.storage?.scan?.bind(adapter.storage);
   const storage: PluginStorageHost = {
     get: (key) => runWhileActive(() => adapter.storage.get(key)),
     list: () => runWhileActive(() => adapter.storage.list()),
+    ...(scanStorage ? { scan: (input: Parameters<typeof scanStorage>[0]) => runWhileActive(() => scanStorage(input)) } : {}),
     set: (key, value) => runWhileActive(() => adapter.storage.set(key, value)),
     compareAndSet: (key, expectedRevision, value) =>
       runWhileActive(() => adapter.storage.compareAndSet(key, expectedRevision, value)),

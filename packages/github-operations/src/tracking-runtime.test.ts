@@ -3,6 +3,8 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { GitHubTrackingRuntime, type GitHubSnapshot } from './tracking-runtime.js';
 import { legacyIssueProgressBytes } from './legacy-issue-progress.js';
+import { scanMemory } from '../test/memory-storage.js';
+import type { PluginStorageScanInput } from '@clowder-ai/plugin-sdk';
 
 function fixture() {
   const records = new Map<string, { revision: number; value: unknown }>();
@@ -11,6 +13,7 @@ function fixture() {
   const storage = {
     async get(key: string) { return structuredClone(records.get(key)); },
     async list() { return structuredClone(Object.fromEntries(records)); },
+    async scan(input: PluginStorageScanInput) { return scanMemory(records, input); },
     async set(key: string, value: unknown) { records.set(key, { revision: ++revision, value: structuredClone(value) }); return { revision }; },
     async compareAndSet(key: string, expected: number | null, value: unknown) {
       if ((records.get(key)?.revision ?? null) !== expected) return { applied: false };
