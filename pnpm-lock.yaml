@@ -57,7 +57,7 @@ importers:
         specifier: 0.3.3-candidate.0
         version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.2-candidate.8
+        specifier: 0.3.0-beta.2-candidate.9
         version: link:../plugin-sdk
       playwright:
         specifier: 1.61.1
