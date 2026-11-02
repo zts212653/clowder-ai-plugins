@@ -14,10 +14,12 @@
     <symbol id="i-end" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/></symbol>
     <symbol id="i-subtitles" viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="M6 10h5M6 14h7M15 10h3M15 14h3"/></symbol>
     <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></symbol>
+    <symbol id="i-desk-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+    <symbol id="i-desk-note" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
   </svg>
   <main id="desktop" aria-label="猫猫球">
     <div id="anchor">
-      <button id="pet" aria-label="猫猫：点击或右键打开名片，拖动移动" aria-expanded="false" aria-controls="actions menu chat transcript settings decisions app-assist">
+      <button id="pet" aria-label="猫猫：点击或右键打开名片，拖动移动" aria-expanded="false" aria-controls="actions menu chat transcript settings decisions app-assist desk">
         <svg id="living-sit" viewBox="0 0 600 600" aria-hidden="true" hidden>
           <defs>
             <mask id="living-eye-left" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600"><image href="./skins/xianxian-living/layers/whiteL.webp" width="600" height="600"/></mask>
@@ -55,6 +57,27 @@
       <p>你打开了 <strong id="app-assist-name"></strong>。要我一起看吗？</p>
       <div><button id="app-assist-dismiss" type="button">暂不</button><button id="app-assist-start" class="primary" type="button">打开通话控制</button></div>
     </section>
+    <section id="desk" class="floating desk-delivery" aria-label="桌面猫带来的东西" data-presentation="none" hidden>
+      <div id="desk-bubble" class="desk-bubble" hidden>
+        <div class="reply-head desk-head">
+          <span class="desk-who"><b id="desk-name"></b></span>
+          <button id="desk-retain" class="reply-ring" type="button" aria-label="留住" title="留住">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><circle class="reply-ring-track" cx="8" cy="8" r="6.5"/><circle class="reply-ring-progress" cx="8" cy="8" r="6.5"/></svg>
+          </button>
+          <button id="desk-close" class="reply-close" type="button" aria-label="忽略" title="忽略" hidden>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg>
+          </button>
+        </div>
+        <p id="desk-text" class="desk-text" hidden></p>
+        <span id="desk-thumb" class="desk-thumb" hidden><img id="desk-thumb-image" alt=""></span>
+        <p id="desk-title" class="desk-title" hidden></p>
+        <div id="desk-list" class="desk-list" hidden></div>
+        <p id="desk-more" class="desk-more" hidden></p>
+        <div class="desk-actions"><small id="desk-note" class="desk-note" role="status" hidden></small><button id="desk-dismiss" class="desk-btn ghost" type="button">忽略</button><button id="desk-open" class="desk-btn primary" type="button">打开</button></div>
+      </div>
+      <p id="desk-tag" class="desk-tag" role="status" hidden>已保存到对话</p>
+    </section>
+    <template id="desk-row-template"><div class="desk-row"><span class="desk-row-thumb"><svg class="icon" aria-hidden="true"><use href="#i-desk-doc"/></svg></span><span class="desk-row-text"><b></b><small></small></span><small class="desk-note" hidden></small><button class="desk-btn" type="button"></button></div></template>
     <section id="call-bubble" class="floating call-recent" aria-label="通话中的最新话语" hidden>
       <p id="call-bubble-first" hidden></p><p id="call-bubble-second" hidden></p>
     </section>

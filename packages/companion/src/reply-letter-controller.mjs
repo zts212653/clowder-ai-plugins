@@ -1,6 +1,7 @@
 import { newestHistoryAnchor, projectReplyBody, selectReplyPresentation } from './reply-letter-state.mjs';
 
-const replyVisibleDuration = text => Math.min(30_000, 6_000 + Math.ceil([...text].length / 8) * 1_000);
+/** Visible time for transient text: 6s plus 1s per 8 characters, capped at 30s. */
+export const replyVisibleDuration = text => Math.min(30_000, 6_000 + Math.ceil([...text].length / 8) * 1_000);
 
 /**
  * Transient presentation state for a Host-owned conversation.

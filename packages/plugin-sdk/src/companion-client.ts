@@ -154,6 +154,17 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
       offerRef: string,
       action: Extract<CompanionCommand, { kind: 'app-assist.settle' }>['action'],
     ) => invoke({ kind: 'app-assist.settle', scopeRef, offerRef, action }, 'app-assist-settlement'),
+    /** shown, dismiss and timeout settle the whole delivery; open and add name one Host-issued item. */
+    settleDesk: (
+      scopeRef: string,
+      deliveryRef: string,
+      action: Extract<CompanionCommand, { kind: 'desk.settle' }>['action'],
+      itemRef?: string,
+    ) => invoke(itemRef === undefined
+      ? { kind: 'desk.settle', scopeRef, deliveryRef, action }
+      : { kind: 'desk.settle', scopeRef, deliveryRef, action, itemRef }, 'desk-settlement'),
+    readDeskThumbnail: (scopeRef: string, deliveryRef: string, itemRef: string) =>
+      invoke({ kind: 'desk.thumbnail.read', scopeRef, deliveryRef, itemRef }, 'desk-thumbnail'),
     disableCompanion: () => invoke({ kind: 'companion.disable' }, 'companion-lifecycle'),
     readConversation,
     readConversationPage,

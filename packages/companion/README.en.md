@@ -44,8 +44,10 @@ The Host owns installation, caller context, credentials and lifecycle; saving co
 
 ## Compatibility and durable input
 
-The desktop surface requires Host bridge 1.6.0; an older Host refuses installation. The Host controls placement, dragging, transparent hit areas, media admission and capture. The plugin receives no raw streams or provider credentials. Hiding releases media; the ordinary Chat entry restores the cat.
+The desktop surface requires Host bridge 1.7.0; an older Host refuses installation. The Host controls placement, dragging, transparent hit areas, media admission and capture. The plugin receives no raw streams or provider credentials. Hiding releases media; the ordinary Chat entry restores the cat.
 
 Drafts are Host-owned and durable. An unknown send result is read back, never automatically resent. An explicit retry retains the original identity, content and route. A changed canonical conversation invalidates old unconfirmed text rather than replaying it into the new scope. History loading, response phase and body completeness remain separate.
+
+Bridge 1.7 adds desk deliveries: the Host can hand things a cat prepared to the desk cat, one at a time or as a bundle when you come back. The window receives only titles, one sentence, the source conversation title and opaque references; thumbnails arrive as inline image bytes from the Host. Opening, adding, ignoring and countdown expiry are settled by the Host. The countdown follows reply letters: pointing, focus or scrolling pauses it and clicking the ring keeps the bubble. A brief "已保存到对话" tag appears only when the Host confirms it kept the delivery.
 
 Application assistance is off by default. Settling a prompt opens the ordinary menu without granting screen or call authority. Cat poses use current Host facts; dragging suspends autonomous movement. Reduced motion keeps poses static. Automatic play is bounded by idle and cooldown timers; pounce requires an explicit gesture by default.

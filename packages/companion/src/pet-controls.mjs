@@ -4,11 +4,12 @@ export function bindPetControls(client, {
 }) {
   const $ = id => document.getElementById(id);
   const body = $('pet');
-  const panelIds = ['actions', 'menu', 'chat', 'bubble', 'app-assist', 'decisions', 'transcript', 'settings'];
+  const panelIds = ['actions', 'menu', 'chat', 'bubble', 'app-assist', 'desk', 'decisions', 'transcript', 'settings'];
   const callBubble = $('call-bubble');
   const managedIds = [...panelIds, 'call-bubble'];
   const desiredSizes = new WeakMap();
-  let panel = 'none', ambientPanel = 'none', layoutRevision = 0, layoutScheduled = false, drag, suppressClick = false;
+  // panel is the latest request; appliedPanel is the last one the Host actually placed.
+  let panel = 'none', appliedPanel = 'none', ambientPanel = 'none', layoutRevision = 0, layoutScheduled = false, drag, suppressClick = false;
   const measure = node => {
     if (!node) return { width: 120, height: 130 };
     // Host placement is an applied cap, not the panel's desired geometry.
@@ -66,7 +67,11 @@ export function bindPetControls(client, {
           callBubble.style.maxHeight = `${placed.bubble.height}px`;
         }
       }
-      if (previousPanel !== next) {
+      // A content remeasure can supersede a panel's first layout; announce entry against
+      // what was last applied, not against the superseded request.
+      const entered = appliedPanel !== next;
+      appliedPanel = next;
+      if (entered) {
         if (next === 'chat') {
           const mode = $('chat').dataset.replyMode;
           const target = mode === 'reply'
@@ -168,7 +173,7 @@ export function bindPetControls(client, {
     get panel() { return panel; }, show, remeasure,
     setAmbient(value) {
       const next = value === true ? 'bubble' : value === false ? 'none' : value;
-      const ambientPanels = ['none', 'bubble', 'actions', 'app-assist'];
+      const ambientPanels = ['none', 'bubble', 'actions', 'app-assist', 'desk'];
       if (!ambientPanels.includes(next)) return Promise.resolve();
       if (ambientPanel === next) return Promise.resolve();
       ambientPanel = next;

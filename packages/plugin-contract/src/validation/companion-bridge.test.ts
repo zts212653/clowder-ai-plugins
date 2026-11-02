@@ -509,8 +509,12 @@ test('surface state preserves real actors but never leaks internal handles or ra
     toolsReady: false, nativeActivity: 'none',
     liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
-    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null }, nativeWork };
+    appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
+    desk: { scopeRef: 'fixture-desk-a', revision: 1, status: 'off', delivery: null }, nativeWork };
   assert.equal(validateCompanionReply(state), true);
+  const { desk: _desk, ...withoutDesk } = state;
+  assert.equal(validateCompanionReply(withoutDesk), false,
+    'the new exact version always states whether the desk cat can bring anything');
   const { meeting: _meeting, ...withoutMeeting } = state;
   assert.equal(validateCompanionReply(withoutMeeting), false,
     'an exact-version state cannot silently erase meeting capture truth');
@@ -704,4 +708,146 @@ test('unified decision reads preserve partial truth, concrete variants, and Host
   assert.equal(validateCompanionCommand({ kind: 'decision.open', variantRef: 'variant-a', target: 'origin', threadId: 'forged' }), false);
   assert.equal(validateCompanionCommand({ kind: 'decision.open', variantRef: '../foreign-variant', target: 'origin' }), false,
     'the Host-issued opaque ref uses a closed grammar and cannot become a path-like selector');
+});
+
+const deskState = (desk: unknown) => ({
+  kind: 'state', phase: 'idle', displayName: 'Companion', skin: 'cat', duty: { catId: 'deep', displayName: 'Deep' },
+  carrier: { catId: 'voice', displayName: 'Voice' }, documentsAllowed: true, behaviorEnabled: true,
+  toolsReady: false, nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+  meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+  appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
+  desk, nativeWork: { scopeId: null, revision: 0, active: [], recent: [] },
+});
+const deskWork = {
+  itemRef: 'item-sheet', kind: 'work', title: '六猫岛 · 单采肖像参考', sentence: '鲸鲸那三格，照他的头像画就行。',
+  source: { conversationTitle: '「视频」自媒体视频运营' }, action: 'open', thumbnail: true,
+};
+const deskSuggestion = {
+  itemRef: 'item-notes', kind: 'suggestion', title: '添加 7 条视频批注', source: { conversationTitle: '守望猫' },
+  action: 'add', thumbnail: false,
+};
+const singleDelivery = {
+  deliveryRef: 'delivery-1', mode: 'single', from: { catId: 'codex61-sol', displayName: '小太阳', role: 'watcher' },
+  items: [deskWork], more: 0,
+};
+
+test('desk deliveries carry only Host-prepared text and opaque references, fenced by scope and revision', () => {
+  assert.equal(validateCompanionReply(deskState({
+    scopeRef: 'fixture-desk-a', revision: 2, status: 'ready', delivery: singleDelivery,
+  })), true);
+  assert.equal(validateCompanionReply(deskState({
+    scopeRef: 'fixture-desk-a', revision: 3, status: 'ready', delivery: {
+      deliveryRef: 'delivery-2', mode: 'bundle', from: null, items: [deskWork, { ...deskWork, itemRef: 'item-2' }, deskSuggestion], more: 4,
+    },
+  })), true, 'from:null names several cats and may report more items left in Cat Café');
+  assert.equal(validateCompanionReply(deskState({
+    scopeRef: 'fixture-desk-a', revision: 4, status: 'ready', delivery: null,
+  })), true);
+  for (const status of ['off', 'suspended']) {
+    assert.equal(validateCompanionReply(deskState({ scopeRef: 'fixture-desk-a', revision: 5, status, delivery: null })), true, status);
+    assert.equal(validateCompanionReply(deskState({
+      scopeRef: 'fixture-desk-a', revision: 5, status, delivery: singleDelivery,
+    })), false, `${status} cannot carry a delivery`);
+  }
+  const ready = (delivery: unknown) => deskState({ scopeRef: 'fixture-desk-a', revision: 6, status: 'ready', delivery });
+  for (const [invalid, reason] of [
+    [{ ...singleDelivery, items: [deskWork, deskSuggestion] }, 'a single delivery carries exactly one item'],
+    [{ ...singleDelivery, mode: 'bundle', items: [deskWork, deskWork] }, 'item references are unique within a delivery'],
+    [{ ...singleDelivery, items: [] }, 'a delivery brings at least one item'],
+    [{ ...singleDelivery, mode: 'bundle', items: Array.from({ length: 9 }, (_, index) => ({ ...deskWork, itemRef: `item-${index}` })) }, 'at most eight items'],
+    [{ ...singleDelivery, more: -1 }, 'more is a count'],
+    [{ ...singleDelivery, more: 1.5 }, 'more is an integer'],
+    [{ ...singleDelivery, url: 'https://example.com' }, 'the renderer never receives a URL'],
+    [{ ...singleDelivery, items: [{ ...deskWork, url: 'https://example.com/a.png' }] }, 'items never carry a URL'],
+    [{ ...singleDelivery, items: [{ ...deskWork, command: 'open-thread' }] }, 'items never carry a command'],
+    [{ ...singleDelivery, items: [{ ...deskWork, source: { threadId: 'thread-1' } }] }, 'sources expose only a conversation title'],
+    [{ ...singleDelivery, items: [{ ...deskWork, kind: 'task' }] }, 'item kinds are closed'],
+    [{ ...singleDelivery, items: [{ ...deskWork, action: 'run' }] }, 'item actions are closed'],
+    [{ ...singleDelivery, items: [{ ...deskWork, itemRef: 'item sheet' }] }, 'refs are single opaque tokens'],
+    [{ ...singleDelivery, items: [{ ...deskWork, title: 'x'.repeat(201) }] }, 'titles are bounded'],
+    [{ ...singleDelivery, items: [{ ...deskWork, sentence: 'x'.repeat(121) }] }, 'sentences are bounded'],
+    [{ ...singleDelivery, items: [{ ...deskWork, title: '   ' }] }, 'titles are not blank'],
+    [{ ...singleDelivery, from: { catId: 'codex61 sol', displayName: '小太阳' } }, 'cat ids are bounded tokens'],
+    [{ ...singleDelivery, from: { catId: 'codex61-sol', displayName: 'x'.repeat(61) } }, 'display names are bounded'],
+    [{ ...singleDelivery, from: { catId: 'codex61-sol', displayName: '小太阳', role: 'owner' } }, 'only the watcher role is named'],
+    [{ ...singleDelivery, from: { catId: 'codex61-sol', displayName: '小太阳', avatarUrl: 'https://example.com/a.png' } }, 'no avatar URL'],
+  ] as const) assert.equal(validateCompanionReply(ready(invalid)), false, reason);
+  for (const bidi of ['\u202E', '\u2066', '\u200F', '\u061C', '\u0007', '\n']) {
+    assert.equal(validateCompanionReply(ready({ ...singleDelivery, items: [{ ...deskWork, title: `abc${bidi}def` }] })), false,
+      `title rejects ${JSON.stringify(bidi)}`);
+    assert.equal(validateCompanionReply(ready({ ...singleDelivery, items: [{ ...deskWork, sentence: `abc${bidi}` }] })), false);
+    assert.equal(validateCompanionReply(ready({ ...singleDelivery, items: [{ ...deskWork,
+      source: { conversationTitle: `${bidi}abc` } }] })), false);
+    assert.equal(validateCompanionReply(ready({ ...singleDelivery, from: { catId: 'codex61-sol', displayName: `小${bidi}太阳` } })), false);
+  }
+  for (const invalidDesk of [
+    { revision: 1, status: 'off', delivery: null },
+    { scopeRef: 'fixture-desk-a', status: 'off', delivery: null },
+    { scopeRef: 'fixture desk a', revision: 1, status: 'off', delivery: null },
+    { scopeRef: 'fixture-desk-a', revision: -1, status: 'off', delivery: null },
+    { scopeRef: 'fixture-desk-a', revision: 1, status: 'unsupported', delivery: null },
+  ]) assert.equal(validateCompanionReply(deskState(invalidDesk)), false, JSON.stringify(invalidDesk));
+});
+
+test('desk settlement applies open/add to one item and every other action to the whole delivery', () => {
+  const settle = (fields: Record<string, unknown>) => ({ kind: 'desk.settle', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', ...fields });
+  for (const action of ['open', 'add']) {
+    assert.equal(validateCompanionCommand(settle({ action, itemRef: 'item-sheet' })), true, action);
+    assert.equal(validateCompanionCommand(settle({ action })), false, `${action} must name its item`);
+  }
+  for (const action of ['shown', 'dismiss', 'timeout']) {
+    assert.equal(validateCompanionCommand(settle({ action })), true, action);
+    assert.equal(validateCompanionCommand(settle({ action, itemRef: 'item-sheet' })), false, `${action} applies to the whole delivery`);
+  }
+  for (const invalid of [
+    settle({ action: 'accept' }),
+    settle({ action: 'open', itemRef: 'item sheet' }),
+    settle({ action: 'dismiss', threadId: 'thread-1' }),
+    settle({ action: 'dismiss', url: 'https://example.com' }),
+    { kind: 'desk.settle', scopeRef: 'fixture-desk-a', action: 'dismiss' },
+  ]) assert.equal(validateCompanionCommand(invalid), false, JSON.stringify(invalid));
+
+  const reply = (fields: Record<string, unknown>) => ({
+    kind: 'desk-settlement', scopeRef: 'fixture-desk-a', revision: 7, deliveryRef: 'delivery-1', outcome: 'settled', ...fields,
+  });
+  for (const outcome of ['settled', 'stale_delivery', 'failed']) {
+    assert.equal(validateCompanionReply(reply({ action: 'add', itemRef: 'item-notes', outcome })), true, outcome);
+  }
+  assert.equal(validateCompanionReply(reply({ action: 'shown' })), true);
+  assert.equal(validateCompanionReply(reply({ action: 'timeout', saved: true })), true);
+  assert.equal(validateCompanionReply(reply({ action: 'timeout', saved: false })), true);
+  for (const [invalid, reason] of [
+    [reply({ action: 'dismiss', saved: true }), 'only a timeout reports saving'],
+    [reply({ action: 'open', itemRef: 'item-sheet', saved: true }), 'opening does not report saving'],
+    [reply({ action: 'open' }), 'item settlements name their item'],
+    [reply({ action: 'timeout', itemRef: 'item-sheet' }), 'timeouts apply to the whole delivery'],
+    [reply({ action: 'add', itemRef: 'item-notes', outcome: 'accepted' }), 'outcomes are closed'],
+    [reply({ action: 'shown', revision: -1 }), 'revisions are non-negative'],
+    [reply({ action: 'shown', threadId: 'thread-1' }), 'no Host coordinates'],
+  ] as const) assert.equal(validateCompanionReply(invalid), false, reason);
+});
+
+test('desk thumbnails are read by opaque item reference and return bounded inline image bytes', () => {
+  const read = { kind: 'desk.thumbnail.read', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', itemRef: 'item-sheet' };
+  assert.equal(validateCompanionCommand(read), true);
+  for (const invalid of [
+    { ...read, itemRef: undefined },
+    { ...read, url: 'https://example.com/a.png' },
+    { ...read, itemRef: '../item' },
+  ]) assert.equal(validateCompanionCommand(invalid), false, JSON.stringify(invalid));
+  const image = { mediaType: 'image/jpeg', dataBase64: 'AAAA', width: 320, height: 200 };
+  const thumbnail = { kind: 'desk-thumbnail', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', itemRef: 'item-sheet', image };
+  assert.equal(validateCompanionReply(thumbnail), true);
+  assert.equal(validateCompanionReply({ ...thumbnail, image: null }), true, 'a missing thumbnail is a neutral tile');
+  for (const [invalidImage, reason] of [
+    [{ ...image, mediaType: 'image/svg+xml' }, 'only raster images'],
+    [{ ...image, dataBase64: 'data:image/jpeg;base64,AAAA' }, 'raw base64 only, never a URL'],
+    [{ ...image, dataBase64: 'AAA' }, 'base64 is padded to whole groups'],
+    [{ ...image, dataBase64: 'AA AA' }, 'base64 has no whitespace'],
+    [{ ...image, dataBase64: 'A'.repeat(400_004) }, 'payload is bounded'],
+    [{ ...image, width: 1025 }, 'width is bounded'],
+    [{ ...image, height: 0 }, 'height is positive'],
+    [{ ...image, url: 'https://example.com/a.png' }, 'no URL'],
+  ] as const) assert.equal(validateCompanionReply({ ...thumbnail, image: invalidImage }), false, reason);
+  assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'desk', width: 344, height: 260 }), true);
 });
