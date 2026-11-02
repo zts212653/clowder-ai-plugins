@@ -1,5 +1,5 @@
 pluginId: official.feedback
-version: 0.1.0-alpha.1
+version: 0.1.0-alpha.2
 contractVersion: 0.3.0
 name: 问题反馈
 description:
@@ -31,6 +31,7 @@ contributions:
   - { type: message-subscription, id: feedback.results, binding: feedback.identity, action: { method: feedback.delivery }, presentation: v2 }
   - { type: ui, id: feedback.open, kind: command, label: 问题反馈, action: { method: feedback.panel } }
   - { type: ui, id: feedback.rail, kind: slot-item, label: 问题反馈, command: feedback.open, group: activity-bar.bottom, order: 90 }
+  - { type: webhook, id: feedback.http, path: feedback, methods: [POST], action: { method: feedback.http } }
 features:
   - id: feedback
     name: 问题反馈
@@ -40,6 +41,7 @@ features:
       - { type: message-subscription, id: feedback.results }
       - { type: ui, id: feedback.open }
       - { type: ui, id: feedback.rail }
+      - { type: webhook, id: feedback.http }
 data:
   - { name: feedback-journal, dataClass: user-authored, strategy: retained }
 runtime:

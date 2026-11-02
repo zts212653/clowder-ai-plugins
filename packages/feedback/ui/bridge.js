@@ -15,10 +15,14 @@ export function bridge(type, input) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { pending.delete(requestId); reject(new Error('操作超时。提交结果可能待核对，请重新打开检查状态。')); }, 185000);
     pending.set(requestId, { resolve, reject, timer });
-    parent.postMessage({ channel, nonce, requestId, type, ...(type === 'invoke' ? { input } : { value: input }) }, '*');
+    parent.postMessage({ channel, nonce, requestId, type, ...(type === 'http' ? { request: input } : { value: input }) }, '*');
   });
 }
-export const call = input => bridge('invoke', input);
+export const call = async input => {
+  const response = await bridge('http', { method: 'POST', path: 'feedback', body: input });
+  if (response.status < 200 || response.status >= 300) throw new Error(response.body?.error ?? '反馈操作未完成');
+  return response.body;
+};
 export function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(attrs)) {

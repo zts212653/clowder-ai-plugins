@@ -108,6 +108,12 @@ stateDiagram-v2
 
 实现参考：[SDK 类型](../packages/plugin-sdk/src/module-host.ts)、[feature 生命周期](../packages/plugin-sdk/src/feature-context.ts)、[消息／控制 wire registry](../packages/plugin-contract/src/wire/index.ts)、[模块 action client](../packages/plugin-sdk/src/module-action-client.ts)。wire registry 说明载体消息，不替代以上作者 API。当前 stdio 的 Host 发起请求只有 `host.lifecycle.ping` 和 `host.messaging.deliver`；生命周期 hooks 由 module 载体直接调用，不是额外 stdio 方法。`streams.read` 在 stdio 内部分片传输，作者仍读取 Uint8Array 迭代器。
 
+### 插件面板挂载与业务 HTTP
+
+面板的 `ui` command 只负责返回 `PluginUiPanel` HTML，声明的 `action.params` 随挂载传入。后续依赖 Host 的业务通过既有 webhook contribution 声明路径、方法和 action，使用通用 `/api/plugins/:pluginId/*` 分发及 `{...action.params, request}` 参数语义；不要把所有业务操作重新塞进 UI 挂载命令。opaque iframe 通过受当前插件命名空间和挂载代次限制的 HTTP 桥访问这些声明。独立服务的页面和请求仍由插件自己的服务负责，不由 Host 增设业务协议。
+
+例如反馈插件 alpha.2 的 `feedback.http` 声明处理 `POST feedback`，内部业务读取 `input.request.body`。普通响应使用既有 status/headers/body 结构；超过普通响应预算的已保留截图通过通用流响应交付。Host 面板协议与插件桥接修订需要配套采用，这不代表候选公共 UI 方向已经获得维护者采纳或发布。
+
 ### 项目产物交付候选（未发布）
 
 `0.3.1-candidate.0` 在当前 `0.3.0` 契约上准备了 `projectOutputs` 有界产物声明。它是待审候选，尚未获得项目产物公共交付范围的采纳或发布批准；不恢复已退役的 API 权限表或原生 MCP 方法白名单。SDK 的对应上下文类型位于 `0.3.0-beta.2-candidate.0`。

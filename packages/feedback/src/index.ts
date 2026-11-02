@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
+import { Readable } from 'node:stream';
 import { FeedbackService } from './service.js';
-import { parseProfiles } from './config.js';
+import { parseProfiles, record } from './config.js';
+import { sanitize } from './sanitize.js';
 import type { Host, OwnerContext } from './types.js';
 
 /** Standard builtin module entrypoint; no native tool or anonymous publish surface is declared. */
@@ -21,7 +23,23 @@ export default {
               if (context?.kind !== 'owner-http-request' || context.pluginInstanceId !== host.pluginInstanceId) throw new Error('请通过左栏反馈入口打开面板');
               await context.assertCurrent();
               if (input && typeof input === 'object' && 'op' in input && input.op === 'open') return { kind: 'plugin-panel', version: 1, html } satisfies import('@clowder-ai/plugin-sdk').PluginUiPanel;
-              return service.dispatch(input, context);
+              throw new Error('此命令仅用于面板挂载；业务操作请使用声明的 HTTP 路由');
+            },
+            'feedback.http': async (input: unknown, _native?: unknown, context?: OwnerContext) => {
+              const request = record(record(input).request);
+              if (request.method !== 'POST' || request.path !== 'feedback') throw new Error('反馈 HTTP 路由无效');
+              try {
+                const value = await service.dispatch(request.body, context);
+                return {
+                  status: 200,
+                  headers: { 'content-type': 'application/json; charset=utf-8' },
+                  // Standard HTTP streaming preserves reports with large retained screenshots.
+                  body: Readable.from([JSON.stringify(value ?? null)]),
+                };
+              } catch (error) {
+                return { status: 409, headers: { 'content-type': 'application/json; charset=utf-8' },
+                  body: { error: sanitize(error instanceof Error ? error.message : '反馈操作未完成').slice(0, 512) } };
+              }
             },
             'feedback.check': () => check(host),
             'feedback.delivery': (input: unknown) => service.receiveDelivery(input),
