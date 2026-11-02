@@ -171,6 +171,49 @@ tar -xzf "$HOME/collective-backups/service-before-upgrade.tgz" \
 完整目录恢复应保留同一 Service 实例、provider 凭据、成员关系、事件与附件回执；不要手工替换实例 ID。
 备份不是删除策略，升级和停用均不删除用户数据。
 
+### alpha.25 邀请数据与回退
+
+alpha.25 为邀请增加 `createdByHumanId` 和 `revokedAt`。alpha.24 / alpha.22 的严格读取器会拒绝
+含这些字段的状态；将可执行路径改回旧 release 并不能完成回退。升级前保留完整停机备份，
+并保留 alpha.25 包中的 `dist/business/service/invite-rollback.js`，回退期间仍需它处理离线副本。
+这一模块只返回转换结果，不会停止 Service、写文件或更改部署。
+
+需要保留升级后新消息、成员与邀请使用记录时，按以下顺序手动回退到 alpha.24：
+
+1. 停止 alpha.25 并确认退出。完整备份当前数据目录、附件和环境文件；再复制到一个新的私有
+   恢复目录（0700），以下转换只针对该副本，不覆盖原目录，也不恢复升级前的旧状态来冒充无损回退。
+2. 从保留的 alpha.25 包导入 `prepareInviteRollback`，以副本的 `collective-service.json` 内容
+   和精确目标 `0.1.0-alpha.24` 为参数。将返回的 `state` 写为副本中待核对的新状态文件；将
+   `metadata` 单独存为 0600 私有文件，与备份一起长期保管，不能放进旧版状态 JSON。
+   模块也接受已验证的 `0.1.0-alpha.22`；不接受 alpha.23 或任意其他版本。
+3. 核对 Service 实例 ID、成员、消息、事件和附件记录连续。转换保留所有其他状态，只移出两项
+   邀请元数据，并把已撤回且未使用的邀请标为已使用，使旧程序仍然拒绝它。有效未用邀请仍有效。
+4. 在恢复目录保留原 JSON 副本，再将转换结果设为 `collective-service.json`，按上面的恢复流程
+   指向原来的 alpha.24 release 和这个完整恢复目录。只启动一个 Service，canonical URL 保持原值。
+   验证原会话和成员、旧消息与附件、撤回邀请仍被拒绝、有效邀请可接受，以及新消息可以保存。
+5. 回到 alpha.25 前，停止旧进程并完整备份它的最新数据。将这一份最新状态与第 2 步保管的
+   `metadata` 交给 `restoreInviteMetadata`，输出到另一个离线副本；不要拿回退前的整份 JSON
+   覆盖旧版本运行期间的新消息或邀请消费记录。它会拒绝 Service/邀请身份或元数据冲突，
+   并保留已使用标记，已撤回邀请不会因恢复而重新可用。回升后预览和重复撤回均应返回
+   `revoked`，真正已使用的邀请仍返回 `used`。核对后按普通升级流程启动 alpha.25。
+
+模块调用形状如下；调用方负责对已停止的完整副本安全读写，不能对运行中的数据执行：
+
+```js
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const moduleUrl = pathToFileURL(resolve(alpha25PackageRoot,
+  'dist/business/service/invite-rollback.js'));
+const { prepareInviteRollback, restoreInviteMetadata } = await import(moduleUrl.href);
+const prepared = prepareInviteRollback(currentOfflineState, '0.1.0-alpha.24');
+// prepared.state → 旧版离线状态；prepared.metadata → 单独的私有元数据文件。
+const restored = restoreInviteMetadata(latestOfflineStateAfterRollback, prepared.metadata);
+// restored → 回到 alpha.25 的离线状态，保留旧版运行期间的变化。
+```
+
+若选择恢复升级前完整备份，应明确它不包含备份之后的写入；保留最新目录，先由数据 owner
+决定如何处理新增记录。目录降版、`next` 标签和插件重新启用都不会自动执行以上转换。
+
 ## 故障与边界
 
 | 看到的状态 | 处理 |
