@@ -1,17 +1,17 @@
 {
   "repository": "zts212653/cat-cafe",
-  "sourceBaseHead": "d425f561eaf31812554336c0ef380a510e5f187e",
+  "sourceBaseHead": "4f8617b1f65cea54763b9e23bf157222ab28cbc0",
   "sourceState": "exact-source-head",
   "package": "packages/collective-client",
   "buildEntrypoint": "packages/collective-client/scripts/build.mjs#buildRetainedClient",
-  "assetDigest": "d15df1cb00c5b7c330667c900030188cbc51c7a94e1a5bbf1d75f42454e8e12c",
-  "buildInputsSha256": "3147b7ef04825d24615c26e9893c350e1228d4b99a8bfd9be45ddf415dcba913",
-  "manifestSha256": "4b95da28f0529d1729a6225561c1f04512bb995d576f7bd4b4f8911d5ce89c14",
+  "assetDigest": "1f2e0b39c541dea0f498d1ed2424978783ef615d314b3684c139086621a4d976",
+  "buildInputsSha256": "13dc7251047d117d08218a9c790276e739f6fd19be6b0dd68a0939c6764b1b98",
+  "manifestSha256": "9a8da0ea063f0d22b3609ffabe4e858e9ed05e08b067d94944a279f6c6cb636a",
   "inputOverrides": [],
   "dependencyInputs": "build-inputs.json",
-  "sourceCheckedInputCount": 574,
+  "sourceCheckedInputCount": 583,
   "dependencyInputCount": 282,
-  "totalInputCount": 856,
+  "totalInputCount": 865,
   "sourceLockfileSha256": "d7f094037413ecdbe2045458befc39c193f71e2ef6834ba3bdeb116fa69e2eab",
   "sourceLockBindings": {
     "packages/ui:dompurify": "3.3.3"

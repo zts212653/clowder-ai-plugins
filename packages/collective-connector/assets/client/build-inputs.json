@@ -2500,7 +2500,7 @@
     },
     {
       "path": "src/CollectiveClient.tsx",
-      "sha256": "539f75483d9dbe27d633bdef860329312308165a76202dbfbb13e9f4a4455df2"
+      "sha256": "eda886d443d363b22c5188aca8ac4db5119d81b934a0764b364031356c004cae"
     },
     {
       "path": "src/CollectiveHome.tsx",
@@ -2532,7 +2532,7 @@
     },
     {
       "path": "src/CollectiveWorkspace.tsx",
-      "sha256": "dabd6f9e0ef46baa47da48fcc49465e2cc911e8bdfdfebbc9390fb9f630ba000"
+      "sha256": "5f1ccf398672ed143d8301930b547de2bc9c3112165e25957e8afd1024bdabc2"
     },
     {
       "path": "src/CollectiveWorldRail.tsx",
@@ -2577,6 +2577,18 @@
     {
       "path": "src/HostedDocumentSelection.tsx",
       "sha256": "d623b20ff4610264f99e9167e062afc04c59a5a6f367f2030da854b32df49ae6"
+    },
+    {
+      "path": "src/InvitationDialog.tsx",
+      "sha256": "c2346a0b575129cb55a8ba30bd58308a929aa07c57b1c4d981ce9ee0fb6ac33e"
+    },
+    {
+      "path": "src/InvitationHistory.tsx",
+      "sha256": "feaad60f6e45190d61cb9c1e6db34cf0e66a7b9727b93b3fa7e9fa1b2a321f28"
+    },
+    {
+      "path": "src/InvitationLanding.tsx",
+      "sha256": "1beea047e808d52b2b6003232d42b4d265d0a702c530e61f72d462c24ad38301"
     },
     {
       "path": "src/LeaveCollectiveDialog.tsx",
@@ -2660,11 +2672,11 @@
     },
     {
       "path": "src/OnboardingScene.tsx",
-      "sha256": "21e2178859805ae6101cca49a25f4857b3071d0b1f980d9dd9911257388516a3"
+      "sha256": "af39e308eae160c4efc11e2db7834042d8f6d43b6e40f80e6be313377b6b5e57"
     },
     {
       "path": "src/ProductShell.tsx",
-      "sha256": "5eae6f964bcaa2af9ead85e04d2e9b5272a1f5737a1e7f357be89fcecd78f5a8"
+      "sha256": "f07255c46f0e28f17c6b9a48fad5e0a8bb2f2c19afa6341c81b0fd38ccc8dc2b"
     },
     {
       "path": "src/ProjectArtifactReferenceCard.tsx",
@@ -3027,12 +3039,20 @@
       "sha256": "7d0a9321c00150e9e73a1c1489ef7e35f569f10a9c37b5841a5e5dc2a2ec505c"
     },
     {
+      "path": "src/invitation-copy.ts",
+      "sha256": "0b21e9446884b45182e9b27349d846680fa1c14e4d45076ca6a857a030c480e5"
+    },
+    {
+      "path": "src/invitation-share-guide.ts",
+      "sha256": "711fdd6ebdaec8bc567356dfd5d59b06523bf362742cab5d2a564499c101f333"
+    },
+    {
       "path": "src/leave-readiness.ts",
       "sha256": "ecf92e32c07357cc360a5edb7be326f7d7b778da27f475b1837fee7aa9acc054"
     },
     {
       "path": "src/main.tsx",
-      "sha256": "a9878c9ec5f225642e98315c2aae72765c3025266b81d4928c50fc9690803945"
+      "sha256": "b0d99a1aaf886bfe869210457a86e6dc4486a098830f4e4fab626b32cc421a63"
     },
     {
       "path": "src/material-copy.ts",
@@ -3167,6 +3187,14 @@
       "sha256": "5ddd92a87e175751c8d658d6a1a6f81bc110d030497ed26a25522d5357418372"
     },
     {
+      "path": "src/styles/invitation-dialog.css",
+      "sha256": "10e59e73a632e42fd9f1cb95c3340fb429d28c16c2fbc5d3ad45a546a1442428"
+    },
+    {
+      "path": "src/styles/invitation-landing.css",
+      "sha256": "bc96f26f915031c4a80d66acac3d578e9eaa047151a1bc199d66d5155960928b"
+    },
+    {
       "path": "src/styles/leave-dialog.css",
       "sha256": "3e08cf937c30d73fa6a4be2eb0a390efe1f370fca0c4a1bdf84d46d5efa86d37"
     },
@@ -3284,7 +3312,7 @@
     },
     {
       "path": "src/use-collective-client.ts",
-      "sha256": "17362d1a59fd30b91c913a24063f46e71c4f0e20c157f88fb506d24ea5d6bd5a"
+      "sha256": "383b445d0ff196c020e0709ff67e8fcb54d982047e6dfb7093bf19e2f791c155"
     },
     {
       "path": "src/use-collective-collaboration.ts",
@@ -3353,6 +3381,14 @@
     {
       "path": "src/use-human-auth-session.ts",
       "sha256": "c58ea51c55f87b718a7f3d8432cc41470efd9c9d2a8cebf54cde748903346f89"
+    },
+    {
+      "path": "src/use-invitation-dialog.ts",
+      "sha256": "b61116d2b2cd01e9b845c208a3037b3400b1733cd5e667fae513599226b43552"
+    },
+    {
+      "path": "src/use-invitation-preview.ts",
+      "sha256": "305909745736f832a42979abc3533f53831a68d1b34befd8777e6b20fe3ac517"
     },
     {
       "path": "src/use-project-artifact-references.ts",

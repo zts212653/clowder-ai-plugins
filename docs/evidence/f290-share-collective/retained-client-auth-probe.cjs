@@ -10,6 +10,7 @@ const { chromium } = require(require.resolve('playwright', {
 const root = process.env.F290_CLIENT_ASSET_ROOT || path.resolve(__dirname, '../../../packages/collective-connector/assets/client');
 const invited = 'col_12345678';
 const other = 'col_87654321';
+const inviteToken = 'x'.repeat(43);
 let completedTarget = invited;
 let profileFailuresLeft = 0;
 let beginPayload;
@@ -20,6 +21,7 @@ const payloads = {
   '/api/meta': { serviceInstanceId: 'service-test', bootstrapNeeded: false, onboardingComplete: true, clientBuildId: 'test' },
   '/api/auth/providers': { providers: [{ id: 'github', ready: true }] },
   '/api/auth/github/begin': { authorizationUrl: 'https://github.com/login/oauth/authorize?client_id=fixture' },
+  '/api/invites/preview': { status: 'ready', serviceInstanceId: 'service-test', collective: { collectiveId: invited, name: 'Invited Collective' }, inviter: null, expiresAt: '2099-01-01T00:00:00.000Z' },
   '/api/me': { human: { humanId: 'human_12345678', displayName: 'Friend', createdAt }, auth: { provider: 'github', handle: 'friend' }, collectives: [membership(other, 'Other Collective'), membership(invited, 'Invited Collective')] },
   '/api/events/human': { events: [] },
   '/api/participants': { participants: [] },
@@ -75,8 +77,8 @@ const server = http.createServer(async (req, res) => {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', err => errors.push(String(err)));
-    await page.goto(`${base}/#invite=example`, { waitUntil: 'networkidle' });
-    await page.getByRole('button', { name: /使用 GitHub 验证并加入/ }).click();
+    await page.goto(`${base}/#invite=${inviteToken}`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: '使用 GitHub 登录' }).click();
     await page.waitForURL(url => url.searchParams.get('collectiveId') === invited, { timeout: 10000 });
     await page.getByText('Invited Collective', { exact: true }).first().waitFor({ state: 'visible', timeout: 10000 });
     await page.waitForLoadState('networkidle');
@@ -85,7 +87,7 @@ const server = http.createServer(async (req, res) => {
     assert.equal(new URL(page.url()).searchParams.get('channelId'), 'general');
     assert.equal(new URL(page.url()).hash, '');
     assert.ok(requests.includes('POST /api/auth/github/begin'));
-    assert.deepEqual(beginPayload, { intent: 'accept_invite', inviteToken: 'example' });
+    assert.deepEqual(beginPayload, { intent: 'accept_invite', inviteToken });
     assert.ok(requests.includes('POST /api/auth/completions/exchange'));
     assert.equal(errors.length, 0, errors.join('\n'));
     if (process.env.F290_SCREENSHOT_PATH) await page.screenshot({ path: process.env.F290_SCREENSHOT_PATH, fullPage: true });
@@ -95,8 +97,8 @@ const server = http.createServer(async (req, res) => {
     const deniedContext = await browser.newContext();
     await deniedContext.route('https://github.com/login/oauth/authorize**', route => route.fulfill({ status: 302, headers: { location: `${base}/?authCompleted=1` }, body: '' }));
     const denied = await deniedContext.newPage();
-    await denied.goto(`${base}/#invite=example`, { waitUntil: 'networkidle' });
-    await denied.getByRole('button', { name: /使用 GitHub 验证并加入/ }).click();
+    await denied.goto(`${base}/#invite=${inviteToken}`, { waitUntil: 'networkidle' });
+    await denied.getByRole('button', { name: '使用 GitHub 登录' }).click();
     await denied.getByText('邀请的共同体暂时不可用，请联系邀请人。').waitFor({ state: 'visible', timeout: 10000 });
     const state = await denied.evaluate(() => ({ search: location.search, saved: sessionStorage.getItem(`collective-session:${location.origin}`) }));
     assert.equal(new URLSearchParams(state.search).has('collectiveId'), false);
@@ -108,8 +110,8 @@ const server = http.createServer(async (req, res) => {
     const retryContext = await browser.newContext();
     await retryContext.route('https://github.com/login/oauth/authorize**', route => route.fulfill({ status: 302, headers: { location: `${base}/?authCompleted=1` }, body: '' }));
     const retry = await retryContext.newPage();
-    await retry.goto(`${base}/#invite=example`, { waitUntil: 'networkidle' });
-    await retry.getByRole('button', { name: /使用 GitHub 验证并加入/ }).click();
+    await retry.goto(`${base}/#invite=${inviteToken}`, { waitUntil: 'networkidle' });
+    await retry.getByRole('button', { name: '使用 GitHub 登录' }).click();
     await retry.getByText('Fixture network interrupted').waitFor({ state: 'visible', timeout: 10000 });
     assert.equal(new URL(retry.url()).searchParams.get('collectiveId'), invited);
     await retry.reload({ waitUntil: 'networkidle' });
