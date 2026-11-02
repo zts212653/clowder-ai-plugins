@@ -1,10 +1,12 @@
 import { z } from 'zod';
 import { parseServiceState, type MutableServiceState } from './state.js';
 
+const rollbackTargetSchema = z.enum(['0.1.0-alpha.22', '0.1.0-alpha.24']);
+
 // Keep this private metadata beside a rollback copy, never in the older Service's state file.
 const rollbackMetadataSchema = z.object({
   version: z.literal(1),
-  target: z.literal('0.1.0-alpha.22'),
+  target: rollbackTargetSchema,
   serviceInstanceId: z.string().min(1),
   invites: z.array(z.object({
     inviteId: z.string().min(1),
@@ -16,9 +18,14 @@ const rollbackMetadataSchema = z.object({
 }).strict();
 
 type RollbackMetadata = z.infer<typeof rollbackMetadataSchema>;
+type RollbackTarget = z.infer<typeof rollbackTargetSchema>;
 
 /** Produce an offline copy. This function does not write files or stop/change a Service. */
-export function prepareAlpha22InviteRollback(value: unknown): { state: MutableServiceState; metadata: RollbackMetadata } {
+export function prepareInviteRollback(
+  value: unknown,
+  target: RollbackTarget,
+): { state: MutableServiceState; metadata: RollbackMetadata } {
+  const validatedTarget = rollbackTargetSchema.parse(target);
   const state = structuredClone(parseServiceState(value)) as MutableServiceState;
   const invites: RollbackMetadata['invites'] = [];
   for (const invite of Object.values(state.invites)) {
@@ -31,12 +38,12 @@ export function prepareAlpha22InviteRollback(value: unknown): { state: MutableSe
         ...(invite.revokedAt !== undefined ? { revokedAt: invite.revokedAt } : {}),
       });
     }
-    // Alpha22 treats consumed invitations as unavailable. Preserve that denial after removing the newer field.
+    // Both supported older versions treat consumed invitations as unavailable.
     if (invite.revokedAt && !invite.consumedAt) invite.consumedAt = invite.revokedAt;
     delete invite.createdByHumanId;
     delete invite.revokedAt;
   }
-  return { state, metadata: { version: 1, target: '0.1.0-alpha.22', serviceInstanceId: state.serviceInstanceId, invites } };
+  return { state, metadata: { version: 1, target: validatedTarget, serviceInstanceId: state.serviceInstanceId, invites } };
 }
 
 /** Reapply saved metadata to the current, independently advanced state; refuse mismatched identities. */

@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { prepareAlpha22InviteRollback, restoreInviteMetadata } from '../invite-alpha22-rollback.js';
+import { prepareInviteRollback, restoreInviteMetadata } from '../invite-rollback.js';
 import { participationFixture } from './participation-fixture.js';
 
 it('prepares an old-reader snapshot without reactivating revoked invitations and restores metadata after rollback', async () => {
@@ -14,7 +14,14 @@ it('prepares an old-reader snapshot without reactivating revoked invitations and
     await f.store.revokeInvite({ sessionToken: f.owner.sessionToken, collectiveId: f.coordinates.collectiveId, inviteId: revoked.inviteId });
     const original = JSON.parse(await readFile(join(directory, 'collective-service.json'), 'utf8'));
     const originalCopy = structuredClone(original);
-    const prepared = prepareAlpha22InviteRollback(original);
+    const prepared24 = prepareInviteRollback(original, '0.1.0-alpha.24');
+    expect(prepared24.metadata.target).toBe('0.1.0-alpha.24');
+    expect(restoreInviteMetadata(prepared24.state, prepared24.metadata).invites[revoked.inviteId].revokedAt)
+      .toBe(original.invites[revoked.inviteId].revokedAt);
+    const prepared = prepareInviteRollback(original, '0.1.0-alpha.22');
+    expect(prepared.metadata.target).toBe('0.1.0-alpha.22');
+    // @ts-expect-error Unsupported versions must also fail at runtime.
+    expect(() => prepareInviteRollback(original, '0.1.0-alpha.23')).toThrow();
     expect(original).toEqual(originalCopy);
     expect(prepared.state.invites[ready.inviteId]).not.toHaveProperty('createdByHumanId');
     expect(prepared.state.invites[revoked.inviteId]).not.toHaveProperty('revokedAt');
