@@ -21,8 +21,6 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
     const request = externalRequestSchema.parse(raw);
     if (request.method !== 'POST')
         throw new Error('dot_mcp_request_rejected');
-    try { await runtime.connection.current(); }
-    catch { return { status: 409, headers, body: { error: 'dot_connection_unavailable' } }; }
     const parsed = requestSchema.safeParse(request.body);
     if (!parsed.success)
         return { status: 400, headers, body: { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid request' } } };
@@ -41,6 +39,10 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
             return complete({ tools: DOT_TOOLS });
         if (method === 'events/list')
             return complete({ events: [DOT_EVENT_DEFINITION] });
+        if (method !== 'tools/call' && method !== 'events/subscribe' && method !== 'events/unsubscribe')
+            return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } } };
+        try { await runtime.connection.current(); }
+        catch { return { status: 409, headers, body: { error: 'dot_connection_unavailable' } }; }
         if (method === 'events/subscribe') {
             const input = subscribeSchema.parse(params);
             return complete(await runtime.connection.subscribe({ attemptId: input.arguments.attempt_id, pairingCode: input.arguments.pairing_code,
@@ -50,8 +52,6 @@ export async function rpc(runtime: DotRuntime, raw: unknown) {
             const input = unsubscribeSchema.parse(params);
             return complete(await runtime.connection.unsubscribe({ attemptId: input.arguments.attempt_id, pairingCode: input.arguments.pairing_code, url: input.delivery.url }));
         }
-        if (method !== 'tools/call')
-            return { status: 200, headers, body: { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } } };
         const input = callSchema.parse(params);
         let result: unknown;
         switch (input.name) {

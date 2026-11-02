@@ -223,6 +223,26 @@ test("reinstall cannot revive a disconnected retained credential from an active 
 	t.after(() => active.stop());
 	assert.equal(
 		(await tools(active, batch.connection.credentialSecret)).status,
+		200,
+	);
+	assert.equal(
+		(
+			await mcp(active, {
+				request: {
+					method: "POST",
+					headers: {},
+					body: {
+						jsonrpc: "2.0",
+						id: 1,
+						method: "tools/call",
+						params: {
+							name: "cat_cafe_dot_read_source",
+							arguments: { event_id: batch.dispatches[0].eventId },
+						},
+					},
+				},
+			})
+		).status,
 		409,
 	);
 });
