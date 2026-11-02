@@ -10,10 +10,10 @@ created: 2026-11-02
 ## Retained Client
 
 The current **draft** package contains the invitation Client from exact Cat Café source
-`f2bb508c3fb0b6a8679931e025d3b1a0180c618f`. Its baseline `033b7fdee12539df532ad22ae4b0d4de88d3b28a`
-was independently reviewed; the new non-zero exit guidance awaits incremental review.
+`51fc3e6bd6741f9073280ee14ff106da1d94e843`. Its baseline `f2bb508c3fb0b6a8679931e025d3b1a0180c618f`
+was independently reviewed; the installation-source guidance awaits incremental review.
 The design is not yet accepted and the source has not been merged. The retained asset
-digest is `d5aa7572799b85594dc6efd96c1c349aba5a4f9ff54f290ed8b3cac4c1e082f7`.
+digest is `ceb4eed6eb5855c5a31854fa2ea33ab1ced5d00eccf8bd09ec68aa99bf7cdb6f`.
 After the Client is accepted and merged, retain it again from the final merged source and
 rebuild the package candidate before release. The previous published alpha.25 used the
 merged Cat Café source `d425f561eaf31812554336c0ef380a510e5f187e` (PR #6471).
@@ -24,7 +24,7 @@ the checked-in Client assets in the current worktree. The browser probe requires
 workspace's Companion Playwright dependency and an installed Chromium:
 
 ```sh
-node docs/evidence/f290-share-collective/retain-client-assets.mjs <clean-source-root> f2bb508c3fb0b6a8679931e025d3b1a0180c618f
+node docs/evidence/f290-share-collective/retain-client-assets.mjs <clean-source-root> 51fc3e6bd6741f9073280ee14ff106da1d94e843
 env -u NODE_ENV pnpm --filter @clowder-ai/collective-connector test:source
 env -u NODE_ENV node docs/evidence/f290-share-collective/retained-client-auth-probe.cjs
 env -u NODE_ENV node docs/evidence/f290-share-collective/retained-client-full-probe.mjs <clean-source-root>

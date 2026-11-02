@@ -23,10 +23,16 @@ const assetLine = "const clientRoot = new URL('../../../packages/collective-clie
 const helperImport = "'./host-frame-policy.mjs'";
 const clipboardLine = "  const realClipboard = await hostPage.evaluate(() => navigator.clipboard.readText());";
 assert.ok(probe.includes(assetLine) && probe.includes(helperImport) && probe.includes(clipboardLine), 'reviewed probe entrypoints changed');
+const clipboardChecks = [
+  clipboardLine,
+  "  assert.ok(realClipboard.includes('退出码不是 0 时先停下'), 'non-zero version checks must stop and report');",
+  "  const sourceChoice = realClipboard.indexOf('只执行与你的安装来源对应的那一条命令');",
+  "  assert.ok(sourceChoice >= 0 && sourceChoice < realClipboard.indexOf('git merge-base'), 'installation-source choice must precede version checks');",
+].join('\n');
 probe = probe
   .replace(assetLine, `const clientRoot = new URL(${JSON.stringify(pathToFileURL(`${assets}${path.sep}`).href)});`)
   .replace(helperImport, JSON.stringify(pathToFileURL(path.join(evidence, 'host-frame-policy.mjs')).href))
-  .replace(clipboardLine, `${clipboardLine}\n  assert.ok(realClipboard.includes('退出码不是 0 时先停下'), 'non-zero version checks must stop and report');`);
+  .replace(clipboardLine, clipboardChecks);
 
 const directory = await mkdtemp(path.join(tmpdir(), 'f290-retained-client-probe-'));
 try {
