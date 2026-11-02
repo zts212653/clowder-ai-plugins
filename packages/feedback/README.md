@@ -2,7 +2,7 @@
 
 [English guide](README.en.md)
 
-`0.1.0-alpha.2` 与 Host PR #1762 的面板 HTTP 修订配套：侧栏命令只挂载 HTML，后续业务通过已声明的 `POST /api/plugins/official.feedback/feedback` 调用。iframe 保持 opaque 隔离，Host 校验 owner 和当前面板代次；不再使用 alpha.1 的 `invoke` 业务桥。报告与截图沿用通用 HTTP 流响应，停用后旧面板失效。
+`0.1.0-alpha.2` 与 Host PR #1762 的面板 HTTP 修订配套：页面通过已声明的 `GET /api/plugins/official.feedback/panel` 获取，业务通过同一入口的 `POST feedback` 调用。侧栏只发现页面，不再调用单独的挂载 action；iframe 保持 opaque 隔离，Host 校验 owner 和当前面板代次。不再使用 alpha.1 的 `invoke` 业务桥或 PluginUiPanel 信封。报告与截图沿用通用 HTTP 流响应，停用后旧面板失效。
 
 从左栏底部进入，默认打开空白的新建表单。选择问题反馈（`bug:`）或功能建议（`feat:`），标题选填，只需描述或图片即可。推荐“生成分析报告”：详细材料由已配置的 Agent Client 分析后生成；“直接反馈”不依赖 Agent。两条路径都需要检查最终报告、截图、目标可见性并确认提交。
 

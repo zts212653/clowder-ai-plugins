@@ -22,8 +22,9 @@ export default {
             'feedback.panel': async (input: unknown, _native?: unknown, context?: OwnerContext) => {
               if (context?.kind !== 'owner-http-request' || context.pluginInstanceId !== host.pluginInstanceId) throw new Error('请通过左栏反馈入口打开面板');
               await context.assertCurrent();
-              if (input && typeof input === 'object' && 'op' in input && input.op === 'open') return { kind: 'plugin-panel', version: 1, html } satisfies import('@clowder-ai/plugin-sdk').PluginUiPanel;
-              throw new Error('此命令仅用于面板挂载；业务操作请使用声明的 HTTP 路由');
+              const request = record(record(input).request);
+              if (request.method !== 'GET' || request.path !== 'panel') throw new Error('面板资源仅支持声明的 GET 路由');
+              return { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' }, body: html };
             },
             'feedback.http': async (input: unknown, _native?: unknown, context?: OwnerContext) => {
               const request = record(record(input).request);
