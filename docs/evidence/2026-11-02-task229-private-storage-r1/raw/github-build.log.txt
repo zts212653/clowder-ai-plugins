@@ -1,8 +1,0 @@
-
-> @clowder-ai/github-operations@0.1.0-alpha.32 build /Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/packages/github-operations
-> pnpm clean && tsc -p tsconfig.build.json
-
-
-> @clowder-ai/github-operations@0.1.0-alpha.32 clean /Users/lysander/projects/relay-station/clowder-ai-plugins-task229-private-storage/packages/github-operations
-> rm -rf dist
-
