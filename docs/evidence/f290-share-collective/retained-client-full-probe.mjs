@@ -25,9 +25,10 @@ const clipboardLine = "  const realClipboard = await hostPage.evaluate(() => nav
 assert.ok(probe.includes(assetLine) && probe.includes(helperImport) && probe.includes(clipboardLine), 'reviewed probe entrypoints changed');
 const clipboardChecks = [
   clipboardLine,
-  "  assert.ok(realClipboard.includes('退出码不是 0 时先停下'), 'non-zero version checks must stop and report');",
   "  const sourceChoice = realClipboard.indexOf('只执行与你的安装来源对应的那一条命令');",
-  "  assert.ok(sourceChoice >= 0 && sourceChoice < realClipboard.indexOf('git merge-base'), 'installation-source choice must precede version checks');",
+  "  const stopRule = realClipboard.indexOf('退出码不是 0 时先停下');",
+  "  const firstVersionCommand = realClipboard.indexOf('git merge-base');",
+  "  assert.ok(sourceChoice >= 0 && sourceChoice < stopRule && stopRule < firstVersionCommand, 'version guidance must precede commands in order');",
 ].join('\n');
 probe = probe
   .replace(assetLine, `const clientRoot = new URL(${JSON.stringify(pathToFileURL(`${assets}${path.sep}`).href)});`)
