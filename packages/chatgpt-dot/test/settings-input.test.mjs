@@ -61,6 +61,11 @@ test('shared confirmation is rendered byte-for-byte and the selected proposal re
   const prepared = await settings.actions['dot.begin']({}, undefined, f.owner);
   assert.deepEqual(prepared, { render: 'rows', data: { rows: [presentation] } });
   assert.equal(JSON.stringify(prepared).includes(f.host.external.token), false);
+  assert.equal(
+    f.records.has('dot/connection/v1'),
+    false,
+    'pending Host approval must not create a pairing attempt before the owner confirms it',
+  );
   const connected = await settings.actions['dot.bind-shared'](
     { input: { proposalRef: 'proposal-a' } },
     undefined,
@@ -69,6 +74,84 @@ test('shared confirmation is rendered byte-for-byte and the selected proposal re
   assert.equal(bound, 'proposal-a');
   assert.equal(connected.data.state, 'active');
   assert.match(connected.data.instructions, /pairing_code=/);
+});
+
+test('shared connection state gates pairing instructions instead of inferring readiness from empty actions', async (t) => {
+  const cases = [
+    {
+      name: 'unavailable',
+      connection: { state: 'unavailable', reason: 'shared_principal_unavailable' },
+      presentation: {
+        key: 'shared-unavailable',
+        label: '现有猫咖云端连接不可用',
+        detail: '未找到这个主人的现有云端连接；插件自身配置仍可继续。',
+        actions: [],
+      },
+      expectsPairing: false,
+    },
+    {
+      name: 'pending',
+      connection: { state: 'pending' },
+      presentation: {
+        key: 'shared-pending',
+        label: '确认连接范围',
+        detail: '请确认准确的工具与事件范围。',
+        actions: [
+          {
+            action: 'bind-shared',
+            label: '连接',
+            confirm: '确认连接？',
+            input: { proposalRef: 'proposal-pending' },
+          },
+        ],
+      },
+      expectsPairing: false,
+    },
+    {
+      name: 'active',
+      connection: {
+        state: 'active',
+        endpoint: '/mcp',
+        principal: 'gpt-pro',
+        revision: 1,
+        scope: { tools: 4, events: 1 },
+      },
+      presentation: {
+        key: 'shared-active',
+        label: '已连接',
+        detail: '共享连接有效。',
+        actions: [],
+      },
+      expectsPairing: true,
+    },
+  ];
+
+  for (const item of cases) {
+    await t.test(item.name, async (t) => {
+      const f = fixture(t);
+      f.host.external.shared = {
+        status: async () => item.connection,
+        prepare: async () => ({
+          proposalRef: item.name === 'pending' ? 'proposal-pending' : '',
+          expiresAt: item.name === 'pending' ? Date.now() + 60_000 : 0,
+          presentation: item.presentation,
+          connection: item.connection,
+        }),
+        bind: async () => assert.fail('begin must not bind'),
+        unbind: async () => assert.fail('begin must not unbind'),
+      };
+      const settings = await createDotPlugin({ sendWebhook: f.sendWebhook }).settings(f.host);
+      t.after(() => settings.dispose());
+
+      const result = await settings.actions['dot.begin']({}, undefined, f.owner);
+      const serialized = JSON.stringify(result);
+      assert.equal(f.records.has('dot/connection/v1'), item.expectsPairing);
+      assert.equal(serialized.includes('pairing_code='), item.expectsPairing);
+      if (!item.expectsPairing) {
+        assert.deepEqual(result, { render: 'rows', data: { rows: [item.presentation] } });
+      }
+    });
+  }
 });
 
 test('owner disconnect revokes the approved shared slot before revoking the Dot pairing', async (t) => {

@@ -75,10 +75,13 @@ export function createDotPlugin(
 				"dot.begin": async (_input, _native, context) => {
 					const shared = (host as DotSettingsHost).external.shared;
 					if (!shared) throw new Error("shared_connection_unavailable");
-					// The pairing attempt remains plugin-owned. The Host contributes only
-					// the canonical owner-confirmation row for the existing shared /mcp.
-					const connection = await current.begin(context);
 					const proposal = await shared.prepare({ confirmationActionId: "bind-shared" });
+					// The pairing attempt remains plugin-owned, but it is useful only after
+					// the Host says the shared /mcp slot is active.  A proposal with no row
+					// actions can also mean "unavailable"; treating that as success leaks a
+					// pairing instruction which the cloud consumer cannot use.
+					const connection =
+						proposal.connection.state === "active" ? await current.begin(context) : undefined;
 					return {
 						render: "rows",
 						data: {
@@ -86,7 +89,7 @@ export function createDotPlugin(
 								{
 									...proposal.presentation,
 									detail:
-										proposal.presentation.actions.length === 0
+										connection
 											? `${proposal.presentation.detail} ${connection.instructions}`
 											: proposal.presentation.detail,
 								},
