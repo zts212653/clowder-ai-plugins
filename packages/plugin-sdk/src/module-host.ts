@@ -47,6 +47,8 @@ export interface PluginStorageHost {
 
 export interface PluginThreadSummary {
   readonly id: string;
+  /** Canonical project selected by the Host; never a caller-provided cwd. */
+  readonly projectRef?: string;
   /** Host-authored navigation after owner/visibility/deleted filtering. Never
    * reconstruct this URL from plugin configuration, payloads or thread IDs. */
   readonly deepLinkUrl: string;
@@ -62,6 +64,14 @@ export interface PluginThreadMessage {
   readonly timestamp: number;
   readonly content: string;
   readonly sender: { readonly kind: 'owner' | 'cat' | 'system'; readonly catId?: string };
+  /** Persisted ordinary response status, correlated to its exact input messages. */
+  readonly response?: {
+    readonly executionId: string;
+    readonly inputMessageIds: readonly string[];
+    readonly status: 'processing' | 'completed' | 'failed' | 'canceled' | 'interrupted';
+    readonly startedAt: number;
+    readonly completedAt?: number;
+  };
 }
 
 export interface PluginThreadCat {
@@ -84,6 +94,9 @@ export interface PluginThreadCats {
 export interface PluginThreadCreateInput {
   readonly title: string;
   readonly parentThreadId?: string;
+  /** Host validates this directory using the ordinary project-path policy.
+   * Mutually exclusive with parentThreadId. Omit to use the Host project. */
+  readonly projectRef?: string;
   readonly participants?: readonly string[];
 }
 
@@ -264,7 +277,7 @@ export type PluginMessageContent =
   | { readonly type: 'context_attachment'; readonly attachment: unknown };
 
 export type PluginMessagingDraft = Omit<MessageDraft, 'address'> & {
-  readonly wake?: 'auto' | { readonly catId: string };
+  readonly wake?: 'auto' | { readonly catId: string; readonly exact?: true };
   readonly sender?: { readonly id: string; readonly name?: string };
   readonly contentBlocks?: readonly PluginMessageContent[];
   readonly identity?: string;
@@ -283,6 +296,15 @@ export type PluginMessagingDelivery = import('@clowder-ai/plugin-contract').Plug
 export interface PluginMessagingHost {
   /** Persistent message facts, subject to ordinary content-read authority. */
   get(messageId: string): Promise<import('./message-read.js').PluginMessage | null>;
+  /** Durable own-send lookup, independent of the transport ledger's retention.
+   * Absent on older Hosts. Recipients are admitted Queue targets, not execution or read receipts. */
+  findSent?(input: { readonly threadId: string; readonly idempotencyKey: string }): Promise<{
+    readonly messageId: string;
+    readonly threadId: string;
+    readonly content: string;
+    readonly routedCatIds: readonly string[];
+    readonly deliveryStatus?: 'queued' | 'delivered' | 'canceled';
+  } | null>;
   send(input: PluginMessagingDraft & { readonly threadId: string }): Promise<{
     readonly messageId: string;
     readonly threadId: string;
@@ -300,11 +322,14 @@ export type ModulePluginSettingsHost = Pick<ModulePluginHostShape, 'pluginInstan
 
 /** Structural mirror of the Host-owned in-process module surface. */
 export interface ModulePluginHostShape {
+  readonly runtimeInfo?: import('./runtime-info.js').PluginRuntimeInfoHost;
   /** Optional Host-owned seam, supplied only to its verified installed Collective instance. */
   readonly collectiveArtifactOwner?: import('./collective-artifact-owner.js').CollectiveArtifactOwnerPort;
   /** Installation attribution supplied by the Host, never the manifest's package id. */
   readonly pluginInstanceId: string;
   readonly members?: import('./members.js').PluginMemberHost;
+  /** Available only on Hosts with persistent, controlled member execution. */
+  readonly memberSessions?: import('./member-sessions.js').PluginMemberSessionsHost;
   readonly config: { get(key: string): Promise<unknown> };
   readonly secrets: { get(key: string): Promise<string | undefined> };
   readonly storage: PluginStorageHost;

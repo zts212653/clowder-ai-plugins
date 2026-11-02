@@ -32,6 +32,7 @@ on:
       - 'packages/xiangqi/**'
       - 'packages/genoffice-docx/**'
       - 'packages/github-operations/**'
+      - 'packages/feedback/**'
       - 'packages/stackchan/**'
       - 'catalog/**'
       - 'scripts/**'

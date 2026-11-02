@@ -93,7 +93,7 @@ export class CommunityRuntime {
         if (!config) throw new Error('Repository registration was removed');
         await context.messaging.send(config.notificationThreadId ?? config.guardThreadId, {
           identity: 'github-notification', idempotencyKey: `github:scan:${signal.subjectType}:${signal.repoFullName}#${signal.number}`,
-          wake: { catId: config.guardCatId }, url: signal.url,
+          wake: { catId: config.guardCatId },
           payload: { provenance: { epistemicStatus: 'observation' }, elements: [{
             elementId: signal.deliveryId, kind: 'text', payload: { text: content },
           }] },
@@ -311,7 +311,7 @@ export class CommunityRuntime {
           if (!config) throw new Error('Repository registration was removed');
           return this.context.messaging.send(config.notificationThreadId ?? config.guardThreadId, {
             identity: 'github-notification', idempotencyKey: `github:webhook:${signal.deliveryId}`,
-            wake: { catId: config.guardCatId }, url: signal.url,
+            wake: { catId: config.guardCatId },
             payload: { provenance: { epistemicStatus: 'observation' }, elements: [{
               elementId: signal.deliveryId, kind: 'text', payload: { text: content },
             }] },

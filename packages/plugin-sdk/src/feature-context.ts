@@ -57,6 +57,7 @@ export interface FeatureBinding {
 export type PluginLogLevel = ModulePluginLogLevel;
 
 export interface FeatureHostAdapter {
+  readonly runtimeInfo?: import('./runtime-info.js').PluginRuntimeInfoHost;
   getMessage(messageId: string): Promise<PluginMessage | null>;
   readonly members?: PluginMemberHost;
   readConfig(binding: FeatureBinding, key: string): Promise<unknown>;
@@ -103,6 +104,7 @@ export class FeaturePermissionError extends Error {
 }
 
 export interface FeatureContext {
+  readonly runtimeInfo?: import('./runtime-info.js').PluginRuntimeInfoHost;
   /** Host installation attribution. This id grants no operation or business authority. */
   readonly pluginInstanceId: string;
   /** One ordinary Host member directory. */
@@ -275,6 +277,9 @@ export function createFeatureContextSession(
   };
   const getMessage = createMessageReader(messageId => adapter.getMessage(messageId), assertActive);
   const members = adapter.members === undefined ? undefined : createMemberClient(adapter.members, assertActive);
+  const runtimeInfo = adapter.runtimeInfo === undefined ? undefined : { async get() {
+    assertActive(); const result = await adapter.runtimeInfo!.get(); assertActive(); return structuredClone(result);
+  } };
   const sendMessage = (threadId: string, input: PluginMessagingDraft) =>
     runWhileActive(() => adapter.sendMessage(binding, threadId, input));
   const subscribeMessage = (
@@ -322,6 +327,7 @@ export function createFeatureContextSession(
       return binding.pluginInstanceId;
     },
     ...(members ? { members } : {}),
+    ...(runtimeInfo ? { runtimeInfo } : {}),
     featureId: binding.featureId,
     config: { get: readConfig },
     secrets: { get: readSecret },

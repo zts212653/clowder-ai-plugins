@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   establishPrivateDirectoryAccessForPlatform,
+  WINDOWS_PRIVATE_TREE_SCRIPT,
   windowsPowerShell51Environment,
 } from '../private-path-access.js';
 
@@ -34,6 +35,12 @@ describe('private path boundary', () => {
       CLOWDER_COLLECTIVE_PRIVATE_ROOT: 'C:\\fixture\\private',
     });
     expect(inheritedEnvironment.PSModulePath).toContain('PowerShell\\7');
+  });
+
+  it('keeps the Windows protector independent of the PowerShell Security module', () => {
+    expect(WINDOWS_PRIVATE_TREE_SCRIPT).not.toMatch(/\b(?:Get|Set)-Acl\b|\bImport-Module\b/iu);
+    expect(WINDOWS_PRIVATE_TREE_SCRIPT).toMatch(/\.GetAccessControl\(/u);
+    expect(WINDOWS_PRIVATE_TREE_SCRIPT).toMatch(/\.SetAccessControl\(/u);
   });
 
   it('does not admit Windows metadata until the DACL protector succeeds', async () => {

@@ -98,6 +98,7 @@ function declaredContributionAdapter(
 ): FeatureHostAdapter {
   return {
     members: host.members,
+    runtimeInfo: host.runtimeInfo,
     getMessage: messageId => host.messaging.get(messageId),
     readConfig: (_binding, key) => host.config.get(key),
     readSecret: (_binding, key) => host.secrets.get(key),
