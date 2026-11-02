@@ -452,6 +452,18 @@ export class CollectiveServiceStore {
     return this.#identity.createInvite(input);
   }
 
+  listInvites(input: { sessionToken: string; collectiveId: string; limit: number; cursor?: string }) {
+    return this.#identity.listInvites(input);
+  }
+
+  previewInvite(inviteToken: string) {
+    return this.#identity.previewInvite(inviteToken);
+  }
+
+  revokeInvite(input: { sessionToken: string; collectiveId: string; inviteId: string }) {
+    return this.#identity.revokeInvite(input);
+  }
+
   getHumanAuthProviders() {
     return this.#identity.getHumanAuthProviders();
   }
