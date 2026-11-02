@@ -23,7 +23,7 @@ const provider: HumanAuthProvider = {
   authenticate: async ({ code }) => ({
     providerSubject: code,
     handle: code,
-    displayName: code === 'owner' ? 'Landy' : 'Friend',
+    displayName: code === 'owner' ? 'Owner' : 'Friend',
   }),
 };
 
@@ -34,13 +34,13 @@ async function fixture() {
   const now = () => time;
   const opened = await CollectiveServiceStore.open({ dataDirectory: directory, humanAuthProvider: provider, now });
   if (!opened.bootstrapSecret) throw new Error('Missing bootstrap secret');
-  const owner = await opened.store.consumeBootstrap({ secret: opened.bootstrapSecret, displayName: 'Landy' });
+  const owner = await opened.store.consumeBootstrap({ secret: opened.bootstrapSecret, displayName: 'Owner' });
   const bind = await opened.store.beginHumanAuth({
     provider: 'github', intent: { kind: 'bind' }, sessionToken: owner.sessionToken,
   });
   const bound = await opened.store.completeHumanAuth({ provider: 'github', state: bind.state, code: 'owner' });
   await opened.store.exchangeHumanAuthCompletion(bound.completionToken);
-  const collective = await opened.store.createCollective({ sessionToken: owner.sessionToken, name: 'Meow-Club' });
+  const collective = await opened.store.createCollective({ sessionToken: owner.sessionToken, name: 'Test Collective' });
   const server = await startCollectiveServer({ store: opened.store, port: 0 });
   servers.push(server);
   const post = (path: string, body: object, token?: string) => fetch(`${server.url}${path}`, {
@@ -71,8 +71,8 @@ describe('a Collective invite across the HTTP boundary', () => {
     expect(first.headers.get('cache-control')).toContain('no-store');
     expect(await first.json()).toMatchObject({
       status: 'ready',
-      collective: { collectiveId: f.collective.collectiveId, name: 'Meow-Club' },
-      inviter: { humanId: f.owner.human.humanId, displayName: 'Landy' },
+      collective: { collectiveId: f.collective.collectiveId, name: 'Test Collective' },
+      inviter: { humanId: f.owner.human.humanId, displayName: 'Owner' },
       serviceInstanceId: f.store.serviceInstanceId,
     });
     expect((await inspect()).status).toBe(200);
