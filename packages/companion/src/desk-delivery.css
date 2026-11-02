@@ -2,10 +2,16 @@
  * plus only the watcher sketch's additions. Sizes and colours follow the sketch. */
 /* The sketch draws its 1px edge as an inset shadow; .floating uses a real border, so padding is 1px less. */
 #desk { width: 344px; padding: 9px 11px 11px; overflow: hidden; }
+/* The sketch renders with the system face first and grayscale smoothing; without both, 13px/500 reads heavier. */
+#desk, #desk button { font-family: -apple-system, Inter, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
 #desk[data-presentation="tag"] { width: max-content; min-width: 120px; display: flex; justify-content: center; border: 0; background: transparent; box-shadow: none; padding: 0; overflow: visible; }
 .desk-bubble:not([hidden]) { display: flex; flex-direction: column; gap: 6px; }
 .desk-head { min-height: 20px; }
 .desk-who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; min-height: 20px; color: var(--desktop-body); font-size: 13px; }
+.desk-avatar { position: relative; width: 20px; height: 20px; flex: none; }
+.desk-avatar img { display: block; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.desk-avatar-eye:not([hidden]) { position: absolute; right: -3px; bottom: -3px; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--desktop-paper); box-shadow: 0 0 0 1.5px var(--desktop-paper); }
+.desk-avatar-eye svg { width: 10px; height: 10px; }
 .desk-who b { min-width: 0; overflow: hidden; color: var(--desktop-ink); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 #desk .reply-ring, #desk .reply-close { margin: -2px -4px 0 0; }
 .desk-text { margin: 0; color: var(--desktop-ink); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }

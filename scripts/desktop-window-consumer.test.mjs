@@ -54,8 +54,9 @@ test('packed static desktop window declarations and current SDK work without wor
         const [item] = state.desk.delivery.items;
         const settled = await client.settleDesk(state.desk.scopeRef, state.desk.delivery.deliveryRef, item.action, item.itemRef);
         const thumbnail = await client.readDeskThumbnail(state.desk.scopeRef, state.desk.delivery.deliveryRef, item.itemRef);
+        const avatar = await client.readDeskAvatar(state.desk.scopeRef, state.desk.delivery.deliveryRef);
         const saved: boolean | undefined = settled.saved;
-        return [item.title, saved, thumbnail.image?.mediaType ?? null];
+        return [item.title, saved, thumbnail.image?.mediaType ?? null, avatar.image?.width ?? null];
       }
       // @ts-expect-error an inactive desk cannot carry a delivery.
       const invalidDesk: CompanionDeskState = { scopeRef: 'desk-a', revision: 1, status: 'off', delivery: { deliveryRef: 'd', mode: 'single', from: null, items: [], more: 0 } };

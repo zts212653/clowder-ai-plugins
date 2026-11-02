@@ -91,7 +91,9 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
   if (parsed.kind === 'desk-settlement') {
     return deskItemScoped(parsed.action, parsed.itemRef) && (parsed.saved === undefined || parsed.action === 'timeout');
   }
-  if (parsed.kind === 'desk-thumbnail') return parsed.image === null || parsed.image.dataBase64.length % 4 === 0;
+  if (parsed.kind === 'desk-thumbnail' || parsed.kind === 'desk-avatar') {
+    return parsed.image === null || parsed.image.dataBase64.length % 4 === 0;
+  }
   if (parsed.kind === 'work') {
     const coverage = new Map(parsed.coverage.map((entry) => [entry.source, entry.status]));
     if (coverage.size !== 3) return false;

@@ -25,13 +25,22 @@ export function deskHeader(from, deskCatName) {
   return from.role === 'watcher' ? `守望猫 · ${from.displayName}` : from.displayName;
 }
 
+const rasterUrl = (image, maxLength) => {
+  if (!image || !IMAGE_TYPES.has(image.mediaType) || typeof image.dataBase64 !== 'string'
+    || image.dataBase64.length > maxLength || image.dataBase64.length % 4 !== 0 || !BASE64.test(image.dataBase64)) return null;
+  return `data:${image.mediaType};base64,${image.dataBase64}`;
+};
+
 /** Only bounded raster bytes for the exact item become an image; everything else stays a neutral tile. */
 export function deskThumbnailUrl(reply, { scopeRef, deliveryRef, itemRef }) {
-  const image = reply?.kind === 'desk-thumbnail' && reply.scopeRef === scopeRef
-    && reply.deliveryRef === deliveryRef && reply.itemRef === itemRef ? reply.image : null;
-  if (!image || !IMAGE_TYPES.has(image.mediaType) || typeof image.dataBase64 !== 'string'
-    || image.dataBase64.length > 400_000 || image.dataBase64.length % 4 !== 0 || !BASE64.test(image.dataBase64)) return null;
-  return `data:${image.mediaType};base64,${image.dataBase64}`;
+  return rasterUrl(reply?.kind === 'desk-thumbnail' && reply.scopeRef === scopeRef
+    && reply.deliveryRef === deliveryRef && reply.itemRef === itemRef ? reply.image : null, 400_000);
+}
+
+/** The delivering cat's avatar for this exact delivery, or null so the header keeps only its text. */
+export function deskAvatarUrl(reply, { scopeRef, deliveryRef }) {
+  return rasterUrl(reply?.kind === 'desk-avatar' && reply.scopeRef === scopeRef
+    && reply.deliveryRef === deliveryRef ? reply.image : null, 60_000);
 }
 
 const remember = (set, value) => {
@@ -89,7 +98,7 @@ export class DeskDeliveryController {
     this.clearTag();
     this.current = {
       epoch: ++this.epoch, deliveryRef: delivery.deliveryRef, mode: delivery.mode, from: delivery.from,
-      more: delivery.more, rows: new Map(),
+      more: delivery.more, rows: new Map(), avatar: null, avatarRequested: false,
     };
     this.totalMs = deskVisibleDuration(delivery);
     this.remainingMs = this.totalMs;
@@ -115,6 +124,10 @@ export class DeskDeliveryController {
       if (item.thumbnail && !previous?.item.thumbnail) void this.loadThumbnail(current, item.itemRef);
     }
     current.rows = rows;
+    if (delivery.from && !current.avatarRequested) {
+      current.avatarRequested = true;
+      void this.loadAvatar(current);
+    }
     if ([...rows.values()].every(row => SETTLED_ROWS.has(row.state))) this.finish();
   }
 
@@ -228,6 +241,19 @@ export class DeskDeliveryController {
     this.emit();
   }
 
+  async loadAvatar(current) {
+    const scopeRef = this.scopeRef;
+    let reply;
+    try {
+      reply = await this.client.readDeskAvatar(scopeRef, current.deliveryRef);
+    } catch {
+      return;
+    }
+    if (this.current !== current || !current.from) return;
+    current.avatar = deskAvatarUrl(reply, { scopeRef, deliveryRef: current.deliveryRef });
+    if (current.avatar) this.emit();
+  }
+
   setRow(current, itemRef, patch) {
     current.rows.set(itemRef, { ...current.rows.get(itemRef), ...patch });
   }
@@ -299,6 +325,7 @@ export class DeskDeliveryController {
       tag: this.tag,
       delivery: current && {
         deliveryRef: current.deliveryRef, mode: current.mode, from: current.from, more: current.more,
+        avatar: current.from ? current.avatar : null,
         rows: [...current.rows.values()].map(row => ({ ...row })),
       },
       retained: this.retained,

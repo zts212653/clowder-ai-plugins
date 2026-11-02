@@ -99,6 +99,11 @@ const invalidDeskStatus: CompanionDeskState = { scopeRef: 'desk-a', revision: 1,
 // @ts-expect-error an inactive desk cannot carry a delivery.
 const invalidOffDeskDelivery: CompanionDeskState = { scopeRef: 'desk-a', revision: 1, status: 'off', delivery: readyDesk.delivery };
 
+const deskAvatarRead: CompanionCommand = { kind: 'desk.avatar.read', scopeRef: 'desk-a', deliveryRef: 'delivery-a' };
+
+// @ts-expect-error the renderer never names whose avatar to read.
+const invalidDeskAvatarRead: CompanionCommand = { kind: 'desk.avatar.read', scopeRef: 'desk-a', deliveryRef: 'delivery-a', catId: 'codex61-sol' };
+
 // @ts-expect-error desk settlement actions are closed.
 const invalidDeskAction: CompanionCommand = { kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'accept' };
 
@@ -299,6 +304,8 @@ void [
   invalidDeskStatus,
   invalidOffDeskDelivery,
   invalidDeskAction,
+  deskAvatarRead,
+  invalidDeskAvatarRead,
   lifecycleCache,
   retainedUserData,
   invalidLifecycleUserData,

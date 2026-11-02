@@ -135,6 +135,26 @@ test('desk thumbnail reads return inline bytes for one opaque item and reject ot
     (error: unknown) => error instanceof CompanionRequestError && error.code === 'permission_required');
 });
 
+test('desk avatar reads name only the delivery and reject other reply kinds', async () => {
+  const calls: CompanionCommand[] = [];
+  let response: CompanionReply = {
+    kind: 'desk-avatar', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1',
+    image: { mediaType: 'image/png', dataBase64: 'AAAA', width: 128, height: 128 },
+  };
+  const client = createCompanionClient({ request: async command => { calls.push(command); return response; },
+    subscribe: () => () => {} });
+
+  const avatar = await client.readDeskAvatar('fixture-desk-a', 'delivery-1');
+
+  assert.deepEqual(calls, [{ kind: 'desk.avatar.read', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1' }]);
+  assert.equal(avatar.image?.width, 128);
+  response = {
+    kind: 'desk-thumbnail', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', itemRef: 'item-sheet', image: null,
+  };
+  await assert.rejects(client.readDeskAvatar('fixture-desk-a', 'delivery-1'),
+    (error: unknown) => error instanceof CompanionRequestError && error.code === 'unavailable');
+});
+
 test('presentation observation relays only the visible-text event, call fence, time and source reference', async () => {
   const calls: CompanionCommand[] = [];
   const client = createCompanionClient({ request: async command => {

@@ -666,6 +666,16 @@
         {
           "type": "object",
           "properties": {
+            "kind": { "const": "desk.avatar.read" },
+            "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+            "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" }
+          },
+          "required": ["kind", "scopeRef", "deliveryRef"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "kind": { "const": "companion.disable" }
           },
           "required": ["kind"],
@@ -1291,6 +1301,38 @@
         }
       },
       "required": ["kind", "scopeRef", "deliveryRef", "itemRef", "image"],
+      "additionalProperties": false
+    },
+    "CompanionDeskAvatar": {
+      "description": "The delivering cat's avatar for one delivery, read by delivery reference. The Host resolves the cat; the renderer never names a cat, path or URL.",
+      "type": "object",
+      "properties": {
+        "kind": { "const": "desk-avatar" },
+        "scopeRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "deliveryRef": { "$ref": "#/$defs/CompanionDeskRef" },
+        "image": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "mediaType": { "enum": ["image/png", "image/webp", "image/jpeg"] },
+                "dataBase64": {
+                  "type": "string",
+                  "minLength": 4,
+                  "maxLength": 60000,
+                  "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+                },
+                "width": { "type": "integer", "minimum": 1, "maximum": 256 },
+                "height": { "type": "integer", "minimum": 1, "maximum": 256 }
+              },
+              "required": ["mediaType", "dataBase64", "width", "height"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["kind", "scopeRef", "deliveryRef", "image"],
       "additionalProperties": false
     },
     "CompanionState": {
@@ -2084,6 +2126,9 @@
         },
         {
           "$ref": "#/$defs/CompanionDeskThumbnail"
+        },
+        {
+          "$ref": "#/$defs/CompanionDeskAvatar"
         },
         {
           "type": "object",

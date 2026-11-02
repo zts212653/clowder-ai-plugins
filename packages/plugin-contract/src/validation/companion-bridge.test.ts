@@ -851,3 +851,30 @@ test('desk thumbnails are read by opaque item reference and return bounded inlin
   ] as const) assert.equal(validateCompanionReply({ ...thumbnail, image: invalidImage }), false, reason);
   assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'desk', width: 344, height: 260 }), true);
 });
+
+test('desk avatars are read by delivery reference only and return a small bounded raster', () => {
+  const read = { kind: 'desk.avatar.read', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1' };
+  assert.equal(validateCompanionCommand(read), true);
+  for (const [invalid, reason] of [
+    [{ ...read, catId: 'codex61-sol' }, 'the renderer never chooses whose avatar to read'],
+    [{ ...read, itemRef: 'item-sheet' }, 'avatars belong to the delivery, not an item'],
+    [{ ...read, url: 'https://example.com/a.png' }, 'no URL'],
+    [{ kind: 'desk.avatar.read', scopeRef: 'fixture-desk-a' }, 'the delivery is required'],
+    [{ ...read, deliveryRef: 'delivery 1' }, 'refs are single opaque tokens'],
+  ] as const) assert.equal(validateCompanionCommand(invalid), false, reason);
+  const image = { mediaType: 'image/png', dataBase64: 'AAAA', width: 128, height: 128 };
+  const avatar = { kind: 'desk-avatar', scopeRef: 'fixture-desk-a', deliveryRef: 'delivery-1', image };
+  assert.equal(validateCompanionReply(avatar), true);
+  assert.equal(validateCompanionReply({ ...avatar, image: { ...image, mediaType: 'image/webp' } }), true);
+  assert.equal(validateCompanionReply({ ...avatar, image: null }), true, 'a missing avatar keeps only the name');
+  for (const [invalidImage, reason] of [
+    [{ ...image, mediaType: 'image/svg+xml' }, 'only raster images'],
+    [{ ...image, dataBase64: 'data:image/png;base64,AAAA' }, 'raw base64 only, never a URL'],
+    [{ ...image, dataBase64: 'AAAAA' }, 'base64 is padded to whole groups'],
+    [{ ...image, dataBase64: 'A'.repeat(60_004) }, 'avatars stay small'],
+    [{ ...image, width: 257 }, 'width is bounded'],
+    [{ ...image, height: 0 }, 'height is positive'],
+    [{ ...image, catId: 'codex61-sol' }, 'no cat identity in the image'],
+  ] as const) assert.equal(validateCompanionReply({ ...avatar, image: invalidImage }), false, reason);
+  assert.equal(validateCompanionReply({ ...avatar, itemRef: 'item-sheet' }), false);
+});

@@ -1379,6 +1379,10 @@ export type CompanionCommand = {
   readonly deliveryRef: CompanionDeskRef;
   readonly itemRef: CompanionDeskRef;
 } | {
+  readonly kind: 'desk.avatar.read';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
+} | {
   readonly kind: 'companion.disable';
 } | {
   readonly kind: 'conversation.read';
@@ -1593,6 +1597,17 @@ export type CompanionDeskThumbnail = {
   readonly itemRef: CompanionDeskRef;
   readonly image: null | {
     readonly mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+    readonly dataBase64: string;
+    readonly width: number;
+    readonly height: number;
+  };
+};
+export type CompanionDeskAvatar = {
+  readonly kind: 'desk-avatar';
+  readonly scopeRef: CompanionDeskRef;
+  readonly deliveryRef: CompanionDeskRef;
+  readonly image: null | {
+    readonly mediaType: 'image/png' | 'image/webp' | 'image/jpeg';
     readonly dataBase64: string;
     readonly width: number;
     readonly height: number;
@@ -1876,7 +1891,7 @@ export type CompanionConversationBodyV2 = {
 export type CompanionErrorCode = 'invalid_request' | 'permission_required' | 'unavailable' | 'session_required' | 'busy' | 'selection_changed' | 'carrier_unavailable' | 'cancelled' | 'unconfirmed';
 export type CompanionReply = {
   readonly kind: 'ok';
-} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | CompanionDeskSettlement | CompanionDeskThumbnail | {
+} | CompanionState | CompanionWorkOverview | CompanionDecisions | CompanionDecisionTrial | CompanionDeliveryReceipt | CompanionDeliveryReceiptV2 | CompanionConversationDraftV1 | CompanionSettings | CompanionSettingsUpdateReceipt | CompanionLifecycleReceipt | CompanionAppAssistSettlement | CompanionDeskSettlement | CompanionDeskThumbnail | CompanionDeskAvatar | {
   readonly kind: 'selection';
   readonly selectionId: CompanionSelectionId;
 } | CompanionConversationPageV2 | CompanionConversationBodyV2 | {

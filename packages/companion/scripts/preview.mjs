@@ -20,13 +20,13 @@ const page = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 export const DESK_SCENARIOS = ['single', 'bundle', 'saved'];
 
 /** Reads a local image only for visual review; the renderer itself never receives a path or URL. */
-export async function previewDeskThumbnail(path = process.env.COMPANION_PREVIEW_DESK_THUMBNAIL) {
+async function previewImage(path, bound, maxLength) {
   if (!path) return null;
   const mediaType = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' }[extname(path).toLowerCase()];
   const bytes = await readFile(path).catch(() => null);
   if (!mediaType || !bytes) return null;
   const dataBase64 = bytes.toString('base64');
-  if (dataBase64.length > 400_000) return null;
+  if (dataBase64.length > maxLength) return null;
   let width = 1024, height = 640;
   if (mediaType === 'image/png') { width = bytes.readUInt32BE(16); height = bytes.readUInt32BE(20); }
   for (let offset = 2; mediaType === 'image/jpeg' && offset + 9 < bytes.length; offset += 2 + bytes.readUInt16BE(offset + 2)) {
@@ -35,13 +35,15 @@ export async function previewDeskThumbnail(path = process.env.COMPANION_PREVIEW_
       height = bytes.readUInt16BE(offset + 5); width = bytes.readUInt16BE(offset + 7); break;
     }
   }
-  // A real Host scales thumbnails into the bridge bound; the preview only reports the scaled box.
-  const scale = Math.min(1, 1024 / Math.max(width, height));
+  // A real Host scales images into the bridge bound; the preview only reports the scaled box.
+  const scale = Math.min(1, bound / Math.max(width, height));
   return { mediaType, dataBase64, width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
+export const previewDeskThumbnail = (path = process.env.COMPANION_PREVIEW_DESK_THUMBNAIL) => previewImage(path, 1024, 400_000);
+export const previewDeskAvatar = (path = process.env.COMPANION_PREVIEW_DESK_AVATAR) => previewImage(path, 256, 60_000);
 
 export function fixture(skin, failure, pending = true, autoTranscript = true, appAssist = false,
-  desk = { scenario: null, more: 0, thumbnail: null }) {
+  desk = { scenario: null, more: 0, thumbnail: null, avatar: null }) {
   return `<script>
   const listeners = new Set(); const messages = [{id:'preview-history',role:'assistant',text:'这是已保存的聊天。语音进行中也可以继续查看。',name:'砚砚',inputMessageIds:[],responsePhase:null,body:{revision:'preview-history-v1',complete:true,continuation:null},companionIdentity:{
     v:1,name:'猫猫球',partner:{catId:'fable-5',displayName:'宪宪',skin:'xianxian-codex'},
@@ -79,7 +81,7 @@ export function fixture(skin, failure, pending = true, autoTranscript = true, ap
   window.__getAppAssistState=()=>structuredClone(appAssistState);
   window.__setAppAssistOffer=value=>{appAssistState={...appAssistState,revision:appAssistState.revision+1,status:'ready',offer:value};};
   window.__setAppAssistState=value=>{appAssistState=structuredClone(value);};
-  const deskScenario=${JSON.stringify(desk.scenario ?? null)},deskThumbnail=${JSON.stringify(desk.thumbnail ?? null)};
+  const deskScenario=${JSON.stringify(desk.scenario ?? null)},deskThumbnail=${JSON.stringify(desk.thumbnail ?? null)},deskAvatar=${JSON.stringify(desk.avatar ?? null)};
   const deskWatcher={catId:'codex61-sol',displayName:'小太阳',role:'watcher'};
   const deskSheet={itemRef:'preview-sheet',kind:'work',title:'六猫岛 · 单采肖像参考',source:{conversationTitle:'「视频」自媒体视频运营'},action:'open',thumbnail:true};
   const deskSingle={deliveryRef:'preview-delivery-single',mode:'single',from:deskWatcher,items:[{...deskSheet,sentence:'鲸鲸那三格，照他的头像画就行。'}],more:0};
@@ -142,6 +144,7 @@ export function fixture(skin, failure, pending = true, autoTranscript = true, ap
         return {kind:'desk-settlement',scopeRef:deskState.scopeRef,revision:deskState.revision,deliveryRef:command.deliveryRef,action:command.action,
           ...(command.itemRef===undefined?{}:{itemRef:command.itemRef}),outcome,...(command.action==='timeout'?{saved:outcome==='settled'&&window.__deskSaved}:{})};
       }
+      case 'desk.avatar.read':return {kind:'desk-avatar',scopeRef:command.scopeRef,deliveryRef:command.deliveryRef,image:command.deliveryRef===deskState.delivery?.deliveryRef&&deskState.delivery.from?deskAvatar:null};
       case 'desk.thumbnail.read':return {kind:'desk-thumbnail',scopeRef:command.scopeRef,deliveryRef:command.deliveryRef,itemRef:command.itemRef,image:command.itemRef==='preview-sheet'?deskThumbnail:null};
       case 'companion.disable':note('正式 Host 会结束媒体并停用当前安装实例；预览保持打开。');return {kind:'companion-lifecycle',action:'disable',outcome:'disabled'};
       case 'conversation.read':return command.v===2
@@ -232,7 +235,7 @@ export function createPreviewServer() {
         if (!skins.includes(skin)) { res.writeHead(400); res.end('unknown skin'); return; }
         const deskScenario = DESK_SCENARIOS.includes(url.searchParams.get('desk')) ? url.searchParams.get('desk') : null;
         const desk = { scenario: deskScenario, more: Number.parseInt(url.searchParams.get('deskMore') ?? '0', 10) || 0,
-          thumbnail: deskScenario ? await previewDeskThumbnail() : null };
+          thumbnail: deskScenario ? await previewDeskThumbnail() : null, avatar: deskScenario ? await previewDeskAvatar() : null };
         content = content.toString().replace('<script type="module"', `${fixture(skin, url.searchParams.get('scenario') === 'failure', url.searchParams.get('pending') !== '0', url.searchParams.get('autoTranscript') !== '0', url.searchParams.get('appAssist') === '1', desk)}<script type="module"`);
       }
       res.writeHead(200, { 'Content-Type': previewMime[extname(file)], 'Cache-Control': 'no-store' }); res.end(content);

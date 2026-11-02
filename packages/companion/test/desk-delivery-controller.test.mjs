@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  DESK_BUNDLE_MIN_MS, DESK_SAVED_TAG_MS, DeskDeliveryController, deskHeader, deskThumbnailUrl, deskVisibleDuration,
+  DESK_BUNDLE_MIN_MS, DESK_SAVED_TAG_MS, DeskDeliveryController, deskAvatarUrl, deskHeader, deskThumbnailUrl,
+  deskVisibleDuration,
 } from '../src/desk-delivery-controller.mjs';
 import { replyVisibleDuration } from '../src/reply-letter-controller.mjs';
 
@@ -42,7 +43,7 @@ function clock() {
   };
 }
 
-function fixture({ settle, thumbnail } = {}) {
+function fixture({ settle, thumbnail, avatar } = {}) {
   const time = clock();
   const calls = [];
   const renders = [];
@@ -53,6 +54,10 @@ function fixture({ settle, thumbnail } = {}) {
       return { kind: 'desk-settlement', scopeRef, revision: 50, deliveryRef, action,
         ...(itemRef === undefined ? {} : { itemRef }), outcome: 'settled', ...(action === 'timeout' ? { saved: true } : {}) };
     },
+    readDeskAvatar: async (scopeRef, deliveryRef) => {
+      calls.push(['avatar', deliveryRef]);
+      return avatar ? avatar({ scopeRef, deliveryRef }) : { kind: 'desk-avatar', scopeRef, deliveryRef, image: null };
+    },
     readDeskThumbnail: async (scopeRef, deliveryRef, itemRef) => {
       calls.push(['thumbnail', deliveryRef, itemRef]);
       return thumbnail ? thumbnail({ scopeRef, deliveryRef, itemRef })
@@ -62,7 +67,7 @@ function fixture({ settle, thumbnail } = {}) {
   const controller = new DeskDeliveryController({ client, render: value => renders.push(value), now: time.now,
     schedule: time.schedule, cancel: time.cancel });
   return { controller, calls, renders, time, last: () => renders.at(-1),
-    settled: () => calls.filter(call => call[0] !== 'thumbnail') };
+    settled: () => calls.filter(call => call[0] !== 'thumbnail' && call[0] !== 'avatar') };
 }
 
 test('visible time reuses the reply-letter formula; bundles hold at least 12 seconds and at most 30', () => {
@@ -295,4 +300,42 @@ test('a newer delivery replaces the old one; late replies for the old delivery c
   f.controller.close();
   f.controller.consume(state(3, single('delivery-3')));
   assert.equal(f.time.pending(), 0, 'closing the renderer releases every timer');
+});
+
+test('the delivering cat\'s avatar is read once per delivery by reference and never for several cats', async () => {
+  const image = { mediaType: 'image/png', dataBase64: 'AAAA', width: 128, height: 128 };
+  const f = fixture({ avatar: ({ scopeRef, deliveryRef }) => ({ kind: 'desk-avatar', scopeRef, deliveryRef, image }) });
+  f.controller.consume(state(1, single()));
+  await flush();
+  assert.equal(f.last().delivery.avatar, 'data:image/png;base64,AAAA');
+  f.controller.consume(state(2, single()));
+  f.controller.consume(state(3, single()));
+  await flush();
+  f.controller.consume(state(4, bundle()));
+  await flush();
+  assert.deepEqual(f.calls.filter(call => call[0] === 'avatar'), [['avatar', 'delivery-1']],
+    'refreshes of the same delivery do not reread, and from:null never asks for an avatar');
+  assert.equal(f.last().delivery.avatar, null);
+
+  const expected = { scopeRef: 's', deliveryRef: 'd' };
+  const reply = value => ({ kind: 'desk-avatar', ...expected, image: { ...image, ...value } });
+  assert.equal(deskAvatarUrl(reply({}), expected), 'data:image/png;base64,AAAA');
+  assert.equal(deskAvatarUrl(reply({ mediaType: 'image/svg+xml' }), expected), null);
+  assert.equal(deskAvatarUrl(reply({ dataBase64: 'A'.repeat(60_004) }), expected), null, 'avatars stay small');
+  assert.equal(deskAvatarUrl({ ...reply({}), deliveryRef: 'other' }, expected), null);
+  assert.equal(deskAvatarUrl({ ...reply({}), kind: 'desk-thumbnail' }, expected), null);
+});
+
+test('a missing, failed or stale avatar keeps the header as text only', async () => {
+  for (const avatar of [
+    ({ scopeRef, deliveryRef }) => ({ kind: 'desk-avatar', scopeRef, deliveryRef, image: null }),
+    () => { throw new Error('lost'); },
+    ({ scopeRef }) => ({ kind: 'desk-avatar', scopeRef, deliveryRef: 'delivery-old',
+      image: { mediaType: 'image/png', dataBase64: 'AAAA', width: 1, height: 1 } }),
+  ]) {
+    const f = fixture({ avatar });
+    f.controller.consume(state(1, single()));
+    await flush();
+    assert.equal(f.last().delivery.avatar, null);
+  }
 });

@@ -39,6 +39,8 @@ before(async () => {
   fixtureDirectory = await mkdtemp(join(tmpdir(), 'companion-desk-browser-'));
   process.env.COMPANION_PREVIEW_DESK_THUMBNAIL = join(fixtureDirectory, 'cover.png');
   await writeFile(process.env.COMPANION_PREVIEW_DESK_THUMBNAIL, solidPng(220, 142));
+  process.env.COMPANION_PREVIEW_DESK_AVATAR = join(fixtureDirectory, 'avatar.png');
+  await writeFile(process.env.COMPANION_PREVIEW_DESK_AVATAR, solidPng(64, 64));
   server = createPreviewServer();
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -54,6 +56,7 @@ after(async () => {
   await browser?.close();
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   delete process.env.COMPANION_PREVIEW_DESK_THUMBNAIL;
+  delete process.env.COMPANION_PREVIEW_DESK_AVATAR;
   await rm(fixtureDirectory, { recursive: true, force: true });
 });
 
@@ -169,6 +172,22 @@ test('a watcher delivery keeps the sketch geometry, pauses its ring on hover and
   try {
     await page.waitForFunction(deskPlaced);
     await page.waitForFunction(() => !document.getElementById('desk-thumb').hidden);
+    await page.waitForFunction(() => !document.getElementById('desk-avatar').hidden);
+    const header = await page.evaluate(() => {
+      const rect = id => { const box = document.getElementById(id).getBoundingClientRect(); return [box.width, box.height]; };
+      const name = getComputedStyle(document.getElementById('desk-name'));
+      return {
+        avatar: rect('desk-avatar-image'), eye: rect('desk-avatar-eye'),
+        radius: getComputedStyle(document.getElementById('desk-avatar-image')).borderRadius,
+        source: document.getElementById('desk-avatar-image').getAttribute('src').slice(0, 22),
+        name: [name.fontSize, name.fontWeight],
+        order: [...document.querySelector('.desk-who').children].map(node => node.id),
+      };
+    });
+    assert.deepEqual(header, {
+      avatar: [20, 20], eye: [12, 12], radius: '50%', source: 'data:image/png;base64,', name: ['13px', '500'],
+      order: ['desk-avatar', 'desk-name'],
+    }, 'the watcher header shows its avatar with the eye badge before a 13px/500 name');
     const geometry = await page.evaluate(() => ({
       desk: document.getElementById('desk').getBoundingClientRect().width,
       thumb: document.getElementById('desk-thumb').getBoundingClientRect().width,
@@ -225,6 +244,8 @@ test('a bundle row adds once, reports a failed add inline, and the bundle closes
       { title: '添加 7 条视频批注', source: '守望猫', button: '添加', disabled: false, note: '' },
     ]);
     assert.equal(await page.locator('#desk-more').textContent(), '还有 2 件在 Cat Café');
+    await page.waitForFunction(() => !document.getElementById('desk-avatar').hidden);
+    assert.equal(await page.locator('#desk-avatar-eye').isVisible(), true, 'the bundle header carries the same watcher mark');
     assert.deepEqual((await visibleClipping(page, 'desk')).clippedButtons, []);
     await page.waitForFunction(() => document.querySelector('#desk-list .desk-row-thumb img')?.complete === true);
 

@@ -182,6 +182,10 @@ function fixture() {
       return { kind: 'desk-settlement', scopeRef, revision: 3, deliveryRef, action,
         ...(itemRef === undefined ? {} : { itemRef }), outcome: 'settled' };
     },
+    readDeskAvatar: async (scopeRef, deliveryRef) => {
+      calls.push(['desk-avatar', scopeRef, deliveryRef]);
+      return { kind: 'desk-avatar', scopeRef, deliveryRef, image: null };
+    },
     readDeskThumbnail: async (scopeRef, deliveryRef, itemRef) => {
       calls.push(['desk-thumbnail', scopeRef, deliveryRef, itemRef]);
       return { kind: 'desk-thumbnail', scopeRef, deliveryRef, itemRef, image: null };
@@ -289,10 +293,12 @@ test('a desk delivery waits behind an app-assist prompt, then shows once and dis
   assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'desk-settle'), false,
     'a delivery hidden behind another panel has not been shown');
   assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'desk-thumbnail' && call[3] === 'item-sheet'));
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'desk-avatar' && call[2] === 'delivery-1'));
 
   await f.nodes.get('app-assist-dismiss').onclick(); await flush(); await flush();
   assert.equal(f.controls.panel, 'desk');
   assert.equal(f.nodes.get('desk-name').textContent, '守望猫 · 小太阳');
+  assert.equal(f.nodes.get('desk-avatar').hidden, true, 'no avatar bytes means the name stands alone');
   assert.equal(f.nodes.get('desk-text').textContent, '鲸鲸那三格，照他的头像画就行。');
   assert.equal(f.nodes.get('desk-title').textContent, '六猫岛 · 单采肖像参考', 'without a picture the title says what 打开 opens');
   assert.equal(f.nodes.get('desk-open').textContent, '打开');

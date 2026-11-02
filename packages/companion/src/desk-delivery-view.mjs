@@ -70,6 +70,11 @@ export class DeskDeliveryView {
     if (!delivery) return;
     root.dataset.mode = delivery.mode;
     setText(this.$('desk-name'), deskHeader(delivery.from, this.displayName()));
+    const avatar = this.$('desk-avatar');
+    avatar.hidden = !delivery.avatar;
+    const avatarImage = this.$('desk-avatar-image');
+    if (delivery.avatar && avatarImage.getAttribute('src') !== delivery.avatar) avatarImage.setAttribute('src', delivery.avatar);
+    this.$('desk-avatar-eye').hidden = delivery.from?.role !== 'watcher';
     this.$('desk-retain').hidden = value.retained;
     this.$('desk-close').hidden = !value.retained;
     const rows = delivery.rows.filter(row => row.state !== 'removed');

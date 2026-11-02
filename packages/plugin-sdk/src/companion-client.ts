@@ -165,6 +165,9 @@ export function createCompanionClient(bridge: CompanionSurfaceBridge) {
       : { kind: 'desk.settle', scopeRef, deliveryRef, action, itemRef }, 'desk-settlement'),
     readDeskThumbnail: (scopeRef: string, deliveryRef: string, itemRef: string) =>
       invoke({ kind: 'desk.thumbnail.read', scopeRef, deliveryRef, itemRef }, 'desk-thumbnail'),
+    /** The Host resolves whose avatar belongs to the delivery; the renderer names no cat. */
+    readDeskAvatar: (scopeRef: string, deliveryRef: string) =>
+      invoke({ kind: 'desk.avatar.read', scopeRef, deliveryRef }, 'desk-avatar'),
     disableCompanion: () => invoke({ kind: 'companion.disable' }, 'companion-lifecycle'),
     readConversation,
     readConversationPage,

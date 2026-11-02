@@ -37,6 +37,8 @@ test('the installable package declares one companion body and contains a closed 
     'application assistance remains a labelled candidate that returns to explicit call controls');
   assert.match(markup, /<section id="desk"[^>]*class="floating desk-delivery"[^>]*hidden>[\s\S]*?id="desk-retain" class="reply-ring"[\s\S]*?id="desk-dismiss"[^>]*>忽略<\/button><button id="desk-open"[^>]*>打开<\/button>[\s\S]*?id="desk-tag"[^>]*>已保存到对话<\/p>[\s\S]*?<\/section>/u,
     'desk deliveries reuse the reply-letter ring and keep 忽略/打开 plus the saved name tag in their own panel');
+  assert.match(markup, /<span class="desk-who"><span id="desk-avatar"[^>]*hidden><img id="desk-avatar-image" alt=""><span id="desk-avatar-eye"[^>]*hidden><svg viewBox="0 0 24 24"[^>]*stroke="#3F7D4E"/u,
+    'the header avatar and watcher eye are inert until the Host supplies avatar bytes');
   assert.doesNotMatch(markup.slice(markup.indexOf('<section id="desk"'), markup.indexOf('<section id="call-bubble"')), /<img[^>]*\bsrc=|<a\b|href="(?!#)/u,
     'the desk panel ships no image source, link or navigation target; the Host supplies only text and inline thumbnail bytes');
   assert.doesNotMatch(markup, /开始通话并共享/u,

@@ -37,7 +37,7 @@
       "bridgeVersion": "1.7.0",
       "surface": {
         "entrypoint": "renderer/index.html",
-        "integrity": "sha256-iwc00EgfFeA8FFwr2hfvciQiwNIh0HzuiW6j/2ylyYg="
+        "integrity": "sha256-R425ilNu5hQtVtI0oFF8s+WBb+bWbDIXfUDn9y/Ve2c="
       },
       "presentation": {
         "width": 300,

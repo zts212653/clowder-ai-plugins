@@ -5,7 +5,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { validateCompanionCommand, validateCompanionReply } from '@clowder-ai/plugin-contract';
-import { DESK_SCENARIOS, fixture, previewDeskThumbnail, previewMime } from '../scripts/preview.mjs';
+import { DESK_SCENARIOS, fixture, previewDeskAvatar, previewDeskThumbnail, previewMime } from '../scripts/preview.mjs';
 
 test('the actual renderer preview emits current Host state and conversation replies', async () => {
   assert.equal(previewMime['.webm'], 'video/webm', 'living clips must not turn into preview-only 404 fallbacks');
@@ -66,9 +66,10 @@ test('the visual fixture can expose idle motion without inventing a pending deci
 
 test('desk preview scenarios speak the exact bridge for state, settlement and thumbnail replies', async () => {
   const thumbnail = { mediaType: 'image/png', dataBase64: 'AAAA', width: 1024, height: 659 };
+  const avatar = { mediaType: 'image/png', dataBase64: 'BBBB', width: 128, height: 128 };
   for (const scenario of DESK_SCENARIOS) {
     const window = { addEventListener() {}, setTimeout() {} };
-    const script = fixture('xianxian-codex', false, true, true, false, { scenario, more: 2, thumbnail })
+    const script = fixture('xianxian-codex', false, true, true, false, { scenario, more: 2, thumbnail, avatar })
       .replace(/^<script>/u, '').replace(/<\/script>$/u, '');
     runInNewContext(script, { window, parent: { postMessage() {} }, location: { origin: 'http://127.0.0.1:3891' }, setTimeout() {} });
     const request = command => {
@@ -92,6 +93,9 @@ test('desk preview scenarios speak the exact bridge for state, settlement and th
     const image = await request({ kind: 'desk.thumbnail.read', scopeRef, deliveryRef: delivery.deliveryRef, itemRef: first.itemRef });
     assert.equal(validateCompanionReply(image), true);
     assert.deepEqual({ ...image.image }, thumbnail);
+    const face = await request({ kind: 'desk.avatar.read', scopeRef, deliveryRef: delivery.deliveryRef });
+    assert.equal(validateCompanionReply(face), true);
+    assert.deepEqual({ ...face.image }, avatar);
     const replies = [
       await request({ kind: 'desk.settle', scopeRef, deliveryRef: delivery.deliveryRef, action: 'shown' }),
       await request({ kind: 'desk.settle', scopeRef, deliveryRef: delivery.deliveryRef, action: first.action, itemRef: first.itemRef }),
@@ -117,6 +121,8 @@ test('the preview reads a local thumbnail into the bridge bound without exposing
     assert.deepEqual({ ...thumbnail, dataBase64: undefined }, { mediaType: 'image/png', dataBase64: undefined, width: 1024, height: 659 });
     assert.equal(Buffer.from(thumbnail.dataBase64, 'base64').equals(png), true);
     assert.equal(await previewDeskThumbnail(join(directory, 'missing.png')), null);
+    const face = await previewDeskAvatar(join(directory, 'cover.png'));
+    assert.deepEqual([face.width, face.height], [256, 165], 'avatars are reported inside the 256px bound');
     assert.equal(await previewDeskThumbnail(undefined), null);
   } finally {
     await rm(directory, { recursive: true, force: true });
