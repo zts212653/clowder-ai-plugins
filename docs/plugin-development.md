@@ -104,6 +104,10 @@ stateDiagram-v2
 
 模块 Host 的可选 `host.memberSessions`（SDK `0.3.0-beta.2-candidate.5` 候选类型）承接受限成员执行；旧 Host 或缺少持久化支持时可以不提供，插件应明确暂停，不能退回普通工作线程或只读工具模式。`create(input)` 由 Host 创建独立线程并准备授权；`prepare(input)` 仅续接本实例已创建的受限线程；两者与 `revoke(sessionId)` 都只接受 Host 认证的当前 owner 操作上下文，正文没有批准字段。输入只含真实成员、已声明 MCP/identity、现有账号引用及已批准记忆引用，不含 key、登录态、任意工作目录或模型替身。返回的 summary 记录真实 client/model/carrier/authType/accountRevision、授权 generation、已消费语义游标，以及可选 Host activationId。
 
+模块 Host 的可选 `host.ownerChat` 从 `0.3.0-beta.2-candidate.7` 声明当前原生调用的主人 Chat 来源。`await host.ownerChat.capture()` 不接受来源参数，返回只读 `origin:{messageId,threadId,helperCatId}`、异步 `assertCurrent()` 和同步 `assertWriteCurrent()`；不返回正文、token 或通用授权凭据。Host 核验原 canonical 主人消息、可见性、当前 invocation/安装及工具策略，受限玩家、只读来源、adopted wait、撤回消息和失效调用会被拒绝。旧 Host 未提供此端口时应明确报告不可用，不借浏览器 owner-operation context、userId 或正文自称批准替代。
+
+这个 handle 只在同一进程、同一原生 action 生命周期内有效：异步工作后重查 `assertCurrent()`，实际同步提交前立即调用 `assertWriteCurrent()`，两者之间不跨新的 await。原 action 返回、撤权或停用后必须拒绝写入；不要持久化/序列化/跨调用复用 handle。来源坐标可以作为已有业务记录的审计事实保存，但坐标本身不授予权限。该端口不替插件判断用户具体想做什么、不选业务目标、不提供物理动作或创建第二套权限账本。使用前核对实际 registry 发布版本与 Host 支持；候选源码合入不等于已发布或已启用。
+
 `execute({sessionId,generation,executionId,semanticCursor,content})` 只消费既有授权。原 executionId 与完整输入绑定，未知结果沿原 ID 查询／续接；成功只能来自同一原消息的 canonical 子执行、响应与 provider teardown，不由插件正文或 CLI session ID 宣布。`get(sessionId)` 读取授权摘要；`getExecution({sessionId,generation,executionId})` 读取原有持久回执，也可在撤销／续接后读历史 generation，不发送消息、不唤醒、不恢复执行权限。安装停止、激活版本变化、账号或记忆修订变化会阻止旧行动；新的 owner 操作可以续接同一线程并升授权代次。游戏角色代次和业务动作由插件自己的权威服务负责，不由这个通用 Host 端口替代。该接口只属于 module Host，未声明 stdio、settings-only Host 或 feature-context 支持，也不意味着任一 provider 的受限载体已经可用。
 
 实现参考：[SDK 类型](../packages/plugin-sdk/src/module-host.ts)、[feature 生命周期](../packages/plugin-sdk/src/feature-context.ts)、[消息／控制 wire registry](../packages/plugin-contract/src/wire/index.ts)、[模块 action client](../packages/plugin-sdk/src/module-action-client.ts)。wire registry 说明载体消息，不替代以上作者 API。当前 stdio 的 Host 发起请求只有 `host.lifecycle.ping` 和 `host.messaging.deliver`；生命周期 hooks 由 module 载体直接调用，不是额外 stdio 方法。`streams.read` 在 stdio 内部分片传输，作者仍读取 Uint8Array 迭代器。

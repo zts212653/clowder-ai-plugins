@@ -197,6 +197,7 @@ export type { PluginRuntimeInfo, PluginRuntimeInfoHost, PluginUiPanel } from './
 
 export * from './members.js';
 export type * from './member-sessions.js';
+export type * from './owner-chat.js';
 
 
 export { createStreamsClient, type PluginStreams, type PluginStreamReadOptions } from './streams.js';
