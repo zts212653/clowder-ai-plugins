@@ -11,7 +11,7 @@ created: 2026-11-02
 
 The current **draft** package contains the invitation Client from exact Cat Café source
 `51fc3e6bd6741f9073280ee14ff106da1d94e843`. Its baseline `f2bb508c3fb0b6a8679931e025d3b1a0180c618f`
-was independently reviewed; the installation-source guidance awaits incremental review.
+and the installation-source guidance were independently reviewed.
 The design is not yet accepted and the source has not been merged. The retained asset
 digest is `ceb4eed6eb5855c5a31854fa2ea33ab1ced5d00eccf8bd09ec68aa99bf7cdb6f`.
 After the Client is accepted and merged, retain it again from the final merged source and
