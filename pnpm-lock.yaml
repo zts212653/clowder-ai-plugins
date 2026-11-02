@@ -21,7 +21,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.2-candidate.0
-        version: link:../plugin-contract
+        version: 0.3.2-candidate.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.2-candidate.1
         version: 0.3.0-beta.2-candidate.1
@@ -54,11 +54,11 @@ importers:
   packages/companion:
     devDependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: 0.3.3-candidate.0
+        version: link:../plugin-contract
       '@clowder-ai/plugin-sdk':
-        specifier: 0.3.0-beta.1
-        version: 0.3.0-beta.1
+        specifier: 0.3.0-beta.2-candidate.9
+        version: link:../plugin-sdk
       playwright:
         specifier: 1.61.1
         version: 1.61.1
@@ -386,7 +386,7 @@ importers:
     dependencies:
       '@clowder-ai/plugin-contract':
         specifier: 0.3.2-candidate.0
-        version: link:../plugin-contract
+        version: 0.3.2-candidate.0
       '@clowder-ai/plugin-sdk':
         specifier: 0.3.0-beta.2-candidate.1
         version: 0.3.0-beta.2-candidate.1
@@ -495,7 +495,7 @@ importers:
   packages/plugin-sdk:
     dependencies:
       '@clowder-ai/plugin-contract':
-        specifier: 0.3.2-candidate.0
+        specifier: 0.3.3-candidate.0
         version: link:../plugin-contract
     devDependencies:
       '@types/node':

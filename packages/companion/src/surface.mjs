@@ -25,6 +25,8 @@ import { CallControlsPresentation } from './call-controls-presentation.mjs';
 import { CallDuration } from './call-duration.mjs';
 import { AppAssistController } from './app-assist-controller.mjs';
 import { bindAppAssistCountdown } from './app-assist-countdown.mjs';
+import { DeskDeliveryController } from './desk-delivery-controller.mjs';
+import { DeskDeliveryView } from './desk-delivery-view.mjs';
 const $ = id => document.getElementById(id);
 const label = (id, text) => { $(id).querySelector('.label').textContent = text; };
 const status = text => {
@@ -55,11 +57,12 @@ const nativeTravel = new NativeWindowTravel({
   changed: value => motion.syncTravel(value),
 });
 let sharing = false, pendingScreen = false, transcriptLoading = false, previousPhase = 'idle';
-let appAssistOffer = null;
+let appAssistOffer = null, deskPresentation = 'none';
 let didMove = false, settingsView, settingsValues, decisionPanel, workView, callControlsPresentation;
 let previousControlPanel = 'none';
 // F229 stays quiet: a history ID change has no provenance for proactive text.
-const ambientPanel = active => active ? 'actions' : appAssistOffer ? 'app-assist' : 'none';
+// A desk delivery waits behind a call or an app-assist prompt; its countdown runs only while visible.
+const ambientPanel = active => active ? 'actions' : appAssistOffer ? 'app-assist' : deskPresentation !== 'none' ? 'desk' : 'none';
 const setTexts = (ids, text) => { for (const id of ids) $(id).textContent = text; };
 const setHidden = (ids, hidden) => { for (const id of ids) $(id).hidden = hidden; };
 const renderAppAssistCountdown = bindAppAssistCountdown($('app-assist-countdown'));
@@ -91,6 +94,7 @@ if (!window.clowderCompanion) {
     },
     changed: panel => {
       callControlsPresentation?.setPanel(panel);
+      desk.setVisible(panel === 'desk');
       visibleText.retry();
       if (previousControlPanel === 'chat' && panel !== 'chat') conversationSurface.closeHistory();
       if (panel === 'chat' && conversationSurface.controller.mode === 'idle') conversationSurface.openHistory();
@@ -155,6 +159,20 @@ if (!window.clowderCompanion) {
       void controls.show('menu');
     },
   });
+  const desk = new DeskDeliveryController({
+    client,
+    render: value => {
+      deskView.render(value);
+      if (value.presentation === deskPresentation) return;
+      deskPresentation = value.presentation;
+      void controls.setAmbient(ambientPanel(previousPhase !== 'idle'));
+    },
+  });
+  const deskView = new DeskDeliveryView({
+    document, controller: desk,
+    displayName: () => conversation.identity?.displayName ?? '猫猫',
+    reducedMotion: () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true,
+  });
   const screen = new ScreenShare({
     screenRequest: () => client.screenPick(), screenStart: (selectionId, name) => client.screenOpen(selectionId, name),
     screenFrame: (selectionId, frame) => client.screenFrame(selectionId, {
@@ -216,6 +234,7 @@ if (!window.clowderCompanion) {
       callDuration.set(value.connectedAt);
       callControlsPresentation.setActive(active);
       if (value.identity?.appAssist) appAssist.consume(value.identity.appAssist);
+      if (value.identity?.desk) desk.consume(value.identity.desk);
       void controls.setAmbient(ambientPanel(active));
       $('begin').hidden = active; $('begin').disabled = !value.identity;
       $('listen').hidden = active || !canReceiveOnly; $('listen').disabled = !value.identity;
@@ -368,6 +387,6 @@ if (!window.clowderCompanion) {
   void conversation.refresh(); conversationSurface.start(); void decisionPanel.read(); void settingsView.controller.load(); void controls.show('none');
   window.addEventListener('beforeunload', () => {
     clearInterval(statusMonitor); clearInterval(transcriptMonitor); clearInterval(decisionMonitor); clearInterval(workMonitor); conversationSurface.close(); callControlsPresentation.close(); callDuration.close();
-    unsubscribe(); appAssist.close(); visibleText.close(); nativeTravel.close(); motion.close(); void conversation.end();
+    unsubscribe(); appAssist.close(); desk.close(); visibleText.close(); nativeTravel.close(); motion.close(); void conversation.end();
   });
 }

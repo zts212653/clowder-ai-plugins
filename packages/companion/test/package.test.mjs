@@ -20,7 +20,7 @@ test('the installable package declares one companion body and contains a closed 
   assert.ok(pkg.files.includes('plugin.yaml'), 'the catalog manifest must reach the published archive');
   assert.equal(validateManifest(manifest).valid, true);
   assert.deepEqual(manifest.runtime, { transport: 'builtin' });
-  assert.equal(manifest.contributions[0].bridgeVersion, '1.6.0');
+  assert.equal(manifest.contributions[0].bridgeVersion, '1.7.0');
   const html = await readFile(new URL('renderer/index.html', root));
   const markup = html.toString();
   assert.match(html.toString(), /id="listen"[^>]*data-action="listen"[^>]*hidden/u,
@@ -35,6 +35,12 @@ test('the installable package declares one companion body and contains a closed 
     'call speech stays in its own passive surface');
   assert.match(markup, /<section id="app-assist"[^>]*data-candidate="true"[^>]*>[\s\S]*?id="app-assist-start"[^>]*>打开通话控制<\/button>/u,
     'application assistance remains a labelled candidate that returns to explicit call controls');
+  assert.match(markup, /<section id="desk"[^>]*class="floating desk-delivery"[^>]*hidden>[\s\S]*?id="desk-retain" class="reply-ring"[\s\S]*?id="desk-dismiss"[^>]*>忽略<\/button><button id="desk-open"[^>]*>打开<\/button>[\s\S]*?id="desk-tag"[^>]*>已保存到对话<\/p>[\s\S]*?<\/section>/u,
+    'desk deliveries reuse the reply-letter ring and keep 忽略/打开 plus the saved name tag in their own panel');
+  assert.match(markup, /<span class="desk-who"><span id="desk-avatar"[^>]*hidden><img id="desk-avatar-image" alt=""><span id="desk-avatar-eye"[^>]*hidden><svg viewBox="0 0 24 24"[^>]*stroke="#3F7D4E"/u,
+    'the header avatar and watcher eye are inert until the Host supplies avatar bytes');
+  assert.doesNotMatch(markup.slice(markup.indexOf('<section id="desk"'), markup.indexOf('<section id="call-bubble"')), /<img[^>]*\bsrc=|<a\b|href="(?!#)/u,
+    'the desk panel ships no image source, link or navigation target; the Host supplies only text and inline thumbnail bytes');
   assert.doesNotMatch(markup, /开始通话并共享/u,
     'the package must not claim that application-assistance settlement grants media authority');
   const callBarMarkup = markup.slice(markup.indexOf('<section id="actions"'), markup.indexOf('</section>', markup.indexOf('<section id="actions"')));

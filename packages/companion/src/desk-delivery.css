@@ -1,0 +1,40 @@
+/* F335 desk deliveries: the reply-letter bubble (.floating, .reply-head, .reply-ring)
+ * plus only the watcher sketch's additions. Sizes and colours follow the sketch. */
+/* The sketch draws its 1px edge as an inset shadow; .floating uses a real border, so padding is 1px less. */
+#desk { width: 344px; padding: 9px 11px 11px; overflow: hidden; }
+/* The sketch renders with the system face first and grayscale smoothing; without both, 13px/500 reads heavier. */
+#desk, #desk button { font-family: -apple-system, Inter, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+#desk[data-presentation="tag"] { width: max-content; min-width: 120px; display: flex; justify-content: center; border: 0; background: transparent; box-shadow: none; padding: 0; overflow: visible; }
+.desk-bubble:not([hidden]) { display: flex; flex-direction: column; gap: 6px; }
+.desk-head { min-height: 20px; }
+.desk-who { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; min-height: 20px; color: var(--desktop-body); font-size: 13px; }
+.desk-avatar { position: relative; width: 20px; height: 20px; flex: none; }
+.desk-avatar img { display: block; width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+.desk-avatar-eye:not([hidden]) { position: absolute; right: -3px; bottom: -3px; width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--desktop-paper); box-shadow: 0 0 0 1.5px var(--desktop-paper); }
+.desk-avatar-eye svg { width: 10px; height: 10px; }
+.desk-who b { min-width: 0; overflow: hidden; color: var(--desktop-ink); font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+#desk .reply-ring, #desk .reply-close { margin: -2px -4px 0 0; }
+.desk-text { margin: 0; color: var(--desktop-ink); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.desk-title { margin: 0; color: var(--desktop-ink); font-size: 13px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.desk-thumb { display: block; width: 100%; margin-top: 2px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--desktop-line); }
+.desk-thumb img { display: block; width: 100%; border-radius: 8px; }
+.desk-list:not([hidden]) { display: flex; flex-direction: column; margin-top: 2px; }
+.desk-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--desktop-line); }
+.desk-row:first-child { border-top: 0; padding-top: 4px; }
+.desk-row-thumb { width: 56px; height: 36px; flex: none; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px; background: var(--desktop-rail); box-shadow: inset 0 0 0 1px var(--desktop-line); color: var(--desktop-muted); }
+.desk-row-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.desk-row-thumb .icon { width: 18px; height: 18px; stroke-width: 1.8; }
+.desk-row-thumb[data-kind="image"] .icon { display: none; }
+.desk-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.desk-row-text b { overflow: hidden; color: var(--desktop-ink); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.desk-row-text small { overflow: hidden; color: var(--desktop-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.desk-more { margin: 0; color: var(--desktop-muted); font-size: 12px; line-height: 1.5; }
+.desk-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.desk-note { flex: none; color: var(--desktop-danger); font-size: 12px; white-space: nowrap; }
+#desk .desk-btn { flex: none; height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; border-radius: 8px; background: var(--desktop-paper); box-shadow: inset 0 0 0 1px var(--desktop-line-strong); color: var(--desktop-body); font-size: 13px; font-weight: 500; white-space: nowrap; }
+#desk .desk-btn.primary { background: var(--desktop-primary); box-shadow: none; color: #fff; }
+#desk .desk-btn.ghost { background: transparent; box-shadow: none; color: var(--desktop-muted); }
+#desk .desk-btn:hover:not(:disabled) { background: var(--cafe-surface); }
+#desk .desk-btn.primary:hover:not(:disabled) { background: #8f4730; }
+#desk .desk-row .desk-btn { height: 28px; padding: 0 10px; }
+.desk-tag { height: 28px; display: flex; align-items: center; margin: 0; padding: 0 10px; border-radius: 8px; background: var(--desktop-ink); box-shadow: 0 0 0 1px rgba(255, 255, 255, .18), 0 4px 12px rgba(20, 20, 19, .18); color: #fff; font-size: 13px; font-weight: 400; white-space: nowrap; }

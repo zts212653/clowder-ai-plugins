@@ -173,6 +173,21 @@ test('generated app-assist state preserves its public discriminated object branc
   );
 });
 
+test('generated desk state keeps its ready and inactive arms closed', async () => {
+  const schemas = await loadContractSchemas();
+  const source = generateContractSource(schemas);
+  const deskState = source.slice(
+    source.indexOf('export type CompanionDeskState ='),
+    source.indexOf('export type CompanionDeskSettlement ='),
+  );
+
+  assert.doesNotMatch(deskState, /unknown/);
+  assert.equal(deskState.match(/readonly scopeRef: CompanionDeskRef;/g)?.length, 2);
+  assert.match(deskState, /readonly status: 'ready';\s+readonly delivery: null \| CompanionDeskDelivery;/);
+  assert.match(deskState, /readonly status: 'off' \| 'suspended';\s+readonly delivery: null;/);
+  assert.match(source, /export type CompanionState = \{[\s\S]*?readonly desk: CompanionDeskState;/);
+});
+
 test('generation rejects an object alternative that widens its shared public fields', async () => {
   const mutated = structuredClone(await loadContractSchemas());
   const appAssist = mutated.companionBridge.$defs?.['CompanionAppAssistState'];

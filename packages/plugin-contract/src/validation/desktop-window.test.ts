@@ -60,6 +60,10 @@ test('surface integrity, bridge version and initial bounds are closed', () => {
   splitCallAndAppAssistBridge.contributions[0]!.bridgeVersion = '1.6.0';
   assert.equal(validateManifest(splitCallAndAppAssistBridge).valid, true,
     'bridge 1.6 admits split call geometry and Host-owned application-assistance settlement');
+  const deskDeliveryBridge = manifest();
+  deskDeliveryBridge.contributions[0]!.bridgeVersion = '1.7.0';
+  assert.equal(validateManifest(deskDeliveryBridge).valid, true,
+    'bridge 1.7 admits Host-owned desk deliveries settled by opaque references');
   const badIntegrity = manifest();
   badIntegrity.contributions[0]!.surface.integrity = 'trust-me';
   assert.equal(validateManifest(badIntegrity).valid, false);

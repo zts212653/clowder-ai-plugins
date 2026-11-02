@@ -32,7 +32,7 @@ test('packed static desktop window declarations and current SDK work without wor
     const typeProbe = `
       import { createCompanionClient } from '@clowder-ai/plugin-sdk/companion';
       import type { CompanionSurfaceBridge } from '@clowder-ai/plugin-sdk/companion';
-      import type { CompanionAppAssistState } from '@clowder-ai/plugin-contract';
+      import type { CompanionAppAssistState, CompanionDeskState } from '@clowder-ai/plugin-contract';
       declare const bridge: CompanionSurfaceBridge;
       async function consumeAppAssist() {
         const state = await createCompanionClient(bridge).state();
@@ -47,7 +47,20 @@ test('packed static desktop window declarations and current SDK work without wor
       const invalidRevision: CompanionAppAssistState = { scopeRef: 'scope-a', revision: 'one', status: 'ready', offer: null };
       // @ts-expect-error a non-ready state cannot carry an offer.
       const invalidOffer: CompanionAppAssistState = { scopeRef: 'scope-a', revision: 1, status: 'suspended', offer: { offerRef: 'offer-a', appName: 'Fixture Writer' } };
-      void [consumeAppAssist, invalidStatus, invalidRevision, invalidOffer];
+      async function consumeDesk() {
+        const client = createCompanionClient(bridge);
+        const state = await client.state();
+        if (state.desk.status !== 'ready' || !state.desk.delivery) return null;
+        const [item] = state.desk.delivery.items;
+        const settled = await client.settleDesk(state.desk.scopeRef, state.desk.delivery.deliveryRef, item.action, item.itemRef);
+        const thumbnail = await client.readDeskThumbnail(state.desk.scopeRef, state.desk.delivery.deliveryRef, item.itemRef);
+        const avatar = await client.readDeskAvatar(state.desk.scopeRef, state.desk.delivery.deliveryRef);
+        const saved: boolean | undefined = settled.saved;
+        return [item.title, saved, thumbnail.image?.mediaType ?? null, avatar.image?.width ?? null];
+      }
+      // @ts-expect-error an inactive desk cannot carry a delivery.
+      const invalidDesk: CompanionDeskState = { scopeRef: 'desk-a', revision: 1, status: 'off', delivery: { deliveryRef: 'd', mode: 'single', from: null, items: [], more: 0 } };
+      void [consumeAppAssist, invalidStatus, invalidRevision, invalidOffer, consumeDesk, invalidDesk];
     `;
     await writeFile(join(consumer, 'type-probe.mts'), typeProbe);
     await writeFile(join(consumer, 'tsconfig.json'), JSON.stringify({
@@ -69,7 +82,10 @@ test('packed static desktop window declarations and current SDK work without wor
       import { validateCompanionCommand, validateCompanionReply } from '@clowder-ai/plugin-contract';
       assert.equal(validateManifest(companion).valid, true);
       assert.equal(companion.pluginId, 'official.companion');
-      assert.equal(companion.contributions[0].bridgeVersion, '1.6.0');
+      assert.equal(companion.contributions[0].bridgeVersion, '1.7.0');
+      assert.equal(validateCompanionCommand({ kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'dismiss' }), true);
+      assert.equal(validateCompanionCommand({ kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'open' }), false);
+      assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'desk', width: 344, height: 328 }), true);
       assert.equal(validateCompanionCommand({ kind: 'view.layout', panel: 'menu', width: 204, height: 250 }), true);
       assert.equal(validateCompanionCommand({ kind: 'conversation.read', threadId: 'forged' }), false);
       const window = {

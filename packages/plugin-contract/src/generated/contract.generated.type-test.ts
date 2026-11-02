@@ -1,6 +1,8 @@
 import type {
   BehaviorCase,
   CompanionAppAssistState,
+  CompanionCommand,
+  CompanionDeskState,
   ConfigurationField,
   DataDeclaration,
   ExpectedVerdict,
@@ -68,6 +70,42 @@ const invalidAppAssistRevision: CompanionAppAssistState = { scopeRef: 'scope-a',
 
 // @ts-expect-error a non-ready state cannot carry an offer.
 const invalidSuspendedAppAssistOffer: CompanionAppAssistState = { scopeRef: 'scope-a', revision: 1, status: 'suspended', offer: { offerRef: 'offer-a', appName: 'Fixture Writer' } };
+
+const readyDesk: CompanionDeskState = {
+  scopeRef: 'desk-a',
+  revision: 3,
+  status: 'ready',
+  delivery: {
+    deliveryRef: 'delivery-a',
+    mode: 'single',
+    from: { catId: 'codex61-sol', displayName: 'Watcher', role: 'watcher' },
+    items: [{ itemRef: 'item-a', kind: 'work', title: 'Sheet', source: {}, action: 'open', thumbnail: true }],
+    more: 0,
+  },
+};
+
+const offDesk: CompanionDeskState = { scopeRef: 'desk-a', revision: 4, status: 'off', delivery: null };
+
+function deskTitles(state: CompanionDeskState): readonly string[] {
+  if (state.status !== 'ready' || !state.delivery) return [];
+  return state.delivery.items.map((item) => item.title);
+}
+
+const deskOpen: CompanionCommand = { kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'open', itemRef: 'item-a' };
+
+// @ts-expect-error desk status is a closed public union.
+const invalidDeskStatus: CompanionDeskState = { scopeRef: 'desk-a', revision: 1, status: 'unsupported', delivery: null };
+
+// @ts-expect-error an inactive desk cannot carry a delivery.
+const invalidOffDeskDelivery: CompanionDeskState = { scopeRef: 'desk-a', revision: 1, status: 'off', delivery: readyDesk.delivery };
+
+const deskAvatarRead: CompanionCommand = { kind: 'desk.avatar.read', scopeRef: 'desk-a', deliveryRef: 'delivery-a' };
+
+// @ts-expect-error the renderer never names whose avatar to read.
+const invalidDeskAvatarRead: CompanionCommand = { kind: 'desk.avatar.read', scopeRef: 'desk-a', deliveryRef: 'delivery-a', catId: 'codex61-sol' };
+
+// @ts-expect-error desk settlement actions are closed.
+const invalidDeskAction: CompanionCommand = { kind: 'desk.settle', scopeRef: 'desk-a', deliveryRef: 'delivery-a', action: 'accept' };
 
 const lifecycleCache: DataDeclaration = {
   name: 'compiled-cache',
@@ -259,6 +297,15 @@ void [
   invalidAppAssistStatus,
   invalidAppAssistRevision,
   invalidSuspendedAppAssistOffer,
+  readyDesk,
+  offDesk,
+  deskTitles,
+  deskOpen,
+  invalidDeskStatus,
+  invalidOffDeskDelivery,
+  invalidDeskAction,
+  deskAvatarRead,
+  invalidDeskAvatarRead,
   lifecycleCache,
   retainedUserData,
   invalidLifecycleUserData,

@@ -1,13 +1,46 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { after, before, test } from 'node:test';
+import { crc32, deflateSync } from 'node:zlib';
 import { chromium } from 'playwright';
 import { createPreviewServer } from '../scripts/preview.mjs';
 
 let browser;
 let origin;
 let server;
+let fixtureDirectory;
+
+/** A solid 2:1 PNG so the desk preview has real raster bytes without shipping family imagery. */
+function solidPng(width, height) {
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const framed = Buffer.alloc(body.length + 8);
+    framed.writeUInt32BE(data.length, 0);
+    body.copy(framed, 4);
+    framed.writeUInt32BE(crc32(body), body.length + 4);
+    return framed;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 2;
+  const rows = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) rows.set([0xb0, 0x5f, 0x45], y * (width * 3 + 1) + 1 + x * 3);
+  }
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header), chunk('IDAT', deflateSync(rows)), chunk('IEND', Buffer.alloc(0))]);
+}
 
 before(async () => {
+  fixtureDirectory = await mkdtemp(join(tmpdir(), 'companion-desk-browser-'));
+  process.env.COMPANION_PREVIEW_DESK_THUMBNAIL = join(fixtureDirectory, 'cover.png');
+  await writeFile(process.env.COMPANION_PREVIEW_DESK_THUMBNAIL, solidPng(220, 142));
+  process.env.COMPANION_PREVIEW_DESK_AVATAR = join(fixtureDirectory, 'avatar.png');
+  await writeFile(process.env.COMPANION_PREVIEW_DESK_AVATAR, solidPng(64, 64));
   server = createPreviewServer();
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -22,10 +55,15 @@ before(async () => {
 after(async () => {
   await browser?.close();
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  delete process.env.COMPANION_PREVIEW_DESK_THUMBNAIL;
+  delete process.env.COMPANION_PREVIEW_DESK_AVATAR;
+  await rm(fixtureDirectory, { recursive: true, force: true });
 });
 
-async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscript = true, appAssist = false } = {}) {
-  const page = await browser.newPage({ viewport });
+async function openPreview(viewport = { width: 600, height: 800 }, {
+  autoTranscript = true, appAssist = false, desk = null, deskMore = 0, reducedMotion = 'no-preference',
+} = {}) {
+  const page = await browser.newPage({ viewport, reducedMotion });
   await page.addInitScript(() => {
     let bridge;
     const callbacks = [];
@@ -43,7 +81,8 @@ async function openPreview(viewport = { width: 600, height: 800 }, { autoTranscr
       },
     });
   });
-  await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1&autoTranscript=${autoTranscript ? '1' : '0'}&appAssist=${appAssist ? '1' : '0'}`);
+  const deskQuery = desk ? `&desk=${desk}&deskMore=${deskMore}` : '';
+  await page.goto(`${origin}/index.html?skin=xianxian-codex&pending=1&autoTranscript=${autoTranscript ? '1' : '0'}&appAssist=${appAssist ? '1' : '0'}${deskQuery}`);
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => {
     window.__layoutRequests = [];
@@ -122,6 +161,136 @@ test('candidate application assistance settles explicitly without minting call o
     assert.deepEqual(protectedKinds, [], 'settlement is not a call, user activation or media grant');
   } finally {
     await actionPage.close();
+  }
+});
+
+const deskPlaced = () => !document.getElementById('desk').hidden && document.getElementById('desk').style.top !== '';
+const deskRing = () => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0];
+
+test('a watcher delivery keeps the sketch geometry, pauses its ring on hover and settles shown once', async () => {
+  const page = await openPreview({ width: 520, height: 720 }, { desk: 'single' });
+  try {
+    await page.waitForFunction(deskPlaced);
+    await page.waitForFunction(() => !document.getElementById('desk-thumb').hidden);
+    await page.waitForFunction(() => !document.getElementById('desk-avatar').hidden);
+    const header = await page.evaluate(() => {
+      const rect = id => { const box = document.getElementById(id).getBoundingClientRect(); return [box.width, box.height]; };
+      const name = getComputedStyle(document.getElementById('desk-name'));
+      return {
+        avatar: rect('desk-avatar-image'), eye: rect('desk-avatar-eye'),
+        radius: getComputedStyle(document.getElementById('desk-avatar-image')).borderRadius,
+        source: document.getElementById('desk-avatar-image').getAttribute('src').slice(0, 22),
+        name: [name.fontSize, name.fontWeight],
+        order: [...document.querySelector('.desk-who').children].map(node => node.id),
+      };
+    });
+    assert.deepEqual(header, {
+      avatar: [20, 20], eye: [12, 12], radius: '50%', source: 'data:image/png;base64,', name: ['13px', '500'],
+      order: ['desk-avatar', 'desk-name'],
+    }, 'the watcher header shows its avatar with the eye badge before a 13px/500 name');
+    const geometry = await page.evaluate(() => ({
+      desk: document.getElementById('desk').getBoundingClientRect().width,
+      thumb: document.getElementById('desk-thumb').getBoundingClientRect().width,
+      source: document.getElementById('desk-thumb-image').getAttribute('src').slice(0, 22),
+      alt: document.getElementById('desk-thumb-image').alt,
+      header: document.getElementById('desk-name').textContent,
+      text: document.getElementById('desk-text').textContent,
+      titleHidden: document.getElementById('desk-title').hidden,
+      buttons: [...document.querySelectorAll('#desk .desk-actions button')].map(button => button.textContent),
+    }));
+    assert.deepEqual(geometry, {
+      desk: 344, thumb: 320, source: 'data:image/png;base64,', alt: '六猫岛 · 单采肖像参考',
+      header: '守望猫 · 小太阳', text: '鲸鲸那三格，照他的头像画就行。', titleHidden: true,
+      buttons: ['忽略', '打开'],
+    });
+    assert.deepEqual((await visibleClipping(page, 'desk')).clippedButtons, []);
+
+    await page.waitForFunction(() => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0]?.playState === 'running');
+    await page.hover('#desk-bubble');
+    await page.waitForFunction(() => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0]?.playState === 'paused');
+    const pausedAt = await page.evaluate(() => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0].currentTime);
+    await page.waitForTimeout(1_200);
+    const heldAt = await page.evaluate(() => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0].currentTime);
+    assert.ok(pausedAt > 0 && Math.abs(heldAt - pausedAt) < 100, `hovering holds the ring without restarting it: ${pausedAt} → ${heldAt}`);
+    await page.mouse.move(500, 700);
+    await page.waitForFunction(() => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0]?.playState === 'running');
+    assert.equal(await page.evaluate(() => window.__deskSettlements.filter(value => value.action === 'shown').length), 1);
+
+    await page.click('#desk-dismiss');
+    await page.waitForFunction(() => document.getElementById('desk').hidden);
+    assert.deepEqual(await page.evaluate(() => window.__deskSettlements.at(-1)), {
+      kind: 'desk.settle', scopeRef: 'preview-desk', deliveryRef: 'preview-delivery-single', action: 'dismiss',
+    });
+    assert.deepEqual(await page.evaluate(() => window.__requestKinds.filter(kind =>
+      ['prepare', 'audio.connect', 'screen.pick', 'conversation.open', 'work.open'].includes(kind))), [],
+    'a desk delivery never starts media or navigation by itself');
+  } finally {
+    await page.close();
+  }
+});
+
+test('a bundle row adds once, reports a failed add inline, and the bundle closes when every row is settled', async () => {
+  const page = await openPreview({ width: 520, height: 720 }, { desk: 'bundle', deskMore: 2 });
+  try {
+    await page.waitForFunction(deskPlaced);
+    const rows = () => page.evaluate(() => [...document.querySelectorAll('#desk-list .desk-row')].map(row => ({
+      title: row.querySelector('b').textContent, source: row.querySelector('small').textContent,
+      button: row.querySelector('button').textContent, disabled: row.querySelector('button').disabled,
+      note: row.querySelector('.desk-note').hidden ? '' : row.querySelector('.desk-note').textContent,
+    })));
+    assert.deepEqual(await rows(), [
+      { title: '六猫岛 · 单采肖像参考', source: '「视频」自媒体视频运营', button: '打开', disabled: false, note: '' },
+      { title: '守望猫北极星稿 v1.5', source: '守望猫', button: '打开', disabled: false, note: '' },
+      { title: '添加 7 条视频批注', source: '守望猫', button: '添加', disabled: false, note: '' },
+    ]);
+    assert.equal(await page.locator('#desk-more').textContent(), '还有 2 件在 Cat Café');
+    await page.waitForFunction(() => !document.getElementById('desk-avatar').hidden);
+    assert.equal(await page.locator('#desk-avatar-eye').isVisible(), true, 'the bundle header carries the same watcher mark');
+    assert.deepEqual((await visibleClipping(page, 'desk')).clippedButtons, []);
+    await page.waitForFunction(() => document.querySelector('#desk-list .desk-row-thumb img')?.complete === true);
+
+    await page.evaluate(() => { window.__deskOutcome.add = 'failed'; });
+    await page.click('#desk-list .desk-row:nth-child(3) button');
+    await page.waitForFunction(() => !document.querySelector('#desk-list .desk-row:nth-child(3) .desk-note').hidden);
+    assert.deepEqual((await rows())[2], { title: '添加 7 条视频批注', source: '守望猫', button: '添加', disabled: false, note: '没加上' });
+    await page.evaluate(() => { delete window.__deskOutcome.add; });
+    await page.click('#desk-list .desk-row:nth-child(3) button');
+    await page.waitForFunction(() => document.querySelector('#desk-list .desk-row:nth-child(3) button').textContent === '已添加');
+    assert.deepEqual((await rows())[2], { title: '添加 7 条视频批注', source: '守望猫', button: '已添加', disabled: true, note: '' });
+    await page.waitForTimeout(1_200);
+    assert.equal((await rows())[2].button, '已添加', 'the receipt survives ordinary state refreshes');
+
+    await page.click('#desk-list .desk-row:nth-child(1) button');
+    await page.waitForFunction(() => document.querySelector('#desk-list .desk-row:nth-child(1) button').textContent === '已打开');
+    await page.click('#desk-list .desk-row:nth-child(2) button');
+    await page.waitForFunction(() => document.getElementById('desk').hidden);
+    assert.deepEqual(await page.evaluate(() => window.__deskSettlements.map(value => [value.action, value.itemRef ?? null])), [
+      ['shown', null], ['add', 'preview-notes'], ['add', 'preview-notes'], ['open', 'preview-sheet'], ['open', 'preview-northstar'],
+    ]);
+  } finally {
+    await page.close();
+  }
+});
+
+test('an unanswered delivery leaves only the Host-confirmed saved name tag', async () => {
+  const page = await openPreview({ width: 520, height: 720 }, { desk: 'saved', reducedMotion: 'reduce' });
+  try {
+    await page.waitForFunction(deskPlaced);
+    assert.match(await page.evaluate(() => document.querySelector('#desk-retain .reply-ring-progress').getAnimations()[0]?.effect.getTiming().easing),
+      /^steps\(15/u, 'reduced motion advances the ring in steps');
+    await page.waitForFunction(() => !document.getElementById('desk-tag').hidden, null, { timeout: 10_000 });
+    assert.equal(await page.locator('#desk-tag').textContent(), '已保存到对话');
+    assert.equal(await page.locator('#desk-bubble').isHidden(), true);
+    assert.equal(await page.locator('#desk').getAttribute('data-presentation'), 'tag');
+    assert.deepEqual(await page.evaluate(() => window.__deskSettlements.map(value => value.action)), ['shown', 'timeout']);
+    const tag = await page.evaluate(() => {
+      const style = getComputedStyle(document.getElementById('desk-tag'));
+      const box = document.getElementById('desk-tag').getBoundingClientRect();
+      return { height: box.height, weight: style.fontWeight, size: style.fontSize, background: style.backgroundColor, color: style.color };
+    });
+    assert.deepEqual(tag, { height: 28, weight: '400', size: '13px', background: 'rgb(20, 20, 19)', color: 'rgb(255, 255, 255)' });
+  } finally {
+    await page.close();
   }
 });
 
