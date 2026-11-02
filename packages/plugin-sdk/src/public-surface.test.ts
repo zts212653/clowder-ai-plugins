@@ -103,6 +103,23 @@ const requiredMessageRead: RequiredMessageRead = true;
 type RequiredHostMessageRead = undefined extends ModulePluginHostShape['messaging']['get'] ? never : true;
 const requiredHostMessageRead: RequiredHostMessageRead = true;
 void [requiredMessageRead,requiredHostMessageRead];
+// Strict consumer checks for an optional module-only rejection fence. These
+// are compiled by the native typecheck, never a replacement Host implementation.
+function boundedModuleSend(host: ModulePluginHostShape, input: Parameters<ModulePluginHostShape['messaging']['send']>[0]) {
+ const send=host.messaging.sendWithAdmission;
+ if(send) {
+  void send(input,()=>{});
+  // @ts-expect-error an async callback cannot provide the final synchronous fence
+  void send(input,async()=>{});
+  // @ts-expect-error returning false is rejection, not successful authorization
+  void send(input,()=>false);
+  // @ts-expect-error identity/authorization still cannot be supplied by draft data
+  void send({...input,authority:'owner'},()=>{});
+ }
+}
+type OptionalModuleAdmission=undefined extends ModulePluginHostShape['messaging']['sendWithAdmission']?true:never;
+const optionalModuleAdmission:OptionalModuleAdmission=true;
+void [boundedModuleSend,optionalModuleAdmission];
 const lifecycle=['settings','preStart','start','preUninstall','uninstall'] as const satisfies readonly (keyof PluginModuleDefinition)[];
 const taskPorts=['get','list','create','update','bindDataController','revokeDataController'] as const satisfies readonly (keyof PluginTaskHost)[];
 const noUndocumentedTask:Record<Exclude<keyof PluginTaskHost,typeof taskPorts[number]>,never>={};

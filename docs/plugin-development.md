@@ -100,6 +100,8 @@ stateDiagram-v2
 
 模块 Host 另可提供 `host.messaging.findSent({threadId,idempotencyKey})`。它只查本实例、当前用户的原始持久消息与已准入 Queue 目标，返回 `{messageId,threadId,content,routedCatIds}` 或 `null`；不是执行完成或已读回执。恢复未知发送时，先核原正文和目标，再决定是否沿原请求继续；不得用短期 transport ledger 过期作为重新发信理由。旧 Host 可能没有此方法，依赖永久幂等恢复的插件应明确暂停。该入口目前属于 module Host，不宣称 stdio 或 feature-context 已支持。
 
+本分支另准备可选 module `host.messaging.sendWithAdmission(input, assertCurrent)` 类型，尚未分配或发布新SDK版本；当前candidate.7发布事实不因此改变。使用前检测真实Host方法存在。输入和回执沿既有send；第二参数是进程内同步拒绝断言，返回undefined或抛错，不能返回Promise、false、正文批准或新身份。Host在原异步准备后、实际append/wake前保留原授权检查并调用它；已经settled的原回执可只读恢复。该断言不持久化、不跨重启授权，不提供一般调度器，也不在stdio、feature-context或settings-only Host中声明。相应Host实现来自Cat Café PR6489，不代表任一正在运行的Host已加载。
+
 需要保留具体接收者的 module 发送可用 `wake:{catId,exact:true}`。目标失效时拒绝该次唤醒，沿原幂等键恢复，不能回退其他成员；原有 `wake:{catId}` 继续使用普通对话路由语义。`findSent` 的目标合并当前 Queue 与原消息 History 投递记录，Queue 已消费不代表原目标消失；可选 deliveryStatus 为 canceled 时不可重新发送该原消息。
 
 模块 Host 的可选 `host.memberSessions`（SDK `0.3.0-beta.2-candidate.5` 候选类型）承接受限成员执行；旧 Host 或缺少持久化支持时可以不提供，插件应明确暂停，不能退回普通工作线程或只读工具模式。`create(input)` 由 Host 创建独立线程并准备授权；`prepare(input)` 仅续接本实例已创建的受限线程；两者与 `revoke(sessionId)` 都只接受 Host 认证的当前 owner 操作上下文，正文没有批准字段。输入只含真实成员、已声明 MCP/identity、现有账号引用及已批准记忆引用，不含 key、登录态、任意工作目录或模型替身。返回的 summary 记录真实 client/model/carrier/authType/accountRevision、授权 generation、已消费语义游标，以及可选 Host activationId。
