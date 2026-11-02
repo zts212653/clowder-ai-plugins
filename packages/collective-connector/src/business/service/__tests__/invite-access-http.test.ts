@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { type RunningCollectiveServer, startCollectiveServer } from '../http-server.js';
 import type { HumanAuthProvider } from '../human-auth-provider.js';
+import { readInviteAccessProfile } from '../invite-access-profile.js';
 import { CollectiveServiceStore } from '../store.js';
 
 const directories: string[] = [];
@@ -81,11 +82,26 @@ it('reports an unconfigured profile instead of guessing connection details', asy
   });
 });
 
+it('only includes connection details for an allowlisted loopback service socket', () => {
+  const environment = {
+    COLLECTIVE_INVITE_SSH_HOST: 'ssh.example.test',
+    COLLECTIVE_INVITE_SSH_PORT: '2222',
+    COLLECTIVE_INVITE_SSH_FINGERPRINT: fingerprint,
+  };
+  for (const address of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) {
+    expect(readInviteAccessProfile(environment, address, 5201)).toMatchObject({ sshHost: 'ssh.example.test' });
+  }
+  for (const address of [undefined, '0.0.0.0', '127.0.0.2', '192.0.2.1', '2001:db8::1', '::ffff:192.0.2.1']) {
+    expect(readInviteAccessProfile(environment, address, 5201)).toBeUndefined();
+  }
+});
+
 it.each([
   { host: 'ssh.example.test\nmalicious', port: '22', fingerprint },
   { host: '-oProxyCommand=bad', port: '22', fingerprint },
   { host: '0.0.0.0', port: '22', fingerprint },
   { host: '::1', port: '22', fingerprint },
+  { host: 'fe80::1%en0', port: '22', fingerprint },
   { host: 'ssh.example.test', port: '22;bad', fingerprint },
   { host: 'ssh.example.test', port: '22', fingerprint: 'SHA256:not-a-fingerprint' },
 ])('does not emit a malformed or incomplete profile', async (config) => {

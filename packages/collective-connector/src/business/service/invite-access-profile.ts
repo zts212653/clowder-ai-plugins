@@ -39,7 +39,7 @@ export function readInviteAccessProfile(
 }
 
 function validHost(host: string): boolean {
-  if (host.length < 1 || host.length > 253 || host.toLowerCase() === 'localhost') return false;
+  if (host.length < 1 || host.length > 253 || host.includes('%') || host.toLowerCase() === 'localhost') return false;
   const ipVersion = isIP(host);
   if (ipVersion === 4) {
     const first = Number(host.split('.')[0]);

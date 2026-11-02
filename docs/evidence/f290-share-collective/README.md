@@ -10,9 +10,10 @@ created: 2026-11-02
 ## Retained Client
 
 The current **draft** package contains the invitation Client from exact Cat Café source
-`4f8617b1f65cea54763b9e23bf157222ab28cbc0`. Its code has been independently reviewed,
-but the design is not yet accepted and that source has not been merged. The retained asset
-digest is `1f2e0b39c541dea0f498d1ed2424978783ef615d314b3684c139086621a4d976`.
+`033b7fdee12539df532ad22ae4b0d4de88d3b28a`. Its baseline `4f8617b1f65cea54763b9e23bf157222ab28cbc0`
+was independently reviewed; the new error-reporting guidance awaits incremental review.
+The design is not yet accepted and the source has not been merged. The retained asset
+digest is `b3882382002cdce658977bc640e1b8abc52a9804ebe8782093ecd05d87fa6158`.
 After the Client is accepted and merged, retain it again from the final merged source and
 rebuild the package candidate before release. The previous published alpha.25 used the
 merged Cat Café source `d425f561eaf31812554336c0ef380a510e5f187e` (PR #6471).
@@ -23,7 +24,7 @@ the checked-in Client assets in the current worktree. The browser probe requires
 workspace's Companion Playwright dependency and an installed Chromium:
 
 ```sh
-node docs/evidence/f290-share-collective/retain-client-assets.mjs <clean-source-root> 4f8617b1f65cea54763b9e23bf157222ab28cbc0
+node docs/evidence/f290-share-collective/retain-client-assets.mjs <clean-source-root> 033b7fdee12539df532ad22ae4b0d4de88d3b28a
 env -u NODE_ENV pnpm --filter @clowder-ai/collective-connector test:source
 env -u NODE_ENV node docs/evidence/f290-share-collective/retained-client-auth-probe.cjs
 env -u NODE_ENV node docs/evidence/f290-share-collective/retained-client-full-probe.mjs <clean-source-root>
@@ -75,8 +76,8 @@ bytes. Converted copies opened; used and revoked invitations remained unusable; 
 invitation could admit a member. After restoring metadata onto the advanced old-version
 state, the member and inviter remained, an old-version invitation had no invented inviter,
 and a repeated revoke returned `revoked` while the revoked invitation stayed unusable.
-The same **28/28** checks passed on the installed unpublished alpha.26 draft archive
-(SHA-256 `d12ff706df9ac060bf41e4470b907a74a86a80526012f89fe093fd54e563fab9`).
+The same **28/28** checks passed on the installed unpublished alpha.26 r3 draft archive
+(SHA-256 `22e51ae2b96926b6e8a99b2005c4f849baaf7e30a6ab26d2490329ac8b1c7ca6`).
 The candidate must be tested again if its Service code or final package changes.
 
 This is reproducible evidence for the offline conversion functions, not a production

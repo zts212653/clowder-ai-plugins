@@ -3044,7 +3044,7 @@
     },
     {
       "path": "src/invitation-share-guide.ts",
-      "sha256": "711fdd6ebdaec8bc567356dfd5d59b06523bf362742cab5d2a564499c101f333"
+      "sha256": "6f93812aa4cae5aa2d94e7994095bb5733ac4630bbabe116dc0ac6c780430c67"
     },
     {
       "path": "src/leave-readiness.ts",
