@@ -330,6 +330,8 @@ export interface ModulePluginHostShape {
   readonly members?: import('./members.js').PluginMemberHost;
   /** Available only on Hosts with persistent, controlled member execution. */
   readonly memberSessions?: import('./member-sessions.js').PluginMemberSessionsHost;
+  /** Current native owner Chat source and call-lifetime fences; absent on older Hosts. */
+  readonly ownerChat?: import('./owner-chat.js').PluginOwnerChatHost;
   readonly config: { get(key: string): Promise<unknown> };
   readonly secrets: { get(key: string): Promise<string | undefined> };
   readonly storage: PluginStorageHost;
