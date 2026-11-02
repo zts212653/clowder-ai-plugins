@@ -86,10 +86,18 @@ export class DeskDeliveryController {
     this.scopeRef = snapshot.scopeRef;
     this.revision = snapshot.revision;
     const delivery = snapshot.status === 'ready' ? snapshot.delivery : null;
+    const presented = Boolean(delivery) && !this.finished.has(delivery.deliveryRef)
+      && this.current?.deliveryRef !== delivery.deliveryRef;
     if (!delivery || this.finished.has(delivery.deliveryRef)) this.drop();
-    else if (this.current?.deliveryRef === delivery.deliveryRef) this.update(delivery);
-    else this.present(delivery);
+    else if (presented) this.present(delivery);
+    else this.update(delivery);
     this.emit();
+    // A replacement is reported shown only after its own content has rendered; a first
+    // delivery still waits for setVisible(), i.e. for the Host to place the panel.
+    if (presented && this.current && this.visible) {
+      this.reveal();
+      this.emit();
+    }
     return true;
   }
 
@@ -98,12 +106,11 @@ export class DeskDeliveryController {
     this.clearTag();
     this.current = {
       epoch: ++this.epoch, deliveryRef: delivery.deliveryRef, mode: delivery.mode, from: delivery.from,
-      more: delivery.more, rows: new Map(), avatar: null, avatarRequested: false,
+      more: delivery.more, rows: new Map(), avatar: null, avatarKey: null, avatarRead: null,
     };
     this.totalMs = deskVisibleDuration(delivery);
     this.remainingMs = this.totalMs;
     this.update(delivery);
-    this.reveal();
   }
 
   update(delivery) {
@@ -119,16 +126,30 @@ export class DeskDeliveryController {
       else if (row.state === 'opened' || row.state === 'added') rows.set(itemRef, row);
     }
     for (const item of delivery.items) {
-      const previous = current.rows.get(item.itemRef);
-      if (!previous) rows.set(item.itemRef, { item, state: 'idle', thumbnail: null });
-      if (item.thumbnail && !previous?.item.thumbnail) void this.loadThumbnail(current, item.itemRef);
+      if (!rows.has(item.itemRef)) rows.set(item.itemRef, { item, state: 'idle', thumbnail: null, thumbnailRead: null });
     }
     current.rows = rows;
-    if (delivery.from && !current.avatarRequested) {
-      current.avatarRequested = true;
-      void this.loadAvatar(current);
+    for (const [itemRef, row] of rows) {
+      if (!incoming.has(itemRef)) continue;
+      if (!row.item.thumbnail) rows.set(itemRef, { ...row, thumbnail: null, thumbnailRead: null });
+      else if (!row.thumbnail && this.readStale(row.thumbnailRead)) void this.loadThumbnail(current, itemRef);
     }
+    // A different bringer never inherits the previous face; its own read starts at this revision.
+    const avatarKey = delivery.from ? `${delivery.from.catId}\u0000${delivery.from.role ?? ''}` : null;
+    if (avatarKey !== current.avatarKey) Object.assign(current, { avatarKey, avatar: null, avatarRead: null });
+    if (avatarKey && !current.avatar && this.readStale(current.avatarRead)) void this.loadAvatar(current);
     if ([...rows.values()].every(row => SETTLED_ROWS.has(row.state))) this.finish();
+  }
+
+  /** A read needs (re)issuing unless one finished or is still in flight for the current revision. */
+  readStale(read) {
+    return !read || (!read.done && read.revision !== this.revision);
+  }
+
+  /** Replies apply only to the exact scope, delivery and Host revision they were requested at. */
+  readCurrent(current, read) {
+    return this.current === current && this.scopeRef === read.scopeRef
+      && current.deliveryRef === read.deliveryRef && this.revision === read.revision;
   }
 
   setVisible(visible) {
@@ -177,6 +198,7 @@ export class DeskDeliveryController {
     if (!row || !['idle', 'failed'].includes(row.state)) return false;
     const { scopeRef, revision } = this;
     const action = row.item.action;
+    const before = row.state;
     this.setRow(current, itemRef, { state: 'pending' });
     this.emit();
     let reply = null;
@@ -186,9 +208,12 @@ export class DeskDeliveryController {
       // A lost reply leaves the item actionable; the Host remains the only truth.
     }
     if (this.current !== current || !current.rows.has(itemRef)) return false;
+    // No reply at all reads as a failed attempt; a reply for another item or an older Host
+    // revision is ignored and the row goes back to what it was, claiming nothing.
     const matched = this.matches(reply, { scopeRef, revision, deliveryRef: current.deliveryRef, action, itemRef });
-    const state = !matched || reply.outcome === 'failed' ? 'failed'
-      : reply.outcome === 'stale_delivery' ? 'removed' : action === 'add' ? 'added' : 'opened';
+    const state = reply === null ? 'failed' : !matched ? before
+      : reply.outcome === 'failed' ? 'failed' : reply.outcome === 'stale_delivery' ? 'removed'
+        : action === 'add' ? 'added' : 'opened';
     this.setRow(current, itemRef, { state });
     if ([...current.rows.values()].every(value => SETTLED_ROWS.has(value.state))) this.finish();
     this.emit();
@@ -223,34 +248,38 @@ export class DeskDeliveryController {
   matches(reply, { scopeRef, revision, deliveryRef, action, itemRef }) {
     return reply?.kind === 'desk-settlement' && reply.scopeRef === scopeRef && reply.deliveryRef === deliveryRef
       && reply.action === action && reply.itemRef === itemRef && OUTCOMES.has(reply.outcome)
-      && Number.isSafeInteger(reply.revision) && reply.revision >= revision;
+      && Number.isSafeInteger(reply.revision) && reply.revision >= revision && reply.revision >= this.revision;
   }
 
   async loadThumbnail(current, itemRef) {
-    const scopeRef = this.scopeRef;
+    const read = { scopeRef: this.scopeRef, deliveryRef: current.deliveryRef, revision: this.revision, done: false };
+    this.setRow(current, itemRef, { thumbnailRead: read });
     let reply;
     try {
-      reply = await this.client.readDeskThumbnail(scopeRef, current.deliveryRef, itemRef);
+      reply = await this.client.readDeskThumbnail(read.scopeRef, read.deliveryRef, itemRef);
     } catch {
-      return;
+      return; // A lost read leaves the neutral tile and stays unfinished, so a later revision asks again.
     }
-    if (this.current !== current || !current.rows.has(itemRef)) return;
-    const thumbnail = deskThumbnailUrl(reply, { scopeRef, deliveryRef: current.deliveryRef, itemRef });
+    if (!this.readCurrent(current, read) || current.rows.get(itemRef)?.thumbnailRead !== read) return;
+    read.done = true;
+    const thumbnail = deskThumbnailUrl(reply, { ...read, itemRef });
     if (!thumbnail) return;
     this.setRow(current, itemRef, { thumbnail });
     this.emit();
   }
 
   async loadAvatar(current) {
-    const scopeRef = this.scopeRef;
+    const read = { scopeRef: this.scopeRef, deliveryRef: current.deliveryRef, revision: this.revision, done: false };
+    current.avatarRead = read;
     let reply;
     try {
-      reply = await this.client.readDeskAvatar(scopeRef, current.deliveryRef);
+      reply = await this.client.readDeskAvatar(read.scopeRef, read.deliveryRef);
     } catch {
-      return;
+      return; // Without an answer the header keeps its text and a later revision asks again.
     }
-    if (this.current !== current || !current.from) return;
-    current.avatar = deskAvatarUrl(reply, { scopeRef, deliveryRef: current.deliveryRef });
+    if (!this.readCurrent(current, read) || current.avatarRead !== read) return;
+    read.done = true;
+    current.avatar = deskAvatarUrl(reply, read);
     if (current.avatar) this.emit();
   }
 

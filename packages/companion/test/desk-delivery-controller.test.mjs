@@ -47,9 +47,11 @@ function fixture({ settle, thumbnail, avatar } = {}) {
   const time = clock();
   const calls = [];
   const renders = [];
+  const events = [];
   const client = {
     settleDesk: async (scopeRef, deliveryRef, action, itemRef) => {
       calls.push(itemRef === undefined ? [action, deliveryRef] : [action, deliveryRef, itemRef]);
+      events.push(`call:${action}:${deliveryRef}`);
       if (settle) return settle({ scopeRef, deliveryRef, action, itemRef });
       return { kind: 'desk-settlement', scopeRef, revision: 50, deliveryRef, action,
         ...(itemRef === undefined ? {} : { itemRef }), outcome: 'settled', ...(action === 'timeout' ? { saved: true } : {}) };
@@ -64,9 +66,9 @@ function fixture({ settle, thumbnail, avatar } = {}) {
         : { kind: 'desk-thumbnail', scopeRef, deliveryRef, itemRef, image: null };
     },
   };
-  const controller = new DeskDeliveryController({ client, render: value => renders.push(value), now: time.now,
-    schedule: time.schedule, cancel: time.cancel });
-  return { controller, calls, renders, time, last: () => renders.at(-1),
+  const controller = new DeskDeliveryController({ client, now: time.now, schedule: time.schedule, cancel: time.cancel,
+    render: value => { renders.push(value); events.push(`render:${value.delivery?.deliveryRef ?? 'none'}`); } });
+  return { controller, calls, renders, events, time, last: () => renders.at(-1),
     settled: () => calls.filter(call => call[0] !== 'thumbnail' && call[0] !== 'avatar') };
 }
 
@@ -338,4 +340,121 @@ test('a missing, failed or stale avatar keeps the header as text only', async ()
     await flush();
     assert.equal(f.last().delivery.avatar, null);
   }
+});
+
+const deferredReads = () => {
+  const reads = [];
+  const read = request => new Promise(resolve => reads.push({ ...request, resolve }));
+  return { reads, read };
+};
+const avatarImage = dataBase64 => ({ mediaType: 'image/png', dataBase64, width: 64, height: 64 });
+
+test('a delivery that replaces a visible one is rendered before it is reported shown', async () => {
+  const f = fixture();
+  f.controller.consume(state(1, single()));
+  f.controller.setVisible(true);
+  await flush();
+  f.events.length = 0;
+  f.controller.consume(state(2, single('delivery-2')));
+  await flush();
+  const rendered = f.events.indexOf('render:delivery-2');
+  const shown = f.events.indexOf('call:shown:delivery-2');
+  assert.ok(rendered >= 0 && shown > rendered, `shown must follow the new content on screen: ${f.events.join(' → ')}`);
+  assert.equal(f.last().timer.running, true, 'the replacement still starts its own countdown');
+});
+
+test('a settlement older than the current Host revision is ignored and claims nothing', async () => {
+  let release;
+  const f = fixture({ settle: ({ scopeRef, deliveryRef, action, itemRef }) => (action === 'shown'
+    ? { kind: 'desk-settlement', scopeRef, revision: 1, deliveryRef, action, outcome: 'settled' }
+    : new Promise(resolve => { release = () => resolve({ kind: 'desk-settlement', scopeRef, revision: 1, deliveryRef, action,
+      itemRef, outcome: 'settled' }); })) });
+  f.controller.consume(state(1, single('delivery-1', notes)));
+  f.controller.setVisible(true);
+  const adding = f.controller.act('item-notes');
+  f.controller.consume(state(2, single('delivery-1', notes)));
+  release();
+  assert.equal(await adding, false, 'a revision-1 reply cannot settle what the revision-2 Host state still offers');
+  assert.equal(f.last().presentation, 'bubble');
+  assert.equal(f.last().delivery.rows[0].state, 'idle', 'an ignored reply neither confirms nor reports failure');
+});
+
+test('an avatar read from before the bringer changed is ignored and the new bringer is read', async () => {
+  const avatars = deferredReads();
+  const f = fixture({ avatar: avatars.read });
+  const fromA = { ...single(), from: { catId: 'cat-a', displayName: 'A', role: 'watcher' } };
+  const fromB = { ...single(), from: { catId: 'cat-b', displayName: 'B' } };
+  f.controller.consume(state(1, fromA));
+  f.controller.consume(state(2, fromB));
+  avatars.reads[0].resolve({ kind: 'desk-avatar', scopeRef: 'desk-scope', deliveryRef: 'delivery-1', image: avatarImage('AAAA') });
+  await flush();
+  assert.equal(f.last().delivery.avatar, null, "A's revision-1 face never appears on B's revision-2 header");
+  assert.equal(avatars.reads.length, 2, 'the new bringer gets its own read');
+  avatars.reads[1].resolve({ kind: 'desk-avatar', scopeRef: 'desk-scope', deliveryRef: 'delivery-1', image: avatarImage('BBBB') });
+  await flush();
+  assert.equal(f.last().delivery.avatar, 'data:image/png;base64,BBBB');
+});
+
+test("an applied face is cleared when the Host names a different bringer for the same delivery", async () => {
+  const avatars = deferredReads();
+  const f = fixture({ avatar: avatars.read });
+  f.controller.consume(state(1, { ...single(), from: { catId: 'cat-a', displayName: 'A', role: 'watcher' } }));
+  avatars.reads[0].resolve({ kind: 'desk-avatar', scopeRef: 'desk-scope', deliveryRef: 'delivery-1', image: avatarImage('AAAA') });
+  await flush();
+  assert.equal(f.last().delivery.avatar, 'data:image/png;base64,AAAA');
+  f.controller.consume(state(2, { ...single(), from: { catId: 'cat-b', displayName: 'B' } }));
+  assert.equal(f.last().delivery.avatar, null, 'B is never shown with A\'s face, even before B\'s read returns');
+  assert.equal(avatars.reads.length, 2);
+  f.controller.consume(state(3, { ...single(), from: { catId: 'cat-b', displayName: 'B' } }));
+  avatars.reads.at(-1).resolve({ kind: 'desk-avatar', scopeRef: 'desk-scope', deliveryRef: 'delivery-1', image: avatarImage('BBBB') });
+  await flush();
+  assert.equal(f.last().delivery.avatar, 'data:image/png;base64,BBBB');
+});
+
+test('a thumbnail read from an older revision is ignored and reread at the current revision', async () => {
+  const thumbnails = deferredReads();
+  const f = fixture({ thumbnail: thumbnails.read });
+  f.controller.consume(state(1, single()));
+  f.controller.consume(state(2, single()));
+  const reply = (read, dataBase64) => read.resolve({ kind: 'desk-thumbnail', scopeRef: read.scopeRef,
+    deliveryRef: read.deliveryRef, itemRef: read.itemRef, image: { mediaType: 'image/jpeg', dataBase64, width: 320, height: 200 } });
+  reply(thumbnails.reads[0], 'AAAA');
+  await flush();
+  assert.equal(f.last().delivery.rows[0].thumbnail, null, 'a revision-1 picture is not applied to revision-2 state');
+  assert.equal(thumbnails.reads.length, 2, 'the picture is asked for again at the current revision');
+  reply(thumbnails.reads[1], 'BBBB');
+  await flush();
+  assert.equal(f.last().delivery.rows[0].thumbnail, 'data:image/jpeg;base64,BBBB');
+  f.controller.consume(state(3, single()));
+  await flush();
+  assert.equal(thumbnails.reads.length, 2, 'an applied picture is not reread on every later revision');
+});
+
+test('a lost picture or face read is asked again at the next Host revision, not in a loop', async () => {
+  let fail = true;
+  const counts = { avatar: 0, thumbnail: 0 };
+  const f = fixture({
+    avatar: ({ scopeRef, deliveryRef }) => {
+      counts.avatar += 1;
+      if (fail) throw new Error('lost');
+      return { kind: 'desk-avatar', scopeRef, deliveryRef, image: avatarImage('CCCC') };
+    },
+    thumbnail: ({ scopeRef, deliveryRef, itemRef }) => {
+      counts.thumbnail += 1;
+      if (fail) throw new Error('lost');
+      return { kind: 'desk-thumbnail', scopeRef, deliveryRef, itemRef, image: avatarImage('DDDD') };
+    },
+  });
+  f.controller.consume(state(1, single()));
+  await flush();
+  f.controller.setVisible(true);
+  f.controller.pause('hover');
+  await flush();
+  assert.deepEqual(counts, { avatar: 1, thumbnail: 1 }, 'renders at the same revision do not retry');
+  fail = false;
+  f.controller.consume(state(2, single()));
+  await flush();
+  assert.deepEqual(counts, { avatar: 2, thumbnail: 2 });
+  assert.equal(f.last().delivery.avatar, 'data:image/png;base64,CCCC');
+  assert.equal(f.last().delivery.rows[0].thumbnail, 'data:image/png;base64,DDDD');
 });
