@@ -62,6 +62,18 @@ test('a replacement real failure remains blocking', async () => {
   await both(pr, 'fail', [check.detailsUrl]);
 });
 
+for (const generation of ['new-run', 'rerun-attempt']) {
+  test(`a cancelled ${generation} cannot erase a previous real failure`, async () => {
+    const pr = sample(); const failed = old(pr); const replacement = current(pr);
+    if (generation === 'rerun-attempt') {
+      failed.checkSuite.workflowRun = { ...replacement.checkSuite.workflowRun, runAttempt: 1 };
+      replacement.checkSuite.workflowRun.runAttempt = 2;
+    }
+    replacement.conclusion = 'CANCELLED';
+    await both(pr, 'fail', [failed.detailsUrl]);
+  });
+}
+
 for (const separate of ['app', 'workflow', 'head', 'missing-identity', 'missing-replacement']) {
   test(`a failure without a verified replacement is kept: ${separate}`, async () => {
     const pr = sample(); const failed = old(pr); const link = failed.detailsUrl;

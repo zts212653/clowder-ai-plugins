@@ -80,6 +80,9 @@ function effectiveContexts(contexts: readonly GraphQlRollupContext[], headSha: s
     const info = identity(check, headSha);
     if (!info || check.__typename !== 'CheckRun') continue;
     identities.set(check, info);
+    // Cancellation is a non-result: it can be replaced, but cannot erase a
+    // preceding real result in either a newer run or a newer attempt.
+    if (check.conclusion?.toLowerCase() === 'cancelled') continue;
     const group = groups.get(info.key) ?? [];
     group.push(info); groups.set(info.key, group);
   }

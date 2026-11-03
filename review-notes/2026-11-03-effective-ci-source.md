@@ -26,6 +26,10 @@ check IDs. `WorkflowRun.runAttempt` is current suite metadata; a larger check ID
 alone does not prove that a same-name job was superseded. This intentionally
 retains ambiguous failures rather than manufacturing success.
 
+A cancelled check is also ineligible to replace any predecessor. It remains a
+non-result in the rollup and can itself be replaced by a later real observation.
+This applies to both newer workflow runs and newer attempts of the same run.
+
 The exact reader paginates locally and rejects cursor gaps/repetition, null rows,
 partial GraphQL errors and HEAD drift. The shared batch still performs one query
 and defers incomplete PRs to their own work item. Empty rollups stay pending.
@@ -50,7 +54,8 @@ per-PR deadlines and shared-batch isolation.
 Author checks:
 
 - GitHub Operations build and typecheck: exit 0.
-- Full GitHub Operations package tests: 752 passed, 0 failed after sequential build.
+- Full GitHub Operations package tests: 754 passed, 0 failed after the cancellation
+  correction; its five affected test files pass 155 checks.
 - Fresh source-only tarball installed in a separate consumer, with lifecycle
   scripts disabled. Actual GitHub reads at the same `7733392` HEAD: single and
   batch each return `pass`, 21 selected checks, no failures and no warnings.
@@ -87,3 +92,27 @@ rebases that WIP nor combines publication plans. No main merge, npm publication,
 catalog activation, official upgrade, runtime restart, subscription rebuild or
 public review retry is authorized here. Collector cursor/commentsComplete and
 historical 502 attribution remain outside this repair.
+
+# Review correction after runtime restart
+
+The independent reviewer reproduced a false pass when a newer matching check was
+`CANCELLED`: ordering alone removed the older `FAILURE`, and the cancelled result
+contributed nothing to the aggregate. Two regression cases (new run and same-run
+attempt) were observed RED as `pass !== fail`, then GREEN after excluding cancelled
+checks from replacement candidates. Both readers, details and classification now
+retain the previous failure. The existing successful 34-context case is unchanged.
+
+The correction changes one eligibility predicate and its regression coverage.
+The prior repository-wide gate and public CI failure remain attached to their
+original HEAD: both stopped at Machine catalog solely for the unpublished source
+bytes under the inherited alpha.31 coordinates. They are not a current-HEAD pass.
+For this delta, affected checks and the fresh source consumer are rerun; unrelated
+repository journeys are not repeated to recreate the already-known release block.
+
+PR1784 has since merged at `f13621aefa13e5dde296414f1e792c70c4fba00e`.
+The original live capture at `7733392` remains historical evidence. Correction
+validation uses the archived real 34-context input with the newly packed and
+separately installed source candidate, then the recorded installed alpha.31
+services with memory-only dependencies. The success case stays pass; the cancelled
+replacement case stays failed through both readers and the consumer readiness
+chain. These replays do not describe PR1784's current review projection.
