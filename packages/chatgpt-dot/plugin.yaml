@@ -1,6 +1,6 @@
 pluginId: official.chatgpt-dot
-version: 0.2.0-alpha.7
-contractVersion: 0.3.1-candidate.0
+version: 0.2.0-alpha.8
+contractVersion: 0.3.1-candidate.1
 name: ChatGPT Dot
 description:
   default: 将已配对的 ChatGPT Dot 接入对话，回复与原图回到召唤来源。
@@ -13,10 +13,9 @@ call:
   alias: dot
   displayName: Dot
 steps:
-  - text: 若 ChatGPT 已有本实例连接，不要新建或修改正式 Pro 连接；先由本实例主人恢复原共享入口。
-  - text: 全新隔离验收时，由本实例主人提供 HTTPS Server URL；在 https://chatgpt.com/plugins 点 + → Add custom MCP server。仅当 URL 自带验收 token 时，Authentication 选 No authentication。
-  - text: 本地确认连接范围后，在 ChatGPT 安装 personal plugin、Refresh 元数据，在 Work 对话用 @ 选择它，再按配对说明订阅 dot.summoned。
-  - text: 发起往返测试；读取原消息并回复校验码后，再检查测试结果。
+  - text: Dot 复用本实例已有的猫咖云端连接，不要求新建或修改第二条连接。
+  - text: 连接设置会按当前真实状态只显示下一步；授权、生成配对和重新配对都需要主人明确操作。
+  - text: ChatGPT 订阅后发起真实往返测试；页面确认读取原消息并收到校验回复后才显示可用。
 configuration:
   - key: webhookProxyUrl
     label: 回调代理（可选）
@@ -29,34 +28,52 @@ configuration:
     required: false
     actions:
       - id: status
-        label: 查看连接状态
+        label: 刷新状态
         render: status
-        action: { method: dot.status }
-      - id: begin
-        label: 准备连接
-        render: button
         resultRender: rows
-        confirm: 确认准备新的配对说明，并查看接入现有猫咖云端连接的授权范围？
-        action: { method: dot.begin }
+        action: { method: dot.status }
+      - id: prepare-shared
+        label: 准备授权
+        render: row
+        resultRender: rows
+        action: { method: dot.prepare-shared }
+      - id: begin-pairing
+        label: 生成配对说明
+        render: row
+        resultRender: rows
+        confirm: 确认生成一次新的 Dot 配对说明？
+        action: { method: dot.begin-pairing }
+      - id: show-instructions
+        label: 复制配对说明
+        render: row
+        action: { method: dot.show-instructions }
       - id: reconnect
-        label: 重新配对
-        render: button
+        label: 重新生成配对说明
+        render: row
+        resultRender: rows
         confirm: 这会撤销旧配对，旧召唤将不能继续回复。
         action: { method: dot.reconnect }
       - id: disconnect
         label: 断开连接
-        render: button
+        render: row
+        resultRender: rows
         confirm: 断开后无法接收召唤，已保存的消息和原图保留。
         action: { method: dot.disconnect }
       - id: roundtrip
         label: 发起往返测试
-        render: button
+        render: row
+        resultRender: rows
         action: { method: dot.roundtrip }
+      - id: check-roundtrip
+        label: 检查测试结果
+        render: row
+        resultRender: rows
+        action: { method: dot.check-roundtrip }
       - id: bind-shared
         label: 连接现有猫咖云端连接
         render: row
+        resultRender: rows
         confirm: 确认将这个安装公开的工具与事件接入现有猫咖云端连接？
-        next: begin
         action: { method: dot.bind-shared }
 test:
   action: { method: dot.test }

@@ -289,7 +289,7 @@ test("migration requires the Host-only owner-operation fence and is absent from 
 	);
 	await f.settings.dispose();
 	await assert.rejects(
-		() => f.settings.actions["dot.begin"]({}, undefined, f.owner),
+		() => f.settings.actions["dot.begin-pairing"]({}, undefined, f.owner),
 		/revoked/,
 	);
 });

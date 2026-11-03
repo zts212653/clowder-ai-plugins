@@ -1,210 +1,281 @@
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { createDotPlugin } from '../src/plugin-entrypoint.ts';
-import { fixture } from './fixture.mjs';
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { createDotPlugin } from "../src/plugin-entrypoint.ts";
+import { fixture, mcp } from "./fixture.mjs";
 
-test('prepare accepts the Host operation envelope and cannot be used to force a reconnect', async (t) => {
-  const f = fixture(t);
-  const settings = await createDotPlugin({ sendWebhook: f.sendWebhook }).settings(f.host);
-  t.after(() => settings.dispose());
-  const params = { input: { webhookProxyUrl: '' }, operationState: { currentAction: 'status', updatedAt: 1 } };
-  const first = await settings.actions['dot.begin'](params, undefined, f.owner);
-  assert.equal(first.render, 'rows');
-  assert.equal(JSON.stringify(first).includes(f.host.external.token), false);
-  const firstState = structuredClone(f.records.get('dot/connection/v1').value);
-  assert.ok(firstState.pairingCode);
-  await settings.actions['dot.begin'](params, undefined, f.owner);
-  const repeated = structuredClone(f.records.get('dot/connection/v1').value);
-  assert.equal(repeated.attemptId, firstState.attemptId);
-  // Only the separately declared, owner-confirmed reconnect action may rotate a pairing.
-  for (const input of [{ reconnect: true }, { input: { reconnect: true } }]) {
-    await settings.actions['dot.begin'](input, undefined, f.owner);
-    assert.equal(f.records.get('dot/connection/v1').value.attemptId, firstState.attemptId);
-  }
-  const renewed = (await settings.actions['dot.reconnect'](params, undefined, f.owner)).data;
-  assert.notEqual(renewed.attemptId, firstState.attemptId);
+async function runningFixture(t, setup = () => {}) {
+	const f = fixture(t);
+	await setup(f);
+	const module = createDotPlugin({ sendWebhook: f.sendWebhook });
+	const settings = await module.settings(f.host);
+	const active = await module.start(f.host);
+	t.after(async () => {
+		settings.dispose();
+		await active.stop({ reason: "test" });
+	});
+	return { f, settings };
+}
+
+function bindingView(base, state, revision = state === "unbound" ? 0 : 1) {
+	return { ...base, binding: { ...base.binding, state, revision } };
+}
+
+test("status is a pure rows projection and does not manufacture authorization, pairing, or tests", async (t) => {
+	const { f, settings } = await runningFixture(t);
+	const before = structuredClone(Object.fromEntries(f.records));
+	const first = await settings.actions["dot.status"]({}, undefined, f.owner);
+	const second = await settings.actions["dot.status"]({}, undefined, f.owner);
+	assert.equal(first.render, "rows");
+	assert.equal(first.data.rows[0].key, "pairing-not-started");
+	assert.deepEqual(second, first);
+	assert.deepEqual(Object.fromEntries(f.records), before);
 });
 
-test('shared confirmation is rendered byte-for-byte and the selected proposal ref reaches the fixed bind port', async (t) => {
-  const f = fixture(t);
-  const presentation = {
-    key: 'proposal-a',
-    label: 'Connect existing cloud link',
-    detail: 'Tools (1): dot_read; events (1): dot.summoned',
-    actions: [
-      {
-        action: 'bind-shared',
-        label: 'Connect',
-        confirm: 'Connect this exact surface?',
-        input: { proposalRef: 'proposal-a' },
-      },
-    ],
-  };
-  let bound;
-  f.host.external.shared = {
-    status: async () => ({ state: 'unbound' }),
-    prepare: async () => ({
-      proposalRef: 'proposal-a',
-      expiresAt: 100,
-      presentation,
-      connection: { state: 'pending' },
-    }),
-    bind: async (proposalRef) => {
-      bound = proposalRef;
-      return { state: 'active', endpoint: '/mcp', principal: 'gpt-pro', revision: 1, scope: { tools: 1, events: 1 } };
-    },
-    unbind: async () => assert.fail('unexpected unbind'),
-  };
-  const settings = await createDotPlugin({ sendWebhook: f.sendWebhook }).settings(f.host);
-  t.after(() => settings.dispose());
+test("Host prepare, Host bind, and Dot pairing are three separate owner actions", async (t) => {
+	const presentation = {
+		key: "proposal-a",
+		label: "Connect existing cloud link",
+		detail: "Tools (4); events (1)",
+		actions: [
+			{
+				action: "bind-shared",
+				label: "Connect",
+				confirm: "Connect this exact surface?",
+				input: { proposalRef: "proposal-a" },
+			},
+		],
+	};
+	let binding;
+	let boundRef;
+	let expiresAt;
+	const { f, settings } = await runningFixture(t, async (f) => {
+		const original = f.host.external.shared;
+		expiresAt = Date.now() + 60_000;
+		binding = bindingView(await original.status(), "unbound");
+		f.host.external.shared = {
+			status: async () => binding,
+			prepare: async () => ({
+				proposalRef: "proposal-a",
+				expiresAt,
+				presentation,
+				connection: binding,
+			}),
+			bind: async (proposalRef) => {
+				boundRef = proposalRef;
+				binding = bindingView(binding, "active");
+				return binding;
+			},
+			unbind: async () => assert.fail("unexpected unbind"),
+		};
+	});
 
-  const prepared = await settings.actions['dot.begin']({}, undefined, f.owner);
-  assert.deepEqual(prepared, { render: 'rows', data: { rows: [presentation] } });
-  assert.equal(JSON.stringify(prepared).includes(f.host.external.token), false);
-  assert.equal(
-    f.records.has('dot/connection/v1'),
-    false,
-    'pending Host approval must not create a pairing attempt before the owner confirms it',
-  );
-  const connected = await settings.actions['dot.bind-shared'](
-    { input: { proposalRef: 'proposal-a' } },
-    undefined,
-    f.owner,
-  );
-  assert.equal(bound, 'proposal-a');
-  assert.equal(connected.data.state, 'active');
-  assert.match(connected.data.instructions, /pairing_code=/);
+	const prepared = await settings.actions["dot.prepare-shared"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.deepEqual(prepared, {
+		render: "rows",
+		data: { rows: [presentation], validUntil: expiresAt },
+	});
+	assert.equal(f.records.has("dot/connection/v1"), false);
+
+	const connected = await settings.actions["dot.bind-shared"](
+		{ input: { proposalRef: "proposal-a" } },
+		undefined,
+		f.owner,
+	);
+	assert.equal(boundRef, "proposal-a");
+	assert.equal(connected.data.rows[0].key, "pairing-not-started");
+	assert.equal(f.records.has("dot/connection/v1"), false);
+
+	const begun = await settings.actions["dot.begin-pairing"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(begun.data.rows[0].key, "waiting-subscription");
+	assert.ok(f.records.get("dot/connection/v1").value.pairingCode);
+	const instructions = await settings.actions["dot.show-instructions"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(instructions.render, "text");
+	assert.match(instructions.data, /pairing_code=/);
+	assert.match(instructions.data, /personal plugin.*Refresh/);
 });
 
-test('shared connection state gates pairing instructions instead of inferring readiness from empty actions', async (t) => {
-  const cases = [
-    {
-      name: 'unavailable',
-      connection: { state: 'unavailable', reason: 'shared_principal_unavailable' },
-      presentation: {
-        key: 'shared-unavailable',
-        label: '现有猫咖云端连接不可用',
-        detail: '未找到这个主人的现有云端连接；插件自身配置仍可继续。',
-        actions: [],
-      },
-      expectsPairing: false,
-    },
-    {
-      name: 'pending',
-      connection: { state: 'pending' },
-      presentation: {
-        key: 'shared-pending',
-        label: '确认连接范围',
-        detail: '请确认准确的工具与事件范围。',
-        actions: [
-          {
-            action: 'bind-shared',
-            label: '连接',
-            confirm: '确认连接？',
-            input: { proposalRef: 'proposal-pending' },
-          },
-        ],
-      },
-      expectsPairing: false,
-    },
-    {
-      name: 'active',
-      connection: {
-        state: 'active',
-        endpoint: '/mcp',
-        principal: 'gpt-pro',
-        revision: 1,
-        scope: { tools: 4, events: 1 },
-      },
-      presentation: {
-        key: 'shared-active',
-        label: '已连接',
-        detail: '共享连接有效。',
-        actions: [],
-      },
-      expectsPairing: true,
-    },
-  ];
-
-  for (const item of cases) {
-    await t.test(item.name, async (t) => {
-      const f = fixture(t);
-      f.host.external.shared = {
-        status: async () => item.connection,
-        prepare: async () => ({
-          proposalRef: item.name === 'pending' ? 'proposal-pending' : '',
-          expiresAt: item.name === 'pending' ? Date.now() + 60_000 : 0,
-          presentation: item.presentation,
-          connection: item.connection,
-        }),
-        bind: async () => assert.fail('begin must not bind'),
-        unbind: async () => assert.fail('begin must not unbind'),
-      };
-      const settings = await createDotPlugin({ sendWebhook: f.sendWebhook }).settings(f.host);
-      t.after(() => settings.dispose());
-
-      const result = await settings.actions['dot.begin']({}, undefined, f.owner);
-      const serialized = JSON.stringify(result);
-      assert.equal(f.records.has('dot/connection/v1'), item.expectsPairing);
-      assert.equal(serialized.includes('pairing_code='), item.expectsPairing);
-      if (item.name === 'pending') {
-        assert.deepEqual(result, { render: 'rows', data: { rows: [item.presentation] } });
-      }
-      if (item.name === 'unavailable') {
-        assert.deepEqual(result.data.rows[0], item.presentation);
-        assert.match(serialized, /当前缺少.*cloud principal/);
-        assert.match(serialized, /本实例主人.*Server URL/);
-        assert.match(serialized, /https:\/\/chatgpt\.com\/plugins/);
-        assert.match(serialized, /Add custom MCP server/);
-        assert.match(serialized, /Authentication.*No authentication/);
-        assert.match(serialized, /personal plugin/);
-        assert.match(serialized, /Refresh/);
-        assert.match(serialized, /Work.*@/);
-        assert.equal(serialized.includes(f.host.external.token), false);
-      }
-      if (item.name === 'active') {
-        assert.match(serialized, /https:\/\/chatgpt\.com\/plugins/);
-        assert.match(serialized, /Refresh/);
-        assert.match(serialized, /dot\.summoned/);
-      }
-    });
-  }
+test("begin is idempotent and only the declared reconnect action rotates an existing attempt", async (t) => {
+	const { f, settings } = await runningFixture(t);
+	const params = {
+		input: { reconnect: true },
+		operationState: { currentAction: "status", updatedAt: 1 },
+	};
+	await settings.actions["dot.begin-pairing"](params, undefined, f.owner);
+	const first = structuredClone(f.records.get("dot/connection/v1").value);
+	await settings.actions["dot.begin-pairing"](params, undefined, f.owner);
+	assert.equal(
+		f.records.get("dot/connection/v1").value.attemptId,
+		first.attemptId,
+	);
+	await settings.actions["dot.reconnect"]({}, undefined, f.owner);
+	assert.notEqual(
+		f.records.get("dot/connection/v1").value.attemptId,
+		first.attemptId,
+	);
 });
 
-test('owner disconnect revokes the approved shared slot before revoking the Dot pairing', async (t) => {
-  const f = fixture(t);
-  const calls = [];
-  f.host.external.shared = {
-    status: async () => ({
-      state: 'active', endpoint: '/mcp', principal: 'gpt-pro', revision: 7, scope: { tools: 4, events: 1 },
-    }),
-    prepare: async () => ({
-      proposalRef: '',
-      expiresAt: 0,
-      presentation: { key: 'already-bound', label: 'Connected', detail: 'Shared connection active.', actions: [] },
-      connection: {
-        state: 'active', endpoint: '/mcp', principal: 'gpt-pro', revision: 7, scope: { tools: 4, events: 1 },
-      },
-    }),
-    bind: async () => assert.fail('unexpected bind'),
-    unbind: async (revision) => {
-      calls.push({ kind: 'unbind', revision });
-      return { state: 'revoked', endpoint: '/mcp', principal: 'gpt-pro', revision: 8, scope: { tools: 0, events: 0 } };
-    },
-  };
-  const settings = await createDotPlugin({ sendWebhook: f.sendWebhook }).settings(f.host);
-  t.after(() => settings.dispose());
-  await settings.actions['dot.begin']({}, undefined, f.owner);
-  const original = f.host.storage.compareAndSet.bind(f.host.storage);
-  f.host.storage.compareAndSet = async (...args) => {
-    calls.push({ kind: 'pairing-revoked' });
-    return original(...args);
-  };
+test("missing deployment produces one honest stage without pairing", async (t) => {
+	let prepared = 0;
+	const { f, settings } = await runningFixture(t, async (f) => {
+		const active = await f.host.external.shared.status();
+		const blocked = {
+			deployment: { ...active.deployment, state: "missing-endpoint" },
+			binding: bindingView(active, "unbound").binding,
+		};
+		f.host.external.shared = {
+			status: async () => blocked,
+			prepare: async () => {
+				prepared += 1;
+				return {
+					proposalRef: "",
+					expiresAt: 0,
+					presentation: {
+						key: "blocked",
+						label: "Blocked",
+						detail: "No endpoint",
+						actions: [],
+					},
+					connection: blocked,
+				};
+			},
+			bind: async () => assert.fail("unexpected bind"),
+			unbind: async () => assert.fail("unexpected unbind"),
+		};
+	});
 
-  await settings.actions['dot.disconnect']({}, undefined, f.owner);
+	const result = await settings.actions["dot.status"]({}, undefined, f.owner);
+	assert.equal(result.data.rows[0].key, "deployment-blocked");
+	assert.deepEqual(result.data.rows[0].actions ?? [], []);
+	assert.equal(prepared, 0);
+	assert.equal(f.records.has("dot/connection/v1"), false);
+});
 
-  assert.deepEqual(calls, [
-    { kind: 'unbind', revision: 7 },
-    { kind: 'pairing-revoked' },
-  ]);
+test("authority drift after pairing creation revokes that attempt before returning failure", async (t) => {
+	let calls = 0;
+	const { f, settings } = await runningFixture(t, async (f) => {
+		const active = await f.host.external.shared.status();
+		f.host.external.shared.status = async () =>
+			calls++ < 2 ? active : bindingView(active, "revoked", 2);
+	});
+
+	await assert.rejects(
+		() => settings.actions["dot.begin-pairing"]({}, undefined, f.owner),
+		/shared_binding_revoked/,
+	);
+	assert.ok(f.records.get("dot/connection/v1").value.revokedAt !== null);
+});
+
+test("owner disconnect revokes the approved shared slot before revoking the Dot pairing", async (t) => {
+	const calls = [];
+	const { f, settings } = await runningFixture(t, async (f) => {
+		const active = await f.host.external.shared.status();
+		f.host.external.shared = {
+			status: async () => bindingView(active, "active", 7),
+			prepare: async () => assert.fail("unexpected prepare"),
+			bind: async () => assert.fail("unexpected bind"),
+			unbind: async (revision) => {
+				calls.push({ kind: "unbind", revision });
+				return bindingView(active, "revoked", 8);
+			},
+		};
+	});
+	await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
+	const original = f.host.storage.compareAndSet.bind(f.host.storage);
+	f.host.storage.compareAndSet = async (...args) => {
+		if (args[0] === "dot/connection/v1")
+			calls.push({ kind: "pairing-revoked" });
+		return original(...args);
+	};
+
+	await settings.actions["dot.disconnect"]({}, undefined, f.owner);
+	assert.deepEqual(calls, [
+		{ kind: "unbind", revision: 7 },
+		{ kind: "pairing-revoked" },
+	]);
+});
+
+test("a known roundtrip delivery failure is immediately diagnosable and retry preserves prior evidence", async (t) => {
+	const f = fixture(t);
+	let ordinaryDeliveries = 0;
+	const module = createDotPlugin({
+		sendWebhook: async (url, headers, body, signal) => {
+			const data = JSON.parse(body);
+			if (data.type === "verification")
+				return f.sendWebhook(url, headers, body, signal);
+			ordinaryDeliveries += 1;
+			throw new Error("network unavailable");
+		},
+	});
+	const settings = await module.settings(f.host);
+	const active = await module.start(f.host);
+	t.after(async () => {
+		settings.dispose();
+		await active.stop({ reason: "test" });
+	});
+	await settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
+	const credentials = structuredClone(f.records.get("dot/connection/v1").value);
+	await mcp(active, {
+		request: {
+			method: "POST",
+			headers: {},
+			body: {
+				jsonrpc: "2.0",
+				id: 1,
+				method: "events/subscribe",
+				params: {
+					name: "dot.summoned",
+					arguments: {
+						attempt_id: credentials.attemptId,
+						pairing_code: credentials.pairingCode,
+					},
+					delivery: {
+						mode: "webhook",
+						url: "https://callbacks.example/dot",
+						secret: `whsec_${Buffer.alloc(32, 3).toString("base64")}`,
+					},
+					ttlMs: null,
+				},
+			},
+		},
+	});
+
+	const failed = await settings.actions["dot.roundtrip"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(failed.data.rows[0].key, "verification-failed");
+	const first = structuredClone(
+		f.records.get("dot/connection/v1").value.testEventIds,
+	);
+	assert.equal(first.length, 1);
+	assert.equal(
+		f.records.get(`dot/dispatch/${first[0]}`).value.deliveryError,
+		"dot_delivery_failed",
+	);
+
+	const retried = await settings.actions["dot.roundtrip"](
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(retried.data.rows[0].key, "verification-failed");
+	const retained = f.records.get("dot/connection/v1").value.testEventIds;
+	assert.ok(ordinaryDeliveries >= 2);
+	assert.equal(retained.length, 2);
+	assert.equal(retained[0], first[0]);
+	assert.ok(f.records.has(`dot/dispatch/${retained[0]}`));
+	assert.ok(f.records.has(`dot/dispatch/${retained[1]}`));
 });

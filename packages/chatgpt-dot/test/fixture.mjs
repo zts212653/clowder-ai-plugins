@@ -42,20 +42,23 @@ export function fixture(t) {
 			endpoint: "https://plugins.example/plugin/mcp",
 			token: `cpa_${"a".repeat(43)}`,
 			shared: {
-				status: async () => ({ state: "active", endpoint: "https://shared.example/mcp", principal: "gpt-pro", revision: 1, scope: { tools: 4, events: 1 } }),
+				status: async () => ({
+					deployment: { state: "configured", endpoint: "https://shared.example/mcp", principal: "gpt-pro" },
+					binding: { state: "active", revision: 1, scope: { tools: 4, events: 1 } },
+				}),
 				prepare: async () => ({
 					proposalRef: "",
 					expiresAt: 0,
 					presentation: { key: "already-bound", label: "已连接", detail: "共享连接有效。", actions: [] },
-					connection: { state: "active", endpoint: "https://shared.example/mcp", principal: "gpt-pro", revision: 1, scope: { tools: 4, events: 1 } },
+					connection: {
+						deployment: { state: "configured", endpoint: "https://shared.example/mcp", principal: "gpt-pro" },
+						binding: { state: "active", revision: 1, scope: { tools: 4, events: 1 } },
+					},
 				}),
 				bind: async () => assert.fail("already-bound fixture must not bind"),
 				unbind: async () => ({
-					state: "revoked",
-					endpoint: "https://shared.example/mcp",
-					principal: "gpt-pro",
-					revision: 2,
-					scope: { tools: 0, events: 0 },
+					deployment: { state: "configured", endpoint: "https://shared.example/mcp", principal: "gpt-pro" },
+					binding: { state: "revoked", revision: 2, scope: { tools: 0, events: 0 } },
 				}),
 			},
 		},
@@ -194,11 +197,11 @@ export async function paired(t) {
 	t.after(() => rm(f.host.dataPath, { recursive: true, force: true }));
 	f.module = createDotPlugin({ sendWebhook: f.sendWebhook });
 	f.settings = await f.module.settings(f.host);
-	const begun = await f.settings.actions["dot.begin"]({}, undefined, f.owner);
-	assert.equal(begun.render, "rows");
-	f.credentials = structuredClone(f.records.get("dot/connection/v1").value);
 	f.active = await f.module.start(f.host);
 	t.after(() => f.active.stop({ reason: "test" }));
+	const begun = await f.settings.actions["dot.begin-pairing"]({}, undefined, f.owner);
+	assert.equal(begun.render, "rows");
+	f.credentials = structuredClone(f.records.get("dot/connection/v1").value);
 	await mcp(f.active, {
 		request: {
 			method: "POST",

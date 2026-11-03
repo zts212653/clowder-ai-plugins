@@ -205,6 +205,8 @@ export type ActionDef = {
 export type OperationRows = {
   readonly rows: readonly OperationRow[];
   readonly empty?: string;
+  readonly validUntil?: number;
+  readonly pollUntil?: number;
 };
 export type OperationRow = {
   readonly key: string;

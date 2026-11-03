@@ -91,7 +91,7 @@ test("owner operations reject caller-supplied identity without Host owner contex
 	);
 	await assert.rejects(
 		() =>
-			f.settings.actions["dot.begin"]({}, undefined, {
+			f.settings.actions["dot.begin-pairing"]({}, undefined, {
 				...f.owner,
 				userId: "intruder",
 			}),
@@ -106,11 +106,14 @@ test("connection test distinguishes webhook receipt from source read and nonce-b
 		false,
 	);
 	const started = await f.active.actions["dot.roundtrip"](
-			{},
-			undefined,
-			f.owner,
-		),
-		eventId = started.data.eventId;
+		{},
+		undefined,
+		f.owner,
+	);
+	assert.equal(started.render, "rows");
+	const connection = (await f.host.storage.get("dot/connection/v1")).value,
+		eventId = connection.testEventIds.at(-1),
+		dispatch = (await f.host.storage.get(`dot/dispatch/${eventId}`)).value;
 	assert.equal(
 		(await f.active.actions["dot.test"]({}, undefined, f.owner)).ok,
 		false,
@@ -126,7 +129,7 @@ test("connection test distinguishes webhook receipt from source read and nonce-b
 	);
 	await rpc(f, "cat_cafe_dot_reply", {
 		event_id: eventId,
-		content: "confirmed " + started.data.nonce,
+		content: "confirmed " + dispatch.expectedNonce,
 	});
 	assert.equal(
 		(await f.active.actions["dot.test"]({}, undefined, f.owner)).ok,

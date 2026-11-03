@@ -14,41 +14,12 @@ import {
 } from "@clowder-ai/plugin-sdk";
 import { DotConnection, type DotSettingsHost } from "./connection.js";
 import { createDotWebhookSender, type DotWebhookSend } from "./dot-webhook.js";
+import { projectDotJourney } from "./journey-projection.js";
 import { httpRequestSchema, rpc } from "./rpc.js";
 import { DotRuntime, imageReference } from "./runtime.js";
 export interface DotPluginOptions {
 	readonly sendWebhook?: DotWebhookSend;
 	readonly now?: () => number;
-}
-const chatGptSetupRows = [
-	{
-		key: "dot-chatgpt-existing-connection",
-		label: "ChatGPT 已有本实例连接",
-		detail:
-			"不要新建或修改正式 Pro 连接。打开 https://chatgpt.com/plugins 中对应的 personal plugin；本地授权成功后点 Refresh，确认出现 Dot 工具和 dot.summoned，再到 Work 对话用 @ 选择它。",
-		actions: [],
-	},
-	{
-		key: "dot-chatgpt-isolated-connection",
-		label: "全新隔离验收连接",
-		detail:
-			"先向本实例主人取得这套实例的 HTTPS Server URL，再打开 https://chatgpt.com/plugins，点 + → Add custom MCP server。只粘贴主人提供的 URL；仅当该 URL 自带验收 token 时，Authentication 选 No authentication。Create as a plugin 后在 personal plugins 安装，授权后 Refresh，在 Work 对话用 @ 选择，最后按本页说明订阅 dot.summoned。",
-		actions: [],
-	},
-] as const;
-function unavailableGuidance(reason?: string) {
-	const missing =
-		reason === "shared_endpoint_unavailable"
-			? "当前缺少本实例的公开 HTTPS Server URL。"
-			: reason === "occupied"
-				? "当前共享连接已绑定到另一个已批准的安装。"
-				: "当前缺少本实例的 cloud principal。";
-	return {
-		key: "dot-shared-entry-missing",
-		label: "先恢复本实例的共享入口",
-		detail: `${missing} 请由本实例主人恢复这套实例自己的共享 /mcp，并提供它的 HTTPS Server URL；不要填写 localhost、虚构地址，也不要修改正式 Pro 连接。完成后再点“准备连接”。`,
-		actions: [],
-	} as const;
 }
 export function createDotPlugin(
 	options: DotPluginOptions = {},
@@ -101,83 +72,96 @@ export function createDotPlugin(
 		async settings(host) {
 			const controller = new AbortController(),
 				[current] = await connection(host as DotSettingsHost, controller);
+			const sharedPort = () => {
+				const shared = (host as DotSettingsHost).external.shared;
+				if (!shared) throw new Error("shared_connection_unavailable");
+				return shared;
+			};
+			const assertSharedActive = async () => {
+				const view = await sharedPort().status();
+				if (view.deployment.state !== "configured")
+					throw new Error(`shared_deployment_${view.deployment.state}`);
+				if (view.binding.state !== "active")
+					throw new Error(`shared_binding_${view.binding.state}`);
+				return view;
+			};
+			const statusRows = async (context?: PluginHostActionContext) => {
+				await current.owner(context);
+				const state = await current.store.connection();
+				const shared = await (host as DotSettingsHost).external.shared?.status();
+				const dispatches = state
+					? (await Promise.all(state.testEventIds.map((id) => current.store.dispatch(id)))).filter(
+							(value): value is NonNullable<typeof value> => value !== null,
+						)
+					: [];
+				return {
+					render: "rows" as const,
+					data: projectDotJourney({
+						runtimeRunning: Boolean(running),
+						shared,
+						connection: state,
+						dispatches,
+						now: (options.now ?? Date.now)(),
+					}),
+				};
+			};
 			const actions: Record<string, PluginActionHandler> = {
-				"dot.begin": async (_input, _native, context) => {
-					const shared = (host as DotSettingsHost).external.shared;
-					if (!shared) throw new Error("shared_connection_unavailable");
-					const proposal = await shared.prepare({ confirmationActionId: "bind-shared" });
-					// The pairing attempt remains plugin-owned, but it is useful only after
-					// the Host says the shared /mcp slot is active.  A proposal with no row
-					// actions can also mean "unavailable"; treating that as success leaks a
-					// pairing instruction which the cloud consumer cannot use.
-					const connection =
-						proposal.connection.state === "active" ? await current.begin(context) : undefined;
-					const guidance =
-						proposal.connection.state === "unavailable"
-							? [unavailableGuidance(proposal.connection.reason), ...chatGptSetupRows]
-							: proposal.connection.state === "active"
-								? chatGptSetupRows
-								: [];
+				"dot.status": async (_input, _native, context) => statusRows(context),
+				"dot.prepare-shared": async (_input, _native, context) => {
+					await current.owner(context);
+					if (!running) throw new Error("dot_runtime_unavailable");
+					const proposal = await sharedPort().prepare({ confirmationActionId: "bind-shared" });
+					if (proposal.proposalRef.length === 0) return statusRows(context);
 					return {
 						render: "rows",
 						data: {
-							rows: [
-								{
-									...proposal.presentation,
-									detail:
-										connection
-											? `${proposal.presentation.detail} ${connection.instructions}`
-											: proposal.presentation.detail,
-								},
-								...guidance,
-							],
+							rows: [proposal.presentation],
+							validUntil: proposal.expiresAt,
 						},
 					};
 				},
 				"dot.bind-shared": async (raw, _native, context) => {
-					const shared = (host as DotSettingsHost).external.shared;
-					if (!shared) throw new Error("shared_connection_unavailable");
 					const proposalRef =
 						raw && typeof raw === "object" && "input" in raw &&
 						(raw.input as { proposalRef?: unknown } | undefined)?.proposalRef;
 					if (typeof proposalRef !== "string" || proposalRef.length === 0)
 						throw new Error("shared_proposal_required");
-					const connection = await shared.bind(proposalRef);
-					const prepared = await current.begin(context);
-					return { render: "status", data: { ...connection, instructions: prepared.instructions } };
+					await sharedPort().bind(proposalRef);
+					return statusRows(context);
 				},
-				"dot.reconnect": async (_input, _native, context) => ({
+				"dot.begin-pairing": async (_input, _native, context) => {
+					await current.begin(context, false, assertSharedActive);
+					return statusRows(context);
+				},
+				"dot.show-instructions": async (_input, _native, context) => ({
 					render: "text",
-					data: await current.begin(context, true),
+					data: (await current.instructions(context)).instructions,
 				}),
+				"dot.reconnect": async (_input, _native, context) => {
+					await current.begin(context, true, assertSharedActive);
+					return statusRows(context);
+				},
+				"dot.roundtrip": async (_input, _native, context) => {
+					await assertSharedActive();
+					if (!running) throw new Error("dot_runtime_unavailable");
+					await running.testRoundtrip();
+					await assertSharedActive();
+					return statusRows(context);
+				},
+				"dot.check-roundtrip": async (_input, _native, context) => statusRows(context),
 				"dot.disconnect": async (_input, _native, context) => {
 					const shared = (host as DotSettingsHost).external.shared;
 					if (shared) {
-						const connection = await shared.status();
+						const connectionView = await shared.status();
 						if (
-							connection.state === "active" ||
-							connection.state === "needs-confirmation"
+							connectionView.binding.state === "active" ||
+							connectionView.binding.state === "needs-confirmation"
 						) {
-							await shared.unbind(connection.revision);
+							await shared.unbind(connectionView.binding.revision);
 						}
 					}
-					return {
-						render: "text",
-						data: await current.disconnect(context),
-					};
-				},
-				"dot.status": async (_input, _native, context) => {
-					await current.owner(context);
-					const state = await current.store.connection();
-					const shared = await (host as DotSettingsHost).external.shared?.status();
-					return {
-						render: "text",
-						data: {
-							...current.project(state),
-							live: running ? "running" : "unobserved",
-							shared: shared ?? { state: "unavailable" },
-						},
-					};
+					if (await current.store.connection()) await current.disconnect(context);
+					return statusRows(context);
 				},
 			};
 			const guarded = Object.fromEntries(

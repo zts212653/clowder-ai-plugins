@@ -10,7 +10,7 @@ export const dispatchSchema = z.object({
     sourceReadAt: z.number().nullable(), replyMessageId: ref.nullable(), imagePublicationIds: z.array(ref),
     imageReservationIds: z.array(ref).optional(), connectionTest: z.boolean().default(false),
     expectedNonce: z.string().regex(/^[a-f0-9]{16}$/).optional(), sourceRevision: ref.optional(),
-    replyDigest: ref.optional(), deliveryId: ref.optional(),
+    replyDigest: ref.optional(), deliveryId: ref.optional(), deliveryError: z.string().min(1).max(200).nullable().optional(),
 }).strict();
 export type Dispatch = z.infer<typeof dispatchSchema>;
 export const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');

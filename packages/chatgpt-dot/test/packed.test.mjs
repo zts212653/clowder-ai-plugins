@@ -77,21 +77,21 @@ test("canonical archive installs offline and survives two independently material
    const entry=import.meta.resolve('@clowder-ai/chatgpt-dot'),pkgRoot=dirname(dirname(fileURLToPath(entry)));
    const manifest=JSON.parse(process.argv[1]);
    const module=(await import(entry)).default.create(manifest),records=new Map();let revision=0;
-   let sharedView={state:'unavailable',endpoint:'',principal:'gpt-pro',revision:0,scope:{tools:0,events:0},reason:'shared_principal_unavailable'};
-   const host={pluginInstanceId:'fresh-instance',external:{endpoint:'https://plugins.example/plugin/mcp',token:'cpa_${"a".repeat(43)}',shared:{status:async()=>sharedView,prepare:async()=>sharedView.state==='active'?({proposalRef:'',expiresAt:0,presentation:{key:'already-bound',label:'Connected',detail:'Shared connection is active.',actions:[]},connection:sharedView}):({proposalRef:'',expiresAt:0,presentation:{key:'shared-principal-unavailable',label:'No shared connection',detail:'The instance has no cloud principal.',actions:[]},connection:sharedView}),bind:async()=>assert.fail('unexpected bind'),unbind:async()=>assert.fail('unexpected unbind')}},dataPath:join(process.cwd(),'private-data'),config:{get:async()=>undefined},secrets:{get:async()=>undefined},log(){},
+   let sharedView={deployment:{state:'missing-principal'},binding:{state:'unbound',revision:0,scope:{tools:0,events:0}}};
+   const host={pluginInstanceId:'fresh-instance',external:{endpoint:'https://plugins.example/plugin/mcp',token:'cpa_${"a".repeat(43)}',shared:{status:async()=>sharedView,prepare:async()=>assert.fail('status must not prepare shared authority'),bind:async()=>assert.fail('unexpected bind'),unbind:async()=>assert.fail('unexpected unbind')}},dataPath:join(process.cwd(),'private-data'),config:{get:async()=>undefined},secrets:{get:async()=>undefined},log(){},
     storage:{get:async key=>records.get(key),list:async()=>Object.fromEntries(records),compareAndSet:async(key,expected,value)=>{if((records.get(key)?.revision??null)!==expected)return{applied:false};records.set(key,{revision:++revision,value});return{applied:true,revision};}},
     messaging:{subscribe:async()=>assert.fail('unexpected global subscription'),unsubscribe:async()=>{},get:async()=>assert.fail('unexpected message read'),send:async()=>assert.fail('unexpected message send')},
     threads:{get:async()=>assert.fail('unexpected thread read'),create:async()=>assert.fail('unexpected thread creation'),getCats:async()=>assert.fail('unexpected member lookup'),readMessages:async()=>assert.fail('unexpected history read')}};
    const owner={kind:'owner-operation',pluginInstanceId:host.pluginInstanceId,userId:'owner',operationKey:'connection',actionId:'begin',requestId:'request',signal:new AbortController().signal,assertCurrent:async()=>{}};
-   const settings=await module.settings(host),missing=await settings.actions['dot.begin']({input:{webhookProxyUrl:''},operationState:{currentAction:'status',updatedAt:1}},undefined,owner),missingText=JSON.stringify(missing);
-   assert.equal(records.has('dot/connection/v1'),false);assert.equal(missingText.includes('https://chatgpt.com/plugins'),true);assert.match(missingText,/Add custom MCP server/);assert.match(missingText,/No authentication/);assert.match(missingText,/personal plugin/);assert.match(missingText,/Refresh/);assert.match(missingText,/Work/);assert.equal(missingText.includes(host.external.token),false);
-   sharedView={state:'active',endpoint:'https://shared.example/mcp',principal:'gpt-pro',revision:1,scope:{tools:4,events:1}};
-   const first=await settings.actions['dot.begin']({input:{webhookProxyUrl:''},operationState:{currentAction:'status',updatedAt:1}},undefined,owner),firstState=structuredClone(records.get('dot/connection/v1').value);
-   await settings.dispose();const active=await module.start(host);assert.equal(typeof active.deliver,'function');assert.equal(typeof active.handle,'function');
+   const active=await module.start(host),settings=await module.settings(host),missing=await settings.actions['dot.status']({},undefined,owner),missingText=JSON.stringify(missing);
+   assert.equal(records.has('dot/connection/v1'),false);assert.match(missingText,/shared|共享/i);assert.equal(missingText.includes('pairing_code'),false);assert.equal(missingText.includes(host.external.token),false);
+   sharedView={deployment:{state:'configured',endpoint:'https://shared.example/mcp',principal:'gpt-pro'},binding:{state:'active',revision:1,scope:{tools:4,events:1}}};
+   assert.equal(typeof active.deliver,'function');assert.equal(typeof active.handle,'function');
+   const first=await settings.actions['dot.begin-pairing']({},undefined,owner),firstState=structuredClone(records.get('dot/connection/v1').value);
    assert.equal((await active.actions['dot.test']({},undefined,owner)).ok,false);await active.stop({reason:'disabled'});
-   const secondSettings=await module.settings(host),second=await secondSettings.actions['dot.begin']({input:{webhookProxyUrl:''},operationState:{currentAction:'begin',updatedAt:2}},undefined,owner),secondState=structuredClone(records.get('dot/connection/v1').value);
+   await settings.dispose();const restarted=await module.start(host),secondSettings=await module.settings(host),second=await secondSettings.actions['dot.begin-pairing']({},undefined,owner),secondState=structuredClone(records.get('dot/connection/v1').value);
    assert.equal(first.render,'rows');assert.equal(second.render,'rows');assert.equal(firstState.attemptId,secondState.attemptId);assert.equal(JSON.stringify(first).includes(host.external.token),false);
-   await secondSettings.dispose();const restarted=await module.start(host);await restarted.stop({reason:'uninstall'});await module.uninstall(host);
+   await secondSettings.dispose();await restarted.stop({reason:'uninstall'});await module.uninstall(host);
    console.log(JSON.stringify({offlineInstall:true,setup:true,enableStopRestart:true,retained:true}));
   `,
 				JSON.stringify(actualManifest),

@@ -12,7 +12,7 @@ Dot 把已配对的 ChatGPT 云端对话接入 Clowder AI。安装实例可作�
 
 已有本实例 ChatGPT 连接时，打开 <https://chatgpt.com/plugins> 中对应的 personal plugin；本地授权后执行 Refresh，再在 Work 对话用 `@` 选择它。只有全新隔离验收才点 `+` → `Add custom MCP server`，并粘贴本实例主人提供的 HTTPS Server URL；仅当该 URL 自带验收 token 时，Authentication 选择 `No authentication`。创建后还要安装 personal plugin、Refresh 并核对 Dot 工具和 `dot.summoned`，最后按返回的配对说明订阅召唤事件。实际可用的安装、设置和旧连接导入入口由配套 Host 提供。
 
-配对固定到所选云端回调地址。选择「重新配对」会换掉配对标识，旧召唤将失效；「断开连接」撤销当前配对。Host 为每个安装提供一份外部 MCP 地址和 token，插件只读取并展示，不再生成第二套口令。旧连接迁移会把仍有效的旧口令收编为这份安装 token，无需重填。请勿把 token 贴到公共对话或诊断日志。
+配对固定到所选云端回调地址。选择「重新生成配对说明」会换掉配对标识，旧召唤将失效；「断开连接」会先撤销 Dot 对共享连接的授权，再撤销当前配对。正常流程复用 Host 管理的共享 `/mcp` 连接；Dot 只接收授权状态与能力范围，不读取或展示共享入口 token，也不会生成第二套连接口令。旧安装的独立凭据仅作为兼容迁移边界留在 Host 管理下，不会进入普通设置说明。请勿把任何连接 token 贴到公共对话或诊断日志。
 
 代理为可选项，仅支持本机 HTTP CONNECT 代理；默认直接使用经过地址校验和 DNS 固定的 HTTPS 回调。别名、图标与安装实例标识由 Host 管理。
 

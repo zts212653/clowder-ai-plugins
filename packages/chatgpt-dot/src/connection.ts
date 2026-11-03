@@ -22,12 +22,15 @@ export type DotSettingsHost = ModulePluginSettingsHost & {
     };
 };
 export interface SharedConnectionView {
-    readonly state: 'unbound' | 'pending' | 'active' | 'needs-confirmation' | 'revoked' | 'unavailable';
-    readonly endpoint: string;
-    readonly principal: string;
-    readonly revision: number;
-    readonly scope: { readonly tools: number; readonly events: number };
-    readonly reason?: string;
+    readonly deployment:
+        | { readonly state: 'configured'; readonly endpoint: string; readonly principal: string }
+        | { readonly state: 'missing-endpoint'; readonly principal: string }
+        | { readonly state: 'missing-principal' };
+    readonly binding: {
+        readonly state: 'unbound' | 'active' | 'needs-confirmation' | 'revoked' | 'occupied';
+        readonly revision: number;
+        readonly scope: { readonly tools: number; readonly events: number };
+    };
 }
 export interface SharedProposalView {
     readonly proposalRef: string;
@@ -112,8 +115,14 @@ export class DotConnection {
             throw new Error('dot_subscription_required');
         return state;
     }
-    async begin(context: PluginHostActionContext | undefined, reconnect = false) {
+    async begin(
+        context: PluginHostActionContext | undefined,
+        reconnect = false,
+        assertAuthority: () => Promise<unknown> = async () => {},
+    ) {
+        await assertAuthority();
         const owner = await this.owner(context);
+        await assertAuthority();
         const state = await this.store.updateConnection(previous => {
             this.assertLive();
             if (previous && previous.ownerUserId !== owner)
@@ -125,8 +134,28 @@ export class DotConnection {
                 pairingCode: randomBytes(16).toString('hex'), pairingExpiresAt: this.now() + 30 * 60000, pairedAt: null, pairedCallbackUrl: null,
                 subscription: null, lastSourceReadAt: null, lastReplyAt: null, lastImageAt: null, revokedAt: null, testEventIds: [] };
         });
+        try {
+            await assertAuthority();
+        }
+        catch (error) {
+            await this.store.updateConnection(current => {
+                if (!current || current.attemptId !== state.attemptId)
+                    throw new Error('dot_stale_connection');
+                return { ...current, revision: current.revision + 1, revokedAt: current.revokedAt ?? this.now() };
+            });
+            throw error;
+        }
+        return this.instructionsFor(state);
+    }
+    private instructionsFor(state: DotConnectionState) {
         return { ...this.project(state), pairingCode: state.pairingCode,
-            instructions: `启用本插件后，订阅 dot.summoned，attempt_id=${state.attemptId}，pairing_code=${state.pairingCode}。每次先读取原消息，再在原对话回复。` };
+            instructions: `在 ChatGPT 已有的猫咖 personal plugin 中点 Refresh，确认出现 Dot 工具与 dot.summoned；在目标 Work 对话用 @ 选择它，然后订阅 dot.summoned：attempt_id=${state.attemptId}，pairing_code=${state.pairingCode}。每次先读取原消息，再在原对话回复。` };
+    }
+    async instructions(context: PluginHostActionContext | undefined) {
+        await this.owner(context);
+        const state = await this.current();
+        if (state.pairingExpiresAt <= this.now()) throw new Error('dot_pairing_expired_or_mismatched');
+        return this.instructionsFor(state);
     }
     async subscribe(input: {
         attemptId: string;

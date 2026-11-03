@@ -698,6 +698,18 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 200
+        },
+        "validUntil": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Absolute Unix epoch milliseconds after which this exact response must no longer be acted on."
+        },
+        "pollUntil": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Absolute Unix epoch milliseconds bounding read-only observation of an external transition."
         }
       },
       "required": [

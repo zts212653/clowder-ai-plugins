@@ -182,6 +182,7 @@ export class DotRuntime {
 						replyMessageId: null,
 						imagePublicationIds: [],
 						connectionTest: false,
+						deliveryError: null,
 					}
 				);
 			});
@@ -623,15 +624,15 @@ export class DotRuntime {
 			dispatchInvocationId: execution,
 			attemptId: state.attemptId,
 			agentKeyId: state.agentKeyId,
-			occurredAt: Date.now(),
+			occurredAt: this.connection.now(),
 			webhookAcknowledgedAt: null,
 			sourceReadAt: null,
 			replyMessageId: null,
 			imagePublicationIds: [],
 			connectionTest: true,
 			expectedNonce: nonce,
+			deliveryError: null,
 		}));
-		await this.sendEvent((await this.connection.store.dispatch(id))!);
 		await this.connection.store.updateConnection((current) => {
 			this.connection.assertLive();
 			if (!current || current.attemptId !== state.attemptId)
@@ -642,6 +643,15 @@ export class DotRuntime {
 				testEventIds: [...current.testEventIds.slice(-1), id],
 			};
 		});
-		return { eventId: id, nonce, complete: false };
+		try {
+			await this.sendEvent((await this.connection.store.dispatch(id))!);
+			return { eventId: id, nonce, complete: false };
+		} catch {
+			await this.connection.store.updateDispatch(id, (current) => {
+				if (!current) throw new Error("dot_dispatch_missing");
+				return { ...current, deliveryError: "dot_delivery_failed" };
+			});
+			return { eventId: id, nonce, complete: false, deliveryError: "dot_delivery_failed" };
+		}
 	}
 }

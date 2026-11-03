@@ -112,9 +112,8 @@ test("verification transport also carries the original unpaired attempt fence", 
 		},
 	});
 	f.settings = await f.module.settings(f.host);
-	f.credentials = (
-		await f.settings.actions["dot.reconnect"]({}, undefined, f.owner)
-	).data;
+	await f.settings.actions["dot.reconnect"]({}, undefined, f.owner);
+	f.credentials = (await f.host.storage.get(CONNECTION_KEY)).value;
 	f.active = await f.module.start(f.host);
 	const old = f.credentials,
 		before = f.webhooks.length;

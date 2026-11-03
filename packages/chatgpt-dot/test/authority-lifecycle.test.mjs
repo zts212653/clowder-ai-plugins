@@ -146,10 +146,13 @@ test("stable Host access cannot keep an old ask alive across reconnect", async (
 		client_message_id: "old-attempt",
 	});
 	await entered.promise;
-	const next = (
-		await f.settings.actions["dot.reconnect"]({}, undefined, f.owner)
-	).data;
-	assert.equal(Object.hasOwn(next, "external"), false);
+	const presentation = await f.settings.actions["dot.reconnect"](
+		{},
+		undefined,
+		f.owner,
+	);
+	const next = (await f.host.storage.get(CONNECTION_KEY)).value;
+	assert.equal(JSON.stringify(presentation).includes("pairingCode"), false);
 	assert.notEqual(next.attemptId, f.credentials.attemptId);
 	const state = (await f.host.storage.get(CONNECTION_KEY)).value;
 	await f.host.storage.set(CONNECTION_KEY, {
@@ -252,9 +255,8 @@ test("repeated owner disconnect preserves the first imported revocation timestam
 			})
 			.catch((error) => ({ error }));
 		await entered.promise;
-		const next = (
-			await f.settings.actions["dot.reconnect"]({}, undefined, f.owner)
-		).data;
+		await f.settings.actions["dot.reconnect"]({}, undefined, f.owner);
+		const next = (await f.host.storage.get(CONNECTION_KEY)).value;
 		const state = (await f.host.storage.get(CONNECTION_KEY)).value;
 		await f.host.storage.set(CONNECTION_KEY, {
 			...state,
