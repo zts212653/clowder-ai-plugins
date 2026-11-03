@@ -75,7 +75,6 @@ appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ args, input }) + '\\
 const statePath = ${JSON.stringify(statePath)}, issues = JSON.parse(readFileSync(statePath));
 if (args.includes('--paginate')) { console.log(issues.map(issue => JSON.stringify(issue)).join('\\n')); process.exit(0); }
 const payload = JSON.parse(input);
-if (args.some(arg => arg.endsWith('/comments'))) { console.log(JSON.stringify({ id: 1, ...payload })); process.exit(0); }
 let issue;
 if (args.includes('POST')) { issue = { number: issues.length + 1, state: 'open', ...payload }; issues.push(issue); }
 else { issue = issues.find(row => args.includes('repos/example/plugins/issues/' + row.number)); if (!issue) process.exit(2); Object.assign(issue, payload); }
@@ -93,17 +92,40 @@ writeFileSync(statePath, JSON.stringify(issues)); console.log(JSON.stringify(iss
   assert.equal(audited.status, 0, audited.stdout + audited.stderr);
   assert.match(audited.stdout, /ARGV:\["--audit","--","--notify"\]/);
   const rows = releaseStatus(candidate, live, plans, { now }); rows[0].published = true;
+  rows[0].state = 'overdue'; syncReleaseIssues(rows, { repository: 'example/plugins' });
+  let stored = JSON.parse(await readFile(statePath, 'utf8'));
+  assert.equal(stored.length, 2, 'overdue must create a fresh opened event, not merely a comment');
+  assert.deepEqual(stored.map(issue => issue.state), ['closed', 'open']);
+  assert.match(stored[1].body, /overdue/);
+  const beforeRepeat = (await readFile(logPath, 'utf8')).trim().split('\n').length;
+  syncReleaseIssues(rows, { repository: 'example/plugins' });
+  assert.equal((await readFile(logPath, 'utf8')).trim().split('\n').length, beforeRepeat + 1,
+    'the same alert only reads existing issues, without another write');
   rows[0].plan.owner = 'sonnet'; syncReleaseIssues(rows, { repository: 'example/plugins' });
-  rows[0].state = 'active'; syncReleaseIssues(rows, { repository: 'example/plugins' });
+  stored = JSON.parse(await readFile(statePath, 'utf8'));
+  assert.equal(stored.length, 3, 'a new owner also needs a fresh opened event');
+  assert.deepEqual(stored.map(issue => issue.state), ['closed', 'closed', 'open']);
+  rows[0].plan.reason = 'Updated dependency details'; syncReleaseIssues(rows, { repository: 'example/plugins' });
+  assert.equal(JSON.parse(await readFile(statePath, 'utf8')).length, 3, 'same alert metadata is updated in place');
+
+  // A reviewed deadline extension can later expire again. The old, closed
+  // overdue issue must not be reused, because that would lose the new opening.
+  plans.releases[0].reviewBy = '2026-11-07T08:00:00Z';
+  const renewed = releaseStatus(candidate, live, plans, { now: Date.parse('2026-11-08T00:00:00Z') });
+  renewed[0].published = true; syncReleaseIssues(renewed, { repository: 'example/plugins' });
+  stored = JSON.parse(await readFile(statePath, 'utf8'));
+  assert.equal(stored.length, 4, 'a later review deadline gets its own overdue opening');
+  assert.deepEqual(stored.map(issue => issue.state), ['closed', 'closed', 'closed', 'open']);
+  renewed[0].state = 'active'; syncReleaseIssues(renewed, { repository: 'example/plugins' });
   const writes = (await readFile(logPath, 'utf8')).trim().split('\n').map(JSON.parse).filter(call => call.args.includes('--method'));
-  assert.deepEqual(writes.map(call => call.args[call.args.indexOf('--method') + 1]), ['POST', 'POST', 'PATCH', 'PATCH']);
+  assert.equal(writes.filter(call => call.args.includes('POST')).length, 4);
+  assert.equal(writes.filter(call => call.args.includes('PATCH')).length, 5);
   for (const call of writes) assert.deepEqual(call.args.slice(-2), ['--input', '-']);
+  assert.ok(writes.every(call => !call.args.some(arg => arg.endsWith('/comments'))));
   assert.match(JSON.parse(writes[0].input).body, /codex61-sol/);
-  assert.ok(writes[1].args.some(arg => arg.endsWith('/comments')));
-  assert.match(JSON.parse(writes[1].input).body, /sonnet/);
-  assert.match(JSON.parse(writes[2].input).body, /sonnet/);
-  assert.deepEqual(JSON.parse(writes[3].input), { state: 'closed' });
-  assert.equal(JSON.parse(await readFile(statePath, 'utf8'))[0].state, 'closed');
+  assert.match(JSON.parse(writes[3].input).body, /sonnet/);
+  assert.deepEqual(JSON.parse(writes.at(-1).input), { state: 'closed' });
+  assert.ok(JSON.parse(await readFile(statePath, 'utf8')).every(issue => issue.state === 'closed'));
 
   plans.releases = []; await save();
   const unowned = pnpm('catalog:release-check', '--', '--base-sha', base);

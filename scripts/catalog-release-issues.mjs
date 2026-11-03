@@ -8,7 +8,9 @@ function gh(args, input) {
   return result.stdout;
 }
 
-const marker = row => `<!-- catalog-release:v1:${row.pluginId}@${row.version} -->`;
+// Each actionable phase, owner or renewed review deadline needs a new issue
+// opening: the repository inbox delivers openings, not arbitrary body edits.
+const marker = row => `<!-- catalog-release:v1:${row.pluginId}@${row.version}:${row.state}:${row.plan?.owner ?? 'release-maintainers'}:${row.plan?.reviewBy ?? 'no-plan'} -->`;
 
 function reminderBody(row) {
   const plan = row.plan;
@@ -39,15 +41,11 @@ export function syncReleaseIssues(rows, { repository, runGh = gh } = {}) {
     wanted.add(key);
     const issue = existing.find(issue => issue.body.includes(key));
     const body = reminderBody(row);
-    const title = `Catalog follow-up: ${row.pluginId}@${row.version} (${row.plan?.owner ?? 'unowned'})`;
+    const title = `Catalog follow-up [${row.state}]: ${row.pluginId}@${row.version} (${row.plan?.owner ?? 'unowned'})`;
     if (!issue) {
       const created = JSON.parse(runGh(['api', '--method', 'POST', `repos/${repository}/issues`, '--input', '-'], { title, body }));
       actions.push({ action: 'created', number: created.number, pluginId: row.pluginId, owner: row.plan?.owner });
     } else if (issue.body !== body || issue.state !== 'open') {
-      // Repo Inbox polls comments as well as new issues. Notify before recording
-      // the new body so a failed send is retried rather than silently consumed.
-      runGh(['api', '--method', 'POST', `repos/${repository}/issues/${issue.number}/comments`, '--input', '-'],
-        { body: `Catalog follow-up changed\n\n${body}` });
       runGh(['api', '--method', 'PATCH', `repos/${repository}/issues/${issue.number}`, '--input', '-'], { title, body, state: 'open' });
       actions.push({ action: 'updated', number: issue.number, pluginId: row.pluginId, owner: row.plan?.owner });
     }
