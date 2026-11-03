@@ -34,6 +34,7 @@ on:
       - 'packages/github-operations/**'
       - 'packages/feedback/**'
       - 'packages/stackchan/**'
+      - 'packages/superagent/**'
       - 'catalog/**'
       - 'scripts/**'
       - 'package.json'
