@@ -57,8 +57,19 @@ in the original history; do not infer current delivery, approval or ownership.
 
 Use current subject inspection for derived PR/issue status. Follow its
 pagination cursor for older/later records.
-These observations do not register a typed review verdict or complete an action
+These observations do not register a Host typed review verdict or complete an action
 lease; those remain the Host's authenticated governance operations.
+
+Use `github_record_external_review_verdict` in the assigned reviewer's authenticated
+thread to record a private exact-HEAD review result. It does not publish to GitHub
+or complete a Host Task/action lease. A refusal returns `status`, `body.error.code`,
+`outcome` and a recovery action. Read `lastReviewVerdictFailure` through exact subject
+inspection for its timestamp, request attribution and redacted diagnostic; it is the
+latest failed attempt, not the current review state. `diagnosticPersisted=false` means
+that failure could not be saved. `unknown` requires inspecting current events and
+projection before retrying the unchanged submission. Keep the original delivery URL;
+do not republish a GitHub review, change reviewer ownership, or reuse approval for a
+new HEAD to repair private registration. `pending_verification` is not completion.
 
 Use the triage-recommendation tool to compare supplied observations. Its source
 labels identify evidence, not authenticated reviewers. A recommendation never

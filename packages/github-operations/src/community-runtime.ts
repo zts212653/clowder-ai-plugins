@@ -22,6 +22,7 @@ import { SdkCommunityIssueStore } from './business/domains/community/CommunityIs
 import { copyLegacyIssueObservations, legacyIssueOperationInput } from './legacy-issue-observations.js';
 import { communityProgressKey as stateKey, copyLegacyRepositoryProgress, restoreLegacyRepositoryProgress } from './legacy-repository-progress.js';
 import { copyLegacyProviderHistory, inspectLegacyProviderHistory } from './legacy-provider-history.js';
+import { readReviewVerdictFailure } from './review-verdict-failure.js';
 
 export interface RepoSubject {
   kind: 'pr' | 'issue'; number: number; title: string; url: string;
@@ -219,6 +220,7 @@ export class CommunityRuntime {
       const subject = input.subjectKey.toLowerCase();
       const events = await this.events.read(subject, from);
       return { data: { subjectKey: subject, projection: await this.objects.get(subject),
+        lastReviewVerdictFailure: await readReviewVerdictFailure(this.context.storage, subject),
         events: events.slice(0, limit), nextSequence: events.length > limit ? from + limit : null } };
     });
   }
