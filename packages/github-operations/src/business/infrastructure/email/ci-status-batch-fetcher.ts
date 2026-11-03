@@ -1,13 +1,8 @@
 /** F304: batched GitHub GraphQL reader for one cicd-check tick. */
 import { GitHubRateLimitError } from '../github/request-budget.js';
-import type { CiCheckDetail, CiPollResult } from './ci-cd-contract.js';
-import {
-  computeAggregateBucket,
-  executeGh,
-  type FetchPrCiStatusOptions,
-  normalizeBucket,
-  normalizePrState,
-} from './ci-status-fetcher.js';
+import type { CiPollResult } from './ci-cd-contract.js';
+import { executeGh, type FetchPrCiStatusOptions } from './ci-status-common.js';
+import { ciRollupFields, graphQlPrToPollResult, rollupPage, type GraphQlPr, type GraphQlRollupContext } from './ci-status-rollup.js';
 
 export interface PrCiStatusTarget {
   readonly repoFullName: string;
@@ -19,46 +14,6 @@ export function ciStatusTargetKey(repoFullName: string, prNumber: number): strin
 }
 
 type MinimalLog = { warn: (...args: unknown[]) => void };
-
-interface GraphQlCheckRun {
-  readonly __typename: 'CheckRun';
-  readonly name: string;
-  readonly status: string;
-  readonly conclusion: string | null;
-  readonly detailsUrl?: string | null;
-  readonly checkSuite?: {
-    readonly workflowRun?: { readonly workflow?: { readonly name?: string | null } | null } | null;
-  } | null;
-}
-
-interface GraphQlStatusContext {
-  readonly __typename: 'StatusContext';
-  readonly context: string;
-  readonly state: string;
-  readonly description?: string | null;
-  readonly targetUrl?: string | null;
-}
-
-type GraphQlRollupContext = GraphQlCheckRun | GraphQlStatusContext;
-
-interface GraphQlPr {
-  readonly headRefOid: string;
-  readonly state: string;
-  readonly mergedAt: string | null;
-  readonly mergedBy: { readonly login?: string | null } | null;
-  readonly commits?: {
-    readonly nodes?: ReadonlyArray<{
-      readonly commit?: {
-        readonly statusCheckRollup?: {
-          readonly contexts?: {
-            readonly nodes?: readonly GraphQlRollupContext[];
-            readonly pageInfo?: { readonly hasNextPage?: boolean };
-          } | null;
-        } | null;
-      } | null;
-    }>;
-  } | null;
-}
 
 interface BatchTargetRef extends PrCiStatusTarget {
   readonly repoAlias: string;
@@ -86,6 +41,13 @@ function stdoutFromExecError(error: unknown): string | null {
   return stdout instanceof Uint8Array ? new TextDecoder().decode(stdout) : null;
 }
 
+function hasPrErrors(parsed: BatchGraphQlResponse, ref: BatchTargetRef): boolean {
+  if (!parsed.errors) return false;
+  if (!Array.isArray(parsed.errors)) return true;
+  return parsed.errors.some((error: { path?: unknown }) => !Array.isArray(error?.path) || error.path.length === 0 ||
+    (error.path[0] === ref.repoAlias && (error.path.length < 2 || error.path[1] === ref.prAlias)));
+}
+
 function splitRepo(repoFullName: string): { owner: string; name: string } | null {
   const separator = repoFullName.indexOf('/');
   if (separator <= 0 || separator === repoFullName.length - 1 || repoFullName.indexOf('/', separator + 1) !== -1) {
@@ -94,7 +56,7 @@ function splitRepo(repoFullName: string): { owner: string; name: string } | null
   return { owner: repoFullName.slice(0, separator), name: repoFullName.slice(separator + 1) };
 }
 
-function buildBatchQuery(targets: readonly PrCiStatusTarget[]): {
+function buildBatchQuery(targets: readonly PrCiStatusTarget[], after?: string): {
   readonly query: string;
   readonly refs: readonly BatchTargetRef[];
 } {
@@ -119,11 +81,9 @@ function buildBatchQuery(targets: readonly PrCiStatusTarget[]): {
         (target) => `${target.prAlias}: pullRequest(number: ${target.prNumber}) {
           headRefOid state mergedAt mergedBy { login }
           commits(last: 1) { nodes { commit { statusCheckRollup {
-            contexts(first: 100) { nodes {
-              __typename
-              ... on CheckRun { name status conclusion detailsUrl checkSuite { workflowRun { workflow { name } } } }
-              ... on StatusContext { context state description targetUrl }
-            } pageInfo { hasNextPage } }
+            contexts(first: 100${after ? `, after: ${JSON.stringify(after)}` : ''}) { nodes {
+              ${ciRollupFields}
+            } pageInfo { hasNextPage endCursor } }
           } } } }
         }`,
       )
@@ -133,67 +93,6 @@ function buildBatchQuery(targets: readonly PrCiStatusTarget[]): {
     }`;
   });
   return { query: `query BatchPrCi { ${repositories.join('\n')} }`, refs };
-}
-
-function graphQlRollup(pr: GraphQlPr): readonly GraphQlRollupContext[] {
-  return pr.commits?.nodes?.at(-1)?.commit?.statusCheckRollup?.contexts?.nodes ?? [];
-}
-
-function mapGraphQlCheck(context: GraphQlRollupContext): CiCheckDetail {
-  if (context.__typename === 'StatusContext') {
-    return {
-      name: context.context,
-      bucket: normalizeBucket(context.state),
-      ...(context.targetUrl ? { link: context.targetUrl } : {}),
-      ...(context.description ? { description: context.description } : {}),
-    };
-  }
-  const workflow = context.checkSuite?.workflowRun?.workflow?.name;
-  return {
-    name: context.name,
-    bucket: normalizeBucket(context.conclusion ?? context.status),
-    ...(context.detailsUrl ? { link: context.detailsUrl } : {}),
-    ...(workflow ? { workflow } : {}),
-  };
-}
-
-function graphQlPrToPollResult(ref: BatchTargetRef, pr: GraphQlPr, log: MinimalLog): CiPollResult | null {
-  const key = ciStatusTargetKey(ref.repoFullName, ref.prNumber);
-  const prState = normalizePrState(pr.state, pr.mergedAt);
-  if (prState === 'merged' || prState === 'closed') {
-    return {
-      repoFullName: ref.repoFullName,
-      prNumber: ref.prNumber,
-      headSha: pr.headRefOid,
-      prState,
-      aggregateBucket: 'pending',
-      checks: [],
-      ...(pr.mergedBy?.login ? { mergedByLogin: pr.mergedBy.login } : {}),
-    };
-  }
-
-  const rollupContext = pr.commits?.nodes?.at(-1)?.commit?.statusCheckRollup?.contexts;
-  if (rollupContext?.pageInfo?.hasNextPage) {
-    log.warn(`[ci-status] ${key} has more than 100 rollup contexts; deferring its exact read to its work item`);
-    return null;
-  }
-  const contexts = graphQlRollup(pr);
-  const rollup = contexts.map((context) => ({
-    status: context.__typename === 'StatusContext' ? context.state : context.status,
-    conclusion: context.__typename === 'StatusContext' ? '' : (context.conclusion ?? ''),
-    __typename: context.__typename,
-  }));
-  const aggregateBucket = computeAggregateBucket(rollup);
-  const checks = contexts.map(mapGraphQlCheck);
-  return {
-    repoFullName: ref.repoFullName,
-    prNumber: ref.prNumber,
-    headSha: pr.headRefOid,
-    prState,
-    aggregateBucket,
-    checkRollup: contexts.length === 0 ? 'empty' : 'present',
-    checks,
-  };
 }
 
 /**
@@ -234,8 +133,51 @@ export async function fetchPrCiStatuses(
   for (const ref of refs) {
     options.signal?.throwIfAborted();
     const pr = parsed.data?.[ref.repoAlias]?.[ref.prAlias];
-    if (!pr?.headRefOid) continue;
-    results.set(ciStatusTargetKey(ref.repoFullName, ref.prNumber), graphQlPrToPollResult(ref, pr, log));
+    if (!pr?.headRefOid || hasPrErrors(parsed, ref)) continue;
+    results.set(ciStatusTargetKey(ref.repoFullName, ref.prNumber), graphQlPrToPollResult(ref, pr));
   }
   return results;
+}
+
+/** PR-local pagination; never run inside the shared batch deadline. Every page
+ * must observe the same HEAD, otherwise this poll has no coherent snapshot.
+ */
+export async function fetchExactPrCiStatus(
+  target: PrCiStatusTarget, log: MinimalLog, options: FetchPrCiStatusOptions,
+): Promise<CiPollResult | null> {
+  let first: GraphQlPr | undefined;
+  const contexts: Array<GraphQlRollupContext | null> = [];
+  const cursors = new Set<string>();
+  let after: string | undefined;
+  for (;;) {
+    options.signal?.throwIfAborted();
+    const { query, refs } = buildBatchQuery([target], after);
+    const ref = refs[0];
+    if (!ref) return null;
+    let parsed: BatchGraphQlResponse | null;
+    try {
+      const { stdout } = await executeGh(['api', 'graphql', '-f', `query=${query}`], options);
+      parsed = parseBatchGraphQlResponse(stdout);
+    } catch (error) {
+      options.signal?.throwIfAborted();
+      if (error instanceof GitHubRateLimitError) throw error;
+      log.warn(`[ci-status] exact GraphQL poll failed for ${target.repoFullName}#${target.prNumber}: ${String(error)}`);
+      return null;
+    }
+    const pr = parsed?.data?.[ref.repoAlias]?.[ref.prAlias];
+    if (!parsed || !pr?.headRefOid || hasPrErrors(parsed, ref) || (first && first.headRefOid !== pr.headRefOid)) return null;
+    first ??= pr;
+    const page = rollupPage(pr);
+    if (pr.state !== 'OPEN' || !page) return graphQlPrToPollResult(target, pr);
+    if (!page.nodes || typeof page.pageInfo?.hasNextPage !== 'boolean') return null;
+    contexts.push(...page.nodes);
+    if (!page.pageInfo.hasNextPage) return graphQlPrToPollResult(target, {
+      ...pr, commits: { nodes: [{ commit: { statusCheckRollup: {
+        contexts: { nodes: contexts, pageInfo: { hasNextPage: false } },
+      } } }] },
+    });
+    const cursor = page.pageInfo.endCursor;
+    if (!cursor || cursors.has(cursor)) return null;
+    cursors.add(cursor); after = cursor;
+  }
 }
