@@ -169,14 +169,7 @@ export async function applyPlan(
         await editQueue(host, 'questions', question!.id, false);
       }
     } else if (decision.kind === 'ask' || decision.kind === 'deliver') {
-      const message = await publish(
-        host,
-        mainThreadId,
-        work,
-        key,
-        `${work.title}：${decision.content}`,
-        decision.kind === 'ask',
-      );
+      const message = await publish(host, mainThreadId, work, key, `${work.title}：${decision.content}`, true);
       await host.tasks.update(task.id, {
         status: 'blocked',
         entrustedWork: {
