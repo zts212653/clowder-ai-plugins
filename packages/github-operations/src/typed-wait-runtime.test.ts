@@ -1076,22 +1076,29 @@ test('real CI transport isolates detail/truncation deadlines and resolves the co
       if (polling) calls.push({ args, token: options.env?.GITHUB_TOKEN, signal: options.signal });
       const path = args[1]!;
       if (path === 'graphql') {
-        batches++; token = 'isolated-detail-token';
+        const shared = args.some(arg => arg.includes('p1: pullRequest'));
+        if (polling && !shared && mode === 'truncated') {
+          const signal = options.signal!; localSignals.push(signal);
+          await new Promise<void>((_resolve, reject) => {
+            if (signal.aborted) reject(signal.reason); else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+          });
+          throw new Error('unreachable');
+        }
+        if (shared) { batches++; token = 'isolated-detail-token'; }
         const pr = (bad: boolean) => ({ headRefOid: head, state: 'OPEN', commits: { nodes: [{ commit: { statusCheckRollup: { contexts: {
-          nodes: [{ __typename: 'CheckRun', name: 'gate', status: 'COMPLETED', conclusion: bad ? 'FAILURE' : 'SUCCESS' }],
+          nodes: polling ? [{ __typename: 'CheckRun', name: 'gate', status: 'COMPLETED', conclusion: bad ? 'FAILURE' : 'SUCCESS' }] : [],
           pageInfo: { hasNextPage: bad && mode === 'truncated' },
         } } } }] } });
-        return { stdout: JSON.stringify({ data: { r0: { p0: pr(true), p1: pr(false) } } }) };
+        return { stdout: JSON.stringify({ data: { r0: { p0: pr(shared), ...(shared ? { p1: pr(false) } : {}) } } }) };
       }
       if (polling && args[0] === 'pr' && args[2] === '1') {
-        assert.equal(path, mode === 'failure' ? 'checks' : 'view');
+        assert.equal(path, 'checks');
         const signal = options.signal!; localSignals.push(signal);
         await new Promise<void>((_resolve, reject) => {
           if (signal.aborted) reject(signal.reason); else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
         });
         throw new Error('unreachable');
       }
-      if (args[0] === 'pr' && path === 'view') return { stdout: JSON.stringify({ headRefOid: head, state: 'OPEN', statusCheckRollup: [] }) };
       if (path === 'user') return { stdout: 'self' };
       if (/\/pulls\/(1|2)$/.test(path)) return { stdout: JSON.stringify({ state: 'open', head: { sha: head }, user: { login: 'self' } }) };
       if (path.includes('/comments?') || path.includes('/reviews?')) return { stdout: '' };

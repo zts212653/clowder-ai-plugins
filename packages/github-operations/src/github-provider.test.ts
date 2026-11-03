@@ -8,6 +8,14 @@ import { createRepoCommentPoller } from './business/infrastructure/connectors/gi
 
 const target = { kind: 'pr' as const, repoFullName: 'example/project', number: 12, threadId: 'thread-1', catId: 'cat-1' };
 
+function ciJson(headRefOid: string, contexts: readonly unknown[] = []) {
+  return { stdout: JSON.stringify({ data: { r0: { p0: { headRefOid, state: 'OPEN',
+    commits: { nodes: [{ commit: { statusCheckRollup: { contexts: {
+      nodes: contexts, pageInfo: { hasNextPage: false },
+    } } } }] },
+  } } } }) };
+}
+
 function repositoryCommentsFixture(failLastPage = false) {
   const calls: string[] = [];
   const provider = new GitHubProvider({ token: async () => 'isolated-repository-comments', log: { warn() {} },
@@ -125,7 +133,7 @@ test('cloud observation fetches complete paginated comment history and retains r
   const head = 'a'.repeat(40);
   const provider = new GitHubProvider({ token: async () => undefined, log: { warn() {} }, execFileAsync: async (_file, args) => {
     const path = args[1]!; calls.push(path);
-    if (args[0] === 'pr' && path === 'view') return { stdout: JSON.stringify({ headRefOid: head, state: 'OPEN', statusCheckRollup: [] }) };
+    if (path === 'graphql') return ciJson(head);
     if (path === 'user') return { stdout: 'owner' };
     if (path === '/repos/example/project/pulls/12') return { stdout: JSON.stringify({ state: 'open', head: { sha: head } }) };
     if (path.includes('/pulls/12/comments?')) {
@@ -177,7 +185,7 @@ function fixture() {
   let rollup: unknown[] = [];
   const exec: NonNullable<GitHubRequestOptions['execFileAsync']> = async (file, args) => {
     assert.equal(file, 'gh'); calls.push(args);
-    if (args[0] === 'pr' && args[1] === 'view') return { stdout: JSON.stringify({ headRefOid: head, state: 'OPEN', statusCheckRollup: rollup }) };
+    if (args[1] === 'graphql') return ciJson(head, rollup);
     if (args[0] === 'pr' && args[1] === 'checks') return { stdout: '[]' };
     const path = args[1]!;
     if (path === 'user') return { stdout: 'owner\n' };
@@ -243,9 +251,9 @@ test('real provider preserves billing-only infrastructure classification and ref
     execFileAsync: async (_file, args) => {
       const json = (value: unknown) => ({ stdout: JSON.stringify(value) });
       const head = 'a'.repeat(40);
-      if (args[0] === 'pr' && args[1] === 'view') return json({ headRefOid: head, state: 'OPEN', statusCheckRollup: [
-        { __typename: 'CheckRun', status: 'COMPLETED', conclusion: 'FAILURE' },
-      ] });
+      if (args[1] === 'graphql') return ciJson(head, ['build', ...(mixed ? ['tests'] : [])].map(name => ({
+        __typename: 'CheckRun', name, status: 'COMPLETED', conclusion: 'FAILURE',
+      })));
       if (args[0] === 'pr' && args[1] === 'checks') return json([
         { name: 'build', bucket: 'fail' }, ...(mixed ? [{ name: 'tests', bucket: 'fail' }] : []),
       ]);

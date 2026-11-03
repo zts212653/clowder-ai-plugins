@@ -1,156 +1,41 @@
-/**
- * #320: Standalone CI status fetcher (pure gh CLI calls — no store dependency).
- * Single source of truth for CI bucket/state interpretation, consumed by CiCdCheckTaskSpec.
- */
-import { executeGitHubRequest, GitHubRateLimitError } from '../github/request-budget.js';
-import type { CiBucket, CiCheckDetail, CiPollResult } from './ci-cd-contract.js';
+/** Shared effective CI facts; PR-local execution diagnostics are layered afterward. */
+import { GitHubRateLimitError } from '../github/request-budget.js';
+import type { CiCheckDetail, CiPollResult } from './ci-cd-contract.js';
 import { enrichGitHubExecutionFailures } from './ci-execution-failure.js';
+import { executeGh, normalizeBucket, type FetchPrCiStatusOptions } from './ci-status-common.js';
+import { fetchExactPrCiStatus } from './ci-status-batch-fetcher.js';
 
-export {
-  classifyGitHubExecutionFailure,
-  type GitHubExecutionFailureEvidence,
-} from './ci-execution-failure.js';
+export { executeGh, computeAggregateBucket, normalizeBucket, normalizePrState } from './ci-status-common.js';
+export type { FetchPrCiStatusOptions, GhExecFileAsync } from './ci-status-common.js';
+export { classifyGitHubExecutionFailure, type GitHubExecutionFailureEvidence } from './ci-execution-failure.js';
 
-export type GhExecFileAsync = (file: string, args: readonly string[], options: unknown) => Promise<{ stdout: string }>;
-
-export interface FetchPrCiStatusOptions {
-  readonly ghToken?: string;
-  /** Scheduler cancellation for every gh process in this poll generation. */
-  readonly signal?: AbortSignal;
-  /** Test seam at the real gh JSON boundary; production always uses node:child_process. */
-  readonly execFileAsync?: GhExecFileAsync;
-}
-
-type MinimalLog = {
-  warn: (...args: unknown[]) => void;
-  debug?: (...args: unknown[]) => void;
-};
-
-export async function executeGh(args: readonly string[], options: FetchPrCiStatusOptions): Promise<{ stdout: string }> {
-  return executeGitHubRequest([...args], options);
-}
+type MinimalLog = { warn: (...args: unknown[]) => void; debug?: (...args: unknown[]) => void };
 
 export async function fetchPrCiStatus(
-  repoFullName: string,
-  prNumber: number,
-  log: MinimalLog,
-  options: FetchPrCiStatusOptions = {},
+  repoFullName: string, prNumber: number, log: MinimalLog, options: FetchPrCiStatusOptions = {},
 ): Promise<CiPollResult | null> {
-  let prViewJson: string;
-  try {
-    const { stdout } = await executeGh(
-      [
-        'pr',
-        'view',
-        String(prNumber),
-        '-R',
-        repoFullName,
-        '--json',
-        'headRefOid,state,mergedAt,mergedBy,statusCheckRollup',
-      ],
-      options,
-    );
-    prViewJson = stdout;
-  } catch (err) {
-    options.signal?.throwIfAborted();
-    if (err instanceof GitHubRateLimitError) throw err;
-    log.warn(`[ci-status] gh pr view failed for ${repoFullName}#${prNumber}: ${String(err)}`);
-    return null;
-  }
-
-  let prView: {
-    headRefOid: string;
-    state: string;
-    mergedAt: string | null;
-    mergedBy: { login: string } | null;
-    statusCheckRollup: Array<{ name: string; status: string; conclusion: string; __typename: string }>;
-  };
-  try {
-    prView = JSON.parse(prViewJson);
-  } catch {
-    log.warn(`[ci-status] Failed to parse gh pr view output for ${repoFullName}#${prNumber}`);
-    return null;
-  }
-
-  const prState = normalizePrState(prView.state, prView.mergedAt);
-  if (prState === 'merged' || prState === 'closed') {
-    return {
-      repoFullName,
-      prNumber,
-      headSha: prView.headRefOid,
-      prState,
-      aggregateBucket: 'pending',
-      checks: [],
-      mergedByLogin: prView.mergedBy?.login,
-    };
-  }
-
-  const rollup = prView.statusCheckRollup ?? [];
-  const aggregateBucket = computeAggregateBucket(rollup);
-
-  let checks: CiCheckDetail[] = [];
-  if (aggregateBucket !== 'pending') {
-    checks = await fetchCheckDetails(repoFullName, prNumber, prView.headRefOid, log, options);
-  }
-
-  return {
-    repoFullName,
-    prNumber,
-    headSha: prView.headRefOid,
-    prState,
-    aggregateBucket,
-    checkRollup: rollup.length === 0 ? 'empty' : 'present',
-    checks,
-  };
+  const poll = await fetchExactPrCiStatus({ repoFullName, prNumber }, log, options);
+  return poll ? enrichPrCiStatus(poll, log, options) : null;
 }
 
-/** Failure details are PR-local work; never hold the shared CI fact snapshot. */
+/** Diagnostics may narrow to required failures, but may never reintroduce an
+ * obsolete check or replace a canonical result with an unrelated same-name job.
+ */
 export async function enrichPrCiStatus(
-  poll: CiPollResult,
-  log: MinimalLog,
-  options: FetchPrCiStatusOptions = {},
+  poll: CiPollResult, log: MinimalLog, options: FetchPrCiStatusOptions = {},
 ): Promise<CiPollResult> {
   options.signal?.throwIfAborted();
   if (poll.prState !== 'open' || poll.aggregateBucket !== 'fail') return poll;
-  const checks = (await fetchRequiredFailingChecks(poll.repoFullName, poll.prNumber, options)) ?? [...poll.checks];
+  const required = await fetchRequiredFailingChecks(poll.repoFullName, poll.prNumber, options);
+  const matching = required?.map(check => poll.checks.find(current =>
+    !!check.link && check.link === current.link && check.name === current.name && check.bucket === current.bucket));
+  const checks = matching?.length && matching.every(check => check !== undefined)
+    ? matching as CiCheckDetail[] : [...poll.checks];
   const enriched = await enrichGitHubExecutionFailures({
-    signal: options.signal,
-    repoFullName: poll.repoFullName,
-    headSha: poll.headSha,
-    checks,
-    ghApiJson: (path) => ghApiJson(path, options),
-    warn: (message) => log.warn(message),
+    signal: options.signal, repoFullName: poll.repoFullName, headSha: poll.headSha, checks,
+    ghApiJson: path => ghApiJson(path, options), warn: message => log.warn(message),
   });
   return { ...poll, checks: enriched };
-}
-
-async function fetchCheckDetails(
-  repoFullName: string,
-  prNumber: number,
-  headSha: string,
-  log: MinimalLog,
-  options: FetchPrCiStatusOptions,
-): Promise<CiCheckDetail[]> {
-  let checks = await fetchRequiredFailingChecks(repoFullName, prNumber, options);
-  if (!checks) {
-    try {
-      checks = await fetchGhCheckDetails(repoFullName, prNumber, false, options);
-    } catch (err) {
-      options.signal?.throwIfAborted();
-      if (err instanceof GitHubRateLimitError) throw err;
-      log.warn(`[ci-status] gh pr checks failed for ${repoFullName}#${prNumber}: ${String(err)}`);
-      return [];
-    }
-  }
-
-  return enrichGitHubExecutionFailures({
-    signal: options.signal,
-    repoFullName,
-    headSha,
-    checks,
-    ghApiJson: (path) => ghApiJson(path, options),
-    warn: (message) => log.warn(message),
-  });
 }
 
 async function fetchGhCheckDetails(
@@ -205,50 +90,4 @@ export async function fetchRequiredFailingChecks(
 export async function ghApiJson<T>(path: string, options: FetchPrCiStatusOptions): Promise<T> {
   const { stdout } = await executeGh(['api', path], options);
   return JSON.parse(stdout) as T;
-}
-
-export function normalizePrState(state: string, mergedAt: string | null): 'open' | 'merged' | 'closed' {
-  if (mergedAt || state === 'MERGED') return 'merged';
-  if (state === 'CLOSED') return 'closed';
-  return 'open';
-}
-
-export function normalizeBucket(bucket: string): CiBucket {
-  const lower = bucket.toLowerCase();
-  if (lower === 'pass' || lower === 'success') return 'pass';
-  if (lower === 'fail' || lower === 'failure' || lower === 'error') return 'fail';
-  return 'pending';
-}
-
-export function computeAggregateBucket(
-  rollup: Array<{ status: string; conclusion: string; __typename: string }>,
-): CiBucket {
-  // An empty rollup is ambiguous: GitHub may not have created the check runs yet
-  // for a fresh HEAD, or the repository may define no checks. Neither is positive
-  // CI evidence, so the router keeps this pending across later polls too.
-  if (rollup.length === 0) return 'pending';
-  let hasFailure = false;
-  let hasPending = false;
-  let hasSuccess = false; // at least one REAL positive result (success/skipped/neutral)
-  for (const item of rollup) {
-    if (item.__typename === 'StatusContext') {
-      const state = item.status?.toLowerCase();
-      if (state === 'failure' || state === 'error') hasFailure = true;
-      else if (state === 'success') hasSuccess = true;
-      else hasPending = true; // pending / expected
-    } else {
-      const conclusion = item.conclusion?.toLowerCase();
-      // 'cancelled' is a superseded/aborted NON-result: GitHub auto-cancels in-progress runs when a
-      // newer commit is pushed. It is neither a failure (so it can't fire a false CI-fail) nor a
-      // success — GitHub's success states are success/skipped/neutral, NOT cancelled. So a PR needs
-      // at least one REAL positive result to be 'pass': [cancelled + passing-re-run] → pass, but
-      // [cancelled only] → pending (never a false green light for a waiting merge-gate).
-      if (conclusion === 'failure' || conclusion === 'timed_out') hasFailure = true;
-      else if (conclusion === 'success' || conclusion === 'skipped' || conclusion === 'neutral') hasSuccess = true;
-      else if (conclusion !== 'cancelled') hasPending = true; // in-progress / no conclusion / unknown
-    }
-  }
-  if (hasFailure) return 'fail';
-  if (hasPending) return 'pending';
-  return hasSuccess ? 'pass' : 'pending'; // only cancelled / no positive result → not a green light
 }

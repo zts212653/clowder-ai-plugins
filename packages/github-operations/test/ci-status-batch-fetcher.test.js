@@ -247,53 +247,21 @@ describe('fetchPrCiStatuses batch failure isolation', () => {
 
   it('leaves incomplete snapshots unknown until the exact PR-local reader completes', async () => {
     const commands = [];
-    const options = {
-      async execFileAsync(file, args) {
-        assert.equal(file, 'gh');
-        commands.push([...args]);
-        const command = args.join(' ');
-        if (command.startsWith('api graphql ')) {
-          return {
-            stdout: JSON.stringify({
-              data: {
-                r0: {
-                  p0: graphQlPr({
-                    sha: 'c'.repeat(40),
-                    contexts: [
-                      {
-                        __typename: 'CheckRun',
-                        name: 'gate',
-                        status: 'IN_PROGRESS',
-                        conclusion: null,
-                      },
-                    ],
-                    hasNextPage: true,
-                  }),
-                },
-              },
-            }),
-          };
-        }
-        if (command.startsWith('pr view ')) {
-          return {
-            stdout: JSON.stringify({
-              headRefOid: 'c'.repeat(40),
-              state: 'OPEN',
-              mergedAt: null,
-              mergedBy: null,
-              statusCheckRollup: [{ name: 'gate', status: 'IN_PROGRESS', conclusion: '', __typename: 'CheckRun' }],
-            }),
-          };
-        }
-        throw new Error(`unexpected gh command: ${command}`);
-      },
-    };
+    const options = { async execFileAsync(file, args) {
+      assert.equal(file, 'gh'); commands.push([...args]);
+      assert.equal(args[1], 'graphql');
+      const after = args.some(arg => arg.includes('after: "cursor-1"'));
+      const pr = graphQlPr({ sha: 'c'.repeat(40), contexts: [checkRun(after ? 'second' : 'first', null)], hasNextPage: !after });
+      pr.commits.nodes[0].commit.statusCheckRollup.contexts.pageInfo.endCursor = after ? null : 'cursor-1';
+      return { stdout: JSON.stringify({ data: { r0: { p0: pr } } }) };
+    } };
     const results = await fetchPrCiStatuses([{ repoFullName: 'owner/repo', prNumber: 7 }], { warn() {} }, options);
     assert.equal(results.get('owner/repo#7'), null);
     assert.equal(commands.length, 1);
     const exact = await fetchPrCiStatus('owner/repo', 7, { warn() {} }, options);
     assert.equal(exact.aggregateBucket, 'pending');
-    assert.ok(commands.some((args) => args[0] === 'pr' && args[1] === 'view'));
+    assert.equal(commands.length, 3);
+    assert.deepEqual(exact.checks.map(check => check.name), ['first', 'second']);
   });
 });
 
