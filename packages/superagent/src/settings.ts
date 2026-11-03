@@ -1,7 +1,7 @@
 import type { PluginActionHandler, PluginHostActionContext } from '@clowder-ai/plugin-sdk';
 import { z } from 'zod';
 import type { SuperagentHost } from './runtime.js';
-import { editQueue, inboxSchema, type Preferences, preferencesSchema, queued, read } from './state.js';
+import { editPreferences, editQueue, inboxSchema, type Preferences, preferencesSchema, queued, read } from './state.js';
 
 const directory = z.object({ before: z.object({ lastActiveAt: z.number(), id: z.string() }).optional() }).strict();
 
@@ -122,54 +122,63 @@ export function createSettings(
         })
         .passthrough()
         .parse(input);
-      const pref = await preferences();
       if (selection.selection === 'thread') {
         if (!(await host.threads.get(selection.id))) throw new Error('会话不可用');
-        pref.threadIds = pref.threadIds.includes(selection.id)
-          ? pref.threadIds.filter((id) => id !== selection.id)
-          : [...pref.threadIds, selection.id];
       } else {
         const member = await host.members?.get(selection.id);
+        const pref = await preferences();
         const removing = selection.selection === 'worker' && pref.workerIds.includes(selection.id);
         if (!removing && !member?.available) throw new Error('成员不可用');
-        if (selection.selection === 'coordinator') pref.coordinatorId = selection.id;
-        else
-          pref.workerIds = pref.workerIds.includes(selection.id)
-            ? pref.workerIds.filter((id) => id !== selection.id)
-            : [...pref.workerIds, selection.id];
       }
-      await owner(context);
-      await host.storage.set('preferences', pref);
+      await editPreferences(
+        host,
+        (pref) => {
+          if (selection.selection === 'coordinator') return { ...pref, coordinatorId: selection.id };
+          const key = selection.selection === 'thread' ? 'threadIds' : 'workerIds';
+          return {
+            ...pref,
+            [key]: pref[key].includes(selection.id)
+              ? pref[key].filter((id) => id !== selection.id)
+              : [...pref[key], selection.id],
+          };
+        },
+        () => owner(context),
+      );
       await refresh();
       return actions['superagent.settings']({});
     },
     async 'superagent.enable'(_input, _caller, context) {
       current();
       await owner(context, true);
-      const pref = await preferences();
       const name = await host.config.get('botName');
       const responsibility = await host.config.get('responsibility');
-      const next = preferencesSchema.parse({
-        ...pref,
-        ...(name === undefined ? {} : { name }),
-        ...(responsibility === undefined ? {} : { responsibility }),
-        enabled: true,
-        started: true,
-      });
-      if (!next.coordinatorId || !next.workerIds.length || !next.threadIds.length || !next.responsibility.trim())
-        throw new Error('请先选择协调成员、执行成员、监听会话，并保存允许处理的工作范围。');
-      await owner(context, true);
-      await host.storage.set('preferences', next);
+      await editPreferences(
+        host,
+        (pref) => {
+          const next = preferencesSchema.parse({
+            ...pref,
+            ...(name === undefined ? {} : { name }),
+            ...(responsibility === undefined ? {} : { responsibility }),
+            enabled: true,
+            started: true,
+          });
+          if (!next.coordinatorId || !next.workerIds.length || !next.threadIds.length || !next.responsibility.trim())
+            throw new Error('请先选择协调成员、执行成员、监听会话，并保存允许处理的工作范围。');
+          return next;
+        },
+        () => owner(context, true),
+      );
       await refresh();
       return { render: 'status', data: '已启用，开始跟进选定会话。' };
     },
     async 'superagent.pause'(_input, _caller, context) {
       current();
       await owner(context);
-      await host.storage.set('preferences', {
-        ...(await preferences()),
-        enabled: false,
-      });
+      await editPreferences(
+        host,
+        (pref) => ({ ...pref, enabled: false }),
+        () => owner(context),
+      );
       await refresh();
       return { render: 'status', data: '已暂停新接单与派发，工作和历史保留。' };
     },

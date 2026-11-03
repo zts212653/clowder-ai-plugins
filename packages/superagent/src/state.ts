@@ -16,6 +16,19 @@ export const preferencesSchema = z
   })
   .strict();
 export type Preferences = z.infer<typeof preferencesSchema>;
+export async function editPreferences(
+  host: SuperagentHost,
+  update: (value: Preferences) => Preferences,
+  current: () => Promise<void>,
+) {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const row = await host.storage.get('preferences');
+    const next = update(preferencesSchema.parse(row?.value ?? {}));
+    await current();
+    if ((await host.storage.compareAndSet('preferences', row?.revision ?? null, next)).applied) return next;
+  }
+  throw new Error('设置正在更新，请重试本次选择');
+}
 export const runtimeSchema = z.object({ mainThreadId: id.optional(), error: z.string().optional() }).strict();
 export const inboxSchema = z
   .object({

@@ -29,50 +29,58 @@ export type SuperagentHost = Pick<ModulePluginHostShape, 'pluginInstanceId' | 'c
 export async function startSuperagent(host: SuperagentHost): Promise<PluginModuleActivationShape> {
   let stopped = false;
   let tail = Promise.resolve();
+  let reconciliation = Promise.resolve();
   const subscribed = new Set<string>();
   const current = () => {
     if (stopped) throw new Error('Superagent stopped');
   };
   const preferences = async () => preferencesSchema.parse((await host.storage.get('preferences'))?.value ?? {});
-  const reconcile = async () => {
-    current();
-    const pref = await preferences();
-    let runtime = (await read(host, 'runtime', runtimeSchema)) ?? {};
-    if (!runtime.mainThreadId && pref.coordinatorId) {
-      const main = await host.threads.create({
-        title: pref.name,
-        participants: [pref.coordinatorId],
-      });
-      runtime = { ...runtime, mainThreadId: main.id };
-      await host.storage.set('runtime', runtime);
-    }
-    if (runtime.mainThreadId && pref.coordinatorId) {
-      const main = await host.threads.get(runtime.mainThreadId);
-      if (!main) throw new Error('Bot conversation unavailable');
-      if (main.title !== pref.name || JSON.stringify(main.preferredCats) !== JSON.stringify([pref.coordinatorId]))
-        await host.threads.update(main.id, {
+  const reconcile = () => {
+    const run = reconciliation.then(async () => {
+      current();
+      const pref = await preferences();
+      let runtime = (await read(host, 'runtime', runtimeSchema)) ?? {};
+      if (!runtime.mainThreadId && pref.coordinatorId) {
+        const main = await host.threads.create({
           title: pref.name,
-          preferredCats: [pref.coordinatorId],
+          participants: [pref.coordinatorId],
         });
-    }
-    const works = await records(host, 'work:', workSchema);
-    const wanted = new Set([
-      ...(pref.enabled || pref.started ? pref.threadIds : []),
-      ...works.map((work) => work.threadId),
-      ...(runtime.mainThreadId ? [runtime.mainThreadId] : []),
-    ]);
-    for (const id of [...subscribed].filter((id) => !wanted.has(id))) {
-      await host.messaging.unsubscribe({ threadId: id });
-      subscribed.delete(id);
-    }
-    for (const id of [...wanted].filter((id) => !subscribed.has(id))) {
-      await host.messaging.subscribe({
-        threadId: id,
-        method: 'superagent.observe',
-      });
-      subscribed.add(id);
-    }
-    return { pref, runtime, works };
+        runtime = { ...runtime, mainThreadId: main.id };
+        await host.storage.set('runtime', runtime);
+      }
+      if (runtime.mainThreadId && pref.coordinatorId) {
+        const main = await host.threads.get(runtime.mainThreadId);
+        if (!main) throw new Error('Bot conversation unavailable');
+        if (main.title !== pref.name || JSON.stringify(main.preferredCats) !== JSON.stringify([pref.coordinatorId]))
+          await host.threads.update(main.id, {
+            title: pref.name,
+            preferredCats: [pref.coordinatorId],
+          });
+      }
+      const works = await records(host, 'work:', workSchema);
+      const wanted = new Set([
+        ...(pref.enabled || pref.started ? pref.threadIds : []),
+        ...works.map((work) => work.threadId),
+        ...(runtime.mainThreadId ? [runtime.mainThreadId] : []),
+      ]);
+      for (const id of [...subscribed].filter((id) => !wanted.has(id))) {
+        await host.messaging.unsubscribe({ threadId: id });
+        subscribed.delete(id);
+      }
+      for (const id of [...wanted].filter((id) => !subscribed.has(id))) {
+        await host.messaging.subscribe({
+          threadId: id,
+          method: 'superagent.observe',
+        });
+        subscribed.add(id);
+      }
+      return { pref, runtime, works };
+    });
+    reconciliation = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   };
   const tick = () => {
     const run = tail.then(async () => {
@@ -281,6 +289,7 @@ export async function startSuperagent(host: SuperagentHost): Promise<PluginModul
     async stop() {
       stopped = true;
       await tail;
+      await reconciliation;
       await Promise.all([...subscribed].map((threadId) => host.messaging.unsubscribe({ threadId })));
       subscribed.clear();
     },
