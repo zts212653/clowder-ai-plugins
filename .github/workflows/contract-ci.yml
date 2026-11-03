@@ -87,6 +87,18 @@ jobs:
           node-version: ${{ env.ARTIFACT_NODE_VERSION }}
           cache: 'pnpm'
 
+      # The required PR job checks ownership before publication is possible.
+      # A separate catalog PR is normal, so pending activation cannot fail main.
+      - name: Validate release destinations before merge
+        if: github.event_name == 'pull_request'
+        env:
+          RELEASE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$RELEASE_BASE_SHA"
+          pnpm install --frozen-lockfile
+          pnpm catalog:release-check -- --base-sha "$RELEASE_BASE_SHA"
+
       # Local gate replica: `pnpm gate:ci` (scripts/ci-gate.mjs) runs the
       # artifact-toolchain check, install, and every check through pack:gate
       # in this job's former order. The workflow delegates to the script so
@@ -419,7 +431,7 @@ jobs:
           package-directory: packages/github-operations
           npm-token: ${{ secrets.NPM_TOKEN }}
 
-      # A successful upload is not a completed release. Keep a visible failure
-      # until the publication owner delivers the separate reviewed catalog PR.
-      - name: Require published catalog activation
-        run: pnpm catalog:activation-check
+      # Publication and discovery are separate transitions. The PR already
+      # declared an owner; the daily audit delivers durable follow-up reminders.
+      - name: Report catalog release follow-up
+        run: pnpm catalog:release-audit
