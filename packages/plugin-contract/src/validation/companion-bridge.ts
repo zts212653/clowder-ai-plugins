@@ -17,11 +17,15 @@ function bounded(value: unknown): boolean {
   try { const json = JSON.stringify(value); return typeof json === 'string' && Buffer.byteLength(json) <= 1_500_000; }
   catch { return false; }
 }
+/** open/add settle one delivered item; shown, dismiss and timeout always settle the whole delivery. */
+const deskItemScoped = (action: string, itemRef: string | undefined) =>
+  (action === 'open' || action === 'add') === (itemRef !== undefined);
 /** Structural validation never substitutes for a current Host lease or a user gesture. */
 export function validateCompanionCommand(value: unknown): value is CompanionCommand {
   if (!bounded(value) || !command(value)) return false;
   const parsed = value as CompanionCommand;
   if (parsed.kind === 'view.layout' && parsed.call !== undefined && parsed.panel !== 'actions') return false;
+  if (parsed.kind === 'desk.settle') return deskItemScoped(parsed.action, parsed.itemRef);
   if (parsed.kind === 'text') return parsed.text.trim().length > 0;
   if (parsed.kind === 'screen.frame') return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(parsed.frame.image);
   return true;
@@ -84,6 +88,12 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     }
     return true;
   }
+  if (parsed.kind === 'desk-settlement') {
+    return deskItemScoped(parsed.action, parsed.itemRef) && (parsed.saved === undefined || parsed.action === 'timeout');
+  }
+  if (parsed.kind === 'desk-thumbnail' || parsed.kind === 'desk-avatar') {
+    return parsed.image === null || parsed.image.dataBase64.length % 4 === 0;
+  }
   if (parsed.kind === 'work') {
     const coverage = new Map(parsed.coverage.map((entry) => [entry.source, entry.status]));
     if (coverage.size !== 3) return false;
@@ -134,6 +144,11 @@ export function validateCompanionReply(value: unknown): value is CompanionReply 
     if (!parsed.audio.supportedModes.includes('duplex')) return false;
     if (parsed.audio.activeMode !== null && !parsed.audio.supportedModes.includes(parsed.audio.activeMode)) return false;
     if ((parsed.phase === 'talking') !== (parsed.audio.activeMode !== null)) return false;
+  }
+  const delivery = parsed.desk.delivery;
+  if (delivery) {
+    if (delivery.mode === 'single' && delivery.items.length !== 1) return false;
+    if (new Set(delivery.items.map((item) => item.itemRef)).size !== delivery.items.length) return false;
   }
   const work = parsed.nativeWork;
   if (work.scopeId === null && (work.active.length > 0 || work.recent.length > 0)) return false;

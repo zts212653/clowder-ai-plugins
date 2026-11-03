@@ -21,7 +21,9 @@ node scripts/assert-pr-head.mjs <owner/repo> <pr-number> <新HEAD-sha>
 
 ## 提交插件
 
-发布完成后还须交付独立的 live catalog PR；发布操作者持有这一步责任，交接须给出明确 owner 与 PR／阻塞原因。`pnpm catalog:activation-check` 是上架完成检查，已接入发布 job 末尾及独立的每日／手动 Catalog Activation Audit。它失败时先区分 npm 发布失败与目录待激活，不要重新发布已存在的 immutable 版本。手工 npm 恢复后立即手动运行 audit，按 `docs/plugin-projects.md` 的三步流程闭环。
+推进插件候选版本的 PR 必须同时在 `catalog/release-plans.json` 声明这个精确版本和 integrity 的去向：`activate`（发布后交独立目录 PR）或 `defer`（暂缓）；两者都写明负责的 owner、复核日期 `reviewBy` 和来源 PR／issue，暂缓还须写原因与放行条件。PR required check 会在发布前核验；新版本、新增或修改的计划不能从一个已过期的日期开始。旧等待过期不会阻塞无关 PR。详见 [release accountability](docs/catalog-release-accountability.md)。
+
+发布完成后仍须交付独立的 live catalog PR；发布操作者持有这一步责任，交接给出明确 owner 与 PR／阻塞原因。发布 job 使用 `pnpm catalog:release-audit` 报告待上架、暂缓和超期，**不会因为正常的第二个 PR 尚未合入而把 main 染红**。每日／手动 Catalog Activation Audit 将需要处理的事项写入具名、去重的 GitHub issue，解决后自动关闭。`pnpm catalog:activation-check` 保留为人工要求整批上架完成时的严格命令，不再是 main 的发布门槛。手工 npm 恢复后立即手动运行 audit；不要重发已存在的 immutable 版本。
 
 每个插件独立目录、独立 `package.json` 与 `plugin.yaml`。PR 说明用途、稳定 pluginId、版本、维护者、配置要求、依赖变动和实际安装/启停结果；没有配置或账号要求的插件不要增加无意义的用户步骤。
 

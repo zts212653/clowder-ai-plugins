@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { bindPetControls } from '../src/pet-controls.mjs';
 
-function fixture({ layout } = {}) {
+function fixture({ layout, changed = () => {} } = {}) {
   const nodes = new Map();
   const calls = [], moves = [];
   const node = id => ({
@@ -22,7 +22,7 @@ function fixture({ layout } = {}) {
       return { focus() {} };
     },
   });
-  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'call-bubble', 'app-assist', 'decisions', 'transcript', 'settings',
+  for (const id of ['pet', 'anchor', 'actions', 'menu', 'chat', 'bubble', 'call-bubble', 'app-assist', 'desk', 'decisions', 'transcript', 'settings',
     'decision-reload', 'message', 'call-message', 'settings-back']) nodes.set(id, node(id));
   const mutationObservers = [];
   const previous = { document: globalThis.document, window: globalThis.window,
@@ -41,7 +41,7 @@ function fixture({ layout } = {}) {
       ...(call?.bubble ? { bubble: { x: 16, y: 20, ...call.bubble } } : {}), width: 360 };
   }) };
   const errors = [];
-  const controls = bindPetControls(client, { action() {}, error: (...args) => errors.push(args), changed() {}, moved: (...args) => moves.push(args) });
+  const controls = bindPetControls(client, { action() {}, error: (...args) => errors.push(args), changed, moved: (...args) => moves.push(args) });
   return { controls, calls, errors, moves, nodes,
     mutate(target) { for (const observer of mutationObservers) observer.callback([{ type: 'childList', target }]); },
     restore() {
@@ -124,6 +124,36 @@ test('a Host that rejects a new panel restores the previous usable surface', asy
     assert.equal(f.nodes.get('settings').hidden, true);
     assert.equal(f.errors.length, 1);
     assert.deepEqual(f.errors[0][1], { panel: 'settings' });
+  } finally { f.restore(); }
+});
+
+test('a content remeasure that supersedes a panel\'s first layout still announces the entered panel once', async () => {
+  const pending = [];
+  const entered = [];
+  const f = fixture({
+    changed: panel => entered.push(panel),
+    layout: (panel, width, height) => new Promise(resolve => pending.push(() => resolve({
+      pet: { x: 0, y: 0 }, panel: { x: 120, y: 0, height }, width: 360,
+    }))),
+  });
+  try {
+    const opening = f.controls.setAmbient('desk');
+    const desk = f.nodes.get('desk');
+    desk.naturalHeight = 328;
+    f.mutate(desk);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(pending.length, 2, 'the grown bubble asks for a new size before the first answer arrives');
+    for (const resolve of pending.splice(0)) resolve();
+    await opening;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(entered, ['desk'], 'visibility consumers learn that the panel is on screen');
+    f.mutate(desk);
+    desk.naturalHeight = 340;
+    f.mutate(desk);
+    await new Promise(resolve => setImmediate(resolve));
+    for (const resolve of pending.splice(0)) resolve();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(entered, ['desk'], 'resizing the same applied panel is not a new entry');
   } finally { f.restore(); }
 });
 

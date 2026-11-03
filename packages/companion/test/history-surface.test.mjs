@@ -25,6 +25,8 @@ import { CallControlsPresentation } from '../src/call-controls-presentation.mjs'
 import { CallDuration } from '../src/call-duration.mjs';
 import { AppAssistController } from '../src/app-assist-controller.mjs';
 import { bindAppAssistCountdown } from '../src/app-assist-countdown.mjs';
+import { DeskDeliveryController } from '../src/desk-delivery-controller.mjs';
+import { DeskDeliveryView } from '../src/desk-delivery-view.mjs';
 
 const source = readFileSync(process.env.COMPANION_SURFACE_TEST_FILE ?? new URL('../src/surface.mjs', import.meta.url), 'utf8');
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -62,6 +64,7 @@ function fixture() {
     nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
     meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
     appAssist: { scopeRef: 'fixture-view-a', revision: 1, status: 'off', offer: null },
+    desk: { scopeRef: 'fixture-desk-a', revision: 1, status: 'off', delivery: null },
     nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
     duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' } };
   let onControls, onVoice, receive, shareState, travelObserver, history = async () => ({ threadTitle: '猫猫球 · 伴随对话', messages: [{ id: 'old', role: 'user', text: '之前的对话', name: '你' }] });
@@ -104,7 +107,7 @@ function fixture() {
     this.panel = panel === 'none' && this.ambient !== 'none' ? this.ambient : panel;
     if (previous !== this.panel) onControls.changed(this.panel);
   },
-    async setAmbient(value) { this.ambient = value === true ? 'bubble' : value === false ? 'none' : value; if (['none', 'bubble', 'actions'].includes(this.panel)) await this.show('none'); },
+    async setAmbient(value) { this.ambient = value === true ? 'bubble' : value === false ? 'none' : value; if (['none', 'bubble', 'actions', 'app-assist', 'desk'].includes(this.panel)) await this.show('none'); },
     dismiss() { void this.show('none'); } };
   const client = { state: async () => identity, prepare: async () => ({ ...identity, phase: 'ready' }),
     stop: async () => calls.push('stop'), subscribe: callback => { receive = callback; return () => {}; },
@@ -174,6 +177,19 @@ function fixture() {
       calls.push(['app-assist-settle', scopeRef, offerRef, action]);
       return { kind: 'app-assist-settlement', scopeRef, revision: 2, offerRef, action, outcome: 'settled' };
     },
+    settleDesk: async (scopeRef, deliveryRef, action, itemRef) => {
+      calls.push(['desk-settle', scopeRef, deliveryRef, action, itemRef]);
+      return { kind: 'desk-settlement', scopeRef, revision: 3, deliveryRef, action,
+        ...(itemRef === undefined ? {} : { itemRef }), outcome: 'settled' };
+    },
+    readDeskAvatar: async (scopeRef, deliveryRef) => {
+      calls.push(['desk-avatar', scopeRef, deliveryRef]);
+      return { kind: 'desk-avatar', scopeRef, deliveryRef, image: null };
+    },
+    readDeskThumbnail: async (scopeRef, deliveryRef, itemRef) => {
+      calls.push(['desk-thumbnail', scopeRef, deliveryRef, itemRef]);
+      return { kind: 'desk-thumbnail', scopeRef, deliveryRef, itemRef, image: null };
+    },
     resetPosition: async () => { calls.push('position-reset'); return { kind: 'ok' }; },
     observePresentation: async observation => { calls.push(['presentation-observe', observation]); return { kind: 'ok' }; },
     disableCompanion: async () => { calls.push('companion-disable'); return { kind: 'companion-lifecycle', action: 'disable', outcome: 'disabled' }; } };
@@ -201,6 +217,7 @@ function fixture() {
     DecisionPanel, decisionBadge, decisionPresentation, decisionRows, normalizeNativeWork, nativeWorkLabel, currentCompanionIdentity,
     FoldedChatUnread, COMPACT_BALL_SIZE, compactSizeAction, WorkOverviewView, MeetingStatus, meetingPresentation, renderMeetingStatus,
     VisibleTextPresentation, CallControlsPresentation, CallDuration, AppAssistController, bindAppAssistCountdown,
+    DeskDeliveryController, DeskDeliveryView,
     ConversationHistory, ReplyLetterController, ReplyLetterView, HostConversationDraft, ConversationSurface,
     explainError: () => '未更新',
     setInterval: callback => { monitors.push(callback); }, clearInterval() {}, queueMicrotask,
@@ -252,6 +269,47 @@ test('three-second history polling preserves an unsettled app-assist offer from 
   assert.equal(f.controls.panel, 'app-assist');
   assert.equal(f.nodes.get('app-assist-name').textContent, 'Fixture Writer');
   assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'app-assist-settle'), false);
+});
+
+test('a desk delivery waits behind an app-assist prompt, then shows once and dismisses through the Host', async () => {
+  const f = fixture(); await flush();
+  const base = {
+    phase: 'idle', displayName: '宪宪', skin: 'xianxian-codex', behaviorEnabled: true,
+    nativeActivity: 'none', liveTransport: { kind: 'gpt_live_v3', verifiedModel: null },
+    meeting: { kind: 'idle', sharing: false, paused: false, sourceLabel: null },
+    nativeWork: { scopeId: '0123456789abcdef', revision: 0, active: [], recent: [] },
+    duty: { catId: 'cat', displayName: '宪宪' }, carrier: { catId: 'cat', displayName: '宪宪' },
+  };
+  const delivery = { deliveryRef: 'delivery-1', mode: 'single',
+    from: { catId: 'codex61-sol', displayName: '小太阳', role: 'watcher' },
+    items: [{ itemRef: 'item-sheet', kind: 'work', title: '六猫岛 · 单采肖像参考', sentence: '鲸鲸那三格，照他的头像画就行。',
+      source: { conversationTitle: '「视频」自媒体视频运营' }, action: 'open', thumbnail: true }], more: 0 };
+  f.identity({ ...base,
+    appAssist: { scopeRef: 'fixture-view-a', revision: 2, status: 'ready', offer: { offerRef: 'offer-a', appName: 'Fixture Writer' } },
+    desk: { scopeRef: 'fixture-desk-a', revision: 2, status: 'ready', delivery } });
+  f.tick(); await flush(); await flush();
+
+  assert.equal(f.controls.panel, 'app-assist', 'the short app-assist prompt keeps its turn');
+  assert.equal(f.calls.some(call => Array.isArray(call) && call[0] === 'desk-settle'), false,
+    'a delivery hidden behind another panel has not been shown');
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'desk-thumbnail' && call[3] === 'item-sheet'));
+  assert.ok(f.calls.some(call => Array.isArray(call) && call[0] === 'desk-avatar' && call[2] === 'delivery-1'));
+
+  await f.nodes.get('app-assist-dismiss').onclick(); await flush(); await flush();
+  assert.equal(f.controls.panel, 'desk');
+  assert.equal(f.nodes.get('desk-name').textContent, '守望猫 · 小太阳');
+  assert.equal(f.nodes.get('desk-avatar').hidden, true, 'no avatar bytes means the name stands alone');
+  assert.equal(f.nodes.get('desk-text').textContent, '鲸鲸那三格，照他的头像画就行。');
+  assert.equal(f.nodes.get('desk-title').textContent, '六猫岛 · 单采肖像参考', 'without a picture the title says what 打开 opens');
+  assert.equal(f.nodes.get('desk-open').textContent, '打开');
+  f.tick(); await flush();
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'desk-settle'),
+    [['desk-settle', 'fixture-desk-a', 'delivery-1', 'shown', undefined]]);
+
+  await f.nodes.get('desk-dismiss').onclick(); await flush();
+  assert.deepEqual(f.calls.filter(call => Array.isArray(call) && call[0] === 'desk-settle').at(-1),
+    ['desk-settle', 'fixture-desk-a', 'delivery-1', 'dismiss', undefined]);
+  assert.equal(f.controls.panel, 'none');
 });
 
 test('a scroll for older history waits for an active latest read and uses its current cursor once', async () => {

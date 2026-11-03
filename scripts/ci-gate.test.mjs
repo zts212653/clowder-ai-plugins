@@ -150,6 +150,9 @@ test('both validation workflows have no package command missing from the local g
   const gate = buildGateSteps().map(step => step.command).join(' && ');
   const externalSteps = new Set([
     'Assert tested HEAD is the PR\'s live head',
+    // Needs the PR's exact base object, like the live-HEAD check above. The
+    // production command has its own Git-backed lifecycle regression journey.
+    'Validate release destinations before merge',
     'Companion browser layout contract',
     'Xiangqi browser journey',
     'Capture exact-head pack evidence',
